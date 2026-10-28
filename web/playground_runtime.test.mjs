@@ -17,6 +17,7 @@ import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
+import {encodeBrr} from './snes_brr_encoder.js';
 import {WonderSwanSynth} from './wonderswansynth.js';
 import {PokeySynth} from './pokeysynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
@@ -56,6 +57,28 @@ function setup(t, capabilities, runtimeOptions = {}, createRuntime = createPlayg
   });
   return { runtime, megaDrive, listeners, statuses, logs };
 }
+
+for (const chip of ['ym2612', 'snes']) test(`Main ${chip} exposes the same pure BRR encoder globally and through pg`, async t => {
+  const {runtime, megaDrive} = setup(t, {chip, fmChannels:chip === 'snes' ? 0 : 6, psg:chip !== 'snes', dac:chip !== 'snes'});
+  megaDrive.stopAllNative = () => {};
+  await runtime.playSource(`
+    if(encodeBrr!==pg.encodeBrr)throw Error('Separate BRR encoders');
+    ${chip === 'snes' ? "if(typeof fm!=='undefined'||typeof pg.fm!=='undefined')throw Error('Unexpected OPN API');" : ''}
+    const pcm=Float32Array.from({length:32},(_,i)=>.5*Math.sin(2*Math.PI*i/32));
+    context.globalBrr=encodeBrr(pcm,{loopStartSamples:0});
+    context.pgBrr=pg.encodeBrr(pcm,{loopStartSamples:0});
+  `);
+  const expected = encodeBrr(Float32Array.from({length:32}, (_, i) => .5 * Math.sin(2 * Math.PI * i / 32)), {loopStartSamples:0});
+  assert.deepEqual(runtime.context.globalBrr, expected);
+  assert.deepEqual(runtime.context.pgBrr, expected);
+});
+
+test('Main BRR encoder forwards loop alignment and capacity validation from both public entry points', async t => {
+  const {runtime, megaDrive} = setup(t, {chip:'snes', fmChannels:0, psg:false, dac:false});
+  megaDrive.stopAllNative = () => {};
+  await assert.rejects(runtime.playSource(`encodeBrr(new Float32Array(16),{loopStartSamples:1});`), /aligned/);
+  await assert.rejects(runtime.playSource(`pg.encodeBrr(new Float32Array(16),{maxBytes:8});`), /maxBytes/);
+});
 
 // Inject a deterministic audio endpoint into the real runtime, keeping its
 // production factory and public options unchanged. Other imports retain their

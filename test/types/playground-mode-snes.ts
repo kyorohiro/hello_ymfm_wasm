@@ -2,6 +2,13 @@
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 
 async function checkSnesModeTypes() {
+  const encoded = encodeBrr(new Float32Array(32), {loopStartSamples:0});
+  pg.encodeBrr(new Float32Array(16)).metrics.snrDb?.toFixed();
+  await snes.loadBRR(encoded.brr, {baseFrequencyHz:250, loopStartSamples:encoded.loopStartSamples!});
+  // @ts-expect-error PCM must be Float32.
+  encodeBrr(new Int16Array(32));
+  // @ts-expect-error Encoder does not infer tuning or resample.
+  pg.encodeBrr(new Float32Array(32), {sampleRate:32000});
   const instrument = await snes.loadBRR(new Uint8Array(9), {rootNote:'C4'});
   snes.setPreset(7, {sample:instrument,volumeLeft:70,volumeRight:70});
   pg.snes.noteOn(7,'C4'); snes.keyOff(7);

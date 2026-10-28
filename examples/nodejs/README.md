@@ -12,6 +12,34 @@ FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDir
 既存の `createSegaPsgApi` / `createRf5c164Control` は互換窓口として同じSynthを利用する。
 RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf5c164.js` に分離している。
 
+## SNES PCM → BRR → WAV
+
+```sh
+node examples/nodejs/main_snes_pcm_brr.js
+node examples/nodejs/main_snes_pcm_brr.js /tmp/snes-pcm-brr
+```
+
+[main_snes_pcm_brr.js](main_snes_pcm_brr.js) は自作の128フレームのサイン波を
+`encodeBrr()` でループするBRRに変換し、実際の `SnesDspCore` と `SnesSynth` で
+C4・E4・G4・C5・G4・E4を演奏する。外部ROM・サンプルファイル・AudioContextは不要。
+32 kHz・16 bitステレオ、Key Off後の余韻と無音を含む2秒のWAVを保存する。
+
+引数は拡張子を付けない出力先の接頭辞。
+省略時はスクリプトと同じ場所に `snes-pcm-brr.brr`、`snes-pcm-brr.json`、
+`snes-pcm-brr.wav` を作成し、同名ファイルは上書きする。
+JSONにはフレーム数、パディング、BRRサイズ、ループ開始位置、明示したチューニング、
+変換誤差のRMS・最大値・SNRを保存する。誤差はDSP補間・エンベロープ前の
+BRR復号PCMと入力PCMとの比較で、WAVの音質評価とは異なる。
+
+`encodeBrr()` の入力は値域 `[-1, 1]` のモノラル `Float32Array`。
+リサンプリングは行わず、ループ開始位置とループする入力長は16サンプル単位に揃える。
+この例は32,000 Hzで1周期128サンプルなので、`loadBRR()` に
+`{baseFrequencyHz:250, loopStartSamples:0}` を明示する。
+BRR自体にサンプルレート・音名・ループ開始アドレスは保存されないため、JSONも一緒に保持する。
+既定の変換上限は64,512バイトで、既存サンプルがある場合は残りのRAMを呼び出し側で管理する。
+必要なWASMは `sh scripts/build_spc_wasm.sh` で生成する。
+`finally` の `snes.dispose()` がコアも解放する。
+
 ## Game Boy DMG
 
 ```sh

@@ -2,6 +2,7 @@ import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=pokey-prepare-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
+import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=pokey-voice-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=pokey-prepare-1';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
@@ -267,7 +268,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=pcengine-cd-1",
+      "./playground_logic_worker.js?v=snes-brr-encoder-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -2435,6 +2436,7 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      encodeBrr,
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       inputAudio: inputOptions => inputAudio(inputOptions, runToken),
@@ -2661,6 +2663,7 @@ export function createPlaygroundRuntime(
         console:
           playgroundConsole,
         pg,
+        encodeBrr: pg.encodeBrr,
         mixer: pg.mixer,
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,

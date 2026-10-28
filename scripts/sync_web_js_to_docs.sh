@@ -30,6 +30,7 @@ spc_performance.js
 spc_pitch.js
 spc_file.js
 snes_brr.js
+snes_brr_encoder.js
 spc_audio.js
 spc-worklet.js
 spc_resampler.js

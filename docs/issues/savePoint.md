@@ -1,3 +1,13 @@
+## 2026-10-28 — PCM → SNES BRR変換API・Example・実コア検証を追加
+
+- `web/snes_brr_encoder.js`／docs mirrorに純JSの`encodeBrr()`。正規化mono Float32 PCMからBRRへ変換し、元／padding後の長さ・loop位置・JSON保存可能な誤差を返す。再sample／音量補正／音程推定なし。16sample境界を検証、先頭／loop先頭filter0で周回ごとのPCM差を防ぐ。既定上限64,512bytes、他sampleとのRAM配分はcaller側。
+- Playground Main／Workerでglobalと`pg.encodeBrr`を公開。SNES modeに`examples/snes/snes-pcm-brr.js`、Nodeに`.brr`＋tuning／metrics JSON＋実S-DSP WAVを生成するExample。外部音声／game asset不要、Mixer指定なし。公開guideは[../snes_brr_encoder.md](../snes_brr_encoder.md)。Sample Editorへの接続は次の作業。
+- core37件（新encoder8件）、runtime／Worker／Monaco261件、catalog／declaration50件、既存CI unit36件が成功。実NativeとWASMのraw decodeおよび31,040 stereo framesが完全一致。全mode型とnpm installed tarballの型／実行／両subpath／実DSP再生・releaseも成功。versionは0.2.32のまま。
+- Chromium153／WebKit26.6 × Main／Worker × source本体／実Run ZIPの8条件成功。実音声PCM・不正入力拒否・各Example2回・Stop後exact zeroを確認、物理出力mute。人による実聴／Tauri GUI確認は未実施。
+- ZIP：`release/hello_ymfm_wasm_snes-brr-encoder-dev_itch_playground_for_run.zip`、892entries、SHA256 `1b986790fb3f2d010dbd5d0c607a7420c7612d07bd4807da016cc584762df159`。full ZIPは同prefixの_for_runなし。両ZIPのCRC／全stage bytes一致と依存を確認。cacheは`snes-brr-encoder-1`。CIへcore／packaged browser試験を追加、actionlint成功。
+- DSP core／WASM／Mixer／固定SDKは変更なし。今回featureは**未commit／未push／未公開**、新CIはremote未実行。SDK／Tauri取込、npm公開、tag、itch uploadなし。前のGame Boy作業はユーザーcommit `02d6e82e`に含まれる。
+- 詳細：[brr_encoder_01.md](brr_encoder_01.md)／[JSON](brr_encoder_01.json)。下記は各時点の履歴。
+
 ## 2026-10-28 — Game Boy Sample Editorの変換後比較・試奏を追加
 
 - Menu → Sample EditorでGame Boyを選ぶと、編集後の選択範囲と32点・4bit変換後波形を比較できる。Preview Game Boyで基準音を0.85秒試奏。表示・試奏・保存後Keyboardは同じ既存converterを使用。保存形式は元WAV＋編集JSONのまま。

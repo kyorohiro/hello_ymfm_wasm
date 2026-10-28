@@ -10,6 +10,7 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
   if (symbol === 'opl') return {file:'playground_opl.js',symbol:'createOplClient'};
+  if (symbol === 'encodeBrr') return {file:'snes_brr_encoder.js',symbol};
   if (symbol === 'OPL_PRESETS') return {file:'opl_synth.js',symbol:'OPL_PRESETS'};
   if (symbol === 'opll') return {file:'playground_ym2413.js',symbol:'createYm2413Client'};
   if (symbol === 'ay') return {file:'playground_ay8910.js',symbol:'createAy8910Client'};

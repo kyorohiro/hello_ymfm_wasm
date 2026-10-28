@@ -5,7 +5,7 @@ import {definitionSource, sourcePosition, sourceChip, globalDefinition, runtimeI
 
 test('actual Playground declarations navigate to the factory and YM2612 implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
-  for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['setFrequency', 'ym2612synth.js']]) {
+  for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['encodeBrr', 'snes_brr_encoder.js'], ['setFrequency', 'ym2612synth.js']]) {
     const lines = declarations.split('\n');
     const line = lines.findIndex(text => new RegExp(`\\b${symbol}[<(]`).test(text));
     assert.ok(line >= 0);
@@ -14,6 +14,26 @@ test('actual Playground declarations navigate to the factory and YM2612 implemen
     const source = await readFile(new URL(`../js/${file}`, import.meta.url), 'utf8');
     const position = sourcePosition(source, symbol);
     assert.match(source.split('\n')[position.lineNumber - 1], new RegExp(`\\b${symbol}\\s*[( :]`));
+  }
+});
+
+test('BRR encoder global and pg fallback resolve the actual encoder declaration and implementation', async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
+  const library = {
+    uri:'file:///tetorica-playground-globals.d.ts', getValue:() => declarations,
+    getPositionAt:offset => ({lineNumber:declarations.slice(0, offset).split('\n').length, column:offset - declarations.lastIndexOf('\n', offset - 1)}),
+  };
+  for (const code of ['encodeBrr(pcm)', 'pg.encodeBrr(pcm)', 'other.encodeBrr(pcm)']) {
+    const startColumn = code.indexOf('encodeBrr') + 1;
+    const model = {getWordAtPosition:() => ({word:'encodeBrr', startColumn}), getLineContent:() => code};
+    const target = globalDefinition(model, {lineNumber:1, column:startColumn}, new Map([['library', library]]));
+    if (code.startsWith('other.')) assert.equal(target, null);
+    else {
+      assert.equal(target?.uri, library.uri);
+      const line = declarations.split('\n')[target.range.startLineNumber - 1];
+      assert.match(line, /^declare function encodeBrr\(/);
+      assert.deepEqual(definitionSource(declarations, target.range), {file:'snes_brr_encoder.js', symbol:'encodeBrr'});
+    }
   }
 });
 

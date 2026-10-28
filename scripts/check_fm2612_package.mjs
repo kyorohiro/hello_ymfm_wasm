@@ -13,6 +13,9 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  for (const file of ['snes_brr_encoder.js','snes_brr_encoder.d.ts']) {
+    assert.ok(packedPaths.has(file), `BRR encoder payload missing ${file}`);
+  }
   for (const file of ['soundchip_mixer.js', 'soundchip_mixer.d.ts', 'soundchip_mixer_presets.js', 'soundchip_mixer_presets.d.ts']) {
     assert.ok(packedPaths.has(file), `Optional Mixer calibration payload missing ${file}`);
   }
@@ -81,6 +84,34 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'brr-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {encodeBrr} from 'tetorica-fm2612/snes_brr_encoder.js';
+import {encodeBrr as extensionless} from 'tetorica-fm2612/snes_brr_encoder';
+import {SnesDspCore} from 'tetorica-fm2612/spc.js';
+import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import moduleFactory from 'tetorica-fm2612/generated/spc_wasm.js';
+assert.equal(encodeBrr,extensionless);
+const pcm=Float32Array.from({length:128},(_,i)=>.75*Math.sin(2*Math.PI*i/128));
+const encoded=encodeBrr(pcm,{loopStartSamples:0});
+assert.equal(encoded.brr.length,72);assert.equal(encoded.paddingFrames,0);
+assert(encoded.metrics.snrDb>30);assert.equal(encoded.brr.at(-9)&3,3);
+const core=await SnesDspCore.create({moduleFactory,moduleOptions:{wasmBinary:
+  await readFile(new URL('./node_modules/tetorica-fm2612/generated/spc_wasm.wasm',import.meta.url))}});
+const synth=new SnesSynth({core});
+try {
+ const sample=synth.loadBRR(encoded.brr,{baseFrequencyHz:250,loopStartSamples:0});
+ synth.setPreset(0,{sample});synth.noteOn(0,'C4');
+ const left=new Float32Array(3200),right=new Float32Array(3200);
+ synth.renderInto(left,right);assert(left.every(Number.isFinite)&&right.every(Number.isFinite));
+ assert(left.some(value=>Math.abs(value)>.01));
+ synth.noteOff(0);synth.renderInto(left,right);synth.renderInto(left,right);
+ assert(left.slice(-128).every(value=>value===0));
+}finally{synth.dispose();}
+console.log('Installed BRR encoder verified: both exports, PCM conversion and actual S-DSP playback/release.');
+`);
+  execFileSync(process.execPath,[join(consumer,'brr-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'cdda-check.mjs'),`
 import assert from 'node:assert/strict';
 import {createCddaOffline} from 'tetorica-fm2612/cdda_offline.js';

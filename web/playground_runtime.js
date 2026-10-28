@@ -2,6 +2,7 @@ import {createSpcAudio} from './playground_spc_audio.js';
 import {createSpcClient} from './playground_spc.js';
 import {createSnesAudio} from './playground_snes_audio.js';
 import {createSnesClient} from './playground_snes.js';
+import {encodeBrr} from './snes_brr_encoder.js';
 import {createChipInspector} from './playground_chip_inspector.js';
 import {createPerformanceHost} from './playground_performance_host.js';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js';
@@ -2435,6 +2436,7 @@ export function createPlaygroundRuntime(
       check:()=>{if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');}});
     midiApis.add(midi);
     const pg = {
+      encodeBrr,
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       inputAudio: inputOptions => inputAudio(inputOptions, runToken),
@@ -2661,6 +2663,7 @@ export function createPlaygroundRuntime(
         console:
           playgroundConsole,
         pg,
+        encodeBrr: pg.encodeBrr,
         mixer: pg.mixer,
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,

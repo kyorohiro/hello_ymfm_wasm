@@ -128,6 +128,15 @@ import {createSnesClient} from 'tetorica-fm2612/playground_snes.js';
 import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
 import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
 import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import {encodeBrr} from 'tetorica-fm2612/snes_brr_encoder.js';
+const encodedBrr = encodeBrr(new Float32Array(32), {loopStartSamples:0, maxBytes:18});
+encodedBrr.brr.byteLength.toFixed();
+encodedBrr.metrics.snrDb?.toFixed();
+encodedBrr.paddingFrames.toFixed();
+// @ts-expect-error Normalized PCM must be Float32.
+encodeBrr(new Int16Array(32));
+// @ts-expect-error Use an explicit sample index for the loop.
+encodeBrr(new Float32Array(32), {loop:true});
 import spcFactory from 'tetorica-fm2612/generated/spc_wasm.js';
 const spcCore = await SpcCore.create({moduleFactory:spcFactory});
 spcCore.load(new Uint8Array());

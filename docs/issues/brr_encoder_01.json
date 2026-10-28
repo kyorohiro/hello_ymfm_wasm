@@ -1,0 +1,947 @@
+{
+  "date": "2026-10-28",
+  "feature": "pcm-to-snes-brr-encoder",
+  "baseCommit": "02d6e82e3cc14f5ab102f2f0e6c69e194119d515",
+  "uncommitted": true,
+  "inputs": {
+    ".github/workflows/itch-web.yml": {
+      "bytes": 5648,
+      "sha256": "6682e25a5318d05836610be4d1cfee28bd8378cf5b8974611f770d0ce93c1bbb"
+    },
+    "docs/issues/todo20261020.md": {
+      "bytes": 15254,
+      "sha256": "6e79b445391ddaf1d4702878feddf2f715230fef2e5f0804a7e225b1770409be"
+    },
+    "docs/js/playground_logic_worker.js": {
+      "bytes": 58165,
+      "sha256": "99928f1dd535f0130ba3188e7609b2266980697ec0083335c5736449b3131144"
+    },
+    "docs/js/playground_runtime.js": {
+      "bytes": 154508,
+      "sha256": "bb272b9e5293b53d180897acddf5f97a04a0026dfe8c04a22860a7a9674e23c4"
+    },
+    "docs/js/snes_brr_encoder.js": {
+      "bytes": 8204,
+      "sha256": "d59e92433158c12173f42d4d3ed3412605d8f4c58819396e663ad02969fbe796"
+    },
+    "docs/playground/audio-check.html": {
+      "bytes": 7842,
+      "sha256": "4217103106067065fc7e2129e9529f617b281c14c222c711e5ce2218f5a57651"
+    },
+    "docs/playground/examples/snes/snes-pcm-brr.js": {
+      "bytes": 1259,
+      "sha256": "a2129806ddf7529fb53318c117887ee847d4477872cc8a5a5d9dd0178965a096"
+    },
+    "docs/playground/index.html": {
+      "bytes": 130867,
+      "sha256": "798d0d44c386e354447f744141cc58cf42450073a6d35fb41aaa7bb95aa2a043"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124811,
+      "sha256": "45b66dba1b007c12e739009b7c8d9cf843ee1929526c0154d38a9ff5b13f5b4d"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 203700,
+      "sha256": "8298acd96d66536e869eacb1ebf817c359e4477e9b71cbeffa5997c136fcbb73"
+    },
+    "docs/playground/playground_logic_worker.test.mjs": {
+      "bytes": 119267,
+      "sha256": "6f7166e15521e24b05aa394fa2d37cf1d1da9a3525f751cb6c2455b6a3d5a11d"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5154,
+      "sha256": "d3f9bf48b8658e00a17b0fd3daf8e2e4494524d16520574c1b81cbc3ea113e2d"
+    },
+    "docs/playground/playground_monaco.js": {
+      "bytes": 22678,
+      "sha256": "6842924381c390ad6d847afce9d4355cd8ef80dde9ec396af3fa9c9b9547566c"
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "bytes": 16569,
+      "sha256": "620d9d7b0c6d9bfdbbf429aaabff4af8fa73ceab9ff6711629c7bec76f5426c0"
+    },
+    "docs/playground/playground_monaco_definitions.test.mjs": {
+      "bytes": 10855,
+      "sha256": "b83a1027190074cfc4e3ebf75c08c2358fa87c83509d5a3bc473e7ac38b97453"
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "bytes": 120688,
+      "sha256": "d01e65a43be07205a22c0f6e3cbdbdc971f9f39c3ff18150d95d286c41238962"
+    },
+    "docs/snes_brr_encoder.md": {
+      "bytes": 6154,
+      "sha256": "24da745271d4f24f146ee11072142e3ff3ed038e1e449e6c3e9d6fa1dbe217f2"
+    },
+    "examples/nodejs/README.md": {
+      "bytes": 29351,
+      "sha256": "3028a85226a582b36ad573a2c97cfbb529e9d9920c8884916b7e9ab592f58263"
+    },
+    "examples/nodejs/main_snes_pcm_brr.js": {
+      "bytes": 2991,
+      "sha256": "ab2326fb59f9d397566992fc0e0fe0e2d669875dfcd2e01ba07a2836ae85dad7"
+    },
+    "packages/fm2612/README.md": {
+      "bytes": 84720,
+      "sha256": "d28c9f4a171422f26592e1a4d6739019e5d1c20c43a6551854fb6cf07c782a32"
+    },
+    "scripts/check_fm2612_package.mjs": {
+      "bytes": 44751,
+      "sha256": "96fa492f4d3aea906ce99899b81ab2495e1c14c69de22818eda737c7a7c7bc52"
+    },
+    "scripts/check_playground_package.mjs": {
+      "bytes": 10102,
+      "sha256": "c117927d366aa70af449a7795920fa26047c0140be8b6033406e729e5ef610f3"
+    },
+    "scripts/check_snes_brr_encoder_browser.cjs": {
+      "bytes": 17394,
+      "sha256": "b494c4685f4b744533ac9234b9d2ed9f748aefb1b0ac573e45fa7cf4543b2fe4"
+    },
+    "scripts/package_itch_playground.sh": {
+      "bytes": 22969,
+      "sha256": "3d785e3fd8775acd5b338edfbea28725edced751c6538e9c5f61cf2572da565c"
+    },
+    "scripts/sync_web_js_to_docs.sh": {
+      "bytes": 14227,
+      "sha256": "f4e074b3bcd21124866ee55425961a35330ea7cc367e8ce5fc1ab618df04d0c3"
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "bytes": 32941,
+      "sha256": "bc7adbc861f3a5215f6d9db2059c5ecd4befd262a18b5ca216fd378c38426f8f"
+    },
+    "test/types/fm2612-browser.mts": {
+      "bytes": 17080,
+      "sha256": "2dacab02d4b19aa8db503131ea4687f8ad1d2783f61685e09b4f558dc528959f"
+    },
+    "test/types/playground-mode-snes.ts": {
+      "bytes": 1818,
+      "sha256": "188302cb622005402f9890d5053799d480100d02819828a87a8fca5e1d9e4855"
+    },
+    "web/playground_logic_worker.js": {
+      "bytes": 57734,
+      "sha256": "9bf892b97b6789afc234604ddd46d1601ab4d32513d5bdfcab67f1d5f07722a6"
+    },
+    "web/playground_runtime.js": {
+      "bytes": 153424,
+      "sha256": "7bb9b260a3dd7de4d9b3271e92a46157a004839996552673efbac761180b8135"
+    },
+    "web/playground_runtime.test.mjs": {
+      "bytes": 134283,
+      "sha256": "628a5e5c22ec60298a09633c4670c1a1473a685185c6d6935ce1c8b13724ab1b"
+    },
+    "web/snes_brr_encoder.js": {
+      "bytes": 8204,
+      "sha256": "d59e92433158c12173f42d4d3ed3412605d8f4c58819396e663ad02969fbe796"
+    },
+    "web/snes_brr_encoder.test.mjs": {
+      "bytes": 17816,
+      "sha256": "57aa4fb7026baf458b279908d58727954ad52db0f28d24173a856524bf3ab275"
+    }
+  },
+  "api": {
+    "name": "encodeBrr",
+    "module": "snes_brr_encoder.js",
+    "playground": [
+      "encodeBrr",
+      "pg.encodeBrr"
+    ],
+    "input": "mono normalized Float32Array",
+    "defaultMaxBytes": 64512,
+    "loopAlignmentFrames": 16,
+    "resamples": false,
+    "normalizes": false,
+    "infersTuning": false
+  },
+  "nodeTests": [
+    {
+      "command": "node --test web/snes_brr.test.mjs web/snes_brr_encoder.test.mjs web/snessynth.test.mjs web/spc.test.mjs",
+      "passed": 37,
+      "skipped": 0,
+      "newEncoderCases": 8,
+      "nativeWasmStereoFramesEqual": 31040
+    },
+    {
+      "command": "node --test web/playground_runtime.test.mjs docs/playground/playground_logic_worker.test.mjs docs/playground/playground_monaco_definitions.test.mjs",
+      "passed": 261
+    },
+    {
+      "command": "node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_examples.test.mjs docs/playground/playground_mode_starters.test.mjs docs/playground/playground_declarations.test.mjs",
+      "passed": 50
+    },
+    {
+      "command": "node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs web/playground_sample_gameboy_preview.test.mjs",
+      "passed": 36
+    }
+  ],
+  "types": {
+    "playgroundAllModes": true,
+    "installedNodeNext": true,
+    "installedBundler": true,
+    "browserWithoutNodeAmbientTypes": true
+  },
+  "npm": {
+    "version": "0.2.32",
+    "published": false,
+    "files": 939,
+    "installedTarballChecksPassed": true,
+    "encoderBothExportsAndActualDspPlayback": true
+  },
+  "nodeExample": {
+    "frames": 64000,
+    "sampleRate": 32000,
+    "channels": 2,
+    "durationSeconds": 2,
+    "peak": 0.46514892578125,
+    "last200msExactZero": true,
+    "sha256": "21f8f5b7e42d73c95e3227ec8882517d102a00221fa66422b4e35c5fdf196688"
+  },
+  "exampleConversion": {
+    "sampleRate": 32000,
+    "sampleOptions": {
+      "baseFrequencyHz": 250,
+      "loopStartSamples": 0
+    },
+    "byteLength": 72,
+    "sourceFrames": 128,
+    "frames": 128,
+    "paddingFrames": 0,
+    "blockCount": 8,
+    "loopStartSamples": 0,
+    "metrics": {
+      "rmsError": 0.008980858322940342,
+      "maxError": 0.06616920232772827,
+      "snrDb": 35.42456846528491,
+      "signalRms": 0.5303300895019276,
+      "errorFrames": 128,
+      "exact": false
+    },
+    "playback": {
+      "sampleRate": 32000,
+      "frames": 64000,
+      "seconds": 2
+    }
+  },
+  "archives": [
+    {
+      "archive": "release/hello_ymfm_wasm_snes-brr-encoder-dev_itch_playground.zip",
+      "entries": 1119,
+      "files": 1009,
+      "bytes": 36794799,
+      "sha256": "d0d2a9fc2eff0dc83160f86b55978cbbe8f35892092901a792346f082f3b208f",
+      "stageBytesEqual": true,
+      "crc": true
+    },
+    {
+      "archive": "release/hello_ymfm_wasm_snes-brr-encoder-dev_itch_playground_for_run.zip",
+      "entries": 892,
+      "files": 892,
+      "bytes": 37116883,
+      "sha256": "1b986790fb3f2d010dbd5d0c607a7420c7612d07bd4807da016cc584762df159",
+      "stageBytesEqual": true,
+      "crc": true
+    }
+  ],
+  "browser": [
+    {
+      "host": "source",
+      "passed": true,
+      "command": "node scripts/check_snes_brr_encoder_browser.cjs --webkit",
+      "reportPath": "/private/tmp/snes-brr-encoder-source-browser.json",
+      "fullReport": {
+        "bytes": 51476,
+        "sha256": "20453d37c641f258682cea7f5ecc020195b1ea4129a568404afa58b7ca126d07"
+      },
+      "example": {
+        "path": "/playground/examples/snes/snes-pcm-brr.js",
+        "bytes": 1259,
+        "sha256": "a2129806ddf7529fb53318c117887ee847d4477872cc8a5a5d9dd0178965a096"
+      },
+      "physicalOutputMuted": true,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.03725584188538948,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.039371229724785614,
+                "active": 24306,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03937520242676843,
+                "active": 24306,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.037277965604695644,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03792277833573691,
+                "active": 23050,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03769349574024965,
+                "active": 22840,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.03728360882656377,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.038556865459885084,
+                "active": 23796,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03940385735846135,
+                "active": 24306,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.037253785217192165,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03845076064800517,
+                "active": 23708,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03820869306692771,
+                "active": 23384,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    {
+      "host": "runZip",
+      "passed": true,
+      "command": "node scripts/check_snes_brr_encoder_browser.cjs --webkit --zip=release/hello_ymfm_wasm_snes-brr-encoder-dev_itch_playground_for_run.zip",
+      "reportPath": "/private/tmp/snes-brr-encoder-zip-browser.json",
+      "fullReport": {
+        "bytes": 40413,
+        "sha256": "cd80a359b8d26aa6844155cbf340fa31f73b46d0a5e5cd84e89a244fa801f1d4"
+      },
+      "example": {
+        "path": "/examples/snes/snes-pcm-brr.js",
+        "bytes": 1259,
+        "sha256": "a2129806ddf7529fb53318c117887ee847d4477872cc8a5a5d9dd0178965a096"
+      },
+      "physicalOutputMuted": true,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.03729541059589402,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03937115998243077,
+                "active": 24306,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03936636845305324,
+                "active": 24300,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.03725380092428579,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03830220956718341,
+                "active": 23508,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03752275802804553,
+                "active": 22642,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.03728360882656377,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03877555596999458,
+                "active": 24058,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.038779822492284406,
+                "active": 24062,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "probe": {
+            "rejected": 7,
+            "bytes": 72,
+            "sourceFrames": 128,
+            "snrDb": 36.56554369766327,
+            "sample": {
+              "id": 0,
+              "startAddress": 1024,
+              "loopAddress": 1024,
+              "byteLength": 72,
+              "frames": 128,
+              "rootNote": null,
+              "rootFrequencyHz": 250,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            }
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05273723974823952,
+            "rms": 0.0372602970583561,
+            "active": 28668,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.03828760625215391,
+                "active": 23514,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.06130216643214226,
+                "rms": 0.038048420771931754,
+                "active": 23192,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    }
+  ],
+  "workflow": {
+    "file": ".github/workflows/itch-web.yml",
+    "actionlintPassed": true,
+    "remoteRunPerformed": false
+  },
+  "unchanged": [
+    "DSP core sources",
+    "WASM binaries",
+    "Mixer defaults",
+    "SDK pin"
+  ],
+  "notPerformed": [
+    "human listening",
+    "Tauri GUI playback",
+    "Sample Editor integration",
+    "SDK/Tauri import",
+    "commit",
+    "push",
+    "tag",
+    "npm publication",
+    "itch upload"
+  ]
+}

@@ -40,6 +40,8 @@ jobs:
           npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       - name: Test Run ZIP preparation, UI bundling, archives and Game Boy conversion
         run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs web/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
+      - name: Test PCM to BRR with the native and WASM S-DSP
+        run: node --test web/snes_brr.test.mjs web/snes_brr_encoder.test.mjs web/snessynth.test.mjs web/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
       # Keep the same default commands and ZIP names used for manual releases.
       - name: Package Synth
         run: sh scripts/package_itch_synth.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-synth.log"
@@ -72,6 +74,12 @@ jobs:
             --out="$RUNNER_TEMP/itch-web/gameboy-sample-browser.json" \
             --images="$RUNNER_TEMP/itch-web/gameboy-sample-images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/gameboy-sample-browser.log"
+      - name: Test encoded SNES BRR in packaged Main and Worker playback
+        run: |
+          node scripts/check_snes_brr_encoder_browser.cjs --webkit \
+            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
+            --out="$RUNNER_TEMP/itch-web/snes-brr-browser.json" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/snes-brr-browser.log"
       # Download and extract this artifact container to obtain the unchanged
       # individual ZIPs for manual GitHub Release attachments / itch uploads.
       - name: Retain verified release ZIPs for manual publication

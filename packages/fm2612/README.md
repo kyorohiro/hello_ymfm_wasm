@@ -60,6 +60,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
 | PCM to WAV | `tetorica-fm2612/wav.js` | `encodeWav` |
 | PCM to YM2608 ADPCM-B | `tetorica-fm2612/adpcm_b_sample.js` | `readSamplePCM`, `encodeAdpcmB` |
+| PCM to SNES BRR | `tetorica-fm2612/snes_brr_encoder.js` | `encodeBrr` |
 | PCM to RF5C164 sample RAM | `tetorica-fm2612/rf5c164_pcm.js` | `encodeRf5c164` |
 | TFI voice files | `tetorica-fm2612/tfi.js` | `parseTfi`, `applyTfiToSynth`, `createTfiFromPreset` |
 | VGI voice files | `tetorica-fm2612/vgi.js` | `parseVgi`, `createVgiFromPreset` |
@@ -888,6 +889,33 @@ Await `loadBRR()` before using its returned sample descriptor or numeric id.
 `setPitch(channel, pitch)` accepts the raw 14-bit DSP pitch value.
 ADSR1/ADSR2/GAIN and signed left/right volume are raw DSP values.
 Abrupt changes may click; no automatic smoothing is applied.
+
+Generate BRR from mono PCM with the pure JavaScript
+`tetorica-fm2612/snes_brr_encoder.js` subpath. In Playground Main and Worker
+scripts, the helper is also available as `encodeBrr()` and `pg.encodeBrr()`:
+
+```javascript
+// Module consumers: import {encodeBrr} from 'tetorica-fm2612/snes_brr_encoder.js';
+const pcm = Float32Array.from({length:128}, (_, i) =>
+  0.75 * Math.sin(2 * Math.PI * i / 128));
+const encoded = encodeBrr(pcm, {loopStartSamples:0});
+const options = {baseFrequencyHz:32000 / pcm.length}; // 250 Hz at PITCH=4096.
+if (encoded.loopStartSamples !== null) options.loopStartSamples = encoded.loopStartSamples;
+const generatedSample = await snes.loadBRR(encoded.brr, options);
+```
+
+The input must be a nonempty `Float32Array` with finite values in `[-1,1]`.
+Conversion is lossy and performs no resampling, normalization or tuning
+inference. One-shots add zero padding to complete 16-frame blocks; loops require
+an aligned length and loop marker. Filter 0 at the first and loop-start blocks
+keeps raw loop playback independent of predictor history. The default output
+limit is 64,512 bytes, fitting an empty synth; account for existing allocations
+when choosing `maxBytes`. Returned JSON-safe metrics describe raw BRR error
+before S-DSP Gaussian interpolation and envelopes; `snrDb` is `null` for exact
+reconstruction or zero signal, and `exact` reports exact reconstruction.
+See the [conversion guide and browser/Worker/Node examples](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/snes_brr_encoder.md).
+The encoder is new BSD-3-Clause project code and does not change the licensed
+DSP binary described below.
 
 `reset()` releases voices and reloads uploaded samples with the same ids.
 Samples occupy the instance's fixed 64 KiB RAM (directory at 0..1023); there is

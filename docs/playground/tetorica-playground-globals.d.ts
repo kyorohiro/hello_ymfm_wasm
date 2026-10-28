@@ -1164,6 +1164,7 @@ type PlaygroundAPIBase = {
   inputAudio: typeof inputAudio;
   keyboard: PlaygroundMusicalKeyboard;
   createSampleInstrument: typeof createSampleInstrument;
+  encodeBrr: typeof encodeBrr;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1714,6 +1715,29 @@ interface PlaygroundDx7 {
 }
 type PlaygroundPrimaryDx7 = Omit<PlaygroundDx7, 'dispose'> & {readonly id: string};
 type PlaygroundSnesChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+interface PlaygroundBrrEncodeOptions {
+  /** Null/omitted for one-shots. Loop start and source length must be multiples of 16. */
+  loopStartSamples?:number | null;
+  /** BRR byte budget, 9..65536; default 64512 fits an otherwise empty SnesSynth. */
+  maxBytes?:number;
+}
+interface PlaygroundBrrEncodeResult {
+  brr:Uint8Array;
+  sourceFrames:number;
+  /** Decoded length including one-shot zero padding to the next 16-sample block. */
+  frames:number;
+  paddingFrames:number;
+  blockCount:number;
+  loopStartSamples:number | null;
+  /** Raw BRR reconstruction errors before DSP interpolation/envelopes; padding excluded. */
+  metrics:{rmsError:number; maxError:number; signalRms:number; errorFrames:number;
+    snrDb:number | null; exact:boolean};
+}
+/** Pure lossy mono PCM → SNES BRR. Input must be finite Float32 samples in [-1,1].
+ * No resampling, gain normalization or tuning inference. Also available as pg.encodeBrr.
+ * Do this during setup, before starting liveLoop playback.
+ */
+declare function encodeBrr(pcm:Float32Array, options?:PlaygroundBrrEncodeOptions):PlaygroundBrrEncodeResult;
 /** Raw BRR has no tuning metadata. Declare the note/frequency at basePitch.
  * Native DSP rate is fixed at 32,000 Hz. Loop positions are native sample indices.
  */

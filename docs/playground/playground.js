@@ -65,8 +65,8 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=pokey-voice-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mega-cd-cdda-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=pcengine-cd-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=snes-brr-encoder-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=snes-brr-encoder-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -97,7 +97,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=cdrom2-panels-1";
+} from "../js/playground_runtime.js?v=snes-brr-encoder-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=pokey-prepare-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";

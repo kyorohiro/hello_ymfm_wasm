@@ -1,5 +1,6 @@
 import {createSpcClient} from './playground_spc.js';
 import {createSnesClient} from './playground_snes.js';
+import {encodeBrr} from './snes_brr_encoder.js';
 import {createPerformanceSender} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
@@ -740,6 +741,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const resumeScopedNativeExtra=(context,token,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(run.stopped||token!==run.token||context?.stopped)throw new Error('Run stopped');run.currentLoop=context;resolve(callback());}catch(error){reject(error);}},0));
   const localNoteOwners=new Map();
   const globals = {
+    encodeBrr,
     trackAsync: promise => loopTasks.track(promise),
     createSampleInstrument: (audio,options={}) => createSampleInstrumentFactory({pg:globals,audio,chip:capabilities.chip,...options}),
     keyboard: {bind(name,handlers) {

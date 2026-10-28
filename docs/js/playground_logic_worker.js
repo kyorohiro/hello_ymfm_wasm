@@ -1,5 +1,6 @@
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
+import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {createPerformanceSender} from './playground_performance_sender.js?v=pokey-prepare-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
@@ -740,6 +741,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const resumeScopedNativeExtra=(context,token,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(run.stopped||token!==run.token||context?.stopped)throw new Error('Run stopped');run.currentLoop=context;resolve(callback());}catch(error){reject(error);}},0));
   const localNoteOwners=new Map();
   const globals = {
+    encodeBrr,
     trackAsync: promise => loopTasks.track(promise),
     createSampleInstrument: (audio,options={}) => createSampleInstrumentFactory({pg:globals,audio,chip:capabilities.chip,...options}),
     keyboard: {bind(name,handlers) {

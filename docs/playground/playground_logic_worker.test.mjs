@@ -4,6 +4,7 @@ import {AY8910Synth} from '../../web/ay8910synth.js';
 import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
 import {OPL_CHIPS} from '../../web/playground_opl.js';
 import {createSnesClient} from '../../web/playground_snes.js';
+import {encodeBrr} from '../../web/snes_brr_encoder.js';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
@@ -45,6 +46,8 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
+    // Imported encoders use instanceof; share their PCM constructor with the VM.
+    encodeBrr, Float32Array,
     validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
@@ -135,6 +138,39 @@ function mainCycle(loop = null) {
     activeNotes: new Set(), sleep: async () => {}, getCurrentLoopContext: () => loop,
   }).cycle;
 }
+
+for (const chip of ['ym2612', 'snes']) test(`Worker ${chip} exposes the same pure BRR encoder globally and through pg`, async () => {
+  const f = createTimedWorkerHarness();
+  try {
+    await f.run(`
+      if(encodeBrr!==pg.encodeBrr)throw Error('Separate BRR encoders');
+      ${chip === 'snes' ? "if(typeof fm!=='undefined'||typeof pg.fm!=='undefined')throw Error('Unexpected OPN API');" : ''}
+      const pcm=Float32Array.from({length:32},(_,i)=>.5*Math.sin(2*Math.PI*i/32));
+      console.log('brr-result',encodeBrr(pcm,{loopStartSamples:0}),pg.encodeBrr(pcm,{loopStartSamples:0}));
+    `, 0, {capabilities:{chip, fmChannels:chip === 'snes' ? 0 : 6, psg:chip !== 'snes', dac:chip !== 'snes'}});
+    const result = f.logs().find(args => args[0] === 'brr-result');
+    const expected = encodeBrr(Float32Array.from({length:32}, (_, i) => .5 * Math.sin(2 * Math.PI * i / 32)), {loopStartSamples:0});
+    assert.ok(result);
+    assert.deepEqual(result[1], expected);
+    assert.deepEqual(result[2], expected);
+    assert(!f.worker.messages.some(message => message.command === 'pcm.create' || message.command === 'pcm.decode'));
+  } finally { await f.stop(); }
+});
+
+test('Worker BRR encoder forwards loop alignment and capacity validation from both public entry points', async () => {
+  const worker = createWorkerHarness();
+  try {
+    for (const [sourceCode, message] of [
+      [`encodeBrr(new Float32Array(16),{loopStartSamples:1});`, /aligned/],
+      [`pg.encodeBrr(new Float32Array(16),{maxBytes:8});`, /maxBytes/],
+    ]) {
+      const boundary = worker.messages.length;
+      await worker.send({type:'run', capabilities:{chip:'snes', fmChannels:0, psg:false, dac:false}, sourceCode});
+      await waitFor(() => worker.messages.slice(boundary).some(value => value.type === 'execution-error'));
+      assert.match(worker.messages.slice(boundary).find(value => value.type === 'execution-error').message, message);
+    }
+  } finally { await worker.send({type:'stop'}); }
+});
 
 test('Worker cycles three- and four-item sequences independently across loop iterations like Main', async () => {
   const f = createTimedWorkerHarness();
