@@ -18,6 +18,7 @@ import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
 import {encodeBrr} from './snes_brr_encoder.js';
+import {encodeAdpcmA} from './adpcm_a_sample.js';
 import {WonderSwanSynth} from './wonderswansynth.js';
 import {PokeySynth} from './pokeysynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
@@ -78,6 +79,20 @@ test('Main BRR encoder forwards loop alignment and capacity validation from both
   megaDrive.stopAllNative = () => {};
   await assert.rejects(runtime.playSource(`encodeBrr(new Float32Array(16),{loopStartSamples:1});`), /aligned/);
   await assert.rejects(runtime.playSource(`pg.encodeBrr(new Float32Array(16),{maxBytes:8});`), /maxBytes/);
+});
+
+for (const chip of ['ym2610','snes']) test(`Main ${chip} exposes a pure ADPCM-A encoder globally and through pg`, async t => {
+  const {runtime,megaDrive}=setup(t,{chip,fmChannels:chip==='snes'?0:4,psg:false,dac:false});
+  megaDrive.stopAllNative=()=>{};
+  await runtime.playSource(`
+    if(encodeAdpcmA!==pg.encodeAdpcmA)throw Error('Separate ADPCM-A encoders');
+    const pcm=Float32Array.from({length:257},(_,i)=>.4*Math.sin(2*Math.PI*i/32));
+    context.globalA=encodeAdpcmA(pcm);context.pgA=pg.encodeAdpcmA(pcm);
+  `);
+  const expected=encodeAdpcmA(Float32Array.from({length:257},(_,i)=>.4*Math.sin(2*Math.PI*i/32)));
+  assert.deepEqual(runtime.context.globalA,expected);assert.deepEqual(runtime.context.pgA,expected);
+  await assert.rejects(runtime.playSource(`encodeAdpcmA(new Float32Array(16),{loop:true});`),/option/i);
+  await assert.rejects(runtime.playSource(`pg.encodeAdpcmA(new Float32Array(16),{maxBytes:255});`),/maxBytes/);
 });
 
 // Inject a deterministic audio endpoint into the real runtime, keeping its

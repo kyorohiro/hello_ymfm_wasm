@@ -330,12 +330,17 @@ const gameboySampleFiles=new Set(['playground.js','playground_audio_input.js',
 const brrEncoderFiles=new Set(['snes_brr_encoder.js','playground_runtime.js',
   'playground_logic_worker.js','playground.js','playground_examples.js',
   'playground_mode_examples.js','playground_monaco.js','playground_monaco_definitions.js']);
-const revisionFor=name=>brrEncoderFiles.has(name)?'snes-brr-encoder-1':gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+// ADPCM-A preparation is shared by the two Neo Geo modes.
+const adpcmAEncoderFiles=new Set(['adpcm_a_sample.js','playground_runtime.js',
+  'playground_logic_worker.js','playground.js','playground_examples.js',
+  'playground_mode_examples.js','playground_monaco.js','playground_monaco_definitions.js']);
+const revisionFor=name=>adpcmAEncoderFiles.has(name)?'adpcm-a-encoder-1':brrEncoderFiles.has(name)?'snes-brr-encoder-1':gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
   ...gameboySampleFiles,
   ...brrEncoderFiles,
+  ...adpcmAEncoderFiles,
   ...pokeyVoiceFiles,
   ...pokeyPrepareFiles,
   ...pokeyImportFiles,

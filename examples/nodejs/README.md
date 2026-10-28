@@ -40,6 +40,35 @@ BRR自体にサンプルレート・音名・ループ開始アドレスは保�
 必要なWASMは `sh scripts/build_spc_wasm.sh` で生成する。
 `finally` の `snes.dispose()` がコアも解放する。
 
+## Neo Geo PCM → ADPCM-A → WAV
+
+```sh
+node examples/nodejs/main_neogeo_adpcm_a.js
+node examples/nodejs/main_neogeo_adpcm_a.js /tmp/neogeo-adpcm-a ym2610b
+```
+
+[main_neogeo_adpcm_a.js](main_neogeo_adpcm_a.js) はキック・スネア・ハイハット・タム・
+ウッドブロック・シェイカーの自作モノラルPCMを `encodeAdpcmA()` で変換し、
+6個の256バイト境界の範囲を1個のROMに配置する。外部音声・ROM・AudioContextは不要。
+実際のYM2610/B WASMで各声の単独発音、6声同時発音、2小節のリズムを生成する。
+各声の発音と自動停止、有限PCM、クリッピングしないこと、最後の無音も検査する。
+FM・SSG・ADPCM-B・Mixerは変更しない。
+
+第1引数は拡張子なしの出力先接頭辞。省略時はスクリプトの隣に
+`neogeo-adpcm-a.adpcma`、`neogeo-adpcm-a.json`、`neogeo-adpcm-a.wav` を保存する。
+同名ファイルは上書きする。第2引数は `ym2610`（既定）か `ym2610b`。
+JSONには声別のバイト範囲、元フレーム数、パディング、変換誤差と再生検査結果を保存する。
+WAVは48 kHz・16 bitステレオで約6.9秒。`Ym2610BAudioEngine` が実際のチップ出力を
+48 kHzへ変換する。JSONにはADPCM-Aの `sourceDecodedRate`（約18,518.52 Hz）、
+コアの `nativeOutputRate`（500,000 Hz）、WAVの `outputRate`（48,000 Hz）を区別して記録する。
+
+ADPCM-AのPCMレートは8 MHz時 `clock / 432`（約18,518.52 Hz）で固定。
+このレートで波形を生成してから変換する。`encodeAdpcmA()` はリサンプリングせず、
+512フレーム／256バイト単位にゼロPCMを符号化して末尾を埋める。
+ピッチ変更・ハードウェアループはなく、ADPCM-B形式とは互換性がない。
+必要なWASMは `sh scripts/build_ym2610b_wasm.sh` で生成する。
+`finally` の `engine.dispose()` で所有するチップを解放する。
+
 ## Game Boy DMG
 
 ```sh

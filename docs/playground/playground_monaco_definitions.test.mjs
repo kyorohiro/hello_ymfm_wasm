@@ -5,7 +5,7 @@ import {definitionSource, sourcePosition, sourceChip, globalDefinition, runtimeI
 
 test('actual Playground declarations navigate to the factory and YM2612 implementation', async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
-  for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['encodeBrr', 'snes_brr_encoder.js'], ['setFrequency', 'ym2612synth.js']]) {
+  for (const [symbol, file] of [['useSoundChip', 'playground_runtime.js'], ['setBpm', 'playground_runtime.js'], ['createTimeline', 'playground_runtime.js'], ['encodeBrr', 'snes_brr_encoder.js'], ['encodeAdpcmA', 'adpcm_a_sample.js'], ['setFrequency', 'ym2612synth.js']]) {
     const lines = declarations.split('\n');
     const line = lines.findIndex(text => new RegExp(`\\b${symbol}[<(]`).test(text));
     assert.ok(line >= 0);
@@ -14,6 +14,18 @@ test('actual Playground declarations navigate to the factory and YM2612 implemen
     const source = await readFile(new URL(`../js/${file}`, import.meta.url), 'utf8');
     const position = sourcePosition(source, symbol);
     assert.match(source.split('\n')[position.lineNumber - 1], new RegExp(`\\b${symbol}\\s*[( :]`));
+  }
+});
+
+test('ADPCM-A encoder global and pg lookup keep their own implementation',()=>{
+  const declarations='declare function encodeAdpcmA(pcm:Float32Array):unknown;';
+  const library={uri:'file:///globals.d.ts',getValue:()=>declarations,getPositionAt:offset=>({lineNumber:1,column:offset+1})};
+  for(const code of ['encodeAdpcmA(pcm)','pg.encodeAdpcmA(pcm)','other.encodeAdpcmA(pcm)']){
+    const startColumn=code.indexOf('encodeAdpcmA')+1;
+    const model={getWordAtPosition:()=>({word:'encodeAdpcmA',startColumn}),getLineContent:()=>code};
+    const target=globalDefinition(model,{lineNumber:1,column:startColumn},new Map([['library',library]]));
+    if(code.startsWith('other.'))assert.equal(target,null);
+    else assert.deepEqual(definitionSource(declarations,target.range),{file:'adpcm_a_sample.js',symbol:'encodeAdpcmA'});
   }
 });
 

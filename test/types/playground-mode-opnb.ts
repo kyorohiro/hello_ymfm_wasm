@@ -48,3 +48,14 @@ async function checkBuiltInOpnbSections() {
   fm.ssg.setVolume(0, 8);
   pg.fm.adpcmA.setVolume(19);
 }
+
+async function checkAdpcmAEncoderTypes(){
+  const encoded=encodeAdpcmA(new Float32Array(512),{maxBytes:256});
+  await adpcmA.loadMemory(encoded.bytes,0);
+  adpcmA.setSample(5,{start:0,end:encoded.bytes.length});
+  pg.encodeAdpcmA(new Float32Array(16)).metrics.snrDb?.toFixed();
+  // @ts-expect-error PCM must be Float32, not encoded nibbles.
+  encodeAdpcmA(new Uint8Array(16));
+  // @ts-expect-error Rate conversion is explicit outside this encoder.
+  pg.encodeAdpcmA(new Float32Array(16),{sampleRate:18518});
+}

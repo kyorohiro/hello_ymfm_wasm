@@ -128,6 +128,13 @@ import {createSnesClient} from 'tetorica-fm2612/playground_snes.js';
 import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
 import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
 import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import {encodeAdpcmA} from 'tetorica-fm2612/adpcm_a_sample.js';
+const encodedA=encodeAdpcmA(new Float32Array(512),{maxBytes:256});
+encodedA.bytes.byteLength.toFixed();encodedA.paddingFrames.toFixed();encodedA.metrics.snrDb?.toFixed();
+// @ts-expect-error Normalized mono PCM must be Float32.
+encodeAdpcmA(new Int16Array(512));
+// @ts-expect-error ADPCM-A has no hardware loop.
+encodeAdpcmA(new Float32Array(512),{loop:true});
 import {encodeBrr} from 'tetorica-fm2612/snes_brr_encoder.js';
 const encodedBrr = encodeBrr(new Float32Array(32), {loopStartSamples:0, maxBytes:18});
 encodedBrr.brr.byteLength.toFixed();

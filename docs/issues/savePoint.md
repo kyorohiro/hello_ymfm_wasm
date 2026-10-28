@@ -1,3 +1,13 @@
+## 2026-10-28 — Neo Geo PCM → ADPCM-A変換API・6声Exampleを追加
+
+- `web/adpcm_a_sample.js`／docs mirrorに`encodeAdpcmA()`。Playground Main／Workerのglobal／`pg`、npm subpathで使用可能。mono Float32 PCMを16候補探索・実12bit wrap規則で変換。256byte境界までzero PCMを符号化し、元／padding後長さとJSON保存可能な誤差を返す。再sample／音量補正／pitch／hardware loopなし。既定上限0xfff00bytes、ROM配置はcaller管理。
+- 両Neo Geo modeに`examples/neogeo/neogeo-adpcm-a-drums.js`。選択中のprimaryを使い、clock/432で生成した自作6打楽器を8,960byte bankで演奏。Mixer指定なし、既存Exampleを残し各4本。Node版は両variantの実コアから48kHz・6.9秒WAV＋bank／JSONを生成。6声単独・同時、EOF無音、peak0.285522を確認。
+- codec／OPNB／ADPCM-B22件（新encoder6件・skip0）、runtime／Worker／Monaco266件、catalog／declaration50件、全mode型が成功。実C++ raw decoderと一致、両variantのNative／WASM全出力一致。6声・pan・固定rate／duration・EOS／EOF・再発音・keyOff・reset／ROM保持・A/B分離・ownership／disposeを検証。npm installed tarball941filesの両export・実音源・型も成功、version0.2.32のまま。
+- Chromium153／WebKit26.6 × 両mode × Main／Worker × source本体／実Run ZIPの16条件成功。exact Example各2回、入力拒否、有限PCM、Stop後exact zero。物理出力mute、人の実聴／Tauri GUI未確認。
+- Run ZIP：`release/hello_ymfm_wasm_adpcm-a-encoder-dev_itch_playground_for_run.zip`、894entries、SHA256 `4b2408a687113f46a66a8001a12e6ba5e6f386c2ee4909a252faa0ce837d3812`。fullは同prefixの_for_runなし。CRC／全stage bytes一致、cache `adpcm-a-encoder-1`。CIへcore／packaged browser試験を追加、actionlint成功。
+- **未commit／未push／未公開**。DSP／WASM／Mixer／固定SDK／既存再生APIの変更、SDK／Tauri取込、npm公開、tag、itch uploadなし。remote CIは未実行。Sample Editor組込みは次の段階。公開guide：[../adpcm_a_sample.md](../adpcm_a_sample.md)。前のBRR作業はユーザーcommit `43754226`に含まれる。
+- 詳細：[adpcm_a_encoder_01.md](adpcm_a_encoder_01.md)／[JSON](adpcm_a_encoder_01.json)。以下は各時点の履歴。
+
 ## 2026-10-28 — PCM → SNES BRR変換API・Example・実コア検証を追加
 
 - `web/snes_brr_encoder.js`／docs mirrorに純JSの`encodeBrr()`。正規化mono Float32 PCMからBRRへ変換し、元／padding後の長さ・loop位置・JSON保存可能な誤差を返す。再sample／音量補正／音程推定なし。16sample境界を検証、先頭／loop先頭filter0で周回ごとのPCM差を防ぐ。既定上限64,512bytes、他sampleとのRAM配分はcaller側。

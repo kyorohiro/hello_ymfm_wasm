@@ -1,0 +1,1807 @@
+{
+  "date": "2026-10-28",
+  "feature": "pcm-to-neogeo-adpcm-a-encoder",
+  "baseCommit": "43754226ad65244592b7b10714bb6c8b29a2c935",
+  "uncommitted": true,
+  "inputs": {
+    ".github/workflows/itch-web.yml": {
+      "bytes": 6223,
+      "sha256": "688a884bdd60aeb88eb2c9e836b91d635fcd9a81e69a0ee178f41af11189c8c7"
+    },
+    "docs/adpcm_a_sample.md": {
+      "bytes": 5960,
+      "sha256": "06f977f0b116a47017a33b577454fe02a1d414d1a7c8af3c7dc5df013d3aa211"
+    },
+    "docs/issues/todo20261020.md": {
+      "bytes": 15323,
+      "sha256": "7a49b2d098be1dd777f18f7d0c5a567551652c3f9a59b31ca709b472729cb9f6"
+    },
+    "docs/js/adpcm_a_sample.js": {
+      "bytes": 6155,
+      "sha256": "ed99db330a6fbf0579f593d2ad1cbde6839fb4db2125d817325ef4385b1f5851"
+    },
+    "docs/js/playground_logic_worker.js": {
+      "bytes": 58253,
+      "sha256": "abe5d2579237f912e75ff779dbb9840f71c8198df91e1ce51ffe9e4695fd4486"
+    },
+    "docs/js/playground_runtime.js": {
+      "bytes": 154636,
+      "sha256": "ffd0502a1ff1906bd7e8750b2f508c8e7918782d9a58fb0c738b8cd6b13b1661"
+    },
+    "docs/playground/audio-check.html": {
+      "bytes": 7840,
+      "sha256": "531589b11647e4cf5cda08af14828976e26291b7932f9a4e155caa564c24233f"
+    },
+    "docs/playground/examples/neogeo/neogeo-adpcm-a-drums.js": {
+      "bytes": 3261,
+      "sha256": "531ab2cbf8e6be9427bd26b8c65625b48e2aca0b01b05d82da0c6f84e157c122"
+    },
+    "docs/playground/index.html": {
+      "bytes": 130866,
+      "sha256": "1b620febe524c458a74b9b015978b8245edc2d4a7c83ae610bed802e8eddc799"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124808,
+      "sha256": "b9f2bf98d803312b06afba33ff587580b1bd728f6e82f826592aa8101728939b"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 207243,
+      "sha256": "2cf6d30a2fbc8855746d12dca2e2bf661ba7a457cc6454f8f7df8461a5cc8df1"
+    },
+    "docs/playground/playground_examples.test.mjs": {
+      "bytes": 18812,
+      "sha256": "e583100726601f107ea82796084c886cd29e38491a5e183148991c3402485b7e"
+    },
+    "docs/playground/playground_logic_worker.test.mjs": {
+      "bytes": 120499,
+      "sha256": "e1a3b9913beba5797616b93105ebfb4405a1f565f268c66b6da21c73b85d6655"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5244,
+      "sha256": "f7887c64dd92fbf7a7fdd9ef38ea4bfea6488a66c58e7894904b28be9dcd2353"
+    },
+    "docs/playground/playground_monaco.js": {
+      "bytes": 22677,
+      "sha256": "ffb1d29e45fe164d4c70cbc0a5c3995d4eee3e46eff057b4954b48a561c604eb"
+    },
+    "docs/playground/playground_monaco_definitions.js": {
+      "bytes": 16644,
+      "sha256": "c1a863578140783d899beb8b90d11631b6b4de014673f72c0834f70d02ea50ea"
+    },
+    "docs/playground/playground_monaco_definitions.test.mjs": {
+      "bytes": 11727,
+      "sha256": "4e2821aa418e73ae84764febedf275630a6f91f6a4f3062e9c6c3b8bdf6a8744"
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "bytes": 121725,
+      "sha256": "496f6680f30ea26b8eb8eb5428df6eb624eb7a0e262ff47f56c10a5021f35650"
+    },
+    "examples/nodejs/README.md": {
+      "bytes": 31324,
+      "sha256": "a10438675085f2ddb9ada01317c934de14bc8d52b65909f0d32fae6dbd441ebd"
+    },
+    "examples/nodejs/main_neogeo_adpcm_a.js": {
+      "bytes": 6767,
+      "sha256": "0a007d943b9072e157af89c769afba4c62fc8af0e9f66f1f32964680ea6ac3a9"
+    },
+    "packages/fm2612/README.md": {
+      "bytes": 86227,
+      "sha256": "b146813e387311bc9f2e3580f21410e0ac29dcd8afad524563c656e6ea931423"
+    },
+    "scripts/check_adpcm_a_encoder_browser.cjs": {
+      "bytes": 17781,
+      "sha256": "782433387d736166b74696e058a32e80db679f777c9a267fa68ecafa660b835e"
+    },
+    "scripts/check_fm2612_package.mjs": {
+      "bytes": 47025,
+      "sha256": "79c8c8bfa20f96acbed9478a827b75e1b27c7b427601249b5ac2dc1111c02456"
+    },
+    "scripts/check_playground_package.mjs": {
+      "bytes": 10167,
+      "sha256": "53e15ec43d2d0bfeb279dc6f9ee853cbdfe367834d19def1fec3fab4da0d149f"
+    },
+    "scripts/package_itch_playground.sh": {
+      "bytes": 22987,
+      "sha256": "53065b8ae1a53e7e001f042968df3d0590b2dd2ce327c2cba1299740f9a923d3"
+    },
+    "scripts/sync_web_js_to_docs.sh": {
+      "bytes": 14245,
+      "sha256": "bceea55d3b8e1dec6ec6503fa7967764b0cc2bd8962fb3b960a322c0891c0f73"
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "bytes": 33319,
+      "sha256": "dfec8901a5cc17154595177b9d3956d00528f4f5df62e5c67a05a9d223020c88"
+    },
+    "test/helpers/ym2610_adpcm_a_reference.cpp": {
+      "bytes": 3921,
+      "sha256": "22bc7ec771b1d44ba556506c89ec628cc2e21f579ad916fb7d95be4b3d0a14d7"
+    },
+    "test/types/fm2612-browser.mts": {
+      "bytes": 17506,
+      "sha256": "ea5326cc599733e0ca4ef88032abdd90bbc935ffa71c40daac9b7ee5f9b9c553"
+    },
+    "test/types/playground-mode-opnb.ts": {
+      "bytes": 2453,
+      "sha256": "6ef45fb133620f0c8572d97decc614e3a780f431fae8ac882127589899949dad"
+    },
+    "web/adpcm_a_sample.js": {
+      "bytes": 6155,
+      "sha256": "ed99db330a6fbf0579f593d2ad1cbde6839fb4db2125d817325ef4385b1f5851"
+    },
+    "web/adpcm_a_sample.test.mjs": {
+      "bytes": 16403,
+      "sha256": "315c289d8f07168f1a0d6dfc4ed61baece77ce86145783470e237f11f82ff794"
+    },
+    "web/playground_logic_worker.js": {
+      "bytes": 57802,
+      "sha256": "5c0bdb2b620bec904a1a1179e473dfe6c09762743b827b7befa105a3ee6a3dcd"
+    },
+    "web/playground_runtime.js": {
+      "bytes": 153533,
+      "sha256": "2ddf4c4e974829fca7c89cb46042678ec545d8b8e157d2b51801f63c6ff4fdde"
+    },
+    "web/playground_runtime.test.mjs": {
+      "bytes": 135279,
+      "sha256": "6eb44ed567cf75e9cea445c1f44fc85858ed9f4982758ad7c55260ed222a34c9"
+    }
+  },
+  "api": {
+    "module": "adpcm_a_sample.js",
+    "name": "encodeAdpcmA",
+    "playground": [
+      "encodeAdpcmA",
+      "pg.encodeAdpcmA"
+    ],
+    "input": "normalized finite mono Float32Array",
+    "defaultMaxBytes": 1048320,
+    "byteAlignment": 256,
+    "decodedFrameAlignment": 512,
+    "decodedRate": "chipClock/432",
+    "resamples": false,
+    "normalizes": false,
+    "pitchControl": false,
+    "hardwareLoop": false
+  },
+  "tests": [
+    {
+      "command": "node --test web/adpcm_a_sample.test.mjs web/ym2610bsynth.test.mjs web/adpcm_b_sample.test.mjs",
+      "passed": 22,
+      "newEncoderCases": 6,
+      "skipped": 0,
+      "actualNativeRawDecodeEqual": true,
+      "actualNativeWasmStereoEqualBothVariants": true
+    },
+    {
+      "command": "node --test web/playground_runtime.test.mjs docs/playground/playground_logic_worker.test.mjs docs/playground/playground_monaco_definitions.test.mjs",
+      "passed": 266
+    },
+    {
+      "command": "node --test docs/playground/playground_examples.test.mjs docs/playground/playground_mode_examples.test.mjs docs/playground/playground_mode_starters.test.mjs docs/playground/playground_declarations.test.mjs",
+      "passed": 50
+    }
+  ],
+  "types": {
+    "playgroundAllModes": true,
+    "installedNodeNext": true,
+    "installedBundler": true,
+    "browserWithoutNodeAmbientTypes": true
+  },
+  "npm": {
+    "version": "0.2.32",
+    "published": false,
+    "installedTarballChecksPassed": true,
+    "files": 941,
+    "compressedBytes": 1779926,
+    "unpackedBytes": 6631122,
+    "bothEncoderExportsAndActualVariantPlayback": true
+  },
+  "nodeExamples": {
+    "ym2610": {
+      "metadata": {
+        "chip": "ym2610",
+        "clock": 8000000,
+        "sourceDecodedRate": 18518.51851851852,
+        "nativeOutputRate": 500000,
+        "outputRate": 48000,
+        "byteLength": 8960,
+        "voices": [
+          {
+            "voice": 0,
+            "name": "kick",
+            "start": 0,
+            "end": 2560,
+            "byteLength": 2560,
+            "sourceFrames": 4630,
+            "frames": 5120,
+            "paddingFrames": 490,
+            "metrics": {
+              "rmsError": 0.0006706617325478189,
+              "maxError": 0.005279749631881714,
+              "signalRms": 0.14082348800079456,
+              "snrDb": 46.44343140899817,
+              "errorFrames": 4630,
+              "exact": false
+            }
+          },
+          {
+            "voice": 1,
+            "name": "snare",
+            "start": 2560,
+            "end": 4096,
+            "byteLength": 1536,
+            "sourceFrames": 2963,
+            "frames": 3072,
+            "paddingFrames": 109,
+            "metrics": {
+              "rmsError": 0.009560156621284135,
+              "maxError": 0.10989560186862946,
+              "signalRms": 0.06762201276590288,
+              "snrDb": 16.992461722414664,
+              "errorFrames": 2963,
+              "exact": false
+            }
+          },
+          {
+            "voice": 2,
+            "name": "closed-hat",
+            "start": 4096,
+            "end": 4864,
+            "byteLength": 768,
+            "sourceFrames": 1297,
+            "frames": 1536,
+            "paddingFrames": 239,
+            "metrics": {
+              "rmsError": 0.007008819371050674,
+              "maxError": 0.06649454683065414,
+              "signalRms": 0.03522126453671747,
+              "snrDb": 14.023201531963247,
+              "errorFrames": 1297,
+              "exact": false
+            }
+          },
+          {
+            "voice": 3,
+            "name": "tom",
+            "start": 4864,
+            "end": 6912,
+            "byteLength": 2048,
+            "sourceFrames": 3889,
+            "frames": 4096,
+            "paddingFrames": 207,
+            "metrics": {
+              "rmsError": 0.0006455036436594807,
+              "maxError": 0.0036317408084869385,
+              "signalRms": 0.1111907225129799,
+              "snrDb": 44.72339708414195,
+              "errorFrames": 3889,
+              "exact": false
+            }
+          },
+          {
+            "voice": 4,
+            "name": "wood-block",
+            "start": 6912,
+            "end": 7936,
+            "byteLength": 1024,
+            "sourceFrames": 1852,
+            "frames": 2048,
+            "paddingFrames": 196,
+            "metrics": {
+              "rmsError": 0.0012608300571717412,
+              "maxError": 0.009158357977867126,
+              "signalRms": 0.04513259124213643,
+              "snrDb": 31.076674306317273,
+              "errorFrames": 1852,
+              "exact": false
+            }
+          },
+          {
+            "voice": 5,
+            "name": "shaker",
+            "start": 7936,
+            "end": 8960,
+            "byteLength": 1024,
+            "sourceFrames": 2038,
+            "frames": 2048,
+            "paddingFrames": 10,
+            "metrics": {
+              "rmsError": 0.005759275083909355,
+              "maxError": 0.08914342522621155,
+              "signalRms": 0.029780904569118326,
+              "snrDb": 14.271401248522857,
+              "errorFrames": 2038,
+              "exact": false
+            }
+          }
+        ],
+        "playback": {
+          "frames": 331200,
+          "seconds": 6.9,
+          "peak": 0.2855224609375,
+          "isolated": [
+            {
+              "voice": 0,
+              "name": "kick",
+              "rms": 0.02231309113599542,
+              "tailPeak": 0
+            },
+            {
+              "voice": 1,
+              "name": "snare",
+              "rms": 0.008171966520114062,
+              "tailPeak": 0
+            },
+            {
+              "voice": 2,
+              "name": "closed-hat",
+              "rms": 0.002642388546833739,
+              "tailPeak": 0
+            },
+            {
+              "voice": 3,
+              "name": "tom",
+              "rms": 0.01614967797692045,
+              "tailPeak": 0
+            },
+            {
+              "voice": 4,
+              "name": "wood-block",
+              "rms": 0.004511190161784687,
+              "tailPeak": 0
+            },
+            {
+              "voice": 5,
+              "name": "shaker",
+              "rms": 0.0028029157665601465,
+              "tailPeak": 0
+            }
+          ]
+        }
+      },
+      "files": {
+        "adpcma": {
+          "bytes": 8960,
+          "sha256": "26a9b154e553b332e43b1064284d4e7485f592bba20ac1c0e69989e8d731ad4b"
+        },
+        "json": {
+          "bytes": 3668,
+          "sha256": "43b3d83dab25096203f7c2470f96351d4d36b544e2374a992966824fb8446179"
+        },
+        "wav": {
+          "bytes": 1324844,
+          "sha256": "6330f424ee2b1dea7b6b6ea47935cbb5066479dd181f3a03053586ab07725424"
+        }
+      }
+    },
+    "ym2610b": {
+      "metadata": {
+        "chip": "ym2610b",
+        "clock": 8000000,
+        "sourceDecodedRate": 18518.51851851852,
+        "nativeOutputRate": 500000,
+        "outputRate": 48000,
+        "byteLength": 8960,
+        "voices": [
+          {
+            "voice": 0,
+            "name": "kick",
+            "start": 0,
+            "end": 2560,
+            "byteLength": 2560,
+            "sourceFrames": 4630,
+            "frames": 5120,
+            "paddingFrames": 490,
+            "metrics": {
+              "rmsError": 0.0006706617325478189,
+              "maxError": 0.005279749631881714,
+              "signalRms": 0.14082348800079456,
+              "snrDb": 46.44343140899817,
+              "errorFrames": 4630,
+              "exact": false
+            }
+          },
+          {
+            "voice": 1,
+            "name": "snare",
+            "start": 2560,
+            "end": 4096,
+            "byteLength": 1536,
+            "sourceFrames": 2963,
+            "frames": 3072,
+            "paddingFrames": 109,
+            "metrics": {
+              "rmsError": 0.009560156621284135,
+              "maxError": 0.10989560186862946,
+              "signalRms": 0.06762201276590288,
+              "snrDb": 16.992461722414664,
+              "errorFrames": 2963,
+              "exact": false
+            }
+          },
+          {
+            "voice": 2,
+            "name": "closed-hat",
+            "start": 4096,
+            "end": 4864,
+            "byteLength": 768,
+            "sourceFrames": 1297,
+            "frames": 1536,
+            "paddingFrames": 239,
+            "metrics": {
+              "rmsError": 0.007008819371050674,
+              "maxError": 0.06649454683065414,
+              "signalRms": 0.03522126453671747,
+              "snrDb": 14.023201531963247,
+              "errorFrames": 1297,
+              "exact": false
+            }
+          },
+          {
+            "voice": 3,
+            "name": "tom",
+            "start": 4864,
+            "end": 6912,
+            "byteLength": 2048,
+            "sourceFrames": 3889,
+            "frames": 4096,
+            "paddingFrames": 207,
+            "metrics": {
+              "rmsError": 0.0006455036436594807,
+              "maxError": 0.0036317408084869385,
+              "signalRms": 0.1111907225129799,
+              "snrDb": 44.72339708414195,
+              "errorFrames": 3889,
+              "exact": false
+            }
+          },
+          {
+            "voice": 4,
+            "name": "wood-block",
+            "start": 6912,
+            "end": 7936,
+            "byteLength": 1024,
+            "sourceFrames": 1852,
+            "frames": 2048,
+            "paddingFrames": 196,
+            "metrics": {
+              "rmsError": 0.0012608300571717412,
+              "maxError": 0.009158357977867126,
+              "signalRms": 0.04513259124213643,
+              "snrDb": 31.076674306317273,
+              "errorFrames": 1852,
+              "exact": false
+            }
+          },
+          {
+            "voice": 5,
+            "name": "shaker",
+            "start": 7936,
+            "end": 8960,
+            "byteLength": 1024,
+            "sourceFrames": 2038,
+            "frames": 2048,
+            "paddingFrames": 10,
+            "metrics": {
+              "rmsError": 0.005759275083909355,
+              "maxError": 0.08914342522621155,
+              "signalRms": 0.029780904569118326,
+              "snrDb": 14.271401248522857,
+              "errorFrames": 2038,
+              "exact": false
+            }
+          }
+        ],
+        "playback": {
+          "frames": 331200,
+          "seconds": 6.9,
+          "peak": 0.2855224609375,
+          "isolated": [
+            {
+              "voice": 0,
+              "name": "kick",
+              "rms": 0.02231309113599542,
+              "tailPeak": 0
+            },
+            {
+              "voice": 1,
+              "name": "snare",
+              "rms": 0.008171966520114062,
+              "tailPeak": 0
+            },
+            {
+              "voice": 2,
+              "name": "closed-hat",
+              "rms": 0.002642388546833739,
+              "tailPeak": 0
+            },
+            {
+              "voice": 3,
+              "name": "tom",
+              "rms": 0.01614967797692045,
+              "tailPeak": 0
+            },
+            {
+              "voice": 4,
+              "name": "wood-block",
+              "rms": 0.004511190161784687,
+              "tailPeak": 0
+            },
+            {
+              "voice": 5,
+              "name": "shaker",
+              "rms": 0.0028029157665601465,
+              "tailPeak": 0
+            }
+          ]
+        }
+      },
+      "files": {
+        "adpcma": {
+          "bytes": 8960,
+          "sha256": "26a9b154e553b332e43b1064284d4e7485f592bba20ac1c0e69989e8d731ad4b"
+        },
+        "json": {
+          "bytes": 3669,
+          "sha256": "9d17ab6c2892ff2fb68549aa9613a27641682f9cf2b4abdcf8132b92b8e1ab15"
+        },
+        "wav": {
+          "bytes": 1324844,
+          "sha256": "6330f424ee2b1dea7b6b6ea47935cbb5066479dd181f3a03053586ab07725424"
+        }
+      }
+    }
+  },
+  "archives": [
+    {
+      "archive": "release/hello_ymfm_wasm_adpcm-a-encoder-dev_itch_playground.zip",
+      "entries": 1121,
+      "files": 1011,
+      "bytes": 36800645,
+      "sha256": "ab88b3fe8021cca41e6475cdb8ba5edd32b59a1a6699b3cbd2adf10cbeebca70",
+      "crc": true,
+      "stageBytesEqual": true
+    },
+    {
+      "archive": "release/hello_ymfm_wasm_adpcm-a-encoder-dev_itch_playground_for_run.zip",
+      "entries": 894,
+      "files": 894,
+      "bytes": 37123782,
+      "sha256": "4b2408a687113f46a66a8001a12e6ba5e6f386c2ee4909a252faa0ce837d3812",
+      "crc": true,
+      "stageBytesEqual": true
+    }
+  ],
+  "browser": [
+    {
+      "host": "source",
+      "passed": true,
+      "routes": 8,
+      "physicalOutputMuted": true,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "reportPath": "/private/tmp/adpcm-a-encoder-source-browser.json",
+      "fullReport": {
+        "bytes": 60293,
+        "sha256": "42220de44ecc228fffe1fd8bde06fa2a2067a2e31c571ed80e0ac3b6b4d333da"
+      },
+      "example": {
+        "path": "/playground/examples/neogeo/neogeo-adpcm-a-drums.js",
+        "bytes": 3261,
+        "sha256": "531ab2cbf8e6be9427bd26b8c65625b48e2aca0b01b05d82da0c6f84e157c122"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006647119251331,
+            "active": 28640,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004513579602920756,
+                "active": 23020,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004437459874845302,
+                "active": 22946,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.040047166901740906,
+            "active": 28636,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004508811067813633,
+                "active": 22964,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004399099051356668,
+                "active": 22788,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo-b",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.040066892739199236,
+            "active": 28636,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.0044227320936679505,
+                "active": 22958,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004405259279326236,
+                "active": 22910,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo-b",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006427974891404,
+            "active": 28646,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004447683131103977,
+                "active": 22866,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004434115254702247,
+                "active": 23060,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006278601462932,
+            "active": 28638,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004525871565206122,
+                "active": 23158,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004526420246065278,
+                "active": 23348,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.040025560905044534,
+            "active": 28638,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.0044658966271256244,
+                "active": 22822,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004442581019466755,
+                "active": 23210,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo-b",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006807704296185,
+            "active": 28642,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004525352291442776,
+                "active": 23160,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.0045317937118774035,
+                "active": 23410,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo-b",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.040062606557641586,
+            "active": 28640,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004516006686816569,
+                "active": 22912,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004508298912725297,
+                "active": 22770,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    {
+      "host": "runZip",
+      "passed": true,
+      "routes": 8,
+      "physicalOutputMuted": true,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "reportPath": "/private/tmp/adpcm-a-encoder-zip-browser.json",
+      "fullReport": {
+        "bytes": 49216,
+        "sha256": "0f22261cfeed17387f8b372ce247709fb6ed2ac69a406caf1598892a5587e22e"
+      },
+      "example": {
+        "path": "/examples/neogeo/neogeo-adpcm-a-drums.js",
+        "bytes": 3261,
+        "sha256": "531ab2cbf8e6be9427bd26b8c65625b48e2aca0b01b05d82da0c6f84e157c122"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04004647197329566,
+            "active": 28640,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004424896119962868,
+                "active": 22968,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004431707851768192,
+                "active": 22976,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04005526192057526,
+            "active": 28642,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.0044293640420394785,
+                "active": 22770,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004422293678587197,
+                "active": 22676,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo-b",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006056144785117,
+            "active": 28640,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004417432560500834,
+                "active": 22876,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004404272486891013,
+                "active": 22880,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "neogeo-b",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006259208558981,
+            "active": 28642,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.0044620294433346756,
+                "active": 23164,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.0044273520293120665,
+                "active": 22764,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04005755671077964,
+            "active": 28644,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004520242662543512,
+                "active": 23426,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004528087049168068,
+                "active": 23404,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006393889392758,
+            "active": 28634,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004466265805344296,
+                "active": 23108,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004431864726671837,
+                "active": 22756,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo-b",
+          "execution": "main",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006173964776108,
+            "active": 28640,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.0045329587938312925,
+                "active": 23388,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.0406261682510376,
+                "rms": 0.004526025696315815,
+                "active": 23420,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "neogeo-b",
+          "execution": "worker",
+          "probe": {
+            "rejected": 8,
+            "bytes": 7424,
+            "sourceFrames": 14815,
+            "frames": 14848,
+            "paddingFrames": 33,
+            "snrDb": 37.77977133356445,
+            "rate": 18518.51851851852,
+            "voices": 6
+          },
+          "probePcm": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0.05753270909190178,
+            "rms": 0.04006540240416789,
+            "active": 28644,
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 14336,
+            "peak": 0,
+            "rms": 0,
+            "active": 0,
+            "physicalOutputMuted": true
+          },
+          "runs": [
+            {
+              "pass": 1,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004514512880611955,
+                "active": 23036,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            },
+            {
+              "pass": 2,
+              "pcm": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0.04050000011920929,
+                "rms": 0.004431907414160116,
+                "active": 23218,
+                "physicalOutputMuted": true
+              },
+              "stopped": {
+                "sampleRate": 48000,
+                "frames": 14336,
+                "peak": 0,
+                "rms": 0,
+                "active": 0,
+                "physicalOutputMuted": true
+              }
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    }
+  ],
+  "workflow": {
+    "file": ".github/workflows/itch-web.yml",
+    "actionlintPassed": true,
+    "remoteRunPerformed": false
+  },
+  "unchanged": [
+    "existing DSP cores",
+    "WASM binaries",
+    "Mixer defaults",
+    "SDK pin",
+    "existing sample playback APIs"
+  ],
+  "notPerformed": [
+    "human listening",
+    "Tauri GUI playback",
+    "Sample Editor integration",
+    "SDK/Tauri import",
+    "commit",
+    "push",
+    "tag",
+    "npm publication",
+    "itch upload"
+  ]
+}

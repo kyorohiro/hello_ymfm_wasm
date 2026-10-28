@@ -59,6 +59,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
 | PCM to WAV | `tetorica-fm2612/wav.js` | `encodeWav` |
+| PCM to Neo Geo ADPCM-A | `tetorica-fm2612/adpcm_a_sample.js` | `encodeAdpcmA` |
 | PCM to YM2608 ADPCM-B | `tetorica-fm2612/adpcm_b_sample.js` | `readSamplePCM`, `encodeAdpcmB` |
 | PCM to SNES BRR | `tetorica-fm2612/snes_brr_encoder.js` | `encodeBrr` |
 | PCM to RF5C164 sample RAM | `tetorica-fm2612/rf5c164_pcm.js` | `encodeRf5c164` |
@@ -1086,6 +1087,34 @@ RF5C164 URLs can be overridden with `rf5c164WasmUrl` and `rf5c164WorkletUrl`;
 otherwise they are siblings of the YM2612 assets. The FM command recorder
 continues to record FM/DAC actions; PCM commands are not recorded. This adds
 the Mega CD PCM chip, not CD disc-image emulation or 32X PWM.
+
+## Neo Geo PCM to ADPCM-A
+
+`encodeAdpcmA()` prepares mono normalized `Float32Array` PCM for YM2610/B's
+six ADPCM-A voices. It is a pure Browser/Worker/Node helper; in Playground it
+is also exposed as `encodeAdpcmA()` and `pg.encodeAdpcmA()`.
+
+```js
+import {encodeAdpcmA} from 'tetorica-fm2612/adpcm_a_sample.js';
+const encoded = encodeAdpcmA(pcm); // PCM must already use the intended clock/432 rate.
+await synth.adpcmA.loadMemory(encoded.bytes, 0);
+synth.adpcmA.setSample(0, {start:0, end:encoded.bytes.length});
+synth.adpcmA.setVolume(56);
+synth.adpcmA.setVoice(0, {volume:27, left:true, right:true});
+synth.adpcmA.keyOn(0);
+```
+
+Conversion is lossy and performs no resampling, gain normalization or tuning
+inference. Zero PCM padding is encoded to the next 256-byte range; zero-filled
+compressed bytes are not silence. The returned lengths and JSON-safe metrics
+make padding and raw reconstruction error explicit. `maxBytes` defaults to
+`0xfff00`, strictly below the current per-voice 1-MiB limit. Callers allocate
+aligned ranges within the separate 16-MiB A memory. This codec differs from
+ADPCM-B and does not add pitch or hardware looping to A voices.
+
+See the [ADPCM-A guide and six-voice Examples](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/adpcm_a_sample.md).
+The helper uses the project's BSD-3-Clause licensing with ymfm attribution;
+existing DSP binaries and sample playback APIs are unchanged.
 
 ## YM2608 ADPCM-B sample loading
 

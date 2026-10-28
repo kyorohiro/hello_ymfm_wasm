@@ -5,6 +5,7 @@ import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
 import {OPL_CHIPS} from '../../web/playground_opl.js';
 import {createSnesClient} from '../../web/playground_snes.js';
 import {encodeBrr} from '../../web/snes_brr_encoder.js';
+import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
@@ -47,7 +48,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     // Imported encoders use instanceof; share their PCM constructor with the VM.
-    encodeBrr, Float32Array,
+    encodeBrr, encodeAdpcmA, Float32Array,
     validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
@@ -170,6 +171,26 @@ test('Worker BRR encoder forwards loop alignment and capacity validation from bo
       assert.match(worker.messages.slice(boundary).find(value => value.type === 'execution-error').message, message);
     }
   } finally { await worker.send({type:'stop'}); }
+});
+
+for (const chip of ['ym2610','snes']) test(`Worker ${chip} exposes a pure ADPCM-A encoder without PCM RPC`, async () => {
+  const f=createTimedWorkerHarness();
+  try {
+    await f.run(`
+      if(encodeAdpcmA!==pg.encodeAdpcmA)throw Error('Separate ADPCM-A encoders');
+      const pcm=Float32Array.from({length:257},(_,i)=>.4*Math.sin(2*Math.PI*i/32));
+      console.log('adpcm-a-result',encodeAdpcmA(pcm),pg.encodeAdpcmA(pcm));
+      let rejected=0;
+      for(const call of [()=>encodeAdpcmA(pcm,{loop:true}),()=>pg.encodeAdpcmA(pcm,{maxBytes:255})]){
+        try{call();}catch{rejected++;}
+      }
+      if(rejected!==2)throw Error('Invalid ADPCM-A options accepted');
+    `,0,{capabilities:{chip,fmChannels:chip==='snes'?0:4,psg:false,dac:false}});
+    const result=f.logs().find(args=>args[0]==='adpcm-a-result');
+    const expected=encodeAdpcmA(Float32Array.from({length:257},(_,i)=>.4*Math.sin(2*Math.PI*i/32)));
+    assert.ok(result);assert.deepEqual(result[1],expected);assert.deepEqual(result[2],expected);
+    assert(!f.worker.messages.some(message=>message.command==='pcm.create'||message.command==='pcm.decode'));
+  } finally {await f.stop();}
 });
 
 test('Worker cycles three- and four-item sequences independently across loop iterations like Main', async () => {

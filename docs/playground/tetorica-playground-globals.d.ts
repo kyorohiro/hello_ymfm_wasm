@@ -1165,6 +1165,7 @@ type PlaygroundAPIBase = {
   keyboard: PlaygroundMusicalKeyboard;
   createSampleInstrument: typeof createSampleInstrument;
   encodeBrr: typeof encodeBrr;
+  encodeAdpcmA: typeof encodeAdpcmA;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1715,6 +1716,25 @@ interface PlaygroundDx7 {
 }
 type PlaygroundPrimaryDx7 = Omit<PlaygroundDx7, 'dispose'> & {readonly id: string};
 type PlaygroundSnesChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+interface PlaygroundAdpcmAEncodeOptions {
+  /** Output byte budget, 256..1048320; default 1048320, strictly less than 1 MiB per voice. */
+  maxBytes?:number;
+}
+interface PlaygroundAdpcmAEncodeResult {
+  bytes:Uint8Array;
+  sourceFrames:number;
+  /** Decoded length including encoded zero PCM padding to 512 frames / 256 bytes. */
+  frames:number;
+  paddingFrames:number;
+  /** Raw signed 12-bit reconstruction errors, normalized by 2048; excludes padding and chip volume. */
+  metrics:{rmsError:number; maxError:number; signalRms:number; errorFrames:number;
+    snrDb:number | null; exact:boolean};
+}
+/** Pure lossy mono PCM → Yamaha ADPCM-A. Finite Float32 samples in [-1,1].
+ * No resampling, gain normalization, pitch controls or hardware loop. Native decoded rate is chip clock / 432.
+ * Returns 256-byte-aligned data; caller allocates ROM ranges. Run during preparation.
+ */
+declare function encodeAdpcmA(pcm:Float32Array, options?:PlaygroundAdpcmAEncodeOptions):PlaygroundAdpcmAEncodeResult;
 interface PlaygroundBrrEncodeOptions {
   /** Null/omitted for one-shots. Loop start and source length must be multiples of 16. */
   loopStartSamples?:number | null;

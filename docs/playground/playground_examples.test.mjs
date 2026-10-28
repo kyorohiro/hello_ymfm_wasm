@@ -85,7 +85,8 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
     assert.equal(new Set(files.map(file => file.path)).size, files.length, `${id} has no duplicates`);
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
-      if (id === 'pc-engine') assert.equal(files.length,4,'PC Engine retains its three PSG examples and the shared CD-DA example');
+      if (['neogeo','neogeo-b'].includes(id)) assert.equal(files.length,4,'Neo Geo retains its existing examples alongside original PCM percussion');
+      else if (id === 'pc-engine') assert.equal(files.length,4,'PC Engine retains its three PSG examples and the shared CD-DA example');
       else if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
       else if (['genesis-full','genesis-full-nuked'].includes(id)) assert.equal(files.length,6,'Genesis expansion modes include the shared mixed-chip, level and YM2612 engine comparison scenes');
       else assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);

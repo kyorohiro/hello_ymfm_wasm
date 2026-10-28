@@ -17,7 +17,7 @@ for(const file of [
   'sources/third_party/libvgm-pokey/pokey.cpp','sources/third_party/libvgm-pokey/pokey.h',
   'sources/third_party/libvgm-pokey/upstream/pokey.c','sources/wasm/pokey_wasm.cpp',
 ])if(!existsSync(resolve(root,file)))errors.push(file);
-for(const file of ['examples/genesis/chip-level-comparison.js'])if(!existsSync(resolve(root,file)))errors.push(file);
+for(const file of ['js/adpcm_a_sample.js','examples/neogeo/neogeo-adpcm-a-drums.js','examples/genesis/chip-level-comparison.js'])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of ['tetorica-playground-msx.d.ts','tetorica-playground-msx-audio.d.ts','defaults/msx/index.js','defaults/msx-audio/index.js','playground_ay8910_voice_panel.js',
   'js/ay8910.js','js/ay8910synth.js','js/playground_ay8910.js','js/playground_ay8910_audio.js',
   'js/playground_ay8910_worklet.js','js/playground_ay8910_inspector.js','generated/ay8910_wasm.js','generated/ay8910_wasm.wasm',

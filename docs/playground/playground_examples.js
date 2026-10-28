@@ -487,6 +487,11 @@ export const EXAMPLE_FILES = [
     "data": "// Independent YM2608; no need to change the Playground chip selector.\n// Uses the bundled BSD-3-Clause Tetorica synthetic rhythm sounds.\n// These sounds differ from Yamaha's original ROM.\nconst ym2608 = await createSoundChip('ym2608');\ntry {\n  ym2608.reset();\n  const rhythm = ym2608.rhythm;\n  rhythm.setVolume(48);\n  for (let voice = 0; voice < 6; voice++) {\n    rhythm.setVoice(voice, {volume: 24, left: true, right: true});\n    rhythm.keyOn(voice);\n    await sleep(0.75);\n  }\n  for (let step = 0; step < 8; step++) {\n    rhythm.keyOn([step % 2 ? 'snare' : 'bassDrum', 'hiHat']);\n    await sleep(0.25);\n  }\n} finally {\n  ym2608.dispose();\n}\n"
   },
   {
+    "path": "/examples/neogeo/neogeo-adpcm-a-drums.js",
+    "name": "neogeo-adpcm-a-drums",
+    "data": "// Select Mode: Neo Geo (YM2610) or Neo Geo (YM2610B).\n// Six original mono drums → ADPCM-A ROM. No external samples or extra chips.\n// ADPCM-A has six one-shot voices at clock/432, without pitch or loop controls.\nawait livePrepare(`neogeo-adpcm-a-drums-${fm.clock}`, async () => {\n  const rate = fm.clock / 432;\n  const lengths = [0.25, 0.16, 0.07, 0.21, 0.1, 0.11];\n  let noiseState = 0x12345678;\n  function makeDrum(voice) {\n    const pcm = new Float32Array(Math.ceil(rate * lengths[voice]));\n    let phase = 0, previousNoise = 0;\n    for (let i = 0; i < pcm.length; i++) {\n      const time = i / rate;\n      noiseState ^= noiseState << 13; noiseState ^= noiseState >>> 17; noiseState ^= noiseState << 5;\n      const noise = (noiseState >>> 0) / 0x80000000 - 1;\n      const highNoise = (noise - previousNoise) * 0.5;\n      previousNoise = noise;\n      let value;\n      if (voice === 0) { // Kick: descending oscillator, not a recorded sample.\n        phase += 2 * Math.PI * (48 + 115 * Math.exp(-time * 35)) / rate;\n        value = 0.6 * Math.sin(phase) * Math.exp(-time * 18);\n      } else if (voice === 1) { // Snare: noise and a short drum head.\n        value = (0.32 * noise + 0.15 * Math.sin(2 * Math.PI * 185 * time)) * Math.exp(-time * 30);\n      } else if (voice === 2) { // Closed hat.\n        value = 0.3 * highNoise * Math.exp(-time * 70);\n      } else if (voice === 3) { // Tom.\n        phase += 2 * Math.PI * (100 + 45 * Math.exp(-time * 25)) / rate;\n        value = 0.48 * Math.sin(phase) * Math.exp(-time * 22);\n      } else if (voice === 4) { // Wood block.\n        value = 0.2 * (Math.sin(2 * Math.PI * 720 * time) +\n          0.5 * Math.sin(2 * Math.PI * 1040 * time)) * Math.exp(-time * 55);\n      } else { // Shaker.\n        value = 0.28 * highNoise * Math.exp(-time * 35) *\n          (0.65 + 0.35 * Math.sin(2 * Math.PI * 70 * time));\n      }\n      // Start at zero; end at zero before the encoder pads to a ROM boundary.\n      const fade = Math.min(1, i / (rate * 0.001), (pcm.length - 1 - i) / (rate * 0.008));\n      pcm[i] = value * fade;\n    }\n    return encodeAdpcmA(pcm);\n  }\n  const encoded = lengths.map((_, voice) => makeDrum(voice));\n  const rom = new Uint8Array(encoded.reduce((size, entry) => size + entry.bytes.length, 0));\n  let address = 0;\n  const ranges = encoded.map(entry => {\n    const start = address;\n    rom.set(entry.bytes, start);\n    address += entry.bytes.length;\n    return {start, end:address}; // Exclusive end; both ends are 256-byte aligned.\n  });\n  adpcmA.keyOff([0, 1, 2, 3, 4, 5]);\n  await adpcmA.loadMemory(rom);\n  ranges.forEach((range, voice) => adpcmA.setSample(voice, range));\n  log(`Six ADPCM-A drums: ${rom.length} ROM bytes at ${rate.toFixed(2)} Hz`);\n});\n// These are chip voice levels, independent of your Mixer preset.\nadpcmA.setVolume(56);\nfor (let voice = 0; voice < 6; voice++) {\n  adpcmA.setVoice(voice, {volume:27, left:true, right:true});\n}\nsetBpm(120);\nconst steps = [\n  [0, 2], [5], [2], [5], [1, 2], [5], [3, 2], [5],\n  [0, 2], [5], [0, 2], [5], [1, 2, 4], [5], [3, 2], [4, 5],\n];\nliveLoop('neogeo-six-drum-voices', async () => {\n  for (const voices of steps) {\n    adpcmA.keyOn(voices); // Re-trigger selected voices; each stops at its own ROM end.\n    await beat(0.25);\n  }\n});\n"
+  },
+  {
     "path": "/examples/neogeo/neogeo-b-six-channel.js",
     "name": "neogeo-b-six-channel",
     "data": "// Select Mode: Neo Geo (YM2610B). This uses all six FM channels.\nsetBpm(120);\nconst channels = /** @type {const} */ ([CH1, CH2, CH3, CH4, CH5, CH6]);\nfor (const channel of channels) {\n  fm.setPreset(channel, FM_PRESETS['one-op-basic']);\n}\n\nliveLoop('six-channel-chords', async () => {\n  for (const chord of [\n    ['C3', 'G3', 'C4', 'E4', 'G4', 'B4'],\n    ['A2', 'E3', 'A3', 'C4', 'E4', 'G4'],\n    ['F2', 'C3', 'F3', 'A3', 'C4', 'E4'],\n    ['G2', 'D3', 'G3', 'B3', 'D4', 'F4'],\n  ]) {\n    for (let i = 0; i < channels.length; i++) {\n      fm.noteOn(channels[i], chord[i]);\n    }\n    await beat(0.75);\n    for (const channel of channels) fm.keyOff(channel);\n    await beat(0.25);\n  }\n});\n"
@@ -761,12 +766,14 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   "neogeo": [
     "/examples/neogeo/neogeo-opnb-duet.js",
     "/examples/neogeo/neogeo-opnb-sections.js",
-    "/examples/neogeo/neogeo-sampler.js"
+    "/examples/neogeo/neogeo-sampler.js",
+    "/examples/neogeo/neogeo-adpcm-a-drums.js"
   ],
   "neogeo-b": [
     "/examples/neogeo/neogeo-opnb-sections.js",
     "/examples/neogeo/neogeo-b-six-channel.js",
-    "/examples/neogeo/neogeo-sampler.js"
+    "/examples/neogeo/neogeo-sampler.js",
+    "/examples/neogeo/neogeo-adpcm-a-drums.js"
   ],
   "wonderswan": [
     "/examples/wonderswan/ws-four-voices.js",

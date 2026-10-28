@@ -14,6 +14,7 @@ const opnbExamples = [
   '/examples/neogeo/neogeo-opnb-duet.js',
   '/examples/neogeo/neogeo-opnb-sections.js',
   '/examples/neogeo/neogeo-sampler.js',
+  '/examples/neogeo/neogeo-adpcm-a-drums.js',
 ];
 const definitions = {
   genesis: null,
@@ -23,7 +24,7 @@ const definitions = {
   'pc98-26': ['/examples/pc98/pc98-opn-melody.js', '/examples/pc98/pc98-opn-ssg.js'],
   pc98: ['/examples/pc98/pc98-opna-groove.js', '/examples/pc98/pc98-opna-sections.js', '/examples/pc98/pc98-sampler.js'],
   neogeo: opnbExamples,
-  'neogeo-b': ['/examples/neogeo/neogeo-opnb-sections.js', '/examples/neogeo/neogeo-b-six-channel.js', '/examples/neogeo/neogeo-sampler.js'],
+  'neogeo-b': ['/examples/neogeo/neogeo-opnb-sections.js', '/examples/neogeo/neogeo-b-six-channel.js', '/examples/neogeo/neogeo-sampler.js', '/examples/neogeo/neogeo-adpcm-a-drums.js'],
   wonderswan: ['/examples/wonderswan/ws-four-voices.js','/examples/wonderswan/ws-stereo.js','/examples/wonderswan/ws-noise-sweep.js'],
   gameboy: ['/examples/gameboy/gameboy-mode-pulse.js', '/examples/gameboy/gameboy-mode-wave.js', '/examples/gameboy/gameboy-sampler.js'],
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],

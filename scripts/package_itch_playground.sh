@@ -404,6 +404,7 @@ ym2608.js
 ym2608audioengine.js
 ym2608synth.js
 adpcm_b_sample.js
+adpcm_a_sample.js
 y8950_adpcm.js
 y8950_adpcm_preview.js
 ym2608-worklet.js

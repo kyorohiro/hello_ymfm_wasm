@@ -13,6 +13,9 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
+    assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
+  }
   for (const file of ['snes_brr_encoder.js','snes_brr_encoder.d.ts']) {
     assert.ok(packedPaths.has(file), `BRR encoder payload missing ${file}`);
   }
@@ -84,6 +87,36 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'adpcm-a-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {encodeAdpcmA} from 'tetorica-fm2612/adpcm_a_sample.js';
+import {encodeAdpcmA as extensionless} from 'tetorica-fm2612/adpcm_a_sample';
+import {Ym2610B} from 'tetorica-fm2612/ym2610b.js';
+import {YM2610BSynth,YM2610BDirectTransport} from 'tetorica-fm2612/ym2610bsynth.js';
+import moduleFactory from 'tetorica-fm2612/generated/ym2610b_wasm.js';
+assert.equal(encodeAdpcmA,extensionless);
+const pcm=Float32Array.from({length:1025},(_,i)=>.5*Math.sin(2*Math.PI*i/64));
+const encoded=encodeAdpcmA(pcm);assert.equal(encoded.bytes.length,768);
+assert.equal(encoded.sourceFrames,1025);assert.equal(encoded.paddingFrames,511);
+assert(encoded.metrics.snrDb>25);
+const wasmBinary=await readFile(new URL('./node_modules/tetorica-fm2612/generated/ym2610b_wasm.wasm',import.meta.url));
+for(const variant of [false,true]){
+ const chip=await Ym2610B.create({moduleFactory,moduleOptions:{wasmBinary},variant});
+ try{
+  const synth=new YM2610BSynth({transport:new YM2610BDirectTransport(chip)});
+  await synth.adpcmA.loadMemory(encoded.bytes);synth.adpcmA.setSample(5,{start:0,end:encoded.bytes.length});
+  synth.adpcmA.setVolume(55);synth.adpcmA.setVoice(5,{volume:25,left:true,right:false});synth.adpcmA.keyOn(5);
+  const playing=chip.generateStereo(2048);assert(playing.left.every(Number.isFinite));
+  assert(playing.left.some(value=>Math.abs(value)>.01));assert(playing.right.every(value=>value===0));
+  const ended=chip.generateStereo(Math.ceil(chip.sampleRate()*.2));assert(ended.left.slice(-256).every(value=>value===0));
+  synth.adpcmA.keyOn(5);assert(chip.generateStereo(2048).left.some(value=>Math.abs(value)>.01));
+  synth.adpcmA.keyOff(5);assert(chip.generateStereo(256).left.slice(-128).every(value=>value===0));
+ }finally{chip.dispose();}
+}
+console.log('Installed ADPCM-A encoder verified: both exports, conversion, YM2610/B actual six-voice endpoint, EOF and retrigger.');
+`);
+  execFileSync(process.execPath,[join(consumer,'adpcm-a-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'brr-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
