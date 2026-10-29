@@ -1,3 +1,14 @@
+## 2026-10-29 — PS1 Keyboardのクリック低減・発音を保ったlive ADSR
+
+- ユーザーのKeyboard／ADSR操作中のノイズを受け、毎回KONでsample位置とenvelopeをリセットしていた経路を修正。editor自身が保持するnoteは現在level／sample位置を保ってactive stageを再計算する。Sustain中のAR変更は次Attackへ反映。checkboxは「Apply ADSR / PCM edits to my held note」。uncheckedは次KONまで保留、PCM編集は明示再発音のまま。
+- 手動Keyboardの発音／再発音はvoice単位の128 native frames（約2.9ms）ramp、速すぎる離鍵には最低release時間。長い／無限releaseは維持。連打中の古いnoteOff、CH分離、取消、resetを処理する。raw register／公開Synth演奏のKON/KOFFは不変。hard Stopは即時消音。元波形も粗い±5量子化からeditorと同じencoded 0.65 Sineへ変更。Workletでencoderは実行しない。
+- canonical SDK原本 `w/tetorica-soundchip-native` へC API refresh_envelope／audition_keyを追加。0.1.7未公開local candidate ZIP（SHA256 cf1e9c7a0426d72d04d470a9a24948659514fbe5247866631d24cc764a77fc71）を、本体とTauriの双方へ正規import。pinは0.1.6のbase commitと12changedPathsを明示。固定snapshot手編集なし、pristine upstreamは不変。WASMを再buildし、source／license bundleとcache closureを同期。
+- 実WASMの制御用DC fixtureで最大stepはOffが128倍、再発音が82.58倍小さい。Sustain中AR変更は8,192 stereo frames位相を含め完全一致、SR live減衰と古いOffの無影響を確認。通常raw再生71,880framesは認証済み0.1.6 goldenと完全一致。初期sampleとeditor Sineは44.1／48kHzで同じPCM、target sineへのRMS誤差は旧coarseの約48%。これは全noise除去や実聴の主張ではない。
+- Node core／Synth／Worklet／Native／UI、Native regression760成功（既存device／benchmark2ignored）、SDK Node107＋Python26、Tauri Python31＋Node31成功。source Chromium／WebKit×Main／Worker4経路、実Run ZIP WebKit×Main／Worker2経路のKeyboard／live ADSR／PCM／FX／Stop／他voice／recover成功。物理出力mute、Tauri GUI／実聴／新remote CIは未実施。
+- DSP／shared runtimeの変更に対しPS1・WS・POKEYを全matrixで新raw再測定し、3つの *_chip_levels_live_controls_01.jsonへ保存。旧4rawはSHA不変、最新全script/runtime/WASM hashを直接照合する。校正371件と両generator --check成功。PS1 0.128832、WS 1.172528維持。POKEYのみRMSの丸めによりprimary .413037／dual .413038／extra .413039へ最大0.00145%微差。global clock診断2件は保持、captured PCM pilotは全連続。
+- 完全ZIP SHA256 16ecb27653fd5bd4c753c5b821a54a83bca65a7b9aeb8b99aa5c5125759c830a、Run ZIP SHA256 ab0d5bbbd4dea1374cbc7230895a7a98e4a4365877e2c50db2ca763db9999493（931files）、両CRC成功。Tauriへ1,066非metadata payloadをimportしlock／SDK pin確認済み。npmローカル335modules／28engines／385declarations build、1,004files tarball隔離install／実PCM／型検証成功。
+- 詳細：[ps1_live_controls_01.md](ps1_live_controls_01.md)／JSONと関連実測記録。**本体・SDK原本・Tauriの3repoに未commit変更あり**。commit／push／SDK・npm・itch公開は未実施。次はユーザーの実聴、必要なら3repoのcommitとSDK 0.1.7正式配布へ進む。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1の初期音色をSPUタブのSineと同程度へ調整
 
 - ユーザーがindex.js／Keyboardの初期音色の小ささを確認し、初期sample側の調整を承認。共通`createPs1InitSample()`だけをfilter0／shift4／±7からfilter0／shift0／±5へ変更し、decoded peak `0.0546875 → 0.625`。64bytes／112frames／音程／loop／flagsは保持。Browser／Worker／Native JS初期化は同じfactoryを使う。docs mirror同期済み。

@@ -69,10 +69,16 @@ fastest and higher codes slow or stop a stage. Sustain level is `(code + 1) / 16
 Release codes `27..31` hold indefinitely in this implementation. The envelope
 drawing is a schematic of the programmed stages, not a measured timing plot.
 
-ADSR registers are read at key-on. The enabled-by-default **Retrigger my held
-note after an ADSR or PCM edit** option restarts a note owned by this editor to make
-the change audible immediately. It does not restart a script-owned voice or
-another channel. Disable it to compare the current note with the next key-on.
+The enabled-by-default **Apply ADSR / PCM edits to my held note** option applies
+ADSR edits to this editor's audition without restarting its sample or resetting
+the current envelope level. A rate change affects the active stage; changing
+Attack while already sustaining therefore affects the next attack. Disable it
+to defer ADSR changes until the next note. PCM edits still restart the edited
+voice. Script-owned notes and other voices are not restarted by these controls.
+Manual note transitions use a 128-native-frame ramp (about 2.9 ms at 44,100 Hz)
+and a minimum fast-release duration to reduce abrupt discontinuities. Longer
+programmed releases, including indefinite releases, remain intact. Transport
+Stop still silences immediately.
 Pitch, fixed volume, reverb sends and reverb return levels affect held voices
 without retriggering. **Raw ADSR words and voice JavaScript** retains direct
 register editing and provides **Copy voice JavaScript** for use in a script.
@@ -268,8 +274,11 @@ root-note/tuning metadata. Raw ADPCM stores no sample rate or root note.
 
 The port retains MAME's linear interpolation, floating-point ADSR rate
 approximations and preset-based approximate reverb. It is experimental and does
-not claim hardware-exact sound or game soundtrack compatibility. ADSR changes
-apply at the next key-on; pitch and fixed volumes can update active voices.
+not claim hardware-exact sound or game soundtrack compatibility. Raw ADSR
+register writes and the public Synth setters apply at the next key-on; pitch
+and fixed volumes can update active voices. The editor explicitly uses the
+`refreshEnvelope()` and `auditionKey()` extensions for live ADSR and smooth
+manual audition. These are instrument extensions, not hardware register modes.
 In this pinned implementation's rate tables, index zero is fastest; higher
 indexes are slower or stop. Hardware ADSR presets should not be assumed to
 produce cycle-accurate envelopes through these approximations.

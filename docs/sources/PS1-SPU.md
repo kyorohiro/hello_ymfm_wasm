@@ -1,6 +1,6 @@
 # PlayStation SPU source and rebuilding
 
-The complete BSD-3-Clause standalone C++17 SPU, C API, pristine upstream MAME sources, revision, checksums, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). The source is taken from fixed tetorica-soundchip-native SDK 0.1.6. [PS1-SPU.json](PS1-SPU.json) retains the complete SDK pin, including whether it represents an unpublished local candidate, and hashes every distributed input. [sdk/RELEASE-MANIFEST.json](sdk/RELEASE-MANIFEST.json) is the genuine release manifest authenticated by that pin.
+The complete BSD-3-Clause standalone C++17 SPU, C API, pristine upstream MAME sources, revision, checksums, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). The source is taken from fixed tetorica-soundchip-native SDK 0.1.7. [PS1-SPU.json](PS1-SPU.json) retains the complete SDK pin, including whether it represents an unpublished local candidate, and hashes every distributed input. [sdk/RELEASE-MANIFEST.json](sdk/RELEASE-MANIFEST.json) is the genuine release manifest authenticated by that pin.
 
 From this sources directory, run:
 

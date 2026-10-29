@@ -30,6 +30,34 @@ static void write_float(float value)
     uint32_t bits;std::memcpy(&bits,&value,sizeof bits);write_u32(bits);
 }
 #define CHECK(condition) do { if (!(condition)) { std::fprintf(stderr,"check failed at line %d: %s\n",__LINE__,#condition);return 1; } } while(0)
+static int live_editor_selftest()
+{
+    // This SDK's own tests exercise the opt-in editor API, without a browser
+    // host or an application copy of the emulation algorithm.
+    ps1_pattern::Chip edited,reference;
+    for (auto *chip:{&edited,&reference}) {
+        ps1_pattern::configure(*chip);ps1_pattern::voice(*chip,0);
+        CHECK(ps1_spu_audition_key(chip->value,0,1));
+        ps1_pattern::render(*chip,1009,127);
+        chip->write(8,0x7f0f);
+    }
+    const uint32_t before=ps1_spu_read(edited.value,12);
+    CHECK(before>0);CHECK(ps1_spu_refresh_envelope(edited.value,0));
+    CHECK(ps1_spu_read(edited.value,12)==before);
+    const auto a=ps1_pattern::render(edited,513,1),b=ps1_pattern::render(reference,513,127);
+    CHECK(a.left==b.left&&a.right==b.right); // AR edits preserve held phase/level.
+    CHECK(ps1_spu_audition_key(edited.value,0,0));
+    const auto released=ps1_pattern::render(edited,257,7);
+    CHECK(ps1_pattern::peak(std::vector<float>(released.left.begin()+20,released.left.begin()+70))>0);
+    CHECK(std::all_of(released.left.begin()+200,released.left.end(),[](float v){return v==0;}));
+    CHECK(ps1_spu_read(edited.value,10)==0x1fc0); // No authored RR rewrite.
+    CHECK(ps1_spu_audition_key(reference.value,0,1));
+    ps1_pattern::render(reference,13);
+    CHECK(ps1_spu_audition_key(reference.value,0,0)); // Cancels deferred KON.
+    CHECK(ps1_pattern::peak(ps1_pattern::render(reference,513).left)>0);
+    CHECK(ps1_pattern::peak(ps1_pattern::render(reference,257).left)==0);
+    return 0;
+}
 static int selftest()
 {
     CHECK(ps1_spu_sample_rate()==44100);
@@ -37,7 +65,11 @@ static int selftest()
     CHECK(ps1_spu_read(nullptr,0)==0xffffffffu);
     CHECK(!ps1_spu_load_ram(nullptr,0,nullptr,0));CHECK(!ps1_spu_read_ram(nullptr,0,nullptr,0));
     CHECK(!ps1_spu_render(nullptr,nullptr,nullptr,0));ps1_spu_destroy(nullptr);
+    CHECK(!ps1_spu_refresh_envelope(nullptr,0));CHECK(!ps1_spu_audition_key(nullptr,0,1));
     void *chip=ps1_spu_create();CHECK(chip);
+    CHECK(!ps1_spu_refresh_envelope(chip,24));CHECK(!ps1_spu_refresh_envelope(chip,0xffffffffu));
+    CHECK(!ps1_spu_audition_key(chip,24,1));CHECK(!ps1_spu_audition_key(chip,0,2));CHECK(!ps1_spu_audition_key(chip,0,-1));
+    CHECK(ps1_spu_refresh_envelope(chip,0));CHECK(ps1_spu_refresh_envelope(chip,23));
     CHECK(!ps1_spu_reset(chip,2));CHECK(!ps1_spu_write(chip,1,0));CHECK(!ps1_spu_write(chip,0x400,0));
     CHECK(ps1_spu_read(chip,1)==0xffffffffu);CHECK(ps1_spu_read(chip,0x400)==0xffffffffu);
     CHECK(!ps1_spu_write(chip,0,0x8000));CHECK(!ps1_spu_write(chip,0x180,0x8000));
@@ -56,7 +88,8 @@ static int selftest()
     CHECK(ps1_spu_render(chip,pcm,pcm+8,8));for(unsigned i=0;i<16;i++)CHECK(pcm[i]==0.0f);
     ps1_spu_destroy(chip);
     CHECK(ps1_pattern::selftest());
-    std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation and partition invariance\"}");
+    CHECK(live_editor_selftest()==0);
+    std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance and live editor controls\"}");
     return 0;
 }
 int main(int argc,char **argv)

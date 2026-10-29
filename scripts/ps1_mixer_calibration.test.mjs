@@ -152,10 +152,11 @@ test('all required raw sources match, and corrupted provenance is rejected befor
   assert.equal(PS1_CALIBRATION_REQUIRED_SCRIPTS.length,5);assert.ok(PS1_CALIBRATION_REQUIRED_SOURCES.length>=18);
 });
 
-test('original complete PS1 source inventory remains valid through pinned cache-only and exact UI revision receipts',async()=>{
+test('original complete PS1 measurements remain immutable and are stale after the live DSP revision',async()=>{
   const path='docs/issues/ps1_chip_levels_01.json',before=await readFile(path,'utf8'),report=JSON.parse(before);
   const originalSources=structuredClone(report.sources);
-  await validatePs1MixerCalibrationSources({reportPath:'docs/issues/playground_chip_levels_01.json',ps1Report:report});
+  assert.equal(validatePs1MixerCalibration(fixture.historical,report).primaryVolume,.128832);
+  await assert.rejects(validatePs1MixerCalibrationSources({reportPath:'docs/issues/playground_chip_levels_01.json',ps1Report:report}),/served DSP\/WASM source changed|source receipt/);
   assert.deepEqual(report.sources,originalSources,'all 293 historical raw hashes remain original evidence');
   assert.equal(Object.keys(report.sources).length,293);
   assert.equal(await readFile(path,'utf8'),before,'freshness checks do not rewrite measurement evidence');

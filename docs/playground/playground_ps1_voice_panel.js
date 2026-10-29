@@ -115,8 +115,8 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   waveCard.appendChild(make('p', 'subtext', 'One cycle uses 112 PCM samples, encoded as four ADPCM packets (64 bytes), with a loop from sample 0. At PITCH 4096 its fundamental is 393.75 Hz. Shapes and completed strokes affect only this voice; other voices keep their samples. ADPCM quantization changes the resulting sound. Use Sample Editor for recordings and longer samples.'));
 
   const envelopeCard = section(instrument, 'ADSR envelope'), envelopeFields = fields(envelopeCard), envelopeInputs = {};
-  const retrigger = checkbox(envelopeFields, 'Retrigger my held note after an ADSR or PCM edit', 'ps1-retrigger'); retrigger.checked = true;
-  function editEnvelope(key, value) {if (!connected || disposed) return; cancelEnvelope(); envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {retrigger:retrigger.checked}]);}
+  const retrigger = checkbox(envelopeFields, 'Apply ADSR / PCM edits to my held note', 'ps1-retrigger'); retrigger.checked = true;
+  function editEnvelope(key, value) {if (!connected || disposed) return; cancelEnvelope(); envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {live:retrigger.checked}]);}
   for (const [key, label, max] of [['attackRate','Attack rate · 0 fastest',127], ['decayRate','Decay rate · 0 fast / 15 slow',15], ['sustainLevel','Sustain level · 0–15',15], ['sustainRate','Sustain rate · 127 holds',127], ['releaseRate','Release rate · 27–31 hold',31]]) {
     envelopeInputs[key] = number(envelopeFields, label, `ps1-${key.replace(/[A-Z]/g, value => '-' + value.toLowerCase())}`, 0, max, value => editEnvelope(key, value));
   }
@@ -134,7 +134,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   }));
   const envelopeInfo = make('p', 'subtext'); envelopeInfo.dataset.chipOutput = 'ps1-envelope'; envelopeCard.appendChild(envelopeInfo);
   envelopeCard.appendChild(make('p', 'subtext', 'Drag A / D / S / R left or right: faster / slower rate codes. Drag D up or down: sustain level. Focus a point and use arrow keys for one-step adjustments.'));
-  envelopeCard.appendChild(make('p', 'subtext', 'The graph shows envelope shape, not measured timing. This experimental core approximates ADSR curves; high rate codes can stop a stage. ADSR changes apply at key-on; retrigger restarts only a note held by this editor. Code-owned notes keep playing. Release rates 27–31 hold indefinitely in this core.'));
+  envelopeCard.appendChild(make('p', 'subtext', 'The graph shows envelope shape, not measured timing. Edits update your held audition at its current level and sample position. Attack changes affect an active attack or the next note. Turn off Apply edits to keep changes for the next note. High rate codes can stop a stage; release rates 27–31 hold indefinitely in this core.'));
 
   const effectCard = section(instrument, 'SPU reverb'), effectFields = fields(effectCard);
   const reverbSend = checkbox(effectFields, 'Selected voice uses reverb', 'ps1-reverb-send', value => patch({reverb:value}));
@@ -146,7 +146,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   effectCard.appendChild(make('p', 'subtext', 'Choose a reverb preset and enable “Selected voice uses reverb” to hear it. Preset and return levels affect all voices on this SPU; each voice has its own reverb switch. These are the core’s named reverb approximations.'));
 
   const advanced = make('details', 'chip-advanced'); advanced.appendChild(make('summary', '', 'Raw ADSR words and voice JavaScript')); instrument.appendChild(advanced);
-  const rawFields = fields(advanced), rawPatch = value => {cancelEnvelope(); envelopeDraft = {}; void command('setPreset', [selected, value, {retrigger:retrigger.checked}]);};
+  const rawFields = fields(advanced), rawPatch = value => {cancelEnvelope(); envelopeDraft = {}; void command('setPreset', [selected, value, {live:retrigger.checked}]);};
   const adsr1 = number(rawFields, 'ADSR1 (raw word)', 'ps1-adsr1', 0, 65535, value => rawPatch({adsr1:value}));
   const adsr2 = number(rawFields, 'ADSR2 (raw word)', 'ps1-adsr2', 0, 65535, value => rawPatch({adsr2:value}));
   const code = make('pre', 'chip-memory-ranges'); code.dataset.chipOutput = 'ps1-code'; advanced.appendChild(code);
@@ -234,7 +234,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
     const pending = envelopePending; envelopePending = null; envelopeInFlight = pending;
     // Coalesce pointer events and wait for the previous inspector write instead
     // of flooding Main/Worker/Native with retriggers and state-read requests.
-    void command('setEnvelope', [pending.channel, pending.patch, {retrigger:pending.retrigger}], () => {
+    void command('setEnvelope', [pending.channel, pending.patch, {live:pending.retrigger}], () => {
       if (selected !== pending.channel) return;
       for (const [key, value] of Object.entries(pending.patch)) if (envelopeDraft[key] === value && !Object.hasOwn(envelopePending?.patch ?? {}, key)) delete envelopeDraft[key];
       syncEnvelopeInputs(); drawEnvelope();

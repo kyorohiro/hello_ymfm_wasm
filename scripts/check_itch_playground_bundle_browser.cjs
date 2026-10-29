@@ -268,9 +268,9 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
 (async()=>{
  let calibrationExpectation=null;
  if(modes.some(mode=>mode==='pokey'||mode==='pokey-dual')){
-  const file=path.resolve(__dirname,'../docs/issues/pokey_chip_levels_01.json'),bytes=await fs.readFile(file);pokeyCalibration=JSON.parse(bytes);
+  const file=path.resolve(__dirname,'../docs/issues/pokey_chip_levels_live_controls_01.json'),bytes=await fs.readFile(file);pokeyCalibration=JSON.parse(bytes);
   assert(pokeyCalibration.passed&&pokeyCalibration.completeCoverage&&!pokeyCalibration.verify,'Complete POKEY calibration expected values');
-  calibrationExpectation={path:'docs/issues/pokey_chip_levels_01.json',sha256:sha(bytes),measurementMetric:pokeyCalibration.calibration.measurementMetric};
+  calibrationExpectation={path:'docs/issues/pokey_chip_levels_live_controls_01.json',sha256:sha(bytes),measurementMetric:pokeyCalibration.calibration.measurementMetric};
  }
  const artifact=await unpack();await fs.access(path.join(artifact.root,'index.html'));await fs.mkdir(images,{recursive:true});
  let bundle=null;

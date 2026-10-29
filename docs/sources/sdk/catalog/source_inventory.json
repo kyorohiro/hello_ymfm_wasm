@@ -1893,7 +1893,8 @@
         "https://github.com/kyorohiro/hello_ymfm_wasm"
       ],
       "sourceVersion": [
-        "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d; adapted instrument snapshot from application commit 069a2cb8211aa0159b71da5f7c806a30a4d32929; per-file hashes are authoritative"
+        "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d; adapted instrument snapshot from application commit 069a2cb8211aa0159b71da5f7c806a30a4d32929; per-file hashes are authoritative",
+        "SDK 0.1.7 local instrument extensions; original import hashes retained per amended file; pristine upstream files unchanged"
       ],
       "files": [
         {
@@ -1904,27 +1905,42 @@
         {
           "path": "vendor/mame-ps1-spu/README.md",
           "originPath": "native/ps1/README.md",
-          "sha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6"
+          "sha256": "51ca1a81db19c00ef8fda4b0bf312f6681f26d68f38cd1d39ae9fccc8ff79738",
+          "originalSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
+          "previousSdkSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
           "originPath": "native/ps1/ps1_spu.cpp",
-          "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a"
+          "sha256": "c27a63c876f51f76b62627279d4789f04db64313591b0bac327878c23d0401b8",
+          "originalSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
+          "previousSdkSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.h",
           "originPath": "native/ps1/ps1_spu.h",
-          "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e"
+          "sha256": "ace3f50ca0e573ef3dfe7f3b5abaf88613749137f9ed13f5e9e9a05e5bc9a7e8",
+          "originalSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
+          "previousSdkSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
         },
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
           "originPath": "native/ps1/spu.cpp",
-          "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b"
+          "sha256": "bf715e27233bb635f8ebb479e309fc341e36c82928a9f6a58acd19fdb571d72c",
+          "originalSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
+          "previousSdkSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",
           "originPath": "native/ps1/spu.h",
-          "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828"
+          "sha256": "f2fa0715cea0acab8eb88f73752179b7dfe98f130587774f6141128446fd3a67",
+          "originalSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
+          "previousSdkSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
         },
         {
           "path": "vendor/mame-ps1-spu/spu_tables.cpp",

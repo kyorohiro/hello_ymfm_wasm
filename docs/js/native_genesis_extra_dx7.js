@@ -2,8 +2,8 @@
  * this endpoint; its sixteen allocated voices render on the Native callback. */
 import {createInitVoice,parseSysex,packVoice} from './msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=ps1-mode-1';
-import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=ps1-mode-1';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=ps1-live-controls-1';
+import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=ps1-live-controls-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_DX7_VOICE_HELD_ERROR='Release the manually held additional DX7 voices before changing the voice';

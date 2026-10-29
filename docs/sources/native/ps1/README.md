@@ -66,6 +66,13 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
 
 ## Adaptation details and limitations
 
+- Opt-in instrument controls added in 0.1.7: `ps1_spu_refresh_envelope` rereads
+  ADSR rates while preserving the current envelope level and sample position;
+  `ps1_spu_audition_key` uses 128-frame per-voice ramps for manual key transitions
+  and floors only very fast manual releases. Slow and infinite release settings
+  are retained. These extensions do not change raw register KON/KOFF or the
+  original key-on-latched ADSR path. They are sound-design aids, not emulated
+  hardware registers. Calling raw KON/KOFF resets any pending audition ramp.
 - Replaced MAME device registration, save-state, stream scheduling, host CPU,
   DMA wiring, IRQ callbacks, and timers with pull-based rendering and the C API.
   The public interface is for instruments; CPU DMA and external XA/CD audio

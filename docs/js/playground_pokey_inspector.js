@@ -1,6 +1,6 @@
 import {PokeySynth} from './pokeysynth.js?v=pokey-mode-1';
 import {keyboardChannels} from './playground_keyboard_channels.js?v=ps1-mode-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-voice-editor-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-live-controls-1';
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 const channel=value=>{if(typeof value==='string'&&/^[0-3]$/.test(value))value=Number(value);if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('POKEY channel must be 0..3');return value;};
 const distortionMode=(distortion,poly9)=>distortion===5||distortion===7?'Tone':distortion&1?'Poly5-gated tone':`Noise (${distortion&4?'':'Poly5 → '}${distortion&2?'Poly4':poly9?'Poly9':'Poly17'})`;

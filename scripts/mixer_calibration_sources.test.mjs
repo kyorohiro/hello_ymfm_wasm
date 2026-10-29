@@ -190,7 +190,7 @@ test('receipt preparation rejects changed original bytes, including only a cache
 });
 for(const [kind,receiptObjectSha256]of [
   ['ps1',PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256],['wonderswan',WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256],['pokey',POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256],
-])test('committed '+kind+' receipt links the untouched report and accepts the current UI cache tokens',async()=>{
+])test('committed '+kind+' receipt links immutable history and rejects the revised UI and DSP bytes',async()=>{
   const reportBytes=await readFile(new URL('../docs/issues/'+kind+'_chip_levels_01.json',import.meta.url));
   const report=JSON.parse(reportBytes),receipt=JSON.parse(await readFile(new URL('../docs/issues/'+kind+'_chip_levels_ui_receipt_01.json',import.meta.url),'utf8'));
   assert.equal(mixerCalibrationReceiptObjectSha256(receipt),receiptObjectSha256);
@@ -198,7 +198,12 @@ for(const [kind,receiptObjectSha256]of [
   assert.equal(receipt.report.sha256,sha(reportBytes));assert.equal(receipt.report.objectSha256,sha(JSON.stringify(report)));
   for(const path of [js,html]){
     const bytes=await readFile(new URL('../docs/'+path,import.meta.url));
-    assert(['raw','ui-cache-token'].includes(assertMixerCalibrationSourceFreshness({path,bytes,record:report.sources[path],report,
-      reportSha256:sha(reportBytes),receipt,receiptObjectSha256})));
+    const options={path,bytes,record:report.sources[path],report,reportSha256:sha(reportBytes),receipt,receiptObjectSha256};
+    if(path===js)assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
+    else assert(['raw','ui-cache-token'].includes(assertMixerCalibrationSourceFreshness(options)));
   }
+  const dspPath='js/ps1synth.js',dspBytes=await readFile(new URL('../docs/'+dspPath,import.meta.url));
+  assert.throws(()=>assertMixerCalibrationSourceFreshness({path:dspPath,bytes:dspBytes,record:report.sources[dspPath],report,
+    reportSha256:sha(reportBytes),receipt,receiptObjectSha256}),/served DSP\/WASM source changed/,
+  'a still-applicable UI cache receipt cannot authorize changed synthesis bytes');
 });

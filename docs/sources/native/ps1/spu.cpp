@@ -431,6 +431,20 @@ struct spu_device::voiceinfo
 				forceloop = false,
 				_pad = false;
 	int64_t keyontime = 0;
+	// Editor-only gate; the raw register path stays at unity.
+	float audition_gain = 1.0f, audition_delta = 0.0f;
+	float audition_release_floor = 0.0f;
+	unsigned int audition_samples = 0;
+	bool audition_restart = false;
+	void advance_audition_gain()
+	{
+		if (audition_samples)
+		{
+			audition_gain += audition_delta;
+			if (!--audition_samples)
+				audition_gain = audition_restart ? 0.0f : 1.0f;
+		}
+	}
 };
 
 //
@@ -1757,6 +1771,8 @@ bool spu_device::process_voice(const unsigned int v,
 									nextevent=(std::min)(vi->samplestoend,
 																(std::min)(vi->samplestoirq,vi->envsamples));
 		ntoplay=(std::min)(ntoplay,nextevent);
+		if (vi->audition_samples)
+			ntoplay=(std::min)(ntoplay,vi->audition_samples);
 
 		if (ntoplay)
 		{
@@ -1905,6 +1921,19 @@ bool spu_device::process_voice(const unsigned int v,
 			update_envelope(v);
 		}
 
+		if (vi->audition_restart && (!vi->audition_samples || stopped))
+		{
+			// Restart only after the old voice has faded to zero. Sample and
+			// envelope progress remain intact throughout the preceding fade.
+			key_on(v);
+			spureg.chon[v/16]&=~(1u<<(v%16));
+			vi->audition_gain=0.0f;
+			vi->audition_delta=1.0f/128.0f;
+			vi->audition_samples=128;
+			update_voice_state(v);
+			stopped=false;
+		}
+
 		if (stopped)
 		{
 			// Voice is now stopped
@@ -1983,8 +2012,9 @@ void spu_device::generate_voice(const unsigned int v,
 		{
 			while (n--)
 			{
-				const int16_t s=*(sp++)*vi->env_level;
+				const int16_t s=*(sp++)*vi->env_level*vi->audition_gain;
 				vi->env_level+=vi->env_delta;
+				vi->advance_audition_gain();
 
 				*(outxp++)=s;
 
@@ -1999,8 +2029,9 @@ void spu_device::generate_voice(const unsigned int v,
 		{
 			while (n--)
 			{
-				const int16_t s=*(sp++)*vi->env_level;
+				const int16_t s=*(sp++)*vi->env_level*vi->audition_gain;
 				vi->env_level+=vi->env_delta;
+				vi->advance_audition_gain();
 
 				const int16_t vl=(s*vol[0])>>15;
 				const int16_t vr=(s*vol[1])>>15;
@@ -2050,8 +2081,9 @@ void spu_device::generate_voice(const unsigned int v,
 			{
 				const int16_t s0=sp[0];
 				const int16_t s1=sp[1];
-				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level;
+				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
 				vi->env_level+=vi->env_delta;
+				vi->advance_audition_gain();
 
 				*(outxp++)=s;
 
@@ -2073,8 +2105,9 @@ void spu_device::generate_voice(const unsigned int v,
 			{
 				const int16_t s0=sp[0];
 				const int16_t s1=sp[1];
-				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level;
+				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
 				vi->env_level+=vi->env_delta;
+				vi->advance_audition_gain();
 
 				const int16_t vl=(s*vol[0])>>15;
 				const int16_t vr=(s*vol[1])>>15;
@@ -2116,8 +2149,9 @@ void spu_device::generate_voice(const unsigned int v,
 				{
 					const int16_t s0=sp[0];
 					const int16_t s1=(sp<ep)?sp[1]:nsp?nsp[0]:0;
-					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level;
+					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
 					vi->env_level+=vi->env_delta;
+					vi->advance_audition_gain();
 
 					*(outxp++)=s;
 
@@ -2138,8 +2172,9 @@ void spu_device::generate_voice(const unsigned int v,
 				{
 					const int16_t s0=sp[0];
 					const int16_t s1=(sp<ep)?sp[1]:nsp?nsp[0]:0;
-					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level;
+					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
 					vi->env_level+=vi->env_delta;
+					vi->advance_audition_gain();
 
 					const int16_t vl=(s*vol[0])>>15;
 					const int16_t vr=(s*vol[1])>>15;
@@ -2250,6 +2285,11 @@ bool spu_device::update_envelope(const int v)
 
 void spu_device::key_on(const int v)
 {
+	voice[v].audition_gain=1.0f;
+	voice[v].audition_delta=0.0f;
+	voice[v].audition_samples=0;
+	voice[v].audition_restart=false;
+	voice[v].audition_release_floor=0.0f;
 	voice[v].loop.reset();
 	voice[v].loop_cache_owner.reset();
 	voice[v].loop_cache = nullptr;
@@ -2295,6 +2335,13 @@ void spu_device::key_on(const int v)
 		assert(((spureg.voice[v].vol[0]|spureg.voice[v].vol[1])&0x8000)==0);
 	#endif
 
+	read_envelope_rates(v);
+	voice[v].envsamples=voice[v].env_ar > 0.0f ? (unsigned int)(1.0f/voice[v].env_ar) : spu_infinity;
+	voice[v].env_delta=voice[v].env_ar;
+}
+
+void spu_device::read_envelope_rates(const unsigned int v)
+{
 	if (spureg.voice[v].adsl&adsl_am)
 	{
 		voice[v].env_ar=get_pos_exp_rate((spureg.voice[v].adsl&adsl_ar_mask)>>adsl_ar_shift);
@@ -2330,8 +2377,97 @@ void spu_device::key_on(const int v)
 		voice[v].env_rr=-get_linear_release_rate(spureg.voice[v].srrr&srrr_rr_mask);
 	}
 
-	voice[v].envsamples=voice[v].env_ar > 0.0f ? (unsigned int)(1.0f/voice[v].env_ar) : spu_infinity;
-	voice[v].env_delta=voice[v].env_ar;
+	if (voice[v].audition_release_floor<0.0f)
+		voice[v].env_rr=(std::max)(voice[v].env_rr,voice[v].audition_release_floor);
+}
+
+void spu_device::schedule_live_envelope(const unsigned int v)
+{
+	voiceinfo *vi=&voice[v];
+	vi->env_level=std::clamp(vi->env_level,0.0f,1.0f);
+	// Avoid signed-to-unsigned wrap when SL was moved above a decaying level,
+	// and avoid undefined float-to-integer conversion for very slow rates.
+	const auto samples_to=[](float distance,float rate) -> unsigned int
+	{
+		if (!(rate>0.0f)) return spu_infinity;
+		const double count=std::ceil(double((std::max)(distance,0.0f))/double(rate));
+		if (count>=double(spu_infinity-1)) return spu_infinity-1;
+		return (std::max)(1u,static_cast<unsigned int>(count));
+	};
+	if (vi->env_state==1 && vi->env_sl>=vi->env_level)
+		vi->env_state=2; // Sustain starts at the current level, without a jump.
+	if (vi->env_state==3)
+		vi->env_state=2; // A changed sustain rate can leave its old endpoint.
+	switch (vi->env_state)
+	{
+		case 0:
+			vi->env_delta=vi->env_ar;
+			vi->envsamples=samples_to(1.0f-vi->env_level,vi->env_ar);
+			break;
+		case 1:
+			vi->env_delta=vi->env_dr;
+			vi->envsamples=samples_to(vi->env_level-vi->env_sl,-vi->env_dr);
+			break;
+		case 2:
+			vi->env_delta=vi->env_sr;
+			vi->envsamples=vi->env_sr>=0.0f ? samples_to(1.0f-vi->env_level,vi->env_sr)
+				: samples_to(vi->env_level,-vi->env_sr);
+			break;
+		case 4:
+			vi->env_delta=vi->env_rr;
+			vi->envsamples=samples_to(vi->env_level,-vi->env_rr);
+			break;
+		default:
+			vi->env_delta=0.0f;
+			vi->envsamples=spu_infinity;
+			break;
+	}
+}
+
+void spu_device::refresh_envelope(unsigned int v)
+{
+	read_envelope_rates(v);
+	if (m_voice_active&(1u<<v)) schedule_live_envelope(v);
+}
+
+void spu_device::audition_key(unsigned int v,bool on)
+{
+	voiceinfo *vi=&voice[v];
+	const unsigned int mask=1u<<v;
+	if (on)
+	{
+		if ((m_voice_active&mask) && vi->play && vi->env_level>0.0f)
+		{
+			vi->audition_restart=true;
+			vi->audition_delta=-vi->audition_gain/128.0f;
+			vi->audition_samples=128;
+		}
+		else
+		{
+			key_on(v);
+			vi->audition_gain=0.0f;
+			vi->audition_delta=1.0f/128.0f;
+			vi->audition_samples=128;
+			m_voice_active|=mask;
+			spureg.chon[v/16]&=~(1u<<(v%16));
+			update_voice_state(v);
+		}
+	}
+	else
+	{
+		const float gain=vi->audition_gain;
+		key_off(v); // Cancels any pending restart before releasing this note.
+		vi->audition_gain=gain;
+		if (gain<1.0f)
+		{
+			vi->audition_delta=(1.0f-gain)/128.0f;
+			vi->audition_samples=128;
+		}
+		vi->audition_release_floor=-std::clamp(vi->env_level,0.0f,1.0f)/128.0f;
+		read_envelope_rates(v);
+		if (vi->env_state==3) update_envelope(v);
+		else if (vi->env_state==4) schedule_live_envelope(v);
+	}
 }
 
 //
@@ -2489,6 +2625,13 @@ void spu_device::generate_cdda(void *ptr, const unsigned int sz)
 
 void spu_device::key_off(const int v)
 {
+	const bool had_release_floor=voice[v].audition_release_floor<0.0f;
+	voice[v].audition_gain=1.0f;
+	voice[v].audition_delta=0.0f;
+	voice[v].audition_samples=0;
+	voice[v].audition_restart=false;
+	voice[v].audition_release_floor=0.0f;
+	if (had_release_floor) read_envelope_rates(v);
 //  printf("key_off: %d\n", v);
 
 	if (voice[v].env_state<=3)

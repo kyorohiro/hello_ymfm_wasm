@@ -1,635 +1,637 @@
 {
-  "schemaVersion": 1,
-  "status": "bootstrap reference sources; existing applications are not switched to this repository",
-  "originRepository": "tetorica-fm2612-playground-tauri",
   "entries": [
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ay8910.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ay8910.cpp",
       "originSha256": "a142cc1ccd2014db3081d461e6fa120351c77d8575257eb12cb5798f3df3b50d",
-      "sha256": "a142cc1ccd2014db3081d461e6fa120351c77d8575257eb12cb5798f3df3b50d",
-      "adaptation": "unchanged reference copy"
+      "sha256": "a142cc1ccd2014db3081d461e6fa120351c77d8575257eb12cb5798f3df3b50d"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ay8910.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ay8910.h",
       "originSha256": "5c2ae126b9a7a6d516e50011e44ccb3e8acb6362fd2c2ef693ddced9fc3f94c9",
-      "sha256": "5c2ae126b9a7a6d516e50011e44ccb3e8acb6362fd2c2ef693ddced9fc3f94c9",
-      "adaptation": "unchanged reference copy"
+      "sha256": "5c2ae126b9a7a6d516e50011e44ccb3e8acb6362fd2c2ef693ddced9fc3f94c9"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_core.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_core.cpp",
       "originSha256": "7ca82b7864071e6e17901787e3ce7dc49c8fded9e312b1afc99dcb093b2d8a67",
-      "sha256": "7ca82b7864071e6e17901787e3ce7dc49c8fded9e312b1afc99dcb093b2d8a67",
-      "adaptation": "unchanged reference copy"
+      "sha256": "7ca82b7864071e6e17901787e3ce7dc49c8fded9e312b1afc99dcb093b2d8a67"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_dx7.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_dx7.cpp",
       "originSha256": "4f7d31227f513b05762da639e3ca8569d07268df10fccc7a367d6db335666aab",
-      "sha256": "4f7d31227f513b05762da639e3ca8569d07268df10fccc7a367d6db335666aab",
-      "adaptation": "unchanged reference copy"
+      "sha256": "4f7d31227f513b05762da639e3ca8569d07268df10fccc7a367d6db335666aab"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_dx7.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_dx7.h",
       "originSha256": "184821429fed49163c068326c88bd9faae40efc6628a4c5df73bc132e87917c3",
-      "sha256": "184821429fed49163c068326c88bd9faae40efc6628a4c5df73bc132e87917c3",
-      "adaptation": "unchanged reference copy"
+      "sha256": "184821429fed49163c068326c88bd9faae40efc6628a4c5df73bc132e87917c3"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_extra_okim6258.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_okim6258.cpp",
       "originSha256": "9f6d3f3a0d685c3b9444c5ba7ae9aa37fd4848256a710797a7cab9b44131d100",
-      "sha256": "9f6d3f3a0d685c3b9444c5ba7ae9aa37fd4848256a710797a7cab9b44131d100",
-      "adaptation": "unchanged reference copy"
+      "sha256": "9f6d3f3a0d685c3b9444c5ba7ae9aa37fd4848256a710797a7cab9b44131d100"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_extra_okim6258.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_okim6258.h",
       "originSha256": "e58ad3626bffc70f4b677a659535d3bf84ce1348a1041d145535fa04e3f0da03",
-      "sha256": "e58ad3626bffc70f4b677a659535d3bf84ce1348a1041d145535fa04e3f0da03",
-      "adaptation": "unchanged reference copy"
+      "sha256": "e58ad3626bffc70f4b677a659535d3bf84ce1348a1041d145535fa04e3f0da03"
     },
     {
+      "adaptation": "Remove eighteen redundant explicit OPL/OPL2/OPL3 method and observation-helper instantiations and their stale ownership comment, adding a Native-provider ownership comment. The existing complete Native OPL provider supplies their definitions. This carries the Tauri linkage fix; vendor DSP and the exported C ABI remain unchanged.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "7ff0773d52cd192df60d806b23817ef8d17f27128ccb67e21f40fab0be68b1e4",
       "file": "native/reference/tauri/native_genesis_extra_opl.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_opl.cpp",
       "originSha256": "41c4591e031b5a80837a53d308e0e4ed30a0f4c00d8b9d3254f16cc56be8d6de",
-      "sha256": "7ff507d217a3137536a05450944af46892abeccb1f35b0c8b4e6b72ce70b0d03",
-      "adaptation": "Remove eighteen redundant explicit OPL/OPL2/OPL3 method and observation-helper instantiations and their stale ownership comment, adding a Native-provider ownership comment. The existing complete Native OPL provider supplies their definitions. This carries the Tauri linkage fix; vendor DSP and the exported C ABI remain unchanged.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "7ff0773d52cd192df60d806b23817ef8d17f27128ccb67e21f40fab0be68b1e4"
+      "sha256": "7ff507d217a3137536a05450944af46892abeccb1f35b0c8b4e6b72ce70b0d03"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_extra_opl.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_opl.h",
       "originSha256": "c1923eb15bacb4a77fd05a6246b44febbaa60d7baf3e54529a5eca3e99102ed4",
-      "sha256": "c1923eb15bacb4a77fd05a6246b44febbaa60d7baf3e54529a5eca3e99102ed4",
-      "adaptation": "unchanged reference copy"
+      "sha256": "c1923eb15bacb4a77fd05a6246b44febbaa60d7baf3e54529a5eca3e99102ed4"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_extra_rf5c164.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_rf5c164.cpp",
       "originSha256": "219bac35abf31fc12329b28869a57957d18ad5777423637a8f29aa0fae23e189",
-      "sha256": "219bac35abf31fc12329b28869a57957d18ad5777423637a8f29aa0fae23e189",
-      "adaptation": "unchanged reference copy"
+      "sha256": "219bac35abf31fc12329b28869a57957d18ad5777423637a8f29aa0fae23e189"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_extra_rf5c164.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_rf5c164.h",
       "originSha256": "5877e8b7175469acd1e53ccb2440ae2654ced65c1bc5ccd78a9d73f590b8e61a",
-      "sha256": "5877e8b7175469acd1e53ccb2440ae2654ced65c1bc5ccd78a9d73f590b8e61a",
-      "adaptation": "unchanged reference copy"
+      "sha256": "5877e8b7175469acd1e53ccb2440ae2654ced65c1bc5ccd78a9d73f590b8e61a"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_game_gear.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_game_gear.cpp",
       "originSha256": "e109e06ecb1d991aba9def4b6df370f730ac1d1049ca17c7c7b79ec25cc0cb1a",
-      "sha256": "e109e06ecb1d991aba9def4b6df370f730ac1d1049ca17c7c7b79ec25cc0cb1a",
-      "adaptation": "unchanged reference copy"
+      "sha256": "e109e06ecb1d991aba9def4b6df370f730ac1d1049ca17c7c7b79ec25cc0cb1a"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_game_gear.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_game_gear.h",
       "originSha256": "2f837f85e46f3be99c38df026da4c0f844347b3a894f6998507c5ff814a85f8b",
-      "sha256": "2f837f85e46f3be99c38df026da4c0f844347b3a894f6998507c5ff814a85f8b",
-      "adaptation": "unchanged reference copy"
+      "sha256": "2f837f85e46f3be99c38df026da4c0f844347b3a894f6998507c5ff814a85f8b"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_gameboy.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_gameboy.cpp",
       "originSha256": "ee2a7149cd6ffb85c82a0c1b9e6239061345c6fab82817957de7eea1a7a91c20",
-      "sha256": "ee2a7149cd6ffb85c82a0c1b9e6239061345c6fab82817957de7eea1a7a91c20",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ee2a7149cd6ffb85c82a0c1b9e6239061345c6fab82817957de7eea1a7a91c20"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_gameboy.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_gameboy.h",
       "originSha256": "fe82894660613ea50f332171e86fb9e6367d94632fccdd4b5841e44dc5eed401",
-      "sha256": "fe82894660613ea50f332171e86fb9e6367d94632fccdd4b5841e44dc5eed401",
-      "adaptation": "unchanged reference copy"
+      "sha256": "fe82894660613ea50f332171e86fb9e6367d94632fccdd4b5841e44dc5eed401"
     },
     {
+      "adaptation": "SDK include-path relocation only",
       "file": "native/reference/tauri/native_genesis_huc6280.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_huc6280.cpp",
       "originSha256": "fa783c7d92c15a21d4c00ede1d3e1ba0c28fce93a8318656ce42cdeafc372d14",
-      "sha256": "4f7712568f390a0150793d759de9c0542c604d16e8e00a1ffa85aa932c8e7286",
-      "adaptation": "SDK include-path relocation only"
+      "sha256": "4f7712568f390a0150793d759de9c0542c604d16e8e00a1ffa85aa932c8e7286"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_huc6280.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_huc6280.h",
       "originSha256": "ebc76a91f0dbbc419d3bfbaf4426514a6ee7092aab11a4a89bfd80a3a468e9af",
-      "sha256": "ebc76a91f0dbbc419d3bfbaf4426514a6ee7092aab11a4a89bfd80a3a468e9af",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ebc76a91f0dbbc419d3bfbaf4426514a6ee7092aab11a4a89bfd80a3a468e9af"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_master_system.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_master_system.cpp",
       "originSha256": "9b4319bb79efff5e9083024edcf66e4b18becef3dc423ca0c04eba0fbbaa9ce1",
-      "sha256": "9b4319bb79efff5e9083024edcf66e4b18becef3dc423ca0c04eba0fbbaa9ce1",
-      "adaptation": "unchanged reference copy"
+      "sha256": "9b4319bb79efff5e9083024edcf66e4b18becef3dc423ca0c04eba0fbbaa9ce1"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_master_system.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_master_system.h",
       "originSha256": "5b630196a0418789f7fdda4c709e8061597096044980e501a6fdfd878b30965e",
-      "sha256": "5b630196a0418789f7fdda4c709e8061597096044980e501a6fdfd878b30965e",
-      "adaptation": "unchanged reference copy"
+      "sha256": "5b630196a0418789f7fdda4c709e8061597096044980e501a6fdfd878b30965e"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_msx.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_msx.cpp",
       "originSha256": "ae98c72d80d16dee040a1070b1faa7d45e578bd4e023db58216daa052060ebe7",
-      "sha256": "ae98c72d80d16dee040a1070b1faa7d45e578bd4e023db58216daa052060ebe7",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ae98c72d80d16dee040a1070b1faa7d45e578bd4e023db58216daa052060ebe7"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_msx.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_msx.h",
       "originSha256": "fee5a1e39aeeda557f7f6da9aefc4f083b711f2b720d4f45501b903da57d03ac",
-      "sha256": "fee5a1e39aeeda557f7f6da9aefc4f083b711f2b720d4f45501b903da57d03ac",
-      "adaptation": "unchanged reference copy"
+      "sha256": "fee5a1e39aeeda557f7f6da9aefc4f083b711f2b720d4f45501b903da57d03ac"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_nes.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nes.cpp",
       "originSha256": "ff04f01c5b6fde9e139921fb2300d7d907ec8bd56c072453daa81f6c60b1db52",
-      "sha256": "ff04f01c5b6fde9e139921fb2300d7d907ec8bd56c072453daa81f6c60b1db52",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ff04f01c5b6fde9e139921fb2300d7d907ec8bd56c072453daa81f6c60b1db52"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_nes.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nes.h",
       "originSha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
-      "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
-      "adaptation": "unchanged reference copy"
+      "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31"
     },
     {
+      "adaptation": "SDK include-path relocation only",
       "file": "native/reference/tauri/native_genesis_nuked.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nuked.cpp",
       "originSha256": "0b51f6ddae89e13534715b8e1b5a60d37d229e30d7eac3c87c96875a768d3271",
-      "sha256": "f062bc48b6a8c7898306f7652896d897d5ffbe02ae96e729afc39421d5667d35",
-      "adaptation": "SDK include-path relocation only"
+      "sha256": "f062bc48b6a8c7898306f7652896d897d5ffbe02ae96e729afc39421d5667d35"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_nuked_ym2612.inc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nuked_ym2612.inc",
       "originSha256": "3ee181fcfaf2c055e4f6ad3129758150abd1fd60d5ce2ba28fd60973482fa45a",
-      "sha256": "3ee181fcfaf2c055e4f6ad3129758150abd1fd60d5ce2ba28fd60973482fa45a",
-      "adaptation": "unchanged reference copy"
+      "sha256": "3ee181fcfaf2c055e4f6ad3129758150abd1fd60d5ce2ba28fd60973482fa45a"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_opl.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_opl.cpp",
       "originSha256": "b192315473e6b7e6efca999b131ef310e209c5be9bb01a13317f1dc04e24d1f3",
-      "sha256": "b192315473e6b7e6efca999b131ef310e209c5be9bb01a13317f1dc04e24d1f3",
-      "adaptation": "unchanged reference copy"
+      "sha256": "b192315473e6b7e6efca999b131ef310e209c5be9bb01a13317f1dc04e24d1f3"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_opl.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_opl.h",
       "originSha256": "fbf447d67743e9115220e34b268e32745b36aea9812bd82d6cff5871947a54af",
-      "sha256": "fbf447d67743e9115220e34b268e32745b36aea9812bd82d6cff5871947a54af",
-      "adaptation": "unchanged reference copy"
+      "sha256": "fbf447d67743e9115220e34b268e32745b36aea9812bd82d6cff5871947a54af"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_opll.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_opll.h",
       "originSha256": "68b5e451cbd3f80f19652a388b18764b9e81977645b993c7c382ed24ad667e3a",
-      "sha256": "68b5e451cbd3f80f19652a388b18764b9e81977645b993c7c382ed24ad667e3a",
-      "adaptation": "unchanged reference copy"
+      "sha256": "68b5e451cbd3f80f19652a388b18764b9e81977645b993c7c382ed24ad667e3a"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_psg.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_psg.h",
       "originSha256": "dc3cf1da9594b281ff9433c7d4b4968a51448e0152e205c40467f436a887d5cb",
-      "sha256": "dc3cf1da9594b281ff9433c7d4b4968a51448e0152e205c40467f436a887d5cb",
-      "adaptation": "unchanged reference copy"
+      "sha256": "dc3cf1da9594b281ff9433c7d4b4968a51448e0152e205c40467f436a887d5cb"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_pwm.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_pwm.cpp",
       "originSha256": "c435befeefdc450299ce9d0bc0817134a2f2c00f547a2aa414703546f7904c09",
-      "sha256": "c435befeefdc450299ce9d0bc0817134a2f2c00f547a2aa414703546f7904c09",
-      "adaptation": "unchanged reference copy"
+      "sha256": "c435befeefdc450299ce9d0bc0817134a2f2c00f547a2aa414703546f7904c09"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_pwm.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_pwm.h",
       "originSha256": "45055365c299e153877cdebbefa0d6cc357326158bc5c82d493489865ffa6fab",
-      "sha256": "45055365c299e153877cdebbefa0d6cc357326158bc5c82d493489865ffa6fab",
-      "adaptation": "unchanged reference copy"
+      "sha256": "45055365c299e153877cdebbefa0d6cc357326158bc5c82d493489865ffa6fab"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_rf5c164.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_rf5c164.cpp",
       "originSha256": "ee6ccbef991bca4ebe68bc38c90e9e99409e6e49d1850a85cc498bc1d55ca254",
-      "sha256": "ee6ccbef991bca4ebe68bc38c90e9e99409e6e49d1850a85cc498bc1d55ca254",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ee6ccbef991bca4ebe68bc38c90e9e99409e6e49d1850a85cc498bc1d55ca254"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_rf5c164.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_rf5c164.h",
       "originSha256": "70f6251a32bf2327236ba849889340e8a488c45fbae042583d9d4a8c54e571dc",
-      "sha256": "70f6251a32bf2327236ba849889340e8a488c45fbae042583d9d4a8c54e571dc",
-      "adaptation": "unchanged reference copy"
+      "sha256": "70f6251a32bf2327236ba849889340e8a488c45fbae042583d9d4a8c54e571dc"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_snes.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_snes.cpp",
       "originSha256": "736c581fae2c7ac439f0815776aa044ab980d44ac3cbfeffd29306aac8e58921",
-      "sha256": "736c581fae2c7ac439f0815776aa044ab980d44ac3cbfeffd29306aac8e58921",
-      "adaptation": "unchanged reference copy"
+      "sha256": "736c581fae2c7ac439f0815776aa044ab980d44ac3cbfeffd29306aac8e58921"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_snes.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_snes.h",
       "originSha256": "cb56f2fa0b5c915cf3b9dfe8d3125aed354f71f60b766a60d6a8035cfd842526",
-      "sha256": "cb56f2fa0b5c915cf3b9dfe8d3125aed354f71f60b766a60d6a8035cfd842526",
-      "adaptation": "unchanged reference copy"
+      "sha256": "cb56f2fa0b5c915cf3b9dfe8d3125aed354f71f60b766a60d6a8035cfd842526"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_spc.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_spc.cpp",
       "originSha256": "628a59f9d01ca3d19296dab87fc7f654b4adb444930241e30b7f19d466f77693",
-      "sha256": "628a59f9d01ca3d19296dab87fc7f654b4adb444930241e30b7f19d466f77693",
-      "adaptation": "unchanged reference copy"
+      "sha256": "628a59f9d01ca3d19296dab87fc7f654b4adb444930241e30b7f19d466f77693"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_spc.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_spc.h",
       "originSha256": "ae6e729b76db5c8b7f51a5fab3fea84a3c7d63fcae470a6d0b7a0ec525819663",
-      "sha256": "ae6e729b76db5c8b7f51a5fab3fea84a3c7d63fcae470a6d0b7a0ec525819663",
-      "adaptation": "unchanged reference copy"
+      "sha256": "ae6e729b76db5c8b7f51a5fab3fea84a3c7d63fcae470a6d0b7a0ec525819663"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_x68000.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_x68000.cpp",
       "originSha256": "2cd45a01a5794109256094180a85c3813b7e5dc70e403d99ab0118224a73459b",
-      "sha256": "2cd45a01a5794109256094180a85c3813b7e5dc70e403d99ab0118224a73459b",
-      "adaptation": "unchanged reference copy"
+      "sha256": "2cd45a01a5794109256094180a85c3813b7e5dc70e403d99ab0118224a73459b"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_x68000.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_x68000.h",
       "originSha256": "e78a5dfc925bc063339978565185aa0b980c1426c65bdbce170ed5e48a12e0b1",
-      "sha256": "e78a5dfc925bc063339978565185aa0b980c1426c65bdbce170ed5e48a12e0b1",
-      "adaptation": "unchanged reference copy"
+      "sha256": "e78a5dfc925bc063339978565185aa0b980c1426c65bdbce170ed5e48a12e0b1"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_y8950_memory.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_y8950_memory.h",
       "originSha256": "605bdff99028c18a651647f804f054dc4b2dd35af0e6018abd46efc19604394c",
-      "sha256": "605bdff99028c18a651647f804f054dc4b2dd35af0e6018abd46efc19604394c",
-      "adaptation": "unchanged reference copy"
+      "sha256": "605bdff99028c18a651647f804f054dc4b2dd35af0e6018abd46efc19604394c"
     },
     {
+      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and use the explicit Native OPM provider. DSP and exported ABI are unchanged.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "ca931e1e2e635ff403c97cdff8d880b434ddacf797cd83b92f65bd69bb9ec975",
       "file": "native/reference/tauri/native_genesis_ym2151.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2151.cpp",
       "originSha256": "cf167dbd8bfac8ea355dfac318c921b89789dbfc11c0a7fd037e6c6ee82f5730",
-      "sha256": "ca931e1e2e635ff403c97cdff8d880b434ddacf797cd83b92f65bd69bb9ec975",
-      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and use the explicit Native OPM provider. DSP and exported ABI are unchanged.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "ca931e1e2e635ff403c97cdff8d880b434ddacf797cd83b92f65bd69bb9ec975"
+      "sha256": "ca931e1e2e635ff403c97cdff8d880b434ddacf797cd83b92f65bd69bb9ec975"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2151.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2151.h",
       "originSha256": "cd35cdaea881ba855452afabc62dade6a5739a4effd9cd4788b484742f9c50e7",
-      "sha256": "cd35cdaea881ba855452afabc62dade6a5739a4effd9cd4788b484742f9c50e7",
-      "adaptation": "unchanged reference copy"
+      "sha256": "cd35cdaea881ba855452afabc62dade6a5739a4effd9cd4788b484742f9c50e7"
     },
     {
+      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and update its ownership comment to use the existing explicit Native OPN provider. DSP and exported ABI are unchanged.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "3d3a914a316f8d04afba25d73ec14e25bd58085ec2a6e7bdda5673bf0996658c",
       "file": "native/reference/tauri/native_genesis_ym2203.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2203.cpp",
       "originSha256": "dea31da2fce185b2307fcee12c927be258d73908300dd587337a4fc0188fb187",
-      "sha256": "3d3a914a316f8d04afba25d73ec14e25bd58085ec2a6e7bdda5673bf0996658c",
-      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and update its ownership comment to use the existing explicit Native OPN provider. DSP and exported ABI are unchanged.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "3d3a914a316f8d04afba25d73ec14e25bd58085ec2a6e7bdda5673bf0996658c"
+      "sha256": "3d3a914a316f8d04afba25d73ec14e25bd58085ec2a6e7bdda5673bf0996658c"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2203.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2203.h",
       "originSha256": "a73f5f3c02723006c9579287f2886b84607ee76ded655db7f1b0dd155f9fdd4d",
-      "sha256": "a73f5f3c02723006c9579287f2886b84607ee76ded655db7f1b0dd155f9fdd4d",
-      "adaptation": "unchanged reference copy"
+      "sha256": "a73f5f3c02723006c9579287f2886b84607ee76ded655db7f1b0dd155f9fdd4d"
     },
     {
+      "adaptation": "SDK template-ownership amendment: remove the redundant local compute_volume and envelope_attenuation instantiations and use the explicit Native OPL provider. DSP and exported ABI are unchanged.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "67599b8f9f7ffa0cc0016b67520f88b33aab49d4899df43a7bbcbaecd4205241",
       "file": "native/reference/tauri/native_genesis_ym2413.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2413.cpp",
       "originSha256": "60ca7ead16c51c36111e80dd02fa27dac9dc1d52e4c39326c0287490a093ed95",
-      "sha256": "67599b8f9f7ffa0cc0016b67520f88b33aab49d4899df43a7bbcbaecd4205241",
-      "adaptation": "SDK template-ownership amendment: remove the redundant local compute_volume and envelope_attenuation instantiations and use the explicit Native OPL provider. DSP and exported ABI are unchanged.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "67599b8f9f7ffa0cc0016b67520f88b33aab49d4899df43a7bbcbaecd4205241"
+      "sha256": "67599b8f9f7ffa0cc0016b67520f88b33aab49d4899df43a7bbcbaecd4205241"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2413.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2413.h",
       "originSha256": "aef87e4a2beeb0009584215b1a2befaf423f5a3e347bab4317fce45aab11d263",
-      "sha256": "aef87e4a2beeb0009584215b1a2befaf423f5a3e347bab4317fce45aab11d263",
-      "adaptation": "unchanged reference copy"
+      "sha256": "aef87e4a2beeb0009584215b1a2befaf423f5a3e347bab4317fce45aab11d263"
     },
     {
+      "adaptation": "Remove the redundant local OPNA keyonoff template instantiation and update its ownership comment; the existing Native OPN provider supplies the explicit definitions. Vendor DSP and the exported C ABI are retained.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "f2eebcf96d9f303e0d6347f643c3c3450974a46770cd837b21e9f9c268d24249",
       "file": "native/reference/tauri/native_genesis_ym2608.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2608.cpp",
       "originSha256": "bcd8c2576449ba245812dc7ff3b22fac90c29087673f7d622214f9c329c65e6a",
-      "sha256": "f2eebcf96d9f303e0d6347f643c3c3450974a46770cd837b21e9f9c268d24249",
-      "adaptation": "Remove the redundant local OPNA keyonoff template instantiation and update its ownership comment; the existing Native OPN provider supplies the explicit definitions. Vendor DSP and the exported C ABI are retained.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "f2eebcf96d9f303e0d6347f643c3c3450974a46770cd837b21e9f9c268d24249"
+      "sha256": "f2eebcf96d9f303e0d6347f643c3c3450974a46770cd837b21e9f9c268d24249"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2608.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2608.h",
       "originSha256": "cb83bd1c23830146440b264eb6705c9c43fb6dd57526802e325cbc134f59f331",
-      "sha256": "cb83bd1c23830146440b264eb6705c9c43fb6dd57526802e325cbc134f59f331",
-      "adaptation": "unchanged reference copy"
+      "sha256": "cb83bd1c23830146440b264eb6705c9c43fb6dd57526802e325cbc134f59f331"
     },
     {
+      "adaptation": "Remove the redundant local OPNA keyonoff template instantiation and add its ownership comment; the existing Native OPN provider supplies the explicit definitions. This carries the Tauri template-ownership fix with an SDK comment. Vendor DSP and the exported C ABI are retained.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "7efaa83c86551b91a910626b60d7be22ea93b239f20fadfc0059c3c4a6ad21e4",
       "file": "native/reference/tauri/native_genesis_ym2610b.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2610b.cpp",
       "originSha256": "3de7e7c8c5fe6291c8466abcbbaa719bc8b8563d5a73bf36a317ee62fb353e5d",
-      "sha256": "8984289a30accd2661c79357fa928df6101043c3da982a26e67abc66517ecaab",
-      "adaptation": "Remove the redundant local OPNA keyonoff template instantiation and add its ownership comment; the existing Native OPN provider supplies the explicit definitions. This carries the Tauri template-ownership fix with an SDK comment. Vendor DSP and the exported C ABI are retained.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "7efaa83c86551b91a910626b60d7be22ea93b239f20fadfc0059c3c4a6ad21e4"
+      "sha256": "8984289a30accd2661c79357fa928df6101043c3da982a26e67abc66517ecaab"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2610b.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2610b.h",
       "originSha256": "a33e251c565b727d7bad195a6c2448c5b3f878fcff623f78efd590559bf299e7",
-      "sha256": "a33e251c565b727d7bad195a6c2448c5b3f878fcff623f78efd590559bf299e7",
-      "adaptation": "unchanged reference copy"
+      "sha256": "a33e251c565b727d7bad195a6c2448c5b3f878fcff623f78efd590559bf299e7"
     },
     {
+      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and use the explicit Native OPN provider. DSP and exported ABI are unchanged.",
+      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+      "amendmentOriginSha256": "ff9b7aef1078015e62d57c1e8eedbe37e02ca033f0e1bf26543893840db4eaaa",
       "file": "native/reference/tauri/native_genesis_ym2612.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2612.cpp",
       "originSha256": "413e6a0132821246a034fb6295c91fd73e8d423965101e955f0476d9e161a0e4",
-      "sha256": "ff9b7aef1078015e62d57c1e8eedbe37e02ca033f0e1bf26543893840db4eaaa",
-      "adaptation": "SDK template-ownership amendment: remove the redundant local keyonoff instantiation and use the explicit Native OPN provider. DSP and exported ABI are unchanged.",
-      "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
-      "amendmentOriginSha256": "ff9b7aef1078015e62d57c1e8eedbe37e02ca033f0e1bf26543893840db4eaaa"
+      "sha256": "ff9b7aef1078015e62d57c1e8eedbe37e02ca033f0e1bf26543893840db4eaaa"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/tauri/native_genesis_ym2612.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2612.h",
       "originSha256": "cf987f67c1b9376f89fd867e05160a0580ff310ed1adfb34fcb33e945b70ce75",
-      "sha256": "cf987f67c1b9376f89fd867e05160a0580ff310ed1adfb34fcb33e945b70ce75",
-      "adaptation": "unchanged reference copy"
+      "sha256": "cf987f67c1b9376f89fd867e05160a0580ff310ed1adfb34fcb33e945b70ce75"
     },
     {
+      "adaptation": "SDK include-path relocation only",
       "file": "native/tests/ym2612_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2612_fixture.cpp",
       "originSha256": "97a2f109a265bf64bf57e022c86ad8526ee793a3237b419af884b1c4c5d54ca0",
-      "sha256": "c88c3cb9ce9b82cd8c1328db7bd0355cb6901028fc2ae0e720582785d8517fc7",
-      "adaptation": "SDK include-path relocation only"
+      "sha256": "c88c3cb9ce9b82cd8c1328db7bd0355cb6901028fc2ae0e720582785d8517fc7"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/overrides/msfa/dx7note.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/dx7note.cc",
       "originSha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
-      "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
-      "adaptation": "unchanged reference copy"
+      "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/overrides/msfa/env.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/env.cc",
       "originSha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24",
-      "sha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24",
-      "adaptation": "unchanged reference copy"
+      "sha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/overrides/msfa/ringbuffer.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/ringbuffer.cc",
       "originSha256": "bf95cb2f7fc05d3db6f7ef26cd1c02e963f07969451b2f0cd56aff43c74ea91f",
-      "sha256": "bf95cb2f7fc05d3db6f7ef26cd1c02e963f07969451b2f0cd56aff43c74ea91f",
-      "adaptation": "unchanged reference copy"
+      "sha256": "bf95cb2f7fc05d3db6f7ef26cd1c02e963f07969451b2f0cd56aff43c74ea91f"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/overrides/msfa/synth.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/synth.h",
       "originSha256": "0ce627f8248b119b6d7b466b047b4f44f179971f080c7552706535795e4949ea",
-      "sha256": "0ce627f8248b119b6d7b466b047b4f44f179971f080c7552706535795e4949ea",
-      "adaptation": "unchanged reference copy"
+      "sha256": "0ce627f8248b119b6d7b466b047b4f44f179971f080c7552706535795e4949ea"
     },
     {
+      "adaptation": "SDK Native panic restart correction: value-reset each preallocated Dx7Note to clear feedback history without allocating, freeing or replacing note objects. Ordinary note-on/release/kill behavior, the shared MSFA vendor sources and Native wrapper are unchanged. The original imported digest is retained separately.",
       "file": "native/reference/overrides/msfa/synth_unit.cc",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/synth_unit.cc",
       "originSha256": "8bea408d471ddcfda02dac7d004337b82e69bec08cafc9c47fd4e9e7c71ec5bf",
-      "sha256": "629d430c0faa2d7dc6863b2798dd264734516d1f8a8b7bf6e6fced6a8783d500",
-      "adaptation": "SDK Native panic restart correction: value-reset each preallocated Dx7Note to clear feedback history without allocating, freeing or replacing note objects. Ordinary note-on/release/kill behavior, the shared MSFA vendor sources and Native wrapper are unchanged. The original imported digest is retained separately."
+      "sha256": "629d430c0faa2d7dc6863b2798dd264734516d1f8a8b7bf6e6fced6a8783d500"
     },
     {
+      "adaptation": "unchanged reference copy",
       "file": "native/reference/overrides/msfa/synth_unit.h",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/native-dx7/synth_unit.h",
       "originSha256": "12d843cbdc259cc13c8ae12ec3075aa5e340c910b88a6bcb5db7fe7bb20552d3",
-      "sha256": "12d843cbdc259cc13c8ae12ec3075aa5e340c910b88a6bcb5db7fe7bb20552d3",
-      "adaptation": "unchanged reference copy"
+      "sha256": "12d843cbdc259cc13c8ae12ec3075aa5e340c910b88a6bcb5db7fe7bb20552d3"
     },
     {
+      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opn.cpp",
       "file": "native/src/ymfm_opn_provider.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ymfm_opn.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "0f280b572a77795edd87917c2c0cf91d91a547ef5467978c4ae3f5176363c058",
-      "sha256": "83f41e6966a136f019ab9be343b689446bf50f5990a1b2d18d6533f2aeefa637",
-      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opn.cpp"
+      "sha256": "83f41e6966a136f019ab9be343b689446bf50f5990a1b2d18d6533f2aeefa637"
     },
     {
+      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opm.cpp",
       "file": "native/src/ymfm_opm_provider.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ymfm_opm.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "e592cb8101f1f9887b360c12061702a7ac01c6c638c46a8c31583cad11f874e6",
-      "sha256": "9b6d50381d95198438109647d7931f7ec2d90b127679be205dfc8d4dacf89db2",
-      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opm.cpp"
+      "sha256": "9b6d50381d95198438109647d7931f7ec2d90b127679be205dfc8d4dacf89db2"
     },
     {
+      "adaptation": "SDK public-header include relocation; extend self-test coverage for all eight channels and stereo pan, non-advancing reads/observations, per-instance Stop isolation, and timer-B IRQ/status. Event CLI and observation layout are retained.",
       "file": "native/tests/ym2151_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2151_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "7a5fb21790966a29fb6d52809a47b68a04a9e93548a2762bdbf014ea23da49ce",
-      "sha256": "b022e92517afd872f6440e41f445a3063b4c3cbe42da509cc161055d932edb0a",
-      "adaptation": "SDK public-header include relocation; extend self-test coverage for all eight channels and stereo pan, non-advancing reads/observations, per-instance Stop isolation, and timer-B IRQ/status. Event CLI and observation layout are retained."
+      "sha256": "b022e92517afd872f6440e41f445a3063b4c3cbe42da509cc161055d932edb0a"
     },
     {
+      "adaptation": "SDK public-header include relocation; extend self-test coverage for all eight noise modes, tone/noise/volume continuation latches, exact noise phase across mute/unmute, and upper clock-bound acceptance. Event CLI and PCM layout are retained.",
       "file": "native/tests/segapsg_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_game_gear_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "43f4f024676fefd10c439387db36beb5745225c0510311c548fd7fd7ba777539",
-      "sha256": "55b69e8c3c553e85e5b30b968a6981a90b02238bba67828b203294763857c20e",
-      "adaptation": "SDK public-header include relocation; extend self-test coverage for all eight noise modes, tone/noise/volume continuation latches, exact noise phase across mute/unmute, and upper clock-bound acceptance. Event CLI and PCM layout are retained."
+      "sha256": "55b69e8c3c553e85e5b30b968a6981a90b02238bba67828b203294763857c20e"
     },
     {
+      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opl.cpp",
       "file": "native/src/ymfm_opl_provider.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ymfm_opl.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "75bc291a79d9e86570abc55c4417e5b9d65700706f31773ff9c6ac3240836c07",
-      "sha256": "d2d3783960513a27ad349e72143e3ecc87d96a73f1659b9acc5a430722bea0ec",
-      "adaptation": "SDK include-path relocation only: the unchanged ymfm provider is included from ../../vendor/ymfm/ymfm_opl.cpp"
+      "sha256": "d2d3783960513a27ad349e72143e3ecc87d96a73f1659b9acc5a430722bea0ec"
     },
     {
+      "adaptation": "Extract the YM2413-only branch and shared-rhythm cancellation tests without AY dependencies; include the SDK public header and extend coverage for all nine melodic channels, all sixteen instrument choices, rhythm gates/retained levels, independent instances and non-advancing observations. The optional leading ym2413 CLI argument and 71-plane observation layout are retained.",
       "file": "native/tests/ym2413_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_msx_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "45b288a61ab5aabed274368756ae783026a1ab63449c64593de9b5553f9d17a2",
-      "sha256": "48237874404d5aadaaed436ca8873a6aac4efe945198880d5525c9445277cd7f",
-      "adaptation": "Extract the YM2413-only branch and shared-rhythm cancellation tests without AY dependencies; include the SDK public header and extend coverage for all nine melodic channels, all sixteen instrument choices, rhythm gates/retained levels, independent instances and non-advancing observations. The optional leading ym2413 CLI argument and 71-plane observation layout are retained."
+      "sha256": "48237874404d5aadaaed436ca8873a6aac4efe945198880d5525c9445277cd7f"
     },
     {
+      "adaptation": "Extract the AY-only branch without OPLL dependencies; include the SDK public header and extend coverage for three channels and all tone/noise mixer routes, all sixteen envelope settings, non-advancing reads/observations, independent instances, retained levels including zero and envelope selection, clock bounds, and immediate Stop versus public release held history. The optional leading ay8910 CLI argument and 22-plane observation layout are retained.",
       "file": "native/tests/ay8910_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_msx_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "45b288a61ab5aabed274368756ae783026a1ab63449c64593de9b5553f9d17a2",
-      "sha256": "cdbc9aa2e2d4d3d4c3e7dabf78f8a8072ce1c22502a88778a1d58d9c6aec5127",
-      "adaptation": "Extract the AY-only branch without OPLL dependencies; include the SDK public header and extend coverage for three channels and all tone/noise mixer routes, all sixteen envelope settings, non-advancing reads/observations, independent instances, retained levels including zero and envelope selection, clock bounds, and immediate Stop versus public release held history. The optional leading ay8910 CLI argument and 22-plane observation layout are retained."
+      "sha256": "cdbc9aa2e2d4d3d4c3e7dabf78f8a8072ce1c22502a88778a1d58d9c6aec5127"
     },
     {
+      "adaptation": "Include the SDK public header; run both primary and additional constructor profiles from the default self-test, including their distinct output-rate reset boundaries. Extend isolated SSG channel/noise/all-sixteen-envelope coverage and upper clock-bound tests while retaining the original FM, CSM, prescaler, cancellation and independent-instance tests. The optional --extra PCM CLI and eight-plane observation layout are retained.",
       "file": "native/tests/ym2203_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2203_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "efac503f1b76bd3e198868d72bb69fe25a375676557b9d9cf32381dfd71a3417",
-      "sha256": "dd29f6e044eb4bdef86a36278741acc5d1d7f53b36d20058086c148f699a3570",
-      "adaptation": "Include the SDK public header; run both primary and additional constructor profiles from the default self-test, including their distinct output-rate reset boundaries. Extend isolated SSG channel/noise/all-sixteen-envelope coverage and upper clock-bound tests while retaining the original FM, CSM, prescaler, cancellation and independent-instance tests. The optional --extra PCM CLI and eight-plane observation layout are retained."
+      "sha256": "dd29f6e044eb4bdef86a36278741acc5d1d7f53b36d20058086c148f699a3570"
     },
     {
+      "adaptation": "Include the SDK public header; run both primary and additional constructor profiles from the default self-test. Extend six-FM-channel stereo, observational and instance-isolation checks; distinguish exact reset-profile held frames; test memory copy ownership, zero-size/null/overflow ranges and rejected-write rollback; verify ROM/RAM retention across Stop/reset, synthetic rhythm/ADPCM-B output and observational EOS/IRQ versus raw extended-status reads. Retain the optional --extra PCM CLI and nine-plane observation layout.",
       "file": "native/tests/ym2608_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2608_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "87d04749340fbfa3cce7bb96d6c343b1bc436bda1ef429b7c58442df22155421",
-      "sha256": "c22d389ba84b5fd6dd3a735a56391cca2a4fb7abae0ab0bc986921eb5b9d18bc",
-      "adaptation": "Include the SDK public header; run both primary and additional constructor profiles from the default self-test. Extend six-FM-channel stereo, observational and instance-isolation checks; distinguish exact reset-profile held frames; test memory copy ownership, zero-size/null/overflow ranges and rejected-write rollback; verify ROM/RAM retention across Stop/reset, synthetic rhythm/ADPCM-B output and observational EOS/IRQ versus raw extended-status reads. Retain the optional --extra PCM CLI and nine-plane observation layout."
+      "sha256": "c22d389ba84b5fd6dd3a735a56391cca2a4fb7abae0ab0bc986921eb5b9d18bc"
     },
     {
+      "adaptation": "Include both SDK public headers; run both immutable variants with both constructor profiles from the default self-test. Parameterize the existing deep sparse-page/CSM/foreign-bus suite by variant and add finite PCM, all six physical FM slots/pan gates, both-profile reset-history boundaries, dense upload-copy ownership, empty/null/overflow/rejected-copy rollback, independent dense instances, sparse unmapped/page/bank ownership and ROM Stop retention. Retain the optional --extra PCM CLI and nine-plane observation layout.",
       "file": "native/tests/ym2610_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_ym2610b_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "b3cc0a2e1b80738560bfe31a4186c598e9e8481c8a8d2c85a3b43d0a7f8868a1",
-      "sha256": "f2b240c8da5696cb9c27f5bebd2c2e209c8924da908d16e034da43b1ddac1576",
-      "adaptation": "Include both SDK public headers; run both immutable variants with both constructor profiles from the default self-test. Parameterize the existing deep sparse-page/CSM/foreign-bus suite by variant and add finite PCM, all six physical FM slots/pan gates, both-profile reset-history boundaries, dense upload-copy ownership, empty/null/overflow/rejected-copy rollback, independent dense instances, sparse unmapped/page/bank ownership and ROM Stop retention. Retain the optional --extra PCM CLI and nine-plane observation layout."
+      "sha256": "f2b240c8da5696cb9c27f5bebd2c2e209c8924da908d16e034da43b1ddac1576"
     },
     {
+      "adaptation": "Include the SDK public header; extend the existing nine rate/clock isolation cases with maximum-size borrowed-buffer binding/replacement/retention and caller storage surviving destruction, paired PCM with observations on only one instance, rejected-state/PCM rollback, exact low-nibble-first output, FIFO overflow/underflow, one-byte repeat/predictor restart/end silence, slow-clock immediate Stop and staged clock-buffer rejection rollback. Retain the interleaved twelve-float PCM/state CLI and callback allocation/free audit.",
       "file": "native/tests/okim6258_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_okim6258_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "68a1c3a93b4dd3cfa7ee7f0e1e216fe4a91cd8e164a54910b15392a2cf47dd04",
-      "sha256": "05cc429d155d1cb31efa1a47d695e3c03509a3dc739fbadc2e274f89009faef5",
-      "adaptation": "Include the SDK public header; extend the existing nine rate/clock isolation cases with maximum-size borrowed-buffer binding/replacement/retention and caller storage surviving destruction, paired PCM with observations on only one instance, rejected-state/PCM rollback, exact low-nibble-first output, FIFO overflow/underflow, one-byte repeat/predictor restart/end silence, slow-clock immediate Stop and staged clock-buffer rejection rollback. Retain the interleaved twelve-float PCM/state CLI and callback allocation/free audit."
+      "sha256": "05cc429d155d1cb31efa1a47d695e3c03509a3dc739fbadc2e274f89009faef5"
     },
     {
+      "adaptation": "Include the SDK dual-ABI public header and retain the 95-float extra-profile CLI. Extend the default self-test with primary/extra common-operation PCM across three output rates and six clock edits, all voices/pan, copied RAM lifetime, banked OR writes versus absolute crossing uploads, loop/double-marker behavior, reset/clear, empty/invalid-range/rejected-copy rollback, observations and explicit rate/clock/null contract differences. Distinguish ordinary low-clock mask holds from immediate additional cancellation/Stop; retain foreign-voice, clipping and held-history tests and callback allocation/free audits.",
       "file": "native/tests/rf5c164_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_rf5c164_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "578708f4576700601310fc2cbdbc12dc367d9de43efe3e72c23a79f7624022ab",
-      "sha256": "6bf6dc300f0da50b2900ab4b1331031babd7bccf8f00ac29775b78dd23cd9a8d",
-      "adaptation": "Include the SDK dual-ABI public header and retain the 95-float extra-profile CLI. Extend the default self-test with primary/extra common-operation PCM across three output rates and six clock edits, all voices/pan, copied RAM lifetime, banked OR writes versus absolute crossing uploads, loop/double-marker behavior, reset/clear, empty/invalid-range/rejected-copy rollback, observations and explicit rate/clock/null contract differences. Distinguish ordinary low-clock mask holds from immediate additional cancellation/Stop; retain foreign-voice, clipping and held-history tests and callback allocation/free audits."
+      "sha256": "6bf6dc300f0da50b2900ab4b1331031babd7bccf8f00ac29775b78dd23cd9a8d"
     },
     {
+      "adaptation": "Include the public SDK header and extend all four kinds with every physical FM channel, all four OPL3 output buses, paired FM observation/instance-isolation and ignored-invalid-input tests. Retain the original Stop/reset, rhythm, four-op, timer/IRQ and callback-allocation tests, and the two/eight-plane PCM CLI.",
       "file": "native/tests/opl_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_opl_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "3068d91fda67a3a20341f0003a00dc8d67e1b9cbf5b720cb4109fbfda2669581",
-      "sha256": "83ed7bb39acd2d6b447ceb21cbd05a09a51e9cdf1d87b222373e98aee0f0f199",
-      "adaptation": "Include the public SDK header and extend all four kinds with every physical FM channel, all four OPL3 output buses, paired FM observation/instance-isolation and ignored-invalid-input tests. Retain the original Stop/reset, rhythm, four-op, timer/IRQ and callback-allocation tests, and the two/eight-plane PCM CLI."
+      "sha256": "83ed7bb39acd2d6b447ceb21cbd05a09a51e9cdf1d87b222373e98aee0f0f199"
     },
     {
+      "adaptation": "Include the public SDK header, clarify ABI assertion wording and add explicit OPL3 four-bus fold assertions. Retain the existing four-kind control, CSM, held-source cancellation and callback-allocation suite and the 263/519-plane PCM/state CLI.",
       "file": "native/tests/extra_opl_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_opl_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "d17f4e92f065befb1d2bf3201feab76b257cca75d7753878c64481f73203abdc",
-      "sha256": "7db00a995f018f13e15844710d1da2775f2ebdc5dfdec8c6b5529e33bee90af1",
-      "adaptation": "Include the public SDK header, clarify ABI assertion wording and add explicit OPL3 four-bus fold assertions. Retain the existing four-kind control, CSM, held-source cancellation and callback-allocation suite and the 263/519-plane PCM/state CLI."
+      "sha256": "7db00a995f018f13e15844710d1da2775f2ebdc5dfdec8c6b5529e33bee90af1"
     },
     {
+      "adaptation": "Include public opl.hpp/y8950.hpp headers; preserve the existing primary/extra ten-plane memory-event CLI and add a profile-neutral --self-test for caller-owned writable pages, bounds/length/revisions, CPU writes, sparse reads, replacement/clear, Stop/reset retention, observation PCM/revision continuity and low-clock ADPCM/FM cancellation. Audit callback C++ allocation/free counts without importing Rust COW or lifecycle infrastructure.",
       "file": "native/tests/y8950_memory_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_y8950_memory_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "1d3293d46597a34fbb4e75dddc94047ede37d1ca9092572dcc5c8080e61aa0fd",
-      "sha256": "cbba9afaf6b63a7540760e7a3f5eb74a1dd74ba23d1a6cca307ce61391df3dd0",
-      "adaptation": "Include public opl.hpp/y8950.hpp headers; preserve the existing primary/extra ten-plane memory-event CLI and add a profile-neutral --self-test for caller-owned writable pages, bounds/length/revisions, CPU writes, sparse reads, replacement/clear, Stop/reset retention, observation PCM/revision continuity and low-clock ADPCM/FM cancellation. Audit callback C++ allocation/free counts without importing Rust COW or lifecycle infrastructure."
+      "sha256": "cbba9afaf6b63a7540760e7a3f5eb74a1dd74ba23d1a6cca307ce61391df3dd0"
     },
     {
+      "adaptation": "Include the public SDK header; retain the interleaved two-float PCM event CLI and original control/observation/allocation audit. Extend self-test coverage for all four isolated voices and stereo, per-voice foreign-source isolation at three rates and three clocks, exact low-clock held-output channel Stop versus immediate global Stop, state observations, invalid-input rollback, constructor/clock bounds, reset and retained mute/clock behavior. Rendering and exported C ABI remain unchanged.",
       "file": "native/tests/gameboy_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_gameboy_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "9553af91e81724f1430d5976cd772690075d2d9d55e15e22bd83a7438f0ff430",
-      "sha256": "0b5b07c6dcb3ce498fd8cf914239426844f12d1368e1d6484071b5d13669c92e",
-      "adaptation": "Include the public SDK header; retain the interleaved two-float PCM event CLI and original control/observation/allocation audit. Extend self-test coverage for all four isolated voices and stereo, per-voice foreign-source isolation at three rates and three clocks, exact low-clock held-output channel Stop versus immediate global Stop, state observations, invalid-input rollback, constructor/clock bounds, reset and retained mute/clock behavior. Rendering and exported C ABI remain unchanged."
+      "sha256": "0b5b07c6dcb3ce498fd8cf914239426844f12d1368e1d6484071b5d13669c92e"
     },
     {
+      "adaptation": "Include the public SDK header and retain the two-float interleaved PCM event CLI, original state/mute/LFO/noise/isolation and callback-allocation tests. Extend ABI layout, six-voice stereo and per-channel Stop across output rates/clocks, waveform copy/masking/selection/control/DDA retention, invalid-operation rollback and fallback, low-clock held gate-off/Stop timing, constructor/clock boundaries and reset/mute/clock retention. No wrapper or vendor rendering changes.",
       "file": "native/tests/huc6280_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_huc6280_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "c38e44de6a05b6d4256b87f69000cf9931a7fb1955a91559745e0b2a8f0f2e67",
-      "sha256": "19399bbbbd4e411e4fd852f3d4ce6fde69a1ed507b51ebc7ddd7cc7c2c3e0c3b",
-      "adaptation": "Include the public SDK header and retain the two-float interleaved PCM event CLI, original state/mute/LFO/noise/isolation and callback-allocation tests. Extend ABI layout, six-voice stereo and per-channel Stop across output rates/clocks, waveform copy/masking/selection/control/DDA retention, invalid-operation rollback and fallback, low-clock held gate-off/Stop timing, constructor/clock boundaries and reset/mute/clock retention. No wrapper or vendor rendering changes."
+      "sha256": "19399bbbbd4e411e4fd852f3d4ce6fde69a1ed507b51ebc7ddd7cc7c2c3e0c3b"
     },
     {
+      "adaptation": "Include the public SDK header; retain the original PCM event CLI, benchmark, six-source gate/observation/isolation and callback-allocation checks. Extend the 400-byte ABI layout, both optional-FDS profiles, output/base/outer-clock boundaries and regional tables, copied full DMC RAM and range rollback, DMC wrap/IRQ/loop and protected final-byte behavior, FDS raw wave/modulation/IO gates, filter/held output and distinct global/per-channel Stop semantics, reset clearing full memory with retained settings, and snapshot/mute/source-lifetime checks. Native implementation and vendor source bytes remain unchanged.",
       "file": "native/tests/nes_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nes_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "a3a8358966a9530a9b21b8ce5c691c2daa5749fdd46496a820aec3c743fb3afc",
-      "sha256": "cab792c1380e8f893d8d7ef07e523e205bbff140dce422001affd0acb36201bd",
-      "adaptation": "Include the public SDK header; retain the original PCM event CLI, benchmark, six-source gate/observation/isolation and callback-allocation checks. Extend the 400-byte ABI layout, both optional-FDS profiles, output/base/outer-clock boundaries and regional tables, copied full DMC RAM and range rollback, DMC wrap/IRQ/loop and protected final-byte behavior, FDS raw wave/modulation/IO gates, filter/held output and distinct global/per-channel Stop semantics, reset clearing full memory with retained settings, and snapshot/mute/source-lifetime checks. Native implementation and vendor source bytes remain unchanged."
+      "sha256": "cab792c1380e8f893d8d7ef07e523e205bbff140dce422001affd0acb36201bd"
     },
     {
+      "adaptation": "Include the public SDK header; retain the two-float interleaved PCM event CLI and original Stop/reset/clock/allocation checks. Extend constructor defaults/bounds, stereo FIFO capacity/flags/word masks, routing and held latch behavior, exact timer reconfiguration and Stop/reset phase, invalid-input rollback, read-only state and independent-instance checks. No wrapper or core changes.",
       "file": "native/tests/pwm_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_pwm_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "31bf6a9e5c1fa38d3b5d11578ca8f78153cd93fc574c6721b36986bcfd2be65b",
-      "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812",
-      "adaptation": "Include the public SDK header; retain the two-float interleaved PCM event CLI and original Stop/reset/clock/allocation checks. Extend constructor defaults/bounds, stereo FIFO capacity/flags/word masks, routing and held latch behavior, exact timer reconfiguration and Stop/reset phase, invalid-input rollback, read-only state and independent-instance checks. No wrapper or core changes."
+      "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812"
     },
     {
+      "adaptation": "Include the public SDK header; retain the Native/standalone-Core PCM-state CLI and original exhaustive routing/ownership/cancellation/allocation tests. Extend 64-bit tag identity, zero/ordinary ownership, active control/cycle flush with retained latch ownership, global Stop/reset/tag retention contracts, unknown-tag live-state preservation, and direct-Core invalid-state rollback. Configuration-only DAC/mute checks remain distinct from the fixed Native duty/gain-1 API; no new setters or core changes.",
       "file": "native/tests/extra_pwm_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_pwm_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "a01a79c4e2dde0e47a3fe2e1de517d9082268563fe2180286eb57c12fc271f13",
-      "sha256": "5cc3440ea6ae71fc6c9fc0dbc79adc27d9d5372f12c0df8e9cbd210b53844d14",
-      "adaptation": "Include the public SDK header; retain the Native/standalone-Core PCM-state CLI and original exhaustive routing/ownership/cancellation/allocation tests. Extend 64-bit tag identity, zero/ordinary ownership, active control/cycle flush with retained latch ownership, global Stop/reset/tag retention contracts, unknown-tag live-state preservation, and direct-Core invalid-state rollback. Configuration-only DAC/mute checks remain distinct from the fixed Native duty/gain-1 API; no new setters or core changes."
+      "sha256": "5cc3440ea6ae71fc6c9fc0dbc79adc27d9d5372f12c0df8e9cbd210b53844d14"
     },
     {
+      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and extend constructor/rate bounds, raw voice loading and identity-scoped edits, protected allocation and released-slot reuse, release/kill/panic histories, all sixteen preallocated slots, seventeen partial-construction failure cleanups, independent instances and callback allocation/free auditing. Add 96 feedback-enabled panic/restart cases against fresh Native instances, covering all 32 algorithms at three output rates. Rendering changes are limited to the separately recorded NativePanic correction.",
       "file": "native/tests/dx7_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_dx7_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "4832f2bb9e73e3c685b246df4b688633014b46605c1cf62626289aba1d403de6",
-      "sha256": "102a0bd96ed8b3db702e8378529b0c454fe9cc31c333a09ec3cc62476cede6f9",
-      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and extend constructor/rate bounds, raw voice loading and identity-scoped edits, protected allocation and released-slot reuse, release/kill/panic histories, all sixteen preallocated slots, seventeen partial-construction failure cleanups, independent instances and callback allocation/free auditing. Add 96 feedback-enabled panic/restart cases against fresh Native instances, covering all 32 algorithms at three output rates. Rendering changes are limited to the separately recorded NativePanic correction."
+      "sha256": "102a0bd96ed8b3db702e8378529b0c454fe9cc31c333a09ec3cc62476cede6f9"
     },
     {
+      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and both self-test modes. Extend output-rate boundaries, copied/bounded RAM and rejected-load rollback, stable views and all-RAM reset, all eight same-frame BRR key-ons with explicitly authored global/voice controls and release, protected gates and ignored invalid registers/channels, echo-disabled Stop silence with retained authored settings, borrowed timeline replay/completion/detach and zero runtime C++ allocation/free checks. Native wrapper and vendor synthesis bytes remain unchanged.",
       "file": "native/tests/snes_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_snes_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "37a61a69a0bd1022fc20841d062b00e95ec121a9fbad238ac9c00304845db5a5",
-      "sha256": "f7f5416ca36af165ed5035123095a00e86ddcc12c9847b92f1f09974455c102c",
-      "adaptation": "Include the public SDK header; preserve the original PCM event CLI and both self-test modes. Extend output-rate boundaries, copied/bounded RAM and rejected-load rollback, stable views and all-RAM reset, all eight same-frame BRR key-ons with explicitly authored global/voice controls and release, protected gates and ignored invalid registers/channels, echo-disabled Stop silence with retained authored settings, borrowed timeline replay/completion/detach and zero runtime C++ allocation/free checks. Native wrapper and vendor synthesis bytes remain unchanged."
+      "sha256": "f7f5416ca36af165ed5035123095a00e86ddcc12c9847b92f1f09974455c102c"
     },
     {
+      "adaptation": "Include the public SDK header; preserve the original synthetic/optional-file self-test and PCM event/diagnostic CLI. Extend constructor/rate limits, copied file lifetime and malformed-load error/reload behavior, bounded incremental control seeking and prefetched CPU position, pause/resume and cached mute continuity, observer capacity/borrowed storage/clear/overflow contracts, DSP and analysis snapshot purity/size/lifetime, independent instances and zero callback C++ allocation/free. Native wrapper and vendor synthesis bytes remain unchanged.",
       "file": "native/tests/spc_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_spc_fixture.cpp",
       "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
       "originSha256": "2e36e829e90844f2b1c53a08f475cbcb0610798fe008625c49a7ef5d8e68620d",
-      "sha256": "5c0ef0614ad24cfb8770f3e7856ba205b812bb07d08e299e7aa20e394ca2dc4b",
-      "adaptation": "Include the public SDK header; preserve the original synthetic/optional-file self-test and PCM event/diagnostic CLI. Extend constructor/rate limits, copied file lifetime and malformed-load error/reload behavior, bounded incremental control seeking and prefetched CPU position, pause/resume and cached mute continuity, observer capacity/borrowed storage/clear/overflow contracts, DSP and analysis snapshot purity/size/lifetime, independent instances and zero callback C++ allocation/free. Native wrapper and vendor synthesis bytes remain unchanged."
+      "sha256": "5c0ef0614ad24cfb8770f3e7856ba205b812bb07d08e299e7aa20e394ca2dc4b"
     },
     {
+      "adaptation": "Include the public SDK header before compatibility aliases; preserve the original PCM/status/IRQ event CLI and Native self-tests. Add synchronous raw ABI sample-rate, zero-length generation, one-frame/block continuity, zero envelope outputs, reset/read equivalence and C/C++ allocation/free auditing. The test-only wrapper is instrumented separately; production provider/wrapper bytes remain unchanged.",
       "file": "native/tests/nuked_ym2612_fixture.cpp",
       "origin": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_nuked_ym2612_fixture.cpp",
       "originCommit": "baec0b9a6beebe8ba914607c90b13243eb6ef0c4",
       "originSha256": "77b0c0e879f5f86d4f05019f563ffb3585f67cba046ceb8fecb001e827f4fe1b",
-      "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673",
-      "adaptation": "Include the public SDK header before compatibility aliases; preserve the original PCM/status/IRQ event CLI and Native self-tests. Add synchronous raw ABI sample-rate, zero-length generation, one-frame/block continuity, zero envelope outputs, reset/read equivalence and C/C++ allocation/free auditing. The test-only wrapper is instrumented separately; production provider/wrapper bytes remain unchanged."
+      "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673"
     },
     {
+      "adaptation": "Use SDK public header; retain binary command transport unchanged; accept CTest --self-test alias and add original-waveform 24-voice/ADSR/reverb/isolation/partition checks.",
+      "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope and manual-audition APIs and argument guards.",
       "file": "native/tests/ps1_spu_fixture.cpp",
-      "originRepository": "hello_ymfm_wasm",
       "origin": "test/helpers/ps1_spu_reference.cpp",
       "originCommit": "069a2cb8211aa0159b71da5f7c806a30a4d32929",
+      "originRepository": "hello_ymfm_wasm",
       "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
-      "sha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "adaptation": "Use SDK public header; retain binary command transport unchanged; accept CTest --self-test alias and add original-waveform 24-voice/ADSR/reverb/isolation/partition checks."
+      "originalSha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
+      "sha256": "deeffc95a8b4ba85c65d67ec35b8b33d82ff4341c39a4d33c293cef394c64a02"
     }
-  ]
+  ],
+  "originRepository": "tetorica-fm2612-playground-tauri",
+  "schemaVersion": 1,
+  "status": "bootstrap reference sources; existing applications are not switched to this repository"
 }

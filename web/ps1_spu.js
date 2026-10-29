@@ -62,6 +62,8 @@ export class Ps1Spu {
       load:module.cwrap('ps1_spu_load_ram', 'number', ['number','number','number','number']),
       readRam:module.cwrap('ps1_spu_read_ram', 'number', ['number','number','number','number']),
       render:module.cwrap('ps1_spu_render', 'number', ['number','number','number','number']),
+      refreshEnvelope:typeof module._ps1_spu_refresh_envelope==='function'?module.cwrap('ps1_spu_refresh_envelope','number',['number','number']):null,
+      auditionKey:typeof module._ps1_spu_audition_key==='function'?module.cwrap('ps1_spu_audition_key','number',['number','number','number']):null,
     };
     if (api.rate() !== PS1_SPU_SAMPLE_RATE) throw new Error('Unexpected SPU native sample rate');
     const handle = api.create();
@@ -106,6 +108,25 @@ export class Ps1Spu {
     const value = this.api.read(this.handle, offset) >>> 0;
     if (value === 0xffffffff) throw new RangeError('Unsupported SPU register read');
     return value;
+  }
+
+  /** Apply current ADSR registers to a held envelope without restarting its
+   * sample or envelope level. This is an instrument extension, not a KON write.
+   * @param {number} channel */
+  refreshEnvelope(channel) {
+    this.#open(); integer(channel,0,23,'SPU voice');
+    if(!this.api.refreshEnvelope)throw new Error('This SPU build does not support live envelope editing');
+    if(!this.api.refreshEnvelope(this.handle,channel))throw new Error('SPU live envelope update failed');
+  }
+
+  /** Manual audition only: per-voice transition ramp, with a minimum fast
+   * release duration. Raw register key-on/off retains its original semantics.
+   * @param {number} channel @param {boolean} on */
+  auditionKey(channel,on) {
+    this.#open(); integer(channel,0,23,'SPU voice');
+    if(typeof on!=='boolean')throw new TypeError('SPU audition gate must be boolean');
+    if(!this.api.auditionKey)throw new Error('This SPU build does not support smooth audition keys');
+    if(!this.api.auditionKey(this.handle,channel,Number(on)))throw new Error('SPU audition gate failed');
   }
 
   /** Copy raw bytes into SPU RAM and invalidate affected decoder caches.

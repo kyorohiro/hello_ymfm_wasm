@@ -23,6 +23,13 @@ async function fixture(t,{mode='ps1'}={}){
   const state=(s,args={})=>args.ram&&s.captures.has(args.after)?s.captures.get(args.after):{...value(s),...(args.ram?{ram:Array.from(s.core.readRam())}:{})};
   function apply(s,m,c={},bypass=false){
     if(m.method==='batch'){
+      for(const command of m.commands)if(['audition-key','refresh-envelope'].includes(command.method)){
+        assert.equal(command.channel,m.channel,'private live operations must target the declared Native channel');
+        if(command.method==='audition-key'){
+          assert.equal(m.audition,true,'private keys require a manual audition');assert(Number.isSafeInteger(m.voice));
+          assert.equal(m.action,command.on?'on':'off','private keys must match the Native lease action');
+        }
+      }
       const ch=m.channel,held=s.held.get(ch);if(!m.audition&&(ch===undefined?s.held.size:held!==undefined))return;
       if(m.audition&&m.action==='off'&&held!==m.voice)return;
       if(m.audition&&m.action==='edit'&&(ch===undefined?[...s.held.values()].some(v=>v!==m.voice):held!==undefined&&held!==m.voice))return;
@@ -35,7 +42,10 @@ async function fixture(t,{mode='ps1'}={}){
       s.core.write(m.register,m.value);
       if(m.register===0x188||m.register===0x18a)s.enabled|=m.value<<(m.register===0x18a?16:0);
       if(m.register===0x18c||m.register===0x18e)s.enabled&=~(m.value<<(m.register===0x18e?16:0));
-    }else if(m.method==='load-memory'){
+    }else if(m.method==='audition-key'){
+      s.core.auditionKey(m.channel,m.on);if(m.on)s.enabled|=1<<m.channel;else s.enabled&=~(1<<m.channel);
+    }else if(m.method==='refresh-envelope')s.core.refreshEnvelope(m.channel);
+    else if(m.method==='load-memory'){
       if(m.address<s.highWater&&s.held.size&&(!m.audition||s.held.get(m.channel)!==m.voice||[...s.held.keys()].some(ch=>ch!==m.channel)))throw Error(PS1_MEMORY_HELD_ERROR);
       s.core.loadRam(Uint8Array.from(m.data),m.address);s.highWater=Math.max(s.highWater,m.address+m.data.length);
     }else if(m.method==='reset'){if(s.held.size)throw Error(PS1_STATE_HELD_ERROR);s.core.reset({clearRam:m.clearRam});if(m.clearRam)s.highWater=0x1000;s.enabled=0;}
@@ -90,7 +100,7 @@ test('Native primary PS1 owns 24 real voices, ADPCM RAM, ADSR, reverb and Mixer 
   const snapshot=await spu.snapshot();assert.equal(snapshot.ram.length,524288);assert.equal(snapshot.registers.length,512);assert.deepEqual(snapshot.ram.slice(0x1000,0x1040),createPs1InitSample().adpcm);
   f.synth.mixer.set('ps1',{volume:.25,pan:-.2});await f.synth.flush();assert.equal(f.primary.volume,.25);assert.deepEqual(f.errors,[]);
 });
-test('Native PS1 held waveform slots are reused, channel-owned, ADSR retriggers own note, and Stop retains presets',async t=>{
+test('Native PS1 held waveform slots are reused, channel-owned, explicit retriggers keep their lease, and Stop retains presets',async t=>{
   const f=await fixture(t),spu=f.synth.spu,i=f.synth.chipInspector;
   await i.invoke('ps1','auditionOn',[23,69,'old']);await i.invoke('ps1','auditionOn',[23,72,'new']);assert.equal(await i.invoke('ps1','auditionOff',[23,'old']),false);
   const p=preparePs1Waveform(Array.from({length:112},(_,n)=>n<56?.3:-.3));
@@ -100,6 +110,28 @@ test('Native PS1 held waveform slots are reused, channel-owned, ADSR retriggers 
   const init=createPs1InitSample();assert.equal((await spu.loadADPCM(init.adpcm,{baseFrequencyHz:init.baseFrequencyHz,loopStartSamples:0})).id,2);assert.throws(()=>spu.reset(),/manually held/);
   await f.synth.stopNativeAudio();view=await i.read('ps1');assert(!view.channels[23].active);assert.equal(view.reverb.preset,'hall');assert.equal(view.channels[23].sample,one.id);assert.equal((await spu.snapshot()).ram[one.startAddress+1],6);
   await i.invoke('ps1','auditionOn',[23,69,'after-stop']);assert((await i.read('ps1')).channels[23].active);await i.invoke('ps1','auditionOff',[23,'after-stop']);assert.deepEqual(f.errors,[]);
+});
+test('Native PS1 live ADSR edits retain PCM phase and the manual lease while public edits keep raw latch behavior',async t=>{
+  const a=await fixture(t),b=await fixture(t),render=(f,n)=>{const left=new Float32Array(n),right=new Float32Array(n);f.primary.core.renderInto(left,right);return left;};
+  for(const f of[a,b]){await f.synth.chipInspector.invoke('ps1','setPreset',[23,{adsr1:15,adsr2:0x2000}]);await f.synth.chipInspector.invoke('ps1','auditionOn',[23,69,'held']);}
+  assert.deepEqual(render(a,1009),render(b,1009));
+  const since=a.commands().length;
+  await a.synth.chipInspector.invoke('ps1','setEnvelope',[23,{attackRate:100},{live:true}]);
+  await b.synth.chipInspector.invoke('ps1','setEnvelope',[23,{attackRate:100}]);
+  assert.deepEqual(render(a,512),render(b,512),'changing attack in sustain preserves the complete decoded waveform');
+  const emitted=a.commands().slice(since).flatMap(c=>c.message.commands??[]);
+  assert(emitted.some(c=>c.method==='refresh-envelope'&&c.channel===23));
+  assert(!emitted.some(c=>c.method==='audition-key'||c.method==='write'&&[0x188,0x18a].includes(c.register)),'live ADSR sends no KON');
+  await a.synth.chipInspector.invoke('ps1','setEnvelope',[23,{sustainRate:40,sustainDecrease:true},{live:true}]);
+  await b.synth.chipInspector.invoke('ps1','setEnvelope',[23,{sustainRate:40,sustainDecrease:true}]);
+  const edited=render(a,4096),raw=render(b,4096),energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
+  assert.equal(edited[0],raw[0],'live rate changes retain the first output level');assert(energy(edited)<energy(raw)*.8,'the new sustain slope is audible without restarting');
+  const view=await a.synth.chipInspector.read('ps1');assert.equal(view.channels[23].adsr2&0x2000,0x2000);assert.deepEqual(view.auditions,[{channel:23,id:'held'}]);
+  // The ordinary public API continues to write only the chip's raw registers.
+  await a.synth.chipInspector.invoke('ps1','auditionOff',[23,'held']);const start=a.commands().length;
+  a.synth.spu.setEnvelope(0,{attackRate:20});await a.synth.flush();
+  assert(a.commands().slice(start).flatMap(c=>c.message.commands??[]).every(c=>c.method==='write'));
+  assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);
 });
 test('Native PS1 Stop before the first read retains the initial instrument on every channel',async t=>{
   const f=await fixture(t);await f.synth.stopNativeAudio();const view=await f.synth.chipInspector.read('ps1');assert(view.channels.every(ch=>ch.sample===0));

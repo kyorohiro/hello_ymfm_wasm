@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "b5d81247680906323a1e25586a7ef9d215ee76e3f1dc687e78b43c93202a7aa5",
-      "size": 23552
+      "sha256": "d66fdd1a9d6f9afe11560544fbd204035ef50995e713f63d52f1b4e9855ae7ee",
+      "size": 24374
     },
     "CMakeLists.txt": {
       "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
@@ -45,16 +45,16 @@
       "size": 50834
     },
     "catalog/source_inventory.json": {
-      "sha256": "dacba978dea8e0c067ccadd38febdd1617671edc3f8096411e693641a8d7dae6",
-      "size": 142156
+      "sha256": "c5e870c0233e6bd2c8cc953494ab9d1ddfae413d2201448eaa62f21e00c751bf",
+      "size": 144325
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
       "size": 22501
     },
     "docs/chip-differences.md": {
-      "sha256": "556f75a3cb749ee39636f88c5dfd90176a8f2b857f614c65386b923680d93544",
-      "size": 52400
+      "sha256": "aa0899fedddd2050da2dd1793d6e5fa980b1f8f6fa7a26e288bd1ee550fbf6cb",
+      "size": 52791
     },
     "docs/releases.md": {
       "sha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
@@ -285,8 +285,8 @@
       "size": 108
     },
     "native/reference/SOURCES.json": {
-      "sha256": "c590d710fa1a71fcc05456ee8e89b6ad50ae1683f90480d4ff364f3be649f79f",
-      "size": 46867
+      "sha256": "7f6301247e6ac8bf8db84d6b8d47801a71ddf2c16e94539cd24c788de0aee70e",
+      "size": 47074
     },
     "native/reference/overrides/msfa/dx7note.cc": {
       "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
@@ -597,8 +597,8 @@
       "size": 15183
     },
     "native/tests/ps1_spu_fixture.cpp": {
-      "sha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "size": 4590
+      "sha256": "deeffc95a8b4ba85c65d67ec35b8b33d82ff4341c39a4d33c293cef394c64a02",
+      "size": 6588
     },
     "native/tests/pwm_fixture.cpp": {
       "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812",
@@ -725,8 +725,8 @@
       "size": 761
     },
     "scripts/build_ps1_spu_wasm.sh": {
-      "sha256": "729f37f3c7224dd00b666b686a384498a8956df51d6c65b38afc0bb2a7e65704",
-      "size": 1291
+      "sha256": "1fc081657402511ad5f87cb95dec2db98f7ba1a4e4eca99f113e9b1f0cd38867",
+      "size": 1343
     },
     "scripts/build_pwm32x_wasm.sh": {
       "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
@@ -833,7 +833,7 @@
       "size": 14591
     },
     "sdk.json": {
-      "sha256": "34c85cfd28e69bc43ab9f9610ece2e8564c78d0c9f6f1c3a0195f01fec6cd392",
+      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7",
       "size": 285
     },
     "tests/README.md": {
@@ -1121,24 +1121,24 @@
       "size": 1592
     },
     "vendor/mame-ps1-spu/README.md": {
-      "sha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
-      "size": 6280
+      "sha256": "51ca1a81db19c00ef8fda4b0bf312f6681f26d68f38cd1d39ae9fccc8ff79738",
+      "size": 6832
     },
     "vendor/mame-ps1-spu/ps1_spu.cpp": {
-      "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
-      "size": 3353
+      "sha256": "c27a63c876f51f76b62627279d4789f04db64313591b0bac327878c23d0401b8",
+      "size": 3854
     },
     "vendor/mame-ps1-spu/ps1_spu.h": {
-      "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
-      "size": 1558
+      "sha256": "ace3f50ca0e573ef3dfe7f3b5abaf88613749137f9ed13f5e9e9a05e5bc9a7e8",
+      "size": 2213
     },
     "vendor/mame-ps1-spu/spu.cpp": {
-      "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
-      "size": 67256
+      "sha256": "bf715e27233bb635f8ebb479e309fc341e36c82928a9f6a58acd19fdb571d72c",
+      "size": 71645
     },
     "vendor/mame-ps1-spu/spu.h": {
-      "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
-      "size": 8376
+      "sha256": "f2fa0715cea0acab8eb88f73752179b7dfe98f130587774f6141128446fd3a67",
+      "size": 8644
     },
     "vendor/mame-ps1-spu/spu_tables.cpp": {
       "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab",
@@ -1820,5 +1820,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.6"
+  "version": "0.1.7"
 }

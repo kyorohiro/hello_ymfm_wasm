@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createPs1InitSample,preparePs1ADPCM} from '../web/ps1synth.js';
+import {preparePs1Waveform} from '../web/ps1_waveform.js';
 import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 import {measurePs1CalibrationOffline} from './check_ps1_calibration_offline.mjs';
 
@@ -22,11 +23,8 @@ test('PS1 reference has explicit decoded headroom, loop, tuning and no Mixer edi
   const starter=createPs1InitSample();
   assert.equal(starter.adpcm[0],0);assert.equal(metadata.adpcmBytes[0],0);
   assert.notDeepEqual([...starter.adpcm],metadata.adpcmBytes);
-  const decoded = Array.from({length:112},(_,frame) => {
-    const block=Math.floor(frame/28),within=frame%28,nibble=(starter.adpcm[block*16+2+Math.floor(within/2)]>>(within%2*4))&15;
-    return (nibble>=8?nibble-16:nibble)/8;
-  });
-  assert.equal(Math.max(...decoded),.625);assert.equal(Math.min(...decoded),-.625);
+  const editor=preparePs1Waveform(Array.from({length:112},(_,frame)=>.65*Math.sin(2*Math.PI*frame/112)));
+  assert.deepEqual(starter.adpcm,editor.adpcm,'The authored starter follows the panel Sine without changing the independent filter-0 calibration reference');
 });
 
 test('PS1 reference roles and supported pitches are explicit and deterministic',()=>{

@@ -332,7 +332,7 @@ async function checkEnvelopeGraph(page){
     const writes=(await commandsSince(page,from)).filter(command=>command.type==='chip-inspector'&&command.method==='setEnvelope');
     assert(writes.length>0,name+' drag reaches the actual SPU inspector');
     const allowed=level===undefined?[key]:[key,'sustainLevel'];
-    assert(writes.every(command=>command.channel===23&&command.args[2]?.retrigger===true&&Object.keys(command.args[1]).every(key=>allowed.includes(key))),name+' drag sends only its native fields and the owned-note retrigger option');
+    assert(writes.every(command=>command.channel===23&&command.args[2]?.live===true&&!Object.hasOwn(command.args[2],'retrigger')&&Object.keys(command.args[1]).every(key=>allowed.includes(key))),name+' drag sends only its native fields and the owned-note live option');
     results.push({handle:name,values:Object.fromEntries(allowed.map(key=>[key,expected[key]])),writes:writes.length});
   }
   for(const [name,key,arrow,delta]of [['attack','attackRate','ArrowRight',1],['decay','decayRate','ArrowLeft',-1],['decay','sustainLevel','ArrowUp',1],['sustain','sustainRate','ArrowRight',1],['release','releaseRate','ArrowLeft',-1]]){
@@ -343,28 +343,49 @@ async function checkEnvelopeGraph(page){
   assert.deepEqual((await commandsSince(page,idleFrom)).filter(command=>command.type==='chip-inspector'),[],'An idle graph neither redraws through audio requests nor polls the SPU');
   return {drags:results,keyboardSteps:5,plainClickWrites:0,idleInspectorRequests:0,liveMouseEdit:true,focusPreserved:true,reservedBit13Preserved:true,otherVoicesPreserved:true};
 }
-async function checkRetrigger(page){
-  console.log('  Latched audition / live levels and owned ADSR retrigger');
+async function checkLiveEnvelope(page){
+  console.log('  Latched audition / live levels and phase-preserving ADSR edits');
   await field(page,'reverb-send',false);await field(page,'reverb-preset','off');
   await field(page,'volume-left',.2);await field(page,'volume-right',.2);await field(page,'audition-midi',69);await fastEnvelope(page);
+  assert.match(await page.locator(control('retrigger')).evaluate(node=>node.closest('label')?.textContent??node.parentElement.textContent),/Apply ADSR\s*\/\s*PCM edits/,'The option describes live editing, rather than re-keying every ADSR change');
   const initial=await latch(page),from=await page.evaluate(()=>__ps1Audit.commands.length);
+  const original=await refresh(page),untouched=settings(original).slice(0,23),sample=original.channels[23].sample;
   await field(page,'volume-left',.1);await applied(page,'state.channels[23].volumeLeft===.1','Live left gain');const lower=await audible(page,'Live lower left gain',440);
   assert(lower.channels[0].rms<initial.channels[0].rms*.6&&lower.channels[0].rms>initial.channels[0].rms*.4,'Gain changes reach the sounding SPU voice');
   assert(Math.abs(lower.channels[1].rms/initial.channels[1].rms-1)<.1,'Left edit preserves right volume');
   await field(page,'volume-left',.2);await field(page,'retrigger',false);await field(page,'attack-rate',60);
-  await applied(page,'state.channels[23].envelopeParameters.attackRate===60','Queued next-note attack');
-  const deferred=await audible(page,'Retrigger disabled retains the held envelope',440);
-  assert(deferred.channels[0].rms>initial.channels[0].rms*.8,'With retrigger off, an ADSR edit does not restart the held voice');
+  await field(page,'sustain-rate',60);await field(page,'sustain-decrease',true);
+  await applied(page,'state.channels[23].envelopeParameters.attackRate===60&&state.channels[23].envelopeParameters.sustainRate===60&&state.channels[23].envelopeParameters.sustainDecrease','Queued next-note attack and decreasing sustain');
+  const deferred=await audible(page,'Apply edits disabled retains the held envelope',440);
+  assert(deferred.channels.every((channel,index)=>Math.abs(channel.rms/initial.channels[index].rms-1)<.1),'With live editing disabled, a decreasing sustain edit is deferred rather than applied to the held voice');
+  // Restore a holding sustain while updates remain deferred. Enabling live
+  // editing and changing AR during sustain must not return to the attack stage.
+  await field(page,'sustain-rate',0);await field(page,'sustain-decrease',false);
   await field(page,'retrigger',true);await field(page,'attack-rate',61);
-  await applied(page,'state.channels[23].envelopeParameters.attackRate===61','Owned held voice attack retrigger');
-  const restarted=await capture(page,8192);
-  assert(restarted.channels.every(channel=>!channel.nonFinite&&channel.rms>0&&channel.rms<initial.channels[0].rms*.45),'Retriggering the owned voice applies its two-second attack to actual PCM: '+JSON.stringify(restarted));assertCapturePcm(restarted,'Owned retrigger');
+  await applied(page,'state.channels[23].envelopeParameters.attackRate===61','Owned held voice live attack setting');
+  const heldAfterAttackEdit=await capture(page,8192);
+  assert(heldAfterAttackEdit.channels.every((channel,index)=>!channel.nonFinite&&Math.abs(channel.rms/initial.channels[index].rms-1)<.1),'Changing AR during sustain retains the sounding level instead of restarting its two-second attack: '+JSON.stringify(heldAfterAttackEdit));assertCapturePcm(heldAfterAttackEdit,'Sustain-preserving attack edit');
+  const afterAttack=await refresh(page);
+  assert.equal(afterAttack.channels[23].envelope,0x7fff,'An attack edit leaves the held sustain level intact');
+  assert.equal(afterAttack.channels[23].sample,sample,'Live ADSR keeps the assigned sample');
+  // A decreasing linear SR60 takes about 1.7 s in this core, allowing a
+  // bounded capture to distinguish an actual gradual slope from a KON reset.
+  await field(page,'sustain-rate',60);await field(page,'sustain-decrease',true);
+  await applied(page,'state.channels[23].envelopeParameters.sustainRate===60&&state.channels[23].envelopeParameters.sustainDecrease','Live decreasing sustain');
+  const decreasing=await capture(page,16384);
+  assert(decreasing.channels.every((channel,index)=>!channel.nonFinite&&channel.rms>initial.channels[index].rms*.4&&channel.blockRms.at(-1)<channel.blockRms[0]*.9&&channel.blockRms.at(-1)>0),'Live sustain editing changes the existing voice into a gradual audible decay: '+JSON.stringify(decreasing));assertCapturePcm(decreasing,'Live decreasing sustain');
+  const afterDecay=await refresh(page);
+  assert(afterDecay.channels[23].envelope>0&&afterDecay.channels[23].envelope<0x7fff,'The live ENVX level decays without an immediate zero reset');
+  assert.equal(afterDecay.channels[23].sample,sample);assert.equal(afterDecay.channels[23].gate,true);
+  assert.deepEqual(settings(afterDecay).slice(0,23),untouched,'Live ADSR edits leave all other voice settings intact');
+  assert.deepEqual(afterDecay.samples,original.samples,'Live ADSR never reallocates or replaces sample RAM');
   const commands=await commandsSince(page,from),envelopes=commands.filter(command=>command.method==='setEnvelope');
-  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===60&&command.args[2]?.retrigger===false),'Deferred edit has explicit retrigger false');
-  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===61&&command.args[2]?.retrigger===true),'Owned audition edit requests explicit retrigger');
-  await fastEnvelope(page);await audible(page,'Fast envelope restored to the latched voice',440);
+  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===60&&command.args[2]?.live===false),'Deferred edit has explicit live false');
+  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===61&&command.args[2]?.live===true),'Owned audition edit requests a live envelope refresh');
+  assert(envelopes.every(command=>!Object.hasOwn(command.args[2]??{},'retrigger')),'ADSR changes never request a new key-on');
+  await field(page,'sustain-decrease',false);await fastEnvelope(page);await audible(page,'Fast envelope restored to the latched voice',440);
   await page.locator(action('release')).click();assert.equal(await page.locator(action('sustain')).getAttribute('aria-pressed'),'false');const released=await silent(page,'Latched Release');
-  return {initial,lower,deferred,restarted,released,liveGain:true,ownedVoiceRetrigger:true};
+  return {initial,lower,deferred,heldAfterAttackEdit,decreasing,released,liveGain:true,ownedLiveEnvelope:true,attackDuringSustainPreservesLevel:true,deferredSustain:true,otherVoicesPreserved:true,sampleBankPreserved:true};
 }
 async function checkReverb(page){
   console.log('  Per-voice send and global SPU reverb / wet tails');
@@ -473,7 +494,7 @@ liveLoop('other-voice',async()=>{spu.noteOn(1,'C3');await sleep(.2);spu.noteOn(1
 await sleep(1);log('${marker}');`,execution);await waitLog(page,marker);
     if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))),'Actual logic Worker was used');
     await page.locator('#ps1Tab').click();await page.locator(`${root} [data-chip-channel="23"]`).click();await field(page,'audition-midi',69);await refresh(page);
-    const waveform=await checkWaveform(page),envelope=await checkEnvelope(page),retrigger=await checkRetrigger(page);
+    const waveform=await checkWaveform(page),envelope=await checkEnvelope(page),liveEnvelope=await checkLiveEnvelope(page);
     const otherPitches=[];for(let i=0;i<6;i++){otherPitches.push((await refresh(page)).channels[1].pitch);await page.waitForTimeout(90);}
     assert(new Set(otherPitches).size>1,'Muted CH2 keeps progressing while CH24 is edited and auditioned');
     const reverb=await checkReverb(page),keyboard=await checkKeyboardAndLifecycle(page),images=await screenshots(page,name,execution),disconnect=await checkDisconnect(page,execution);
@@ -490,7 +511,7 @@ await sleep(1);log('${marker}');`,execution);await waitLog(page,marker);
         clockAnomalies:__ps1Audit.captures.filter(c=>!c.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-playground-ps1'),'Actual SPU Worklet is used');assert.deepEqual(audit.processorErrors,[]);assert(audit.physicalOutputMuted);assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(errors,[],'No browser exceptions');assert.deepEqual(badResponses,[],'No missing runtime assets');
-    return {browser:name,version:browser.version(),execution,waveform,portableWaveform,envelope,retrigger,otherVoiceProgress:{channel:1,pitches:otherPitches},reverb,keyboard,screenshots:images,disconnect,recovery,...audit};
+    return {browser:name,version:browser.version(),execution,waveform,portableWaveform,envelope,liveEnvelope,otherVoiceProgress:{channel:1,pitches:otherPitches},reverb,keyboard,screenshots:images,disconnect,recovery,...audit};
   }catch(error){
     const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,instance:document.querySelector('#ps1Panel [data-chip-control="instance"]')?.value,panel:document.getElementById('ps1Panel')?.textContent,contexts:__ps1Audit?.contexts.map(value=>({state:value.state,sampleRate:value.sampleRate})),gains:__ps1Audit?.gains.map(value=>({value:value.gain.value,contextState:value.context.state})),worklets:__ps1Audit?.worklets,captures:__ps1Audit?.captures.slice(-5),commands:__ps1Audit?.commands.slice(-20)})).catch(()=>null);
     throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses,consoleErrors})}`,{cause:error});

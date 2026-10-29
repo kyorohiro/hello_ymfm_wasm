@@ -134,17 +134,18 @@ test('all raw source hashes are fresh, including all required provenance',async 
   assert.equal(WONDERSWAN_CALIBRATION_REQUIRED_SCRIPTS.length,5);assert.ok(WONDERSWAN_CALIBRATION_REQUIRED_SOURCES.length>=24);
 });
 
-test('original complete WonderSwan source inventory remains valid through pinned cache-only and exact UI revision receipts',async()=>{
+test('original complete WonderSwan measurements remain immutable and are stale after the shared runtime revision',async()=>{
   const path='docs/issues/wonderswan_chip_levels_01.json',before=await readFile(path),report=JSON.parse(before);
   const originalSources=structuredClone(report.sources);
   assert.equal(createHash('sha256').update(before).digest('hex'),WONDERSWAN_CALIBRATION_REPORT_SHA256);
-  await validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport:report});
+  assert.equal(validateWonderSwanMixerCalibration(fixture.historical,report).primaryVolume,1.172528);
+  await assert.rejects(validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport:report}),/served DSP\/WASM source changed|source receipt/);
   assert.deepEqual(report.sources,originalSources,'all 292 historical raw hashes remain original evidence');
   assert.equal(Object.keys(report.sources).length,292);
   assert.deepEqual(await readFile(path),before,'freshness checks do not rewrite measurement evidence');
 });
 
-test('WonderSwan cache receipt authorizes only exact imports in two known UI files under the pinned original report',async t=>{
+test('WonderSwan cache receipt retains its old identity and rejects the revised Playground code',async t=>{
   const report=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_01.json','utf8'));
   const receipt=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_ui_receipt_01.json','utf8'));
   assert.equal(mixerCalibrationReceiptObjectSha256(receipt),WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256);
@@ -155,7 +156,8 @@ test('WonderSwan cache receipt authorizes only exact imports in two known UI fil
     const bytes=Buffer.from(source.replace(/(playground(?:_mixer_defaults)?\.js\?v=)[A-Za-z0-9._+-]+/,'$1receipt-freshness-test'));
     const options={path,bytes,record:report.sources[path],report,reportSha256:WONDERSWAN_CALIBRATION_REPORT_SHA256,
       receipt,receiptObjectSha256:WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256};
-    assert.equal(assertMixerCalibrationSourceFreshness(options),'ui-cache-token');
+    if(path==='playground/playground.js')assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
+    else assert.equal(assertMixerCalibrationSourceFreshness(options),'ui-cache-token');
     assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,bytes:Buffer.concat([bytes,Buffer.from('\n')])}),/served DSP\/WASM source changed/);
     assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,reportSha256:zeroSha}),/receipt report identity or scope mismatch/);
     const edited=structuredClone(receipt);edited.sources[path].canonicalSha256=zeroSha;

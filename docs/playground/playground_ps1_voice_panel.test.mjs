@@ -69,15 +69,15 @@ test('PS1 readback exposes 24 voices, decoded ADSR and shared reverb without aud
   assert.equal(output(root, 'gate').textContent, 'On'); assert.deepEqual(calls, []); panel.dispose();
 });
 
-test('ADSR edits send independent fields with explicit owned-note retrigger and raw words stay advanced', async () => {
+test('ADSR edits send independent fields with explicit live owned-note updates and raw words stay advanced', async () => {
   const {root, calls, panel} = fixture();
   for (const [name, value] of [['attack-rate',127], ['decay-rate',15], ['sustain-level',0], ['sustain-rate',126], ['release-rate',26], ['attack-exponential',false], ['sustain-decrease',false], ['sustain-exponential',false], ['release-exponential',false]]) await change(root, name, value);
   assert.deepEqual(calls.map(value => value[0]), Array(9).fill('setEnvelope'));
-  assert.deepEqual(calls.map(value => value[1]), [['attackRate',127], ['decayRate',15], ['sustainLevel',0], ['sustainRate',126], ['releaseRate',26], ['attackExponential',false], ['sustainDecrease',false], ['sustainExponential',false], ['releaseExponential',false]].map(([key,value]) => [0,{[key]:value},{retrigger:true}]));
+  assert.deepEqual(calls.map(value => value[1]), [['attackRate',127], ['decayRate',15], ['sustainLevel',0], ['sustainRate',126], ['releaseRate',26], ['attackExponential',false], ['sustainDecrease',false], ['sustainExponential',false], ['releaseExponential',false]].map(([key,value]) => [0,{[key]:value},{live:true}]));
   await change(root, 'retrigger', false); assert.equal(calls.length, 9);
-  await change(root, 'attack-rate', 50); assert.deepEqual(calls.at(-1), ['setEnvelope',[0,{attackRate:50},{retrigger:false}]]);
+  await change(root, 'attack-rate', 50); assert.deepEqual(calls.at(-1), ['setEnvelope',[0,{attackRate:50},{live:false}]]);
   await change(root, 'adsr1', 65535); await change(root, 'adsr2', 8192);
-  assert.deepEqual(calls.slice(-2), [['setPreset',[0,{adsr1:65535},{retrigger:false}]], ['setPreset',[0,{adsr2:8192},{retrigger:false}]]]);
+  assert.deepEqual(calls.slice(-2), [['setPreset',[0,{adsr1:65535},{live:false}]], ['setPreset',[0,{adsr2:8192},{live:false}]]]);
   assert.equal(control(root, 'adsr1').parentNode.parentNode.parentNode.tagName, 'details'); panel.dispose();
 });
 
@@ -126,7 +126,7 @@ test('PS1 graph mappings round-trip every rate code and sustain level, including
   assert.equal(ps1EnvelopePointPatch({},'attack',NaN,0),null);
 });
 
-test('four graph handles edit native rates and decay level, synchronize fields and honor retrigger', async () => {
+test('four graph handles edit native rates and decay level, synchronize fields and honor live updates', async () => {
   const {root,calls,panel,frame} = fixture(), canvas = control(root,'envelope');
   for (const [name,key,max,value,level] of [['attack','attackRate',127,65],['decay','decayRate',15,10,9],['sustain','sustainRate',127,87],['release','releaseRate',31,19]]) {
     const from = await beginEnvelope(root,name);
@@ -135,11 +135,11 @@ test('four graph handles edit native rates and decay level, synchronize fields a
     await canvas.fire('pointermove',next); assert.equal(calls.length,['attack','decay','sustain','release'].indexOf(name),'No audio command before frame');
     assert.equal(control(root,key.replace(/[A-Z]/g,value=>'-'+value.toLowerCase())).value,String(value));
     await frame(); await canvas.fire('pointerup',next);
-    assert.deepEqual(calls.at(-1),['setEnvelope',[0,{[key]:value,...(level === undefined ? {} : {sustainLevel:level})},{retrigger:true}]]);
+    assert.deepEqual(calls.at(-1),['setEnvelope',[0,{[key]:value,...(level === undefined ? {} : {sustainLevel:level})},{live:true}]]);
   }
   await change(root,'retrigger',false); const from = await beginEnvelope(root,'attack');
   await canvas.fire('pointermove',{...from,clientX:10000}); await canvas.fire('pointerup',{...from,clientX:10000});
-  assert.deepEqual(calls.at(-1),['setEnvelope',[0,{attackRate:127},{retrigger:false}]]); panel.dispose();
+  assert.deepEqual(calls.at(-1),['setEnvelope',[0,{attackRate:127},{live:false}]]); panel.dispose();
 });
 
 test('graph edits coalesce events, retain unsent values across snapshots and serialize slow inspector writes', async () => {

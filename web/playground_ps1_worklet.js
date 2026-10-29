@@ -7,10 +7,11 @@ import {Ps1VoiceInspector} from './playground_ps1_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
 const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);
 const RESOURCES=new Set(['loadADPCM','getState','getPreset','snapshot']);
+const INSPECTOR_METHODS=new Set(['_auditionKeyOn','_auditionKeyOff','_refreshEnvelope']);
 export class Ps1InstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}){
     super();this.synth=null;this.dead=false;this.remote=null;this.workerRemote=null;this.resourceRevision=0;this.bankEpoch=0;this.resourceFences=new WeakMap();
-    this.validation=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(0);},renderInto(){},dispose(){}}});this.renderSegment=this.renderSegment.bind(this);
+    this.validation=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(0);},renderInto(){},auditionKey(){},refreshEnvelope(){},dispose(){}}});this.renderSegment=this.renderSegment.bind(this);
     this.performance=createProcessorPerformance({chip:'ps1',apply:(data,port)=>this.apply(data,port,true),prepare:(data,port)=>{
       if(data.method==='reset'||RESOURCES.has(data.method)){this.apply(data,port);return null;}
       if(data.id===undefined)return data;const{id,...command}=data;port.postMessage({id,value:true});return command;
@@ -41,7 +42,7 @@ export class Ps1InstrumentProcessor extends AudioWorkletProcessor {
   resourcesChanged(){this.validation._adoptResources(this.synth._getResources());this.resourceRevision++;for(const port of new Set([this.port,this.remote,this.workerRemote]))this.sendResources(port);}
   stopVoices(){this.inspector?.resetAuditions();this.performance.clear();this.synth?.stopVoices();this.resampler?.reset(this.synth.core.nativeFrames);}
   apply({method,args=[],id,resourceFence},port,queued=false){
-    try{if(method==='dispose'){this.dispose();return;}if(this.dead||!this.synth)throw new Error('PS1 SPU instrument is not ready');if(!METHODS.has(method))throw new Error('Unknown PS1 SPU method');
+    try{if(method==='dispose'){this.dispose();return;}if(this.dead||!this.synth)throw new Error('PS1 SPU instrument is not ready');if(!METHODS.has(method)&&!INSPECTOR_METHODS.has(method))throw new Error('Unknown PS1 SPU method');
       if(method==='reset'){this.inspector.resetAuditions();this.performance.clear();}
       const value=this.synth[method](...args);if(method==='loadADPCM')this.resourcesChanged();else if(!queued&&!RESOURCES.has(method))this.validation[method](...args);
       if(method==='reset'){if(Number.isSafeInteger(resourceFence)&&resourceFence>=0)this.resourceFences.set(port,resourceFence);if(args[0]?.clearRam)this.bankEpoch++;this.resourcesChanged();}

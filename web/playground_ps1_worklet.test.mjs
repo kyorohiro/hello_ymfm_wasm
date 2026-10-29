@@ -98,7 +98,7 @@ test('PS1 prepared waveform changes retrigger only owned auditions and rejected 
  assert.throws(()=>i.invoke('setWaveform',[23,{...waveform(),pcm:[NaN]},{}]),/112/);assert.deepEqual(p.processor.synth.snapshot(),raw);
  i.invoke('setEnvelope',[23,{attackRate:110},{retrigger:false}]);i.invoke('setWaveform',[23,waveform(),{retrigger:false}]);p.render(128);
  assert(i.read().channels[23].envelope>30000,'deferred edit leaves current envelope held');
- i.invoke('setWaveform',[23,waveform(),{retrigger:true}]);p.render(128);assert.equal(i.read().channels[23].envelope,0);
+ i.invoke('setWaveform',[23,waveform(),{retrigger:true}]);p.render(384);assert.equal(i.read().channels[23].envelope,0,'explicit retrigger fades the old decoder before starting the slow attack');
  const scriptEnvelope=i.read().channels[2].envelope;i.invoke('setWaveform',[2,waveform(),{retrigger:true}]);p.render(128);assert.equal(i.read().channels[2].envelope,scriptEnvelope,'script-owned voice never gets KON from editor');
  assert.equal(i.read().channels[23].pitch,before.channels[23].pitch);assert.equal(i.read().channels[23].volumeLeft,before.channels[23].volumeLeft);
  await p.client._stopVoices();const saved=i.read().channels[23].waveform;assert(saved);assert.equal(peak(p.render(1024).left),0);i.invoke('auditionOn',[23,69,'again']);i.invoke('setEnvelope',[23,{attackRate:0},{retrigger:true}]);assert(peak(p.render(1024).left)>.001);
@@ -152,10 +152,29 @@ test('PS1 decoded ADSR edits retrigger only an explicitly owned audition and ret
  p.client.noteOn(2,60);await p.client.getState();i.invoke('setPreset',[23,{adsr2:0x2000}]);i.invoke('auditionOn',[23,69,'held']);p.render(1024);
  const full=i.read().channels[23].envelope;assert(full>30000);
  i.invoke('setEnvelope',[23,{attackRate:110},{retrigger:false}]);p.render(128);assert.equal(i.read().channels[23].envelope,full,'register edit does not restart a held envelope by itself');
- i.invoke('setEnvelope',[23,{attackRate:110,decayRate:4},{retrigger:true}]);p.render(128);const changed=i.read().channels[23];assert(changed.envelope<full/4);assert.equal(changed.adsr2&0x2000,0x2000);assert.equal(changed.envelopeParameters.decayRate,4);
+ i.invoke('setEnvelope',[23,{attackRate:110,decayRate:4},{retrigger:true}]);p.render(384);const changed=i.read().channels[23];assert(changed.envelope<full/4);assert.equal(changed.adsr2&0x2000,0x2000);assert.equal(changed.envelopeParameters.decayRate,4);
  const scriptEnvelope=i.read().channels[2].envelope;i.invoke('setEnvelope',[2,{attackRate:110},{retrigger:true}]);p.render(128);assert.equal(i.read().channels[2].envelope,scriptEnvelope,'an editor patch never restarts a code-owned note');
  const before=i.read().channels[23];assert.throws(()=>i.invoke('setEnvelope',[23,{releaseRate:32},{retrigger:true}]),/releaseRate/);assert.throws(()=>i.invoke('setEnvelope',[23,{releaseRate:8},{retrigger:1}]),/retrigger/);assert.equal(i.read().channels[23].adsr2,before.adsr2);
  i.invoke('auditionOn',[23,72,'new']);assert.equal(i.invoke('auditionOff',[23,'held']),false);assert.equal(i.read().channels[23].active,true);
+});
+
+for(const rate of [44100,48000])test(`PS1 live ADSR preserves held PCM phase and applies the new slope without KON at ${rate} Hz`,async t=>{
+ const a=await setup(rate),b=await setup(rate);t.after(()=>{a.close();b.close();});
+ for(const p of[a,b]){p.processor.inspector.invoke('setPreset',[23,{adsr1:15,adsr2:0x2000}]);p.processor.inspector.invoke('auditionOn',[23,69,'held']);}
+ assert.deepEqual(a.render(1009).left,b.render(1009).left);
+ const writes=[],core=a.processor.synth.core,write=core.write.bind(core);core.write=(register,value)=>{writes.push(register);return write(register,value);};
+ a.processor.inspector.invoke('setEnvelope',[23,{attackRate:100},{live:true}]);
+ b.processor.inspector.invoke('setEnvelope',[23,{attackRate:100}]);
+ assert.deepEqual(a.render(512).left,b.render(512).left,'an attack edit in sustain does not reset phase or envelope');
+ a.processor.inspector.invoke('setEnvelope',[23,{sustainRate:40,sustainDecrease:true},{live:true}]);
+ b.processor.inspector.invoke('setEnvelope',[23,{sustainRate:40,sustainDecrease:true}]);
+ const changed=a.render(4096).left,raw=b.render(4096).left,energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
+ assert.equal(changed[0],raw[0],'the envelope starts its new slope at the current level');
+ assert(energy(changed)<energy(raw)*.8,'a live sustain edit changes the sound while a plain register write retains the old latch');
+ assert(!writes.some(register=>[0x188,0x18a].includes(register)),'live edits never send KON');
+ const view=a.processor.inspector.read();assert.deepEqual(view.auditions,[{channel:23,id:'held'}]);assert.equal(view.channels[23].adsr2&0x2000,0x2000);
+ assert.equal(a.processor.inspector.invoke('auditionOff',[23,'expired']),false);
+ a.processor.inspector.invoke('auditionOff',[23,'held']);a.render(512);assert.equal(peak(a.render(128).left),0);
 });
 
 test('PS1 inspector edits run in a Worklet without structuredClone and own scalar patches',async t=>{

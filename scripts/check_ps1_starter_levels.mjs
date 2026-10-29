@@ -24,14 +24,14 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 // Historical fixtures only, loaded solely by this offline check.
 // The old starter was filter0/shift4 with signed codes -7..7; the calibration
 // reference independently retained filter0/shift0 with the same codes.
-function historicalSine(shift) {
+function historicalSine(shift,peakCode=7) {
   const adpcm=new Uint8Array(64);
   for(let block=0;block<4;block++) {
     adpcm[block*16]=shift;
     adpcm[block*16+1]=block===0?6:block===3?3:0;
     for(let pair=0;pair<14;pair++) {
       const frame=block*28+pair*2;
-      const nibble=i=>Math.round(7*Math.sin(2*Math.PI*i/FRAMES))&15;
+      const nibble=i=>Math.round(peakCode*Math.sin(2*Math.PI*i/FRAMES))&15;
       adpcm[block*16+2+pair]=nibble(frame)|(nibble(frame+1)<<4);
     }
   }
@@ -171,6 +171,32 @@ async function measureFixture(module,fixture,outputRate,mixerVolume) {
   } finally {synth.dispose();}
 }
 
+// Decode through the actual core rather than treating predictive packets as
+// filter-0 nibbles. Integer pitch and whole-cycle warmup retain source alignment.
+async function measureSineQuality(module,sample) {
+  const core=await Ps1Spu.create({moduleFactory:async()=>module}),synth=new Ps1Synth({core});
+  try {
+    const {adpcm,...options}=sample,loaded=synth.loadADPCM(adpcm,options);
+    synth.setPreset(0,{sample:loaded,volumeLeft:1,volumeRight:1,adsr1:15,adsr2:0,pitch:4096});synth.keyOn(0);
+    core.generateStereo(FRAMES*16);const pcm=core.generateStereo(FRAMES*3),cycle=pcm.left.subarray(0,FRAMES);
+    assert.deepEqual(pcm.left,pcm.right);assert.deepEqual(pcm.left.subarray(FRAMES,FRAMES*2),cycle);
+    assert.deepEqual(pcm.left.subarray(FRAMES*2),cycle,'Actual predictive ADPCM loop repeats without drift');
+    let squares=0,signal=0,maxError=0,maximumAdjacentJump=0,sum=0,peak=0;
+    const bytes=Buffer.alloc(FRAMES*4);
+    for(let i=0;i<FRAMES;i++){
+      const expected=.65*Math.sin(2*Math.PI*i/FRAMES),value=cycle[i],error=value-expected;
+      squares+=error*error;signal+=expected*expected;maxError=Math.max(maxError,Math.abs(error));
+      maximumAdjacentJump=Math.max(maximumAdjacentJump,Math.abs(value-cycle[(i+FRAMES-1)%FRAMES]));
+      sum+=value;peak=Math.max(peak,Math.abs(value));bytes.writeFloatLE(value,i*4);
+    }
+    return {method:'Actual deployed SPU, PITCH4096, full fixed voice/master levels, 16-cycle warmup, 3 exact repeated cycles',
+      sourceFrames:FRAMES,targetPeak:.65,actualPeak:peak,dc:sum/FRAMES,
+      rmsError:Math.sqrt(squares/FRAMES),maxAbsoluteError:maxError,snrDb:10*Math.log10(signal/squares),
+      maximumAdjacentJumpIncludingLoop:maximumAdjacentJump,loopRepeatsBitExactly:true,
+      pcmFloat32LeSha256:hash(bytes)};
+  }finally{synth.dispose();}
+}
+
 export async function measurePs1StarterLevels() {
   assert.equal(PS1_WAVEFORM_FRAMES,FRAMES);
   const mixer=mixerPolicy(),reference=buildPs1CalibrationReference(FREQUENCY_HZ),frozenReference=historicalSine(0);
@@ -181,11 +207,15 @@ export async function measurePs1StarterLevels() {
     Array.from({length:FRAMES},(_,i)=>(Math.round(7*Math.sin(2*Math.PI*i/FRAMES))||0)/8),
     'Calibration decoded metadata remains unchanged');
   const editor=preparePs1Waveform(Array.from({length:FRAMES},(_,i)=>.65*Math.sin(2*Math.PI*i/FRAMES)));
+  const starterSample=createPs1InitSample();
+  assert.deepEqual(starterSample.adpcm,editor.adpcm,'Precomputed starter packets exactly match the prepare-side panel Sine encoder');
   const fixtures=[
     {id:'oldStarterReference',sample:historicalSine(4),decodedPeak:7/128,
       authoring:'Historical factory reproduction only: filter0/shift4, signed sine codes -7..7'},
-    {id:'starter',sample:createPs1InitSample(),decodedPeak:.625,
-      authoring:'Canonical createPs1InitSample(): filter0/shift0, signed sine codes -5..5'},
+    {id:'coarseStarterReference',sample:historicalSine(0,5),decodedPeak:.625,
+      authoring:'Former level-adjusted factory reproduction only: filter0/shift0, signed sine codes -5..5'},
+    {id:'starter',sample:starterSample,inputPeak:.65,
+      authoring:'Canonical createPs1InitSample(): precomputed packets from the panel .65-amplitude Sine encoder'},
     {id:'editorSine',sample:{adpcm:editor.adpcm,baseFrequencyHz:NATIVE_RATE/FRAMES,loopStartSamples:0},editor,
       inputPeak:.65,authoring:'Panel Sine formula: .65 * sin(2*pi*i/112), preparePs1Waveform(), private editor upload'},
     {id:'calibrationReference',sample:{adpcm:Uint8Array.from(reference.decodedReference.adpcmBytes),
@@ -206,21 +236,30 @@ export async function measurePs1StarterLevels() {
     routes:[],comparisons:[],sources:[],
     limits:['Offline generated PCM only; no Main/Worker transport, browser Mixer, realtime deadline, physical output, or listening test.',
       'Estimated post-Mixer statistics are arithmetic projections using the unchanged generated gain, not measurements of a browser audio graph.',
-      'The editor and factory use different ADPCM authoring; comparable AC RMS does not imply identical timbre or perceived loudness.',
+      'The editor Sine and factory now use identical packets; numeric equivalence does not replace listening or a hardware-accuracy check.',
       'Calibration-reference stability compares against independently authored original packets through the same shipped core; it is not a new hardware-accuracy claim.']};
+  const quality={starter:await measureSineQuality(module,starterSample),
+    coarseStarterReference:await measureSineQuality(module,historicalSine(0,5))};
+  quality.rmsErrorRatio=quality.starter.rmsError/quality.coarseStarterReference.rmsError;
+  quality.snrImprovementDb=quality.starter.snrDb-quality.coarseStarterReference.snrDb;
+  assert(quality.rmsErrorRatio<.6,'Predictive initial packets reduce actual sine RMS error versus the former coarse factory');
+  assert(Math.abs(quality.starter.actualPeak-.65)<.02);assert(Math.abs(quality.starter.dc)<.005);
+  report.initialSineQuality=quality;
   for(const outputRate of [44100,48000]) {
     const frozen=await measureFixture(module,{id:'frozenCalibrationReference',sample:frozenReference},outputRate,mixer.volume);
     for(const fixture of fixtures)report.routes.push(await measureFixture(module,fixture,outputRate,mixer.volume));
     const at=id=>report.routes.find(route=>route.outputRate===outputRate&&route.fixture===id);
-    const starter=at('starter'),old=at('oldStarterReference'),sine=at('editorSine'),calibration=at('calibrationReference');
+    const starter=at('starter'),old=at('oldStarterReference'),coarse=at('coarseStarterReference'),sine=at('editorSine'),calibration=at('calibrationReference');
     const gain=starter.channels[0].acRms/old.channels[0].acRms;
     const editorDifferenceDb=20*Math.log10(starter.channels[0].acRms/sine.channels[0].acRms);
     assert(gain>10&&gain<13,'Starter AC RMS rises about elevenfold from the old quiet fixture');
-    assert(Math.abs(editorDifferenceDb)<1,'Starter and editor Sine AC RMS are within 1 dB');
+    assert.deepEqual(starter.channels,sine.channels,'Starter and editor Sine actual PCM are bit-identical, including their RMS and spectrum-defining waveform');
+    assert.equal(editorDifferenceDb,0,'Starter and editor Sine have the same AC RMS');
     assert.deepEqual(calibration.channels,frozen.channels,'Calibration reference output is bit-identical to its frozen independent baseline');
     report.comparisons.push({outputRate,starterToOldAcRmsGain:gain,
-      expectedCodecPeakGain:.625/(7/128),allowedGainRange:[10,13],
-      starterToEditorSineAcRmsDb:editorDifferenceDb,allowedEditorDifferenceDb:1,
+      actualCodecPeakGain:quality.starter.actualPeak/(7/128),allowedGainRange:[10,13],
+      starterToCoarseAcRmsGain:starter.channels[0].acRms/coarse.channels[0].acRms,
+      starterToEditorSineAcRmsDb:editorDifferenceDb,allowedEditorDifferenceDb:0,starterAndEditorPcmBitExact:true,
       calibrationReferenceUnchanged:true,
       frozenCalibrationAdpcmSha256:hash(frozenReference.adpcm),
       frozenCalibrationPcmFloat32LeSha256:frozen.channels.map(channel=>channel.pcmFloat32LeSha256),passed:true});

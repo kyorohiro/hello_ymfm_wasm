@@ -15,6 +15,7 @@ export const PS1_ADMISSION_ERRORS=Object.freeze([PS1_MEMORY_HELD_ERROR,
   'PS1 RAM snapshots require an applied capture barrier ID','PS1 RAM snapshots require a RAM capture barrier',
   'Expired Native PS1 RAM capture']);
 export const nativePs1Controls=new Set(['setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
+const inspectorControls=new Set(['_auditionKeyOn','_auditionKeyOff','_refreshEnvelope']);
 const clone=value=>structuredClone(value);
 const abort=()=>new DOMException('Native PS1 operation was cancelled','AbortError');
 const volume=value=>(value&0x4000?value-0x8000:value)/0x3fff;
@@ -24,6 +25,7 @@ export function createNativePs1Shadow(){
   const core={nativeFrames:0,reset({clearRam=false}={}){registers.fill(0);this.nativeFrames=0;recording?.push({method:'reset',clearRam});},
     write(register,value){registers[register/2]=value;recording?.push({method:'write',register,value});},read:register=>registers[register/2],
     loadRam(data,address=0){recording?.push({method:'load-memory',address,data:Array.from(data)});},
+    auditionKey(channel,on){recording?.push({method:'audition-key',channel,on});},refreshEnvelope(channel){recording?.push({method:'refresh-envelope',channel});},
     readRam(){return new Uint8Array(0);},renderInto(){throw new Error('Native PS1 does not render in JavaScript');},dispose(){}};
   const synth=new Ps1Synth({core});
   return {registers,synth,collect(method,args=[]){const commands=[];recording=commands;try{synth[method](...args);}finally{recording=null;}return commands;}};
@@ -32,7 +34,7 @@ function copyShadow(target,source){target.registers.set(source.registers);const 
 /** Translate only the changed fields, so an edit cannot overwrite a separately
  * scheduled pitch, envelope or sibling reverb-send bit. */
 export function nativePs1Operations(target,method,args=[],{partial=false}={}){
-  if(!nativePs1Controls.has(method)&&!['loadADPCM','_setWaveformPrepared','stopVoices'].includes(method))throw new Error(`Unsupported Native PS1 operation: ${method}`);
+  if(!nativePs1Controls.has(method)&&!inspectorControls.has(method)&&!['loadADPCM','_setWaveformPrepared','stopVoices'].includes(method))throw new Error(`Unsupported Native PS1 operation: ${method}`);
   let commands=target.collect(method,args);
   if(partial&&['setPreset','setChannel','setEnvelope'].includes(method)){
     const keys=method==='setEnvelope'?['adsr1','adsr2']:Object.keys(args[1]),offsets=new Set();
@@ -151,7 +153,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
         const ch=saved[0],sample=value,lease=leases.get(ch),data=Array.from(staged.synth.sampleBytes[sample.id]);
         groups.push(identify({method:'load-memory',address:sample.startAddress,data,channel:ch,audition:true,...(lease?{voice:lease.voice}:{}),action:'edit'}));
       }
-      for(const entry of entries){const ch=entry.command.method==='setReverb'?undefined:entry.command.args[0],held=ch===undefined?[...leases.values()][0]:leases.get(ch)??previousLeases.get(ch),action=entry.preserveOwner||!entry.owner?'edit':method==='auditionOn'?'on':method==='auditionOff'||method==='auditionAllOff'?'off':'edit';
+      for(const entry of entries){const ch=entry.command.method==='setReverb'?undefined:entry.command.args[0],held=ch===undefined?[...leases.values()][0]:leases.get(ch)??previousLeases.get(ch),action=entry.preserveOwner||!entry.owner?'edit':entry.command.method==='_auditionKeyOn'?'on':entry.command.method==='_auditionKeyOff'?'off':method==='auditionOn'?'on':method==='auditionOff'||method==='auditionAllOff'?'off':'edit';
         let group=groups.at(-1);if(group?.method!=='batch'||group.channel!==ch||group.action!==action||group.voice!==held?.voice){group=identify({method:'batch',...(ch===undefined?{}:{channel:ch}),...(held?{voice:held.voice}:{}),audition:true,action,commands:[]});groups.push(group);}
         group.commands.push(...nativePs1Operations(staged,entry.command.method,entry.command.args,{partial:action==='edit'}));
       }

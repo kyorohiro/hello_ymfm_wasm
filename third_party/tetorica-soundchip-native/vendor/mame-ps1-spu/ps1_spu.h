@@ -20,6 +20,15 @@ void ps1_spu_destroy(void *handle);
 int ps1_spu_reset(void *handle, int clear_ram);
 uint32_t ps1_spu_sample_rate(void);
 int ps1_spu_write(void *handle, uint32_t byte_offset, uint16_t value);
+/* Instrument-editor extensions, not hardware register-write semantics.
+ * Refresh applies the latched ADSR registers to the current envelope without
+ * restarting sample playback or resetting its level. channel is 0..23.
+ * Audition key-on uses a 128-frame fade before restarting an active voice and
+ * a 128-frame fade-in. Key-off preserves slower/infinite programmed release,
+ * limiting only faster release to at least 128 native frames. on is 0 or 1.
+ * Raw key-on/key-off register writes keep their original behavior. */
+int ps1_spu_refresh_envelope(void *handle, uint32_t channel);
+int ps1_spu_audition_key(void *handle, uint32_t channel, int on);
 /* Invalid handle/offset returns 0xffffffff; valid register values are 16-bit. */
 uint32_t ps1_spu_read(void *handle, uint32_t byte_offset);
 int ps1_spu_load_ram(void *handle, uint32_t byte_address, const uint8_t *data, uint32_t length);

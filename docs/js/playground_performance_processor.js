@@ -9,6 +9,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
 export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,controlMask,psgRegister,port:registerPort=0},{psgLatch=0,hucChannel=0,opllRhythm=0,wonderswanRegisters}={}) {
   if(['reset','allNotesOff','stopVoices','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
+  if(chip==='ps1'&&['_auditionKeyOn','_auditionKeyOff'].includes(method))return {key:args[0],on:method==='_auditionKeyOn'};
   if(['snes','ps1'].includes(chip)&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
   if(chip==='snes'&&method==='writeDsp'&&[0x4c,0x5c].includes(args[0]))return {events:Array.from({length:8},(_,key)=>key).filter(key=>args[1]&(1<<key)).map(key=>({key,on:args[0]===0x4c}))};
   if(chip==='dx7'&&(method==='noteOn'||method==='noteOff'))return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
@@ -123,7 +124,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     if(['allNotesOff','setStereo','clock'].includes(method)||type==='chip-clock')return 'all';
   }
   if(chip==='ps1'){
-    if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method))return args[0];
+    if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','_auditionKeyOn','_auditionKeyOff','_refreshEnvelope'].includes(method))return args[0];
     if(['allNotesOff','stopVoices','reset','setReverb'].includes(method))return 'all';
   }
   if(chip==='snes'){

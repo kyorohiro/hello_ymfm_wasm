@@ -6,6 +6,10 @@ function retriggerOption(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).some(key=>key!=='retrigger')||value.retrigger!==undefined&&typeof value.retrigger!=='boolean')throw new TypeError('Expected {retrigger?:boolean}');
   return value.retrigger===true;
 }
+function envelopeOptions(value={}){
+  if(!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).some(key=>!['retrigger','live'].includes(key))||['retrigger','live'].some(key=>value[key]!==undefined&&typeof value[key]!=='boolean'))throw new TypeError('Expected {live?:boolean,retrigger?:boolean}');
+  return {live:value.live===true,retrigger:value.retrigger===true};
+}
 /** Applied instrument state and identity-safe manual channel leases. Reads do not render. */
 export class Ps1VoiceInspector {
   /** @param {import('./ps1synth.js?v=audio-stability-2').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
@@ -18,14 +22,14 @@ export class Ps1VoiceInspector {
     if(method==='auditionAllOff'){for(const [ch,id]of [...this.auditions])this.invoke('auditionOff',[ch,id]);return true;}
     if(method==='auditionOff'){
       const[ch,id]=args;channel(ch);const owner=identity(id);if(this.auditions.get(ch)!==id)return false;
-      try{this.dispatch({method:'keyOff',args:[ch]},owner);}finally{this.auditions.delete(ch);this.endAudition(ch,owner);}return true;
+      try{this.dispatch({method:'_auditionKeyOff',args:[ch]},owner);}finally{this.auditions.delete(ch);this.endAudition(ch,owner);}return true;
     }
     if(method==='auditionOn'){
       const[ch,midi,id]=args;channel(ch);if(!Number.isInteger(midi)||midi<0||midi>127)throw new RangeError('MIDI note must be 0..127');const owner=identity(id),preset=this.synth.getPreset(ch),sample=this.synth.samples[preset.sample];
       if(!sample)throw new Error('Assign a PS1 SPU ADPCM sample before using Keyboard');
       const pitch=Math.round(sample.basePitch*noteToHz(midi)/sample.rootFrequencyHz);if(pitch<1||pitch>0x3fff)throw new RangeError('Frequency is outside PS1 SPU PITCH range');
       this.auditions.set(ch,id);this.beginAudition(ch,owner);
-      this.dispatch({method:'setPitch',args:[ch,pitch]},owner);this.dispatch({method:'keyOn',args:[ch]},owner);return true;
+      this.dispatch({method:'setPitch',args:[ch,pitch]},owner);this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);return true;
     }
     if(method==='setReverb'){
       this.synth._reverb(args[0]);
@@ -38,13 +42,13 @@ export class Ps1VoiceInspector {
       this.onResourcesChanged();
       const held=this.auditions.get(ch),owner=held?identity(held):undefined;
       this.dispatch({method:'setPreset',args:[ch,{sample:sample.id}]},owner,{preserveOwner:true});
-      if(retrigger&&held)this.dispatch({method:'keyOn',args:[ch]},owner);
+      if(retrigger&&held)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);
       return sample;
     }
     if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote'].includes(method)){
       const ch=channel(args[0]);
       const envelopeEdit=method==='setEnvelope'||(method==='setPreset'||method==='setChannel')&&['adsr1','adsr2'].some(key=>Object.hasOwn(args[1]??{},key));
-      const retrigger=['setPreset','setChannel','setEnvelope'].includes(method)?retriggerOption(args[2]):false;
+      const options=['setPreset','setChannel','setEnvelope'].includes(method)?envelopeOptions(args[2]):{live:false,retrigger:false};
       if(method==='setEnvelope'){
         const current=this.synth.getPreset(ch);patchPs1Envelope(current.adsr1,current.adsr2,args[1]);
       }else if(method==='setPreset'||method==='setChannel')this.synth._preset(ch,args[1]);
@@ -56,9 +60,9 @@ export class Ps1VoiceInspector {
       const value=['setPreset','setChannel','setEnvelope'].includes(method)?{...args[1]}:args[1];
       if(value&&typeof value==='object'&&value.sample&&typeof value.sample==='object')value.sample=value.sample.id;
       this.dispatch({method,args:[ch,value]},owner,{preserveOwner:true});
-      // ADSR is latched at KON in this core. Restart only the editor's own
-      // audition, never a script-owned voice or a sibling channel.
-      if(retrigger&&envelopeEdit&&held)this.dispatch({method:'keyOn',args:[ch]},owner);
+      // Live controls preserve sample phase and the current envelope level.
+      // Both extensions remain restricted to this editor's own audition.
+      if(envelopeEdit&&held){if(options.live)this.dispatch({method:'_refreshEnvelope',args:[ch]},owner,{preserveOwner:true});else if(options.retrigger)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);}
       return true;
     }
     throw new Error('Unsupported PS1 SPU inspector operation');

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "captureDate": "2026-10-29",
+  "purpose": "Frozen SDK 0.1.6 raw register playback reference captured before importing opt-in live-controls SDK changes.",
+  "browserUsed": false,
+  "physicalAudio": false,
+  "referenceSdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.6",
+    "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+    "archiveName": "tetorica-soundchip-native-0.1.6-sources.zip",
+    "archiveSha256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+    "manifestSha256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+    "fileCount": 455,
+    "manifestVerified": true,
+    "allPs1VendorFilesVerified": true,
+    "verifiedVendorFiles": {
+      "vendor/mame-ps1-spu/LICENSE": {
+        "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b",
+        "size": 1592
+      },
+      "vendor/mame-ps1-spu/README.md": {
+        "sha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
+        "size": 6280
+      },
+      "vendor/mame-ps1-spu/ps1_spu.cpp": {
+        "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
+        "size": 3353
+      },
+      "vendor/mame-ps1-spu/ps1_spu.h": {
+        "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
+        "size": 1558
+      },
+      "vendor/mame-ps1-spu/spu.cpp": {
+        "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
+        "size": 67256
+      },
+      "vendor/mame-ps1-spu/spu.h": {
+        "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
+        "size": 8376
+      },
+      "vendor/mame-ps1-spu/spu_tables.cpp": {
+        "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab",
+        "size": 21649
+      },
+      "vendor/mame-ps1-spu/spureverb.cpp": {
+        "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
+        "size": 6365
+      },
+      "vendor/mame-ps1-spu/spureverb.h": {
+        "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+        "size": 1594
+      },
+      "vendor/mame-ps1-spu/standalone_support.h": {
+        "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f",
+        "size": 272
+      },
+      "vendor/mame-ps1-spu/upstream/REVISION": {
+        "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b",
+        "size": 41
+      },
+      "vendor/mame-ps1-spu/upstream/SHA256SUMS": {
+        "sha256": "0bb50b92e0e5d59590ab7863e2178ca714f50da3dbed7a17ff9083d4945e1737",
+        "size": 385
+      },
+      "vendor/mame-ps1-spu/upstream/spu.cpp": {
+        "sha256": "1bdb46de6ab7dae77a94846812b4d69f1e5168fc9a95de8a661a861afa3f0e23",
+        "size": 67593
+      },
+      "vendor/mame-ps1-spu/upstream/spu.h": {
+        "sha256": "2ce1a71da66ffeba76f8197a1ee1833188571b7e57315aec9297296af9d5a95b",
+        "size": 8594
+      },
+      "vendor/mame-ps1-spu/upstream/spu_tables.cpp": {
+        "sha256": "fbb2222beb8a5bc1a71ecaf67f827c6f4c013ac7d525dcf3752bc3e51a1a51c4",
+        "size": 21634
+      },
+      "vendor/mame-ps1-spu/upstream/spureverb.cpp": {
+        "sha256": "3d8dec58c67e8606618367a8d9850cbf3c60f10a71b3636cbf2f7e0850b1d01a",
+        "size": 6354
+      },
+      "vendor/mame-ps1-spu/upstream/spureverb.h": {
+        "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+        "size": 1594
+      }
+    }
+  },
+  "fixture": {
+    "path": "test/helpers/ps1_audition_continuity.cpp",
+    "sha256": "834c0a2533469aef2a6dd8b9ced960d6a8903e10ea5440e900f06b2e7630bca6",
+    "rawOnlyDefine": "PS1_AUDITION_RAW_ONLY",
+    "compilerFlags": [
+      "-std=c++17",
+      "-O2",
+      "-fwrapv",
+      "-fno-strict-aliasing",
+      "-ffp-contract=off",
+      "-DPS1_AUDITION_RAW_ONLY"
+    ],
+    "sources": [
+      "vendor/mame-ps1-spu/ps1_spu.cpp",
+      "vendor/mame-ps1-spu/spu.cpp",
+      "vendor/mame-ps1-spu/spu_tables.cpp",
+      "vendor/mame-ps1-spu/spureverb.cpp"
+    ],
+    "arguments": [
+      "--raw"
+    ]
+  },
+  "capture": {
+    "encoding": "interleaved stereo IEEE 754 Float32 little-endian",
+    "frames": 71880,
+    "bytes": 575040,
+    "sha256": "3146ef5d3ebdd4fa2775e1f845597a5274bf136c8c7809fbbd9518e2bafa5f81"
+  },
+  "scope": "Two authored filter-0 loops (DC and sine), physical voices 0 and 23, stereo isolation, pitch changes, raw retrigger and key-off, release indexes 0/6/14/31, irregular render partitions; no audition or refresh API calls.",
+  "reproduce": "Compile the fixture against the PS1 vendor directory extracted from the pinned public SDK 0.1.6 source archive, with the recorded flags and sources, then hash the --raw stdout bytes."
+}

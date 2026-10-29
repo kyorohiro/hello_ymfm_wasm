@@ -61,21 +61,18 @@ export function preparePs1ADPCM(input,options) {
   if (marker!==null && marker!==loopStart) throw new RangeError('SPU ADPCM LOOP START marker disagrees with loopStartSamples');
   return {adpcm,rootNote:rootNote??null,rootFrequencyHz,basePitch:0x1000,loop,loopStartSamples:loopStart,decodedFrames};
 }
-/** An original filter-0 sine loop, authored as SPU packets (no game assets).
- * 112 source frames per cycle at pitch 4096, so its fundamental is 44100/112 Hz.
- * Decoded peak 0.625 is close to the editor's 0.65 sine; Mixer owns chip gain.
+/** An original sine loop: the editor's .65-amplitude, 112-frame Sine encoded
+ * ahead of time with preparePs1Waveform(). No encoder runs in the AudioWorklet.
+ * The four packets loop at source frame 0; at PITCH 4096 their fundamental is
+ * 44100/112 Hz. Mixer owns chip gain; this factory only supplies an instrument.
  */
 export function createPs1InitSample() {
-  const adpcm=new Uint8Array(64);
-  for (let block=0;block<4;block++) {
-    adpcm[block*16]=0; // Filter 0, shift 0.
-    adpcm[block*16+1]=block===3?3:block===0?6:0;
-    for (let pair=0;pair<14;pair++) {
-      const index=block*28+pair*2;
-      const nibble=frame=>Math.round(5*Math.sin(2*Math.PI*frame/112))&15;
-      adpcm[block*16+2+pair]=nibble(index)|(nibble(index+1)<<4);
-    }
-  }
+  const adpcm=new Uint8Array([
+    0,6,0,17,17,34,50,51,51,68,68,84,85,85,85,85,
+    37,0,23,32,18,34,32,17,16,1,240,241,240,15,254,239,
+    38,0,221,204,219,187,187,172,202,201,170,171,187,186,203,202,
+    38,3,203,220,219,206,222,223,255,224,241,17,32,18,35,51,
+  ]);
   return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};
 }
 /** @typedef {{id:number,startAddress:number,repeatAddress:number,byteLength:number,decodedFrames:number,
@@ -219,6 +216,13 @@ export class Ps1Synth {
   /** Release via the programmed ADSR release register, without changing others.
    * @param {number} ch */
   keyOff(ch){this._open();channel(ch);this.core.write(0x18c+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=false;}
+  /** Editor-only transitions. Programmed notes keep the raw keyOn/keyOff API.
+   * @param {number} ch */
+  _auditionKeyOn(ch){this._open();channel(ch);const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign an SPU ADPCM sample before audition');if(sample.editorChannel!==undefined&&sample.editorChannel!==ch)throw new Error('PS1 editor waveform belongs to another channel');this._writeReverbSend(ch,this.channels[ch].reverb);this.core.auditionKey(ch,true);this.gates[ch]=true;}
+  /** @param {number} ch */
+  _auditionKeyOff(ch){this._open();channel(ch);this.core.auditionKey(ch,false);this.gates[ch]=false;}
+  /** @param {number} ch */
+  _refreshEnvelope(ch){this._open();channel(ch);this.core.refreshEnvelope(ch);}
   /** @param {number} ch @param {string|number} [note] */
   noteOn(ch,note){if(note!==undefined)this.setNote(ch,note);this.keyOn(ch);}
   /** @param {number} ch */

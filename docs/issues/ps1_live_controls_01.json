@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "scope": "PS1 manual Keyboard transitions and phase-preserving live ADSR editing",
+  "fixedSdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "cf1e9c7a0426d72d04d470a9a24948659514fbe5247866631d24cc764a77fc71",
+    "manifestSha256": "3fb8a6302e7d4b7f0b5f4ed4b55ceb5572b45a7cfd96735308ec75f91c629964",
+    "fileCount": 455,
+    "localCandidate": {
+      "baseCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "catalog/source_inventory.json",
+        "docs/chip-differences.md",
+        "native/reference/SOURCES.json",
+        "native/tests/ps1_spu_fixture.cpp",
+        "scripts/build_ps1_spu_wasm.sh",
+        "sdk.json",
+        "vendor/mame-ps1-spu/README.md",
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h"
+      ]
+    }
+  },
+  "newSdkPubliclyReleased": false,
+  "wasm": {
+    "path": "docs/generated/ps1_spu_wasm.wasm",
+    "sha256": "9e46b500e8592b9a1d05703fad29144bfc8a82e941853a4e89de3c699f59c70b"
+  },
+  "behavior": {
+    "manualTransitionNativeFrames": 128,
+    "nativeSampleRate": 44100,
+    "liveEnvelopePreservesLevelAndSamplePosition": true,
+    "liveEnvelopeRestrictedToEditorOwnedAudition": true,
+    "rawRegisterAndSynthKeySemanticsUnchanged": true,
+    "slowerAndIndefiniteReleasesRetained": true,
+    "hardTransportStopImmediate": true,
+    "factoryWaveformEqualsEditorSine": true,
+    "mixerGain": 0.128832
+  },
+  "evidence": {
+    "actualWasm": "docs/issues/ps1_live_controls_offline_01.json",
+    "initialSample": "docs/issues/ps1_live_controls_starter_levels_01.json",
+    "sourceBrowser": "docs/issues/ps1_live_controls_browser_01.json",
+    "rawSdk016Golden": "docs/issues/ps1_live_controls_baseline_01.json",
+    "calibration": {
+      "ps1": {
+        "path": "docs/issues/ps1_chip_levels_live_controls_01.json",
+        "sha256": "df388a0b83adc627d4f26d12d390669c4838b7df9c31feb4a409a972bdb54d33",
+        "verify": false,
+        "rows": 48,
+        "anchors": 8,
+        "clockAnomalies": 0,
+        "passed": true
+      },
+      "wonderswan": {
+        "path": "docs/issues/wonderswan_chip_levels_live_controls_01.json",
+        "sha256": "c225338f76e8d0a00a96dc94927d9da14e21ffda8b120b212d9c5f6313da6e0a",
+        "verify": false,
+        "rows": 48,
+        "anchors": 8,
+        "clockAnomalies": 0,
+        "passed": true
+      },
+      "pokey": {
+        "path": "docs/issues/pokey_chip_levels_live_controls_01.json",
+        "sha256": "2659fe56ac9026c80dab3783d92ae83ebdf09650fe03d219b7d254f198219ab0",
+        "verify": false,
+        "rows": 96,
+        "anchors": 8,
+        "clockAnomalies": 2,
+        "passed": true
+      }
+    },
+    "bundledRunBrowser": "docs/issues/ps1_live_controls_run_browser_01.json"
+  },
+  "metrics": {
+    "controlledDcTransitions": {
+      "release": {
+        "rawMaximumAdjacentStep": 0.3124809265136719,
+        "auditionMaximumAdjacentStep": 0.0024412572383880615,
+        "reductionFactor": 128,
+        "pcmSha256": "f752c65dc7535134cfdbc9e898580cab302ad9b59a19eb9810ab0211ca15ae96"
+      },
+      "retrigger": {
+        "rawMaximumAdjacentStep": 0.3124809265136719,
+        "auditionMaximumAdjacentStep": 0.0037839487195014954,
+        "reductionFactor": 82.58064516129032,
+        "pcmSha256": "9e8ebe332deb330fd1f936bdd131fe7651ba88a040ad1751679c0fb9bb740a0e"
+      }
+    },
+    "initialSineQuality": {
+      "starter": {
+        "method": "Actual deployed SPU, PITCH4096, full fixed voice/master levels, 16-cycle warmup, 3 exact repeated cycles",
+        "sourceFrames": 112,
+        "targetPeak": 0.65,
+        "actualPeak": 0.6506255865097046,
+        "dc": -9.699831051485879e-05,
+        "rmsError": 0.016653939567020763,
+        "maxAbsoluteError": 0.0605293176198754,
+        "snrDb": 28.817627488634486,
+        "maximumAdjacentJumpIncludingLoop": 0.12499237060546875,
+        "loopRepeatsBitExactly": true,
+        "pcmFloat32LeSha256": "9c1047c7e6b295f21d6cd4f1401a088b582718f3c85a42721bec0bab62e93bd6"
+      },
+      "coarseStarterReference": {
+        "method": "Actual deployed SPU, PITCH4096, full fixed voice/master levels, 16-cycle warmup, 3 exact repeated cycles",
+        "sourceFrames": 112,
+        "targetPeak": 0.65,
+        "actualPeak": 0.6249313354492188,
+        "dc": -1.1171613420758928e-05,
+        "rmsError": 0.03452156058279534,
+        "maxAbsoluteError": 0.06895625939694017,
+        "snrDb": 22.486158771867714,
+        "maximumAdjacentJumpIncludingLoop": 0.12499237060546875,
+        "loopRepeatsBitExactly": true,
+        "pcmFloat32LeSha256": "bef619249c89fdaa4065bfefadff943e3bb8296c9906c4c85700d63445da0d46"
+      },
+      "rmsErrorRatio": 0.4824213994346669,
+      "snrImprovementDb": 6.331468716766771
+    }
+  },
+  "validation": {
+    "nativeRegression": {
+      "passed": 760,
+      "ignored": 2,
+      "filtered": 38,
+      "physicalDevice": false
+    },
+    "sourceBrowser": {
+      "routes": 4,
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "physicalOutputMuted": true
+    },
+    "nativeAndWorkletJs": {
+      "passed": 36,
+      "actualCore": true
+    },
+    "calibration": {
+      "passed": 371,
+      "oldFourRawReportsUnchanged": true,
+      "latestReportsRequireExactRuntimeHashes": true
+    },
+    "sdkInventoryNode": {
+      "passed": 107
+    },
+    "sdkImporterPython": {
+      "passed": 26
+    },
+    "tauriPython": {
+      "passed": 31
+    },
+    "tauriNode": {
+      "passed": 31
+    },
+    "npmLocalDistribution": {
+      "modules": 335,
+      "wasmEngines": 28,
+      "declarations": 385,
+      "tarballFiles": 1004,
+      "bytesCompressed": 1955909,
+      "bytesUnpacked": 7414560,
+      "isolatedInstallPassed": true,
+      "typesPassed": true,
+      "published": false
+    },
+    "bundledRunBrowser": {
+      "routes": 2,
+      "browsers": [
+        "webkit"
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true
+    }
+  },
+  "limitations": [
+    "No human listening or physical audio-device check is represented by automated PCM evidence.",
+    "Hard Stop, active waveform RAM replacement and large volume changes can have their own boundary discontinuities.",
+    "The explicit live ADSR and audition functions are instrument extensions, not hardware-register modes."
+  ],
+  "publication": {
+    "npm": false,
+    "sdk": false,
+    "itch": false,
+    "gitCommit": false,
+    "remoteCi": false
+  },
+  "mixerRemeasurement": {
+    "ps1AndWonderSwanUnchanged": true,
+    "pokey": {
+      "primary": [
+        0.413033,
+        0.413037
+      ],
+      "dual-first": [
+        0.413033,
+        0.413038
+      ],
+      "dual-second": [
+        0.413034,
+        0.413038
+      ],
+      "extra": [
+        0.413033,
+        0.413039
+      ]
+    },
+    "note": "POKEY maximum 0.00145% measured RMS rounding variation; direct generator output, no manual override. Two global-clock diagnostics remain in the raw report; independent captured PCM pilots are all continuous."
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_ps1-live-controls-dev_itch_playground.zip",
+      "bytes": 37017678,
+      "entries": 1188,
+      "files": 1067,
+      "sha256": "16ecb27653fd5bd4c753c5b821a54a83bca65a7b9aeb8b99aa5c5125759c830a",
+      "crcPassed": true
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-live-controls-dev_itch_playground_for_run.zip",
+      "bytes": 37409933,
+      "entries": 931,
+      "files": 931,
+      "sha256": "ab0d5bbbd4dea1374cbc7230895a7a98e4a4365877e2c50db2ca763db9999493",
+      "crcPassed": true
+    }
+  ],
+  "tauriFrontendImport": {
+    "payloadFiles": 1066,
+    "archiveSha256": "16ecb27653fd5bd4c753c5b821a54a83bca65a7b9aeb8b99aa5c5125759c830a",
+    "lockVerified": true,
+    "sdkPinVerified": true
+  }
+}

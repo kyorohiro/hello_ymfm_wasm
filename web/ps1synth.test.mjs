@@ -17,25 +17,39 @@ const peak=values=>values.reduce((v,x)=>Math.max(v,Math.abs(x)),0);
 function frequency(values,rate){let edges=0,first=-1,last=-1;for(let at=1;at<values.length;at++)if(values[at-1]<=0&&values[at]>0){if(first<0)first=at;last=at;edges++;}return (edges-1)*rate/(last-first);}
 function cloneFixture(){const {adpcm,...options}=createPs1InitSample();return {adpcm,options};}
 
-test('the starter is a centered audible sine with unchanged packet layout, tuning and owned buffers',()=>{
+test('the starter is the pre-encoded editor sine with unchanged packet layout, tuning and owned buffers',()=>{
   const first=createPs1InitSample(),second=createPs1InitSample();
   assert.equal(first.adpcm.length,64);assert.equal(first.baseFrequencyHz,44100/112);assert.equal(first.loopStartSamples,0);
   const prepared=preparePs1ADPCM(first.adpcm,{baseFrequencyHz:first.baseFrequencyHz,loopStartSamples:first.loopStartSamples});
   assert.equal(prepared.decodedFrames,112);assert.equal(prepared.loop,true);
-  const decoded=[];
+  const editor=preparePs1Waveform(Array.from({length:112},(_,i)=>.65*Math.sin(2*Math.PI*i/112)));
+  assert.deepEqual(first.adpcm,editor.adpcm,'The AudioWorklet-ready bytes equal the prepare-side panel Sine encoder output');
   for(let block=0;block<4;block++){
-    assert.equal(first.adpcm[block*16],0,'filter0/shift0 has no predictor history');
+    assert((first.adpcm[block*16]>>4)<=4&&(first.adpcm[block*16]&15)<=12);
     assert.equal(first.adpcm[block*16+1],block===0?6:block===3?3:0);
-    for(let frame=0;frame<28;frame++){
-      const nibble=(first.adpcm[block*16+2+Math.floor(frame/2)]>>(frame%2*4))&15;
-      decoded.push((nibble>=8?nibble-16:nibble)/8);
-    }
   }
-  assert.equal(Math.max(...decoded),.625);assert.equal(Math.min(...decoded),-.625);
-  assert.equal(decoded.reduce((sum,value)=>sum+value,0),0);
-  assert(decoded.every((value,index)=>Math.abs(value-.625*Math.sin(2*Math.PI*index/112))<=1/16));
-  assert.equal(decoded[0],decoded.at(-1),'the authored loop closes at zero');
+  assert.equal(first.adpcm[0]>>4,0,'A loop starts without depending on previous predictor history');
   first.adpcm.fill(255);assert.notDeepEqual(first.adpcm,second.adpcm);assert.deepEqual(createPs1InitSample(),second);
+});
+
+test('actual SPU decoding gives the starter lower sine error than the former coarse four-bit waveform',async t=>{
+  const target=Array.from({length:112},(_,i)=>.65*Math.sin(2*Math.PI*i/112));
+  const coarse=new Uint8Array(64);
+  for(let block=0;block<4;block++){
+    coarse[block*16+1]=block===0?6:block===3?3:0;
+    for(let i=0;i<28;i++){const code=Math.round(5*Math.sin(2*Math.PI*(block*28+i)/112))&15;coarse[block*16+2+(i>>1)]|=code<<((i&1)*4);}
+  }
+  const quality=async packets=>{
+    const {synth}=await create(t),sample=synth.loadADPCM(packets,{baseFrequencyHz:44100/112,loopStartSamples:0});
+    synth.setPreset(0,{sample,volumeLeft:1,volumeRight:1,adsr1:15,adsr2:0,pitch:4096});synth.keyOn(0);render(synth,112*16);
+    const pcm=render(synth,112*3).left,cycle=pcm.subarray(0,112);
+    assert.deepEqual(pcm.subarray(112,224),cycle,'The actual decoder repeats the same cycle');assert.deepEqual(pcm.subarray(224),cycle);
+    const error=cycle.reduce((sum,value,i)=>sum+(value-target[i])**2,0);
+    return {rmsError:Math.sqrt(error/112),peak:peak(cycle),dc:cycle.reduce((sum,value)=>sum+value,0)/112};
+  };
+  const current=await quality(createPs1InitSample().adpcm),former=await quality(coarse);
+  assert(current.rmsError<former.rmsError*.6,'Predictive encoding materially reduces actual PCM error without a Mixer correction');
+  assert(current.peak>.64&&current.peak<.67);assert(Math.abs(current.dc)<.005);
 });
 
 test('PS1 private waveform slots are isolated, reused, and independent of shared sample RAM',async t=>{

@@ -168,6 +168,8 @@ protected:
 	void key_on(const int v);
 	void key_off(const int v);
 	bool update_envelope(const int v);
+	void read_envelope_rates(const unsigned int v);
+	void schedule_live_envelope(const unsigned int v);
 	
 	uint16_t ram_read(uint32_t address);
 	void ram_write(uint32_t address, const uint16_t data);
@@ -250,6 +252,9 @@ public:
 	spu_device& operator=(const spu_device&) = delete;
 	void reset(bool clear_ram);
 	void render(float *left, float *right, uint32_t frames);
+	// Instrument-editor extensions; register writes retain their original behavior.
+	void refresh_envelope(unsigned int v);
+	void audition_key(unsigned int v, bool on);
 	void load_ram(uint32_t address, const uint8_t *data, uint32_t length);
 	void read_ram(uint32_t address, uint8_t *data, uint32_t length) const;
 	void dma_read( uint32_t *ram, uint32_t n_address, int32_t n_size );

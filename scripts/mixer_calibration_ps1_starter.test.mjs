@@ -188,16 +188,17 @@ test('invalid UTF-8 cannot be hidden by replacing the factory region',()=>{
   assert.throws(()=>restore(f,repinned(f,r=>r.source.after=record(bytes),{bytes})));
 });
 
-test('committed starter receipt reconstructs the exact untouched measured source for all three reports',async()=>{
+test('committed starter receipt retains its historical identities and rejects the later live DSP revision',async()=>{
   const root=fileURLToPath(new URL('../',import.meta.url));
   const evidence=await readMixerCalibrationPs1StarterReceipt(root);
   const bytes=await readFile(new URL('../docs/'+MIXER_CALIBRATION_PS1_STARTER_PATH,import.meta.url));
   assert.equal(mixerCalibrationReceiptObjectSha256(evidence.receipt),evidence.receiptObjectSha256);
   for(const kind of ['ps1','wonderswan','pokey']){
     const reportBytes=await readFile(new URL('../docs/issues/'+kind+'_chip_levels_01.json',import.meta.url)),report=JSON.parse(reportBytes);
-    const previous=restoreMixerCalibrationPs1StarterRevision({path:MIXER_CALIBRATION_PS1_STARTER_PATH,bytes,report,reportSha256:sha(reportBytes),...evidence});
-    assert.deepEqual(record(previous),report.sources[MIXER_CALIBRATION_PS1_STARTER_PATH]);
-    assert.equal(mixerCalibrationPs1StarterOutsideSha256(previous),mixerCalibrationPs1StarterOutsideSha256(bytes));
-    assert.notEqual(sha(previous),sha(bytes));
+    const identity=evidence.receipt.reports['docs/issues/'+kind+'_chip_levels_01.json'];
+    assert.equal(identity.sha256,sha(reportBytes));assert.equal(identity.objectSha256,sha(JSON.stringify(report)));
+    assert.deepEqual(evidence.receipt.source.before,report.sources[MIXER_CALIBRATION_PS1_STARTER_PATH]);
+    assert.notEqual(sha(bytes),evidence.receipt.source.after.sha256,'later DSP bytes are not the reviewed sample-level-only revision');
+    assert.throws(()=>restoreMixerCalibrationPs1StarterRevision({path:MIXER_CALIBRATION_PS1_STARTER_PATH,bytes,report,reportSha256:sha(reportBytes),...evidence}),/PS1 starter revision changed|outside-factory source changed/);
   }
 });

@@ -371,8 +371,20 @@ do {propagated=false;for(const {name,source}of sources){
 // UI-only envelope editing: keep renderer and measured audio-source revisions.
 const ps1EnvelopeFiles=new Set(['playground_ps1_envelope.js','playground_ps1_voice_panel.js',
   'playground_chip_tabs.js','playground_chip_tabs.css','playground_workbench.js','playground_ui.js','playground.js']);
-const revisionFor=name=>ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+// Explicit live controls require the updated SPU ABI in every audio endpoint.
+const ps1LiveVersion='ps1-live-controls-1';
+const ps1LiveFiles=new Set(['ps1_spu.js','ps1synth.js','playground_ps1_inspector.js',
+  'playground_ps1_worklet.js','playground_performance_processor.js','native_genesis_ps1.js',
+  'playground_ps1_voice_panel.js','playground_chip_tabs.js','playground_workbench.js',
+  'playground_ui.js','playground.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(ps1LiveFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>ps1LiveFiles.has(match[1]))){ps1LiveFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
+  ...ps1LiveFiles,
   ...ps1EnvelopeFiles,
   ...ps1ModeFiles,
   ...ps1EncoderFiles,
@@ -452,7 +464,7 @@ for(const currentDirectory of [directory,join(directory,'../playground')])for(co
   versioned+=rewrite(source.slice(cursor),revisionFor);
   const next=versioned
     .replace(/(['"])((?:\.\.?\/)+generated\/ps1_spu_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
-      (_match,quote,path)=>quote+path+'?v=ps1-mode-1'+quote)
+      (_match,quote,path)=>quote+path+'?v='+ps1LiveVersion+quote)
     .replace(/(['"])((?:(?:\.\.?\/)+generated\/)?segapsg_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v='+segaVersion+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
