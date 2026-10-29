@@ -63,6 +63,9 @@ h1 .brand-u { color: #1d60ad; }
 .sample-actions { min-width: 0; flex: 1 1 250px; }
 .sample-name { max-width: 280px; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
 .sample-settings { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; margin-top: 18px; }
+.sample-settings select { max-width: 100%; min-width: 0; padding: 6px; color: var(--ink); background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; }
+.sample-settings label { min-width: 0; max-width: 100%; }
+#vabStatus[data-error="true"] { color: #ac302b; }
 .sample-settings label, .instrument-name-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
 .sample-settings input[type="number"], .instrument-name-control input { color: var(--ink); min-height: 32px; background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; padding: 5px 8px; font-size: .75rem; }
 #instrumentName { width: 175px; }

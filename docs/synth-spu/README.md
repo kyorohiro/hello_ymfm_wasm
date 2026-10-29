@@ -78,6 +78,33 @@ sine instrument. This standalone version provides audio-file import and short
 cycle drawing; microphone recording and the full Playground Sample Editor
 remain available in [Playground](../playground/index.html?mode=ps1).
 
+## PS1 sound banks
+
+In **Audio**, choose **Open VAB / VH + VB…**. Select one complete `.vab`, or
+select its matching `.vh` and `.vb` together. Standard Sony versions 6 and 7
+are supported. Opening a bank lists its Tones without changing the current
+instrument. Select a Tone and choose **Load selected Tone**, then play the
+keyboard. **Save preset** stores the imported sample and settings in the usual
+`.spu.json` format.
+
+The importer keeps the original SPU ADPCM payload, ADSR registers and loop
+position. Bytes after the first END packet are excluded; unsupported packet
+flags fail before the current instrument is stopped. Tuning uses the Tone's
+centre note and fine adjustment, with positive shift raising playback pitch.
+It uses continuous semitone conversion rather than a particular game's
+integer pitch table. Volume/pan are static approximations. A Tone's reverb
+send uses the existing shared reverb preset/returns; VAB does not specify them.
+Loading a Tone stops notes and disables PMON, Noise and Software morph.
+
+The selected Tone plays across the keyboard. Key zones, layers, driver
+vibrato/portamento and per-game controller state are not reproduced. Sample
+255 (libsnd Noise), multiple loop-start markers and one-shot samples with
+loop-start markers are currently rejected. Imported samples use physical SPU
+RAM; reopening banks or choosing different sample/tuning combinations can
+exhaust the available space. Reusing a Tone in the same opened bank reuses its
+sample allocation. Reload the page for a fresh RAM bank after saving presets.
+PSF/MiniPSF extraction and custom bank formats are planned separately.
+
 ## Envelope behaviour
 
 With **Apply ADSR / PCM edits while playing** on, changed ADSR parameters update

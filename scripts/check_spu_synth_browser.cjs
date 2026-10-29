@@ -546,6 +546,68 @@ async function checkLongAudio(page) {
   return {inputBytes:wav.length,duration:imported.hostAudio.duration,softwareExtension:true,presetVersion:2,presetBytes:bytes.length,pcm,roundTrip,m4a};
 }
 
+async function checkVab(page, keyboardHz) {
+  console.log('CHECK VAB: combined / split / original ADPCM / fine tune / preset / focused keyboard');
+  const {createVabFixture}=await import('../test/helpers/spu_vab_fixture.mjs');
+  const {vab,vh,vb}=createVabFixture();
+  await editorTab(page,'audio');
+  const before=await settled(page);
+  await page.locator('#vabFileInput').setInputFiles({name:'original.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('original.vab:'));
+  assert.equal(await page.locator('#vabTone option').count(),3);
+  assert.equal((await settled(page)).channels[0].sample,before.channels[0].sample,'Opening a bank alone keeps the current instrument');
+  await page.locator('#vabTone').selectOption('1'); await page.locator('#loadVabTone').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Loaded original.vab P3 T1'));
+  const imported=await settled(page), selected=imported.samples.find(s=>s.id===imported.channels[0].sample);
+  assert.equal(imported.hostAudio,null,'VAB replaces host audio');
+  assert(!imported.pmon.enabled && !imported.noise.enabled && !imported.morph.enabled);
+  assert(imported.channels.every(c=>c.sample===selected.id && c.adsr1===15 && c.adsr2===0));
+  assert.equal(selected.rootFrequencyHz,440*2**((59.5-69)/12));
+  assert.equal(selected.byteLength,64); assert.equal(selected.loopStartSamples,0);
+  await page.locator('#vabTone').focus(); await page.keyboard.down('y'); await settled(page);
+  const expectedHz=44100/112 * keyboardHz/selected.rootFrequencyHz;
+  const pcm=await audible(page,'Imported VAB fine-tuned Tone',expectedHz);
+  await page.keyboard.up('y'); await settled(page); await silent(page,'VAB note release');
+  const nextAddress=(await current(page)).nextAddress;
+  await page.locator('#loadVabTone').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Loaded original.vab'));
+  assert.equal((await settled(page)).nextAddress,nextAddress,'Reloading a Tone reuses its sample RAM');
+  const download=page.waitForEvent('download'); await page.locator('#savePreset').click();
+  const bytes=await fs.readFile(await (await download).path()), preset=JSON.parse(bytes);
+  const {createPs1InitSample}=await import('../web/ps1synth.js');
+  assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
+  assert.equal(preset.sample.baseFrequencyHz,selected.rootFrequencyHz); assert.equal(preset.preset.adsr1,15);
+  await page.locator('#resetPreset').click(); await settled(page);
+  await page.locator('#presetFileInput').setInputFiles({name:'vab.spu.json',mimeType:'application/json',buffer:bytes});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded original.vab P3 T1.');
+  await settled(page); await hold(page); const roundTrip=await audible(page,'VAB preset round trip',expectedHz); await release(page); await silent(page,'Restored VAB release');
+  await editorTab(page,'audio');
+  await page.locator('#vabFileInput').setInputFiles([
+    {name:'pair.vb',mimeType:'application/octet-stream',buffer:Buffer.from(vb)},
+    {name:'pair.vh',mimeType:'application/octet-stream',buffer:Buffer.from(vh)},
+  ]);
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('pair.vh:'));
+  await page.locator('#loadVabTone').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Loaded pair.vh P3 T0'));
+  const split=await settled(page); assert.equal(split.samples.find(s=>s.id===split.channels[0].sample).rootFrequencyHz,440*2**((60-69)/12));
+  await page.locator('h1').click(); await page.keyboard.down('y'); await settled(page);
+  const held=await current(page);
+  await page.locator('#vabFileInput').setInputFiles({name:'bad.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab.slice(0,-1))});
+  await page.waitForFunction(()=>document.getElementById('vabStatus').dataset.error==='true');
+  assert.deepEqual((await settled(page)).auditions,held.auditions);
+  const invalid=vab.slice(); invalid[vh.length+16]=0xf0;
+  await page.locator('#vabFileInput').setInputFiles({name:'bad-packet.vab',mimeType:'application/octet-stream',buffer:Buffer.from(invalid)});
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('bad-packet.vab:'));
+  await page.locator('#loadVabTone').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').dataset.error==='true');
+  const rejected=await settled(page); assert.deepEqual(rejected.auditions,held.auditions); assert.equal(rejected.channels[0].sample,held.channels[0].sample);
+  await audible(page,'Rejected VAB keeps held Tone',44100/112*keyboardHz/(440*2**((60-69)/12)));
+  await page.keyboard.up('y'); await settled(page); await silent(page,'VAB error release');
+  await page.locator('#vabFileInput').setInputFiles({name:'original.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('original.vab:'));
+  return {fixture:'original synthetic VAB (no game data)',combined:true,split:true,originalAdpcm:true,positiveFineTune:true,ramReused:true,focusedSelectPlayable:true,presetRoundTrip:true,invalidBankKeepsHeldNote:true,pcm,roundTrip};
+}
+
 async function checkNoise(page,name) {
   console.log('CHECK Noise: source / live clock / focus / preset / PMON switching');
   await fastEnvelope(page);
@@ -952,6 +1014,7 @@ async function runCase(browser, name, origin) {
     const noise=await checkNoise(page,name);
     const morph=await checkMorph(page,name);
     const longAudio=await checkLongAudio(page);
+    longAudio.vab=await checkVab(page,keyboardHz);
 
     console.log(`CHECK ${name}: real audio failure / explicit user retry`);
     await page.evaluate(async () => {const context = [...__spuSynthAudit.contexts].reverse().find(value => value.state !== 'closed'); await context.close();});

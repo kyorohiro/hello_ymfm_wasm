@@ -8,6 +8,7 @@ import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js';
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
+import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
@@ -307,6 +308,67 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
+let vabBank = null, vabName = '', vabSamples = new Map(), vabReadEpoch = 0;
+const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
+$('loadVab').addEventListener('click', () => $('vabFileInput').click());
+$('vabFileInput').addEventListener('change', async () => {
+  const files = [...$('vabFileInput').files]; $('vabFileInput').value='';
+  if (!files.length) return;
+  ++assetEpoch; preparation?.cancel();
+  const revision = ++vabReadEpoch;
+  try {
+    if (files.some(file => file.size > MAX_VAB_FILE_BYTES)) throw new RangeError('Each VAB / VH / VB file must be at most 1 MiB');
+    let header, body;
+    if (files.length===1 && !/\.vb$/i.test(files[0].name)) header=files[0];
+    else if (files.length===2) {header=files.find(file => /\.vh$/i.test(file.name)); body=files.find(file => /\.vb$/i.test(file.name));}
+    if (!header || files.length>1 && !body) throw new TypeError('Choose one VAB file, or one VH and one matching VB together');
+    vabStatus('Reading sound bank…');
+    const [vh, vb] = await Promise.all([header.arrayBuffer(), body?.arrayBuffer()]);
+    const bank = readVab(vh, vb);
+    if (revision!==vabReadEpoch) return;
+    vabBank=bank; vabName=header.name; vabSamples=new Map();
+    const options=bank.tones.map((tone, index) => new Option(`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · ${noteName(tone.center)} +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}`, String(index)));
+    $('vabTone').replaceChildren(...options); $('vabTone').disabled=false; $('loadVabTone').disabled=false;
+    vabStatus(`${vabName}: ${bank.programs.length} programs · ${bank.tones.length} tones · ${bank.samples.length} samples. Choose a Tone and load it.`);
+  } catch (error) {if (revision===vabReadEpoch) vabStatus(`${error.message}${vabBank ? ' Previous bank is kept.' : ''}`,true);}
+});
+$('loadVabTone').addEventListener('click', async () => {
+  if (!vabBank) return;
+  const operation=++assetEpoch, bank=vabBank, cache=vabSamples, name=vabName, index=Number($('vabTone').value);
+  preparation?.cancel();
+  try {
+    // Validate bytes/tuning before stopping or changing the current sound.
+    const prepared=prepareVabTone(bank,index), engine=await ensureAudio();
+    if (operation!==assetEpoch) return;
+    const current=await engine.inspect();
+    if (operation!==assetEpoch) return;
+    const key=`${prepared.tone.sample}:${prepared.options.baseFrequencyHz}`;
+    const cached=cache.get(key);
+    let sample=cached?.engine===engine ? cached.sample : null;
+    if (!sample && prepared.adpcm.length > 524288-current.nextAddress) throw new RangeError('Tone exceeds free SPU sample RAM. Reload the page for a fresh bank.');
+    await stop();
+    if (operation!==assetEpoch) return;
+    if (!sample) {
+      sample=await engine.command('loadADPCM',[prepared.adpcm,prepared.options]);
+      cache.set(key,{engine,sample});
+      if (operation!==assetEpoch) return;
+    }
+    // Check the asset generation between messages, so a newer load/reset wins.
+    for (const [method,args] of [
+      ['setInstrumentPmon',[{enabled:false}]],
+      ['setInstrumentNoise',[{enabled:false}]],
+      ['setInstrumentMorph',[{enabled:false}]],
+      ['setInstrumentPreset',[{...prepared.preset,sample}]],
+    ]) {
+      await engine.command(method,args);
+      if (operation!==assetEpoch) return;
+    }
+    instrumentName=`${name} P${prepared.tone.program} T${prepared.tone.index}`.slice(0,80);
+    $('instrumentName').value=instrumentName;
+    const message=`Loaded ${instrumentName} · ${sample.byteLength} ADPCM bytes${prepared.trimmedBytes ? ` · ignored ${prepared.trimmedBytes} bytes after END` : ''}. Play the keyboard or save a preset.`;
+    vabStatus(message); status(message); applyState(await engine.inspect());
+  } catch (error) {if (operation===assetEpoch) {vabStatus(error.message,true); report(error);}}
+});
 $('savePreset').addEventListener('click', async () => {
   try {
     const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';

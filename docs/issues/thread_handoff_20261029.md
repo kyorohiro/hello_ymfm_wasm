@@ -4,6 +4,14 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続機能：2026-10-30 VAB音色インポート
+
+標準Sony VAB v6／v7とVH＋VBをAudioタブから読み込み、単一Toneを選んで演奏・preset保存する初版を追加。
+元ADPCM、ADSR、ループと基準音程・fine tuneを使用。鍵域分割、重ね音、PSF抽出は後続。
+67 testsと、ソース版／新規展開ZIPのChromium・WebKit計4経路で成功。実ゲームのバンクは未検証。
+[実装・検証・試用ZIP](spu_synth_vab_import_01.md) と [残TODO](todo_spu_synth_import_01.md) を参照。
+未公開。npm、Web deploy、git commit／pushは行っていない。
+
 ## npm公開：2026-10-30 tetorica-fm2612 0.2.34
 
 ユーザー指示でSine修正と累積SPU更新をnpmへ公開。`latest`も0.2.34。

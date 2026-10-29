@@ -94,6 +94,18 @@
               <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>
             </div>
             <p class="subtext">Choose looping before loading a file. The root note sets the sample’s original pitch.</p>
+            <h3>PS1 sound bank</h3>
+            <p class="subtext">Load a standard Sony VAB (version 6 or 7), or select its matching VH and VB files together. Choose one Tone, then load it to play. PSF files are not supported yet.</p>
+            <div class="sample-actions">
+              <button id="loadVab" type="button">Open VAB / VH + VB…</button>
+              <input id="vabFileInput" class="file-input" type="file" accept=".vab,.vh,.vb" multiple aria-label="Choose a VAB or matching VH and VB files">
+            </div>
+            <div class="sample-settings">
+              <label>Tone <select id="vabTone" aria-label="VAB Tone" disabled></select></label>
+              <button id="loadVabTone" type="button" disabled>Load selected Tone</button>
+            </div>
+            <p id="vabStatus" class="subtext" role="status" aria-live="polite">No sound bank opened.</p>
+            <p class="subtext">Imports the original ADPCM, loop, ADSR and tuning. One Tone plays across the keyboard; key zones, layers and driver vibrato/portamento are not applied. Volume and pan are approximations. Reverb send uses the current shared reverb settings. Loading a Tone stops notes and turns off PMON, Noise and Software morph.</p>
           </section>
         </section>
 

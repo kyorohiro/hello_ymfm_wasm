@@ -93,6 +93,8 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
   await writeFile(join(stage, 'index.html'), html.replace(/\b(href|src)="\.\/(synth\.css|synth\.js|icon\.png)"/g,
     (_, attribute, name) => `${attribute}="./synth-spu/${name}"`));
   for (const name of ['synth.css', 'icon.png']) await copy(join(root, 'docs/synth-spu', name), join(stage, 'synth-spu', name));
+  await copy(join(root, 'docs/synth-spu/README.md'), join(stage, 'synth-spu/README.md'));
+  inputs.add('docs/synth-spu/README.md');
   await copy(join(root, 'LICENSE'), join(stage, 'LICENSE'));
   for (const name of ['ps1_spu_wasm.js', 'ps1_spu_wasm.wasm', 'ps1_spu_build.json']) await copy(join(root, 'docs/generated', name), join(stage, 'generated', name));
 
