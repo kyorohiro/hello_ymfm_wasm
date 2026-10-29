@@ -62,11 +62,11 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     if (context.state === 'running') await context.suspend();
     if (!context.audioWorklet) throw new Error('SPU synth needs AudioWorklet; open this page over HTTPS or localhost');
     const [wasmBinary] = await Promise.all([
-      fetch(new URL('../generated/ps1_spu_wasm.wasm?v=ps1-deferred-release-1', import.meta.url)).then(response => {
+      fetch(new URL('../generated/ps1_spu_wasm.wasm?v=spu-mix-precision-1', import.meta.url)).then(response => {
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-headroom-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-precision-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],

@@ -2,21 +2,25 @@
   "schemaVersion": 1,
   "name": "tetorica-soundchip-native",
   "version": "0.1.7",
-  "sourceCommit": "544364743702671fac40eed4fe7ef44f4769c07f",
+  "sourceCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
   "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-  "archiveSha256": "e9cc58cf4f5c93fb4e83d96ff950cdb15718eba6c4354514f211a3a659605306",
-  "manifestSha256": "e26df6fb50314708ecd0e502ff3fa49e572fb0f0feb9a3889518c686b2c89916",
+  "archiveSha256": "7be4da615468e3f678b868d3a6e411e78d1f9fb79a1f42f5151ebb545dd7dacb",
+  "manifestSha256": "2ed02a2d2bdc9f898f1726352eec517919df5580a509c98ca5474983c6951798",
   "fileCount": 455,
   "localCandidate": {
-    "baseCommit": "544364743702671fac40eed4fe7ef44f4769c07f",
+    "baseCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
     "changedPaths": [
       "CHANGELOG.md",
       "catalog/source_inventory.json",
       "docs/chip-differences.md",
       "native/reference/SOURCES.json",
       "native/tests/ps1_spu_fixture.cpp",
+      "scripts/build_ps1_spu_wasm.sh",
       "vendor/mame-ps1-spu/README.md",
-      "vendor/mame-ps1-spu/spu.cpp"
+      "vendor/mame-ps1-spu/ps1_spu.cpp",
+      "vendor/mame-ps1-spu/ps1_spu.h",
+      "vendor/mame-ps1-spu/spu.cpp",
+      "vendor/mame-ps1-spu/spu.h"
     ]
   }
 }

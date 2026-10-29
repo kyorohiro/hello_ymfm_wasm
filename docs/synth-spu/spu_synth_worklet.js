@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
-import factory from '../generated/ps1_spu_wasm.js?v=ps1-deferred-release-1';
+import factory from '../generated/ps1_spu_wasm.js?v=spu-mix-precision-1';
 import {Ps1Spu} from '../js/ps1_spu.js?v=ps1-deferred-release-1';
 import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
-import {spuSynthVoiceVolume} from './spu_synth_levels.js';
+import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
@@ -42,6 +42,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.ready = Ps1Spu.create({moduleFactory:factory, moduleOptions:{wasmBinary:processorOptions.wasmBinary, locateFile:() => 'ps1_spu_wasm.wasm'}}).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.synth = new Ps1Synth({core});
+      // Standalone software extension; the shared register/PCM JS API and its
+      // default legacy mixer remain unchanged for other chip hosts.
+      const headroom=core.module._ps1_spu_set_mix_headroom;
+      if(typeof headroom!=='function'||!headroom(core.handle,SPU_SYNTH_MIX_HEADROOM))throw new Error('SPU precision mixer is unavailable');
       // The main thread prepares these bounded packets once. Each voice owns
       // its editable slot, so changing one cycle cannot affect a sibling.
       for (let ch = 0; ch < 24; ch++) {
@@ -256,14 +260,6 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
   syncModulators() {
     const core=this.synth.core;
-    // Keep the authored preset (and exported files) unchanged. Attenuate only
-    // physical voice volumes before accumulation. OUTX for PMON precedes these
-    // volumes, so source depth/decay and the silent modulators are preserved.
-    for(let ch=0;ch<24;ch++) {
-      const preset=this.synth.channels[ch],silent=this.pmon.enabled&&ch%2===0;
-      core.write(ch*16,silent?0:spuSynthVoiceVolume(preset.volumeLeft));
-      core.write(ch*16+2,silent?0:spuSynthVoiceVolume(preset.volumeRight));
-    }
     core.write(0x194,this.noise.enabled ? 0xffff : 0);
     core.write(0x196,this.noise.enabled ? 0xff : 0);
     core.write(0x1aa,(core.read(0x1aa)&~0x3f00)|((this.noise.enabled ? this.noise.clock : 0)<<8));

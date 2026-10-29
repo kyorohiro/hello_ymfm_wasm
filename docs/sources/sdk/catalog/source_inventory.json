@@ -1905,7 +1905,7 @@
         {
           "path": "vendor/mame-ps1-spu/README.md",
           "originPath": "native/ps1/README.md",
-          "sha256": "78dec1dd3771eebbb77ec9571517047fddbd06b54ae792c508492059d2b8c1c3",
+          "sha256": "38361b526653879db680860b6bf9de54973453985f23c255894717d8fa2f3999",
           "originalSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
           "previousSdkSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
           "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
@@ -1913,7 +1913,7 @@
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
           "originPath": "native/ps1/ps1_spu.cpp",
-          "sha256": "c27a63c876f51f76b62627279d4789f04db64313591b0bac327878c23d0401b8",
+          "sha256": "363cfa4f61e74ff9131c93e0e5d285256b9e8940b50c98dbd946168c7b8490d1",
           "originalSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
           "previousSdkSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
           "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
@@ -1921,7 +1921,7 @@
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.h",
           "originPath": "native/ps1/ps1_spu.h",
-          "sha256": "8c5bd7ba60fdc22bcb02ab1666198cf5539e888e0b07731d24da0ed8bd9c3dfd",
+          "sha256": "7c2d2d174cadd1d8a96977274afeb4da97021af58f9baf0e58ee365b97b9017a",
           "originalSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
           "previousSdkSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
           "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."
@@ -1929,7 +1929,7 @@
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
           "originPath": "native/ps1/spu.cpp",
-          "sha256": "d15730662a869a39ee44848ad6d02d280e15db0139a61ad8040a09c28b1433e9",
+          "sha256": "f1e4f8f0df547dac4b7fa123f2e36ca8fbf78a5de6fceadb133fe6a181cd320a",
           "originalSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
           "previousSdkSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
           "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
@@ -1937,7 +1937,7 @@
         {
           "path": "vendor/mame-ps1-spu/spu.h",
           "originPath": "native/ps1/spu.h",
-          "sha256": "874631f38ee1c2353ccd60a9096aa77d6b8da6f161d90eaf0736e9420feaa199",
+          "sha256": "b4bcb4d32425e9fffc6918841cdcc2c8cf260236d4b1d185bcff7c17d9bd86df",
           "originalSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
           "previousSdkSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
           "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."

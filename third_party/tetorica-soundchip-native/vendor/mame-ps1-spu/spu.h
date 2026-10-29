@@ -95,6 +95,11 @@ protected:
 	float freq_multiplier = 1.0f;
 
 	std::unique_ptr<unsigned char []> output_buf[4];
+	// Opt-in host mixer: retain voice-volume precision while providing fixed
+	// accumulator headroom. Divisor 1 keeps the original hardware-style path.
+	uint32_t host_mix_divisor = 1;
+	std::array<int32_t,4096> host_mix_buf[2]{};
+	std::array<float,4096> host_mix_correction{};
 	unsigned int output_head;
 	unsigned int output_tail;
 	unsigned int output_size;
@@ -253,6 +258,7 @@ public:
 	spu_device& operator=(const spu_device&) = delete;
 	void reset(bool clear_ram);
 	void render(float *left, float *right, uint32_t frames);
+	void set_mix_headroom(uint32_t divisor);
 	// Instrument-editor extensions; register writes retain their original behavior.
 	void refresh_envelope(unsigned int v);
 	void audition_key(unsigned int v, bool on);

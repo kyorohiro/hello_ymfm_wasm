@@ -1,0 +1,990 @@
+{
+  "passed": true,
+  "physicalOutputOpened": false,
+  "listeningPerformed": false,
+  "legacyWasmSha256": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0",
+  "precisionWasmSha256": "92c4a6c1369952c13d55b25cba8b23e1dd28de6b2bf492d1d81e7d84f1535399",
+  "framesPerNote": 8192,
+  "midiRange": [
+    24,
+    84
+  ],
+  "cases": [
+    {
+      "rate": 44100,
+      "midi": 24,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006300670948892293
+    },
+    {
+      "rate": 44100,
+      "midi": 25,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006231375863806639
+    },
+    {
+      "rate": 44100,
+      "midi": 26,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006349536617594016
+    },
+    {
+      "rate": 44100,
+      "midi": 27,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000637340509137943
+    },
+    {
+      "rate": 44100,
+      "midi": 28,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006284124632495878
+    },
+    {
+      "rate": 44100,
+      "midi": 29,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006306787093083286
+    },
+    {
+      "rate": 44100,
+      "midi": 30,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006392792519618388
+    },
+    {
+      "rate": 44100,
+      "midi": 31,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006304996110244509
+    },
+    {
+      "rate": 44100,
+      "midi": 32,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006304359151978851
+    },
+    {
+      "rate": 44100,
+      "midi": 33,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006277883243469155
+    },
+    {
+      "rate": 44100,
+      "midi": 34,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006424118667716634
+    },
+    {
+      "rate": 44100,
+      "midi": 35,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006378575521018436
+    },
+    {
+      "rate": 44100,
+      "midi": 36,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006312736239130366
+    },
+    {
+      "rate": 44100,
+      "midi": 37,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006295238316173398
+    },
+    {
+      "rate": 44100,
+      "midi": 38,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006340037613583597
+    },
+    {
+      "rate": 44100,
+      "midi": 39,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006321648374199026
+    },
+    {
+      "rate": 44100,
+      "midi": 40,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006347834028852748
+    },
+    {
+      "rate": 44100,
+      "midi": 41,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006304805187308822
+    },
+    {
+      "rate": 44100,
+      "midi": 42,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006352308068623167
+    },
+    {
+      "rate": 44100,
+      "midi": 43,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006273536372383324
+    },
+    {
+      "rate": 44100,
+      "midi": 44,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006341007079072162
+    },
+    {
+      "rate": 44100,
+      "midi": 45,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006341613241695313
+    },
+    {
+      "rate": 44100,
+      "midi": 46,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006301910877360948
+    },
+    {
+      "rate": 44100,
+      "midi": 47,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000630732722749556
+    },
+    {
+      "rate": 44100,
+      "midi": 48,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006340316726874569
+    },
+    {
+      "rate": 44100,
+      "midi": 49,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006246215053911745
+    },
+    {
+      "rate": 44100,
+      "midi": 50,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006364912934239988
+    },
+    {
+      "rate": 44100,
+      "midi": 51,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006355529485159397
+    },
+    {
+      "rate": 44100,
+      "midi": 52,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006282853213459301
+    },
+    {
+      "rate": 44100,
+      "midi": 53,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006286020667899589
+    },
+    {
+      "rate": 44100,
+      "midi": 54,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006277616641730475
+    },
+    {
+      "rate": 44100,
+      "midi": 55,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006325687574883405
+    },
+    {
+      "rate": 44100,
+      "midi": 56,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006347756342101505
+    },
+    {
+      "rate": 44100,
+      "midi": 57,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000629478088814442
+    },
+    {
+      "rate": 44100,
+      "midi": 58,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006299747593889444
+    },
+    {
+      "rate": 44100,
+      "midi": 59,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000630885840498925
+    },
+    {
+      "rate": 44100,
+      "midi": 60,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000632910858345499
+    },
+    {
+      "rate": 44100,
+      "midi": 61,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006325506982717096
+    },
+    {
+      "rate": 44100,
+      "midi": 62,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000631633992347967
+    },
+    {
+      "rate": 44100,
+      "midi": 63,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006326936449228074
+    },
+    {
+      "rate": 44100,
+      "midi": 64,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006382565413512163
+    },
+    {
+      "rate": 44100,
+      "midi": 65,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000633135306286538
+    },
+    {
+      "rate": 44100,
+      "midi": 66,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006373821791711032
+    },
+    {
+      "rate": 44100,
+      "midi": 67,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006368402521822426
+    },
+    {
+      "rate": 44100,
+      "midi": 68,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006298942785486132
+    },
+    {
+      "rate": 44100,
+      "midi": 69,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006286392545092794
+    },
+    {
+      "rate": 44100,
+      "midi": 70,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000635607568189996
+    },
+    {
+      "rate": 44100,
+      "midi": 71,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006331971078844618
+    },
+    {
+      "rate": 44100,
+      "midi": 72,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006344880134968255
+    },
+    {
+      "rate": 44100,
+      "midi": 73,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006349354650959128
+    },
+    {
+      "rate": 44100,
+      "midi": 74,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006314258400526595
+    },
+    {
+      "rate": 44100,
+      "midi": 75,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006294064413878466
+    },
+    {
+      "rate": 44100,
+      "midi": 76,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006339130007734214
+    },
+    {
+      "rate": 44100,
+      "midi": 77,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006313276509743811
+    },
+    {
+      "rate": 44100,
+      "midi": 78,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006303987664072701
+    },
+    {
+      "rate": 44100,
+      "midi": 79,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006375000017956531
+    },
+    {
+      "rate": 44100,
+      "midi": 80,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006249107869338911
+    },
+    {
+      "rate": 44100,
+      "midi": 81,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006313374470278726
+    },
+    {
+      "rate": 44100,
+      "midi": 82,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006298218551867437
+    },
+    {
+      "rate": 44100,
+      "midi": 83,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006335644762360605
+    },
+    {
+      "rate": 44100,
+      "midi": 84,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006275613658861923
+    },
+    {
+      "rate": 48000,
+      "midi": 24,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005984525533616609
+    },
+    {
+      "rate": 48000,
+      "midi": 25,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005957981501314929
+    },
+    {
+      "rate": 48000,
+      "midi": 26,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000058804833929129413
+    },
+    {
+      "rate": 48000,
+      "midi": 27,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.00015237927436828613,
+      "previousRmsDifference": 0.0000601527248241157
+    },
+    {
+      "rate": 48000,
+      "midi": 28,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006004279290005181
+    },
+    {
+      "rate": 48000,
+      "midi": 29,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006064995810711906
+    },
+    {
+      "rate": 48000,
+      "midi": 30,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005998755856728061
+    },
+    {
+      "rate": 48000,
+      "midi": 31,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005886483976547422
+    },
+    {
+      "rate": 48000,
+      "midi": 32,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060528497951126005
+    },
+    {
+      "rate": 48000,
+      "midi": 33,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060515077187044434
+    },
+    {
+      "rate": 48000,
+      "midi": 34,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001493394374847412,
+      "previousRmsDifference": 0.000060733368652634254
+    },
+    {
+      "rate": 48000,
+      "midi": 35,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060347592474270365
+    },
+    {
+      "rate": 48000,
+      "midi": 36,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006022363026442254
+    },
+    {
+      "rate": 48000,
+      "midi": 37,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005922045314947313
+    },
+    {
+      "rate": 48000,
+      "midi": 38,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006039757653764352
+    },
+    {
+      "rate": 48000,
+      "midi": 39,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.000060414829075597625
+    },
+    {
+      "rate": 48000,
+      "midi": 40,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059950269016717194
+    },
+    {
+      "rate": 48000,
+      "midi": 41,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060043406197668824
+    },
+    {
+      "rate": 48000,
+      "midi": 42,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005964824061148743
+    },
+    {
+      "rate": 48000,
+      "midi": 43,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000597576448799004
+    },
+    {
+      "rate": 48000,
+      "midi": 44,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000058989938796767606
+    },
+    {
+      "rate": 48000,
+      "midi": 45,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060427379778381
+    },
+    {
+      "rate": 48000,
+      "midi": 46,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005980510934666449
+    },
+    {
+      "rate": 48000,
+      "midi": 47,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059842418356632574
+    },
+    {
+      "rate": 48000,
+      "midi": 48,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059975311579202496
+    },
+    {
+      "rate": 48000,
+      "midi": 49,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005895546975432757
+    },
+    {
+      "rate": 48000,
+      "midi": 50,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.00006034328262587889
+    },
+    {
+      "rate": 48000,
+      "midi": 51,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060022656535360313
+    },
+    {
+      "rate": 48000,
+      "midi": 52,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005931491037856677
+    },
+    {
+      "rate": 48000,
+      "midi": 53,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.00015237927436828613,
+      "previousRmsDifference": 0.0000595149906221468
+    },
+    {
+      "rate": 48000,
+      "midi": 54,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005934354917450894
+    },
+    {
+      "rate": 48000,
+      "midi": 55,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006025722494235764
+    },
+    {
+      "rate": 48000,
+      "midi": 56,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001501142978668213,
+      "previousRmsDifference": 0.000060279607287285085
+    },
+    {
+      "rate": 48000,
+      "midi": 57,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.000059602542762615725
+    },
+    {
+      "rate": 48000,
+      "midi": 58,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005943322611064784
+    },
+    {
+      "rate": 48000,
+      "midi": 59,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059631033574127635
+    },
+    {
+      "rate": 48000,
+      "midi": 60,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005993090921578461
+    },
+    {
+      "rate": 48000,
+      "midi": 61,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060044054413042875
+    },
+    {
+      "rate": 48000,
+      "midi": 62,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059361439101757304
+    },
+    {
+      "rate": 48000,
+      "midi": 63,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.00005995538474709937
+    },
+    {
+      "rate": 48000,
+      "midi": 64,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.00006007264634029279
+    },
+    {
+      "rate": 48000,
+      "midi": 65,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005977102483501133
+    },
+    {
+      "rate": 48000,
+      "midi": 66,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060386655579181233
+    },
+    {
+      "rate": 48000,
+      "midi": 67,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00006009313607440992
+    },
+    {
+      "rate": 48000,
+      "midi": 68,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001506805419921875,
+      "previousRmsDifference": 0.00005948184737241391
+    },
+    {
+      "rate": 48000,
+      "midi": 69,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000059749973112465946
+    },
+    {
+      "rate": 48000,
+      "midi": 70,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005993970803946906
+    },
+    {
+      "rate": 48000,
+      "midi": 71,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.00015184283256530762,
+      "previousRmsDifference": 0.00005998789188819927
+    },
+    {
+      "rate": 48000,
+      "midi": 72,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000601939233118892
+    },
+    {
+      "rate": 48000,
+      "midi": 73,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.0000602022500443623
+    },
+    {
+      "rate": 48000,
+      "midi": 74,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005950896633259308
+    },
+    {
+      "rate": 48000,
+      "midi": 75,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005962317691711864
+    },
+    {
+      "rate": 48000,
+      "midi": 76,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060108030151383724
+    },
+    {
+      "rate": 48000,
+      "midi": 77,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005991026892075509
+    },
+    {
+      "rate": 48000,
+      "midi": 78,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005935698071755895
+    },
+    {
+      "rate": 48000,
+      "midi": 79,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.00006052604556583472
+    },
+    {
+      "rate": 48000,
+      "midi": 80,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.0001525580883026123,
+      "previousRmsDifference": 0.000059192920875128856
+    },
+    {
+      "rate": 48000,
+      "midi": 81,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005967715457773387
+    },
+    {
+      "rate": 48000,
+      "midi": 82,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005935089146557006
+    },
+    {
+      "rate": 48000,
+      "midi": 83,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.000060000847204244884
+    },
+    {
+      "rate": 48000,
+      "midi": 84,
+      "maximumDifference": 0,
+      "rmsDifference": 0,
+      "previousMaximumDifference": 0.000152587890625,
+      "previousRmsDifference": 0.00005940046495600852
+    }
+  ]
+}

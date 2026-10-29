@@ -773,7 +773,7 @@
     {
       "id": "ps1_spu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "8172c7b02bda3580d52b2b5adc889a30437d26179f9d82871f22ad0f69701b27",
+      "sourceFingerprint": "2947575122f3ae762cc88662355b8cadf4c44e3939fdf1fd2da913a9ec31f525",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -782,8 +782,8 @@
         },
         {
           "path": "scripts/build_ps1_spu_wasm.sh",
-          "sha256": "1fc081657402511ad5f87cb95dec2db98f7ba1a4e4eca99f113e9b1f0cd38867",
-          "size": 1343
+          "sha256": "2742756cdecb0a9a8ff6edfb288ff12223121211733b55d5f81094ad4ff39655",
+          "size": 1371
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -792,23 +792,23 @@
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
-          "sha256": "c27a63c876f51f76b62627279d4789f04db64313591b0bac327878c23d0401b8",
-          "size": 3854
+          "sha256": "363cfa4f61e74ff9131c93e0e5d285256b9e8940b50c98dbd946168c7b8490d1",
+          "size": 4094
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.h",
-          "sha256": "8c5bd7ba60fdc22bcb02ab1666198cf5539e888e0b07731d24da0ed8bd9c3dfd",
-          "size": 2364
+          "sha256": "7c2d2d174cadd1d8a96977274afeb4da97021af58f9baf0e58ee365b97b9017a",
+          "size": 2737
         },
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
-          "sha256": "d15730662a869a39ee44848ad6d02d280e15db0139a61ad8040a09c28b1433e9",
-          "size": 72604
+          "sha256": "f1e4f8f0df547dac4b7fa123f2e36ca8fbf78a5de6fceadb133fe6a181cd320a",
+          "size": 74394
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",
-          "sha256": "874631f38ee1c2353ccd60a9096aa77d6b8da6f161d90eaf0736e9420feaa199",
-          "size": 8702
+          "sha256": "b4bcb4d32425e9fffc6918841cdcc2c8cf260236d4b1d185bcff7c17d9bd86df",
+          "size": 9019
         },
         {
           "path": "vendor/mame-ps1-spu/spu_tables.cpp",
@@ -834,13 +834,13 @@
       "outputs": [
         {
           "path": "ps1_spu_wasm.js",
-          "sha256": "6e71dc2a9d1f47b912331f1ca76887dc4983f990652282f0b311f6bf30496dd5",
-          "size": 16791
+          "sha256": "52399d4325629d7089972525affb50c5dacff79964f8710c180997f970c83a54",
+          "size": 16919
         },
         {
           "path": "ps1_spu_wasm.wasm",
-          "sha256": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0",
-          "size": 47440
+          "sha256": "92c4a6c1369952c13d55b25cba8b23e1dd28de6b2bf492d1d81e7d84f1535399",
+          "size": 48961
         }
       ],
       "compiler": {

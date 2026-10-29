@@ -94,3 +94,10 @@ extern "C" int ps1_spu_render(void *handle, float *left, float *right, uint32_t 
     try { static_cast<spu_device *>(handle)->render(left, right, frames); return 1; }
     catch (...) { return 0; }
 }
+
+extern "C" int ps1_spu_set_mix_headroom(void *handle, uint32_t divisor)
+{
+    if (!handle || divisor<1 || divisor>32) return 0;
+    try {static_cast<spu_device *>(handle)->set_mix_headroom(divisor);return 1;}
+    catch (...) {return 0;}
+}

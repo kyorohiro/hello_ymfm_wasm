@@ -206,3 +206,8 @@ Both raw WASM modules have no host imports, allocator or memory growth. Their `.
 MSM5205 raw initialization preserves the reference signal −2, leaky predictor, seven-nibble FIFO and fractional timing. It does not silently apply a DC filter. The PCE helper instead uses explicit sample preparation/Play, resets predictor/step at Play and reaches exact silence at one-shot EOF. Loops continue the decoder state rather than resetting at the range start. Offset and length are nibbles; rate 0–15 uses `clock / (48 * (16 - rate))`, with the compatibility default 1,536,000 Hz. An explicit 1,540,200 Hz clock is also accepted. These choices are documented model/host boundaries, not hardware calibration or an analog-output equivalence claim.
 
 The main package and Playground supply WAV/track loading, encoding, Worklet/Native transport, ownership queues, Mixer defaults and UI. The SDK does not import those host layers or change their pinned SDK snapshots. See the [component](../vendor/tetorica-msm5205/README.md) and [Native](../native/README.md#embed-cd-da-and-pc-engine-adpcm) guides for lifetime, silence and control details.
+
+The optional `ps1_spu_set_mix_headroom` is a host software mixing extension.
+Default divisor 1 keeps original per-voice saturation. Larger divisors accumulate
+full-precision voice-volume results before scaling and retain fractional dry PCM.
+They do not change the Gaussian decoder, OUTX, pitch, ADSR or default register behavior.

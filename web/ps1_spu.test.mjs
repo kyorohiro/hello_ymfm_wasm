@@ -402,3 +402,17 @@ test('actual native and WASM PS1 SPU produce exactly the same original ADPCM ste
   assert.equal(result.status,0,result.stderr?.toString()||result.error?.message);
   assert.deepEqual(result.stdout,Buffer.concat(expected),'independently compiled native and shipped WASM match bit-for-bit after decode/interpolation, ADSR, mixing, cache uploads, END/KOFF and resets');
 });
+
+test('optional wide software headroom retains exact single-voice precision and validates configuration before render',async t=>{
+  const legacy=await create(t),precise=await create(t);
+  const configure=(chip,divisor)=>chip.module._ps1_spu_set_mix_headroom(chip.handle,divisor);
+  for(const bad of [0,33])assert.equal(configure(precise,bad),0);
+  assert.equal(configure(precise,4),1);
+  for(const chip of [legacy,precise]){load(chip,wave({shift:0}));start(chip,{pitch:0x1234,left:0x3000,right:0x7000});}
+  const a=render(legacy,16385,[127,2048,1]),b=render(precise,16385,[1,128,4096]);
+  assert.deepEqual(Float32Array.from(b.left,x=>x*4),a.left);
+  assert.deepEqual(Float32Array.from(b.right,x=>x*4),a.right);
+  assert.equal(precise.read(0),0x3000,'voice volume registers are not attenuated');
+  for(const chip of [legacy,precise]){chip.reset();load(chip);start(chip);}
+  assert.deepEqual(Float32Array.from(render(precise,8193).left,x=>x*4),render(legacy,8193).left,'reset preserves the optional divisor');
+});

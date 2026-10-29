@@ -131,3 +131,13 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
 
 Binary redistributions must retain the BSD license and attribution with their
 other third-party notices.
+
+## Optional software mixer headroom
+
+`ps1_spu_set_mix_headroom(handle, divisor)` opts into a wide voice accumulator
+with retained fractional dry output. Default divisor 1 is the original path.
+Divisors 2–32 scale after accumulation rather than reducing voice registers;
+a host can compensate afterward without magnifying extra volume-rounding noise.
+This is a software instrument extension, not a hardware register. Configure it
+before rendering; changing it discards queued output. Reset retains the setting.
+The existing integer reverb algorithm and its quantization remain.

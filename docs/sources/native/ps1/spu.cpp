@@ -1130,6 +1130,8 @@ void spu_device::device_reset()
 	for (auto & elem : output_buf)
 		if (!elem) elem=std::make_unique<unsigned char []>(output_buffer_size);
 	output_head=output_tail=output_size=0;
+	for (auto &mix : host_mix_buf) mix.fill(0);
+	host_mix_correction.fill(0);
 
 	noise_t=0;
 	noise_seed=12345;
@@ -2070,6 +2072,13 @@ void spu_device::generate_voice(const unsigned int v,
 	int16_t *out=static_cast<int16_t *>(outxptr);
 	const int16_t *noise=static_cast<int16_t *>(noiseptr);
 	const int16_t *vol=spureg.volumex[v];
+	int32_t *wide=nullptr;
+	if (host_mix_divisor>1) {
+		const auto address=reinterpret_cast<uintptr_t>(ptr);
+		const auto reverb_base=reinterpret_cast<uintptr_t>(output_buf[1].get());
+		const unsigned int bus=(address>=reverb_base && address<reverb_base+output_buffer_size)?1:0;
+		wide=host_mix_buf[bus].data()+((address-reinterpret_cast<uintptr_t>(output_buf[bus].get()))>>1);
+	}
 	for (unsigned int frame=0; frame<sz; ++frame)
 	{
 		const unsigned int i=(phase>>4)&255;
@@ -2082,8 +2091,16 @@ void spu_device::generate_voice(const unsigned int v,
 		vi->env_level+=vi->env_delta;
 		vi->advance_audition_gain();
 		if (out) out[frame]=sample;
-		dp[0]=clamp(dp[0]+((sample*vol[0])>>15));
-		dp[1]=clamp(dp[1]+((sample*vol[1])>>15));
+		if (wide) {
+			for (unsigned int c=0;c<2;c++) {
+				wide[c]+=((sample*vol[c])>>15);
+				dp[c]=clamp(wide[c]/static_cast<int32_t>(host_mix_divisor));
+			}
+			wide+=2;
+		} else {
+			dp[0]=clamp(dp[0]+((sample*vol[0])>>15));
+			dp[1]=clamp(dp[1]+((sample*vol[1])>>15));
+		}
 		dp+=2;
 		phase+=vi->pitch;
 		const unsigned int advance=phase>>12;
@@ -2610,6 +2627,13 @@ void spu_device::generate(void *ptr, const unsigned int sz)
 	{
 		unsigned int n=(std::min)((std::min)(left,output_buffer_size-output_head),output_size);
 		memcpy(dp,&output_buf[0][output_head],n);
+		if (host_mix_divisor>1) {
+			const auto *dry=reinterpret_cast<const int16_t *>(&output_buf[0][output_head]);
+			const auto *send=reinterpret_cast<const int16_t *>(&output_buf[1][output_head]);
+			const unsigned int start=output_head>>1,position=(dp-static_cast<unsigned char *>(ptr))>>1;
+			for (unsigned int j=0;j<(n>>1);j++)
+				host_mix_correction[position+j]=float(host_mix_buf[0][start+j]+host_mix_buf[1][start+j])/float(host_mix_divisor)-float(dry[j]+send[j]);
+		}
 
 		rev->process((signed short *)dp,
 									(signed short *)&output_buf[1][output_head],
@@ -2764,6 +2788,10 @@ void spu_device::process_until(const unsigned int tsample)
 
 		memset(outptr,0,process_samples<<2);
 		memset(reverbptr,0,process_samples<<2);
+		if (host_mix_divisor>1) {
+			const unsigned int start=(static_cast<unsigned char *>(outptr)-output_buf[0].get())>>1;
+			for (auto &mix : host_mix_buf) std::fill_n(mix.data()+start,process_samples*2,0);
+		}
 
 		// If noise is enabled for any channels generate noise samples
 
@@ -3172,6 +3200,12 @@ void spu_device::read_ram(uint32_t address, uint8_t *data, uint32_t length) cons
 	std::memcpy(data, reinterpret_cast<const uint8_t*>(m_spu_ram) + address, length);
 }
 
+void spu_device::set_mix_headroom(uint32_t divisor)
+{
+	if (divisor<1 || divisor>32) throw std::out_of_range("Mix headroom must be 1..32");
+	if (host_mix_divisor!=divisor) {flush_output_buffer();host_mix_divisor=divisor;}
+}
+
 void spu_device::render(float *left, float *right, uint32_t frames)
 {
 	// The original output ring contains 2,048 stereo frames. Draining each
@@ -3181,14 +3215,15 @@ void spu_device::render(float *left, float *right, uint32_t frames)
 	while (position < frames)
 	{
 		const uint32_t count = std::min<uint32_t>(2048, frames - position);
+		if (host_mix_divisor>1) host_mix_correction.fill(0);
 		generate(pcm.data(), count * 4);
 		for (uint32_t i = 0; i < count; ++i)
 		{
 			// Match MAME's sound_stream_update fixed master gain. SPUCNT output
 			// enable/mute is enforced here because upstream does not gate it.
 			const bool enabled = (spureg.ctrl & 0xc000) == 0xc000;
-			left[position + i] = enabled ? float(pcm[i * 2]) * float(spureg.mvolx[0]) / 1073741824.0f : 0.0f;
-			right[position + i] = enabled ? float(pcm[i * 2 + 1]) * float(spureg.mvolx[1]) / 1073741824.0f : 0.0f;
+			left[position + i] = enabled ? (host_mix_divisor>1 ? std::clamp(float(pcm[i*2])+host_mix_correction[i*2],-32768.0f,32767.0f) : float(pcm[i*2])) * float(spureg.mvolx[0]) / 1073741824.0f : 0.0f;
+			right[position + i] = enabled ? (host_mix_divisor>1 ? std::clamp(float(pcm[i*2+1])+host_mix_correction[i*2+1],-32768.0f,32767.0f) : float(pcm[i*2+1])) * float(spureg.mvolx[1]) / 1073741824.0f : 0.0f;
 		}
 		position += count;
 		// Keep the upstream relative sample counters bounded for long sessions.

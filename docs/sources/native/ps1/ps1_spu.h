@@ -37,6 +37,11 @@ int ps1_spu_load_ram(void *handle, uint32_t byte_address, const uint8_t *data, u
 int ps1_spu_read_ram(void *handle, uint32_t byte_address, uint8_t *data, uint32_t length);
 /* Finite normalized stereo PCM, frames <= 1,048,576; nonoverlapping output arrays.
  * Zero frames is a no-op and permits null output pointers. */
+/* Optional software mixer, not a PS1 register. divisor 1 (default) retains
+ * original saturation. 2..32 mixes in a wide accumulator before attenuation,
+ * retaining fractional dry output precision. Set before rendering or reset;
+ * changing the divisor discards queued output. Reset preserves the divisor. */
+int ps1_spu_set_mix_headroom(void *handle, uint32_t divisor);
 int ps1_spu_render(void *handle, float *left, float *right, uint32_t frames);
 #ifdef __cplusplus
 }
