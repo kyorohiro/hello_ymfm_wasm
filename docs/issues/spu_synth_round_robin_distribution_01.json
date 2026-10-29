@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-29",
+  "product": "Tetorica SPU Synth",
+  "instrument": "one common PCM / ADSR / reverb preset for 24 round-robin voices",
+  "archive": {
+    "path": "release/tetorica_spu_synth_dev_itch.zip",
+    "files": 45,
+    "bytes": 275949,
+    "sha256": "227fe107ecd7f44d18644720b7d52ff68e98ec2fdf3c3bc23817adbd89ca9849",
+    "crcVerified": true,
+    "allMembersMatchActualExtractedBrowserRoot": true
+  },
+  "browserReport": {
+    "path": "docs/issues/spu_synth_round_robin_browser_01.json",
+    "sha256": "6ef43fa870b0ac468ae3cdc9b7348b47f40e2fb8f430aa6ad49791cb0acccab5",
+    "checkerSha256": "1d695cd2d66bfa48d34c1b709403004d5f253ee965bf83fce64ca8b60f6378e1",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+    "servedFilesVerified": 7,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "browsers": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "captures": 18,
+      "frames": 196608,
+      "pcmContinuous": true,
+      "clockAnomalies": 0
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "captures": 19,
+      "frames": 200704,
+      "pcmContinuous": true,
+      "clockAnomalies": 0
+    }
+  ],
+  "unitAndPackageTests": {
+    "command": "npm run test:spu-synth",
+    "passed": 28,
+    "failed": 0
+  },
+  "remoteCIExecuted": false,
+  "published": false
+}

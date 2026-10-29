@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordType": "failed-attempt-note",
+  "date": "2026-10-29",
+  "passed": false,
+  "command": "node scripts/check_spu_synth_browser.cjs --out docs/issues/spu_synth_monitor_source_browser_02.json --screenshots /private/tmp/spu-synth-monitor-source-final",
+  "reportWritten": false,
+  "rawLogFile": null,
+  "evidenceSource": "Observed tool output; this note is not a raw browser/PCM report.",
+  "completedBrowser": {
+    "browser": "chromium",
+    "status": "PASS printed after all UI, PCM, monitor-wake and layout assertions"
+  },
+  "failedBrowser": {
+    "browser": "webkit",
+    "assertion": "Idle monitor does not read an analyser continuously",
+    "expectedReadCount": 21,
+    "actualReadCount": 22,
+    "stage": "Initial idle check following successful setup ADSR and reverb edits",
+    "pageErrors": [],
+    "failedResponses": []
+  },
+  "finding": "Successful set* edits now intentionally wake the display to observe a possible release/reverb tail. The original idle baseline began before the configured 400 ms quiet-tail window had fully settled.",
+  "testCorrection": "Wait 600 ms after setup before taking the idle read-count baseline, then retain the strict requirement of zero additional analyser reads over 250 ms. The separate infinite-release mute/unmute regression still verifies quiet sleep and wake without a new Note On.",
+  "acceptanceRelaxed": false,
+  "finalRerun": "Not performed by this agent after the correction; the tool was interrupted while awaiting execution approval. Parent agent will perform any final rerun."
+}

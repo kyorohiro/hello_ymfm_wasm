@@ -1,3 +1,19 @@
+## 2026-10-29 — SPU Synthの表示3種とPitch、アイコン待ち
+
+- 上部にEnvelope／Waveform／Spectrum切り替え、右に縦Pitchを追加。既存ADSR図をEnvelopeへ移し、数値設定は下のcardに維持。図の時間軸と、実出力RMSの履歴stripは別表示。Master後の音をpassive AnalyserNodeで読み、最大30fps、無音・非表示・Stopで停止する。Masterやlive設定で離鍵後の音が再び聞こえる場合は、所有権や再発音を変えず表示だけ再開する。
+- 実WASMを含むNode／instrument／monitor／allocator／包装試験 **36成功**。source Chromium／WebKitで実RMS・FFT・30fps上限・idle停止・Stop・RR31 tailのmute→sleep→unmute復帰・実mouse Pitch・3表示の1440／390pxを確認。各33captures／344,064frames、pilot／clock連続、診断0。物理出力mute、実聴は未実施。途中のWebKit失敗はsetup後400msの静音待ち内をidleとした試験前提で、600ms後に厳密な250ms無読み取りを確認するよう修正し、両Browserの最終実行成功。
+- **ユーザーがアイコン作成中のため、配色の確定とrelease ZIP更新は待つ。** 現在の色は仮。旧Round Robin ZIPと履歴reportは保持。次はアイコンを受け取り、色・favicon等を合わせ、最終ZIPの実展開先で再確認する。今回SDK／C++／WASM／Native／Tauriの変更、commit／push／公開はなし。
+- 詳細：[spu_synth_monitor_01.md](spu_synth_monitor_01.md)／[最終source Browser](spu_synth_monitor_source_browser_02.json)。以下は各時点の履歴。
+
+## 2026-10-29 — SPU Synthを共通音色＋24声Round Robinへ整理
+
+- ユーザー指定でVoice studio見出し・24声selector・Selected ADPCM voice・advanced voice dumpを削除。残る音作り画面は **PCM cycle → SPU ADPCM／ADSR envelope／SPU reverb** の3section。既存Playground panelは変更せず、専用adapterで共通音色編集へ接続。Keyboard／file import／preset復元も全声共通になった。
+- Round RobinはWorklet内でatomicに割当。空き声を巡回し、24声すべて保持中だけ最古のnoteを置換。26押鍵でCH0–23→0→1、古い離鍵は置換音を止めない。PC／pointer別ID、Sustain・一括Release・Stop・準備中の取消を処理。checkbox focusでPC演奏を妨げていた判定も修正。
+- PCMはMainで一度encodeし、1messageで24既存slotを更新。RAM増加・音符ごとのuploadなし。ADSR／presetも一括patch、Pitchは和音とRelease tailsへ適用。取り込み音声の基準440Hz→112sample周期393.75Hzへの波形変更でも、MIDIとbendからPITCHを再計算して音程を維持。不正pitchはRAM／所有権更新前に拒否し、終了済みnoteは追跡から外す。worklet cacheは`spu-synth-2`。
+- 実WASMを含むNode／preset／allocator／包装試験 **28成功**。source・実ZIP展開先のChromium／WebKitで3section、和音、26押鍵、old Off、Sustain focus、全声PCM／ADSR／FX、bend無再発音、保持中file→cycle音程、保存復元、Stop exact silence、audio retryを確認。最終ZIPは37captures／397,312frames、pilot・callback clock全連続・診断0。1440／390px overflowなし。物理出力mute、実聴／remote CIは未実施。
+- `release/tetorica_spu_synth_dev_itch.zip`を更新、**45files／275,949bytes**、SHA256 `227fe107ecd7f44d18644720b7d52ff68e98ec2fdf3c3bc23817adbd89ca9849`。CRC・全memberと実Browser展開rootの全byte一致、served runtime／checker hashesを確認。旧初版ZIPは`release/tetorica_spu_synth_selected_voice_dev_itch.zip`へ保持。SDK／C++／WASM原本／Tauriは今回変更なし。
+- 詳細：[spu_synth_round_robin_01.md](spu_synth_round_robin_01.md)／[最終Browser](spu_synth_round_robin_browser_01.json)／[配布receipt](spu_synth_round_robin_distribution_01.json)。本体に未commit変更あり。commit・push・npm／SDK／itch公開は行っていない。確認URLは引き続き `http://127.0.0.1:8877/synth-spu/index.html`。次はユーザーの実操作・実聴確認。以下は各時点の履歴。
+
 ## 2026-10-29 — Tetorica SPU Synthの独立Browserアプリ初版
 
 - ユーザー指定の `docs/synth-spu/` に **Tetorica SPU Synth** を新規作成。説明は **PlayStation 1 SPU synthesizer / emulator**。YM2612 Synthの外観とGuitar／Bass／Ukulele鍵盤、既存SPUタブの24声・PCM描画・ADSR図・raw設定・stereo volume／pitch・reverbを利用。本体の英語／日本語トップへ入口を追加。

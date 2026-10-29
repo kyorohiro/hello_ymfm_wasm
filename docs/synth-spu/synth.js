@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {createSpuAudio} from './spu_synth_audio.js';
-import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
+import {createSpuInstrumentPanel} from './spu_synth_panel.js';
+import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js';
@@ -10,26 +11,33 @@ const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
 const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, state = null, stateFrame = null, epoch = 0, assetEpoch = 0, octave = 0, bend = 0;
-const notes = new Map(), lastMidi = new Map(), names = Array(24).fill('Sine');
+const notes = new Map();
+let instrumentName = 'Sine';
 let noteSequence = 0;
+const rmsCanvas = document.createElement('canvas');
+rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 56;
+rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
+const visualizer = createSpuOutputVisualizer({canvas:$('outputCanvas'), envelopeCanvas:rmsCanvas});
 
 function applyState(next) {
   state = next;
+  visualizer.setRunning((next.auditions?.length ?? 0) > 0);
   if (stateFrame !== null) return;
   stateFrame = requestAnimationFrame(() => {
     stateFrame = null;
     panel.update(state);
-    const ch = panel.getSelectedChannel(), sample = state.samples?.find(item => item.id === state.channels[ch].sample);
-    $('sampleName').textContent = `${names[ch]}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
+    const sample = state.samples?.find(item => item.id === state.channels[0].sample);
+    $('sampleName').textContent = `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
+    $('voiceAllocationStatus').textContent = `24 voices · round robin · ${state.auditions?.length ?? 0} held`;
   });
 }
 function audioFailed(error) {
-  const failed = audio; epoch++; notes.clear(); lastMidi.clear(); updateKeys();
+  const failed = audio; epoch++; notes.clear(); updateKeys();
   // Release handlers must see the failed engine, rather than implicitly
   // creating a replacement while disconnecting this panel's note owners.
   panel.setConnected(false); $('startAudio').textContent = 'Enable audio';
+  visualizer.disconnect();
   audio = null;
-  $('refreshVoice').disabled = true;
   if (failed) void failed.dispose().catch(() => {});
   report(error);
 }
@@ -41,13 +49,13 @@ async function ensureAudio() {
       status('Preparing SPU…');
       opening = createSpuAudio({onState:applyState, onError:audioFailed}).then(value => {
         audio = value;
-        names.fill('Sine'); $('instrumentName').value = 'Sine';
+        instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
         audio.setVolume(Number($('masterVolume').value));
+        visualizer.connect(audio.context, audio.gain);
         panel.setConnected(true);
-        $('refreshVoice').disabled = false;
         applyState(audio.state);
         $('startAudio').textContent = 'Audio ready';
-        status(restarting ? 'Audio restarted with Sine voices. Load a saved preset to restore an instrument.' : 'Audio ready. Play a key or hold a voice while editing.');
+        status(restarting ? 'Audio restarted with Sine. Load a saved preset to restore an instrument.' : 'Audio ready. Play notes and edit the instrument.');
         return audio;
       }).catch(error => {
         $('startAudio').textContent = 'Enable audio';
@@ -64,26 +72,32 @@ async function invoke(method, args = []) {
   // Note owners have already awaited resume and checked their press token.
   // Do not yield again here: an Off/Stop must never overtake its pending On.
   const engine = audio ?? await ensureAudio();
-  if (method === 'auditionOn') {
-    lastMidi.set(args[0], args[1]);
-    args = [...args.slice(0, 3), bend];
-  }
-  return engine.command(method, args);
+  const commandEpoch = epoch;
+  const result = await engine.command(method, args);
+  // A live edit may expose a release/reverb tail after the display slept.
+  // Monitoring remains passive, and an intervening Stop cancels this wake.
+  if (method.startsWith('set') && commandEpoch === epoch) visualizer.wake();
+  return result;
 }
-const panel = createPlaygroundPs1VoicePanel({
-  root:$('spuVoicePanel'), invoke, ensureAudioReady:ensureAudio, onError:report,
-  onSelectedChannelChange() {
-    releaseKeyboard(true);
-    $('instrumentName').value = names[panel.getSelectedChannel()];
-  },
-  onKeyboardTargetChange() { $('keyboardMount').scrollIntoView({behavior:'smooth', block:'nearest'}); },
+const panel = createSpuInstrumentPanel({
+  root:$('spuVoicePanel'), envelopeMount:$('monitorEnvelopeMount'), invoke, ensureAudioReady:ensureAudio, onError:report,
 });
-// Keep the shared editor's controls, with copy appropriate to this application.
-for (const node of $('spuVoicePanel').querySelectorAll('p')) {
-  if (node.textContent.includes('Use Sample Editor for recordings')) node.textContent = node.textContent.replace('Use Sample Editor for recordings and longer samples.', 'Use Load audio above for recordings and longer samples.');
-  if (node.textContent.startsWith('The original default waveform')) node.textContent = 'Every voice starts with an editable sine cycle. Load audio or draw a waveform, edit its ADSR, and play the selected voice below. Settings update after edits; no background inspection is running.';
-  if (node.textContent.includes('Use transport Stop')) node.textContent = node.textContent.replace('Use transport Stop', 'Use Stop');
+$('monitorEnvelopeMount').append(rmsCanvas);
+const visualDescriptions = {
+  envelope:'Drag A / D / S / R to shape the envelope. The separate cyan strip measures recent output level.',
+  waveform:'Live SPU output waveform after Master volume. Pitch bends sounding notes without restarting them.',
+  spectrum:'Live SPU output spectrum after Master volume. Frequency increases from left to right.',
+};
+function setVisualMode(mode) {
+  $('monitorEnvelopeMount').hidden = mode !== 'envelope';
+  $('outputCanvas').hidden = mode === 'envelope';
+  $('outputCanvas').setAttribute('aria-label', mode === 'spectrum' ? 'Live SPU output frequency spectrum' : 'Live SPU output waveform');
+  $('visualizerDescription').textContent = visualDescriptions[mode];
+  for (const button of document.querySelectorAll('[data-spu-visual-mode]')) button.setAttribute('aria-pressed', String(button.dataset.spuVisualMode === mode));
+  visualizer.setMode(mode);
 }
+for (const button of document.querySelectorAll('[data-spu-visual-mode]')) button.addEventListener('click', () => setVisualMode(button.dataset.spuVisualMode));
+setVisualMode('envelope');
 
 const fret = createFretboardState(), keyboard = document.createElement('div');
 keyboard.className = 'keyboard'; keyboard.id = 'keyboardKeys';
@@ -121,26 +135,34 @@ function updateKeys() {
 async function press(source, entry) {
   if (notes.get(source)?.released) release(source, true);
   if (notes.has(source)) return;
-  const note = {key:entry.key, midi:entry.midi, channel:panel.getSelectedChannel(), id:`spu-synth:${++noteSequence}`, epoch, started:false};
+  const note = {key:entry.key, midi:entry.midi, channel:null, id:`spu-synth:${++noteSequence}`, epoch, started:false};
   notes.set(source, note); updateKeys();
   try {
     await ensureAudio();
     if (note.epoch !== epoch || notes.get(source) !== note) return;
     note.started = true;
-    await invoke('auditionOn', [note.channel, note.midi, note.id]);
-    status(`${noteName(note.midi)} · Voice ${note.channel + 1}`);
+    const allocation = await invoke('instrumentNoteOn', [note.midi, note.id, bend]);
+    note.channel = allocation.channel;
+    if (allocation.stolenId) for (const [oldSource, old] of notes) if (old.id === allocation.stolenId) notes.delete(oldSource);
+    updateKeys();
+    if (notes.get(source) === note) status(`${noteName(note.midi)} · ${state?.auditions?.length ?? notes.size} notes held`);
   } catch (error) { if (notes.get(source) === note) notes.delete(source); updateKeys(); throw error; }
 }
 function release(source, force = false) {
   const note = notes.get(source); if (!note) return;
   if (!force && $('sustainToggle').checked) {note.released = true; return;}
   notes.delete(source); updateKeys();
-  if (note.started && audio) void audio.command('auditionOff', [note.channel, note.id]).catch(report);
+  if (note.started && audio) void audio.command('instrumentNoteOff', [note.id]).catch(report);
 }
-function releaseKeyboard(force = false) {for (const source of [...notes.keys()]) release(source, force);}
+function releaseKeyboard(force = false) {
+  if (force) {
+    epoch++; notes.clear(); updateKeys();
+    if (audio) void audio.command('instrumentAllNotesOff').catch(report);
+  } else for (const source of [...notes.keys()]) release(source);
+}
 function editing(target) {
   const node = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
-  return node && !node.matches('input[type=range]');
+  return node && !node.matches('input[type=range],input[type=checkbox]');
 }
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {void stop().catch(report); return;}
@@ -153,6 +175,7 @@ window.addEventListener('blur', () => {releaseKeyboard(true); resetBend();});
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {releaseKeyboard(true); panel.setVisible(false); resetBend();}
   else panel.setVisible(true);
+  visualizer.setVisible(!document.hidden);
 });
 $('sustainToggle').addEventListener('change', () => {if (!$('sustainToggle').checked) for (const [source, note] of notes) if (note.released) release(source, true);});
 for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) $(id).addEventListener('click', () => {releaseKeyboard(true); octave = Math.max(-2, Math.min(2, octave + delta)); renderKeyboard();});
@@ -162,35 +185,35 @@ function applyBend() {
   if (bendFrame !== null) return;
   bendFrame = requestAnimationFrame(() => {
     bendFrame = null;
-    const ch = panel.getSelectedChannel(), midi = lastMidi.get(ch);
-    if (audio && midi !== undefined) void audio.command('setPitchBend', [ch, midi, bend]).catch(report);
+    if (audio) void invoke('setInstrumentPitchBend', [bend]).catch(report);
   });
 }
 function resetBend() {$('pitchBend').value = '0'; applyBend();}
 $('pitchBend').addEventListener('input', applyBend);
 for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) $('pitchBend').addEventListener(event, resetBend);
 $('startAudio').addEventListener('click', () => {void ensureAudio().catch(report);});
-$('refreshVoice').addEventListener('click', () => {if (audio) void audio.inspect().catch(report);});
 async function stop() {
   epoch++; notes.clear(); updateKeys(); panel.releaseAll();
+  visualizer.stop();
   $('sustainToggle').checked = false;
   if (opening) {try {await opening;} catch {return;}}
   if (audio) await audio.stop();
+  visualizer.stop();
   status('Stopped. Samples and settings are kept.');
 }
 $('stopAudio').addEventListener('click', () => {void stop().catch(report);});
 $('allNotesOff').addEventListener('click', () => {
   releaseKeyboard(true); panel.releaseAll();
-  if (audio) void audio.command('auditionAllOff').catch(report);
   $('sustainToggle').checked = false;
 });
 $('masterVolume').addEventListener('input', () => {
   const value = Number($('masterVolume').value);
   $('masterVolumeValue').textContent = `${Math.round(value * 100)}%`; audio?.setVolume(value);
+  if (audio) visualizer.wake();
 });
 $('instrumentName').addEventListener('change', () => {
-  const ch = panel.getSelectedChannel(); names[ch] = $('instrumentName').value.trim() || 'Untitled';
-  $('instrumentName').value = names[ch]; if (state) applyState(state);
+  instrumentName = $('instrumentName').value.trim() || 'Untitled';
+  $('instrumentName').value = instrumentName; if (state) applyState(state);
 });
 
 const decodeAudio = createOfflineAudioDecoder({getSampleRate:() => 44100});
@@ -209,7 +232,7 @@ function encodeInWorker(pcm, options) {
 $('loadAudio').addEventListener('click', () => $('audioFileInput').click());
 $('audioFileInput').addEventListener('change', async () => {
   const file = $('audioFileInput').files[0]; $('audioFileInput').value = ''; if (!file) return;
-  const operation = ++assetEpoch, ch = panel.getSelectedChannel();
+  const operation = ++assetEpoch;
   preparation?.cancel();
   const rootNote = Number($('sampleRootNote').value), loop = $('sampleLoop').checked;
   try {
@@ -226,10 +249,10 @@ $('audioFileInput').addEventListener('change', async () => {
     if (operation !== assetEpoch) return;
     const sample = await engine.command('loadADPCM', [encoded.adpcm, {rootNote, ...(loop ? {loopStartSamples:0} : {})}]);
     if (operation !== assetEpoch) return;
-    await engine.command('setPreset', [ch, {sample}]);
+    await engine.command('setInstrumentPreset', [{sample}]);
     if (operation !== assetEpoch) return;
-    names[ch] = file.name.slice(0, 80); if (panel.getSelectedChannel() === ch) $('instrumentName').value = names[ch];
-    status(`Loaded ${file.name} on Voice ${ch + 1} · root ${noteName(rootNote)}${prepared.trimmedFrames ? ` · trimmed ${prepared.trimmedFrames} frames for the loop boundary` : ''}.`);
+    instrumentName = file.name.slice(0, 80); $('instrumentName').value = instrumentName;
+    status(`Loaded ${file.name} · root ${noteName(rootNote)}${prepared.trimmedFrames ? ` · trimmed ${prepared.trimmedFrames} frames for the loop boundary` : ''}.`);
     applyState(await engine.inspect());
   } catch (error) {if (operation === assetEpoch && error.name !== 'AbortError') report(error);}
 });
@@ -241,8 +264,8 @@ function download(name, contents) {
 }
 $('savePreset').addEventListener('click', async () => {
   try {
-    const engine = await ensureAudio(), ch = panel.getSelectedChannel(), name = $('instrumentName').value.trim() || 'Untitled';
-    const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [ch]));
+    const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';
+    const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [0]));
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
     status(`Saved ${name}, including its sample, ADSR and shared reverb settings.`);
   } catch (error) {report(error);}
@@ -250,7 +273,7 @@ $('savePreset').addEventListener('click', async () => {
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
 $('presetFileInput').addEventListener('change', async () => {
   const file = $('presetFileInput').files[0]; $('presetFileInput').value = ''; if (!file) return;
-  const operation = ++assetEpoch, ch = panel.getSelectedChannel();
+  const operation = ++assetEpoch;
   preparation?.cancel();
   try {
     if (file.size > MAX_INSTRUMENT_BYTES) throw new RangeError('Instrument file exceeds 4 MiB');
@@ -264,36 +287,36 @@ $('presetFileInput').addEventListener('change', async () => {
     await stop();
     if (operation !== assetEpoch) return;
     let sample;
-    if (instrument.waveform) sample = await engine.command('setWaveform', [ch, instrument.waveform]);
+    if (instrument.waveform) await engine.command('setInstrumentWaveform', [instrument.waveform]);
     else {const {adpcm, ...options} = instrument.sample; sample = await engine.command('loadADPCM', [adpcm, options]);}
     if (operation !== assetEpoch) return;
-    await engine.command('setPreset', [ch, {...instrument.preset, sample}]);
+    await engine.command('setInstrumentPreset', [{...instrument.preset, ...(sample ? {sample} : {})}]);
     if (operation !== assetEpoch) return;
     await engine.command('setReverb', [instrument.reverb]);
     if (operation !== assetEpoch) return;
-    names[ch] = instrument.name;
-    if (panel.getSelectedChannel() === ch) $('instrumentName').value = instrument.name;
-    status(`Loaded ${instrument.name} on Voice ${ch + 1}.`); applyState(await engine.inspect());
+    instrumentName = instrument.name; $('instrumentName').value = instrumentName;
+    status(`Loaded ${instrument.name}.`); applyState(await engine.inspect());
   } catch (error) {if (operation === assetEpoch) report(error);}
 });
 $('resetPreset').addEventListener('click', async () => {
-  const ch = panel.getSelectedChannel(), operation = ++assetEpoch; preparation?.cancel();
+  const operation = ++assetEpoch; preparation?.cancel();
   try {
     const engine = await ensureAudio();
     if (operation !== assetEpoch) return;
     await stop();
     if (operation !== assetEpoch) return;
     const pcm = Array.from({length:112}, (_, index) => .65 * Math.sin(2 * Math.PI * index / 112));
-    const sample = await engine.command('setWaveform', [ch, pcm]);
+    await engine.command('setInstrumentWaveform', [pcm]);
     if (operation !== assetEpoch) return;
-    await engine.command('setPreset', [ch, {sample, volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
+    await engine.command('setInstrumentPreset', [{volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
     if (operation !== assetEpoch) return;
-    names[ch] = 'Sine'; if (panel.getSelectedChannel() === ch) $('instrumentName').value = 'Sine';
-    status(`Voice ${ch + 1} reset to Sine.`); applyState(await engine.inspect());
+    instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
+    status('Instrument reset to Sine.'); applyState(await engine.inspect());
   } catch (error) {report(error);}
 });
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', event => {
   epoch++; ++assetEpoch; preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
+  if (event.persisted) visualizer.stop(); else visualizer.dispose();
   if (audio) void audio.stop().catch(() => {});
 });
 renderKeyboard();

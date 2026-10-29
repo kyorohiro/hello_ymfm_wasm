@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="PlayStation 1 SPU synthesizer / emulator">
-    <meta name="theme-color" content="#101415">
+    <meta name="theme-color" content="#d1d0cb">
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="../favicon.ico" sizes="any">
     <link rel="stylesheet" href="./synth.css">
@@ -43,6 +43,26 @@
           <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play a note to get started.</p>
         </header>
 
+        <section id="spuMonitor" class="spu-monitor" aria-label="Instrument display">
+          <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+            <button type="button" data-spu-visual-mode="envelope" aria-pressed="true">Envelope</button>
+            <button type="button" data-spu-visual-mode="waveform" aria-pressed="false">Waveform</button>
+            <button type="button" data-spu-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+          </div>
+          <p id="visualizerDescription">Drag A / D / S / R to shape the envelope. Cyan shows live output level.</p>
+          <div class="monitor-body">
+            <div class="monitor-plot">
+              <div id="monitorEnvelopeMount"></div>
+              <canvas id="outputCanvas" width="900" height="240" role="img" aria-label="Live SPU audio visualization" hidden></canvas>
+            </div>
+            <label class="monitor-pitch" for="pitchBend" title="Pitch bend: ±2 semitones. Release to return to the original pitch.">
+              <span>Pitch</span>
+              <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Pitch bend, minus two to plus two semitones" orient="vertical">
+              <output id="pitchValue" for="pitchBend">0.00</output>
+            </label>
+          </div>
+        </section>
+
         <section class="instrument-toolbar" aria-label="Instrument files">
           <div class="sample-actions">
             <button id="loadAudio" type="button">Load audio…</button>
@@ -53,7 +73,7 @@
             <button id="loadPreset" type="button">Load preset…</button>
             <input id="presetFileInput" class="file-input" type="file" accept="application/json,.json" aria-label="Choose an SPU preset">
             <button id="savePreset" type="button">Save preset…</button>
-            <button id="resetPreset" class="quiet-button" type="button">Reset voice</button>
+            <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
           </div>
           <div class="sample-settings">
             <label for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
@@ -62,19 +82,14 @@
           </div>
         </section>
 
-        <section class="voice-workspace" aria-labelledby="voiceHeading">
-          <div class="section-heading">
-            <h2 id="voiceHeading">Voice studio</h2>
-            <p>Choose a voice. Draw its waveform, shape its envelope, and play.</p>
-            <button id="refreshVoice" class="quiet-button" type="button" disabled>Refresh voice</button>
-          </div>
+        <section class="instrument-workspace" aria-label="Instrument editor">
           <div id="spuVoicePanel" class="chip-editor"></div>
         </section>
 
         <section class="keyboard-section" aria-labelledby="keyboardHeading">
           <div class="section-heading">
             <h2 id="keyboardHeading">Keyboard</h2>
-            <p>Play the selected voice with your computer keyboard or the keys below.</p>
+            <p>Play this instrument with your computer keyboard or the keys below.</p>
           </div>
           <div class="keyboard-toolbar">
             <div class="octave-control" role="group" aria-label="Keyboard octave">
@@ -83,15 +98,10 @@
               <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
             </div>
             <label class="check-control" for="sustainToggle"><input id="sustainToggle" type="checkbox"> Sustain</label>
-            <label class="pitch-control" for="pitchBend">
-              <span>Pitch ±2</span>
-              <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Pitch bend, minus two to plus two semitones">
-              <output id="pitchValue" for="pitchBend">0.00</output>
-            </label>
             <button id="allNotesOff" class="quiet-button" type="button">Release notes</button>
           </div>
           <div id="keyboardMount" class="keyboard-mount" aria-label="Playable keyboard"></div>
-          <p class="keyboard-hint">Release notes follows the voice’s release envelope. Stop all sound also clears held notes and reverb tails.</p>
+          <p class="keyboard-hint"><output id="voiceAllocationStatus">24 voices · round robin</output>. Release notes follows the instrument’s release envelope. Stop all sound also clears held notes and reverb tails.</p>
         </section>
       </article>
 

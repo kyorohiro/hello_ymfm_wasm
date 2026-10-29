@@ -1,5 +1,8 @@
 # Tetorica SPU Synth — standalone sound laboratory
 
+This is the historical first selected-voice implementation. The current UI
+uses [one common instrument and a round-robin keyboard](spu_synth_round_robin_01.md).
+
 Date: 2026-10-29
 
 Product name: **Tetorica SPU Synth**
