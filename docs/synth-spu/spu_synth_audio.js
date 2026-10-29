@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-waveform-1';
+import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readPmon, pmonPcm} from './spu_synth_pmon.js';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 
 export const SPU_SYNTH_CALIBRATED_GAIN = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(entry => entry.name === 'ps1').volume;
+export const SPU_SYNTH_OUTPUT_GAIN = SPU_SYNTH_CALIBRATED_GAIN * SPU_SYNTH_MIX_HEADROOM;
 const initialWaveform = () => preparePs1Waveform(Array.from({length:112}, (_, i) => .65 * Math.sin(2 * Math.PI * i / 112)));
 
 /** A standalone Web Audio instrument. Startup creates a suspended context;
@@ -64,7 +66,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-morph-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-headroom-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -91,7 +93,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     const metadata = await ready;
     assertOpen();
     gain = context.createGain();
-    gain.gain.value = volume * SPU_SYNTH_CALIBRATED_GAIN;
+    gain.gain.value = volume * SPU_SYNTH_OUTPUT_GAIN;
     node.connect(gain);
     gain.connect(context.destination);
     publish(metadata.state);
@@ -132,7 +134,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         // smooth even when a user moves the slider before a ramp finishes.
         if (typeof parameter.cancelAndHoldAtTime === 'function') parameter.cancelAndHoldAtTime(now);
         else {const current = parameter.value; parameter.cancelScheduledValues(now); parameter.setValueAtTime(current, now);}
-        parameter.linearRampToValueAtTime(value * SPU_SYNTH_CALIBRATED_GAIN, now + .01);
+        parameter.linearRampToValueAtTime(value * SPU_SYNTH_OUTPUT_GAIN, now + .01);
       },
       dispose,
     };

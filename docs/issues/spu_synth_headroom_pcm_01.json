@@ -1,0 +1,519 @@
+{
+  "date": "2026-10-30",
+  "engine": "actual shipped SPU WASM via standalone AudioWorklet processor at 44100 Hz",
+  "waveforms": [
+    "Sine",
+    "Triangle"
+  ],
+  "nativeFramesPerCase": 65536,
+  "warmupFrames": 4096,
+  "voiceInputGain": 0.25,
+  "outputCompensation": 4,
+  "beforeRevision": "51f586298f590a71ffb53673d12bdbcfb36d9199",
+  "before": [
+    {
+      "shape": "sine",
+      "notes": [
+        60
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.48574915528297424,
+      "expectedUnclippedPeak": 0.48584072291851044,
+      "nonlinearErrorRms": 4.352302173750164e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        60,
+        64
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.9713762402534485,
+      "expectedUnclippedPeak": 0.9714983403682709,
+      "nonlinearErrorRms": 6.890422583466589e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.9714067578315735,
+      "expectedUnclippedPeak": 0.9714983403682709,
+      "nonlinearErrorRms": 6.870760613126976e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        60,
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.99993896484375,
+      "expectedUnclippedPeak": 1.4525785446166992,
+      "nonlinearErrorRms": 0.06662263487463418,
+      "distortedFrames": 6694,
+      "saturatedFrames": 6719,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.4801647961139679,
+      "expectedUnclippedPeak": 0.4801647663116455,
+      "nonlinearErrorRms": 4.24991479243962e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60,
+        64
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.9595056176185608,
+      "expectedUnclippedPeak": 0.9595972001552582,
+      "nonlinearErrorRms": 6.673562769201877e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.9577967524528503,
+      "expectedUnclippedPeak": 0.9578577876091003,
+      "nonlinearErrorRms": 6.635871818729879e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60,
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.99993896484375,
+      "expectedUnclippedPeak": 1.4118400812149048,
+      "nonlinearErrorRms": 0.026452269016912854,
+      "distortedFrames": 2256,
+      "saturatedFrames": 2270,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    }
+  ],
+  "after": [
+    {
+      "shape": "sine",
+      "notes": [
+        60
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.12145254760980606,
+      "expectedUnclippedPeak": 0.12148305773735046,
+      "nonlinearErrorRms": 4.139141760756784e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        60,
+        64
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.24290509521961212,
+      "expectedUnclippedPeak": 0.24296611547470093,
+      "nonlinearErrorRms": 7.387406637469516e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.24290509521961212,
+      "expectedUnclippedPeak": 0.24296611547470093,
+      "nonlinearErrorRms": 7.370404970206957e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "sine",
+      "notes": [
+        60,
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.36313700675964355,
+      "expectedUnclippedPeak": 0.36325907707214355,
+      "nonlinearErrorRms": 0.00010606965529224797,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.12004882097244263,
+      "expectedUnclippedPeak": 0.12001830339431763,
+      "nonlinearErrorRms": 4.1487862012181454e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60,
+        64
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.23988403379917145,
+      "expectedUnclippedPeak": 0.23985352367162704,
+      "nonlinearErrorRms": 7.426797184138092e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.23945681750774384,
+      "expectedUnclippedPeak": 0.23939578235149384,
+      "nonlinearErrorRms": 7.41151549132711e-05,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    },
+    {
+      "shape": "triangle",
+      "notes": [
+        60,
+        64,
+        67
+      ],
+      "voiceVolume": 0.75,
+      "lowVolumeReference": 0.25,
+      "peak": 0.3529752790927887,
+      "expectedUnclippedPeak": 0.3529142439365387,
+      "nonlinearErrorRms": 0.00010667900476444674,
+      "distortedFrames": 0,
+      "saturatedFrames": 0,
+      "frames": 65536,
+      "masks": {
+        "pmon": [
+          0,
+          0
+        ],
+        "noise": [
+          0,
+          0
+        ]
+      },
+      "effects": {
+        "pmon": false,
+        "morph": false,
+        "noise": false,
+        "reverb": "off"
+      }
+    }
+  ],
+  "sourceSha256": {
+    "docs/generated/ps1_spu_wasm.wasm": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0",
+    "docs/synth-spu/spu_synth_worklet.js": "51d1bdec998f7b4f916deb62d7add79b28becc03ce6339fc48acc03825f89a16",
+    "docs/synth-spu/spu_synth_audio.js": "66ff62074888a067fbd782bca5fccb9b4119b43f57e418a61b5b2b1cc8992091",
+    "docs/synth-spu/spu_synth_levels.js": "1f5b3230a93bcb09d99c6d0a729b7c22c30e909c0e18d1985f3aa5aab0bcffd1"
+  }
+}

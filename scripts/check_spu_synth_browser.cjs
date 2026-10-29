@@ -702,6 +702,28 @@ async function checkMorph(page,name) {
   return {softwareLabel:true,dualMorphControls:true,upperMorphWorksOutsidePcm:true,morphRetainsOnRelease:true,performancePcm,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
 }
 
+async function checkSineChordHeadroom(page) {
+  console.log('CHECK Sine headroom: C/E/G with all effects Off / compensated single level');
+  const keys=await page.locator('#keyboardMount .key[data-key]').evaluateAll(nodes=>['C3','E3','G3'].map(note=>{
+    const key=nodes.find(node=>node.querySelector('span')?.textContent.trim()===note);return key?{note,key:key.dataset.key}:null;
+  }));assert(keys.every(Boolean),'C/E/G notes are available on the visible keyboard');
+  await page.locator('h1').click();await page.keyboard.down(keys[0].key);await settled(page);
+  const single=await capture(page,65536);assertPcm(single,'Single C Sine');
+  await page.keyboard.up(keys[0].key);await settled(page);await silent(page,'Single C release');
+  for(const {key} of keys)await page.keyboard.down(key);
+  const state=await settled(page),triad=await capture(page,65536);assertPcm(triad,'C major Sine');
+  assert.equal(state.auditions.length,3);assert(!state.pmon.enabled&&!state.noise.enabled&&!state.morph.enabled);assert.equal(state.reverb.preset,'off');
+  assert(state.channels.every(ch=>ch.volumeLeft===.75&&ch.volumeRight===.75),'authored preset volume is preserved');
+  for(let ch=0;ch<2;ch++) {
+    assert(single.channels[ch].peak>.03&&single.channels[ch].peak<.06,'single-note calibrated loudness stays at its prior level');
+    assert(triad.channels[ch].peak>single.channels[ch].peak*2.3,'C major has more peak headroom than the former saturated mix');
+    assert(triad.channels[ch].peak<.2,'unclipped compensated triad remains below output full scale');
+  }
+  for(const {key} of keys)await page.keyboard.up(key);await settled(page);
+  await page.locator('#stopAudio').click();await silent(page,'Sine chord Stop');
+  return {notes:keys.map(k=>k.note),allEffectsOff:true,authoredVolumePreserved:true,single,triad};
+}
+
 // No private production hooks, injected chip calls or fake renderers are used.
 async function runCase(browser, name, origin) {
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1440, height:1100}, acceptDownloads:true});
@@ -740,6 +762,7 @@ async function runCase(browser, name, origin) {
     await page.waitForTimeout(250);
     const idleCommands = await page.evaluate(from => __spuSynthAudit.commands.slice(from), idleFrom);
     assert(!idleCommands.some(command => ['inspect', 'getState'].includes(command.method)), 'An idle editor performs no background SPU inspection');
+    const sineHeadroom=await checkSineChordHeadroom(page);
     const monitor = await checkMonitor(page, keyboardHz);
     monitor.wake = await checkMonitorWake(page, keyboardHz);
     editorTabs.heldNote = await checkEditorTabsDuringSound(page, keyboardHz);
@@ -928,7 +951,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, pmon, noise, morph, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, pmon, noise, morph, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

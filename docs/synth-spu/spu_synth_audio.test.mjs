@@ -16,6 +16,7 @@ import {SpuRoundRobinVoices} from './spu_synth_voices.js';
 import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
+import {SPU_SYNTH_MIX_HEADROOM,spuSynthVoiceVolume} from './spu_synth_levels.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -24,13 +25,13 @@ const peak = values => values.reduce((maximum, value) => Math.max(maximum, Math.
 
 test('main thread encodes one instrument wave once and sends no per-key sample uploads', async t => {
   const audioSource = await readFile(new URL('./spu_synth_audio.js', import.meta.url), 'utf8');
-  const requests = [];
+  const requests = [],gainParameters=[];
   let encodes = 0, createAudio;
   class Context {
-    constructor() {this.state = 'suspended'; this.audioWorklet = {addModule:async () => {}};}
+    constructor() {this.currentTime=0;this.state = 'suspended'; this.audioWorklet = {addModule:async () => {}};}
     addEventListener() {}
     removeEventListener() {}
-    createGain() {return {gain:{value:1}, connect() {}, disconnect() {}};}
+    createGain() {const gain={value:1,cancelAndHoldAtTime(){},linearRampToValueAtTime(value){this.value=value;}};gainParameters.push(gain);return {gain,connect(){},disconnect(){}};}
     async close() {this.state = 'closed';}
   }
   class WorkletNode {
@@ -48,13 +49,15 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    readPmon, pmonPcm, readMorph, morphPcm, AudioContext:Context, AudioWorkletNode:WorkletNode,
+    readPmon, pmonPcm, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
     setTimeout, clearTimeout, provide:value => {createAudio = value;},
   });
   const audio = await createAudio(); t.after(() => audio.dispose());
+  assert.equal(gainParameters[0].value,.128832*SPU_SYNTH_MIX_HEADROOM,'post-chip gain compensates fixed voice attenuation');
+  audio.setVolume(.7);assert.equal(gainParameters[0].value,.7*.128832*SPU_SYNTH_MIX_HEADROOM,'Master ramps retain compensation');
   assert.equal(encodes, 1, 'initial cycle is prepared once before Worklet creation');
   const pcm = Array.from({length:112}, (_, i) => .5 * Math.sin(2 * Math.PI * i / 112));
   await audio.command('setInstrumentWaveform', [pcm]);
@@ -97,13 +100,14 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
     import {readNoise} from ${url('./spu_synth_noise.js')};
     import {readMorph, morphPcm} from ${url('./spu_synth_morph.js')};
+    import {spuSynthVoiceVolume} from ${url('./spu_synth_levels.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, spuSynthVoiceVolume, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -134,7 +138,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, spuSynthVoiceVolume, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -163,7 +167,7 @@ for (const rate of [44100, 48000]) test(`standalone SPU renders exact core PCM a
   const p = await setup(rate); t.after(() => p.close());
   const core = await Ps1Spu.create({moduleFactory:factory, moduleOptions:{wasmBinary}}), synth = new Ps1Synth({core});
   t.after(() => synth.dispose());
-  for (let ch = 0; ch < 24; ch++) {const sample = synth._setWaveformPrepared(ch, sine()); synth.setPreset(ch, {sample});}
+  for (let ch = 0; ch < 24; ch++) {const sample = synth._setWaveformPrepared(ch, sine()); synth.setPreset(ch, {sample,volumeLeft:.75/SPU_SYNTH_MIX_HEADROOM,volumeRight:.75/SPU_SYNTH_MIX_HEADROOM});}
   const direct = new Ps1Resampler(synth, rate), initial = p.command('inspect');
   assert.equal(initial.samples.length, 24);
   assert(initial.channels.every((voice, ch) => voice.sample === ch && voice.waveform.pcm.length === 112));
@@ -587,7 +591,7 @@ test('PMON keeps the authored instrument separate from its source, validates ato
   p.command('setInstrumentWaveform',[preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.4:-.4)),{retrigger:true}]);
   assert.equal(core.read(0),0);assert.equal(core.read(2),0);assert.equal(core.read(6),sourceAddress);
   assert.equal(core.read(8),15,'carrier ADSR edits do not alter the source Attack');
-  assert.equal(core.read(16),Math.round(.4*0x3fff));
+  assert.equal(core.read(16),spuSynthVoiceVolume(.4));
   const saved=p.command('getInstrument',[0]);
   assert.equal(saved.preset.volumeLeft,.4);assert.equal(saved.preset.adsr1,0x100f);
   assert.equal(saved.sample.adpcm.length,64);assert.equal(saved.waveform[0],Math.fround(.4),'save exports the carrier waveform');
@@ -733,4 +737,48 @@ test('Software morph keeps PMON pairs and Noise independent, Stop retains its se
   assert(p.command('inspect').noise.enabled);assert(peak(p.render(4096).left)>.001);
   p.command('setInstrumentMorph',[{...config,enabled:false}]);
   assert.deepEqual(p.command('getInstrument',[0]).waveform,morphPcm(config),'Off freezes the last blend');
+});
+
+test('Sine C/E/G stays linear with PMON Off; fixed headroom preserves the sum of separately played notes',async t=>{
+  async function signal(notes,patch={}) {
+    const p=await setup(44100);t.after(()=>p.close());
+    if(Object.keys(patch).length)p.command('setInstrumentPreset',[patch]);
+    for(const [i,note] of notes.entries())p.command('instrumentNoteOn',[note,`note-${i}`]);
+    p.render(4096);return {p,pcm:p.render(65536).left};
+  }
+  const single=await Promise.all([60,64,67].map(note=>signal([note])));
+  for(const indices of [[0,1],[1,2],[0,1,2]]) {
+    const {p,pcm}=await signal(indices.map(i=>[60,64,67][i]));
+    let maximumError=0,squaredError=0,saturated=0;
+    for(let i=0;i<pcm.length;i++) {
+      const expected=indices.reduce((sum,ch)=>sum+single[ch].pcm[i],0),error=pcm[i]-expected;
+      maximumError=Math.max(maximumError,Math.abs(error));squaredError+=error*error;
+      if(Math.abs(pcm[i])>.9998)saturated++;
+    }
+    assert.equal(saturated,0);assert(maximumError<.0002,`chord adds linearly: ${maximumError}`);
+    assert(Math.sqrt(squaredError/pcm.length)<.0001);
+    assert.equal(p.processor.synth.core.read(0x190),0);assert.equal(p.processor.synth.core.read(0x192),0);
+    assert(p.command('inspect').channels.every(ch=>ch.volumeLeft===.75&&ch.volumeRight===.75));
+    assert.equal(p.processor.synth.core.read(0),spuSynthVoiceVolume(.75));
+    assert(peak(pcm)*SPU_SYNTH_MIX_HEADROOM*.129331<1,'compensated calibrated output is below full scale');
+  }
+  const {pcm:eight}=await signal(Array(8).fill(60));
+  assert(peak(eight)<.99,'even eight phase-aligned default Sines fit the SPU accumulator');
+  let maximum=0;for(let i=0;i<eight.length;i++)maximum=Math.max(maximum,Math.abs(eight[i]-8*single[0].pcm[i]));
+  assert(maximum<.001,'fixed headroom has no voice-count pumping');
+});
+
+test('headroom protects full-amplitude three-note samples and keeps signed authored volumes portable',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  const wave=preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?1:-1));
+  p.command('setInstrumentWaveform',[wave]);
+  p.command('setInstrumentPreset',[{volumeLeft:-1,volumeRight:1}]);
+  for(const [i,note] of [60,64,67].entries())p.command('instrumentNoteOn',[note,`full-${i}`]);
+  p.render(4096);const {left,right}=p.render(65536);
+  assert(peak(left)<.76&&peak(right)<.76,'three full-volume, full-amplitude sources have input headroom');
+  const saved=p.command('getInstrument',[0]);assert.equal(saved.preset.volumeLeft,-1);assert.equal(saved.preset.volumeRight,1);
+  assert.deepEqual(saved.waveform,wave.pcm);assert.deepEqual(saved.sample.adpcm,wave.adpcm);
+  assert.equal(p.processor.synth.core.read(0),spuSynthVoiceVolume(-1));assert.equal(p.processor.synth.core.read(2),spuSynthVoiceVolume(1));
+  p.command('stop');p.command('instrumentNoteOn',[60,'replay']);
+  assert.equal(p.processor.synth.core.read(0),spuSynthVoiceVolume(-1),'Stop and replay retain physical attenuation');
 });

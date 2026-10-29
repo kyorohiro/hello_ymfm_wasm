@@ -6,6 +6,7 @@ import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
+import {spuSynthVoiceVolume} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
@@ -49,6 +50,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       }
       this.inspector = new Ps1VoiceInspector(this.synth, {sampleRate});
       this.resampler = new Ps1Resampler(this.synth, sampleRate);
+      this.syncModulators();
       this.port.postMessage({ready:true, sampleRate, nativeSampleRate:44100, state:this.readState()});
     }).catch(error => this.fail(error));
   }
@@ -254,6 +256,14 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
   syncModulators() {
     const core=this.synth.core;
+    // Keep the authored preset (and exported files) unchanged. Attenuate only
+    // physical voice volumes before accumulation. OUTX for PMON precedes these
+    // volumes, so source depth/decay and the silent modulators are preserved.
+    for(let ch=0;ch<24;ch++) {
+      const preset=this.synth.channels[ch],silent=this.pmon.enabled&&ch%2===0;
+      core.write(ch*16,silent?0:spuSynthVoiceVolume(preset.volumeLeft));
+      core.write(ch*16+2,silent?0:spuSynthVoiceVolume(preset.volumeRight));
+    }
     core.write(0x194,this.noise.enabled ? 0xffff : 0);
     core.write(0x196,this.noise.enabled ? 0xff : 0);
     core.write(0x1aa,(core.read(0x1aa)&~0x3f00)|((this.noise.enabled ? this.noise.clock : 0)<<8));

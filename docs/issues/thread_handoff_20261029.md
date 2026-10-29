@@ -4,6 +4,13 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続修正：2026-10-30 Sine和音の内部飽和
+
+ユーザー報告のSineドミソの異音は、PMON Offでも起きるSPU内部の加算飽和と再現確認。
+standaloneの物理voice音量を1/4にし、後段で4倍補償。単音の音量と保存presetの音量値を維持した。
+[原因・測定・修正・試用ZIP](spu_synth_headroom_01.md) を参照。未commit・未公開。
+Masterを下げるだけでは直らない。SDK／WASM／校正policyは変更していない。
+
 ## 後続UI：2026-10-29 Morphを2か所で操作
 
 ユーザー指定で、PCM内のMorphつまみを残し、Pitch右隣にも縦型Morphを追加。
