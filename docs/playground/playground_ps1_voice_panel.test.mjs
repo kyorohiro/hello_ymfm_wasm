@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import {createPlaygroundPs1VoicePanel, ps1VoiceCode} from './playground_ps1_voice_panel.js';
 import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js';
 import {decodePs1Envelope} from '../js/ps1_parameters.js';
+import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Events {
@@ -57,6 +58,31 @@ function fixture(options = {}) {
   return {root, doc, win, calls, targets, errors, copied, panel, frame};
 }
 async function change(root, name, value) {const node = control(root, name); if (node.type === 'checkbox') node.checked = value; else node.value = String(value); await node.fire('change');}
+
+test('VAB picker opens without audio writes, loads the selected physical voice and rejects bad banks without replacing its list',async()=>{
+  const {vab,vh,vb}=createVabFixture();
+  const f=fixture({enableVabImport:true,invoke:async(method,args)=>{f.calls.push([method,args]);return {byteLength:args[1]?.length};}});
+  const file=control(f.root,'vab-file');file.files=[{name:'bank.vab',size:vab.length,arrayBuffer:async()=>vab.buffer}];
+  await file.fire('change');assert.equal(control(f.root,'vab-tone').children.length,3);assert.deepEqual(f.calls,[]);
+  await channel(f.root,23).fire('click');control(f.root,'vab-tone').value='1';await action(f.root,'vab-load').fire('click');
+  assert.equal(f.calls.length,1);assert.equal(f.calls[0][0],'loadTone');assert.equal(f.calls[0][1][0],23);assert.equal(f.calls[0][1][2].baseFrequencyHz,440*2**((59.5-69)/12));
+  assert.match(output(f.root,'vab-status').textContent,/into Voice 24/);
+  file.files=[{name:'bad.vab',size:2,arrayBuffer:async()=>new ArrayBuffer(2)}];await file.fire('change');
+  assert.equal(control(f.root,'vab-tone').children.length,3);assert.match(output(f.root,'vab-status').textContent,/Previous bank is kept/);assert.equal(f.calls.length,1);
+  file.files=[{name:'pair.vb',size:vb.length,arrayBuffer:async()=>vb.buffer},{name:'pair.vh',size:vh.length,arrayBuffer:async()=>vh.buffer}];await file.fire('change');
+  assert.match(output(f.root,'vab-status').textContent,/pair.vh: 2 programs/);f.panel.dispose();
+});
+
+test('changing selected voice or hiding the panel fences a delayed VAB read and leaves audio untouched',async()=>{
+  const f=fixture({enableVabImport:true}),file=control(f.root,'vab-file'),{vab}=createVabFixture();
+  for(const cancel of [()=>channel(f.root,1).fire('click'),()=>f.panel.setVisible(false),()=>f.panel.setConnected(false)]) {
+    f.panel.setConnected(true);f.panel.setVisible(true);
+    let resolve;file.files=[{name:'later.vab',size:vab.length,arrayBuffer:()=>new Promise(r=>resolve=r)}];
+    const pending=file.fire('change');await flush();await cancel();resolve(vab.buffer);await pending;
+    assert.equal(control(f.root,'vab-tone').children.length,0);assert.deepEqual(f.calls,[]);
+  }
+  f.panel.dispose();
+});
 
 test('PS1 readback exposes 24 voices, decoded ADSR and shared reverb without audio writes', () => {
   const {root, calls, panel} = fixture();

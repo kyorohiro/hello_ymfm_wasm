@@ -1,5 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {patchPs1Envelope} from './ps1_parameters.js?v=ps1-voice-editor-1';
+import {preparePs1ADPCM} from './ps1synth.js?v=ps1-cyclic-1';
 const channel=value=>{if(!Number.isInteger(value)||value<0||value>23)throw new RangeError('PS1 SPU channel must be 0..23');return value;};
 function identity(value){if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;}
 function retriggerOption(value={}){
@@ -12,13 +13,31 @@ function envelopeOptions(value={}){
 }
 /** Applied instrument state and identity-safe manual channel leases. Reads do not render. */
 export class Ps1VoiceInspector {
-  /** @param {import('./ps1synth.js?v=audio-stability-2').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
+  /** @param {import('./ps1synth.js').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
   constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{},onResourcesChanged=()=>{}}={}){
     this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.onResourcesChanged=onResourcesChanged;this.auditions=new Map();
   }
   resetAuditions(){for(const [ch,id]of this.auditions)this.endAudition(ch,identity(id));this.auditions.clear();}
   read(){const state=this.synth.getState();return {...state,channels:state.channels.map((p,channel)=>({...p,channel,active:p.gate,type:'spu-adpcm'})),kind:'ps1',sampleRate:this.sampleRate,nativeSampleRate:44100,auditions:[...this.auditions].map(([channel,id])=>({channel,id}))};}
   invoke(method,args=[]){
+    if(method==='loadTone'){
+      const ch=channel(args[0]),prepared=preparePs1ADPCM(args[1],args[2]),preset=args[3];
+      if(!preset||typeof preset!=='object'||Array.isArray(preset)||Reflect.ownKeys(preset).some(key=>!['adsr1','adsr2','pitch','volumeLeft','volumeRight','reverb'].includes(key)))throw new TypeError('Expected an SPU Tone preset without a sample ID');
+      this.synth._preset(ch,preset);
+      // Reuse only an actual matching public sample. Comparing current bytes
+      // avoids stale sample IDs when Run/reset replaces the live bank.
+      let sample=this.synth.samples.find(entry=>entry.editorChannel===undefined &&
+        entry.rootFrequencyHz===prepared.rootFrequencyHz && entry.loopStartSamples===prepared.loopStartSamples &&
+        entry.byteLength===prepared.adpcm.length && this.synth.sampleBytes[entry.id]?.every((byte,index)=>byte===prepared.adpcm[index]));
+      // loadADPCM checks capacity before touching RAM. Invalid data/presets or
+      // insufficient RAM therefore keep the old voice and manual lease intact.
+      if(!sample){sample=this.synth.loadADPCM(prepared.adpcm,args[2]);this.onResourcesChanged();}
+      const held=this.auditions.get(ch);
+      if(held)this.invoke('auditionOff',[ch,held]);
+      this.dispatch({method:'keyOff',args:[ch]},undefined,{preserveOwner:true});
+      this.dispatch({method:'setPreset',args:[ch,{...preset,sample:sample.id}]},undefined,{preserveOwner:true});
+      return sample;
+    }
     if(method==='auditionAllOff'){for(const [ch,id]of [...this.auditions])this.invoke('auditionOff',[ch,id]);return true;}
     if(method==='auditionOff'){
       const[ch,id]=args;channel(ch);const owner=identity(id);if(this.auditions.get(ch)!==id)return false;

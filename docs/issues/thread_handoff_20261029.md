@@ -4,6 +4,13 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続UI：2026-10-30 PlaygroundでのVAB試奏
+
+SPUタブのSelected ADPCM voiceにVAB／VH＋VBの読み込みとTone選択を追加。選択Voiceだけへ適用して既存Hold／Sustain／Keyboardで試奏する。
+ソース版Chromium・WebKit × Main・Workerで成功。Native primary／additionalの実RAM・PCMもNode検証。
+[操作・検証・ローカル試用URL](playground_spu_vab_01.md) を参照。PSF抽出は未着手。
+配布ZIP作成は音量校正のsource freshnessチェックで停止しており、公開前に校正証拠の更新が必要。測定report・gainの書き換えや公開は行っていない。
+
 ## 後続機能：2026-10-30 VAB音色インポート
 
 標準Sony VAB v6／v7とVH＋VBをAudioタブから読み込み、単一Toneを選んで演奏・preset保存する初版を追加。

@@ -11,6 +11,8 @@ import {createProcessorPerformance} from './playground_performance_processor.js'
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {preparePs1Waveform} from './ps1_waveform.js';
 import {createPerformanceSender} from './playground_performance_sender.js';
+import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
+import {readVab,prepareVabTone} from '../docs/playground/playground_ps1_vab.js';
 const peak=a=>a.reduce((m,n)=>Math.max(m,Math.abs(n)),0);
 const waveform=()=>preparePs1Waveform(Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)));
 let assets;
@@ -25,6 +27,37 @@ async function setup(rate=48000){
   main.port2.postMessage({port:remote.port1},[remote.port1]);const client=createPs1Client(remote.port2,metadata);await client.getState();
   return{processor,client,scope,metadata,factory,wasmBinary,render(frames){const left=new Float32Array(frames),right=new Float32Array(frames),active=processor.process([],[[left,right]]);scope.currentFrame+=frames;return{left,right,active};},close(){client.dispose();processor.dispose();main.port1.close();main.port2.close();remote.port2.close();}};
 }
+
+test('VAB Tone upload edits only the selected voice, keeps sibling PCM exact and synchronizes Main/Worker resources',async t=>{
+ const a=await setup(),b=await setup();t.after(()=>{a.close();b.close();});
+ const secondary=new MessageChannel();a.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2,a.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});await worker.getState();
+ for(const p of[a,b]){p.client.noteOn(1,69);await p.client.getState();}assert.deepEqual(a.render(1024).left,b.render(1024).left);
+ const tone=prepareVabTone(readVab(createVabFixture().vab),1),inspector=a.processor.inspector;
+ const sample=inspector.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]);
+ assert.deepEqual(a.render(8192).left,b.render(8192).left,'another voice continues at the exact same PCM phase');
+ const state=inspector.read();assert.equal(state.channels[23].sample,sample.id);assert.equal(state.channels[23].adsr1,15);assert.equal(state.channels[23].adsr2,0);
+ assert.equal(state.channels[1].sample,0);assert.deepEqual(a.processor.synth.sampleBytes[sample.id],tone.adpcm);
+ await worker.getState();await a.client.getState();assert.deepEqual(worker._getState().samples,a.client._getState().samples);assert.equal(worker._getState().samples.at(-1).rootFrequencyHz,tone.options.baseFrequencyHz);
+ const count=state.samples.length,address=state.nextAddress;
+ assert.equal(inspector.invoke('loadTone',[22,tone.adpcm,tone.options,tone.preset]).id,sample.id);assert.equal(inspector.read().nextAddress,address);assert.equal(inspector.read().samples.length,count);
+ inspector.invoke('auditionOn',[23,60,'imported']);assert.equal(a.processor.synth.core.read(23*16+4),Math.round(4096*2**(.5/12)));
+ a.processor.stopVoices();worker.reset({clearRam:true});await worker.getState();
+ const fresh=inspector.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]);assert.equal(fresh.id,0);assert.equal(fresh.startAddress,4096);
+});
+
+test('invalid or oversized Tone uploads preserve RAM, registers, resources and the sounding manual lease',async t=>{
+ const p=await setup();t.after(()=>p.close());const tone=prepareVabTone(readVab(createVabFixture().vab),1),inspector=p.processor.inspector;
+ inspector.invoke('auditionOn',[23,69,'held']);p.render(512);
+ const snapshot=()=>({state:inspector.read(),snapshot:p.processor.synth.snapshot(),revision:p.processor.resourceRevision});
+ const before=snapshot(),bad=tone.adpcm.slice();bad[0]=0xf0;
+ for(const args of [[23,bad,tone.options,tone.preset],[23,tone.adpcm,tone.options,{...tone.preset,volumeLeft:2}],[24,tone.adpcm,tone.options,tone.preset],[23,tone.adpcm,tone.options,{...tone.preset,sample:0}]])assert.throws(()=>inspector.invoke('loadTone',args));
+ assert.deepEqual(snapshot(),before);
+ const filler=new Uint8Array(524288-p.processor.synth.nextAddress);filler[filler.length-15]=1;
+ await p.client.loadADPCM(filler,{rootNote:60});
+ const full=snapshot();assert.throws(()=>inspector.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]),/RAM/);assert.deepEqual(snapshot(),full);
+ assert.equal(inspector.auditions.get(23),'held');assert(peak(p.render(2048).left)>.01);
+});
 
 test('PS1 editor waveform reuse does not change a sibling voice, its phase or shared RAM',async t=>{
  const a=await setup(),b=await setup();t.after(()=>{a.close();b.close();});

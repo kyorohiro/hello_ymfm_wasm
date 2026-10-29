@@ -12,6 +12,8 @@ import {createPerformanceSender} from './playground_performance_sender.js';
 import {MessageChannel,Worker as NodeWorker} from 'node:worker_threads';
 import {createPlaygroundRuntime} from './playground_runtime.js';
 import {PS1_MEMORY_HELD_ERROR,PS1_STATE_HELD_ERROR} from './native_genesis_ps1.js';
+import {createVabFixture} from '../test/helpers/spu_vab_fixture.mjs';
+import {readVab,prepareVabTone} from '../docs/playground/playground_ps1_vab.js';
 
 let module;
 async function fixture(t,{mode='ps1'}={}){
@@ -82,6 +84,26 @@ async function fixture(t,{mode='ps1'}={}){
 }
 const rpc=async(endpoint,message,timing)=>{const result=await endpoint.dispatch(message,timing);return result?.deferred?await result.deferred:result;};
 const peak=values=>values.reduce((a,v)=>Math.max(a,Math.abs(v)),0);
+
+for(const additional of [false,true])test(`Native ${additional?'additional':'primary'} VAB Tone imports actual RAM, retires only its selected lease, reuses samples and rejects invalid data atomically`,async t=>{
+  const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'vab'}):null;
+  const endpoint=device?.endpoint??f.synth.nativePs1,client=device?.client??f.synth.spu,core=device?f.rack.get(device.nativeInstance).core:f.primary.core;
+  const bank=readVab(createVabFixture().vab),tone=prepareVabTone(bank,1);
+  if(additional){const init=createPs1InitSample(),sample=await client.loadADPCM(init.adpcm,{baseFrequencyHz:init.baseFrequencyHz,loopStartSamples:0});client.setPreset(1,{sample});client.setPreset(23,{sample});await f.synth.flush();}
+  await endpoint.invoke('auditionOn',[1,69,'sibling']);await endpoint.invoke('auditionOn',[23,69,'old']);
+  const before=await endpoint.read(),bad=tone.adpcm.slice();bad[0]=0xf0;
+  await assert.rejects(endpoint.invoke('loadTone',[23,bad,tone.options,tone.preset]));
+  assert.deepEqual((await endpoint.read()).auditions,before.auditions);
+  const sample=await endpoint.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset]);
+  let state=await endpoint.read();assert.deepEqual(state.auditions.map(v=>v.channel),[1]);assert.equal(state.channels[23].sample,sample.id);assert.equal(state.channels[23].adsr1,15);
+  assert.deepEqual((await client.snapshot()).ram.slice(sample.startAddress,sample.startAddress+sample.byteLength),tone.adpcm);
+  assert.equal(await endpoint.invoke('auditionOff',[23,'old']),false);
+  const address=state.nextAddress;assert.equal((await endpoint.invoke('loadTone',[23,tone.adpcm,tone.options,tone.preset])).id,sample.id);assert.equal((await endpoint.read()).nextAddress,address);
+  await endpoint.invoke('auditionOff',[1,'sibling']);await endpoint.invoke('auditionOn',[23,60,'imported']);
+  assert.equal(core.read(23*16+4),Math.round(4096*2**(.5/12)));
+  const l=new Float32Array(8192),r=new Float32Array(8192);core.renderInto(l,r);assert(peak(l)>.01);assert(l.every(Number.isFinite));
+  await endpoint.invoke('auditionOff',[23,'imported']);assert.deepEqual(f.errors,[]);
+});
 function installWorkers(t){
   const previous={window:globalThis.window,Worker:globalThis.Worker,AudioContext:globalThis.AudioContext,AudioWorkletNode:globalThis.AudioWorkletNode},workers=[];
   globalThis.window={setTimeout,clearTimeout,addEventListener(){},removeEventListener(){}};

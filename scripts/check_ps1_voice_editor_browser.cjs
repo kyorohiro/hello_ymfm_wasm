@@ -9,11 +9,12 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
-const config={host:null,zip:null,out:null,screenshots:null,engines:[],executions:['main','worker']};
-const usage='Usage: node scripts/check_ps1_voice_editor_browser.cjs [--chromium-only | --webkit-only] [--execution main|worker] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
+const config={host:null,zip:null,out:null,screenshots:null,engines:[],executions:['main','worker'],vabOnly:false};
+const usage='Usage: node scripts/check_ps1_voice_editor_browser.cjs [--vab-only] [--chromium-only | --webkit-only] [--execution main|worker] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
 for(let i=2;i<process.argv.length;i++){
   const arg=process.argv[i];
   if(arg==='--help'){console.log(usage);process.exit(0);}
+  if(arg==='--vab-only'){config.vabOnly=true;continue;}
   if(['--chromium-only','--webkit-only'].includes(arg)){config.engines.push(arg.slice(2,-5));continue;}
   if(arg==='--execution'){const value=process.argv[++i];assert(['main','worker'].includes(value),usage);config.executions=[value];continue;}
   const match=arg.match(/^--(host|zip|out|screenshots)(?:=(.*))?$/);assert(match,usage);
@@ -576,6 +577,54 @@ async function screenshots(page,name,execution){
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const envelope=path.join(config.screenshots,`${name}-ps1-envelope-desktop.png`);await page.screenshot({path:envelope});results.push({label:'envelope-desktop',path:envelope});return results;
 }
+async function checkVab(page,execution){
+  console.log('  VAB combined/split import / physical voice / original bytes / actual PCM / Keyboard / malformed file');
+  const {createVabFixture}=await import('../test/helpers/spu_vab_fixture.mjs'),{vab,vh,vb}=createVabFixture();
+  const marker='__VAB_PLAYGROUND_READY__';await run(page,`await sleep(.01);log('${marker}');`,execution);await waitLog(page,marker);await stop(page,'VAB initial Stop');
+  if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))));
+  await page.locator('#ps1Tab').click();await refresh(page);await page.locator(`${root} [data-chip-channel="23"]`).click();
+  const before=await refresh(page),file=page.locator(control('vab-file')),status=page.locator(`${root} [data-chip-output="ps1-vab-status"]`);
+  await file.setInputFiles({name:'original.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('original.vab:'));
+  assert.equal(await page.locator(`${control('vab-tone')} option`).count(),3);
+  assert.equal((await refresh(page)).nextAddress,before.nextAddress,'Opening a VAB does not upload any sample');
+  await page.locator(control('vab-tone')).selectOption('1');await page.locator(action('vab-load')).click();
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.includes('into Voice 24'));
+  const imported=await refresh(page),sample=imported.samples.find(item=>item.id===imported.channels[23].sample);
+  assert.deepEqual(settings(imported).slice(0,23),settings(before).slice(0,23),'Other physical voices retain their instruments');
+  assert.equal(sample.byteLength,64);assert.equal(sample.rootFrequencyHz,440*2**((59.5-69)/12));assert.equal(imported.channels[23].adsr1,15);assert.equal(imported.channels[23].adsr2,0);
+  const uploads=await page.evaluate(()=>__ps1Audit.commands.filter(c=>c.method==='loadTone').map(c=>c.args));
+  const {createPs1InitSample}=await import('../web/ps1synth.js');assert.deepEqual(Object.values(uploads.at(-1)[1]),Array.from(createPs1InitSample().adpcm));
+  await field(page,'audition-midi',60);const hz=44100/112*2**(.5/12);
+  const pcm=await latch(page,'Imported VAB fine-tuned Tone',hz);await page.locator(action('release')).click();await silent(page,'Imported VAB release');
+  await page.locator(action('vab-load')).click();await page.waitForFunction(()=>!document.querySelector('[data-chip-action="ps1-vab-load"]').disabled);
+  assert.equal((await refresh(page)).nextAddress,imported.nextAddress,'Repeated Tone loads reuse current RAM');
+  await page.locator(action('keyboard')).click();await page.locator('#keyboardPanel').waitFor({state:'visible'});
+  const key=page.locator('#operatorKeyboardRoot .key').first(),letter=await key.getAttribute('data-key');assert(letter);
+  await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down(letter);const keyboard=await audible(page,'Imported VAB through Operator Keyboard');await page.keyboard.up(letter);await silent(page,'VAB Keyboard release');
+  await page.locator('#ps1Tab').click();
+  await file.setInputFiles([{name:'pair.vb',mimeType:'application/octet-stream',buffer:Buffer.from(vb)},{name:'pair.vh',mimeType:'application/octet-stream',buffer:Buffer.from(vh)}]);
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('pair.vh:'));
+  await page.locator(action('vab-load')).click();await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('Loaded pair.vh'));
+  const split=await refresh(page);assert.equal(split.samples.find(item=>item.id===split.channels[23].sample).rootFrequencyHz,440*2**((60-69)/12));
+  await latch(page,'Split VAB Tone',44100/112);const held=await refresh(page);
+  await file.setInputFiles({name:'bad.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab.slice(0,-1))});
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').dataset.error==='true');
+  assert.deepEqual((await refresh(page)).auditions,held.auditions);await audible(page,'Rejected VAB keeps held voice',44100/112);
+  assert.match(await status.textContent(),/Previous bank is kept/);await page.locator(action('release')).click();await silent(page,'VAB rejected file release');
+  // Reset replaces the bank; a repeated upload must not reuse a stale sample ID.
+  await run(page,`spu.reset({clearRam:true});log('${marker}');`,execution);await waitLog(page,marker);await stop(page,'VAB reset Stop');
+  await page.locator('#ps1Tab').click();await refresh(page);
+  await file.setInputFiles({name:'after-reset.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('after-reset.vab:'));
+  await page.locator(control('vab-tone')).selectOption('1');await page.locator(action('vab-load')).click();await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('Loaded after-reset.vab'));
+  const afterReset=await refresh(page);assert.equal(afterReset.samples.length,1);assert.equal(afterReset.samples[0].id,0);
+  await latch(page,'VAB after clear RAM',hz);await page.locator(action('release')).click();await silent(page,'Final VAB release');
+  const layouts=[];
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});const size=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,panel:document.getElementById('ps1Panel').scrollWidth}));assert(size.document<=size.viewport+1,JSON.stringify(size));layouts.push(size);}
+  return {combined:true,split:true,physicalVoice:23,otherVoicesPreserved:true,originalBytes:true,ramReused:true,resetSafe:true,invalidBankKeepsHeldNote:true,pcm,keyboard,layouts};
+}
+
 async function runCase(browser,name,origin,host,execution){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});
   await context.addInitScript({content:`globalThis.__ps1ClockAnalysis={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
@@ -589,6 +638,14 @@ async function runCase(browser,name,origin,host,execution){
     await page.locator('#ps1Tab').click();assert.equal(await page.evaluate(()=>__ps1Audit.contexts.length),0,'Opening Operators remains audio-lazy');
     await page.locator(`${root} [data-chip-action="prepare"]`).click();await page.locator(control('attack-rate')).waitFor({state:'visible'});
     assert.equal(await page.locator(`${root} [data-chip-channel]`).count(),24,'All 24 hardware voices can be selected');
+    if(config.vabOnly){
+      const vab=await checkVab(page,execution),images=await screenshots(page,name,execution);
+      await healthy(page,'VAB final state');assert.deepEqual(errors,[]);assert.deepEqual(badResponses,[]);
+      const muted=await page.evaluate(()=>[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0));assert(muted);
+      const captureContinuity=await page.evaluate(()=>({captures:__ps1Audit.captures.length,frames:__ps1Audit.captures.reduce((n,c)=>n+c.frames,0),pcmContinuous:__ps1Audit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid&&c.clock.frames===c.frames),clockContinuous:__ps1Audit.captures.every(c=>c.clock.continuous),clockAnomalies:__ps1Audit.captures.filter(c=>!c.clock.continuous)}));
+      assert(captureContinuity.pcmContinuous);
+      return {browser:name,version:browser.version(),execution,vab,screenshots:images,physicalOutputMuted:muted,listeningPerformed:false,captureContinuity};
+    }
     // The muted authored CH2 continues changing independently while edits and
     // auditions claim CH24. A real logic Worker is used for the Worker route.
     const marker='__PS1_EDITOR_PROGRAM_READY__';

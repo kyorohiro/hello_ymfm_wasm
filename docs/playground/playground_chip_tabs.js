@@ -213,6 +213,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
           return value;
         });
         editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,openSampleEditor:editSample,ensureAudioReady,
+          ...(editor.kind==='ps1'?{enableVabImport:true}:{}),
           ...(editor.kind==='pokey'?{apiName:Object.hasOwn(voiceApiNames,id)?voiceApiNames[id]:null,instanceId:id}:{}),
           onSelectedChannelChange:publishAuditionTarget,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {

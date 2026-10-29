@@ -1,5 +1,6 @@
 import {decodePs1Envelope, PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
 import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js?v=ps1-envelope-drag-1';
+import {createPlaygroundPs1VabPanel} from './playground_ps1_vab_panel.js';
 
 const PCM_FRAMES = 112;
 function appliedWaveform(voice) {
@@ -24,7 +25,7 @@ export function ps1VoiceCode(state, channel = 0) {
 
 /** Applied SPU voices. The owning tab supplies snapshots; this panel never polls. */
 let panelSequence = 0;
-export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}, onSelectedChannelChange = () => {}}) {
+export function createPlaygroundPs1VoicePanel({root, invoke, enableVabImport = false, ensureAudioReady = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}, onSelectedChannelChange = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis, panel = ++panelSequence;
   let state = null, selected = 0, connected = false, visible = true, disposed = false, epoch = 0, sequence = 0, targetEpoch = 0;
   let keyboardActive = false, target, timer = null, holdPress = null, commandSequence = 0, envelopeDraft = {};
@@ -71,7 +72,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
 
   const channels = make('div', 'chip-channel-list'); channels.setAttribute('aria-label', 'PS1 voice'); root.appendChild(channels);
   const buttons = Array.from({length:24}, (_, channel) => {
-    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; releaseAll(); cancelWave(); cancelEnvelope(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
+    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; vabPanel?.cancel(); releaseAll(); cancelWave(); cancelEnvelope(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
     node.dataset.chipChannel = String(channel); return node;
   });
   root.appendChild(make('p', 'subtext', 'SPU · 44,100 Hz · 24 physical voices'));
@@ -84,6 +85,10 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   const volumeLeft = number(common, 'Left volume', 'ps1-volume-left', -1, 1, value => patch({volumeLeft:value}), .01);
   const volumeRight = number(common, 'Right volume', 'ps1-volume-right', -1, 1, value => patch({volumeRight:value}), .01);
   const metadata = make('p', 'subtext'); metadata.dataset.chipOutput = 'ps1-sample'; card.appendChild(metadata);
+  const vabRoot=enableVabImport ? make('div','chip-vab-import') : null;
+  if(vabRoot)card.appendChild(vabRoot);
+  const vabPanel=vabRoot ? createPlaygroundPs1VabPanel({root:vabRoot,invoke,onError,
+    getContext:()=>({channel:selected,epoch,connected,visible})}) : null;
   const audition = fields(card), midi = number(audition, 'Audition MIDI note', 'ps1-audition-midi', 0, 127); midi.value = '60';
   const actions = make('div', 'chip-actions'); audition.appendChild(actions);
   const hold = button(actions, 'Hold to play', 'ps1-hold');
@@ -340,13 +345,14 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
     checked(reverbSend, v.reverb); set(reverbPreset, state.reverb?.preset ?? 'off'); set(reverbLeft, state.reverb?.volumeLeft ?? .25); set(reverbRight, state.reverb?.volumeRight ?? .25);
     const entry = samples.find(value => value.id === v.sample); metadata.textContent = entry ? `${entry.byteLength} ADPCM bytes · RAM ${entry.startAddress} · Root ${Number(entry.rootFrequencyHz).toFixed(3)} Hz · Base PITCH ${entry.basePitch} · ${entry.loop ? 'Loop' : 'One shot'}` : 'No ADPCM sample is assigned to this voice.';
     code.textContent = ps1VoiceCode(state, selected);
+    vabPanel?.update();
     drawEnvelope(); drawWave();
   }
-  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {releaseAll(); cancelWave(); cancelEnvelope(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next; drawEnvelope(); drawWave();}
+  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {vabPanel?.cancel(); releaseAll(); cancelWave(); cancelEnvelope(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next; vabPanel?.update(); drawEnvelope(); drawWave();}
   updateTarget();
   return {update, setConnected, releaseAll, getSelectedChannel:() => selected, getNoteTarget:() => target,
-    setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview'); releaseSource('sustain'); cancelWave(); cancelEnvelope();} else {waveSignature = ''; drawEnvelope(); drawWave();}},
+    setVisible(value) {visible = Boolean(value); if (!visible) {vabPanel?.cancel(); releaseSource('hold'); releaseSource('preview'); releaseSource('sustain'); cancelWave(); cancelEnvelope();} else {waveSignature = ''; drawEnvelope(); drawWave();}},
     setKeyboardActive(value) {if (!value && keyboardActive) {releaseSource('keyboard'); keyboardActive = false; targetEpoch++; keyboard.setAttribute('aria-pressed', 'false');}},
-    dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},
+    dispose() {if (disposed) return; setConnected(false); vabPanel?.dispose(); disposed = true; for (const remove of listeners) remove();},
   };
 }

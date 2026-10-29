@@ -45,6 +45,8 @@ playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
 playground_snes_voice_panel.js
 playground_ps1_voice_panel.js
+playground_ps1_vab.js
+playground_ps1_vab_panel.js
 playground_ps1_envelope.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
@@ -720,6 +722,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \
   "${STAGE_DIR}/playground_ps1_voice_panel.js" \
+  "${STAGE_DIR}/playground_ps1_vab.js" \
   "${STAGE_DIR}/playground_opl_voice_panel.js" \
   "${STAGE_DIR}/playground_ym2413_voice_panel.js" \
   "${STAGE_DIR}/playground_ay8910_voice_panel.js" \

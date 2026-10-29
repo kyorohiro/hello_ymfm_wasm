@@ -161,7 +161,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
       let value,entries;collection=[];const original=inspector.synth;inspector.synth=staged.synth;
       try{value=inspector.invoke(method,saved);entries=collection;}finally{inspector.synth=original;collection=null;}
       const groups=[];
-      if(method==='setWaveform'){
+      if(method==='setWaveform'||method==='loadTone'&&value.startAddress>=applied.synth.nextAddress){
         const ch=saved[0],sample=value,lease=leases.get(ch),data=Array.from(staged.synth.sampleBytes[sample.id]);
         groups.push(identify({method:'load-memory',address:sample.startAddress,data,channel:ch,audition:true,...(lease?{voice:lease.voice}:{}),action:'edit'}));
       }
@@ -173,16 +173,18 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
         // Adopt metadata before decoding the matching applied registers.
         if(bank===bankVersion)for(const target of [applied,projected]){target.synth._adoptResources(staged.synth._getResources());target.synth.sampleBytes=staged.synth.sampleBytes.slice();}
         current(token);
-        if(method==='setWaveform'||['setPreset','setChannel'].includes(method)&&saved[1].sample!==undefined)assigned[saved[0]]=true;
+        if(method==='setWaveform'||method==='loadTone'||['setPreset','setChannel'].includes(method)&&saved[1].sample!==undefined)assigned[saved[0]]=true;
         if(method==='setReverb')applied.synth.reverb={...staged.synth.reverb};
         await snapshot({after:groups.at(-1).id});current(token);
       }
       if(method==='auditionOff'&&value)leases.delete(saved[0]);if(method==='auditionAllOff')leases.clear();
+      if(method==='loadTone')leases.delete(saved[0]);
       if(groups.length){let edit;if(method==='setWaveform')edit={resources:applied.synth._getResources(),channel:saved[0],preset:{sample:value.id}};
+        else if(method==='loadTone')edit={resources:applied.synth._getResources(),channel:saved[0],preset:{...saved[3],sample:value.id}};
         else if(method==='setReverb')edit={reverb:{...applied.synth.reverb}};
         else if(!['auditionOn','auditionOff','auditionAllOff'].includes(method)){const ch=saved[0],keys=method==='setEnvelope'?['adsr1','adsr2']:['setPreset','setChannel'].includes(method)?Object.keys(saved[1]):['pitch'];edit={channel:ch,preset:Object.fromEntries(keys.map(key=>[key,applied.synth.channels[ch][key]]))};}
         notify(edit);}
-      return ['auditionOn','auditionOff','auditionAllOff','setWaveform'].includes(method)?value:inspector.read();
+      return ['auditionOn','auditionOff','auditionAllOff','setWaveform','loadTone'].includes(method)?value:inspector.read();
     }catch(error){if(token.session===owner.session&&token.generation===owner.generation){leases.clear();for(const [ch,lease]of previousLeases)leases.set(ch,lease);inspector.auditions=previousAuditions;}throw error;}finally{editing--;}
     });resourceSerial=editingResult.catch(()=>{});return editingResult;
   });editorSerial=result.catch(()=>{});return result;}
