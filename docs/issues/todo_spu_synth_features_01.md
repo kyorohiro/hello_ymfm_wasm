@@ -18,7 +18,9 @@
 - **Morph用LFO**：今は不要。Morphは手動操作までとする。
 - **外部入力Reverb**：このSynthには外部入力がなく、現状不要。
 
-今回の音作り機能追加について、残っている実装TODOはない。
+上記の音作り機能追加について、残っている実装TODOはない。
+
+2026-10-30追加予定：[VAB／PSFからの音色インポートTODO](todo_spu_synth_import_01.md)。
 
 任意voice間の自由なPMON配線は実機の隣接voice構造とは異なる機能。
 今回のPMON波形選択は既存の12組のsource→carrier構成を使う。
