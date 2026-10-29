@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {readMorph, morphShape, morphShapeName, MORPH_SHAPES} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
 import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
@@ -36,6 +37,37 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
     section.hidden = index !== 0;
   });
   const sampleEditors=[...sections[0].children];
+  const morph=root.ownerDocument.createElement('fieldset');morph.className='spu-morph';
+  const shapeOptions=MORPH_SHAPES.map(shape=>`<option value="${shape}">${shape[0].toUpperCase()+shape.slice(1)}</option>`).join('');
+  morph.innerHTML=`<legend>Software morph</legend>
+    <label><input type="checkbox" data-morph="enabled"> Enable software morph</label>
+    <div class="morph-endpoints">${['a','b'].map(key=>`<div><label>Wave ${key.toUpperCase()} <select data-morph="${key}" aria-label="Morph wave ${key.toUpperCase()}">${shapeOptions}<option value="custom" disabled>Custom PCM</option></select></label><button type="button" data-morph-capture="${key}">Use current PCM as ${key.toUpperCase()}</button></div>`).join('')}</div>
+    <label class="morph-amount">Morph · A → B <input type="range" data-morph="amount" min="0" max="1" step="0.01" value="0" aria-label="Software morph amount"><output data-morph-output></output></label>
+    <p class="subtext">Software feature: Tetorica blends two PCM cycles and writes the result into SPU sample memory. This is not a built-in PS1 SPU effect. The SPU plays the resulting ADPCM waveform.</p>
+    <p class="subtext">112-sample cycles only. Enabling replaces the active PCM/audio sample. Drag Morph to change sounding notes without retriggering. Turning it off keeps the current blend; drawing a waveform or loading audio turns it off.</p>`;
+  sections[0].append(morph);sampleEditors.push(morph);
+  const morphControls=Object.fromEntries([...morph.querySelectorAll('[data-morph]')].map(node=>[node.dataset.morph,node]));
+  let lastMorph=readMorph(),morphDraft=readMorph(),morphInFlight=0,currentPcm=null;
+  function displayMorph() {
+    morphControls.enabled.checked=morphDraft.enabled;
+    for(const key of ['a','b'])morphControls[key].value=morphShapeName(morphDraft[key]);
+    if(morphControls.amount!==root.ownerDocument.activeElement)morphControls.amount.value=String(morphDraft.amount);
+    morphControls.amount.disabled=!morphDraft.enabled;
+    morph.querySelector('[data-morph-output]').textContent=`A ${Math.round((1-Number(morphControls.amount.value))*100)}% / B ${Math.round(Number(morphControls.amount.value)*100)}%`;
+    for(const button of morph.querySelectorAll('[data-morph-capture]'))button.disabled=!currentPcm;
+  }
+  async function changeMorph(patch) {
+    morphDraft=readMorph({...morphDraft,...patch});displayMorph();morphInFlight++;
+    try {await invoke('setInstrumentMorph',[morphDraft]);}
+    catch(error){options.onError?.(error);}
+    finally {if(--morphInFlight===0){morphDraft=readMorph(lastMorph);displayMorph();}}
+  }
+  morphControls.enabled.addEventListener('change',()=>void changeMorph({enabled:morphControls.enabled.checked}));
+  morphControls.amount.addEventListener('input',()=>void changeMorph({amount:Number(morphControls.amount.value)}));
+  for(const key of ['a','b']) {
+    morphControls[key].addEventListener('change',()=>void changeMorph({[key]:morphShape(morphControls[key].value)}));
+    morph.querySelector(`[data-morph-capture="${key}"]`).addEventListener('click',()=>{if(currentPcm)void changeMorph({[key]:currentPcm.slice()});});
+  }
   const source=root.ownerDocument.createElement('fieldset');source.className='spu-source';
   source.innerHTML=`<legend>Sound source</legend>
     <label>Source <select data-noise="source" aria-label="Sound source"><option value="sample">Sample · PCM / audio</option><option value="noise">SPU Noise</option></select></label>
@@ -110,6 +142,9 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
     visible = Boolean(value);
     panel.setVisible(visible && activeSection !== 'audio');
   }, update(state) {
+    lastMorph=readMorph(state.morph);
+    currentPcm=state.channels?.[0]?.waveform?.pcm??null;
+    if(!morphInFlight){morphDraft=readMorph(lastMorph);displayMorph();}
     lastNoise=readNoise(state.noise);
     for(const node of sampleEditors)node.hidden=lastNoise.enabled;
     source.querySelector('.noise-clock').hidden=!lastNoise.enabled;

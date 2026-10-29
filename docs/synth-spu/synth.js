@@ -303,7 +303,7 @@ $('savePreset').addEventListener('click', async () => {
     const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';
     const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [0]));
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
-    status(`Saved ${name}, including its sample, ADSR, PMON, Noise and shared reverb settings.`);
+    status(`Saved ${name}, including its sample, ADSR, PMON, Noise, Software morph and shared reverb settings.`);
   } catch (error) {report(error);}
 });
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
@@ -332,6 +332,7 @@ $('presetFileInput').addEventListener('change', async () => {
     await engine.command('setReverb', [instrument.reverb]);
     await engine.command('setInstrumentNoise', [instrument.noise]);
     await engine.command('setInstrumentPmon', [instrument.pmon]);
+    await engine.command('setInstrumentMorph', [instrument.morph]);
     if (operation !== assetEpoch) return;
     instrumentName = instrument.name; $('instrumentName').value = instrumentName;
     status(`Loaded ${instrument.name}.`); applyState(await engine.inspect());
@@ -350,6 +351,7 @@ $('resetPreset').addEventListener('click', async () => {
     await engine.command('setInstrumentPreset', [{volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
     if (operation !== assetEpoch) return;
     await engine.command('setInstrumentNoise', [{enabled:false}]);
+    await engine.command('setInstrumentMorph', [{enabled:false}]);
     await engine.command('setInstrumentPmon', [{enabled:false}]);
     instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
     status('Instrument reset to Sine.'); applyState(await engine.inspect());

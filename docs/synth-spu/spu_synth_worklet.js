@@ -6,6 +6,7 @@ import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
+import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
@@ -28,6 +29,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.instrumentBend = 0;
     this.pmon = readPmon();
     this.noise = readNoise();
+    this.morph = readMorph();
     this.pmonSample = null;
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
@@ -163,29 +165,40 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
           }
         }
         for (let ch = 0; ch < 24; ch++) this.authorChannel(ch, () => this.inspector.invoke(method === 'setInstrumentPreset' ? 'setPreset' : 'setEnvelope', [ch, patch, options]));
+        if (method==='setInstrumentPreset' && patch.sample!==undefined) this.morph={...this.morph,enabled:false};
         value = true;
-      } else if (method === 'setInstrumentWaveform') {
-        const [prepared, options = {}] = args;
-        this.validateInstrumentOptions(options, true);
-        // Each voice reuses the private editor slot allocated at startup.
-        // One already-encoded cycle arrives in one message for all 24 slots.
-        for (let ch = 0; ch < 24; ch++) {
-          const slot = this.synth.editorWaveforms[ch];
-          const sample = slot && this.synth.samples[slot.sample];
-          if (!sample || sample.editorChannel !== ch || sample.byteLength !== 64) throw new Error('SPU instrument waveform slot is invalid');
+      } else if (method === 'setInstrumentWaveform' || method === 'setInstrumentMorph') {
+        const nextMorph=method==='setInstrumentMorph' ? readMorph(args[0]) : null;
+        if (nextMorph && !nextMorph.enabled) {this.morph=nextMorph;value={...this.morph};}
+        else {
+          const [prepared, options = {}] = nextMorph ? [args[1],{retrigger:false}] : args;
+          if(nextMorph) {
+            const pcm=morphPcm(nextMorph);
+            if(!prepared || !Array.isArray(prepared.pcm) || prepared.pcm.length!==112 || pcm.some((x,i)=>x!==prepared.pcm[i]))throw new TypeError('Prepare matching Software morph waveform packets');
+          }
+          this.validateInstrumentOptions(options, true);
+          // Each voice reuses the private editor slot allocated at startup.
+          // One already-encoded cycle arrives in one message for all 24 slots.
+          for (let ch = 0; ch < 24; ch++) {
+            const slot = this.synth.editorWaveforms[ch];
+            const sample = slot && this.synth.samples[slot.sample];
+            if (!sample || sample.editorChannel !== ch || sample.byteLength !== 64) throw new Error('SPU instrument waveform slot is invalid');
+          }
+          const notes = this.activeNotes();
+          const pitches = notes.map((midi, ch) => midi === null ? null : this.noise.enabled ? 4096 : this.pitchForSample(this.synth.samples[this.synth.editorWaveforms[ch].sample], midi, this.lastBend[ch] ?? this.instrumentBend));
+          for (let ch = 0; ch < 24; ch++) {
+            const sample = this.authorChannel(ch, () => this.inspector.invoke('setWaveform', [ch, prepared, options]));
+            if (ch === 0) value = sample;
+          }
+          // Imported audio can have a different root frequency. Retune each
+          // current note to the new private cycle before another audio block,
+          // retaining its original MIDI note and explicit/global bend.
+          for (let ch = 0; ch < 24; ch++) if (pitches[ch] !== null) this.inspector.invoke('setPitch', [ch, pitches[ch]]);
+          this.lastMidi = notes;
+          for (let ch = 0; ch < 24; ch++) if (notes[ch] === null) this.lastBend[ch] = null;
+          this.morph=nextMorph ?? {...this.morph,enabled:false};
+          if(nextMorph)value={...this.morph};
         }
-        const notes = this.activeNotes();
-        const pitches = notes.map((midi, ch) => midi === null ? null : this.noise.enabled ? 4096 : this.pitchForSample(this.synth.samples[this.synth.editorWaveforms[ch].sample], midi, this.lastBend[ch] ?? this.instrumentBend));
-        for (let ch = 0; ch < 24; ch++) {
-          const sample = this.authorChannel(ch, () => this.inspector.invoke('setWaveform', [ch, prepared, options]));
-          if (ch === 0) value = sample;
-        }
-        // Imported audio can have a different root frequency. Retune each
-        // current note to the new private cycle before another audio block,
-        // retaining its original MIDI note and explicit/global bend.
-        for (let ch = 0; ch < 24; ch++) if (pitches[ch] !== null) this.inspector.invoke('setPitch', [ch, pitches[ch]]);
-        this.lastMidi = notes;
-        for (let ch = 0; ch < 24; ch++) if (notes[ch] === null) this.lastBend[ch] = null;
       }
       else if (method === 'setInstrumentReverbPreset') {
         const patch=args[0];
@@ -204,7 +217,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         const tuning = {adpcm:this.synth.sampleBytes[sample.id].slice(), baseFrequencyHz:sample.rootFrequencyHz};
         if (sample.loop) tuning.loopStartSamples = sample.loopStartSamples;
         const editor = this.synth.editorWaveforms[args[0]];
-        value = {preset, sample:tuning, pmon:{...this.pmon}, noise:{...this.noise}, reverb:{...this.synth.reverb}, waveform:editor?.sample === sample.id ? editor.pcm.slice() : null};
+        value = {preset, sample:tuning, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), reverb:{...this.synth.reverb}, waveform:editor?.sample === sample.id ? editor.pcm.slice() : null};
       }
       else if (method === 'stop' || method === 'stopVoices') {
         this.stopInstrument();
@@ -223,7 +236,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     }
   }
 
-  readState() {return {...this.inspector.read(), pmon:{...this.pmon}, noise:{...this.noise}, pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  readState() {return {...this.inspector.read(), pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
   carrierChannel(slot) {return this.pmon.enabled ? slot*2+1 : slot;}
   authorChannel(ch, apply) {
     if (!this.pmon.enabled || ch%2) return apply();

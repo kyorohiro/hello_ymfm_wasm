@@ -262,3 +262,12 @@ footer a { color: #4a5e74; }
 .noise-clock { max-width: 550px; margin-top: 16px; }
 .noise-clock input { flex: 1; width: 130px; }
 .noise-clock output { flex-basis: 100%; color: var(--muted); text-align: right; }
+
+.spu-morph{margin-top:18px;padding:14px;border:1px solid #a9b4be;border-radius:10px;min-width:0}
+.spu-morph legend{font-weight:700;color:#465a6c;padding:0 6px}
+.morph-endpoints{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.morph-endpoints>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.spu-morph select{max-width:100%;padding:8px;border:1px solid #9aaab8;border-radius:6px;background:#f6f9fb;color:inherit;font:inherit}
+.morph-amount{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.morph-amount input{flex:1;min-width:100px}.morph-amount output{min-width:110px;text-align:right}
+@media(max-width:600px){.morph-endpoints{grid-template-columns:1fr}.morph-amount output{width:100%}}

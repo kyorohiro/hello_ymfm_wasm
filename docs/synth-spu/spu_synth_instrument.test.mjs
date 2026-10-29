@@ -164,3 +164,16 @@ test('Noise settings and PMON waveform have portable defaults and reject incompa
   assert.throws(()=>readSpuInstrument({...file,noise:{enabled:true},pmon:{enabled:true}}),/cannot both/);
   assert.throws(()=>readSpuInstrument({...file,pmon:{waveform:'random'}}),/waveform/);
 });
+
+test('Software morph endpoints and amount round-trip and reject mismatched PCM before use',async t=>{
+  const {readMorph,morphPcm}=await import('./spu_synth_morph.js');
+  const {source}=await instrumentFixture(t);
+  source.morph=readMorph({enabled:true,amount:.43,a:Array(112).fill(.1)});
+  const prepared=preparePs1Waveform(morphPcm(source.morph));
+  source.waveform=prepared.pcm;source.sample.adpcm=prepared.adpcm;
+  const file=writeSpuInstrument('Morph',source),restored=readSpuInstrument(JSON.parse(JSON.stringify(file)));
+  assert.deepEqual(restored.morph,source.morph);
+  const legacy=clone(file);delete legacy.morph;assert(!readSpuInstrument(legacy).morph.enabled);
+  const bad=clone(file);bad.morph.amount=.9;assert.throws(()=>readSpuInstrument(bad),/do not match/);
+  bad.morph=clone(source.morph);bad.morph.a=[0];assert.throws(()=>readSpuInstrument(bad),/112 PCM/);
+});

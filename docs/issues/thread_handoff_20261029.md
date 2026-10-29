@@ -4,6 +4,11 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続更新：2026-10-29 Software morph
+
+PCMタブへA／B波形の手動Morphを追加。ソフト側の機能とUIに明記。
+[操作・検証・試用ZIP](spu_synth_morph_01.md) を参照。未commit・未公開。
+
 ## 後続更新：2026-10-29 PMON波形選択／Noise
 
 PMONの4波形選択とPCMタブのSPU Noiseを追加。

@@ -15,6 +15,7 @@ import {patchPs1Envelope} from '../../web/ps1_parameters.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js';
 import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
 import {readNoise} from './spu_synth_noise.js';
+import {readMorph, morphPcm} from './spu_synth_morph.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -47,7 +48,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    readPmon, pmonPcm, AudioContext:Context, AudioWorkletNode:WorkletNode,
+    readPmon, pmonPcm, readMorph, morphPcm, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
@@ -68,6 +69,12 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
   const before = requests.length;
   await assert.rejects(audio.command('setInstrumentWaveform', [[NaN]]), /112 PCM/);
   assert.equal(requests.length, before, 'invalid PCM is rejected before posting to the audio thread');
+  const encodedBefore=encodes, config=readMorph({enabled:true,amount:.5});
+  await audio.command('setInstrumentMorph',[config]);
+  assert.equal(encodes,encodedBefore+1,'one morph edit encodes once for all voices on the main thread');
+  assert.deepEqual(requests.at(-1).args[1].pcm,morphPcm(config));
+  await audio.command('setInstrumentMorph',[{...config,enabled:false}]);
+  assert.equal(encodes,encodedBefore+1,'turning morph Off does not encode or upload');
 });
 
 test('standalone actual WASM initializes and renders without URL or Node globals like AudioWorkletGlobalScope', () => {
@@ -89,13 +96,14 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {SpuRoundRobinVoices} from ${url('./spu_synth_voices.js')};
     import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
     import {readNoise} from ${url('./spu_synth_noise.js')};
+    import {readMorph, morphPcm} from ${url('./spu_synth_morph.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -126,7 +134,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -684,4 +692,45 @@ test('Noise holds independently of one-shot imported audio, preserves samples, s
   assert.equal(p.processor.synth.core.read(0x190),0);assert.equal(p.command('instrumentNoteOff',['pair']),false);
   p.command('setInstrumentNoise',[{enabled:false,clock:42}]);assert.equal(p.processor.synth.core.read(0x194),0);
   p.command('instrumentNoteOn',[60,'sample']);assert(peak(p.render(2048).left)>.001,'Sample playback is restored');
+});
+
+test('Software morph overwrites reserved PCM slots while held, without KON, envelope reset or RAM growth',async t=>{
+  const p=await setup(44100);t.after(()=>p.close());
+  p.command('instrumentNoteOn',[60,'morph']);p.render(2048);
+  const before=p.command('inspect'),core=p.processor.synth.core,writes=[],write=core.write;
+  core.write=function(at,value){if([0x188,0x18a].includes(at))writes.push(at);return write.call(this,at,value);};
+  const signals=[];
+  for(const amount of [0,.5,1,0]) {
+    const config=readMorph({enabled:true,amount});
+    p.command('setInstrumentMorph',[config,preparePs1Waveform(morphPcm(config))]);
+    const state=p.command('inspect');
+    assert.equal(JSON.stringify(state.auditions),JSON.stringify(before.auditions));
+    assert.equal(state.nextAddress,before.nextAddress);assert.equal(state.samples.length,before.samples.length);
+    assert(state.channels.every(ch=>JSON.stringify(ch.waveform.pcm)===JSON.stringify(morphPcm(config))));
+    p.render(2048);signals.push(p.render(4096).left);
+    assert.deepEqual(p.command('getInstrument',[0]).morph,config);
+  }
+  assert.equal(writes.length,0);assert(peak(signals[1])>.001);
+  assert(signals[0].some((x,i)=>Math.abs(x-signals[1][i])>.001));
+  assert(signals[1].some((x,i)=>Math.abs(x-signals[2][i])>.001));
+  const state=JSON.stringify(p.command('inspect'));
+  assert.throws(()=>p.command('setInstrumentMorph',[{enabled:true,amount:2}]),/Morph/);
+  assert.throws(()=>p.command('setInstrumentMorph',[{enabled:true,amount:1},sine()]),/matching/);
+  assert.equal(JSON.stringify(p.command('inspect')),state,'invalid morph does not touch RAM or voices');
+  p.command('setInstrumentWaveform',[sine()]);assert(!p.command('inspect').morph.enabled);
+});
+
+test('Software morph keeps PMON pairs and Noise independent, Stop retains its settings',async t=>{
+  const p=await setup();t.after(()=>p.close());
+  pmonSettings(p,{enabled:true,decayMs:0});p.command('instrumentNoteOn',[60,'pair']);p.render(1024);
+  const config=readMorph({enabled:true,amount:.65});
+  p.command('setInstrumentMorph',[config,preparePs1Waveform(morphPcm(config))]);
+  assert.equal(p.command('inspect').auditions[0].channel,1);assert(p.command('inspect').pmon.enabled);
+  assert.equal(p.processor.synth.core.read(0),0,'PMON source stays silent');assert(peak(p.render(4096).left)>.001);
+  p.command('stop');assert.deepEqual(p.command('inspect').morph,config);
+  p.command('setInstrumentNoise',[{enabled:true}]);p.command('instrumentNoteOn',[60,'noise']);
+  p.command('setInstrumentMorph',[config,preparePs1Waveform(morphPcm(config))]);
+  assert(p.command('inspect').noise.enabled);assert(peak(p.render(4096).left)>.001);
+  p.command('setInstrumentMorph',[{...config,enabled:false}]);
+  assert.deepEqual(p.command('getInstrument',[0]).waveform,morphPcm(config),'Off freezes the last blend');
 });

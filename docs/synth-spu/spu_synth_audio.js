@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-waveform-1';
+import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readPmon, pmonPcm} from './spu_synth_pmon.js';
 import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 
@@ -63,7 +64,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-noise-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-morph-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -111,6 +112,10 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         // The encoder must not run in the real-time audio processor.
         if (method === 'setWaveform') args = [args[0], preparePs1Waveform(args[1]), args[2]];
         else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
+        else if (method === 'setInstrumentMorph') {
+          const settings=readMorph(args[0]);
+          args=[settings,settings.enabled ? preparePs1Waveform(morphPcm(settings)) : undefined];
+        }
         else if (method === 'setInstrumentPmon') {
           const settings=readPmon(args[0]);
           const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);

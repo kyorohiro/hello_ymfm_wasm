@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
 import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
@@ -22,7 +23,7 @@ function keys(value, allowed, label) {
 }
 /** Validate the entire file before changing any live voice or sample RAM. */
 export function readSpuInstrument(value) {
-  keys(value, ['schema', 'version', 'name', 'preset', 'sample', 'reverb', 'waveform', 'pmon', 'noise'], 'instrument');
+  keys(value, ['schema', 'version', 'name', 'preset', 'sample', 'reverb', 'waveform', 'pmon', 'noise', 'morph'], 'instrument');
   if (value.schema !== INSTRUMENT_SCHEMA || value.version !== 1) throw new TypeError('Expected a Tetorica SPU Synth instrument (version 1)');
   if (typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw new TypeError('Instrument name must contain 1–80 characters');
   keys(value.preset, ['volumeLeft', 'volumeRight', 'adsr1', 'adsr2', 'pitch', 'reverb'], 'voice');
@@ -49,16 +50,17 @@ export function readSpuInstrument(value) {
     if (options.baseFrequencyHz !== 44100 / 112 || options.loopStartSamples !== 0 || prepared.adpcm.length !== adpcm.length || prepared.adpcm.some((byte, index) => byte !== adpcm[index])) throw new TypeError('PCM cycle and encoded ADPCM do not match');
     waveform = prepared.pcm;
   }
-  const pmon=readPmon(value.pmon),noise=readNoise(value.noise);
+  const pmon=readPmon(value.pmon),noise=readNoise(value.noise),morph=readMorph(value.morph);
+  if(morph.enabled && (!waveform || morphPcm(morph).some((x,i)=>x!==waveform[i])))throw new TypeError('Software morph and PCM cycle do not match');
   if (pmon.enabled && noise.enabled) throw new TypeError('Noise and PMON cannot both be enabled');
-  return {schema:INSTRUMENT_SCHEMA, version:1, name:value.name.trim(), preset, sample:{adpcm, ...options}, reverb, waveform, pmon, noise};
+  return {schema:INSTRUMENT_SCHEMA, version:1, name:value.name.trim(), preset, sample:{adpcm, ...options}, reverb, waveform, pmon, noise, morph};
 }
 
 export function writeSpuInstrument(name, source) {
   if (!source?.sample) throw new Error('Assign a sample before saving an instrument');
   const {sample:ignored, ...preset} = source.preset;
   const checked = readSpuInstrument({schema:INSTRUMENT_SCHEMA, version:1, name, preset,
-    sample:{...source.sample, adpcm:Array.from(source.sample.adpcm)}, reverb:source.reverb, pmon:source.pmon, noise:source.noise, waveform:source.waveform ?? null});
+    sample:{...source.sample, adpcm:Array.from(source.sample.adpcm)}, reverb:source.reverb, pmon:source.pmon, noise:source.noise, morph:source.morph, waveform:source.waveform ?? null});
   return {...checked, sample:{...checked.sample, adpcm:Array.from(checked.sample.adpcm)}};
 }
 

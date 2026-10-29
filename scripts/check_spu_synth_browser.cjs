@@ -571,6 +571,68 @@ async function checkNoise(page,name) {
   return {sharedClock:true,clock:63,polyphony:24,focusedSelectPlayable:true,heldClockKeepsOwners:true,clockUpdatesBeforePointerRelease:true,presetRoundTrip:true,pcmRetained:true,exclusiveWithPmon:true,layouts,pcm,clockPcm};
 }
 
+async function checkMorph(page,name) {
+  console.log('CHECK Software morph: held native drag / endpoints / presets / PMON / layout');
+  await fastEnvelope(page);await field(page,'reverb-preset','off');
+  await shape(page,'triangle');const original=(await settled(page)).channels[0].waveform.pcm;
+  const set=async(key,value)=>{
+    await editorTab(page,'pcm');
+    const node=page.locator(`[data-morph="${key}"]`);
+    if(key==='enabled')await node.setChecked(value);else if(key==='amount')await node.evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));},value);
+    else await node.selectOption(value);
+    await settled(page);
+  };
+  await page.locator('[data-morph-capture="a"]').click();await settled(page);
+  await set('b','square');
+  assert.deepEqual((await current(page)).morph.a,original,'Current PCM becomes endpoint A');
+  assert.deepEqual((await current(page)).channels[0].waveform.pcm,original,'Preparing endpoints while Off leaves PCM alone');
+  assert.match(await page.locator('.spu-morph').innerText(),/Software feature:.*not a built-in PS1 SPU effect/s);
+  await page.locator('h1').click();await page.keyboard.down('y');
+  const held=await settled(page),before=await audible(page,'Before Software morph');
+  const start=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  await set('enabled',true);
+  const slider=page.locator('[data-morph="amount"]');await slider.scrollIntoViewIfNeeded();const box=await slider.boundingBox();assert(box);
+  await page.mouse.move(box.x+7,box.y+box.height/2);await page.mouse.down();
+  await page.mouse.move(box.x+box.width-1,box.y+box.height/2,{steps:10});
+  const changed=await settled(page),pcm=await audible(page,'Software morph before pointer release');
+  assert.equal(changed.morph.amount,1);assert.deepEqual(changed.channels[0].waveform.pcm,changed.morph.b);
+  assert.deepEqual(changed.auditions,held.auditions);assert.equal(changed.nextAddress,held.nextAddress);assert.equal(changed.samples.length,held.samples.length);
+  assert.notEqual(before.channels[0].pcmFingerprint,pcm.channels[0].pcmFingerprint);
+  assert(!(await page.evaluate(start=>__spuSynthAudit.commands.slice(start),start)).some(c=>c.method==='instrumentNoteOn'));
+  await page.mouse.up();await page.keyboard.up('y');await settled(page);await silent(page,'Morph release');
+  const layouts=[];
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:width===390?844:1100});
+    const sizes=await page.locator('.spu-morph').evaluate(node=>({scroll:node.scrollWidth,client:node.clientWidth,document:document.documentElement.scrollWidth}));
+    assert(sizes.scroll<=sizes.client+1);assert(sizes.document<=width+1);
+    const screenshot=config.screenshots?path.join(config.screenshots,`${name}-morph-${width}.png`):null;
+    if(screenshot)await page.locator('.spu-morph').screenshot({path:screenshot});layouts.push({width,...sizes,screenshot});
+  }
+  await page.setViewportSize({width:1440,height:1100});
+  await set('amount',.37);await page.locator('#instrumentName').fill('Software Morph');
+  const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
+  assert(preset.morph.enabled);assert.equal(preset.morph.amount,.37);
+  await set('enabled',false);assert.deepEqual((await current(page)).channels[0].waveform.pcm,preset.waveform,'Off freezes blend');
+  await shape(page,'sine');assert(!(await settled(page)).morph.enabled);
+  await page.locator('#presetFileInput').setInputFiles({name:'morph.spu.json',mimeType:'application/json',buffer:bytes});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
+  assert.deepEqual((await settled(page)).morph,preset.morph);assert(await page.locator('[data-morph="enabled"]').isChecked());
+  await editorTab(page,'fx');await page.locator('[data-pmon="enabled"]').check();await settled(page);
+  await page.locator('h1').click();await page.keyboard.down('y');const paired=await settled(page);
+  await set('amount',.75);assert.deepEqual((await current(page)).auditions,paired.auditions);assert((await current(page)).pmon.enabled);
+  await audible(page,'Software morph with PMON');await page.keyboard.up('y');await page.locator('#stopAudio').click();await silent(page,'Morph PMON Stop');
+  await editorTab(page,'pcm');await page.locator('[data-noise="source"]').selectOption('noise');await settled(page);
+  assert(!(await page.locator('.spu-morph').isVisible()));
+  await page.locator('[data-noise="source"]').selectOption('sample');await settled(page);assert(await page.locator('.spu-morph').isVisible());
+  delete preset.morph;
+  await page.locator('#presetFileInput').setInputFiles({name:'legacy-morph.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
+  assert(!(await settled(page)).morph.enabled);
+  await page.locator('#resetPreset').click();assert(!(await settled(page)).morph.enabled);
+  return {softwareLabel:true,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
+}
+
 // No private production hooks, injected chip calls or fake renderers are used.
 async function runCase(browser, name, origin) {
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1440, height:1100}, acceptDownloads:true});
@@ -761,6 +823,7 @@ async function runCase(browser, name, origin) {
     const keyboardFocus=await checkKeyboardFocus(page,keyboardHz);
     const pmon=await checkPmon(page,keyboardHz,name);
     const noise=await checkNoise(page,name);
+    const morph=await checkMorph(page,name);
 
     console.log(`CHECK ${name}: real audio failure / explicit user retry`);
     await page.evaluate(async () => {const context = [...__spuSynthAudit.contexts].reverse().find(value => value.state !== 'closed'); await context.close();});
@@ -793,7 +856,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, pmon, noise, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, pmon, noise, morph, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});
