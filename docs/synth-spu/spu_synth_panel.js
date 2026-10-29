@@ -54,7 +54,9 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
       options.onError?.(error);
     }
   }
-  sourceSelect.addEventListener('change',changeNoise);noiseClock.addEventListener('change',changeNoise);noiseClock.addEventListener('input',displayNoise);
+  sourceSelect.addEventListener('change',changeNoise);
+  // Range input fires throughout a drag; change only fires on release.
+  noiseClock.addEventListener('input',()=>{displayNoise();void changeNoise();});
   const pmon = root.ownerDocument.createElement('fieldset');
   pmon.className = 'spu-pmon';
   pmon.innerHTML = `<legend>Pitch Modulation</legend>

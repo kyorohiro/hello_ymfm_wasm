@@ -55,3 +55,23 @@ NoiseではPCM編集欄を隠し、Noise clockと説明を表示する。
 公開済みZIPと以前の試用ZIPは上書きしていない。
 
 波形モーフィング・外部入力ReverbはTODOのまま。今回の追加範囲には含めない。
+
+## 後続修正：Noise clockのドラッグ中反映
+
+ユーザーの指摘で、スライダーの`input`では表示だけを更新し、音声への送信は
+`change`（ドラッグ終了時）に限られていたことを確認した。コアは保持音へのclock変更に対応済み。
+`input`ごとに音声へ送信するよう修正し、Note On中もマウスを離す前に反映する。
+Source selectの切り替えは従来どおり`change`で実行する。
+
+従来のUIテストは`input`と`change`を両方発火していたため、この待ち時間を検出できなかった。
+回帰テストを`input`単独の確認とnative range dragへ変更し、マウスを押したまま
+clock値・実PCMの変化、Note On追加なし、note所有権・sample数の保持を検証する。
+
+46 Node tests成功。ブラウザ検証記録：
+[ソース版](spu_synth_noise_live_browser_01.json)、[新規展開ZIP](spu_synth_noise_live_zip_browser_01.json)。どちらもChromium／WebKitで成功。
+物理出力はmute、実聴は行っていない。
+
+修正版試用ZIP：`release/tetorica_spu_synth_noise-live-dev_itch.zip`。
+45 files／3 bundles、5,473,213 bytes、SHA256:
+`422b0f784d911cb86f069d49827eb4c2046ea7244cb3627acf298cd48d4b49f8`。
+以前のZIP・検証記録は当時の履歴として残している。未commit・未公開。

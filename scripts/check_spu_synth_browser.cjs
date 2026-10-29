@@ -526,8 +526,16 @@ async function checkNoise(page,name) {
   assert.equal(await select.inputValue(),'noise');
   const pcm=await audible(page,'Noise held from focused select');
   const start=await page.evaluate(()=>__spuSynthAudit.commands.length);
-  await setSlider(page,'[data-noise="clock"]',63);
-  const changed=await settled(page),clockPcm=await audible(page,'Noise clock changed live');
+  const slider=page.locator('[data-noise="clock"]');
+  // No change event: an input must reach the SPU before the drag ends.
+  await slider.evaluate(node=>{node.value='56';node.dispatchEvent(new Event('input',{bubbles:true}));});
+  assert.equal((await settled(page)).noise.clock,56,'input updates Noise clock without waiting for change');
+  await slider.scrollIntoViewIfNeeded();const box=await slider.boundingBox();assert(box);
+  await page.mouse.move(box.x+box.width*.85,box.y+box.height/2);await page.mouse.down();
+  await page.mouse.move(box.x+box.width-1,box.y+box.height/2,{steps:8});
+  const changed=await settled(page),clockPcm=await audible(page,'Noise clock changes before mouse release');
+  assert.equal(changed.noise.clock,63,'Native range drag reaches the SPU while the mouse is still down');
+  await page.mouse.up();await settled(page);
   assert.deepEqual(changed.auditions,held.auditions);
   assert.equal(changed.samples.length,initial.samples.length);
   assert.notEqual(pcm.channels[0].pcmFingerprint,clockPcm.channels[0].pcmFingerprint);
@@ -560,7 +568,7 @@ async function checkNoise(page,name) {
   await page.locator('#stopAudio').click();await silent(page,'Noise Stop');await page.keyboard.up('y');
   await page.locator('#resetPreset').click();
   state=await settled(page);assert(!state.noise.enabled);assert(!state.pmon.enabled);assert.equal(await select.inputValue(),'sample');
-  return {sharedClock:true,clock:63,polyphony:24,focusedSelectPlayable:true,heldClockKeepsOwners:true,presetRoundTrip:true,pcmRetained:true,exclusiveWithPmon:true,layouts,pcm,clockPcm};
+  return {sharedClock:true,clock:63,polyphony:24,focusedSelectPlayable:true,heldClockKeepsOwners:true,clockUpdatesBeforePointerRelease:true,presetRoundTrip:true,pcmRetained:true,exclusiveWithPmon:true,layouts,pcm,clockPcm};
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.
