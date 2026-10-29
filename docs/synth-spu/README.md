@@ -52,6 +52,11 @@ Silence, a hidden page, and Stop suspend display updates.
 
 ## Audio and instrument files
 
+The short-cycle editor uses loop-aware ADPCM prediction. The initial Sine and
+the Sine shape share this encoding, reducing the former first-quarter
+staircase while keeping 112 samples and four packets. Existing editable PCM
+presets remain readable and use the improved preparation when restored.
+
 Open the **Audio** tab, then set **Root MIDI note** and **Loop imported audio**
 before choosing **Load audio**.
 Audio files supported by the browser (including supported M4A codecs) are decoded at 44,100 Hz and mixed to mono. Input files may be up to 32 MiB, with at most 30 minutes of decoded audio. Root MIDI note declares the source recording's pitch; it does not estimate or correct that pitch.

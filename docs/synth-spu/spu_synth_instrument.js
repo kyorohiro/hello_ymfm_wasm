@@ -3,8 +3,9 @@
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
-import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
-import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-pcm-waveform-1';
+import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-cyclic-1';
+import {encodePs1Adpcm} from '../js/ps1_adpcm_encoder.js?v=ps1-cyclic-1';
+import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-cyclic-1';
 import {PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
 
 import {MAX_HOST_PRESET_BYTES, encodeHostPcm, decodeHostPcm} from './spu_synth_long_audio.js';
@@ -59,7 +60,9 @@ export function readSpuInstrument(value) {
   let waveform = null;
   if (value.waveform !== undefined && value.waveform !== null) {
     const prepared = preparePs1Waveform(value.waveform);
-    if (options.baseFrequencyHz !== 44100 / 112 || options.loopStartSamples !== 0 || prepared.adpcm.length !== adpcm.length || prepared.adpcm.some((byte, index) => byte !== adpcm[index])) throw new TypeError('PCM cycle and encoded ADPCM do not match');
+    const matches=bytes=>bytes.length===adpcm.length && bytes.every((byte,index)=>byte===adpcm[index]);
+    const legacy=()=>encodePs1Adpcm(Float32Array.from(prepared.pcm),{loopStartSamples:0,maxBytes:64}).adpcm;
+    if (options.baseFrequencyHz !== 44100 / 112 || options.loopStartSamples !== 0 || !matches(prepared.adpcm) && !matches(legacy())) throw new TypeError('PCM cycle and encoded ADPCM do not match');
     waveform = prepared.pcm;
   }
   const pmon=readPmon(value.pmon),noise=readNoise(value.noise),morph=readMorph(value.morph);

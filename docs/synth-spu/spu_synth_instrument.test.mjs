@@ -177,3 +177,13 @@ test('Software morph endpoints and amount round-trip and reject mismatched PCM b
   const bad=clone(file);bad.morph.amount=.9;assert.throws(()=>readSpuInstrument(bad),/do not match/);
   bad.morph=clone(source.morph);bad.morph.a=[0];assert.throws(()=>readSpuInstrument(bad),/112 PCM/);
 });
+
+test('legacy editable-cycle presets remain valid after cyclic encoder improvement',async t=>{
+  const {source}=await instrumentFixture(t);
+  const file=writeSpuInstrument('Legacy sine',source);
+  file.sample.adpcm=Array.from(encodePs1Adpcm(Float32Array.from(file.waveform),{loopStartSamples:0,maxBytes:64}).adpcm);
+  assert.notDeepEqual(file.sample.adpcm,Array.from(preparePs1Waveform(file.waveform).adpcm));
+  const restored=readSpuInstrument(file);
+  assert.deepEqual(restored.waveform,file.waveform);
+  assert.deepEqual(Array.from(restored.sample.adpcm),file.sample.adpcm);
+});

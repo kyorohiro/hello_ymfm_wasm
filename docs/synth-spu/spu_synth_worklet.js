@@ -2,7 +2,7 @@
 // Copyright (c) 2026, kyorohiro.
 import factory from '../generated/ps1_spu_wasm.js?v=spu-long-audio-1';
 import {Ps1Spu} from '../js/ps1_spu.js?v=ps1-deferred-release-1';
-import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
+import {Ps1Synth} from '../js/ps1synth.js?v=ps1-cyclic-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
@@ -135,7 +135,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         // Validate depth packets, tuning and capacity before stopping any note.
         if (prepared) {
           if (!Array.isArray(prepared.pcm) || prepared.pcm.length !== 112 || prepared.pcm.some(x => !Number.isFinite(x) || Math.abs(x)>1) || !ArrayBuffer.isView(prepared.adpcm) || prepared.adpcm.length !== 64) throw new TypeError('Invalid PMON waveform packets');
-          if ((prepared.adpcm[0]>>4)!==0 || prepared.adpcm[1]!==6 || prepared.adpcm[17]!==0 || prepared.adpcm[33]!==0 || prepared.adpcm[49]!==3) throw new TypeError('PMON waveform must be four looping ADPCM packets');
+          if (prepared.adpcm[1]!==6 || prepared.adpcm[17]!==0 || prepared.adpcm[33]!==0 || prepared.adpcm[49]!==3) throw new TypeError('PMON waveform must be four looping ADPCM packets');
           if (!this.pmonSample && this.synth.nextAddress+64 > 524288) throw new RangeError('No sample RAM available for PMON');
         }
         if (next.enabled && (!this.pmonSample || !this.pmon.enabled) && !prepared) throw new Error('Prepare the PMON waveform before enabling');

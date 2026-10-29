@@ -84,3 +84,16 @@ device. Native and WASM decoder tests compare reconstructed PCM and actual
 SPU output. The [PS1 Sample Editor](ps1_sample_editor.md) adds file/microphone
 input, drawing, fixed-rate conversion, visible packet alignment, actual SPU
 preview and reusable source/edit assets for Keyboard instruments.
+
+## Short periodic waveforms
+
+`encodePs1AdpcmCycle(pcm)` accepts exactly 112 Float32 samples and returns four
+looping packets. It evaluates cyclic prediction using the last two source
+samples as the initial history candidate. The candidate and the ordinary
+independent-start encoding are scored against the SPU's repeated-cycle decode:
+one initial pass followed by a pass using that decoder's final history.
+An overflow in either pass rejects the candidate; the ordinary packets remain
+the fallback when cyclic prediction does not reduce error. Returned metrics
+describe the repeated pass. This keeps smooth waves such as Sine from acquiring
+a coarse filter-0 staircase at every loop start. General recording encoding
+with `encodePs1Adpcm` keeps its existing independent entry points and output.

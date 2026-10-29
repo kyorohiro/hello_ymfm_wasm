@@ -73,10 +73,10 @@ export function preparePs1ADPCM(input,options) {
  */
 export function createPs1InitSample() {
   const adpcm=new Uint8Array([
-    0,6,0,17,17,34,50,51,51,68,68,84,85,85,85,85,
-    37,0,23,32,18,34,32,17,16,1,240,241,240,15,254,239,
-    38,0,221,204,219,187,187,172,202,201,170,171,187,186,203,202,
-    38,3,203,220,219,206,222,223,255,224,241,17,32,18,35,51,
+    38,6,67,83,83,69,85,101,100,86,101,86,101,85,85,85,
+    38,0,68,68,52,51,35,34,17,17,0,15,239,239,222,206,
+    38,0,221,204,204,187,172,172,171,187,170,187,186,202,186,188,
+    38,3,188,220,204,237,221,239,254,240,31,16,17,18,35,51,
   ]);
   return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};
 }
@@ -85,14 +85,14 @@ export function createPs1InitSample() {
 /** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number,reverb?:boolean}} Ps1Preset */
 /** @typedef {{live?:boolean}} Ps1EnvelopeUpdateOptions */
 /** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number,reverb:boolean}} Ps1VoiceState */
-/** @typedef {import('./ps1_parameters.js?v=chip-tabs-2').Ps1Reverb} Ps1ReverbState */
+/** @typedef {import('./ps1_parameters.js').Ps1Reverb} Ps1ReverbState */
 /** Fixed physical voices 0..23 over Ps1Spu. Uploads grow from byte address 0x1000
  * with 16-byte alignment; reset({clearRam:true}) starts a new bank. There is no
  * compaction, voice allocator, automatic gain normalization or PCM encoder.
  * Direct core edits bypass this class's bookkeeping and RAM reservations.
  */
 export class Ps1Synth {
-  /** @param {{core:import('./ps1_spu.js?v=audio-stability-2').Ps1Spu}} options */
+  /** @param {{core:import('./ps1_spu.js').Ps1Spu}} options */
   constructor({core}) {
     if (!core || !['reset','write','read','loadRam','readRam','renderInto','dispose'].every(key=>typeof core[key]==='function')) throw new TypeError('Ps1Synth requires Ps1Spu');
     this.core=core; this.sampleRate=PS1_SPU_SAMPLE_RATE; this.channelCount=PS1_CHANNEL_COUNT;
@@ -143,7 +143,7 @@ export class Ps1Synth {
     for(const sample of value.pcm)if(!Number.isFinite(sample)||sample< -1||sample>1)throw new RangeError('PS1 waveform PCM must be finite and in [-1, 1]');
     if(!ArrayBuffer.isView(value.adpcm)||value.adpcm.byteLength!==64)throw new RangeError('PS1 waveform requires exactly 64 ADPCM bytes');
     const p=preparePs1ADPCM(value.adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});
-    if(p.adpcm.length!==64||p.adpcm[0]>>4!==0||p.adpcm[1]!==6||p.adpcm[17]!==0||p.adpcm[33]!==0||p.adpcm[49]!==3)throw new RangeError('PS1 waveform requires four looping ADPCM packets');
+    if(p.adpcm.length!==64||p.adpcm[1]!==6||p.adpcm[17]!==0||p.adpcm[33]!==0||p.adpcm[49]!==3)throw new RangeError('PS1 waveform requires four looping ADPCM packets');
     const prior=this.editorWaveforms[ch];let sample=prior?this.samples[prior.sample]:null;
     if(sample&&(sample.editorChannel!==ch||sample.byteLength!==64))throw new Error('PS1 waveform slot is invalid');
     if(!sample){
@@ -208,7 +208,7 @@ export class Ps1Synth {
    * changed fields update the active stage at its current level by default.
    * Attack edits during sustain affect a future attack. live:false retains the
    * old stage parameters until the next key-on or explicit live edit.
-   * @param {number} ch @param {Partial<import('./ps1_parameters.js?v=chip-tabs-2').Ps1Envelope>} settings
+   * @param {number} ch @param {Partial<import('./ps1_parameters.js').Ps1Envelope>} settings
    * @param {Ps1EnvelopeUpdateOptions} [options] */
   setEnvelope(ch,settings,options={}){this._open();channel(ch);const p=this.channels[ch];this.setPreset(ch,patchPs1Envelope(p.adsr1,p.adsr2,settings),options);}
   /** One shared approximate reverb. Per-voice `reverb` selects the send; these

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
-import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-waveform-1';
+import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-cyclic-1';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readPmon, pmonPcm} from './spu_synth_pmon.js';
@@ -66,7 +66,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-long-audio-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-cyclic-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],

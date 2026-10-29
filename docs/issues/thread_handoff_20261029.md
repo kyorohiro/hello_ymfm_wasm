@@ -4,6 +4,14 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続修正：2026-10-30 Sineの周期先頭の段差
+
+PlaygroundのSine画像から、ADPCM先頭パケットのpredictor 0固定による粗い階段を確認。
+周期専用の予測圧縮を追加し、初回とloopのno-wrapと誤差を比較して従来より良い候補だけ採用する。
+Playgroundとstandaloneの初期Sine／PCM／Morph／PMONに反映。112サンプル・64バイトを維持。
+[実装・比較波形・検証・試用ZIP](spu_cyclic_sine_01.md) を参照。今回の修正は未公開。
+前回のheadroom精度修正とは別に、元からあったSine波形自体の歪みを改善した。
+
 ## 後続機能：2026-10-30 長い音声のSoftware audio
 
 ユーザーの20MB級音声を使いたいという指示で、SPU RAMを超える録音をホストPCMで演奏する機能を追加。

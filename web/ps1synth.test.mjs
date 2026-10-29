@@ -28,7 +28,7 @@ test('the starter is the pre-encoded editor sine with unchanged packet layout, t
     assert((first.adpcm[block*16]>>4)<=4&&(first.adpcm[block*16]&15)<=12);
     assert.equal(first.adpcm[block*16+1],block===0?6:block===3?3:0);
   }
-  assert.equal(first.adpcm[0]>>4,0,'A loop starts without depending on previous predictor history');
+  assert.equal(first.adpcm[0]>>4,2,'The cyclic Sine predicts across the loop boundary');
   first.adpcm.fill(255);assert.notDeepEqual(first.adpcm,second.adpcm);assert.deepEqual(createPs1InitSample(),second);
 });
 
@@ -312,4 +312,17 @@ test('reverb return levels and sends update held voices, Off restores dry PCM, a
   assert.equal(a.core.read(0x184),0);assert.equal(a.core.read(0x186),0);assert.deepEqual(a.synth.getState().reverb,{...settings,preset:'off'});
   a.synth.reset();assert.deepEqual(a.synth.getState().reverb,{preset:'off',volumeLeft:.25,volumeRight:.25});
   assert.ok(a.synth.getState().channels.every(ch=>ch.reverb===false));assert.equal(a.synth.getState().samples.length,1);
+});
+
+test('held cyclic Sine has no coarse first-quarter staircase in actual SPU PCM',async t=>{
+  const {synth}=await create(t),{adpcm,...options}=createPs1InitSample();
+  const sample=synth.loadADPCM(adpcm,options);
+  synth.setPreset(0,{sample,volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0x1fc0,pitch:4096});synth.keyOn(0);render(synth,112*20);
+  const pcm=render(synth,112*100).left;
+  let sine=0,cosine=0,dc=0;
+  for(let i=0;i<pcm.length;i++){sine+=pcm[i]*Math.sin(2*Math.PI*i/112);cosine+=pcm[i]*Math.cos(2*Math.PI*i/112);dc+=pcm[i];}
+  sine*=2/pcm.length;cosine*=2/pcm.length;dc/=pcm.length;
+  const residual=pcm.reduce((sum,x,i)=>sum+(x-dc-sine*Math.sin(2*Math.PI*i/112)-cosine*Math.cos(2*Math.PI*i/112))**2,0)/pcm.length;
+  const relativeDb=10*Math.log10(residual/((sine*sine+cosine*cosine)/2));
+  assert(relativeDb< -55,`Actual held-Sine residual ${relativeDb} dBc must stay below -55 dBc`);
 });

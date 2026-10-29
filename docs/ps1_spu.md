@@ -45,6 +45,12 @@ interpolation. An arbitrary uploaded ADPCM instrument has no original PCM in
 this editor: choose a shape to replace only the selected voice, or use the
 [Sample Editor](ps1_sample_editor.md) for a longer recording.
 
+Short cycles use a loop-aware encoder, choosing cyclic prediction only when it
+reduces repeated-cycle error without signed 16-bit overflow at startup or in
+the loop. The built-in Sine uses the same encoding, avoiding the former coarse
+staircase in its first quarter. This changes sample preparation, retaining the
+SPU's decoder and interpolation.
+
 Each voice lazily obtains one dedicated 64-byte waveform slot. Later edits
 reuse its ID and RAM address; other voices and the shared initial sample are
 preserved. A slot can be assigned only to its owning voice. Ordinary uploaded

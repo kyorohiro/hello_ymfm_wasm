@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {encodePs1Adpcm} from './ps1_adpcm_encoder.js';
+import {encodePs1Adpcm,encodePs1AdpcmCycle} from './ps1_adpcm_encoder.js';
 import {Ps1Spu} from './ps1_spu.js';
 import {Ps1Synth} from './ps1synth.js';
 
@@ -110,6 +110,29 @@ test('PCM encoder packets conform to the actual native decoder and native/WASM S
     assert.ok(encoded[1].metrics.snrDb>25,'a sustained original sine has useful raw quantization quality');
     const again=encodePs1Adpcm(copies[1]);assert.deepEqual(again.adpcm,encoded[1].adpcm);
     again.adpcm.fill(255);assert.notDeepEqual(again.adpcm,encoded[1].adpcm,'each encoding owns its packet storage');
+  });
+
+  await t.test('cyclic packets match real loop-cache decoding, improve Sine and never worsen arbitrary cycles',()=>{
+    let random=0x98765432;
+    const fixtures=[sine(),sine().map(x=>x*.001),new Float32Array(112),new Float32Array(112).fill(.95),
+      new Float32Array(112).fill(1),new Float32Array(112).fill(-1),
+      Float32Array.from({length:112},(_,i)=>i<56?.65:-.65),
+      Float32Array.from({length:112},(_,i)=>i/56-1),
+      Float32Array.from({length:112},(_,i)=>i%2?1:-1),
+      ...Array.from({length:20},()=>Float32Array.from({length:112},()=>{random=(Math.imul(random,1664525)+1013904223)>>>0;return random/0x80000000-1;}))];
+    for(const pcm of fixtures) {
+      const old=encodePs1Adpcm(pcm,{loopStartSamples:0,maxBytes:64}),next=encodePs1AdpcmCycle(pcm);
+      const doubled=bytes=>Buffer.concat([bytes,bytes]);
+      const [before,after]=decodeNative(binary.raw,[doubled(old.adpcm),doubled(next.adpcm)]);
+      assertNoWrap(doubled(next.adpcm),after);
+      checkMetrics(pcm,after.subarray(112),next.metrics);
+      const error=decoded=>pcm.reduce((sum,x,i)=>sum+(x-decoded[i+112]/32768)**2,0);
+      assert(error(after)<=error(before)+1e-15,'Native repeated-cycle error never increases');
+      assert.equal(next.adpcm.length,64);
+    }
+    const next=encodePs1AdpcmCycle(sine());
+    assert(next.metrics.snrDb>55,'Cyclic Sine keeps fine prediction at the first packet');
+    assert.equal(next.adpcm[0]>>4,2);
   });
 
   await t.test('nonzero loop starts reset predictor history and remain stable over repeated native decode passes',()=>{

@@ -61,6 +61,10 @@ function integer(value,min,max,name) {
  *   metrics:{rmsError:number,maxError:number,signalRms:number,snrDb:number|null,errorFrames:number,exact:boolean}}}
  */
 export function encodePs1Adpcm(pcm,options={}) {
+  return encode(pcm,options);
+}
+
+function encode(pcm,options,initialHistory=null) {
   if (!(pcm instanceof Float32Array)) throw new TypeError('PS1 ADPCM PCM must be a mono Float32Array');
   if (!pcm.length) throw new RangeError('PS1 ADPCM PCM must contain at least one sample');
   if (options === null || typeof options !== 'object' || Array.isArray(options)) {
@@ -92,11 +96,11 @@ export function encodePs1Adpcm(pcm,options={}) {
   const targets=new Float64Array(BLOCK_SAMPLES);
   const candidateNibbles=new Int8Array(BLOCK_SAMPLES),candidateSamples=new Int16Array(BLOCK_SAMPLES);
   const bestNibbles=new Int8Array(BLOCK_SAMPLES),bestSamples=new Int16Array(BLOCK_SAMPLES);
-  let history1=0,history2=0,errorSquared=0,signalSquared=0,maxError=0;
+  let history1=initialHistory?.[0]??0,history2=initialHistory?.[1]??0,errorSquared=0,signalSquared=0,maxError=0;
   for (let block=0;block<blockCount;block++) {
     const frameOffset=block*BLOCK_SAMPLES;
     for (let n=0;n<BLOCK_SAMPLES;n++) targets[n]=frameOffset+n<sourceFrames?pcm[frameOffset+n]*32768:0;
-    const lastFilter=block===0 || frameOffset===loopStartSamples?0:4;
+    const lastFilter=initialHistory ? 4 : block===0 || frameOffset===loopStartSamples ? 0 : 4;
     let bestError=Infinity,bestFilter=0,bestShift=0;
     for (let filter=0;filter<=lastFilter;filter++) {
       const [f0,f1]=FILTERS[filter];
@@ -143,4 +147,45 @@ export function encodePs1Adpcm(pcm,options={}) {
       signalRms:Math.sqrt(signalSquared/sourceFrames)/32768,
       snrDb:errorSquared===0 || signalSquared===0?null:10*Math.log10(signalSquared/errorSquared),
       errorFrames:sourceFrames,exact:errorSquared===0}};
+}
+
+/** Encode the editor's four-packet cycle using the previous cycle as history.
+ * General recordings keep the independent entry points of encodePs1Adpcm().
+ * The SPU builds its 112-frame loop cache from the first decode's final state.
+ * Score that actual second pass, rejecting signed-short overflow on either
+ * pass. Keep the original encoding if prediction would make the loop worse.
+ * This is prepare-side work only; no encoding runs during audio rendering.
+ * @param {Float32Array} pcm
+ */
+export function encodePs1AdpcmCycle(pcm) {
+  if (!(pcm instanceof Float32Array) || pcm.length!==112) throw new RangeError('SPU cycle requires exactly 112 Float32 PCM samples');
+  const options={loopStartSamples:0,maxBytes:64};
+  const independent=encode(pcm,options);
+  const sample=value=>Math.max(-32768,Math.min(32767,Math.round(value*32768)));
+  const predicted=encode(pcm,options,[sample(pcm[111]),sample(pcm[110])]);
+  const base=scoreLoop(independent.adpcm,pcm),candidate=scoreLoop(predicted.adpcm,pcm);
+  if (!base) throw new Error('Independent SPU encoding exceeded int16 range');
+  return candidate && candidate.rmsError<base.rmsError
+    ? {...predicted,metrics:candidate} : {...independent,metrics:base};
+}
+
+function scoreLoop(adpcm,pcm) {
+  let p1=0,p2=0,errorSquared=0,signalSquared=0,maxError=0;
+  for (let pass=0;pass<2;pass++) for (let i=0;i<112;i++) {
+    const at=(i/28|0)*16,header=adpcm[at],packed=adpcm[at+2+(i%28>>1)];
+    const nibble=(packed>>((i%2)*4))&15,signed=nibble<8?nibble:nibble-16;
+    const [f0,f1]=FILTERS[header>>4];
+    const value=(signed*4096>>(header&15))+((p1*f0+p2*f1+32)>>6);
+    if (value< -32768 || value>32767) return null;
+    p2=p1;p1=value;
+    if(pass) {
+      const target=pcm[i]*32768,difference=target-value;
+      errorSquared+=difference*difference;signalSquared+=target*target;
+      maxError=Math.max(maxError,Math.abs(difference));
+    }
+  }
+  return {rmsError:Math.sqrt(errorSquared/112)/32768,maxError:maxError/32768,
+    signalRms:Math.sqrt(signalSquared/112)/32768,
+    snrDb:errorSquared===0 || signalSquared===0?null:10*Math.log10(signalSquared/errorSquared),
+    errorFrames:112,exact:errorSquared===0};
 }
