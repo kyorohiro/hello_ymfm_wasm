@@ -28,7 +28,7 @@ function applyState(next) {
     panel.update(state);
     const sample = state.samples?.find(item => item.id === state.channels[0].sample);
     $('sampleName').textContent = `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
-    $('voiceAllocationStatus').textContent = `24 voices · round robin · ${state.auditions?.length ?? 0} held`;
+    $('voiceAllocationStatus').textContent = `${state.pmon?.enabled ? '12 notes · paired PMON' : '24 voices · round robin'} · ${state.auditions?.length ?? 0} held`;
   });
 }
 function audioFailed(error) {
@@ -72,6 +72,8 @@ async function invoke(method, args = []) {
   // Note owners have already awaited resume and checked their press token.
   // Do not yield again here: an Off/Stop must never overtake its pending On.
   const engine = audio ?? await ensureAudio();
+  const changesTopology = method === 'setInstrumentPmon' && Boolean(state?.pmon?.enabled) !== args[0]?.enabled;
+  if (changesTopology) {epoch++; notes.clear(); updateKeys();}
   const commandEpoch = epoch;
   const result = await engine.command(method, args);
   // A live edit may expose a release/reverb tail after the display slept.
@@ -188,15 +190,22 @@ function releaseKeyboard(force = false) {
   } else for (const source of [...notes.keys()]) release(source);
 }
 function editing(target) {
-  const node = target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');
+  const node = target?.closest?.('input,textarea,[contenteditable="true"],dialog[open]');
   return node && !node.matches('input[type=range],input[type=checkbox]');
 }
 document.addEventListener('keydown', event => {
+  if (event.isComposing) return;
+  const entryField=event.target?.closest?.('input[type=number],input[type=text]');
+  if (event.key === 'Enter' && entryField) {event.preventDefault();entryField.blur();return;}
   if (event.key === 'Escape') {void stop().catch(report); return;}
-  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || editing(event.target)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey || editing(event.target)) return;
   const entry = layout.entries.find(value => value.key === event.key.toLowerCase()); if (!entry) return;
-  event.preventDefault(); void press(`key:${event.code}`, {...entry, midi:entry.midi + octave * 12}).catch(report);
-});
+  // Capture musical keys before a focused select can use type-ahead. Keep
+  // arrows, Space and Tab available for normal control navigation. Repeats
+  // are cancelled as well, without starting a second note.
+  event.preventDefault();
+  if (!event.repeat) void press(`key:${event.code}`, {...entry, midi:entry.midi + octave * 12}).catch(report);
+}, {capture:true});
 document.addEventListener('keyup', event => release(`key:${event.code}`));
 window.addEventListener('blur', () => {releaseKeyboard(true); resetBend();});
 document.addEventListener('visibilitychange', () => {
@@ -294,7 +303,7 @@ $('savePreset').addEventListener('click', async () => {
     const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';
     const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [0]));
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
-    status(`Saved ${name}, including its sample, ADSR and shared reverb settings.`);
+    status(`Saved ${name}, including its sample, ADSR, PMON and shared reverb settings.`);
   } catch (error) {report(error);}
 });
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
@@ -310,7 +319,8 @@ $('presetFileInput').addEventListener('change', async () => {
     if (operation !== assetEpoch) return;
     const bank = await engine.inspect();
     if (operation !== assetEpoch) return;
-    if (!instrument.waveform && instrument.sample.adpcm.length > 524288 - bank.nextAddress) throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
+    const requiredBytes=(instrument.waveform ? 0 : instrument.sample.adpcm.length)+(instrument.pmon.enabled && !bank.pmonSampleReserved ? 64 : 0);
+    if (requiredBytes > 524288 - bank.nextAddress) throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
     await stop();
     if (operation !== assetEpoch) return;
     let sample;
@@ -320,6 +330,7 @@ $('presetFileInput').addEventListener('change', async () => {
     await engine.command('setInstrumentPreset', [{...instrument.preset, ...(sample ? {sample} : {})}]);
     if (operation !== assetEpoch) return;
     await engine.command('setReverb', [instrument.reverb]);
+    await engine.command('setInstrumentPmon', [instrument.pmon]);
     if (operation !== assetEpoch) return;
     instrumentName = instrument.name; $('instrumentName').value = instrumentName;
     status(`Loaded ${instrument.name}.`); applyState(await engine.inspect());
@@ -337,6 +348,7 @@ $('resetPreset').addEventListener('click', async () => {
     if (operation !== assetEpoch) return;
     await engine.command('setInstrumentPreset', [{volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
     if (operation !== assetEpoch) return;
+    await engine.command('setInstrumentPmon', [{enabled:false}]);
     instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
     status('Instrument reset to Sine.'); applyState(await engine.inspect());
   } catch (error) {report(error);}

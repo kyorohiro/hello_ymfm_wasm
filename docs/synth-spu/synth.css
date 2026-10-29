@@ -239,3 +239,18 @@ footer a { color: #4a5e74; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+/* PMON belongs to the standalone instrument, alongside the shared reverb. */
+.spu-pmon { border: 1px solid #bdc5cc; border-radius: 8px; margin: 24px 0 0; padding: 14px 16px; min-width: 0; }
+.spu-pmon legend { padding: 0 6px; font-size: .75rem; font-weight: 600; color: var(--muted); }
+.pmon-enable, .pmon-fields label { display: flex; align-items: center; gap: 10px; font-size: .75rem; }
+.pmon-fields { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 14px 24px; margin: 16px 0 12px; }
+.pmon-fields input[type=number] { width: 90px; min-height: 34px; padding: 5px 8px; border: 1px solid #a0adb7; border-radius: 6px; background: #f7f9fa; color: var(--ink); }
+.pmon-fields input[type=range] { flex: 1; width: 90px; }
+.pmon-fields output { min-width: 72px; text-align: right; color: var(--muted); }
+.pmon-ratios { display: flex; flex-wrap: wrap; gap: 6px; }
+.pmon-ratios button { min-height: 30px; padding: 4px 10px; }
+@media (max-width: 600px) { .pmon-fields { grid-template-columns: 1fr; gap: 12px; } .spu-pmon { padding: 12px; } }
+
+.spu-fx > h3 { font-size: 1rem; font-weight: 750; color: #285b87; margin-bottom: 18px; }
+.spu-fx > h3::before { height: 16px; background: #477cba; }

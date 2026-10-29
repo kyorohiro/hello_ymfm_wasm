@@ -117,7 +117,9 @@ async function capture(page, frames = 16384) {
         if (!Number.isFinite(value)) nonFinite++; if (value !== 0) nonZero++;
         if (i && values[i - 1] < mean && value >= mean) crossings.push(i - 1 + (mean - values[i - 1]) / (value - values[i - 1]));
       }
-      return {peak, rms:Math.sqrt(energy / values.length), nonFinite, nonZero, hz:crossings.length > 2 ? (crossings.length - 1) * context.sampleRate / (crossings.at(-1) - crossings[0]) : 0};
+      let fingerprint=2166136261;
+      for(const byte of new Uint8Array(values.buffer,values.byteOffset,values.byteLength))fingerprint=Math.imul(fingerprint^byte,16777619)>>>0;
+      return {pcmFingerprint:fingerprint, peak, rms:Math.sqrt(energy / values.length), nonFinite, nonZero, hz:crossings.length > 2 ? (crossings.length - 1) * context.sampleRate / (crossings.at(-1) - crossings[0]) : 0};
     });
     if (sink.gate.gain.value !== 0) throw Error('Physical SPU Synth output must remain muted');
     return {frames:data.left.length, sampleRate:context.sampleRate, channels, pilot, clock, frameGaps:data.frameGaps, physicalOutputMuted:true};
@@ -395,6 +397,110 @@ async function checkBrandAssets(page) {
   return brand;
 }
 
+async function checkKeyboardFocus(page, keyboardHz) {
+  console.log('CHECK keyboard focus: selected preset / repeats / number and text commit');
+  await editorTab(page,'fx');
+  const preset=page.locator(control('reverb-preset'));
+  await preset.focus();await preset.selectOption('hall');await settled(page);
+  assert(await preset.evaluate(node=>document.activeElement===node),'Keep actual select focus after choosing a preset');
+  const from=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  await page.keyboard.down('r');const selectedPcm=await audible(page,'Keyboard after focused reverb selection');
+  assert.equal((await current(page)).auditions.length,1);
+  await page.keyboard.down('r');await settled(page);
+  assert.equal(await preset.inputValue(),'hall','Musical keys and repeats must not invoke select type-ahead');
+  const starts=await page.evaluate(from=>__spuSynthAudit.commands.slice(from).filter(command=>command.method==='instrumentNoteOn').length,from);
+  assert.equal(starts,1,'A repeat never allocates another note');
+  await page.keyboard.up('r');await settled(page);
+  assert.equal((await current(page)).auditions.length,0,'Key Up is received while select retains focus');
+  await page.keyboard.press('Tab');
+  assert(!(await preset.evaluate(node=>document.activeElement===node)),'Tab still leaves the select normally');
+  await page.locator('#stopAudio').click();await silent(page,'Focused select note stops');
+
+  const numeric=page.locator(control('reverb-left'));
+  await numeric.focus();await numeric.fill('0.2');
+  await page.keyboard.press('y');await settled(page);
+  assert.equal((await current(page)).auditions.length,0,'Typing inside a number field does not play notes');
+  assert(await numeric.evaluate(node=>document.activeElement===node));
+  await page.keyboard.press('Enter');await settled(page);
+  assert(!(await numeric.evaluate(node=>document.activeElement===node)),'Enter commits and leaves number editing');
+  await page.keyboard.down('y');const numberPcm=await audible(page,'Keyboard after number commit',keyboardHz);
+  await page.keyboard.up('y');await settled(page);
+  await page.locator('#stopAudio').click();await silent(page,'Committed number note stops');
+
+  const name=page.locator('#instrumentName');
+  await name.focus();await name.fill('Focus test');await page.keyboard.type('y');await settled(page);
+  assert.equal((await current(page)).auditions.length,0,'Typing a name never plays a note');
+  assert.equal(await name.inputValue(),'Focus testy');
+  await page.keyboard.press('Enter');
+  await page.keyboard.down('y');const textPcm=await audible(page,'Keyboard after name commit',keyboardHz);
+  await page.keyboard.up('y');await page.locator('#stopAudio').click();await silent(page,'Committed text note stops');
+  return {selectFocusPlayable:true,typeAheadSuppressed:true,repeatsStartOneNote:true,keyUpReceived:true,tabPreserved:true,textAndNumberEditingProtected:true,enterReturnsToPlaying:true,selectedPcm,numberPcm,textPcm};
+}
+
+async function checkPmon(page, keyboardHz, name) {
+  console.log('CHECK PMON: FX controls / paired allocation / held edits / save and restore');
+  await field(page,'reverb-send',false);await field(page,'reverb-preset','off');
+  const set = async (name,value) => {
+    await editorTab(page,'fx');
+    await page.locator(`[data-pmon="${name}"]`).evaluate((node,value)=>{
+      if(node.type==='checkbox')node.checked=value;else node.value=String(value);
+      node.dispatchEvent(new Event('change',{bubbles:true}));node.blur();
+    },value);
+    await settled(page);
+  };
+  await set('depth',0);await set('decayMs',0);await set('enabled',true);
+  assert.equal((await current(page)).polyphony,12);
+  await page.locator('h1').click();await page.keyboard.down('y');
+  const held=await settled(page);assert.equal(held.auditions[0].channel,1);
+  const dry=await audible(page,'PMON depth zero',keyboardHz);
+  const commandStart=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  await set('depth',.8);await set('ratio',3);
+  const wetState=await settled(page),wet=await audible(page,'Real hardware PMON');
+  assert.deepEqual(wetState.auditions,held.auditions,'Ratio/Depth keep note identity');
+  const edits=await page.evaluate(start=>__spuSynthAudit.commands.slice(start),commandStart);
+  assert(!edits.some(command=>command.method==='instrumentNoteOn'),'PMON edits do not re-key carriers');
+  assert.notEqual(wet.channels[0].pcmFingerprint,dry.channels[0].pcmFingerprint,'PMON changes actual PCM');
+  assert(wetState.channels.every(channel=>channel.waveform?.pcm?.length===112),'source Sine never replaces the authored carrier wave');
+  await set('decayMs',740);
+  const pmonLayouts=[];
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:width===390?844:1100});
+    const dimensions=await page.locator('.spu-pmon').evaluate(node=>({width:node.getBoundingClientRect().width,scroll:node.scrollWidth,client:node.clientWidth}));
+    assert(dimensions.scroll<=dimensions.client+1,'PMON controls fit without horizontal scrolling');
+    const screenshot=config.screenshots ? path.join(config.screenshots,`${name}-pmon-${width}.png`) : null;
+    if(screenshot)await page.locator('.spu-pmon').screenshot({path:screenshot});
+    pmonLayouts.push({viewport:width,...dimensions,screenshot});
+  }
+  await page.setViewportSize({width:1440,height:1100});
+  await page.locator('#instrumentName').fill('PMON Bell');
+  const downloadPromise=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const bytes=await fs.readFile(await (await downloadPromise).path()),preset=JSON.parse(bytes);
+  assert.deepEqual(preset.pmon,{enabled:true,ratio:3,depth:.8,decayMs:740});
+  await set('enabled',false);assert.equal((await current(page)).auditions.length,0);
+  await page.keyboard.up('y');
+  await page.locator('#presetFileInput').setInputFiles({name:'pmon.spu.json',mimeType:'application/json',buffer:bytes});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded PMON Bell.');
+  const restored=await settled(page);assert.deepEqual(restored.pmon,preset.pmon);
+  assert(await page.locator('[data-pmon="enabled"]').isChecked());
+  const keys=await page.locator('#keyboardMount .key[data-key]').evaluateAll(nodes=>[...new Set(nodes.map(node=>node.dataset.key))].slice(0,13));
+  await page.locator('h1').click();const from=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  for(const key of keys)await page.keyboard.down(key);
+  const paired=await settled(page);
+  const ons=await page.evaluate(from=>__spuSynthAudit.commands.slice(from).filter(c=>c.method==='instrumentNoteOn').map(c=>c.allocation),from);
+  assert.deepEqual(ons.map(note=>note.channel),[1,3,5,7,9,11,13,15,17,19,21,23,1]);
+  assert.equal(paired.auditions.length,12);
+  await page.keyboard.up(keys[0]);assert.deepEqual((await settled(page)).auditions,paired.auditions);
+  for(const key of keys.slice(1))await page.keyboard.up(key);
+  await page.locator('#stopAudio').click();await silent(page,'PMON Stop clears source and carrier tails');
+  await set('enabled',false);assert.equal((await current(page)).polyphony,24);
+  // Old version-1 instruments remain valid and explicitly return to Off.
+  delete preset.pmon;
+  await page.locator('#presetFileInput').setInputFiles({name:'legacy.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded PMON Bell.');
+  await settled(page);assert.equal((await current(page)).pmon.enabled,false);
+  return {physicalVoices:24,polyphony:12,carrierChannels:ons.map(note=>note.channel),heldEditsKeepOwners:true,presetRoundTrip:true,legacyDefaultsOff:true,layouts:pmonLayouts,dry,wet};
+}
+
 // No private production hooks, injected chip calls or fake renderers are used.
 async function runCase(browser, name, origin) {
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1440, height:1100}, acceptDownloads:true});
@@ -560,15 +666,30 @@ async function runCase(browser, name, origin) {
     assert.deepEqual(cycleSwitched.auditions, beforeCycleSwitch.auditions, 'Changing a held imported sample back to a cycle keeps note ownership');
     assert(cycleSwitched.channels.every(channel => channel.waveform?.pcm?.length === 112), 'Switching back to a cycle restores editable PCM on all voices');
     const retunedPcm = await audible(page, 'Held imported sample to cycle retains pitch', keyboardHz);
-    await field(page, 'reverb-send', true); await field(page, 'reverb-preset', 'room');
+    await field(page, 'reverb-send', false); await field(page, 'reverb-preset', 'room');
+    assert((await current(page)).channels.every(channel=>channel.reverb),'Selecting Room enables all sends automatically');
+    assert(await page.locator(control('reverb-send')).isChecked(),'The Enable reverb checkbox follows preset selection');
     await field(page, 'reverb-left', .3); await field(page, 'reverb-right', .3);
     const reverberant = await settled(page);
     assert(reverberant.channels.every(channel => channel.reverb === true), 'The common reverb send reaches every round-robin voice');
     assert.equal(reverberant.reverb.preset, 'room');
     assert.equal(reverberant.reverb.volumeLeft, .3); assert.equal(reverberant.reverb.volumeRight, .3);
     const reverbPcm = await audible(page, 'Shared SPU reverb');
+    await field(page,'reverb-send',false);
+    const bypassed=await current(page);
+    assert(bypassed.channels.every(channel=>!channel.reverb));
+    assert.deepEqual(bypassed.reverb,reverberant.reverb,'Manual bypass retains the selected preset and returns');
+    await field(page,'reverb-send',true);
+    assert.deepEqual((await current(page)).reverb,reverberant.reverb,'Re-enabling restores the same settings');
+    await field(page,'reverb-preset','off');
+    assert((await current(page)).channels.every(channel=>!channel.reverb),'Selecting Off disables every send');
+    assert(!(await page.locator(control('reverb-send')).isChecked()));
+    await field(page,'reverb-preset','room');
     await page.locator('#stopAudio').click(); const stopped = await silent(page, 'Stop all voices');
     await page.keyboard.up('y');
+
+    const keyboardFocus=await checkKeyboardFocus(page,keyboardHz);
+    const pmon=await checkPmon(page,keyboardHz,name);
 
     console.log(`CHECK ${name}: real audio failure / explicit user retry`);
     await page.evaluate(async () => {const context = [...__spuSynthAudit.contexts].reverse().find(value => value.state !== 'closed'); await context.close();});
@@ -601,7 +722,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, pmon, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

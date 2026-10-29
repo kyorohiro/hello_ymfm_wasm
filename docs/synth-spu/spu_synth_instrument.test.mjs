@@ -138,3 +138,15 @@ test('decoded PCM rejects invalid sample rates, samples and free-RAM budgets bef
   assert.throws(() => prepareAudioPcm(buffer, {maxBytes:16}), /free SPU sample RAM/);
   assert.equal(reads, 0, 'RAM validation precedes mono conversion');
 });
+
+test('PMON settings round-trip independently of carrier PCM and old presets default to Off',async t=>{
+  const {source}=await instrumentFixture(t);
+  const old=writeSpuInstrument('Legacy',source);delete old.pmon;
+  assert.equal(readSpuInstrument(old).pmon.enabled,false);
+  source.pmon={enabled:true,ratio:3,depth:.8,decayMs:740};
+  const file=writeSpuInstrument('Bell',source),restored=readSpuInstrument(JSON.parse(JSON.stringify(file)));
+  assert.deepEqual(restored.pmon,source.pmon);assert.deepEqual(restored.waveform,source.waveform);
+  for(const invalid of [{ratio:0},{ratio:17},{depth:-1},{decayMs:5001},{enabled:1},{extra:0}]) {
+    const bad=clone(file);bad.pmon={...file.pmon,...invalid};assert.throws(()=>readSpuInstrument(bad),/PMON|Modulation/);
+  }
+});

@@ -13,6 +13,7 @@ import {Ps1VoiceInspector} from '../../web/playground_ps1_inspector.js';
 import {preparePs1Waveform} from '../../web/ps1_waveform.js';
 import {patchPs1Envelope} from '../../web/ps1_parameters.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js';
+import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -45,7 +46,7 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
     disconnect() {}
   }
   vm.runInNewContext(audioSource.replace(/^import .*;\n/gm, '').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./spu_synth_audio.js', import.meta.url).href)) + '\nprovide(createSpuAudio);', {
-    AudioContext:Context, AudioWorkletNode:WorkletNode,
+    readPmon, pmonPcm, AudioContext:Context, AudioWorkletNode:WorkletNode,
     preparePs1Waveform:pcm => {encodes++; return preparePs1Waveform(pcm);},
     SOUNDCHIP_MIXER_PRESETS:{calibrated:{factoryDefaults:{kinds:[{name:'ps1', volume:.128832}]}}},
     URL, fetch:async () => ({ok:true, arrayBuffer:async () => wasmBinary.buffer}),
@@ -85,13 +86,14 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {preparePs1Waveform} from ${url('../../web/ps1_waveform.js')};
     import {patchPs1Envelope} from ${url('../../web/ps1_parameters.js')};
     import {SpuRoundRobinVoices} from ${url('./spu_synth_voices.js')};
+    import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -122,7 +124,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -501,4 +503,117 @@ test('waveform tuning is validated before RAM changes while finished notes canno
   p.command('instrumentNoteOn', [69, 'cycle-note']);
   assert.equal(p.command('inspect').channels[1].pitch, Math.round(4096 * 440 * 2 ** (2 / 12) / (44100 / 112)));
   assert(peak(p.render(1024).left) > .001);
+});
+
+function pmonSettings(p, values) {
+  const settings=readPmon({...p.processor.pmon,...values});
+  return p.command('setInstrumentPmon',[settings,settings.enabled ? preparePs1Waveform(pmonPcm(settings.depth)) : undefined]);
+}
+
+test('PMON pairs all 24 physical voices into 12 identity-safe notes and keeps modulators silent',async t=>{
+  const p=await setup(44100);t.after(()=>p.processor.dispose());
+  p.command('instrumentNoteOn',[60,'old']);p.render(512);
+  pmonSettings(p,{enabled:true,decayMs:0});
+  assert.equal(p.command('inspect').auditions.length,0,'topology switch stops earlier notes');
+  assert.equal(p.command('inspect').polyphony,12);
+  const core=p.processor.synth.core,base=p.processor.synth.nextAddress;
+  assert.equal(core.read(0x190),0xaaaa);assert.equal(core.read(0x192),0xaa);
+  for(let slot=0;slot<12;slot++) {
+    const note=p.command('instrumentNoteOn',[48+slot,`pair-${slot}`]);
+    assert.equal(note.channel,slot*2+1);
+    assert.equal(core.read(slot*32),0);assert.equal(core.read(slot*32+2),0,'source has no direct L/R output');
+  }
+  assert.equal(p.processor.synth.nextAddress,base,'Note On allocates no sample memory');
+  assert.equal(p.command('inspect').auditions.length,12);
+  assert(peak(p.render(4096).left)>.001);
+  const replacement=p.command('instrumentNoteOn',[70,'replacement']);
+  assert.equal(replacement.channel,1);assert.equal(replacement.stolenId,'pair-0');
+  assert.equal(p.command('instrumentNoteOff',['pair-0']),false,'stolen release cannot stop the new pair');
+  assert.equal(p.command('instrumentNoteOff',['old']),false,'pre-switch release cannot reach a pair');
+  assert.equal(p.command('instrumentNoteOff',['replacement']),true);
+  p.command('instrumentAllNotesOff');p.render(4096);
+  assert.equal(peak(p.render(256).left),0);
+  pmonSettings(p,{enabled:false});
+  assert.equal(core.read(0x190),0);assert.equal(core.read(0x192),0);assert.equal(p.command('inspect').polyphony,24);
+  assert.equal(p.command('instrumentNoteOn',[60,'single']).channel,0,'normal round robin is restored');
+});
+
+test('PMON has real audible modulation, independent decay, reusable depth packets and coherent bend/tails',async t=>{
+  const dry=await setup(44100),wet=await setup(44100);t.after(()=>{dry.processor.dispose();wet.processor.dispose();});
+  pmonSettings(dry,{enabled:true,depth:0,decayMs:0});
+  pmonSettings(wet,{enabled:true,depth:.8,ratio:2,decayMs:500});
+  for(const p of [dry,wet])p.command('instrumentNoteOn',[60,'note']);
+  const a=dry.render(4096).left,b=wet.render(4096).left;
+  assert(a.some((value,i)=>Math.abs(value-b[i])>.01),'hardware PMON changes rendered PCM');
+  const core=wet.processor.synth.core,ramEnd=wet.processor.synth.nextAddress;
+  const keyWrites=[],write=core.write;
+  core.write=function(address,value){if([0x188,0x18a].includes(address))keyWrites.push([address,value]);return write.call(this,address,value);};
+  let uploads=0;const loadRam=core.loadRam;
+  core.loadRam=function(...args){uploads++;return loadRam.apply(this,args);};
+  pmonSettings(wet,{ratio:3});pmonSettings(wet,{ratio:2,decayMs:740});
+  assert.equal(uploads,0,'Ratio and Decay edits do not invalidate sample RAM');
+  wet.command('setInstrumentPitchBend',[2]);
+  assert.equal(core.read(4),Math.round(4096*440*2**((60-69+2)/12)*2/(44100/112)));
+  assert.equal(keyWrites.length,0,'bend updates both pitches without KON');
+  for(let i=0;i<10;i++)pmonSettings(wet,{depth:i/10,ratio:1+i/10});
+  assert.equal(wet.processor.synth.nextAddress,ramEnd,'depth replaces a single reserved 64-byte Sine slot');
+  wet.render(44100);
+  assert.equal(core.read(12),0,'only the modulator has decayed');assert(core.read(28)>0,'carrier remains held');
+  assert(peak(wet.render(2048).left)>.001);
+  wet.command('instrumentNoteOff',['note']);wet.command('setInstrumentPitchBend',[-2]);
+  assert.equal(keyWrites.length,0,'release-tail bend never starts another note');
+  wet.command('stop');assert.equal(core.read(0x190),0xaaaa,'Stop retains PMON settings');
+  assert.equal(peak(wet.render(4096).left),0,'Stop resets carrier, source and resampler tails');
+  assert.equal(wet.command('instrumentNoteOn',[60,'again']).channel,1);
+  assert(peak(wet.render(2048).left)>.001,'PMON works again after Stop');
+});
+
+test('PMON keeps the authored instrument separate from its source, validates atomically and saves portable settings',async t=>{
+  const p=await setup(44100);t.after(()=>p.processor.dispose());
+  pmonSettings(p,{enabled:true,ratio:.5,depth:.7,decayMs:1200});p.command('instrumentNoteOn',[60,'held']);p.render(2048);
+  const core=p.processor.synth.core,sourceAddress=core.read(6);
+  p.command('setInstrumentPreset',[{volumeLeft:.4,volumeRight:.6,adsr1:0x100f},{live:true}]);
+  p.command('setInstrumentEnvelope',[{sustainRate:127},{live:true}]);
+  p.command('setInstrumentWaveform',[preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.4:-.4)),{retrigger:true}]);
+  assert.equal(core.read(0),0);assert.equal(core.read(2),0);assert.equal(core.read(6),sourceAddress);
+  assert.equal(core.read(8),15,'carrier ADSR edits do not alter the source Attack');
+  assert.equal(core.read(16),Math.round(.4*0x3fff));
+  const saved=p.command('getInstrument',[0]);
+  assert.equal(saved.preset.volumeLeft,.4);assert.equal(saved.preset.adsr1,0x100f);
+  assert.equal(saved.sample.adpcm.length,64);assert.equal(saved.waveform[0],Math.fround(.4),'save exports the carrier waveform');
+  assert.equal(saved.pmon.ratio,.5);assert.equal(saved.pmon.decayMs,1200);
+  const before=core.readRam(),owners=JSON.stringify(p.command('inspect').auditions);
+  for(const invalid of [{enabled:'yes'},{ratio:0},{ratio:Infinity},{depth:1.1},{decayMs:-1},{unknown:1}]) {
+    assert.throws(()=>p.command('setInstrumentPmon',[invalid]),/PMON|Modulation/);
+    assert.deepEqual(core.readRam(),before);assert.equal(JSON.stringify(p.command('inspect').auditions),owners);
+  }
+  assert.throws(()=>p.command('setInstrumentPmon',[readPmon({enabled:true}),{pcm:Array(112).fill(0),adpcm:new Uint8Array(64)}]),/looping/);
+  assert.equal(JSON.stringify(p.command('inspect').auditions),owners,'bad packets do not stop a held pair');
+});
+
+test('reverb preset selection atomically enables all carriers, Off disables, and manual bypass retains settings',async t=>{
+  const p=await setup();t.after(()=>p.processor.dispose());
+  p.command('instrumentNoteOn',[60,'reverb-held']);p.render(1024);
+  const owners=JSON.stringify(p.command('inspect').auditions);
+  p.command('setReverb',[{volumeLeft:.3,volumeRight:.4}]);
+  p.command('setInstrumentReverbPreset',[{preset:'room'}]);
+  let state=p.command('inspect');
+  assert(state.channels.every(ch=>ch.reverb));assert.equal(state.reverb.preset,'room');
+  assert.equal(state.reverb.volumeLeft,.3);assert.equal(state.reverb.volumeRight,.4);
+  assert.equal(JSON.stringify(state.auditions),owners);
+  p.command('setInstrumentPreset',[{reverb:false}]);
+  const bypassed=p.command('inspect');assert(bypassed.channels.every(ch=>!ch.reverb));
+  assert.deepEqual(bypassed.reverb,state.reverb);
+  p.command('setInstrumentPreset',[{reverb:true}]);
+  assert.deepEqual(p.command('inspect').reverb,state.reverb);
+  assert.throws(()=>p.command('setInstrumentReverbPreset',[{preset:'missing'}]),/preset/);
+  assert(p.command('inspect').channels.every(ch=>ch.reverb));
+  p.command('setInstrumentReverbPreset',[{preset:'off'}]);
+  state=p.command('inspect');assert.equal(state.reverb.preset,'off');assert(state.channels.every(ch=>!ch.reverb));
+  assert.equal(JSON.stringify(state.auditions),owners,'selection never restarts or releases a held note');
+  pmonSettings(p,{enabled:true});p.command('instrumentNoteOn',[60,'pair']);
+  p.command('setInstrumentReverbPreset',[{preset:'hall'}]);
+  assert(p.command('inspect').channels.every(ch=>ch.reverb));
+  assert.equal(p.processor.synth.core.read(0),0,'silent PMON source remains silent');
+  assert(peak(p.render(4096).left)>.001);
 });

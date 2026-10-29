@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {readPmon} from './spu_synth_pmon.js';
 import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-pcm-waveform-1';
 import {PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
@@ -20,7 +21,7 @@ function keys(value, allowed, label) {
 }
 /** Validate the entire file before changing any live voice or sample RAM. */
 export function readSpuInstrument(value) {
-  keys(value, ['schema', 'version', 'name', 'preset', 'sample', 'reverb', 'waveform'], 'instrument');
+  keys(value, ['schema', 'version', 'name', 'preset', 'sample', 'reverb', 'waveform', 'pmon'], 'instrument');
   if (value.schema !== INSTRUMENT_SCHEMA || value.version !== 1) throw new TypeError('Expected a Tetorica SPU Synth instrument (version 1)');
   if (typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw new TypeError('Instrument name must contain 1–80 characters');
   keys(value.preset, ['volumeLeft', 'volumeRight', 'adsr1', 'adsr2', 'pitch', 'reverb'], 'voice');
@@ -47,14 +48,14 @@ export function readSpuInstrument(value) {
     if (options.baseFrequencyHz !== 44100 / 112 || options.loopStartSamples !== 0 || prepared.adpcm.length !== adpcm.length || prepared.adpcm.some((byte, index) => byte !== adpcm[index])) throw new TypeError('PCM cycle and encoded ADPCM do not match');
     waveform = prepared.pcm;
   }
-  return {schema:INSTRUMENT_SCHEMA, version:1, name:value.name.trim(), preset, sample:{adpcm, ...options}, reverb, waveform};
+  return {schema:INSTRUMENT_SCHEMA, version:1, name:value.name.trim(), preset, sample:{adpcm, ...options}, reverb, waveform, pmon:readPmon(value.pmon)};
 }
 
 export function writeSpuInstrument(name, source) {
   if (!source?.sample) throw new Error('Assign a sample before saving an instrument');
   const {sample:ignored, ...preset} = source.preset;
   const checked = readSpuInstrument({schema:INSTRUMENT_SCHEMA, version:1, name, preset,
-    sample:{...source.sample, adpcm:Array.from(source.sample.adpcm)}, reverb:source.reverb, waveform:source.waveform ?? null});
+    sample:{...source.sample, adpcm:Array.from(source.sample.adpcm)}, reverb:source.reverb, pmon:source.pmon, waveform:source.waveform ?? null});
   return {...checked, sample:{...checked.sample, adpcm:Array.from(checked.sample.adpcm)}};
 }
 

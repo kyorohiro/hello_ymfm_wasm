@@ -1,0 +1,3779 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "publicUiOnly": true,
+  "root": "/private/tmp/spu-pmon-zip-sjt_celd",
+  "entry": "/index.html",
+  "results": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "brand": {
+        "header": {
+          "src": "./synth-spu/icon.png",
+          "pathname": "/synth-spu/icon.png",
+          "alt": "",
+          "altAttributePresent": true,
+          "naturalWidth": 1254,
+          "naturalHeight": 1254
+        },
+        "links": [
+          {
+            "rel": "icon",
+            "href": "./synth-spu/icon.png",
+            "pathname": "/synth-spu/icon.png",
+            "local": true,
+            "status": 200,
+            "bytes": 2663786,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254
+          },
+          {
+            "rel": "apple-touch-icon",
+            "href": "./synth-spu/icon.png",
+            "pathname": "/synth-spu/icon.png",
+            "local": true,
+            "status": 200,
+            "bytes": 2663786,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254
+          }
+        ],
+        "palette": {
+          "--accent": "#2468b7",
+          "--accent-dark": "#2863a8",
+          "--bg": "#c9cdd1",
+          "--ink": "#30353c",
+          "--line": "#aeb6bd",
+          "--muted": "#5e6771",
+          "--panel": "#e0e3e6"
+        }
+      },
+      "pmon": {
+        "physicalVoices": 24,
+        "polyphony": 12,
+        "carrierChannels": [
+          1,
+          3,
+          5,
+          7,
+          9,
+          11,
+          13,
+          15,
+          17,
+          19,
+          21,
+          23,
+          1
+        ],
+        "heldEditsKeepOwners": true,
+        "presetRoundTrip": true,
+        "legacyDefaultsOff": true,
+        "layouts": [
+          {
+            "viewport": 1440,
+            "width": 1112,
+            "scroll": 1110,
+            "client": 1110,
+            "screenshot": null
+          },
+          {
+            "viewport": 390,
+            "width": 320,
+            "scroll": 318,
+            "client": 318,
+            "screenshot": null
+          }
+        ],
+        "dry": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 585492222,
+              "peak": 0.04397246614098549,
+              "rms": 0.03105248649717986,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01001714614014
+            },
+            {
+              "pcmFingerprint": 585492222,
+              "peak": 0.04397246614098549,
+              "rms": 0.03105248649717986,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01001714614014
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.041290283203125,
+            "lastSample": 0.042266786098480225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 786176,
+            "lastFrame": 802432,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "wet": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2757171409,
+              "peak": 0.04397331550717354,
+              "rms": 0.03101784305660198,
+              "nonFinite": 0,
+              "nonZero": 16383,
+              "hz": 196.07631167746442
+            },
+            {
+              "pcmFingerprint": 2757171409,
+              "peak": 0.04397331550717354,
+              "rms": 0.03101784305660198,
+              "nonFinite": 0,
+              "nonZero": 16383,
+              "hz": 196.07631167746442
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.04266357421875,
+            "lastSample": 0.043640077114105225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 809216,
+            "lastFrame": 825472,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "audioLazy": true,
+      "hardwareVoices": 24,
+      "commonInstrument": true,
+      "editorSections": [
+        "PCM cycle → SPU ADPCM",
+        "ADSR envelope",
+        "SPU reverb"
+      ],
+      "editorTabs": {
+        "default": "pcm",
+        "names": [
+          "pcm",
+          "adsr",
+          "fx",
+          "audio"
+        ],
+        "navigation": [
+          [
+            "ArrowRight",
+            "adsr"
+          ],
+          [
+            "ArrowRight",
+            "fx"
+          ],
+          [
+            "ArrowRight",
+            "audio"
+          ],
+          [
+            "ArrowRight",
+            "pcm"
+          ],
+          [
+            "ArrowLeft",
+            "audio"
+          ],
+          [
+            "Home",
+            "pcm"
+          ],
+          [
+            "End",
+            "audio"
+          ]
+        ],
+        "audioLazy": true,
+        "commonFilesAlwaysVisible": true,
+        "heldNote": {
+          "navigation": [
+            [
+              "ArrowRight",
+              "adsr"
+            ],
+            [
+              "ArrowRight",
+              "fx"
+            ],
+            [
+              "ArrowRight",
+              "audio"
+            ],
+            [
+              "ArrowRight",
+              "pcm"
+            ],
+            [
+              "ArrowLeft",
+              "audio"
+            ],
+            [
+              "Home",
+              "pcm"
+            ],
+            [
+              "End",
+              "audio"
+            ]
+          ],
+          "beforePcm": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 566917681,
+                "peak": 0.04397500678896904,
+                "rms": 0.031052677785761408,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.01107574127647
+              },
+              {
+                "pcmFingerprint": 566917681,
+                "peak": 0.04397500678896904,
+                "rms": 0.031052677785761408,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.01107574127647
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.01483154296875,
+              "lastSample": 0.015808045864105225
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 342272,
+              "lastFrame": 358528,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "afterPcm": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 2878943,
+                "peak": 0.04397336393594742,
+                "rms": 0.031043307174527184,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.00990255562266
+              },
+              {
+                "pcmFingerprint": 2878943,
+                "peak": 0.04397336393594742,
+                "rms": 0.031043307174527184,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.00990255562266
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.0164794921875,
+              "lastSample": 0.017455995082855225
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 369920,
+              "lastFrame": 386176,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "ownershipPreserved": true,
+          "instrumentPreserved": true,
+          "extraAudioCommands": 0,
+          "extraContexts": 0
+        }
+      },
+      "idlePolling": false,
+      "monitor": {
+        "modes": [
+          "envelope",
+          "waveform",
+          "spectrum"
+        ],
+        "editableEnvelope": false,
+        "measuredEnvelope": true,
+        "idleEnvelope": {
+          "width": 900,
+          "height": 240,
+          "signature": 1312289078
+        },
+        "outputEnvelope": {
+          "width": 900,
+          "height": 240,
+          "signature": 2658231856
+        },
+        "finalOutputMeasured": true,
+        "fullRead": {
+          "method": "getFloatTimeDomainData",
+          "analyser": 0,
+          "at": 3037.600000023842,
+          "time": 2.4266666666666667,
+          "values": 2048,
+          "finite": 2048,
+          "peak": 0.043972086161375046,
+          "rms": 0.031284061731146486,
+          "peakBin": null,
+          "peakHz": null,
+          "binHz": null
+        },
+        "quietRead": {
+          "method": "getFloatTimeDomainData",
+          "analyser": 0,
+          "at": 3437.600000023842,
+          "time": 2.8266666666666667,
+          "values": 2048,
+          "finite": 2048,
+          "peak": 0.021986380219459534,
+          "rms": 0.015556982413111632,
+          "peakBin": null,
+          "peakHz": null,
+          "binHz": null
+        },
+        "halfPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2193241018,
+              "peak": 0.022064456716179848,
+              "rms": 0.015542954649725809,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01116066412575
+            },
+            {
+              "pcmFingerprint": 2193241018,
+              "peak": 0.022064456716179848,
+              "rms": 0.015542954649725809,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01116066412575
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0014190673828125,
+            "lastSample": 0.0023955702781677246
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 117248,
+            "lastFrame": 133504,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "fullCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 2733300246
+        },
+        "quietCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 2464143044
+        },
+        "spectrum": {
+          "method": "getFloatFrequencyData",
+          "analyser": 0,
+          "at": 3571,
+          "time": 2.96,
+          "values": 1024,
+          "finite": 1024,
+          "peak": -43.69296646118164,
+          "rms": null,
+          "peakBin": 8,
+          "peakHz": 187.5,
+          "binHz": 23.4375
+        },
+        "spectrumCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 1408938313
+        },
+        "displayPreservesNotes": true,
+        "displayPreservesInstrument": true,
+        "passiveGraph": {
+          "analysers": [
+            {
+              "fftSize": 2048,
+              "sampleRate": 48000
+            }
+          ],
+          "edges": [
+            {
+              "source": "GainNode",
+              "destination": "analyser",
+              "sourceAnalyser": -1,
+              "destinationAnalyser": 0
+            }
+          ]
+        },
+        "activeFrequencyReads": 13,
+        "inactiveReads": 0,
+        "wake": {
+          "unownedTail": true,
+          "sleptWhenMuted": true,
+          "resumedWithoutNoteOn": true,
+          "muted": {
+            "frames": 4096,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 946445765,
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "pcmFingerprint": 946445765,
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 4096,
+              "frames": 4096,
+              "receivedFrames": 4096,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.0093994140625,
+              "lastSample": 0.009643495082855225
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 32,
+              "firstFrame": 251136,
+              "lastFrame": 255104,
+              "frames": 4096,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "restored": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 634468120,
+                "peak": 0.043975092470645905,
+                "rms": 0.031073154841941727,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.00919865624942
+              },
+              {
+                "pcmFingerprint": 634468120,
+                "peak": 0.043975092470645905,
+                "rms": 0.031073154841941727,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.00919865624942
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.0126190185546875,
+              "lastSample": 0.013595521450042725
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 305152,
+              "lastFrame": 321408,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "resumed": {
+            "method": "getFloatTimeDomainData",
+            "analyser": 0,
+            "at": 7304.5,
+            "time": 6.696,
+            "values": 2048,
+            "finite": 2048,
+            "peak": 0.043975092470645905,
+            "rms": 0.03118532678048832,
+            "peakBin": null,
+            "peakHz": null,
+            "binHz": null
+          },
+          "ownershipUnchanged": true
+        }
+      },
+      "pointer": {
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3634644407,
+              "peak": 0.043972935527563095,
+              "rms": 0.031064343357332103,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00983918906226
+            },
+            {
+              "pcmFingerprint": 3634644407,
+              "peak": 0.043972935527563095,
+              "rms": 0.031064343357332103,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00983918906226
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.018218994140625,
+            "lastSample": 0.019195497035980225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 399104,
+            "lastFrame": 415360,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "release": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            },
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 4096,
+            "frames": 4096,
+            "receivedFrames": 4096,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0194244384765625,
+            "lastSample": 0.019668519496917725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 32,
+            "firstFrame": 419328,
+            "lastFrame": 423296,
+            "frames": 4096,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "graph": {
+        "before": {
+          "attackRate": 32,
+          "attackExponential": false,
+          "decayRate": 4,
+          "sustainLevel": 8,
+          "sustainRate": 0,
+          "sustainDecrease": false,
+          "sustainExponential": false,
+          "releaseRate": 8,
+          "releaseExponential": false
+        },
+        "after": {
+          "attackRate": 96,
+          "attackExponential": false,
+          "decayRate": 4,
+          "sustainLevel": 8,
+          "sustainRate": 0,
+          "sustainDecrease": false,
+          "sustainExponential": false,
+          "releaseRate": 8,
+          "releaseExponential": false
+        },
+        "allVoicesUpdated": true
+      },
+      "keyboard": {
+        "note": "G3",
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2353924328,
+              "peak": 0.043972935527563095,
+              "rms": 0.030987334890612325,
+              "nonFinite": 0,
+              "nonZero": 16376,
+              "hz": 196.0099953741335
+            },
+            {
+              "pcmFingerprint": 2353924328,
+              "peak": 0.043972935527563095,
+              "rms": 0.030987334890612325,
+              "nonFinite": 0,
+              "nonZero": 16376,
+              "hz": 196.0099953741335
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0220794677734375,
+            "lastSample": 0.023055970668792725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 463872,
+            "lastFrame": 480128,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "pitch": {
+        "bent": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2507998216,
+              "peak": 0.04397241398692131,
+              "rms": 0.031050732620232557,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 219.49023563235673
+            },
+            {
+              "pcmFingerprint": 2507998216,
+              "peak": 0.04397241398692131,
+              "rms": 0.031050732620232557,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 219.49023563235673
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0232391357421875,
+            "lastSample": 0.024215638637542725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 483328,
+            "lastFrame": 499584,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "centered": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1172630389,
+              "peak": 0.04397538676857948,
+              "rms": 0.031066547654635047,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.18274496044864
+            },
+            {
+              "pcmFingerprint": 1172630389,
+              "peak": 0.04397538676857948,
+              "rms": 0.031066547654635047,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.18274496044864
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0243988037109375,
+            "lastSample": 0.025375306606292725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 502784,
+            "lastFrame": 519040,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "gestureBend": 1.34,
+        "gesturePcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3682817212,
+              "peak": 0.043971966952085495,
+              "rms": 0.03107507044720172,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 211.77653365182172
+            },
+            {
+              "pcmFingerprint": 3682817212,
+              "peak": 0.043971966952085495,
+              "rms": 0.03107507044720172,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 211.77653365182172
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0256195068359375,
+            "lastSample": 0.026596009731292725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 523264,
+            "lastFrame": 539520,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "gestureCenteredPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1756073783,
+              "peak": 0.04397210478782654,
+              "rms": 0.03104344196411279,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00940975648527
+            },
+            {
+              "pcmFingerprint": 1756073783,
+              "peak": 0.04397210478782654,
+              "rms": 0.03104344196411279,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00940975648527
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.026763916015625,
+            "lastSample": 0.027740418910980225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 542464,
+            "lastFrame": 558720,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "recentersOnRelease": true,
+        "retriggered": false
+      },
+      "chord": {
+        "voices": 3,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3457723882,
+              "peak": 0.09052617102861404,
+              "rms": 0.0482725813252381,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 259.0494480886939
+            },
+            {
+              "pcmFingerprint": 3457723882,
+              "peak": 0.09052617102861404,
+              "rms": 0.0482725813252381,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 259.0494480886939
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0285491943359375,
+            "lastSample": 0.029525697231292725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 572416,
+            "lastFrame": 588672,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "pcAndPointerCoexist": true,
+        "checkboxFocusPlayable": true,
+        "allVoicesLiveUpdated": true,
+        "pitchRetriggered": false,
+        "sustainReleased": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            },
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 4096,
+            "frames": 4096,
+            "receivedFrames": 4096,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0303192138671875,
+            "lastSample": 0.030563294887542725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 32,
+            "firstFrame": 602112,
+            "lastFrame": 606080,
+            "frames": 4096,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "roundRobin": {
+        "noteOns": [
+          {
+            "channel": 6,
+            "midi": 55,
+            "id": "spu-synth:9"
+          },
+          {
+            "channel": 7,
+            "midi": 56,
+            "id": "spu-synth:10"
+          },
+          {
+            "channel": 8,
+            "midi": 57,
+            "id": "spu-synth:11"
+          },
+          {
+            "channel": 9,
+            "midi": 58,
+            "id": "spu-synth:12"
+          },
+          {
+            "channel": 10,
+            "midi": 59,
+            "id": "spu-synth:13"
+          },
+          {
+            "channel": 11,
+            "midi": 60,
+            "id": "spu-synth:14"
+          },
+          {
+            "channel": 12,
+            "midi": 61,
+            "id": "spu-synth:15"
+          },
+          {
+            "channel": 13,
+            "midi": 62,
+            "id": "spu-synth:16"
+          },
+          {
+            "channel": 14,
+            "midi": 63,
+            "id": "spu-synth:17"
+          },
+          {
+            "channel": 15,
+            "midi": 64,
+            "id": "spu-synth:18"
+          },
+          {
+            "channel": 16,
+            "midi": 50,
+            "id": "spu-synth:19"
+          },
+          {
+            "channel": 17,
+            "midi": 51,
+            "id": "spu-synth:20"
+          },
+          {
+            "channel": 18,
+            "midi": 52,
+            "id": "spu-synth:21"
+          },
+          {
+            "channel": 19,
+            "midi": 53,
+            "id": "spu-synth:22"
+          },
+          {
+            "channel": 20,
+            "midi": 54,
+            "id": "spu-synth:23"
+          },
+          {
+            "channel": 21,
+            "midi": 55,
+            "id": "spu-synth:24"
+          },
+          {
+            "channel": 22,
+            "midi": 56,
+            "id": "spu-synth:25"
+          },
+          {
+            "channel": 23,
+            "midi": 57,
+            "id": "spu-synth:26"
+          },
+          {
+            "channel": 0,
+            "midi": 58,
+            "id": "spu-synth:27"
+          },
+          {
+            "channel": 1,
+            "midi": 59,
+            "id": "spu-synth:28"
+          },
+          {
+            "channel": 2,
+            "midi": 45,
+            "id": "spu-synth:29"
+          },
+          {
+            "channel": 3,
+            "midi": 46,
+            "id": "spu-synth:30"
+          },
+          {
+            "channel": 4,
+            "midi": 47,
+            "id": "spu-synth:31"
+          },
+          {
+            "channel": 5,
+            "midi": 48,
+            "id": "spu-synth:32"
+          },
+          {
+            "channel": 6,
+            "midi": 49,
+            "id": "spu-synth:33"
+          },
+          {
+            "channel": 7,
+            "midi": 50,
+            "id": "spu-synth:34"
+          }
+        ],
+        "hardwareVoices": 24,
+        "heldAfterSteal": 24,
+        "staleKeyOffPreservedReplacement": true
+      },
+      "waveform": {
+        "allVoicesUpdated": true,
+        "heldSampleToCycleRetuned": true,
+        "retunedPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 662544110,
+              "peak": 0.043972622603178024,
+              "rms": 0.031048419898252338,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01135272556667
+            },
+            {
+              "pcmFingerprint": 662544110,
+              "peak": 0.043972622603178024,
+              "rms": 0.031048419898252338,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01135272556667
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0372467041015625,
+            "lastSample": 0.038223206996917725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 718336,
+            "lastFrame": 734592,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "sample": {
+        "name": "browser-sine.wav",
+        "bytes": 8864,
+        "rootMidi": 69,
+        "allVoicesUpdated": true,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1247318537,
+              "peak": 0.04226258397102356,
+              "rms": 0.029193306437787326,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.4608841464992
+            },
+            {
+              "pcmFingerprint": 1247318537,
+              "peak": 0.04226258397102356,
+              "rms": 0.029193306437787326,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.4608841464992
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0336761474609375,
+            "lastSample": 0.034652650356292725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 658432,
+            "lastFrame": 674688,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "preset": {
+        "schema": "tetorica-spu-synth.instrument",
+        "version": 1,
+        "bytes": 8824,
+        "roundTrip": true,
+        "allVoicesUpdated": true
+      },
+      "reverb": {
+        "preset": "room",
+        "allVoicesUpdated": true,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1889875463,
+              "peak": 0.04912836477160454,
+              "rms": 0.033441714002080715,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01325706118493
+            },
+            {
+              "pcmFingerprint": 724246302,
+              "peak": 0.039322033524513245,
+              "rms": 0.026937135088366534,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 195.99899393101242
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0389862060546875,
+            "lastSample": 0.039962708950042725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 747520,
+            "lastFrame": 763776,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "stopped": {
+        "frames": 4096,
+        "sampleRate": 48000,
+        "channels": [
+          {
+            "pcmFingerprint": 946445765,
+            "peak": 0,
+            "rms": 0,
+            "nonFinite": 0,
+            "nonZero": 0,
+            "hz": 0
+          },
+          {
+            "pcmFingerprint": 946445765,
+            "peak": 0,
+            "rms": 0,
+            "nonFinite": 0,
+            "nonZero": 0,
+            "hz": 0
+          }
+        ],
+        "pilot": {
+          "continuous": true,
+          "period": 16777216,
+          "expectedFrames": 4096,
+          "frames": 4096,
+          "receivedFrames": 4096,
+          "complete": true,
+          "nonFinite": 0,
+          "invalidSamples": 0,
+          "sampleGapCount": 0,
+          "sampleGaps": [],
+          "zeroSamples": 0,
+          "firstSample": 0.040069580078125,
+          "lastSample": 0.040313661098480225
+        },
+        "clock": {
+          "continuous": true,
+          "measurementValid": true,
+          "rowCount": 32,
+          "firstFrame": 765696,
+          "lastFrame": 769664,
+          "frames": 4096,
+          "gapCount": 0,
+          "gaps": [],
+          "unstableReadCount": 0,
+          "unstableReads": [],
+          "malformedRowCount": 0,
+          "malformedRows": []
+        },
+        "frameGaps": 0,
+        "physicalOutputMuted": true
+      },
+      "recovery": {
+        "frames": 16384,
+        "sampleRate": 48000,
+        "channels": [
+          {
+            "pcmFingerprint": 585492222,
+            "peak": 0.04397246614098549,
+            "rms": 0.03105248649717986,
+            "nonFinite": 0,
+            "nonZero": 16384,
+            "hz": 196.01001714614014
+          },
+          {
+            "pcmFingerprint": 585492222,
+            "peak": 0.04397246614098549,
+            "rms": 0.03105248649717986,
+            "nonFinite": 0,
+            "nonZero": 16384,
+            "hz": 196.01001714614014
+          }
+        ],
+        "pilot": {
+          "continuous": true,
+          "period": 16777216,
+          "expectedFrames": 16384,
+          "frames": 16384,
+          "receivedFrames": 16384,
+          "complete": true,
+          "nonFinite": 0,
+          "invalidSamples": 0,
+          "sampleGapCount": 0,
+          "sampleGaps": [],
+          "zeroSamples": 1,
+          "firstSample": 0,
+          "lastSample": 0.0009765028953552246
+        },
+        "clock": {
+          "continuous": true,
+          "measurementValid": true,
+          "rowCount": 128,
+          "firstFrame": 4864,
+          "lastFrame": 21120,
+          "frames": 16384,
+          "gapCount": 0,
+          "gaps": [],
+          "unstableReadCount": 0,
+          "unstableReads": [],
+          "malformedRowCount": 0,
+          "malformedRows": []
+        },
+        "frameGaps": 0,
+        "physicalOutputMuted": true
+      },
+      "layouts": [
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "waveform",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "spectrum",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "adsr",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "fx",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "audio",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.765625,
+            "bottom": 636.765625
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.765625,
+            "bottom": 599.765625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "waveform",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "spectrum",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "adsr",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "fx",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "audio",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 452.5625,
+            "bottom": 637.5625
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 488.5625,
+            "bottom": 604.5625
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        }
+      ],
+      "screenshots": [],
+      "worklets": [
+        "tetorica-spu-synth",
+        "tetorica-clock-audit-capture",
+        "tetorica-clock-audit-pilot",
+        "tetorica-spu-synth",
+        "tetorica-clock-audit-capture",
+        "tetorica-clock-audit-pilot"
+      ],
+      "processorErrors": [],
+      "physicalOutputMuted": true,
+      "captureContinuity": {
+        "captures": 39,
+        "frames": 417792,
+        "pcmContinuous": true,
+        "clockAnomalies": []
+      }
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "brand": {
+        "header": {
+          "src": "./synth-spu/icon.png",
+          "pathname": "/synth-spu/icon.png",
+          "alt": "",
+          "altAttributePresent": true,
+          "naturalWidth": 1254,
+          "naturalHeight": 1254
+        },
+        "links": [
+          {
+            "rel": "icon",
+            "href": "./synth-spu/icon.png",
+            "pathname": "/synth-spu/icon.png",
+            "local": true,
+            "status": 200,
+            "bytes": 2663786,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254
+          },
+          {
+            "rel": "apple-touch-icon",
+            "href": "./synth-spu/icon.png",
+            "pathname": "/synth-spu/icon.png",
+            "local": true,
+            "status": 200,
+            "bytes": 2663786,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254
+          }
+        ],
+        "palette": {
+          "--accent": "#2468b7",
+          "--accent-dark": "#2863a8",
+          "--bg": "#c9cdd1",
+          "--ink": "#30353c",
+          "--line": "#aeb6bd",
+          "--muted": "#5e6771",
+          "--panel": "#e0e3e6"
+        }
+      },
+      "pmon": {
+        "physicalVoices": 24,
+        "polyphony": 12,
+        "carrierChannels": [
+          1,
+          3,
+          5,
+          7,
+          9,
+          11,
+          13,
+          15,
+          17,
+          19,
+          21,
+          23,
+          1
+        ],
+        "heldEditsKeepOwners": true,
+        "presetRoundTrip": true,
+        "legacyDefaultsOff": true,
+        "layouts": [
+          {
+            "viewport": 1440,
+            "width": 1112,
+            "scroll": 1110,
+            "client": 1110,
+            "screenshot": null
+          },
+          {
+            "viewport": 390,
+            "width": 320,
+            "scroll": 318,
+            "client": 318,
+            "screenshot": null
+          }
+        ],
+        "dry": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3457527766,
+              "peak": 0.04397500678896904,
+              "rms": 0.031042710906710725,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0092631011888
+            },
+            {
+              "pcmFingerprint": 3457527766,
+              "peak": 0.04397500678896904,
+              "rms": 0.031042710906710725,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0092631011888
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.04047393798828125,
+            "lastSample": 0.041450440883636475
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 765952,
+            "lastFrame": 782208,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "wet": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1482851590,
+              "peak": 0.043974969536066055,
+              "rms": 0.03101882960220961,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.07210607119944
+            },
+            {
+              "pcmFingerprint": 1482851590,
+              "peak": 0.043974969536066055,
+              "rms": 0.03101882960220961,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.07210607119944
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.04181671142578125,
+            "lastSample": 0.042793214321136475
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 788480,
+            "lastFrame": 804736,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "audioLazy": true,
+      "hardwareVoices": 24,
+      "commonInstrument": true,
+      "editorSections": [
+        "PCM cycle → SPU ADPCM",
+        "ADSR envelope",
+        "SPU reverb"
+      ],
+      "editorTabs": {
+        "default": "pcm",
+        "names": [
+          "pcm",
+          "adsr",
+          "fx",
+          "audio"
+        ],
+        "navigation": [
+          [
+            "ArrowRight",
+            "adsr"
+          ],
+          [
+            "ArrowRight",
+            "fx"
+          ],
+          [
+            "ArrowRight",
+            "audio"
+          ],
+          [
+            "ArrowRight",
+            "pcm"
+          ],
+          [
+            "ArrowLeft",
+            "audio"
+          ],
+          [
+            "Home",
+            "pcm"
+          ],
+          [
+            "End",
+            "audio"
+          ]
+        ],
+        "audioLazy": true,
+        "commonFilesAlwaysVisible": true,
+        "heldNote": {
+          "navigation": [
+            [
+              "ArrowRight",
+              "adsr"
+            ],
+            [
+              "ArrowRight",
+              "fx"
+            ],
+            [
+              "ArrowRight",
+              "audio"
+            ],
+            [
+              "ArrowRight",
+              "pcm"
+            ],
+            [
+              "ArrowLeft",
+              "audio"
+            ],
+            [
+              "Home",
+              "pcm"
+            ],
+            [
+              "End",
+              "audio"
+            ]
+          ],
+          "beforePcm": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 920131464,
+                "peak": 0.04397258907556534,
+                "rms": 0.031045123190579626,
+                "nonFinite": 0,
+                "nonZero": 16383,
+                "hz": 196.00828189292838
+              },
+              {
+                "pcmFingerprint": 920131464,
+                "peak": 0.04397258907556534,
+                "rms": 0.031045123190579626,
+                "nonFinite": 0,
+                "nonZero": 16383,
+                "hz": 196.00828189292838
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.01483154296875,
+              "lastSample": 0.015808045864105225
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 335744,
+              "lastFrame": 352000,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "afterPcm": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 3129952388,
+                "peak": 0.04397429898381233,
+                "rms": 0.03106281231646206,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.0094983360528
+              },
+              {
+                "pcmFingerprint": 3129952388,
+                "peak": 0.04397429898381233,
+                "rms": 0.03106281231646206,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.0094983360528
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.01654052734375,
+              "lastSample": 0.017517030239105225
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 364416,
+              "lastFrame": 380672,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "ownershipPreserved": true,
+          "instrumentPreserved": true,
+          "extraAudioCommands": 0,
+          "extraContexts": 0
+        }
+      },
+      "idlePolling": false,
+      "monitor": {
+        "modes": [
+          "envelope",
+          "waveform",
+          "spectrum"
+        ],
+        "editableEnvelope": false,
+        "measuredEnvelope": true,
+        "idleEnvelope": {
+          "width": 900,
+          "height": 240,
+          "signature": 1783838796
+        },
+        "outputEnvelope": {
+          "width": 900,
+          "height": 240,
+          "signature": 1305022583
+        },
+        "finalOutputMeasured": true,
+        "fullRead": {
+          "method": "getFloatTimeDomainData",
+          "analyser": 0,
+          "at": 2695,
+          "time": 2.296,
+          "values": 2048,
+          "finite": 2048,
+          "peak": 0.043972086161375046,
+          "rms": 0.03128416932709708,
+          "peakBin": null,
+          "peakHz": null,
+          "binHz": null
+        },
+        "quietRead": {
+          "method": "getFloatTimeDomainData",
+          "analyser": 0,
+          "at": 3079,
+          "time": 2.68,
+          "values": 2048,
+          "finite": 2048,
+          "peak": 0.021986380219459534,
+          "rms": 0.015430321849841574,
+          "peakBin": null,
+          "peakHz": null,
+          "binHz": null
+        },
+        "halfPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1734004306,
+              "peak": 0.0220523439347744,
+              "rms": 0.015533092064034155,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00850372900396
+            },
+            {
+              "pcmFingerprint": 1734004306,
+              "peak": 0.0220523439347744,
+              "rms": 0.015533092064034155,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00850372900396
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.00146484375,
+            "lastSample": 0.0024413466453552246
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 111488,
+            "lastFrame": 127744,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "fullCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 1717564763
+        },
+        "quietCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 3405828558
+        },
+        "spectrum": {
+          "method": "getFloatFrequencyData",
+          "analyser": 0,
+          "at": 3194,
+          "time": 2.7973333333333334,
+          "values": 1024,
+          "finite": 1024,
+          "peak": -47.21105194091797,
+          "rms": null,
+          "peakBin": 8,
+          "peakHz": 187.5,
+          "binHz": 23.4375
+        },
+        "spectrumCanvas": {
+          "width": 900,
+          "height": 240,
+          "signature": 3879566171
+        },
+        "displayPreservesNotes": true,
+        "displayPreservesInstrument": true,
+        "passiveGraph": {
+          "analysers": [
+            {
+              "fftSize": 2048,
+              "sampleRate": 48000
+            }
+          ],
+          "edges": [
+            {
+              "source": "GainNode",
+              "destination": "analyser",
+              "sourceAnalyser": -1,
+              "destinationAnalyser": 0
+            }
+          ]
+        },
+        "activeFrequencyReads": 11,
+        "inactiveReads": 0,
+        "wake": {
+          "unownedTail": true,
+          "sleptWhenMuted": true,
+          "resumedWithoutNoteOn": true,
+          "muted": {
+            "frames": 4096,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 946445765,
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "pcmFingerprint": 946445765,
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 4096,
+              "frames": 4096,
+              "receivedFrames": 4096,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.0093536376953125,
+              "lastSample": 0.009597718715667725
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 32,
+              "firstFrame": 243840,
+              "lastFrame": 247808,
+              "frames": 4096,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "restored": {
+            "frames": 16384,
+            "sampleRate": 48000,
+            "channels": [
+              {
+                "pcmFingerprint": 1643270409,
+                "peak": 0.0439739003777504,
+                "rms": 0.03107691414532113,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.0093315982058
+              },
+              {
+                "pcmFingerprint": 1643270409,
+                "peak": 0.0439739003777504,
+                "rms": 0.03107691414532113,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 196.0093315982058
+              }
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.01258087158203125,
+              "lastSample": 0.013557374477386475
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 297984,
+              "lastFrame": 314240,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "frameGaps": 0,
+            "physicalOutputMuted": true
+          },
+          "resumed": {
+            "method": "getFloatTimeDomainData",
+            "analyser": 0,
+            "at": 6929,
+            "time": 6.530666666666667,
+            "values": 2048,
+            "finite": 2048,
+            "peak": 0.04397277534008026,
+            "rms": 0.030889045752783752,
+            "peakBin": null,
+            "peakHz": null,
+            "binHz": null
+          },
+          "ownershipUnchanged": true
+        }
+      },
+      "pointer": {
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 948555779,
+              "peak": 0.04397246614098549,
+              "rms": 0.03104792123711406,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0085444659204
+            },
+            {
+              "pcmFingerprint": 948555779,
+              "peak": 0.04397246614098549,
+              "rms": 0.03104792123711406,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0085444659204
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.01836395263671875,
+            "lastSample": 0.019340455532073975
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 395008,
+            "lastFrame": 411264,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "release": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            },
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 4096,
+            "frames": 4096,
+            "receivedFrames": 4096,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.01950836181640625,
+            "lastSample": 0.019752442836761475
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 32,
+            "firstFrame": 414208,
+            "lastFrame": 418176,
+            "frames": 4096,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "graph": {
+        "before": {
+          "attackRate": 32,
+          "attackExponential": false,
+          "decayRate": 4,
+          "sustainLevel": 8,
+          "sustainRate": 0,
+          "sustainDecrease": false,
+          "sustainExponential": false,
+          "releaseRate": 8,
+          "releaseExponential": false
+        },
+        "after": {
+          "attackRate": 96,
+          "attackExponential": false,
+          "decayRate": 4,
+          "sustainLevel": 8,
+          "sustainRate": 0,
+          "sustainDecrease": false,
+          "sustainExponential": false,
+          "releaseRate": 8,
+          "releaseExponential": false
+        },
+        "allVoicesUpdated": true
+      },
+      "keyboard": {
+        "note": "G3",
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 1733783210,
+              "peak": 0.04397555813193321,
+              "rms": 0.030988177093708432,
+              "nonFinite": 0,
+              "nonZero": 16376,
+              "hz": 196.00906127774374
+            },
+            {
+              "pcmFingerprint": 1733783210,
+              "peak": 0.04397555813193321,
+              "rms": 0.030988177093708432,
+              "nonFinite": 0,
+              "nonZero": 16376,
+              "hz": 196.00906127774374
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.021575927734375,
+            "lastSample": 0.022552430629730225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 448896,
+            "lastFrame": 465152,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "pitch": {
+        "bent": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 4089437866,
+              "peak": 0.043973762542009354,
+              "rms": 0.031040750651513165,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 219.5048787257699
+            },
+            {
+              "pcmFingerprint": 4089437866,
+              "peak": 0.043973762542009354,
+              "rms": 0.031040750651513165,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 219.5048787257699
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0227203369140625,
+            "lastSample": 0.023696839809417725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 468096,
+            "lastFrame": 484352,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "centered": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2469638492,
+              "peak": 0.04397512599825859,
+              "rms": 0.031073953853863464,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01127499914352
+            },
+            {
+              "pcmFingerprint": 2469638492,
+              "peak": 0.04397512599825859,
+              "rms": 0.031073953853863464,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01127499914352
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0238494873046875,
+            "lastSample": 0.024825990200042725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 487040,
+            "lastFrame": 503296,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "gestureBend": 1.37,
+        "gesturePcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 353428809,
+              "peak": 0.04397429898381233,
+              "rms": 0.03106537537633678,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 212.16107466599908
+            },
+            {
+              "pcmFingerprint": 353428809,
+              "peak": 0.04397429898381233,
+              "rms": 0.03106537537633678,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 212.16107466599908
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.025054931640625,
+            "lastSample": 0.026031434535980225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 507264,
+            "lastFrame": 523520,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "gestureCenteredPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 4117962417,
+              "peak": 0.04397398605942726,
+              "rms": 0.031061170435148583,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00946683728478
+            },
+            {
+              "pcmFingerprint": 4117962417,
+              "peak": 0.04397398605942726,
+              "rms": 0.031061170435148583,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.00946683728478
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0261993408203125,
+            "lastSample": 0.027175843715667725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 526464,
+            "lastFrame": 542720,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "recentersOnRelease": true,
+        "retriggered": false
+      },
+      "chord": {
+        "voices": 3,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3719994194,
+              "peak": 0.09052617102861404,
+              "rms": 0.05313010706660673,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 210.98669371822598
+            },
+            {
+              "pcmFingerprint": 3719994194,
+              "peak": 0.09052617102861404,
+              "rms": 0.05313010706660673,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 210.98669371822598
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0281829833984375,
+            "lastSample": 0.029159486293792725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 559744,
+            "lastFrame": 576000,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        },
+        "pcAndPointerCoexist": true,
+        "checkboxFocusPlayable": true,
+        "allVoicesLiveUpdated": true,
+        "pitchRetriggered": false,
+        "sustainReleased": {
+          "frames": 4096,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            },
+            {
+              "pcmFingerprint": 946445765,
+              "peak": 0,
+              "rms": 0,
+              "nonFinite": 0,
+              "nonZero": 0,
+              "hz": 0
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 4096,
+            "frames": 4096,
+            "receivedFrames": 4096,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.029937744140625,
+            "lastSample": 0.030181825160980225
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 32,
+            "firstFrame": 589184,
+            "lastFrame": 593152,
+            "frames": 4096,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "roundRobin": {
+        "noteOns": [
+          {
+            "channel": 4,
+            "midi": 55,
+            "id": "spu-synth:9"
+          },
+          {
+            "channel": 5,
+            "midi": 56,
+            "id": "spu-synth:10"
+          },
+          {
+            "channel": 6,
+            "midi": 57,
+            "id": "spu-synth:11"
+          },
+          {
+            "channel": 7,
+            "midi": 58,
+            "id": "spu-synth:12"
+          },
+          {
+            "channel": 8,
+            "midi": 59,
+            "id": "spu-synth:13"
+          },
+          {
+            "channel": 9,
+            "midi": 60,
+            "id": "spu-synth:14"
+          },
+          {
+            "channel": 10,
+            "midi": 61,
+            "id": "spu-synth:15"
+          },
+          {
+            "channel": 11,
+            "midi": 62,
+            "id": "spu-synth:16"
+          },
+          {
+            "channel": 12,
+            "midi": 63,
+            "id": "spu-synth:17"
+          },
+          {
+            "channel": 13,
+            "midi": 64,
+            "id": "spu-synth:18"
+          },
+          {
+            "channel": 14,
+            "midi": 50,
+            "id": "spu-synth:19"
+          },
+          {
+            "channel": 15,
+            "midi": 51,
+            "id": "spu-synth:20"
+          },
+          {
+            "channel": 16,
+            "midi": 52,
+            "id": "spu-synth:21"
+          },
+          {
+            "channel": 17,
+            "midi": 53,
+            "id": "spu-synth:22"
+          },
+          {
+            "channel": 18,
+            "midi": 54,
+            "id": "spu-synth:23"
+          },
+          {
+            "channel": 19,
+            "midi": 55,
+            "id": "spu-synth:24"
+          },
+          {
+            "channel": 20,
+            "midi": 56,
+            "id": "spu-synth:25"
+          },
+          {
+            "channel": 21,
+            "midi": 57,
+            "id": "spu-synth:26"
+          },
+          {
+            "channel": 22,
+            "midi": 58,
+            "id": "spu-synth:27"
+          },
+          {
+            "channel": 23,
+            "midi": 59,
+            "id": "spu-synth:28"
+          },
+          {
+            "channel": 0,
+            "midi": 45,
+            "id": "spu-synth:29"
+          },
+          {
+            "channel": 1,
+            "midi": 46,
+            "id": "spu-synth:30"
+          },
+          {
+            "channel": 2,
+            "midi": 47,
+            "id": "spu-synth:31"
+          },
+          {
+            "channel": 3,
+            "midi": 48,
+            "id": "spu-synth:32"
+          },
+          {
+            "channel": 4,
+            "midi": 49,
+            "id": "spu-synth:33"
+          },
+          {
+            "channel": 5,
+            "midi": 50,
+            "id": "spu-synth:34"
+          }
+        ],
+        "hardwareVoices": 24,
+        "heldAfterSteal": 24,
+        "staleKeyOffPreservedReplacement": true
+      },
+      "waveform": {
+        "allVoicesUpdated": true,
+        "heldSampleToCycleRetuned": true,
+        "retunedPcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3461994659,
+              "peak": 0.04397403821349144,
+              "rms": 0.03105153906762917,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01145339180593
+            },
+            {
+              "pcmFingerprint": 3461994659,
+              "peak": 0.04397403821349144,
+              "rms": 0.03105153906762917,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.01145339180593
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0365753173828125,
+            "lastSample": 0.037551820278167725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 700544,
+            "lastFrame": 716800,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "sample": {
+        "name": "browser-sine.wav",
+        "bytes": 8864,
+        "rootMidi": 69,
+        "allVoicesUpdated": true,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 3127311297,
+              "peak": 0.0422627218067646,
+              "rms": 0.02919194336773066,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.46127105330945
+            },
+            {
+              "pcmFingerprint": 3127311297,
+              "peak": 0.0422627218067646,
+              "rms": 0.02919194336773066,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.46127105330945
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.0330657958984375,
+            "lastSample": 0.034042298793792725
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 641664,
+            "lastFrame": 657920,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "preset": {
+        "schema": "tetorica-spu-synth.instrument",
+        "version": 1,
+        "bytes": 8821,
+        "roundTrip": true,
+        "allVoicesUpdated": true
+      },
+      "reverb": {
+        "preset": "room",
+        "allVoicesUpdated": true,
+        "pcm": {
+          "frames": 16384,
+          "sampleRate": 48000,
+          "channels": [
+            {
+              "pcmFingerprint": 2528906910,
+              "peak": 0.0522519126534462,
+              "rms": 0.03361592216406546,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0038755780595
+            },
+            {
+              "pcmFingerprint": 1825012928,
+              "peak": 0.04228513315320015,
+              "rms": 0.026981469981702682,
+              "nonFinite": 0,
+              "nonZero": 16384,
+              "hz": 196.0333156795014
+            }
+          ],
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 0,
+            "firstSample": 0.03823089599609375,
+            "lastSample": 0.039207398891448975
+          },
+          "clock": {
+            "continuous": true,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 728320,
+            "lastFrame": 744576,
+            "frames": 16384,
+            "gapCount": 0,
+            "gaps": [],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          },
+          "frameGaps": 0,
+          "physicalOutputMuted": true
+        }
+      },
+      "stopped": {
+        "frames": 4096,
+        "sampleRate": 48000,
+        "channels": [
+          {
+            "pcmFingerprint": 946445765,
+            "peak": 0,
+            "rms": 0,
+            "nonFinite": 0,
+            "nonZero": 0,
+            "hz": 0
+          },
+          {
+            "pcmFingerprint": 946445765,
+            "peak": 0,
+            "rms": 0,
+            "nonFinite": 0,
+            "nonZero": 0,
+            "hz": 0
+          }
+        ],
+        "pilot": {
+          "continuous": true,
+          "period": 16777216,
+          "expectedFrames": 4096,
+          "frames": 4096,
+          "receivedFrames": 4096,
+          "complete": true,
+          "nonFinite": 0,
+          "invalidSamples": 0,
+          "sampleGapCount": 0,
+          "sampleGaps": [],
+          "zeroSamples": 0,
+          "firstSample": 0.03936767578125,
+          "lastSample": 0.039611756801605225
+        },
+        "clock": {
+          "continuous": true,
+          "measurementValid": true,
+          "rowCount": 32,
+          "firstFrame": 747392,
+          "lastFrame": 751360,
+          "frames": 4096,
+          "gapCount": 0,
+          "gaps": [],
+          "unstableReadCount": 0,
+          "unstableReads": [],
+          "malformedRowCount": 0,
+          "malformedRows": []
+        },
+        "frameGaps": 0,
+        "physicalOutputMuted": true
+      },
+      "recovery": {
+        "frames": 16384,
+        "sampleRate": 48000,
+        "channels": [
+          {
+            "pcmFingerprint": 3243941407,
+            "peak": 0.04397500678896904,
+            "rms": 0.03104804840155143,
+            "nonFinite": 0,
+            "nonZero": 16384,
+            "hz": 196.01007398674776
+          },
+          {
+            "pcmFingerprint": 3243941407,
+            "peak": 0.04397500678896904,
+            "rms": 0.03104804840155143,
+            "nonFinite": 0,
+            "nonZero": 16384,
+            "hz": 196.01007398674776
+          }
+        ],
+        "pilot": {
+          "continuous": true,
+          "period": 16777216,
+          "expectedFrames": 16384,
+          "frames": 16384,
+          "receivedFrames": 16384,
+          "complete": true,
+          "nonFinite": 0,
+          "invalidSamples": 0,
+          "sampleGapCount": 0,
+          "sampleGaps": [],
+          "zeroSamples": 1,
+          "firstSample": 0,
+          "lastSample": 0.0009765028953552246
+        },
+        "clock": {
+          "continuous": true,
+          "measurementValid": true,
+          "rowCount": 128,
+          "firstFrame": 5632,
+          "lastFrame": 21888,
+          "frames": 16384,
+          "gapCount": 0,
+          "gaps": [],
+          "unstableReadCount": 0,
+          "unstableReads": [],
+          "malformedRowCount": 0,
+          "malformedRows": []
+        },
+        "frameGaps": 0,
+        "physicalOutputMuted": true
+      },
+      "layouts": [
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "waveform",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "spectrum",
+          "editor": "pcm",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "adsr",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "fx",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "desktop",
+          "mode": "envelope",
+          "editor": "audio",
+          "viewport": 1440,
+          "document": 1440,
+          "plot": {
+            "left": 165,
+            "right": 1200,
+            "top": 411.734375,
+            "bottom": 636.734375
+          },
+          "pitch": {
+            "left": 1231,
+            "right": 1257,
+            "top": 450.734375,
+            "bottom": 599.734375
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "waveform",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "spectrum",
+          "editor": "pcm",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "adsr",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "fx",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        },
+        {
+          "label": "mobile",
+          "mode": "envelope",
+          "editor": "audio",
+          "viewport": 390,
+          "document": 390,
+          "plot": {
+            "left": 34,
+            "right": 303,
+            "top": 453.5,
+            "bottom": 638.5
+          },
+          "pitch": {
+            "left": 321.5,
+            "right": 345.5,
+            "top": 489.5,
+            "bottom": 605.5
+          },
+          "background": "rgb(201, 205, 209)",
+          "bodyBackgroundImage": "linear-gradient(150deg, rgb(228, 231, 233), rgb(201, 205, 209) 70%)"
+        }
+      ],
+      "screenshots": [],
+      "worklets": [
+        "tetorica-spu-synth",
+        "tetorica-clock-audit-capture",
+        "tetorica-clock-audit-pilot",
+        "tetorica-spu-synth",
+        "tetorica-clock-audit-capture",
+        "tetorica-clock-audit-pilot"
+      ],
+      "processorErrors": [],
+      "physicalOutputMuted": true,
+      "captureContinuity": {
+        "captures": 40,
+        "frames": 421888,
+        "pcmContinuous": true,
+        "clockAnomalies": []
+      }
+    }
+  ],
+  "sources": {
+    "generated/ps1_spu_wasm.js": {
+      "bytes": 16791,
+      "sha256": "6e71dc2a9d1f47b912331f1ca76887dc4983f990652282f0b311f6bf30496dd5"
+    },
+    "generated/ps1_spu_wasm.wasm": {
+      "bytes": 47440,
+      "sha256": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0"
+    },
+    "index.html": {
+      "bytes": 8387,
+      "sha256": "331736941565057161dcfcd77258e50d819569c92d7c989082e9ed0345188122"
+    },
+    "synth-spu/icon.png": {
+      "bytes": 2663786,
+      "sha256": "487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580"
+    },
+    "synth-spu/spu_synth_prepare_worker.js": {
+      "bytes": 2541,
+      "sha256": "790119ceccc835728b645926de13fe2c8fd631e21af54212806a778ced8d16e0"
+    },
+    "synth-spu/spu_synth_worklet.js": {
+      "bytes": 38332,
+      "sha256": "5302a54c5935f38c36c25eebc73084e92c582fd5777d58d663772d5eea28a31a"
+    },
+    "synth-spu/synth.css": {
+      "bytes": 19444,
+      "sha256": "a8d37c2d03586a49786317e5fda6b2c3903eeb5f50781ab087c15cffee6dafdf"
+    },
+    "synth-spu/synth.js": {
+      "bytes": 68652,
+      "sha256": "7d877fc6708f837cb6598f04777888a6aa4b1ca7c5815be2083a8d884fdee30f"
+    }
+  },
+  "checkerSha256": "f67623d9e1060e227408152fba23cbcf9d2cee04cb3cae06088db7640dbcfaeb",
+  "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+}

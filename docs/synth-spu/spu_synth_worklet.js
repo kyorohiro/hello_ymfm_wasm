@@ -6,6 +6,7 @@ import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
 import {Ps1VoiceInspector} from '../js/playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {patchPs1Envelope} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
+import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
 
 const EDITOR_METHODS = new Set(['auditionOn', 'auditionOff', 'auditionAllOff', 'setWaveform', 'setPreset', 'setChannel', 'setEnvelope', 'setReverb', 'setPitch', 'setFrequency', 'setNote']);
@@ -24,6 +25,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.lastMidi = Array(24).fill(null);
     this.lastBend = Array(24).fill(null);
     this.instrumentBend = 0;
+    this.pmon = readPmon();
+    this.pmonSample = null;
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
       if (data?.method === 'dispose') {this.dispose(); return;}
@@ -42,7 +45,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       }
       this.inspector = new Ps1VoiceInspector(this.synth, {sampleRate});
       this.resampler = new Ps1Resampler(this.synth, sampleRate);
-      this.port.postMessage({ready:true, sampleRate, nativeSampleRate:44100, state:this.inspector.read()});
+      this.port.postMessage({ready:true, sampleRate, nativeSampleRate:44100, state:this.readState()});
     }).catch(error => this.fail(error));
   }
 
@@ -52,11 +55,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       if (this.dead || !this.synth) throw new Error('SPU synth is not ready');
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
       let value;
-      if (method === 'inspect' || method === 'getState') value = this.inspector.read();
+      if (method === 'inspect' || method === 'getState') value = this.readState();
       else if (method === 'instrumentNoteOn') {
         const [midi, identity, bend = this.instrumentBend] = args;
         if (typeof identity !== 'string' || !identity.length || identity.length > 128) throw new TypeError('Audition identity must contain 1..128 characters');
-        const channel = this.voices.peek();
+        const channel = this.carrierChannel(this.voices.peek());
         // The shared inspector also validates the unbent note before its
         // manual transition, so reject that failure before taking a slot.
         this.bentPitch(channel, midi, 0);
@@ -64,20 +67,44 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         // Validation precedes both the allocator mutation and manual KON.
         // No message or render can interleave the lease and pitch writes.
         const allocation = this.voices.allocate(identity);
-        this.inspector.invoke('auditionOn', [allocation.channel, midi, identity]);
-        this.synth.setPitch(allocation.channel, pitch);
-        this.lastMidi[allocation.channel] = midi;
-        this.lastBend[allocation.channel] = bend;
-        value = {channel:allocation.channel, stolenId:allocation.stolen?.id ?? null};
+        this.inspector.invoke('auditionOn', [channel, midi, identity]);
+        this.synth.setPitch(channel, pitch);
+        if (this.pmon.enabled) {this.configureModulator(channel-1, midi, bend); this.synth.core.auditionKey(channel-1, true);}
+        this.lastMidi[channel] = midi;
+        this.lastBend[channel] = bend;
+        value = {channel, stolenId:allocation.stolen?.id ?? null};
       } else if (method === 'instrumentNoteOff') {
         const channel = this.voices.release(args[0]);
-        value = channel === null ? false : this.inspector.invoke('auditionOff', [channel, args[0]]);
+        value = channel === null ? false : this.releaseInstrumentNote(this.carrierChannel(channel), args[0]);
       } else if (method === 'instrumentAllNotesOff') {
-        for (const entry of this.voices.entries()) this.inspector.invoke('auditionOff', [entry.channel, entry.id]);
+        for (const entry of this.voices.entries()) this.releaseInstrumentNote(this.carrierChannel(entry.channel), entry.id);
         this.voices.reset();
         value = true;
       }
+      else if (method === 'setInstrumentPmon') {
+        const next = readPmon(args[0]);
+        const prepared = args[1];
+        // Validate depth packets, tuning and capacity before stopping any note.
+        if (prepared) {
+          if (!Array.isArray(prepared.pcm) || prepared.pcm.length !== 112 || prepared.pcm.some(x => !Number.isFinite(x) || Math.abs(x)>1) || !ArrayBuffer.isView(prepared.adpcm) || prepared.adpcm.length !== 64) throw new TypeError('Invalid PMON Sine packets');
+          if ((prepared.adpcm[0]>>4)!==0 || prepared.adpcm[1]!==6 || prepared.adpcm[17]!==0 || prepared.adpcm[33]!==0 || prepared.adpcm[49]!==3) throw new TypeError('PMON Sine must be four looping ADPCM packets');
+          if (!this.pmonSample && this.synth.nextAddress+64 > 524288) throw new RangeError('No sample RAM available for PMON');
+        }
+        if (next.enabled && (!this.pmonSample || !this.pmon.enabled) && !prepared) throw new Error('Prepare the PMON Sine before enabling');
+        if (next.enabled && next.depth !== this.pmon.depth && this.pmonSample && !prepared) throw new Error('Prepare the PMON Sine for a depth change');
+        if (prepared && (!this.pmonSample || next.depth !== this.pmon.depth || next.enabled && !this.pmon.enabled)) {
+          if (!this.pmonSample) this.pmonSample=this.synth.loadADPCM(prepared.adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});
+          else {this.synth.core.loadRam(prepared.adpcm,this.pmonSample.startAddress); this.synth.sampleBytes[this.pmonSample.id]=prepared.adpcm.slice();}
+        }
+        const topology = next.enabled !== this.pmon.enabled;
+        if (topology) this.stopInstrument();
+        this.pmon = next;
+        if (topology) this.voices = new SpuRoundRobinVoices(next.enabled ? 12 : 24);
+        this.syncModulators();
+        value = {...this.pmon};
+      }
       else if (method === 'auditionOn') {
+        if (this.pmon.enabled) throw new Error('Use instrumentNoteOn for paired PMON voices');
         // Validate the bent target before acquiring a manual note. Both pitch
         // writes happen in this message handler, with no render in between.
         const pitch = this.bentPitch(args[0], args[1], args[3] ?? this.instrumentBend);
@@ -117,7 +144,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
             patchPs1Envelope(preset.adsr1, preset.adsr2, patch);
           }
         }
-        for (let ch = 0; ch < 24; ch++) this.inspector.invoke(method === 'setInstrumentPreset' ? 'setPreset' : 'setEnvelope', [ch, patch, options]);
+        for (let ch = 0; ch < 24; ch++) this.authorChannel(ch, () => this.inspector.invoke(method === 'setInstrumentPreset' ? 'setPreset' : 'setEnvelope', [ch, patch, options]));
         value = true;
       } else if (method === 'setInstrumentWaveform') {
         const [prepared, options = {}] = args;
@@ -132,7 +159,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         const notes = this.activeNotes();
         const pitches = notes.map((midi, ch) => midi === null ? null : this.pitchForSample(this.synth.samples[this.synth.editorWaveforms[ch].sample], midi, this.lastBend[ch] ?? this.instrumentBend));
         for (let ch = 0; ch < 24; ch++) {
-          const sample = this.inspector.invoke('setWaveform', [ch, prepared, options]);
+          const sample = this.authorChannel(ch, () => this.inspector.invoke('setWaveform', [ch, prepared, options]));
           if (ch === 0) value = sample;
         }
         // Imported audio can have a different root frequency. Retune each
@@ -142,33 +169,73 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
         this.lastMidi = notes;
         for (let ch = 0; ch < 24; ch++) if (notes[ch] === null) this.lastBend[ch] = null;
       }
+      else if (method === 'setInstrumentReverbPreset') {
+        const patch=args[0];
+        this.synth._reverb(patch);
+        if (typeof patch.preset!=='string') throw new TypeError('Choose an SPU reverb preset');
+        const enabled=patch.preset!=='off';
+        // One audio-thread transaction: select the effect and change every
+        // carrier send before another render or state reply can interleave.
+        this.inspector.invoke('setReverb',[patch]);
+        for(let ch=0;ch<24;ch++) this.authorChannel(ch,()=>this.inspector.invoke('setPreset',[ch,{reverb:enabled}]));
+        value=true;
+      }
       else if (method === 'getInstrument') {
         const preset = this.synth.getPreset(args[0]), sample = this.synth.samples[preset.sample];
         if (!sample) throw new Error('Assign an SPU sample before saving an instrument');
         const tuning = {adpcm:this.synth.sampleBytes[sample.id].slice(), baseFrequencyHz:sample.rootFrequencyHz};
         if (sample.loop) tuning.loopStartSamples = sample.loopStartSamples;
         const editor = this.synth.editorWaveforms[args[0]];
-        value = {preset, sample:tuning, reverb:{...this.synth.reverb}, waveform:editor?.sample === sample.id ? editor.pcm.slice() : null};
+        value = {preset, sample:tuning, pmon:{...this.pmon}, reverb:{...this.synth.reverb}, waveform:editor?.sample === sample.id ? editor.pcm.slice() : null};
       }
       else if (method === 'stop' || method === 'stopVoices') {
-        this.inspector.resetAuditions();
-        this.synth.stopVoices();
-        this.resampler.reset(this.synth.core.nativeFrames);
-        this.lastMidi.fill(null);
-        this.lastBend.fill(null);
-        this.voices.reset();
+        this.stopInstrument();
         value = true;
       } else if (EDITOR_METHODS.has(method)) value = this.inspector.invoke(method, args);
       else if (SYNTH_METHODS.has(method)) value = this.synth[method](...args);
       else throw new Error(`Unknown SPU synth command: ${method}`);
+      if (!READ_METHODS.has(method) && this.pmon.enabled && method !== 'setInstrumentPmon') this.syncModulators();
       const reply = {id, value};
       // Snapshots are sent only after explicit requests or completed edits.
       // Audio blocks never send level/state updates to the UI.
-      if (!READ_METHODS.has(method)) reply.state = this.inspector.read();
+      if (!READ_METHODS.has(method)) reply.state = this.readState();
       this.port.postMessage(reply);
     } catch (error) {
       this.port.postMessage({id, error:String(error?.message ?? error), name:error?.name ?? 'Error'});
     }
+  }
+
+  readState() {return {...this.inspector.read(), pmon:{...this.pmon}, pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  carrierChannel(slot) {return this.pmon.enabled ? slot*2+1 : slot;}
+  authorChannel(ch, apply) {
+    if (!this.pmon.enabled || ch%2) return apply();
+    // Keep one canonical authored instrument in every slot. Even channels
+    // are physically configured as modulators only while pairing is enabled.
+    const core=this.synth.core, write=core.write, refresh=core.refreshEnvelope;
+    core.write=()=>{}; core.refreshEnvelope=()=>{};
+    try {return apply();} finally {core.write=write; core.refreshEnvelope=refresh;}
+  }
+  configureModulator(ch, midi, bend) {
+    const core=this.synth.core, sample=this.pmonSample;
+    const {adsr1,adsr2}=pmonAdsr(this.pmon.decayMs,this.synth.getPreset(ch+1).adsr2);
+    const pitch=midi===null ? 0 : Math.max(1,Math.min(0x3fff,Math.round(4096*440*2**((midi-69+bend)/12)*this.pmon.ratio/(44100/112))));
+    for (const [offset,value] of [[0,0],[2,0],[4,pitch],[6,sample.startAddress>>3],[8,adsr1],[10,adsr2],[14,sample.repeatAddress>>3]]) core.write(ch*16+offset,value);
+  }
+  syncModulators() {
+    if (!this.pmon.enabled) return;
+    // Odd voices consume the preceding even voice's post-envelope OUTX.
+    this.synth.core.write(0x190,0xaaaa); this.synth.core.write(0x192,0xaa);
+    for (let ch=0;ch<24;ch+=2) this.configureModulator(ch,this.lastMidi[ch+1],this.lastBend[ch+1] ?? this.instrumentBend);
+  }
+  releaseInstrumentNote(ch, id) {
+    const released=this.inspector.invoke('auditionOff',[ch,id]);
+    if (released && this.pmon.enabled) this.synth.core.auditionKey(ch-1,false);
+    return released;
+  }
+  stopInstrument() {
+    this.inspector.resetAuditions(); this.synth.stopVoices();
+    this.resampler.reset(this.synth.core.nativeFrames);
+    this.lastMidi.fill(null); this.lastBend.fill(null); this.voices.reset();
   }
 
   bentPitch(channel, midi, semitones) {
