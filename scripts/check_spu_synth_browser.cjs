@@ -8,13 +8,13 @@ const {createHash} = require('node:crypto');
 const {chromium, webkit} = require('playwright');
 const {PROCESSOR_NAMES, processorSource, analyzePilotPcm, analyzeClockRows} = require('./audio_clock_audit.cjs');
 
-const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, engines:[]};
+const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, engines:[]};
 const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
 for (let i = 2; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--help') {console.log(usage); process.exit(0);}
   if (['--chromium-only', '--webkit-only'].includes(arg)) {config.engines.push(arg.slice(2, -5)); continue;}
-  const match = arg.match(/^--(root|entry|out|screenshots)(?:=(.*))?$/); assert(match, usage);
+  const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture)(?:=(.*))?$/); assert(match, usage);
   const value = match[2] ?? process.argv[++i]; assert(value && !value.startsWith('--'), usage);
   config[match[1]] = match[1] === 'entry' ? value : path.resolve(value);
 }
@@ -66,7 +66,7 @@ function instrumentation() {
     }
   };
   MessagePort.prototype.postMessage = function(data, ...args) {
-    if (data && typeof data === 'object' && typeof data.method === 'string') audit.commands.push({...labels.get(this), id:data.id, method:data.method, args:structuredClone(data.args ?? [])});
+    if (data && typeof data === 'object' && typeof data.method === 'string') audit.commands.push({...labels.get(this), id:data.id, method:data.method, args:data.method==='loadHostPCM' ? [{frames:data.args[0].length},structuredClone(data.args[1])] : structuredClone(data.args ?? [])});
     return post.call(this, data, ...args);
   };
   AudioNode.prototype.connect = function(destination, ...args) {
@@ -170,8 +170,8 @@ async function applied(page, predicate) {
   return current(page);
 }
 
-function sineWav() {
-  const rate = 44100, frames = 4410, bytes = Buffer.alloc(44 + frames * 2);
+function sineWav(frames = 4410) {
+  const rate = 44100, bytes = Buffer.alloc(44 + frames * 2);
   bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
   bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22); bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28);
   bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
@@ -509,6 +509,41 @@ async function checkPmon(page, keyboardHz, name) {
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded PMON Bell.');
   await settled(page);assert.equal((await current(page)).pmon.enabled,false);
   return {physicalVoices:24,polyphony:12,carrierChannels:ons.map(note=>note.channel),heldEditsKeepOwners:true,presetRoundTrip:true,legacyDefaultsOff:true,layouts:pmonLayouts,shapes,dry,wet};
+}
+
+async function checkLongAudio(page) {
+  console.log('CHECK long audio: 20 MiB WAV / host PCM / preset / optional M4A');
+  await page.locator('#resetPreset').click();await settled(page);await fastEnvelope(page);
+  await editorTab(page,'audio');
+  await page.locator('#sampleRootNote').fill('69');await page.locator('#sampleLoop').check();
+  const wav=sineWav(Math.ceil(20*1024*1024/2));
+  await page.locator('#audioFileInput').setInputFiles({name:'long-20MiB.wav',mimeType:'audio/wav',buffer:wav});
+  await page.waitForFunction(()=>document.getElementById('sampleLoadStatus').textContent.startsWith('Loaded long-20MiB'),{},{timeout:60000});
+  const imported=await settled(page);assert(imported.hostAudio?.duration>200);assert(imported.hostAudio.loop);
+  assert.match(await page.locator('#sampleName').textContent(),/Software audio/);
+  await hold(page);const pcm=await audible(page,'20 MiB software recording');await release(page);await silent(page,'Long audio release');
+  await page.locator('#instrumentName').fill('Long recording');
+  const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+  const saved=await download,bytes=await fs.readFile(await saved.path());
+  const preset=JSON.parse(bytes);assert.equal(preset.version,2);assert(preset.sample.pcm16Base64.length>20*1024*1024);
+  await page.locator('#resetPreset').click();await settled(page);
+  await page.locator('#presetFileInput').setInputFiles({name:'long.spu.json',mimeType:'application/json',buffer:bytes});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Long recording.',{},{timeout:60000});
+  const restored=await settled(page);assert.deepEqual(restored.hostAudio,imported.hostAudio);
+  await hold(page);const roundTrip=await audible(page,'Restored long recording');await release(page);await silent(page,'Long preset release');
+  let m4a=null;
+  if(config.m4aFixture) {
+    const file=await fs.readFile(config.m4aFixture);
+    assert(file.length>=20*1000*1000,'M4A fixture is at least 20 MB');
+    await editorTab(page,'audio');
+    await page.locator('#audioFileInput').setInputFiles({name:'long-20MB.m4a',mimeType:'audio/mp4',buffer:file});
+    await page.waitForFunction(()=>document.getElementById('sampleLoadStatus').textContent.startsWith('Loaded long-20MB'),{},{timeout:90000});
+    assert((await settled(page)).hostAudio?.duration>20);
+    await hold(page);const captured=await audible(page,'20 MB M4A recording');await release(page);await silent(page,'M4A release');
+    m4a={bytes:file.length,sha256:hash(file),pcm:captured};
+  }
+  await page.locator('#stopAudio').click();await silent(page,'Long audio Stop');
+  return {inputBytes:wav.length,duration:imported.hostAudio.duration,softwareExtension:true,presetVersion:2,presetBytes:bytes.length,pcm,roundTrip,m4a};
 }
 
 async function checkNoise(page,name) {
@@ -916,6 +951,7 @@ async function runCase(browser, name, origin) {
     const pmon=await checkPmon(page,keyboardHz,name);
     const noise=await checkNoise(page,name);
     const morph=await checkMorph(page,name);
+    const longAudio=await checkLongAudio(page);
 
     console.log(`CHECK ${name}: real audio failure / explicit user retry`);
     await page.evaluate(async () => {const context = [...__spuSynthAudit.contexts].reverse().find(value => value.state !== 'closed'); await context.close();});
@@ -951,7 +987,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, pmon, noise, morph, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

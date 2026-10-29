@@ -62,11 +62,11 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     if (context.state === 'running') await context.suspend();
     if (!context.audioWorklet) throw new Error('SPU synth needs AudioWorklet; open this page over HTTPS or localhost');
     const [wasmBinary] = await Promise.all([
-      fetch(new URL('../generated/ps1_spu_wasm.wasm?v=spu-mix-precision-1', import.meta.url)).then(response => {
+      fetch(new URL('../generated/ps1_spu_wasm.wasm?v=spu-long-audio-1', import.meta.url)).then(response => {
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-precision-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-long-audio-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -97,12 +97,12 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     node.connect(gain);
     gain.connect(context.destination);
     publish(metadata.state);
-    const request = (method, args = []) => {
+    const request = (method, args = [], transfer = []) => {
       assertOpen();
       const id = ++nextId;
       return new Promise((resolve, reject) => {
         pending.set(id, {resolve, reject});
-        try {node.port.postMessage({id, method, args});} catch (error) {pending.delete(id); reject(error);}
+        try {node.port.postMessage({id, method, args}, transfer);} catch (error) {pending.delete(id); reject(error);}
       });
     };
     return {
@@ -123,7 +123,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
           const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
           args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined];
         }
-        return request(method, args);
+        return request(method, args, method==='loadHostPCM' ? [args[0].buffer] : []);
       },
       async resume() {assertOpen(); await context.resume(); assertOpen();},
       stop() {return request('stop');},

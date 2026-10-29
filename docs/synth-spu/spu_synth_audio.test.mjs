@@ -17,6 +17,7 @@ import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {SPU_SYNTH_MIX_HEADROOM} from './spu_synth_levels.js';
+import {validateHostPcm} from './spu_synth_long_audio.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -101,13 +102,14 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {readNoise} from ${url('./spu_synth_noise.js')};
     import {readMorph, morphPcm} from ${url('./spu_synth_morph.js')};
     import {SPU_SYNTH_MIX_HEADROOM} from ${url('./spu_synth_levels.js')};
+    import {validateHostPcm} from ${url('./spu_synth_long_audio.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -138,7 +140,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, readMorph, morphPcm, SPU_SYNTH_MIX_HEADROOM, validateHostPcm, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -798,4 +800,36 @@ for(const rate of [44100,48000])test(`compensated held Sine exactly matches pre-
       assert.deepEqual(Float32Array.from(actual.right,x=>x*SPU_SYNTH_MIX_HEADROOM),right,`right MIDI ${midi}`);
     }
   }
+});
+
+for (const rate of [44100,48000]) test(`long software audio uses independent SPU voices, tuning and effects at ${rate}`,async t=>{
+  const p=await setup(rate);t.after(()=>p.close());
+  const pcm=Int16Array.from({length:44100*24},(_,i)=>Math.round(18000*Math.sin(2*Math.PI*440*i/44100)));
+  p.command('loadHostPCM',[pcm,{baseFrequencyHz:440,loop:true}]);
+  const initial=p.command('inspect');
+  assert.equal(initial.hostAudio.frames,pcm.length);
+  assert(initial.channels.every(ch=>ch.sample===initial.channels[0].sample));
+  assert.equal(initial.samples.find(s=>s.id===initial.channels[0].sample).rootFrequencyHz,440);
+  const ram=initial.nextAddress;
+  p.command('instrumentNoteOn',[69,'a']);
+  assert(peak(p.render(8192).left)>.1);
+  const before=p.command('inspect').auditions;
+  p.command('setInstrumentPitchBend',[2]);assert.deepEqual(p.command('inspect').auditions,before);
+  p.command('instrumentNoteOn',[72,'b']);assert.equal(p.command('inspect').auditions.length,2);
+  assert(peak(p.render(4096).left)>.1);
+  assert.equal(p.command('inspect').nextAddress,ram,'playing never uploads per-note sample copies');
+  p.command('setInstrumentReverbPreset',[{preset:'room'}]);assert(peak(p.render(8192).left)>0);
+  const saved=p.command('getInstrument',[0]);assert.deepEqual(saved.sample.pcm,pcm);assert.equal(saved.sample.loop,true);
+  p.command('stop');assert.equal(peak(p.render(4096).left),0);
+  p.command('instrumentNoteOn',[69,'again']);assert(peak(p.render(4096).left)>0,'Stop preserves host sample');
+  p.command('setInstrumentNoise',[{enabled:true,clock:40}]);assert(p.command('inspect').hostAudio);
+  p.command('instrumentNoteOn',[60,'noise']);assert(peak(p.render(4096).left)>0);
+  p.command('setInstrumentNoise',[{enabled:false}]);
+  p.command('setInstrumentPmon',[readPmon({enabled:true}),preparePs1Waveform(pmonPcm(readPmon({enabled:true}).depth,'sine'))]);
+  p.command('instrumentNoteOn',[69,'pmon']);assert(peak(p.render(8192).left)>0);
+  p.command('setInstrumentPmon',[{enabled:false}]);
+  p.command('setInstrumentWaveform',[sine()]);assert.equal(p.command('inspect').hostAudio,null);
+  p.command('instrumentNoteOn',[69,'cycle']);assert(peak(p.render(8192).left)>0);
+  p.command('loadHostPCM',[pcm,{baseFrequencyHz:220,loop:false}]);
+  assert.equal(p.command('inspect').nextAddress,ram+64,'reloading reuses the one host placeholder (only PMON allocated)');
 });

@@ -54,14 +54,13 @@ Silence, a hidden page, and Stop suspend display updates.
 
 Open the **Audio** tab, then set **Root MIDI note** and **Loop imported audio**
 before choosing **Load audio**.
-Audio files supported by the browser are decoded at 44,100 Hz, mixed to mono,
-and encoded into SPU ADPCM in a preparation worker. Root MIDI note declares
-the source recording's pitch; it does not estimate or correct that pitch.
-Looped recordings use the complete 28-sample packets, dropping at most 27
-frames from the end. The SPU has 512 KiB of shared sample RAM; oversized files
-are rejected without truncating them. Reloading the page starts a fresh bank.
+Audio files supported by the browser (including supported M4A codecs) are decoded at 44,100 Hz and mixed to mono. Input files may be up to 32 MiB, with at most 30 minutes of decoded audio. Root MIDI note declares the source recording's pitch; it does not estimate or correct that pitch.
 
-**Save preset** downloads a `.spu.json` instrument containing its ADPCM bytes,
+Short recordings that fit free SPU RAM are encoded as SPU ADPCM. Longer recordings automatically use **Software audio**: signed 16-bit mono PCM in host memory, outside the PS1's physical 512 KiB RAM. This is a Tetorica software extension, clearly shown beside the sample name. The native SPU still applies its Gaussian interpolation, per-note pitch, ADSR, PMON, stereo volume and reverb, with shared sample storage and independent voice positions. Long loops preserve the entire recording. This path does not add ADPCM encoding coloration. Loading another long recording replaces the host bank instead of appending another full copy. Large compressed files need more memory when decoded; the stated limits are bounds, not a guarantee that every device has sufficient memory.
+
+The Audio tab shows decoding, preparation, success and error messages beside Load audio. Set root and loop before loading; a changed setting applies on the next load.
+
+**Save preset** downloads a `.spu.json` instrument containing its sample (ADPCM in version 1, base64 signed PCM in version 2 for Software audio),
 tuning, ADSR, stereo volume, and shared reverb settings.
 Editable short PCM cycles retain their drawing data too. **Load preset**
 validates the complete instrument before applying it to all 24 voices.

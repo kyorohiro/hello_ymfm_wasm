@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
-import factory from '../generated/ps1_spu_wasm.js?v=spu-mix-precision-1';
+import factory from '../generated/ps1_spu_wasm.js?v=spu-long-audio-1';
 import {Ps1Spu} from '../js/ps1_spu.js?v=ps1-deferred-release-1';
 import {Ps1Synth} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {Ps1Resampler} from '../js/ps1_resampler.js?v=ps1-mode-1';
@@ -11,6 +11,8 @@ import {readMorph, morphPcm} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon, pmonAdsr} from './spu_synth_pmon.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js?v=spu-synth-2';
+
+import {validateHostPcm} from './spu_synth_long_audio.js';
 
 const EDITOR_METHODS = new Set(['auditionOn', 'auditionOff', 'auditionAllOff', 'setWaveform', 'setPreset', 'setChannel', 'setEnvelope', 'setReverb', 'setPitch', 'setFrequency', 'setNote']);
 const SYNTH_METHODS = new Set(['loadADPCM', 'getPreset', 'snapshot', 'noteOn', 'noteOff', 'keyOn', 'keyOff', 'allNotesOff', '_auditionKeyOn', '_auditionKeyOff', '_refreshEnvelope']);
@@ -32,6 +34,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.noise = readNoise();
     this.morph = readMorph();
     this.pmonSample = null;
+    this.hostAudio = null;
+    this.hostSlot = null;
     this.voices = new SpuRoundRobinVoices();
     this.port.onmessage = ({data}) => {
       if (data?.method === 'dispose') {this.dispose(); return;}
@@ -66,6 +70,34 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       if (!Array.isArray(args)) throw new TypeError('SPU command arguments must be an array');
       let value;
       if (method === 'inspect' || method === 'getState') value = this.readState();
+      else if (method === 'loadHostPCM') {
+        const pcm=validateHostPcm(args[0]),options=args[1];
+        if (!options || typeof options.loop!=='boolean' || !Number.isFinite(options.baseFrequencyHz) || options.baseFrequencyHz<=0 || options.baseFrequencyHz>1000000) throw new TypeError('Invalid software audio tuning');
+        if (options.loop && pcm.length<4) throw new RangeError('Software audio loops require at least 4 frames');
+        const core=this.synth.core,m=core.module;
+        if (typeof m._ps1_spu_set_host_pcm!=='function' || typeof m._ps1_spu_set_host_mask!=='function') throw new Error('Software audio is unavailable');
+        // One shared, silent RAM placeholder retains the existing instrument
+        // editor and tuning API. Audio data itself never occupies SPU RAM.
+        if (!this.hostSlot) {
+          const bytes=new Uint8Array(16);bytes[0]=12;bytes[1]=1;
+          this.hostSlot=this.synth.loadADPCM(bytes,{baseFrequencyHz:options.baseFrequencyHz});
+        }
+        const ptr=m._malloc(pcm.byteLength);
+        if (!ptr) throw new Error('Not enough memory for this recording');
+        try {
+          m.HEAPU8.set(new Uint8Array(pcm.buffer,pcm.byteOffset,pcm.byteLength),ptr);
+          this.stopInstrument();
+          if (!m._ps1_spu_set_host_pcm(core.handle,ptr,pcm.length,Number(options.loop))) throw new Error('Not enough memory for software audio');
+        } finally {m._free(ptr);}
+        const slot=this.synth.samples[this.hostSlot.id];
+        this.hostSlot=slot;
+        // The descriptor is shared, with independent native playback cursors.
+        Object.assign(slot,{rootFrequencyHz:options.baseFrequencyHz,basePitch:4096,loop:options.loop,loopStartSamples:options.loop?0:null,decodedFrames:pcm.length});
+        this.hostAudio={pcm,baseFrequencyHz:options.baseFrequencyHz,loop:options.loop};
+        for (let ch=0;ch<24;ch++) this.authorChannel(ch,()=>this.inspector.invoke('setPreset',[ch,{sample:slot}]));
+        this.morph={...this.morph,enabled:false};
+        value={frames:pcm.length,duration:pcm.length/44100};
+      }
       else if (method === 'instrumentNoteOn') {
         const [midi, identity, bend = this.instrumentBend] = args;
         if (typeof identity !== 'string' || !identity.length || identity.length > 128) throw new TypeError('Audition identity must contain 1..128 characters');
@@ -171,7 +203,10 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
           }
         }
         for (let ch = 0; ch < 24; ch++) this.authorChannel(ch, () => this.inspector.invoke(method === 'setInstrumentPreset' ? 'setPreset' : 'setEnvelope', [ch, patch, options]));
-        if (method==='setInstrumentPreset' && patch.sample!==undefined) this.morph={...this.morph,enabled:false};
+        if (method==='setInstrumentPreset' && patch.sample!==undefined) {
+          this.morph={...this.morph,enabled:false};
+          if (this.hostAudio && this.synth.getPreset(0).sample!==this.hostSlot.id) this.clearHostAudio();
+        }
         value = true;
       } else if (method === 'setInstrumentWaveform' || method === 'setInstrumentMorph') {
         const nextMorph=method==='setInstrumentMorph' ? readMorph(args[0]) : null;
@@ -190,6 +225,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
             const sample = slot && this.synth.samples[slot.sample];
             if (!sample || sample.editorChannel !== ch || sample.byteLength !== 64) throw new Error('SPU instrument waveform slot is invalid');
           }
+          if (this.hostAudio) {this.stopInstrument();this.clearHostAudio();}
           const notes = this.activeNotes();
           const pitches = notes.map((midi, ch) => midi === null ? null : this.noise.enabled ? 4096 : this.pitchForSample(this.synth.samples[this.synth.editorWaveforms[ch].sample], midi, this.lastBend[ch] ?? this.instrumentBend));
           for (let ch = 0; ch < 24; ch++) {
@@ -220,8 +256,8 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
       else if (method === 'getInstrument') {
         const preset = this.synth.getPreset(args[0]), sample = this.synth.samples[preset.sample];
         if (!sample) throw new Error('Assign an SPU sample before saving an instrument');
-        const tuning = {adpcm:this.synth.sampleBytes[sample.id].slice(), baseFrequencyHz:sample.rootFrequencyHz};
-        if (sample.loop) tuning.loopStartSamples = sample.loopStartSamples;
+        const tuning = this.hostAudio && sample.id===this.hostSlot.id ? {...this.hostAudio} : {adpcm:this.synth.sampleBytes[sample.id].slice(), baseFrequencyHz:sample.rootFrequencyHz};
+        if (sample.loop && !tuning.pcm) tuning.loopStartSamples = sample.loopStartSamples;
         const editor = this.synth.editorWaveforms[args[0]];
         value = {preset, sample:tuning, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), reverb:{...this.synth.reverb}, waveform:editor?.sample === sample.id ? editor.pcm.slice() : null};
       }
@@ -242,7 +278,14 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     }
   }
 
-  readState() {return {...this.inspector.read(), pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
+  clearHostAudio() {
+    const c=this.synth.core;
+    c.module._ps1_spu_set_host_mask(c.handle,0);
+    c.module._ps1_spu_set_host_pcm(c.handle,0,0,0);
+    this.hostAudio=null;
+  }
+
+  readState() {return {...this.inspector.read(), hostAudio:this.hostAudio ? {frames:this.hostAudio.pcm.length,duration:this.hostAudio.pcm.length/44100,loop:this.hostAudio.loop} : null, pmon:{...this.pmon}, noise:{...this.noise}, morph:readMorph(this.morph), pmonSampleReserved:Boolean(this.pmonSample), polyphony:this.pmon.enabled ? 12 : 24};}
   carrierChannel(slot) {return this.pmon.enabled ? slot*2+1 : slot;}
   authorChannel(ch, apply) {
     if (!this.pmon.enabled || ch%2) return apply();
@@ -260,6 +303,11 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
   }
   syncModulators() {
     const core=this.synth.core;
+    let mask=0;
+    if (this.hostAudio && !this.noise.enabled) for(let ch=0;ch<24;ch++) {
+      if ((!this.pmon.enabled || ch%2) && this.synth.getPreset(ch).sample===this.hostSlot.id) mask|=1<<ch;
+    }
+    core.module._ps1_spu_set_host_mask?.(core.handle,mask);
     core.write(0x194,this.noise.enabled ? 0xffff : 0);
     core.write(0x196,this.noise.enabled ? 0xff : 0);
     core.write(0x1aa,(core.read(0x1aa)&~0x3f00)|((this.noise.enabled ? this.noise.clock : 0)<<8));

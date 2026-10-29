@@ -9,7 +9,7 @@ const stage = join(root, 'dist/fm2612');
 // Keep the opt-in npm policy in sync with the complete measured Playground baseline.
 await generateSoundChipMixerPresets({
   reportPath:join(root, 'docs/issues/playground_chip_levels_01.json'),
-  ps1ReportPath:join(root, 'docs/issues/ps1_precision_chip_levels_02.json'),
+  ps1ReportPath:join(root, 'docs/issues/ps1_long_audio_chip_levels_01.json'),
   wonderswanReportPath:join(root, 'docs/issues/wonderswan_chip_levels_deferred_release_01.json'),
   pokeyReportPath:join(root, 'docs/issues/pokey_chip_levels_deferred_release_01.json'),
   outPath:join(root, 'web/soundchip_mixer_presets.js'),check:true,

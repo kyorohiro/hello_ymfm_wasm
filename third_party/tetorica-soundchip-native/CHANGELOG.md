@@ -101,3 +101,5 @@
 - License original Tetorica code under BSD-3-Clause, retaining third-party licenses and existing explicit file-level terms.
 - Include the Analyzer's unchanged MSM5205 and OKIM6295 JavaScript references, BSD notices, provenance, a standalone synthetic-data WAV example, and source-archive verification. Record them separately from Native targets and WASM recipes.
 - Collect separately pinned, BSD-declared upstream MSM5205/OKIM6295/ADPCM C/C++ originals with per-file hashes. Document missing framework dependencies and omit libvgm support/player files without explicit licenses; retain the JavaScript engines and existing build targets unchanged.
+
+Optional software sample bank: `ps1_spu_set_host_pcm` copies signed mono PCM outside physical SPU RAM (up to 30 minutes at 44.1 kHz). `ps1_spu_set_host_mask` selects voices at key-on. Gaussian interpolation, PMON, ADSR, mixing and reverb still run in the SPU core. Reset preserves the bank; zero frames clears it. Default register/RAM playback is unchanged. The browser host labels this Software audio; it is not additional PS1 hardware RAM.

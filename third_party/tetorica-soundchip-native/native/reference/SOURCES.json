@@ -628,7 +628,7 @@
       "originRepository": "hello_ymfm_wasm",
       "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
       "originalSha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "sha256": "03eed5fe1fd666d3a2d12fd97690d271aa785e9d32cb48d0ef3623f722b50e0c"
+      "sha256": "e7414d1acb6a1466c29adcb2f74963b180e21562831a68c23e0c19b989ac7a5f"
     }
   ],
   "originRepository": "tetorica-fm2612-playground-tauri",

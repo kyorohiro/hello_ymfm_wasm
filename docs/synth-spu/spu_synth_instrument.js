@@ -7,8 +7,10 @@ import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 import {preparePs1Waveform} from '../js/ps1_waveform.js?v=ps1-pcm-waveform-1';
 import {PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
 
+import {MAX_HOST_PRESET_BYTES, encodeHostPcm, decodeHostPcm} from './spu_synth_long_audio.js';
+
 export const INSTRUMENT_SCHEMA = 'tetorica-spu-synth.instrument';
-export const MAX_INSTRUMENT_BYTES = 4 * 1024 * 1024;
+export const MAX_INSTRUMENT_BYTES = MAX_HOST_PRESET_BYTES;
 function object(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError(`Invalid ${label}`);
   return value;
@@ -24,7 +26,7 @@ function keys(value, allowed, label) {
 /** Validate the entire file before changing any live voice or sample RAM. */
 export function readSpuInstrument(value) {
   keys(value, ['schema', 'version', 'name', 'preset', 'sample', 'reverb', 'waveform', 'pmon', 'noise', 'morph'], 'instrument');
-  if (value.schema !== INSTRUMENT_SCHEMA || value.version !== 1) throw new TypeError('Expected a Tetorica SPU Synth instrument (version 1)');
+  if (value.schema !== INSTRUMENT_SCHEMA || ![1,2].includes(value.version)) throw new TypeError('Expected a Tetorica SPU Synth instrument (version 1 or 2)');
   if (typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw new TypeError('Instrument name must contain 1–80 characters');
   keys(value.preset, ['volumeLeft', 'volumeRight', 'adsr1', 'adsr2', 'pitch', 'reverb'], 'voice');
   const preset = {};
@@ -37,13 +39,23 @@ export function readSpuInstrument(value) {
   if (!PS1_REVERB_PRESETS.some(item => item.id === value.reverb.preset)) throw new TypeError('Unknown SPU reverb preset');
   const reverb = {preset:value.reverb.preset};
   for (const key of ['volumeLeft', 'volumeRight']) reverb[key] = number(value.reverb[key], 0, 1, `reverb ${key}`);
-  keys(value.sample, ['adpcm', 'baseFrequencyHz', 'loopStartSamples'], 'sample');
-  const bytes = value.sample.adpcm;
-  if (!Array.isArray(bytes) || !bytes.length || bytes.length > 520192 || bytes.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255)) throw new TypeError('Invalid SPU ADPCM sample bytes');
-  const options = {baseFrequencyHz:value.sample.baseFrequencyHz};
-  if (value.sample.loopStartSamples !== undefined) options.loopStartSamples = value.sample.loopStartSamples;
-  const adpcm = Uint8Array.from(bytes);
-  preparePs1ADPCM(adpcm, options);
+  let adpcm,options,hostSample;
+  if (value.version === 2) {
+    keys(value.sample, ['pcm16Base64','baseFrequencyHz','loop'], 'software sample');
+    const baseFrequencyHz=number(value.sample.baseFrequencyHz, .000001, 1000000, 'baseFrequencyHz');
+    if (typeof value.sample.loop !== 'boolean') throw new TypeError('Invalid software audio loop switch');
+    hostSample={pcm:decodeHostPcm(value.sample.pcm16Base64),baseFrequencyHz,loop:value.sample.loop};
+    if (hostSample.loop && hostSample.pcm.length<4) throw new RangeError('Software audio loops require at least 4 frames');
+    if (value.waveform != null || value.morph?.enabled) throw new TypeError('Software audio cannot contain a PCM cycle or enabled morph');
+  } else {
+    keys(value.sample, ['adpcm', 'baseFrequencyHz', 'loopStartSamples'], 'sample');
+    const bytes = value.sample.adpcm;
+    if (!Array.isArray(bytes) || !bytes.length || bytes.length > 520192 || bytes.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255)) throw new TypeError('Invalid SPU ADPCM sample bytes');
+    options = {baseFrequencyHz:value.sample.baseFrequencyHz};
+    if (value.sample.loopStartSamples !== undefined) options.loopStartSamples = value.sample.loopStartSamples;
+    adpcm = Uint8Array.from(bytes);
+    preparePs1ADPCM(adpcm, options);
+  }
   let waveform = null;
   if (value.waveform !== undefined && value.waveform !== null) {
     const prepared = preparePs1Waveform(value.waveform);
@@ -53,15 +65,17 @@ export function readSpuInstrument(value) {
   const pmon=readPmon(value.pmon),noise=readNoise(value.noise),morph=readMorph(value.morph);
   if(morph.enabled && (!waveform || morphPcm(morph).some((x,i)=>x!==waveform[i])))throw new TypeError('Software morph and PCM cycle do not match');
   if (pmon.enabled && noise.enabled) throw new TypeError('Noise and PMON cannot both be enabled');
-  return {schema:INSTRUMENT_SCHEMA, version:1, name:value.name.trim(), preset, sample:{adpcm, ...options}, reverb, waveform, pmon, noise, morph};
+  return {schema:INSTRUMENT_SCHEMA, version:value.version, name:value.name.trim(), preset, sample:hostSample ?? {adpcm, ...options}, reverb, waveform, pmon, noise, morph};
 }
 
 export function writeSpuInstrument(name, source) {
   if (!source?.sample) throw new Error('Assign a sample before saving an instrument');
   const {sample:ignored, ...preset} = source.preset;
-  const checked = readSpuInstrument({schema:INSTRUMENT_SCHEMA, version:1, name, preset,
-    sample:{...source.sample, adpcm:Array.from(source.sample.adpcm)}, reverb:source.reverb, pmon:source.pmon, noise:source.noise, morph:source.morph, waveform:source.waveform ?? null});
-  return {...checked, sample:{...checked.sample, adpcm:Array.from(checked.sample.adpcm)}};
+  const host=source.sample.pcm instanceof Int16Array;
+  const sample=host ? {pcm16Base64:encodeHostPcm(source.sample.pcm),baseFrequencyHz:source.sample.baseFrequencyHz,loop:source.sample.loop} : {...source.sample,adpcm:Array.from(source.sample.adpcm)};
+  const checked = readSpuInstrument({schema:INSTRUMENT_SCHEMA, version:host ? 2 : 1, name, preset,
+    sample, reverb:source.reverb, pmon:source.pmon, noise:source.noise, morph:source.morph, waveform:source.waveform ?? null});
+  return {...checked, sample:host ? sample : {...checked.sample, adpcm:Array.from(checked.sample.adpcm)}};
 }
 
 /** Mono conversion; the decoder has already resampled to 44.1 kHz. */

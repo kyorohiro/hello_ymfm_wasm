@@ -101,3 +101,16 @@ extern "C" int ps1_spu_set_mix_headroom(void *handle, uint32_t divisor)
     try {static_cast<spu_device *>(handle)->set_mix_headroom(divisor);return 1;}
     catch (...) {return 0;}
 }
+
+extern "C" int ps1_spu_set_host_pcm(void *handle, const int16_t *pcm, uint32_t frames, int loop)
+{
+    // Thirty minutes at 44.1 kHz; signed mono PCM lives outside SPU RAM.
+    if (!handle || frames>44100u*60u*30u || (frames && !pcm) || (loop && frames && frames<4) || (loop!=0 && loop!=1)) return 0;
+    try {static_cast<spu_device *>(handle)->set_host_pcm(pcm,frames,loop!=0);return 1;}
+    catch (...) {return 0;}
+}
+extern "C" int ps1_spu_set_host_mask(void *handle, uint32_t mask)
+{
+    if (!handle || (mask&0xff000000u)) return 0;
+    static_cast<spu_device *>(handle)->set_host_mask(mask);return 1;
+}

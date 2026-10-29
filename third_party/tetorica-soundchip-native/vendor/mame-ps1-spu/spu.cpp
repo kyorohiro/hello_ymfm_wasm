@@ -276,6 +276,7 @@ public:
 	mutable int ref_count;
 	bool valid,
 				is_loop;
+	bool host_pcm = false;
 	sample_loop_cache *loop_cache;
 
 
@@ -1150,6 +1151,7 @@ void spu_device::device_stop()
 	delete xa_buffer;
 	delete cdda_buffer;
 	delete[] voice;
+	if (host_sample) { host_sample->remove_ref(); host_sample=nullptr; }
 }
 //
 //
@@ -1749,6 +1751,13 @@ void spu_device::update_voice_loop(const unsigned int v)
 	// a pointer to the loop position if enabled
 
 	vi->loop.reset();
+	if (vi->play.cache->host_pcm) {
+		if (vi->play.cache->get_loop_pointer(&vi->loop)) {
+			vi->loop_cache=vi->play.cache->loop_cache;
+			vi->loop_cache_owner=vi->loop;
+		}
+		return;
+	}
 
 	// If loop address is not forced get the loop pointer from the cache
 	// block (if present)
@@ -2215,7 +2224,10 @@ void spu_device::key_on(const int v)
 
 //  printf("key_on: %d @ %x (pitch %x)\n", v, spureg.voice[v].addr<<m_counter_shift, spureg.voice[v].pitch);
 
-	translate_sample_addr(spureg.voice[v].addr<<m_counter_shift,&voice[v].play);
+	if (host_sample && (host_sample_mask & (1u<<v))) {
+		voice[v].play.reset();
+		voice[v].play=cache_pointer(host_sample->data.get(),host_sample);
+	} else translate_sample_addr(spureg.voice[v].addr<<m_counter_shift,&voice[v].play);
 	assert(voice[v].play.ptr<voice[v].play.cache->dend);
 
 	voice[v].keyontime=0; //get_system_time();
@@ -3229,4 +3241,36 @@ void spu_device::render(float *left, float *right, uint32_t frames)
 		// Keep the upstream relative sample counters bounded for long sessions.
 		cur_frame_sample = cur_generate_sample = 0;
 	}
+}
+
+// Host-only PCM bank. Prepare before note-on; the audio renderer still uses
+// the normal Gaussian interpolation, PMON, envelope, volume and reverb path.
+// All voices share immutable sample storage and keep independent cursors.
+void spu_device::set_host_pcm(const int16_t *pcm, uint32_t frames, bool looping)
+{
+    std::unique_ptr<sample_cache> next;
+    if (frames) {
+        next=std::make_unique<sample_cache>(this);
+        next->host_pcm=true;
+        next->valid=true;
+        next->is_loop=looping;
+        next->start=0x10000000;
+        next->end=next->start+((frames+27)/28)*m_counter_packet_next;
+        next->loopaddr=next->start;
+        // A tiny guard region permits the renderer to advance by pitch <= 4
+        // beyond the end before the normal end/loop event consumes overshoot.
+        next->data=std::make_unique<signed short []>(frames+4);
+        std::copy_n(pcm,frames,next->data.get());
+        next->dend=next->data.get()+frames;
+        next->loop=looping ? next->data.get() : nullptr;
+        if (looping) {
+            next->loop_cache=new sample_loop_cache;
+            next->loop_cache->len=std::min<uint32_t>(frames,num_loop_cache_samples);
+            std::copy_n(pcm,next->loop_cache->len,next->loop_cache->data);
+        }
+        next->add_ref();
+    }
+    if (host_sample) host_sample->remove_ref();
+    host_sample=next.release();
+    if (!host_sample) host_sample_mask=0;
 }

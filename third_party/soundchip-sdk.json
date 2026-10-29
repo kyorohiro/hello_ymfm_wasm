@@ -4,8 +4,8 @@
   "version": "0.1.7",
   "sourceCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
   "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-  "archiveSha256": "7be4da615468e3f678b868d3a6e411e78d1f9fb79a1f42f5151ebb545dd7dacb",
-  "manifestSha256": "2ed02a2d2bdc9f898f1726352eec517919df5580a509c98ca5474983c6951798",
+  "archiveSha256": "0cb199b062017ecf30cd25dd2956a485cb92427c1f63d40564ea238c2c2bf0d0",
+  "manifestSha256": "b62415e21cda9f346fa8bed6ae6c02a3b3b690b8914fe3e21f38015876aef476",
   "fileCount": 455,
   "localCandidate": {
     "baseCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",

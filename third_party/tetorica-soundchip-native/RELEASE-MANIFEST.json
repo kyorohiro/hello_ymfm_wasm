@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "76012ac5a9c6eb27d6d715ed33a7e53172cd7c6528192ab64a662bebc9fd77d3",
-      "size": 25332
+      "sha256": "cec29079f764b315c617a93ec7056150b8be969d7368494819c92eedba144f5c",
+      "size": 25775
     },
     "CMakeLists.txt": {
       "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
@@ -45,7 +45,7 @@
       "size": 50834
     },
     "catalog/source_inventory.json": {
-      "sha256": "25ae950d1225e0ad84c2b86fd1e9c9bddb53ad2ed90d23f121b7ac41ad4d1e4c",
+      "sha256": "ebd8396d6c685a55d03a108a30d88c7f4d1f6143491b5a1b7d0678f4b07c6338",
       "size": 145009
     },
     "docs/architecture.md": {
@@ -53,8 +53,8 @@
       "size": 22501
     },
     "docs/chip-differences.md": {
-      "sha256": "c43b7c423ac00c96c6a7dffa6ba80f1885e4e5fe6a7b49fb9b0d2304e29d3353",
-      "size": 53712
+      "sha256": "3b6b4ddc0a5df886286843bf3c5ebf3d92a8265b8d99c2ce2a74bd4537e2a39f",
+      "size": 54155
     },
     "docs/releases.md": {
       "sha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
@@ -285,7 +285,7 @@
       "size": 108
     },
     "native/reference/SOURCES.json": {
-      "sha256": "a813102b97fa832fb9acfdd6177921e9e880a4444f870981def309ef7a934055",
+      "sha256": "060046ba173e2c33a8b8237bd9950de524218fcb622b4f2c2cc003395082bd12",
       "size": 47172
     },
     "native/reference/overrides/msfa/dx7note.cc": {
@@ -597,8 +597,8 @@
       "size": 15183
     },
     "native/tests/ps1_spu_fixture.cpp": {
-      "sha256": "03eed5fe1fd666d3a2d12fd97690d271aa785e9d32cb48d0ef3623f722b50e0c",
-      "size": 17189
+      "sha256": "e7414d1acb6a1466c29adcb2f74963b180e21562831a68c23e0c19b989ac7a5f",
+      "size": 19234
     },
     "native/tests/pwm_fixture.cpp": {
       "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812",
@@ -725,8 +725,8 @@
       "size": 761
     },
     "scripts/build_ps1_spu_wasm.sh": {
-      "sha256": "2742756cdecb0a9a8ff6edfb288ff12223121211733b55d5f81094ad4ff39655",
-      "size": 1371
+      "sha256": "02300a5ebd8d5b63341da11f1617dfd3501d1d4eadfede658f83b9639ce1a2c7",
+      "size": 1421
     },
     "scripts/build_pwm32x_wasm.sh": {
       "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
@@ -1121,24 +1121,24 @@
       "size": 1592
     },
     "vendor/mame-ps1-spu/README.md": {
-      "sha256": "38361b526653879db680860b6bf9de54973453985f23c255894717d8fa2f3999",
-      "size": 8743
+      "sha256": "59a588c0da4a83b17944713283f1ee3d2d8ff23058c90ca08997c50f3031f6c5",
+      "size": 9186
     },
     "vendor/mame-ps1-spu/ps1_spu.cpp": {
-      "sha256": "363cfa4f61e74ff9131c93e0e5d285256b9e8940b50c98dbd946168c7b8490d1",
-      "size": 4094
+      "sha256": "6dd978dd9335c7b647cac4bdd8a97b1c08ed58711519ef9e82a1cfe01cb51ae5",
+      "size": 4702
     },
     "vendor/mame-ps1-spu/ps1_spu.h": {
-      "sha256": "7c2d2d174cadd1d8a96977274afeb4da97021af58f9baf0e58ee365b97b9017a",
-      "size": 2737
+      "sha256": "3d4f4611058332ba85aa979c2b62a112efb79036396644f0734cbb9a183b7c4f",
+      "size": 3277
     },
     "vendor/mame-ps1-spu/spu.cpp": {
-      "sha256": "f1e4f8f0df547dac4b7fa123f2e36ca8fbf78a5de6fceadb133fe6a181cd320a",
-      "size": 74394
+      "sha256": "3316f13b65a92cd83d1605c049d81be28f024060ce36271cf4c42834bbe62eea",
+      "size": 76241
     },
     "vendor/mame-ps1-spu/spu.h": {
-      "sha256": "b4bcb4d32425e9fffc6918841cdcc2c8cf260236d4b1d185bcff7c17d9bd86df",
-      "size": 9019
+      "sha256": "3f7f0264e0d1cc093d3f2006d07c601654845071625e78d2372fbf3b2d62026c",
+      "size": 9292
     },
     "vendor/mame-ps1-spu/spu_tables.cpp": {
       "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab",

@@ -42,6 +42,13 @@ int ps1_spu_read_ram(void *handle, uint32_t byte_address, uint8_t *data, uint32_
  * retaining fractional dry output precision. Set before rendering or reset;
  * changing the divisor discards queued output. Reset preserves the divisor. */
 int ps1_spu_set_mix_headroom(void *handle, uint32_t divisor);
+/* Optional software PCM bank, outside the physical RAM/address registers.
+ * Copies signed mono PCM at the source rate declared by the host's tuning.
+ * frames <= 79,380,000 (30 min at 44.1 kHz); zero clears the bank.
+ * Mask selects the voices using this bank at their next key-on; bits 0..23.
+ * Loops require at least 4 frames. Set/replace while stopped. Reset preserves the bank and mask. */
+int ps1_spu_set_host_pcm(void *handle, const int16_t *pcm, uint32_t frames, int loop);
+int ps1_spu_set_host_mask(void *handle, uint32_t mask);
 int ps1_spu_render(void *handle, float *left, float *right, uint32_t frames);
 #ifdef __cplusplus
 }

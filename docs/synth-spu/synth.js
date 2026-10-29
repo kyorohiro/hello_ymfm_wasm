@@ -7,8 +7,11 @@ import {createFretboardState, createFretboardLayout, renderFretboardControls, bu
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_BYTES} from './spu_synth_instrument.js';
 
+import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
+
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
+const sampleStatus = (message, error = false) => {status(message,error);$('sampleLoadStatus').textContent=message;$('sampleLoadStatus').dataset.error=String(error);};
 const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, state = null, stateFrame = null, epoch = 0, assetEpoch = 0, octave = 0, bend = 0;
 const notes = new Map();
@@ -27,7 +30,7 @@ function applyState(next) {
     stateFrame = null;
     panel.update(state);
     const sample = state.samples?.find(item => item.id === state.channels[0].sample);
-    $('sampleName').textContent = `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
+    $('sampleName').textContent = state.hostAudio ? `${instrumentName} · Software audio · ${state.hostAudio.duration.toFixed(1)} s · ${state.hostAudio.loop ? 'loop' : 'one shot'}` : `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
     $('voiceAllocationStatus').textContent = `${state.noise?.enabled ? '24 voices · Noise · shared clock' : state.pmon?.enabled ? '12 notes · paired PMON' : '24 voices · round robin'} · ${state.auditions?.length ?? 0} held`;
   });
 }
@@ -273,24 +276,30 @@ $('audioFileInput').addEventListener('change', async () => {
   const rootNote = Number($('sampleRootNote').value), loop = $('sampleLoop').checked;
   try {
     if (!Number.isInteger(rootNote) || rootNote < 0 || rootNote > 127) throw new RangeError('Root MIDI note must be 0–127');
-    if (file.size > 32 * 1024 * 1024) throw new RangeError('Choose an audio file smaller than 32 MiB');
-    const engine = await ensureAudio(); status('Decoding audio…');
+    if (file.size > MAX_AUDIO_FILE_BYTES) throw new RangeError('Choose an audio file smaller than 32 MiB');
+    sampleStatus('Opening audio…');
+    const engine = await ensureAudio(); sampleStatus('Decoding audio…');
     const buffer = await decodeAudio(await file.arrayBuffer());
     if (operation !== assetEpoch) return;
     const current = await engine.inspect(), maxBytes = 524288 - current.nextAddress;
-    const prepared = prepareAudioPcm(buffer, {loop, maxBytes}); status('Encoding SPU ADPCM…');
-    const encoded = await encodeInWorker(prepared.pcm, {loopStartSamples:prepared.loopStartSamples, maxBytes});
+    const useHost=Math.ceil(buffer.length/28)*16 > maxBytes;
+    const prepared=useHost ? {pcm:prepareHostAudio(buffer),trimmedFrames:0} : prepareAudioPcm(buffer, {loop, maxBytes});
+    sampleStatus(useHost ? 'Preparing Software audio…' : 'Encoding SPU ADPCM…');
+    const encoded = useHost ? null : await encodeInWorker(prepared.pcm, {loopStartSamples:prepared.loopStartSamples, maxBytes});
     if (operation !== assetEpoch) return;
     await stop();
     if (operation !== assetEpoch) return;
-    const sample = await engine.command('loadADPCM', [encoded.adpcm, {rootNote, ...(loop ? {loopStartSamples:0} : {})}]);
-    if (operation !== assetEpoch) return;
-    await engine.command('setInstrumentPreset', [{sample}]);
+    if (useHost) await engine.command('loadHostPCM',[prepared.pcm,{baseFrequencyHz:440*2**((rootNote-69)/12),loop}]);
+    else {
+      const sample = await engine.command('loadADPCM', [encoded.adpcm, {rootNote, ...(loop ? {loopStartSamples:0} : {})}]);
+      if (operation !== assetEpoch) return;
+      await engine.command('setInstrumentPreset', [{sample}]);
+    }
     if (operation !== assetEpoch) return;
     instrumentName = file.name.slice(0, 80); $('instrumentName').value = instrumentName;
-    status(`Loaded ${file.name} · root ${noteName(rootNote)}${prepared.trimmedFrames ? ` · trimmed ${prepared.trimmedFrames} frames for the loop boundary` : ''}.`);
+    sampleStatus(`Loaded ${file.name} · ${useHost ? 'Software audio · ' : ''}root ${noteName(rootNote)}${prepared.trimmedFrames ? ` · trimmed ${prepared.trimmedFrames} frames for the loop boundary` : ''}.`);
     applyState(await engine.inspect());
-  } catch (error) {if (operation === assetEpoch && error.name !== 'AbortError') report(error);}
+  } catch (error) {if (operation === assetEpoch && error.name !== 'AbortError') sampleStatus(error.message,true);}
 });
 
 function download(name, contents) {
@@ -312,19 +321,20 @@ $('presetFileInput').addEventListener('change', async () => {
   const operation = ++assetEpoch;
   preparation?.cancel();
   try {
-    if (file.size > MAX_INSTRUMENT_BYTES) throw new RangeError('Instrument file exceeds 4 MiB');
+    if (file.size > MAX_INSTRUMENT_BYTES) throw new RangeError('Instrument file exceeds 224 MiB');
     const instrument = readSpuInstrument(JSON.parse(await file.text()));
     if (operation !== assetEpoch) return;
     const engine = await ensureAudio();
     if (operation !== assetEpoch) return;
     const bank = await engine.inspect();
     if (operation !== assetEpoch) return;
-    const requiredBytes=(instrument.waveform ? 0 : instrument.sample.adpcm.length)+(instrument.pmon.enabled && !bank.pmonSampleReserved ? 64 : 0);
+    const requiredBytes=(instrument.waveform || instrument.version===2 ? 0 : instrument.sample.adpcm.length)+(instrument.pmon.enabled && !bank.pmonSampleReserved ? 64 : 0);
     if (requiredBytes > 524288 - bank.nextAddress) throw new RangeError('Instrument exceeds free SPU sample RAM. Reload for a fresh bank.');
     await stop();
     if (operation !== assetEpoch) return;
     let sample;
     if (instrument.waveform) await engine.command('setInstrumentWaveform', [instrument.waveform]);
+    else if (instrument.version===2) {const {pcm,...options}=instrument.sample;await engine.command('loadHostPCM',[pcm,options]);}
     else {const {adpcm, ...options} = instrument.sample; sample = await engine.command('loadADPCM', [adpcm, options]);}
     if (operation !== assetEpoch) return;
     await engine.command('setInstrumentPreset', [{...instrument.preset, ...(sample ? {sample} : {})}]);

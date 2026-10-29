@@ -211,3 +211,5 @@ The optional `ps1_spu_set_mix_headroom` is a host software mixing extension.
 Default divisor 1 keeps original per-voice saturation. Larger divisors accumulate
 full-precision voice-volume results before scaling and retain fractional dry PCM.
 They do not change the Gaussian decoder, OUTX, pitch, ADSR or default register behavior.
+
+Optional software sample bank: `ps1_spu_set_host_pcm` copies signed mono PCM outside physical SPU RAM (up to 30 minutes at 44.1 kHz). `ps1_spu_set_host_mask` selects voices at key-on. Gaussian interpolation, PMON, ADSR, mixing and reverb still run in the SPU core. Reset preserves the bank; zero frames clears it. Default register/RAM playback is unchanged. The browser host labels this Software audio; it is not additional PS1 hardware RAM.

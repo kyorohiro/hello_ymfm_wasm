@@ -141,3 +141,5 @@ a host can compensate afterward without magnifying extra volume-rounding noise.
 This is a software instrument extension, not a hardware register. Configure it
 before rendering; changing it discards queued output. Reset retains the setting.
 The existing integer reverb algorithm and its quantization remain.
+
+Optional software sample bank: `ps1_spu_set_host_pcm` copies signed mono PCM outside physical SPU RAM (up to 30 minutes at 44.1 kHz). `ps1_spu_set_host_mask` selects voices at key-on. Gaussian interpolation, PMON, ADSR, mixing and reverb still run in the SPU core. Reset preserves the bank; zero frames clears it. Default register/RAM playback is unchanged. The browser host labels this Software audio; it is not additional PS1 hardware RAM.

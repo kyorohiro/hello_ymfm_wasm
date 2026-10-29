@@ -308,7 +308,7 @@ test('a separately validated PS1 extension preserves all historical captures, ga
 
 test('the shipped Playground System policy reproduces from all separately measured extensions and hashed sources',async()=>{
   const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
-  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_precision_chip_levels_02.json',import.meta.url));
+  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_long_audio_chip_levels_01.json',import.meta.url));
   const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_chip_levels_deferred_release_01.json',import.meta.url));
   const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_chip_levels_deferred_release_01.json',import.meta.url));
   const moduleUrl=new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url),outPath=fileURLToPath(moduleUrl);

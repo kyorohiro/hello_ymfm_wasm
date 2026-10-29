@@ -89,6 +89,9 @@ protected:
 	bool status_enabled, xa_playing, cdda_playing;
 	voiceinfo *voice = nullptr;
 	std::unique_ptr<sample_cache * []> cache;
+	// Optional software sample bank; never mapped into physical SPU RAM.
+	sample_cache *host_sample = nullptr;
+	uint32_t host_sample_mask = 0;
 	float samples_per_frame;
 	float samples_per_cycle;
 
@@ -259,6 +262,8 @@ public:
 	void reset(bool clear_ram);
 	void render(float *left, float *right, uint32_t frames);
 	void set_mix_headroom(uint32_t divisor);
+	void set_host_pcm(const int16_t *pcm, uint32_t frames, bool loop);
+	void set_host_mask(uint32_t mask) { host_sample_mask = mask; }
 	// Instrument-editor extensions; register writes retain their original behavior.
 	void refresh_envelope(unsigned int v);
 	void audition_key(unsigned int v, bool on);

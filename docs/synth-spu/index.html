@@ -82,12 +82,13 @@
           <div id="spuVoicePanel" class="chip-editor"></div>
           <section id="instrumentPanel-audio" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-audio" hidden>
             <h3>Audio sample</h3>
-            <p class="subtext">Load a recording or sound file to play it as an instrument. Loading audio replaces the PCM cycle.</p>
+            <p class="subtext">Load a recording or sound file to play it as an instrument. Up to 32 MiB / 30 minutes. Long recordings use Software audio beyond the PS1 RAM limit, with SPU pitch, ADSR and effects. Loading audio replaces the PCM cycle.</p>
             <div class="sample-actions">
               <button id="loadAudio" type="button">Load audio…</button>
               <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
               <span id="sampleName" class="sample-name">Built-in sine cycle</span>
             </div>
+            <p id="sampleLoadStatus" class="subtext" role="status" aria-live="polite">Choose a file, then play the keyboard.</p>
             <div class="sample-settings">
               <label for="sampleRootNote">Root MIDI note <input id="sampleRootNote" type="number" min="0" max="127" step="1" value="60"></label>
               <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>

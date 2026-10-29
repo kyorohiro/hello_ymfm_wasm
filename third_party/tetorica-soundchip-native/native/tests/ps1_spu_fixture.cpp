@@ -233,6 +233,42 @@ static int headroom_selftest()
     for(unsigned i=0;i<a.left.size();i++)CHECK(a.left[i]==b.left[i]*4);
     return 0;
 }
+static int host_pcm_selftest()
+{
+    ps1_pattern::Chip host,split,ram;
+    std::vector<int16_t> pcm(112);
+    const auto bytes=ps1_pattern::wave();
+    // Independently decode filter-zero fixture nibbles for a bit-exact
+    // comparison with the existing physical-RAM playback path.
+    for(unsigned n=0;n<112;n++) {
+        int v=(bytes[(n/28)*16+2+(n%28)/2]>>((n%2)*4))&15;
+        pcm[n]=(v<8?v:v-16)*256;
+    }
+    CHECK(!ps1_spu_set_host_pcm(nullptr,pcm.data(),112,1));
+    CHECK(!ps1_spu_set_host_pcm(host.value,nullptr,1,1));
+    CHECK(!ps1_spu_set_host_pcm(host.value,pcm.data(),79380001,1));
+    CHECK(!ps1_spu_set_host_pcm(host.value,pcm.data(),112,2));
+    CHECK(!ps1_spu_set_host_mask(host.value,1u<<24));
+    for(auto *chip:{&host,&split,&ram}) {
+        ps1_pattern::configure(*chip);ps1_pattern::voice(*chip,0,0x1234);
+        if(chip!=&ram) {CHECK(ps1_spu_set_host_pcm(chip->value,pcm.data(),112,1));CHECK(ps1_spu_set_host_mask(chip->value,1));}
+        ps1_pattern::key(*chip,0,true);
+    }
+    const auto a=ps1_pattern::render(host,8193,2048),b=ps1_pattern::render(split,8193,1),c=ps1_pattern::render(ram,8193,127);
+    CHECK(same_audio(a,b));CHECK(same_audio(a,c));
+    CHECK(ps1_spu_reset(host.value,0));ps1_pattern::configure(host);ps1_pattern::voice(host,0);ps1_pattern::key(host,0,true);
+    CHECK(ps1_pattern::peak(ps1_pattern::render(host,4097).left)>0);
+    // Beyond physical RAM capacity, the end remains audible, then stops.
+    std::vector<int16_t> long_pcm(44100*24,2048);
+    CHECK(ps1_spu_set_host_pcm(split.value,long_pcm.data(),long_pcm.size(),0));
+    CHECK(ps1_spu_reset(split.value,0));ps1_pattern::configure(split);ps1_pattern::voice(split,0);ps1_pattern::key(split,0,true);
+    ps1_pattern::render(split,44100*23);
+    CHECK(ps1_pattern::peak(ps1_pattern::render(split,22050).left)>0);
+    ps1_pattern::render(split,44100);
+    CHECK(ps1_pattern::peak(ps1_pattern::render(split,2048).left)==0);
+    CHECK(ps1_spu_set_host_pcm(split.value,nullptr,0,0));
+    return 0;
+}
 static int selftest()
 {
     CHECK(ps1_spu_sample_rate()==44100);
@@ -265,6 +301,7 @@ static int selftest()
     CHECK(ps1_pattern::selftest());
     CHECK(gaussian_selftest()==0);
     CHECK(headroom_selftest()==0);
+    CHECK(host_pcm_selftest()==0);
     CHECK(live_editor_selftest()==0);
     CHECK(deferred_release_selftest()==0);
     std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance, live editor controls and deferred release latching\"}");
