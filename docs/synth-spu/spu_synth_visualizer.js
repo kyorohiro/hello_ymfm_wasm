@@ -12,8 +12,8 @@ const MODES = new Set(['envelope', 'waveform', 'spectrum']);
  * the speakers, and canvas work never sends messages to the audio processor.
  * `setRunning(false)` lets the measured release/reverb tail reach silence before
  * sleeping. A hidden document or setVisible(false) cancels canvas animation.
- * The optional envelopeCanvas is a separate narrow RMS strip below the ADSR
- * guide; measured time history never shares the editable guide's time axis.
+ * The optional envelopeCanvas shows measured output-level history, independently
+ * of the instrument's ADSR editor. Its vertical axis is RMS in dBFS.
  * onLevel receives {rms, peak, db}; it is a reused, read-only callback value.
  */
 export function createSpuOutputVisualizer({canvas, envelopeCanvas = null, onLevel = () => {},
@@ -89,20 +89,29 @@ export function createSpuOutputVisualizer({canvas, envelopeCanvas = null, onLeve
     if (!envelope2d) return;
     const ctx = envelope2d, {width, height} = envelopeCanvas;
     ctx.clearRect(0, 0, width, height);
-    const left = 12, right = width - 12, bottom = height - 8, h = Math.max(1, height - 29);
+    const left = 42, right = width - 18, top = 30, bottom = height - 29;
+    const h = Math.max(1, bottom - top);
     ctx.fillStyle = '#15191c'; ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = '#36444b'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
-    ctx.fillStyle = '#75d8e9';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(`OUTPUT RMS · recent history · ${level.db.toFixed(1)} dBFS`, left, 13);
+    ctx.strokeStyle = '#36444b'; ctx.fillStyle = '#b6c4cb';
+    ctx.lineWidth = 1; ctx.font = '11px sans-serif';
+    for (let i = 0; i <= 4; i++) {
+      const y = top + h * i / 4;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+      ctx.fillText(String(-i * 22.5), 3, y + 4);
+    }
+    ctx.fillText('OUTPUT RMS · recent history', left, 14);
+    ctx.fillText(`${level.db.toFixed(1)} dBFS`, Math.max(left, right - 88), 14);
+    // Frame delivery may be throttled, so do not label a fixed elapsed time.
+    ctx.fillText('Older', left, height - 8);
+    ctx.fillText('Now', right - 24, height - 8);
     ctx.strokeStyle = '#75d8e9';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     for (let i = 0; i < history.length; i++) {
       const value = history[(historyPosition + i) % history.length];
+      const db = Math.max(-90, Math.min(0, 20 * Math.log10(Math.max(value, 1e-12))));
       const x = left + (right - left) * i / (history.length - 1);
-      const y = bottom - h * Math.min(1, Math.sqrt(value));
+      const y = top + h * -db / 90;
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();

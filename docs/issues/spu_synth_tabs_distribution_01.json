@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_spu_synth_editor-tabs-dev_itch.zip",
+  "archiveBytes": 5459216,
+  "archiveSha256": "72e9ce307769eb592c804ea13696ec4ab4947a2f33f5a88e749a43057f1dac6e",
+  "extractedRoot": "/private/tmp/spu-synth-tabs-v4_y6koj",
+  "crcPassed": true,
+  "allMembersMatch": true,
+  "files": 45,
+  "members": [
+    {
+      "path": "LICENSE",
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1244,
+      "sha256": "057bb1e1184f0ba8ed750132126e48090d4d56d47f98e3e09e67b96984e9b561"
+    },
+    {
+      "path": "generated/ps1_spu_build.json",
+      "bytes": 5058,
+      "sha256": "c16268412f1a03d206dd8d12afc90e192a04f85a41962b9ecc7e2aec387b13a9"
+    },
+    {
+      "path": "generated/ps1_spu_wasm.js",
+      "bytes": 16791,
+      "sha256": "6e71dc2a9d1f47b912331f1ca76887dc4983f990652282f0b311f6bf30496dd5"
+    },
+    {
+      "path": "generated/ps1_spu_wasm.wasm",
+      "bytes": 48015,
+      "sha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e"
+    },
+    {
+      "path": "index.html",
+      "bytes": 8367,
+      "sha256": "36e5d227f8081d1816fa697be3f28c07891d29cb7757a007a7f8c2b01fbc36d7"
+    },
+    {
+      "path": "licenses/mame-ps1-spu/LICENSE",
+      "bytes": 1592,
+      "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b"
+    },
+    {
+      "path": "licenses/mame-ps1-spu/README.md",
+      "bytes": 402,
+      "sha256": "7fa49141aa9433ac7b095e894f244ac5a942b4338b85aeffddbb6ed4c4fa3ba2"
+    },
+    {
+      "path": "sources/PS1-SPU.json",
+      "bytes": 16328,
+      "sha256": "e5dee9555dcd41a89307907e4ba06c75c3c441115d86049d8a2cb18b915f7fc6"
+    },
+    {
+      "path": "sources/PS1-SPU.md",
+      "bytes": 2080,
+      "sha256": "210f4fa54c386f6156dfc9aa7564446c265a964def75401b20e4e6aebc9cc59a"
+    },
+    {
+      "path": "sources/native/ps1/LICENSE",
+      "bytes": 1592,
+      "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b"
+    },
+    {
+      "path": "sources/native/ps1/README.md",
+      "bytes": 7179,
+      "sha256": "cd1df4a60b2df703c49d620229a49190fc9925014c99044cf2301f6c71e75845"
+    },
+    {
+      "path": "sources/native/ps1/ps1_spu.cpp",
+      "bytes": 3854,
+      "sha256": "c27a63c876f51f76b62627279d4789f04db64313591b0bac327878c23d0401b8"
+    },
+    {
+      "path": "sources/native/ps1/ps1_spu.h",
+      "bytes": 2364,
+      "sha256": "8c5bd7ba60fdc22bcb02ab1666198cf5539e888e0b07731d24da0ed8bd9c3dfd"
+    },
+    {
+      "path": "sources/native/ps1/spu.cpp",
+      "bytes": 71782,
+      "sha256": "02e3dd1e99df22bbadea46de7346f1213f24ac101232f3b2d951cda5e20c6a48"
+    },
+    {
+      "path": "sources/native/ps1/spu.h",
+      "bytes": 8702,
+      "sha256": "874631f38ee1c2353ccd60a9096aa77d6b8da6f161d90eaf0736e9420feaa199"
+    },
+    {
+      "path": "sources/native/ps1/spu_tables.cpp",
+      "bytes": 21649,
+      "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab"
+    },
+    {
+      "path": "sources/native/ps1/spureverb.cpp",
+      "bytes": 6365,
+      "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4"
+    },
+    {
+      "path": "sources/native/ps1/spureverb.h",
+      "bytes": 1594,
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+    },
+    {
+      "path": "sources/native/ps1/standalone_support.h",
+      "bytes": 272,
+      "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f"
+    },
+    {
+      "path": "sources/native/ps1/upstream/REVISION",
+      "bytes": 41,
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+    },
+    {
+      "path": "sources/native/ps1/upstream/SHA256SUMS",
+      "bytes": 385,
+      "sha256": "0bb50b92e0e5d59590ab7863e2178ca714f50da3dbed7a17ff9083d4945e1737"
+    },
+    {
+      "path": "sources/native/ps1/upstream/spu.cpp",
+      "bytes": 67593,
+      "sha256": "1bdb46de6ab7dae77a94846812b4d69f1e5168fc9a95de8a661a861afa3f0e23"
+    },
+    {
+      "path": "sources/native/ps1/upstream/spu.h",
+      "bytes": 8594,
+      "sha256": "2ce1a71da66ffeba76f8197a1ee1833188571b7e57315aec9297296af9d5a95b"
+    },
+    {
+      "path": "sources/native/ps1/upstream/spu_tables.cpp",
+      "bytes": 21634,
+      "sha256": "fbb2222beb8a5bc1a71ecaf67f827c6f4c013ac7d525dcf3752bc3e51a1a51c4"
+    },
+    {
+      "path": "sources/native/ps1/upstream/spureverb.cpp",
+      "bytes": 6354,
+      "sha256": "3d8dec58c67e8606618367a8d9850cbf3c60f10a71b3636cbf2f7e0850b1d01a"
+    },
+    {
+      "path": "sources/native/ps1/upstream/spureverb.h",
+      "bytes": 1594,
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+    },
+    {
+      "path": "sources/scripts/build_ps1_spu_wasm.sh",
+      "bytes": 1298,
+      "sha256": "ad323f14eb4c78ffd198c415d2bc699262de111c2dde81f9e23610707e4746d3"
+    },
+    {
+      "path": "sources/sdk/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "sources/sdk/RELEASE-MANIFEST.json",
+      "bytes": 68946,
+      "sha256": "fb7bb636e2fbb4d0293a7e66eb058dde0ddbae72f21dd96977db6e418467c3c0"
+    },
+    {
+      "path": "sources/sdk/catalog/source_inventory.json",
+      "bytes": 144629,
+      "sha256": "cb8bf4cf88dc5b9717523baa63edb1c964325c83820b209cd6468df0908ce5f2"
+    },
+    {
+      "path": "sources/sdk/native/include/tetorica/ps1_spu.h",
+      "bytes": 260,
+      "sha256": "fb63b2d23722b22add49bca62d30ad24f9c9af5cdd7fbe8807b09c01d44b92bb"
+    },
+    {
+      "path": "sources/sdk/scripts/build-wasm.sh",
+      "bytes": 1691,
+      "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034"
+    },
+    {
+      "path": "sources/sdk/scripts/build_ps1_spu_wasm.sh",
+      "bytes": 1343,
+      "sha256": "1fc081657402511ad5f87cb95dec2db98f7ba1a4e4eca99f113e9b1f0cd38867"
+    },
+    {
+      "path": "sources/sdk/scripts/record_wasm_build.mjs",
+      "bytes": 2006,
+      "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf"
+    },
+    {
+      "path": "sources/sdk/sdk.json",
+      "bytes": 285,
+      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7"
+    },
+    {
+      "path": "sources/sdk/soundchip-sdk.json",
+      "bytes": 849,
+      "sha256": "2682751c51a072e117fb90e5773295361f54350eb3ac7d77f392607e50c3de01"
+    },
+    {
+      "path": "sources/spu-synth-browser-inputs.zip",
+      "bytes": 2669581,
+      "sha256": "e19737edf156949f7ac0a505fc9d998071ffff21e7ddceeaf6f5b90e08b6f2a9"
+    },
+    {
+      "path": "sources/spu-synth-browser.json",
+      "bytes": 8458,
+      "sha256": "cb73f19999f16d5168b21665e898eaa42db7125d2a734651583a8256a111909d"
+    },
+    {
+      "path": "synth-spu/icon.png",
+      "bytes": 2663786,
+      "sha256": "487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580"
+    },
+    {
+      "path": "synth-spu/index.html",
+      "bytes": 8317,
+      "sha256": "b9d6eb1c8bd9820d6be23a434ed6b3b86cf05c7b1b31b17805a095b6ccb8c020"
+    },
+    {
+      "path": "synth-spu/spu_synth_prepare_worker.js",
+      "bytes": 2541,
+      "sha256": "790119ceccc835728b645926de13fe2c8fd631e21af54212806a778ced8d16e0"
+    },
+    {
+      "path": "synth-spu/spu_synth_worklet.js",
+      "bytes": 34788,
+      "sha256": "6f7f533b21fadbcf3bc6ff13bc37760c52e89d4c4d3aa56345536a2ac468a24b"
+    },
+    {
+      "path": "synth-spu/synth.css",
+      "bytes": 18388,
+      "sha256": "afbe17fa08701bd938aa8df4f3c356d8f3bb4a1d26ed82f67a0f5cf535e587ec"
+    },
+    {
+      "path": "synth-spu/synth.js",
+      "bytes": 65173,
+      "sha256": "f5016b60db5fa5ff5dd8b7b5ea9fadeec963b9276d078bf3038ca480ea7974f7"
+    }
+  ],
+  "browserReport": {
+    "path": "docs/issues/spu_synth_tabs_browser_01.json",
+    "sha256": "ea5aacb4df450ed0c4a63dd862ec9626f4a63080b001cf1399a2b05cdc53a631",
+    "passed": true,
+    "checkerSha256": "eb77879ee2cd53f7048f1cc47bdb4c0bc215d48dd2d7ec40ad58e368156ca423",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+    "browsers": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "captureContinuity": {
+          "captures": 37,
+          "frames": 385024,
+          "pcmContinuous": true,
+          "clockAnomalies": []
+        }
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "captureContinuity": {
+          "captures": 37,
+          "frames": 385024,
+          "pcmContinuous": true,
+          "clockAnomalies": []
+        }
+      }
+    ]
+  },
+  "allServedMembersMatchArchive": true,
+  "allMembersStillMatchAfterBrowser": true,
+  "archiveUnchangedAfterBrowser": true
+}

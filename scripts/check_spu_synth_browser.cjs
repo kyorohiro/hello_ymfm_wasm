@@ -148,6 +148,7 @@ async function silent(page, label) {
   throw Error(`${label}: expected exact zero PCM ${JSON.stringify(pcm)}`);
 }
 async function field(page, name, value) {
+  await editorTab(page, name.startsWith('reverb-') ? 'fx' : 'adsr');
   await page.locator(control(name)).evaluate((node, value) => {
     if (node.type === 'checkbox') node.checked = Boolean(value); else node.value = String(value);
     node.dispatchEvent(new Event('change', {bubbles:true})); node.blur();
@@ -194,6 +195,67 @@ async function fastEnvelope(page) {
   for (const [name, value] of Object.entries({'attack-rate':0, 'attack-exponential':false, 'decay-rate':0, 'sustain-level':15, 'sustain-rate':0, 'sustain-decrease':false, 'sustain-exponential':false, 'release-rate':0, 'release-exponential':false})) await field(page, name, value);
 }
 
+const editorNames = ['pcm', 'adsr', 'fx', 'audio'];
+async function assertEditorTab(page, name, {focused = false} = {}) {
+  const snapshot = await page.evaluate(names => ({tabs:names.map(value => {
+    const button = document.querySelector(`[data-spu-editor-tab="${value}"]`), content = document.getElementById(`instrumentPanel-${value}`);
+    return {name:value, button:button && {role:button.getAttribute('role'), id:button.id, controls:button.getAttribute('aria-controls'), selected:button.getAttribute('aria-selected'), tabindex:button.getAttribute('tabindex'), focused:button === document.activeElement}, content:content && {role:content.getAttribute('role'), labelledby:content.getAttribute('aria-labelledby'), hidden:content.getAttribute('hidden'), visible:content.getClientRects().length > 0}};
+  }), files:['instrumentName', 'loadPreset', 'savePreset', 'resetPreset'].map(id => ({id, visible:document.getElementById(id)?.getClientRects().length > 0}))}), editorNames);
+  for (const value of editorNames) {
+    const {button, content} = snapshot.tabs.find(tab => tab.name === value);
+    assert(button && content, `Both ${value} tab and panel exist`);
+    assert.equal(button.role, 'tab', 'Editor buttons expose tab semantics');
+    assert.equal(button.id, `instrumentTab-${value}`);
+    assert.equal(button.controls, `instrumentPanel-${value}`);
+    assert.equal(button.selected, String(value === name));
+    assert.equal(button.tabindex, value === name ? '0' : '-1', 'Editor tabs use roving keyboard focus');
+    assert.equal(content.role, 'tabpanel');
+    assert.equal(content.labelledby, `instrumentTab-${value}`);
+    assert.equal(content.visible, value === name, 'Only the selected settings panel is visible');
+    if (value !== name) assert.equal(content.hidden, '', 'Inactive panel is hidden from layout and accessibility navigation');
+  }
+  if (focused) assert.equal(snapshot.tabs.find(tab => tab.name === name).button.focused, true, 'Arrow navigation focuses the selected settings tab');
+  for (const file of snapshot.files) assert.equal(file.visible, true, 'Common instrument files stay available in every settings tab: ' + file.id);
+}
+async function editorTab(page, name) {
+  const button = page.locator(`[data-spu-editor-tab="${name}"]`);
+  if (await button.getAttribute('aria-selected') !== 'true') await button.click();
+  await assertEditorTab(page, name);
+}
+async function shape(page, name) {await editorTab(page, 'pcm'); await page.locator(action(`wave-${name}`)).click();}
+async function navigateEditorTabs(page) {
+  for (const name of editorNames) await editorTab(page, name);
+  await page.locator('[data-spu-editor-tab="pcm"]').focus();
+  const navigation = [['ArrowRight', 'adsr'], ['ArrowRight', 'fx'], ['ArrowRight', 'audio'], ['ArrowRight', 'pcm'], ['ArrowLeft', 'audio'], ['Home', 'pcm'], ['End', 'audio']];
+  for (const [key, name] of navigation) {await page.keyboard.press(key); await assertEditorTab(page, name, {focused:true});}
+  await editorTab(page, 'pcm');
+  return navigation;
+}
+async function checkEditorTabsBeforeAudio(page) {
+  console.log('CHECK settings tabs: default PCM / accessible navigation / audio-lazy selection');
+  assert.deepEqual(await page.locator('[data-spu-editor-tab]').allTextContents(), ['PCM', 'ADSR', 'FX', 'Audio']);
+  await assertEditorTab(page, 'pcm');
+  const commands = await page.evaluate(() => __spuSynthAudit.commands.length);
+  const navigation = await navigateEditorTabs(page);
+  assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 0, 'Settings tab clicks and keyboard navigation never create an AudioContext');
+  assert.equal(await page.evaluate(() => __spuSynthAudit.commands.length), commands, 'Settings tabs send no audio commands before Enable audio');
+  return {default:'pcm', names:editorNames, navigation, audioLazy:true, commonFilesAlwaysVisible:true};
+}
+async function checkEditorTabsDuringSound(page, keyboardHz) {
+  console.log('CHECK settings tabs: held-note ownership / instrument and audio isolation');
+  await page.locator('h1').click(); await page.keyboard.down('y'); await settled(page);
+  const beforePcm = await audible(page, 'Held note before settings navigation', keyboardHz), before = await current(page);
+  const baseline = await page.evaluate(() => ({commands:__spuSynthAudit.commands.length, contexts:__spuSynthAudit.contexts.length}));
+  const navigation = await navigateEditorTabs(page), after = await settled(page);
+  const afterPcm = await audible(page, 'Held note after settings navigation', keyboardHz);
+  assert.deepEqual(after.auditions, before.auditions, 'Settings navigation preserves every held note lease');
+  assert.deepEqual(after.channels.map(channel => ({sample:channel.sample, pitch:channel.pitch, adsr1:channel.adsr1, adsr2:channel.adsr2, volumeLeft:channel.volumeLeft, volumeRight:channel.volumeRight})), before.channels.map(channel => ({sample:channel.sample, pitch:channel.pitch, adsr1:channel.adsr1, adsr2:channel.adsr2, volumeLeft:channel.volumeLeft, volumeRight:channel.volumeRight})), 'Settings navigation preserves PCM, pitch, ADSR and voice volume');
+  assert.equal(await page.evaluate(() => __spuSynthAudit.commands.length), baseline.commands, 'Settings tab switches send no note, gate, preset or inspect command');
+  assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), baseline.contexts, 'Settings navigation does not replace or create audio contexts');
+  await page.keyboard.up('y'); await silent(page, 'Held settings-navigation note released');
+  return {navigation, beforePcm, afterPcm, ownershipPreserved:true, instrumentPreserved:true, extraAudioCommands:0, extraContexts:0};
+}
+
 async function monitorMode(page, mode) {
   await page.locator(`[data-spu-visual-mode="${mode}"]`).click();
   assert.equal(await page.locator(`[data-spu-visual-mode="${mode}"]`).getAttribute('aria-pressed'), 'true', 'The chosen monitor mode is announced');
@@ -205,8 +267,8 @@ async function waitMonitorRead(page, from, kind) {
   await page.waitForFunction(({from, kind}) => __spuSynthAudit.analyserReads.slice(from).some(value => value.method.includes(kind) && (kind === 'Frequency' ? Number.isFinite(value.peak) && value.peakHz > 0 && value.peak > (value.method.startsWith('getByte') ? 0 : -100) : value.rms > .00001)), {from, kind});
   return (await monitorReads(page, from)).filter(value => value.method.includes(kind)).at(-1);
 }
-async function monitorSignature(page) {
-  return page.locator('#outputCanvas').evaluate(canvas => {
+async function monitorSignature(page, selector = '#outputCanvas') {
+  return page.locator(selector).evaluate(canvas => {
     const bytes = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
     let signature = 2166136261;
     for (const value of bytes) signature = Math.imul(signature ^ value, 16777619) >>> 0;
@@ -217,9 +279,13 @@ async function checkMonitor(page, keyboardHz) {
   console.log('CHECK monitor: final output signal / passive branch / tab isolation / idle scheduling');
   assert.deepEqual(await page.locator('[data-spu-visual-mode]').allTextContents(), ['Envelope', 'Waveform', 'Spectrum']);
   await monitorMode(page, 'envelope');
-  assert.equal(await page.locator('#monitorEnvelopeMount [data-chip-envelope-handle]').count(), 4, 'The top Envelope view contains the real draggable ADSR graph');
+  assert.equal(await page.locator('#spuMonitor [data-chip-envelope-handle]').count(), 0, 'The top monitor contains measured output, not ADSR edit handles');
+  assert.equal(await page.locator('#instrumentPanel-adsr [data-chip-envelope-handle]').count(), 4, 'The editable ADSR graph lives in its settings tab');
   assert.equal(await page.locator('#monitorEnvelopeMount').isVisible(), true);
+  assert.equal(await page.locator('#outputEnvelopeCanvas').isVisible(), true);
   assert.equal(await page.locator('#outputCanvas').isVisible(), false);
+  const idleEnvelope = await monitorSignature(page, '#outputEnvelopeCanvas');
+  assert.equal(idleEnvelope.width, 900); assert.equal(idleEnvelope.height, 240, 'Output envelope uses the full monitor canvas');
   // The successful setup edits intentionally wake a quiet release/tail probe.
   // Let its documented 400 ms silence window finish before testing idle sleep.
   await page.waitForTimeout(600);
@@ -228,6 +294,8 @@ async function checkMonitor(page, keyboardHz) {
   assert.equal((await monitorReads(page)).length, idleFrom, 'Idle monitor does not read an analyser continuously');
   await page.locator('h1').click(); await page.keyboard.down('y'); await settled(page);
   await audible(page, 'Monitor reference note', keyboardHz);
+  const measuredEnvelope = await monitorSignature(page, '#outputEnvelopeCanvas');
+  assert.notEqual(measuredEnvelope.signature, idleEnvelope.signature, 'The output envelope changes with the real sounding signal');
   const before = await current(page), commandFrom = await page.evaluate(() => __spuSynthAudit.commands.length);
   await monitorMode(page, 'waveform');
   assert.equal(await page.locator('#monitorEnvelopeMount').isVisible(), false);
@@ -270,7 +338,7 @@ async function checkMonitor(page, keyboardHz) {
   assert(graph.edges.some(edge => edge.destination === 'analyser'), 'The analyser receives actual output');
   assert(!graph.edges.some(edge => edge.source === 'analyser'), 'The monitor is an unconnected passive output branch');
   await monitorMode(page, 'envelope');
-  return {modes:['envelope', 'waveform', 'spectrum'], editableEnvelope:true, finalOutputMeasured:true, fullRead, quietRead, halfPcm, fullCanvas, quietCanvas, spectrum, spectrumCanvas, displayPreservesNotes:true, displayPreservesInstrument:true, passiveGraph:graph, activeFrequencyReads:sameKind.length, inactiveReads:0};
+  return {modes:['envelope', 'waveform', 'spectrum'], editableEnvelope:false, measuredEnvelope:true, idleEnvelope, outputEnvelope:measuredEnvelope, finalOutputMeasured:true, fullRead, quietRead, halfPcm, fullCanvas, quietCanvas, spectrum, spectrumCanvas, displayPreservesNotes:true, displayPreservesInstrument:true, passiveGraph:graph, activeFrequencyReads:sameKind.length, inactiveReads:0};
 }
 async function checkMonitorWake(page, keyboardHz) {
   console.log('CHECK monitor: released infinite tail resumes after master unmute without a new note');
@@ -343,8 +411,9 @@ async function runCase(browser, name, origin) {
     assert.match(await page.title(), /Tetorica.*SPU.*Synth/i);
     const brand = await checkBrandAssets(page);
     assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 0, 'Opening the page remains audio-lazy');
+    const editorTabs = await checkEditorTabsBeforeAudio(page);
     await page.locator('#startAudio').click();
-    await page.locator(control('attack-rate')).waitFor({state:'visible'});
+    await page.locator(action('wave-sine')).waitFor({state:'visible'});
     await page.waitForFunction(() => __spuSynthAudit.states.length > 0 || document.getElementById('audioStatus').dataset.error === 'true');
     assert.notEqual(await page.locator('#audioStatus').getAttribute('data-error'), 'true', 'Audio startup: ' + await page.locator('#audioStatus').textContent());
     assert.equal(await page.locator(`${panel} [data-chip-channel]`).count(), 0, 'Hardware voice selection is automatic');
@@ -366,6 +435,7 @@ async function runCase(browser, name, origin) {
     assert(!idleCommands.some(command => ['inspect', 'getState'].includes(command.method)), 'An idle editor performs no background SPU inspection');
     const monitor = await checkMonitor(page, keyboardHz);
     monitor.wake = await checkMonitorWake(page, keyboardHz);
+    editorTabs.heldNote = await checkEditorTabsDuringSound(page, keyboardHz);
     console.log(`CHECK ${name}: pointer sound / ADSR graph / keyboard pitch`);
     const pointerStart = await page.evaluate(() => __spuSynthAudit.commands.length);
     await hold(page); const pointerPcm = await audible(page, 'Pointer-held initial sine', keyboardHz);
@@ -375,7 +445,7 @@ async function runCase(browser, name, origin) {
     assert.equal(pointerCommands.filter(command => command.method === 'instrumentNoteOff').length, 1, 'Pointer release releases one voice');
 
     await field(page, 'attack-rate', 32); await field(page, 'decay-rate', 4); await field(page, 'sustain-level', 8); await field(page, 'release-rate', 8);
-    const beforeGraph = await settled(page), handle = page.locator('#monitorEnvelopeMount [data-chip-envelope-handle="attack"]');
+    const beforeGraph = await settled(page), handle = page.locator('#instrumentPanel-adsr [data-chip-envelope-handle="attack"]');
     await handle.scrollIntoViewIfNeeded(); const box = await handle.boundingBox(); assert(box, 'The ADSR graph exposes its attack handle');
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2, {steps:6}); await page.mouse.up();
     const afterGraph = await settled(page);
@@ -459,12 +529,13 @@ async function runCase(browser, name, origin) {
     assert.equal((await current(page)).auditions.length, 0);
 
     console.log(`CHECK ${name}: common PCM shapes / real WAV import / portable preset round trip`);
-    await page.locator(action('wave-triangle')).click();
+    await shape(page, 'triangle');
     const triangle = await settled(page);
     assert(triangle.channels.every(channel => JSON.stringify(channel.waveform?.pcm) === JSON.stringify(triangle.channels[0].waveform.pcm)), 'A waveform choice reaches all 24 independent editor slots');
     assert.notDeepEqual(triangle.channels[0].waveform.pcm, initial.channels[0].waveform.pcm, 'The shape button changes the real waveform');
-    await page.locator(action('wave-sine')).click(); await settled(page);
+    await shape(page, 'sine'); await settled(page);
 
+    await editorTab(page, 'audio');
     await page.locator('#sampleLoop').check(); await page.locator('#sampleRootNote').fill('69');
     const wav = sineWav(); await page.locator('#audioFileInput').setInputFiles({name:'browser-sine.wav', mimeType:'audio/wav', buffer:wav});
     await page.waitForFunction(() => document.getElementById('sampleName').textContent.includes('browser-sine'));
@@ -484,7 +555,7 @@ async function runCase(browser, name, origin) {
     await page.locator('h1').click(); await page.keyboard.down('y'); await settled(page);
     await audible(page, 'Restored preset', keyboardHz);
     const beforeCycleSwitch = await settled(page);
-    await page.locator(action('wave-sine')).click();
+    await shape(page, 'sine');
     const cycleSwitched = await settled(page);
     assert.deepEqual(cycleSwitched.auditions, beforeCycleSwitch.auditions, 'Changing a held imported sample back to a cycle keeps note ownership');
     assert(cycleSwitched.channels.every(channel => channel.waveform?.pcm?.length === 112), 'Switching back to a cycle restores editable PCM on all voices');
@@ -513,8 +584,8 @@ async function runCase(browser, name, origin) {
     if (config.screenshots) await fs.mkdir(config.screenshots, {recursive:true});
     for (const [label, width, height] of [['desktop', 1440, 1100], ['mobile', 390, 844]]) {
       await page.setViewportSize({width, height});
-      for (const mode of ['envelope', 'waveform', 'spectrum']) {
-        await monitorMode(page, mode);
+      for (const [mode, editor] of [['envelope', 'pcm'], ['waveform', 'pcm'], ['spectrum', 'pcm'], ['envelope', 'adsr'], ['envelope', 'fx'], ['envelope', 'audio']]) {
+        await monitorMode(page, mode); await editorTab(page, editor);
         const dimensions = await page.evaluate(() => {
           const plot = document.querySelector('.monitor-plot').getBoundingClientRect(), pitch = document.getElementById('pitchBend').getBoundingClientRect();
           const bodyBackground = getComputedStyle(document.body).backgroundColor;
@@ -523,14 +594,14 @@ async function runCase(browser, name, origin) {
         assert(dimensions.document <= dimensions.viewport + 1, 'SPU Synth fits ' + label + ': ' + JSON.stringify(dimensions));
         assert(dimensions.pitch.left >= dimensions.plot.right - 2, 'Pitch remains beside the ' + mode + ' display at ' + label + ': ' + JSON.stringify(dimensions));
         assert(dimensions.pitch.bottom - dimensions.pitch.top > dimensions.pitch.right - dimensions.pitch.left, 'Pitch uses a vertical slider at ' + label);
-        layouts.push({label, mode, ...dimensions});
-        if (config.screenshots) {const filename = path.join(config.screenshots, `${name}-spu-synth-${label}-${mode}.png`); await page.screenshot({path:filename, fullPage:true}); screenshots.push({label, mode, path:filename, ...dimensions});}
+        layouts.push({label, mode, editor, ...dimensions});
+        if (config.screenshots) {const filename = path.join(config.screenshots, `${name}-spu-synth-${label}-${mode}-${editor}.png`); await page.screenshot({path:filename, fullPage:true}); screenshots.push({label, mode, editor, path:filename, ...dimensions});}
       }
     }
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

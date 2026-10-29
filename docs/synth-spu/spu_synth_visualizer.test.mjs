@@ -54,6 +54,24 @@ test('measures finite RMS and peak from the same reused waveform buffer at no mo
   env.visualizer.dispose();
 });
 
+test('full-size output envelope plots measured RMS in dBFS and Stop clears its history', () => {
+  const env = environment(); env.visualizer.connect(env.context, env.source); env.visualizer.setRunning(true); env.tick(0);
+  assert.ok(env.labels.includes('OUTPUT RMS · recent history'));
+  assert.ok(env.labels.includes('-12.0 dBFS'));
+  assert.ok(env.labels.includes('-90'));
+  assert.ok(env.labels.includes('Older') && env.labels.includes('Now'));
+  const louder = env.draws.at(-1);
+  env.sample(.025); env.tick(34);
+  const quieter = env.draws.at(-1);
+  assert.equal(louder[0], quieter[0], 'newest RMS remains at the right edge');
+  assert.ok(quieter[1] > louder[1], 'a 20dB quieter signal plots lower');
+  assert.ok(Math.abs((quieter[1] - louder[1]) / (240 - 29 - 30) - 20 / 90) < 1e-6);
+  assert.ok(env.draws.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 900 && y >= 0 && y <= 240));
+  env.visualizer.stop();
+  assert.ok(env.draws.slice(-180).every(([, y]) => y === 240 - 29), 'Stop removes the old measured history');
+  env.visualizer.dispose();
+});
+
 test('releasing keys continues measuring tails then sleeps at silence', () => {
   const env = environment(); env.visualizer.connect(env.context, env.source); env.visualizer.setRunning(true); env.tick(0);
   env.visualizer.setRunning(false); env.tick(100); env.tick(500);

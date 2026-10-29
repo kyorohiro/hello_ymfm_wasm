@@ -53,7 +53,7 @@
             <button type="button" data-spu-visual-mode="waveform" aria-pressed="false">Waveform</button>
             <button type="button" data-spu-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
           </div>
-          <p id="visualizerDescription">Drag A / D / S / R to shape the envelope. Cyan shows live output level.</p>
+          <p id="visualizerDescription">Live output envelope · Watch the sound’s level over time.</p>
           <div class="monitor-body">
             <div class="monitor-plot">
               <div id="monitorEnvelopeMount"></div>
@@ -67,27 +67,38 @@
           </div>
         </section>
 
-        <section class="instrument-toolbar" aria-label="Instrument files">
-          <div class="sample-actions">
-            <button id="loadAudio" type="button">Load audio…</button>
-            <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
-            <span id="sampleName" class="sample-name">Built-in sine cycle</span>
+        <section class="instrument-workspace" aria-label="Instrument editor">
+          <div class="instrument-tabs" role="tablist" aria-label="Instrument settings">
+            <button id="instrumentTab-pcm" type="button" role="tab" data-spu-editor-tab="pcm" aria-controls="instrumentPanel-pcm" aria-selected="true" tabindex="0">PCM</button>
+            <button id="instrumentTab-adsr" type="button" role="tab" data-spu-editor-tab="adsr" aria-controls="instrumentPanel-adsr" aria-selected="false" tabindex="-1">ADSR</button>
+            <button id="instrumentTab-fx" type="button" role="tab" data-spu-editor-tab="fx" aria-controls="instrumentPanel-fx" aria-selected="false" tabindex="-1">FX</button>
+            <button id="instrumentTab-audio" type="button" role="tab" data-spu-editor-tab="audio" aria-controls="instrumentPanel-audio" aria-selected="false" tabindex="-1">Audio</button>
           </div>
+          <div id="spuVoicePanel" class="chip-editor"></div>
+          <section id="instrumentPanel-audio" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-audio" hidden>
+            <h3>Audio sample</h3>
+            <p class="subtext">Load a recording or sound file to play it as an instrument. Loading audio replaces the PCM cycle.</p>
+            <div class="sample-actions">
+              <button id="loadAudio" type="button">Load audio…</button>
+              <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
+              <span id="sampleName" class="sample-name">Built-in sine cycle</span>
+            </div>
+            <div class="sample-settings">
+              <label for="sampleRootNote">Root MIDI note <input id="sampleRootNote" type="number" min="0" max="127" step="1" value="60"></label>
+              <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>
+            </div>
+            <p class="subtext">Choose looping before loading a file. The root note sets the sample’s original pitch.</p>
+          </section>
+        </section>
+
+        <section class="instrument-toolbar" aria-label="Instrument files">
+          <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
           <div class="preset-actions">
             <button id="loadPreset" type="button">Load preset…</button>
             <input id="presetFileInput" class="file-input" type="file" accept="application/json,.json" aria-label="Choose an SPU preset">
             <button id="savePreset" type="button">Save preset…</button>
             <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
           </div>
-          <div class="sample-settings">
-            <label for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
-            <label for="sampleRootNote">Root MIDI note <input id="sampleRootNote" type="number" min="0" max="127" step="1" value="60"></label>
-            <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>
-          </div>
-        </section>
-
-        <section class="instrument-workspace" aria-label="Instrument editor">
-          <div id="spuVoicePanel" class="chip-editor"></div>
         </section>
 
         <section class="keyboard-section" aria-labelledby="keyboardHeading">

@@ -1,3 +1,10 @@
+## 2026-10-29 — SPU Synthの設定をPCM／ADSR／FX／Audioの4タブへ整理
+
+- ユーザー指定で上部Envelopeから編集ADSR図を外し、実出力RMSの履歴表示に変更。下にPCM／ADSR／FX／Audioの4タブ、PCMを初期表示。ADSR図はADSR内、音声ファイル・root note・loopはAudio内。name／preset操作は共通。上下表示の役割を分け、短い周期PCMと音声ファイルのどちらも選べる構成。
+- 左右キー・Home／Endとroving focus／ARIA panelを実装。切り替え時は編集gestureだけ取消し、Keyboard note所有権は維持。共有Playground panel／音源engine／core／WASM／Nativeの変更なし。37 Node／実WASM／包装試験成功。実ZIP展開rootのChromium／WebKitで4タブ・初期PCM・audio lazy・発音中の全タブ切替でRPCゼロ／PCM・音色・所有権維持、下部ADSR drag、全既存flow、1440／390pxを確認。各37captures／385,024frames、pilot／clock連続、診断0、物理出力mute。
+- 確認用 `release/tetorica_spu_synth_editor-tabs-dev_itch.zip`、**45files／5,459,216bytes**、SHA256 `72e9ce307769eb592c804ea13696ec4ab4947a2f33f5a88e749a43057f1dac6e`。CRC・全member／served bytes・checker／helperを照合。旧v0.1.0 ZIPは保持。作成コマンド`sh scripts/package_itch_spu_synth.sh editor-tabs-dev`。次はユーザーの実操作・実聴確認、必要なら希望versionでZIP作成と手動itch公開。
+- 詳細：[spu_synth_tabs_01.md](spu_synth_tabs_01.md)／[実ZIP Browser](spu_synth_tabs_browser_01.json)／[配布receipt](spu_synth_tabs_distribution_01.json)。未commit、commit／push／tag／公開は行っていない。以下は各時点の履歴。
+
 ## 2026-10-29 — SPU Synthのアイコン・配色を確定、v0.1.0 ZIP準備完了
 
 - ユーザー提供の1254px正方形PNGを無変換で`docs/synth-spu/icon.png`へ収録（SHA256 `487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580`）。header／favicon／Apple touch iconで使用。silver／cool grayの筐体、charcoal表示、赤・黄・青のtitle／section／tab accentsへ統一。表示3種とPitchの動作は維持。

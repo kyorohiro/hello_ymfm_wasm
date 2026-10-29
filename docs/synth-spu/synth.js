@@ -15,7 +15,7 @@ const notes = new Map();
 let instrumentName = 'Sine';
 let noteSequence = 0;
 const rmsCanvas = document.createElement('canvas');
-rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 56;
+rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
 rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
 const visualizer = createSpuOutputVisualizer({canvas:$('outputCanvas'), envelopeCanvas:rmsCanvas});
 
@@ -80,11 +80,38 @@ async function invoke(method, args = []) {
   return result;
 }
 const panel = createSpuInstrumentPanel({
-  root:$('spuVoicePanel'), envelopeMount:$('monitorEnvelopeMount'), invoke, ensureAudioReady:ensureAudio, onError:report,
+  root:$('spuVoicePanel'), invoke, ensureAudioReady:ensureAudio, onError:report,
 });
 $('monitorEnvelopeMount').append(rmsCanvas);
+const editorTabs = [...document.querySelectorAll('[data-spu-editor-tab]')];
+function selectEditorTab(name, focus = false) {
+  const selected = editorTabs.find(button => button.dataset.spuEditorTab === name);
+  if (!selected) return;
+  panel.setSection(name);
+  $('instrumentPanel-audio').hidden = name !== 'audio';
+  for (const button of editorTabs) {
+    const active = button === selected;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+  }
+  if (focus) selected.focus();
+}
+for (const [index, button] of editorTabs.entries()) {
+  button.addEventListener('click', () => selectEditorTab(button.dataset.spuEditorTab));
+  button.addEventListener('keydown', event => {
+    let target;
+    if (event.key === 'ArrowRight') target = (index + 1) % editorTabs.length;
+    else if (event.key === 'ArrowLeft') target = (index + editorTabs.length - 1) % editorTabs.length;
+    else if (event.key === 'Home') target = 0;
+    else if (event.key === 'End') target = editorTabs.length - 1;
+    else return;
+    event.preventDefault();
+    selectEditorTab(editorTabs[target].dataset.spuEditorTab, true);
+  });
+}
+selectEditorTab('pcm');
 const visualDescriptions = {
-  envelope:'Drag A / D / S / R to shape the envelope. The separate cyan strip measures recent output level.',
+  envelope:'Live output level after Master volume. Open ADSR below to edit the instrument’s envelope.',
   waveform:'Live SPU output waveform after Master volume. Pitch bends sounding notes without restarting them.',
   spectrum:'Live SPU output spectrum after Master volume. Frequency increases from left to right.',
 };

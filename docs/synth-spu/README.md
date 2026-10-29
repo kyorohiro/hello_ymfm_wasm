@@ -13,8 +13,14 @@ Master volume uses the existing calibrated PS1 System gain as its reference.
 
 1. Select **Enable audio**. Opening the page does not start an audio context.
 2. Play the displayed number/letter keys or click the on-screen keys.
-3. Draw the PCM cycle, drag the ADSR points, and enable reverb to try the
-   shared SPU effect presets. These three sections edit one common instrument.
+3. Use **PCM**, **ADSR**, **FX** and **Audio** beneath the monitor to edit the
+   common instrument. PCM is selected initially.
+
+**PCM** draws a short repeating waveform. **ADSR** contains the envelope
+parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.
+**Audio** loads recordings or longer audio files and sets their root note and
+looping option. Tab changes keep sounding notes and the current settings.
+Use Left / Right, Home and End when a settings tab has keyboard focus.
 
 The keyboard rotates through the SPU's 24 physical voices, choosing an available
 voice for each new note. All voices play the same instrument; there is no
@@ -33,10 +39,10 @@ Leaving the page releases keyboard notes.
 
 ## Instrument display
 
-**Envelope** shows the editable A / D / S / R guide with a separate strip of
-measured output RMS history. The guide describes the envelope shape, not
-elapsed time. **Waveform** shows the live audio signal, and **Spectrum** shows
-its frequency content on a logarithmic axis. Both read the final output after
+**Envelope** shows the measured output RMS history on a dBFS scale. It is a
+sound-level display; the editable ADSR guide is in the **ADSR** settings tab.
+**Waveform** shows the live audio signal, and **Spectrum** shows its frequency
+content on a logarithmic axis. All three read the final output after
 Master volume; the ±2-semitone **Pitch** wheel stays beside each view.
 
 The display observes a passive analyser branch without adding another speaker
@@ -46,7 +52,8 @@ Silence, a hidden page, and Stop suspend display updates.
 
 ## Audio and instrument files
 
-Set **Root MIDI note** and **Loop imported audio** before choosing **Load audio**.
+Open the **Audio** tab, then set **Root MIDI note** and **Loop imported audio**
+before choosing **Load audio**.
 Audio files supported by the browser are decoded at 44,100 Hz, mixed to mono,
 and encoded into SPU ADPCM in a preparation worker. Root MIDI note declares
 the source recording's pitch; it does not estimate or correct that pitch.

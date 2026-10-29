@@ -62,12 +62,26 @@ h1 .brand-u { color: #1d60ad; }
 .instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 15px 5px; border-block: 1px solid var(--line); }
 .sample-actions { min-width: 0; flex: 1 1 250px; }
 .sample-name { max-width: 280px; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
-.sample-settings { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding-top: 5px; }
-.sample-settings label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
-.sample-settings input[type="text"], .sample-settings input[type="number"] { color: var(--ink); min-height: 32px; background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; padding: 5px 8px; font-size: .75rem; }
+.sample-settings { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; margin-top: 18px; }
+.sample-settings label, .instrument-name-control { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
+.sample-settings input[type="number"], .instrument-name-control input { color: var(--ink); min-height: 32px; background: #f7f9fa; border: 1px solid #a0adb7; border-radius: 6px; padding: 5px 8px; font-size: .75rem; }
 #instrumentName { width: 175px; }
 #sampleRootNote { width: 65px; }
-.instrument-workspace { padding-top: 20px; }
+.instrument-workspace { min-width: 0; }
+.instrument-tabs { display: flex; align-items: end; gap: 5px; margin: 0 0 -1px; padding: 0 8px; position: relative; z-index: 1; }
+.instrument-tabs [role="tab"] { min-width: 87px; padding: 10px 18px; color: #5c6873; background: #d2d9df; border: 1px solid #aeb6bd; border-top: 3px solid #bd655f; border-radius: 8px 8px 0 0; box-shadow: none; font-size: .79rem; }
+.instrument-tabs [data-spu-editor-tab="adsr"] { border-top-color: #bb962e; }
+.instrument-tabs [data-spu-editor-tab="fx"] { border-top-color: #477cba; }
+.instrument-tabs [data-spu-editor-tab="audio"] { border-top-color: #7d8d9b; }
+.instrument-tabs [role="tab"]:hover { background: #e5eaee; color: #303d49; }
+.instrument-tabs [role="tab"][aria-selected="true"] { color: #293b4c; background: #edf0f2; border-bottom-color: #edf0f2; font-weight: 750; }
+.instrument-workspace .chip-section[role="tabpanel"] { width: 100%; border-radius: 10px; min-height: 250px; }
+.audio-panel .sample-actions { margin-top: 20px; }
+#instrumentPanel-audio h3::before { background: #7d8d9b; }
+.audio-panel .subtext { max-width: 72ch; }
+.instrument-toolbar { margin-top: 18px; }
+.instrument-name-control { flex: 0 1 auto; }
+
 .section-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 16px; margin: 0 5px 14px; }
 .section-heading h2 { margin: 0; color: #3e4850; font-size: .88rem; font-weight: 750; letter-spacing: .035em; }
 .section-heading p { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.5; }
@@ -85,10 +99,7 @@ h1 .brand-u { color: #1d60ad; }
 .monitor-body { display: flex; align-items: stretch; gap: 13px; min-height: 225px; }
 .monitor-plot { flex: 1; min-width: 0; align-content: center; }
 #monitorEnvelopeMount { min-width: 0; }
-#outputEnvelopeCanvas { display: block; width: 100%; height: 56px; margin-top: 8px; border-radius: 5px; }
-#monitorEnvelopeMount .chip-envelope-editor { margin: 0; }
-#monitorEnvelopeMount .chip-sample-waveform { height: 225px; margin: 0; border-color: #45525c; background: #192228; }
-#monitorEnvelopeMount .subtext, .monitor-envelope-readout { color: #b7c4cd; font-size: .7rem; line-height: 1.5; }
+#outputEnvelopeCanvas { display: block; width: 100%; height: 225px; border: 1px solid #45525c; border-radius: 7px; background: #192228; }
 .monitor-rms { color: #79d1cf; }
 #outputCanvas { display: block; width: 100%; height: 225px; border: 1px solid #45525c; border-radius: 7px; background: #192228; }
 .monitor-pitch { display: flex; flex: 0 0 62px; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 7px 10px; color: #bcc9d0; background: #182127; border: 1px solid #53636d; border-radius: 18px; font-size: .76rem; cursor: ns-resize; }
@@ -97,12 +108,11 @@ h1 .brand-u { color: #1d60ad; }
 
 /* PCM, ADSR and reverb controls share the Playground SPU editor. */
 .chip-editor { min-width: 0; }
-.chip-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.chip-editor-body { display: block; min-width: 0; border: 0; padding: 0; margin: 0; }
 .chip-section { min-width: 0; border: 1px solid var(--line); border-radius: 13px; padding: 16px; background: #edf0f2; }
-.chip-editor-body > .chip-section:last-of-type { grid-column: 1 / -1; }
 .chip-section h3::before { content: ""; display: inline-block; width: 6px; height: 12px; margin-right: 8px; border-radius: 3px; background: #c5524d; vertical-align: -1px; }
-.chip-section:nth-of-type(2) h3::before { background: #bc952f; }
-.chip-section:last-of-type h3::before { background: #3876bd; }
+#instrumentPanel-adsr h3::before { background: #bc952f; }
+#instrumentPanel-fx h3::before { background: #3876bd; }
 .chip-section h3 { margin: 0 0 14px; color: #36424d; font-size: .79rem; letter-spacing: .025em; font-weight: 700; }
 .chip-fields, .chip-actions { display: flex; flex-wrap: wrap; gap: 12px 15px; align-items: end; }
 .chip-field { display: flex; flex-direction: column; gap: 6px; min-width: 100px; max-width: 100%; font-size: .73rem; }
@@ -114,7 +124,7 @@ h1 .brand-u { color: #1d60ad; }
 .chip-fields + .chip-fields { margin-top: 15px; }
 .chip-actions { gap: 6px; align-self: center; }
 .chip-actions button { font-size: .71rem; }
-.chip-sample-waveform { display: block; width: 100%; height: 155px; margin: 14px 0; border: 1px solid #4c5960; border-radius: 7px; background: #192228; cursor: crosshair; touch-action: none; }
+.chip-sample-waveform { display: block; width: 100%; height: 200px; margin: 14px 0; border: 1px solid #4c5960; border-radius: 7px; background: #192228; cursor: crosshair; touch-action: none; }
 .chip-envelope-editor { position: relative; margin: 14px 0; }
 .chip-envelope-editor .chip-sample-waveform { margin: 0; }
 .chip-envelope-editor .chip-envelope-handle { position: absolute; transform: translate(-50%, -50%); width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0; border: 2px solid #d7e7f8; border-radius: 50%; background: #3b6390; color: #f7f9ff; font-size: 11px; font-weight: 800; line-height: 24px; box-shadow: 0 1px 4px #30353b24; cursor: grab; touch-action: none; user-select: none; }
@@ -159,7 +169,6 @@ footer a { color: #4a5e74; }
 .noscript-message { padding: 20px; background: #f7e2da; border: 1px solid #b57e67; border-radius: 12px; }
 
 @media (max-width: 940px) {
-  .chip-editor-body { grid-template-columns: minmax(0, 1fr); }
   .chip-sample-waveform { height: 170px; }
 }
 @media (max-width: 640px) {
@@ -189,10 +198,13 @@ footer a { color: #4a5e74; }
   .visual-mode-controls button { padding: 6px 10px; font-size: .71rem; }
   #visualizerDescription { font-size: .67rem; }
   .monitor-body { min-height: 185px; gap: 8px; }
-  #monitorEnvelopeMount .chip-sample-waveform, #outputCanvas { height: 185px; }
+  #outputEnvelopeCanvas, #outputCanvas { height: 185px; }
   .monitor-pitch { flex-basis: 45px; padding: 10px 4px 8px; border-radius: 14px; font-size: .68rem; }
   .monitor-pitch input { width: 24px; height: 125px; min-height: 105px; }
   .monitor-pitch output { font-size: .65rem; }
+  .instrument-tabs { gap: 4px; padding-inline: 5px; }
+  .instrument-tabs [role="tab"] { flex: 1; min-width: 0; padding: 9px 7px; font-size: .74rem; }
+  .instrument-workspace .chip-section[role="tabpanel"] { min-height: 230px; }
   .instrument-toolbar { padding-block: 14px; }
   .preset-actions { gap: 6px; }
   .preset-actions button { font-size: .72rem; padding-inline: 10px; }

@@ -4,7 +4,7 @@ import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_
 
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.
  * Physical-channel inspection and audition controls belong to Playground. */
-export function createSpuInstrumentPanel({root, envelopeMount, invoke, ...options}) {
+export function createSpuInstrumentPanel({root, invoke, ...options}) {
   const panel = createPlaygroundPs1VoicePanel({root, ...options, invoke(method, args = []) {
     if (method === 'setPreset' || method === 'setChannel') return invoke('setInstrumentPreset', args.slice(1));
     if (method === 'setEnvelope') return invoke('setInstrumentEnvelope', args.slice(1));
@@ -22,11 +22,31 @@ export function createSpuInstrumentPanel({root, envelopeMount, invoke, ...option
     else if (node.textContent.startsWith('The graph shows')) node.textContent = 'The graph shows envelope shape, not measured timing. With Apply edits on, ADSR changes update every sounding note at its current level and sample position. Attack changes affect an active attack or the next note. With it off, each running note keeps its ADSR until the next Note On. Release rates 27–31 hold indefinitely; use Stop all sound for immediate silence. PCM edits update the common cycle and can restart held notes when Apply edits is on.';
     else if (node.textContent.startsWith('Choose a reverb preset')) node.textContent = 'Enable reverb and choose a preset to hear it on the instrument. Return levels control the shared SPU effect. These are the core’s named reverb approximations.';
   }
-  // The editor keeps its canvas/handle references and listeners when moved.
-  // Share the same ADSR controls with the top instrument display.
   const envelopeEditor = root.querySelector('.chip-envelope-editor');
-  if (envelopeMount && envelopeEditor) envelopeMount.append(envelopeEditor);
-  return {...panel, update(state) {
+  const sections = [...root.querySelectorAll('.chip-editor-body > .chip-section')];
+  const sectionNames = ['pcm', 'adsr', 'fx'];
+  sections.forEach((section, index) => {
+    const name = sectionNames[index];
+    section.id = `instrumentPanel-${name}`;
+    section.setAttribute('role', 'tabpanel');
+    section.setAttribute('aria-labelledby', `instrumentTab-${name}`);
+    section.hidden = index !== 0;
+  });
+  let activeSection = 'pcm', visible = true;
+  return {...panel, setSection(name) {
+    if (![...sectionNames, 'audio'].includes(name)) throw new RangeError('Unknown SPU instrument section');
+    if (name === activeSection) return;
+    // Cancel a drawing/ADSR gesture before hiding its controls. Keyboard note
+    // ownership belongs to the standalone controller and is unaffected.
+    panel.setVisible(false);
+    activeSection = name;
+    root.hidden = name === 'audio';
+    sections.forEach((section, index) => {section.hidden = sectionNames[index] !== name;});
+    panel.setVisible(visible && name !== 'audio');
+  }, setVisible(value) {
+    visible = Boolean(value);
+    panel.setVisible(visible && activeSection !== 'audio');
+  }, update(state) {
     panel.update(state);
     for (const node of envelopeEditor?.querySelectorAll('[data-chip-envelope-handle]') ?? []) {
       for (const attr of ['aria-label', 'title']) node.setAttribute(attr, (node.getAttribute(attr) ?? '').replace(/^Voice 1 · /, ''));
