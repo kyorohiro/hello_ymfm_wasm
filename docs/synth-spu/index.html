@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="PlayStation 1 SPU synthesizer / emulator">
+    <meta name="theme-color" content="#101415">
+    <title>Tetorica SPU Synth</title>
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="stylesheet" href="./synth.css">
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
+        <nav aria-label="Sound Laboratory">
+          <a href="../synth/index.html">FM2612 Synth</a>
+          <a href="../playground/index.html?mode=ps1">Playground</a>
+        </nav>
+      </header>
+
+      <article class="synth-shell" aria-labelledby="synthTitle">
+        <header class="synth-heading">
+          <div class="title-row">
+            <div>
+              <p class="eyebrow">SAMPLE · ENVELOPE · REVERB</p>
+              <h1 id="synthTitle">Tetorica <span>SPU Synth</span></h1>
+              <p class="description">PlayStation 1 SPU synthesizer / emulator</p>
+            </div>
+            <span class="engine-badge">SPU <span>24 VOICES</span></span>
+          </div>
+          <div class="audio-toolbar">
+            <div class="transport-actions">
+              <button id="startAudio" class="primary" type="button">Enable audio</button>
+              <button id="stopAudio" type="button">Stop all sound</button>
+            </div>
+            <label class="master-control" for="masterVolume">
+              <span>Master</span>
+              <input id="masterVolume" type="range" min="0" max="1" step="0.01" value="0.7">
+              <output id="masterVolumeValue" for="masterVolume">70%</output>
+            </label>
+          </div>
+          <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play a note to get started.</p>
+        </header>
+
+        <section class="instrument-toolbar" aria-label="Instrument files">
+          <div class="sample-actions">
+            <button id="loadAudio" type="button">Load audio…</button>
+            <input id="audioFileInput" class="file-input" type="file" accept="audio/*" aria-label="Choose an audio sample">
+            <span id="sampleName" class="sample-name">Built-in sine cycle</span>
+          </div>
+          <div class="preset-actions">
+            <button id="loadPreset" type="button">Load preset…</button>
+            <input id="presetFileInput" class="file-input" type="file" accept="application/json,.json" aria-label="Choose an SPU preset">
+            <button id="savePreset" type="button">Save preset…</button>
+            <button id="resetPreset" class="quiet-button" type="button">Reset voice</button>
+          </div>
+          <div class="sample-settings">
+            <label for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Sine" autocomplete="off"></label>
+            <label for="sampleRootNote">Root MIDI note <input id="sampleRootNote" type="number" min="0" max="127" step="1" value="60"></label>
+            <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>
+          </div>
+        </section>
+
+        <section class="voice-workspace" aria-labelledby="voiceHeading">
+          <div class="section-heading">
+            <h2 id="voiceHeading">Voice studio</h2>
+            <p>Choose a voice. Draw its waveform, shape its envelope, and play.</p>
+            <button id="refreshVoice" class="quiet-button" type="button" disabled>Refresh voice</button>
+          </div>
+          <div id="spuVoicePanel" class="chip-editor"></div>
+        </section>
+
+        <section class="keyboard-section" aria-labelledby="keyboardHeading">
+          <div class="section-heading">
+            <h2 id="keyboardHeading">Keyboard</h2>
+            <p>Play the selected voice with your computer keyboard or the keys below.</p>
+          </div>
+          <div class="keyboard-toolbar">
+            <div class="octave-control" role="group" aria-label="Keyboard octave">
+              <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
+              <span>Octave <output id="octaveValue">4</output></span>
+              <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
+            </div>
+            <label class="check-control" for="sustainToggle"><input id="sustainToggle" type="checkbox"> Sustain</label>
+            <label class="pitch-control" for="pitchBend">
+              <span>Pitch ±2</span>
+              <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Pitch bend, minus two to plus two semitones">
+              <output id="pitchValue" for="pitchBend">0.00</output>
+            </label>
+            <button id="allNotesOff" class="quiet-button" type="button">Release notes</button>
+          </div>
+          <div id="keyboardMount" class="keyboard-mount" aria-label="Playable keyboard"></div>
+          <p class="keyboard-hint">Release notes follows the voice’s release envelope. Stop all sound also clears held notes and reverb tails.</p>
+        </section>
+      </article>
+
+      <footer>
+        <p>112-sample wave drawing · PS1 ADPCM · Editable ADSR · Shared SPU reverb</p>
+        <a href="https://github.com/kyorohiro/hello_ymfm_wasm">Source &amp; licenses</a>
+      </footer>
+      <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
+    </main>
+    <script type="module" src="./synth.js"></script>
+  </body>
+</html>

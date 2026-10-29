@@ -1,3 +1,12 @@
+## 2026-10-29 — Tetorica SPU Synthの独立Browserアプリ初版
+
+- ユーザー指定の `docs/synth-spu/` に **Tetorica SPU Synth** を新規作成。説明は **PlayStation 1 SPU synthesizer / emulator**。YM2612 Synthの外観とGuitar／Bass／Ukulele鍵盤、既存SPUタブの24声・PCM描画・ADSR図・raw設定・stereo volume／pitch・reverbを利用。本体の英語／日本語トップへ入口を追加。
+- 独立AudioWorkletが既存の同じWASM／Ps1Synth／Resampler／Inspectorを使用。C++・生成WASM・固定SDK・Tauri・共有runtimeは今回変更なし。音声処理内のencoder／UI polling／quantumごとのstate通知なし。note／edit後の表示はRAFへ集約。Keyboardは選択physical voiceを使用し、旧離鍵の取り違え・準備中のStop・±2半音bendの再発音を防止する。
+- 音声ファイルをOfflineAudioContextで44.1kHzへdecode、mono化し、準備WorkerでADPCMへ変換。root MIDI／全体loop／RAM上限を明示。選択voiceのsample bytes／tuning／ADSR／共有FX／編集PCMを含む `.spu.json` の保存・完全検証後の復元を追加。sessionはmemory内であり、録音・長いsampleのcrop editor・自動poly allocator・VFS・MIDI・Native出力は今回対象外。
+- Nodeの実WASM／instrument／isolated ZIP試験 **15成功**。WorkletにURLがない実環境の起動失敗を修正し、URL／Node globals欠如のnegative control付き回帰を追加。Source Chromium／WebKitと最終45file ZIPの両BrowserでPC／pointer Keyboard、ADSR drag、pitch、WAV import、preset往復、Stop exact silence、idle無polling、実AudioContext close→明示retry→新Sine表示／440Hzを確認。最終PCMは計299,008frames、pilot全連続・clock診断0。物理出力mute、実聴／remote CIは未実施。
+- `sh scripts/package_itch_spu_synth.sh dev` → `release/tetorica_spu_synth_dev_itch.zip`、**45files／271,814bytes**、SHA256 `277d38b00144569ae8257a1f9a65006afaf6680c240cbc3c1ebc9b32eae1d54a`。3entryをbundle＋minify、factory原本維持。24inputs／28filesのSPU source／licenseと元JSのsource ZIP／hashを同梱。CRC・全ZIP memberと実Browser配信stageの全byte一致を確認。新SPU Synth workflowはactionlint成功、push後にZIP検証とartifact生成を行う。
+- 詳細：[spu_synth_01.md](spu_synth_01.md)／[最終Browser](spu_synth_browser_01.json)／[配布receipt](spu_synth_distribution_01.json)。旧source／label修正前のraw reportは履歴として保持。本体に未commitの新規app／包装／試験／workflow／文書あり。commit・push・npm／SDK／itch公開は行っていない。ローカル確認URL `http://127.0.0.1:8877/synth-spu/index.html`、開発用serverは8877で起動済み。次はユーザーの実操作・実聴確認。その後、必要ならpoly keyboard／録音・Sample Editor統合等を選ぶ。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1の保留ADSRを手動離鍵でも維持
 
 - 「Apply edits」オフで押鍵中にRRを変えると、UI離鍵時だけ新RRを使っていた不整合を共通C++で修正。実ラッチした`env_rr`と128native framesの手動Release下限を分離し、OffでADSRを読み直さない。離鍵は旧RR、次の実Note Onまたは変更を伴う明示live編集で新値を使う。RR31→0／0→31、A／D／S、繰返しOff、live更新、長い／無限Release、波形位置、所有者、別CHを確認。Pitch／Mute UIは今回対象外。

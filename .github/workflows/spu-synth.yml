@@ -1,0 +1,100 @@
+name: SPU Synth
+
+on:
+  push:
+    paths:
+      - 'docs/synth-spu/**'
+      - 'web/ps1*.js'
+      - 'web/playground_ps1_inspector.js'
+      - 'web/soundchip_pitch.js'
+      - 'docs/js/ps1*.js'
+      - 'docs/js/playground_ps1_inspector.js'
+      - 'docs/js/soundchip_pitch.js'
+      - 'docs/js/soundchip_mixer_presets.js'
+      - 'docs/js/audio_decode.js'
+      - 'docs/playground/playground_ps1_*.js'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/generated/ps1_spu*'
+      - 'docs/sources/**'
+      - 'docs/licenses/mame-ps1-spu/**'
+      - 'docs/favicon.ico'
+      - 'scripts/*spu_synth*'
+      - 'scripts/check_ps1_source_bundle.mjs'
+      - 'scripts/audio_clock_audit.cjs'
+      - '.github/workflows/spu-synth.yml'
+      - 'package*.json'
+      - 'LICENSE'
+  pull_request:
+    paths:
+      - 'docs/synth-spu/**'
+      - 'web/ps1*.js'
+      - 'web/playground_ps1_inspector.js'
+      - 'web/soundchip_pitch.js'
+      - 'docs/js/ps1*.js'
+      - 'docs/js/playground_ps1_inspector.js'
+      - 'docs/js/soundchip_pitch.js'
+      - 'docs/js/soundchip_mixer_presets.js'
+      - 'docs/js/audio_decode.js'
+      - 'docs/playground/playground_ps1_*.js'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/generated/ps1_spu*'
+      - 'docs/sources/**'
+      - 'docs/licenses/mame-ps1-spu/**'
+      - 'docs/favicon.ico'
+      - 'scripts/*spu_synth*'
+      - 'scripts/check_ps1_source_bundle.mjs'
+      - 'scripts/audio_clock_audit.cjs'
+      - '.github/workflows/spu-synth.yml'
+      - 'package*.json'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spu-synth-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standalone:
+    name: Package and play the standalone SPU Synth
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test real SPU PCM, instruments and isolated packaging
+        run: npm run test:spu-synth
+      - name: Build the standalone itch.io ZIP
+        run: sh scripts/package_itch_spu_synth.sh ci
+      - name: Extract the actual distribution
+        run: python3 -m zipfile -e release/tetorica_spu_synth_ci_itch.zip release/spu-synth-browser
+      - name: Play the actual ZIP in Chromium and WebKit
+        run: |
+          node scripts/check_spu_synth_browser.cjs \
+            --root release/spu-synth-browser --entry /index.html \
+            --out release/spu-synth-browser.json --screenshots release/spu-synth-images
+      - name: Retain the ZIP, diagnostics and screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: tetorica-spu-synth
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            release/tetorica_spu_synth_ci_itch.zip
+            release/spu-synth-browser.json
+            release/spu-synth-images/

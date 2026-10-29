@@ -1,0 +1,192 @@
+:root {
+  color-scheme: dark;
+  --bg: #101415;
+  --panel: #1c2223;
+  --ink: #f1e9d6;
+  --muted: #adbfbb;
+  --accent: #78ded0;
+  --accent-dark: #358f86;
+  --line: #3b504d;
+  font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 300px; background: radial-gradient(ellipse at 50% 0, #29433e 0, transparent 700px), var(--bg); }
+main { max-width: 1240px; margin: 0 auto; padding: 24px 20px 32px; }
+a { color: var(--accent); text-underline-offset: .2em; }
+button, input, select, textarea { font: inherit; }
+button, input, select, textarea, output { font-variant-numeric: tabular-nums; }
+button { min-height: 36px; padding: 7px 13px; color: var(--ink); background: linear-gradient(#2b3b38, #22312e); border: 1px solid #54766d; border-radius: 8px; box-shadow: inset 0 1px #d0e8d412, 0 2px 0 #0004; font-size: .8rem; font-weight: 650; cursor: pointer; }
+button:hover { border-color: #8dc7b6; background: #334c43; }
+button:active { background: #274439; box-shadow: none; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button[aria-pressed="true"] { color: #eafff2; border-color: var(--accent); background: #315d50; }
+input[type="range"] { accent-color: var(--accent); min-width: 0; cursor: pointer; }
+input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var(--accent-dark); }
+[hidden], .file-input { display: none !important; }
+
+.masthead { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 0 6px 22px; }
+.laboratory-link { color: var(--ink); text-decoration: none; font-weight: 800; letter-spacing: -.04em; font-size: 1.15rem; }
+.laboratory-link span { color: var(--muted); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .12em; margin-left: 12px; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 16px; }
+.masthead nav a { font-size: .75rem; color: #b6cec5; text-decoration: none; }
+.masthead nav a:hover { color: var(--accent); }
+.synth-shell { min-width: 0; border: 1px solid #54645d; border-radius: 24px; background: linear-gradient(145deg, #2c3432, var(--panel) 35%, #151b1b); box-shadow: inset 0 1px #d1e4cb4d, inset 0 0 0 5px #181e1f, 0 18px 50px #0007; padding: 26px; }
+.synth-heading { padding: 4px 5px 18px; }
+.title-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.eyebrow { margin: 0 0 10px; color: #9fb6a9; font-size: .65rem; font-weight: 750; letter-spacing: .2em; }
+h1 { margin: 0; font-size: clamp(2rem, 4.4vw, 3rem); line-height: 1.08; font-weight: 750; letter-spacing: -.055em; }
+h1 span { color: #b3e6cf; }
+.description { color: var(--muted); font-size: .86rem; margin: 11px 0 0; }
+.engine-badge { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #a8e6cb; font-weight: 750; font-size: 1.2rem; letter-spacing: .12em; border: 1px solid #4c7868; border-radius: 14px; background: #182b24; padding: 13px 18px; }
+.engine-badge span { color: #b9cdbd; font-size: .55rem; font-weight: 650; letter-spacing: .13em; }
+.audio-toolbar { display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: space-between; align-items: center; margin-top: 22px; }
+.transport-actions, .sample-actions, .preset-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.primary { color: #092b24; border-color: #93dfb7; background: linear-gradient(#a0e4c1, #6bb89b); box-shadow: inset 0 1px #eaffeb9c, 0 2px 0 #0005; }
+.primary:hover { background: #b2ebcf; border-color: #d2ffe3; }
+.quiet-button { color: #b5cbbf; background: #1b2924; border-color: #425e52; }
+.master-control, .pitch-control { display: flex; gap: 10px; align-items: center; color: #c1d3c7; font-size: .75rem; }
+.master-control input { width: 135px; }
+.master-control output { min-width: 37px; text-align: right; color: var(--ink); }
+.audio-status { min-height: 1.5em; margin: 12px 0 0; color: #adcebd; font-size: .76rem; overflow-wrap: anywhere; }
+.audio-status[data-error="true"] { color: #ffbaaa; }
+.instrument-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 15px 5px; border-block: 1px solid var(--line); }
+.sample-actions { min-width: 0; flex: 1 1 250px; }
+.sample-name { max-width: 280px; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+.sample-settings { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding-top: 5px; }
+.sample-settings label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: .7rem; }
+.sample-settings input[type="text"], .sample-settings input[type="number"] { color: var(--ink); min-height: 32px; background: #25372f; border: 1px solid #537368; border-radius: 6px; padding: 5px 8px; font-size: .75rem; }
+#instrumentName { width: 175px; }
+#sampleRootNote { width: 65px; }
+.voice-workspace { padding-top: 22px; }
+.section-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 16px; margin: 0 5px 14px; }
+.section-heading h2 { margin: 0; color: #e0e8d7; font-size: .88rem; font-weight: 750; letter-spacing: .035em; }
+.section-heading p { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.5; }
+
+/* The shared voice editor also powers the Playground SPU tab. */
+.chip-editor { min-width: 0; }
+.chip-channel-list { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.chip-channel-list button { min-width: 0; padding: 7px 3px; font-size: .65rem; font-weight: 600; background: #1a2825; }
+.chip-channel-list button[aria-pressed="true"] { background: #35604f; border-color: #9dddba; color: #f1ffea; box-shadow: inset 0 0 0 1px #9dddba33; }
+.chip-channel-list button[data-sounding="true"] { color: #c8ffdc; }
+.chip-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; min-width: 0; border: 0; padding: 0; margin: 0; }
+.chip-section { min-width: 0; border: 1px solid var(--line); border-radius: 13px; padding: 16px; background: #15211ed9; }
+.chip-editor-body > .chip-section:first-child, .chip-editor-body > .chip-section:nth-child(4), .chip-editor-body > .chip-advanced { grid-column: 1 / -1; }
+.chip-section h3 { margin: 0 0 14px; color: #d7e9d7; font-size: .79rem; letter-spacing: .025em; font-weight: 700; }
+.chip-fields, .chip-actions { display: flex; flex-wrap: wrap; gap: 12px 15px; align-items: end; }
+.chip-field { display: flex; flex-direction: column; gap: 6px; min-width: 100px; max-width: 100%; font-size: .73rem; }
+.chip-field-label { color: #b4c8bd; font-size: .68rem; }
+.chip-field input[type="number"], .chip-field input[type="text"], .chip-field select, .chip-field textarea { width: 110px; max-width: 100%; min-height: 34px; padding: 6px 8px; font: inherit; color: var(--ink); border: 1px solid #537368; border-radius: 7px; background: #25372f; }
+.chip-field select { width: 220px; }
+.chip-field textarea { width: 100%; resize: vertical; }
+.chip-field output { min-height: 1.5em; color: #bde3cb; }
+.chip-fields + .chip-fields { margin-top: 15px; }
+.chip-actions { gap: 6px; align-self: center; }
+.chip-actions button { font-size: .71rem; }
+.chip-sample-waveform { display: block; width: 100%; height: 155px; margin: 14px 0; border: 1px solid #3e5b51; border-radius: 7px; background: #10191a; cursor: crosshair; touch-action: none; }
+.chip-envelope-editor { position: relative; margin: 14px 0; }
+.chip-envelope-editor .chip-sample-waveform { margin: 0; }
+.chip-envelope-editor .chip-envelope-handle { position: absolute; transform: translate(-50%, -50%); width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0; border: 2px solid #b6e9d1; border-radius: 50%; background: #2b5948; color: #efffef; font-size: 11px; font-weight: 800; line-height: 24px; box-shadow: 0 1px 4px #0007; cursor: grab; touch-action: none; user-select: none; }
+.chip-envelope-handle:active { cursor: grabbing; }
+.chip-envelope-handle:focus-visible { outline-color: #fbdc84; }
+.subtext { margin: 10px 0; color: #9fb7ac; font-size: .68rem; line-height: 1.65; overflow-wrap: anywhere; }
+.chip-advanced { border: 1px solid #354d42; border-radius: 10px; padding: 11px 14px; background: #151f1c; }
+.chip-advanced summary { cursor: pointer; color: #9ebca8; font-size: .72rem; }
+.chip-advanced[open] summary { margin-bottom: 15px; }
+.chip-memory-ranges { margin: 12px 0; padding: 12px; border-radius: 7px; color: #a1c5af; background: #101916; font: .66rem/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chip-editor-status { min-height: 1.25em; color: #b8d0bf; font-size: .73rem; overflow-wrap: anywhere; }
+.chip-editor-status[data-error="true"] { color: #ffbaaa; }
+fieldset:disabled .chip-section { opacity: .6; }
+
+.keyboard-section { margin-top: 24px; padding: 20px 5px 4px; border-top: 1px solid var(--line); }
+.keyboard-toolbar { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; margin-bottom: 16px; }
+.octave-control { display: flex; gap: 10px; align-items: center; font-size: .75rem; color: #c1d3c7; }
+.octave-control button { width: 33px; min-height: 32px; padding: 2px; font-size: 1rem; }
+.octave-control output { color: var(--ink); }
+.check-control { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: #c1d3c7; }
+.pitch-control input { width: 110px; }
+.pitch-control output { width: 35px; text-align: right; color: var(--ink); }
+#allNotesOff { margin-left: auto; font-size: .73rem; }
+.keyboard-mount { min-width: 0; overflow-x: auto; padding: 5px 1px 8px; }
+.keyboard-mount .keyboard { display: grid; gap: 7px; min-width: 0; padding-right: 35px; }
+.keyboard-row { display: flex; gap: 5px; }
+.key-row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 7px; width: 100%; }
+.key-row[data-row="1"] { margin-left: 10px; }
+.key-row[data-row="2"] { margin-left: 20px; }
+.key-row[data-row="3"] { margin-left: 30px; }
+.keyboard-mount .key, .keyboard-mount .keyboard-key { min-width: 0; min-height: 72px; flex: 1; padding: 10px 9px; border-radius: 7px 7px 10px 10px; background: linear-gradient(#e8eddf, #b8cbbb); color: #213c2e; border: 1px solid #94b09b; box-shadow: inset 0 -4px #7d9981, 0 3px 3px #0006; touch-action: none; user-select: none; font-weight: 750; text-align: left; }
+.keyboard-mount .black, .keyboard-mount .is-black, .keyboard-mount .black-key, .keyboard-mount [data-accidental="true"] { background: linear-gradient(#354d40, #1c3025); color: #c9e2cd; border-color: #526e57; box-shadow: inset 0 -4px #112317, 0 3px 3px #0006; }
+.keyboard-mount .active, .keyboard-mount .is-active, .keyboard-mount [aria-pressed="true"] { background: linear-gradient(#9ef0c1, #72b891); color: #0e3221; border-color: #bdf5d0; box-shadow: inset 0 -2px #4d9871; transform: translateY(2px); }
+.keyboard-mount kbd, .keyboard-mount small, .keyboard-mount .key-label { display: block; font: inherit; font-size: .66rem; opacity: .75; }
+.key strong { display: block; font-size: 1rem; }
+.key span { display: block; margin-top: 4px; font-size: .8rem; }
+.key small { margin-top: 3px; }
+.fretboard-toolbar { display: grid; gap: 7px; margin-bottom: 14px; }
+.fretboard-row, .toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fretboard-label, .fret-display { color: var(--muted); font-size: .7rem; }
+.toolbar-divider { color: #678574; }
+.keyboard-mount .toolbar-button { min-height: 30px; padding: 4px 10px; border-radius: 20px; font-size: .69rem; }
+.keyboard-mount .toolbar-button.is-selected { background: #315d50; border-color: #8bc8aa; color: #f1ffea; }
+.keyboard-hint { margin: 9px 0 0; color: #94ae9c; font-size: .67rem; line-height: 1.6; }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 20px 6px 0; color: #91aa9b; font-size: .66rem; }
+footer p { margin: 0; }
+footer a { color: #a8c3af; }
+.noscript-message { padding: 20px; background: #3c2923; border: 1px solid #bb8470; border-radius: 12px; }
+
+@media (max-width: 940px) {
+  .chip-editor-body { grid-template-columns: minmax(0, 1fr); }
+  .chip-channel-list { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .chip-sample-waveform { height: 170px; }
+}
+@media (max-width: 640px) {
+  main { padding: 16px 10px 24px; }
+  .masthead { align-items: flex-start; margin: 0 6px 16px; }
+  .laboratory-link span { display: block; margin: 5px 0 0; font-size: .57rem; }
+  .masthead nav { gap: 9px; flex-direction: column; align-items: end; }
+  .masthead nav a { font-size: .68rem; }
+  .synth-shell { border-radius: 18px; padding: 17px 12px; }
+  .synth-heading { padding-inline: 3px; }
+  .title-row { gap: 8px; }
+  h1 { font-size: 1.9rem; }
+  h1 span { display: block; }
+  .eyebrow { font-size: .53rem; letter-spacing: .12em; }
+  .description { font-size: .73rem; max-width: 230px; line-height: 1.5; }
+  .engine-badge { padding: 10px; font-size: .95rem; }
+  .engine-badge span { font-size: .45rem; }
+  .audio-toolbar { gap: 17px; }
+  .master-control { width: 100%; }
+  .master-control input { flex: 1; }
+  .instrument-toolbar { padding-block: 14px; }
+  .preset-actions { gap: 6px; }
+  .preset-actions button { font-size: .72rem; padding-inline: 10px; }
+  .chip-channel-list { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  .chip-channel-list button { font-size: .6rem; }
+  .chip-section { padding: 13px 11px; }
+  .chip-fields { gap: 12px; }
+  .chip-field { min-width: 92px; }
+  .chip-field input[type="number"] { width: 104px; }
+  .chip-actions { gap: 5px; }
+  .chip-actions button { padding: 7px 10px; }
+  .keyboard-toolbar { gap: 14px 18px; }
+  #allNotesOff { margin-left: 0; }
+  .keyboard-mount .keyboard { gap: 5px; padding-right: 19px; }
+  .key-row { gap: 4px; }
+  .key-row[data-row="1"] { margin-left: 6px; }
+  .key-row[data-row="2"] { margin-left: 12px; }
+  .key-row[data-row="3"] { margin-left: 18px; }
+  .keyboard-mount .key, .keyboard-mount .keyboard-key { min-height: 59px; padding: 7px 3px; border-radius: 6px; }
+  .key strong { font-size: .72rem; }
+  .key span { font-size: .59rem; }
+  .key small { font-size: .5rem; }
+}
+@media (pointer: coarse) {
+  button { min-height: 42px; }
+  .chip-field input[type="number"], .chip-field select { min-height: 40px; }
+  .chip-envelope-editor .chip-envelope-handle { min-width: 34px; width: 34px; height: 34px; min-height: 34px; line-height: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

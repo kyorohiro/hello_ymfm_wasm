@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-29",
+  "product": "Tetorica SPU Synth",
+  "description": "PlayStation 1 SPU synthesizer / emulator",
+  "archive": {
+    "path": "release/tetorica_spu_synth_dev_itch.zip",
+    "bytes": 271814,
+    "files": 45,
+    "sha256": "277d38b00144569ae8257a1f9a65006afaf6680c240cbc3c1ebc9b32eae1d54a",
+    "crcVerified": true,
+    "allMembersMatchTestedStage": true
+  },
+  "browserReport": {
+    "path": "docs/issues/spu_synth_browser_01.json",
+    "sha256": "1f1d5086dd03d47349da3b1d3336c738b9cf90074403b1a26f8b6d37ad5b74ba",
+    "checkerSha256": "839da03639f722e44d6b5ca5dc9233c499c0ea2ef2013d3577617d220898166a",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+    "servedFilesVerified": 7,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "browsers": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "captures": 14,
+      "frames": 143360,
+      "pcmContinuous": true,
+      "clockAnomalies": 0
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "captures": 17,
+      "frames": 155648,
+      "pcmContinuous": true,
+      "clockAnomalies": 0
+    }
+  ],
+  "unitAndPackageTests": {
+    "command": "npm run test:spu-synth",
+    "passed": 15,
+    "failed": 0
+  },
+  "remoteCIExecuted": false,
+  "published": false
+}
