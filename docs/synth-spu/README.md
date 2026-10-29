@@ -104,6 +104,21 @@ node scripts/check_spu_synth_browser.cjs
 sh scripts/package_itch_spu_synth.sh dev
 ```
 
+## itch.io release
+
+From the repository root, build a versioned release ZIP:
+
+```sh
+sh scripts/package_itch_spu_synth.sh v0.1.0
+```
+
+The output is `release/tetorica_spu_synth_v0.1.0_itch.zip`. Change the version
+argument for later releases; omitting it uses `dev`. The script bundles and
+minifies the application, includes its icon, WASM, sources and licences, and
+checks the ZIP's integrity. It does not upload or publish anything.
+
+Upload this ZIP as an HTML project on itch.io and select the root `index.html`.
+
 The product code is BSD-3-Clause. Retained SPU source attribution, upstream
 licenses, local changes and reproducible build inputs are described in
 [PS1 SPU sources](../sources/PS1-SPU.md).
