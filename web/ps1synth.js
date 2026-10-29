@@ -61,17 +61,18 @@ export function preparePs1ADPCM(input,options) {
   if (marker!==null && marker!==loopStart) throw new RangeError('SPU ADPCM LOOP START marker disagrees with loopStartSamples');
   return {adpcm,rootNote:rootNote??null,rootFrequencyHz,basePitch:0x1000,loop,loopStartSamples:loopStart,decodedFrames};
 }
-/** A small original filter-0 sine loop, authored as SPU packets (no game assets).
+/** An original filter-0 sine loop, authored as SPU packets (no game assets).
  * 112 source frames per cycle at pitch 4096, so its fundamental is 44100/112 Hz.
+ * Decoded peak 0.625 is close to the editor's 0.65 sine; Mixer owns chip gain.
  */
 export function createPs1InitSample() {
   const adpcm=new Uint8Array(64);
   for (let block=0;block<4;block++) {
-    adpcm[block*16]=4; // Filter 0, shift 4.
+    adpcm[block*16]=0; // Filter 0, shift 0.
     adpcm[block*16+1]=block===3?3:block===0?6:0;
     for (let pair=0;pair<14;pair++) {
       const index=block*28+pair*2;
-      const nibble=frame=>Math.round(7*Math.sin(2*Math.PI*frame/112))&15;
+      const nibble=frame=>Math.round(5*Math.sin(2*Math.PI*frame/112))&15;
       adpcm[block*16+2+pair]=nibble(index)|(nibble(index+1)<<4);
     }
   }

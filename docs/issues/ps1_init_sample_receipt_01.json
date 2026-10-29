@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "scope": "ps1-initial-sample-revision",
+  "feature": "PS1 initial sine instrument level",
+  "reports": {
+    "docs/issues/ps1_chip_levels_01.json": {
+      "sha256": "0bc38fd52a6f9de0658e085c016f8e8214e28960355b25a754da659bbab10d1c",
+      "objectSha256": "029914aaaf6c0d4b33e9510f1095d5119437603e50010eb3e066b39eb5ace2bf"
+    },
+    "docs/issues/wonderswan_chip_levels_01.json": {
+      "sha256": "71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0",
+      "objectSha256": "66c3234d4fc02b14fd386f7e1f21e152c47e798ce9e37c6fff63be3a8ebfd491"
+    },
+    "docs/issues/pokey_chip_levels_01.json": {
+      "sha256": "5920ffb3ceb407b7db68cfdbf70bb1632fc6d2af54e9b66f35d92184fc4dee4b",
+      "objectSha256": "0b7fdc38037eff22762e27e0095c5e8756b0ca0d2b6ea6555252b26b6828a738"
+    }
+  },
+  "source": {
+    "path": "js/ps1synth.js",
+    "before": {
+      "bytes": 19857,
+      "sha256": "75dfc9b1ca58a06f17b620c0fc450840f3de9b5d26cac690e667d53869de6073"
+    },
+    "after": {
+      "bytes": 19932,
+      "sha256": "4c0fa7269c222e3f6e92d08af281776b76057df774fb83fab454c7c5106dfdb1"
+    },
+    "function": "createPs1InitSample",
+    "beforeFactory": "/** A small original filter-0 sine loop, authored as SPU packets (no game assets).\n * 112 source frames per cycle at pitch 4096, so its fundamental is 44100/112 Hz.\n */\nexport function createPs1InitSample() {\n  const adpcm=new Uint8Array(64);\n  for (let block=0;block<4;block++) {\n    adpcm[block*16]=4; // Filter 0, shift 4.\n    adpcm[block*16+1]=block===3?3:block===0?6:0;\n    for (let pair=0;pair<14;pair++) {\n      const index=block*28+pair*2;\n      const nibble=frame=>Math.round(7*Math.sin(2*Math.PI*frame/112))&15;\n      adpcm[block*16+2+pair]=nibble(index)|(nibble(index+1)<<4);\n    }\n  }\n  return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};\n}",
+    "afterFactory": "/** An original filter-0 sine loop, authored as SPU packets (no game assets).\n * 112 source frames per cycle at pitch 4096, so its fundamental is 44100/112 Hz.\n * Decoded peak 0.625 is close to the editor's 0.65 sine; Mixer owns chip gain.\n */\nexport function createPs1InitSample() {\n  const adpcm=new Uint8Array(64);\n  for (let block=0;block<4;block++) {\n    adpcm[block*16]=0; // Filter 0, shift 0.\n    adpcm[block*16+1]=block===3?3:block===0?6:0;\n    for (let pair=0;pair<14;pair++) {\n      const index=block*28+pair*2;\n      const nibble=frame=>Math.round(5*Math.sin(2*Math.PI*frame/112))&15;\n      adpcm[block*16+2+pair]=nibble(index)|(nibble(index+1)<<4);\n    }\n  }\n  return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};\n}",
+    "outsideSha256": "a503cd0bfe96ab344f90c74400da5362fe165b3de747c529b3e2457afc222fee"
+  },
+  "audit": {
+    "baseRevision": "53f4e16ad3fdfbb5092558ea355f74261bb9d233",
+    "originalDecodedPeak": 0.0546875,
+    "updatedDecodedPeak": 0.625,
+    "mixerGainUnchanged": 0.128832,
+    "calibrationReference": {
+      "path": "scripts/soundchip_calibration_ps1.mjs",
+      "sha256": "3adf98bbecf204d5c035bef8e85570dc3055878fe04914849b978eba38154177",
+      "resetClearRamBeforeReferenceUpload": true
+    },
+    "note": "Only the original initial-sample factory and its adjacent JSDoc changed. The complete measured predecessor source is reconstructed and hash-checked; imports, validation, synth methods, rendering and core outputs outside this unused factory remain byte-identical. The unchanged calibration program clears RAM, explicitly uploads its own filter-0/shift-0 reference and sets its voice before capture. This is source revision evidence, not a new Mixer calibration."
+  }
+}

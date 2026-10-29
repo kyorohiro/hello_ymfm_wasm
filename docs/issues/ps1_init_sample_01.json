@@ -1,0 +1,594 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "baseCommit": "53f4e16ad3fdfbb5092558ea355f74261bb9d233",
+  "scope": "PS1 initial instrument level only; Mixer unchanged",
+  "offlineMeasurement": {
+    "path": "docs/issues/ps1_init_sample_levels_01.json",
+    "sha256": "094bdc9558971a3e139c3c7e1e10816037014a60bb344639a989b05ebfc7a4c5",
+    "comparisons": [
+      {
+        "outputRate": 44100,
+        "starterToOldAcRmsGain": 11.650397733249127,
+        "expectedCodecPeakGain": 11.428571428571429,
+        "allowedGainRange": [
+          10,
+          13
+        ],
+        "starterToEditorSineAcRmsDb": -0.17283788625565036,
+        "allowedEditorDifferenceDb": 1,
+        "calibrationReferenceUnchanged": true,
+        "frozenCalibrationAdpcmSha256": "ab53d89a4a20bda3ac5d165a4f918a67da4143fed2b8b4954e9a9c0e751eba0d",
+        "frozenCalibrationPcmFloat32LeSha256": [
+          "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72",
+          "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72"
+        ],
+        "passed": true
+      },
+      {
+        "outputRate": 48000,
+        "starterToOldAcRmsGain": 11.647701004500602,
+        "expectedCodecPeakGain": 11.428571428571429,
+        "allowedGainRange": [
+          10,
+          13
+        ],
+        "starterToEditorSineAcRmsDb": -0.1766380374841199,
+        "allowedEditorDifferenceDb": 1,
+        "calibrationReferenceUnchanged": true,
+        "frozenCalibrationAdpcmSha256": "ab53d89a4a20bda3ac5d165a4f918a67da4143fed2b8b4954e9a9c0e751eba0d",
+        "frozenCalibrationPcmFloat32LeSha256": [
+          "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5",
+          "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5"
+        ],
+        "passed": true
+      }
+    ]
+  },
+  "unitTests": {
+    "coreAndNativeParity": {
+      "passed": 68,
+      "failed": 0,
+      "skipped": 0
+    },
+    "calibrationAndProvenance": {
+      "passed": 356,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_ps1-starter-level-dev_itch_playground.zip",
+      "bytes": 37012260,
+      "sha256": "6e04d300f9964be0deeb8f88da29669e4ec7cc0f917cf28b4dc64934618029ce",
+      "entries": 1188,
+      "files": 1067,
+      "crcPassed": true
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-starter-level-dev_itch_playground_for_run.zip",
+      "bytes": 37402929,
+      "sha256": "fe8095354a4b9ac453a191448488f95d1a46408bd98dfcbf6105bcf3804c6978",
+      "entries": 931,
+      "files": 931,
+      "crcPassed": true
+    }
+  ],
+  "browser": [
+    {
+      "reportSha256": "8bd8be3eb4588637e4783461813e9b9e0b85dd2a122ad2aab7245a66d9105b89",
+      "reportBytes": 338089,
+      "checkerSha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7",
+      "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+      "archive": null,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "servedAssets": 289,
+      "starterSources": {
+        "js/ps1synth.js": {
+          "bytes": 19932,
+          "sha256": "4c0fa7269c222e3f6e92d08af281776b76057df774fb83fab454c7c5106dfdb1"
+        }
+      },
+      "routes": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "captureContinuity": {
+            "captures": 45,
+            "frames": 356352,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 2560,
+              "lastFrame": 18816,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 1,
+                "firstSample": 0,
+                "lastSample": 0.0009765028953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 2560,
+                "lastFrame": 18816,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.04637783975566216,
+                  "nonFinite": 0,
+                  "nonZero": 15991,
+                  "hz": 261.6764494506493
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.034785147102706665,
+                  "nonFinite": 0,
+                  "nonZero": 15991,
+                  "hz": 261.6764268976701
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "captureContinuity": {
+            "captures": 56,
+            "frames": 524288,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 27648,
+              "lastFrame": 43904,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.0009765625,
+                "lastSample": 0.0019530653953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 27648,
+                "lastFrame": 43904,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.035029664762503555,
+                  "nonFinite": 0,
+                  "nonZero": 9102,
+                  "hz": 261.6659842555295
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.02627358105296662,
+                  "nonFinite": 0,
+                  "nonZero": 9102,
+                  "hz": 261.6659844793391
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "captureContinuity": {
+            "captures": 45,
+            "frames": 356352,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 5248,
+              "lastFrame": 21504,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 1,
+                "firstSample": 0,
+                "lastSample": 0.0009765028953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 5248,
+                "lastFrame": 21504,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.04637783975566216,
+                  "nonFinite": 0,
+                  "nonZero": 15991,
+                  "hz": 261.6764494506493
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.034785147102706665,
+                  "nonFinite": 0,
+                  "nonZero": 15991,
+                  "hz": 261.6764268976701
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "captureContinuity": {
+            "captures": 54,
+            "frames": 516096,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 48000,
+              "lastFrame": 64256,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.0009918212890625,
+                "lastSample": 0.0019683241844177246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 48000,
+                "lastFrame": 64256,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.03589568776600479,
+                  "nonFinite": 0,
+                  "nonZero": 9556,
+                  "hz": 261.67087257971696
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.026923131958745898,
+                  "nonFinite": 0,
+                  "nonZero": 9556,
+                  "hz": 261.6708786734791
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "reportSha256": "7c69feb88ed338632a737e3ef331807429437864760c24f21fec448cf9f3d1e0",
+      "reportBytes": 179426,
+      "checkerSha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7",
+      "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+      "archive": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ps1-starter-level-dev_itch_playground_for_run.zip",
+        "bytes": 37402929,
+        "sha256": "fe8095354a4b9ac453a191448488f95d1a46408bd98dfcbf6105bcf3804c6978"
+      },
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "servedAssets": 216,
+      "starterSources": {
+        "js/ps1synth.js": {
+          "bytes": 19932,
+          "sha256": "4c0fa7269c222e3f6e92d08af281776b76057df774fb83fab454c7c5106dfdb1"
+        }
+      },
+      "routes": [
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "captureContinuity": {
+            "captures": 44,
+            "frames": 352256,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 7168,
+              "lastFrame": 23424,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 1,
+                "firstSample": 0,
+                "lastSample": 0.0009765028953552246
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 7168,
+                "lastFrame": 23424,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.046424877243796125,
+                  "nonFinite": 0,
+                  "nonZero": 15994,
+                  "hz": 261.6618940595877
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.03482042777400727,
+                  "nonFinite": 0,
+                  "nonZero": 15994,
+                  "hz": 261.66189286590026
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "captureContinuity": {
+            "captures": 54,
+            "frames": 516096,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          },
+          "processorErrors": [],
+          "openingIsLazy": true,
+          "primaryReused": true,
+          "modeRoundTrip": {
+            "beforeSwitch": [
+              "running"
+            ],
+            "recreated": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 28160,
+              "lastFrame": 44416,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.00098419189453125,
+                "lastSample": 0.0019606947898864746
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 28160,
+                "lastFrame": 44416,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.06440813839435577,
+                  "rms": 0.03646621191609968,
+                  "nonFinite": 0,
+                  "nonZero": 9884,
+                  "hz": 261.66771719448525
+                },
+                {
+                  "peak": 0.048309050500392914,
+                  "rms": 0.027351047634878955,
+                  "nonFinite": 0,
+                  "nonZero": 9884,
+                  "hz": 261.6677294652232
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "npmBuild": {
+    "passed": true,
+    "modules": 335,
+    "wasmEngines": 28,
+    "declarations": 385,
+    "starterSourceMatchesCanonical": true,
+    "published": false
+  },
+  "remoteCiDispatched": false,
+  "tauriFrontendImported": false
+}

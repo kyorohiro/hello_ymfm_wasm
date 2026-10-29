@@ -1,4 +1,4 @@
-/** Freshness for calibration evidence, with two narrowly scoped UI cache aliases.
+/** Freshness for calibration evidence, with narrowly scoped reviewed revisions.
  * Measurement reports retain every original raw source hash. A separately pinned
  * receipt allows only the version values at six exact UI resource imports to
  * change. It cannot authorize a changed DSP, path, query, import body, or any
@@ -34,6 +34,9 @@ export const MIXER_CALIBRATION_PS1_ADSR_UI_PATHS=Object.freeze([
 export const MIXER_CALIBRATION_PS1_ADSR_UI_RELATED_PATHS=Object.freeze(['playground/playground_ps1_envelope.js']);
 export const MIXER_CALIBRATION_PS1_ADSR_UI_RECEIPT_PATH='docs/issues/ps1_adsr_graph_ui_receipt_01.json';
 export const MIXER_CALIBRATION_PS1_ADSR_UI_RECEIPT_OBJECT_SHA256='f46510bcf8593eeb1f39604c8ce6dec95c7dbdddbf58387fde9cdb084fd01da0';
+export const MIXER_CALIBRATION_PS1_STARTER_PATH='js/ps1synth.js';
+export const MIXER_CALIBRATION_PS1_STARTER_RECEIPT_PATH='docs/issues/ps1_init_sample_receipt_01.json';
+export const MIXER_CALIBRATION_PS1_STARTER_RECEIPT_OBJECT_SHA256="520bc2d22dba8f40083bab1bdf1f968c56549c9da4d7179c5bb6e77dae27de41";
 const ps1AdsrReports=['docs/issues/ps1_chip_levels_01.json','docs/issues/wonderswan_chip_levels_01.json','docs/issues/pokey_chip_levels_01.json'];
 const samePaths=(records,paths)=>records&&typeof records==='object'&&!Array.isArray(records)&&Object.keys(records).length===paths.length&&paths.every(path=>Object.hasOwn(records,path));
 const sourceRecord=record=>record&&Number.isSafeInteger(record.bytes)&&record.bytes>0&&digest(record.sha256);
@@ -135,4 +138,72 @@ export async function readMixerCalibrationPs1AdsrUiReceipt(root){
   const receipt=JSON.parse(await readFile(resolve(root,MIXER_CALIBRATION_PS1_ADSR_UI_RECEIPT_PATH),'utf8'));
   const relatedSources=Object.fromEntries(await Promise.all(MIXER_CALIBRATION_PS1_ADSR_UI_RELATED_PATHS.map(async path=>[path,await readFile(resolve(root,'docs',path))])));
   return {receipt,relatedSources,receiptObjectSha256:MIXER_CALIBRATION_PS1_ADSR_UI_RECEIPT_OBJECT_SHA256};
+}
+
+// This is deliberately a single, named, exact source revision rather than a
+// generic DSP normalizer. The pinned receipt retains both complete factory
+// fragments. Reconstructing the measured bytes also proves that every import,
+// class method, register write and render operation outside it is unchanged.
+function ps1StarterFactory(bytes){
+  const source=Buffer.from(bytes),text=source.toString('utf8');
+  if(!Buffer.from(text).equals(source))fail('invalid UTF-8 PS1 starter source');
+  const signature='export function createPs1InitSample() {';
+  if(text.split(signature).length!==2)fail('exactly one PS1 initial sample factory required');
+  const position=text.indexOf(signature),start=text.lastIndexOf('/**',position),commentEnd=text.indexOf('*/',start);
+  const end=text.indexOf('\n}',position)+2;
+  if(start<0||commentEnd<start||commentEnd>=position||text.slice(commentEnd+2,position).trim()||end<position||
+    (end<text.length&&text[end]!=='\n'))fail('complete PS1 initial sample factory and its adjacent JSDoc required');
+  return {text,start,end,factory:text.slice(start,end)};
+}
+
+/** Hash every source byte except the one named initial sample factory/JSDoc. */
+export function mixerCalibrationPs1StarterOutsideSha256(bytes){
+  const {text,start,end}=ps1StarterFactory(bytes);
+  return sha(text.slice(0,start)+'<createPs1InitSample>'+text.slice(end));
+}
+
+/** Restore only the reviewed initial instrument factory to its measured form.
+ * A calibration program resets RAM and explicitly loads its own reference;
+ * changing this unused starter does not change that output unit. Every other
+ * source byte must reconstruct the original measured hash. The original
+ * reports and reference programs are never rewritten or relabelled.
+ */
+export function restoreMixerCalibrationPs1StarterRevision({path,bytes,report,reportSha256,receipt,receiptObjectSha256}){
+  if(path!==MIXER_CALIBRATION_PS1_STARTER_PATH)fail('unsupported PS1 starter revision path: '+path);
+  if(!digest(receiptObjectSha256)||mixerCalibrationReceiptObjectSha256(receipt)!==receiptObjectSha256)fail('PS1 starter receipt does not match its independently pinned SHA');
+  const entry=receipt?.source;
+  if(receipt?.schemaVersion!==1||receipt.scope!=='ps1-initial-sample-revision'||receipt.feature!=='PS1 initial sine instrument level'||
+    !samePaths(receipt.reports,ps1AdsrReports)||entry?.path!==path||entry.function!=='createPs1InitSample'||
+    !sourceRecord(entry.before)||!sourceRecord(entry.after)||!digest(entry.outsideSha256)||
+    typeof entry.beforeFactory!=='string'||typeof entry.afterFactory!=='string')fail('PS1 starter receipt scope mismatch');
+  if(!digest(reportSha256)||!Object.values(receipt.reports).some(identity=>identity.sha256===reportSha256&&identity.objectSha256===sha(JSON.stringify(report))))fail('PS1 starter receipt report identity mismatch');
+  const original=report?.sources?.[path];
+  if(original?.bytes!==entry.before.bytes||original?.sha256!==entry.before.sha256)fail('PS1 starter receipt original asset record mismatch');
+  for(const factory of [entry.beforeFactory,entry.afterFactory]){
+    const parsed=ps1StarterFactory(factory);
+    if(parsed.start!==0||parsed.end!==factory.length)fail('PS1 starter receipt contains bytes outside the named factory');
+  }
+  const signature='export function createPs1InitSample() {',beforeBody=entry.beforeFactory.slice(entry.beforeFactory.indexOf(signature));
+  const edits=[
+    ['adpcm[block*16]=4; // Filter 0, shift 4.','adpcm[block*16]=0; // Filter 0, shift 0.'],
+    ['Math.round(7*Math.sin(2*Math.PI*frame/112))','Math.round(5*Math.sin(2*Math.PI*frame/112))'],
+  ];
+  let expectedBody=beforeBody;
+  for(const [before,after]of edits){
+    if(expectedBody.split(before).length!==2)fail('PS1 starter receipt must describe only the reviewed sample level edit');
+    expectedBody=expectedBody.replace(before,after);
+  }
+  if(entry.afterFactory.slice(entry.afterFactory.indexOf(signature))!==expectedBody)fail('PS1 starter receipt changes logic beyond the reviewed sample level edit');
+  if(Buffer.byteLength(bytes)!==entry.after.bytes||sha(bytes)!==entry.after.sha256)fail('PS1 starter revision changed; review a new exact revision: '+path);
+  const current=ps1StarterFactory(bytes);
+  if(current.factory!==entry.afterFactory||mixerCalibrationPs1StarterOutsideSha256(bytes)!==entry.outsideSha256)fail('PS1 starter outside-factory source changed');
+  const previous=Buffer.from(current.text.slice(0,current.start)+entry.beforeFactory+current.text.slice(current.end));
+  if(previous.length!==entry.before.bytes||sha(previous)!==entry.before.sha256||mixerCalibrationPs1StarterOutsideSha256(previous)!==entry.outsideSha256)fail('PS1 starter revision does not reconstruct the original source outside the named factory');
+  return previous;
+}
+
+/** Load the fixed starter receipt; no paths supplied by it are read. */
+export async function readMixerCalibrationPs1StarterReceipt(root){
+  const receipt=JSON.parse(await readFile(resolve(root,MIXER_CALIBRATION_PS1_STARTER_RECEIPT_PATH),'utf8'));
+  return {receipt,receiptObjectSha256:MIXER_CALIBRATION_PS1_STARTER_RECEIPT_OBJECT_SHA256};
 }

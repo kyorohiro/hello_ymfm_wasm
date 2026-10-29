@@ -1,0 +1,1221 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "browserUsed": false,
+  "audioContextCreated": false,
+  "physicalAudio": false,
+  "listeningPerformed": false,
+  "method": "Actual shipped WASM -> Ps1Spu -> Ps1Synth -> Ps1Resampler, one settled held voice at L/R .75, full sustain, no FX",
+  "pcmBlockFrames": 128,
+  "fullCaptureArraysRetained": false,
+  "mixer": {
+    "volume": 0.128832,
+    "frozenExpectedVolume": 0.128832,
+    "volumes": {
+      "standaloneCalibrated": 0.128832,
+      "playgroundPrimary": 0.128832,
+      "playgroundExtra": 0.128832
+    },
+    "source": "Generated Playground defaults and opt-in standalone calibrated preset",
+    "changed": false
+  },
+  "fixtures": [
+    {
+      "id": "oldStarterReference",
+      "authoring": "Historical factory reproduction only: filter0/shift4, signed sine codes -7..7",
+      "adpcmBytes": 64,
+      "adpcmSha256": "6d07028fdac50d0618b91bb5e4c937251c38dae828c00e70db4862af9746b17d",
+      "decodedPeak": 0.0546875,
+      "packetHeaders": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "baseFrequencyHz": 393.75,
+      "loopStartSamples": 0
+    },
+    {
+      "id": "starter",
+      "authoring": "Canonical createPs1InitSample(): filter0/shift0, signed sine codes -5..5",
+      "adpcmBytes": 64,
+      "adpcmSha256": "3e9a3b9ce143d347e469ffeaa2cbc6b84b1d8eeb282f49b4390e7ae3bcb6df11",
+      "decodedPeak": 0.625,
+      "packetHeaders": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "baseFrequencyHz": 393.75,
+      "loopStartSamples": 0
+    },
+    {
+      "id": "editorSine",
+      "authoring": "Panel Sine formula: .65 * sin(2*pi*i/112), preparePs1Waveform(), private editor upload",
+      "adpcmBytes": 64,
+      "adpcmSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+      "inputPeak": 0.65,
+      "packetHeaders": [
+        0,
+        37,
+        38,
+        38
+      ],
+      "baseFrequencyHz": 393.75,
+      "loopStartSamples": 0
+    },
+    {
+      "id": "calibrationReference",
+      "authoring": "buildPs1CalibrationReference().decodedReference, unchanged independent reference",
+      "adpcmBytes": 64,
+      "adpcmSha256": "ab53d89a4a20bda3ac5d165a4f918a67da4143fed2b8b4954e9a9c0e751eba0d",
+      "decodedPeak": 0.875,
+      "packetHeaders": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "baseFrequencyHz": 393.75,
+      "loopStartSamples": 0
+    }
+  ],
+  "routes": [
+    {
+      "fixture": "oldStarterReference",
+      "outputRate": 44100,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 8820,
+      "captureFrames": 44100,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 44100,
+          "minimum": -0.041013121604919434,
+          "maximum": 0.040982604026794434,
+          "peak": 0.041013121604919434,
+          "halfPeakToPeak": 0.040997862815856934,
+          "dc": -0.000017326477864364378,
+          "rms": 0.028996384267836777,
+          "acRms": 0.028996379091210972,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42520,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.005859017372131348,
+          "pcmFloat32LeSha256": "a3dc083c94910865227caafcb7789af1af029b2f60e90920bd82842330f20306"
+        },
+        {
+          "frames": 44100,
+          "minimum": -0.041013121604919434,
+          "maximum": 0.040982604026794434,
+          "peak": 0.041013121604919434,
+          "halfPeakToPeak": 0.040997862815856934,
+          "dc": -0.000017326477864364378,
+          "rms": 0.028996384267836777,
+          "acRms": 0.028996379091210972,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42520,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.005859017372131348,
+          "pcmFloat32LeSha256": "a3dc083c94910865227caafcb7789af1af029b2f60e90920bd82842330f20306"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.000002737916523054551,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.005283802482604981,
+            "acRms": 0.003735661511078892
+          },
+          {
+            "peak": 0.005283802482604981,
+            "acRms": 0.003735661511078892
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "starter",
+      "outputRate": 44100,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 8820,
+      "captureFrames": 44100,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 44100,
+          "minimum": -0.4686908721923828,
+          "maximum": 0.4686603546142578,
+          "peak": 0.4686908721923828,
+          "halfPeakToPeak": 0.4686756134033203,
+          "dc": -0.000010775866920377662,
+          "rms": 0.33781934940854264,
+          "acRms": 0.33781934923667667,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42524,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "34f8132badad9a4eb735b393d2ab5ee7fa6da2468373718a39812c659be33df2"
+        },
+        {
+          "frames": 44100,
+          "minimum": -0.4686908721923828,
+          "maximum": 0.4686603546142578,
+          "peak": 0.4686908721923828,
+          "halfPeakToPeak": 0.4686756134033203,
+          "dc": -0.000010775866920377662,
+          "rms": 0.33781934940854264,
+          "acRms": 0.33781934923667667,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42524,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "34f8132badad9a4eb735b393d2ab5ee7fa6da2468373718a39812c659be33df2"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.00000424181023461756,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.06038238244628907,
+            "acRms": 0.04352194240085953
+          },
+          {
+            "peak": 0.06038238244628907,
+            "acRms": 0.04352194240085953
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "editorSine",
+      "outputRate": 44100,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 8820,
+      "captureFrames": 44100,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 44100,
+          "minimum": -0.4878547489643097,
+          "maximum": 0.4879463016986847,
+          "peak": 0.4879463016986847,
+          "halfPeakToPeak": 0.4879005253314972,
+          "dc": -0.00008470960311980204,
+          "rms": 0.3446088515187271,
+          "acRms": 0.34460884110733325,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 43704,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "e92cd9175ef59624281abb4e31bd39ccc3ad8defa7500bc00c51578d44b8bcef"
+        },
+        {
+          "frames": 44100,
+          "minimum": -0.4878547489643097,
+          "maximum": 0.4879463016986847,
+          "peak": 0.4879463016986847,
+          "halfPeakToPeak": 0.4879005253314972,
+          "dc": -0.00008470960311980204,
+          "rms": 0.3446088515187271,
+          "acRms": 0.34460884110733325,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 43704,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "e92cd9175ef59624281abb4e31bd39ccc3ad8defa7500bc00c51578d44b8bcef"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.0000013864429607712836,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.06286309794044495,
+            "acRms": 0.044396646217539956
+          },
+          {
+            "peak": 0.06286309794044495,
+            "acRms": 0.044396646217539956
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "calibrationReference",
+      "outputRate": 44100,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 8820,
+      "captureFrames": 44100,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 44100,
+          "minimum": -0.6561794281005859,
+          "maximum": 0.6561489105224609,
+          "peak": 0.6561794281005859,
+          "halfPeakToPeak": 0.6561641693115234,
+          "dc": -0.000012496815035605377,
+          "rms": 0.4640929184092844,
+          "acRms": 0.46409291824103105,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42524,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72"
+        },
+        {
+          "frames": 44100,
+          "minimum": -0.6561794281005859,
+          "maximum": 0.6561489105224609,
+          "peak": 0.6561794281005859,
+          "halfPeakToPeak": 0.6561641693115234,
+          "dc": -0.000012496815035605377,
+          "rms": 0.4640929184092844,
+          "acRms": 0.46409291824103105,
+          "measuredFrequencyHz": 439.98772755164657,
+          "nonfinite": 0,
+          "nonzero": 42524,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.09374427795410156,
+          "pcmFloat32LeSha256": "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.0000026916581312708132,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.08453690808105468,
+            "acRms": 0.059790018842828516
+          },
+          {
+            "peak": 0.08453690808105468,
+            "acRms": 0.059790018842828516
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "oldStarterReference",
+      "outputRate": 48000,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 9600,
+      "captureFrames": 48000,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 48000,
+          "minimum": -0.041013121604919434,
+          "maximum": 0.040982604026794434,
+          "peak": 0.041013121604919434,
+          "halfPeakToPeak": 0.040997862815856934,
+          "dc": -0.000017334807709409244,
+          "rms": 0.02897704616967545,
+          "acRms": 0.028977040984613046,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47233,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.005382973700761795,
+          "pcmFloat32LeSha256": "a17edfdb26970c30d90377029ca24e34047e63a3937704df67c14340704ddbc8"
+        },
+        {
+          "frames": 48000,
+          "minimum": -0.041013121604919434,
+          "maximum": 0.040982604026794434,
+          "peak": 0.041013121604919434,
+          "halfPeakToPeak": 0.040997862815856934,
+          "dc": -0.000017334807709409244,
+          "rms": 0.02897704616967545,
+          "acRms": 0.028977040984613046,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47233,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.005382973700761795,
+          "pcmFloat32LeSha256": "a17edfdb26970c30d90377029ca24e34047e63a3937704df67c14340704ddbc8"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.000003214737080536878,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.005283802482604981,
+            "acRms": 0.003733170144129668
+          },
+          {
+            "peak": 0.005283802482604981,
+            "acRms": 0.003733170144129668
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "starter",
+      "outputRate": 48000,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 9600,
+      "captureFrames": 48000,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 48000,
+          "minimum": -0.4686908721923828,
+          "maximum": 0.4686603546142578,
+          "peak": 0.4686908721923828,
+          "halfPeakToPeak": 0.4686756134033203,
+          "dc": -0.00001081880399595055,
+          "rms": 0.3375159095573266,
+          "acRms": 0.3375159093839325,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47237,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612757921218872,
+          "pcmFloat32LeSha256": "02dcd3198c535f5f38c002ff6a9ce575e2f1790de4c3fb30d5e89e107a3c0261"
+        },
+        {
+          "frames": 48000,
+          "minimum": -0.4686908721923828,
+          "maximum": 0.4686603546142578,
+          "peak": 0.4686908721923828,
+          "halfPeakToPeak": 0.4686756134033203,
+          "dc": -0.00001081880399595055,
+          "rms": 0.3375159095573266,
+          "acRms": 0.3375159093839325,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47237,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612757921218872,
+          "pcmFloat32LeSha256": "02dcd3198c535f5f38c002ff6a9ce575e2f1790de4c3fb30d5e89e107a3c0261"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.0000039308894290712715,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.06038238244628907,
+            "acRms": 0.043482849637750794
+          },
+          {
+            "peak": 0.06038238244628907,
+            "acRms": 0.043482849637750794
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "editorSine",
+      "outputRate": 48000,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 9600,
+      "captureFrames": 48000,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 48000,
+          "minimum": -0.4878160357475281,
+          "maximum": 0.4879157841205597,
+          "peak": 0.4879157841205597,
+          "halfPeakToPeak": 0.4878659099340439,
+          "dc": -0.00008444380162435058,
+          "rms": 0.34444997992775245,
+          "acRms": 0.3444499695768217,
+          "measuredFrequencyHz": 439.9898567642524,
+          "nonfinite": 0,
+          "nonzero": 48000,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612756431102753,
+          "pcmFloat32LeSha256": "55a860a784be389e288ce4008a2170259f124b4481b5429647eead1bc8e8cd52"
+        },
+        {
+          "frames": 48000,
+          "minimum": -0.4878160357475281,
+          "maximum": 0.4879157841205597,
+          "peak": 0.4879157841205597,
+          "halfPeakToPeak": 0.4878659099340439,
+          "dc": -0.00008444380162435058,
+          "rms": 0.34444997992775245,
+          "acRms": 0.3444499695768217,
+          "measuredFrequencyHz": 439.9898567642524,
+          "nonfinite": 0,
+          "nonzero": 48000,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612756431102753,
+          "pcmFloat32LeSha256": "55a860a784be389e288ce4008a2170259f124b4481b5429647eead1bc8e8cd52"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 9.188064006293573e-7,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.06285916629981994,
+            "acRms": 0.0443761784805211
+          },
+          {
+            "peak": 0.06285916629981994,
+            "acRms": 0.0443761784805211
+          }
+        ]
+      },
+      "passed": true
+    },
+    {
+      "fixture": "calibrationReference",
+      "outputRate": 48000,
+      "nativeSampleRate": 44100,
+      "requestedFrequencyHz": 440,
+      "effectiveFrequencyHz": 439.98870849609375,
+      "warmupFrames": 9600,
+      "captureFrames": 48000,
+      "registers": {
+        "volumeLeft": 12287,
+        "volumeRight": 12287,
+        "pitch": 4577,
+        "adsr1": 15,
+        "adsr2": 0,
+        "envelope": 32767,
+        "masterLeft": 16383,
+        "masterRight": 16383,
+        "reverbLeft": 0,
+        "reverbRight": 0
+      },
+      "channels": [
+        {
+          "frames": 48000,
+          "minimum": -0.6561794281005859,
+          "maximum": 0.6561489105224609,
+          "peak": 0.6561794281005859,
+          "halfPeakToPeak": 0.6561641693115234,
+          "dc": -0.00001262763810292237,
+          "rms": 0.4637834679307086,
+          "acRms": 0.4637834677587995,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47237,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612757921218872,
+          "pcmFloat32LeSha256": "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5"
+        },
+        {
+          "frames": 48000,
+          "minimum": -0.6561794281005859,
+          "maximum": 0.6561489105224609,
+          "peak": 0.6561794281005859,
+          "halfPeakToPeak": 0.6561641693115234,
+          "dc": -0.00001262763810292237,
+          "rms": 0.4637834679307086,
+          "acRms": 0.4637834677587995,
+          "measuredFrequencyHz": 439.98997744926083,
+          "nonfinite": 0,
+          "nonzero": 47237,
+          "overrange": 0,
+          "maximumAdjacentJump": 0.08612757921218872,
+          "pcmFloat32LeSha256": "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5"
+        }
+      ],
+      "stereoMaximumDifference": 0,
+      "heldRmsRelativeDifference": 0.000003198344871613301,
+      "keyOff": {
+        "renderedFramesBeforeTail": 2048,
+        "tail": {
+          "frames": 256,
+          "minimum": 0,
+          "maximum": 0,
+          "peak": 0,
+          "halfPeakToPeak": 0,
+          "dc": 0,
+          "rms": 0,
+          "acRms": 0,
+          "measuredFrequencyHz": null,
+          "nonfinite": 0,
+          "nonzero": 0,
+          "overrange": 0,
+          "maximumAdjacentJump": 0,
+          "pcmFloat32LeSha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        }
+      },
+      "stop": {
+        "method": "Ps1Synth.stopVoices(); Ps1Resampler.reset()",
+        "channels": [
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          },
+          {
+            "frames": 2048,
+            "minimum": 0,
+            "maximum": 0,
+            "peak": 0,
+            "halfPeakToPeak": 0,
+            "dc": 0,
+            "rms": 0,
+            "acRms": 0,
+            "measuredFrequencyHz": null,
+            "nonfinite": 0,
+            "nonzero": 0,
+            "overrange": 0,
+            "maximumAdjacentJump": 0,
+            "pcmFloat32LeSha256": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+          }
+        ]
+      },
+      "estimatedPostMixer": {
+        "method": "Measured core/resampler statistics multiplied by generated source gain; no browser Mixer capture",
+        "gain": 0.128832,
+        "channels": [
+          {
+            "peak": 0.08453690808105468,
+            "acRms": 0.059750151718301656
+          },
+          {
+            "peak": 0.08453690808105468,
+            "acRms": 0.059750151718301656
+          }
+        ]
+      },
+      "passed": true
+    }
+  ],
+  "comparisons": [
+    {
+      "outputRate": 44100,
+      "starterToOldAcRmsGain": 11.650397733249127,
+      "expectedCodecPeakGain": 11.428571428571429,
+      "allowedGainRange": [
+        10,
+        13
+      ],
+      "starterToEditorSineAcRmsDb": -0.17283788625565036,
+      "allowedEditorDifferenceDb": 1,
+      "calibrationReferenceUnchanged": true,
+      "frozenCalibrationAdpcmSha256": "ab53d89a4a20bda3ac5d165a4f918a67da4143fed2b8b4954e9a9c0e751eba0d",
+      "frozenCalibrationPcmFloat32LeSha256": [
+        "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72",
+        "cdb23f22ef72910ccd28d77ebc39a99c488e639c7f7d62278b4242fb007c3b72"
+      ],
+      "passed": true
+    },
+    {
+      "outputRate": 48000,
+      "starterToOldAcRmsGain": 11.647701004500602,
+      "expectedCodecPeakGain": 11.428571428571429,
+      "allowedGainRange": [
+        10,
+        13
+      ],
+      "starterToEditorSineAcRmsDb": -0.1766380374841199,
+      "allowedEditorDifferenceDb": 1,
+      "calibrationReferenceUnchanged": true,
+      "frozenCalibrationAdpcmSha256": "ab53d89a4a20bda3ac5d165a4f918a67da4143fed2b8b4954e9a9c0e751eba0d",
+      "frozenCalibrationPcmFloat32LeSha256": [
+        "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5",
+        "b008c0f40eb7e97807bb74993983a9dd9b37e11c66b28ad204a45a4315b1daa5"
+      ],
+      "passed": true
+    }
+  ],
+  "sources": [
+    {
+      "path": "scripts/check_ps1_starter_levels.mjs",
+      "bytes": 15966,
+      "sha256": "5998998bc03b6ced802253a30ab488fc00b56c8c5e69b1a2710b86735935f2a7"
+    },
+    {
+      "path": "scripts/soundchip_calibration_ps1.mjs",
+      "bytes": 3834,
+      "sha256": "3adf98bbecf204d5c035bef8e85570dc3055878fe04914849b978eba38154177"
+    },
+    {
+      "path": "web/ps1synth.js",
+      "bytes": 19850,
+      "sha256": "3d04f34b37f2f06c53d998a79bd48fc8032633b5e53b329ed24bcd75e778ea48"
+    },
+    {
+      "path": "web/ps1_spu.js",
+      "bytes": 9450,
+      "sha256": "cfb428d0d3b44522d871734754b07c9c9e19ed00d4d755aa45bcdadbd011d743"
+    },
+    {
+      "path": "web/ps1_resampler.js",
+      "bytes": 4241,
+      "sha256": "b9143ecd0231f9119cb5d7e5c635a2d4b09e4ff708ea5213cca9a16803afa4e6"
+    },
+    {
+      "path": "web/ps1_waveform.js",
+      "bytes": 1107,
+      "sha256": "d8ed7dde19ff1b78ce537ee403df111294718a6e62a8d1d65cae5710f66f3964"
+    },
+    {
+      "path": "web/ps1_adpcm_encoder.js",
+      "bytes": 8080,
+      "sha256": "d5c7e1bc6ac0542db0b0967db5173544c62f6993ac3c0afe598bc831cfcec221"
+    },
+    {
+      "path": "docs/playground/playground_ps1_voice_panel.js",
+      "bytes": 35990,
+      "sha256": "658ef9d485f21919a33c8e0349e8273a6c7bf484c1c8deb2f87d711911dd7292"
+    },
+    {
+      "path": "docs/playground/playground_mixer_defaults.js",
+      "bytes": 12504,
+      "sha256": "f9b6dac75bb423a0d15e3fa6ebc1018d44655961a505ea8f9c23f4a673f9e12f"
+    },
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "bytes": 3201,
+      "sha256": "925d9818682a56ed26da91b8515efc57243fee158aafb0e0fb5c08e9cc3cd76e"
+    },
+    {
+      "path": "docs/js/soundchip_mixer.js",
+      "bytes": 26367,
+      "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+    },
+    {
+      "path": "docs/generated/ps1_spu_wasm.js",
+      "bytes": 16551,
+      "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+    },
+    {
+      "path": "docs/generated/ps1_spu_wasm.wasm",
+      "bytes": 44899,
+      "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+    }
+  ],
+  "limits": [
+    "Offline generated PCM only; no Main/Worker transport, browser Mixer, realtime deadline, physical output, or listening test.",
+    "Estimated post-Mixer statistics are arithmetic projections using the unchanged generated gain, not measurements of a browser audio graph.",
+    "The editor and factory use different ADPCM authoring; comparable AC RMS does not imply identical timbre or perceived loudness.",
+    "Calibration-reference stability compares against independently authored original packets through the same shipped core; it is not a new hardware-accuracy claim."
+  ]
+}

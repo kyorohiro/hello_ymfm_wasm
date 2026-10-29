@@ -17,11 +17,16 @@ test('PS1 reference has explicit decoded headroom, loop, tuning and no Mixer edi
   assert.equal(metadata.decodedSamples[0],metadata.decodedSamples.at(-1),'the quantized loop closes at zero');
   assert.ok(metadata.decodedSamples.every((value,index)=>Math.abs(value-Math.sin(2*Math.PI*index/112)*.875)<=1/16),'decode is a quantized original sine');
   assert.ok(!/mixer|setVolume|masterVolume/.test(reference.setup),'source setup must not silently install a Mixer correction');
-  // The authored starter intentionally has a smaller codec input. Calibrating
-  // it as a full-scale waveform would inflate every musical sample sixteenfold.
+  // The starter is an authored instrument, not the immutable full-unit
+  // calibration reference. Its later level adjustment must not redefine gain.
   const starter=createPs1InitSample();
-  assert.equal(starter.adpcm[0],4);assert.equal(metadata.adpcmBytes[0],0);
-  assert.deepEqual([...starter.adpcm].filter((_,i)=>i%16!==0),metadata.adpcmBytes.filter((_,i)=>i%16!==0));
+  assert.equal(starter.adpcm[0],0);assert.equal(metadata.adpcmBytes[0],0);
+  assert.notDeepEqual([...starter.adpcm],metadata.adpcmBytes);
+  const decoded = Array.from({length:112},(_,frame) => {
+    const block=Math.floor(frame/28),within=frame%28,nibble=(starter.adpcm[block*16+2+Math.floor(within/2)]>>(within%2*4))&15;
+    return (nibble>=8?nibble-16:nibble)/8;
+  });
+  assert.equal(Math.max(...decoded),.625);assert.equal(Math.min(...decoded),-.625);
 });
 
 test('PS1 reference roles and supported pitches are explicit and deterministic',()=>{

@@ -17,6 +17,27 @@ const peak=values=>values.reduce((v,x)=>Math.max(v,Math.abs(x)),0);
 function frequency(values,rate){let edges=0,first=-1,last=-1;for(let at=1;at<values.length;at++)if(values[at-1]<=0&&values[at]>0){if(first<0)first=at;last=at;edges++;}return (edges-1)*rate/(last-first);}
 function cloneFixture(){const {adpcm,...options}=createPs1InitSample();return {adpcm,options};}
 
+test('the starter is a centered audible sine with unchanged packet layout, tuning and owned buffers',()=>{
+  const first=createPs1InitSample(),second=createPs1InitSample();
+  assert.equal(first.adpcm.length,64);assert.equal(first.baseFrequencyHz,44100/112);assert.equal(first.loopStartSamples,0);
+  const prepared=preparePs1ADPCM(first.adpcm,{baseFrequencyHz:first.baseFrequencyHz,loopStartSamples:first.loopStartSamples});
+  assert.equal(prepared.decodedFrames,112);assert.equal(prepared.loop,true);
+  const decoded=[];
+  for(let block=0;block<4;block++){
+    assert.equal(first.adpcm[block*16],0,'filter0/shift0 has no predictor history');
+    assert.equal(first.adpcm[block*16+1],block===0?6:block===3?3:0);
+    for(let frame=0;frame<28;frame++){
+      const nibble=(first.adpcm[block*16+2+Math.floor(frame/2)]>>(frame%2*4))&15;
+      decoded.push((nibble>=8?nibble-16:nibble)/8);
+    }
+  }
+  assert.equal(Math.max(...decoded),.625);assert.equal(Math.min(...decoded),-.625);
+  assert.equal(decoded.reduce((sum,value)=>sum+value,0),0);
+  assert(decoded.every((value,index)=>Math.abs(value-.625*Math.sin(2*Math.PI*index/112))<=1/16));
+  assert.equal(decoded[0],decoded.at(-1),'the authored loop closes at zero');
+  first.adpcm.fill(255);assert.notDeepEqual(first.adpcm,second.adpcm);assert.deepEqual(createPs1InitSample(),second);
+});
+
 test('PS1 private waveform slots are isolated, reused, and independent of shared sample RAM',async t=>{
   const{synth,core}=await create(t),shared=load(synth),original=core.readRam(shared.startAddress,64);
   for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample:shared});

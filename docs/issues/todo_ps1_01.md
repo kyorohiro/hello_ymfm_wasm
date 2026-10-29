@@ -34,6 +34,7 @@ Source and the actual Run ZIP pass Chromium / WebKit × Main / Worker (8 routes)
 
 ## Following milestones
 
+- [x] Match the initial index.js/Keyboard instrument to the editor Sine level while retaining calibrated Mixer gain. See [ps1_init_sample_01.md](ps1_init_sample_01.md).
 - [x] Add PCM → SPU ADPCM conversion with explicit loop and tuning metadata.
 - [x] Add Sample Editor conversion, before/after comparison, actual SPU preview and saved Keyboard instruments.
 - [x] Add live SPU-tab sound design: named ADSR, owned-note retrigger, sustained audition and shared reverb with per-voice sends.

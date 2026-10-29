@@ -1,5 +1,9 @@
 # PS1: Mixer基準音量の測定
 
+追記（2026-10-29）：以下のshift 4の初期音色に関する説明は測定時点の記録。
+初期音色はその後、[Sineと同程度の振幅へ調整](ps1_init_sample_01.md)した。
+測定用の基準波形、元の測定JSONとMixer係数`0.128832`は維持している。
+
 2026-10-29。PS1の単音デジタル出力を専用波形で測定し、Playgroundの
 System built-inとnpmの任意の`calibrated` presetへ反映する。
 PS1のprimary／追加instanceはともに **`1.0 → 0.128832`**。

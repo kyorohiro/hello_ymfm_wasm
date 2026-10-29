@@ -1,3 +1,11 @@
+## 2026-10-29 — PS1の初期音色をSPUタブのSineと同程度へ調整
+
+- ユーザーがindex.js／Keyboardの初期音色の小ささを確認し、初期sample側の調整を承認。共通`createPs1InitSample()`だけをfilter0／shift4／±7からfilter0／shift0／±5へ変更し、decoded peak `0.0546875 → 0.625`。64bytes／112frames／音程／loop／flagsは保持。Browser／Worker／Native JS初期化は同じfactoryを使う。docs mirror同期済み。
+- 実WASMの44.1／48kHz比較でRMSは旧sampleの11.6504／11.6477倍、tab Sineとの差は−0.1728／−0.1766dB。保持音・周波数・stereo一致・非clip・key-off／Stop exact silenceを確認。Mixer `0.128832`、voice volume、ADSRとuser sample／presetは変更なし。新しいbounded checkerをitch web CIへ追加。
+- Core／Native parity68件、校正／出典356件成功。測定原本JSON・基準generatorを変更せず、factory以外の全byteを原測定sourceへ厳密に再構成する専用receiptを追加。生成器の`--check`成功。実source Chromium／WebKit×Main／Worker4経路、実Run ZIP WebKit Main／Worker2経路の初期code・Guitar／PC Keyboard・試奏・Stop・error recovery・追加SPU・mode往復も成功。物理出力はmute、実聴やNative device検証は行っていない。
+- 両Playground ZIP CRC成功。Runは931files、SHA256 `fe8095354a4b9ac453a191448488f95d1a46408bd98dfcbf6105bcf3804c6978`、`release/hello_ymfm_wasm_ps1-starter-level-dev_itch_playground_for_run.zip`。npm向け335modules／28engines／385declarations build成功、初期sample sourceがcanonicalと一致。actionlint成功。
+- 詳細：[ps1_init_sample_01.md](ps1_init_sample_01.md)、同名JSON、`ps1_init_sample_levels_01.json`と`ps1_init_sample_receipt_01.json`。未commit／未push／未公開。npmのregistry公開、SDK更新、Tauri frontend importとremote CI起動は行っていない。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1 SPUのADSR図を直接ドラッグ編集
 
 - SPUタブへA／D／S／Rの操作点を追加。左右は各rate、Dの上下はSustain Level。矢印キーでも1段階調整でき、数値欄と連動する。クリックだけでは書き込まず、PC Keyboardの試奏focusを保持。既存Retrigger設定で、このeditorが保持するnoteへ反映する。
