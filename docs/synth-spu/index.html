@@ -78,6 +78,7 @@
             <button id="instrumentTab-adsr" type="button" role="tab" data-spu-editor-tab="adsr" aria-controls="instrumentPanel-adsr" aria-selected="false" tabindex="-1">ADSR</button>
             <button id="instrumentTab-fx" type="button" role="tab" data-spu-editor-tab="fx" aria-controls="instrumentPanel-fx" aria-selected="false" tabindex="-1">FX</button>
             <button id="instrumentTab-audio" type="button" role="tab" data-spu-editor-tab="audio" aria-controls="instrumentPanel-audio" aria-selected="false" tabindex="-1">Audio</button>
+            <button id="instrumentTab-bank" type="button" role="tab" data-spu-editor-tab="bank" aria-controls="instrumentPanel-bank" aria-selected="false" tabindex="-1">PSF / VAB</button>
           </div>
           <div id="spuVoicePanel" class="chip-editor"></div>
           <section id="instrumentPanel-audio" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-audio" hidden>
@@ -94,17 +95,31 @@
               <label class="check-control" for="sampleLoop"><input id="sampleLoop" type="checkbox"> Loop imported audio</label>
             </div>
             <p class="subtext">Choose looping before loading a file. The root note sets the sample’s original pitch.</p>
+          </section>
+          <section id="instrumentPanel-bank" class="chip-section audio-panel" role="tabpanel" aria-labelledby="instrumentTab-bank" hidden>
             <h3>PS1 sound bank</h3>
-            <p class="subtext">Load a standard Sony VAB (version 6 or 7), or select its matching VH and VB files together. Choose one Tone, then load it to play. PSF files are not supported yet.</p>
+            <p class="subtext">Open a standard Sony VAB (version 6 or 7), matching VH + VB files, or a PSF1 / MiniPSF set with all its PSFLib files. Opening or extracting a bank keeps the current instrument.</p>
             <div class="sample-actions">
               <button id="loadVab" type="button">Open VAB / VH + VB…</button>
               <input id="vabFileInput" class="file-input" type="file" accept=".vab,.vh,.vb" multiple aria-label="Choose a VAB or matching VH and VB files">
+              <button id="loadPsf" type="button">Open PSF set…</button>
+              <input id="psfFileInput" class="file-input" type="file" accept=".psf,.psf1,.minipsf,.minipsf1,.psflib,.psf1lib" multiple aria-label="Choose PSF and related PSFLib files together">
+              <button id="loadPsfFolder" type="button">Open PSF folder…</button>
+              <input id="psfFolderInput" class="file-input" type="file" multiple webkitdirectory aria-label="Choose a folder containing a PSF set">
+            </div>
+            <div class="sample-settings">
+              <label>PSF entry <select id="psfEntry" aria-label="PSF entry" disabled></select></label>
+              <button id="extractPsf" type="button" disabled>Extract VAB banks</button>
+            </div>
+            <div class="sample-settings">
+              <label>Sound bank <select id="vabBank" aria-label="Sound bank" disabled></select></label>
             </div>
             <div class="sample-settings">
               <label>Tone <select id="vabTone" aria-label="VAB Tone" disabled></select></label>
               <button id="loadVabTone" type="button" disabled>Load selected Tone</button>
             </div>
             <p id="vabStatus" class="subtext" role="status" aria-live="polite">No sound bank opened.</p>
+            <p class="subtext">For PSF, choose an entry and extract its banks, then select a bank and Tone. Unavailable Tones are disabled. Static extraction supports contiguous standard VAB banks; separate VH/VB layouts, custom or runtime-packed banks may not be found. PSF2 and song playback are not supported. Extract ZIP archives before selecting their files or folder.</p>
             <p class="subtext">Imports the original ADPCM, loop, ADSR and tuning. One Tone plays across the keyboard; key zones, layers and driver vibrato/portamento are not applied. Volume and pan are approximations. Reverb send uses the current shared reverb settings. Loading a Tone stops notes and turns off PMON, Noise and Software morph.</p>
           </section>
         </section>

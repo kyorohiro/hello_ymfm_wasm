@@ -76,6 +76,7 @@ h1 .brand-u { color: #1d60ad; }
 .instrument-tabs [data-spu-editor-tab="adsr"] { border-top-color: #bb962e; }
 .instrument-tabs [data-spu-editor-tab="fx"] { border-top-color: #477cba; }
 .instrument-tabs [data-spu-editor-tab="audio"] { border-top-color: #7d8d9b; }
+.instrument-tabs [data-spu-editor-tab="bank"] { border-top-color: #668b7d; white-space: nowrap; }
 .instrument-tabs [role="tab"]:hover { background: #e5eaee; color: #303d49; }
 .instrument-tabs [role="tab"][aria-selected="true"] { color: #293b4c; background: #edf0f2; border-bottom-color: #edf0f2; font-weight: 750; }
 .instrument-workspace .chip-section[role="tabpanel"] { width: 100%; border-radius: 10px; min-height: 250px; }
@@ -206,7 +207,7 @@ footer a { color: #4a5e74; }
   .monitor-pitch input { width: 24px; height: 125px; min-height: 105px; }
   .monitor-pitch output { font-size: .65rem; }
   .instrument-tabs { gap: 4px; padding-inline: 5px; }
-  .instrument-tabs [role="tab"] { flex: 1; min-width: 0; padding: 9px 7px; font-size: .74rem; }
+  .instrument-tabs [role="tab"] { flex: 1; min-width: 0; padding: 9px 4px; font-size: .7rem; }
   .instrument-workspace .chip-section[role="tabpanel"] { min-height: 230px; }
   .instrument-toolbar { padding-block: 14px; }
   .preset-actions { gap: 6px; }

@@ -13,13 +13,13 @@ Master volume uses the existing calibrated PS1 System gain as its reference.
 
 1. Select **Enable audio**. Opening the page does not start an audio context.
 2. Play the displayed number/letter keys or click the on-screen keys.
-3. Use **PCM**, **ADSR**, **FX** and **Audio** beneath the monitor to edit the
+3. Use **PCM**, **ADSR**, **FX**, **Audio** and **PSF / VAB** beneath the monitor to edit the
    common instrument. PCM is selected initially.
 
 **PCM** draws a short repeating waveform. **ADSR** contains the envelope
 parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.
 **Audio** loads recordings or longer audio files and sets their root note and
-looping option. Tab changes keep sounding notes and the current settings.
+looping option. **PSF / VAB** imports PlayStation sound banks and extracts supported banks from PSF sets. Tab changes keep sounding notes and the current settings.
 Use Left / Right, Home and End when a settings tab has keyboard focus.
 
 The keyboard rotates through the SPU's 24 physical voices, choosing an available
@@ -80,12 +80,31 @@ remain available in [Playground](../playground/index.html?mode=ps1).
 
 ## PS1 sound banks
 
-In **Audio**, choose **Open VAB / VH + VB…**. Select one complete `.vab`, or
+In **PSF / VAB**, choose **Open VAB / VH + VB…**. Select one complete `.vab`, or
 select its matching `.vh` and `.vb` together. Standard Sony versions 6 and 7
 are supported. Opening a bank lists its Tones without changing the current
 instrument. Select a Tone and choose **Load selected Tone**, then play the
 keyboard. **Save preset** stores the imported sample and settings in the usual
 `.spu.json` format.
+
+For **PSF1 / MiniPSF**, choose **Open PSF set…** and select the song and all
+referenced PSFLib files together, or use **Open PSF folder…** to retain library
+subdirectories. Extract ZIP archives first. Select a **PSF entry**, choose
+**Extract VAB banks**, then select a **Sound bank** and **Tone** and choose
+**Load selected Tone**. This shares Playground's local PSF parser: CRC and
+zlib validation, library resolution and RAM overlays precede standard VAB
+detection. Opening files or extracting banks leaves the current instrument
+and sounding notes in place. Missing dependencies and malformed input show an
+error; finding no standard bank is a separate result and keeps the previous bank.
+
+Unavailable Tones are disabled with a reason in their option title, and the
+first playable Tone is selected automatically. This matters for banks with
+unassigned samples or unsupported ADPCM packets. PSF input is limited to 512
+files, 4 MiB per file and 64 MiB total, with bounded expansion and dependencies.
+Extraction runs locally without executing game code or fetching libraries.
+PSF2, song playback, separate VH/VB layouts inside PSF, custom formats and
+runtime-packed banks are outside this static extraction path. It cannot
+recover every game's instruments.
 
 The importer keeps the original SPU ADPCM payload, ADSR registers and loop
 position. Bytes after the first END packet are excluded; unsupported packet
@@ -101,9 +120,10 @@ vibrato/portamento and per-game controller state are not reproduced. Sample
 255 (libsnd Noise), multiple loop-start markers and one-shot samples with
 loop-start markers are currently rejected. Imported samples use physical SPU
 RAM; reopening banks or choosing different sample/tuning combinations can
-exhaust the available space. Reusing a Tone in the same opened bank reuses its
-sample allocation. Reload the page for a fresh RAM bank after saving presets.
-PSF/MiniPSF extraction and custom bank formats are planned separately.
+exhaust the available space. Reusing a Tone in the same opened bank, including
+after switching between extracted banks, reuses its sample allocation. Opening
+or extracting banks again starts a new cache. Reload the page for a fresh RAM
+bank after saving presets.
 
 ## Envelope behaviour
 
@@ -120,7 +140,7 @@ notes that are already playing.
 The envelope graph shows stage relationships, not measured elapsed time.
 Rates are register indexes: lower is faster. In the retained core, release
 rates 27–31 hold indefinitely. The core uses the same approximate ADSR,
-linear interpolation and named reverb implementations as Playground.
+four-point Gaussian interpolation and named reverb implementations as Playground.
 
 ## Development
 

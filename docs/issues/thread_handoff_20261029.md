@@ -4,6 +4,25 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 公開準備：2026-10-30 PSF / VAB専用タブとdevlog
+
+ユーザーがPSF読み込みの動作確認後、Audioから独立した **PSF / VAB** タブへ移動。
+5タブのnavigation・音の保持・390px表示を維持。Morph確認応答とUI描画の間でチェックが戻る競合も修正。
+76 Node tests、最終展開ZIPのChromium・WebKit全回帰成功。公開用 `release/tetorica_spu_synth_dev_itch.zip` を作成。
+[公開準備・検証記録](spu_synth_bank_tab_release_01.md)、[英語devlog原稿](devlog_spu_psf_vab.md)。
+ZIPの包装labelは既定devで、新しい公開versionは採番していない。itch.ioへのアップロード・投稿は未実施。
+複数作品での対応確認や未対応形式は後続TODO。Playgroundの校正freshness gateも別TODOのまま。
+
+## 後続機能：2026-10-30 SPU SynthでもPSF音色インポート
+
+PlaygroundのPSF1／MiniPSF静的抽出をStandalone Synthへ接続（後続でPSF / VAB専用タブへ移動）。
+Open PSF set／folder → entry → Extract VAB banks → bank／Tone → Load selected Toneで鍵盤演奏・preset保存。
+非対応Toneを無効化し、最初の対応Toneを自動選択。ファイル読み込み・抽出途中のreset／新規loadで旧処理を取り消す。
+67 Standalone tests＋9共通PSF tests成功。ソース版は全Synth回帰、新規展開ZIPはVAB／PSFをChromium・WebKitで確認。
+実Clock Towerセットでも対応Toneの発音を確認。PSF2・曲再生・分離VH／VB・独自／runtime形式は未対応。
+[操作・検証・試用ZIP](spu_synth_psf_import_01.md)。未公開。npm・DSP／WASM変更、git操作なし。
+Playground公開前の校正freshness gateは別TODOのまま。
+
 ## 後続機能：2026-10-30 PlaygroundでPSFからVAB抽出
 
 PSF1／MiniPSF＋PSFLibの複数ファイル・フォルダー選択、CRC／zlib検証、RAM重ね合わせと連続VAB検出を追加。

@@ -8,13 +8,14 @@ const {createHash} = require('node:crypto');
 const {chromium, webkit} = require('playwright');
 const {PROCESSOR_NAMES, processorSource, analyzePilotPcm, analyzeClockRows} = require('./audio_clock_audit.cjs');
 
-const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, engines:[]};
+const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, engines:[]};
 const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
 for (let i = 2; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--help') {console.log(usage); process.exit(0);}
+  if (arg === '--psf-only') {config.psfOnly=true;continue;}
   if (['--chromium-only', '--webkit-only'].includes(arg)) {config.engines.push(arg.slice(2, -5)); continue;}
-  const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture)(?:=(.*))?$/); assert(match, usage);
+  const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture|psfFixture)(?:=(.*))?$/); assert(match, usage);
   const value = match[2] ?? process.argv[++i]; assert(value && !value.startsWith('--'), usage);
   config[match[1]] = match[1] === 'entry' ? value : path.resolve(value);
 }
@@ -197,7 +198,7 @@ async function fastEnvelope(page) {
   for (const [name, value] of Object.entries({'attack-rate':0, 'attack-exponential':false, 'decay-rate':0, 'sustain-level':15, 'sustain-rate':0, 'sustain-decrease':false, 'sustain-exponential':false, 'release-rate':0, 'release-exponential':false})) await field(page, name, value);
 }
 
-const editorNames = ['pcm', 'adsr', 'fx', 'audio'];
+const editorNames = ['pcm', 'adsr', 'fx', 'audio', 'bank'];
 async function assertEditorTab(page, name, {focused = false} = {}) {
   const snapshot = await page.evaluate(names => ({tabs:names.map(value => {
     const button = document.querySelector(`[data-spu-editor-tab="${value}"]`), content = document.getElementById(`instrumentPanel-${value}`);
@@ -228,14 +229,14 @@ async function shape(page, name) {await editorTab(page, 'pcm'); await page.locat
 async function navigateEditorTabs(page) {
   for (const name of editorNames) await editorTab(page, name);
   await page.locator('[data-spu-editor-tab="pcm"]').focus();
-  const navigation = [['ArrowRight', 'adsr'], ['ArrowRight', 'fx'], ['ArrowRight', 'audio'], ['ArrowRight', 'pcm'], ['ArrowLeft', 'audio'], ['Home', 'pcm'], ['End', 'audio']];
+  const navigation = [['ArrowRight', 'adsr'], ['ArrowRight', 'fx'], ['ArrowRight', 'audio'], ['ArrowRight', 'bank'], ['ArrowRight', 'pcm'], ['ArrowLeft', 'bank'], ['Home', 'pcm'], ['End', 'bank']];
   for (const [key, name] of navigation) {await page.keyboard.press(key); await assertEditorTab(page, name, {focused:true});}
   await editorTab(page, 'pcm');
   return navigation;
 }
 async function checkEditorTabsBeforeAudio(page) {
   console.log('CHECK settings tabs: default PCM / accessible navigation / audio-lazy selection');
-  assert.deepEqual(await page.locator('[data-spu-editor-tab]').allTextContents(), ['PCM', 'ADSR', 'FX', 'Audio']);
+  assert.deepEqual(await page.locator('[data-spu-editor-tab]').allTextContents(), ['PCM', 'ADSR', 'FX', 'Audio', 'PSF / VAB']);
   await assertEditorTab(page, 'pcm');
   const commands = await page.evaluate(() => __spuSynthAudit.commands.length);
   const navigation = await navigateEditorTabs(page);
@@ -550,7 +551,7 @@ async function checkVab(page, keyboardHz) {
   console.log('CHECK VAB: combined / split / original ADPCM / fine tune / preset / focused keyboard');
   const {createVabFixture}=await import('../test/helpers/spu_vab_fixture.mjs');
   const {vab,vh,vb}=createVabFixture();
-  await editorTab(page,'audio');
+  await editorTab(page,'bank');
   const before=await settled(page);
   await page.locator('#vabFileInput').setInputFiles({name:'original.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
   await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('original.vab:'));
@@ -581,7 +582,7 @@ async function checkVab(page, keyboardHz) {
   await page.locator('#presetFileInput').setInputFiles({name:'vab.spu.json',mimeType:'application/json',buffer:bytes});
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded original.vab P3 T1.');
   await settled(page); await hold(page); const roundTrip=await audible(page,'VAB preset round trip',expectedHz); await release(page); await silent(page,'Restored VAB release');
-  await editorTab(page,'audio');
+  await editorTab(page,'bank');
   await page.locator('#vabFileInput').setInputFiles([
     {name:'pair.vb',mimeType:'application/octet-stream',buffer:Buffer.from(vb)},
     {name:'pair.vh',mimeType:'application/octet-stream',buffer:Buffer.from(vh)},
@@ -598,14 +599,141 @@ async function checkVab(page, keyboardHz) {
   const invalid=vab.slice(); invalid[vh.length+16]=0xf0;
   await page.locator('#vabFileInput').setInputFiles({name:'bad-packet.vab',mimeType:'application/octet-stream',buffer:Buffer.from(invalid)});
   await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('bad-packet.vab:'));
-  await page.locator('#loadVabTone').click();
-  await page.waitForFunction(()=>document.getElementById('vabStatus').dataset.error==='true');
+  assert.equal(await page.locator('#vabTone option:disabled').count(),2,'Bad sample disables only its Tones');
+  assert.equal(await page.locator('#vabTone').inputValue(),'2','First playable Tone is selected');
   const rejected=await settled(page); assert.deepEqual(rejected.auditions,held.auditions); assert.equal(rejected.channels[0].sample,held.channels[0].sample);
   await audible(page,'Rejected VAB keeps held Tone',44100/112*keyboardHz/(440*2**((60-69)/12)));
   await page.keyboard.up('y'); await settled(page); await silent(page,'VAB error release');
   await page.locator('#vabFileInput').setInputFiles({name:'original.vab',mimeType:'application/octet-stream',buffer:Buffer.from(vab)});
   await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('original.vab:'));
   return {fixture:'original synthetic VAB (no game data)',combined:true,split:true,originalAdpcm:true,positiveFineTune:true,ramReused:true,focusedSelectPlayable:true,presetRoundTrip:true,invalidBankKeepsHeldNote:true,pcm,roundTrip};
+}
+
+async function checkPsf(page,keyboardHz) {
+  console.log('CHECK PSF: files / folder / overlays / banks / keyboard / preset / errors / cancellation');
+  const {createPsfFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
+  const fixture=createPsfFixture();
+  const payload=(name,bytes)=>({name,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
+  const open=async files=>{
+    await page.locator('#psfFileInput').setInputFiles(files);
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Opened '));
+  };
+  const extract=async()=>{
+    await page.locator('#extractPsf').click();
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Extracted '));
+  };
+  const load=async()=>{
+    await page.locator('#loadVabTone').click();
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Loaded '));
+    return settled(page);
+  };
+  await editorTab(page,'bank');
+  const before=await settled(page);
+  await open(payload('demo.psf',fixture.standalone)); await extract();
+  assert.equal(await page.locator('#vabBank option').count(),2);
+  assert.equal((await settled(page)).channels[0].sample,before.channels[0].sample);
+  await page.locator('#vabBank').selectOption('1');
+  await page.locator('#vabTone').selectOption('1');
+  const imported=await load(),sample=imported.samples.find(s=>s.id===imported.channels[0].sample);
+  assert.equal(sample.rootFrequencyHz,440*2**((59.5-69)/12));
+  const expectedHz=44100/112*keyboardHz/sample.rootFrequencyHz;
+  const focused=[];
+  for (const id of ['psfEntry','vabBank','vabTone']) {
+    await page.locator('#'+id).focus(); await page.keyboard.down('y'); await settled(page);
+    focused.push({control:id,pcm:await audible(page,'PSF focused '+id,expectedHz)});
+    await page.keyboard.up('y'); await settled(page); await silent(page,'PSF focus release');
+  }
+  const nextAddress=(await current(page)).nextAddress;
+  await page.locator('#vabBank').selectOption('0');await page.locator('#vabBank').selectOption('1');
+  await page.locator('#vabTone').selectOption('1');await load();
+  assert.equal((await current(page)).nextAddress,nextAddress,'Switching banks preserves sample cache');
+  const downloaded=page.waitForEvent('download'); await page.locator('#savePreset').click();
+  const presetBytes=await fs.readFile(await (await downloaded).path()),preset=JSON.parse(presetBytes);
+  const {createPs1InitSample}=await import('../web/ps1synth.js');
+  assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
+  await page.locator('#resetPreset').click();await settled(page);
+  await page.locator('#presetFileInput').setInputFiles(payload('psf.spu.json',presetBytes));
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded '+document.getElementById('instrumentName').value+'.' && document.getElementById('instrumentName').value.includes('demo.psf'));
+  await settled(page);await hold(page);const roundTrip=await audible(page,'PSF preset roundtrip',expectedHz);await release(page);await silent(page,'PSF restored release');
+  // Dependencies fail without replacing the bank or interrupting a held note.
+  await editorTab(page,'bank');await page.locator('h1').click();await page.keyboard.down('y');await settled(page);
+  const held=await current(page),bankName=await page.locator('#vabBank option').first().textContent();
+  await open(payload('missing.minipsf',fixture.mini));await page.locator('#extractPsf').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').dataset.error==='true');
+  assert.match(await page.locator('#vabStatus').textContent(),/missing|not found/i);
+  const corrupt=fixture.standalone.slice();corrupt[12]^=1;
+  await page.locator('#psfFileInput').setInputFiles(payload('crc.psf',corrupt));
+  await page.waitForFunction(()=>document.getElementById('vabStatus').dataset.error==='true' && /CRC/.test(document.getElementById('vabStatus').textContent));
+  await open(payload('empty.psf',makePsf(new Uint8Array(16))));await page.locator('#extractPsf').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('No standard VAB'));
+  assert.equal(await page.locator('#vabStatus').getAttribute('data-error'),'false');
+  assert.equal(await page.locator('#vabBank option').first().textContent(),bankName);
+  assert.deepEqual((await settled(page)).auditions,held.auditions);
+  await audible(page,'PSF failures preserve held note',expectedHz);
+  await page.keyboard.up('y');await settled(page);await silent(page,'PSF errors release');
+  // Folder selection retains relative paths, including the lib subdirectory.
+  const dir=await fs.mkdtemp(path.join(require('node:os').tmpdir(),'spu-psf-browser-'));
+  try {
+    await fs.mkdir(path.join(dir,'Demo/lib'),{recursive:true});
+    for (const file of fixture.files) await fs.writeFile(path.join(dir,file.webkitRelativePath),Buffer.from(await file.arrayBuffer()));
+    await fs.writeFile(path.join(dir,'Demo/README.txt'),'Non-PSF files are ignored.');
+    await page.locator('#psfFolderInput').setInputFiles(path.join(dir,'Demo'));
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Opened 3'));
+    await extract(); assert.equal(await page.locator('#vabBank option').count(),2);
+    await page.locator('#vabTone').selectOption('1');
+    const mini=await load(),miniSample=mini.samples.find(s=>s.id===mini.channels[0].sample);
+    assert.equal(miniSample.rootFrequencyHz,sample.rootFrequencyHz,'_lib2 overlay restores positive fine tune');
+  } finally {await fs.rm(dir,{recursive:true,force:true});}
+  // A delayed file read must not overwrite a newer reset.
+  await page.evaluate(()=>{
+    const original=File.prototype.arrayBuffer;
+    let resume;const gate=new Promise(resolve=>resume=resolve);
+    window.__finishPsfRead=()=>{File.prototype.arrayBuffer=original;resume();};
+    File.prototype.arrayBuffer=async function(){if(this.name==='delayed.psf')await gate;return original.call(this);};
+  });
+  await page.locator('#psfFileInput').setInputFiles(payload('delayed.psf',fixture.standalone));
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent==='Reading PSF set…');
+  await page.locator('#resetPreset').click();await settled(page);
+  await page.evaluate(()=>__finishPsfRead());await page.waitForTimeout(100);
+  assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+  assert.equal(await page.locator('#vabStatus').textContent(),'Sound bank operation cancelled.');
+  assert(!(await page.locator('#extractPsf').isDisabled()));
+  // Delay inflation to force cancellation while extraction is actually running.
+  await page.evaluate(()=>{
+    const Original=DecompressionStream;let resume;
+    const gate=new Promise(resolve=>resume=resolve);
+    window.__finishPsfInflate=()=>{window.DecompressionStream=Original;resume();};
+    window.DecompressionStream=class {constructor(format){const stream=new Original(format);this.writable=stream.writable;this.readable=stream.readable.pipeThrough(new TransformStream({async transform(chunk,controller){await gate;controller.enqueue(chunk);}}));}};
+  });
+  await page.locator('#extractPsf').click();
+  await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Expanding '));
+  await page.locator('#resetPreset').click();await settled(page);
+  await page.evaluate(()=>__finishPsfInflate());await page.waitForTimeout(100);
+  assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+  assert.equal(await page.locator('#vabStatus').textContent(),'Sound bank operation cancelled.');
+  await extract();await load();
+  const layouts=[];
+  for (const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});
+    const layout=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth}));
+    assert(layout.document<=layout.viewport+1,'PSF long paths fit mobile');layouts.push(layout);
+    if(config.screenshots){await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`psf-${page.context().browser().browserType().name()}-${width}.png`),fullPage:true});}
+  }
+  await page.setViewportSize({width:1440,height:1100});
+  let real=null;
+  if(config.psfFixture) {
+    const files=(await fs.readdir(config.psfFixture)).filter(name=>/\.(psf|psflib)$/i.test(name)).sort();
+    await page.locator('#psfFileInput').setInputFiles(files.map(name=>path.join(config.psfFixture,name)));
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.startsWith('Opened '));
+    await extract();
+    const tones=await page.locator('#vabTone option').count(),unavailable=await page.locator('#vabTone option:disabled').count(),selected=await page.locator('#vabTone').inputValue();
+    assert(tones>0 && Number(selected)>=0 && unavailable<tones);
+    const loaded=await load();await page.locator('#vabTone').focus();await page.keyboard.down('y');await settled(page);
+    const pcm=await audible(page,'Real PSF first available Tone');await page.keyboard.up('y');await settled(page);
+    await page.locator('#stopAudio').click();await silent(page,'Real PSF stop');
+    real={files:files.length,entry:await page.locator('#psfEntry').inputValue(),tones,unavailable,selected,adpcmBytes:loaded.samples.find(s=>s.id===loaded.channels[0].sample).byteLength,pcm};
+  }
+  return {fixture:'original synthetic PSF; no game data distributed',standalone:true,miniPsfFolder:true,multipleBanks:true,originalAdpcm:true,fineTuneOverlay:true,bankCacheReused:true,presetRoundTrip:true,focused,roundTrip,invalidImportsKeepHeldNote:true,readCancelledByReset:true,extractionCancelledByReset:true,layouts,real};
 }
 
 async function checkNoise(page,name) {
@@ -777,7 +905,27 @@ async function checkMorph(page,name) {
   const download=page.waitForEvent('download');await page.locator('#savePreset').click();
   const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
   assert(preset.morph.enabled);assert.equal(preset.morph.amount,.37);
-  await set('enabled',false);assert(await upperMorph.isDisabled());assert.deepEqual((await current(page)).channels[0].waveform.pcm,preset.waveform,'Off freezes blend');
+  await editorTab(page,'pcm');await settled(page);
+  const confirmedToggle=await page.evaluate(async()=>{
+    const original=requestAnimationFrame,queued=[],from=__spuSynthAudit.commands.length;
+    window.requestAnimationFrame=callback=>{queued.push(callback);return -queued.length;};
+    try {
+      const checkbox=document.querySelector('[data-morph="enabled"]');checkbox.click();
+      const end=performance.now()+5000;
+      while(performance.now()<end) {
+        const command=__spuSynthAudit.commands.slice(from).find(c=>c.method==='setInstrumentMorph');
+        if(command && __spuSynthAudit.replies.has(`${command.port}:${command.id}`)) {
+          return {checked:checkbox.checked,upperDisabled:document.getElementById('morphAmount').disabled,confirmed:true,queuedFrames:queued.length};
+        }
+        await new Promise(resolve=>setTimeout(resolve,10));
+      }
+      throw new Error('Morph confirmation timed out with UI frames paused');
+    } finally {window.requestAnimationFrame=original;for(const callback of queued)original(callback);}
+  });
+  assert(confirmedToggle.confirmed && confirmedToggle.queuedFrames>0);
+  assert.equal(confirmedToggle.checked,false,'Confirmed Morph Off cannot revert before the next UI frame');
+  assert(confirmedToggle.upperDisabled,'Both Morph controls follow confirmation before the next frame');
+  await settled(page);assert(await upperMorph.isDisabled());assert.deepEqual((await current(page)).channels[0].waveform.pcm,preset.waveform,'Off freezes blend');
   await shape(page,'sine');assert(!(await settled(page)).morph.enabled);
   await page.locator('#presetFileInput').setInputFiles({name:'morph.spu.json',mimeType:'application/json',buffer:bytes});
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
@@ -796,7 +944,7 @@ async function checkMorph(page,name) {
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
   assert(!(await settled(page)).morph.enabled);
   await page.locator('#resetPreset').click();assert(!(await settled(page)).morph.enabled);
-  return {softwareLabel:true,dualMorphControls:true,upperMorphWorksOutsidePcm:true,morphRetainsOnRelease:true,performancePcm,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
+  return {softwareLabel:true,dualMorphControls:true,confirmedToggle,upperMorphWorksOutsidePcm:true,morphRetainsOnRelease:true,performancePcm,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
 }
 
 async function checkSineChordHeadroom(page) {
@@ -855,6 +1003,12 @@ async function runCase(browser, name, origin) {
     const computerKey = page.locator('#keyboardMount .key[data-key="y"]');
     await computerKey.waitFor({state:'visible'});
     const keyboardNote = (await computerKey.locator('span').textContent()).trim(), keyboardHz = noteFrequency(keyboardNote);
+    if(config.psfOnly) {
+      const vab=await checkVab(page,keyboardHz),psf=await checkPsf(page,keyboardHz);
+      const audit=await page.evaluate(()=>({processorErrors:__spuSynthAudit.processorErrors,physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(s=>s.gate.gain.value===0),pcmContinuous:__spuSynthAudit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid)}));
+      assert(audit.physicalOutputMuted && audit.pcmContinuous);assert.deepEqual(audit.processorErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
+      return {browser:name,version:browser.version(),scope:'VAB and PSF import',vab,psf,...audit};
+    }
     const idleFrom = await page.evaluate(() => __spuSynthAudit.commands.length);
     await page.waitForTimeout(250);
     const idleCommands = await page.evaluate(from => __spuSynthAudit.commands.slice(from), idleFrom);
@@ -1015,6 +1169,7 @@ async function runCase(browser, name, origin) {
     const morph=await checkMorph(page,name);
     const longAudio=await checkLongAudio(page);
     longAudio.vab=await checkVab(page,keyboardHz);
+    longAudio.psf=await checkPsf(page,keyboardHz);
 
     console.log(`CHECK ${name}: real audio failure / explicit user retry`);
     await page.evaluate(async () => {const context = [...__spuSynthAudit.contexts].reverse().find(value => value.state !== 'closed'); await context.close();});
@@ -1030,7 +1185,7 @@ async function runCase(browser, name, origin) {
     if (config.screenshots) await fs.mkdir(config.screenshots, {recursive:true});
     for (const [label, width, height] of [['desktop', 1440, 1100], ['mobile', 390, 844]]) {
       await page.setViewportSize({width, height});
-      for (const [mode, editor] of [['envelope', 'pcm'], ['waveform', 'pcm'], ['spectrum', 'pcm'], ['envelope', 'adsr'], ['envelope', 'fx'], ['envelope', 'audio']]) {
+      for (const [mode, editor] of [['envelope', 'pcm'], ['waveform', 'pcm'], ['spectrum', 'pcm'], ['envelope', 'adsr'], ['envelope', 'fx'], ['envelope', 'audio'], ['envelope', 'bank']]) {
         await monitorMode(page, mode); await editorTab(page, editor);
         const dimensions = await page.evaluate(() => {
           const plot = document.querySelector('.monitor-plot').getBoundingClientRect(), pitch = document.getElementById('pitchBend').getBoundingClientRect(), morph = document.getElementById('morphAmount').getBoundingClientRect();
@@ -1052,7 +1207,7 @@ async function runCase(browser, name, origin) {
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
     return {browser:name, version:browser.version(), brand, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
-    const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
+    const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20).map(c=>({...c,args:['loadADPCM','setInstrumentWaveform','loadTone'].includes(c.method)?'[sample data omitted]':c.args})), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});
   } finally {await context.close();}
 }

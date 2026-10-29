@@ -9,6 +9,7 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
+import {PSF_FILES, readPsfFileSet, extractPsfVabs} from '../playground/playground_ps1_psf.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
@@ -95,6 +96,7 @@ function selectEditorTab(name, focus = false) {
   if (!selected) return;
   panel.setSection(name);
   $('instrumentPanel-audio').hidden = name !== 'audio';
+  $('instrumentPanel-bank').hidden = name !== 'bank';
   for (const button of editorTabs) {
     const active = button === selected;
     button.setAttribute('aria-selected', String(active));
@@ -272,7 +274,7 @@ function encodeInWorker(pcm, options) {
 $('loadAudio').addEventListener('click', () => $('audioFileInput').click());
 $('audioFileInput').addEventListener('change', async () => {
   const file = $('audioFileInput').files[0]; $('audioFileInput').value = ''; if (!file) return;
-  const operation = ++assetEpoch;
+  const operation = beginAssetOperation();
   preparation?.cancel();
   const rootNote = Number($('sampleRootNote').value), loop = $('sampleLoop').checked;
   try {
@@ -308,14 +310,87 @@ function download(name, contents) {
   const link = document.createElement('a'); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
-let vabBank = null, vabName = '', vabSamples = new Map(), vabReadEpoch = 0;
+let vabBank = null, vabName = '', vabSamples = new Map(), bankChoices = [], psfSet = null, bankReadController = null;
 const vabStatus = (message, error=false) => { $('vabStatus').textContent=message; $('vabStatus').dataset.error=String(error); };
+function updateBankControls() {
+  const busy=Boolean(bankReadController);
+  $('psfEntry').disabled=$('extractPsf').disabled=busy||!psfSet;
+  $('vabBank').disabled=busy||!bankChoices.length;
+  $('vabTone').disabled=busy||!vabBank;
+  $('loadVabTone').disabled=busy||!vabBank||$('vabTone').value==='';
+}
+function beginAssetOperation() {
+  const reading=Boolean(bankReadController);
+  bankReadController?.abort(); bankReadController=null;
+  if (reading) vabStatus('Sound bank operation cancelled.');
+  updateBankControls();
+  return ++assetEpoch;
+}
+function chooseBank(index) {
+  const choice=bankChoices[index]; if (!choice) return;
+  vabBank=choice.bank; vabName=choice.name; vabSamples=choice.samples;
+  const availability=new Map(); let first=null;
+  $('vabTone').replaceChildren(...vabBank.tones.map((tone,index)=>{
+    if (!availability.has(tone.sample)) {
+      try {prepareVabTone(vabBank,index); availability.set(tone.sample,'');}
+      catch (error) {availability.set(tone.sample,error.message);}
+    }
+    const reason=availability.get(tone.sample);
+    const option=new Option(`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · ${noteName(tone.center)} +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}${reason?' · unavailable':''}`,String(index));
+    option.disabled=Boolean(reason); if (reason) option.title=reason; else first??=index;
+    return option;
+  }));
+  $('vabTone').value=first===null?'':String(first); updateBankControls();
+}
+function showBanks(choices) {
+  bankChoices=choices.map(choice=>({...choice,samples:new Map()}));
+  $('vabBank').replaceChildren(...choices.map((choice,index)=>new Option(choice.name,String(index))));
+  $('vabBank').value='0'; chooseBank(0);
+}
+$('vabBank').addEventListener('change',()=>{beginAssetOperation();chooseBank(Number($('vabBank').value));});
+$('vabTone').addEventListener('change',()=>{beginAssetOperation();updateBankControls();});
+$('psfEntry').addEventListener('change',()=>beginAssetOperation());
+$('loadPsf').addEventListener('click',()=>$('psfFileInput').click());
+$('loadPsfFolder').addEventListener('click',()=>$('psfFolderInput').click());
+async function openPsf(input,isFolder) {
+  const selected=[...input.files]; input.value=''; if (!selected.length) return;
+  const operation=beginAssetOperation(); preparation?.cancel();
+  bankReadController=new AbortController(); const signal=bankReadController.signal;
+  updateBankControls(); vabStatus('Reading PSF set…');
+  try {
+    const next=await readPsfFileSet(isFolder?selected.filter(file=>PSF_FILES.test(file.name)):selected,{signal});
+    if (operation!==assetEpoch) return;
+    psfSet=next;
+    $('psfEntry').replaceChildren(...next.entries.map(entry=>new Option(`${entry.path}${entry.title?` · ${entry.title}`:''}`,entry.path)));
+    vabStatus(`Opened ${next.records.size} PSF/library files. Choose a PSF entry and Extract VAB banks. Current instrument is kept.`);
+  } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
+  finally {if (operation===assetEpoch) {bankReadController=null;updateBankControls();}}
+}
+$('psfFileInput').addEventListener('change',()=>openPsf($('psfFileInput'),false));
+$('psfFolderInput').addEventListener('change',()=>openPsf($('psfFolderInput'),true));
+$('extractPsf').addEventListener('click',async()=>{
+  if (!psfSet || bankReadController) return;
+  const operation=beginAssetOperation(), entry=$('psfEntry').value;
+  preparation?.cancel(); bankReadController=new AbortController(); const signal=bankReadController.signal;
+  updateBankControls(); vabStatus('Expanding PSF libraries and searching for VAB banks…');
+  try {
+    const result=await extractPsfVabs(psfSet,entry,{signal});
+    if (operation!==assetEpoch) return;
+    if (!result.banks.length) {
+      vabStatus(`No standard VAB found in ${entry}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${vabBank?' Previous bank is kept.':''}`);
+      return;
+    }
+    showBanks(result.banks.map(found=>({bank:found.bank,name:`${entry} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
+    vabStatus(`Extracted ${result.banks.length} VAB banks from ${entry} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.`);
+  } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
+  finally {if (operation===assetEpoch) {bankReadController=null;updateBankControls();}}
+});
 $('loadVab').addEventListener('click', () => $('vabFileInput').click());
 $('vabFileInput').addEventListener('change', async () => {
   const files = [...$('vabFileInput').files]; $('vabFileInput').value='';
   if (!files.length) return;
-  ++assetEpoch; preparation?.cancel();
-  const revision = ++vabReadEpoch;
+  const operation=beginAssetOperation(); preparation?.cancel();
+  bankReadController=new AbortController(); updateBankControls();
   try {
     if (files.some(file => file.size > MAX_VAB_FILE_BYTES)) throw new RangeError('Each VAB / VH / VB file must be at most 1 MiB');
     let header, body;
@@ -325,16 +400,15 @@ $('vabFileInput').addEventListener('change', async () => {
     vabStatus('Reading sound bank…');
     const [vh, vb] = await Promise.all([header.arrayBuffer(), body?.arrayBuffer()]);
     const bank = readVab(vh, vb);
-    if (revision!==vabReadEpoch) return;
-    vabBank=bank; vabName=header.name; vabSamples=new Map();
-    const options=bank.tones.map((tone, index) => new Option(`Program ${tone.program} · Tone ${tone.index} · Sample ${tone.sample} · ${noteName(tone.center)} +${tone.shift}/128 st · keys ${tone.keyLow}–${tone.keyHigh}`, String(index)));
-    $('vabTone').replaceChildren(...options); $('vabTone').disabled=false; $('loadVabTone').disabled=false;
+    if (operation!==assetEpoch) return;
+    showBanks([{bank,name:header.name}]);
     vabStatus(`${vabName}: ${bank.programs.length} programs · ${bank.tones.length} tones · ${bank.samples.length} samples. Choose a Tone and load it.`);
-  } catch (error) {if (revision===vabReadEpoch) vabStatus(`${error.message}${vabBank ? ' Previous bank is kept.' : ''}`,true);}
+  } catch (error) {if (operation===assetEpoch) vabStatus(`${error.message}${vabBank ? ' Previous bank is kept.' : ''}`,true);}
+  finally {if (operation===assetEpoch) {bankReadController=null;updateBankControls();}}
 });
 $('loadVabTone').addEventListener('click', async () => {
-  if (!vabBank) return;
-  const operation=++assetEpoch, bank=vabBank, cache=vabSamples, name=vabName, index=Number($('vabTone').value);
+  if (!vabBank || bankReadController || $('vabTone').value==='') return;
+  const operation=beginAssetOperation(), bank=vabBank, cache=vabSamples, name=vabName, index=Number($('vabTone').value);
   preparation?.cancel();
   try {
     // Validate bytes/tuning before stopping or changing the current sound.
@@ -380,7 +454,7 @@ $('savePreset').addEventListener('click', async () => {
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
 $('presetFileInput').addEventListener('change', async () => {
   const file = $('presetFileInput').files[0]; $('presetFileInput').value = ''; if (!file) return;
-  const operation = ++assetEpoch;
+  const operation = beginAssetOperation();
   preparation?.cancel();
   try {
     if (file.size > MAX_INSTRUMENT_BYTES) throw new RangeError('Instrument file exceeds 224 MiB');
@@ -411,7 +485,7 @@ $('presetFileInput').addEventListener('change', async () => {
   } catch (error) {if (operation === assetEpoch) report(error);}
 });
 $('resetPreset').addEventListener('click', async () => {
-  const operation = ++assetEpoch; preparation?.cancel();
+  const operation = beginAssetOperation(); preparation?.cancel();
   try {
     const engine = await ensureAudio();
     if (operation !== assetEpoch) return;
@@ -430,7 +504,7 @@ $('resetPreset').addEventListener('click', async () => {
   } catch (error) {report(error);}
 });
 window.addEventListener('pagehide', event => {
-  epoch++; ++assetEpoch; preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
+  epoch++; beginAssetOperation(); preparation?.cancel(); releaseKeyboard(true); panel.setVisible(false);
   if (event.persisted) visualizer.stop(); else visualizer.dispose();
   if (audio) void audio.stop().catch(() => {});
 });

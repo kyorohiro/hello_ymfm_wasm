@@ -1,7 +1,7 @@
 # SPU Synth: VAB／PSFからの音色インポート — 2026-10-30
 
 ユーザー依頼でTODO化。過去のPS1ゲームの音色を取り込み、SPU Synthで弾いて検証できるようにする。
-標準VABの初期インポートを実装・合成バンクで検証済み。実ゲーム由来のファイルでの対応率は未検証。
+標準VABのインポートとPSF静的抽出を実装。Clock Towerの1セットで初回確認済み。複数作品での対応率は未検証。
 実装範囲・検証記録は [VABインポート](spu_synth_vab_import_01.md) を参照。
 
 2026-10-30：PlaygroundのSPUタブにも選択Voiceへの読み込み・試奏を追加。
@@ -35,10 +35,12 @@
 - [x] ブラウザで関連ファイルをまとめて選べる導線を用意する。
   展開サイズ、アドレス範囲、再帰深度を制限し、循環参照を検出する。
 - [x] 抽出したバンクを①の音色一覧へ渡す。検出不能と読み込みエラーを区別して表示する。
+- [x] PlaygroundのPSF抽出処理をSPU Synthでも共用し、PSF / VABタブからPSF／MiniPSFのファイル・フォルダー選択、bank／Tone選択、鍵盤演奏・preset保存へつなぐ。
+  再生不能Toneを無効化し、最初の対応Toneを自動選択。読み込み／抽出中のresetは旧処理を取り消す。
 - [ ] 複数の実PSFセットで検証し、対応例・未対応形式を記録する。
   Clock Tower - The First Fearの1セット（20 entries）で初回確認済み。
 
-2026-10-30の実装・操作・合成デモ・検証：[Playground PSF抽出](playground_spu_psf_01.md)。
+2026-10-30の実装・操作・合成デモ・検証：[Playground PSF抽出](playground_spu_psf_01.md)、[SPU Synth PSFインポート](spu_synth_psf_import_01.md)。
 
 ## 3. 後続候補（必要な作品から検討）
 

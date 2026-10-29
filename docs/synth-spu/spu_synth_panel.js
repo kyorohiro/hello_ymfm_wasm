@@ -169,7 +169,12 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   }
   async function changeMorph(patch) {
     morphDraft=readMorph({...morphDraft,...patch});displayMorph();morphInFlight++;
-    try {await invoke('setInstrumentMorph',[morphDraft]);}
+    try {
+      // The audio reply can arrive before the coalesced UI snapshot is drawn.
+      // Keep its confirmed settings so finishing a change cannot briefly
+      // restore the previous checkbox/slider value until that next frame.
+      lastMorph=readMorph(await invoke('setInstrumentMorph',[morphDraft]));
+    }
     catch(error){options.onError?.(error);}
     finally {if(--morphInFlight===0){morphDraft=readMorph(lastMorph);displayMorph();}}
   }
@@ -241,20 +246,20 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   for (const button of pmon.querySelectorAll('[data-pmon-ratio]')) button.addEventListener('click',() => {controls.ratio.value=button.dataset.pmonRatio; void changePmon();});
   let activeSection = 'pcm', visible = true;
   return {...panel, setSection(name) {
-    if (![...sectionNames, 'audio'].includes(name)) throw new RangeError('Unknown SPU instrument section');
+    if (![...sectionNames, 'audio', 'bank'].includes(name)) throw new RangeError('Unknown SPU instrument section');
     if (name === activeSection) return;
     // Cancel a drawing/ADSR gesture before hiding its controls. Keyboard note
     // ownership belongs to the standalone controller and is unaffected.
     cancelMorphStroke();panel.setVisible(false);
     activeSection = name;
-    root.hidden = name === 'audio';
+    root.hidden = !sectionNames.includes(name);
     sections.forEach((section, index) => {section.hidden = sectionNames[index] !== name;});
-    panel.setVisible(visible && name !== 'audio');
+    panel.setVisible(visible && sectionNames.includes(name));
     if(visible&&name==='pcm')drawMorphCanvas();
   }, setVisible(value) {
     visible = Boolean(value);
     if(!visible)cancelMorphStroke();
-    panel.setVisible(visible && activeSection !== 'audio');
+    panel.setVisible(visible && sectionNames.includes(activeSection));
     if(visible&&activeSection==='pcm')drawMorphCanvas();
   }, dispose() {cancelMorphStroke();for(const remove of morphListeners)remove();panel.dispose();}, update(state) {
     morphUiState=state;
