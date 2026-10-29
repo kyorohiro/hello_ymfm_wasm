@@ -271,3 +271,12 @@ footer a { color: #4a5e74; }
 .morph-amount{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
 .morph-amount input{flex:1;min-width:100px}.morph-amount output{min-width:110px;text-align:right}
 @media(max-width:600px){.morph-endpoints{grid-template-columns:1fr}.morph-amount output{width:100%}}
+
+.morph-targets{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:16px 0}
+.morph-targets [data-morph-edit="a"]{border-bottom:4px solid #7bbcf7}
+.morph-targets [data-morph-edit="b"]{border-bottom:4px solid #ef9ac2}
+.morph-targets button[aria-pressed="true"]{background:#355f89;color:#fff;box-shadow:0 0 0 2px #355f89}
+.morph-result-label{color:#73500d;font-size:12px;font-weight:700;border-bottom:3px dashed #d8a843;padding:6px}
+.morph-endpoints>div[hidden]{display:none}
+.morph-editing [data-chip-control="ps1-waveform"]{height:240px}
+@media(max-width:600px){.morph-targets{gap:8px}.morph-targets button{font-size:12px}.morph-editing [data-chip-control="ps1-waveform"]{height:200px}}

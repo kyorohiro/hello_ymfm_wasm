@@ -7,6 +7,8 @@ savePointの下位の「未commit／未公開／次は…」は当時の履歴�
 ## 後続更新：2026-10-29 Software morph
 
 PCMタブへA／B波形の手動Morphを追加。ソフト側の機能とUIに明記。
+最終UIはA／B／Resultを1つのcanvasに重ね、同じcanvasでA／Bを切り替えて自由描画・数値編集する。
+3枚プレビュー＋別エディターには戻さない。
 [操作・検証・試用ZIP](spu_synth_morph_01.md) を参照。未commit・未公開。
 
 ## 後続更新：2026-10-29 PMON波形選択／Noise

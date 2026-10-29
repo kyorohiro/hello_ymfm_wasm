@@ -150,7 +150,7 @@ async function silent(page, label) {
   throw Error(`${label}: expected exact zero PCM ${JSON.stringify(pcm)}`);
 }
 async function field(page, name, value) {
-  await editorTab(page, name.startsWith('reverb-') ? 'fx' : 'adsr');
+  await editorTab(page, name.startsWith('reverb-') ? 'fx' : name.startsWith('wave-') ? 'pcm' : 'adsr');
   await page.locator(control(name)).evaluate((node, value) => {
     if (node.type === 'checkbox') node.checked = Boolean(value); else node.value = String(value);
     node.dispatchEvent(new Event('change', {bubbles:true})); node.blur();
@@ -600,6 +600,55 @@ async function checkMorph(page,name) {
   assert.notEqual(before.channels[0].pcmFingerprint,pcm.channels[0].pcmFingerprint);
   assert(!(await page.evaluate(start=>__spuSynthAudit.commands.slice(start),start)).some(c=>c.method==='instrumentNoteOn'));
   await page.mouse.up();await page.keyboard.up('y');await settled(page);await silent(page,'Morph release');
+  const morphCanvas=page.locator('.spu-morph canvas');
+  assert.equal(await morphCanvas.count(),1,'Morph reuses one canvas for viewing and drawing');
+  assert.equal(await page.locator('#instrumentPanel-pcm canvas:visible').count(),1,'There is no separate preview or drawing canvas');
+  const previewRead=()=>morphCanvas.evaluate(node=>{
+    const pixels=node.getContext('2d').getImageData(0,0,node.width,node.height).data;
+    let hash=2166136261;for(const value of pixels)hash=Math.imul(hash^value,16777619)>>>0;
+    const colors={a:0,b:0,result:0};
+    for(let i=0;i<pixels.length;i+=4){const [r,g,b]=pixels.slice(i,i+3);if(b>r*1.2&&g>r)colors.a++;if(r>g*1.2&&b>g)colors.b++;if(r>g&&g>b*1.2)colors.result++;}
+    return {hash,colors};
+  });
+  const previewsBefore=await previewRead();
+  await set('amount',.5);await page.locator('h1').click();await page.keyboard.down('y');
+  const drawingOwners=(await settled(page)).auditions;
+  const editorStart=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  const selectEndpoint=async key=>{
+    const from=await page.evaluate(()=>__spuSynthAudit.commands.length);
+    await page.locator(`[data-morph-edit="${key}"]`).click();await settled(page);
+    assert.equal(await page.evaluate(()=>__spuSynthAudit.commands.length),from,'Selecting A/B never sends audio commands');
+    assert.equal(await page.locator(`[data-morph-edit="${key}"]`).getAttribute('aria-pressed'),'true');
+    assert.match(await page.locator('#instrumentPanel-pcm h3').innerText(),new RegExp(`Wave ${key.toUpperCase()}`));
+  };
+  const drawEndpoint=async key=>{
+    await selectEndpoint(key);const prior=await current(page),other=key==='a'?'b':'a';
+    const canvas=page.locator(control('waveform'));await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();assert(box);
+    await page.mouse.move(box.x+box.width*.12,box.y+box.height*.2);await page.mouse.down();
+    await page.mouse.move(box.x+box.width*.7,box.y+box.height*.65,{steps:10});await page.mouse.up();
+    const after=await settled(page);assert(after.morph.enabled,'Drawing endpoints keeps Morph On');
+    assert.notDeepEqual(after.morph[key],prior.morph[key]);assert.deepEqual(after.morph[other],prior.morph[other]);
+    assert.deepEqual(after.auditions,drawingOwners);
+    await field(page,'wave-index',7);await field(page,'wave-value',key==='a'?.83:-.77);
+    assert.equal((await current(page)).morph[key][7],Math.fround(key==='a'?.83:-.77));
+  };
+  await drawEndpoint('a');await drawEndpoint('b');
+  const beforeCancel=await current(page);
+  await morphCanvas.scrollIntoViewIfNeeded();const cancelBox=await morphCanvas.boundingBox();
+  await page.mouse.move(cancelBox.x+cancelBox.width*.2,cancelBox.y+cancelBox.height*.3);await page.mouse.down();
+  await page.mouse.move(cancelBox.x+cancelBox.width*.5,cancelBox.y+cancelBox.height*.7,{steps:3});
+  await page.locator('[data-spu-editor-tab="adsr"]').focus();await page.keyboard.press('Enter');
+  await assertEditorTab(page,'adsr');await page.mouse.up();await editorTab(page,'pcm');
+  assert.deepEqual((await settled(page)).morph,beforeCancel.morph,'Leaving the editor cancels an unfinished stroke');
+
+  const drawn=await current(page),previewsAfter=await previewRead();
+  assert.notEqual(previewsBefore.hash,previewsAfter.hash,'The shared canvas follows endpoint edits');
+  for(const key of ['a','b','result'])assert(previewsAfter.colors[key]>20,`${key} waveform is visible in its own color on the shared canvas`);
+  await editorTab(page,'adsr');await editorTab(page,'pcm');
+  const returned=await previewRead();assert.deepEqual(returned,previewsAfter,'Returning to PCM restores all overlaid traces');
+  assert(!(await page.evaluate(start=>__spuSynthAudit.commands.slice(start),editorStart)).some(c=>c.method==='instrumentNoteOn'));
+  await audible(page,'Drawn A/B blend while held');await page.keyboard.up('y');await settled(page);await silent(page,'Drawn Morph release');
+
   const layouts=[];
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:width===390?844:1100});
@@ -630,7 +679,7 @@ async function checkMorph(page,name) {
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
   assert(!(await settled(page)).morph.enabled);
   await page.locator('#resetPreset').click();assert(!(await settled(page)).morph.enabled);
-  return {softwareLabel:true,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
+  return {softwareLabel:true,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.

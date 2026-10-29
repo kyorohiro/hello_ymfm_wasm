@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {readMorph, morphShape, morphShapeName, MORPH_SHAPES} from './spu_synth_morph.js';
+import {readMorph, morphPcm, morphShape, morphShapeName, MORPH_SHAPES} from './spu_synth_morph.js';
 import {readNoise} from './spu_synth_noise.js';
 import {readPmon} from './spu_synth_pmon.js';
 import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
@@ -8,10 +8,11 @@ import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.
  * Physical-channel inspection and audition controls belong to Playground. */
 export function createSpuInstrumentPanel({root, invoke, ...options}) {
+  let selectedMorphEndpoint='a',morphUiState=null;
   const panel = createPlaygroundPs1VoicePanel({root, ...options, invoke(method, args = []) {
     if (method === 'setPreset' || method === 'setChannel') return invoke('setInstrumentPreset', args.slice(1));
     if (method === 'setEnvelope') return invoke('setInstrumentEnvelope', args.slice(1));
-    if (method === 'setWaveform') return invoke('setInstrumentWaveform', args.slice(1));
+    if (method === 'setWaveform') return morphDraft.enabled ? changeMorph({[selectedMorphEndpoint]:args[1]}) : invoke('setInstrumentWaveform', args.slice(1));
     if (method === 'setReverb' && Object.hasOwn(args[0] ?? {}, 'preset')) return invoke('setInstrumentReverbPreset', args);
     return invoke(method, args);
   }});
@@ -41,20 +42,121 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
   const shapeOptions=MORPH_SHAPES.map(shape=>`<option value="${shape}">${shape[0].toUpperCase()+shape.slice(1)}</option>`).join('');
   morph.innerHTML=`<legend>Software morph</legend>
     <label><input type="checkbox" data-morph="enabled"> Enable software morph</label>
+    <div class="morph-editing" hidden>
+      <div class="morph-targets" role="group" aria-label="Morph edit target">
+        ${['a','b'].map(key=>`<button type="button" data-morph-edit="${key}" aria-pressed="${key==='a'}">Wave ${key.toUpperCase()} · Edit</button>`).join('')}
+        <span class="morph-result-label">Result · blended PCM</span>
+      </div>
+      <div data-morph-editor-mount></div>
+    </div>
     <div class="morph-endpoints">${['a','b'].map(key=>`<div><label>Wave ${key.toUpperCase()} <select data-morph="${key}" aria-label="Morph wave ${key.toUpperCase()}">${shapeOptions}<option value="custom" disabled>Custom PCM</option></select></label><button type="button" data-morph-capture="${key}">Use current PCM as ${key.toUpperCase()}</button></div>`).join('')}</div>
     <label class="morph-amount">Morph · A → B <input type="range" data-morph="amount" min="0" max="1" step="0.01" value="0" aria-label="Software morph amount"><output data-morph-output></output></label>
     <p class="subtext">Software feature: Tetorica blends two PCM cycles and writes the result into SPU sample memory. This is not a built-in PS1 SPU effect. The SPU plays the resulting ADPCM waveform.</p>
-    <p class="subtext">112-sample cycles only. Enabling replaces the active PCM/audio sample. Drag Morph to change sounding notes without retriggering. Turning it off keeps the current blend; drawing a waveform or loading audio turns it off.</p>`;
-  sections[0].append(morph);sampleEditors.push(morph);
+    <p class="subtext">112-sample cycles only. Enabling replaces the active PCM/audio sample. Drag Morph to change sounding notes without retriggering. A, B and Result share one canvas. Choose Wave A or Wave B to draw that waveform on the same canvas, or edit individual samples. Turning Morph off keeps the current blend; loading audio turns it off.</p>`;
+  const editorNodes=sampleEditors.map(node=>{
+    const anchor=root.ownerDocument.createComment('PCM editor position');node.before(anchor);return {node,anchor};
+  });
+  sections[0].insertBefore(morph,sampleEditors[0]);sampleEditors.push(morph);
   const morphControls=Object.fromEntries([...morph.querySelectorAll('[data-morph]')].map(node=>[node.dataset.morph,node]));
   let lastMorph=readMorph(),morphDraft=readMorph(),morphInFlight=0,currentPcm=null;
+  const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
+  const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
+  const pcmCanvasLabel=pcmCanvas.getAttribute('aria-label');
+  let morphStroke=null;
+  const morphListeners=[];
+  function syncPcmEditor() {
+    if(!morphUiState)return;
+    const editing=morphDraft.enabled;
+    if(morphStroke && (!editing || morphUiState.noise?.enabled || morphStroke.key!==selectedMorphEndpoint || morphStroke.identity!==JSON.stringify(morphDraft[selectedMorphEndpoint])))cancelMorphStroke();
+    const mount=morph.querySelector('[data-morph-editor-mount]');
+    for(const {node,anchor} of editorNodes) {
+      if(editing){if(node.parentNode!==mount)mount.append(node);}
+      else if(node.parentNode!==anchor.parentNode)anchor.after(node);
+    }
+    const displayState=editing ? {...morphUiState,channels:morphUiState.channels.map((voice,i)=>i===0 ? {...voice,waveform:{sample:voice.sample,pcm:morphDraft[selectedMorphEndpoint]}} : voice)} : morphUiState;
+    panel.update(displayState);
+    pcmHeading.textContent=editing ? `Wave ${selectedMorphEndpoint.toUpperCase()} · PCM editor` : pcmHeadingText;
+    pcmCanvas.setAttribute('aria-label',editing ? `Edit Morph wave ${selectedMorphEndpoint.toUpperCase()}, 112 signed PCM samples. Drag to draw.` : pcmCanvasLabel);
+    const info=root.querySelector('[data-chip-output="ps1-wave-info"]');
+    if(editing&&info)info.textContent=`Editing Wave ${selectedMorphEndpoint.toUpperCase()} · A (blue), B (pink), Result (gold). Draw on this canvas or set individual samples. A completed stroke updates the blend without retriggering notes.`;
+    if(editing)drawMorphCanvas();
+  }
+  function drawMorphCanvas() {
+    if(!morphDraft.enabled)return;
+    const settings=morphStroke ? {...morphDraft,[morphStroke.key]:morphStroke.pcm} : morphDraft;
+    const ctx=pcmCanvas.getContext('2d');if(!ctx)return;
+    const {width:w,height:h}=pcmCanvas,y=value=>(1-value)*h/2;
+    ctx.fillStyle='#101820';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#34444e';ctx.lineWidth=1;
+    for(const value of [-1,0,1]){ctx.beginPath();ctx.moveTo(0,y(value));ctx.lineTo(w,y(value));ctx.stroke();}
+    const waves={a:settings.a,b:settings.b,result:morphPcm(settings)},colors={a:'#7bbcf7',b:'#ef9ac2',result:'#e8b956'};
+    // The selected source is drawn last and thicker, including when the
+    // result exactly overlaps A or B at an endpoint.
+    for(const key of ['result',selectedMorphEndpoint==='a'?'b':'a',selectedMorphEndpoint]) {
+      ctx.strokeStyle=colors[key];ctx.lineWidth=key===selectedMorphEndpoint?3:1.5;
+      ctx.setLineDash(key==='result'?[8,4]:[]);ctx.globalAlpha=key===selectedMorphEndpoint?1:.8;ctx.beginPath();
+      waves[key].forEach((value,i)=>{const x=i*w/111;if(i)ctx.lineTo(x,y(value));else ctx.moveTo(x,y(value));});ctx.stroke();
+    }
+    ctx.setLineDash([]);ctx.globalAlpha=1;
+  }
+  function cancelMorphStroke() {
+    if(!morphStroke)return;
+    const {pointerId}=morphStroke;morphStroke=null;
+    if(pcmCanvas.hasPointerCapture?.(pointerId))pcmCanvas.releasePointerCapture(pointerId);
+    drawMorphCanvas();
+  }
+  function drawMorphPoint(event) {
+    if(!morphStroke)return;
+    const rect=pcmCanvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
+    const index=Math.max(0,Math.min(111,Math.floor((event.clientX-rect.left)/rect.width*112)));
+    const value=Math.max(-1,Math.min(1,1-2*(event.clientY-rect.top)/rect.height));
+    const from=morphStroke.lastIndex??index,previous=morphStroke.lastValue??value;
+    for(let i=Math.min(from,index);i<=Math.max(from,index);i++)morphStroke.pcm[i]=from===index?value:previous+(value-previous)*(i-from)/(index-from);
+    morphStroke.lastIndex=index;morphStroke.lastValue=value;drawMorphCanvas();
+  }
+  function listenMorph(target,type,handler,options) {
+    target.addEventListener(type,handler,options);morphListeners.push(()=>target.removeEventListener(type,handler,options));
+  }
+  for(const type of ['pointerdown','pointermove','pointerup','pointercancel','lostpointercapture'])listenMorph(pcmCanvas,type,event=>{
+    if(!morphDraft.enabled)return;
+    event.stopImmediatePropagation();
+    if(type==='pointercancel'||type==='lostpointercapture'){if(morphStroke?.pointerId===event.pointerId)cancelMorphStroke();return;}
+    if(type==='pointerdown') {
+      if(morphStroke||event.button!==0||!visible||activeSection!=='pcm'||morphUiState?.noise?.enabled)return;
+      event.preventDefault();
+      morphStroke={pointerId:event.pointerId,key:selectedMorphEndpoint,identity:JSON.stringify(morphDraft[selectedMorphEndpoint]),pcm:morphDraft[selectedMorphEndpoint].slice()};
+      pcmCanvas.setPointerCapture(event.pointerId);drawMorphPoint(event);
+    } else if(morphStroke?.pointerId===event.pointerId) {
+      event.preventDefault();drawMorphPoint(event);
+      if(type==='pointerup') {
+        const stroke=morphStroke;morphStroke=null;
+        if(pcmCanvas.hasPointerCapture(event.pointerId))pcmCanvas.releasePointerCapture(event.pointerId);
+        void changeMorph({[stroke.key]:stroke.pcm});
+      }
+    }
+  },true);
+  listenMorph(root.ownerDocument.defaultView,'blur',()=>{cancelMorphStroke();drawMorphCanvas();});
+  listenMorph(root.ownerDocument,'visibilitychange',()=>{if(root.ownerDocument.hidden)cancelMorphStroke();drawMorphCanvas();});
+  for(const button of morph.querySelectorAll('[data-morph-edit]'))button.addEventListener('click',()=>{
+    if(selectedMorphEndpoint===button.dataset.morphEdit)return;
+    // Cancel an unfinished stroke before switching its destination; selection
+    // only changes the editor and never writes the shared instrument.
+    cancelMorphStroke();panel.setVisible(false);selectedMorphEndpoint=button.dataset.morphEdit;
+    displayMorph();panel.setVisible(visible&&activeSection!=='audio');drawMorphCanvas();
+  });
   function displayMorph() {
     morphControls.enabled.checked=morphDraft.enabled;
+    morph.querySelector('.morph-editing').hidden=!morphDraft.enabled;
+    for(const key of ['a','b']) {
+      const button=morph.querySelector(`[data-morph-edit="${key}"]`);
+      button.setAttribute('aria-pressed',String(selectedMorphEndpoint===key));
+      morphControls[key].closest('.morph-endpoints>div').hidden=morphDraft.enabled&&selectedMorphEndpoint!==key;
+    }
     for(const key of ['a','b'])morphControls[key].value=morphShapeName(morphDraft[key]);
     if(morphControls.amount!==root.ownerDocument.activeElement)morphControls.amount.value=String(morphDraft.amount);
     morphControls.amount.disabled=!morphDraft.enabled;
     morph.querySelector('[data-morph-output]').textContent=`A ${Math.round((1-Number(morphControls.amount.value))*100)}% / B ${Math.round(Number(morphControls.amount.value)*100)}%`;
     for(const button of morph.querySelectorAll('[data-morph-capture]'))button.disabled=!currentPcm;
+    syncPcmEditor();
   }
   async function changeMorph(patch) {
     morphDraft=readMorph({...morphDraft,...patch});displayMorph();morphInFlight++;
@@ -133,15 +235,19 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
     if (name === activeSection) return;
     // Cancel a drawing/ADSR gesture before hiding its controls. Keyboard note
     // ownership belongs to the standalone controller and is unaffected.
-    panel.setVisible(false);
+    cancelMorphStroke();panel.setVisible(false);
     activeSection = name;
     root.hidden = name === 'audio';
     sections.forEach((section, index) => {section.hidden = sectionNames[index] !== name;});
     panel.setVisible(visible && name !== 'audio');
+    if(visible&&name==='pcm')drawMorphCanvas();
   }, setVisible(value) {
     visible = Boolean(value);
+    if(!visible)cancelMorphStroke();
     panel.setVisible(visible && activeSection !== 'audio');
-  }, update(state) {
+    if(visible&&activeSection==='pcm')drawMorphCanvas();
+  }, dispose() {cancelMorphStroke();for(const remove of morphListeners)remove();panel.dispose();}, update(state) {
+    morphUiState=state;
     lastMorph=readMorph(state.morph);
     currentPcm=state.channels?.[0]?.waveform?.pcm??null;
     if(!morphInFlight){morphDraft=readMorph(lastMorph);displayMorph();}
@@ -152,7 +258,7 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
     if(sourceSelect!==root.ownerDocument.activeElement)sourceSelect.value=lastNoise.enabled?'noise':'sample';
     if(noiseClock!==root.ownerDocument.activeElement)noiseClock.value=String(lastNoise.clock);
     displayNoise();
-    panel.update(state);
+    syncPcmEditor();
     const settings=readPmon(state.pmon); lastPmon=settings;
     for (const [key,node] of Object.entries(controls)) {
       if (node === root.ownerDocument.activeElement) continue;

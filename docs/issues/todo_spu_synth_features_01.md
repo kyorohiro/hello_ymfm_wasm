@@ -8,6 +8,7 @@
   Noise周波数は全voice共通で、Note／PMONによる音階追従とは別。UIに明記する。
 - [x] **手動波形モーフィング**：PCM波形A／BとMorphつまみ。
   Software morphと明記し、4形状・現PCM取り込み・保持音への反映・preset保存に対応。
+  On時はA／B／Resultを1つのcanvasに重ねて表示。同じcanvasでA／Bを選んで自由描画・数値編集できる。
   [作業記録](spu_synth_morph_01.md)。任意バイトの時刻指定RAM編集や実機バス精度とは区別する。
 - [ ] **Morph用LFO**：手動Morphを周期的に自動変化させる後続候補。
 - [ ] **外部入力Reverb**：マイク／音声再生等のPCMを24声とは別経路でSPU Reverbへ送る。
