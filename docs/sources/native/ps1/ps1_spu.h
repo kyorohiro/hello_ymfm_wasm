@@ -26,6 +26,8 @@ int ps1_spu_write(void *handle, uint32_t byte_offset, uint16_t value);
  * Audition key-on uses a 128-frame fade before restarting an active voice and
  * a 128-frame fade-in. Key-off preserves slower/infinite programmed release,
  * limiting only faster release to at least 128 native frames. on is 0 or 1.
+ * Both key-off paths use ADSR rates latched by key-on or explicit refresh;
+ * deferred ADSR register edits are not applied implicitly when releasing.
  * Raw key-on/key-off register writes keep their original behavior. */
 int ps1_spu_refresh_envelope(void *handle, uint32_t channel);
 int ps1_spu_audition_key(void *handle, uint32_t channel, int on);

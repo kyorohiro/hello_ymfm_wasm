@@ -372,7 +372,7 @@ do {propagated=false;for(const {name,source}of sources){
 const ps1EnvelopeFiles=new Set(['playground_ps1_envelope.js','playground_ps1_voice_panel.js',
   'playground_chip_tabs.js','playground_chip_tabs.css','playground_workbench.js','playground_ui.js','playground.js']);
 // Explicit live controls require the updated SPU ABI in every audio endpoint.
-const ps1LiveVersion='ps1-live-release-1';
+const ps1LiveVersion='ps1-deferred-release-1';
 const ps1LiveFiles=new Set(['ps1_spu.js','ps1synth.js','playground_ps1_inspector.js',
   'playground_ps1_worklet.js','playground_performance_processor.js','native_genesis_ps1.js',
   'playground_ps1_voice_panel.js','playground_chip_tabs.js','playground_workbench.js',

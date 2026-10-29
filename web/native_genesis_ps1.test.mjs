@@ -181,6 +181,42 @@ for(const additional of[false,true])test(`Native ${additional?'additional':'prim
   const batches=a.f.commands().slice(liveSince).filter(c=>c.message.method==='batch');assert.equal(batches.length,1);assert.equal(batches[0].message.action,'edit');assert.equal(batches[0].message.voice,undefined);assert(batches[0].message.commands.some(c=>c.method==='refresh-envelope'&&c.channel===23));assert(!batches[0].message.commands.some(c=>c.method==='audition-key'||c.method==='write'&&[0x188,0x18a,0x18c,0x18e].includes(c.register)));
   assert.deepEqual((await a.endpoint.read()).auditions,[]);assert.equal(await a.endpoint.invoke('auditionOff',[23,'released']),false);for(const s of setups)assert.deepEqual(s.f.errors,[]);
 });
+for(const additional of[false,true])for(const originalRate of[31,0])test(`Native ${additional?'additional':'primary'} deferred RR${originalRate} edits survive manual release and apply on the next note`,async t=>{
+  const nextRate=31-originalRate,setups=[];
+  for(let index=0;index<4;index++){
+    const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'deferred-off'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1;
+    let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}
+    await endpoint.invoke('setPreset',[23,{sample,adsr1:15,adsr2:originalRate}]);
+    if(index===3){client.noteOn(23,'A4');await client.getState();}else await endpoint.invoke('auditionOn',[23,69,'held']);
+    setups.push({f,client,endpoint,core:device?f.rack.get(device.nativeInstance).core:f.primary.core});
+  }
+  const[a,reference,live,program]=setups,render=(s,n)=>{const left=new Float32Array(n),right=new Float32Array(n);s.core.renderInto(left,right);return left;};
+  const onset=render(a,1009);assert.deepEqual(onset,render(reference,1009));assert.deepEqual(onset,render(live,1009));
+  assert.deepEqual(onset.subarray(256),render(program,1009).subarray(256),'manual and program notes share the same decoded waveform after the click-prevention ramp and renderer history');
+  const since=a.f.commands().length;
+  await a.endpoint.invoke('setEnvelope',[23,{releaseRate:nextRate},{live:false}]);
+  await live.endpoint.invoke('setEnvelope',[23,{releaseRate:nextRate},{live:true}]);
+  program.client.setEnvelope(23,{releaseRate:nextRate},{live:false});await program.client.getState();
+  const held=render(a,257);assert.deepEqual(held,render(reference,257),'deferred edits preserve the held envelope and sample phase');assert.deepEqual(held,render(live,257),'RR does not alter the held sustain');
+  assert.deepEqual(held,render(program,257));
+  const ops=a.f.commands().slice(since).flatMap(c=>c.message.commands??[]);assert(ops.length>0);assert(ops.every(c=>c.method==='write'),'deferred RR sends neither a refresh nor a new key');
+  assert.equal(await a.endpoint.invoke('auditionOff',[23,'stale']),false);assert.deepEqual((await a.endpoint.read()).auditions,[{channel:23,id:'held'}]);
+  for(const s of[a,reference,live])await s.endpoint.invoke('auditionOff',[23,'held']);program.client.keyOff(23);await program.client.getState();
+  const released=render(a,512),unchanged=render(reference,512),updated=render(live,512);
+  assert.deepEqual(released,unchanged,'manual key off must use the ADSR latched before the deferred edit');
+  // Manual keys retain the intentional 128-native-frame click-prevention
+  // floor. Raw keyOff may finish RR0 earlier; compare settled tails after
+  // the ramp and native interpolation history,
+  // while the untouched manual reference above still checks every frame.
+  assert.deepEqual(released.subarray(256),render(program,512).subarray(256),'manual and ordinary keyOff keep the same deferred RR after the manual transition');
+  if(originalRate===31){assert(peak(released.subarray(256))>.01,'the old infinite RR remains active');assert.equal(peak(updated.subarray(256)),0,'a live RR0 edit reaches the same manual key off');}
+  else{assert.equal(peak(released.subarray(256)),0,'the old fast RR still fades');assert(peak(updated.subarray(256))>.01,'a live RR31 edit reaches the same manual key off');}
+  assert.deepEqual((await a.endpoint.read()).auditions,[]);assert.equal((await a.endpoint.read()).channels[23].gate,false);
+  await a.endpoint.invoke('auditionOn',[23,69,'next']);render(a,1009);assert.equal(a.core.read(23*16+12),32767);
+  assert.deepEqual((await a.endpoint.read()).auditions,[{channel:23,id:'next'}]);await a.endpoint.invoke('auditionOff',[23,'next']);
+  const nextRelease=render(a,512);if(nextRate===31)assert(peak(nextRelease.subarray(256))>.01,'the next Note On latches the new infinite RR');else assert.equal(peak(nextRelease.subarray(256)),0,'the next Note On latches the new fast RR');
+  for(const s of setups)assert.deepEqual(s.f.errors,[]);
+});
 for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} editor live changes preserve code-owned note cancellation`,async t=>{
   const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'owned'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1,source=device?f.rack.get(device.nativeInstance):f.primary;
   let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}

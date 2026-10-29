@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "scope": "Preserve deferred ADSR across manual PS1 key-off, applying on next actual Note On or changed explicit live edit",
+  "fixedSdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "0c09e92c3147a83fe3e694c2a48af169415b4e7e3c0b0cb3000ffb91c250f7b4",
+    "manifestSha256": "fb7bb636e2fbb4d0293a7e66eb058dde0ddbae72f21dd96977db6e418467c3c0",
+    "fileCount": 455,
+    "localCandidate": {
+      "baseCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "catalog/source_inventory.json",
+        "docs/chip-differences.md",
+        "native/reference/SOURCES.json",
+        "native/tests/ps1_spu_fixture.cpp",
+        "vendor/mame-ps1-spu/README.md",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h"
+      ]
+    }
+  },
+  "wasmSha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e",
+  "validation": {
+    "canonicalNewPairedCases": 15,
+    "canonicalCtest": {
+      "passed": 1
+    },
+    "canonicalPython": {
+      "passed": 13
+    },
+    "canonicalInventorySnapshotChecks": 324,
+    "consumerJsCoreWorkletAdapterPanel": {
+      "passed": 149
+    },
+    "consumerImporterPython": {
+      "passed": 26
+    },
+    "nativeLinkedPs1": {
+      "passed": 19
+    },
+    "nativeRegression": {
+      "passed": 764,
+      "ignored": 2,
+      "filtered": 38,
+      "physicalDevice": false
+    },
+    "rawCapiExactFrames": 100629,
+    "sourceBundle": {
+      "inputs": 24,
+      "files": 28,
+      "isolatedDescriptorAndWasmExact": true
+    },
+    "calibrationTests": {
+      "passed": 494,
+      "previousRawReportsUnchanged": 13
+    },
+    "npmLocal": {
+      "modules": 335,
+      "engines": 28,
+      "declarations": 385,
+      "files": 1004,
+      "compressedBytes": 1957191,
+      "unpackedBytes": 7419275,
+      "isolatedInstallPassed": true,
+      "typesPassed": true
+    },
+    "bundledBrowser": {
+      "passed": true,
+      "routes": [
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "deferredBeforeKeyOffCases": 2,
+          "captureContinuity": {
+            "captures": 81,
+            "frames": 847872,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          }
+        },
+        {
+          "browser": "webkit",
+          "execution": "worker",
+          "deferredBeforeKeyOffCases": 2,
+          "captureContinuity": {
+            "captures": 87,
+            "frames": 872448,
+            "pcmContinuous": true,
+            "clockContinuous": true,
+            "clockAnomalies": []
+          }
+        }
+      ],
+      "archiveSha256": "89c363698435a547a957ac37da1167c7e45c62a83c2d6a23286628f36164398a",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false
+    }
+  },
+  "evidence": {
+    "beforeAfterWasm": "docs/issues/ps1_deferred_release_offline_01.json",
+    "rawCapi": "docs/issues/ps1_deferred_release_raw_parity_01.json",
+    "liveControls": "docs/issues/ps1_deferred_release_live_controls_01.json",
+    "bundledBrowser": "docs/issues/ps1_deferred_release_run_browser_01.json"
+  },
+  "calibration": {
+    "ps1": {
+      "path": "docs/issues/ps1_chip_levels_deferred_release_01.json",
+      "sha256": "f3523ee30b5d78a1c03a3c2cfe355adf128f70e7ec0d6e1fd42fa89159c3cf7b",
+      "bytes": 544191,
+      "rows": 48,
+      "anchors": 8,
+      "clockDiagnostics": 0
+    },
+    "wonderswan": {
+      "path": "docs/issues/wonderswan_chip_levels_deferred_release_01.json",
+      "sha256": "545d9a00e01f2545dcc9c0e12dd45489a68d85b9f5b5b62b31e9b7b435d25fd9",
+      "bytes": 488715,
+      "rows": 48,
+      "anchors": 8,
+      "clockDiagnostics": 0
+    },
+    "pokey": {
+      "path": "docs/issues/pokey_chip_levels_deferred_release_01.json",
+      "sha256": "e9f1d2b15e840285fbbe9dc9159d56dd681336d6a9db4ca545cb2b36f4996107",
+      "bytes": 1028245,
+      "rows": 96,
+      "anchors": 8,
+      "clockDiagnostics": 0
+    }
+  },
+  "archives": [
+    {
+      "kind": "complete",
+      "path": "release/hello_ymfm_wasm_ps1-deferred-release-dev_itch_playground.zip",
+      "bytes": 37019084,
+      "sha256": "9d850ed4e46164fd3c13041ece7b0ee969e67d0f65212b986a501bdc975d6906",
+      "entries": 1188,
+      "files": 1067,
+      "crcPassed": true
+    },
+    {
+      "kind": "run",
+      "path": "release/hello_ymfm_wasm_ps1-deferred-release-dev_itch_playground_for_run.zip",
+      "bytes": 37411511,
+      "sha256": "89c363698435a547a957ac37da1167c7e45c62a83c2d6a23286628f36164398a",
+      "entries": 931,
+      "files": 931,
+      "crcPassed": true
+    }
+  ],
+  "tauriFrontend": {
+    "payloadFiles": 1066,
+    "archiveSha256": "9d850ed4e46164fd3c13041ece7b0ee969e67d0f65212b986a501bdc975d6906",
+    "lockVerified": true,
+    "sdkVerified": true
+  },
+  "publication": {
+    "npm": false,
+    "sdk": false,
+    "itch": false,
+    "gitCommit": false,
+    "push": false,
+    "remoteCi": false
+  }
+}

@@ -2257,17 +2257,20 @@ bool spu_device::update_envelope(const int v)
 				break;
 
 			case 4: // release
+			{
 				voice[v].env_level=std::clamp(voice[v].env_level,0.0f,1.0f);
-				voice[v].env_delta=voice[v].env_rr;
-				if (voice[v].env_rr == -0.0f)   // 0.0 release means infinite time
+				const float rate=release_envelope_rate(v);
+				voice[v].env_delta=rate;
+				if (rate == -0.0f)   // 0.0 release means infinite time
 				{
 					voice[v].envsamples=spu_infinity;
 				}
 				else
 				{
-					voice[v].envsamples=(unsigned int)(voice[v].env_level/-voice[v].env_rr);
+					voice[v].envsamples=(unsigned int)(voice[v].env_level/-rate);
 				}
 				break;
+			}
 
 			case 5: // release end
 				voice[v].env_level=0.0f;
@@ -2376,9 +2379,14 @@ void spu_device::read_envelope_rates(const unsigned int v)
 	{
 		voice[v].env_rr=-get_linear_release_rate(spureg.voice[v].srrr&srrr_rr_mask);
 	}
+}
 
-	if (voice[v].audition_release_floor<0.0f)
-		voice[v].env_rr=(std::max)(voice[v].env_rr,voice[v].audition_release_floor);
+float spu_device::release_envelope_rate(const unsigned int v) const
+{
+	// Keep the actual latched RR separate from the manual-release floor.
+	// KOFF must not reread deferred ADSR registers to recover an unclamped rate.
+	const voiceinfo *vi=&voice[v];
+	return vi->audition_release_floor<0.0f ? (std::max)(vi->env_rr,vi->audition_release_floor) : vi->env_rr;
 }
 
 void spu_device::schedule_live_envelope(const unsigned int v)
@@ -2414,8 +2422,8 @@ void spu_device::schedule_live_envelope(const unsigned int v)
 				: samples_to(vi->env_level,-vi->env_sr);
 			break;
 		case 4:
-			vi->env_delta=vi->env_rr;
-			vi->envsamples=samples_to(vi->env_level,-vi->env_rr);
+			vi->env_delta=release_envelope_rate(v);
+			vi->envsamples=samples_to(vi->env_level,-vi->env_delta);
 			break;
 		default:
 			vi->env_delta=0.0f;
@@ -2464,7 +2472,6 @@ void spu_device::audition_key(unsigned int v,bool on)
 			vi->audition_samples=128;
 		}
 		vi->audition_release_floor=-std::clamp(vi->env_level,0.0f,1.0f)/128.0f;
-		read_envelope_rates(v);
 		if (vi->env_state==3) update_envelope(v);
 		else if (vi->env_state==4) schedule_live_envelope(v);
 	}
@@ -2625,13 +2632,11 @@ void spu_device::generate_cdda(void *ptr, const unsigned int sz)
 
 void spu_device::key_off(const int v)
 {
-	const bool had_release_floor=voice[v].audition_release_floor<0.0f;
 	voice[v].audition_gain=1.0f;
 	voice[v].audition_delta=0.0f;
 	voice[v].audition_samples=0;
 	voice[v].audition_restart=false;
 	voice[v].audition_release_floor=0.0f;
-	if (had_release_floor) read_envelope_rates(v);
 //  printf("key_off: %d\n", v);
 
 	if (voice[v].env_state<=3)

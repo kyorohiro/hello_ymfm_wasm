@@ -1,10 +1,10 @@
 import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=pokey-prepare-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=ps1-live-release-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=ps1-deferred-release-1';
 import {keyboardChannels} from './playground_keyboard_channels.js?v=ps1-mode-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-live-release-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-deferred-release-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-release-1';
-import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=ps1-live-release-1';
+import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
+import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=ps1-deferred-release-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_OPL_CHIPS=Object.freeze(['ym3526','ym3812','y8950','ymf262']);

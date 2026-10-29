@@ -206,6 +206,26 @@ for(const rate of [44100,48000])for(const route of ['Main','Worker'])test(`publi
  assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'Public envelope changes never generate KON/KOFF');
 });
 
+for(const rate of [44100,48000])for(const [initialRate,deferredRate]of [[31,0],[0,31]])test(`PS1 deferred RR${initialRate} to RR${deferredRate} survives manual key-off and applies only on the next KON at ${rate} Hz`,async t=>{
+ const p=await setup(rate);t.after(()=>p.close());const i=p.processor.inspector;
+ i.invoke('setPreset',[23,{adsr1:15,adsr2:initialRate}]);i.invoke('auditionOn',[23,69,'first']);p.render(1009);
+ const original=i.read(),core=p.processor.synth.core,writes=[],write=core.write.bind(core),refresh=core.refreshEnvelope.bind(core),keys=[],key=core.auditionKey.bind(core);let refreshes=0;
+ core.write=(register,value)=>{writes.push(register);write(register,value);};core.refreshEnvelope=ch=>{refreshes++;refresh(ch);};core.auditionKey=(ch,on)=>{keys.push({ch,on});key(ch,on);};
+ i.invoke('setEnvelope',[23,{releaseRate:deferredRate},{live:false}]);p.render(512);
+ assert.equal(i.read().channels[23].envelope,32767,'A deferred RR edit preserves the held sustain');assert.equal(i.read().channels[23].gate,true);
+ assert.deepEqual(keys,[],'A deferred field edit never rekeys a leased audition');assert.equal(refreshes,0);
+ assert.equal(i.invoke('auditionOff',[23,'first']),true);p.render(512);
+ assert.equal(i.read().channels[23].envelope,initialRate===31?32767:0,'Manual key-off uses the RR latched before the unchecked edit');
+ assert.equal(i.read().channels[23].gate,false);assert.deepEqual(i.read().auditions,[],'Key-off releases the performance owner even when a slow tail remains');
+ assert.deepEqual(keys,[{ch:23,on:false}]);assert.equal(i.invoke('auditionOff',[23,'first']),false);
+ i.invoke('auditionOn',[23,69,'next']);p.render(1009);assert.equal(i.read().channels[23].envelope,32767);
+ assert.equal(i.invoke('auditionOff',[23,'next']),true);p.render(512);
+ assert.equal(i.read().channels[23].envelope,deferredRate===31?32767:0,'The next note-on adopts the deferred RR without an explicit live refresh');
+ assert.deepEqual(keys,[{ch:23,on:false},{ch:23,on:true},{ch:23,on:false}]);assert.equal(refreshes,0);
+ assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'Editor actions use the dedicated smooth-key path without raw KON/KOFF duplication');
+ assert.deepEqual(i.read().auditions,[]);assert.deepEqual(i.read().samples,original.samples);assert.deepEqual(i.read().channels.slice(0,23),original.channels.slice(0,23));
+});
+
 for(const rate of [44100,48000])test(`PS1 editor live RR edits silence a released manual tail without reacquiring its lease at ${rate} Hz`,async t=>{
  const a=await setup(rate),b=await setup(rate);t.after(()=>{a.close();b.close();});
  for(const p of[a,b]){

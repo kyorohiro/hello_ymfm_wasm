@@ -70,8 +70,12 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
   ADSR rates while preserving the current envelope level and sample position;
   `ps1_spu_audition_key` uses 128-frame per-voice ramps for manual key transitions
   and floors only very fast manual releases. Slow and infinite release settings
-  are retained. These extensions do not change raw register KON/KOFF or the
-  original key-on-latched ADSR path. They are sound-design aids, not emulated
+  are retained. Manual Off and raw KOFF both use the ADSR rates last latched by
+  KON or explicit refresh; neither applies deferred ADSR register writes. The
+  cached release rate remains separate from the effective 128-frame manual
+  floor, so removing that floor does not require rereading authored registers.
+  Repeated Off calls also preserve deferred edits. These extensions do not change
+  raw register KON/KOFF or the original key-on-latched ADSR path. They are sound-design aids, not emulated
   hardware registers. Calling raw KON/KOFF resets any pending audition ramp.
 - Replaced MAME device registration, save-state, stream scheduling, host CPU,
   DMA wiring, IRQ callbacks, and timers with pull-based rendering and the C API.

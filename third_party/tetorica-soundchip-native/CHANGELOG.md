@@ -4,6 +4,7 @@
 
 - Add explicit `ps1_spu_refresh_envelope` for changing a running envelope's rate without restarting sample playback or resetting its current level. Raw ADSR register writes retain their key-on-latched behavior.
 - Add opt-in `ps1_spu_audition_key` with per-voice, 128-frame transition ramps and a minimum duration for fast manual releases. Programmed slow and infinite release settings are preserved. Raw KON/KOFF playback remains unchanged.
+- Keep latched Release rates separate from the manual minimum duration, so manual Off and repeated/raw KOFF do not implicitly apply deferred ADSR edits. The next actual KON or explicit envelope refresh applies the new values. Cover held Attack/Decay/Sustain, both RR 31-to-0 directions, next-KON latching, long/infinite releases and foreign-channel continuity in the real-core fixture.
 - Export both extensions in Native and WASM, and cover their guards, phase/level continuity, reset and cancelled transitions in the Native fixture. These are instrument controls, not hardware-register accuracy claims.
 - This entry describes local development; source archive creation does not publish a release.
 

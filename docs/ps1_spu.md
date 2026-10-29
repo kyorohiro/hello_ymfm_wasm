@@ -78,6 +78,9 @@ Attack while already sustaining therefore affects the next attack. Disable it
 to defer ADSR changes until the next note. PCM edits still restart only this
 editor's held audition. Live ADSR edits also update the selected script-owned
 voice without changing its note owner. Other voices are unaffected.
+With live editing disabled, manual key-off retains the note's latched release
+rate just like `keyOff()`; it does not apply pending ADSR register edits.
+The next Note On or a changed explicit live ADSR edit applies those settings.
 Manual note transitions use a 128-native-frame ramp (about 2.9 ms at 44,100 Hz)
 and a minimum fast-release duration to reduce abrupt discontinuities. Longer
 programmed releases, including indefinite releases, remain intact. Transport

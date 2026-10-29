@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "browserUsed": false,
+  "physicalAudio": false,
+  "beforeCommit": "4ac5ea56d3177c43770481fc66453dd50ce15dd7",
+  "beforeFactorySha256": "6e71dc2a9d1f47b912331f1ca76887dc4983f990652282f0b311f6bf30496dd5",
+  "beforeWasmSha256": "9e46b500e8592b9a1d05703fad29144bfc8a82e941853a4e89de3c699f59c70b",
+  "afterWasmSha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e",
+  "afterSdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "0c09e92c3147a83fe3e694c2a48af169415b4e7e3c0b0cb3000ffb91c250f7b4",
+    "manifestSha256": "fb7bb636e2fbb4d0293a7e66eb058dde0ddbae72f21dd96977db6e418467c3c0",
+    "fileCount": 455,
+    "localCandidate": {
+      "baseCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "catalog/source_inventory.json",
+        "docs/chip-differences.md",
+        "native/reference/SOURCES.json",
+        "native/tests/ps1_spu_fixture.cpp",
+        "vendor/mame-ps1-spu/README.md",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h"
+      ]
+    }
+  },
+  "rows": [
+    {
+      "version": "before",
+      "oldRate": 31,
+      "requestedRate": 0,
+      "heldEnvelope": 32767,
+      "releasedEnvelope": 0,
+      "tailPeak": 0,
+      "nextNoteReleasedEnvelope": 0,
+      "heldAuditions": 0
+    },
+    {
+      "version": "before",
+      "oldRate": 0,
+      "requestedRate": 31,
+      "heldEnvelope": 32767,
+      "releasedEnvelope": 32767,
+      "tailPeak": 0.4877631962299347,
+      "nextNoteReleasedEnvelope": 32767,
+      "heldAuditions": 0
+    },
+    {
+      "version": "after",
+      "oldRate": 31,
+      "requestedRate": 0,
+      "heldEnvelope": 32767,
+      "releasedEnvelope": 32767,
+      "tailPeak": 0.4877631962299347,
+      "nextNoteReleasedEnvelope": 0,
+      "heldAuditions": 0
+    },
+    {
+      "version": "after",
+      "oldRate": 0,
+      "requestedRate": 31,
+      "heldEnvelope": 32767,
+      "releasedEnvelope": 0,
+      "tailPeak": 0,
+      "nextNoteReleasedEnvelope": 32767,
+      "heldAuditions": 0
+    }
+  ]
+}

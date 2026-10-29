@@ -10,7 +10,15 @@ use 128-frame per-voice transitions for manual notes. These opt-in instrument
 extensions leave the raw register path unchanged; they are not hardware timing
 or register-accuracy claims. See the component README and public C header.
 
-`vendor/mame-ps1-spu/` is a byte-identical import of the reference application's `native/ps1/`, including its [detailed adaptation record](../vendor/mame-ps1-spu/README.md), [license](../vendor/mame-ps1-spu/LICENSE) and pristine `upstream/` files. The SDK relocates these files without changing sound arithmetic. Its CMake target compiles the same four C++17 translation units, and its WASM recipe retains the original compiler flags, memory settings and exported function list. Public forwarding, tests, cataloging and build configuration are SDK additions.
+The cached release slope and the manual 128-frame minimum duration are stored
+separately. Manual Off and raw KOFF use the rates last latched by key-on or an
+explicit refresh; neither rereads deferred ADSR register edits. Repeated Off
+calls retain that deferral, while the next actual key-on reads the new values.
+Explicit refresh still changes an active Release without restarting its sample
+or resetting its level. Long and infinite releases are not shortened by the
+manual minimum duration.
+
+`vendor/mame-ps1-spu/` began as a byte-identical import of the reference application's `native/ps1/`, including its [detailed adaptation record](../vendor/mame-ps1-spu/README.md), [license](../vendor/mame-ps1-spu/LICENSE) and pristine `upstream/` files. The 0.1.7 instrument extensions amend the adapted files only; original hashes remain in the source inventory and `upstream/` stays unchanged. Its CMake target compiles the same four C++17 translation units, and its WASM recipe retains the compiler and memory settings, with the two extension exports added. Public forwarding, tests, cataloging and build configuration are SDK additions.
 
 The synchronous C interface is the same in Native and WASM: `ps1_spu_create/destroy/reset/sample_rate/write/read/load_ram/read_ram/render`. It owns 512 KiB of RAM per independent handle and produces planar 44,100 Hz float PCM. Callers serialize access, encode PCM to PSX ADPCM, allocate sample ranges above the first `0x1000` capture bytes, schedule writes, mix and resample to an audio device themselves. Reset with `clear_ram=0` retains bytes while clearing voices/effects; the host restores any desired presets and gates.
 

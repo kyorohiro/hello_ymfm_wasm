@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "scope": "Real C ABI raw register PCM/readback before versus after the deferred-release change; no editor extensions, physical audio or hardware-accuracy claim",
+  "beforeFixture": "/private/tmp/ps1-deferred-release-before-fixture",
+  "beforeFixtureSha256": "36cdf2171fc8ff375c272f81c88b0bf6a9320c9a6aff5f80910076e08b2a6928",
+  "afterFixture": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-soundchip-native/build/ps1-instrument/native/tetorica_ps1_spu_fixture",
+  "afterFixtureSha256": "8727a566310609eb225104d30816752b82901a766095fe5838c0d18e5c22ac7d",
+  "cases": [
+    {
+      "initialReleaseRate": 0,
+      "voices": [
+        0,
+        7,
+        23
+      ],
+      "reverb": false,
+      "renderedFrames": 33543,
+      "responseBytes": 268380,
+      "responseSha256": "7fe1d060afd39c4b27036f25e4828e8b1b1927b7f77329c8fd90de9b86fe423b",
+      "exactBeforeAfter": true
+    },
+    {
+      "initialReleaseRate": 10,
+      "voices": [
+        0,
+        7,
+        23
+      ],
+      "reverb": true,
+      "renderedFrames": 33543,
+      "responseBytes": 268380,
+      "responseSha256": "b2c0f24feaca02b13ad53d2a3a79837dd36fe629d2e15726bb74de99785612a5",
+      "exactBeforeAfter": true
+    },
+    {
+      "initialReleaseRate": 31,
+      "voices": [
+        0,
+        7,
+        23
+      ],
+      "reverb": false,
+      "renderedFrames": 33543,
+      "responseBytes": 268380,
+      "responseSha256": "a63c24baa0789429b6f62e2c2e6f101e2db7e7f5cd2d37b9a6418b6fb666932e",
+      "exactBeforeAfter": true
+    }
+  ]
+}

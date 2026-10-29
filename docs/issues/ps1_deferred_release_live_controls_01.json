@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "browserUsed": false,
+  "physicalAudio": false,
+  "timersUsed": false,
+  "core": "actual deployed PS1 SPU WASM",
+  "wasmSha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e",
+  "transitions": {
+    "release": {
+      "rawMaximumAdjacentStep": 0.3124809265136719,
+      "auditionMaximumAdjacentStep": 0.0024412572383880615,
+      "reductionFactor": 128,
+      "pcmSha256": "f752c65dc7535134cfdbc9e898580cab302ad9b59a19eb9810ab0211ca15ae96"
+    },
+    "retrigger": {
+      "rawMaximumAdjacentStep": 0.3124809265136719,
+      "auditionMaximumAdjacentStep": 0.0037839487195014954,
+      "reductionFactor": 82.58064516129032,
+      "pcmSha256": "9e8ebe332deb330fd1f936bdd131fe7651ba88a040ad1751679c0fb9bb740a0e"
+    }
+  },
+  "liveEnvelope": {
+    "attackDuringSustainPcmBitExact": true,
+    "comparedStereoFrames": 8192,
+    "pcmSha256": "d12216fd047ff9fe318b17f23523314b0b17726dd0d3eaf611a7670e052a9d1b",
+    "firstSustainRms": 0.22538468721209157,
+    "lastSustainRms": 0.1761418734218134,
+    "sustainRatio": 0.7815165954733221,
+    "liveDisabledDefersSustain": true,
+    "initialPcmSampleUnchanged": true,
+    "sampleBankUnchanged": true
+  },
+  "publicEnvelope": {
+    "setEnvelope": {
+      "firstSustainRms": 0.22538468721209157,
+      "lastSustainRms": 0.1761418734218134,
+      "ratio": 0.7815165954733221,
+      "attackDuringSustainPcmBitExact": true,
+      "phasePreserved": true,
+      "explicitDeferredAndUnrelatedEditsStayLatched": true,
+      "pcmSha256": "6562de3366e961ff20200fe7e35c9d04a8cbf97293099696b804b34e6b95d7a0"
+    },
+    "setPreset": {
+      "firstSustainRms": 0.22538468721209157,
+      "lastSustainRms": 0.1761418734218134,
+      "ratio": 0.7815165954733221,
+      "attackDuringSustainPcmBitExact": true,
+      "phasePreserved": true,
+      "explicitDeferredAndUnrelatedEditsStayLatched": true,
+      "pcmSha256": "6562de3366e961ff20200fe7e35c9d04a8cbf97293099696b804b34e6b95d7a0"
+    },
+    "setChannel": {
+      "firstSustainRms": 0.22538468721209157,
+      "lastSustainRms": 0.1761418734218134,
+      "ratio": 0.7815165954733221,
+      "attackDuringSustainPcmBitExact": true,
+      "phasePreserved": true,
+      "explicitDeferredAndUnrelatedEditsStayLatched": true,
+      "pcmSha256": "6562de3366e961ff20200fe7e35c9d04a8cbf97293099696b804b34e6b95d7a0"
+    }
+  },
+  "noteOwnership": {
+    "staleReleaseIgnored": true,
+    "replacementPcmBitExact": true,
+    "comparedStereoFrames": 1024,
+    "pcmSha256": "50fb526eb91d4f77a5eb9f32b73d90fe3af4e886e8fb81cded7c3e1c4104b60a",
+    "finalOwnerReleases": true
+  }
+}

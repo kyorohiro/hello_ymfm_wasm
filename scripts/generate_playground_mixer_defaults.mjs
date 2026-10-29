@@ -237,9 +237,9 @@ export async function generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,
 
 async function main(args) {
   const options = {
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_chip_levels_live_release_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_chip_levels_live_release_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_chip_levels_live_release_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_chip_levels_deferred_release_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_chip_levels_deferred_release_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_chip_levels_deferred_release_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false;

@@ -169,6 +169,7 @@ protected:
 	void key_off(const int v);
 	bool update_envelope(const int v);
 	void read_envelope_rates(const unsigned int v);
+	float release_envelope_rate(const unsigned int v) const;
 	void schedule_live_envelope(const unsigned int v);
 	
 	uint16_t ram_read(uint32_t address);

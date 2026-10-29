@@ -34,7 +34,7 @@ import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
 import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=ps1-live-release-1';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=ps1-deferred-release-1';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ay8910:[Ay8910,ay8910Factory],ym2413:[Ym2413,ym2413Factory],ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory],

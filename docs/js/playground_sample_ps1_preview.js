@@ -2,8 +2,8 @@
 // Copyright (c) 2026, kyorohiro.
 /** Isolated offline PS1 SPU preview. Never opens a device or touches live audio. */
 import {renderPs1Sample} from './playground_sample_ps1.js?v=ps1-sample-editor-1';
-import {Ps1Spu} from './ps1_spu.js?v=ps1-live-release-1';
-import {Ps1Synth} from './ps1synth.js?v=ps1-live-release-1';
+import {Ps1Spu} from './ps1_spu.js?v=ps1-deferred-release-1';
+import {Ps1Synth} from './ps1synth.js?v=ps1-deferred-release-1';
 
 const SAMPLE_RATE = 44100;
 const PREVIEW_SECONDS = .85;

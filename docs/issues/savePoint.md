@@ -1,3 +1,12 @@
+## 2026-10-29 — PS1の保留ADSRを手動離鍵でも維持
+
+- 「Apply edits」オフで押鍵中にRRを変えると、UI離鍵時だけ新RRを使っていた不整合を共通C++で修正。実ラッチした`env_rr`と128native framesの手動Release下限を分離し、OffでADSRを読み直さない。離鍵は旧RR、次の実Note Onまたは変更を伴う明示live編集で新値を使う。RR31→0／0→31、A／D／S、繰返しOff、live更新、長い／無限Release、波形位置、所有者、別CHを確認。Pitch／Mute UIは今回対象外。
+- SDK原本`w/tetorica-soundchip-native`の9filesを修正。旧ZIPを保持して新しい0.1.7 local candidateを正規exportし、本体／Tauriへ455filesを正規import。baseCommit `7dff18153413d6dfd5908ccafb9e985e268acd4a`＋9changedPaths、archive SHA256 `0c09e92c3147a83fe3e694c2a48af169415b4e7e3c0b0cb3000ffb91c250f7b4`。固定snapshot手編集なし、ABI／upstream原本は不変。新WASM SHA256 `8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e`、cache `ps1-deferred-release-1`。同梱source単独からJS／WASMをbyte完全一致で再build成功。
+- SDK CTest1件（新15組）、Python13、inventory324snapshot成功。本体149JS／core／Worklet／Native-adapter／panelとPython26成功。linked Native19件、Native全体764成功・既存2ignored・38filtered。通常raw再生100,629framesの修正前後PCM／readback完全一致。実WASMの旧／新比較でも両RR方向の旧率保持・次KON採用を確認。クリック低減／live更新の既存実測も成功。
+- PS1／WS／POKEYの全matrixを新`*_chip_levels_deferred_release_01.json`へ測定。旧13raw byte不変、全pilot連続・clock診断0。校正関連494件と両generator --check／actionlint成功。PS1 .128832／WS1.172528維持、POKEYは実測RMS位相の微差で全経路 .413029（前回比最大−0.00121%）。手動係数／hash上書きなし。
+- 完全ZIP SHA256 `9d850ed4e46164fd3c13041ece7b0ee969e67d0f65212b986a501bdc975d6906`、Run ZIP SHA256 `89c363698435a547a957ac37da1167c7e45c62a83c2d6a23286628f36164398a`（931files）、両CRC成功。実Run ZIP WebKit Main／Worker2経路で離鍵前のunchecked両方向→離鍵→次Note On、従来のlive Release／ADSR図／PCM／Keyboard／追加SPU／FX／Stop／recover成功。物理出力mute、実聴／Tauri GUIは未実施。Tauriへ1,066frontend payloadをimportしlock／SDK確認、npmローカルbuild／隔離install／実PCM／型も成功。
+- 詳細：[ps1_deferred_release_01.md](ps1_deferred_release_01.md)／[JSON](ps1_deferred_release_01.json)。本体・SDK原本・Tauriの3repoに未commit変更あり（Tauriには前回分も含む）。commit／push／tag／remote CI／npm・SDK・itch公開は未実施。Browserは再読み込み、Tauriは再buildで反映。次はユーザーの実聴確認、必要ならcommitとSDK正式配布の整理。その後の候補はSPU Pitch wheelとCH Mute。以下は各時点の履歴。
+
 ## 2026-10-29 — SPUタブのRelease中ADSR変更を修正
 
 - RR31で離鍵後に鳴り続ける音へ、UIのRR0変更が届かなかった問題を修正。原因は即時Envelope更新を手動押鍵中だけに限定していたこと。「Apply ADSR / PCM edits while playing」がオンなら選択CHの現在stageへ反映し、Release中やscript音も再発音／所有権変更なしで更新する。PCM再発音は手動押鍵中のみ。unchecked／同値／無関係な変更の保留は維持。

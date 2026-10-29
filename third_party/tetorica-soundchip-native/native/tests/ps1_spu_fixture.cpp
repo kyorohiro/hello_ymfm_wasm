@@ -58,6 +58,117 @@ static int live_editor_selftest()
     CHECK(ps1_pattern::peak(ps1_pattern::render(reference,257).left)==0);
     return 0;
 }
+static bool same_audio(const ps1_pattern::Audio& a,const ps1_pattern::Audio& b)
+{
+    return a.left==b.left&&a.right==b.right;
+}
+static double tail_peak(const std::vector<float>& values,unsigned from)
+{
+    return ps1_pattern::peak(std::vector<float>(values.begin()+from,values.end()));
+}
+static int deferred_release_selftest()
+{
+    // No refresh call means ADSR changes stay deferred through both raw KOFF
+    // and the smoothed manual Off path. Test Attack, Decay and held Sustain
+    // independently, including the upper voice bank and a foreign right voice.
+    struct Phase { unsigned adsr1; int direction; };
+    constexpr Phase phases[]={{0x30a3,1},{0x00a3,-1},{0x000f,0}};
+    constexpr unsigned channel=23,base=channel*16;
+    for(const auto phase:phases)for(const bool manual:{false,true})for(const unsigned initial:{0u,31u}) {
+        const unsigned deferred=initial==31?0:31;
+        ps1_pattern::Chip edited,reference;
+        for(auto *chip:{&edited,&reference}) {
+            ps1_pattern::configure(*chip);ps1_pattern::voice(*chip,channel,0x1234,0x1800,0);
+            ps1_pattern::voice(*chip,7,0x0d35,0,0x1000);ps1_pattern::key(*chip,7,true);
+            chip->write(base+8,phase.adsr1);chip->write(base+10,0x1fc0|initial);
+            if(manual)CHECK(ps1_spu_audition_key(chip->value,channel,1));
+            else ps1_pattern::key(*chip,channel,true);
+        }
+        CHECK(same_audio(ps1_pattern::render(edited,1009,127),ps1_pattern::render(reference,1009,1)));
+        const auto held=ps1_spu_read(edited.value,base+12);CHECK(held>0);
+        CHECK(same_audio(ps1_pattern::render(edited,73,1),ps1_pattern::render(reference,73,31)));
+        const auto later=ps1_spu_read(edited.value,base+12);
+        CHECK(phase.direction>0?later>held:phase.direction<0?later<held:later==held);
+        edited.write(base+10,0x1fc0|deferred);
+        CHECK(same_audio(ps1_pattern::render(edited,31),ps1_pattern::render(reference,31)));
+        const auto before_off=ps1_spu_read(edited.value,base+12);
+        for(auto *chip:{&edited,&reference}) {
+            if(manual)CHECK(ps1_spu_audition_key(chip->value,channel,0));
+            else ps1_pattern::key(*chip,channel,false);
+        }
+        CHECK(ps1_spu_read(edited.value,base+12)==before_off);
+        const auto tail=ps1_pattern::render(edited,257,7);
+        CHECK(same_audio(tail,ps1_pattern::render(reference,257,127)));
+        CHECK(initial==31?tail_peak(tail.left,200)>0:tail_peak(tail.left,200)==0);
+        if(manual&&initial==0)CHECK(tail_peak(std::vector<float>(tail.left.begin(),tail.left.begin()+70),20)>0);
+        CHECK(ps1_spu_read(edited.value,base+10)==(0x1fc0|deferred));
+        // Repeated manual Off and raw Off must not reread the deferred words,
+        // including when a manual-release floor was present on this voice.
+        edited.write(base+10,0x1fc0|deferred); // Same authored value, still deferred.
+        for(auto *chip:{&edited,&reference}) {
+            if(manual)CHECK(ps1_spu_audition_key(chip->value,channel,0));
+            else ps1_pattern::key(*chip,channel,false);
+        }
+        CHECK(same_audio(ps1_pattern::render(edited,67),ps1_pattern::render(reference,67)));
+        for(auto *chip:{&edited,&reference})ps1_pattern::key(*chip,channel,false);
+        CHECK(same_audio(ps1_pattern::render(edited,257,1),ps1_pattern::render(reference,257,127)));
+        // The next actual KON, including a ramped restart, latches the new RR.
+        reference.write(base+10,0x1fc0|deferred);
+        for(auto *chip:{&edited,&reference}) {
+            if(manual)CHECK(ps1_spu_audition_key(chip->value,channel,1));
+            else ps1_pattern::key(*chip,channel,true);
+        }
+        CHECK(same_audio(ps1_pattern::render(edited,1009),ps1_pattern::render(reference,1009)));
+        for(auto *chip:{&edited,&reference}) {
+            if(manual)CHECK(ps1_spu_audition_key(chip->value,channel,0));
+            else ps1_pattern::key(*chip,channel,false);
+        }
+        const auto next=ps1_pattern::render(edited,257);
+        CHECK(same_audio(next,ps1_pattern::render(reference,257)));
+        CHECK(deferred==31?tail_peak(next.left,200)>0:tail_peak(next.left,200)==0);
+    }
+    // Explicit refresh still changes a live infinite release without a restart
+    // or level jump; the floor affects only the effective release, not its
+    // latched RR. A foreign voice's sample phase/output remains bit-identical.
+    for(const bool raw_second_off:{false,true}) {
+        ps1_pattern::Chip edited,reference;
+        for(auto *chip:{&edited,&reference}) {
+            ps1_pattern::configure(*chip);ps1_pattern::voice(*chip,channel,0x1234,0x1800,0);
+            ps1_pattern::voice(*chip,7,0x0d35,0,0x1000);ps1_pattern::key(*chip,7,true);
+            chip->write(base+10,0x1fdf);CHECK(ps1_spu_audition_key(chip->value,channel,1));
+            ps1_pattern::render(*chip,1009);CHECK(ps1_spu_audition_key(chip->value,channel,0));
+            ps1_pattern::render(*chip,257);
+        }
+        edited.write(base+10,0x1fc0);
+        for(auto *chip:{&edited,&reference}) {
+            if(raw_second_off)ps1_pattern::key(*chip,channel,false);
+            else CHECK(ps1_spu_audition_key(chip->value,channel,0));
+        }
+        CHECK(same_audio(ps1_pattern::render(edited,67),ps1_pattern::render(reference,67)));
+        const auto before=ps1_spu_read(edited.value,base+12);CHECK(before>0);
+        CHECK(ps1_spu_refresh_envelope(edited.value,channel));
+        CHECK(ps1_spu_read(edited.value,base+12)==before);
+        const auto a=ps1_pattern::render(edited,257),b=ps1_pattern::render(reference,257);
+        CHECK(a.right==b.right);CHECK(a.left.front()==b.left.front());
+        CHECK(tail_peak(a.left,200)==0&&tail_peak(b.left,200)>0);
+    }
+    // A long release remains long; the manual ramp is a minimum duration,
+    // not a forced fixed-duration envelope or a reason to read new registers.
+    ps1_pattern::Chip edited,reference;
+    for(auto *chip:{&edited,&reference}) {
+        ps1_pattern::configure(*chip);ps1_pattern::voice(*chip,0);
+        chip->write(10,0x1fca);CHECK(ps1_spu_audition_key(chip->value,0,1));
+        ps1_pattern::render(*chip,1009);
+    }
+    edited.write(10,0x1fc0);
+    for(auto *chip:{&edited,&reference})CHECK(ps1_spu_audition_key(chip->value,0,0));
+    const auto long_tail=ps1_pattern::render(edited,257);
+    CHECK(same_audio(long_tail,ps1_pattern::render(reference,257)));
+    CHECK(tail_peak(long_tail.left,200)>0);
+    CHECK(same_audio(ps1_pattern::render(edited,4097),ps1_pattern::render(reference,4097)));
+    CHECK(ps1_pattern::peak(ps1_pattern::render(edited,257).left)==0);
+    return 0;
+}
 static int selftest()
 {
     CHECK(ps1_spu_sample_rate()==44100);
@@ -89,7 +200,8 @@ static int selftest()
     ps1_spu_destroy(chip);
     CHECK(ps1_pattern::selftest());
     CHECK(live_editor_selftest()==0);
-    std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance and live editor controls\"}");
+    CHECK(deferred_release_selftest()==0);
+    std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance, live editor controls and deferred release latching\"}");
     return 0;
 }
 int main(int argc,char **argv)

@@ -7,7 +7,7 @@ export {SOUNDCHIP_MIXER_PRESETS} from './soundchip_mixer_presets.js';
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=ps1-live-release-1';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=ps1-deferred-release-1';
 import {PWM32X} from './pwm32x.js?v=pwm-wasm-1';
 export {encodeWav} from './wav.js';
 

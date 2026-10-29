@@ -621,14 +621,14 @@
     },
     {
       "adaptation": "Use SDK public header; retain binary command transport unchanged; accept CTest --self-test alias and add original-waveform 24-voice/ADSR/reverb/isolation/partition checks.",
-      "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope and manual-audition APIs and argument guards.",
+      "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope/manual-audition controls, guards and deferred ADSR latching through held A/D/S, manual/raw/repeated Off and next KON; retain independent foreign-channel output.",
       "file": "native/tests/ps1_spu_fixture.cpp",
       "origin": "test/helpers/ps1_spu_reference.cpp",
       "originCommit": "069a2cb8211aa0159b71da5f7c806a30a4d32929",
       "originRepository": "hello_ymfm_wasm",
       "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
       "originalSha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "sha256": "deeffc95a8b4ba85c65d67ec35b8b33d82ff4341c39a4d33c293cef394c64a02"
+      "sha256": "52c79ecb501dedc3fdb917c18935e9f7fbdb01d3521a7ee1e5c0bf700adb24ff"
     }
   ],
   "originRepository": "tetorica-fm2612-playground-tauri",

@@ -1,6 +1,6 @@
 /** MSX Audio reuses the MSX pair and adds its Y8950 FM/rhythm endpoint. */
-import {createNativeGenesisMsx} from './native_genesis_msx.js?v=ps1-live-release-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=ps1-live-release-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=ps1-deferred-release-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=ps1-deferred-release-1';
 
 export function createNativeGenesisMsxAudio(synth) {
   const pair = createNativeGenesisMsx(synth);
