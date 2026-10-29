@@ -285,8 +285,15 @@ root-note/tuning metadata. Raw ADPCM stores no sample rate or root note.
 
 ## Scope and accuracy
 
-The port retains MAME's linear interpolation, floating-point ADSR rate
-approximations and preset-based approximate reverb. It is experimental and does
+The port uses PS1 four-point Gaussian voice interpolation with the documented
+512 hardware coefficients and phase bits 4..11. Each signed product is shifted
+separately before summing; the previous three decoded frames start at zero on
+KON/reset and survive packet/loop boundaries and skipped source frames. Noise
+bypasses the filter. This replaces the former linear default without an API
+switch. The post-mix device-rate resampler is a separate stage. See
+[PSX-SPX](https://psx-spx.consoledev.net/soundprocessingunitspu/#4-point-gaussian-interpolation).
+The port retains MAME's floating-point ADSR rate approximations and preset-based
+approximate reverb. It is experimental and does
 not claim hardware-exact sound or game soundtrack compatibility. Raw ADSR
 register writes retain the original core's key-on-latched behavior; the public
 Synth ADSR setters explicitly use `refreshEnvelope()` to update a running

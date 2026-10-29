@@ -22,7 +22,7 @@ manual minimum duration.
 
 The synchronous C interface is the same in Native and WASM: `ps1_spu_create/destroy/reset/sample_rate/write/read/load_ram/read_ram/render`. It owns 512 KiB of RAM per independent handle and produces planar 44,100 Hz float PCM. Callers serialize access, encode PCM to PSX ADPCM, allocate sample ranges above the first `0x1000` capture bytes, schedule writes, mix and resample to an audio device themselves. Reset with `clear_ram=0` retains bytes while clearing voices/effects; the host restores any desired presets and gates.
 
-This is an experimental CPU-free instrument, with the retained upstream linear interpolation, envelope-rate approximations and preset-based reverb. ADSR edits latch at key-on; pitch and fixed gain update active voices. Volume sweeps and nonstandard RAM-control modes are rejected. CPU/DMA/IRQ, BIOS, PSF playback and external XA/CD audio are outside this target. The `instruments` inventory is separate from generic chip IDs and application-audio transports. No hardware accuracy or full-game playback claim is implied by source availability.
+This is an experimental CPU-free instrument, with the PS1 four-point Gaussian voice interpolation, retained envelope-rate approximations and preset-based reverb. ADSR edits latch at key-on; pitch and fixed gain update active voices. Volume sweeps and nonstandard RAM-control modes are rejected. CPU/DMA/IRQ, BIOS, PSF playback and external XA/CD audio are outside this target. The `instruments` inventory is separate from generic chip IDs and application-audio transports. No hardware accuracy or full-game playback claim is implied by source availability.
 
 ## Comparison layers
 

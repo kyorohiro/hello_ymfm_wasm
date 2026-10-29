@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
-test('actual PS1 core manual audition removes event steps and preserves authored register playback',async t=>{
+test('actual PS1 core manual audition removes event steps with Gaussian register playback',async t=>{
   const compiler=process.env.CXX||'c++';
   const probe=spawnSync(compiler,['--version'],{encoding:'utf8'});
   assert.equal(probe.status,0,probe.stderr||probe.error?.message);
@@ -39,6 +39,10 @@ test('actual PS1 core manual audition removes event steps and preserves authored
   assert.equal(report.partitionInvariant,true);assert.equal(report.resetCancelsPendingOn,true);
   const raw=run(current,['--raw']);
   assert.equal(raw.length,baseline.capture.bytes);assert.equal(raw.length,8*8*8985);
-  assert.equal(hash(raw),baseline.capture.sha256,'ordinary raw KON/KOFF, pitch, stereo, loops and release remain byte-identical to the independently captured SDK 0.1.6 reference');
-  t.diagnostic(JSON.stringify({...report,unchangedRawStereoFrames:raw.length/8}));
+  // The immutable 0.1.6 capture used linear interpolation. Gaussian output is
+  // intentionally different; specification-based sample oracles live in
+  // ps1_spu.test.mjs and the SDK native fixture, rather than a replacement hash.
+  assert.notEqual(hash(raw),baseline.capture.sha256,'Gaussian default changes the historical linear PCM');
+  assert.deepEqual(run(current,['--raw']),raw,'raw register playback is deterministic');
+  t.diagnostic(JSON.stringify({...report,gaussianRawStereoFrames:raw.length/8,gaussianRawSha256:hash(raw)}));
 });

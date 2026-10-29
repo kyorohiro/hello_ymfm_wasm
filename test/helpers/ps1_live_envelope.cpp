@@ -69,7 +69,9 @@ static void decay()
     for(auto *chip:{&edited,&reference}) { setup(*chip,0x00c0,0x1fcf,true);render(*chip,300);chip->write(8,0x00cf); }
     const auto old=edited.level();CHECK(old>0&&old<32767);edited.refresh();CHECK(edited.level()==old);
     const auto a=render(edited,257),b=render(reference,257);first_sample_matches(a,b);
-    CHECK(a.l.front()==a.l.back()); // Raising SL above current level must not snap to SL.
+    // Gaussian coefficient sums vary by phase, even for a constant source.
+    // Raising SL must hold the envelope itself without snapping its level.
+    CHECK(edited.level()==old);
     CHECK(reference.level()<edited.level());
 }
 static void sustain()

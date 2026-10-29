@@ -149,9 +149,10 @@ device and releases its private core after rendering. See the
 The package-root chip factory remains separate. In a compatible Tauri host,
 Playground supports PS1 Native playback through the same fixed SDK C++ core,
 including Main/Worker, 24-voice audition, PCM/ADSR/reverb editing and additional
-independent SPUs. Web Audio remains the default. The package pins the published
-SDK 0.1.6 source release, including its source archive and manifest hashes.
-Upstream linear interpolation, approximate ADSR and preset reverb are retained;
+independent SPUs. Web Audio remains the default. This development build pins an
+unpublished SDK 0.1.7 candidate with source archive and manifest hashes plus
+explicit local-candidate provenance. PS1 four-point Gaussian voice interpolation
+uses the documented hardware coefficients; approximate ADSR and preset reverb remain;
 hardware-exact sound or game soundtrack compatibility is not claimed.
 
 The optional `SOUNDCHIP_MIXER_PRESETS.calibrated` supplies a measured `ps1`

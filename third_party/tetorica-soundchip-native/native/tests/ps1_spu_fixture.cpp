@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro
-// Test transport only: no ADPCM decoder, synthesis or audio arithmetic.
+// Test transport plus independent specification vectors; no duplicate decoder or renderer.
 #include <tetorica/ps1_spu.h>
 #include "../examples/ps1_spu_pattern.hpp"
 #include <algorithm>
@@ -169,6 +169,43 @@ static int deferred_release_selftest()
     CHECK(ps1_pattern::peak(ps1_pattern::render(edited,257).left)==0);
     return 0;
 }
+// Independent PSX-SPX coefficient rows, in oldest..new order. No core table
+// access: catch ordering, signed per-product rounding and high-pitch history.
+static int gaussian_selftest()
+{
+    constexpr int coefficients[3][4]={{0x12c7,0x59b3,0x1307,-1},
+        {0x019c,0x3def,0x3e4c,0x01a8},{-1,0x1307,0x59b3,0x12c7}};
+    for (unsigned pitch:{0x800u,0x1000u,0x3fffu}) {
+        ps1_pattern::Chip chip;
+        ps1_pattern::configure(chip);
+        uint8_t bytes[16]={4,3};
+        for (unsigned n=0;n<28;++n) bytes[2+n/2]|=uint8_t((int(n%16)-8)&15)<<((n&1)*4);
+        CHECK(ps1_spu_load_ram(chip.value,ps1_pattern::address,bytes,16));
+        ps1_pattern::voice(chip,0,pitch,0x3fff,0x3fff);ps1_pattern::key(chip,0,true);
+        const auto audio=ps1_pattern::render(chip,8192,17);
+        unsigned checked=0;
+        for(unsigned t=256;t<audio.left.size();++t) {
+            const unsigned position=t*pitch,i=(position>>4)&255;
+            if (i!=0 && i!=128 && i!=255) continue;
+            const int *row=coefficients[i==0?0:i==128?1:2];
+            int sum=0;
+            for(int k=0;k<4;++k) {
+                const int n=int(position>>12)-3+k;
+                const int sample=n<0?0:((n%28)%16-8)*256;
+                sum+=int(std::floor(double(row[k])*sample/32768));
+            }
+            const int voice=(sum*32766)>>15;
+            const float expected=float(float(voice*32766)/1073741824.0f);
+            CHECK(audio.left[t]==expected);CHECK(audio.right[t]==expected);++checked;
+        }
+        CHECK(checked>16);
+        // KON clears old interpolation history even when sample RAM is retained.
+        ps1_pattern::key(chip,0,true);
+        const auto restart=ps1_pattern::render(chip,64,1);
+        CHECK(std::equal(restart.left.begin(),restart.left.end(),audio.left.begin()));
+    }
+    return 0;
+}
 static int selftest()
 {
     CHECK(ps1_spu_sample_rate()==44100);
@@ -199,6 +236,7 @@ static int selftest()
     CHECK(ps1_spu_render(chip,pcm,pcm+8,8));for(unsigned i=0;i<16;i++)CHECK(pcm[i]==0.0f);
     ps1_spu_destroy(chip);
     CHECK(ps1_pattern::selftest());
+    CHECK(gaussian_selftest()==0);
     CHECK(live_editor_selftest()==0);
     CHECK(deferred_release_selftest()==0);
     std::puts("{\"status\":\"pass\",\"scope\":\"register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance, live editor controls and deferred release latching\"}");

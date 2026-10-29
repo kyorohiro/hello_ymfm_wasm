@@ -33,7 +33,8 @@ test('the starter is the pre-encoded editor sine with unchanged packet layout, t
 });
 
 test('actual SPU decoding gives the starter lower sine error than the former coarse four-bit waveform',async t=>{
-  const target=Array.from({length:112},(_,i)=>.65*Math.sin(2*Math.PI*i/112));
+  // Fixed Gaussian group delay at PITCH=4096, phase zero, is about two frames.
+  const target=Array.from({length:112},(_,i)=>.65*Math.sin(2*Math.PI*(i-2)/112));
   const coarse=new Uint8Array(64);
   for(let block=0;block<4;block++){
     coarse[block*16+1]=block===0?6:block===3?3:0;

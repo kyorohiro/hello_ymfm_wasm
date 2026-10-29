@@ -1905,10 +1905,10 @@
         {
           "path": "vendor/mame-ps1-spu/README.md",
           "originPath": "native/ps1/README.md",
-          "sha256": "cd1df4a60b2df703c49d620229a49190fc9925014c99044cf2301f6c71e75845",
+          "sha256": "78dec1dd3771eebbb77ec9571517047fddbd06b54ae792c508492059d2b8c1c3",
           "originalSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
           "previousSdkSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
@@ -1929,10 +1929,10 @@
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
           "originPath": "native/ps1/spu.cpp",
-          "sha256": "02e3dd1e99df22bbadea46de7346f1213f24ac101232f3b2d951cda5e20c6a48",
+          "sha256": "d15730662a869a39ee44848ad6d02d280e15db0139a61ad8040a09c28b1433e9",
           "originalSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
           "previousSdkSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",

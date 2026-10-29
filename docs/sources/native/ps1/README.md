@@ -8,8 +8,8 @@ BIOS, game files, CPU emulator, MAME runtime, or external dependencies.
 
 The output is fixed at 44,100 Hz, with 512 KiB of private sample RAM per
 instance. This is an experimental MAME-derived compatibility core, not a claim
-of hardware-exact timing or sound. In particular, upstream uses linear sample
-interpolation, floating-point envelope approximations, and reverb presets.
+of hardware-exact timing or sound. The adaptation uses PS1 four-point Gaussian voice interpolation, while
+floating-point envelope approximations and reverb presets remain.
 
 ## Source and license
 
@@ -66,6 +66,20 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
 
 ## Adaptation details and limitations
 
+- Voice interpolation now uses the 512 PS1 hardware coefficient values documented
+  by [PSX-SPX / no$psx](https://psx-spx.consoledev.net/soundprocessingunitspu/#4-point-gaussian-interpolation).
+  These are numeric hardware data, transcribed independently of emulator code;
+  the new implementation is part of this BSD-3-Clause adaptation. Pristine
+  MAME sources under `upstream/` are unchanged. The default replaces linear
+  interpolation; there is no compatibility mode or additional API switch.
+  Phase bits 4..11 select four separately arithmetic-shifted products of the
+  current and preceding three decoded samples, before envelope and mixing.
+  History starts at zero on KON/reset, survives packet/loop/cache boundaries,
+  and consumes skipped samples at high pitch. Noise bypasses interpolation;
+  pitch modulation receives post-envelope Gaussian output. Coefficients retain
+  the hardware's roughly 0.996 DC gain rather than being renormalized.
+
+
 - Opt-in instrument controls added in 0.1.7: `ps1_spu_refresh_envelope` rereads
   ADSR rates while preserving the current envelope level and sample position;
   `ps1_spu_audition_key` uses 128-frame per-voice ramps for manual key transitions
@@ -96,8 +110,8 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
 - Effective pitch ignores the register's upper two bits and modulation is capped
   at `0x3fff`, avoiding cache overshoot for out-of-range raw register values.
   Voice zero ignores its modulation bit because it has no preceding voice.
-  Interpolation at zero pitch safely stitches a final packet sample instead of
-  reading beyond its decoded cache.
+  Interpolation at zero pitch holds the current sample and three-sample history
+  without reading beyond its decoded cache.
   Packet reads wrap at the end of RAM, including cache-refresh lookahead.
 - Invalid ADPCM predictor nibbles `5..15` use predictor zero to avoid reading
   outside the five-entry table. This is a safe malformed-data fallback, not a

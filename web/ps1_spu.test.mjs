@@ -57,6 +57,91 @@ function render(chip,frames,partitions=[frames]) {
   const result={left,right};finite(result);return result;
 }
 
+// Independently transcribed hardware data from PSX-SPX, not read from the core.
+const gaussianTable=JSON.parse(await readFile(new URL('../test/helpers/ps1_gaussian_table.json',import.meta.url),'utf8'));
+function gaussianOracle(source,index,phase,loopStart=0) {
+  const at=n=>n<0?0:source[n<source.length?n:loopStart+(n-source.length)%(source.length-loopStart)];
+  const i=(phase>>>4)&255;
+  return [255-i,511-i,256+i,i].reduce((sum,coefficient,k)=>sum+Math.floor(gaussianTable[coefficient]*at(index-3+k)/32768),0);
+}
+function fixedVolumeOracle(sample) {
+  const voice=(sample*32766)>>15;
+  return Math.fround(Math.fround(voice*32766)/1073741824);
+}
+function decodedFilterZero(bytes) {
+  return Array.from({length:bytes.length/16*28},(_,i)=>{
+    const at=Math.floor(i/28)*16,n=i%28;
+    const nibble=(bytes[at+2+(n>>>1)]>>>((n&1)*4))&15;
+    return ((nibble<8?nibble:nibble-16)*4096)>>(bytes[at]&15);
+  });
+}
+
+test('Gaussian hardware table has documented phase endpoints and sub-unity DC gain',()=>{
+  assert.equal(gaussianTable.length,512);
+  assert.deepEqual([0,15,16,127,255,256,511].map(i=>gaussianTable[i]),[-1,-1,0,0x19c,0x12c7,0x1307,0x59b3]);
+  for(let i=0;i<256;i++) {
+    const sum=gaussianTable[i]+gaussianTable[255-i]+gaussianTable[256+i]+gaussianTable[511-i];
+    assert.ok(sum>=0x7f7f&&sum<=0x7f81);
+  }
+  assert.equal(gaussianOracle([32767,32767,32767,32767],3,0),32637);
+});
+
+test('Gaussian voice output matches specification across all phases, packet/loop boundaries and skipped frames',async t=>{
+  const chip=await create(t);
+  for(const blocks of [1,4])for(const pitch of [0,1,0x800,0x1000,0x1010,0x1234,0x3fff]) {
+    const bytes=wave({blocks}),source=decodedFilterZero(bytes);
+    chip.reset();load(chip,bytes);start(chip,{pitch});render(chip,256);
+    const actual=render(chip,4096,[1,27,2,113,2048]).left;
+    const expected=Float32Array.from(actual,(_,frame)=>{
+      const position=(frame+256)*pitch;
+      return fixedVolumeOracle(gaussianOracle(source,Math.floor(position/4096),position&4095));
+    });
+    assert.deepEqual(actual,expected,`specification oracle: ${blocks} packets, pitch ${pitch.toString(16)}`);
+  }
+});
+
+test('Gaussian history survives a nonzero repeat address and clears on KON and reset',async t=>{
+  const chip=await create(t),bytes=wave({blocks:4,loopBlock:1}),pitch=0x3fff;
+  // An asymmetric waveform makes sample-order and wrap mistakes observable.
+  for(let b=0;b<4;b++)for(let n=0;n<14;n++)bytes[b*16+2+n]=(b*71+n*37)&255;
+  const decoded=decodedFilterZero(bytes);
+  load(chip,bytes);start(chip,{pitch,repeat:SAMPLE_ADDRESS+16});
+  const first=render(chip,8192,[1,17,89]).left;
+  for(let frame=256;frame<first.length;frame++) {
+    const at=frame*pitch;
+    assert.equal(first[frame],fixedVolumeOracle(gaussianOracle(decoded,Math.floor(at/4096),at&4095,28)));
+  }
+  mask(chip,REG.keyOn,0);
+  assert.deepEqual(render(chip,256,[1]).left,first.subarray(0,256),'KON resets history without retaining the prior loop tail');
+  chip.reset();start(chip,{pitch,repeat:SAMPLE_ADDRESS+16});
+  assert.deepEqual(render(chip,256).left,first.subarray(0,256),'reset retaining RAM resets history');
+});
+
+test('noise bypasses Gaussian sample history, and modulation uses post-envelope Gaussian output',async t=>{
+  const a=await create(t),b=await create(t);
+  for(const [chip,invert]of [[a,false],[b,true]]) {
+    load(chip,wave({invert}));start(chip,{pitch:0x1234});chip.write(0x194,1);
+  }
+  assert.deepEqual(render(a,4096,[17]).left,render(b,4096,[1]).left,'noise output is independent of decoded ADPCM history');
+  a.reset();const bytes=wave(),source=decodedFilterZero(bytes);load(a,bytes);
+  start(a,{channel:0,left:0,right:0});start(a,{channel:1,pitch:0x2345});a.write(0x190,2);
+  const audio=render(a,8192,[1,17,409]).left;
+  // Warmup source attack uses the inherited floating-point ADSR approximation.
+  // Begin comparison after settling, but derive target phase from every source
+  // OUTX by reversing the known fixed gains of a separate unmodulated voice.
+  const reference=await create(t);load(reference,bytes);start(reference);
+  const sourcePcm=render(reference,8192).left;
+  let position=0;
+  for(let frame=0;frame<audio.length;frame++) {
+    // Full fixed gains are reversible here: recover pre-volume OUTX exactly.
+    const candidates=[Math.round(sourcePcm[frame]*32768),Math.round(sourcePcm[frame]*32768)+1,Math.round(sourcePcm[frame]*32768)-1];
+    const outx=candidates.find(value=>fixedVolumeOracle(value)===sourcePcm[frame]);
+    assert.notEqual(outx,undefined);
+    if(frame>=256)assert.equal(audio[frame],fixedVolumeOracle(gaussianOracle(source,Math.floor(position/4096),position&4095)),`modulated frame ${frame}`);
+    position+=Math.min(0x3fff,(0x2345*(outx+32768))>>>15);
+  }
+});
+
 test('PS1 SPU cold reset is silent, exposes 44.1 kHz and owns a 512 KiB RAM image',async t=>{
   const chip=await create(t);assert.equal(chip.sampleRate,44100);assert.equal(chip.nativeFrames,0);
   const ram=chip.readRam();assert.equal(ram.length,RAM_BYTES);assert.ok(ram.every(value=>value===0));
@@ -100,11 +185,10 @@ test('filter-0 ADPCM pitch, packet order and repeated loops preserve the authore
   render(chip,256);const reference=render(chip,112*20).left;
   assert.ok(peak(reference)>.01);assert.deepEqual(reference.subarray(0,112),reference.subarray(112,224),'loop restarts at its 28-sample packet boundary');
   const oracle=Float32Array.from({length:112},(_,index)=>{
-    const sample=Math.round(7*Math.sin(2*Math.PI*((index+256)%112)/112))*256;
-    const voice=(sample*32766)>>15;
-    return Math.fround(Math.fround(voice*32766)/1073741824);
+    const sample=gaussianOracle(decodedFilterZero(bytes),index+256,0);
+    return fixedVolumeOracle(sample);
   });
-  assert.deepEqual(reference.subarray(0,112),oracle,'filter 0 signed low-first nibbles reach PCM at the integer pitch with the documented fixed volumes');
+  assert.deepEqual(reference.subarray(0,112),oracle,'filter 0 signed low-first nibbles pass through Gaussian interpolation and fixed volumes');
   // Phase-order oracle: sin begins near zero, rises positive, then negative.
   // Amplitude is intentionally not an asserted hardware calibration value.
   let rises=0;for(let i=1;i<reference.length;i++)if(reference[i-1]<=0&&reference[i]>0)rises++;
@@ -253,11 +337,10 @@ test('SPU voice 0 safely ignores its unsupported pitch-modulation bit',async t=>
 test('SPU zero pitch holds a fractional final-packet sample without reading past its decoder cache',async t=>{
   const chip=await create(t);load(chip,wave({blocks:2}));start(chip,{pitch:0x1001});render(chip,55);
   chip.write(4,0);const held=render(chip,4097,[1,127,2048]).left;
-  // Source frame 55 is -256; the 55/4096 fraction interpolates toward the
-  // loop's first frame (zero). Neither pitch zero nor chunking advances it.
-  const interpolated=-256+((256*55)>>12),voice=(interpolated*32766)>>15;
-  const expected=Math.fround(Math.fround(voice*32766)/1073741824);
-  assert.ok(held.every(value=>value===expected),'fractional loop-end interpolation holds the explicit next loop sample');
+  // Current source frame 55 plus history 52..54; phase bits 4..11 are held.
+  const interpolated=gaussianOracle(decodedFilterZero(wave({blocks:2})),55,55);
+  const expected=fixedVolumeOracle(interpolated);
+  assert.ok(held.every(value=>value===expected),'fractional loop-end Gaussian interpolation holds current sample and history');
 });
 
 const root=fileURLToPath(new URL('../',import.meta.url));

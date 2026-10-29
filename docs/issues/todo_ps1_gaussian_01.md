@@ -1,7 +1,7 @@
 # PS1 SPU: Gaussian interpolation
 
 Date: 2026-10-29
-Status: 未実装を確認。今回は調査・引き継ぎのみで、音源コードの変更はしていない。
+Status: 2026-10-29後続作業で実装・検証済み。現在の結果は [ps1_gaussian_01.md](ps1_gaussian_01.md) を参照。以下は実装前の調査記録。
 
 ## 確認した現状
 

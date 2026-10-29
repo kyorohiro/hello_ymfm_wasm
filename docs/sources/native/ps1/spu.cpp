@@ -400,6 +400,83 @@ struct spu_device::cache_pointer
 //
 //
 
+// PSX hardware coefficients documented by no$psx / PSX-SPX:
+// https://psx-spx.consoledev.net/soundprocessingunitspu/#4-point-gaussian-interpolation
+// Numeric hardware data; no implementation code copied from another emulator.
+static constexpr int16_t psx_gauss[512] = {
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1,
+	0, 0, 0, 0, 0, 0, 0, 1,
+	1, 1, 1, 2, 2, 2, 3, 3,
+	3, 4, 4, 5, 5, 6, 7, 7,
+	8, 9, 9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 21, 22, 24,
+	25, 27, 28, 30, 32, 33, 35, 37,
+	39, 41, 44, 46, 48, 51, 53, 56,
+	58, 61, 64, 67, 70, 73, 77, 80,
+	84, 87, 91, 95, 99, 103, 107, 111,
+	116, 120, 125, 130, 135, 140, 145, 150,
+	156, 161, 167, 173, 179, 186, 192, 199,
+	205, 212, 219, 227, 234, 242, 250, 257,
+	266, 274, 283, 291, 300, 309, 319, 328,
+	338, 348, 358, 369, 379, 390, 401, 412,
+	424, 436, 448, 460, 473, 485, 498, 512,
+	525, 539, 553, 567, 582, 597, 612, 627,
+	643, 659, 675, 692, 708, 726, 743, 761,
+	779, 797, 816, 835, 854, 874, 894, 914,
+	935, 956, 977, 999, 1020, 1043, 1066, 1089,
+	1112, 1136, 1160, 1184, 1209, 1234, 1260, 1286,
+	1312, 1339, 1366, 1394, 1422, 1450, 1479, 1508,
+	1537, 1567, 1598, 1628, 1660, 1691, 1723, 1756,
+	1789, 1822, 1856, 1890, 1924, 1959, 1995, 2031,
+	2067, 2104, 2141, 2179, 2217, 2256, 2295, 2334,
+	2374, 2415, 2456, 2497, 2539, 2582, 2624, 2668,
+	2712, 2756, 2801, 2846, 2892, 2938, 2985, 3032,
+	3079, 3128, 3176, 3225, 3275, 3325, 3376, 3427,
+	3479, 3531, 3584, 3637, 3691, 3745, 3799, 3855,
+	3910, 3967, 4023, 4081, 4138, 4197, 4255, 4315,
+	4374, 4435, 4495, 4557, 4619, 4681, 4744, 4807,
+	4871, 4935, 5000, 5065, 5131, 5197, 5264, 5332,
+	5399, 5468, 5536, 5606, 5676, 5746, 5817, 5888,
+	5959, 6032, 6104, 6177, 6251, 6325, 6400, 6475,
+	6550, 6626, 6702, 6779, 6856, 6934, 7012, 7091,
+	7170, 7249, 7329, 7409, 7490, 7571, 7653, 7735,
+	7817, 7900, 7983, 8066, 8150, 8234, 8319, 8404,
+	8489, 8575, 8661, 8748, 8834, 8922, 9009, 9097,
+	9185, 9273, 9362, 9451, 9541, 9630, 9720, 9811,
+	9901, 9992, 10083, 10174, 10266, 10358, 10450, 10542,
+	10635, 10727, 10820, 10913, 11007, 11100, 11194, 11288,
+	11382, 11476, 11571, 11665, 11760, 11855, 11950, 12045,
+	12140, 12236, 12331, 12427, 12522, 12618, 12714, 12809,
+	12905, 13001, 13097, 13193, 13289, 13385, 13481, 13577,
+	13673, 13769, 13865, 13961, 14056, 14152, 14248, 14343,
+	14439, 14534, 14630, 14725, 14820, 14915, 15010, 15104,
+	15199, 15293, 15387, 15481, 15575, 15669, 15762, 15855,
+	15948, 16041, 16133, 16226, 16317, 16409, 16500, 16592,
+	16682, 16773, 16863, 16953, 17042, 17131, 17220, 17308,
+	17396, 17484, 17571, 17658, 17744, 17830, 17916, 18001,
+	18086, 18170, 18254, 18337, 18420, 18502, 18584, 18665,
+	18746, 18826, 18905, 18985, 19063, 19141, 19219, 19295,
+	19372, 19447, 19522, 19597, 19671, 19744, 19816, 19888,
+	19959, 20030, 20100, 20169, 20238, 20306, 20373, 20439,
+	20505, 20570, 20634, 20698, 20760, 20822, 20884, 20944,
+	21004, 21063, 21121, 21178, 21235, 21290, 21345, 21399,
+	21452, 21505, 21556, 21607, 21657, 21706, 21754, 21801,
+	21848, 21893, 21938, 21982, 22025, 22066, 22107, 22148,
+	22187, 22225, 22262, 22299, 22334, 22369, 22402, 22435,
+	22467, 22498, 22527, 22556, 22584, 22611, 22637, 22662,
+	22686, 22709, 22731, 22752, 22772, 22791, 22809, 22826,
+	22842, 22857, 22872, 22885, 22897, 22908, 22918, 22927,
+	22935, 22942, 22948, 22953, 22957, 22960, 22962, 22963,
+};
+
+// Floor each signed product separately, including negative sub-LSB values.
+static int gauss_product(int coefficient, int sample)
+{
+	const int product=coefficient*sample;
+	return product>=0 ? product/32768 : -((-product+32767)/32768);
+}
+
 struct spu_device::voiceinfo
 {
 	cache_pointer play, loop;
@@ -407,6 +484,14 @@ struct spu_device::voiceinfo
 	cache_pointer loop_cache_owner;
 	sample_loop_cache *loop_cache = nullptr;
 	unsigned int dptr = 0, lcptr = 0;
+	int16_t gaussian_history[3] = {0, 0, 0}; // oldest, older, old
+	unsigned int gaussian_pending = 0; // skipped frames across a cache boundary
+	void gaussian_push(int16_t sample)
+	{
+		gaussian_history[0]=gaussian_history[1];
+		gaussian_history[1]=gaussian_history[2];
+		gaussian_history[2]=sample;
+	}
 
 	int env_state = 0;
 	float env_ar = 0.0F,
@@ -1972,234 +2057,48 @@ void spu_device::generate_voice(const unsigned int v,
 															const unsigned int sz)
 {
 	voiceinfo *vi=&voice[v];
-	// Stitching may rebuild vi->loop while the current interpolation still reads
-	// its predecessor loop cache. Retain its owner through this render segment.
-	cache_pointer retained_loop_owner = vi->loop_cache_owner;
-
-	signed short *vol=&spureg.volumex[v][0];
-	signed short *fp,*sp;
-	unsigned int n=sz;
-
-	// Get input pointer
-
-	if (vi->inloopcache)
+	int16_t *sp=vi->inloopcache ? vi->loop_cache->data+vi->lcptr : vi->play.ptr;
+	int16_t *end=vi->inloopcache ? vi->loop_cache->data+vi->loop_cache->len : vi->play.cache->dend;
+	int16_t *first=sp;
+	// At high pitch, the final advance can skip frames in the next cache.
+	// process_voice has now resolved that boundary; consume those frames first.
+	for (unsigned int k=vi->gaussian_pending; k; --k)
+		vi->gaussian_push(sp[-static_cast<int>(k)]);
+	vi->gaussian_pending=0;
+	unsigned int phase=vi->dptr;
+	int16_t *dp=static_cast<int16_t *>(ptr);
+	int16_t *out=static_cast<int16_t *>(outxptr);
+	const int16_t *noise=static_cast<int16_t *>(noiseptr);
+	const int16_t *vol=spureg.volumex[v];
+	for (unsigned int frame=0; frame<sz; ++frame)
 	{
-		sp=vi->loop_cache->data+vi->lcptr;
-	} else
-	{
-		sp=vi->play.ptr;
+		const unsigned int i=(phase>>4)&255;
+		const int interpolated=noise ? noise[frame] : clamp(
+			gauss_product(psx_gauss[255-i],vi->gaussian_history[0])+
+			gauss_product(psx_gauss[511-i],vi->gaussian_history[1])+
+			gauss_product(psx_gauss[256+i],vi->gaussian_history[2])+
+			gauss_product(psx_gauss[i],sp[0]));
+		const int16_t sample=interpolated*vi->env_level*vi->audition_gain;
+		vi->env_level+=vi->env_delta;
+		vi->advance_audition_gain();
+		if (out) out[frame]=sample;
+		dp[0]=clamp(dp[0]+((sample*vol[0])>>15));
+		dp[1]=clamp(dp[1]+((sample*vol[1])>>15));
+		dp+=2;
+		phase+=vi->pitch;
+		const unsigned int advance=phase>>12;
+		phase&=0xfff;
+		const unsigned int available=static_cast<unsigned int>(end-sp);
+		const unsigned int consumed=std::min(advance,available);
+		for (unsigned int k=0; k<consumed; ++k) vi->gaussian_push(sp[k]);
+		vi->gaussian_pending=advance-consumed;
+		sp+=advance;
 	}
-	fp=sp;
-
-	unsigned int dptr=vi->dptr;
-
-	// Get output pointer (and advance output offset)
-
-	signed short *dp=(signed short *)ptr;
-	signed short *outxp=(signed short *)outxptr;
-
-	if (noiseptr)
-	{
-		int64_t dptr=((int64_t)n*vi->pitch)+vi->dptr;
-		unsigned int d=(unsigned int)(dptr>>12);
-		vi->dptr=(unsigned int)(dptr&0xfff);
-		vi->play.ptr+=d;
-		if (vi->inloopcache) vi->lcptr+=d;
-
-		sp=(signed short *)noiseptr;
-
-		if (outxp)
-		{
-			while (n--)
-			{
-				const int16_t s=*(sp++)*vi->env_level*vi->audition_gain;
-				vi->env_level+=vi->env_delta;
-				vi->advance_audition_gain();
-
-				*(outxp++)=s;
-
-				const int16_t vl=(s*vol[0])>>15;
-				const int16_t vr=(s*vol[1])>>15;
-
-				dp[0]=clamp(vl+dp[0]);
-				dp[1]=clamp(vr+dp[1]);
-				dp+=2;
-			}
-		} else
-		{
-			while (n--)
-			{
-				const int16_t s=*(sp++)*vi->env_level*vi->audition_gain;
-				vi->env_level+=vi->env_delta;
-				vi->advance_audition_gain();
-
-				const int16_t vl=(s*vol[0])>>15;
-				const int16_t vr=(s*vol[1])>>15;
-
-				dp[0]=clamp(vl+dp[0]);
-				dp[1]=clamp(vr+dp[1]);
-				dp+=2;
-			}
-		}
-	} else
-	{
-		unsigned int num_stitch=0;
-		signed short *ep;
-
-		// calculate how many samples we will read from input data
-
-		int64_t fracend=(((int64_t)(n-1))*vi->pitch)+dptr;
-		unsigned int end=(unsigned int)(fracend>>12);
-
-		// Get pointer to last sample of input data
-
-		if (vi->inloopcache)
-		{
-			ep=vi->loop_cache->data+vi->loop_cache->len-1;
-		} else
-		{
-			ep=vi->play.cache->dend-1;
-		}
-
-		// If we read the last sample "stitching" will be necessary (inerpolation
-		// from last sample of segment to first sample of next segment)
-
-		if ((sp+end)>=ep)
-		{
-			// A paused/modulated-zero pitch can still sit on the final source
-			// sample with a nonzero interpolation fraction. It needs stitching
-			// too; otherwise the normal path reads one sample beyond the cache.
-			num_stitch=vi->pitch ? (std::min)(n,(std::max)(0x1fffU/vi->pitch,1U)) : n;
-			n-=num_stitch;
-		}
-
-		// Generate samples
-
-		if (outxp)
-		{
-			while (n--)
-			{
-				const int16_t s0=sp[0];
-				const int16_t s1=sp[1];
-				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
-				vi->env_level+=vi->env_delta;
-				vi->advance_audition_gain();
-
-				*(outxp++)=s;
-
-				const int16_t vl=(s*vol[0])>>15;
-				const int16_t vr=(s*vol[1])>>15;
-
-				dp[0]=clamp(vl+dp[0]);
-				dp[1]=clamp(vr+dp[1]);
-				dp+=2;
-
-				dptr+=vi->pitch;
-				sp+=(dptr>>12);
-				dptr&=0xfff;
-			}
-		}
-		else
-		{
-			while (n--)
-			{
-				const int16_t s0=sp[0];
-				const int16_t s1=sp[1];
-				const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
-				vi->env_level+=vi->env_delta;
-				vi->advance_audition_gain();
-
-				const int16_t vl=(s*vol[0])>>15;
-				const int16_t vr=(s*vol[1])>>15;
-
-				dp[0]=clamp(vl+dp[0]);
-				dp[1]=clamp(vr+dp[1]);
-				dp+=2;
-
-				dptr+=vi->pitch;
-				sp+=(dptr>>12);
-				dptr&=0xfff;
-			}
-		}
-
-		if (num_stitch)
-		{
-			// Stitch samples, get the first sample of the next segment
-
-			signed short *nsp=nullptr;
-
-			if (vi->inloopcache)
-			{
-				nsp=vi->play.ptr+(vi->loop_cache->len-vi->lcptr);
-				if (nsp>=vi->play.cache->dend)
-					nsp=nullptr;
-			}
-
-			if (! nsp)
-			{
-				update_voice_loop(v);
-				if (vi->loop) nsp=vi->loop_cache->data;
-			}
-
-			// Generate stitch samples
-
-			if (outxp)
-			{
-				while (num_stitch--)
-				{
-					const int16_t s0=sp[0];
-					const int16_t s1=(sp<ep)?sp[1]:nsp?nsp[0]:0;
-					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
-					vi->env_level+=vi->env_delta;
-					vi->advance_audition_gain();
-
-					*(outxp++)=s;
-
-					const int16_t vl=(s*vol[0])>>15;
-					const int16_t vr=(s*vol[1])>>15;
-
-					dp[0]=clamp(vl+dp[0]);
-					dp[1]=clamp(vr+dp[1]);
-					dp+=2;
-
-					dptr+=vi->pitch;
-					sp+=(dptr>>12);
-					dptr&=0xfff;
-				}
-			} else
-			{
-				while (num_stitch--)
-				{
-					const int16_t s0=sp[0];
-					const int16_t s1=(sp<ep)?sp[1]:nsp?nsp[0]:0;
-					const int16_t s=(s0+(((s1-s0)*(int)dptr)>>12))*vi->env_level*vi->audition_gain;
-					vi->env_level+=vi->env_delta;
-					vi->advance_audition_gain();
-
-					const int16_t vl=(s*vol[0])>>15;
-					const int16_t vr=(s*vol[1])>>15;
-
-					dp[0]=clamp(vl+dp[0]);
-					dp[1]=clamp(vr+dp[1]);
-					dp+=2;
-
-					dptr+=vi->pitch;
-					sp+=(dptr>>12);
-					dptr&=0xfff;
-				}
-			}
-		}
-
-		// Update segment pointer
-
-		vi->play.ptr+=sp-fp;
-		vi->dptr=dptr;
-		if (vi->inloopcache)
-			vi->lcptr=sp-vi->loop_cache->data;
-
-		if (fp<=vi->play.cache->loop && sp>vi->play.cache->loop)
-			spureg.voice[v].repaddr=vi->play.cache->loopaddr>>m_counter_shift;
-	}
+	vi->play.ptr+=sp-first;
+	vi->dptr=phase;
+	if (vi->inloopcache) vi->lcptr+=sp-first;
+	if (first<=vi->play.cache->loop && sp>vi->play.cache->loop)
+		spureg.voice[v].repaddr=vi->play.cache->loopaddr>>m_counter_shift;
 }
 
 //
@@ -2305,6 +2204,8 @@ void spu_device::key_on(const int v)
 	voice[v].keyontime=0; //get_system_time();
 
 	voice[v].dptr=0;
+	std::fill_n(voice[v].gaussian_history,3,0);
+	voice[v].gaussian_pending=0;
 	voice[v].inloopcache=false;
 	voice[v].lcptr=-1;
 	voice[v].env_level=0.0f;

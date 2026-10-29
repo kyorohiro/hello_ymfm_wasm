@@ -18,7 +18,7 @@ import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const NATIVE_RATE=44100,FRAMES=112,BLOCK_FRAMES=128,FREQUENCY_HZ=440;
 const WARMUP_SECONDS=.2,CAPTURE_SECONDS=1,STOP_FRAMES=2048;
-const FROZEN_MIXER_VOLUME=.128832;
+const FROZEN_MIXER_VOLUME=.129331;
 const hash=value=>createHash('sha256').update(value).digest('hex');
 
 // Historical fixtures only, loaded solely by this offline check.
@@ -172,7 +172,8 @@ async function measureFixture(module,fixture,outputRate,mixerVolume) {
 }
 
 // Decode through the actual core rather than treating predictive packets as
-// filter-0 nibbles. Integer pitch and whole-cycle warmup retain source alignment.
+// filter-0 nibbles. At phase zero Gaussian filtering centers on source frame -2;
+// use that fixed documented delay (not a best-fit phase) for sine quality.
 async function measureSineQuality(module,sample) {
   const core=await Ps1Spu.create({moduleFactory:async()=>module}),synth=new Ps1Synth({core});
   try {
@@ -181,16 +182,17 @@ async function measureSineQuality(module,sample) {
     core.generateStereo(FRAMES*16);const pcm=core.generateStereo(FRAMES*3),cycle=pcm.left.subarray(0,FRAMES);
     assert.deepEqual(pcm.left,pcm.right);assert.deepEqual(pcm.left.subarray(FRAMES,FRAMES*2),cycle);
     assert.deepEqual(pcm.left.subarray(FRAMES*2),cycle,'Actual predictive ADPCM loop repeats without drift');
-    let squares=0,signal=0,maxError=0,maximumAdjacentJump=0,sum=0,peak=0;
+    let squares=0,unalignedSquares=0,signal=0,maxError=0,maximumAdjacentJump=0,sum=0,peak=0;
     const bytes=Buffer.alloc(FRAMES*4);
     for(let i=0;i<FRAMES;i++){
-      const expected=.65*Math.sin(2*Math.PI*i/FRAMES),value=cycle[i],error=value-expected;
+      const expected=.65*Math.sin(2*Math.PI*(i-2)/FRAMES),value=cycle[i],error=value-expected;
+      unalignedSquares+=(value-.65*Math.sin(2*Math.PI*i/FRAMES))**2;
       squares+=error*error;signal+=expected*expected;maxError=Math.max(maxError,Math.abs(error));
       maximumAdjacentJump=Math.max(maximumAdjacentJump,Math.abs(value-cycle[(i+FRAMES-1)%FRAMES]));
       sum+=value;peak=Math.max(peak,Math.abs(value));bytes.writeFloatLE(value,i*4);
     }
     return {method:'Actual deployed SPU, PITCH4096, full fixed voice/master levels, 16-cycle warmup, 3 exact repeated cycles',
-      sourceFrames:FRAMES,targetPeak:.65,actualPeak:peak,dc:sum/FRAMES,
+      sourceFrames:FRAMES,referenceDelayFrames:2,unalignedRmsError:Math.sqrt(unalignedSquares/FRAMES),targetPeak:.65,actualPeak:peak,dc:sum/FRAMES,
       rmsError:Math.sqrt(squares/FRAMES),maxAbsoluteError:maxError,snrDb:10*Math.log10(signal/squares),
       maximumAdjacentJumpIncludingLoop:maximumAdjacentJump,loopRepeatsBitExactly:true,
       pcmFloat32LeSha256:hash(bytes)};

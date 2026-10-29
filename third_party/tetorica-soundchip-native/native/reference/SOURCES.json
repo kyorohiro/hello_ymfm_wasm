@@ -620,7 +620,7 @@
       "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673"
     },
     {
-      "adaptation": "Use SDK public header; retain binary command transport unchanged; accept CTest --self-test alias and add original-waveform 24-voice/ADSR/reverb/isolation/partition checks.",
+      "adaptation": "SDK-owned fixture extended with independent PSX-SPX Gaussian coefficient rows, boundary/skipped-frame and KON history tests; original import hash retained",
       "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope/manual-audition controls, guards and deferred ADSR latching through held A/D/S, manual/raw/repeated Off and next KON; retain independent foreign-channel output.",
       "file": "native/tests/ps1_spu_fixture.cpp",
       "origin": "test/helpers/ps1_spu_reference.cpp",
@@ -628,7 +628,7 @@
       "originRepository": "hello_ymfm_wasm",
       "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
       "originalSha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "sha256": "52c79ecb501dedc3fdb917c18935e9f7fbdb01d3521a7ee1e5c0bf700adb24ff"
+      "sha256": "eaa5b998d02c0c24785fb7abd66748f254c00369498c0ee953b4b6d4c992ba99"
     }
   ],
   "originRepository": "tetorica-fm2612-playground-tauri",

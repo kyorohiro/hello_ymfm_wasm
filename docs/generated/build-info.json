@@ -773,7 +773,7 @@
     {
       "id": "ps1_spu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "4dffe1f879e8742dbaf6c9d458bf4d7c45f468aa49a3cbcf50413d8800910e53",
+      "sourceFingerprint": "8172c7b02bda3580d52b2b5adc889a30437d26179f9d82871f22ad0f69701b27",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -802,8 +802,8 @@
         },
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
-          "sha256": "02e3dd1e99df22bbadea46de7346f1213f24ac101232f3b2d951cda5e20c6a48",
-          "size": 71782
+          "sha256": "d15730662a869a39ee44848ad6d02d280e15db0139a61ad8040a09c28b1433e9",
+          "size": 72604
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",
@@ -839,8 +839,8 @@
         },
         {
           "path": "ps1_spu_wasm.wasm",
-          "sha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e",
-          "size": 48015
+          "sha256": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0",
+          "size": 47440
         }
       ],
       "compiler": {

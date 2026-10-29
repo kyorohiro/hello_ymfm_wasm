@@ -193,7 +193,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "ps1",
-      "volume": 0.128832
+      "volume": 0.129331
     }
   ]
 });
@@ -651,7 +651,7 @@ const factoryModes = freeze({
         "id": "ps1",
         "name": "ps1",
         "settings": {
-          "volume": 0.128832
+          "volume": 0.129331
         }
       }
     ]

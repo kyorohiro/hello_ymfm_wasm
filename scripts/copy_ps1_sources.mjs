@@ -58,7 +58,7 @@ Emscripten is required. This self-contained recipe builds ps1_spu_wasm.js and ps
 
 Native hosts compile ps1_spu.cpp, spu.cpp, spu_tables.cpp and spureverb.cpp under native/ps1, and include ps1_spu.h. The SDK forwarding header is retained unchanged in sdk/native/include/tetorica/ps1_spu.h for provenance; its original relative include expects the full SDK layout. Standalone consumers use native/ps1/ps1_spu.h directly. The C API renders 44,100 Hz into caller-owned stereo PCM, with 24 fixed voices and 512 KiB RAM. Samples use 16-byte / 28-frame PSX ADPCM packets. Tuning, voice allocation, output resampling and device output belong to the host.
 
-Upstream interpolation, ADSR and reverb approximations are retained. This instrument API does not implement a PlayStation CPU, BIOS, PSF playback, XA/CD streaming or hardware-exact timing. The JavaScript Ps1Spu helper takes an explicit generated module factory and does not open an audio device.
+Voice interpolation uses the documented PS1 four-point Gaussian hardware coefficients. Upstream ADSR and reverb approximations are retained. This instrument API does not implement a PlayStation CPU, BIOS, PSF playback, XA/CD streaming or hardware-exact timing. The JavaScript Ps1Spu helper takes an explicit generated module factory and does not open an audio device.
 `));
   const bundleFiles=[...payload].filter(([path])=>path.startsWith('sources/')).map(([path,bytes])=>({path:path.slice(8),bytes:bytes.length,sha256:sha(bytes)}));
   payload.set('sources/PS1-SPU.json',Buffer.from(JSON.stringify({schemaVersion:1,origin:'Pinned tetorica-soundchip-native PlayStation SPU',fixedSdkArtifact:true,sdk:pin,build,inputs,files:bundleFiles,

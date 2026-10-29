@@ -12,8 +12,8 @@
       "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
     },
     "catalog/source_inventory.json": {
-      "bytes": 144629,
-      "sha256": "cb8bf4cf88dc5b9717523baa63edb1c964325c83820b209cd6468df0908ce5f2"
+      "bytes": 145009,
+      "sha256": "9fa05183af21ca4a8bee247a5a65bf3e091b052996fbbd98e55cc16ba05b26e1"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -40,8 +40,8 @@
       "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b"
     },
     "vendor/mame-ps1-spu/README.md": {
-      "bytes": 7179,
-      "sha256": "cd1df4a60b2df703c49d620229a49190fc9925014c99044cf2301f6c71e75845"
+      "bytes": 8163,
+      "sha256": "78dec1dd3771eebbb77ec9571517047fddbd06b54ae792c508492059d2b8c1c3"
     },
     "vendor/mame-ps1-spu/ps1_spu.cpp": {
       "bytes": 3854,
@@ -52,8 +52,8 @@
       "sha256": "8c5bd7ba60fdc22bcb02ab1666198cf5539e888e0b07731d24da0ed8bd9c3dfd"
     },
     "vendor/mame-ps1-spu/spu.cpp": {
-      "bytes": 71782,
-      "sha256": "02e3dd1e99df22bbadea46de7346f1213f24ac101232f3b2d951cda5e20c6a48"
+      "bytes": 72604,
+      "sha256": "d15730662a869a39ee44848ad6d02d280e15db0139a61ad8040a09c28b1433e9"
     },
     "vendor/mame-ps1-spu/spu.h": {
       "bytes": 8702,
@@ -106,10 +106,10 @@
   },
   "sdk": {
     "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "0c09e92c3147a83fe3e694c2a48af169415b4e7e3c0b0cb3000ffb91c250f7b4",
+    "archiveSha256": "e9cc58cf4f5c93fb4e83d96ff950cdb15718eba6c4354514f211a3a659605306",
     "fileCount": 455,
     "localCandidate": {
-      "baseCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+      "baseCommit": "544364743702671fac40eed4fe7ef44f4769c07f",
       "changedPaths": [
         "CHANGELOG.md",
         "catalog/source_inventory.json",
@@ -117,15 +117,13 @@
         "native/reference/SOURCES.json",
         "native/tests/ps1_spu_fixture.cpp",
         "vendor/mame-ps1-spu/README.md",
-        "vendor/mame-ps1-spu/ps1_spu.h",
-        "vendor/mame-ps1-spu/spu.cpp",
-        "vendor/mame-ps1-spu/spu.h"
+        "vendor/mame-ps1-spu/spu.cpp"
       ]
     },
-    "manifestSha256": "fb7bb636e2fbb4d0293a7e66eb058dde0ddbae72f21dd96977db6e418467c3c0",
+    "manifestSha256": "e26df6fb50314708ecd0e502ff3fa49e572fb0f0feb9a3889518c686b2c89916",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
-    "sourceCommit": "7dff18153413d6dfd5908ccafb9e985e268acd4a",
+    "sourceCommit": "544364743702671fac40eed4fe7ef44f4769c07f",
     "version": "0.1.7"
   },
   "outputs": {
@@ -134,8 +132,8 @@
       "sha256": "6e71dc2a9d1f47b912331f1ca76887dc4983f990652282f0b311f6bf30496dd5"
     },
     "ps1_spu_wasm.wasm": {
-      "bytes": 48015,
-      "sha256": "8d068780223cc315560ccf202bd18caa8c8815a314e0bd42d5abb727edd91f6e"
+      "bytes": 47440,
+      "sha256": "18a082270e6e494c627958bc18a59cef36470ee4d12b76e4c048ff39a6fcd3c0"
     }
   }
 }
