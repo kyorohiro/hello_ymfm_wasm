@@ -1,3 +1,15 @@
+## 2026-10-29 — 追加確認：SPUガウシアン補間は未対応
+
+- ユーザーの指摘で調査。共有SPUコアは現在2点線形補間で、ガウシアン係数表／切替API／UIはない。SDK原本`vendor/mame-ps1-spu/spu.cpp`の4経路に同じ線形計算があり、WASM／Tauriにも共通。mix後のホスト向けresamplerとは別の対応箇所。
+- [todo_ps1_gaussian_01.md](todo_ps1_gaussian_01.md) に現状・仕様資料・実装対象・検証事項を記録し、[次スレッドの引き継ぎ](thread_handoff_20261029.md)にも追記。次の具体的な候補。今回は調査／文書のみで、実装開始・補間既定変更・再公開の指示はまだない。音源／SDK／WASM／公開済みZIPは変更していない。
+
+## 2026-10-29 — スレッド終了、SPU Synth公開済み・次スレッド用引き継ぎ
+
+- **次スレッドでは [thread_handoff_20261029.md](thread_handoff_20261029.md) を最初に読む。** 最新状態、実装入口、確認コマンド、持ち越し、別repoの変更をまとめた。下位の未commit／未公開記述は当時の履歴。
+- ユーザーがSPU Synthをリリース済みと報告。X boostも1,000円分実施。本体は`9750b5b7`（`spu synth 0.0.1`）までcommitされ、引き継ぎ開始時点clean。今回の引き継ぎ文書だけ未commitになる。直近のSPU Synth必須実装に把握済みの残作業なし。
+- 現存の`release/tetorica_spu_synth_dev_itch_v0.0.1.zip`と`_for_run_v0.0.1.zip`は同一byte、45files／5,459,208bytes、SHA256 `42695498009fe2179d36161a89ba9d8434598826093c17290d1ede54fd79f7f7`。CRC正常・root indexあり。最終4タブ版Browser試験の配信runtime8filesに完全一致。[inventory](thread_handoff_20261029_release_inventory.json)。公開URL／実upload先fileは会話に未記録、内部包装versionはdev。古い候補ZIPやtemp pathの存在を仮定しない。
+- 持ち越しはSDK 0.1.7 local candidateの正式化、Tauri未commit（150modified＋1untracked）の整理とGUI／実音声確認など。SDK原本はclean。SPU Synthの公開とSDK／npmの公開を混同しない。完了済みのchip追加生成・WASM SDK移行・CD-ROM²・SPC修正を古いTODOから再実装しない。今回は実装／ZIP／公開／広告を変更していない。
+
 ## 2026-10-29 — SPU Synthの設定をPCM／ADSR／FX／Audioの4タブへ整理
 
 - ユーザー指定で上部Envelopeから編集ADSR図を外し、実出力RMSの履歴表示に変更。下にPCM／ADSR／FX／Audioの4タブ、PCMを初期表示。ADSR図はADSR内、音声ファイル・root note・loopはAudio内。name／preset操作は共通。上下表示の役割を分け、短い周期PCMと音声ファイルのどちらも選べる構成。

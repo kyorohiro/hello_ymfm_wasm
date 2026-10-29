@@ -1,0 +1,110 @@
+{
+  "note": "Read-only inventory at thread handoff; this is not a new browser run or verification of which ZIP was publicly uploaded.",
+  "referenceBrowserReport": "docs/issues/spu_synth_tabs_browser_01.json",
+  "archives": [
+    {
+      "path": "release/tetorica_spu_synth_dev_itch_for_run_v0.0.1.zip",
+      "bytes": 5459208,
+      "sha256": "42695498009fe2179d36161a89ba9d8434598826093c17290d1ede54fd79f7f7",
+      "crcPassed": true,
+      "files": 45,
+      "rootIndex": true,
+      "embeddedVersion": "dev",
+      "matchesTestedRuntime": true,
+      "runtime": [
+        {
+          "path": "generated/ps1_spu_wasm.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "generated/ps1_spu_wasm.wasm",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "index.html",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/icon.png",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/spu_synth_prepare_worker.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/spu_synth_worklet.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/synth.css",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/synth.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        }
+      ]
+    },
+    {
+      "path": "release/tetorica_spu_synth_dev_itch_v0.0.1.zip",
+      "bytes": 5459208,
+      "sha256": "42695498009fe2179d36161a89ba9d8434598826093c17290d1ede54fd79f7f7",
+      "crcPassed": true,
+      "files": 45,
+      "rootIndex": true,
+      "embeddedVersion": "dev",
+      "matchesTestedRuntime": true,
+      "runtime": [
+        {
+          "path": "generated/ps1_spu_wasm.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "generated/ps1_spu_wasm.wasm",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "index.html",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/icon.png",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/spu_synth_prepare_worker.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/spu_synth_worklet.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/synth.css",
+          "present": true,
+          "matchesTestedRuntime": true
+        },
+        {
+          "path": "synth-spu/synth.js",
+          "present": true,
+          "matchesTestedRuntime": true
+        }
+      ]
+    }
+  ]
+}
