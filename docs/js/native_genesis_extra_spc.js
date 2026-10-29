@@ -1,6 +1,6 @@
 /** Full SPC700/S-DSP file player. The public Browser and Worker client keeps
  * its ordinary RPC/event protocol; only this private endpoint speaks Native. */
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-api-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-release-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 const abort=()=>new DOMException('Native SPC player disposed or operation cancelled','AbortError');

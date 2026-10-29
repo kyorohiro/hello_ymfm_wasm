@@ -1,4 +1,4 @@
-import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-live-api-1';
+import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-live-release-1';
 import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundPokeyVoicePanel} from './playground_pokey_voice_panel.js?v=pokey-voice-1';
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';

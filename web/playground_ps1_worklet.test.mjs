@@ -206,6 +206,41 @@ for(const rate of [44100,48000])for(const route of ['Main','Worker'])test(`publi
  assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'Public envelope changes never generate KON/KOFF');
 });
 
+for(const rate of [44100,48000])test(`PS1 editor live RR edits silence a released manual tail without reacquiring its lease at ${rate} Hz`,async t=>{
+ const a=await setup(rate),b=await setup(rate);t.after(()=>{a.close();b.close();});
+ for(const p of[a,b]){
+  const i=p.processor.inspector;i.invoke('setPreset',[23,{adsr1:15,adsr2:31}]);i.invoke('auditionOn',[23,69,'released']);p.render(1009);
+  i.invoke('auditionOff',[23,'released']);p.render(256);assert.equal(i.read().channels[23].gate,false);assert.equal(i.read().channels[23].envelope,32767);assert.deepEqual(i.read().auditions,[]);
+ }
+ assert.deepEqual(a.render(128).left,b.render(128).left);
+ const core=a.processor.synth.core,writes=[],write=core.write.bind(core),refresh=core.refreshEnvelope.bind(core);let calls=0;
+ core.write=(register,value)=>{writes.push(register);write(register,value);};core.refreshEnvelope=ch=>{calls++;refresh(ch);};
+ for(const p of[a,b]){
+  const i=p.processor.inspector;i.invoke('setEnvelope',[23,{releaseRate:0},{live:false}]);
+  i.invoke('setEnvelope',[23,{releaseRate:0},{live:true}]);
+  i.invoke('setPreset',[23,{volumeLeft:.75,volumeRight:.75},{live:true}]);
+ }
+ assert.equal(calls,0,'same-value or volume edits do not flush a deferred release rate');assert.deepEqual(a.render(512).left,b.render(512).left);assert.equal(a.processor.inspector.read().channels[23].envelope,32767);
+ // Restore the register alone so the next deliberate RR31 -> RR0 UI edit
+ // changes the actual word; the sounding release has stayed at RR31.
+ for(const p of[a,b])p.processor.inspector.invoke('setEnvelope',[23,{releaseRate:31},{live:false}]);
+ a.processor.inspector.invoke('setEnvelope',[23,{releaseRate:0},{live:true}]);b.processor.inspector.invoke('setEnvelope',[23,{releaseRate:0},{live:false}]);
+ const stopped=a.render(512).left,tail=b.render(512).left,cutoff=Math.ceil(128*rate/44100)+2;assert(peak(tail)>.01);assert.equal(peak(stopped.subarray(cutoff)),0,'the fastest release ends within 128 native frames plus the interpolation endpoint');assert.equal(a.processor.inspector.read().channels[23].envelope,0);
+ assert.equal(calls,1);assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'a released-tail edit sends no KON or KOFF');assert.deepEqual(a.processor.inspector.read().auditions,[]);assert.equal(a.processor.inspector.invoke('auditionOff',[23,'released']),false);
+});
+
+test('PS1 editor live edits deliberately update a code-owned voice without replacing either performance owner',async t=>{
+ const p=await setup();t.after(()=>p.close());const i=p.processor.inspector,port={postMessage(){}},processor=p.processor;
+ processor.receive({type:'performance-start',session:15},port);
+ processor.receive({performance:{session:15,owner:'lead',time:0},commands:[{method:'noteOn',args:[23,69]}]},port);
+ processor.receive({performance:{session:15,owner:'sibling',time:0},commands:[{method:'noteOn',args:[2,60]}]},port);p.render(1009);
+ const before=i.read().channels[23].envelope,core=processor.synth.core,writes=[],write=core.write.bind(core);core.write=(register,value)=>{writes.push(register);write(register,value);};
+ i.invoke('setEnvelope',[23,{sustainRate:40,sustainDecrease:true},{live:true}]);p.render(512);assert(i.read().channels[23].envelope<before,'the selected sounding voice receives the new sustain slope');
+ assert.deepEqual(i.read().auditions,[]);assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)));
+ processor.receive({type:'performance-cancel-owner',session:15,owner:'lead'},port);assert.equal(i.read().channels[23].active,false);assert.equal(i.read().channels[2].active,true,'the edit retains the original lead owner and leaves its sibling alone');
+ processor.receive({type:'performance-cancel-owner',session:15,owner:'sibling'},port);assert.equal(i.read().channels[2].active,false);
+});
+
 test('owned same-value live edits do not reschedule an attack or flush deferred sustain rates',async t=>{
  const a=await setup(),b=await setup();t.after(()=>{a.close();b.close();});
  for(const p of[a,b]){p.processor.inspector.invoke('setPreset',[23,{adsr1:(61<<8)|15,adsr2:0x3fc0}]);p.processor.inspector.invoke('auditionOn',[23,69,'held']);}

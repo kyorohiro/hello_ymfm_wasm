@@ -1,5 +1,5 @@
 /** Ordered Browser/logic-Worker controls for the experimental PS1 SPU. */
-import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-live-api-1';
+import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-live-release-1';
 const TIMEOUT_MS=15000;
 /** @param {MessagePort} port @param {{sampleRate?:number,state?:any}} [initial] */
 export function createPs1Client(port,initial={},lifecycle={}) {

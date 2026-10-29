@@ -115,7 +115,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   waveCard.appendChild(make('p', 'subtext', 'One cycle uses 112 PCM samples, encoded as four ADPCM packets (64 bytes), with a loop from sample 0. At PITCH 4096 its fundamental is 393.75 Hz. Shapes and completed strokes affect only this voice; other voices keep their samples. ADPCM quantization changes the resulting sound. Use Sample Editor for recordings and longer samples.'));
 
   const envelopeCard = section(instrument, 'ADSR envelope'), envelopeFields = fields(envelopeCard), envelopeInputs = {};
-  const retrigger = checkbox(envelopeFields, 'Apply ADSR / PCM edits to my held note', 'ps1-retrigger'); retrigger.checked = true;
+  const retrigger = checkbox(envelopeFields, 'Apply ADSR / PCM edits while playing', 'ps1-retrigger'); retrigger.checked = true;
   function editEnvelope(key, value) {if (!connected || disposed) return; cancelEnvelope(); envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {live:retrigger.checked}]);}
   for (const [key, label, max] of [['attackRate','Attack rate · 0 fastest',127], ['decayRate','Decay rate · 0 fast / 15 slow',15], ['sustainLevel','Sustain level · 0–15',15], ['sustainRate','Sustain rate · 127 holds',127], ['releaseRate','Release rate · 27–31 hold',31]]) {
     envelopeInputs[key] = number(envelopeFields, label, `ps1-${key.replace(/[A-Z]/g, value => '-' + value.toLowerCase())}`, 0, max, value => editEnvelope(key, value));
@@ -134,7 +134,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   }));
   const envelopeInfo = make('p', 'subtext'); envelopeInfo.dataset.chipOutput = 'ps1-envelope'; envelopeCard.appendChild(envelopeInfo);
   envelopeCard.appendChild(make('p', 'subtext', 'Drag A / D / S / R left or right: faster / slower rate codes. Drag D up or down: sustain level. Focus a point and use arrow keys for one-step adjustments.'));
-  envelopeCard.appendChild(make('p', 'subtext', 'The graph shows envelope shape, not measured timing. Edits update your held audition at its current level and sample position. Attack changes affect an active attack or the next note. Turn off Apply edits to keep changes for the next note. High rate codes can stop a stage; release rates 27–31 hold indefinitely in this core.'));
+  envelopeCard.appendChild(make('p', 'subtext', 'The graph shows envelope shape, not measured timing. ADSR edits update the selected sounding voice at its current level and sample position, including after Release. Attack changes affect an active attack or the next note. Turn off Apply edits to keep ADSR changes for the next note. Release rates 27–31 hold indefinitely in this core; change to 0 to fade out a releasing voice. PCM edits restart only your held audition.'));
 
   const effectCard = section(instrument, 'SPU reverb'), effectFields = fields(effectCard);
   const reverbSend = checkbox(effectFields, 'Selected voice uses reverb', 'ps1-reverb-send', value => patch({reverb:value}));

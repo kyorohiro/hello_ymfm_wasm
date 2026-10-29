@@ -4,7 +4,7 @@
  * SPU ADPCM, not SNES BRR, Yamaha ADPCM, PCM or a PSF/game soundtrack.
  */
 import {noteToHz} from './soundchip_pitch.js';
-import {PS1_SPU_SAMPLE_RATE, PS1_SPU_RAM_BYTES} from './ps1_spu.js?v=ps1-live-api-1';
+import {PS1_SPU_SAMPLE_RATE, PS1_SPU_RAM_BYTES} from './ps1_spu.js?v=ps1-live-release-1';
 import {decodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from './ps1_parameters.js?v=ps1-voice-editor-1';
 export const PS1_CHANNEL_COUNT = 24;
 const RAM_START = 0x1000; // Hardware capture buffers occupy the first 4 KiB.

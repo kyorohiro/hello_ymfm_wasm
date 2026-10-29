@@ -1,6 +1,6 @@
 import {PWM_METHODS} from './pwm32x_playback.js?v=pokey-prepare-1';
 /** Render-clock event recording / looping for offline and Node Worker engines. */
-import {createMegaSynthOffline} from './megasynth_offline.js?v=ps1-live-api-1';
+import {createMegaSynthOffline} from './megasynth_offline.js?v=ps1-live-release-1';
 import {MegaSynthRecordingManager} from './megasynth_recording.js';
 import {MegaSynthLooper} from './looper.js';
 import {SampleClock} from './sample_clock.js';

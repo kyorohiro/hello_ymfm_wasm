@@ -62,12 +62,12 @@ export class Ps1VoiceInspector {
       // to its scalar ID instead of retaining any caller-owned nested object.
       const value=['setPreset','setChannel','setEnvelope'].includes(method)?{...args[1]}:args[1];
       if(value&&typeof value==='object'&&value.sample&&typeof value.sample==='object')value.sample=value.sample.id;
-      // The public instrument API applies envelope edits live by default. The
-      // editor retains its explicit checkbox and manual-note ownership rule.
+      // The editor's checkbox controls the selected voice's current envelope,
+      // including a Release tail after its manual key lease has ended.
       this.dispatch({method,args:envelopeEdit?[ch,value,{live:false}]:[ch,value]},owner,{preserveOwner:true});
-      // Live controls preserve sample phase and the current envelope level.
-      // Both extensions remain restricted to this editor's own audition.
-      if(envelopeEdit&&held){if(options.live){if(envelopeChanged)this.dispatch({method:'_refreshEnvelope',args:[ch]},owner,{preserveOwner:true});}else if(options.retrigger)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);}
+      // Refreshing changes no note owner or gate. Retriggering remains limited
+      // to this editor's held audition, and never restarts a released voice.
+      if(envelopeEdit){if(options.live){if(envelopeChanged)this.dispatch({method:'_refreshEnvelope',args:[ch]},owner,{preserveOwner:true});}else if(options.retrigger&&held)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);}
       return true;
     }
     throw new Error('Unsupported PS1 SPU inspector operation');

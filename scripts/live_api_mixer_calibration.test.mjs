@@ -1,28 +1,40 @@
-/** Fresh complete public-live-API measurements require exact source identity.
- * No historical UI/starter receipt substitutes for any current source byte.
+/** Prior complete measurements remain immutable history after the live-release
+ * UI revision. Their measured values remain valid evidence, but their source
+ * fingerprints must not be relabelled as current without fresh measurements.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
-import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
-import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
-import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
+import {validatePs1MixerCalibration,validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
+import {validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
+import {validatePokeyMixerCalibration,validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const baseline='docs/issues/playground_chip_levels_01.json';
-for(const [kind,parameter,validate]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources],
-])test(`${kind} live API calibration contains the complete real captures and exact current source bytes`,async t=>{
+const historical=Object.freeze({
+  [baseline]:'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234',
+  'docs/issues/ps1_chip_levels_01.json':'0bc38fd52a6f9de0658e085c016f8e8214e28960355b25a754da659bbab10d1c',
+  'docs/issues/wonderswan_chip_levels_01.json':'71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0',
+  'docs/issues/pokey_chip_levels_01.json':'5920ffb3ceb407b7db68cfdbf70bb1632fc6d2af54e9b66f35d92184fc4dee4b',
+  'docs/issues/ps1_chip_levels_live_controls_01.json':'df388a0b83adc627d4f26d12d390669c4838b7df9c31feb4a409a972bdb54d33',
+  'docs/issues/wonderswan_chip_levels_live_controls_01.json':'c225338f76e8d0a00a96dc94927d9da14e21ffda8b120b212d9c5f6313da6e0a',
+  'docs/issues/pokey_chip_levels_live_controls_01.json':'2659fe56ac9026c80dab3783d92ae83ebdf09650fe03d219b7d254f198219ab0',
+  'docs/issues/ps1_chip_levels_live_api_01.json':'aa8131789aee18ba5d3e029ba60aa00906018f03b3661e7546d69ed7cb43d2ce',
+  'docs/issues/wonderswan_chip_levels_live_api_01.json':'c17e2bd45627eae9a245471e4b8725f20242a65c2293fc35e6766fa74f9c1005',
+  'docs/issues/pokey_chip_levels_live_api_01.json':'5232823e3c3db0990b94b94ee4529622b3775c3013db0757800e1a04aa913621',
+});
+test('every pre-release-update complete calibration record retains its exact original raw bytes',async()=>{
+  for(const [path,hash]of Object.entries(historical))assert.equal(sha(await readFile(new URL(path,root))),hash,path);
+});
+for(const [kind,parameter,derive,validate]of [
+  ['ps1','ps1Report',validatePs1MixerCalibration,validatePs1MixerCalibrationSources],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSources],
+  ['pokey','pokeyReport',validatePokeyMixerCalibration,validatePokeyMixerCalibrationSources],
+])test(`${kind} live API measurement retains its original data and is stale for the later live-release UI`,async t=>{
   const path=`docs/issues/${kind}_chip_levels_live_api_01.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
-  for(const suffix of ['01','live_controls_01'])assert.notEqual(sha(bytes),sha(await readFile(new URL(`docs/issues/${kind}_chip_levels_${suffix}.json`,root))));
-  const result=await validate({reportPath:new URL(baseline,root),[parameter]:report});
-  for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
-  for(const [path,record]of Object.entries(report.sources)) {
-    const actual=await readFile(new URL('docs/'+path,root));assert.equal(actual.length,record.bytes,path);
-    assert.equal(sha(actual),record.sha256,path);
-  }
-  t.diagnostic(JSON.stringify({kind,captures:report.rows.length,anchors:report.anchors.length,exactSources:Object.keys(report.sources).length,primaryVolume:result.primaryVolume}));
+  const result=derive(JSON.parse(await readFile(new URL(baseline,root))),report);
+  await assert.rejects(validate({reportPath:new URL(baseline,root),[parameter]:report}),/served DSP\/WASM source changed|source receipt/);
+  assert.equal(sha(bytes),historical[path]);
+  t.diagnostic(JSON.stringify({kind,captures:report.rows.length,anchors:report.anchors.length,historicalSources:Object.keys(report.sources).length,primaryVolume:result.primaryVolume}));
 });

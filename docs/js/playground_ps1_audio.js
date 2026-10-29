@@ -6,11 +6,11 @@ const modules=new WeakMap();
 export async function createPs1Audio(context,destination,options={}) {
   options.signal?.throwIfAborted();
   if(!context?.audioWorklet||context.state==='closed')throw new Error('PS1 SPU requires an open AudioContext with AudioWorklet');
-  const url=String(options.workletUrl??new URL('./playground_ps1_worklet.js?v=ps1-live-api-1',import.meta.url));
+  const url=String(options.workletUrl??new URL('./playground_ps1_worklet.js?v=ps1-live-release-1',import.meta.url));
   let cache=modules.get(context);if(!cache)modules.set(context,cache=new Map());
   let module=cache.get(url);if(!module){module=context.audioWorklet.addModule(url);cache.set(url,module);module.catch(()=>cache.delete(url));}
   const wait=promise=>{const signal=options.signal;if(!signal)return promise;signal.throwIfAborted();return new Promise((resolve,reject)=>{const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});};
-  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/ps1_spu_wasm.wasm?v=ps1-live-api-1',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`PS1 SPU WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
+  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/ps1_spu_wasm.wasm?v=ps1-live-release-1',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`PS1 SPU WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
   options.signal?.throwIfAborted();
   const node=new AudioWorkletNode(context,'tetorica-playground-ps1',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});
   const channel=new MessageChannel();let disposed=false,endpoint=null,rejectReady,readyTimer;

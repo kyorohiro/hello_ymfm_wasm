@@ -69,12 +69,15 @@ fastest and higher codes slow or stop a stage. Sustain level is `(code + 1) / 16
 Release codes `27..31` hold indefinitely in this implementation. The envelope
 drawing is a schematic of the programmed stages, not a measured timing plot.
 
-The enabled-by-default **Apply ADSR / PCM edits to my held note** option applies
-ADSR edits to this editor's audition without restarting its sample or resetting
-the current envelope level. A rate change affects the active stage; changing
+The enabled-by-default **Apply ADSR / PCM edits while playing** option applies
+ADSR edits to the selected sounding voice without restarting its sample or resetting
+the current envelope level, including a Release tail after a key is released.
+Changing Release rate from `31` to `0` therefore fades out an indefinitely
+releasing voice. A rate change affects the active stage; changing
 Attack while already sustaining therefore affects the next attack. Disable it
-to defer ADSR changes until the next note. PCM edits still restart the edited
-voice. Script-owned notes and other voices are not restarted by these controls.
+to defer ADSR changes until the next note. PCM edits still restart only this
+editor's held audition. Live ADSR edits also update the selected script-owned
+voice without changing its note owner. Other voices are unaffected.
 Manual note transitions use a 128-native-frame ramp (about 2.9 ms at 44,100 Hz)
 and a minimum fast-release duration to reduce abrupt discontinuities. Longer
 programmed releases, including indefinite releases, remain intact. Transport

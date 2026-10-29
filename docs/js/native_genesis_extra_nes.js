@@ -1,9 +1,9 @@
 import {NesApuSynth} from './nesapusynth.js?v=pokey-mode-1';
 import {NES_APU_CLOCK,validateNesApuClock} from './nesapu.js?v=nes-wasm-1';
-import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-live-api-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-live-api-1';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-live-release-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-live-release-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-api-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-release-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_NES_CLOCK_HELD_ERROR='Release the manually held additional NES voices before changing the clock';

@@ -65,7 +65,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     options.signal?.throwIfAborted();
     await context.resume();
     const wasmBinary = await loadBinary();
-    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js?v=ps1-live-api-1', import.meta.url).href);
+    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js?v=ps1-live-release-1', import.meta.url).href);
     options.signal?.throwIfAborted();
     const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds', 'implementation'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {

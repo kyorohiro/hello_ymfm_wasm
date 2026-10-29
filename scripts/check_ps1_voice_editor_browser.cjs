@@ -431,9 +431,31 @@ async function checkLiveEnvelope(page){
   assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===60&&command.args[2]?.live===false),'Deferred edit has explicit live false');
   assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===61&&command.args[2]?.live===true),'Owned audition edit requests a live envelope refresh');
   assert(envelopes.every(command=>!Object.hasOwn(command.args[2]??{},'retrigger')),'ADSR changes never request a new key-on');
-  await field(page,'sustain-decrease',false);await fastEnvelope(page);await audible(page,'Fast envelope restored to the latched voice',440);
-  await page.locator(action('release')).click();assert.equal(await page.locator(action('sustain')).getAttribute('aria-pressed'),'false');const released=await silent(page,'Latched Release');
-  return {initial,lower,deferred,heldAfterAttackEdit,decreasing,released,liveGain:true,ownedLiveEnvelope:true,attackDuringSustainPreservesLevel:true,deferredSustain:true,otherVoicesPreserved:true,sampleBankPreserved:true};
+  await field(page,'sustain-decrease',false);await fastEnvelope(page);
+  const heldWithFastRelease=await audible(page,'RR0 does not mute a voice before key-off',440),heldState=await refresh(page);
+  assert.equal(heldState.channels[23].gate,true,'Changing RR alone does not release a held note');assert.equal(heldState.channels[23].envelope,0x7fff);
+  await field(page,'release-rate',31);await applied(page,'state.channels[23].envelopeParameters.releaseRate===31','Slowest linear release before key-off');
+  await page.locator(action('release')).click();assert.equal(await page.locator(action('sustain')).getAttribute('aria-pressed'),'false');
+  const slowRelease=await audible(page,'RR31 remains audible after releasing the audition',440),slowState=await refresh(page);
+  assert.equal(slowState.channels[23].gate,false,'The audition key is already off while its release tail sounds');assert(slowState.channels[23].envelope>0,'The release tail retains a nonzero live envelope');
+  const tailFrom=await page.evaluate(()=>__ps1Audit.commands.length);
+  await field(page,'retrigger',false);await field(page,'release-rate',0);await applied(page,'state.channels[23].envelopeParameters.releaseRate===0','Deferred RR0 register edit after key-off');
+  const deferredRelease=await audible(page,'Unchecked live editing preserves the existing slow release',440),deferredState=await refresh(page);
+  assert.equal(deferredState.channels[23].gate,false);assert(deferredState.channels[23].envelope>0,'A deferred release edit must not silently refresh the old slope');
+  assert(deferredRelease.channels.every((ch,index)=>Math.abs(ch.rms/slowRelease.channels[index].rms-1)<.1),'The unchecked RR0 edit leaves the audible RR31 tail intact');
+  // Restore the authored slow rate before enabling live edits, so RR0 is an
+  // actual changed word rather than an unchanged deferred value being flushed.
+  await field(page,'release-rate',31);await applied(page,'state.channels[23].envelopeParameters.releaseRate===31','Restore deferred RR31 before the live edit');
+  await field(page,'retrigger',true);await field(page,'release-rate',0);await applied(page,'state.channels[23].envelopeParameters.releaseRate===0','Live RR0 edit after key-off');
+  const released=await silent(page,'Live RR31 to RR0 edit stops the already-released audition'),releasedState=await refresh(page);
+  assert.equal(releasedState.channels[23].envelope,0,'The actual SPU envelope reaches zero after the live release edit');assert.equal(releasedState.channels[23].gate,false);
+  assert.equal(releasedState.channels[23].sample,sample);assert.deepEqual(releasedState.samples,original.samples,'Release-tail ADSR edits preserve sample RAM allocation');
+  assert.deepEqual(settings(releasedState).slice(0,23),untouched,'Release-tail editing leaves the other voices unchanged');
+  const tailCommands=(await commandsSince(page,tailFrom)).filter(command=>command.type==='chip-inspector');
+  assert(tailCommands.some(command=>command.method==='setEnvelope'&&command.args[1].releaseRate===0&&command.args[2]?.live===false),'Unchecked release-tail edit explicitly defers live refresh');
+  assert(tailCommands.some(command=>command.method==='setEnvelope'&&command.args[1].releaseRate===0&&command.args[2]?.live===true),'Checked release-tail edit requests live refresh even after audition key-off');
+  assert(!tailCommands.some(command=>['auditionOn','noteOn','keyOn','_auditionKeyOn'].includes(command.method)||Object.hasOwn(command.args?.[2]??{},'retrigger')),'Release-tail edits never start a new note');
+  return {initial,lower,deferred,heldAfterAttackEdit,decreasing,released,releaseTail:{heldWithFastRelease,slowRelease,slowState,deferredRelease,deferredState,releasedState,heldReleaseRateDoesNotMute:true,deferredReleasePreserved:true,liveReleaseAfterKeyOff:true,noRetrigger:true},liveGain:true,ownedLiveEnvelope:true,attackDuringSustainPreservesLevel:true,deferredSustain:true,otherVoicesPreserved:true,sampleBankPreserved:true};
 }
 async function checkReverb(page){
   console.log('  Per-voice send and global SPU reverb / wet tails');

@@ -2,7 +2,7 @@ import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave, sampleNormaliz
   estimateSamplePitch, encodeSampleWav} from '../js/playground_sample_edit.js?v=audio-numeric-bindings-1';
 import {renderGameboySampleComparison, renderGameboySamplePreview} from '../js/playground_sample_gameboy_preview.js?v=gameboy-sample-preview-1';
 import {renderPs1Sample, renderPs1SampleComparison} from '../js/playground_sample_ps1.js?v=ps1-sample-editor-1';
-import {renderPs1SamplePreview} from '../js/playground_sample_ps1_preview.js?v=ps1-live-api-1';
+import {renderPs1SamplePreview} from '../js/playground_sample_ps1_preview.js?v=ps1-live-release-1';
 
 // Conversion results may contain aliased typed-array views. Transfer each
 // backing buffer once; the Worker retains only the original source recording.
@@ -47,7 +47,7 @@ self.onmessage = async ({data}) => {
         // Capture the source/edit before loading WASM: a later message can
         // replace the recording while this asynchronous import is pending.
         const source = audio, edit = normalizeSampleEdit(source, settings);
-        const {default: moduleFactory} = await import('../generated/ps1_spu_wasm.js?v=ps1-live-api-1');
+        const {default: moduleFactory} = await import('../generated/ps1_spu_wasm.js?v=ps1-live-release-1');
         value = await renderPs1SamplePreview(source, edit, {moduleFactory});
       }
       else if (command === 'render') {

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /** PS1 register authoring and instrument metadata stay in JavaScript. The SPU,
  * sample RAM, envelopes, reverb and resampling execute on the Native callback. */
-import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js?v=ps1-live-api-1';
+import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js?v=ps1-live-release-1';
 import {PS1_REVERB_PRESETS,patchPs1Envelope} from './ps1_parameters.js?v=ps1-voice-editor-1';
-import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-live-api-1';
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-api-1';
+import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-live-release-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-release-1';
 
 export const PS1_MEMORY_HELD_ERROR='Release the manually held PS1 voice before replacing its sample RAM or state';
 export const PS1_STATE_HELD_ERROR=PS1_MEMORY_HELD_ERROR;

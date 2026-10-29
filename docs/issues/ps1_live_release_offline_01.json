@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "fixture": "same pre-encoded init sample, RR31, auditionOn/auditionOff, then live RR0",
+  "physicalAudio": false,
+  "wasmSha256": "9e46b500e8592b9a1d05703fad29144bfc8a82e941853a4e89de3c699f59c70b",
+  "rows": [
+    {
+      "version": "before",
+      "release31Envelope": 32767,
+      "afterRelease0Envelope": 32767,
+      "tailPeak": 0.4878242313861847,
+      "heldAuditions": 0
+    },
+    {
+      "version": "after",
+      "release31Envelope": 32767,
+      "afterRelease0Envelope": 0,
+      "tailPeak": 0,
+      "heldAuditions": 0
+    }
+  ],
+  "beforeCommit": "9315dbb1ea6efd404229fb05aba12755e2d25e0a",
+  "beforeInspectorSha256": "a510d1863c8d5e05eba042ea1b3089ebcffea54404283c9aaa073fef98b67a38",
+  "afterInspectorSha256": "f58fa9e1ef0ae5f207d0b25e1064a878b781fe0610aa45a9c02e243d5244d16f",
+  "beforeImportNote": "Before source loaded from git HEAD via a data module; only its two relative import specifiers were rebased to the same local modules."
+}

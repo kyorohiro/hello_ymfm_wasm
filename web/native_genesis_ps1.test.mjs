@@ -162,6 +162,36 @@ for(const additional of[false,true])test(`Native ${additional?'additional':'prim
   const releaseOps=a.f.commands().slice(releaseStart).flatMap(c=>c.message.commands??[]);assert.equal(releaseOps.filter(c=>c.method==='refresh-envelope').length,1);assert(!releaseOps.some(c=>c.method==='write'&&[0x188,0x18a].includes(c.register)));
   for(const s of setups)assert.deepEqual(s.f.errors,[]);
 });
+for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} editor RR edits stop an unheld release tail without a new manual lease`,async t=>{
+  const setups=[];
+  for(let index=0;index<2;index++){
+    const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'released'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1;
+    let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}
+    await endpoint.invoke('setPreset',[23,{sample,adsr1:15,adsr2:31}]);await endpoint.invoke('auditionOn',[23,69,'released']);
+    setups.push({f,endpoint,core:device?f.rack.get(device.nativeInstance).core:f.primary.core});
+  }
+  const render=(s,n)=>{const left=new Float32Array(n),right=new Float32Array(n);s.core.renderInto(left,right);return left;},[a,b]=setups;
+  for(const s of setups){render(s,1009);await s.endpoint.invoke('auditionOff',[23,'released']);render(s,256);const view=await s.endpoint.read();assert.equal(view.channels[23].gate,false);assert.equal(view.channels[23].envelope,32767);assert.deepEqual(view.auditions,[]);}
+  assert.deepEqual(render(a,128),render(b,128));const since=a.f.commands().length;
+  for(const s of setups){await s.endpoint.invoke('setEnvelope',[23,{releaseRate:0},{live:false}]);await s.endpoint.invoke('setEnvelope',[23,{releaseRate:0},{live:true}]);await s.endpoint.invoke('setPreset',[23,{volumeLeft:.75,volumeRight:.75},{live:true}]);}
+  assert.deepEqual(render(a,512),render(b,512));assert.equal(a.core.read(23*16+12),32767);assert(a.f.commands().slice(since).flatMap(c=>c.message.commands??[]).every(c=>c.method!=='refresh-envelope'),'same-value and unrelated edits do not flush a deferred RR');
+  for(const s of setups)await s.endpoint.invoke('setEnvelope',[23,{releaseRate:31},{live:false}]);
+  const liveSince=a.f.commands().length;await a.endpoint.invoke('setEnvelope',[23,{releaseRate:0},{live:true}]);await b.endpoint.invoke('setEnvelope',[23,{releaseRate:0},{live:false}]);
+  const edited=render(a,512),tail=render(b,512);assert(peak(tail)>.01);assert.equal(peak(edited.subarray(128)),0);assert.equal(a.core.read(23*16+12),0);
+  const batches=a.f.commands().slice(liveSince).filter(c=>c.message.method==='batch');assert.equal(batches.length,1);assert.equal(batches[0].message.action,'edit');assert.equal(batches[0].message.voice,undefined);assert(batches[0].message.commands.some(c=>c.method==='refresh-envelope'&&c.channel===23));assert(!batches[0].message.commands.some(c=>c.method==='audition-key'||c.method==='write'&&[0x188,0x18a,0x18c,0x18e].includes(c.register)));
+  assert.deepEqual((await a.endpoint.read()).auditions,[]);assert.equal(await a.endpoint.invoke('auditionOff',[23,'released']),false);for(const s of setups)assert.deepEqual(s.f.errors,[]);
+});
+for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} editor live changes preserve code-owned note cancellation`,async t=>{
+  const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'owned'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1,source=device?f.rack.get(device.nativeInstance):f.primary;
+  let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}
+  for(const ch of[23,2]){client.setPreset(ch,{sample});await client.getState();await rpc(endpoint,{method:'noteOn',args:[ch,ch===23?'A4':'C4']},{performance:7,owner:ch===23?3:4});}
+  const left=new Float32Array(1009),right=new Float32Array(1009);source.core.renderInto(left,right);const before=source.core.read(23*16+12),note=source.notes.get(23),since=f.commands().length;
+  await endpoint.invoke('setEnvelope',[23,{sustainRate:40,sustainDecrease:true},{live:true}]);source.core.renderInto(new Float32Array(512),new Float32Array(512));assert(source.core.read(23*16+12)<before);
+  assert.equal(source.notes.get(23),note,'the edit does not replace the original voice lease');assert.deepEqual((await endpoint.read()).auditions,[]);assert(f.commands().slice(since).filter(c=>c.message.method==='batch').every(c=>c.message.action==='edit'&&c.message.voice===undefined));
+  assert(!f.commands().slice(since).flatMap(c=>c.message.commands??[]).some(c=>c.method==='audition-key'||c.method==='write'&&[0x188,0x18a,0x18c,0x18e].includes(c.register)));
+  await f.synth.setNativePerformance({op:'cancel-owner',performance:7,owner:3});const view=await endpoint.read();assert.equal(view.channels[23].active,false);assert.equal(view.channels[2].active,true,'cancelling the original code owner releases only its own voice');assert.deepEqual(f.errors,[]);
+});
+
 for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} immediate ADSR edits merge applied words ahead of future authored edits`,async t=>{
   for(const scenario of ['same-sustain','distinct-attack','same-deferred']){
     const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'ordered'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1,core=device?f.rack.get(device.nativeInstance).core:f.primary.core;

@@ -1,3 +1,11 @@
+## 2026-10-29 — SPUタブのRelease中ADSR変更を修正
+
+- RR31で離鍵後に鳴り続ける音へ、UIのRR0変更が届かなかった問題を修正。原因は即時Envelope更新を手動押鍵中だけに限定していたこと。「Apply ADSR / PCM edits while playing」がオンなら選択CHの現在stageへ反映し、Release中やscript音も再発音／所有権変更なしで更新する。PCM再発音は手動押鍵中のみ。unchecked／同値／無関係な変更の保留は維持。
+- 同じ実WASMの修正前後比較で、RR31→0後のENVXは旧32767／新0、後続PCMは新exact zero。Worklet／Native adapter53件（新規7件）とpanel33件成功。実Run ZIPのWebKit Main／Worker2経路でUIの離鍵後RR31→0、unchecked保留、ADSR図・PCM・Keyboard・FX・別CH・追加SPU・Stop／recover成功。物理出力mute、実聴／Tauri GUI／deviceは未実施。
+- cacheは`ps1-live-release-1`。PS1／WS／POKEYの全matrixを新raw再測定し`*_chip_levels_live_release_01.json`へ保存。旧10rawはbyte不変。全pilot連続、POKEY停止captureのclock診断1件は保持。Mixer倍率はすべて前回と完全一致。校正／履歴／Mixer490件、両generator --checkとactionlint成功。
+- 完全ZIP SHA256 `6eaae2ff556eadec951fd949567ea3419c6ee61c44833b1c24f713298a25c671`、Run ZIP SHA256 `8f38e7cdd628e870ad0d36a088e6b277a6261bdca46b80f9d9e635abb8b81b5e`（931files）、両CRC成功。Tauriへ1,066非metadata payloadを正規importしlock確認済み。npmローカルbuild／隔離install／実PCM／型も成功。Browserは再読み込み、Tauriは再buildで反映。
+- 詳細：[ps1_live_release_01.md](ps1_live_release_01.md)／実測JSON。SDK原本・C++・WASM・固定SDKは今回不変、SDK原本repoはclean。本体・Tauriは未commit（Tauriには前回分も含む）。commit／push／remote CI／npm・SDK・itch公開は未実施。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1の通常APIにもlive ADSRを適用
 
 - `spu.setEnvelope()`／`setPreset()`／`setChannel()`は、変更したADSRを発音中の現在stageへ標準で反映する。再発音せず、現在level／sample位置を保持。第3引数`{live:false}`で保留できる。同値ADSRやvolume／pitch／sampleだけの変更は保留値をrefreshしない。SPUタブのcheckboxと手動noteの所有権は維持。Sustain LevelはDecayの目標であり、Sustain中の直接音量には変更していない。

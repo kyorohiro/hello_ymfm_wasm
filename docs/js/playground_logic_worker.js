@@ -7,7 +7,7 @@ import {createPerformanceSender} from './playground_performance_sender.js?v=ps1-
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-live-api-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-live-release-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
 import {OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
