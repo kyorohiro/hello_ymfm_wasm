@@ -1,0 +1,2149 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "Playground PSF1 static contiguous VAB extraction; no CPU or song playback",
+  "browserEvidenceSha256": "c866bea6f5d58a5483b726d7ff4d0ffc894bb910c32f2cb8f0849283112ad120",
+  "nodeTests": {
+    "psfPanelAndChipTabs": 80,
+    "standaloneRegression": 67
+  },
+  "browserEvidence": {
+    "schemaVersion": 3,
+    "passed": true,
+    "clockContinuous": true,
+    "continuityOracle": "independent-24-bit-pilot-PCM",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "publicUiOnly": true,
+    "repositoryFallback": false,
+    "host": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+    "archive": null,
+    "results": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "main",
+        "psf": {
+          "standalone": true,
+          "mini": true,
+          "folder": true,
+          "twoBanks": true,
+          "noCpuExecution": true,
+          "extractionDoesNotUpload": true,
+          "missingLibraryDiagnostic": true,
+          "noBankDiagnostic": true,
+          "pcm": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "gaps": [],
+            "firstFrame": 45312,
+            "lastFrame": 61568,
+            "quantumFrames": [
+              128
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.00177001953125,
+              "lastSample": 0.0027465224266052246
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 45312,
+              "lastFrame": 61568,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "channels": [
+              {
+                "peak": 0.051929112523794174,
+                "rms": 0.03639537347199982,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "blockRms": [
+                  0.03152009854352067,
+                  0.036860846727419475,
+                  0.036822091258049944,
+                  0.0364217070384921,
+                  0.0366710455220055,
+                  0.036939522560207036,
+                  0.036550856963440355,
+                  0.036485077425353646,
+                  0.0369084790923719,
+                  0.036752577182025216,
+                  0.03641032465287081,
+                  0.03674631069158592,
+                  0.03691178188091395,
+                  0.036489749514817475,
+                  0.036544860144004515,
+                  0.036937926992658625
+                ],
+                "hz": 405.43618041517766
+              },
+              {
+                "peak": 0.051929112523794174,
+                "rms": 0.03639537347199982,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "blockRms": [
+                  0.03152009854352067,
+                  0.036860846727419475,
+                  0.036822091258049944,
+                  0.0364217070384921,
+                  0.0366710455220055,
+                  0.036939522560207036,
+                  0.036550856963440355,
+                  0.036485077425353646,
+                  0.0369084790923719,
+                  0.036752577182025216,
+                  0.03641032465287081,
+                  0.03674631069158592,
+                  0.03691178188091395,
+                  0.036489749514817475,
+                  0.036544860144004515,
+                  0.036937926992658625
+                ],
+                "hz": 405.43618041517766
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "realSet": {
+            "entry": "01-BOBBY_A.psf",
+            "toneIndex": 31,
+            "unavailableTones": 68,
+            "sample": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 4784,
+              "decodedFrames": 8372,
+              "rootNote": null,
+              "rootFrequencyHz": 195.99771799087463,
+              "basePitch": 4096,
+              "loop": false,
+              "loopStartSamples": null
+            },
+            "adsr1": 33023,
+            "adsr2": 24518,
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 124416,
+              "lastFrame": 140672,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.0064849853515625,
+                "lastSample": 0.007461488246917725
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 124416,
+                "lastFrame": 140672,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.006160686258226633,
+                  "rms": 0.0012809052291490853,
+                  "nonFinite": 0,
+                  "nonZero": 9103,
+                  "blockRms": [
+                    0.002387912542217202,
+                    0.002357492800243695,
+                    0.0021564616168633136,
+                    0.001894154748483297,
+                    0.001708059038550345,
+                    0.0015106419628574067,
+                    0.0010801408607381267,
+                    0.0006088559702030281,
+                    0.00019845786268859168,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7598.335751642633
+                },
+                {
+                  "peak": 0.005589312873780727,
+                  "rms": 0.0011618695869338896,
+                  "nonFinite": 0,
+                  "nonZero": 9103,
+                  "blockRms": [
+                    0.002166021381388126,
+                    0.00213836239163785,
+                    0.0019560509200063697,
+                    0.0017180747567883223,
+                    0.0015492924070682876,
+                    0.0013703197834093537,
+                    0.0009797859948406868,
+                    0.0005523202834269032,
+                    0.0001800307448609055,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7593.02053396242
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        "screenshots": [
+          {
+            "label": "desktop",
+            "path": "/private/tmp/playground-psf-final-screenshots/chromium-ps1-voice-desktop.png",
+            "viewport": 1600,
+            "document": 1600,
+            "panel": 1384
+          },
+          {
+            "label": "mobile",
+            "path": "/private/tmp/playground-psf-final-screenshots/chromium-ps1-voice-mobile.png",
+            "viewport": 390,
+            "document": 390,
+            "panel": 195
+          }
+        ],
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "captureContinuity": {
+          "captures": 9,
+          "frames": 73728,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        }
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "worker",
+        "psf": {
+          "standalone": true,
+          "mini": true,
+          "folder": true,
+          "twoBanks": true,
+          "noCpuExecution": true,
+          "extractionDoesNotUpload": true,
+          "missingLibraryDiagnostic": true,
+          "noBankDiagnostic": true,
+          "pcm": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "gaps": [],
+            "firstFrame": 48640,
+            "lastFrame": 64896,
+            "quantumFrames": [
+              128
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.001861572265625,
+              "lastSample": 0.0028380751609802246
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 48640,
+              "lastFrame": 64896,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "channels": [
+              {
+                "peak": 0.051928967237472534,
+                "rms": 0.03664645293444879,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "blockRms": [
+                  0.03611648420016937,
+                  0.03678139676871276,
+                  0.03641241707389654,
+                  0.036716400013525996,
+                  0.03692524861015874,
+                  0.036512880365700065,
+                  0.03651931750036985,
+                  0.036928539079717895,
+                  0.03670802027507274,
+                  0.03641329738936536,
+                  0.03678958313738483,
+                  0.03688611862993206,
+                  0.036459681008201204,
+                  0.03658686725804689,
+                  0.03694559964722955,
+                  0.036631620308170666
+                ],
+                "hz": 405.28569158215555
+              },
+              {
+                "peak": 0.051928967237472534,
+                "rms": 0.03664645293444879,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "blockRms": [
+                  0.03611648420016937,
+                  0.03678139676871276,
+                  0.03641241707389654,
+                  0.036716400013525996,
+                  0.03692524861015874,
+                  0.036512880365700065,
+                  0.03651931750036985,
+                  0.036928539079717895,
+                  0.03670802027507274,
+                  0.03641329738936536,
+                  0.03678958313738483,
+                  0.03688611862993206,
+                  0.036459681008201204,
+                  0.03658686725804689,
+                  0.03694559964722955,
+                  0.036631620308170666
+                ],
+                "hz": 405.28569158215555
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "realSet": {
+            "entry": "01-BOBBY_A.psf",
+            "toneIndex": 31,
+            "unavailableTones": 68,
+            "sample": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 4784,
+              "decodedFrames": 8372,
+              "rootNote": null,
+              "rootFrequencyHz": 195.99771799087463,
+              "basePitch": 4096,
+              "loop": false,
+              "loopStartSamples": null
+            },
+            "adsr1": 33023,
+            "adsr2": 24518,
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 134912,
+              "lastFrame": 151168,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.0070037841796875,
+                "lastSample": 0.007980287075042725
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 134912,
+                "lastFrame": 151168,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.0062163337133824825,
+                  "rms": 0.0012810414419649936,
+                  "nonFinite": 0,
+                  "nonZero": 9102,
+                  "blockRms": [
+                    0.002388545597097668,
+                    0.00235503349783216,
+                    0.0021596066927334592,
+                    0.0018940555297032762,
+                    0.0017076109925350449,
+                    0.001511614435742337,
+                    0.0010795556488956823,
+                    0.000609426247331635,
+                    0.00019859275849167866,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7581.891228561605
+                },
+                {
+                  "peak": 0.005640125367790461,
+                  "rms": 0.001161989021489891,
+                  "nonFinite": 0,
+                  "nonZero": 9103,
+                  "blockRms": [
+                    0.0021665830715528064,
+                    0.002136123609106881,
+                    0.001958903043062235,
+                    0.001717979140071184,
+                    0.001548885590772127,
+                    0.0013711851481708406,
+                    0.000979258652269641,
+                    0.0005528331081187349,
+                    0.0001801591054437565,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7576.519197032483
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        "screenshots": [],
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "captureContinuity": {
+          "captures": 11,
+          "frames": 81920,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        }
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "main",
+        "psf": {
+          "standalone": true,
+          "mini": true,
+          "folder": true,
+          "twoBanks": true,
+          "noCpuExecution": true,
+          "extractionDoesNotUpload": true,
+          "missingLibraryDiagnostic": true,
+          "noBankDiagnostic": true,
+          "pcm": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "gaps": [],
+            "firstFrame": 43776,
+            "lastFrame": 60032,
+            "quantumFrames": [
+              128
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.00151824951171875,
+              "lastSample": 0.0024947524070739746
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 43776,
+              "lastFrame": 60032,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "channels": [
+              {
+                "peak": 0.05192973092198372,
+                "rms": 0.03651187346172314,
+                "nonFinite": 0,
+                "nonZero": 16380,
+                "blockRms": [
+                  0.03361529090812991,
+                  0.03685160213554774,
+                  0.03683235076826304,
+                  0.0364256396509881,
+                  0.0366586194023426,
+                  0.03694213850432671,
+                  0.03656191929077542,
+                  0.036476650737491643,
+                  0.036901859274770465,
+                  0.03676439182720111,
+                  0.03641078646624913,
+                  0.03673428894397567,
+                  0.036917638776887925,
+                  0.036498757241174844,
+                  0.03653416870323785,
+                  0.03693457667783705
+                ],
+                "hz": 405.3167299438563
+              },
+              {
+                "peak": 0.05192973092198372,
+                "rms": 0.03651187346172314,
+                "nonFinite": 0,
+                "nonZero": 16380,
+                "blockRms": [
+                  0.03361529090812991,
+                  0.03685160213554774,
+                  0.03683235076826304,
+                  0.0364256396509881,
+                  0.0366586194023426,
+                  0.03694213850432671,
+                  0.03656191929077542,
+                  0.036476650737491643,
+                  0.036901859274770465,
+                  0.03676439182720111,
+                  0.03641078646624913,
+                  0.03673428894397567,
+                  0.036917638776887925,
+                  0.036498757241174844,
+                  0.03653416870323785,
+                  0.03693457667783705
+                ],
+                "hz": 405.3167299438563
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "realSet": {
+            "entry": "01-BOBBY_A.psf",
+            "toneIndex": 31,
+            "unavailableTones": 68,
+            "sample": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 4784,
+              "decodedFrames": 8372,
+              "rootNote": null,
+              "rootFrequencyHz": 195.99771799087463,
+              "basePitch": 4096,
+              "loop": false,
+              "loopStartSamples": null
+            },
+            "adsr1": 33023,
+            "adsr2": 24518,
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 119808,
+              "lastFrame": 136064,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.00605010986328125,
+                "lastSample": 0.007026612758636475
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 119808,
+                "lastFrame": 136064,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.0062163337133824825,
+                  "rms": 0.0012747611466348994,
+                  "nonFinite": 0,
+                  "nonZero": 8978,
+                  "blockRms": [
+                    0.0024718410943747175,
+                    0.0023513123353720213,
+                    0.0021195382887387007,
+                    0.0018729098282478241,
+                    0.0016874003639172162,
+                    0.0014757945898670117,
+                    0.0010141232455295498,
+                    0.0005526060355357466,
+                    0.00015686440146532558,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7515.1579989920365
+                },
+                {
+                  "peak": 0.005640125367790461,
+                  "rms": 0.0011562919674289465,
+                  "nonFinite": 0,
+                  "nonZero": 8979,
+                  "blockRms": [
+                    0.0022421054449132502,
+                    0.002132759279729701,
+                    0.0019226002135980472,
+                    0.001698760959466723,
+                    0.0015305615183394488,
+                    0.0013386809093218718,
+                    0.0009199438098889981,
+                    0.0005013062677140588,
+                    0.00014227671315333277,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7509.765906269115
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        "screenshots": [
+          {
+            "label": "desktop",
+            "path": "/private/tmp/playground-psf-final-screenshots/webkit-ps1-voice-desktop.png",
+            "viewport": 1600,
+            "document": 1600,
+            "panel": 1384
+          },
+          {
+            "label": "mobile",
+            "path": "/private/tmp/playground-psf-final-screenshots/webkit-ps1-voice-mobile.png",
+            "viewport": 390,
+            "document": 390,
+            "panel": 195
+          }
+        ],
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "captureContinuity": {
+          "captures": 11,
+          "frames": 81920,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        }
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "worker",
+        "psf": {
+          "standalone": true,
+          "mini": true,
+          "folder": true,
+          "twoBanks": true,
+          "noCpuExecution": true,
+          "extractionDoesNotUpload": true,
+          "missingLibraryDiagnostic": true,
+          "noBankDiagnostic": true,
+          "pcm": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "gaps": [],
+            "firstFrame": 53504,
+            "lastFrame": 69760,
+            "quantumFrames": [
+              128
+            ],
+            "pilot": {
+              "continuous": true,
+              "period": 16777216,
+              "expectedFrames": 16384,
+              "frames": 16384,
+              "receivedFrames": 16384,
+              "complete": true,
+              "nonFinite": 0,
+              "invalidSamples": 0,
+              "sampleGapCount": 0,
+              "sampleGaps": [],
+              "zeroSamples": 0,
+              "firstSample": 0.0014801025390625,
+              "lastSample": 0.0024566054344177246
+            },
+            "clock": {
+              "continuous": true,
+              "measurementValid": true,
+              "rowCount": 128,
+              "firstFrame": 53504,
+              "lastFrame": 69760,
+              "frames": 16384,
+              "gapCount": 0,
+              "gaps": [],
+              "unstableReadCount": 0,
+              "unstableReads": [],
+              "malformedRowCount": 0,
+              "malformedRows": []
+            },
+            "channels": [
+              {
+                "peak": 0.05192973092198372,
+                "rms": 0.03654161697088019,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "blockRms": [
+                  0.0341026557084084,
+                  0.03694397538250104,
+                  0.036573309078518974,
+                  0.03646851568464688,
+                  0.03689513772769489,
+                  0.03677612935287164,
+                  0.036411455479825154,
+                  0.036722483858719054,
+                  0.036922805363238526,
+                  0.03650777212609073,
+                  0.03652454527604953,
+                  0.036930559985498795,
+                  0.03670188002510505,
+                  0.03641462216948737,
+                  0.03679489922390705,
+                  0.03688185065852149
+                ],
+                "hz": 405.2859091624146
+              },
+              {
+                "peak": 0.05192973092198372,
+                "rms": 0.03654161697088019,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "blockRms": [
+                  0.0341026557084084,
+                  0.03694397538250104,
+                  0.036573309078518974,
+                  0.03646851568464688,
+                  0.03689513772769489,
+                  0.03677612935287164,
+                  0.036411455479825154,
+                  0.036722483858719054,
+                  0.036922805363238526,
+                  0.03650777212609073,
+                  0.03652454527604953,
+                  0.036930559985498795,
+                  0.03670188002510505,
+                  0.03641462216948737,
+                  0.03679489922390705,
+                  0.03688185065852149
+                ],
+                "hz": 405.2859091624146
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "realSet": {
+            "entry": "01-BOBBY_A.psf",
+            "toneIndex": 31,
+            "unavailableTones": 68,
+            "sample": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 4784,
+              "decodedFrames": 8372,
+              "rootNote": null,
+              "rootFrequencyHz": 195.99771799087463,
+              "basePitch": 4096,
+              "loop": false,
+              "loopStartSamples": null
+            },
+            "adsr1": 33023,
+            "adsr2": 24518,
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "gaps": [],
+              "firstFrame": 131072,
+              "lastFrame": 147328,
+              "quantumFrames": [
+                128
+              ],
+              "pilot": {
+                "continuous": true,
+                "period": 16777216,
+                "expectedFrames": 16384,
+                "frames": 16384,
+                "receivedFrames": 16384,
+                "complete": true,
+                "nonFinite": 0,
+                "invalidSamples": 0,
+                "sampleGapCount": 0,
+                "sampleGaps": [],
+                "zeroSamples": 0,
+                "firstSample": 0.006103515625,
+                "lastSample": 0.007080018520355225
+              },
+              "clock": {
+                "continuous": true,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 131072,
+                "lastFrame": 147328,
+                "frames": 16384,
+                "gapCount": 0,
+                "gaps": [],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "channels": [
+                {
+                  "peak": 0.00644694035872817,
+                  "rms": 0.0012748506575500065,
+                  "nonFinite": 0,
+                  "nonZero": 8977,
+                  "blockRms": [
+                    0.0024720298929085485,
+                    0.002352866154879676,
+                    0.0021187052089105206,
+                    0.001874865904642537,
+                    0.0016851455219363699,
+                    0.0014762421663941701,
+                    0.0010138309068551806,
+                    0.0005512788142222988,
+                    0.00015683138704282627,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7546.045748161571
+                },
+                {
+                  "peak": 0.005849148612469435,
+                  "rms": 0.0011563764990555137,
+                  "nonFinite": 0,
+                  "nonZero": 8976,
+                  "blockRms": [
+                    0.002242283997920425,
+                    0.0021341732690395446,
+                    0.0019218543181435512,
+                    0.0017005386993462785,
+                    0.0015285184038475515,
+                    0.0013390904379250918,
+                    0.0009196762389271293,
+                    0.0005001122650806744,
+                    0.0001422502366964133,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "hz": 7540.66333081582
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          }
+        },
+        "screenshots": [],
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "captureContinuity": {
+          "captures": 11,
+          "frames": 81920,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        }
+      }
+    ],
+    "sources": {
+      "generated/ps1_spu_wasm.js": {
+        "bytes": 17148,
+        "sha256": "49f1994131a8e7bd3224544d71dc5e73890f7d9584bb44f267818f99d1b799bf"
+      },
+      "generated/ps1_spu_wasm.wasm": {
+        "bytes": 50282,
+        "sha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4"
+      },
+      "js/adpcm_a_sample.js": {
+        "bytes": 6155,
+        "sha256": "ed99db330a6fbf0579f593d2ad1cbde6839fb4db2125d817325ef4385b1f5851"
+      },
+      "js/adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/ay8910.js": {
+        "bytes": 6264,
+        "sha256": "f4859ede97baedb225ab72d26e73bbe98389eef3ae7a3bbb88c6b7e136925355"
+      },
+      "js/ay8910synth.js": {
+        "bytes": 12974,
+        "sha256": "4eb50108d27aa364344cbab8190f63375430fb1477cc98091a0b2c10a8bb2cb6"
+      },
+      "js/cdda_audio.js": {
+        "bytes": 3822,
+        "sha256": "c3dd817dd761fc4c893f3afd18a1f47a31d49c50060bd2ce258fdf2b52a1de50"
+      },
+      "js/cdda_native.js": {
+        "bytes": 2687,
+        "sha256": "7617bbd841b3881189472d90ca192fb6c0f59946a389cc191bffc1388dfff037"
+      },
+      "js/cdda_player.js": {
+        "bytes": 4954,
+        "sha256": "36029435baac54f9c54818ea3b170c3e2db9e39d3821fadb1b0b04d4b659ea56"
+      },
+      "js/cdda_source.js": {
+        "bytes": 11833,
+        "sha256": "4c1bb3f1d1deedd01a9e0856fe0513422741a7b6f81ad9047720ace5d5d05d30"
+      },
+      "js/chip_worklet_transport.js": {
+        "bytes": 15514,
+        "sha256": "4adcc8a58773fb970700a9846e628fcfea20e5d16b43778ea80d0e083b630a7b"
+      },
+      "js/custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "js/fds_audio.js": {
+        "bytes": 5112,
+        "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+      },
+      "js/gameboy_runtime_synth.js": {
+        "bytes": 9730,
+        "sha256": "4cbb5c703ed0335075d2df5376c4a4d6a7c50f6f8c10353b24322821d2b9d6f2"
+      },
+      "js/gameboyapu.js": {
+        "bytes": 7136,
+        "sha256": "cbfd33c3eef9110f1d0940ff46ebfa8c151da3370687833f959e354c6ecb49d9"
+      },
+      "js/gameboysynth.js": {
+        "bytes": 13943,
+        "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af"
+      },
+      "js/huc6280synth.js": {
+        "bytes": 11437,
+        "sha256": "a42b8f4ce90300b3d4a52f68402df9c7936c884f41ea79e9f4bf64fe4b974661"
+      },
+      "js/looper.js": {
+        "bytes": 24025,
+        "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+      },
+      "js/megasynth_fx.js": {
+        "bytes": 62352,
+        "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+      },
+      "js/megasynth_recording.js": {
+        "bytes": 10125,
+        "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/megasynth.js": {
+        "bytes": 33454,
+        "sha256": "b96697e497cb41cff0d32689aa6d143b7a35e5d67314d7ce7fe98e0537180529"
+      },
+      "js/midi_file.js": {
+        "bytes": 5341,
+        "sha256": "4751962bf77417ec198bb5f0434e325ce6c7e0dc7c4059ba6056d14f02e5e69f"
+      },
+      "js/midi_song.js": {
+        "bytes": 6966,
+        "sha256": "d86a06c6a37f57869fd11156a5ed5ebee5f093d8a01daf6430ac5c9499e99bb6"
+      },
+      "js/midi_source.js": {
+        "bytes": 12172,
+        "sha256": "d0db1daddfea52568b3c792d04de644814ea56f583f4757e55581c51a7931a75"
+      },
+      "js/msfa_dx7/src/preset.js": {
+        "bytes": 8629,
+        "sha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2"
+      },
+      "js/msfa_dx7/src/sysex.js": {
+        "bytes": 8610,
+        "sha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e"
+      },
+      "js/msm5205_audio.js": {
+        "bytes": 3854,
+        "sha256": "12ab77e4537196fff50ca894e740ecb3c9e78854121241b08af3f47a8fe5f93e"
+      },
+      "js/msm5205_native.js": {
+        "bytes": 2905,
+        "sha256": "388b7b39cfac9434a5c6ed3ce8a4008265d4a81d7dd75587fa8e003e5903e381"
+      },
+      "js/msm5205_player.js": {
+        "bytes": 4633,
+        "sha256": "5f0a33ceff2f7e525eb6c4d60c04ec16120f48e0006c4db0b1dbbf364fa57679"
+      },
+      "js/msm5205_sample.js": {
+        "bytes": 7476,
+        "sha256": "35a8372f052ce36fb82f662f976a2ef9dee28c3c0a7c9d54e685cd3046fe3a92"
+      },
+      "js/native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "js/native_fx_engine.js": {
+        "bytes": 7061,
+        "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+      },
+      "js/native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_genesis_fx.js": {
+        "bytes": 863,
+        "sha256": "917dd7dd431a553e798de9f36affe772d51fac7c9aa01209caa9341577adba4f"
+      },
+      "js/native_genesis_livefx.js": {
+        "bytes": 5891,
+        "sha256": "bac52d6a63bcafe48086cb69959d006285e578473f6d4900adfca1b3d065716b"
+      },
+      "js/native_genesis_media.js": {
+        "bytes": 17764,
+        "sha256": "c8f6925a08e2671689c1204f780a21f0963bafaed218736f995288198e99316d"
+      },
+      "js/native_genesis_noise.js": {
+        "bytes": 5379,
+        "sha256": "92949c736bb44e4a1a577d562cc95bd8ad3bf62ed72e79c892bf48fe6a76a86c"
+      },
+      "js/native_genesis_worker.js": {
+        "bytes": 16226,
+        "sha256": "ec8a88d345b0e2ed2848c63f5a4d59942713dfee55065b47af88e260f7848765"
+      },
+      "js/native_livefx_context.js": {
+        "bytes": 8401,
+        "sha256": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_runtime_synth.js": {
+        "bytes": 19820,
+        "sha256": "d991d2068870ce3f00fa76a0d92b9b8e2aa9bafc27c7eeb561129e4a8bbb1e55"
+      },
+      "js/native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "js/native_sample.js": {
+        "bytes": 3645,
+        "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+      },
+      "js/native-fx-worklet.js": {
+        "bytes": 8783,
+        "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+      },
+      "js/nes_apu_vendor/channel-dm.js": {
+        "bytes": 6890,
+        "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+      },
+      "js/nes_apu_vendor/channel-noise.js": {
+        "bytes": 3592,
+        "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+      },
+      "js/nes_apu_vendor/channel-square.js": {
+        "bytes": 5728,
+        "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+      },
+      "js/nes_apu_vendor/channel-triangle.js": {
+        "bytes": 3615,
+        "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+      },
+      "js/nes_apu_vendor/index.js": {
+        "bytes": 31024,
+        "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+      },
+      "js/nes_apu_vendor/utils.js": {
+        "bytes": 1154,
+        "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+      },
+      "js/nesapu.js": {
+        "bytes": 4116,
+        "sha256": "0b3c5187f2630ea675636b1da600f9ab1358a176208e111052676f7e1003e80d"
+      },
+      "js/nesapuaudioengine.js": {
+        "bytes": 5704,
+        "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+      },
+      "js/nesapusynth.js": {
+        "bytes": 15155,
+        "sha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e"
+      },
+      "js/okim6258synth.js": {
+        "bytes": 14647,
+        "sha256": "7c2ff4693e361dc63cb66c0e0152dbffa4a458a4db50973d71df78850255339b"
+      },
+      "js/opl_synth.js": {
+        "bytes": 20452,
+        "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+      },
+      "js/opn_fm_synth.js": {
+        "bytes": 25352,
+        "sha256": "50427833a255acc71310f0045d30ad9b6785ee6cd7304d9bb3524c0748c82c5e"
+      },
+      "js/opn_fm_vgm.js": {
+        "bytes": 4213,
+        "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+      },
+      "js/opn_runtime_synth.js": {
+        "bytes": 11971,
+        "sha256": "c7ef50bcb7146ef9f5d63282e5758ca7c92cc30b39cca7089920a8d538fcae78"
+      },
+      "js/opn_ssg_retained.js": {
+        "bytes": 1083,
+        "sha256": "ae6abb99646ab5efdd48c5236f04b7e7dfac09480062f77d432c6619a5903239"
+      },
+      "js/pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "js/playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "js/playground_audio_endpoint.js": {
+        "bytes": 2002,
+        "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+      },
+      "js/playground_audio_scheduler.js": {
+        "bytes": 2799,
+        "sha256": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8"
+      },
+      "js/playground_ay8910_audio.js": {
+        "bytes": 4632,
+        "sha256": "84d0965b96c8534c69491de5366948f425dfcc9387b509fc027f975f9878b724"
+      },
+      "js/playground_ay8910.js": {
+        "bytes": 3691,
+        "sha256": "21698d41b07f6055bed5d696986e3aca5974e02e99777d2b1c6f96d9e8aeb3ea"
+      },
+      "js/playground_chip_clock.js": {
+        "bytes": 5232,
+        "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+      },
+      "js/playground_chip_inspector_state.js": {
+        "bytes": 13144,
+        "sha256": "926c7852e5e1346ee00ff4418efbd63ebe020bc8d2bcc72fabc55513fca174a0"
+      },
+      "js/playground_chip_inspector.js": {
+        "bytes": 9446,
+        "sha256": "00d6e645cf1ee5092cfe207c0386246eec8efa6d7928ce5072ab385b0ee6494d"
+      },
+      "js/playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "js/playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "js/playground_dx7_audio.js": {
+        "bytes": 5728,
+        "sha256": "d99e6d180a9ca78cb5309a6d72f36a7b2d7ab04f43f95910b5189d97af84358c"
+      },
+      "js/playground_dx7.js": {
+        "bytes": 10267,
+        "sha256": "5937b29957d616a2b2b63f99f3a4a11e4fe01c5ea7999fab1f90e7b3e84bac9d"
+      },
+      "js/playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "js/playground_gameboy_audio.js": {
+        "bytes": 1940,
+        "sha256": "e1e69742cfbeeefe8d0d01522f214360bb046bd8ae92adc474ef54d851534b15"
+      },
+      "js/playground_gameboy.js": {
+        "bytes": 3619,
+        "sha256": "51ba6185182fbb25955b58bef5711d59cfe05d6483ba9377e2b6c3e6c1846277"
+      },
+      "js/playground_huc6280_audio.js": {
+        "bytes": 4132,
+        "sha256": "edffdc0e890d6dd93458916e923ea8cbea079f53c1cb08865e14244c01d76c35"
+      },
+      "js/playground_huc6280.js": {
+        "bytes": 4381,
+        "sha256": "375babf290eed9f1c7879e9d2057a94f5f3c09bfd2104b21fb071dea6bfbd1dd"
+      },
+      "js/playground_keyboard_channels.js": {
+        "bytes": 5615,
+        "sha256": "0e217af3c9827c69af18e46b614155a5ab33caaf282d35e9814c2f1cdd868b00"
+      },
+      "js/playground_keyboard.js": {
+        "bytes": 7290,
+        "sha256": "adfac62ea27c791390bba81feab06b82615bfdd1baa356c0bcc8cfb464699478"
+      },
+      "js/playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "js/playground_log.js": {
+        "bytes": 842,
+        "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+      },
+      "js/playground_logic_worker.js": {
+        "bytes": 58341,
+        "sha256": "f4f2abcd03ed92065284578484b879758cba5550fc87b59f82f5540bebc51fc0"
+      },
+      "js/playground_midi.js": {
+        "bytes": 17595,
+        "sha256": "a92d68367fe948cfad70a3bbea8a17041f908a319a6899915a4c56dfe3d692a4"
+      },
+      "js/playground_music.js": {
+        "bytes": 11300,
+        "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+      },
+      "js/playground_native_primary.js": {
+        "bytes": 7123,
+        "sha256": "bc2c09a4cd32e9a024750e08ba30da8ce942932f6e1a3f2191bcd82c6cd7e059"
+      },
+      "js/playground_native_sample_editor.js": {
+        "bytes": 2990,
+        "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+      },
+      "js/playground_nes_audio.js": {
+        "bytes": 2831,
+        "sha256": "9fc1cd1a13b6626d42496941202ed78d9932199bf0ed6e43a848f43b73db1c27"
+      },
+      "js/playground_nes.js": {
+        "bytes": 5417,
+        "sha256": "93936960519761e0324e37959bfd59357fd8583e9caae9cf7c52e1a2cee11e17"
+      },
+      "js/playground_noise.js": {
+        "bytes": 990,
+        "sha256": "64e4608fd0af00ce8e34eaa231d43da66f584d725c7b7f26fd3c376c5999de2d"
+      },
+      "js/playground_okim6258_audio.js": {
+        "bytes": 4133,
+        "sha256": "b8b61ccb1db331a2beabc507f20738f1aa3717a7f1b0081cac49e4ac138e99e5"
+      },
+      "js/playground_okim6258.js": {
+        "bytes": 4749,
+        "sha256": "0836b14cc4fb11557aa1cf2cf4e4a5e80709edbe883cec6901a9e3cd5cc71c67"
+      },
+      "js/playground_opl_audio.js": {
+        "bytes": 4382,
+        "sha256": "fa527616b8a2fcc952c02aa1f101ef2fa66b4097e79d2e6cd1f5fc268b9ea03c"
+      },
+      "js/playground_opl.js": {
+        "bytes": 8946,
+        "sha256": "41ab66e17e8eaec8dcce174f6a82532b4021c42207bdc87630f6993cd88ecd47"
+      },
+      "js/playground_opn_audio.js": {
+        "bytes": 2638,
+        "sha256": "61249ddce97e425090db3cfa0d2ff073ba79632104071a25d2892d465daee244"
+      },
+      "js/playground_opn.js": {
+        "bytes": 7571,
+        "sha256": "6fbd6dda7832a9436c467f415cbd8ba699e4d10d2e67f6b4b96ea4be83efce2a"
+      },
+      "js/playground_performance_host.js": {
+        "bytes": 3830,
+        "sha256": "cc85c6941426c456845579ac40798327710abbcd24870bc44b607d1fe9063a58"
+      },
+      "js/playground_performance_processor.js": {
+        "bytes": 29652,
+        "sha256": "5326dfb55ad3e3fc158d313c1f811d7db8de459b58bdc57a3489f3206f46362d"
+      },
+      "js/playground_performance_queue.js": {
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      "js/playground_performance_sender.js": {
+        "bytes": 9275,
+        "sha256": "8343a1088daff10565bb6f475ecc0beb21996cfb6152d946af6c17b3804a3c4b"
+      },
+      "js/playground_pokey_audio.js": {
+        "bytes": 4498,
+        "sha256": "117c246e5bc696947b3defa9e6fa32ebd34d949cc75aad5060347122364fdfe3"
+      },
+      "js/playground_pokey.js": {
+        "bytes": 10894,
+        "sha256": "8248db8d2c4dfc15369f1cf2ca7087d5c4b59772da8277e37fef1689d1d1f71f"
+      },
+      "js/playground_ps1_audio.js": {
+        "bytes": 3665,
+        "sha256": "e4fc8dea22ab3103d7c4413b05de516c67b991f436245f431b2302e6ad27905d"
+      },
+      "js/playground_ps1_inspector.js": {
+        "bytes": 8069,
+        "sha256": "d0c4da5c4ce9b1f61c27ce067e1c27bba5300cc9a2c84588ffb2a088843f3347"
+      },
+      "js/playground_ps1_worklet.js": {
+        "bytes": 7369,
+        "sha256": "284818dafb98b8afec1e799edfec9edb0a4ca06efc62eabcfef890a6fb631adb"
+      },
+      "js/playground_ps1.js": {
+        "bytes": 8855,
+        "sha256": "7f838bb484ba8136ff09bb59724159ce23b53eabf68d37564f33679cad0baac1"
+      },
+      "js/playground_pwm_audio.js": {
+        "bytes": 2579,
+        "sha256": "fe89ae634d7f115bde66534576e67477182617d4d6e5efff80b15c7b6cb59527"
+      },
+      "js/playground_rf5c164_audio.js": {
+        "bytes": 2625,
+        "sha256": "42053cc112bc40b578e6af6974b7667bf9c74906fae7a881415247c9d95edfe6"
+      },
+      "js/playground_rf5c164.js": {
+        "bytes": 5149,
+        "sha256": "26cffb8697b813715c1dd9de4a89305a164abcaeaba998945d36eba51d670fcb"
+      },
+      "js/playground_runtime.js": {
+        "bytes": 156805,
+        "sha256": "ed296670a43b3e2c18e48171552ab71f0f7f8a5bc57601ac328d4b9f30bcd292"
+      },
+      "js/playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "js/playground_sample_instrument.js": {
+        "bytes": 12202,
+        "sha256": "05f5993967673122560396e998db46700d2cd17920e999fc6df3788293746e3f"
+      },
+      "js/playground_sample_ps1.js": {
+        "bytes": 6842,
+        "sha256": "c214f9e40f96febf3e9297336983714ad55de278a16db2c522818ba2fcee4ca9"
+      },
+      "js/playground_segapsg_audio.js": {
+        "bytes": 4281,
+        "sha256": "14da969debdaf1aa450cda2804c36baddb2a06ce9e37fd563e6ed7ef460f9364"
+      },
+      "js/playground_segapsg.js": {
+        "bytes": 1740,
+        "sha256": "1cbda194fe1c54c6116af8d1d2ad18ba98f46c43d7ebb14350f98dd5016bde22"
+      },
+      "js/playground_snes_audio.js": {
+        "bytes": 3567,
+        "sha256": "eccc2ed24d9991355d835b59d9733913ac68f8c99008f70ceb6088938ded9312"
+      },
+      "js/playground_snes.js": {
+        "bytes": 8235,
+        "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+      },
+      "js/playground_soundchip_options.js": {
+        "bytes": 1218,
+        "sha256": "b27539a9d38951f474e425b0d27f002fee103d40906f44b02e5c9055df1c8f7c"
+      },
+      "js/playground_soundchips.js": {
+        "bytes": 2708,
+        "sha256": "e4928d947af9720fc3e9e841c881cff429c8e6135de27d7a5baf8b9fb7b44fab"
+      },
+      "js/playground_spc_audio.js": {
+        "bytes": 3489,
+        "sha256": "81800b53ca75675403d4d31d153b167bd0ae0cb78e51a802c81f3ea37d936dfd"
+      },
+      "js/playground_spc.js": {
+        "bytes": 10374,
+        "sha256": "20d6bf767a2ab29c5075d9d83248b1a075df2dc872d0c8e89ed6d98ed7b5b506"
+      },
+      "js/playground_sync.js": {
+        "bytes": 6563,
+        "sha256": "365fbf469d59bf714a19b25ae4ad8f2e6e2867c33eef944abfb43f66235f2b29"
+      },
+      "js/playground_wonderswan_audio.js": {
+        "bytes": 3619,
+        "sha256": "868e3f83a0a547a771c62fb991195aed76e904f8cf790b7f0d98a1206d6cfabd"
+      },
+      "js/playground_wonderswan.js": {
+        "bytes": 4337,
+        "sha256": "418ef3c8fb5ebf1d22fe3aeccf8dbc2efd9cdebf45446ec18d5ab4b8ee823897"
+      },
+      "js/playground_worker_chip.js": {
+        "bytes": 10410,
+        "sha256": "11fd48a02b29c7beb1b53f337e322b119ba9df3f9a1e0190b33d07a0b0b0a1e4"
+      },
+      "js/playground_worker_dac.js": {
+        "bytes": 2739,
+        "sha256": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261"
+      },
+      "js/playground_ym2151_audio.js": {
+        "bytes": 2858,
+        "sha256": "18e54ef4e11565243ac939bdf900c99bd971b9da56758598d16c8a9ca919990a"
+      },
+      "js/playground_ym2151.js": {
+        "bytes": 4946,
+        "sha256": "36f55aa31bf94ba6cb06f23b26362f284caf62ce4ceff70960e6c4359dc36af9"
+      },
+      "js/playground_ym2413_audio.js": {
+        "bytes": 4207,
+        "sha256": "2b7bcf6d3bdb5f04059973c6d0f9ab520853a006396bdcdf2d3aa25bbafce978"
+      },
+      "js/playground_ym2413.js": {
+        "bytes": 3511,
+        "sha256": "16fcfb065c8119fe46aa633525786511a01c963c3ad13a2a22b259fbba4d9dca"
+      },
+      "js/playground_ym2608_audio.js": {
+        "bytes": 1978,
+        "sha256": "42f687aa148c7a036218a0a2dfebefb2e67f1e691cc89d4936bef281b064885b"
+      },
+      "js/playground_ym2608.js": {
+        "bytes": 5160,
+        "sha256": "8af488fac564c2fd2798476169483807d7d4e6de2222f47874ecfd379584aac3"
+      },
+      "js/pokey_timeline_builder.js": {
+        "bytes": 4708,
+        "sha256": "5958de9ded6382ed394214b2db96e970d8de255ed74a3613106f96ed69b54433"
+      },
+      "js/pokey_timeline_upload.js": {
+        "bytes": 6186,
+        "sha256": "9badf689dd3b51b87c871cca24f1e5ce10759925ee62878d40142002fffa6314"
+      },
+      "js/pokey_timeline.js": {
+        "bytes": 3833,
+        "sha256": "44a329a4466f03296a73af4b75ebb81c509b17b0e453e9973ee33cbee9536b49"
+      },
+      "js/pokey.js": {
+        "bytes": 8390,
+        "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+      },
+      "js/pokeysynth.js": {
+        "bytes": 8323,
+        "sha256": "d92b79feb1e4696f06fa865094c251ae3eb47f4d6cdf97256e5c557ec66e1259"
+      },
+      "js/ps1_adpcm_encoder.js": {
+        "bytes": 10402,
+        "sha256": "f1e24d4e67d609bdecebe2bedd6271961d8ea2010081f1b4f84f0ee29a97d8e2"
+      },
+      "js/ps1_parameters.js": {
+        "bytes": 6237,
+        "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+      },
+      "js/ps1_resampler.js": {
+        "bytes": 4241,
+        "sha256": "b9143ecd0231f9119cb5d7e5c635a2d4b09e4ff708ea5213cca9a16803afa4e6"
+      },
+      "js/ps1_spu.js": {
+        "bytes": 10862,
+        "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+      },
+      "js/ps1_waveform.js": {
+        "bytes": 1081,
+        "sha256": "9f30e2f6a2358af6c40ab55f012cc2f8e5a68be9ba88466aba72cc9513d80e3c"
+      },
+      "js/ps1synth.js": {
+        "bytes": 21597,
+        "sha256": "95875a461b4260d0a46749825ef628661229338556627a4f0f254c594845ba50"
+      },
+      "js/pwm32x_playback.js": {
+        "bytes": 9066,
+        "sha256": "ad828d6e3f8c28c3f3651a701005970cca66ca3a04309475a2308abab2d61932"
+      },
+      "js/pwm32x_wasm.js": {
+        "bytes": 12449,
+        "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+      },
+      "js/pwm32x.js": {
+        "bytes": 6885,
+        "sha256": "32fc07ab58957d8dcb2b931cb17219e4ada4490ba46937f77abd97f140b7ff28"
+      },
+      "js/rf5c164_pcm.js": {
+        "bytes": 1537,
+        "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+      },
+      "js/rf5c164synth.js": {
+        "bytes": 4836,
+        "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+      },
+      "js/s98_file.js": {
+        "bytes": 5878,
+        "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+      },
+      "js/segapsg_api.js": {
+        "bytes": 1086,
+        "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+      },
+      "js/segapsg.js": {
+        "bytes": 10149,
+        "sha256": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46"
+      },
+      "js/segapsgsynth.js": {
+        "bytes": 10444,
+        "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+      },
+      "js/snes_brr_encoder.js": {
+        "bytes": 8204,
+        "sha256": "d59e92433158c12173f42d4d3ed3412605d8f4c58819396e663ad02969fbe796"
+      },
+      "js/snes_brr.js": {
+        "bytes": 11140,
+        "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+      },
+      "js/snessynth.js": {
+        "bytes": 12872,
+        "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+      },
+      "js/soundchip_mixer.js": {
+        "bytes": 26367,
+        "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/spc_events.js": {
+        "bytes": 11461,
+        "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+      },
+      "js/spc_file.js": {
+        "bytes": 8896,
+        "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+      },
+      "js/spc.js": {
+        "bytes": 16728,
+        "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+      },
+      "js/ssgsynth.js": {
+        "bytes": 6592,
+        "sha256": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f"
+      },
+      "js/tetorica_audio_runtime.js": {
+        "bytes": 35718,
+        "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+      },
+      "js/tetorica_synth.js": {
+        "bytes": 3168,
+        "sha256": "307f1d06681577342464615eee2e54994e5a45be35b435e723229c2c6f8ea63e"
+      },
+      "js/tetorica_virtual_files/agent_commands.js": {
+        "bytes": 11601,
+        "sha256": "4bcedf16ddffa21bf8ea0ee96bf6f979a2f70e7ba9ed602c32ea88eec55fd9bd"
+      },
+      "js/tetorica_virtual_files/filesystem.js": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "js/tetorica_virtual_files/git.bundle.js": {
+        "bytes": 298711,
+        "sha256": "48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1"
+      },
+      "js/tetorica_virtual_files/index.js": {
+        "bytes": 403,
+        "sha256": "e9b836b112402d3639d11e848e499b7cbbe28bff8e60e5d41ffc27878c1c5900"
+      },
+      "js/tetorica_virtual_files/patch.js": {
+        "bytes": 9693,
+        "sha256": "3a98170854a87d55c507b29d8df11489bdeffb7bb3c21b5fcc6c4533790364f5"
+      },
+      "js/tetorica_virtual_files/path.js": {
+        "bytes": 1112,
+        "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+      },
+      "js/tetorica_virtual_files/pipeline.js": {
+        "bytes": 2566,
+        "sha256": "8bc5455b2f0668dfd24a0d217bc5b4fa52633164e3bdc54f1f443660b69d43a6"
+      },
+      "js/tetorica_virtual_files/reader.js": {
+        "bytes": 1404,
+        "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+      },
+      "js/tetorica_virtual_files/shell.js": {
+        "bytes": 11716,
+        "sha256": "a542bdeffd9853d43b28a453fcd973963f96c3c078079437383ef6c1565633ed"
+      },
+      "js/tetorica_virtual_files/sync.js": {
+        "bytes": 5701,
+        "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+      },
+      "js/tfi.js": {
+        "bytes": 9704,
+        "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+      },
+      "js/vgi.js": {
+        "bytes": 4366,
+        "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "js/wav.js": {
+        "bytes": 2582,
+        "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+      },
+      "js/wonderswan_timeline.js": {
+        "bytes": 6984,
+        "sha256": "a6d50474335aebdd2aab743164ee348ae08903b797659ae8de1d557081ca102d"
+      },
+      "js/wonderswan.js": {
+        "bytes": 9684,
+        "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+      },
+      "js/wonderswansynth.js": {
+        "bytes": 16549,
+        "sha256": "37379a94dcd38bd26cc6024d71e42b54a5805f1b6ff11ae74dcf8952b8d3bc7f"
+      },
+      "js/y8950_adpcm_preview.js": {
+        "bytes": 5782,
+        "sha256": "e5b8110148683216a631bd8be37f80297981fa36919bbfa02b138dd746dd50af"
+      },
+      "js/y8950_adpcm.js": {
+        "bytes": 9004,
+        "sha256": "79f7fde2b22c5755e4c9647ce60ebf7ce8642aaa83d526dbe6f5cfd4456f4d3e"
+      },
+      "js/ym2203.js": {
+        "bytes": 12761,
+        "sha256": "94c7c1f289e3aca63d279b97b9cbb0a014a7258dabe412dafb553e1713340715"
+      },
+      "js/ym2203synth.js": {
+        "bytes": 2526,
+        "sha256": "9a734d075e92dfbab564f21786f33749a38a702d3314efb26daa72b8439dcc49"
+      },
+      "js/ym2203vgm.js": {
+        "bytes": 411,
+        "sha256": "4a2f90442ce811c84fe7f7741b322587c3193e5070028bf9c3af8c4b4f8f70f5"
+      },
+      "js/ym2413.js": {
+        "bytes": 9509,
+        "sha256": "a0dab8f557501de21a9b98083d33415ee9faf92fbdd0c0161fe7e1fce78659d1"
+      },
+      "js/ym2413synth.js": {
+        "bytes": 17689,
+        "sha256": "92c4ca46e445bdcb42249453bf09c076811cd36d6c9a6f7684179240ee4f2516"
+      },
+      "js/ym2608.js": {
+        "bytes": 15643,
+        "sha256": "54384da784d96c0875f9edf224dfa8c77911f5e192ef15cdf11fa79d1765e522"
+      },
+      "js/ym2608synth.js": {
+        "bytes": 14450,
+        "sha256": "0aad3c5bf57959ece61690cb0e2b2abb7b7ab581b2570dfc0850b4ea03ef8e7f"
+      },
+      "js/ym2608vgm.js": {
+        "bytes": 342,
+        "sha256": "f6b44286a3dd773feaf3b23592341ad75cdbb83ce600f6d9eb6124585ba99492"
+      },
+      "js/ym2610b.js": {
+        "bytes": 11176,
+        "sha256": "68b31010b86b2d1bdd0ad684469b80aba7020e30edf80d41504158e59c6197e0"
+      },
+      "js/ym2610bsynth.js": {
+        "bytes": 14729,
+        "sha256": "8c4ad3ab0139179a88fceaf843302145b59158288639e2fac76e64fae109ee8f"
+      },
+      "js/ym2610bvgm.js": {
+        "bytes": 340,
+        "sha256": "24e4ad4e274ffb94cbde45a56bb6a7f3908d989576910e632cff557f4fe13361"
+      },
+      "js/ym2612_dac.js": {
+        "bytes": 7251,
+        "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+      },
+      "js/ym2612.js": {
+        "bytes": 22574,
+        "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+      },
+      "js/ym2612synth.js": {
+        "bytes": 38598,
+        "sha256": "495408c80ab002bd49fafc32f7e8fb44c1e5b0ab6bcc219eb62edd36635d1138"
+      },
+      "js/ym2612vgm.js": {
+        "bytes": 117637,
+        "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+      },
+      "playground.webmanifest": {
+        "bytes": 453,
+        "sha256": "669b8de1065c95a4cbe78907fdd2b656d901cb942e24d7e766935073c594d189"
+      },
+      "playground/index.html": {
+        "bytes": 131493,
+        "sha256": "befa45da4ebf58d91a991e5948fc8be884a03a8e8b830f9499390f5159e8c91f"
+      },
+      "playground/playground_audio_engine.js": {
+        "bytes": 6652,
+        "sha256": "986f7ef395912b6b18b04e8f8f5ced4d87752984baf2698c94e69cb0848ca9b9"
+      },
+      "playground/playground_audio_input.js": {
+        "bytes": 44107,
+        "sha256": "30bd4ad23b5086c0cce0899a747853062ec284cbfa05612526ea81725ffff918"
+      },
+      "playground/playground_audio_monitor.js": {
+        "bytes": 17968,
+        "sha256": "7a75febe0c38063a50e0217b9bd42c93cb196fbab88717af8689e192663c020d"
+      },
+      "playground/playground_autosave.js": {
+        "bytes": 3889,
+        "sha256": "46bbdd5614e1597ee9906db35edd53f407fd18a373b0484b3a92176a5c084abd"
+      },
+      "playground/playground_ay8910_voice_panel.js": {
+        "bytes": 15887,
+        "sha256": "643de67b9a872611a3ef781cb2e79842dc184ed4e987f49a6fec1501f2b2ea72"
+      },
+      "playground/playground_cassette.js": {
+        "bytes": 14751,
+        "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+      },
+      "playground/playground_cdrom2_audio_panels.js": {
+        "bytes": 8833,
+        "sha256": "6c9d48a7e7e90298e9e3b5bef149524f632fff99d6300f17172339b34b9dc339"
+      },
+      "playground/playground_chip_tabs.css": {
+        "bytes": 4350,
+        "sha256": "69eef3c20f040e14f8c16800a49d279405a245769ddb2a417db6f9b12c770fbc"
+      },
+      "playground/playground_chip_tabs.js": {
+        "bytes": 40967,
+        "sha256": "f66057f2debc904c7e40cc997d153f3c4cdc9e2301f2703007eb19934aca1483"
+      },
+      "playground/playground_declarations.js": {
+        "bytes": 2897,
+        "sha256": "0a0b9308b3b670ddc86a5c617656c64d1455d1df6c1b2e2a92af838c1610a831"
+      },
+      "playground/playground_dx7_voice_panel.js": {
+        "bytes": 23705,
+        "sha256": "d5f44e21b596ddc6ed4b26f8d9d33c57376d3ee536b8a2aa578525cd1ddfaf67"
+      },
+      "playground/playground_example_order.js": {
+        "bytes": 300,
+        "sha256": "1269a513388073fc225da3bc4e305ef98df3b733e6404e6672a01515e90bee7c"
+      },
+      "playground/playground_examples.js": {
+        "bytes": 211668,
+        "sha256": "6839a95b45e514b150e5a3a6b53ce5ea70d81d2650ed8b4fcb1077ffab057abc"
+      },
+      "playground/playground_extra_fm_editor.js": {
+        "bytes": 9686,
+        "sha256": "23b8cde1180744eb6a2546f007504db88292f27316f7667ae6908a55d8a8dde5"
+      },
+      "playground/playground_file_menu.js": {
+        "bytes": 8805,
+        "sha256": "dc2f9c1ee49cdf42a4e4cac502437a551938e699e981773493005ba5aa58a76e"
+      },
+      "playground/playground_file_resize.js": {
+        "bytes": 3024,
+        "sha256": "be704ea2e301033fcd31bb14fd365ce224d9c0d46147caa1d616882092db7a8f"
+      },
+      "playground/playground_file_tree.js": {
+        "bytes": 4867,
+        "sha256": "0a8a4c342bbf94023648d17cd952ba1e2e5a1595846fcf860518205aaf1addad"
+      },
+      "playground/playground_fx_monitor.js": {
+        "bytes": 8329,
+        "sha256": "09b9b0a25dbf2261e48f4ac3a3ebb2c57798b7695a0194e974909a0287169ee9"
+      },
+      "playground/playground_gameboy_voice_panel.js": {
+        "bytes": 26508,
+        "sha256": "3cb7b3af8f9ed831abedc5abff6398cc5802e110dea1745b72e1fd5c5af4300d"
+      },
+      "playground/playground_git.js": {
+        "bytes": 5122,
+        "sha256": "cb1552e6dd8f77f39225d37e46382fd65e34b48d372bf9c14718313b8074e061"
+      },
+      "playground/playground_huc6280_voice_panel.js": {
+        "bytes": 22944,
+        "sha256": "03b6f054b22f3ea162874f638d0b5397128e000d78f24603351e460ecbf4a42f"
+      },
+      "playground/playground_midi_import.js": {
+        "bytes": 5431,
+        "sha256": "927b5368f171d82af7592762f8db2a5ec4cc0ba67d1cc14056ba86b72b8ba1d7"
+      },
+      "playground/playground_mixer_defaults.js": {
+        "bytes": 12484,
+        "sha256": "4294586e4c520bb9658e30e6d207064bfba6788d9b6e4f8168ec2e7a1ee2ebab"
+      },
+      "playground/playground_mixer_state.js": {
+        "bytes": 9636,
+        "sha256": "d4f97c48a8274ab5ce28b593e5f51fdf14f06a651382c1ac6f2346ec9d6cf774"
+      },
+      "playground/playground_mixer.css": {
+        "bytes": 3251,
+        "sha256": "36ece42a32769420fb5eabc7754a10544d827bc0cffd9f2f43d160c499950b4c"
+      },
+      "playground/playground_mixer.js": {
+        "bytes": 17492,
+        "sha256": "0e070cd489c6f11f1771d009dd513287e0400d635ad1a072db96e23146e8dd2d"
+      },
+      "playground/playground_mode_keyboard.js": {
+        "bytes": 10933,
+        "sha256": "c07763399e56e0f3e1d0d20de546c1716cc25900d5e00bc4359ab351693f6f09"
+      },
+      "playground/playground_mode_project.js": {
+        "bytes": 1139,
+        "sha256": "7b8010d2521ed12025d5420d7a4399473b8da33d3d3ba7831ea075e1bb55d2cf"
+      },
+      "playground/playground_mode_starters.js": {
+        "bytes": 5053,
+        "sha256": "2cdce7eee00ba61c17a8e6a88ae10ce470f539d207e18afd48ffecea118127bd"
+      },
+      "playground/playground_mode.js": {
+        "bytes": 12162,
+        "sha256": "83ffda00e6f526ed1d7cb5c9c36c421b4bb2020cd71ec87bc36dc1539f094f2f"
+      },
+      "playground/playground_monaco_completion.js": {
+        "bytes": 45028,
+        "sha256": "bef64f13ed0e1dfa9dd432a9bd4e4c213b6745bfb5d0dab162dbaa64a88660c3"
+      },
+      "playground/playground_monaco_definitions.js": {
+        "bytes": 16724,
+        "sha256": "36e0f7781e2f550a1592ef1e9bc07211f28ea798d98f906160900a4c0d9c69d1"
+      },
+      "playground/playground_monaco.js": {
+        "bytes": 22673,
+        "sha256": "a31898036c691fbc30825580d4596e72516dd60c9491a7fd6acc2aff308a7246"
+      },
+      "playground/playground_monitor_scale.js": {
+        "bytes": 1890,
+        "sha256": "2b5b0ea15d39d0f3edc5b95f52f3e07f8e46b5cba1810d06ff9aa482e7f35687"
+      },
+      "playground/playground_nes_voice_panel.js": {
+        "bytes": 22772,
+        "sha256": "df7eb9ef6840968e3422dc852fa438d73115b128e3cf074fb6a7502dc7ecbc2d"
+      },
+      "playground/playground_okim6258_voice_panel.js": {
+        "bytes": 18542,
+        "sha256": "aa02b790766206d1c0c999855f8775cde24915a7821de8166172733b8c99dedc"
+      },
+      "playground/playground_operator_keyboard.js": {
+        "bytes": 21223,
+        "sha256": "9d6990293ead2306ffea3ed30335e15f06df613017f91fdf51c8798a4a829c48"
+      },
+      "playground/playground_operator_tab.js": {
+        "bytes": 31863,
+        "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+      },
+      "playground/playground_operator_visual.js": {
+        "bytes": 158,
+        "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+      },
+      "playground/playground_opl_voice_panel.js": {
+        "bytes": 20420,
+        "sha256": "56bb7c051fb3caf62dd52cce6194bbb26d533a4b5711a85c7fda5aaeaeca9a7f"
+      },
+      "playground/playground_opn_ssg_editor.js": {
+        "bytes": 3900,
+        "sha256": "bfeb8cd2fe4f8fdb0bede00b56c43fa54c566e7ccf19c01c63fa837e2c729fbc"
+      },
+      "playground/playground_opna_sample_editor.js": {
+        "bytes": 5835,
+        "sha256": "9f12ca50d4b7016ebb6a0bb01efe7d39a7636a9857ddc8275b5aa86254c2d0dc"
+      },
+      "playground/playground_opnb_sample_editor.js": {
+        "bytes": 6277,
+        "sha256": "9110eb3e64e1b3610e7bc943c49f7f2a777acc79758a78283247113bdf6ad955"
+      },
+      "playground/playground_page_lifecycle.js": {
+        "bytes": 930,
+        "sha256": "5abd0c650a6acd1fe63ac16dae4e37846d83fc0745a460794bfa110ebe824d47"
+      },
+      "playground/playground_pokey_voice_panel.js": {
+        "bytes": 18198,
+        "sha256": "b6c1bac3c9653c05c6b67076034a0fd66ca356c840349ff15f8bea3047dc0052"
+      },
+      "playground/playground_ps1_envelope.js": {
+        "bytes": 1927,
+        "sha256": "bfd6b756a4edf7b80a69f42e4236f4f640905f362a5a38d3f0e5e19a219883de"
+      },
+      "playground/playground_ps1_psf.js": {
+        "bytes": 9782,
+        "sha256": "c8120ee08edf9418bdd6d65d36119be75c0d1b4600b897f88133b6bb47b54ebf"
+      },
+      "playground/playground_ps1_vab_panel.js": {
+        "bytes": 11591,
+        "sha256": "819e9a3b1c1563ae5cbcb4c3f25bca45c7a8bdc0e3e763ab946d094884cfa709"
+      },
+      "playground/playground_ps1_vab.js": {
+        "bytes": 7172,
+        "sha256": "7a728478c1fab588412712bb0c1128fdc4c5f69de6d6d5757e5e2141c79987d5"
+      },
+      "playground/playground_ps1_voice_panel.js": {
+        "bytes": 36580,
+        "sha256": "6e9111155b25fb822ec4f61efd9a0a1c863fb106a933240a272444d0f7ed2ef1"
+      },
+      "playground/playground_query.js": {
+        "bytes": 5092,
+        "sha256": "6fa0edc39588c490f0ee5fa2f19ce6025c943fd817e8f468e897c442c0abec1f"
+      },
+      "playground/playground_sample_assets.js": {
+        "bytes": 4155,
+        "sha256": "afcc8051609cf097f4162bd0efd3c1dd380aff072ac59b9c82bff727d0faa173"
+      },
+      "playground/playground_sample_editor.css": {
+        "bytes": 2842,
+        "sha256": "b54bdc4a580718f5c826ed0021db9d030b013d838724d0e6b1e14dcd8ca2f639"
+      },
+      "playground/playground_shell_check.js": {
+        "bytes": 2342,
+        "sha256": "34637b1949ae34e7f17f33ce97733bb8cd7e612243a1654ee5e8eb51c6208129"
+      },
+      "playground/playground_shell_diagnostics.js": {
+        "bytes": 1669,
+        "sha256": "3c1249f4f44daced60ab72ce65331c61d3e7c2dcfdadbc77e2a997316c332ba0"
+      },
+      "playground/playground_shell_modules.js": {
+        "bytes": 2217,
+        "sha256": "c3de7bd0a2385fac30c8506553fe7052ae54e12307ddb918c840786fb0a76111"
+      },
+      "playground/playground_shell_runner.js": {
+        "bytes": 5365,
+        "sha256": "dac19421900728dc5b52041b295e5afad3f75a6369585859431787c19d576eff"
+      },
+      "playground/playground_shell_session.js": {
+        "bytes": 6726,
+        "sha256": "a45166212f6574978b3e81ddd5b61e474adad8296749d9159a58c7288aa60238"
+      },
+      "playground/playground_shell.js": {
+        "bytes": 8470,
+        "sha256": "37a65740105cbc8f80016e61c777f8c7a5f939a875d97098f1cf474282c3945e"
+      },
+      "playground/playground_snes_voice_panel.js": {
+        "bytes": 9983,
+        "sha256": "9a6c8447d726b184c66b230304add24eafa9fdf782a821103b6f36e3a8d600d5"
+      },
+      "playground/playground_spc_import.js": {
+        "bytes": 21225,
+        "sha256": "85bae3c99ad7cd0a4d37a5760015b00b99bb3b2f4548fd8ca981757f0cdb53c9"
+      },
+      "playground/playground_sync.js": {
+        "bytes": 4625,
+        "sha256": "df62ebdd2058eadd91e34c65a7c4bd4bea5efc4386217b5abfec83bbc4f94752"
+      },
+      "playground/playground_tfi_editor.js": {
+        "bytes": 5625,
+        "sha256": "e09c1628bb7b783286ca5a6f315eb3c390e4c4c5e7b8c4f9ee5c9e07efa54a43"
+      },
+      "playground/playground_ui.js": {
+        "bytes": 8390,
+        "sha256": "29882f3e12f388527804c7111d921bd83a62335c2c04f148e8ad53360e78215d"
+      },
+      "playground/playground_vgm_import.js": {
+        "bytes": 25680,
+        "sha256": "6e8682d9f764fcfe2ab518db5c5b3dd453d610bbcee67d24267004b38b3563ba"
+      },
+      "playground/playground_vgm_presets.js": {
+        "bytes": 2810,
+        "sha256": "2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e"
+      },
+      "playground/playground_virtual_files.js": {
+        "bytes": 5124,
+        "sha256": "d0dc2a9c4a419a4bb215214e6e1b0ad034e586e7ae923405eee7f122e4199911"
+      },
+      "playground/playground_wonderswan_voice_panel.js": {
+        "bytes": 22640,
+        "sha256": "750bc108961d5e7ff44cc1ba6d3fe107a1480a43e7efcb849fea40ed9968c8fd"
+      },
+      "playground/playground_workbench.js": {
+        "bytes": 7400,
+        "sha256": "ee1e27a2973336ff7d22cf3e8e26d20c35af64c54a12d49b75570fd150a5d36f"
+      },
+      "playground/playground_y8950_adpcm_panel.js": {
+        "bytes": 12778,
+        "sha256": "b3c574b5626632e94534af7476a312cb2f264d8ff932c010f5b75e9306be0a15"
+      },
+      "playground/playground_ym2151_voice_panel.js": {
+        "bytes": 24794,
+        "sha256": "aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a"
+      },
+      "playground/playground_ym2413_voice_panel.js": {
+        "bytes": 20304,
+        "sha256": "8aaf94dc2bdf3e9a99ea9aa116658be6c699c1d35447089438eb5c333065c329"
+      },
+      "playground/playground.js": {
+        "bytes": 124910,
+        "sha256": "33d4b620e91851721cae8720df79df1198141ec6eceb134ccd8f2f2733bb11d3"
+      },
+      "playground/pokey_vgm_import.js": {
+        "bytes": 13730,
+        "sha256": "338237472f43567ed9914599a4541c065185a2612880f6a3276e86715f135cd3"
+      },
+      "playground/rf5c164_vgm_export.js": {
+        "bytes": 9547,
+        "sha256": "e4733bbefa1f59d0007c829c32659df765f3ffde2fe37e6bd72312696610ba3a"
+      },
+      "playground/tetorica-playground-globals.d.ts": {
+        "bytes": 128993,
+        "sha256": "d989cfae165a50a3a754be10780bdcbc74682decf6b596492ccde2e47a313124"
+      },
+      "playground/tetorica-playground-ps1.d.ts": {
+        "bytes": 118,
+        "sha256": "60828b8abd70ded073a88488da1e0bbed1514b86aeb31cdd0b941993886d2492"
+      },
+      "playground/tetorica-shell.d.ts": {
+        "bytes": 2953,
+        "sha256": "a0d17aeb969faf8a2e8489a00e6f1a869622e08db7b1b019cced67774326391d"
+      },
+      "playground/vendor/es-module-lexer.js": {
+        "bytes": 27257,
+        "sha256": "95f6b0530ab27cb146e89bc33acfa45f606c66ee589d16469b414942fc1b4864"
+      },
+      "playground/vendor/fflate.js": {
+        "bytes": 90922,
+        "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+      },
+      "playground/wonderswan_vgm_import.js": {
+        "bytes": 19009,
+        "sha256": "9ab308728d773eae2d82d77ef896202e20fb7ed47e00db7a84e015aefbf8e898"
+      },
+      "playground/ym2203_high.js": {
+        "bytes": 3054,
+        "sha256": "277b2456042c80f66d9f7761bcddf9ba08c30b2183f41ccd6f3a6034d7b9387e"
+      },
+      "playground/ym2608_high.js": {
+        "bytes": 2084,
+        "sha256": "46f04eaeaaaceb63958ce5edaa89dba057235079a596723a1dfa835dd65ca806"
+      },
+      "playground/ym2608_vgm_import.js": {
+        "bytes": 3931,
+        "sha256": "8601c82d169d2a39c8f3011bd0938b11d84ffeb6a0078220f4c292d443c3aafb"
+      },
+      "sw-register.js": {
+        "bytes": 1409,
+        "sha256": "ed68ef1e216da9bbfe4b8a9a8706bc76b6ba4c7306f6e0d30f3d14f1b2b0e22c"
+      },
+      "synth/synth_controls.js": {
+        "bytes": 10018,
+        "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+      },
+      "synth/synth_envelope.js": {
+        "bytes": 13551,
+        "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 9982,
+        "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+      },
+      "synth/synth_operator_envelope.js": {
+        "bytes": 9649,
+        "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+      }
+    },
+    "checkerSha256": "e6289b042ceade5be858c996159b704daeaf1bfef4bbe3d0f0b0200bcb1a80c1",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+  },
+  "realScan": "playground_psf_real_clock_tower_01.json",
+  "demo": {
+    "path": "release/spu-psf-demo.zip",
+    "bytes": 1218,
+    "sha256": "09dfa53249bd89f8837ead48c549f134eb5b6613372e886769851c3ccd51632c"
+  },
+  "distribution": "No publication or app ZIP build; existing calibration freshness gate remains pending."
+}

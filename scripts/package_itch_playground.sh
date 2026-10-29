@@ -47,6 +47,7 @@ playground_snes_voice_panel.js
 playground_ps1_voice_panel.js
 playground_ps1_vab.js
 playground_ps1_vab_panel.js
+playground_ps1_psf.js
 playground_ps1_envelope.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js

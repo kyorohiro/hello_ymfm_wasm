@@ -4,6 +4,14 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続機能：2026-10-30 PlaygroundでPSFからVAB抽出
+
+PSF1／MiniPSF＋PSFLibの複数ファイル・フォルダー選択、CRC／zlib検証、RAM重ね合わせと連続VAB検出を追加。
+SPUタブのOpen PSF set／Open PSF folder → PSF entry → Extract VAB banks → bank／Tone選択 → Load Tone。
+Clock Tower - The First Fearの20 entriesでVABを検出し、対応Toneの実SPU PCMをChromium・WebKit × Main・Workerの4経路で確認。
+80関連testsと67Standalone tests成功。全Tone復元・曲再生・分離VH／VB・独自形式は対象外。
+[作業記録・合成デモ](playground_spu_psf_01.md) を参照。配布前の校正freshness gateは前回から未対応。公開やgit操作は行っていない。
+
 ## 後続UI：2026-10-30 PlaygroundでのVAB試奏
 
 SPUタブのSelected ADPCM voiceにVAB／VH＋VBの読み込みとTone選択を追加。選択Voiceだけへ適用して既存Hold／Sustain／Keyboardで試奏する。

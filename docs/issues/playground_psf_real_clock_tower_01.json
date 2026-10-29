@@ -1,0 +1,581 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "static dependency expansion and VAB detection; not song playback or fidelity comparison",
+  "source": "https://www.zophar.net/music/playstation-psf/clock-tower-the-first-fear",
+  "archiveSha256": "0752efc8d7e07ad152c750a4a6412954d1ecaf977f31c41675c5af8bfe6dfdec",
+  "archiveBytes": 507256,
+  "inputFiles": [
+    {
+      "name": "01-BOBBY_A.psf",
+      "bytes": 3991
+    },
+    {
+      "name": "02-BOBBY_B.psf",
+      "bytes": 3981
+    },
+    {
+      "name": "03-BOBBY_C.psf",
+      "bytes": 2908
+    },
+    {
+      "name": "04-CHORUS.psf",
+      "bytes": 757
+    },
+    {
+      "name": "05-CLASSIC.psf",
+      "bytes": 819
+    },
+    {
+      "name": "06-DANTH1.psf",
+      "bytes": 1436
+    },
+    {
+      "name": "07-DANTH2.psf",
+      "bytes": 3856
+    },
+    {
+      "name": "08-DANTHEME.psf",
+      "bytes": 4890
+    },
+    {
+      "name": "09-ENDING.psf",
+      "bytes": 4117
+    },
+    {
+      "name": "10-FATHER.psf",
+      "bytes": 1019
+    },
+    {
+      "name": "11-OPDEMO.psf",
+      "bytes": 844
+    },
+    {
+      "name": "12-RECORD.psf",
+      "bytes": 869
+    },
+    {
+      "name": "13-SE_CLOCK.psf",
+      "bytes": 782
+    },
+    {
+      "name": "14-SE_RUN.psf",
+      "bytes": 664
+    },
+    {
+      "name": "15-SE_VIS.psf",
+      "bytes": 1101
+    },
+    {
+      "name": "16-SE_WALK.psf",
+      "bytes": 665
+    },
+    {
+      "name": "17-SEP_PLAY.psf",
+      "bytes": 695
+    },
+    {
+      "name": "18-SHOCK.psf",
+      "bytes": 1142
+    },
+    {
+      "name": "19-SHOCKSCN.psf",
+      "bytes": 779
+    },
+    {
+      "name": "20-THEME.psf",
+      "bytes": 798
+    },
+    {
+      "name": "driver.psflib",
+      "bytes": 85908
+    },
+    {
+      "name": "vab_BGM.psflib",
+      "bytes": 116372
+    },
+    {
+      "name": "vab_SE.psflib",
+      "bytes": 272843
+    }
+  ],
+  "entryCount": 20,
+  "entriesWithBanks": 20,
+  "entries": [
+    {
+      "entry": "01-BOBBY_A.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "01-BOBBY_A.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "02-BOBBY_B.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "02-BOBBY_B.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "03-BOBBY_C.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "03-BOBBY_C.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "04-CHORUS.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "04-CHORUS.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "05-CLASSIC.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "05-CLASSIC.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "06-DANTH1.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "06-DANTH1.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "07-DANTH2.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "07-DANTH2.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "08-DANTHEME.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "08-DANTHEME.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "09-ENDING.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "09-ENDING.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "10-FATHER.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "10-FATHER.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "11-OPDEMO.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "11-OPDEMO.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "12-RECORD.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "12-RECORD.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "13-SE_CLOCK.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "13-SE_CLOCK.psf",
+        "vab_SE.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 392384,
+          "programs": 128,
+          "tones": 201,
+          "samples": 64,
+          "supportedTones": 81,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 120
+          }
+        }
+      ]
+    },
+    {
+      "entry": "14-SE_RUN.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "14-SE_RUN.psf",
+        "vab_SE.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 392384,
+          "programs": 128,
+          "tones": 201,
+          "samples": 64,
+          "supportedTones": 81,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 120
+          }
+        }
+      ]
+    },
+    {
+      "entry": "15-SE_VIS.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "15-SE_VIS.psf",
+        "vab_SE.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 392384,
+          "programs": 128,
+          "tones": 201,
+          "samples": 64,
+          "supportedTones": 81,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 120
+          }
+        }
+      ]
+    },
+    {
+      "entry": "16-SE_WALK.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "16-SE_WALK.psf",
+        "vab_SE.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 392384,
+          "programs": 128,
+          "tones": 201,
+          "samples": 64,
+          "supportedTones": 81,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 120
+          }
+        }
+      ]
+    },
+    {
+      "entry": "17-SEP_PLAY.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "17-SEP_PLAY.psf",
+        "vab_SE.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 392384,
+          "programs": 128,
+          "tones": 201,
+          "samples": 64,
+          "supportedTones": 81,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 120
+          }
+        }
+      ]
+    },
+    {
+      "entry": "18-SHOCK.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "18-SHOCK.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "19-SHOCKSCN.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "19-SHOCKSCN.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    },
+    {
+      "entry": "20-THEME.psf",
+      "loadedFiles": [
+        "driver.psflib",
+        "20-THEME.psf",
+        "vab_BGM.psflib"
+      ],
+      "candidates": 1,
+      "rejected": 0,
+      "banks": [
+        {
+          "address": 1179648,
+          "bytes": 160816,
+          "programs": 33,
+          "tones": 85,
+          "samples": 19,
+          "supportedTones": 17,
+          "unavailableReasons": {
+            "VAB: sample N has no END packet": 66,
+            "VAB: this Tone has no assigned sample": 2
+          }
+        }
+      ]
+    }
+  ]
+}

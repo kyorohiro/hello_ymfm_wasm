@@ -9,12 +9,15 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
-const config={host:null,zip:null,out:null,screenshots:null,engines:[],executions:['main','worker'],vabOnly:false};
-const usage='Usage: node scripts/check_ps1_voice_editor_browser.cjs [--vab-only] [--chromium-only | --webkit-only] [--execution main|worker] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
+const config={host:null,zip:null,out:null,screenshots:null,engines:[],executions:['main','worker'],vabOnly:false,psfOnly:false,psfSet:null,psfEntry:null};
+const usage='Usage: node scripts/check_ps1_voice_editor_browser.cjs [--vab-only | --psf-only] [--psf-set DIR --psf-entry NAME] [--chromium-only | --webkit-only] [--execution main|worker] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
 for(let i=2;i<process.argv.length;i++){
   const arg=process.argv[i];
   if(arg==='--help'){console.log(usage);process.exit(0);}
   if(arg==='--vab-only'){config.vabOnly=true;continue;}
+  if(arg==='--psf-only'){config.psfOnly=true;continue;}
+  if(arg==='--psf-set'){config.psfSet=path.resolve(process.argv[++i]);continue;}
+  if(arg==='--psf-entry'){config.psfEntry=process.argv[++i];continue;}
   if(['--chromium-only','--webkit-only'].includes(arg)){config.engines.push(arg.slice(2,-5));continue;}
   if(arg==='--execution'){const value=process.argv[++i];assert(['main','worker'].includes(value),usage);config.executions=[value];continue;}
   const match=arg.match(/^--(host|zip|out|screenshots)(?:=(.*))?$/);assert(match,usage);
@@ -564,10 +567,12 @@ async function screenshots(page,name,execution){
   await fs.mkdir(config.screenshots,{recursive:true});await page.locator('#ps1Tab').click();const results=[];
   for(const [label,width,height]of [['desktop',1600,1150],['mobile',390,844]]){
     await page.setViewportSize({width,height});await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    if(config.psfOnly)await page.locator(action('psf-open')).evaluate(node=>node.scrollIntoView({block:'center'}));
     const size=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,panel:document.getElementById('ps1Panel').getBoundingClientRect().width}));
     assert(size.document<=size.viewport+1,'SPU sound design fits the viewport: '+JSON.stringify(size));
     const file=path.join(config.screenshots,`${name}-ps1-voice-${label}.png`);await page.screenshot({path:file,fullPage:true});results.push({label,path:file,...size});
   }
+  if(config.psfOnly)return results;
   await page.setViewportSize({width:1600,height:1150});
   if(await page.locator('#bottomDock .dock-close').isVisible())await page.locator('#bottomDock .dock-close').click();
   await page.locator(control('waveform')).evaluate(node=>node.scrollIntoView({block:'center'}));
@@ -625,6 +630,61 @@ async function checkVab(page,execution){
   return {combined:true,split:true,physicalVoice:23,otherVoicesPreserved:true,originalBytes:true,ramReused:true,resetSafe:true,invalidBankKeepsHeldNote:true,pcm,keyboard,layouts};
 }
 
+async function checkPsf(page,execution){
+  console.log('  PSF static extraction / MiniPSF libraries / folder paths / bank switching / SPU PCM');
+  const {createPsfFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
+  const fixture=createPsfFixture(),mimeType='application/octet-stream';
+  const marker='__PSF_UI_READY__';await run(page,`await sleep(.01);log('${marker}');`,execution);await waitLog(page,marker);await stop(page,'PSF initial Stop');
+  if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))));
+  await page.locator('#ps1Tab').click();await refresh(page);await page.locator(`${root} [data-chip-channel="23"]`).click();
+  const file=page.locator(control('psf-file')),status=page.locator(`${root} [data-chip-output="ps1-vab-status"]`);
+  const waitOpened=()=>page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('Opened '));
+  const waitExtracted=()=>page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('Extracted '));
+  const waitLoaded=()=>page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('Loaded '));
+  const before=await refresh(page);
+  await file.setInputFiles({name:'original.psf',mimeType,buffer:Buffer.from(fixture.standalone)});await waitOpened();
+  await page.locator(action('psf-extract')).click();await waitExtracted();
+  assert.equal(await page.locator(`${control('vab-bank')} option`).count(),2);assert.equal((await refresh(page)).nextAddress,before.nextAddress,'PSF extraction never uploads to live RAM');
+  await page.locator(control('vab-bank')).selectOption('1');await page.locator(control('vab-tone')).selectOption('1');await page.locator(action('vab-load')).click();await waitLoaded();
+  const imported=await refresh(page);assert.deepEqual(settings(imported).slice(0,23),settings(before).slice(0,23));
+  await field(page,'audition-midi',60);const pcm=await latch(page,'PSF-extracted fine tuned Tone',44100/112*2**(.5/12));await page.locator(action('release')).click();await silent(page,'PSF Tone release');
+  const flatMini=makePsf(Uint8Array.of(0),0x80010845,'_lib=Bank.psflib\n_lib2=patch.psflib');
+  await file.setInputFiles([{name:'track.minipsf',mimeType,buffer:Buffer.from(flatMini)},{name:'Bank.psflib',mimeType,buffer:Buffer.from(fixture.library)},{name:'patch.psflib',mimeType,buffer:Buffer.from(fixture.patch)}]);await waitOpened();
+  assert.equal(await page.locator(`${control('psf-entry')} option`).count(),1);
+  await page.locator(action('psf-extract')).click();await waitExtracted();assert.match(await status.textContent(),/3 program overlays/);
+  // Missing dependencies and successful scans with no supported bank are distinct.
+  await file.setInputFiles({name:'missing.minipsf',mimeType,buffer:Buffer.from(flatMini)});await waitOpened();await page.locator(action('psf-extract')).click();
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').dataset.error==='true');assert.match(await status.textContent(),/missing PSFLib/);
+  assert.equal((await refresh(page)).channels[23].sample,imported.channels[23].sample);
+  await file.setInputFiles({name:'plain.psf',mimeType,buffer:Buffer.from(makePsf(new Uint8Array(2048)))});await waitOpened();await page.locator(action('psf-extract')).click();
+  await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('No standard VAB'));
+  assert.equal(await status.getAttribute('data-error'),'false');assert.equal(await page.locator(`${control('vab-bank')} option`).count(),2);
+  // Use a real directory upload, rather than inventing webkitRelativePath.
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'spu-psf-folder-'));
+  try {
+    for(const entry of fixture.files){const target=path.join(directory,entry.webkitRelativePath);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,Buffer.from(await entry.arrayBuffer()));}
+    await fs.writeFile(path.join(directory,'readme.txt'),'Not a PSF');
+    await page.locator(control('psf-folder')).setInputFiles(directory);await waitOpened();await page.locator(action('psf-extract')).click();await waitExtracted();
+    assert.equal(await page.locator(`${control('vab-bank')} option`).count(),2);
+    await page.locator(control('vab-tone')).selectOption('1');await page.locator(action('vab-load')).click();await waitLoaded();
+    await latch(page,'Folder MiniPSF extracted Tone',44100/112*2**(.5/12));await page.locator(action('release')).click();await silent(page,'Folder PSF release');
+  }finally{await fs.rm(directory,{recursive:true,force:true});}
+  let realSet=null;
+  if(config.psfSet){
+    const files=(await fs.readdir(config.psfSet)).filter(name=>/\.(?:psf1?|minipsf1?|psflib|psf1lib)$/i.test(name)).map(name=>path.join(config.psfSet,name));
+    await file.setInputFiles(files);await waitOpened();
+    if(config.psfEntry)await page.locator(control('psf-entry')).selectOption(config.psfEntry);
+    await page.locator(action('psf-extract')).click();await waitExtracted();
+    const tone=await page.locator(control('vab-tone')).inputValue();assert(tone!=='','Real set has a playable Tone');
+    const unavailable=await page.locator(`${control('vab-tone')} option:disabled`).count();
+    await page.locator(action('vab-load')).click();await waitLoaded();
+    const state=await refresh(page),voice=state.channels[23],sample=state.samples.find(item=>item.id===voice.sample);
+    await field(page,'audition-midi',55);const realPcm=await latch(page,'Real PSF extracted Tone',false);await page.locator(action('release')).click();await stop(page,'Real PSF final Stop');
+    realSet={entry:config.psfEntry,toneIndex:Number(tone),unavailableTones:unavailable,sample,adsr1:voice.adsr1,adsr2:voice.adsr2,pcm:realPcm};
+  }
+  return {standalone:true,mini:true,folder:true,twoBanks:true,noCpuExecution:true,extractionDoesNotUpload:true,missingLibraryDiagnostic:true,noBankDiagnostic:true,pcm,realSet};
+}
+
 async function runCase(browser,name,origin,host,execution){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});
   await context.addInitScript({content:`globalThis.__ps1ClockAnalysis={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
@@ -638,13 +698,13 @@ async function runCase(browser,name,origin,host,execution){
     await page.locator('#ps1Tab').click();assert.equal(await page.evaluate(()=>__ps1Audit.contexts.length),0,'Opening Operators remains audio-lazy');
     await page.locator(`${root} [data-chip-action="prepare"]`).click();await page.locator(control('attack-rate')).waitFor({state:'visible'});
     assert.equal(await page.locator(`${root} [data-chip-channel]`).count(),24,'All 24 hardware voices can be selected');
-    if(config.vabOnly){
-      const vab=await checkVab(page,execution),images=await screenshots(page,name,execution);
+    if(config.vabOnly||config.psfOnly){
+      const vab=config.vabOnly?await checkVab(page,execution):undefined,psf=config.psfOnly?await checkPsf(page,execution):undefined,images=await screenshots(page,name,execution);
       await healthy(page,'VAB final state');assert.deepEqual(errors,[]);assert.deepEqual(badResponses,[]);
       const muted=await page.evaluate(()=>[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0));assert(muted);
       const captureContinuity=await page.evaluate(()=>({captures:__ps1Audit.captures.length,frames:__ps1Audit.captures.reduce((n,c)=>n+c.frames,0),pcmContinuous:__ps1Audit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid&&c.clock.frames===c.frames),clockContinuous:__ps1Audit.captures.every(c=>c.clock.continuous),clockAnomalies:__ps1Audit.captures.filter(c=>!c.clock.continuous)}));
       assert(captureContinuity.pcmContinuous);
-      return {browser:name,version:browser.version(),execution,vab,screenshots:images,physicalOutputMuted:muted,listeningPerformed:false,captureContinuity};
+      return {browser:name,version:browser.version(),execution,vab,psf,screenshots:images,physicalOutputMuted:muted,listeningPerformed:false,captureContinuity};
     }
     // The muted authored CH2 continues changing independently while edits and
     // auditions claim CH24. A real logic Worker is used for the Worker route.

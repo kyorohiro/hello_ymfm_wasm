@@ -4,6 +4,7 @@ import {createPlaygroundPs1VoicePanel, ps1VoiceCode} from './playground_ps1_voic
 import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js';
 import {decodePs1Envelope} from '../js/ps1_parameters.js';
 import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
+import {createPsfFixture,makePsf,psfFile} from '../../test/helpers/spu_psf_fixture.mjs';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Events {
@@ -82,6 +83,37 @@ test('changing selected voice or hiding the panel fences a delayed VAB read and 
     assert.equal(control(f.root,'vab-tone').children.length,0);assert.deepEqual(f.calls,[]);
   }
   f.panel.dispose();
+});
+
+test('PSF set extraction lists multiple banks without uploading until an explicit selected Tone load',async()=>{
+  const f=fixture({enableVabImport:true,invoke:async(method,args)=>{f.calls.push([method,args]);return {byteLength:args[1]?.length};}});
+  const {files}=createPsfFixture(),input=control(f.root,'psf-file');input.files=files;
+  await input.fire('change');assert.equal(control(f.root,'psf-entry').children.length,1);assert.deepEqual(f.calls,[]);
+  await action(f.root,'psf-extract').fire('click');assert.equal(control(f.root,'vab-bank').children.length,2);assert.equal(control(f.root,'vab-tone').children.length,3);assert.deepEqual(f.calls,[]);
+  control(f.root,'vab-bank').value='1';await control(f.root,'vab-bank').fire('change');
+  control(f.root,'vab-tone').value='1';await action(f.root,'vab-load').fire('click');
+  assert.equal(f.calls.length,1);assert.equal(f.calls[0][0],'loadTone');assert.equal(f.calls[0][1][2].baseFrequencyHz,440*2**((59.5-69)/12));
+  assert.match(output(f.root,'vab-status').textContent,/VAB @0x80020000/);f.panel.dispose();
+});
+
+test('missing PSFLib and no-bank results are distinct, preserve a previously opened bank and never change live audio',async()=>{
+  const f=fixture({enableVabImport:true}),file=control(f.root,'vab-file'),{vab}=createVabFixture();
+  file.files=[{name:'bank.vab',size:vab.length,arrayBuffer:async()=>vab.buffer}];await file.fire('change');
+  const psf=control(f.root,'psf-file');
+  psf.files=[psfFile('missing.minipsf',makePsf(new Uint8Array(),0,'_lib=missing.psflib'))];await psf.fire('change');await action(f.root,'psf-extract').fire('click');
+  assert.match(output(f.root,'vab-status').textContent,/missing PSFLib/);assert.equal(output(f.root,'vab-status').dataset.error,'true');
+  psf.files=[psfFile('empty.psf',makePsf(new Uint8Array(2048)))];await psf.fire('change');await action(f.root,'psf-extract').fire('click');
+  assert.match(output(f.root,'vab-status').textContent,/No standard VAB.*Previous bank is kept/);assert.equal(output(f.root,'vab-status').dataset.error,'false');
+  assert.equal(control(f.root,'vab-tone').children.length,3);assert.deepEqual(f.calls,[]);f.panel.dispose();
+});
+
+test('unavailable samples in a bank are disabled and the first playable Tone is selected',async()=>{
+  const f=fixture({enableVabImport:true}),file=control(f.root,'vab-file'),{vab}=createVabFixture();
+  // Both first Tones share sample #1; remove its END while keeping sample #2.
+  vab[0xe20+16+49]=0;
+  file.files=[{name:'partial.vab',size:vab.length,arrayBuffer:async()=>vab.buffer}];await file.fire('change');
+  const select=control(f.root,'vab-tone');assert.equal(select.value,'2');assert(select.children[0].disabled&&select.children[1].disabled);assert(!select.children[2].disabled);
+  assert.match(select.children[0].title,/no END/);assert.deepEqual(f.calls,[]);f.panel.dispose();
 });
 
 test('PS1 readback exposes 24 voices, decoded ADSR and shared reverb without audio writes', () => {
