@@ -4,7 +4,9 @@ PlayStation 1 SPU synthesizer / emulator
 
 [Open the synthesizer](index.html). This standalone sound laboratory uses the
 same PS1 SPU WebAssembly core and editing controls as Tetorica Playground, with
-the visual style and Guitar / Bass / Ukulele keyboard from the FM2612 Synth.
+the Guitar / Bass / Ukulele keyboard from the FM2612 Synth. Its silver panels,
+charcoal displays and red / yellow / blue accents follow the supplied SPU
+Synth icon. The original icon is used in the header and browser icons.
 Master volume uses the existing calibrated PS1 System gain as its reference.
 
 ## Play and edit

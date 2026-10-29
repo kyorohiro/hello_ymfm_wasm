@@ -53,6 +53,10 @@ is unchanged; the final run passes both engines.
 
 ## Release status
 
+Update: the supplied icon has been integrated and the release ZIP is verified;
+see [icon and release work](spu_synth_icon_release_01.md). The following records
+the earlier pause before that asset was supplied.
+
 The user is making the icon and explicitly requested waiting before final
 colours. The present palette is provisional. Icon integration, final colours,
 the new release ZIP and distribution verification remain pending that asset.

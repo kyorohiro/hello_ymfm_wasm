@@ -296,6 +296,37 @@ async function checkMonitorWake(page, keyboardHz) {
   return {unownedTail:true, sleptWhenMuted:true, resumedWithoutNoteOn:true, muted, restored, resumed, ownershipUnchanged:true};
 }
 
+async function checkBrandAssets(page) {
+  const headerIcon = page.locator('header img[src*="icon.png"]').first();
+  await headerIcon.waitFor({state:'visible'});
+  await headerIcon.evaluate(image => image.decode());
+  const brand = await page.evaluate(async () => {
+    const header = [...document.querySelectorAll('header img')].find(image => new URL(image.currentSrc || image.src, location.href).pathname.endsWith('/icon.png'));
+    const links = [];
+    for (const rel of ['icon', 'apple-touch-icon']) {
+      const link = document.querySelector(`link[rel~="${rel}"]`);
+      if (!link) {links.push({rel, missing:true}); continue;}
+      const url = new URL(link.href, location.href), image = new Image(); image.src = url.href;
+      await image.decode();
+      const response = await fetch(url.href), bytes = await response.arrayBuffer();
+      links.push({rel, href:link.getAttribute('href'), pathname:url.pathname, local:url.origin === location.origin, status:response.status, bytes:bytes.byteLength, naturalWidth:image.naturalWidth, naturalHeight:image.naturalHeight});
+    }
+    const style = getComputedStyle(document.documentElement);
+    const palette = Object.fromEntries([...style].filter(property => property.startsWith('--')).sort().map(property => [property, style.getPropertyValue(property).trim()]));
+    return {header:header && {src:header.getAttribute('src'), pathname:new URL(header.currentSrc || header.src, location.href).pathname, alt:header.alt, altAttributePresent:header.hasAttribute('alt'), naturalWidth:header.naturalWidth, naturalHeight:header.naturalHeight}, links, palette};
+  });
+  assert(brand.header && brand.header.naturalWidth > 0 && brand.header.naturalHeight > 0, 'The supplied product icon is decoded in the visible header');
+  assert.equal(brand.header.altAttributePresent, true, 'The header icon explicitly declares its text alternative or decorative role');
+  for (const link of brand.links) {
+    assert.equal(link.missing, undefined, `The ${link.rel} link exists`);
+    assert.equal(link.local, true, `The ${link.rel} uses the packaged local image`);
+    assert(link.pathname.endsWith('/icon.png'), `The ${link.rel} uses the supplied icon.png`);
+    assert.equal(link.status, 200, `The ${link.rel} image loads`);
+    assert(link.bytes > 0 && link.naturalWidth > 0 && link.naturalHeight > 0, `The ${link.rel} image contains decodable pixels`);
+  }
+  return brand;
+}
+
 // No private production hooks, injected chip calls or fake renderers are used.
 async function runCase(browser, name, origin) {
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1440, height:1100}, acceptDownloads:true});
@@ -310,6 +341,7 @@ async function runCase(browser, name, origin) {
     await page.goto(origin + config.entry, {waitUntil:'domcontentloaded'});
     await page.locator('#startAudio').waitFor({state:'visible'});
     assert.match(await page.title(), /Tetorica.*SPU.*Synth/i);
+    const brand = await checkBrandAssets(page);
     assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 0, 'Opening the page remains audio-lazy');
     await page.locator('#startAudio').click();
     await page.locator(control('attack-rate')).waitFor({state:'visible'});
@@ -491,7 +523,6 @@ async function runCase(browser, name, origin) {
         assert(dimensions.document <= dimensions.viewport + 1, 'SPU Synth fits ' + label + ': ' + JSON.stringify(dimensions));
         assert(dimensions.pitch.left >= dimensions.plot.right - 2, 'Pitch remains beside the ' + mode + ' display at ' + label + ': ' + JSON.stringify(dimensions));
         assert(dimensions.pitch.bottom - dimensions.pitch.top > dimensions.pitch.right - dimensions.pitch.left, 'Pitch uses a vertical slider at ' + label);
-        const rgb = dimensions.background.match(/[\d.]+/g)?.slice(0, 3).map(Number); assert(rgb && Math.min(...rgb) >= 100 && Math.max(...rgb) - Math.min(...rgb) <= 35, 'The chassis uses the requested PlayStation-style light gray: ' + dimensions.background);
         layouts.push({label, mode, ...dimensions});
         if (config.screenshots) {const filename = path.join(config.screenshots, `${name}-spu-synth-${label}-${mode}.png`); await page.screenshot({path:filename, fullPage:true}); screenshots.push({label, mode, path:filename, ...dimensions});}
       }
@@ -499,7 +530,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

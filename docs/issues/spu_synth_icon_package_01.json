@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_spu_synth_v0.1.0-Ny9mci",
+  "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_spu_synth_v0.1.0_itch.zip",
+  "files": 45,
+  "bundles": 3,
+  "archiveRecord": {
+    "bytes": 5456858,
+    "sha256": "18cc9d6ca2027a076cc12e021fbf707bedd4590e210d1c78826100e59773c635"
+  },
+  "sourceCheck": {
+    "passed": true,
+    "sourceInputs": 24,
+    "bundleFiles": 28,
+    "fixedSdkArtifact": true,
+    "sdkVersion": "0.1.7",
+    "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+    "rebuilt": null
+  }
+}

@@ -90,10 +90,9 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
     .replace('href="../synth/index.html"', 'href="https://kyorohiro.github.io/hello_ymfm_wasm/synth/"')
     .replace('href="../playground/index.html?mode=ps1"', 'href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=ps1"');
   await writeFile(join(stage, 'synth-spu/index.html'), html);
-  await writeFile(join(stage, 'index.html'), html.replace('href="./synth.css"', 'href="./synth-spu/synth.css"')
-    .replace('src="./synth.js"', 'src="./synth-spu/synth.js"').replace('href="../favicon.ico"', 'href="./favicon.ico"'));
-  await copy(join(root, 'docs/synth-spu/synth.css'), join(stage, 'synth-spu/synth.css'));
-  await copy(join(root, 'docs/favicon.ico'), join(stage, 'favicon.ico'));
+  await writeFile(join(stage, 'index.html'), html.replace(/\b(href|src)="\.\/(synth\.css|synth\.js|icon\.png)"/g,
+    (_, attribute, name) => `${attribute}="./synth-spu/${name}"`));
+  for (const name of ['synth.css', 'icon.png']) await copy(join(root, 'docs/synth-spu', name), join(stage, 'synth-spu', name));
   await copy(join(root, 'LICENSE'), join(stage, 'LICENSE'));
   for (const name of ['ps1_spu_wasm.js', 'ps1_spu_wasm.wasm', 'ps1_spu_build.json']) await copy(join(root, 'docs/generated', name), join(stage, 'generated', name));
 
@@ -106,7 +105,7 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
   for (const name of ['LICENSE', 'README.md']) await copy(join(root, 'docs/licenses/mame-ps1-spu', name), join(stage, 'licenses/mame-ps1-spu', name));
   const sourceCheck = await checkPs1SourceBundle(stage);
 
-  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs']) inputs.add(name);
+  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/synth-spu/icon.png', 'docs/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs']) inputs.add(name);
   const sourceArchive = join(stage, 'sources/spu-synth-browser-inputs.zip');
   const sourceNames = [...inputs].sort();
   writeZip(root, sourceArchive, sourceNames);

@@ -1,3 +1,10 @@
+## 2026-10-29 — SPU Synthのアイコン・配色を確定、v0.1.0 ZIP準備完了
+
+- ユーザー提供の1254px正方形PNGを無変換で`docs/synth-spu/icon.png`へ収録（SHA256 `487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580`）。header／favicon／Apple touch iconで使用。silver／cool grayの筐体、charcoal表示、赤・黄・青のtitle／section／tab accentsへ統一。表示3種とPitchの動作は維持。
+- 包装を更新し、rootとnested両indexの画像／favicon／touch icon参照をlocalに解決。元PNGとhashもsource archiveへ収録。Node／実WASM／隔離包装 **36成功**。実ZIPを新規展開したroot indexでChromium／WebKitがアイコンdecode、Monitor／Pitch、24声、ADSR／PCM／FX、import／preset、Stop／recover成功。1440／390px overflowなし、desktop／mobile screenshotを目視確認。各33captures／344,064frames、pilot／clock連続、診断0、物理出力mute。任意のunbundled source再試験は承認待ちで中断したためreportなし。最終検証は実ZIPで完了。
+- `release/tetorica_spu_synth_v0.1.0_itch.zip`、**45files／5,456,858bytes**、SHA256 `18cc9d6ca2027a076cc12e021fbf707bedd4590e210d1c78826100e59773c635`。CRC、全member／実配信byte、checker／helper hashを確認。旧ZIP・raw reportは保持。作成コマンドは`sh scripts/package_itch_spu_synth.sh v0.1.0`。
+- 詳細：[spu_synth_icon_release_01.md](spu_synth_icon_release_01.md)／[実ZIP Browser](spu_synth_icon_browser_01.json)／[配布receipt](spu_synth_icon_distribution_01.json)。**アイコン待ちは解消、次はユーザーの実聴確認と手動itch.ioアップロード**。未commit。commit／push／tag／npm／itch公開は行っていない。SDK／core／WASM／Native／Tauriの変更なし。以下は各時点の履歴。
+
 ## 2026-10-29 — SPU Synthの表示3種とPitch、アイコン待ち
 
 - 上部にEnvelope／Waveform／Spectrum切り替え、右に縦Pitchを追加。既存ADSR図をEnvelopeへ移し、数値設定は下のcardに維持。図の時間軸と、実出力RMSの履歴stripは別表示。Master後の音をpassive AnalyserNodeで読み、最大30fps、無音・非表示・Stopで停止する。Masterやlive設定で離鍵後の音が再び聞こえる場合は、所有権や再発音を変えず表示だけ再開する。
