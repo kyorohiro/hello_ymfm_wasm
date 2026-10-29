@@ -4,12 +4,19 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## npm公開：2026-10-30 tetorica-fm2612 0.2.34
+
+ユーザー指示でSine修正と累積SPU更新をnpmへ公開。`latest`も0.2.34。
+公開tarballは検証済みartifactとバイト一致。詳細は [公開・検証記録](npm_ps1_cyclic_release_01.md)。
+SDK 0.1.7はsourceを同梱した未公開ローカル候補のまま。Webサイトdeployやgit commit／pushは行っていない。
+
 ## 後続修正：2026-10-30 Sineの周期先頭の段差
 
 PlaygroundのSine画像から、ADPCM先頭パケットのpredictor 0固定による粗い階段を確認。
 周期専用の予測圧縮を追加し、初回とloopのno-wrapと誤差を比較して従来より良い候補だけ採用する。
 Playgroundとstandaloneの初期Sine／PCM／Morph／PMONに反映。112サンプル・64バイトを維持。
-[実装・比較波形・検証・試用ZIP](spu_cyclic_sine_01.md) を参照。今回の修正は未公開。
+[実装・比較波形・検証・試用ZIP](spu_cyclic_sine_01.md) を参照。npm版は上記0.2.34に公開済み。Web／Synth ZIPの追加公開は行っていない。
+ユーザーが修正版を試して「治った!!」と報告し、異音の解消を実聴で確認済み。
 前回のheadroom精度修正とは別に、元からあったSine波形自体の歪みを改善した。
 
 ## 後続機能：2026-10-30 長い音声のSoftware audio

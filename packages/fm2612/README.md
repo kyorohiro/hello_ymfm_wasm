@@ -58,7 +58,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | PS1 named ADSR / reverb parameters | `tetorica-fm2612/ps1_parameters.js` | `decodePs1Envelope`, `encodePs1Envelope`, `patchPs1Envelope`, `PS1_REVERB_PRESETS` |
-| PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm` |
+| PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm`, `encodePs1AdpcmCycle` |
 | PS1 Sample Editor conversion / waveform comparison | `tetorica-fm2612/playground_sample_ps1.js` | `renderPs1Sample`, `renderPs1SampleComparison` |
 | Isolated offline PS1 sample audition | `tetorica-fm2612/playground_sample_ps1_preview.js` | `renderPs1SamplePreview` with an injected PS1 WASM factory |
 | Game Boy sample comparison / isolated audition | `tetorica-fm2612/playground_sample_gameboy_preview.js` | `renderGameboySampleComparison`, `renderGameboySamplePreview` with an injected Game Boy WASM factory |
@@ -139,6 +139,11 @@ continue to use the explicit encoder/upload API described below.
 `encodePs1Adpcm` converts normalized mono Float32 PCM into SPU packets with
 explicit loop positions and JSON-safe reconstruction metrics. It does not
 resample or normalize; declare tuning when uploading the encoded sample.
+`encodePs1AdpcmCycle(pcm)` prepares exactly 112 samples as a four-packet loop.
+It compares cyclic prediction with independent-start encoding and adopts it
+only when the actual repeated-cycle error improves without int16 overflow.
+The initial Sine and waveform editor use it to remove the former coarse
+first-quarter staircase. Ordinary recordings keep `encodePs1Adpcm` behavior.
 See the [PCM conversion guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_adpcm_encoder.md).
 Since `0.2.33`, the package includes `playground_sample_ps1.js` for
 non-destructive 44.1 kHz mono conversion and bounded raw-decoded comparisons,
@@ -149,7 +154,7 @@ device and releases its private core after rendering. See the
 The package-root chip factory remains separate. In a compatible Tauri host,
 Playground supports PS1 Native playback through the same fixed SDK C++ core,
 including Main/Worker, 24-voice audition, PCM/ADSR/reverb editing and additional
-independent SPUs. Web Audio remains the default. This development build pins an
+independent SPUs. Web Audio remains the default. This release pins an
 unpublished SDK 0.1.7 candidate with source archive and manifest hashes plus
 explicit local-candidate provenance. PS1 four-point Gaussian voice interpolation
 uses the documented hardware coefficients; approximate ADSR and preset reverb remain;
@@ -1334,15 +1339,16 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.33.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.34.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.33.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.34.tgz
 ```
 
-The build pins the published `tetorica-soundchip-native` SDK **0.1.6** source
-release, including the PS1 SPU instrument. The pin retains the exact tagged
-source commit, archive hash and manifest hash.
+The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
+candidate, including the PS1 SPU updates. The pin records its base commit,
+changed paths, source archive hash and manifest hash; it does not claim that
+this candidate is a separately published SDK release.
 The SDK provides 29 chip WASM recipes, 2 separate application-audio recipes
 (CD-DA and MSM5205), and the standalone PS1 SPU instrument recipe. Bundled source receipts preserve its source commit, archive
 and manifest hashes; standalone recipes rebuild without checking out the SDK.
@@ -1361,6 +1367,17 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.34` fixes the coarse staircase in the PS1 initial/editor Sine by using
+loop-aware ADPCM prediction. The source cycle stays at 112 samples / 64 bytes;
+new `encodePs1AdpcmCycle` metrics describe the repeated-cycle decode. General
+recording encoding is unchanged. This release also includes the accumulated
+PS1 four-point Gaussian interpolation and explicit live ADSR/audition fixes
+since 0.2.33, with complete source and updated declarations. Optional native
+software mixer/headroom and host-PCM bank exports are included in the WASM;
+ordinary register/RAM playback remains the default. SDK 0.1.7 is bundled as a
+hash-pinned, unpublished source candidate, rather than a separate SDK release.
+
 
 `0.2.33` adds the experimental **PS1 SPU instrument**: a standalone 24-voice
 44.1 kHz core, tuned sample Synth, host-rate resampler, named ADSR/reverb

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "package": "tetorica-fm2612",
+  "version": "0.2.34",
+  "date": "2026-10-30",
+  "registryLatestBefore": "0.2.33",
+  "gitBase": "e2c4b64e57e98bb6433bd11165932086457a69bf",
+  "artifact": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.34",
+    "filename": "tetorica-fm2612-0.2.34.tgz",
+    "size": 1956096,
+    "unpackedSize": 7436346,
+    "shasum": "89c8cbf9ced13462b712cc438a53d44667b7803e",
+    "integrity": "sha512-sdCCYszsL8M+B3zheSoG9ekaBJO0Q+sOpLDbasfx1Ml3lC1AmQQ7W5+BgwXunJE1meV7uGi1MoJCJCqYp/oYGw==",
+    "entryCount": 1004,
+    "sha256": "58aea76145fee18837241d4dc93bb64e8cdc5b87bb13c2e8a8e306656c563dc3"
+  },
+  "sdkPin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "0cb199b062017ecf30cd25dd2956a485cb92427c1f63d40564ea238c2c2bf0d0",
+    "manifestSha256": "b62415e21cda9f346fa8bed6ae6c02a3b3b690b8914fe3e21f38015876aef476",
+    "fileCount": 455,
+    "localCandidate": {
+      "baseCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "catalog/source_inventory.json",
+        "docs/chip-differences.md",
+        "native/reference/SOURCES.json",
+        "native/tests/ps1_spu_fixture.cpp",
+        "scripts/build_ps1_spu_wasm.sh",
+        "vendor/mame-ps1-spu/README.md",
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h"
+      ]
+    }
+  },
+  "checks": {
+    "packageBuildInstallTypes": {
+      "passed": true,
+      "declarations": 385,
+      "runtimeModules": 335,
+      "wasmEngines": 28,
+      "renderers": 15,
+      "localReferences": 1097,
+      "logSha256": "4ef3ddd4ed6616eeaed2e3005cbbc7dbdbd64fa9607c3202657064326b8f85f1"
+    },
+    "publishedTarballCandidate": {
+      "passed": true,
+      "allFilesEqualCheckedBuild": 1004,
+      "installedSine": {
+        "passed": true,
+        "version": "0.2.34",
+        "rawLoopSnrDb": 58.5912558118297,
+        "actualSineResidualDb": -61.36789259499579,
+        "physicalOutputOpened": false,
+        "listeningPerformed": false
+      }
+    }
+  },
+  "registry": {
+    "version": "0.2.34",
+    "latest": "0.2.34",
+    "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.34.tgz",
+    "shasum": "89c8cbf9ced13462b712cc438a53d44667b7803e",
+    "integrity": "sha512-sdCCYszsL8M+B3zheSoG9ekaBJO0Q+sOpLDbasfx1Ml3lC1AmQQ7W5+BgwXunJE1meV7uGi1MoJCJCqYp/oYGw==",
+    "downloadByteIdentical": true,
+    "downloadSha256": "58aea76145fee18837241d4dc93bb64e8cdc5b87bb13c2e8a8e306656c563dc3"
+  },
+  "limits": [
+    "npm release only; no website deployment, git commit or push performed",
+    "SDK 0.1.7 is an explicitly pinned unpublished source candidate, fully bundled; no separate SDK release performed",
+    "No physical output was opened during the package Sine check; the user separately confirmed the Sine correction by listening"
+  ],
+  "publish": {
+    "cliExitCode": 0,
+    "httpStatus": 202,
+    "registry": "https://registry.npmjs.org/",
+    "tag": "latest",
+    "access": "public",
+    "message": "Your package is being processed and may take a few minutes to become available."
+  }
+}
