@@ -143,10 +143,24 @@ test('PMON settings round-trip independently of carrier PCM and old presets defa
   const {source}=await instrumentFixture(t);
   const old=writeSpuInstrument('Legacy',source);delete old.pmon;
   assert.equal(readSpuInstrument(old).pmon.enabled,false);
-  source.pmon={enabled:true,ratio:3,depth:.8,decayMs:740};
+  source.pmon={enabled:true,ratio:3,depth:.8,decayMs:740,waveform:'triangle'};
   const file=writeSpuInstrument('Bell',source),restored=readSpuInstrument(JSON.parse(JSON.stringify(file)));
   assert.deepEqual(restored.pmon,source.pmon);assert.deepEqual(restored.waveform,source.waveform);
   for(const invalid of [{ratio:0},{ratio:17},{depth:-1},{decayMs:5001},{enabled:1},{extra:0}]) {
     const bad=clone(file);bad.pmon={...file.pmon,...invalid};assert.throws(()=>readSpuInstrument(bad),/PMON|Modulation/);
   }
+});
+
+test('Noise settings and PMON waveform have portable defaults and reject incompatible source modes',async t=>{
+  const {source}=await instrumentFixture(t);
+  source.noise={enabled:true,clock:63};
+  const file=writeSpuInstrument('Snare',source),restored=readSpuInstrument(JSON.parse(JSON.stringify(file)));
+  assert.deepEqual(restored.noise,source.noise);assert.equal(restored.pmon.waveform,'sine');
+  delete file.noise;delete file.pmon.waveform;
+  const old=readSpuInstrument(file);assert.equal(old.noise.enabled,false);assert.equal(old.pmon.waveform,'sine');
+  for(const noise of [{enabled:true,clock:64},{enabled:1},{clock:1.2},{other:1}]) {
+    assert.throws(()=>readSpuInstrument({...file,noise}),/Noise/);
+  }
+  assert.throws(()=>readSpuInstrument({...file,noise:{enabled:true},pmon:{enabled:true}}),/cannot both/);
+  assert.throws(()=>readSpuInstrument({...file,pmon:{waveform:'random'}}),/waveform/);
 });

@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-export const DEFAULT_PMON = Object.freeze({enabled:false, ratio:1, depth:.5, decayMs:500});
+export const DEFAULT_PMON = Object.freeze({enabled:false, ratio:1, depth:.5, decayMs:500, waveform:'sine'});
+export const PMON_WAVEFORMS = Object.freeze(['sine','triangle','saw','square']);
 export function readPmon(value = DEFAULT_PMON) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !Object.hasOwn(DEFAULT_PMON, key))) throw new TypeError('Invalid Pitch Modulation settings');
   const result = {...DEFAULT_PMON, ...value};
+  if (!PMON_WAVEFORMS.includes(result.waveform)) throw new TypeError('Unknown PMON waveform');
   if (typeof result.enabled !== 'boolean') throw new TypeError('PMON enabled must be boolean');
   for (const [key,min,max] of [['ratio',.01,16],['depth',0,1],['decayMs',0,5000]]) {
     if (!Number.isFinite(result[key]) || result[key] < min || result[key] > max) throw new RangeError(`PMON ${key} must be from ${min} to ${max}`);
   }
   return result;
 }
-export function pmonPcm(depth) {
-  readPmon({depth});
-  return Array.from({length:112}, (_,i) => .95 * depth * Math.sin(2*Math.PI*i/112));
+export function pmonPcm(depth, waveform = 'sine') {
+  readPmon({depth,waveform});
+  return Array.from({length:112}, (_,i) => {
+    const phase=i/112;
+    const value=waveform==='sine' ? Math.sin(2*Math.PI*phase) : waveform==='triangle' ? 2/Math.PI*Math.asin(Math.sin(2*Math.PI*phase)) : waveform==='saw' ? 2*phase-1 : phase<.5 ? 1 : -1;
+    return .95*depth*value;
+  });
 }
 // Nearest retained core linear-sustain duration, not an exact hardware timer.
 // MAME pSXAuthor / R. Belmont table, BSD-3-Clause; numeric durations only.

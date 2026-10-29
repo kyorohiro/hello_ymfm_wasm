@@ -4,6 +4,11 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続更新：2026-10-29 PMON波形選択／Noise
+
+PMONの4波形選択とPCMタブのSPU Noiseを追加。
+[作業記録と試用ZIP](spu_synth_wave_noise_01.md)、[機能TODO](todo_spu_synth_features_01.md) を参照。未commit・未公開。
+
 ## 後続更新：2026-10-29 SPU Synth PMON
 
 FXタブへPitch Modulationを追加し、12組のsource／carrier割当と保存・復元を実装した。

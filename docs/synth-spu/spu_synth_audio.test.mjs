@@ -14,6 +14,7 @@ import {preparePs1Waveform} from '../../web/ps1_waveform.js';
 import {patchPs1Envelope} from '../../web/ps1_parameters.js';
 import {SpuRoundRobinVoices} from './spu_synth_voices.js';
 import {readPmon, pmonAdsr, pmonPcm} from './spu_synth_pmon.js';
+import {readNoise} from './spu_synth_noise.js';
 
 const source = await readFile(new URL('./spu_synth_worklet.js', import.meta.url), 'utf8');
 const wasmBinary = await readFile(new URL('../generated/ps1_spu_wasm.wasm', import.meta.url));
@@ -87,13 +88,14 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {patchPs1Envelope} from ${url('../../web/ps1_parameters.js')};
     import {SpuRoundRobinVoices} from ${url('./spu_synth_voices.js')};
     import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
+    import {readNoise} from ${url('./spu_synth_noise.js')};
     const source = await readFile(new URL(${url('./spu_synth_worklet.js')}), 'utf8');
     const wasmBinary = await readFile(new URL(${url('../generated/ps1_spu_wasm.wasm')}));
     const initialWaveform = preparePs1Waveform(Array.from({length:112}, (_,i)=>.65*Math.sin(2*Math.PI*i/112)));
     let Processor;
     const messages = [];
     vm.runInNewContext(source.replace(/^import .*;\\n/gm,'').replace('export class SpuSynthProcessor','class SpuSynthProcessor'), {
-      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, sampleRate:48000,
+      factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, sampleRate:48000,
       AudioWorkletProcessor:class {constructor(){this.port={postMessage:value=>messages.push(value)};}},
       registerProcessor(_name, Type){Processor=Type;},
     });
@@ -124,7 +126,7 @@ async function setup(rate = 48000) {
   let Processor;
   const messages = [], port = {postMessage:value => messages.push(value)};
   vm.runInNewContext(source.replace(/^import .*;\n/gm, '').replace('export class SpuSynthProcessor', 'class SpuSynthProcessor'), {
-    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, sampleRate:rate,
+    factory, Ps1Spu, Ps1Synth, Ps1Resampler, Ps1VoiceInspector, patchPs1Envelope, SpuRoundRobinVoices, readPmon, pmonAdsr, readNoise, sampleRate:rate,
     AudioWorkletProcessor:class {constructor() {this.port = port;}},
     registerProcessor(name, Type) {assert.equal(name, 'tetorica-spu-synth'); Processor = Type;},
   });
@@ -507,7 +509,7 @@ test('waveform tuning is validated before RAM changes while finished notes canno
 
 function pmonSettings(p, values) {
   const settings=readPmon({...p.processor.pmon,...values});
-  return p.command('setInstrumentPmon',[settings,settings.enabled ? preparePs1Waveform(pmonPcm(settings.depth)) : undefined]);
+  return p.command('setInstrumentPmon',[settings,settings.enabled ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined]);
 }
 
 test('PMON pairs all 24 physical voices into 12 identity-safe notes and keeps modulators silent',async t=>{
@@ -616,4 +618,70 @@ test('reverb preset selection atomically enables all carriers, Off disables, and
   assert(p.command('inspect').channels.every(ch=>ch.reverb));
   assert.equal(p.processor.synth.core.read(0),0,'silent PMON source remains silent');
   assert(peak(p.render(4096).left)>.001);
+});
+
+test('all four PMON waveforms change held-note PCM without KON or allocating another sample',async t=>{
+  const p=await setup(44100);t.after(()=>p.processor.dispose());
+  pmonSettings(p,{enabled:true,depth:.8,ratio:2,decayMs:0});p.command('instrumentNoteOn',[60,'shape']);p.render(2048);
+  const ramEnd=p.processor.synth.nextAddress,owners=JSON.stringify(p.command('inspect').auditions),core=p.processor.synth.core;
+  const writes=[],write=core.write;core.write=function(at,value){if([0x188,0x18a].includes(at))writes.push(at);return write.call(this,at,value);};
+  const signals=[];
+  for(const waveform of ['sine','triangle','saw','square']) {
+    pmonSettings(p,{waveform});p.render(2048);const pcm=p.render(4096).left;
+    assert(peak(pcm)>.001);signals.push(pcm);
+    assert.equal(JSON.stringify(p.command('inspect').auditions),owners);
+    assert.equal(p.processor.synth.nextAddress,ramEnd);assert.equal(p.command('getInstrument',[0]).pmon.waveform,waveform);
+  }
+  for(let i=0;i<signals.length;i++)for(let j=0;j<i;j++)assert(signals[i].some((v,k)=>Math.abs(v-signals[j][k])>.001));
+  assert.equal(writes.length,0,'wave changes retain source/carrier envelope and phase');
+  assert.throws(()=>pmonSettings(p,{waveform:'invalid'}),/waveform/);
+});
+
+test('Noise is actual shared-clock SPU output, independent of Note/bend, with live clock and ADSR release',async t=>{
+  const a=await setup(44100),b=await setup(44100);t.after(()=>{a.processor.dispose();b.processor.dispose();});
+  for(const p of [a,b])p.command('setInstrumentNoise',[{enabled:true,clock:48}]);
+  a.command('instrumentNoteOn',[0,'low']);b.command('instrumentNoteOn',[127,'high']);
+  assert.deepEqual(a.render(8192),b.render(8192),'Noise does not follow musical pitch');
+  const core=a.processor.synth.core;
+  assert.equal(core.read(0x194),0xffff);assert.equal(core.read(0x196),0xff);assert.equal(core.read(0x190),0);
+  a.command('setInstrumentPitchBend',[2]);assert.deepEqual(a.render(4096),b.render(4096),'Noise ignores sample Pitch bend');
+  const keys=[],write=core.write;core.write=function(at,v){if([0x188,0x18a].includes(at))keys.push(at);return write.call(this,at,v);};
+  const ramEnd=a.processor.synth.nextAddress,owners=JSON.stringify(a.command('inspect').auditions);
+  a.command('setInstrumentNoise',[{enabled:true,clock:63}]);
+  assert.equal(JSON.stringify(a.command('inspect').auditions),owners);assert.equal(keys.length,0);
+  assert.equal(core.read(0x1aa)>>8&63,63);assert.equal(a.processor.synth.nextAddress,ramEnd);
+  const fast=a.render(4096).left,slow=b.render(4096).left;
+  assert(peak(fast)>.001);assert(fast.some((v,i)=>Math.abs(v-slow[i])>.001),'Noise clock changes actual output');
+  a.command('instrumentNoteOff',['low']);a.render(2048);assert.equal(peak(a.render(256).left),0);
+  assert(peak(b.render(2048).left)>.001,'the foreign instance is unaffected');
+  a.command('stop');assert.equal(peak(a.render(1024).left),0);assert.equal(core.read(0x194),0xffff,'Stop retains Noise mode');
+  a.command('instrumentNoteOn',[60,'again']);assert(peak(a.render(2048).left)>.001);
+});
+
+test('Noise holds independently of one-shot imported audio, preserves samples, switches PMON safely and validates atomically',async t=>{
+  const p=await setup(44100);t.after(()=>p.processor.dispose());
+  const one=sine().adpcm.slice();one[1]=0;one[49]=1;
+  const sample=p.command('loadADPCM',[one,{baseFrequencyHz:10}]);p.command('setInstrumentPreset',[{sample}]);
+  const ramEnd=p.processor.synth.nextAddress;
+  p.command('setInstrumentNoise',[{enabled:true,clock:60}]);p.command('instrumentNoteOn',[127,'noise']);p.render(44100);
+  assert(peak(p.render(2048).left)>.001,'one-shot END and extreme sample tuning do not stop Noise');
+  const saved=p.command('getInstrument',[0]);assert.deepEqual(saved.sample.adpcm,one);assert.equal(saved.noise.enabled,true);
+  assert.equal(p.processor.synth.nextAddress,ramEnd,'Noise reuses reserved private loop slots');
+  const owners=JSON.stringify(p.command('inspect').auditions),control=p.processor.synth.core.read(0x1aa);
+  for(const value of [{enabled:1},{clock:64},{clock:-1},{clock:1.5},{clock:NaN},{extra:1}]) {
+    assert.throws(()=>p.command('setInstrumentNoise',[value]),/Noise/);
+    assert.equal(p.processor.synth.core.read(0x1aa),control);assert.equal(JSON.stringify(p.command('inspect').auditions),owners);
+  }
+  // Restore a normally tuned carrier, then switch from Noise to paired PMON.
+  p.command('setInstrumentWaveform',[sine()]);
+  pmonSettings(p,{enabled:true,waveform:'square'});
+  let state=p.command('inspect');assert.equal(state.noise.enabled,false);assert.equal(state.polyphony,12);assert.equal(state.auditions.length,0);
+  assert.equal(p.processor.synth.core.read(0x194),0);assert.equal(p.command('instrumentNoteOff',['noise']),false);
+  p.command('instrumentNoteOn',[60,'pair']);
+  p.command('setInstrumentNoise',[{enabled:false,clock:42}]);assert.equal(p.command('inspect').auditions.length,1,'editing stored Noise clock does not disable PMON');
+  p.command('setInstrumentNoise',[{enabled:true,clock:42}]);state=p.command('inspect');
+  assert.equal(state.pmon.enabled,false);assert.equal(state.pmon.waveform,'square');assert.equal(state.polyphony,24);assert.equal(state.auditions.length,0);
+  assert.equal(p.processor.synth.core.read(0x190),0);assert.equal(p.command('instrumentNoteOff',['pair']),false);
+  p.command('setInstrumentNoise',[{enabled:false,clock:42}]);assert.equal(p.processor.synth.core.read(0x194),0);
+  p.command('instrumentNoteOn',[60,'sample']);assert(peak(p.render(2048).left)>.001,'Sample playback is restored');
 });

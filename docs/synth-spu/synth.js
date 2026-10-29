@@ -28,7 +28,7 @@ function applyState(next) {
     panel.update(state);
     const sample = state.samples?.find(item => item.id === state.channels[0].sample);
     $('sampleName').textContent = `${instrumentName}${sample ? ` · ${sample.byteLength.toLocaleString()} ADPCM bytes · ${sample.loop ? 'loop' : 'one shot'}` : ''}`;
-    $('voiceAllocationStatus').textContent = `${state.pmon?.enabled ? '12 notes · paired PMON' : '24 voices · round robin'} · ${state.auditions?.length ?? 0} held`;
+    $('voiceAllocationStatus').textContent = `${state.noise?.enabled ? '24 voices · Noise · shared clock' : state.pmon?.enabled ? '12 notes · paired PMON' : '24 voices · round robin'} · ${state.auditions?.length ?? 0} held`;
   });
 }
 function audioFailed(error) {
@@ -72,7 +72,7 @@ async function invoke(method, args = []) {
   // Note owners have already awaited resume and checked their press token.
   // Do not yield again here: an Off/Stop must never overtake its pending On.
   const engine = audio ?? await ensureAudio();
-  const changesTopology = method === 'setInstrumentPmon' && Boolean(state?.pmon?.enabled) !== args[0]?.enabled;
+  const changesTopology = method === 'setInstrumentPmon' && Boolean(state?.pmon?.enabled) !== args[0]?.enabled || method === 'setInstrumentNoise' && Boolean(state?.noise?.enabled) !== args[0]?.enabled;
   if (changesTopology) {epoch++; notes.clear(); updateKeys();}
   const commandEpoch = epoch;
   const result = await engine.command(method, args);
@@ -303,7 +303,7 @@ $('savePreset').addEventListener('click', async () => {
     const engine = await ensureAudio(), name = $('instrumentName').value.trim() || 'Untitled';
     const instrument = writeSpuInstrument(name, await engine.command('getInstrument', [0]));
     download(`${name.replace(/[^\p{L}\p{N}_. -]/gu, '_')}.spu.json`, JSON.stringify(instrument));
-    status(`Saved ${name}, including its sample, ADSR, PMON and shared reverb settings.`);
+    status(`Saved ${name}, including its sample, ADSR, PMON, Noise and shared reverb settings.`);
   } catch (error) {report(error);}
 });
 $('loadPreset').addEventListener('click', () => $('presetFileInput').click());
@@ -330,6 +330,7 @@ $('presetFileInput').addEventListener('change', async () => {
     await engine.command('setInstrumentPreset', [{...instrument.preset, ...(sample ? {sample} : {})}]);
     if (operation !== assetEpoch) return;
     await engine.command('setReverb', [instrument.reverb]);
+    await engine.command('setInstrumentNoise', [instrument.noise]);
     await engine.command('setInstrumentPmon', [instrument.pmon]);
     if (operation !== assetEpoch) return;
     instrumentName = instrument.name; $('instrumentName').value = instrumentName;
@@ -348,6 +349,7 @@ $('resetPreset').addEventListener('click', async () => {
     if (operation !== assetEpoch) return;
     await engine.command('setInstrumentPreset', [{volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
     if (operation !== assetEpoch) return;
+    await engine.command('setInstrumentNoise', [{enabled:false}]);
     await engine.command('setInstrumentPmon', [{enabled:false}]);
     instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
     status('Instrument reset to Sine.'); applyState(await engine.inspect());

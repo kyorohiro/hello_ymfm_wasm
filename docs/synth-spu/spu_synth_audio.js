@@ -63,7 +63,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (!response.ok) throw new Error(`SPU WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-pmon-1', import.meta.url)),
+      context.audioWorklet.addModule(new URL('./spu_synth_worklet.js?v=spu-synth-noise-1', import.meta.url)),
     ]);
     node = new AudioWorkletNode(context, 'tetorica-spu-synth', {
       numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2],
@@ -113,8 +113,8 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         else if (method === 'setInstrumentWaveform') args = [preparePs1Waveform(args[0]), args[1]];
         else if (method === 'setInstrumentPmon') {
           const settings=readPmon(args[0]);
-          const needsSine=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth);
-          args=[settings, needsSine ? preparePs1Waveform(pmonPcm(settings.depth)) : undefined];
+          const needsWaveform=settings.enabled && (!state?.pmonSampleReserved || !state?.pmon?.enabled || settings.depth!==state.pmon.depth || settings.waveform!==state.pmon.waveform);
+          args=[settings, needsWaveform ? preparePs1Waveform(pmonPcm(settings.depth,settings.waveform)) : undefined];
         }
         return request(method, args);
       },
