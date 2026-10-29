@@ -7,7 +7,7 @@ import {createPlaygroundPs1VoicePanel} from '../playground/playground_ps1_voice_
 
 /** Reuse the PCM/ADSR/FX editors with one instrument for all keyboard voices.
  * Physical-channel inspection and audition controls belong to Playground. */
-export function createSpuInstrumentPanel({root, invoke, ...options}) {
+export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invoke, ...options}) {
   let selectedMorphEndpoint='a',morphUiState=null;
   const panel = createPlaygroundPs1VoicePanel({root, ...options, invoke(method, args = []) {
     if (method === 'setPreset' || method === 'setChannel') return invoke('setInstrumentPreset', args.slice(1));
@@ -58,6 +58,8 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
   });
   sections[0].insertBefore(morph,sampleEditors[0]);sampleEditors.push(morph);
   const morphControls=Object.fromEntries([...morph.querySelectorAll('[data-morph]')].map(node=>[node.dataset.morph,node]));
+  const performanceAmount=morphPerformanceRoot?.querySelector('[data-morph-performance-amount]');
+  const performanceOutput=morphPerformanceRoot?.querySelector('[data-morph-performance-output]');
   let lastMorph=readMorph(),morphDraft=readMorph(),morphInFlight=0,currentPcm=null;
   const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
   const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
@@ -152,7 +154,14 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
       morphControls[key].closest('.morph-endpoints>div').hidden=morphDraft.enabled&&selectedMorphEndpoint!==key;
     }
     for(const key of ['a','b'])morphControls[key].value=morphShapeName(morphDraft[key]);
-    if(morphControls.amount!==root.ownerDocument.activeElement)morphControls.amount.value=String(morphDraft.amount);
+    morphControls.amount.value=String(morphDraft.amount);
+    if(performanceAmount) {
+      performanceAmount.value=String(morphDraft.amount);
+      performanceAmount.disabled=!morphDraft.enabled||Boolean(morphUiState?.noise?.enabled);
+      const percent=Math.round(morphDraft.amount*100);
+      performanceOutput.textContent=!morphDraft.enabled?'Off':morphUiState?.noise?.enabled?'Noise':`${percent}%`;
+      performanceAmount.title=performanceAmount.disabled ? 'Enable Software morph with the Sample source in the PCM tab.' : `A ${100-percent}% / B ${percent}% · Software morph`;
+    }
     morphControls.amount.disabled=!morphDraft.enabled;
     morph.querySelector('[data-morph-output]').textContent=`A ${Math.round((1-Number(morphControls.amount.value))*100)}% / B ${Math.round(Number(morphControls.amount.value)*100)}%`;
     for(const button of morph.querySelectorAll('[data-morph-capture]'))button.disabled=!currentPcm;
@@ -166,6 +175,7 @@ export function createSpuInstrumentPanel({root, invoke, ...options}) {
   }
   morphControls.enabled.addEventListener('change',()=>void changeMorph({enabled:morphControls.enabled.checked}));
   morphControls.amount.addEventListener('input',()=>void changeMorph({amount:Number(morphControls.amount.value)}));
+  if(performanceAmount)listenMorph(performanceAmount,'input',()=>void changeMorph({amount:Number(performanceAmount.value)}));
   for(const key of ['a','b']) {
     morphControls[key].addEventListener('change',()=>void changeMorph({[key]:morphShape(morphControls[key].value)}));
     morph.querySelector(`[data-morph-capture="${key}"]`).addEventListener('click',()=>{if(currentPcm)void changeMorph({[key]:currentPcm.slice()});});

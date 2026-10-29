@@ -280,3 +280,6 @@ footer a { color: #4a5e74; }
 .morph-endpoints>div[hidden]{display:none}
 .morph-editing [data-chip-control="ps1-waveform"]{height:240px}
 @media(max-width:600px){.morph-targets{gap:8px}.morph-targets button{font-size:12px}.morph-editing [data-chip-control="ps1-waveform"]{height:200px}}
+
+.monitor-morph input{accent-color:#e0b748}
+.monitor-morph:has(input:disabled){opacity:.6}

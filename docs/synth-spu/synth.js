@@ -82,7 +82,7 @@ async function invoke(method, args = []) {
   return result;
 }
 const panel = createSpuInstrumentPanel({
-  root:$('spuVoicePanel'), invoke, ensureAudioReady:ensureAudio, onError:report,
+  root:$('spuVoicePanel'), morphPerformanceRoot:$('monitorMorph'), invoke, ensureAudioReady:ensureAudio, onError:report,
 });
 $('monitorEnvelopeMount').append(rmsCanvas);
 const editorTabs = [...document.querySelectorAll('[data-spu-editor-tab]')];

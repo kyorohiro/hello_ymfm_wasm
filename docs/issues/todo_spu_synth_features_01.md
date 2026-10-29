@@ -1,6 +1,6 @@
 # SPU Synth: 音作り機能の追加候補 — 2026-10-29
 
-ユーザー依頼で候補をTODO化。PMON→Noise→手動Morphの順で実装。公開は別途。
+ユーザー依頼で候補をTODO化。PMON→Noise→手動Morphの順で実装。2026-10-29、ユーザーより単一canvas版の公開済み報告あり。
 
 - [x] **PMON変調波形の選択**：既存SineにTriangle／Saw／Squareを追加。
   Ratio／Depth／Decayと組み合わせ、保持音にも反映。preset保存・旧形式互換、RAM再利用を維持。
@@ -10,9 +10,15 @@
   Software morphと明記し、4形状・現PCM取り込み・保持音への反映・preset保存に対応。
   On時はA／B／Resultを1つのcanvasに重ねて表示。同じcanvasでA／Bを選んで自由描画・数値編集できる。
   [作業記録](spu_synth_morph_01.md)。任意バイトの時刻指定RAM編集や実機バス精度とは区別する。
-- [ ] **Morph用LFO**：手動Morphを周期的に自動変化させる後続候補。
-- [ ] **外部入力Reverb**：マイク／音声再生等のPCMを24声とは別経路でSPU Reverbへ送る。
-  コアの入力APIとホスト音声ルーティングの追加が必要。
+
+## 現在の追加予定から除外
+
+2026-10-29のユーザー判断。以下を未完了TODOとして扱わず、実装を進めない。
+
+- **Morph用LFO**：今は不要。Morphは手動操作までとする。
+- **外部入力Reverb**：このSynthには外部入力がなく、現状不要。
+
+今回の音作り機能追加について、残っている実装TODOはない。
 
 任意voice間の自由なPMON配線は実機の隣接voice構造とは異なる機能。
 今回のPMON波形選択は既存の12組のsource→carrier構成を使う。
@@ -21,3 +27,5 @@
 46 testsと、ソース版／新規展開ZIPそれぞれChromium・WebKitで成功。未commit・未公開。
 
 手動Morph追加後のNode検証は50 tests成功。最終ブラウザ・ZIP検証は上記作業記録を参照。
+
+公開状況の最新更新は [Software morph作業記録](spu_synth_morph_01.md) を参照。「未公開」は過去の作業時点の履歴。

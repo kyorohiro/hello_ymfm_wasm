@@ -648,6 +648,24 @@ async function checkMorph(page,name) {
   const returned=await previewRead();assert.deepEqual(returned,previewsAfter,'Returning to PCM restores all overlaid traces');
   assert(!(await page.evaluate(start=>__spuSynthAudit.commands.slice(start),editorStart)).some(c=>c.method==='instrumentNoteOn'));
   await audible(page,'Drawn A/B blend while held');await page.keyboard.up('y');await settled(page);await silent(page,'Drawn Morph release');
+  const upperMorph=page.locator('#morphAmount');
+  assert.equal(await upperMorph.inputValue(),await page.locator('[data-morph="amount"]').inputValue(),'PCM amount synchronizes the upper slider');
+  await editorTab(page,'fx');await page.locator('h1').click();await page.keyboard.down('y');
+  const performanceHeld=await settled(page),performanceStart=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  const beforePerformance=await audible(page,'Before upper Morph gesture');
+  await upperMorph.scrollIntoViewIfNeeded();const upperBox=await upperMorph.boundingBox();assert(upperBox);
+  await page.mouse.move(upperBox.x+upperBox.width/2,upperBox.y+upperBox.height/2);await page.mouse.down();
+  await page.mouse.move(upperBox.x+upperBox.width/2,upperBox.y+1,{steps:8});
+  const performanceState=await settled(page),performancePcm=await audible(page,'Upper Morph before pointer release');
+  assert.equal(performanceState.morph.amount,1);assert.equal(await page.locator('[data-morph="amount"]').inputValue(),'1');
+  assert.deepEqual(performanceState.auditions,performanceHeld.auditions);assert.equal(performanceState.nextAddress,performanceHeld.nextAddress);
+  assert.notEqual(beforePerformance.channels[0].pcmFingerprint,performancePcm.channels[0].pcmFingerprint);
+  await page.mouse.up();await settled(page);assert.equal(await upperMorph.inputValue(),'1','Morph retains its value after release');
+  assert.equal(await page.locator('#pitchBend').inputValue(),'0','Morph does not change Pitch');
+  assert(!(await page.evaluate(start=>__spuSynthAudit.commands.slice(start),performanceStart)).some(c=>c.method==='instrumentNoteOn'));
+  await page.keyboard.up('y');await settled(page);await silent(page,'Upper Morph note release');
+  await set('amount',.5);assert.equal(await upperMorph.inputValue(),'0.5');
+
 
   const layouts=[];
   for(const width of [1440,390]) {
@@ -655,31 +673,33 @@ async function checkMorph(page,name) {
     const sizes=await page.locator('.spu-morph').evaluate(node=>({scroll:node.scrollWidth,client:node.clientWidth,document:document.documentElement.scrollWidth}));
     assert(sizes.scroll<=sizes.client+1);assert(sizes.document<=width+1);
     const screenshot=config.screenshots?path.join(config.screenshots,`${name}-morph-${width}.png`):null;
-    if(screenshot)await page.locator('.spu-morph').screenshot({path:screenshot});layouts.push({width,...sizes,screenshot});
+    if(screenshot){await page.locator('.spu-morph').screenshot({path:screenshot});await page.locator('#spuMonitor').screenshot({path:path.join(config.screenshots,`${name}-dual-morph-${width}.png`)});}layouts.push({width,...sizes,screenshot});
   }
   await page.setViewportSize({width:1440,height:1100});
   await set('amount',.37);await page.locator('#instrumentName').fill('Software Morph');
   const download=page.waitForEvent('download');await page.locator('#savePreset').click();
   const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
   assert(preset.morph.enabled);assert.equal(preset.morph.amount,.37);
-  await set('enabled',false);assert.deepEqual((await current(page)).channels[0].waveform.pcm,preset.waveform,'Off freezes blend');
+  await set('enabled',false);assert(await upperMorph.isDisabled());assert.deepEqual((await current(page)).channels[0].waveform.pcm,preset.waveform,'Off freezes blend');
   await shape(page,'sine');assert(!(await settled(page)).morph.enabled);
   await page.locator('#presetFileInput').setInputFiles({name:'morph.spu.json',mimeType:'application/json',buffer:bytes});
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
   assert.deepEqual((await settled(page)).morph,preset.morph);assert(await page.locator('[data-morph="enabled"]').isChecked());
+  assert.equal(await upperMorph.inputValue(),'0.37','Preset load updates both controls');
   await editorTab(page,'fx');await page.locator('[data-pmon="enabled"]').check();await settled(page);
   await page.locator('h1').click();await page.keyboard.down('y');const paired=await settled(page);
   await set('amount',.75);assert.deepEqual((await current(page)).auditions,paired.auditions);assert((await current(page)).pmon.enabled);
   await audible(page,'Software morph with PMON');await page.keyboard.up('y');await page.locator('#stopAudio').click();await silent(page,'Morph PMON Stop');
   await editorTab(page,'pcm');await page.locator('[data-noise="source"]').selectOption('noise');await settled(page);
   assert(!(await page.locator('.spu-morph').isVisible()));
+  assert(await page.locator('#morphAmount').isDisabled(),'Noise disables the performance Morph control');
   await page.locator('[data-noise="source"]').selectOption('sample');await settled(page);assert(await page.locator('.spu-morph').isVisible());
   delete preset.morph;
   await page.locator('#presetFileInput').setInputFiles({name:'legacy-morph.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
   assert(!(await settled(page)).morph.enabled);
   await page.locator('#resetPreset').click();assert(!(await settled(page)).morph.enabled);
-  return {softwareLabel:true,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
+  return {softwareLabel:true,dualMorphControls:true,upperMorphWorksOutsidePcm:true,morphRetainsOnRelease:true,performancePcm,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.
@@ -891,12 +911,15 @@ async function runCase(browser, name, origin) {
       for (const [mode, editor] of [['envelope', 'pcm'], ['waveform', 'pcm'], ['spectrum', 'pcm'], ['envelope', 'adsr'], ['envelope', 'fx'], ['envelope', 'audio']]) {
         await monitorMode(page, mode); await editorTab(page, editor);
         const dimensions = await page.evaluate(() => {
-          const plot = document.querySelector('.monitor-plot').getBoundingClientRect(), pitch = document.getElementById('pitchBend').getBoundingClientRect();
+          const plot = document.querySelector('.monitor-plot').getBoundingClientRect(), pitch = document.getElementById('pitchBend').getBoundingClientRect(), morph = document.getElementById('morphAmount').getBoundingClientRect();
           const bodyBackground = getComputedStyle(document.body).backgroundColor;
-          return {viewport:innerWidth, document:document.documentElement.scrollWidth, plot:{left:plot.left, right:plot.right, top:plot.top, bottom:plot.bottom}, pitch:{left:pitch.left, right:pitch.right, top:pitch.top, bottom:pitch.bottom}, background:bodyBackground === 'rgba(0, 0, 0, 0)' ? getComputedStyle(document.documentElement).backgroundColor : bodyBackground, bodyBackgroundImage:getComputedStyle(document.body).backgroundImage};
+          return {viewport:innerWidth, document:document.documentElement.scrollWidth, plot:{left:plot.left, right:plot.right, top:plot.top, bottom:plot.bottom}, pitch:{left:pitch.left, right:pitch.right, top:pitch.top, bottom:pitch.bottom}, morph:{left:morph.left,right:morph.right,top:morph.top,bottom:morph.bottom}, background:bodyBackground === 'rgba(0, 0, 0, 0)' ? getComputedStyle(document.documentElement).backgroundColor : bodyBackground, bodyBackgroundImage:getComputedStyle(document.body).backgroundImage};
         });
         assert(dimensions.document <= dimensions.viewport + 1, 'SPU Synth fits ' + label + ': ' + JSON.stringify(dimensions));
         assert(dimensions.pitch.left >= dimensions.plot.right - 2, 'Pitch remains beside the ' + mode + ' display at ' + label + ': ' + JSON.stringify(dimensions));
+        assert(dimensions.morph.left>dimensions.pitch.right,'Morph remains beside Pitch');
+        assert(dimensions.morph.bottom-dimensions.morph.top>dimensions.morph.right-dimensions.morph.left,'Morph uses a vertical slider');
+        assert(dimensions.plot.right-dimensions.plot.left>=100,'The monitor remains visible beside both sliders');
         assert(dimensions.pitch.bottom - dimensions.pitch.top > dimensions.pitch.right - dimensions.pitch.left, 'Pitch uses a vertical slider at ' + label);
         layouts.push({label, mode, editor, ...dimensions});
         if (config.screenshots) {const filename = path.join(config.screenshots, `${name}-spu-synth-${label}-${mode}-${editor}.png`); await page.screenshot({path:filename, fullPage:true}); screenshots.push({label, mode, editor, path:filename, ...dimensions});}

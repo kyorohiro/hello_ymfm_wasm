@@ -64,6 +64,11 @@
               <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Pitch bend, minus two to plus two semitones" orient="vertical">
               <output id="pitchValue" for="pitchBend">0.00</output>
             </label>
+            <label id="monitorMorph" class="monitor-pitch monitor-morph" for="morphAmount" title="Software morph: A at the bottom, B at the top. Enable Software morph in the PCM tab.">
+              <span>Morph</span>
+              <input id="morphAmount" data-morph-performance-amount type="range" min="0" max="1" step="0.01" value="0" aria-label="Software morph amount, A to B" orient="vertical" disabled>
+              <output data-morph-performance-output for="morphAmount">Off</output>
+            </label>
           </div>
         </section>
 
