@@ -33,6 +33,36 @@ test('PS1 client forwards decoded envelopes and shared reverb, validates before 
  const count=p.posts.length;assert.throws(()=>p.client.setEnvelope(23,{attackRate:128}),/attackRate/);assert.throws(()=>p.client.setReverb({preset:'delay'}),/preset/);assert.throws(()=>p.client.setPreset(23,{reverb:1}),/boolean/);assert.equal(p.posts.length,count);
  await p.client.getState();assert.equal(p.posts.filter(post=>post.method==='setEnvelope').length,2);assert.equal(p.posts.filter(post=>post.method==='setReverb').length,2);
 });
+test('PS1 client forwards owned live options for every public ADSR setter and rejects invalid options before posting',async t=>{
+ const p=rpc();t.after(()=>p.close());const options={live:false};
+ p.client.setPreset(23,{adsr1:0x100f},options);options.live=true;
+ p.client.setChannel(23,{adsr2:0x3fc0},{live:true});p.client.setEnvelope(23,{attackRate:32},{live:false});
+ p.client.setEnvelope(23,{releaseRate:8});await p.client.getState();
+ const writes=p.posts.filter(value=>['setPreset','setChannel','setEnvelope'].includes(value.method));
+ assert.deepEqual(writes.map(value=>({method:value.method,options:value.args[2],arity:value.args.length})),[
+  {method:'setPreset',options:{live:false},arity:3},{method:'setChannel',options:{live:true},arity:3},
+  {method:'setEnvelope',options:{live:false},arity:3},{method:'setEnvelope',options:undefined,arity:2},
+ ]);
+ const before=p.client._getState(),count=p.posts.length;
+ for(const method of ['setPreset','setChannel','setEnvelope'])for(const value of [null,[],{live:1},{live:'false'},{unexpected:true}]){
+  assert.throws(()=>p.client[method](23,method==='setEnvelope'?{attackRate:17}:{adsr1:0x110f},value),/options|live/);
+  assert.deepEqual(p.client._getState(),before);assert.equal(p.posts.length,count);
+ }
+});
+for(const route of ['Main','Worker','independent extra'])test(`PS1 ${route} transport retains explicit live false and default live controls`,()=>{
+ const posts=[],wire={postMessage:data=>posts.push(data),start(){},close(){}},sender=createPerformanceSender({now:()=>1000,getLoop:()=>({performanceOwner:'lead'})});
+ sender.configure({session:1,audioSeconds:2,performanceEpochMs:1000,lookaheadSeconds:.5});
+ const port=route==='Worker'?sender.port(wire,'ps1'):route==='independent extra'?sender.port(wire,'ps1:extra'):wire;
+ const client=createPs1Client(port);
+ try{
+  client.setPreset(23,{adsr1:0x100f},{live:false});client.setChannel(23,{adsr2:0x3fc0},{live:false});client.setEnvelope(23,{attackRate:32},{live:false});
+  client.setEnvelope(23,{releaseRate:8});
+  const commands=posts.flatMap(value=>value.commands??[value]);
+  assert.deepEqual(commands.slice(0,3).map(value=>value.args[2]),Array.from({length:3},()=>({live:false})));
+  assert.equal(commands[3].args.length,2,'Omitting the option retains the public default');
+  if(route!=='Main')assert(posts.every(value=>value.performance?.time===2.5),'Optional live mode does not bypass lookahead timing');
+ }finally{sender.stop();client.dispose();}
+});
 test('PS1 reset and disposal fence late upload replies without adopting stale sample metadata',async t=>{
  const p=rpc();t.after(()=>p.close());const{adpcm,...options}=createPs1InitSample();const stale=p.client.loadADPCM(adpcm,options);p.client.reset({clearRam:true});await assert.rejects(stale,{name:'AbortError'});assert.equal(p.client._getState().samples.length,0);assert.equal((await p.client.loadADPCM(adpcm,options)).id,0);const pending=p.client.snapshot();p.client.dispose();await assert.rejects(pending,{name:'AbortError'});assert.throws(()=>p.client.keyOn(0),/disposed/);
 });

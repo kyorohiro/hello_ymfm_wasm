@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /** PS1 register authoring and instrument metadata stay in JavaScript. The SPU,
  * sample RAM, envelopes, reverb and resampling execute on the Native callback. */
-import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js?v=ps1-live-controls-1';
-import {PS1_REVERB_PRESETS} from './ps1_parameters.js?v=ps1-voice-editor-1';
-import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-live-controls-1';
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-controls-1';
+import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js?v=ps1-live-api-1';
+import {PS1_REVERB_PRESETS,patchPs1Envelope} from './ps1_parameters.js?v=ps1-voice-editor-1';
+import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-live-api-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-live-api-1';
 
 export const PS1_MEMORY_HELD_ERROR='Release the manually held PS1 voice before replacing its sample RAM or state';
 export const PS1_STATE_HELD_ERROR=PS1_MEMORY_HELD_ERROR;
@@ -36,10 +36,21 @@ function copyShadow(target,source){target.registers.set(source.registers);const 
 export function nativePs1Operations(target,method,args=[],{partial=false}={}){
   if(!nativePs1Controls.has(method)&&!inspectorControls.has(method)&&!['loadADPCM','_setWaveformPrepared','stopVoices'].includes(method))throw new Error(`Unsupported Native PS1 operation: ${method}`);
   let commands=target.collect(method,args);
-  if(partial&&['setPreset','setChannel','setEnvelope'].includes(method)){
-    const keys=method==='setEnvelope'?['adsr1','adsr2']:Object.keys(args[1]),offsets=new Set();
+  if(['setPreset','setChannel','setEnvelope'].includes(method)){
+    const keys=method==='setEnvelope'?['adsr1','adsr2']:Object.keys(args[1]).filter(key=>args[1][key]!==undefined),offsets=new Set();
     for(const key of keys)for(const offset of ({sample:[6,14],volumeLeft:[0],volumeRight:[2],adsr1:[8],adsr2:[10],pitch:[4],reverb:[0x198,0x19a]})[key]??[])offsets.add(offset);
-    commands=commands.filter(c=>c.method!=='write'||offsets.has(c.register<0x180?c.register%16:c.register));
+    let masks;
+    if(method==='setEnvelope'){
+      // A named field overrides the same bits regardless of the initial word;
+      // untouched bits differ between these two patches. Merge only the named
+      // bits into the callback's applied registers, never projected futures.
+      const zero=patchPs1Envelope(0,0,args[1]),ones=patchPs1Envelope(65535,65535,args[1]);
+      masks=new Map([[8,(~(zero.adsr1^ones.adsr1))&65535],[10,(~(zero.adsr2^ones.adsr2))&65535]]);
+    }
+    commands=commands.filter(c=>c.method==='write'&&offsets.has(c.register<0x180?c.register%16:c.register))
+      .flatMap(c=>{const mask=masks?.get(c.register%16);return mask===0?[]:[mask===undefined?c:{...c,mask}];});
+    const envelopeRequested=method==='setEnvelope'?[...masks.values()].some(Boolean):keys.some(key=>key==='adsr1'||key==='adsr2');
+    if(envelopeRequested&&args[2]?.live!==false)commands.push({method:'refresh-envelope',channel:args[0],ifChanged:true});
   }
   return commands;
 }
@@ -93,6 +104,7 @@ export function createNativeGenesisPs1(owner,{additional=false}={}){
     try{
       if(method==='reset'&&leases.size)throw new Error(PS1_STATE_HELD_ERROR);
       const commands=nativePs1Operations(projected,method,args);
+      if(!commands.length){operations.delete(op);return Promise.resolve();}
       if(method==='reset'){resourceVersion++;if(args[0]?.clearRam)bankVersion++;messages=commands.filter(c=>c.method!=='write');messages.push({method:'batch',action:'edit',commands:commands.filter(c=>c.method==='write')});}
       else if(method==='allNotesOff')messages=[{method:'all-notes-off'}];
       else{

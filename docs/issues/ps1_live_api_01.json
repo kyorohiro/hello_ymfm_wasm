@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "scope": "PS1 instrument API live ADSR without sample or envelope restart",
+  "publicMethods": [
+    "setEnvelope",
+    "setPreset",
+    "setChannel"
+  ],
+  "options": {
+    "liveDefault": true,
+    "defer": {
+      "live": false
+    }
+  },
+  "behavior": {
+    "refreshAfterCompleteAdsrPatch": true,
+    "changedExplicitAdsrOnly": true,
+    "sameValueAndNonAdsrEditsDoNotRefresh": true,
+    "phaseAndCurrentLevelPreserved": true,
+    "releaseSupportedWithGateFalse": true,
+    "sustainLevelRemainsDecayTarget": true,
+    "inspectorOwnLiveCheckboxPreserved": true,
+    "rawCapiAndWasmUnchanged": true,
+    "fixedSdk": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.7",
+      "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+      "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+      "archiveSha256": "cf1e9c7a0426d72d04d470a9a24948659514fbe5247866631d24cc764a77fc71",
+      "manifestSha256": "3fb8a6302e7d4b7f0b5f4ed4b55ceb5572b45a7cfd96735308ec75f91c629964",
+      "fileCount": 455,
+      "localCandidate": {
+        "baseCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+        "changedPaths": [
+          "CHANGELOG.md",
+          "catalog/source_inventory.json",
+          "docs/chip-differences.md",
+          "native/reference/SOURCES.json",
+          "native/tests/ps1_spu_fixture.cpp",
+          "scripts/build_ps1_spu_wasm.sh",
+          "sdk.json",
+          "vendor/mame-ps1-spu/README.md",
+          "vendor/mame-ps1-spu/ps1_spu.cpp",
+          "vendor/mame-ps1-spu/ps1_spu.h",
+          "vendor/mame-ps1-spu/spu.cpp",
+          "vendor/mame-ps1-spu/spu.h"
+        ]
+      }
+    },
+    "nativeAppliedStateMaskMerge": true,
+    "nativeConditionalRefreshAtApplication": true
+  },
+  "evidence": {
+    "offline": "docs/issues/ps1_live_api_offline_01.json",
+    "sourceBrowser": "docs/issues/ps1_live_api_browser_01.json",
+    "runBrowser": "docs/issues/ps1_live_api_run_browser_01.json"
+  },
+  "validation": {
+    "jsActualCore": {
+      "passed": 84
+    },
+    "nativeJs": {
+      "passed": 19
+    },
+    "nativeLinkedPs1": {
+      "passed": 18
+    },
+    "nativeRegression": {
+      "passed": 763,
+      "ignored": 2,
+      "filtered": 38,
+      "physicalDevice": false
+    },
+    "calibration": {
+      "passed": 374,
+      "priorSevenRawReportsUnchanged": true
+    },
+    "sourceBrowser": {
+      "routes": 4,
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    "bundledBrowser": {
+      "routes": 2,
+      "passed": true,
+      "physicalOutputMuted": true
+    },
+    "types": {
+      "allPlaygroundModes": true,
+      "installedNodeNext": true,
+      "installedBundler": true,
+      "browserWithoutNodeTypes": true
+    },
+    "npmLocal": {
+      "modules": 335,
+      "wasmEngines": 28,
+      "declarations": 385,
+      "files": 1004,
+      "tarballBytes": 1956909,
+      "unpackedBytes": 7419039,
+      "isolatedInstallPassed": true
+    }
+  },
+  "nativeFiles": {
+    "web/ps1synth.js": {
+      "sha256": "1594afe3fc1307cb8acabc4319af4e81487db18e483c48ae85f9f300e411a4d4"
+    },
+    "web/playground_ps1.js": {
+      "sha256": "29c8d1ac8c6dc2fa68f55701a54caadeb30187795cf79b57fefe12c4167dc0ce"
+    },
+    "web/playground_ps1_inspector.js": {
+      "sha256": "a510d1863c8d5e05eba042ea1b3089ebcffea54404283c9aaa073fef98b67a38"
+    },
+    "web/native_genesis_ps1.js": {
+      "sha256": "a1af1d03b76153871cdfc681b67e0dae219f56a2fbcffc0239004938987bccef"
+    },
+    "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_ps1.rs": {
+      "sha256": "c69d223cdee89cd3834fc915491dbdef7cbdb1e430b61fd81f4939f86034c724"
+    }
+  },
+  "calibration": {
+    "ps1": {
+      "path": "docs/issues/ps1_chip_levels_live_api_01.json",
+      "sha256": "aa8131789aee18ba5d3e029ba60aa00906018f03b3661e7546d69ed7cb43d2ce",
+      "rows": 48,
+      "anchors": 8,
+      "clockAnomalies": 0
+    },
+    "wonderswan": {
+      "path": "docs/issues/wonderswan_chip_levels_live_api_01.json",
+      "sha256": "c17e2bd45627eae9a245471e4b8725f20242a65c2293fc35e6766fa74f9c1005",
+      "rows": 48,
+      "anchors": 8,
+      "clockAnomalies": 0
+    },
+    "pokey": {
+      "path": "docs/issues/pokey_chip_levels_live_api_01.json",
+      "sha256": "5232823e3c3db0990b94b94ee4529622b3775c3013db0757800e1a04aa913621",
+      "rows": 96,
+      "anchors": 8,
+      "clockAnomalies": 0
+    }
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_ps1-live-api-dev_itch_playground.zip",
+      "sha256": "627410d3b2c80166d9ecce7f7d63036aefa3185641edd3f713edad57abe67e77",
+      "bytes": 37018389,
+      "entries": 1188,
+      "files": 1067,
+      "crc": true
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-live-api-dev_itch_playground_for_run.zip",
+      "sha256": "6f2525d0d141eab95cc581a357559a586bc3965312564799e79667a3a0b74952",
+      "bytes": 37410632,
+      "entries": 931,
+      "files": 931,
+      "crc": true
+    }
+  ],
+  "attemptHistory": [
+    {
+      "attempt": 1,
+      "scope": "source browser",
+      "status": "failed in final WebKit/Worker route",
+      "cause": "Test used a 0.5-second post-edit wait at the exact 0.5-second Worker reservation lead; immediate readback could still show the previous settings. The corrected test waits 1 second, beyond that lead.",
+      "log": "/private/tmp/ps1-live-api-browser-attempt1.log"
+    },
+    {
+      "attempt": 2,
+      "scope": "source browser",
+      "status": "failed at Chromium/Worker startup",
+      "cause": "HTTP 404 for playground_mixer_defaults.js; cause not established. Subsequent complete source and bundled runs passed; no startup acceptance checks were relaxed.",
+      "log": "/private/tmp/ps1-live-api-browser-attempt2.log"
+    },
+    {
+      "attempt": 3,
+      "scope": "source browser",
+      "status": "passed all four routes",
+      "log": "/private/tmp/ps1-live-api-browser-attempt3.log"
+    }
+  ],
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "npm": false,
+    "sdk": false,
+    "itch": false,
+    "remoteCi": false
+  },
+  "limitations": [
+    "No human listening or physical-device/Tauri-GUI result is claimed by automated PCM checks.",
+    "Raw Ps1Spu.write retains key-on-latched ADSR; ordinary Synth setters explicitly invoke the existing live extension.",
+    "Sustain Level is a Decay threshold, not a direct volume override during Sustain."
+  ],
+  "tauriFrontendImport": {
+    "files": 1066,
+    "sha256": "627410d3b2c80166d9ecce7f7d63036aefa3185641edd3f713edad57abe67e77",
+    "lockVerified": true,
+    "sdkPinVerified": true
+  }
+}

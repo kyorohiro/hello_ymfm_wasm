@@ -30,6 +30,14 @@ async function checkPs1ModeTypes() {
   spu.setPreset(23, {sample,volumeLeft:0.7,volumeRight:-0.7,adsr1:15,adsr2:8});
   spu.setChannel(0,{sample:sample.id});spu.setPitch(0,4096);spu.setFrequency(0,440);spu.setNote(0,'A4');
   spu.setEnvelope(23,{attackRate:40,attackExponential:true,decayRate:4,sustainLevel:8,sustainRate:127,sustainDecrease:true,sustainExponential:false,releaseRate:8,releaseExponential:true});
+  spu.setEnvelope(23,{sustainRate:60},{live:true});
+  spu.setEnvelope(23,{attackRate:80},{live:false});
+  spu.setPreset(23,{adsr1:15},{live:false});
+  spu.setChannel(23,{adsr2:0},{live:true});
+  // @ts-expect-error Live ADSR is explicitly boolean.
+  spu.setEnvelope(23,{attackRate:80},{live:1});
+  // @ts-expect-error Unknown envelope update options are rejected.
+  spu.setPreset(23,{adsr1:15},{retrigger:true});
   spu.setPreset(23,{reverb:true});spu.setReverb({preset:'hall',volumeLeft:.25,volumeRight:.3});
   (await spu.getState()).reverb.preset.toUpperCase();(await spu.getState()).channels[23].envelopeParameters.attackRate.toFixed();
   (await spu.getState()).channels[23].waveform?.pcm[0].toFixed();

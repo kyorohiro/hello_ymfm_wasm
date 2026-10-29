@@ -120,7 +120,14 @@ file/microphone input, drawing, loop alignment, actual SPU preview and saving.
 `setPreset` / `setChannel` accept sample ID or descriptor, signed normalized
 `volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words, pitch and
 a per-voice boolean `reverb` send. `setEnvelope(channel, partial)` changes named
-ADSR fields while preserving the other raw bits. It does not retrigger notes.
+ADSR fields while preserving the other raw bits. Changed ADSR words update the
+current envelope stage without resetting its level or sample position. This
+works while Attack, Decay, Sustain or Release is active. Attack settings do not
+restart an already-sustaining voice, and Sustain Level remains the Decay target.
+`setEnvelope(channel, partial, {live:false})` skips this live refresh. The same
+optional third argument works with `setPreset()` and `setChannel()`. Volume-only,
+pitch-only, sample-only and unchanged ADSR edits do not refresh pending values.
+A later explicit live ADSR edit refreshes the complete registered envelope.
 `setReverb({preset, volumeLeft, volumeRight})` changes the shared effect; its
 return levels accept `0..1`. Both APIs accept partial updates. Defaults are
 `preset:'off'`, requested returns `0.25` on each side, and sends disabled.
@@ -275,10 +282,11 @@ root-note/tuning metadata. Raw ADPCM stores no sample rate or root note.
 The port retains MAME's linear interpolation, floating-point ADSR rate
 approximations and preset-based approximate reverb. It is experimental and does
 not claim hardware-exact sound or game soundtrack compatibility. Raw ADSR
-register writes and the public Synth setters apply at the next key-on; pitch
-and fixed volumes can update active voices. The editor explicitly uses the
-`refreshEnvelope()` and `auditionKey()` extensions for live ADSR and smooth
-manual audition. These are instrument extensions, not hardware register modes.
+register writes retain the original core's key-on-latched behavior; the public
+Synth ADSR setters explicitly use `refreshEnvelope()` to update a running
+stage. Pitch and fixed volumes can also update active voices. The editor uses
+`auditionKey()` for smooth manual transitions and preserves its own live-edit
+checkbox independently of the normal API default. These are instrument extensions, not hardware register modes.
 In this pinned implementation's rate tables, index zero is fastest; higher
 indexes are slower or stop. Hardware ADSR presets should not be assumed to
 produce cycle-accurate envelopes through these approximations.

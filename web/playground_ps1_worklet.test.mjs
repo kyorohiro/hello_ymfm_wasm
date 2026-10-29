@@ -177,6 +177,52 @@ for(const rate of [44100,48000])test(`PS1 live ADSR preserves held PCM phase and
  a.processor.inspector.invoke('auditionOff',[23,'held']);a.render(512);assert.equal(peak(a.render(128).left),0);
 });
 
+for(const rate of [44100,48000])for(const route of ['Main','Worker'])test(`public PS1 ${route} ADSR defaults are live and explicit deferral survives unrelated edits at ${rate} Hz`,async t=>{
+ const a=await setup(rate),b=await setup(rate);t.after(()=>{a.close();b.close();});
+ const attach=async p=>{
+  if(route==='Main')return p.client;
+  const channel=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:channel.port1}});
+  const client=createPs1Client(channel.port2,p.metadata);t.after(()=>{client.dispose();channel.port1.close();});await client.getState();return client;
+ };
+ const ac=await attach(a),bc=await attach(b);
+ for(const client of [ac,bc]){client.setPreset(23,{adsr1:15,adsr2:0x2000});client.noteOn(23,69);await client.getState();}
+ assert.deepEqual(a.render(1009).left,b.render(1009).left);
+ const core=a.processor.synth.core,writes=[],write=core.write.bind(core);core.write=(register,value)=>{writes.push(register);write(register,value);};
+ ac.setEnvelope(23,{attackRate:100});bc.setEnvelope(23,{attackRate:100},{live:false});await ac.getState();await bc.getState();
+ assert.deepEqual(a.render(2048).left,b.render(2048).left,'Default live AR editing preserves an existing sustain phase');
+ for(const client of [ac,bc]){
+  client.setEnvelope(23,{sustainRate:60,sustainDecrease:true},{live:false});
+  client.setPreset(23,{adsr2:0x2000|0x4000|(60<<6)},{live:true});
+  client.setChannel(23,{volumeLeft:.75,volumeRight:.75,pitch:Math.round(4096*440/(44100/112))});
+  await client.getState();
+ }
+ assert.deepEqual(a.render(4096).left,b.render(4096).left);
+ assert.equal(a.processor.inspector.read().channels[23].envelope,0x7fff,'Deferred sustain is not flushed by same-value ADSR, volume or pitch patches');
+ ac.setChannel(23,{adsr2:0x2000|0x4000|(40<<6)});bc.setChannel(23,{adsr2:0x2000|0x4000|(40<<6)},{live:false});
+ await ac.getState();await bc.getState();
+ const changed=a.render(4096).left,held=b.render(4096).left,energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
+ assert.equal(changed[0],held[0]);assert(energy(changed)<energy(held)*.8,'The next changed ADSR field applies live through the public client');
+ assert.equal(b.processor.inspector.read().channels[23].envelope,0x7fff);
+ assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'Public envelope changes never generate KON/KOFF');
+});
+
+test('owned same-value live edits do not reschedule an attack or flush deferred sustain rates',async t=>{
+ const a=await setup(),b=await setup();t.after(()=>{a.close();b.close();});
+ for(const p of[a,b]){p.processor.inspector.invoke('setPreset',[23,{adsr1:(61<<8)|15,adsr2:0x3fc0}]);p.processor.inspector.invoke('auditionOn',[23,69,'held']);}
+ assert.deepEqual(a.render(1009).left,b.render(1009).left);
+ const core=a.processor.synth.core,refresh=core.refreshEnvelope.bind(core);let calls=0;
+ core.refreshEnvelope=ch=>{calls++;refresh(ch);};
+ a.processor.inspector.invoke('setEnvelope',[23,{attackRate:61},{live:true}]);
+ a.processor.inspector.invoke('setPreset',[23,{adsr1:(61<<8)|15},{live:true}]);
+ assert.equal(calls,0,'Quantized same-value edits never recalculate a running stage');
+ assert.deepEqual(a.render(4096).left,b.render(4096).left,'An owned attack keeps its exact sample phase and envelope progression');
+ for(const p of[a,b]){p.processor.inspector.invoke('setEnvelope',[23,{attackRate:0},{live:true}]);p.render(512);p.processor.inspector.invoke('setEnvelope',[23,{sustainRate:60,sustainDecrease:true},{live:false}]);}
+ calls=0;a.processor.inspector.invoke('setEnvelope',[23,{sustainRate:60,sustainDecrease:true},{live:true}]);
+ a.processor.inspector.invoke('setPreset',[23,{volumeLeft:.75,volumeRight:.75},{live:true}]);
+ assert.equal(calls,0,'Same-value live true is not an implicit apply-deferred button');
+ assert.deepEqual(a.render(8192).left,b.render(8192).left);assert.equal(a.processor.inspector.read().channels[23].envelope,0x7fff);
+});
+
 test('PS1 inspector edits run in a Worklet without structuredClone and own scalar patches',async t=>{
  const p=await setup();t.after(()=>p.close());const i=p.processor.inspector,clone=globalThis.structuredClone;
  try{

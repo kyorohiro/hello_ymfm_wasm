@@ -63,6 +63,31 @@ try{
   assert.equal(deferred.core.read(12),0x7fff,'With live disabled, the current sustain remains unchanged');
   assert(edited.core.read(12)>0&&edited.core.read(12)<0x7fff);
   assert.deepEqual(edited.synth.samples,deferred.synth.samples,'ADSR editing retains all sample descriptors');
+  const publicEnvelope={};
+  for(const method of ['setEnvelope','setPreset','setChannel']){
+    const live=await create(true),latched=await create(true);
+    for(const voice of [live,latched]){voice.synth.noteOn(0,'A4');render(voice,2048);}
+    const before=live.core.nativeFrames,level=live.core.read(12);
+    live.synth.setEnvelope(0,{attackRate:61});
+    latched.synth.setEnvelope(0,{attackRate:61},{live:false});
+    assert.equal(live.core.read(12),level);assert.equal(live.core.nativeFrames,before);
+    const attack=render(live,8192),sameAttack=render(latched,8192);
+    assert.deepEqual(attack,sameAttack,'Public AR during Sustain preserves phase and level');
+    const patch=method==='setEnvelope'?{sustainRate:60,sustainDecrease:true}:{adsr2:0x4000|(60<<6)};
+    live.synth[method](0,patch);
+    latched.synth[method](0,patch,{live:false});
+    // A non-envelope edit and a same-value ADSR write must not flush the deferred slope.
+    latched.synth.setPreset(0,{volumeRight:0});
+    latched.synth[method](0,patch);
+    assert.equal(live.core.nativeFrames,before+8192);
+    assert.equal(live.core.read(12),level,'Public setters retain the starting envelope level');
+    const pcm=render(live,16384),deferredPcm=render(latched,16384);
+    assert.equal(pcm.left[0],deferredPcm.left[0],'Public edit keeps the first sample and phase');
+    const first=rms(pcm.left.subarray(0,1024)),last=rms(pcm.left.subarray(-1024));
+    assert(last>0&&last<first*.85,'Ordinary public '+method+' applies a live Sustain slope');
+    assert.equal(latched.core.read(12),0x7fff,'Explicit deferred, volume-only and unchanged edits stay latched');
+    publicEnvelope[method]={firstSustainRms:first,lastSustainRms:last,ratio:last/first,attackDuringSustainPcmBitExact:true,phasePreserved:true,explicitDeferredAndUnrelatedEditsStayLatched:true,pcmSha256:pcmHash(pcm)};
+  }
   const oldRelease=await create(true),control=await create(true);
   for(const voice of [oldRelease,control]){voice.inspector.invoke('auditionOn',[0,69,'old']);render(voice,512);voice.inspector.invoke('auditionOn',[0,72,'new']);render(voice,7);}
   assert.equal(oldRelease.inspector.invoke('auditionOff',[0,'old']),false,'A delayed release cannot cancel a replacement note');
@@ -74,6 +99,7 @@ try{
   assert.deepEqual(released,expectedReleased);assert(released.left.subarray(256).every(value=>value===0));
   const report={schemaVersion:1,passed:true,browserUsed:false,physicalAudio:false,timersUsed:false,core:'actual deployed PS1 SPU WASM',wasmSha256:hash(wasmBinary),transitions,
     liveEnvelope:{attackDuringSustainPcmBitExact:true,comparedStereoFrames:8192,pcmSha256:pcmHash(attackEdited),firstSustainRms:firstRms,lastSustainRms:lastRms,sustainRatio:lastRms/firstRms,liveDisabledDefersSustain:true,initialPcmSampleUnchanged:true,sampleBankUnchanged:true},
+    publicEnvelope,
     noteOwnership:{staleReleaseIgnored:true,replacementPcmBitExact:true,comparedStereoFrames:1024,pcmSha256:pcmHash(replacement),finalOwnerReleases:true}};
   if(args.length)await writeFile(resolve(args[1]),JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report,null,2));

@@ -1,3 +1,13 @@
+## 2026-10-29 — PS1の通常APIにもlive ADSRを適用
+
+- `spu.setEnvelope()`／`setPreset()`／`setChannel()`は、変更したADSRを発音中の現在stageへ標準で反映する。再発音せず、現在level／sample位置を保持。第3引数`{live:false}`で保留できる。同値ADSRやvolume／pitch／sampleだけの変更は保留値をrefreshしない。SPUタブのcheckboxと手動noteの所有権は維持。Sustain LevelはDecayの目標であり、Sustain中の直接音量には変更していない。
+- Nativeは予約用projected stateと実適用stateの順序差を修正。指定fieldだけを送り、named ADSRはfield maskで実registerへmergeし、batch前後の実値が変わった場合だけrefreshする。Main／Worker、主音源／追加SPUに対応。raw C API／C++／WASM／固定SDKは今回変更なし。SDK原本repoはclean、0.1.7未公開local candidateのpinは前回のまま。
+- JS84件、linked Native PS1 18件、Native regression763件成功（既存device／benchmark2ignored）。実WASM offline、source Chromium／WebKit×Main／Worker4経路、実Run ZIP WebKit×Main／Worker2経路で通常API3種・明示保留・Keyboard・ADSR図・PCM・FX・他voice・Stop等を確認。物理出力mute、実聴／Tauri GUI／remote CIは未実施。
+- PS1／WonderSwan／POKEYを全条件で新raw測定し、`*_chip_levels_live_api_01.json`へ保存。旧7rawはbyte不変。最新hashのfreshness、374校正／履歴／generator試験と両generator --check成功。PS1 .128832／WS 1.172528維持、POKEYは新測定の丸めでprimary／extra .413033、dual両側 .413034（前回比最大0.00145%）。全pilot連続、今回clock診断0件。
+- 完全ZIP SHA256 `627410d3b2c80166d9ecce7f7d63036aefa3185641edd3f713edad57abe67e77`、Run ZIP SHA256 `6f2525d0d141eab95cc581a357559a586bc3965312564799e79667a3a0b74952`（931files）、両CRC成功。Tauriへ完全ZIPの1,066非metadata payloadをimportしlock／SDK確認済み。npmローカルbuild・隔離install・実PCM・型検証成功。Tauriは再buildで反映する。
+- 詳細：[ps1_live_api_01.md](ps1_live_api_01.md)／[JSON](ps1_live_api_01.json)。source browser初回のWorker readback時刻不足は試験待ち時間を修正。2回目のstartup HTTP404は原因未確定として記録し、3回目全4経路と実ZIP2経路が成功。失敗記録を削除していない。
+- **本体・Tauriに未commit変更あり（Tauriには前回分も含む）、SDK原本はclean**。commit／push／SDK・npm・itch公開は未実施。次はユーザーの実聴確認、必要ならcommit／push後のremote CIとSDK 0.1.7正式配布を進める。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1 Keyboardのクリック低減・発音を保ったlive ADSR
 
 - ユーザーのKeyboard／ADSR操作中のノイズを受け、毎回KONでsample位置とenvelopeをリセットしていた経路を修正。editor自身が保持するnoteは現在level／sample位置を保ってactive stageを再計算する。Sustain中のAR変更は次Attackへ反映。checkboxは「Apply ADSR / PCM edits to my held note」。uncheckedは次KONまで保留、PCM編集は明示再発音のまま。

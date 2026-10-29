@@ -341,6 +341,7 @@ pokeyA.setChannelMuted(0,1);
 pokeyA.generateStereo('128');
 
 import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from 'tetorica-fm2612/ps1synth.js';
+import type {Ps1EnvelopeUpdateOptions} from 'tetorica-fm2612/ps1synth.js';
 import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
 import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
 import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from 'tetorica-fm2612/ps1_parameters.js';
@@ -368,6 +369,14 @@ preparePs1ADPCM(ps1Packets,{rootNote:'A4',loopStartSamples:0}).rootFrequencyHz.t
 ps1Instrument.setPreset(23,{sample:ps1Sample,volumeLeft:0.6,volumeRight:-0.6,adsr1:15,adsr2:8});
 ps1Instrument.noteOn(23,'A4');ps1Instrument.stopVoices();
 ps1Instrument.setEnvelope(23,{attackRate:25,sustainDecrease:true,releaseRate:13});
+const ps1UpdateOptions:Ps1EnvelopeUpdateOptions={live:false};
+ps1Instrument.setEnvelope(23,{sustainRate:60},{live:true});
+ps1Instrument.setPreset(23,{adsr2:0},ps1UpdateOptions);
+ps1Instrument.setChannel(23,{adsr1:15},{live:true});
+// @ts-expect-error Live envelope option is boolean.
+ps1Instrument.setEnvelope(23,{attackRate:30},{live:1});
+// @ts-expect-error Envelope update options have no retrigger switch.
+ps1Instrument.setPreset(23,{adsr1:15},{retrigger:true});
 ps1Instrument.setReverb(ps1Reverb);ps1Instrument.setPreset(23,{reverb:true});
 ps1Instrument.getState().channels[23]!.envelopeParameters.releaseRate.toFixed();
 ps1Instrument.getState().channels[23]!.waveform?.pcm[0]!.toFixed();
@@ -378,6 +387,11 @@ const ps1Client=createPs1Client(new MessageChannel().port1);
 const ps1Uploaded=await ps1Client.loadADPCM(ps1Packets,ps1SampleOptions);
 ps1Client.setPreset(23,{sample:ps1Uploaded});(await ps1Client.getPreset(23)).pitch.toFixed();
 ps1Client.setEnvelope(23,{attackExponential:false,releaseRate:8});
+ps1Client.setEnvelope(23,{sustainRate:60},{live:false});
+ps1Client.setPreset(23,{adsr1:15},{live:true});
+ps1Client.setChannel(23,{adsr2:0},ps1UpdateOptions);
+// @ts-expect-error Client also rejects nonboolean live updates.
+ps1Client.setEnvelope(23,{attackRate:30},{live:'yes'});
 ps1Client.setReverb({preset:'hall',volumeRight:.4});ps1Client.setChannel(23,{reverb:false});
 (await ps1Client.getState()).reverb.volumeRight.toFixed();
 ps1Client.reset({clearRam:false});ps1Client.dispose();

@@ -113,7 +113,14 @@ automatically. `Ps1Synth` (`ps1synth.js`) adds tuned ADPCM instruments and 24 ph
 `Ps1Resampler` (`ps1_resampler.js`) converts fixed-rate PCM to the host rate.
 `Ps1Synth.setEnvelope(channel, partial)` edits named ADSR rates, sustain level
 and exponential/direction modes. Rates are raw core table indexes, not
-millisecond durations; changes apply at the next key-on. `setPreset(channel,
+millisecond durations. Changed ADSR words update the active envelope stage by
+default, preserving its current level and sample position. Attack edits while
+sustaining do not restart Attack; Sustain Level remains the Decay target.
+`setEnvelope(channel, partial, {live:false})` defers updating the running
+envelope. The same optional third argument is supported by `setPreset()` and
+`setChannel()`. Raw `Ps1Spu.write()` retains the original core's key-on-latched
+ADSR behavior. Unrelated volume, pitch and sample edits do not refresh pending
+ADSR settings. `setPreset(channel,
 {reverb:true})` enables a voice's send and `setReverb({preset:'room',
 volumeLeft:0.3, volumeRight:0.3})` selects the shared approximate effect and its
 independent `0..1` return levels. The seven working presets are Room, Studio

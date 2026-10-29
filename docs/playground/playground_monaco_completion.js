@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=ps1-live-controls-1";
+} from "../js/megasynth.js?v=ps1-live-api-1";
 
 const SCALE_NAMES = [
   "major",

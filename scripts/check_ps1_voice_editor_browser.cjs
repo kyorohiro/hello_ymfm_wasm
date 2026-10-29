@@ -253,6 +253,54 @@ liveLoop('portable-waveform',async()=>{await sleep(60);});`,execution);
   assert.equal(result.bank.id,0,'Copied code works in a freshly cleared bank with different sample IDs');assert.equal(result.bank.startAddress,4096);assert.equal(result.bank.byteLength,64);assert.equal(result.sampleCount,1);assert.equal(result.nextAddress,4160);assert.equal(result.bank.editorChannel,undefined,'Copied code uses the ordinary portable sample API');assert.deepEqual(result.bytes,result.expected,'Copied PCM and public encoder reproduce the exact audible ADPCM bytes');
   const pcm=await audible(page,'Portable copied PCM voice at A4',440),stopped=await stop(page,'Portable waveform Stop');await healthy(page,'Portable waveform');return {...result,pcm,stopped};
 }
+async function checkPublicLiveEnvelope(page,execution){
+  console.log('  Ordinary public ADSR APIs / primary and additional SPU');
+  // Worker controls are deliberately reserved 0.5 s ahead; readback is immediate.
+  // Wait beyond that lead before checking applied registers or capturing decay.
+  const prefix='__PS1_PUBLIC_ADSR_',from=await page.evaluate(()=>__ps1Audit.commands.length);
+  await run(page,`const primary=await useSoundChip('ps1');
+const additional=await createSoundChip('ps1',{id:'ps1:public-adsr'});
+const targets=[['primary',primary],['additional',additional]];
+const encoded=encodePs1Adpcm(Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)),{loopStartSamples:0});
+for(const [,voice]of targets){const sample=await voice.loadADPCM(encoded.adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});voice.setPreset(23,{sample,volumeLeft:.2,volumeRight:.2,adsr1:15,adsr2:0x2000},{live:false});voice.setReverb({preset:'off'});}
+async function report(kind,phase,voice){const state=await voice.getState(),ch=state.channels[23];log('${prefix}'+kind+'_'+phase+'__'+JSON.stringify({envelope:ch.envelope,gate:ch.gate,sample:ch.sample,adsr1:ch.adsr1,adsr2:ch.adsr2,volumeLeft:ch.volumeLeft,nativeFrames:state.nativeFrames,sampleCount:state.samples.length}));}
+liveLoop('public-adsr-check',async()=>{
+ for(const [kind,voice]of targets){
+  voice.noteOn(23,'A4');await sleep(.6);await report(kind,'held',voice);await sleep(2);
+  voice.setEnvelope(23,{attackRate:61});await sleep(1);await report(kind,'attack',voice);await sleep(2);
+  voice.setEnvelope(23,{sustainRate:60,sustainDecrease:true},{live:false});voice.setPreset(23,{volumeLeft:.18,volumeRight:.18});await sleep(1);await report(kind,'deferred',voice);await sleep(2);
+  for(const method of ['setEnvelope','setPreset','setChannel']){
+   voice.setPreset(23,{adsr1:15,adsr2:0x2000},{live:false});voice.noteOn(23,'A4');await sleep(1);
+   if(method==='setEnvelope')voice.setEnvelope(23,{sustainRate:60,sustainDecrease:true});else voice[method](23,{adsr2:0x6f00});
+   await sleep(1);await report(kind,method,voice);await sleep(2);
+  }
+  voice.setEnvelope(23,{releaseRate:0});voice.keyOff(23);await sleep(1);await report(kind,'done',voice);
+ }
+ await sleep(60);
+});`,execution);
+  const results=[];
+  for(const kind of ['primary','additional']){
+    const marker=phase=>prefix+kind+'_'+phase+'__';
+    const held=await readLog(page,marker('held')),initial=await audible(page,kind+' ordinary public held voice',440);
+    assert.equal(held.envelope,32767,kind+': initial sustain reaches full level');assert.equal(held.gate,true);
+    const attack=await readLog(page,marker('attack')),afterAttack=await capture(page,8192);assertCapturePcm(afterAttack,kind+' public attack during sustain');
+    assert.equal(attack.envelope,32767,kind+': ordinary AR edit preserves the held level');assert.equal(attack.sample,held.sample);
+    assert(afterAttack.channels.every((ch,index)=>!ch.nonFinite&&Math.abs(ch.rms/initial.channels[index].rms-1)<.1),kind+': AR alone does not restart or change a sustained note');
+    const deferred=await readLog(page,marker('deferred')),afterDeferred=await capture(page,16384);assertCapturePcm(afterDeferred,kind+' public deferred envelope and volume patch');
+    assert.equal(deferred.envelope,32767,kind+': explicit live false keeps the old envelope');assert.equal(deferred.adsr2&0x4fc0,0x4f00);
+    assert(afterDeferred.channels.every((ch,index)=>!ch.nonFinite&&Math.abs(ch.rms/initial.channels[index].rms-.9)<.1),kind+': volume-only preset edits do not flush a deferred sustain slope');
+    const setters=[];
+    for(const method of ['setEnvelope','setPreset','setChannel']){
+      const state=await readLog(page,marker(method)),pcm=await capture(page,16384);assertCapturePcm(pcm,kind+' public '+method);
+      assert(state.envelope>0&&state.envelope<32767,kind+' '+method+': active ENVX changes without KON');assert.equal(state.gate,true);assert.equal(state.sample,held.sample);assert.equal(state.sampleCount,held.sampleCount);
+      assert(pcm.channels.every(ch=>!ch.nonFinite&&ch.peak<1&&ch.rms>.0001&&ch.blockRms.at(-1)>0&&ch.blockRms.at(-1)<ch.blockRms[0]*.9),kind+' '+method+': the existing voice has a gradual audible sustain decay: '+JSON.stringify(pcm));
+      setters.push({method,state,pcm});
+    }
+    const done=await readLog(page,marker('done'));assert.equal(done.gate,false);results.push({kind,held,initial,attack,afterAttack,deferred,afterDeferred,setters,done});
+  }
+  const commands=await commandsSince(page,from);assert(!commands.some(command=>command.type==='chip-inspector'),'Public API comparison sends no operator-inspector requests');
+  const stopped=await stop(page,'Public live ADSR final Stop');await healthy(page,'Ordinary public live ADSR');return {publicCodeOnly:true,results,stopped};
+}
 async function checkEnvelope(page){
   console.log('  Decoded ADSR, reserved bit and channel isolation');
   const before=await refresh(page),untouched=settings(before).slice(0,23);
@@ -503,7 +551,7 @@ await sleep(1);log('${marker}');`,execution);await waitLog(page,marker);
     await stop(page,'Authored error Stop');
     await page.locator('#ps1Tab').click();await refresh(page);await page.locator(`${root} [data-chip-channel="23"]`).click();await field(page,'audition-midi',69);
     const recovery=await latch(page,'Operators audition recovers after an authored API error');await stop(page,'Final Stop');await healthy(page,'Final state');
-    const portableWaveform=await checkPortableWaveform(page,execution,waveform);
+    const portableWaveform=await checkPortableWaveform(page,execution,waveform),publicLiveEnvelope=await checkPublicLiveEnvelope(page,execution);
     const audit=await page.evaluate(()=>({worklets:__ps1Audit.worklets.map(entry=>entry.name),workers:__ps1Audit.workers,processorErrors:__ps1Audit.processorErrors,physicalOutputMuted:[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0),
       captureContinuity:{captures:__ps1Audit.captures.length,frames:__ps1Audit.captures.reduce((n,c)=>n+c.frames,0),
         pcmContinuous:__ps1Audit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid&&c.clock.frames===c.frames),
@@ -511,7 +559,7 @@ await sleep(1);log('${marker}');`,execution);await waitLog(page,marker);
         clockAnomalies:__ps1Audit.captures.filter(c=>!c.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-playground-ps1'),'Actual SPU Worklet is used');assert.deepEqual(audit.processorErrors,[]);assert(audit.physicalOutputMuted);assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(errors,[],'No browser exceptions');assert.deepEqual(badResponses,[],'No missing runtime assets');
-    return {browser:name,version:browser.version(),execution,waveform,portableWaveform,envelope,liveEnvelope,otherVoiceProgress:{channel:1,pitches:otherPitches},reverb,keyboard,screenshots:images,disconnect,recovery,...audit};
+    return {browser:name,version:browser.version(),execution,waveform,portableWaveform,envelope,liveEnvelope,publicLiveEnvelope,otherVoiceProgress:{channel:1,pitches:otherPitches},reverb,keyboard,screenshots:images,disconnect,recovery,...audit};
   }catch(error){
     const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,instance:document.querySelector('#ps1Panel [data-chip-control="instance"]')?.value,panel:document.getElementById('ps1Panel')?.textContent,contexts:__ps1Audit?.contexts.map(value=>({state:value.state,sampleRate:value.sampleRate})),gains:__ps1Audit?.gains.map(value=>({value:value.gain.value,contextState:value.context.state})),worklets:__ps1Audit?.worklets,captures:__ps1Audit?.captures.slice(-5),commands:__ps1Audit?.commands.slice(-20)})).catch(()=>null);
     throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses,consoleErrors})}`,{cause:error});

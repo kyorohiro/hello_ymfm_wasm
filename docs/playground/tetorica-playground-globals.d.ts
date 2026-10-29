@@ -1923,6 +1923,8 @@ interface PlaygroundPs1Envelope {
   sustainRate:number;sustainDecrease:boolean;sustainExponential:boolean;
   releaseRate:number;releaseExponential:boolean;
 }
+/** Apply changed ADSR words to the active stage by default, without restarting. */
+interface PlaygroundPs1EnvelopeUpdateOptions {live?:boolean;}
 type PlaygroundPs1ReverbPreset = 'off'|'room'|'studio-small'|'studio-medium'|'studio-large'|'hall'|'space-echo'|'half-echo';
 interface PlaygroundPs1Reverb {
   preset:PlaygroundPs1ReverbPreset;
@@ -1939,7 +1941,7 @@ interface PlaygroundPs1State {
     waveform:{pcm:number[];sample:number}|null}>;
   reverb:PlaygroundPs1Reverb;
 }
-/** Experimental MAME-derived SPU instrument, available through Web Audio only.
+/** Experimental MAME-derived SPU instrument, available through Web Audio or Native.
  * 24 physical voices, 512 KiB RAM. This is not a PSF player or a full PS1.
  * Samples are raw PS1 SPU ADPCM, not PCM/WAV, BRR or Yamaha ADPCM.
  */
@@ -1949,11 +1951,12 @@ interface PlaygroundPs1 {
   readonly channelCount:24;
   loadADPCM(bytes:ArrayBuffer|ArrayBufferView,options:PlaygroundPs1ADPCMOptions):Promise<PlaygroundPs1Sample>;
   /** Signed normalized volumes -1..1; ADSR1/2 are raw 16-bit SPU registers.
-   * ADSR edits take effect on the next key-on in the current core. */
-  setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset):void;
-  setChannel(channel:PlaygroundPs1Channel,params:PlaygroundPs1Preset):void;
-  /** Partial decoded ADSR fields; takes effect on the next key-on. */
-  setEnvelope(channel:PlaygroundPs1Channel,envelope:Partial<PlaygroundPs1Envelope>):void;
+   * Changed ADSR words update the active stage by default, preserving level and sample position.
+   * Pass {live:false} to retain the current envelope until it is explicitly refreshed or keyed on again. */
+  setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset,options?:PlaygroundPs1EnvelopeUpdateOptions):void;
+  setChannel(channel:PlaygroundPs1Channel,params:PlaygroundPs1Preset,options?:PlaygroundPs1EnvelopeUpdateOptions):void;
+  /** Partial decoded ADSR fields. Live by default; affects the current stage without retriggering. */
+  setEnvelope(channel:PlaygroundPs1Channel,envelope:Partial<PlaygroundPs1Envelope>,options?:PlaygroundPs1EnvelopeUpdateOptions):void;
   /** Approximate named reverb presets; enable the voice's reverb flag separately. */
   setReverb(options:Partial<PlaygroundPs1Reverb>):void;
   getPreset(channel:PlaygroundPs1Channel):Promise<PlaygroundPs1VoiceState>;

@@ -2,8 +2,8 @@ import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?
 import {Huc6280AudioEngine} from './huc6280audioengine.js?v=audio-stability-2';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import factory from '../generated/huc6280_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=ps1-live-controls-1';
-import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=ps1-live-controls-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=ps1-live-api-1';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=ps1-live-api-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 
 class Processor extends AudioWorkletProcessor {

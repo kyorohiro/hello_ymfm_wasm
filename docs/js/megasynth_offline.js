@@ -1,6 +1,6 @@
 import {PWM32XPlayback} from './pwm32x_playback.js?v=pokey-prepare-1';
 /** Experimental offline MegaSynth engine. Browser / Node; no audio device. */
-import {createSoundChip} from './soundchip.js?v=ps1-live-controls-1';
+import {createSoundChip} from './soundchip.js?v=ps1-live-api-1';
 import {YM2612Synth, YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {NativeFXEngine} from './native_fx_engine.js?v=audio-stability-2';
 import {createNativeFXController} from './native_fx.js';

@@ -20,6 +20,11 @@ const positive = (value,name) => {
 const object = (value,name) => {
   if (!value || typeof value!=='object' || Array.isArray(value)) throw new TypeError(`${name} must be an object`);
 };
+const liveEnvelopeOption = options => {
+  object(options,'PS1 envelope update options');
+  if(Reflect.ownKeys(options).some(key=>key!=='live')||options.live!==undefined&&typeof options.live!=='boolean')throw new TypeError('Expected {live?:boolean}');
+  return options.live!==false;
+};
 const defaultVoice = () => ({sample:null,volumeLeft:0.75,volumeRight:0.75,adsr1:0x000f,adsr2:0,pitch:0x1000,reverb:false});
 const defaultReverb = () => ({preset:'off',volumeLeft:0.25,volumeRight:0.25});
 const volumeRegister = value => Math.round(value*0x3fff)&0x7fff;
@@ -78,6 +83,7 @@ export function createPs1InitSample() {
 /** @typedef {{id:number,startAddress:number,repeatAddress:number,byteLength:number,decodedFrames:number,
  * rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null,editorChannel?:number}} Ps1Sample */
 /** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number,reverb?:boolean}} Ps1Preset */
+/** @typedef {{live?:boolean}} Ps1EnvelopeUpdateOptions */
 /** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number,reverb:boolean}} Ps1VoiceState */
 /** @typedef {import('./ps1_parameters.js').Ps1Reverb} Ps1ReverbState */
 /** Fixed physical voices 0..23 over Ps1Spu. Uploads grow from byte address 0x1000
@@ -187,15 +193,24 @@ export class Ps1Synth {
     const control=this.core.read(0x1aa);this.core.write(0x1aa,enabled?control|0x80:control&~0x80);
   }
   /** Partial voice preset. Fixed signed volumes use -1..1; ADSR1/2 are raw 16-bit
-   * registers. ADSR edits affect the next key-on in this experimental core.
-   * @param {number} ch @param {Ps1Preset} preset */
-  setPreset(ch,preset){const p=this._preset(ch,preset);this._writeChannel(ch,p);this.channels[ch]=p;}
-  /** @param {number} ch @param {Ps1Preset} params */
-  setChannel(ch,params){this.setPreset(ch,params);}
+   * registers. Changed ADSR words update the current envelope stage without
+   * restarting its sample or level. Set live:false to defer them to key-on.
+   * @param {number} ch @param {Ps1Preset} preset @param {Ps1EnvelopeUpdateOptions} [options] */
+  setPreset(ch,preset,options={}){
+    const live=liveEnvelopeOption(options),p=this._preset(ch,preset),previous=this.channels[ch];
+    const changed=preset.adsr1!==undefined&&p.adsr1!==previous.adsr1||preset.adsr2!==undefined&&p.adsr2!==previous.adsr2;
+    this._writeChannel(ch,p);this.channels[ch]=p;
+    if(live&&changed)this.core.refreshEnvelope?.(ch);
+  }
+  /** @param {number} ch @param {Ps1Preset} params @param {Ps1EnvelopeUpdateOptions} [options] */
+  setChannel(ch,params,options={}){this.setPreset(ch,params,options);}
   /** Partial named ADSR controls. Rates are raw indexes (zero is fastest), and
-   * edits take effect at the next key-on without retriggering a held voice.
-   * @param {number} ch @param {Partial<import('./ps1_parameters.js').Ps1Envelope>} settings */
-  setEnvelope(ch,settings){this._open();channel(ch);const p=this.channels[ch];this.setPreset(ch,patchPs1Envelope(p.adsr1,p.adsr2,settings));}
+   * changed fields update the active stage at its current level by default.
+   * Attack edits during sustain affect a future attack. live:false retains the
+   * old stage parameters until the next key-on or explicit live edit.
+   * @param {number} ch @param {Partial<import('./ps1_parameters.js').Ps1Envelope>} settings
+   * @param {Ps1EnvelopeUpdateOptions} [options] */
+  setEnvelope(ch,settings,options={}){this._open();channel(ch);const p=this.channels[ch];this.setPreset(ch,patchPs1Envelope(p.adsr1,p.adsr2,settings),options);}
   /** One shared approximate reverb. Per-voice `reverb` selects the send; these
    * independent return levels add wet sound to the unchanged dry sound.
    * Off retains requested levels but bypasses processing. Existing tails clear

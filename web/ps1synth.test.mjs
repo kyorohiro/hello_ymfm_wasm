@@ -170,12 +170,12 @@ test('non-looped SPU ADPCM stops at END and snapshots are independent owned copi
   synth.dispose();synth.dispose();assert.throws(()=>synth.keyOn(0),/disposed/);assert.throws(()=>synth.getState(),/disposed/);assert.throws(()=>synth.reset(),/disposed/);
 });
 
-test('named PS1 ADSR edits preserve raw bits, leave held envelopes alone, and apply at next key-on',async t=>{
+test('named PS1 ADSR edits can explicitly defer the held envelope and retain raw bits for next key-on',async t=>{
   const a=await create(t),b=await create(t);
   for(const{synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,adsr2:0x2000});synth.keyOn(0);}
   assert.deepEqual(render(a.synth,512),render(b.synth,512));
   const frame=a.core.nativeFrames,ram=a.core.readRam(),other=a.synth.getPreset(1);
-  a.synth.setEnvelope(0,{attackRate:70,attackExponential:true,decayRate:8,sustainLevel:9,sustainRate:127,sustainDecrease:true,sustainExponential:true,releaseRate:14,releaseExponential:true});
+  a.synth.setEnvelope(0,{attackRate:70,attackExponential:true,decayRate:8,sustainLevel:9,sustainRate:127,sustainDecrease:true,sustainExponential:true,releaseRate:14,releaseExponential:true},{live:false});
   assert.equal(a.core.read(8),0xc689);assert.equal(a.core.read(10),0xffee);
   assert.equal(a.core.nativeFrames,frame);assert.deepEqual(a.core.readRam(),ram);assert.deepEqual(a.synth.getPreset(1),other);
   const p=a.synth.getState().channels[0].envelopeParameters;
@@ -186,6 +186,71 @@ test('named PS1 ADSR edits preserve raw bits, leave held envelopes alone, and ap
   const before=a.synth.getPreset(0),snapshot=a.synth.snapshot();
   for(const value of [{attackRate:128},{releaseExponential:1},{unsupported:0}])assert.throws(()=>a.synth.setEnvelope(0,value));
   assert.deepEqual(a.synth.getPreset(0),before);assert.deepEqual(a.synth.snapshot().registers,snapshot.registers);
+});
+
+test('public ADSR setters refresh once after both words, and unrelated or unchanged patches never refresh',async t=>{
+  const {synth,core}=await create(t),sample=load(synth),refresh=core.refreshEnvelope.bind(core),calls=[];
+  core.refreshEnvelope=ch=>{calls.push({ch,adsr1:core.read(ch*16+8),adsr2:core.read(ch*16+10)});refresh(ch);};
+  synth.setPreset(0,{sample,adsr1:0x200f,adsr2:0x3fc0});
+  assert.deepEqual(calls,[{ch:0,adsr1:0x200f,adsr2:0x3fc0}],'Both ADSR words reach the core before one live refresh');
+  synth.setChannel(0,{adsr1:0x210f,adsr2:0x2fc0},{live:true});assert.equal(calls.length,2);
+  synth.setEnvelope(0,{attackRate:34,sustainRate:64});assert.equal(calls.length,3);
+  const current=synth.getPreset(0);
+  synth.setPreset(0,{adsr1:current.adsr1,adsr2:current.adsr2});synth.setEnvelope(0,{});
+  synth.setChannel(0,{sample,volumeLeft:.4,volumeRight:.3,pitch:4123,reverb:true});
+  synth.setEnvelope(0,{sustainRate:60,sustainDecrease:true},{live:false});
+  synth.setPreset(0,{adsr2:synth.getPreset(0).adsr2},{live:true});
+  synth.setPreset(0,{volumeLeft:.2});synth.setChannel(0,{sample,pitch:4124});
+  assert.equal(calls.length,3,'Neither same-value ADSR nor later volume/sample/pitch patches flush a deferred ADSR edit');
+  const before=synth.snapshot();
+  for(const method of ['setPreset','setChannel','setEnvelope'])for(const options of [null,[],true,{live:1},{live:null},{live:'false'},{unknown:true},{live:false,extra:0}]){
+    assert.throws(()=>synth[method](0,method==='setEnvelope'?{attackRate:12}:{adsr1:0x120f},options),/options|live/);
+    assert.deepEqual(synth.snapshot(),before,'Invalid options are rejected before registers, metadata or core time changes');
+  }
+});
+
+test('ordinary public ADSR edits preserve sustain phase and apply a new slope without KON',async t=>{
+  const a=await create(t),b=await create(t);
+  for(const {synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,adsr2:0x2000});synth.keyOn(0);}
+  assert.deepEqual(render(a.synth,1009),render(b.synth,1009));
+  const frame=a.core.nativeFrames,ram=a.core.readRam(0x1000,512*1024-0x1000),other=a.synth.getPreset(1),writes=[],write=a.core.write.bind(a.core);
+  a.core.write=(register,value)=>{writes.push(register);write(register,value);};
+  a.synth.setEnvelope(0,{attackRate:100});b.synth.setEnvelope(0,{attackRate:100},{live:false});
+  assert.equal(a.core.nativeFrames,frame);assert.equal(a.core.read(12),0x7fff);
+  assert.deepEqual(render(a.synth,2048),render(b.synth,2048),'An attack edit during sustain preserves every PCM sample and sample position');
+  a.synth.setPreset(0,{adsr2:0x2000|0x4000|(40<<6)});
+  b.synth.setPreset(0,{adsr2:0x2000|0x4000|(40<<6)},{live:false});
+  b.synth.setEnvelope(0,{sustainRate:40,sustainDecrease:true},{live:true});
+  // An unrelated patch must not activate b's deferred sustain registers.
+  b.synth.setChannel(0,{volumeLeft:.75,volumeRight:.75});
+  const changed=render(a.synth,4096),held=render(b.synth,4096),energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
+  assert.equal(changed.left[0],held.left[0],'A changed slope starts at the current level');
+  assert(energy(changed.left)<energy(held.left)*.8);assert.equal(b.core.read(12),0x7fff);
+  assert.equal(a.core.read(10)&0x2000,0x2000);assert.deepEqual(a.core.readRam(0x1000,512*1024-0x1000),ram);assert.deepEqual(a.synth.getPreset(1),other);
+  assert(!writes.some(register=>[0x188,0x18a,0x18c,0x18e].includes(register)),'Live envelope edits never key on or off');
+});
+
+for(const stage of ['attack','decay','release'])test(`public ADSR edits retime the current ${stage} without resetting its level`,async t=>{
+  const a=await create(t),b=await create(t);
+  const preset=stage==='attack'?{adsr1:(61<<8)|15,adsr2:127<<6}:stage==='decay'?{adsr1:(12<<4)|3,adsr2:127<<6}:{adsr1:15,adsr2:14};
+  for(const {synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,...preset});synth.keyOn(0);render(synth,512);if(stage==='release'){synth.keyOff(0);render(synth,512);}}
+  const before=a.core.read(12),frame=a.core.nativeFrames,patch=stage==='attack'?{attackRate:20}:stage==='decay'?{decayRate:4}:{releaseRate:0};
+  assert(before>0&&before<0x7fff,'The selected envelope stage is already progressing');
+  if(stage==='release')assert.equal(a.synth.getState().channels[0].gate,false,'Release editing must work after the requested key gate is off');
+  a.synth.setEnvelope(0,patch);b.synth.setEnvelope(0,patch,{live:false});
+  assert.equal(a.core.read(12),before);assert.equal(a.core.nativeFrames,frame);
+  const actual=render(a.synth,1024),unchanged=render(b.synth,1024);
+  assert.equal(actual.left[0],unchanged.left[0],'The first sample retains the existing phase and level');
+  if(stage==='attack')assert(a.core.read(12)>b.core.read(12)*10,'A faster attack applies immediately');
+  else if(stage==='decay')assert(a.core.read(12)<b.core.read(12)*.5,'A faster decay applies immediately');
+  else {assert.equal(a.core.read(12),0);assert(b.core.read(12)>20000,'The explicitly deferred slow release remains audible');}
+});
+
+test('public sustain-level edits follow the current stage rather than acting as a volume slider',async t=>{
+  const a=await create(t),b=await create(t);
+  for(const {synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,adsr1:15,adsr2:127<<6});synth.keyOn(0);render(synth,1009);}
+  a.synth.setEnvelope(0,{sustainLevel:3});b.synth.setEnvelope(0,{sustainLevel:3},{live:false});
+  assert.deepEqual(render(a.synth,2048),render(b.synth,2048),'Changing the future decay target during sustain does not jump its level');
 });
 
 test('PS1 named reverb changes validate atomically and do not modify samples, pitch or master gain',async t=>{

@@ -49,9 +49,12 @@ export class Ps1VoiceInspector {
       const ch=channel(args[0]);
       const envelopeEdit=method==='setEnvelope'||(method==='setPreset'||method==='setChannel')&&['adsr1','adsr2'].some(key=>Object.hasOwn(args[1]??{},key));
       const options=['setPreset','setChannel','setEnvelope'].includes(method)?envelopeOptions(args[2]):{live:false,retrigger:false};
+      let envelopeChanged=false;
       if(method==='setEnvelope'){
-        const current=this.synth.getPreset(ch);patchPs1Envelope(current.adsr1,current.adsr2,args[1]);
-      }else if(method==='setPreset'||method==='setChannel')this.synth._preset(ch,args[1]);
+        const current=this.synth.getPreset(ch),next=patchPs1Envelope(current.adsr1,current.adsr2,args[1]);envelopeChanged=next.adsr1!==current.adsr1||next.adsr2!==current.adsr2;
+      }else if(method==='setPreset'||method==='setChannel'){
+        const current=this.synth.getPreset(ch),next=this.synth._preset(ch,args[1]);envelopeChanged=next.adsr1!==current.adsr1||next.adsr2!==current.adsr2;
+      }
       else {const previous=this.synth.channels[ch],write=this.synth.core.write;this.synth.channels[ch]={...previous};this.synth.core.write=()=>{};try{this.synth[method](...args);}finally{this.synth.core.write=write;this.synth.channels[ch]=previous;}}
       const held=this.auditions.get(ch),owner=held?identity(held):undefined;
       // WorkletGlobalScope does not provide structuredClone in all browsers.
@@ -59,10 +62,12 @@ export class Ps1VoiceInspector {
       // to its scalar ID instead of retaining any caller-owned nested object.
       const value=['setPreset','setChannel','setEnvelope'].includes(method)?{...args[1]}:args[1];
       if(value&&typeof value==='object'&&value.sample&&typeof value.sample==='object')value.sample=value.sample.id;
-      this.dispatch({method,args:[ch,value]},owner,{preserveOwner:true});
+      // The public instrument API applies envelope edits live by default. The
+      // editor retains its explicit checkbox and manual-note ownership rule.
+      this.dispatch({method,args:envelopeEdit?[ch,value,{live:false}]:[ch,value]},owner,{preserveOwner:true});
       // Live controls preserve sample phase and the current envelope level.
       // Both extensions remain restricted to this editor's own audition.
-      if(envelopeEdit&&held){if(options.live)this.dispatch({method:'_refreshEnvelope',args:[ch]},owner,{preserveOwner:true});else if(options.retrigger)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);}
+      if(envelopeEdit&&held){if(options.live){if(envelopeChanged)this.dispatch({method:'_refreshEnvelope',args:[ch]},owner,{preserveOwner:true});}else if(options.retrigger)this.dispatch({method:'_auditionKeyOn',args:[ch]},owner);}
       return true;
     }
     throw new Error('Unsupported PS1 SPU inspector operation');

@@ -23,6 +23,8 @@ async function fixture(t,{mode='ps1'}={}){
   const state=(s,args={})=>args.ram&&s.captures.has(args.after)?s.captures.get(args.after):{...value(s),...(args.ram?{ram:Array.from(s.core.readRam())}:{})};
   function apply(s,m,c={},bypass=false){
     if(m.method==='batch'){
+      const before=m.channel===undefined?null:[s.core.read(m.channel*16+8),s.core.read(m.channel*16+10)];
+      for(const command of m.commands)if(command.mask!==undefined){assert(Number.isInteger(command.mask)&&command.mask>0&&command.mask<=65535);assert.equal(Math.floor(command.register/16),m.channel);assert([8,10].includes(command.register%16));}
       for(const command of m.commands)if(['audition-key','refresh-envelope'].includes(command.method)){
         assert.equal(command.channel,m.channel,'private live operations must target the declared Native channel');
         if(command.method==='audition-key'){
@@ -35,11 +37,11 @@ async function fixture(t,{mode='ps1'}={}){
       if(m.audition&&m.action==='edit'&&(ch===undefined?[...s.held.values()].some(v=>v!==m.voice):held!==undefined&&held!==m.voice))return;
       if(m.audition&&m.action==='on')s.held.set(ch,m.voice);
       if(m.action==='on')s.notes.set(ch,{voice:m.voice,command:c});
-      for(const command of m.commands)apply(s,command,c,true);
+      for(const command of m.commands){if(command.method==='refresh-envelope'&&command.ifChanged&&before?.every((value,index)=>value===s.core.read(m.channel*16+8+index*2)))continue;apply(s,command,c,true);}
       if(m.audition&&m.action==='off')s.held.delete(ch);s.revision++;return;
     }
     if(m.method==='write'){
-      s.core.write(m.register,m.value);
+      s.core.write(m.register,m.mask===undefined?m.value:(s.core.read(m.register)&~m.mask)|(m.value&m.mask));
       if(m.register===0x188||m.register===0x18a)s.enabled|=m.value<<(m.register===0x18a?16:0);
       if(m.register===0x18c||m.register===0x18e)s.enabled&=~(m.value<<(m.register===0x18e?16:0));
     }else if(m.method==='audition-key'){
@@ -111,7 +113,7 @@ test('Native PS1 held waveform slots are reused, channel-owned, explicit retrigg
   await f.synth.stopNativeAudio();view=await i.read('ps1');assert(!view.channels[23].active);assert.equal(view.reverb.preset,'hall');assert.equal(view.channels[23].sample,one.id);assert.equal((await spu.snapshot()).ram[one.startAddress+1],6);
   await i.invoke('ps1','auditionOn',[23,69,'after-stop']);assert((await i.read('ps1')).channels[23].active);await i.invoke('ps1','auditionOff',[23,'after-stop']);assert.deepEqual(f.errors,[]);
 });
-test('Native PS1 live ADSR edits retain PCM phase and the manual lease while public edits keep raw latch behavior',async t=>{
+test('Native PS1 editor live ADSR retains PCM phase and its lease while the checkbox can defer updates',async t=>{
   const a=await fixture(t),b=await fixture(t),render=(f,n)=>{const left=new Float32Array(n),right=new Float32Array(n);f.primary.core.renderInto(left,right);return left;};
   for(const f of[a,b]){await f.synth.chipInspector.invoke('ps1','setPreset',[23,{adsr1:15,adsr2:0x2000}]);await f.synth.chipInspector.invoke('ps1','auditionOn',[23,69,'held']);}
   assert.deepEqual(render(a,1009),render(b,1009));
@@ -127,11 +129,60 @@ test('Native PS1 live ADSR edits retain PCM phase and the manual lease while pub
   const edited=render(a,4096),raw=render(b,4096),energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
   assert.equal(edited[0],raw[0],'live rate changes retain the first output level');assert(energy(edited)<energy(raw)*.8,'the new sustain slope is audible without restarting');
   const view=await a.synth.chipInspector.read('ps1');assert.equal(view.channels[23].adsr2&0x2000,0x2000);assert.deepEqual(view.auditions,[{channel:23,id:'held'}]);
-  // The ordinary public API continues to write only the chip's raw registers.
+  // The ordinary API refreshes by default, and permits explicit deferral.
   await a.synth.chipInspector.invoke('ps1','auditionOff',[23,'held']);const start=a.commands().length;
   a.synth.spu.setEnvelope(0,{attackRate:20});await a.synth.flush();
-  assert(a.commands().slice(start).flatMap(c=>c.message.commands??[]).every(c=>c.method==='write'));
+  assert.equal(a.commands().slice(start).flatMap(c=>c.message.commands??[]).filter(c=>c.method==='refresh-envelope').length,1);
+  const deferred=a.commands().length;a.synth.spu.setEnvelope(0,{attackRate:21},{live:false});await a.synth.flush();
+  assert(a.commands().slice(deferred).flatMap(c=>c.message.commands??[]).every(c=>c.method==='write'));
   assert.deepEqual(a.errors,[]);assert.deepEqual(b.errors,[]);
+});
+for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} public ADSR updates held and released voices without KON`,async t=>{
+  const setups=[];
+  for(let index=0;index<2;index++){
+    const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'side'}):null,client=device?.client??f.synth.spu;
+    let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}
+    client.setPreset(23,{sample,adsr1:15,adsr2:31});client.noteOn(23,'A4');await client.getState();
+    setups.push({f,client,core:device?f.rack.get(device.nativeInstance).core:f.primary.core});
+  }
+  const[a,b]=setups,render=(s,n)=>{const left=new Float32Array(n),right=new Float32Array(n);s.core.renderInto(left,right);return left;},energy=pcm=>pcm.reduce((sum,v)=>sum+v*v,0);
+  assert.deepEqual(render(a,1009),render(b,1009));const since=a.f.commands().length;
+  a.client.setEnvelope(23,{sustainRate:40,sustainDecrease:true});b.client.setEnvelope(23,{sustainRate:40,sustainDecrease:true},{live:false});
+  await Promise.all(setups.map(s=>s.client.getState()));
+  const commands=a.f.commands().slice(since).filter(c=>c.message.method==='batch');
+  assert.equal(commands.length,1);assert.equal(commands[0].message.action,'edit');assert(!commands[0].message.audition);
+  assert.equal(commands[0].message.commands.at(-1).method,'refresh-envelope');assert.equal(commands[0].message.commands.filter(c=>c.method==='refresh-envelope').length,1);
+  assert(!commands[0].message.commands.some(c=>c.method==='audition-key'||c.method==='write'&&[0x188,0x18a].includes(c.register)));
+  const changed=render(a,4096),deferred=render(b,4096);assert.equal(changed[0],deferred[0]);assert(energy(changed)<energy(deferred)*.8);
+  // Key Off clears the requested gate, while an infinite release still has a
+  // live envelope. Changing RR must update that tail without a second note.
+  for(const s of setups){s.client.setEnvelope(23,{sustainRate:127,sustainDecrease:false,releaseRate:31});s.client.noteOn(23,'A4');await s.client.getState();render(s,1009);s.client.keyOff(23);await s.client.getState();render(s,256);assert.equal((await s.client.getState()).channels[23].gate,false);}
+  const releaseStart=a.f.commands().length;a.client.setEnvelope(23,{releaseRate:0});b.client.setEnvelope(23,{releaseRate:0},{live:false});await Promise.all(setups.map(s=>s.client.getState()));
+  const released=render(a,512),held=render(b,512);assert(peak(held)>.01);assert(energy(released)<energy(held)*.1);assert.equal(peak(released.subarray(128)),0);
+  const releaseOps=a.f.commands().slice(releaseStart).flatMap(c=>c.message.commands??[]);assert.equal(releaseOps.filter(c=>c.method==='refresh-envelope').length,1);assert(!releaseOps.some(c=>c.method==='write'&&[0x188,0x18a].includes(c.register)));
+  for(const s of setups)assert.deepEqual(s.f.errors,[]);
+});
+for(const additional of[false,true])test(`Native ${additional?'additional':'primary'} immediate ADSR edits merge applied words ahead of future authored edits`,async t=>{
+  for(const scenario of ['same-sustain','distinct-attack','same-deferred']){
+    const f=await fixture(t),device=additional?await f.synth.createExtraPs1({id:'ordered'}):null,client=device?.client??f.synth.spu,endpoint=device?.endpoint??f.synth.nativePs1,core=device?f.rack.get(device.nativeInstance).core:f.primary.core;
+    let sample=0;if(device){const{adpcm,...options}=createPs1InitSample();sample=await client.loadADPCM(adpcm,options);}
+    client.setPreset(23,{sample,adsr1:15,adsr2:0x2000});client.noteOn(23,'A4');await client.getState();
+    const render=n=>{const left=new Float32Array(n),right=new Float32Array(n);core.renderInto(left,right);return left;};render(1009);assert.equal(core.read(23*16+12),32767);
+    const settings={sustainRate:60,sustainDecrease:true};
+    if(scenario==='same-deferred')client.setEnvelope(23,settings,{live:false});
+    else await rpc(endpoint,{method:'setEnvelope',args:[23,settings]},{time:2,performance:7,owner:3});
+    const before=f.commands().length;client.setEnvelope(23,scenario==='distinct-attack'?{attackRate:61}:settings);await client.getState();
+    const edit=f.commands().slice(before).find(c=>c.message.commands?.some(op=>op.method==='refresh-envelope'));assert(edit);assert.equal(edit.message.commands.at(-1).ifChanged,true);
+    const writes=edit.message.commands.filter(op=>op.method==='write');assert.equal(writes.length,1);assert.equal(writes[0].register,23*16+(scenario==='distinct-attack'?8:10));assert(writes[0].mask>0);
+    if(scenario==='distinct-attack')assert.equal(core.read(23*16+10),0x2000,'an immediate AR edit cannot import the projected future SR');
+    render(4096);
+    if(scenario==='same-sustain')assert(core.read(23*16+12)<32767,'an immediate value matching the projected future still updates the actual held envelope');
+    else assert.equal(core.read(23*16+12),32767,'an unrelated AR edit or unchanged deferred word does not apply a pending sustain slope');
+    if(scenario==='distinct-attack'){
+      f.advance(96000);assert.equal(core.read(23*16+8),0x3d0f,'future named SR fields preserve the immediate attack setting');render(4096);assert(core.read(23*16+12)<32767,'future masked SR applies at its own frame');
+    }
+    assert.deepEqual(f.errors,[]);
+  }
 });
 test('Native PS1 Stop before the first read retains the initial instrument on every channel',async t=>{
   const f=await fixture(t);await f.synth.stopNativeAudio();const view=await f.synth.chipInspector.read('ps1');assert(view.channels.every(ch=>ch.sample===0));
@@ -175,6 +226,30 @@ test('Native PS1 typed Worker port executes upload, controls, reads and preparat
     const init=createPs1InitSample(),sample=await spu.loadADPCM(init.adpcm,{baseFrequencyHz:init.baseFrequencyHz,loopStartSamples:0});spu.setPreset(2,{sample,reverb:true});spu.setEnvelope(2,{sustainRate:127});spu.setReverb({preset:'room'});spu.noteOn(2,'A4');
     await spu.getState();f.advance(48000);const value=await spu.getState();assert(value.channels[2].gate);assert.equal(value.channels[2].envelopeParameters.sustainRate,127);assert.equal(value.reverb.preset,'room');assert.deepEqual(f.errors,[]);
   }finally{spu?.dispose();sender.stop();host.stop();await bridge.dispose();}
+});
+test('Native primary and additional Worker public ADSR changes apply at their reserved frame without KON',async t=>{
+  const f=await fixture(t),bridge=createNativeGenesisWorkerBridge({synth:f.synth,MessageChannelClass:MessageChannel,onError:error=>f.errors.push(error)}),host=createPerformanceHost({getContext:()=>f.synth.clock});
+  let taskNow=1000;const sender=createPerformanceSender({leaseUntimed:true,now:()=>taskNow}),clients=[];
+  try{
+    const configuration=await host.start([bridge.port],.5);sender.configure({...configuration,audioSeconds:0,performanceEpochMs:1000,lookaheadSeconds:.5});
+    const extra=await f.synth.createExtraPs1({id:'worker-side',bridge});
+    for(const[port,state]of[[bridge.ps1Port,f.synth.spu._getState()],[extra.port,extra.client._getState()]])clients.push(createPs1Client(sender.port(port,'ps1'),{sampleRate:48000,state}));
+    const{adpcm,...options}=createPs1InitSample(),sample=await clients[1].loadADPCM(adpcm,options);
+    clients[0].setPreset(23,{sample:0,adsr1:15,adsr2:31});clients[1].setPreset(23,{sample,adsr1:15,adsr2:31});
+    for(const client of clients)client.noteOn(23,'A4');await Promise.all(clients.map(client=>client.getState()));f.advance(24000);
+    const cores=[f.primary.core,f.rack.get(extra.nativeInstance).core],render=(core,n)=>{const left=new Float32Array(n),right=new Float32Array(n);core.renderInto(left,right);return left;};
+    for(const core of cores){assert(peak(render(core,1009))>.01);assert.equal(core.read(23*16+12),32767);}
+    const deferredSince=f.commands().length;taskNow=1250;for(const client of clients)client.setEnvelope(23,{sustainRate:60,sustainDecrease:true},{live:false});await Promise.all(clients.map(client=>client.getState()));
+    const deferred=f.commands().slice(deferredSince).filter(c=>c.message.method==='batch');assert.equal(deferred.length,2);assert(deferred.every(c=>c.frame===36000&&c.message.commands.every(op=>op.method==='write')),'Worker options preserve explicit live false');
+    f.advance(36000);for(const core of cores){render(core,128);assert.equal(core.read(23*16+12),32767,'a deferred Worker edit keeps the sounding sustain');}
+    const since=f.commands().length;taskNow=1500;for(const client of clients)client.setEnvelope(23,{sustainRate:40,sustainDecrease:true});await Promise.all(clients.map(client=>client.getState()));
+    const scheduled=f.commands().slice(since).filter(c=>c.message.commands?.some(op=>op.method==='refresh-envelope'));
+    assert.equal(scheduled.length,2);assert.deepEqual(new Set(scheduled.map(c=>c.type)),new Set(['ps1','extra-ps1']));
+    for(const command of scheduled){assert.equal(command.frame,48000);assert.equal(command.message.action,'edit');assert(!command.message.audition);assert(command.performance>0);assert(command.owner>0);assert.equal(command.message.commands.at(-1).method,'refresh-envelope');assert(!command.message.commands.some(op=>op.method==='audition-key'||op.method==='write'&&[0x188,0x18a].includes(op.register)));}
+    f.advance(47999);for(const core of cores){render(core,128);assert.equal(core.read(23*16+12),32767,'future ADSR changes cannot affect the current voice');}
+    f.advance(48000);for(const core of cores){const changed=render(core,4096);assert(peak(changed)>.01);assert.equal(peak(changed.subarray(3072)),0);assert.equal(core.read(23*16+12),0);}
+    assert.deepEqual(f.errors,[]);
+  }finally{for(const client of clients)client.dispose();sender.stop();host.stop();await bridge.dispose();}
 });
 for(const execution of ['main','worker'])test(`Native PS1 ${execution} runtime exposes borrowed primary and independent createSoundChip APIs`,{timeout:15000},async t=>{
   installWorkers(t);const f=await fixture(t),logs=[],runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false,onLog:line=>logs.push(line)});

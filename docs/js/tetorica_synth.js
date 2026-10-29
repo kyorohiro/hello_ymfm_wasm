@@ -4,9 +4,9 @@
  * 依存: 各チップのブラウザー向け RuntimeSynth。名前の正規化・import と音声初期化は別。
  * start() による実再生には Web Audio と WASM アセットが必要。
  */
-import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=ps1-live-controls-1";
-import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=ps1-live-controls-1";
-import { MegaSynth } from "./megasynth.js?v=ps1-live-controls-1";
+import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=ps1-live-api-1";
+import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=ps1-live-api-1";
+import { MegaSynth } from "./megasynth.js?v=ps1-live-api-1";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=ps1-mode-1";
 import { YM2608RuntimeSynth } from "./ym2608synth.js?v=ps1-mode-1";
 import { NeoGeoSynth, YM2610BRuntimeSynth } from "./ym2610bsynth.js?v=ps1-mode-1";
