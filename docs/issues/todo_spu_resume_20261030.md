@@ -72,7 +72,10 @@ python3 -m http.server 8877 --directory docs
 - [ ] 正しい本文との対応付けを確認後、代表Toneの音程・ループ・離鍵・元音色との一致を確認する。
   現状の非ゼロPCMは忠実度の証拠ではない。人の耳での試聴は未実施。
 - [x] 検出なし・拒否理由と、本文の誤対応候補を記録し、次の課題を選ぶ。
-  [調査記録](spu_psf_multi_title_01.md)：次は分離VH／VBの対応付けと誤候補の除外。
+  [調査記録](spu_psf_multi_title_01.md)。
+- [x] VAB／SEQ混在による既知の誤候補を除外し、両UIとCLIに理由を表示する。
+  [実装・検証](spu_psf_body_guard_01.md)：Node 128 tests／6ブラウザ経路成功、111 entries再検査。
+  分離VH／VBの自動対応付けは後続。PSの追加機能はいったん区切れる。
 
 ```sh
 node scripts/inspect_psf_banks.mjs /path/to/extracted-game-set --out /private/tmp/game-psf-report.json

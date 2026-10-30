@@ -632,7 +632,7 @@ async function checkVab(page,execution){
 
 async function checkPsf(page,execution){
   console.log('  PSF static extraction / MiniPSF libraries / folder paths / bank switching / SPU PCM');
-  const {createPsfFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
+  const {createPsfFixture,createPsfConflictFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
   const fixture=createPsfFixture(),mimeType='application/octet-stream';
   const marker='__PSF_UI_READY__';await run(page,`await sleep(.01);log('${marker}');`,execution);await waitLog(page,marker);await stop(page,'PSF initial Stop');
   if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))));
@@ -659,6 +659,17 @@ async function checkPsf(page,execution){
   await file.setInputFiles({name:'plain.psf',mimeType,buffer:Buffer.from(makePsf(new Uint8Array(2048)))});await waitOpened();await page.locator(action('psf-extract')).click();
   await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.startsWith('No standard VAB'));
   assert.equal(await status.getAttribute('data-error'),'false');assert.equal(await page.locator(`${control('vab-bank')} option`).count(),2);
+  const conflictDiagnostics=[];
+  for(const kind of ['vab','seq']) {
+    const conflict=createPsfConflictFixture(kind);
+    await file.setInputFiles({name:`ambiguous-${kind}.psf`,mimeType,buffer:Buffer.from(conflict.psf)});await waitOpened();
+    await page.locator(action('psf-extract')).click();
+    await page.waitForFunction(()=>document.querySelector('[data-chip-output="ps1-vab-status"]').textContent.includes('VH/VB mapping is uncertain'));
+    const text=await status.textContent();assert.match(text,/Skipped 1 VAB candidate/);
+    assert.equal((await refresh(page)).channels[23].sample,imported.channels[23].sample,'Conflict scan never changes the live instrument');
+    assert.equal(await page.locator(`${control('vab-bank')} option`).count(),1);
+    conflictDiagnostics.push({kind,status:text});
+  }
   // Use a real directory upload, rather than inventing webkitRelativePath.
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'spu-psf-folder-'));
   try {
@@ -682,7 +693,7 @@ async function checkPsf(page,execution){
     await field(page,'audition-midi',55);const realPcm=await latch(page,'Real PSF extracted Tone',false);await page.locator(action('release')).click();await stop(page,'Real PSF final Stop');
     realSet={entry:config.psfEntry,toneIndex:Number(tone),unavailableTones:unavailable,sample,adsr1:voice.adsr1,adsr2:voice.adsr2,pcm:realPcm};
   }
-  return {standalone:true,mini:true,folder:true,twoBanks:true,noCpuExecution:true,extractionDoesNotUpload:true,missingLibraryDiagnostic:true,noBankDiagnostic:true,pcm,realSet};
+  return {standalone:true,mini:true,folder:true,twoBanks:true,noCpuExecution:true,extractionDoesNotUpload:true,missingLibraryDiagnostic:true,noBankDiagnostic:true,conflictDiagnostics,pcm,realSet};
 }
 
 async function runCase(browser,name,origin,host,execution){

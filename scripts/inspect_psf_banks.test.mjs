@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {inspectPsfFolder,runPsfInspection} from './inspect_psf_banks.mjs';
-import {createPsfFixture,makePsf} from '../test/helpers/spu_psf_fixture.mjs';
+import {createPsfFixture,createPsfConflictFixture,makePsf} from '../test/helpers/spu_psf_fixture.mjs';
 
 async function folder(t) {
   const dir=await mkdtemp(join(tmpdir(),'inspect-psf-test-'));
@@ -57,6 +57,15 @@ test('unsupported sample makes its Tones unavailable while the bank and first pl
   assert.equal(bank.playableTones,1);assert.equal(bank.unavailableTones,2);
   assert.deepEqual(bank.firstPlayableTone,{listIndex:2,program:11,tone:0,sample:2});
   assert.equal(bank.unavailableReasons[0].tones,2);
+});
+
+test('layout conflicts are metadata diagnostics rather than successful banks or file errors',async t=>{
+  const dir=await folder(t);await writeFile(join(dir,'ambiguous.psf'),createPsfConflictFixture('seq').psf);
+  const report=await inspectPsfFolder(dir),result=report.results[0];
+  assert.deepEqual(report.summary,{withBanks:0,withoutBanks:1,errors:0});
+  assert.equal(result.rejectedCandidates,1);assert.equal(result.diagnostics[0].code,'ambiguous-seq-body');
+  assert.equal(result.diagnostics[0].address,0x10000);assert.match(result.diagnostics[0].reason,/VH\/VB mapping is uncertain/);
+  assert(!JSON.stringify(report).includes('adpcm'));
 });
 
 test('symbolic links to files and directories are ignored instead of importing outside the selected set',async t=>{

@@ -20,6 +20,19 @@ export function makePsf(data,address=0x80010000,tags='',options) {
   return psfFromExe(exe,tags,options);
 }
 export const psfFile=(name,bytes,webkitRelativePath='')=>({name,webkitRelativePath,size:bytes.length,arrayBuffer:async()=>bytes.slice().buffer});
+// A superficially playable outer bank whose assumed body also contains another
+// structured file. Data after its first END must not hide the layout conflict.
+export function createPsfConflictFixture(kind='vab') {
+  const {vh,vb,vab}=createVabFixture(),body=new Uint8Array(0x2000),header=vh.slice();
+  body.set(vb);const view=new DataView(header.buffer);
+  view.setUint32(12,header.length+body.length,true);
+  view.setUint16(0xc22,(body.length-32)/8,true);view.setUint16(0xc24,2,true);
+  body[body.length-16]=4;body[body.length-15]=1;
+  const embedded=kind==='vab'?vab:Uint8Array.of(0x70,0x51,0x45,0x53,0,0,0,1,1,0xe0,7,0xa1,0x20,4,2,0,0xff,0x2f,0);
+  body.set(embedded,128);
+  const data=new Uint8Array(header.length+body.length);data.set(header);data.set(body,header.length);
+  return {data,bodyOffset:header.length,embeddedOffset:header.length+128,embeddedBytes:embedded.length,psf:makePsf(data)};
+}
 export function createPsfFixture() {
   const {vab}=createVabFixture(),image=new Uint8Array(0x10000+vab.length);
   image.set(vab);const second=vab.slice();new DataView(second.buffer).setUint32(8,24,true);image.set(second,0x10000);

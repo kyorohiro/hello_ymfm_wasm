@@ -26,6 +26,10 @@ ZIPは先に展開する。PSF／MiniPSFと、その曲が参照する全PSFLib�
   他の曲の検査は継続する。入力セット全体のCRC・サイズ不正は検査開始前にエラー終了する。
 - 各bankの `playableTones`／`unavailableTones` と `unavailableReasons`：ブラウザのTone読み込み前検証と同じ判定。
 - `firstPlayableTone`：ブラウザで自動選択されるTone。`listIndex`／`program`／`tone` は0始まり。
+- `diagnostics`：除外候補のRAMアドレス・`code`・理由。`ambiguous-vab-body`／`ambiguous-seq-body`は、
+  想定サンプル領域に別の有効なVABヘッダー／構造の整ったSEQヘッダーがあるため、本文対応が曖昧として除外したもの。
+  `conflictAddress`は衝突したヘッダー位置。識別子だけの一致は除外条件にしない。
+  ほかに範囲／未ロード、VAB構造不正、対応Toneなしの診断がある。全誤検出を排除する保証ではない。
 - `files`：入力ファイルの相対パス・サイズ・SHA-256。後日の再検証で入力の同一性を確認できる。
 
 終了コードは成功／検出なしが0、入力不正または1曲以上の検査エラーが1。
@@ -42,6 +46,6 @@ Toneが読み込めるという判定であり、音の忠実度や元ゲーム�
 node --test scripts/inspect_psf_banks.test.mjs docs/playground/playground_ps1_psf.test.mjs
 ```
 
-CLI 7 tests＋共通パーサー9 tests。
+CLI 8 tests＋共通パーサー14 tests。
 合成MiniPSFと相対依存、複数bank、対応不能Tone、失敗後の継続、検出なし、symlink、入力上限、入力上書き防止を検証する。
 実データの再検証記録は [Clock TowerのCLI検証](../docs/issues/spu_psf_compatibility_clock_tower_02.json)。

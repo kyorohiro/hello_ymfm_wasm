@@ -9,7 +9,7 @@ import {readSpuInstrument, writeSpuInstrument, prepareAudioPcm, MAX_INSTRUMENT_B
 
 import {MAX_AUDIO_FILE_BYTES, prepareHostAudio} from './spu_synth_long_audio.js';
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './spu_synth_vab.js';
-import {PSF_FILES, readPsfFileSet, extractPsfVabs} from '../playground/playground_ps1_psf.js';
+import {PSF_FILES, readPsfFileSet, extractPsfVabs, psfRejectionSummary} from '../playground/playground_ps1_psf.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => { $('audioStatus').textContent = message; $('audioStatus').dataset.error = String(error); };
@@ -377,11 +377,11 @@ $('extractPsf').addEventListener('click',async()=>{
     const result=await extractPsfVabs(psfSet,entry,{signal});
     if (operation!==assetEpoch) return;
     if (!result.banks.length) {
-      vabStatus(`No standard VAB found in ${entry}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${vabBank?' Previous bank is kept.':''}`);
+      vabStatus(`No standard VAB found in ${entry}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${vabBank?' Previous bank is kept.':''}`);
       return;
     }
     showBanks(result.banks.map(found=>({bank:found.bank,name:`${entry} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
-    vabStatus(`Extracted ${result.banks.length} VAB banks from ${entry} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.`);
+    vabStatus(`Extracted ${result.banks.length} VAB banks from ${entry} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.${psfRejectionSummary(result)}`);
   } catch (error) {if (operation===assetEpoch && error.name!=='AbortError') vabStatus(error.message,true);}
   finally {if (operation===assetEpoch) {bankReadController=null;updateBankControls();}}
 });

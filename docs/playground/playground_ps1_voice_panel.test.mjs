@@ -4,7 +4,7 @@ import {createPlaygroundPs1VoicePanel, ps1VoiceCode} from './playground_ps1_voic
 import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js';
 import {decodePs1Envelope} from '../js/ps1_parameters.js';
 import {createVabFixture} from '../../test/helpers/spu_vab_fixture.mjs';
-import {createPsfFixture,makePsf,psfFile} from '../../test/helpers/spu_psf_fixture.mjs';
+import {createPsfFixture,createPsfConflictFixture,makePsf,psfFile} from '../../test/helpers/spu_psf_fixture.mjs';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Events {
@@ -104,6 +104,15 @@ test('missing PSFLib and no-bank results are distinct, preserve a previously ope
   assert.match(output(f.root,'vab-status').textContent,/missing PSFLib/);assert.equal(output(f.root,'vab-status').dataset.error,'true');
   psf.files=[psfFile('empty.psf',makePsf(new Uint8Array(2048)))];await psf.fire('change');await action(f.root,'psf-extract').fire('click');
   assert.match(output(f.root,'vab-status').textContent,/No standard VAB.*Previous bank is kept/);assert.equal(output(f.root,'vab-status').dataset.error,'false');
+  assert.equal(control(f.root,'vab-tone').children.length,3);assert.deepEqual(f.calls,[]);f.panel.dispose();
+});
+
+test('ambiguous PSF body reports the layout conflict while preserving the prior bank and live audio',async()=>{
+  const f=fixture({enableVabImport:true}),file=control(f.root,'vab-file'),{vab}=createVabFixture();
+  file.files=[{name:'bank.vab',size:vab.length,arrayBuffer:async()=>vab.buffer}];await file.fire('change');
+  const psf=control(f.root,'psf-file');psf.files=[psfFile('ambiguous.psf',createPsfConflictFixture('seq').psf)];
+  await psf.fire('change');await action(f.root,'psf-extract').fire('click');
+  assert.match(output(f.root,'vab-status').textContent,/No standard VAB.*structured SEQ.*mapping is uncertain.*Previous bank is kept/);
   assert.equal(control(f.root,'vab-tone').children.length,3);assert.deepEqual(f.calls,[]);f.panel.dispose();
 });
 

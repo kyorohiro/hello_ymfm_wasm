@@ -611,7 +611,7 @@ async function checkVab(page, keyboardHz) {
 
 async function checkPsf(page,keyboardHz) {
   console.log('CHECK PSF: files / folder / overlays / banks / keyboard / preset / errors / cancellation');
-  const {createPsfFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
+  const {createPsfFixture,createPsfConflictFixture,makePsf}=await import('../test/helpers/spu_psf_fixture.mjs');
   const fixture=createPsfFixture();
   const payload=(name,bytes)=>({name,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
   const open=async files=>{
@@ -669,6 +669,18 @@ async function checkPsf(page,keyboardHz) {
   assert.equal(await page.locator('#vabStatus').getAttribute('data-error'),'false');
   assert.equal(await page.locator('#vabBank option').first().textContent(),bankName);
   assert.deepEqual((await settled(page)).auditions,held.auditions);
+  const conflictDiagnostics=[];
+  // SEQ conflict must keep the bank; a nested valid bank can still be listed,
+  // but neither result may upload a new sample or interrupt a held note.
+  for(const kind of ['seq','vab']) {
+    await open(payload(`ambiguous-${kind}.psf`,createPsfConflictFixture(kind).psf));
+    await page.locator('#extractPsf').click();
+    await page.waitForFunction(()=>document.getElementById('vabStatus').textContent.includes('VH/VB mapping is uncertain'));
+    const status=await page.locator('#vabStatus').textContent();assert.match(status,/Skipped 1 VAB candidate/);
+    if(kind==='seq')assert.equal(await page.locator('#vabBank option').first().textContent(),bankName);
+    const state=await settled(page);assert.deepEqual(state.auditions,held.auditions);assert.equal(state.channels[0].sample,held.channels[0].sample);
+    conflictDiagnostics.push({kind,status});
+  }
   await audible(page,'PSF failures preserve held note',expectedHz);
   await page.keyboard.up('y');await settled(page);await silent(page,'PSF errors release');
   // Folder selection retains relative paths, including the lib subdirectory.
@@ -733,7 +745,7 @@ async function checkPsf(page,keyboardHz) {
     await page.locator('#stopAudio').click();await silent(page,'Real PSF stop');
     real={files:files.length,entry:await page.locator('#psfEntry').inputValue(),tones,unavailable,selected,adpcmBytes:loaded.samples.find(s=>s.id===loaded.channels[0].sample).byteLength,pcm};
   }
-  return {fixture:'original synthetic PSF; no game data distributed',standalone:true,miniPsfFolder:true,multipleBanks:true,originalAdpcm:true,fineTuneOverlay:true,bankCacheReused:true,presetRoundTrip:true,focused,roundTrip,invalidImportsKeepHeldNote:true,readCancelledByReset:true,extractionCancelledByReset:true,layouts,real};
+  return {fixture:'original synthetic PSF; no game data distributed',standalone:true,miniPsfFolder:true,multipleBanks:true,originalAdpcm:true,fineTuneOverlay:true,bankCacheReused:true,presetRoundTrip:true,focused,roundTrip,conflictDiagnostics,invalidImportsKeepHeldNote:true,readCancelledByReset:true,extractionCancelledByReset:true,layouts,real};
 }
 
 async function checkNoise(page,name) {

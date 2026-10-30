@@ -138,24 +138,67 @@ export async function composePsfRam(set,entryPath,{signal}={}) {
   return {ram,coverage,loadedFiles,expandedBytes:expanded,entryPath};
 }
 
+const ramAddress=at=>`0x${(0x80000000+at).toString(16)}`;
+
+/** Shared UI diagnostic; never includes sample data. */
+export function psfRejectionSummary({diagnostics=[]}) {
+  if(!diagnostics.length)return '';
+  const details=diagnostics.slice(0,3).map(item=>`${ramAddress(item.address)}: ${item.reason}`).join('; ');
+  return ` Skipped ${diagnostics.length} VAB candidate(s): ${details}${diagnostics.length>3?'; …':''}.`;
+}
+
 /** Only contiguous, fully loaded VAB headers+bodies are matched initially.
- * Validate tables and at least one playable Tone, not just the pBAV magic. */
+ * A playable Tone is insufficient when the assumed body contains another
+ * validated header. This is a conservative layout guard, not a VH/VB resolver. */
 export function findPsfVabs({ram,coverage}) {
-  const banks=[];let candidates=0,extracted=0,rejected=0;
+  const banks=[],headers=[],sequences=[],records=[],diagnostics=[];let candidates=0,extracted=0;
   const view=new DataView(ram.buffer,ram.byteOffset,ram.byteLength);
-  for(let at=0;at+0x20<=ram.length;at++) {
-    if(ram[at]!==0x70||!signature(ram,at,'pBAV'))continue;
+  const loaded=(start,end)=>coverage.subarray(start,end).every(byte=>byte===1);
+  for(let at=0;at+15<=ram.length;at++) {
+    if(ram[at]!==0x70)continue;
+    // Sony SEQ v1 header: big-endian version, resolution, tempo and rhythm.
+    // https://psx-spx.consoledev.net/cdromfileformats/#seq-single-sequence
+    // Magic alone (or SEP's shared magic) does not establish a conflict.
+    // Some SEQs leave both rhythm bytes zero (observed in Crash Bandicoot).
+    if(signature(ram,at,'pQES')&&loaded(at,at+15)&&view.getUint32(at+4,false)===1&&
+      view.getUint16(at+8,false)>0&&(ram[at+10]||ram[at+11]||ram[at+12])&&
+      ((ram[at+13]>0&&ram[at+13]<128&&ram[at+14]<=7)||(ram[at+13]===0&&ram[at+14]===0))) {
+      if(sequences.length>=256)fail('too many structured SEQ headers');
+      sequences.push(at);
+    }
+    if(at+0x20>ram.length||!signature(ram,at,'pBAV'))continue;
     if(++candidates>256)fail('too many VAB candidates');
-    const size=view.getUint32(at+12,true);
-    if(size<0xa20||size>MAX_VAB_FILE_BYTES||at+size>ram.length||!coverage.subarray(at,at+size).every(byte=>byte===1)){rejected++;continue;}
+    const size=view.getUint32(at+12,true),headerBytes=0xa20+view.getUint16(at+0x12,true)*0x200;
+    const record={address:at,size,headerBytes};records.push(record);
+    if(size<0xa20||size>MAX_VAB_FILE_BYTES||at+size>ram.length||headerBytes>size||!loaded(at,at+headerBytes)) {
+      Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});continue;
+    }
     try {
-      const bank=readVab(ram.subarray(at,at+size));
-      if(!bank.tones.some((_,index)=>{try{prepareVabTone(bank,index);return true;}catch{return false;}})){rejected++;continue;}
-      extracted+=size;if(banks.length>=32||extracted>8*1024*1024)fail('extracted bank limit exceeded');
-      banks.push({bank,address:at,bytes:size});
-    } catch(error){if(error.message.startsWith('PSF:'))throw error;rejected++;}
+      // Body bytes are not interpreted by readVab. Validate the whole header
+      // even if its own VB is missing or none of its Tones can be prepared.
+      readVab(ram.subarray(at,at+size));headers.push(record);
+      if(!loaded(at,at+size))Object.assign(record,{code:'unloaded-or-invalid-range',reason:'header/body range is invalid or not fully loaded'});
+    } catch(error){Object.assign(record,{code:'invalid-vab',reason:error.message});}
   }
-  return {banks,candidates,rejected};
+  for(const record of records) {
+    const {address:at,size,headerBytes}=record;
+    if(!record.code) {
+      const nested=headers.find(other=>other.address>=at+headerBytes&&other.address<at+size);
+      const sequence=sequences.find(address=>address>=at+headerBytes&&address<at+size);
+      if(nested)Object.assign(record,{code:'ambiguous-vab-body',conflictAddress:nested.address,reason:`assumed sample body contains another VAB header at ${ramAddress(nested.address)}; VH/VB mapping is uncertain`});
+      else if(sequence!==undefined)Object.assign(record,{code:'ambiguous-seq-body',conflictAddress:sequence,reason:`assumed sample body contains a structured SEQ header at ${ramAddress(sequence)}; VH/VB mapping is uncertain`});
+    }
+    if(!record.code) {
+      const bank=readVab(ram.subarray(at,at+size));
+      if(!bank.tones.some((_,index)=>{try{prepareVabTone(bank,index);return true;}catch{return false;}}))Object.assign(record,{code:'no-supported-tone',reason:'no Tone passes sample validation'});
+      else {
+        extracted+=size;if(banks.length>=32||extracted>8*1024*1024)fail('extracted bank limit exceeded');
+        banks.push({bank,address:at,bytes:size});
+      }
+    }
+    if(record.code)diagnostics.push({address:at,code:record.code,reason:record.reason,...(record.conflictAddress!==undefined?{conflictAddress:record.conflictAddress}:{})});
+  }
+  return {banks,candidates,rejected:diagnostics.length,diagnostics};
 }
 
 export async function extractPsfVabs(set,entryPath,options={}) {

@@ -4,12 +4,20 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## PSFの既知誤候補を除外：2026-10-30
+
+想定VB内の別VAB／構造の整ったSEQヘッダーを検知し、曖昧な候補を除外する共通処理を追加。
+Playground・Synthの両UIとCLIに理由を表示。128 tests、両UIの6ブラウザ経路成功。
+同一入力111 entriesを再検査し、候補ありentryはWild Arms 3→1／Crash 6→0／Clock Tower 20→20。
+残る候補の忠実度は未確認。分離VH／VB対応は後続に残してPSはいったん区切れる。
+[実装・検証](spu_psf_body_guard_01.md)。ソース変更のみで、今回の配布ZIP作成・公開は未実施。
+
 ## 追加2作品のPSF調査：2026-10-30
 
 Wild Arms 66 entries／Crash Bandicoot 25 entriesを全走査し、処理エラー0。
 現行抽出器の採用候補はそれぞれ3／6 entries。代表候補のPlayground・Synth計12ブラウザ経路成功。
 ただし想定VB領域に別VABヘッダー／SEQ識別子があり、正しい元音色の復元成功とは扱わない。
-次は**VH／VB対応付けと誤候補の除外**を優先。[記録・測定JSON](spu_psf_multi_title_01.md)。
+調査時点ではVH／VB対応付けと誤候補の除外を優先とした。既知パターンの除外は上記で完了。[調査記録](spu_psf_multi_title_01.md)。
 製品コード・配布ZIPは変更せず、ゲーム由来データは一時領域のみ。人の耳での試聴は未実施。
 
 ## 公開報告：2026-10-30 Playgroundリリース済み

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {MAX_VAB_FILE_BYTES, readVab, prepareVabTone} from './playground_ps1_vab.js';
-import {PSF_FILES,readPsfFileSet,extractPsfVabs} from './playground_ps1_psf.js';
+import {PSF_FILES,readPsfFileSet,extractPsfVabs,psfRejectionSummary} from './playground_ps1_psf.js';
 
 /** Opening a bank is local-only; loading a Tone is one inspector transaction. */
 export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=()=>{}}) {
@@ -82,9 +82,9 @@ export function createPlaygroundPs1VabPanel({root, getContext, invoke, onError=(
     try {
       const result=await extractPsfVabs(psfSet,song.value,{signal});
       if(!current(token,context))return;
-      if(!result.banks.length){message(`No standard VAB found in ${song.value}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${bank?' Previous bank is kept.':''}`);return;}
+      if(!result.banks.length){message(`No standard VAB found in ${song.value}. Separate VH/VB layouts, custom or runtime-packed banks need further support.${psfRejectionSummary(result)}${bank?' Previous bank is kept.':''}`);return;}
       showBanks(result.banks.map(found=>({bank:found.bank,name:`${song.value} · VAB @0x${(0x80000000+found.address).toString(16)}`})));
-      message(`Extracted ${result.banks.length} VAB banks from ${song.value} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.`);
+      message(`Extracted ${result.banks.length} VAB banks from ${song.value} (${result.loadedFiles.length} program overlays). Choose a bank and Tone, then load it.${psfRejectionSummary(result)}`);
     }catch(error){if(current(token,context)&&error.name!=='AbortError'){message(error.message,true);onError(error);}}
     finally{if(token===sequence&&!disposed){busy=false;controller=null;update();}}
   });

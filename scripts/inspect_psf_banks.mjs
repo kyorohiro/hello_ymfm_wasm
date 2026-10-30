@@ -68,7 +68,7 @@ export async function inspectPsfFolder(directory,{entry}={}) {
       const result=await extractPsfVabs(set,song.path);
       results.push({entry:song.path,title:song.title,status:result.banks.length?'banks':'no-bank',
         loadedFiles:result.loadedFiles,expandedBytes:result.expandedBytes,candidates:result.candidates,
-        rejectedCandidates:result.rejected,banks:result.banks.map(summarizeBank)});
+        rejectedCandidates:result.rejected,diagnostics:result.diagnostics,banks:result.banks.map(summarizeBank)});
     } catch(error) {results.push({entry:song.path,title:song.title,status:'error',error:error.message});}
   }
   return {schemaVersion:1,scope:'PSF1/MiniPSF static contiguous VAB compatibility; no playback or fidelity assessment',

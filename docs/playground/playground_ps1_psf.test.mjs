@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readPsfFile,readPsfFileSet,composePsfRam,extractPsfVabs,findPsfVabs,psfCrc32} from './playground_ps1_psf.js';
 import {prepareVabTone} from './playground_ps1_vab.js';
-import {createPsfFixture,makePsf,psfFromExe,psfFile,fixtureCrc32} from '../../test/helpers/spu_psf_fixture.mjs';
+import {createPsfFixture,createPsfConflictFixture,makePsf,psfFromExe,psfFile,fixtureCrc32} from '../../test/helpers/spu_psf_fixture.mjs';
 
 test('compressed CRC and zlib data produce two bounded VABs with original Tone bytes',async()=>{
   assert.equal(psfCrc32(new TextEncoder().encode('123456789')),0xcbf43926);
@@ -84,4 +84,61 @@ test('dependency depth and selected input budgets cannot expand unboundedly',asy
   const set=await readPsfFileSet(files);await assert.rejects(composePsfRam(set,'0.psf'),/depth/);
   await assert.rejects(readPsfFileSet(Array(513).fill(files[0])),/512/);
   await assert.rejects(readPsfFileSet([{...files[0],size:4*1024*1024+1}]),/4 MiB/);
+});
+
+test('another validated VAB header inside an assumed body rejects the outer bank, even after its first END',async()=>{
+  const f=createPsfConflictFixture('vab'),set=await readPsfFileSet([psfFile('overlap.psf',f.psf)]);
+  const result=await extractPsfVabs(set,'overlap.psf');
+  assert.deepEqual(result.banks.map(b=>b.address),[0x10000+f.embeddedOffset]);
+  assert.equal(result.rejected,1);
+  assert.equal(result.diagnostics[0].code,'ambiguous-vab-body');
+  assert.equal(result.diagnostics[0].conflictAddress,0x10000+f.embeddedOffset);
+});
+
+test('structured SEQ inside an assumed body rejects a bank with otherwise playable Tones',async()=>{
+  for(const rhythm of ['specified','unset']) {
+    const f=createPsfConflictFixture('seq');
+    if(rhythm==='unset'){f.data[f.embeddedOffset+13]=0;f.data[f.embeddedOffset+14]=0;}
+    const set=await readPsfFileSet([psfFile('sequence.psf',makePsf(f.data))]);
+    const result=await extractPsfVabs(set,'sequence.psf');
+    assert.equal(result.banks.length,0);assert.equal(result.rejected,1);
+    assert.equal(result.diagnostics[0].code,'ambiguous-seq-body');
+  }
+});
+
+test('an embedded valid VH still conflicts when its own body is uncovered or its Tones are unsupported',async()=>{
+  for(const kind of ['uncovered','unsupported']) {
+    const f=createPsfConflictFixture('vab'),image=await composePsfRam(await readPsfFileSet([psfFile('a.psf',f.psf)]),'a.psf');
+    const at=0x10000+f.embeddedOffset;
+    if(kind==='unsupported') {
+      image.ram[at+0xe20+16]=0xf0;image.ram[at+0xe20+96]=0xf0;
+    } else {
+      // Leave the nested header loaded; its body extends beyond the outer bank.
+      const v=new DataView(image.ram.buffer);v.setUint32(at+12,0x3000,true);
+      image.coverage[at+0x2fff]=0;
+    }
+    assert.equal(findPsfVabs(image).diagnostics[0].code,'ambiguous-vab-body');
+  }
+});
+
+test('magic alone, invalid SEQ timing, or uncovered SEQ headers do not reject a valid body',async()=>{
+  for(const kind of ['vab','seq']) {
+    const f=createPsfConflictFixture(kind),image=await composePsfRam(await readPsfFileSet([psfFile('a.psf',f.psf)]),'a.psf');
+    const at=0x10000+f.embeddedOffset;
+    if(kind==='vab')image.ram[at+4]=99;else image.ram[at+8]=image.ram[at+9]=0;
+    assert.equal(findPsfVabs(image).banks[0].address,0x10000);
+  }
+  const f=createPsfConflictFixture('seq'),image=await composePsfRam(await readPsfFileSet([psfFile('a.psf',f.psf)]),'a.psf');
+  image.coverage[0x10000+f.embeddedOffset+10]=0;
+  const result=findPsfVabs(image);assert.equal(result.banks.length,0);
+  assert.equal(result.diagnostics[0].code,'unloaded-or-invalid-range');
+});
+
+test('a structured SEQ outside the bank and genuine short samples remain accepted',async()=>{
+  const {vab}=await import('../../test/helpers/spu_vab_fixture.mjs').then(m=>m.createVabFixture());
+  const seq=createPsfConflictFixture('seq'),data=new Uint8Array(vab.length+seq.embeddedBytes+32);
+  data.set(vab);data.set(seq.data.subarray(seq.embeddedOffset,seq.embeddedOffset+seq.embeddedBytes),vab.length+16);
+  const result=await extractPsfVabs(await readPsfFileSet([psfFile('a.psf',makePsf(data))]),'a.psf');
+  assert.equal(result.banks.length,1);assert.equal(result.rejected,0);
+  assert.equal(prepareVabTone(result.banks[0].bank,2).adpcm.length,16);
 });
