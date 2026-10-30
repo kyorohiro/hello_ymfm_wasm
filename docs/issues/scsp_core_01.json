@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "scope": "First standalone SCSP core milestone in development SDK only; no browser UI or consumer SDK adoption",
+  "developmentSdkPath": "w/tetorica-soundchip-native",
+  "developmentSdkBaseCommit": "d8a4e19a010c0e3970c309a1db4130eaea2e63a6",
+  "uncommittedDevelopment": true,
+  "mameRevision": "a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+  "nativeWasmSmoke": {
+    "schemaVersion": 1,
+    "passed": true,
+    "scope": "Original 64-frame PCM16 sine, 44.1 kHz, 8192 stereo frames; Native/WASM bit-exact parity and block invariance, release, reset, handle independence and invalid input",
+    "nativeWasmBitExact": true,
+    "blockPartitionInvariant": true,
+    "frames": 8192,
+    "sampleRate": 44100,
+    "peak": 0.25,
+    "pcmSha256": "133c4b616957935aa1e75f284edcbb780c7bed0ce078bf00eeff10cc1be393b1",
+    "wasmSha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
+    "listeningPerformed": false,
+    "hardwareAccuracyVerified": false
+  },
+  "wasmBuildReceipt": {
+    "id": "scsp",
+    "format": "emscripten-es-module",
+    "sourceFingerprint": "877f07d61654aa08fa76db66d515a93cf0f581a21153832a807a70dbe74a3873",
+    "sourceFiles": [
+      {
+        "path": "scripts/build-wasm.sh",
+        "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f",
+        "size": 1696
+      },
+      {
+        "path": "scripts/build_scsp_wasm.sh",
+        "sha256": "2aba7d230903eeb99e162045afcc4dfb987a2632dbaa1449bce6d15a2ab1bd1b",
+        "size": 900
+      },
+      {
+        "path": "scripts/record_wasm_build.mjs",
+        "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+        "size": 2006
+      },
+      {
+        "path": "vendor/mame-scsp/scsp.cpp",
+        "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770",
+        "size": 26800
+      },
+      {
+        "path": "vendor/mame-scsp/scsp.h",
+        "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b",
+        "size": 2976
+      },
+      {
+        "path": "vendor/mame-scsp/scsp_instrument.cpp",
+        "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd",
+        "size": 2474
+      },
+      {
+        "path": "vendor/mame-scsp/scsp_instrument.h",
+        "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c",
+        "size": 1860
+      },
+      {
+        "path": "vendor/mame-scsp/scspdsp.cpp",
+        "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822",
+        "size": 5882
+      },
+      {
+        "path": "vendor/mame-scsp/scspdsp.h",
+        "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f",
+        "size": 852
+      },
+      {
+        "path": "vendor/mame-scsp/standalone_support.h",
+        "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7",
+        "size": 1637
+      }
+    ],
+    "outputs": [
+      {
+        "path": "scsp_wasm.js",
+        "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9",
+        "size": 11384
+      },
+      {
+        "path": "scsp_wasm.wasm",
+        "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
+        "size": 17854
+      }
+    ],
+    "compiler": {
+      "command": "em++",
+      "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+  },
+  "nativeChecks": {
+    "cmakeCtestPassed": true,
+    "addressAndUndefinedSanitizersPassed": true,
+    "scope": "PCM16 original sine, PCM8, stereo pan/slot31, 32-slot finite clamp, release, reset/RAM retention, input bounds/masks, handle isolation, block partitioning"
+  },
+  "sdkValidation": {
+    "sourceInventoryPassed": true,
+    "genericChipIds": 24,
+    "instruments": 2,
+    "existingReleaseUnitTestsPassed": 101,
+    "scspCatalogUnitTestsPassed": 4,
+    "scspReleaseArchiveAndCiIntegrationComplete": false
+  },
+  "sourceFiles": {
+    "w/tetorica-soundchip-native/catalog/chips.json": {
+      "bytes": 102268,
+      "sha256": "b26fce3038430e1252f9060c046833a0caf5a0c3835e0c1612aa84be012469b4"
+    },
+    "w/tetorica-soundchip-native/catalog/native_inventory.json": {
+      "bytes": 52620,
+      "sha256": "36f90722cb59f992d37caf8f88f45675c3f0dcdabed6638a91e7ca80575c86db"
+    },
+    "w/tetorica-soundchip-native/catalog/source_inventory.json": {
+      "bytes": 150504,
+      "sha256": "325ee890ce772bfb7d7b2a9428e45bbab49296184b2c16806ada9a8c4b7cc4a2"
+    },
+    "w/tetorica-soundchip-native/native/CMakeLists.txt": {
+      "bytes": 40263,
+      "sha256": "3cd7c1d79c9b7decf72831d3dfedfe01d246284eb42961c3df5665361ec06c23"
+    },
+    "w/tetorica-soundchip-native/native/examples/scsp_pattern.hpp": {
+      "bytes": 2172,
+      "sha256": "27bad3decf381dc8d49ecbb9ba4d4f3b8ab3a85c7f6dac90ee974f596b0613c2"
+    },
+    "w/tetorica-soundchip-native/native/include/tetorica/scsp.h": {
+      "bytes": 109,
+      "sha256": "43366f19b96d0f0fd9612cb68510b70304ba9afe95f6034f5bc761db9ced3148"
+    },
+    "w/tetorica-soundchip-native/native/tests/scsp_fixture.cpp": {
+      "bytes": 4060,
+      "sha256": "3bf6bd898fac1e592a4df4c4d796f08d9bc8e9f6b5e38c6af929b545f374af7d"
+    },
+    "w/tetorica-soundchip-native/scripts/build-wasm.sh": {
+      "bytes": 1696,
+      "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f"
+    },
+    "w/tetorica-soundchip-native/scripts/build_scsp_wasm.sh": {
+      "bytes": 900,
+      "sha256": "2aba7d230903eeb99e162045afcc4dfb987a2632dbaa1449bce6d15a2ab1bd1b"
+    },
+    "w/tetorica-soundchip-native/scripts/sdk_common.py": {
+      "bytes": 15168,
+      "sha256": "0cf7cd462a43c02957c560a19cf1e243bf6b6b04a96916ed6c7489d16998e273"
+    },
+    "w/tetorica-soundchip-native/tests/check_standalone_release.py": {
+      "bytes": 46495,
+      "sha256": "bcbab9058bcecafe1e2372d6fd143c8a926aaae8cc06717ca9ee47efd68ae7e9"
+    },
+    "w/tetorica-soundchip-native/tests/scsp_wasm_smoke.mjs": {
+      "bytes": 4240,
+      "sha256": "31a1646e481ebad2475d7429601edfecb4910c944adc72005b92349d38289255"
+    },
+    "w/tetorica-soundchip-native/tests/test_ps1_instrument_release.py": {
+      "bytes": 8327,
+      "sha256": "9584262698e960ccde63df45196a5aedab74f276b140490b4bc1e9dedb1a0fff"
+    },
+    "w/tetorica-soundchip-native/tests/test_scsp_instrument_release.py": {
+      "bytes": 2651,
+      "sha256": "95ab8413eaf217cfb6a24e6da5ed8da1722988c003aeb0ef3aacb186bb030e13"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/LICENSE": {
+      "bytes": 1593,
+      "sha256": "fa63b17d27ea6c4ff5fbc5c772fba27dc3989dedf9caa9223368eb0576ddc61e"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/README.md": {
+      "bytes": 4175,
+      "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp": {
+      "bytes": 26800,
+      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scsp.h": {
+      "bytes": 2976,
+      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.cpp": {
+      "bytes": 2474,
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.h": {
+      "bytes": 1860,
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.cpp": {
+      "bytes": 5882,
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.h": {
+      "bytes": 852,
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/standalone_support.h": {
+      "bytes": 1637,
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/REVISION": {
+      "bytes": 41,
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/SHA256SUMS": {
+      "bytes": 302,
+      "sha256": "2c8a75c77e8118f2a018f166f2d9b205e44699004be4074cfbde1f4df97115c3"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/scsp.cpp": {
+      "bytes": 43688,
+      "sha256": "5faa5b73d74438e9ad4378274dec957b9928722f743d84c5ed9681baee6d98c8"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/scsp.h": {
+      "bytes": 5034,
+      "sha256": "b67689dc7ce10019c9d0b189c821ae3bdb7541e561fcfb897a882d79db5a7147"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/scspdsp.cpp": {
+      "bytes": 5867,
+      "sha256": "9d4b1de166e5d7d5128b591c612eff3fd5cec78af79c1acabb9d5e93341917fd"
+    },
+    "w/tetorica-soundchip-native/vendor/mame-scsp/upstream/scspdsp.h": {
+      "bytes": 822,
+      "sha256": "db522ecaa04665063e46f7f6c699eb7781c672fd7624ac58a60b0b180652d3cc"
+    }
+  },
+  "consumerSdkPinChanged": false,
+  "published": false,
+  "listeningPerformed": false,
+  "hardwareAccuracyVerified": false,
+  "fmLfoDspBehaviorVerified": false
+}

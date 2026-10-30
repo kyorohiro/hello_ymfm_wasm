@@ -4,6 +4,16 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 次の開発：SCSP初期共通コア — 2026-10-30
+
+ユーザー了承でSega Saturn SCSP対応を開始。[段階別TODO](todo_scsp_01.md)。
+作業用SDK `w/tetorica-soundchip-native` にMAME由来の独立C++コア・C ABI・CMake／WASM recipeを追加。
+自作SineのNative／WASM PCMがbit一致。Native CTest・ASan／UBSan・SDK catalog／出典検証成功。
+[実装・検証・再開手順](scsp_core_01.md)。次は配布監査／固定SDK導入からJS API・Playgroundへ。
+FM／LFO／DSPの動作検証、Synth、Nativeアプリ接続、SSF対応は未実施。
+SDKは別Git管理で未commit。親repoだけをcommitしてもSDK変更は保存されない。
+現在の配布snapshot／公開版／SDK pinは変更せず、公開・commitは行っていない。
+
 ## PSFの既知誤候補を除外：2026-10-30
 
 想定VB内の別VAB／構造の整ったSEQヘッダーを検知し、曖昧な候補を除外する共通処理を追加。
