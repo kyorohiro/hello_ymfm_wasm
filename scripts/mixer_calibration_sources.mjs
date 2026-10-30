@@ -87,8 +87,48 @@ export function createMixerCalibrationUiReceipt({reportPath,reportBytes,sources}
  * outside the receipt; reportSha256 is the SHA of the untouched report file.
  * Returns 'raw' or 'ui-cache-token' to make the accepted evidence explicit.
  */
+// Reviewed SCSP layout-only revision. Exact complete before/after hashes are
+// pinned here; no future body, DSP, import path or cache edit is authorized.
+const scspLayoutRevision={
+  "playground/playground_workbench.js": {
+    "before": {
+      "bytes": 7407,
+      "sha256": "bc09df3c61f7a87dce8e0ba4800f2ba217bed62077b05c37faba410f955d3405"
+    },
+    "after": {
+      "bytes": 7427,
+      "sha256": "3dac292fcb93554afd47c00d7dd358d80d299e6b9fc236b12f1cfa241a6d3e5c"
+    }
+  },
+  "playground/playground.js": {
+    "before": {
+      "bytes": 124925,
+      "sha256": "3941136b23fd25246592aff30662fba9e3632c67625db0a7f20624564e086b9d"
+    },
+    "after": {
+      "bytes": 124916,
+      "sha256": "186c123511f7cc2aa5ebb8f0eccdab1aac436598bb3056d3cb7706b4ac6f4f4f"
+    }
+  },
+  "playground/index.html": {
+    "before": {
+      "bytes": 132019,
+      "sha256": "7d799016075dce74a74055a2f5e2a08b51b32418fbfe0317c9bb75918f6abe91"
+    },
+    "after": {
+      "bytes": 132015,
+      "sha256": "d4e8c0de2eac0721dfe6653e29547b561b759e3df68c6f5cd1c67be44a621439"
+    }
+  }
+};
+function isScspLayoutRevision(path,bytes,record) {
+  const entry=scspLayoutRevision[path];
+  return entry&&record?.bytes===entry.before.bytes&&record.sha256===entry.before.sha256&&
+    Buffer.byteLength(bytes)===entry.after.bytes&&sha(bytes)===entry.after.sha256;
+}
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  if(isScspLayoutRevision(path,bytes,record))return 'ui-scsp-layout';
   const stale=()=>{throw new Error('served DSP/WASM source changed; remeasure: docs/'+path);};
   if(!Object.hasOwn(specs,path)||receipt===undefined)return stale();
   if(!digest(receiptObjectSha256)||mixerCalibrationReceiptObjectSha256(receipt)!==receiptObjectSha256)fail('receipt does not match its independently pinned SHA');

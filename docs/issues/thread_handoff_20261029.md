@@ -4,6 +4,15 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSPタブのレイアウト修正 — 2026-10-30
+
+ユーザー確認でSCSPの音は出たが、タブ表示がFilesを圧迫していた。
+Workbenchのprimary panel移動／floating Keyboard対象にSCSPを追加し、右側のCodeと同じhostへ配置。
+cache tokenも更新。unit 32＋校正／UI監査27成功。
+Chromium／WebKit × Main／Worker、幅1440／686pxでFilesとの非重複と発音を確認。
+[修正記録・監査](scsp_layout_01.md)。校正reportは変更せず、正確なUI-only変更の前後hashで受理。
+未commit／未公開。以前のdev ZIPは未再生成。
+
 ## SCSP Playground初期接続 — 2026-10-30
 
 Saturn (SCSP) Mode、Main／Worker AudioWorklet、32-slot Inspector／Hold／Keyboardを追加。

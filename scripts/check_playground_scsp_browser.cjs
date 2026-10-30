@@ -30,7 +30,19 @@ async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(pag
     console.log(`CHECK ${name}/${execution}`);await page.goto(`http://127.0.0.1:${server.address().port}/${prefix}index.html?mode=scsp&layout=full&no-sw=1`,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>document.getElementById('startupNotice')?.hidden);await page.waitForFunction(()=>window.monaco?.editor?.getEditors().length===1);
     assert.equal(await page.locator('#playgroundMode').inputValue(),'scsp');assert.equal(await page.evaluate(()=>__scspAudit.worklets.length),0);
-    await page.locator('#scspTab').click();await page.locator('#scspPanel [data-chip-action="prepare"]').click();await page.waitForFunction(()=>document.querySelectorAll('#scspPanel [data-scsp-slot]').length===32);
+    await page.locator('#scspTab').click();
+    for(const width of [1440,686]) {
+      await page.setViewportSize({width,height:1100});
+      const layout=await page.evaluate(()=>{
+        const panel=document.getElementById('scspPanel'),files=document.getElementById('fileExplorer'),code=document.getElementById('codePanel');
+        const p=panel.getBoundingClientRect(),f=files.getBoundingClientRect();
+        return {sameHost:panel.parentElement===code.parentElement,host:panel.parentElement.className,panelLeft:p.left,filesRight:f.right,filesVisible:f.width>0,tabInEditor:!!document.getElementById('scspTab').closest('.workbench-editor')};
+      });
+      assert.equal(layout.sameHost,true,JSON.stringify(layout));assert.equal(layout.host,'workbench-primary-panels');assert.equal(layout.tabInEditor,true);
+      if(layout.filesVisible)assert(layout.panelLeft>=layout.filesRight,`SCSP overlaps Files at ${width}px: ${JSON.stringify(layout)}`);
+    }
+    await page.setViewportSize({width:1440,height:1100});
+    await page.locator('#scspPanel [data-chip-action="prepare"]').click();await page.waitForFunction(()=>document.querySelectorAll('#scspPanel [data-scsp-slot]').length===32);
     const hold=page.locator('#scspPanel [data-chip-action="scsp-hold"]');await hold.waitFor();await page.waitForFunction(()=>!document.querySelector('[data-chip-action="scsp-hold"]').disabled);
     console.log('  Hold');await hold.scrollIntoViewIfNeeded();const box=await hold.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await sound(page,true);await page.mouse.up();await sound(page,false);
     console.log('  Keyboard');if(!await page.locator('#keyboardTab').isVisible())await page.locator('.dock-toggle').click();await page.locator('#keyboardTab').click();await page.locator('#operatorKeyboardRoot button').filter({hasText:/^Guitar$/}).click();
@@ -47,7 +59,7 @@ async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(pag
       document.getElementById('workerExecution').checked=execution==='worker';
     },execution);await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await sound(page,true);await page.locator('#stopButton').click();await sound(page,false);
     assert.deepEqual(errors.filter(e=>e!=='ResizeObserver loop completed with undelivered notifications.'),[]);if(errors.length)console.log('  Layout observer notifications: '+errors.length);assert.deepEqual(await page.evaluate(()=>__scspAudit.errors),[]);assert.equal(await page.evaluate(()=>__scspAudit.worklets.filter(n=>n==='tetorica-playground-scsp').length),2);
-    report.results.push({browser:name,version:browser.version(),execution,checks:['lazy mode','Prepare audio','Hold/release','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
+    report.results.push({browser:name,version:browser.version(),execution,checks:['Files/editor separation at 1440/686px','lazy mode','Prepare audio','Hold/release','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
     console.log(`PASS ${name}/${execution}: Prepare, Hold, 32-slot Keyboard, starter, PCM upload example, independent instance, Stop; output muted.`);
    }catch(error){throw Error(`${name}/${execution}: ${error.message}; page errors=${JSON.stringify(errors)}; state=${await page.locator('#status').textContent()}; startup=${await page.locator('#startupMessage').textContent()}`,{cause:error});}finally{await context.close();}
   }}finally{await browser.close();}
