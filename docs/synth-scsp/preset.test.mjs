@@ -15,7 +15,7 @@ test('PCM preset round-trip reproduces exact WASM output and rejects malformed d
     a.noteOn(0,60);b.noteOn(0,60);const left=a.generateStereo(4096),right=b.generateStereo(4096);
     assert.deepEqual(left,right);assert.equal(loaded.voice.lfo.frequencyCode,20);
     const legacy=structuredClone(json);delete legacy.voice.lfo;assert.equal(readPreset(legacy).voice.lfo.pitchDepth,0);assert(left.left.some(v=>Math.abs(v)>.01));
-    for(const bad of [{...json,version:2},{...json,voice:{...json.voice,lfo:{frequencyCode:32}}},{...json,pcm:[0,NaN]},{...json,pcm:[0,32768]},{...json,options:{rootNote:69,loopStartSamples:999999}},{...json,voice:{...json.voice,pan:32}}])assert.throws(()=>readPreset(bad));
+    for(const bad of [{...json,voice:{...json.voice,modulation:{depth:1}}},{...json,version:2},{...json,voice:{...json.voice,lfo:{frequencyCode:32}}},{...json,pcm:[0,NaN]},{...json,pcm:[0,32768]},{...json,options:{rootNote:69,loopStartSamples:999999}},{...json,voice:{...json.voice,pan:32}}])assert.throws(()=>readPreset(bad));
   }finally{a.dispose();b.dispose();}
 });
 test('initial sine triad has headroom before output gain and stop preserves bank',async()=>{

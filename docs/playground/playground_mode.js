@@ -99,7 +99,7 @@ export function createPlaygroundModeUrl(href, id) {
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
   if (mode.chip === 'scsp') return {chip:'scsp',
-    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-lfo-1',base).href,
+    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-fm-1',base).href,
     wasmUrl:new URL('scsp_wasm.wasm',generated).href,
     segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'ps1') return {chip:'ps1',

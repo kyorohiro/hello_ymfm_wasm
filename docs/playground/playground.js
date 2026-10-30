@@ -1,19 +1,19 @@
 import {createPlaygroundCdrom2AudioPanels} from './playground_cdrom2_audio_panels.js?v=cdrom2-panels-1';
-import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=scsp-lfo-1';
+import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=scsp-fm-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=scsp-lfo-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=scsp-fm-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=scsp-calibration-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=scsp-lfo-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=scsp-fm-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=scsp-lfo-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=scsp-fm-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-lfo-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-fm-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mega-cd-cdda-1';
 let desktopAutosave = null;
@@ -51,7 +51,7 @@ import {
 } from "../js/megasynth.js?v=ps1-deferred-release-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=scsp-lfo-1";
+} from "../js/tetorica_synth.js?v=scsp-fm-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -65,7 +65,7 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=ps1-mode-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=scsp-lfo-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=scsp-fm-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=ps1-adpcm-encoder-1";
 import {
   decodeBase64Bytes,
@@ -97,12 +97,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=scsp-lfo-1";
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=scsp-lfo-1';
+} from "../js/playground_runtime.js?v=scsp-fm-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=scsp-fm-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=scsp-lfo-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=scsp-fm-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -290,7 +290,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=scsp-lfo-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=scsp-fm-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,

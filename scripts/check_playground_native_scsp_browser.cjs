@@ -66,15 +66,26 @@ async function check(type,name,base) {
       const key=await page.locator('#operatorKeyboardRoot .key').first().getAttribute('data-key'),beforeKey=native.commands().length;await page.keyboard.down(key);try{await until(()=>native.commands().slice(beforeKey).some(c=>c.type==='scsp'&&c.message.audition&&c.message.action==='on'),'PC Keyboard on');}finally{await page.keyboard.up(key);}
       await until(()=>native.commands().slice(beforeKey).some(c=>c.type==='scsp'&&c.message.audition&&c.message.action==='off'),'PC Keyboard off');
     }
+    await ready('scsp');
+    for(const execution of ['main','worker']){
+      await run(`const a=await useSoundChip('scsp');const wave=await a.loadPCM(new Int16Array([0,8192,0,-8192]),{rootNote:69,loopStartSamples:0,modulationDepth:12});a.setPreset(0,{sample:wave,directLevel:0});a.setPreset(1,{sample:wave,modulation:{depth:9,xOffset:63,yOffset:63}});a.noteOn(0,57);a.noteOn(1,69);log('ws-ready');`,execution);
+      await until(async()=> (await read('scsp')).slots[1].gate,'FM carrier');
+      await page.click('#scspTab');await page.click('#scspPanel [data-scsp-slot="1"]');
+      const depth=page.locator('#scspPanel [data-chip-control="scsp-modulation-depth"]');await depth.fill('10');await depth.dispatchEvent('change');
+      await until(async()=> (await read('scsp')).slots[1].modulation.depth===10,'Native FM live UI');
+      assert.equal((await read('scsp')).slots[0].directLevel,0);
+      assert(native.commands().some(c=>c.type==='scsp'&&c.message.commands?.some(op=>op.register===46&&(op.value>>12)===10)));
+      await stop();
+    }
     await ready('genesis');
     for(const execution of ['main','worker']){
-      await run(`const a=await createSoundChip('scsp',{id:'scsp-ui'});const wave=await a.loadPCM(new Int8Array([0,64,0,-64]),{rootNote:69,loopStartSamples:0});a.setPreset(31,{sample:wave});a.noteOn(31,'A4');log('ws-ready');`,execution);
-      await until(async()=> (await read('scsp-ui')).slots[31].gate,'additional slot 32');
+      await run(`const a=await createSoundChip('scsp',{id:'scsp-ui'});const wave=await a.loadPCM(new Int8Array([0,64,0,-64]),{rootNote:69,loopStartSamples:0,modulationDepth:12});a.setPreset(31,{sample:wave,modulation:{depth:9,xOffset:63,yOffset:63}});a.setModulation(31,{depth:8});a.noteOn(31,'A4');log('ws-ready');`,execution);
+      await until(async()=> (await read('scsp-ui')).slots[31].gate,'additional slot 32');assert.equal((await read('scsp-ui')).slots[31].modulation.depth,8);
       await stop();assert.equal(native.rack.size,0);
     }
     assert.deepEqual(await page.evaluate(()=>window.__scspAudioNodes),[]);assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
     await page.evaluate(()=>window.__nativeScsp.runtime.finalize());await context.close();
-    console.log(JSON.stringify({browser:name,primary:true,additional:true,main:true,worker:true,modeFilter:true,waveEditor:true,lfo:true,operatorKeyboard:true,stop:true,audioNodes:0,nativeRpc:'mocked',passed:true}));
+    console.log(JSON.stringify({browser:name,primary:true,additional:true,main:true,worker:true,modeFilter:true,waveEditor:true,lfo:true,slotModulation:true,operatorKeyboard:true,stop:true,audioNodes:0,nativeRpc:'mocked',passed:true}));
   }finally{await browser.close();}
 }
 (async()=>{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});try{const base=`http://127.0.0.1:${server.address().port}${entry}`;for(const[name,type]of process.argv.includes('--chromium')?[['chromium',chromium]]:process.argv.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]])await check(type,name,base);}finally{await new Promise(resolve=>server.close(resolve));}})().catch(error=>{console.error(error);process.exitCode=1;});

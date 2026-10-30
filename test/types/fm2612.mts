@@ -412,3 +412,14 @@ function checkScspLfo(synth:ScspSynth) {
   // @ts-expect-error No unimplemented software LFO frequency field.
   synth.setLfo(0,{frequencyHz:1});
 }
+
+function checkScspModulation(synth:ScspSynth) {
+  const sample=synth.loadPCM(new Int16Array(64),{rootNote:69,loopStartSamples:0,modulationDepth:12});
+  synth.setPreset(1,{sample,modulation:{depth:9,xOffset:63,yOffset:63}});
+  synth.setModulation(1,{depth:8,writeInhibit:false});
+  synth.getState().slots[1].modulation.depth.toFixed();
+  // @ts-expect-error Stack offset is numeric.
+  synth.setModulation(1,{xOffset:'previous'});
+  // @ts-expect-error STWINH is boolean.
+  synth.setModulation(1,{writeInhibit:1});
+}

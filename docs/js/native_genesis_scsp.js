@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Only authored controls and owned PCM copies live here. DSP runs in Native.
-import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-lfo-1';
-import {SCSP_CONTROLS,scspCommandArgs,createScspValidation} from './playground_scsp.js?v=scsp-lfo-1';
-import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-lfo-1';
+import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-fm-1';
+import {SCSP_CONTROLS,scspCommandArgs,createScspValidation} from './playground_scsp.js?v=scsp-fm-1';
+import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-fm-1';
 import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 export const SCSP_MEMORY_HELD_ERROR='Stop SCSP voices before replacing protected sample RAM or state';
 export const SCSP_ADMISSION_ERRORS=['Native SCSP note exceeds supported PCM RAM or loop bounds',SCSP_MEMORY_HELD_ERROR,'Native SCSP pending command limit reached (8 MiB)','Duplicate pending Native SCSP command ID','Native SCSP command was cancelled before it applied','Native SCSP state changed while reading; retry','Native SCSP command was not applied within 100 ms'];
@@ -59,11 +59,11 @@ export function createNativeGenesisScsp(owner,{additional=false}={}){
   function control(method,args=[],timing={},manual){
     const saved=clone(args),bank=bankGeneration;
     return enqueue(async(check,capturedScope)=>{
-      if(timing.time===undefined&&['setFrequency','setNote','setLfo'].includes(method)){await snapshot();check();}
+      if(timing.time===undefined&&['setFrequency','setNote','setLfo','setModulation'].includes(method)){await snapshot();check();}
       if(method==='reset'&&leases.size)throw new Error(SCSP_MEMORY_HELD_ERROR);
       if(authors.size>=65536)throw new RangeError('Native SCSP author queue is full');
       const before=createNativeScspShadow(),copiesMemory=method==='reset'&&saved[0]?.clearRam;copy(before,projected,copiesMemory);
-      if(timing.time===undefined&&['setFrequency','setNote','setLfo'].includes(method)){const next=projected.synth.getState();const actual=applied.synth.getState();next.playingSampleIds=actual.playingSampleIds;next.playingLfos=actual.playingLfos;next.playingFrequencies=actual.playingFrequencies;projected.synth._adoptState(next);}
+      if(timing.time===undefined&&['setFrequency','setNote','setLfo','setModulation'].includes(method)){const next=projected.synth.getState();const actual=applied.synth.getState();next.playingSampleIds=actual.playingSampleIds;next.playingLfos=actual.playingLfos;next.playingModulations=actual.playingModulations;next.playingFrequencies=actual.playingFrequencies;projected.synth._adoptState(next);}
       let {commands}=projected.collect(method,saved);
       if(method==='setMix'){const patch=saved[1];commands=commands.flatMap(c=>{const mask=c.register%32===12?('totalLevel'in patch?255:0):('directLevel'in patch?0xe000:0)|('pan'in patch?0x1f00:0);return mask?[{...c,mask}]:[];});}
       const channel=Number.isInteger(saved[0])?saved[0]:undefined,action=['keyOn','noteOn'].includes(method)?'on':['keyOff','noteOff'].includes(method)?'off':'edit';

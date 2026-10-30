@@ -308,10 +308,10 @@ test('a separately validated PS1 extension preserves all historical captures, ga
 
 test('the shipped Playground System policy reproduces from all separately measured extensions and hashed sources',async()=>{
   const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
-  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_scsp_lfo_chip_levels_01.json',import.meta.url));
-  const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_scsp_lfo_chip_levels_01.json',import.meta.url));
-  const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_scsp_lfo_chip_levels_01.json',import.meta.url));
-const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_lfo_chip_levels_01.json',import.meta.url));
+  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_scsp_fm_chip_levels_01.json',import.meta.url));
+  const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_scsp_fm_chip_levels_01.json',import.meta.url));
+  const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_scsp_fm_chip_levels_01.json',import.meta.url));
+const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
   const moduleUrl=new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url),outPath=fileURLToPath(moduleUrl);
   const historicalText=await readFile(reportPath,'utf8'),ps1Text=await readFile(ps1ReportPath,'utf8'),wonderswanText=await readFile(wonderswanReportPath,'utf8'),pokeyText=await readFile(pokeyReportPath,'utf8'),output=await readFile(outPath,'utf8');
   const historical=JSON.parse(historicalText),ps1Report=JSON.parse(ps1Text);

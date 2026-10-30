@@ -1,6 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-lfo-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-fm-1';
 
 const integer=(v,max,label)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`${label} must be 0..${max}`);return v;};
 const boolean=(v,label)=>{if(typeof v!=='boolean')throw new TypeError(`${label} must be boolean`);return v;};

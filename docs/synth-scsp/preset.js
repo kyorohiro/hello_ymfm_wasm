@@ -7,6 +7,7 @@ export function readPreset(value) {
   if(value.pcm.some(v=>!Number.isInteger(v)||v< -limit||v>=limit))throw new RangeError('Invalid signed PCM value');
   const pcm=value.bits===8?Int8Array.from(value.pcm):Int16Array.from(value.pcm);
   const options=value.options,voice=value.voice;
+  if(voice?.modulation&&(voice.modulation.depth||voice.modulation.writeInhibit))throw new TypeError('Linked SCSP modulation requires a multi-slot preset; this Synth reads single-slot PCM voices');
   if(!voice||!voice.envelope)throw new TypeError('Missing voice settings');
   const check=createScspValidation();
   try {

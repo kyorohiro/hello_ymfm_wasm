@@ -1,6 +1,6 @@
 import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-prepare-1';
 import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=pokey-prepare-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-lfo-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-fm-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=pokey-prepare-1';

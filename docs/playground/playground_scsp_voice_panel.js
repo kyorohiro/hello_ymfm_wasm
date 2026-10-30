@@ -1,13 +1,13 @@
-import {SCSP_LFO_FREQUENCIES_HZ,SCSP_LFO_PITCH_CENTS,SCSP_LFO_AMPLITUDE_DB,SCSP_LFO_WAVEFORMS} from '../js/scspsynth.js?v=scsp-lfo-1';
-import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-lfo-1';
+import {SCSP_LFO_FREQUENCIES_HZ,SCSP_LFO_PITCH_CENTS,SCSP_LFO_AMPLITUDE_DB,SCSP_LFO_WAVEFORMS} from '../js/scspsynth.js?v=scsp-fm-1';
+import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-fm-1';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 /** SCSP PCM drafts live in the UI; only explicit Apply allocates sample RAM. */
 export function scspVoiceCode(slot,voice,pcm,sample) {
-  const options={baseFrequencyHz:sample.rootFrequencyHz,sourceSampleRate:sample.sourceSampleRate,...(sample.loopStartSamples===null?{}:{loopStartSamples:sample.loopStartSamples})};
-  const preset={frequencyHz:voice.frequencyHz,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,envelope:voice.envelope,lfo:voice.lfo};
+  const options={baseFrequencyHz:sample.rootFrequencyHz,sourceSampleRate:sample.sourceSampleRate,...(sample.modulationDepth?{modulationDepth:sample.modulationDepth}:{}),...(sample.loopStartSamples===null?{}:{loopStartSamples:sample.loopStartSamples})};
+  const preset={frequencyHz:voice.frequencyHz,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,envelope:voice.envelope,lfo:voice.lfo,modulation:voice.modulation};
   return `const saturn = await useSoundChip('scsp');\nconst wave = await saturn.loadPCM(new Int${sample.bits}Array(${JSON.stringify(Array.from(pcm))}), ${JSON.stringify(options)});\nsaturn.setPreset(${slot}, {...${JSON.stringify(preset)}, sample:wave});\nsaturn.keyOn(${slot});\n`;
 }
-export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelChange=()=>{},onError=()=>{}}) {
+export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelChange=()=>{},onError=()=>{},showModulation=true}) {
   const doc=root.ownerDocument,make=(tag,text)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
   let state=null,selected=0,connected=false,visible=true,disposed=false,held=null,sequence=0,draft=null,draftKey='',loadSequence=0,dirty=false,busy=false,drawing=null,recording=null,fileSequence=0;
   const decodeAudio=createOfflineAudioDecoder({getSampleRate:()=>44100});
@@ -29,20 +29,21 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
   const canvas=make('canvas');canvas.width=800;canvas.height=180;canvas.style.width='100%';canvas.style.maxWidth='800px';canvas.style.height='180px';canvas.style.touchAction='none';canvas.style.background='#182126';canvas.setAttribute('aria-label','SCSP PCM waveform; drag to draw, or select a waveform below');canvas.dataset.chipControl='scsp-waveform';editor.append(canvas);
   const shapes=make('div');for(const shape of ['Sine','Triangle','Saw','Square'])shapes.append(action(shape.toLowerCase(),shape,()=>{
     loadSequence++;const pcm=Int16Array.from({length:64},(_,i)=>Math.round(8192*(shape==='Sine'?Math.sin(i*Math.PI/32):shape==='Triangle'?1-4*Math.abs(i/64-.5):shape==='Saw'?i/32-1:i<32?1:-1)));
-    draft={pcm,sample:{bits:16,rootFrequencyHz:44100/64,sourceSampleRate:44100,loopStartSamples:0}};syncDraft();markDirty();
+    draft={pcm,sample:{bits:16,rootFrequencyHz:44100/64,sourceSampleRate:44100,loopStartSamples:0,modulationDepth:state?.channels?.[selected]?.sample?.modulationDepth??0}};syncDraft();markDirty();
   }));editor.append(shapes);
   const tuning=number('root','Root frequency (Hz)',.001,1000000,'any'),rate=number('rate','Source sample rate (Hz)',1,768000,'any'),loop=number('loop','Forward loop start (−1 = one shot)',-1,65534);
   const bitsLabel=make('label','PCM format '),bits=make('select');bits.dataset.chipControl='scsp-bits';for(const value of [8,16]){const opt=make('option',`Signed PCM${value}`);opt.value=String(value);bits.append(opt);}bitsLabel.append(bits);controls.push(bits);
-  editor.append(tuning.label,rate.label,loop.label,bitsLabel);
-  for(const input of [tuning.input,rate.input,loop.input,bits])input.addEventListener('change',()=>{markDirty();input.blur();});
+  const padding=number('modulation-padding','FM PCM guard depth (0 = none)',0,15);
+  editor.append(tuning.label,rate.label,loop.label,bitsLabel);if(showModulation)editor.append(padding.label);
+  for(const input of [tuning.input,rate.input,loop.input,bits,padding.input])input.addEventListener('change',()=>{markDirty();input.blur();});
   const status=make('p');status.setAttribute('role','status');
   const apply=action('apply','Apply PCM to this slot',async()=>{
     if(!draft||!dirty||busy)return;
-    for(const input of [tuning.input,rate.input,loop.input])if(!input.value.trim()||!input.reportValidity())return;
+    for(const input of [tuning.input,rate.input,loop.input,...(showModulation?[padding.input]:[])])if(!input.value.trim()||!input.reportValidity())return;
     const loopStart=Number(loop.input.value);if(loopStart>=draft.pcm.length)throw new RangeError('Loop start must be before the end of PCM');
     const sourceBits=draft.sample.bits,targetBits=Number(bits.value),Type=targetBits===8?Int8Array:Int16Array;
     const pcm=Type.from(draft.pcm,v=>Math.max(targetBits===8?-128:-32768,Math.min(targetBits===8?127:32767,Math.round(v*2**(targetBits-sourceBits)))));
-    const options={baseFrequencyHz:Number(tuning.input.value),sourceSampleRate:Number(rate.input.value),...(loopStart<0?{}:{loopStartSamples:loopStart})};
+    const options={baseFrequencyHz:Number(tuning.input.value),sourceSampleRate:Number(rate.input.value),...(showModulation?{modulationDepth:Number(padding.input.value)}:{}),...(loopStart<0?{}:{loopStartSamples:loopStart})};
     const ch=selected,key=draftKey;busy=true;refreshEnabled();
     try{const sample=await invoke('applyPCM',[ch,pcm,options]);if(!disposed&&selected===ch&&draftKey===key){draft={pcm,sample};draftKey=`${ch}:${sample.bankId}:${sample.id}`;dirty=false;syncDraft();status.textContent='PCM applied. Play a new note to hear it.';}}
     finally{busy=false;refreshEnabled();}
@@ -89,6 +90,18 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
   const resetLabel=make('label','Hold LFO reset '),lfoReset=make('input');lfoReset.type='checkbox';lfoReset.dataset.chipControl='scsp-lfo-reset';resetLabel.append(lfoReset);lfoPanel.append(resetLabel);controls.push(lfoReset);lfoControls.reset=lfoReset;
   lfoReset.addEventListener('change',guard(async()=>{try{await invoke('setLfo',[selected,{reset:lfoReset.checked}]);}finally{lfoReset.blur();}}));
   lfoPanel.append(make('p','Per-slot hardware modulation: pitch vibrato and amplitude tremolo share the speed. Depth 0 is off. Changes affect held notes without retriggering. Hold LFO reset freezes both phases at zero; clear it to resume. Hz and depth values are nominal hardware table values, not a hardware-accuracy guarantee.'));
+  const modulationControls={};
+  if(showModulation){
+    const fm=make('fieldset');fm.className='scsp-modulation-panel';fm.append(make('legend','SCSP hardware slot modulation — live'));root.append(fm);
+    for(const [key,title,max]of [['depth','MDL depth (0 = off)',15],['xOffset','X stack offset (not a slot number)',63],['yOffset','Y stack offset (not a slot number)',63]]){
+      const item=number(`modulation-${key}`,title,0,max);fm.append(item.label);modulationControls[key]=item.input;
+      item.input.addEventListener('change',guard(async()=>{try{if(!item.input.value.trim()||!item.input.reportValidity())return;await invoke('setModulation',[selected,{[key]:Number(item.input.value)}]);}finally{item.input.blur();}}));
+    }
+    const label=make('label','Inhibit sound-stack writes (STWINH) '),input=make('input');input.type='checkbox';input.dataset.chipControl='scsp-modulation-writeInhibit';label.append(input);fm.append(label);controls.push(input);modulationControls.writeInhibit=input;
+    input.addEventListener('change',guard(async()=>{try{await invoke('setModulation',[selected,{writeInhibit:input.checked}]);}finally{input.blur();}}));
+    fm.append(make('p','Hardware waveform-address modulation through the 64-word sound stack, separate from DSP effects. Prepare a full forward loop with FM PCM guard depth at least MDL, then Apply. Mute the modulator with Direct level 0; TL controls its modulation strength. STWINH retains old stack data. The bundled core has zero slot-write delay; this is not a hardware-accuracy guarantee.'));
+    fm.append(make('p','Try Files → examples/scsp/scsp-two-slot-fm.js, then Run. Slot 1 modulates Slot 2; edit Slot 2 MDL live. X/Y are core stack offsets: 63 reads the preceding slot in this frame, 31 reads its previous frame. Copy voice exports only this slot, not its modulators.'));
+  }
   const mix=make('fieldset');mix.append(make('legend','Live mix'));root.append(mix);const mixControls={};
   for(const [key,title,max]of [['totalLevel','TL attenuation (0 = loudest)',255],['directLevel','Direct level (0 = mute)',7],['pan','Pan (0 = center, 15 = right, 31 = left)',31]]){
     const item=number(key,title,0,max);mixControls[key]=item.input;mix.append(item.label);item.input.addEventListener('change',guard(async()=>{if(!item.input.value.trim()||!item.input.reportValidity())return;await invoke('setMix',[selected,{[key]:Number(item.input.value)}]);item.input.blur();}));
@@ -100,7 +113,7 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     try{await doc.defaultView.navigator.clipboard.writeText(code.value);status.textContent='Applied voice JavaScript copied.';}catch{code.focus();code.select();status.textContent='Select and copy the generated JavaScript below.';}
   }),code);
   function draw(){const ctx=canvas.getContext('2d');if(!ctx)return;ctx.clearRect(0,0,800,180);ctx.strokeStyle='#46616b';ctx.beginPath();ctx.moveTo(0,90);ctx.lineTo(800,90);ctx.stroke();if(!draft)return;ctx.strokeStyle='#63d5dc';ctx.beginPath();const full=draft.sample.bits===8?128:32768;for(let i=0;i<draft.pcm.length;i++){const x=i*800/(draft.pcm.length-1),y=90-draft.pcm[i]/full*85;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}
-  function syncDraft(){if(!draft)return;tuning.input.value=String(draft.sample.rootFrequencyHz);rate.input.value=String(draft.sample.sourceSampleRate);loop.input.value=String(draft.sample.loopStartSamples??-1);bits.value=String(draft.sample.bits);draw();}
+  function syncDraft(){if(!draft)return;tuning.input.value=String(draft.sample.rootFrequencyHz);rate.input.value=String(draft.sample.sourceSampleRate);loop.input.value=String(draft.sample.loopStartSamples??-1);bits.value=String(draft.sample.bits);padding.input.value=String(draft.sample.modulationDepth??0);draw();}
   function markDirty(){dirty=true;status.textContent='Unapplied PCM draft';refreshEnabled();draw();}
   function point(event){const r=canvas.getBoundingClientRect(),i=Math.max(0,Math.min(draft.pcm.length-1,Math.round((event.clientX-r.left)/r.width*(draft.pcm.length-1)))),full=draft.sample.bits===8?128:32768,v=Math.round(Math.max(-1,Math.min(1,1-2*(event.clientY-r.top)/r.height))*(full-1));return {i,v};}
   function paint(event){if(!draft||!drawing||event.pointerId!==drawing.id)return;event.preventDefault();const next=point(event),last=drawing.point;for(let i=Math.min(last.i,next.i);i<=Math.max(last.i,next.i);i++)draft.pcm[i]=last.i===next.i?next.v:Math.round(last.v+(next.v-last.v)*(i-last.i)/(next.i-last.i));drawing.point=next;markDirty();}
@@ -123,6 +136,7 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     const sampleList=state?.samples??[],signature=sampleList.map(s=>`${s.bankId}:${s.id}`).join('|');if(sampleSelect.dataset.signature!==signature){sampleSelect.dataset.signature=signature;sampleSelect.replaceChildren(...sampleList.map(s=>{const opt=make('option',`PCM ${s.id} · ${s.bits}-bit · ${s.length} samples`);opt.value=String(s.id);return opt;}));}sampleSelect.value=String(v?.sample?.id??'');
     for(const [key,input]of Object.entries(envelopeControls))if(doc.activeElement!==input)input.value=String(v?.envelope[key]??'');for(const [key,input]of Object.entries(mixControls))if(doc.activeElement!==input)input.value=String(v?.[key]??'');
     for(const [key,input]of Object.entries(lfoControls))if(doc.activeElement!==input){if(key==='reset')input.checked=!!v?.lfo?.reset;else input.value=String(v?.lfo?.[key]??0);}
+    for(const [key,input]of Object.entries(modulationControls))if(doc.activeElement!==input){if(key==='writeInhibit')input.checked=!!v?.modulation?.writeInhibit;else input.value=String(v?.modulation?.[key]??0);}
     const key=`${selected}:${v?.sample?.bankId}:${v?.sample?.id}`;if(key!==draftKey){draftKey=key;draft=null;dirty=false;drawing=null;code.hidden=true;status.textContent='';const request=++loadSequence;draw();if(v?.sample)void invoke('getPCM',[selected]).then(loaded=>{if(disposed||request!==loadSequence||draftKey!==key)return;draft=loaded;syncDraft();refreshEnabled();}).catch(error=>{if(!disposed&&request===loadSequence)onError(error);});}
     refreshEnabled();
   }

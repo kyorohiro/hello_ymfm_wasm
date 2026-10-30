@@ -143,3 +143,18 @@ test('Main/Worker LFO edits and inspector leases share the same processor withou
  p.processor.inspector.invoke('setLfo',[31,{reset:false}]);assert.equal(p.processor.synth.getState().slots[31].lfo.amplitudeDepth,7);
  await p.client._stopVoices();assert(p.render(256).left.every(v=>v===0));assert.equal(p.processor.synth.getState().slots[31].lfo.amplitudeDepth,7);
 });
+
+test('slot modulation crosses Main/Worker ports, keeps padded PCM owned and respects manual leases',async t=>{
+ const p=await setup(t),w=await worker(t,p),{pcm,options}=createScspInitSample();
+ const sample=await w.loadPCM(pcm,{...options,modulationDepth:12});
+ w.setPreset(0,{sample,directLevel:0});w.setPreset(1,{sample,totalLevel:16,modulation:{depth:9,xOffset:63,yOffset:63}});w.noteOn(0,57);w.noteOn(1,69);await w.getState();
+ assert(peak(p.render(4096).left)>.01);
+ w.setModulation(1,{depth:10});let state=await w.getState();assert.equal(state.playingModulations[1].depth,10);assert.equal(state.slots[1].modulation.xOffset,63);
+ const before=structuredClone(state);assert.throws(()=>w.setModulation(1,{depth:13}),/padding/);assert.deepEqual(await w.getState(),before);
+ // UI takes a manual lease on carrier slot 1; scheduled code cannot change it.
+ const scheduled={postMessage(){}};p.processor.receive({type:'performance-start',session:88},scheduled);
+ p.processor.receive({type:'chip-inspector',action:'invoke',method:'auditionOn',args:[1,69,'fm-lease'],id:8787},p.processor.port);
+ p.processor.receive({performance:{session:88,owner:'fm-code',time:0},commands:[{method:'setModulation',args:[1,{depth:0}]},{method:'setLfo',args:[1,{amplitudeDepth:7}]}]},scheduled);p.render(128);assert.equal(p.processor.synth.getState().slots[1].modulation.depth,10);assert.equal(p.processor.synth.getState().slots[1].lfo.amplitudeDepth,0);
+ p.processor.receive({type:'chip-inspector',action:'invoke',method:'setModulation',args:[1,{depth:8}],id:8788},p.processor.port);assert.equal(p.processor.synth.getState().slots[1].modulation.depth,8);
+ await w._stopVoices();assert.equal(peak(p.render(128).left),0);assert.equal((await w.getState()).samples.find(s=>s.id===sample.id).modulationDepth,12);
+});

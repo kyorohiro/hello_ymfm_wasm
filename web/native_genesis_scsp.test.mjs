@@ -58,8 +58,9 @@ test('Native SCSP Worker ports upload PCM and acknowledge metadata on the same p
  const wait=(port,message)=>new Promise((resolve,reject)=>{port.once('message',data=>data.error?reject(new Error(data.error)):resolve(data));port.postMessage(message);});
  await wait(bridge.chipPort,{type:'performance-start',session:1,id:10});
  const client=createScspClient(bridge.scspPort,{state:f.synth.scsp._getState(),native:true});f.disposers.unshift(()=>client.dispose());
- const wave=await client.loadPCM(new Int8Array([0,80,0,-80]),{rootNote:69,loopStartSamples:0});assert.equal(wave.bits,8);client.setPreset(0,{sample:wave});client.setPreset(31,{sample:wave});client.noteOn(31,69);
- client.setLfo(31,{frequencyCode:19,pitchDepth:3,amplitudeDepth:4});const state=await client.getState();assert.equal(state.slots[31].lfo.frequencyCode,19);assert.equal(state.slots[31].sample.id,wave.id);assert.equal(state.slots[31].gate,true);
+ const wave=await client.loadPCM(new Int8Array([0,80,0,-80]),{rootNote:69,loopStartSamples:0,modulationDepth:12});assert.equal(wave.bits,8);client.setPreset(0,{sample:wave});client.setPreset(31,{sample:wave});client.noteOn(31,69);
+ client.setModulation(31,{depth:8,xOffset:63,yOffset:63});
+ client.setLfo(31,{frequencyCode:19,pitchDepth:3,amplitudeDepth:4});const state=await client.getState();assert.equal(state.slots[31].modulation.depth,8);assert.equal(state.slots[31].lfo.frequencyCode,19);assert.equal(state.slots[31].sample.id,wave.id);assert.equal(state.slots[31].gate,true);
  assert.deepEqual(f.errors,[]);
 });
 test('Native SCSP close/start retires old handles and preserves Mixer routes without Web Audio',async t=>{
@@ -84,4 +85,15 @@ for(const extra of [false,true])test(`Native LFO ${extra?'extra':'primary'} live
  await endpoint.invoke('auditionOn',[31,69,'lfo']);await endpoint.invoke('setLfo',[31,{frequencyCode:0,reset:true,amplitudeDepth:7}]);assert.equal(core.read(31*32+18)&0x8007,0x8007);
  assert.equal(await endpoint.invoke('auditionOff',[31,'stale']),false);await endpoint.invoke('setLfo',[31,{reset:false}]);assert.equal(core.read(31*32+18)&0x8000,0);
  await client._stopVoices();assert(core.generateStereo(128).left.every(v=>v===0));assert.equal((await client.getState()).slots[31].lfo.amplitudeDepth,7);assert.deepEqual(f.errors,[]);
+});
+
+for(const extra of [false,true])test(`Native modulation ${extra?'extra':'primary'} guards, live routing and masked STWINH`,async t=>{
+ const f=await fixture(t),device=extra?await f.synth.createExtraScsp({id:'fm'}):null,client=device?.client??f.synth.scsp,endpoint=device?.endpoint??f.synth.nativeScsp;
+ const pcm=Int16Array.from({length:64},(_,i)=>Math.round(8192*Math.sin(i*Math.PI/32))),sample=await client.loadPCM(pcm,{rootNote:69,loopStartSamples:0,modulationDepth:12});
+ client.setPreset(0,{sample,directLevel:0});client.setPreset(1,{sample,modulation:{depth:9,xOffset:63,yOffset:63}});client.noteOn(0,57);client.noteOn(1,69);await client.getState();
+ const core=f.cores.get(device?.nativeInstance??0).core;assert(peak(core.generateStereo(1024).left)>.01);
+ client.setModulation(1,{depth:10});let state=await client.getState();assert.equal(state.playingModulations[1].depth,10);assert.equal(core.read(46),0xafff);
+ await endpoint.invoke('auditionOn',[1,69,'fm']);await endpoint.invoke('setModulation',[1,{writeInhibit:true}]);await endpoint.invoke('setMix',[1,{totalLevel:12}]);assert.equal(core.read(44),0x20c);
+ await endpoint.invoke('setModulation',[1,{depth:0}]);assert.equal(core.read(46),0);assert.equal((await client.getState()).slots[1].gate,true);
+ await client._stopVoices();assert.equal(peak(core.generateStereo(128).left),0);assert.deepEqual(f.errors,[]);
 });

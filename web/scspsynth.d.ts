@@ -15,10 +15,22 @@ export interface ScspLfo {
   /** Hold both oscillator phases at zero until cleared. */
   reset: boolean;
 }
+/** Hardware 64-word sound stack. Offsets are relative to the current stack
+ * pointer, not slot numbers; the bundled core has zero slot-write delay. */
+export interface ScspModulation {
+  /** MDL 0..15; 0 disconnects both inputs. */
+  depth: number;
+  xOffset: number;
+  yOffset: number;
+  /** STWINH: retain old sound-stack data instead of writing this slot. */
+  writeInhibit: boolean;
+}
 export type ScspNote = string | number;
 export type ScspPCMOptions = ({rootNote: ScspNote; baseFrequencyHz?: never} |
   {baseFrequencyHz: number; rootNote?: never}) & {
     sourceSampleRate?: number;
+    /** Reserve repeated waveform guards for MDL 0..15. Requires loopStartSamples:0. */
+    modulationDepth?: number;
     /** Forward loop [start, PCM length); omit for a one shot. */
     loopStartSamples?: number;
   };
@@ -26,7 +38,10 @@ export interface ScspSample {
   readonly bankId: string;
   readonly id: number;
   readonly address: number;
-  /** Includes one interpolation guard sample; allocation may also need alignment. */
+  readonly allocationAddress?: number;
+  readonly modulationDepth?: number;
+  /** Total allocation bytes including periodic/interpolation guards; starts at
+   * allocationAddress ?? address. May also need alignment. */
   readonly byteLength: number;
   readonly length: number;
   readonly bits: 8 | 16;
@@ -59,8 +74,9 @@ export interface ScspPreset extends ScspMix {
   frequencyHz: number;
   envelope: ScspEnvelope;
   lfo: ScspLfo;
+  modulation: ScspModulation;
 }
-export type ScspPresetPatch = Partial<Omit<ScspPreset,'envelope'|'lfo'>> & {envelope?: Partial<ScspEnvelope>; lfo?: Partial<ScspLfo>};
+export type ScspPresetPatch = Partial<Omit<ScspPreset,'envelope'|'lfo'|'modulation'>> & {envelope?: Partial<ScspEnvelope>; lfo?: Partial<ScspLfo>; modulation?: Partial<ScspModulation>};
 export interface ScspState {
   sampleRate: 44100;
   bankId: string;
@@ -70,6 +86,7 @@ export interface ScspState {
   /** Native source references include releasing voices; gate alone is insufficient. */
   playingFrequencies?: (number | null)[];
   playingLfos?: (ScspLfo | null)[];
+  playingModulations?: (ScspModulation | null)[];
   playingSampleIds?: (number | null)[];
   samples: ScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
@@ -85,6 +102,8 @@ export class ScspSynth {
   setPreset(slot: number, patch: ScspPresetPatch): void;
   /** Live partial LFO update. setPreset({lfo}) is next-keyOn only. */
   setLfo(slot: number, patch: Partial<ScspLfo>): void;
+  /** Live without retrigger; depth edits commit the full depth/X/Y routing word. */
+  setModulation(slot: number, patch: Partial<ScspModulation>): void;
   setEnvelope(slot: number, patch: Partial<ScspEnvelope>): void;
   setFrequency(slot: number, frequencyHz: number): number;
   setNote(slot: number, note: ScspNote): number;

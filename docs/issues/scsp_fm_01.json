@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-31",
+  "status": "passed",
+  "scope": "Physical-slot guarded SCSP address modulation API, Playground editor/example, Main/Worker/updated Native; multi-slot Synth voice management remains next",
+  "published": false,
+  "sdkAndWasmUnchanged": true,
+  "sdkPin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "f5839f3ad4bf54d84d2f67c12d9561a98ce79972e6b36394582a0cb0d3e286db",
+    "manifestSha256": "15c4a6a4e65a22abedd1512bf26accb5380b9717b3d2511fcb58adac04f3358f",
+    "fileCount": 476,
+    "localCandidate": {
+      "baseCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "catalog/source_inventory.json",
+        "native/tests/scsp_fixture.cpp",
+        "vendor/mame-scsp/README.md",
+        "vendor/mame-scsp/scsp.cpp",
+        "vendor/mame-scsp/scsp.h"
+      ]
+    }
+  },
+  "publishedNpm036TarballUnchanged": true,
+  "tests": {
+    "node": 1200,
+    "nativeRustScsp": 14,
+    "policyAndFreshness": 42,
+    "exampleCatalogs": 34,
+    "performanceProcessor": 26,
+    "playgroundModeTypes": true,
+    "installedNpmTypesAndWasm": true,
+    "nativeDebugBuild": true,
+    "nativeWasmCases": 152,
+    "nativeWasmStereoFrames": 10317080,
+    "nativeWasmMaximumDifference": 0
+  },
+  "sources": {
+    "web/scspsynth.js": {
+      "bytes": 22041,
+      "sha256": "b30f888f08ae7b8dfd243949743e42f4f0c8cb381a2f137b96e127cbb07e1402"
+    },
+    "web/scspsynth.d.ts": {
+      "bytes": 5133,
+      "sha256": "7081de3403b4975e239885dde64f124892697c0d72210a032afab31da4fd697c"
+    },
+    "web/playground_scsp.js": {
+      "bytes": 5769,
+      "sha256": "cb0f209f05316e033e7c22d9a62a2337b0fb821df8f4c0d7c811fa25fba169dd"
+    },
+    "web/playground_scsp_inspector.js": {
+      "bytes": 3434,
+      "sha256": "56c49068000db411e8985d68aaca78391196c8533d00935ac591765a03f92e1a"
+    },
+    "web/native_genesis_scsp.js": {
+      "bytes": 15690,
+      "sha256": "f40e16b41c9f2dc5f31b890143b817b9c4f697f39da26f531be46a99b55757c0"
+    },
+    "web/playground_performance_processor.js": {
+      "bytes": 29824,
+      "sha256": "c743a3c4dd263fcd79543799de8862eb6dab056250b446665717c08e66051453"
+    },
+    "docs/js/scspsynth.js": {
+      "bytes": 22053,
+      "sha256": "20ddfb08d3e15c30ea5ea1ee613befe3a86fe24e7377c75e6c0b822f27eb7d53"
+    },
+    "docs/playground/playground_scsp_voice_panel.js": {
+      "bytes": 21600,
+      "sha256": "922e9d430759b04d9dd2170c57ad61c0fc97fda1d2f3d9334a8aca2bb66ce410"
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "bytes": 133043,
+      "sha256": "e0b8cae4003093d386d6092e9024899f5f0f923d47c597703dbc0a250ece3f6b"
+    },
+    "docs/playground/examples/scsp/scsp-two-slot-fm.js": {
+      "bytes": 1461,
+      "sha256": "42097f61b89462d92082489f9955a7b23a053f8babc808c10a9cb5462c322c08"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 7192,
+      "sha256": "0a9d828f44d582bc2653476f114c816b66b500b7476010aabe8828d962edb8bc"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1980,
+      "sha256": "dc1a9f3c6deb02acb276668aa043b51cb506f05ed3b8f29038a7c1c2dbe70cf9"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
+    },
+    "scripts/check_scsp_modulation_browser.cjs": {
+      "bytes": 8602,
+      "sha256": "2968dd0a82c0e268be2302c51d298dc1634e1ecbcbfc02c98891283434bbe2b3"
+    },
+    "web/scsp_modulation.test.mjs": {
+      "bytes": 7231,
+      "sha256": "2840d9d288f43de9c8a687699a09a4d398e0dc7794c130e6ce73aa5bcc25b283"
+    },
+    "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_scsp.rs": {
+      "bytes": 38116,
+      "sha256": "7a354fe21e22f103efa569313b977f3a8e164e5eb6f6ab207ee368935742e53b"
+    },
+    "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_scsp_tests.rs": {
+      "bytes": 12999,
+      "sha256": "35c1f88c3eafa0dfb55899b38d88c7673ed36465e312d0f6c1c869811f8548d6"
+    }
+  },
+  "reports": {
+    "docs/issues/scsp_fm_core_01.json": {
+      "bytes": 2532,
+      "sha256": "e0b32f11b50341cb59e2299f6a596955aaa9d625e9ae40498ee1cb603a784e5e"
+    },
+    "docs/issues/scsp_fm_native_parity_01.json": {
+      "bytes": 74841,
+      "sha256": "79ea18435c54a352039d7d114144cff7f5c5d0a83f6d815a2722df6326cd36aa"
+    },
+    "docs/issues/scsp_fm_browser_01.json": {
+      "bytes": 3661,
+      "sha256": "7e5302a317749aadbe282b1ca4c77b12cc64e528bf6b8f67c3751eba13675a79"
+    },
+    "docs/issues/scsp_fm_zip_browser_01.json": {
+      "bytes": 3664,
+      "sha256": "fdbd5d02d8bab8fc9391448997a2a4fa9861208c3ca16d8db2c4605ea88cae16"
+    },
+    "docs/issues/scsp_fm_playground_regression_01.json": {
+      "bytes": 25287,
+      "sha256": "656ad5b98f117f24e40281a0137ac8c00264bf98d69c940b4f6c482f5287a3f1"
+    },
+    "docs/issues/scsp_fm_native_browser_01.json": {
+      "bytes": 854,
+      "sha256": "a800fc51f319a3495528edcc11a743ece9edc56fee4d2fbb472de5055390f916"
+    },
+    "docs/issues/scsp_fm_synth_regression_01.json": {
+      "bytes": 1051,
+      "sha256": "03e344850863f1e3841571c3b21946f957fc5726eb0c9ece13c4a417c7e9664d"
+    },
+    "docs/issues/scsp_fm_synth_zip_browser_01.json": {
+      "bytes": 1041,
+      "sha256": "d4a976138282f8bd4d075d8fcb8fbf519bd204291442ec7874fcdb69fb1185fb"
+    },
+    "docs/issues/scsp_fm_native_sources_01.json": {
+      "bytes": 4779,
+      "sha256": "7893a66714c46cb918cc3b126f2c664dd3fad17734fdd18b39ca5fe1ad1828b6"
+    },
+    "docs/issues/ps1_scsp_fm_chip_levels_01.json": {
+      "bytes": 545534,
+      "sha256": "b44242f9042ac30bd9ec14ae6126daca3eb67b3d5807d2b5c5b2f880f09badc4"
+    },
+    "docs/issues/wonderswan_scsp_fm_chip_levels_01.json": {
+      "bytes": 506357,
+      "sha256": "cf278b1bbdb2d467350940febf3d5e30c6894415c99292a369df696c1d15fa13"
+    },
+    "docs/issues/pokey_scsp_fm_chip_levels_01.json": {
+      "bytes": 1029695,
+      "sha256": "39694895de4b51c1f784be7e4263e99848d25a2e1c14bd1ef0721ecbed718ede"
+    },
+    "docs/issues/scsp_fm_chip_levels_01.json": {
+      "bytes": 623886,
+      "sha256": "c123f6cd0c1d1aa4019fd86d4d3e561ea63853534c0bd1aa326d37a514e9e9af"
+    },
+    "docs/issues/scsp_fm_chip_levels_verify_01.json": {
+      "bytes": 635233,
+      "sha256": "2f5c7d902d335bc9f1b22cf2897835ce875f280c168768bcde93daefd23a2eff"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "release/hello_ymfm_wasm_scsp-fm-dev-20261031_itch_playground.zip",
+      "bytes": 37173754,
+      "sha256": "b92e69fe0312838c3ae84cd7db7e3a759d993e697caccf5d06ac87cf24d08ad1",
+      "files": 1121,
+      "directories": 135
+    },
+    {
+      "path": "release/hello_ymfm_wasm_scsp-fm-dev-20261031_itch_playground_for_run.zip",
+      "bytes": 37612847,
+      "sha256": "e61073b48dd7b9eb3478e4314f6e0302fad8a2465edd68d0b330bba999144a47",
+      "files": 968,
+      "directories": 0
+    },
+    {
+      "path": "release/tetorica_scsp_synth_fm-api-dev-20261031_itch.zip",
+      "bytes": 1206452,
+      "sha256": "4a466481bc48858cb325505c6669f386b0b00f1a245df656316a1aec7b2244d4",
+      "files": 36,
+      "directories": 0
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip",
+      "bytes": 43660904,
+      "sha256": "b02808df2d99fd7879d12ca0be5e1b837b864c165887b42d2e639d5f965876fe",
+      "files": 2170
+    }
+  ],
+  "limits": [
+    "Physical output was muted in browser checks; no human listening or physical SCSP comparison.",
+    "Native browser RPC was mocked; offline actual core parity and Rust admission tests are separate.",
+    "Fixed core zero slot-write delay / clipping / low MDL differ from hardware documentation.",
+    "Dedicated Synth multi-slot allocation and multi-operator presets are not yet exposed.",
+    "Native scheduled depth changes commit the projected X/Y routing word; include depth/X/Y together for mixed scheduled edits."
+  ]
+}

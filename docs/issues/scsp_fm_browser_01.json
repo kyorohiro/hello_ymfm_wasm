@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "compressedInputRequested": false,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "results": [
+    {
+      "engine": "chromium",
+      "execution": "main",
+      "liveModulation": true,
+      "mutedModulator": true,
+      "stackOffsets": true,
+      "stwinhAndMix": true,
+      "copyWithGuards": true,
+      "pcm8EditorGuards": true,
+      "focus": true,
+      "stop": true
+    },
+    {
+      "engine": "chromium",
+      "execution": "worker",
+      "liveModulation": true,
+      "mutedModulator": true,
+      "stackOffsets": true,
+      "stwinhAndMix": true,
+      "copyWithGuards": true,
+      "pcm8EditorGuards": true,
+      "focus": true,
+      "stop": true
+    },
+    {
+      "engine": "webkit",
+      "execution": "main",
+      "liveModulation": true,
+      "mutedModulator": true,
+      "stackOffsets": true,
+      "stwinhAndMix": true,
+      "copyWithGuards": true,
+      "pcm8EditorGuards": true,
+      "focus": true,
+      "stop": true
+    },
+    {
+      "engine": "webkit",
+      "execution": "worker",
+      "liveModulation": true,
+      "mutedModulator": true,
+      "stackOffsets": true,
+      "stwinhAndMix": true,
+      "copyWithGuards": true,
+      "pcm8EditorGuards": true,
+      "focus": true,
+      "stop": true
+    }
+  ],
+  "captures": [
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.016109712421894073,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.0161274541169405,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": false,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.016128018498420715,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.016134800389409065,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": false,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.01611504517495632,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.01612883061170578,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": false,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.016129665076732635,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": true,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0.016131974756717682,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    },
+    {
+      "audible": false,
+      "rows": [
+        {
+          "sampleRate": 48000,
+          "peak": 0,
+          "finite": true,
+          "muted": true
+        }
+      ]
+    }
+  ]
+}

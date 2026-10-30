@@ -19,7 +19,7 @@ export const SOUNDCHIP_MIXER_LISTENING_LEVELS = freeze({
 /** Optional factory policies for new SoundChipMixer().
  * calibrated covers measured standalone-chip routes; other kinds retain their usual defaults.
  * Explicit common and per-ID settings override these fallback values.
- * @type {{readonly calibrated: import('./soundchip_mixer.js').SoundChipMixerOptions}}
+ * @type {{readonly calibrated: import('./soundchip_mixer.js?v=y8950-adpcm-ui-1').SoundChipMixerOptions}}
  */
 export const SOUNDCHIP_MIXER_PRESETS = freeze({
   "calibrated": {
@@ -125,7 +125,7 @@ export const SOUNDCHIP_MIXER_PRESETS = freeze({
         },
         {
           "name": "pokey",
-          "volume": 0.413039
+          "volume": 0.413052
         },
         {
           "name": "scsp",

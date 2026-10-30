@@ -35,9 +35,10 @@ async function scene(t){
   return {lead,bass,pcm,pad,creates,loops,cleanups,beats,prepared,mixes,samples,memory,pcmWrites,fmWrites,gates,notes,releases,active,evaluate,get binding(){return binding;},get preset(){return preset;}};
 }
 
-test('one mixed-chip source is discoverable in all Genesis-family catalogs',()=>{
+test('one mixed-chip source is discoverable in Genesis catalogs; Mega-CD keeps its dedicated compact catalog',()=>{
   const files=EXAMPLE_FILES.filter(file=>file.path===path);assert.equal(files.length,1);assert.equal(files[0].data,source);
-  for(const mode of ['genesis','genesis-nuked','mega-cd','genesis-full','genesis-full-nuked'])assert(MODE_EXAMPLE_FILES[mode].includes(files[0]),mode);
+  for(const mode of ['genesis','genesis-nuked','genesis-full','genesis-full-nuked'])assert(MODE_EXAMPLE_FILES[mode].includes(files[0]),mode);
+  assert(!MODE_EXAMPLE_FILES['mega-cd'].includes(files[0]));
 });
 test('the mixed scene uses real FM/RF controls, original bounded PCM, a valid DX7 voice and a balanced deterministic phrase',async t=>{
   const f=await scene(t);assert.deepEqual(f.creates,[{kind:'ym2612',id:'scene-fm'},{kind:'rf5c164',id:'scene-pcm'},{kind:'dx7',id:'scene-dx7'}]);

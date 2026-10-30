@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {ScspSynth} from './scspsynth.js?v=scsp-lfo-1';
-export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setLfo','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
+import {ScspSynth} from './scspsynth.js?v=scsp-fm-1';
+export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setLfo','setModulation','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
 export function createScspValidation() {
   return new ScspSynth({sampleRate:44100,nativeFrames:0,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 }

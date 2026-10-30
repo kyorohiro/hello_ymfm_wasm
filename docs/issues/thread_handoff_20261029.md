@@ -4,6 +4,21 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP slot modulation初期段階完了 — 2026-10-31
+
+[実装・操作・次TODO](scsp_fm_01.md)／[最終report・source／配布hash](scsp_fm_01.json)。
+`setModulation`／preset.modulation（MDL・X/Y stack offset・STWINH）とguarded full-loop PCMを追加。
+Main／Worker／Native／Playgroundのlive UIへ接続。Files → examples/scsp/scsp-two-slot-fm.jsをRunし、
+SCSPのSlot 2でMDL 0〜12を操作できる。次は専用Synthの複数slot割当とoperator込みpreset。
+
+Node1,200／Rust14／policy42成功、Native／WASM152 cases・10,317,080 stereo frames差分0。
+実Run ZIPと取り込んだNative frontendで両browser × Main／Worker成功。Native RPCはmock、実device試聴は未実施。
+SDK／C++／WASMは変更なし。sourcehash付き校正を更新し、既存gain保存値・旧report／npm0.2.36 tarballは維持。
+最新Playground ZIPはrelease/*scsp-fm-dev-20261031*、対応Native source ZIPは2,170 files検証済み。
+専用Synth ZIP release/tetorica_scsp_synth_fm-api-dev-20261031_itch.zipは既存LFOのowner経由更新修正を含むが、FM複数slot UIは未公開。
+固定coreの実機latency／clipping／低MDL域の差は記録済み。公開・commit／pushは今回していない。
+親repoとTauriは別Git。詳細の残TODOと検証限界は上記記録から読む。
+
 ## npm 0.2.36公開 — 2026-10-31
 
 ユーザーがLFO試聴を確認し、npm更新を指示。`tetorica-fm2612@0.2.36` 公開済み、latestも0.2.36。

@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "frontendVersion": "sha256-b92e69fe0312",
+  "nativeRpc": "mocked",
+  "physicalAudioTested": false,
+  "rows": [
+    {
+      "browser": "chromium",
+      "primary": true,
+      "additional": true,
+      "main": true,
+      "worker": true,
+      "modeFilter": true,
+      "waveEditor": true,
+      "lfo": true,
+      "slotModulation": true,
+      "operatorKeyboard": true,
+      "stop": true,
+      "audioNodes": 0,
+      "nativeRpc": "mocked",
+      "passed": true
+    },
+    {
+      "browser": "webkit",
+      "primary": true,
+      "additional": true,
+      "main": true,
+      "worker": true,
+      "modeFilter": true,
+      "waveEditor": true,
+      "lfo": true,
+      "slotModulation": true,
+      "operatorKeyboard": true,
+      "stop": true,
+      "audioNodes": 0,
+      "nativeRpc": "mocked",
+      "passed": true
+    }
+  ]
+}

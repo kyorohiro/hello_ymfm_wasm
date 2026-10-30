@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "networkUsed": false,
+  "platform": "darwin",
+  "snapshots": [
+    {
+      "script": "sync_native_cdda.py",
+      "status": "passed",
+      "summary": "Native cdda SDK 0.1.7: verified fixed release (4 C/header/license/provenance files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_dx7.py",
+      "status": "passed",
+      "summary": "Native DX7 snapshot verified (32 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_game_gear.py",
+      "status": "passed",
+      "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_gameboy.py",
+      "status": "passed",
+      "summary": "Native Game Boy source verified (5 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_genesis.py",
+      "status": "passed",
+      "summary": "Native Genesis snapshot verified (16 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_genesis_fx.py",
+      "status": "passed",
+      "summary": "Native FX snapshot: verified",
+      "error": ""
+    },
+    {
+      "script": "sync_native_genesis_livefx.py",
+      "status": "passed",
+      "summary": "Native LiveFX snapshot: verified",
+      "error": ""
+    },
+    {
+      "script": "sync_native_genesis_noise.py",
+      "status": "passed",
+      "summary": "Native noise snapshot: verified",
+      "error": ""
+    },
+    {
+      "script": "sync_native_huc6280.py",
+      "status": "passed",
+      "summary": "Native HuC6280 verified (6 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_master_system.py",
+      "status": "passed",
+      "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_megacd.py",
+      "status": "passed",
+      "summary": "Native RF5C164 snapshot verified (6 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_msm5205.py",
+      "status": "passed",
+      "summary": "Native msm5205 SDK 0.1.7: verified fixed release (4 C/header/license/provenance files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_msx.py",
+      "status": "passed",
+      "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_msx_audio.py",
+      "status": "passed",
+      "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_nes.py",
+      "status": "passed",
+      "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_nuked.py",
+      "status": "passed",
+      "summary": "Native Nuked snapshot verified (9 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_opl.py",
+      "status": "passed",
+      "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_pwm.py",
+      "status": "passed",
+      "summary": "Native PWM source verified (3 files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_snes.py",
+      "status": "passed",
+      "summary": "Native SNES verified (34 exact source files)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_x68000.py",
+      "status": "passed",
+      "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_ym2203.py",
+      "status": "passed",
+      "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_ym2608.py",
+      "status": "passed",
+      "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+      "error": ""
+    },
+    {
+      "script": "sync_native_ym2610b.py",
+      "status": "passed",
+      "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+      "error": ""
+    },
+    {
+      "script": "import_soundchip_sdk.py",
+      "status": "passed",
+      "summary": "SDK 0.1.7 (unpublished local candidate; sourceCommit is its base): 476 pinned files verified offline (archive SHA256 f5839f3ad4bf54d84d2f67c12d9561a98ce79972e6b36394582a0cb0d3e286db)",
+      "error": ""
+    }
+  ],
+  "sourceBundle": {
+    "status": "passed",
+    "archive": "native-source-bundle/application-sources.zip",
+    "sha256": "b02808df2d99fd7879d12ca0be5e1b837b864c165887b42d2e639d5f965876fe",
+    "files": 2170,
+    "applicationVersion": "0.91.1",
+    "frontendArchiveSha256": "b92e69fe0312838c3ae84cd7db7e3a759d993e697caccf5d06ac87cf24d08ad1"
+  },
+  "status": "passed",
+  "elapsedSeconds": 3.202
+}

@@ -28,7 +28,7 @@ const definitions = {
   wonderswan: ['/examples/wonderswan/ws-four-voices.js','/examples/wonderswan/ws-stereo.js','/examples/wonderswan/ws-noise-sweep.js'],
   gameboy: ['/examples/gameboy/gameboy-mode-pulse.js', '/examples/gameboy/gameboy-mode-wave.js', '/examples/gameboy/gameboy-sampler.js'],
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
-  scsp: ['/examples/scsp/scsp-stereo-pcm.js'],
+  scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js'],
   ps1: ['/examples/ps1/ps1-stereo-voices.js','/examples/ps1/ps1-adpcm-wave.js',
     '/examples/ps1/ps1-pcm-adpcm.js','/examples/ps1/ps1-sampler.js'],
   snes: ['/examples/snes/snes-mode-brr.js','/examples/snes/snes-mode-stereo.js','/examples/snes/snes-pcm-brr.js'],

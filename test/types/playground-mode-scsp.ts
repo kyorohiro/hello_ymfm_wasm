@@ -2,8 +2,11 @@
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 async function checkScspModeTypes() {
   const saturn=await useSoundChip('scsp');
-  const sample=await saturn.loadPCM(new Int16Array(64),{baseFrequencyHz:44100/64,loopStartSamples:0});
+  const sample=await saturn.loadPCM(new Int16Array(64),{baseFrequencyHz:44100/64,loopStartSamples:0,modulationDepth:12});
   saturn.setPreset(31,{sample,totalLevel:12,envelope:{attackRate:31},lfo:{frequencyCode:20,pitchDepth:3}});
+  saturn.setModulation(31,{depth:9,xOffset:63,yOffset:63,writeInhibit:false});
+  // @ts-expect-error STWINH is boolean.
+  saturn.setModulation(31,{writeInhibit:1});
   saturn.setLfo(31,{amplitudeWave:2,amplitudeDepth:4,reset:false});
   // @ts-expect-error LFO reset is boolean.
   saturn.setLfo(31,{reset:1});

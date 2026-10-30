@@ -123,6 +123,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     if(method==='write'){const byte=args[0],latch=byte&128?byte>>4&7:Number.isInteger(psgRegister)?psgRegister:psgLatch;return latch>>1;}
     if(['allNotesOff','setStereo','clock'].includes(method)||type==='chip-clock')return 'all';
   }
+  if(chip==='scsp'&&['setLfo','setModulation'].includes(method))return args[0];
   if(chip==='ps1'||chip==='scsp'){
     if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setMix','setNote','keyOn','keyOff','noteOn','noteOff','_auditionKeyOn','_auditionKeyOff','_refreshEnvelope'].includes(method))return args[0];
     if(['allNotesOff','stopVoices','reset','setReverb'].includes(method))return 'all';

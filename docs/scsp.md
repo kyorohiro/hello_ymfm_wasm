@@ -11,8 +11,8 @@ There is no musical voice allocator, file decoder or output resampler here.
 This is a local repository API. The Web Audio Playground mode/Worklet and initial
 slot inspector / PCM and envelope editor are integrated. Tauri Native routing now
 supports primary/additional instances, Main/Worker, PCM upload and the same editor.
-The dedicated Synth UI and public npm instrument entry point remain later stages.
-`createSoundChip('scsp')` is available inside Playground; this is not an npm package entry point.
+A dedicated PCM/LFO Synth and npm `tetorica-fm2612/scspsynth.js` entry point are available.
+`createSoundChip('scsp')` is the Playground runtime factory, separate from that instrument entry point.
 
 ## Try it in Playground
 
@@ -91,7 +91,7 @@ and default register levels are unchanged. The npm Mixer calibrated preset also
 includes the measured SCSP fallback; it remains opt-in.
 See [measurement and verification](issues/scsp_calibration_01.md) and the
 [Native integration record](issues/native_scsp_transport_01.md) for the current measurements.
-SSF/68000 execution, DSP and slot FM controls remain later stages.
+SSF/68000 execution and DSP controls remain later stages. Slot modulation is described below.
 
 ### Desktop Native Audio
 
@@ -274,7 +274,7 @@ finite/clamped 32-slot mixing, release/reset, transfer bounds, partial writes,
 owned-handle isolation and render-block partitioning.
 These are compatibility/portability checks, not comparisons with real hardware.
 
-FM/ring/DSP code is retained from the pinned MAME implementation but has not
+DSP code is retained from the pinned MAME implementation but has not
 yet been behaviorally verified. Noise uses a deterministic per-instance software
 PRNG, not a verified hardware algorithm. CPU timers/IRQ, DMA, serial MIDI,
 external inputs, SSF playback and game-tone import are not provided.
@@ -321,7 +321,7 @@ ZIP内の`index.html`をHTTPS／localhostで配信すれば、repoや外部runti
 C++／JavaScript元入力・hash・license・再ビルド手順を同梱。
 [配布検証記録](issues/scsp_synth_distribution_01.json)。
 
-## SCSP hardware LFO（0.2.35以降の開発版）
+## SCSP hardware LFO（npm 0.2.36以降）
 
 `ScspSynth.setLfo(slot, patch)` は発音をやり直さず、指定fieldだけをlive更新する。
 `setPreset(slot, {lfo: patch})` は次のkeyOn用。presetとstateには `lfo` が含まれる。
@@ -348,4 +348,50 @@ Main／Worker、primary／extra Native、Inspector／Synthで共通の設定を�
 
 根拠は [Sega SCSP User's Manual §4.2.6](https://docs.exodusemulator.com/Archives/SSDDV25/segahtml/hard/scsp/hon/p04_26_j.htm)。
 実機の音声測定による忠実度保証ではない。[実装・検証記録](issues/scsp_lfo_01.md)。
-公開済みnpm 0.2.35はLFO高レベルAPI追加前のまま。この変更のnpm再公開はまだ行っていない。
+LFOはnpm 0.2.36で公開済み。下記のslot modulation追加はその後の開発版で、まだnpm未公開。
+
+
+## SCSP slot modulation（0.2.36以降の開発版）
+
+PlaygroundのFilesから `examples/scsp/scsp-two-slot-fm.js` を開き、Runする。
+Slot 1（API 0）が無音の変調元、Slot 2（API 1）が可聴carrier。
+SCSP tabでSlot 2を選び、**SCSP hardware slot modulation — live** のMDLを0〜12で変更できる。
+Direct level 0で変調元の直接出力を消しても変調は残る。TLは変調量にも効く。
+STWINHはstackへの書き込みを止め、以前の値を残す。音量muteではない。
+
+```js
+const saturn = await useSoundChip('scsp');
+const pcm = Int16Array.from({length:64}, (_,i) => Math.round(8192*Math.sin(2*Math.PI*i/64)));
+const wave = await saturn.loadPCM(pcm, {
+  baseFrequencyHz:44100/64, loopStartSamples:0, modulationDepth:12,
+});
+saturn.setPreset(0, {sample:wave, directLevel:0});
+saturn.setPreset(1, {sample:wave, totalLevel:16,
+  modulation:{depth:9,xOffset:63,yOffset:63}});
+saturn.noteOn(0,57);
+saturn.noteOn(1,69);
+saturn.setModulation(1, {depth:8}); // live, no retrigger
+```
+
+`modulation` は `{depth:0..15,xOffset:0..63,yOffset:0..63,writeInhibit:boolean}`。
+`setPreset(slot,{modulation})` は次回keyOn用、`setModulation(slot,patch)` はlive。
+Depth 0は両入力を切り離す。X/Yはslot番号ではなく、64-word sound stackの相対offset。
+固定coreはslot書き込みdelayが0なので、直前slotの同frameは63、前frameは31。
+manualの実機latencyに基づくslot→offset表と同一として扱わない。
+Nativeで時刻予約するdepth変更は、その時点で投影されたX/Yと一緒にrouting wordをcommitする。
+予約中に別のX/Yも変える場合はdepth/X/Yを同じpatchに明示する。
+
+変調はPCM読み出しaddressを前後へずらす。`loadPCM` のsoftware allocation option
+`modulationDepth` は許可する最大MDLで、full forward loop（start 0）のみ受け付ける。
+coreの最大signed displacementに備えて前後に周期波形をコピーし、別sampleの読出しを防ぐ。
+最大MDL 15では片側16,384点。これは実機機能ではなく安全なRAM配置を行うソフト側の処理。
+descriptorの `address` は実発音のSA、`allocationAddress` は前方guardを含む領域の先頭、`byteLength` はその全長。
+paddingを越えるdepth、one-shot／途中loopは高レベルAPIで拒否する。
+既存のpaddingなしPCM、depth 0の発音は従来のまま。
+Native callbackもRAM境界を検査し、変調で読まれるguardはrelease中も上書きから保護する。
+
+この段階はphysical slot単位の接続。Copy voiceは選択slotだけを出力し、変調元を含む音色全体は保存しない。
+専用Synthの自動複数slot割当・多声FM・複数operator presetは次段階。専用Synthではまだこのpanelを表示しない。
+DSPのdelay用RAM ring buffer、振幅の掛け算によるring modulationとは別機能。
+実機のslot latency／address clippingの精度保証は含まない。低MDL域もmanualの0〜4無変調と完全には一致しないため、APIはdepth 0を明示的なOffにしている。
+根拠：[Sega SCSP User's Manual §4.2](https://antime.kapsi.fi/sega/files/ST-077-R2-052594.pdf)。

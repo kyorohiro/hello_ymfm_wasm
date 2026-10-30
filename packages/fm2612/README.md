@@ -125,8 +125,8 @@ prepared for the 512 KiB SCSP RAM. These are software preparation helpers.
 The shared Playground runtime supports `useSoundChip('scsp')` and independent
 `createSoundChip('scsp')` instances in Main/Worker. Compatible, updated Tauri hosts
 also support Native transport; the npm package does not install a Tauri binary.
-The package-root chip factory is separate. Slot FM and DSP controls are not
-exposed by the high-level API, and SSF/68000 execution is not included.
+The package-root chip factory is separate. DSP controls and SSF/68000 execution
+are not included.
 Version 0.2.36 adds `setLfo(slot, patch)` and `preset.lfo` for live
 per-slot hardware LFO: `frequencyCode` 0..31, `pitchWave` / `amplitudeWave` 0..3
 (saw, square, triangle, noise), `pitchDepth` / `amplitudeDepth` 0..7, and boolean
@@ -135,6 +135,17 @@ the next keyOn. Display tables are exported as `SCSP_LFO_FREQUENCIES_HZ`,
 `SCSP_LFO_PITCH_CENTS`, `SCSP_LFO_AMPLITUDE_DB` and `SCSP_LFO_WAVEFORMS`.
 LFO requires 0.2.36 or later.
 See the [SCSP API and limitations](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md).
+
+Development builds after 0.2.36 add `setModulation(slot, patch)` and
+`preset.modulation` for SCSP sound-stack address modulation. `depth` is 0..15
+(0 disconnects), X/Y stack `xOffset` / `yOffset` are 0..63, and `writeInhibit`
+controls STWINH. Offsets are not slot IDs. PCM must be loaded with a full loop
+and `modulationDepth` guard allocation at least as large as the requested depth.
+This preserves adjacent sample isolation. The fixed core has zero slot-write
+delay; no physical SCSP timing/address-clipping fidelity is claimed. Main/Worker
+and updated Native hosts accept these controls. A multi-slot Synth voice allocator
+and patch serialization remain later work. These additions are not in published
+0.2.36. See the SCSP guide for a two-slot example and scheduling limitations.
 
 ### Experimental standalone PlayStation SPU
 

@@ -8,10 +8,10 @@ const held=new Map(),keys='awsedftgyhujk',notes=['C','C♯','D','D♯','E','F','
 const report=error=>{status.textContent=error.message;};
 function enqueue(fn){const task=queue.then(fn);queue=task.catch(report);return task;}
 async function refresh(){if(audio)panel.update(await audio.read());}
-const panel=createPlaygroundScspVoicePanel({root:$('voice'),onError:report,invoke:(method,args)=>enqueue(async()=>{
+const panel=createPlaygroundScspVoicePanel({root:$('voice'),showModulation:false,onError:report,invoke:(method,args)=>enqueue(async()=>{
   if(!audio)throw new Error('Start audio first');
   const result=await audio.invoke(method,args);
-  if(['setMix','setLfo'].includes(method))for(const entry of held.values())if(entry.source===args[0])await audio.command(method,[entry.slot,args[1]]);
+  if(['setMix','setLfo'].includes(method))for(const entry of held.values())if(entry.source===args[0])await audio.invoke(method,[entry.slot,args[1]]);
   if(!['getPCM','auditionOff','auditionOn'].includes(method))await refresh();return result;
 })});
 // Keep the shared editor's detailed RAM protocol out of the standalone flow.

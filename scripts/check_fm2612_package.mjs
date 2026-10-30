@@ -128,6 +128,9 @@ try {
  synth._editPCM(0,draft.pcm,options);const used=synth.getState().ramUsedBytes;
  for(let i=0;i<100;i++)synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);
  synth.stopVoices();synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);
+ const fmWave=synth.loadPCM(new Int16Array([0,8192,0,-8192]),{rootNote:69,loopStartSamples:0,modulationDepth:12});
+ synth.setPreset(1,{sample:fmWave,directLevel:0});synth.setPreset(2,{sample:fmWave,modulation:{depth:9,xOffset:63,yOffset:63}});
+ synth.noteOn(1,57);synth.noteOn(2,69);synth.setModulation(2,{depth:10});assert.equal(synth.getState().playingModulations[2].depth,10);assert(synth.generateStereo(1024).left.some(v=>Math.abs(v)>.01));
 }finally{synth.dispose();}
 assert.equal(typeof globalThis.AudioContext,'undefined');
 console.log('Installed SCSP PCM selection and bounded editor RAM reuse verified with actual WASM and no live audio device.');
