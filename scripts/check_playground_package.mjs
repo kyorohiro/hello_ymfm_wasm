@@ -64,7 +64,7 @@ if(!existsSync(resolve(root,'js/ps1_waveform.js')))errors.push('js/ps1_waveform.
 if(!existsSync(resolve(root,'playground_ps1_envelope.js')))errors.push('playground_ps1_envelope.js');
 
 for(const file of ['tetorica-playground-scsp.d.ts','playground_scsp_voice_panel.js','defaults/scsp/index.js','examples/scsp/scsp-stereo-pcm.js',
-  'js/scsp.js','js/scspsynth.js','js/scsp_sample.js','js/pcm_44100_resampler.js','js/playground_scsp.js','js/playground_scsp_audio.js','js/playground_scsp_worklet.js','js/playground_scsp_inspector.js',
+  'js/native_genesis_scsp.js','js/native_genesis_extra_scsp.js','js/scsp.js','js/scspsynth.js','js/scsp_sample.js','js/pcm_44100_resampler.js','js/playground_scsp.js','js/playground_scsp_audio.js','js/playground_scsp_worklet.js','js/playground_scsp_inspector.js',
   'generated/scsp_wasm.js','generated/scsp_wasm.wasm','sources/SCSP.json','sources/scsp-sdk/vendor/mame-scsp/scsp.cpp','licenses/mame-scsp/LICENSE']) {
   if(!existsSync(resolve(root,file)))errors.push(file);
 }

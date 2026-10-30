@@ -4,6 +4,26 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP Native transport・画面接続 — 2026-10-30
+
+[実装・制約](native_scsp_transport_01.md)／[最終report・hash](native_scsp_transport_01.json)。
+Tauriのprimary／extra SCSP、時刻付き命令、Main／Worker、32-slot Inspector、PCM／EG編集、
+Hold／PC Keyboard、owner取消、Stop／即時reset／session再開を接続。Native mode選択を有効化した。
+実発音RAM範囲をcallback側で保護し、release後も保持。playing addressesをstatusへ返す。
+予約済みnoteは送信時のpresetを保持する。後から既存reservationのpayloadを書き換えない。
+
+関連Node **1,183成功**、Tauri全Cargo **812成功／既存4 ignored**、Native debug build成功。
+core PCM proofは96 cases／5,589,524 stereo framesで差分0。型・実npm installed consumerも成功。
+最終の4音源再測定とSCSP全48経路のpolicy verify成功。旧測定は保持。
+途中の同期で戻したWASM相対pathを配布検証で修正し、修正後のsourceで全測定を取り直した。
+
+専用`release/*scsp-native-dev-20261030*`を作成し、**1,119-file frontendをTauriへ正規import**。
+取り込んだ実ファイルのChromium／WebKit × Main／WorkerでNative UI・PCM編集・PC Keyboard・Stop成功。
+RPCだけmock。物理audio deviceの試聴／deadline／device interruptionは未検証。
+対応するNative source ZIP **2,169 files**も再生成・全hash検証。Run ZIPは**967 entries**。
+SDK pin／SCSP C++／生成WASMは変更なし。親とTauriは別Git、両repo未commit／未公開。
+次は実デバイスでの確認、または専用SCSP Synth（TODO段階5）。以下は過去のcheckpoint。
+
 ## SCSP Native callback土台 — 2026-10-30
 
 [実装・残作業](native_scsp_core_01.md)／[実測report](native_scsp_core_01.json)。

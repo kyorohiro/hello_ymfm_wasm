@@ -107,8 +107,8 @@ for (const kind of selected) {
   });
 }
 
-test('all24 lifecycle matrix covers the public Native additional kinds without duplicates', () => {
-  assert.equal(EXTRA_KINDS.length, 24); assert.equal(new Set(EXTRA_KINDS).size, 24);
+test('all26 lifecycle matrix covers the public Native additional kinds without duplicates', () => {
+  assert.equal(EXTRA_KINDS.length, 26); assert.equal(new Set(EXTRA_KINDS).size, 26);
 });
 
 test('host disposal detaches a ready Native Worker source before its Worker client cleanup and preserves its sibling', {timeout: 12000}, async t => {

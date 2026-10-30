@@ -1,6 +1,6 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-adpcm-encoder-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-pcm-files-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=scsp-pcm-files-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-native-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=scsp-native-1';
 
 function registerMonacoHover(
   monaco

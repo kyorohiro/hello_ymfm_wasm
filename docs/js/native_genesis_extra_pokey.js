@@ -2,10 +2,10 @@ import {preparePokeyTimeline} from './pokey_timeline.js?v=pokey-prepare-1';
 import {PokeySynth,POKEY_CLOCK} from './pokeysynth.js?v=pokey-mode-1';
 import {createPokeyRegisterClient} from './playground_pokey.js?v=pokey-prepare-1';
 import {PokeyVoiceInspector} from './playground_pokey_inspector.js?v=ps1-deferred-release-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-pcm-files-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-native-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as array} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=scsp-native-1';
 
 export const POKEY_TIMELINE_BUSY_ERROR='Native POKEY timeline is playing or pending';
 export const POKEY_TIMELINE_HELD_ERROR='Release the manually held POKEY voices before replacing or playing a timeline';

@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-30",
+  "scope": "SCSP Native primary/extra transport, Main/Worker, Inspector, PCM editor, manual ownership, cancellation, reset and session lifecycle",
+  "baseCommits": {
+    "frontend": "c2b64a1669dab699125058f0570c0343f5d22fbc",
+    "tauri": "84959ab5f0ec3f1f78e75b2caccc5aaa6e398204"
+  },
+  "validation": {
+    "nodeRelated": {
+      "passed": 1183,
+      "failed": 0
+    },
+    "rustFull": {
+      "passed": 812,
+      "failed": 0,
+      "ignored": 4
+    },
+    "nativeScspRustTests": 10,
+    "coreRustTests": 2,
+    "nativeClientTests": 5,
+    "calibrationGeneratorsAndSources": 42,
+    "packagingUnits": 11,
+    "sdkImporterPython": 14,
+    "nativeSourcePython": 10,
+    "allPlaygroundModeTypes": "passed",
+    "nativeDebugBuild": "passed",
+    "npmInstalledConsumer": "passed",
+    "npmModules": 345,
+    "npmDeclarations": 396,
+    "npmTarballFiles": 1051,
+    "npmTarballBytes": 2054860,
+    "coreParityCases": 96,
+    "coreParityStereoFrames": 5589524,
+    "coreMaximumDifference": 0
+  },
+  "browser": {
+    "root": "w/tetorica-fm2612-playground-tauri/dist",
+    "results": [
+      {
+        "browser": "chromium",
+        "primary": true,
+        "additional": true,
+        "main": true,
+        "worker": true,
+        "modeFilter": true,
+        "waveEditor": true,
+        "operatorKeyboard": true,
+        "stop": true,
+        "audioNodes": 0,
+        "nativeRpc": "mocked",
+        "passed": true
+      },
+      {
+        "browser": "webkit",
+        "primary": true,
+        "additional": true,
+        "main": true,
+        "worker": true,
+        "modeFilter": true,
+        "waveEditor": true,
+        "operatorKeyboard": true,
+        "stop": true,
+        "audioNodes": 0,
+        "nativeRpc": "mocked",
+        "passed": true
+      }
+    ],
+    "physicalDeviceOpened": false,
+    "audioContextCreated": false
+  },
+  "measurements": [
+    {
+      "path": "docs/issues/native_scsp_transport_core_parity_01.json",
+      "bytes": 49041,
+      "sha256": "4fb9751b9cd91f9fcd25bde171e1ae68eaf27e5ccf447d9bdb8178de0b6b70f8"
+    },
+    {
+      "path": "docs/issues/ps1_scsp_native_chip_levels_01.json",
+      "bytes": 561802,
+      "sha256": "d944f3f85c73c919478ddd5725d5a9d9b964e8eeaf39e08266b8834545b9e6ae"
+    },
+    {
+      "path": "docs/issues/wonderswan_scsp_native_chip_levels_01.json",
+      "bytes": 490064,
+      "sha256": "24a796edf3f2d4391dec8f9342f204c720bd7529cca901d1c24136d522fa781a"
+    },
+    {
+      "path": "docs/issues/pokey_scsp_native_chip_levels_01.json",
+      "bytes": 1029642,
+      "sha256": "8434a650617aaa46da86a79b0223aa82fddcb2f90fba69c7bc3ea8a7aa532f4d"
+    },
+    {
+      "path": "docs/issues/scsp_native_chip_levels_01.json",
+      "bytes": 656470,
+      "sha256": "86a3f584d11414dfa8faf51741155ed404927e68e844651c8993ba35ef2ddca1"
+    },
+    {
+      "path": "docs/issues/scsp_native_chip_levels_verify_01.json",
+      "bytes": 651285,
+      "sha256": "00400c03f28568d75ed175959862852ac92a35002ec71f2af5f427565e2b9ec1"
+    }
+  ],
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_scsp-native-dev-20261030_itch_playground.zip",
+      "bytes": 37168551,
+      "sha256": "c805690108ff1a16d2d3a87c12ba2cf94bc13cc91352d4e098b11df022d1aa90",
+      "entries": 1255,
+      "directories": 135
+    },
+    {
+      "path": "release/hello_ymfm_wasm_scsp-native-dev-20261030_itch_playground_for_run.zip",
+      "bytes": 37605665,
+      "sha256": "4403c683076d614295994335369221e8f38b94de5033e563ab9135302bd5db98",
+      "entries": 967,
+      "directories": 0
+    }
+  ],
+  "frontendImport": {
+    "archive": "hello_ymfm_wasm_scsp-native-dev-20261030_itch_playground.zip",
+    "files": {
+      "count": 1119
+    },
+    "sha256": "c805690108ff1a16d2d3a87c12ba2cf94bc13cc91352d4e098b11df022d1aa90",
+    "version": "sha256-c805690108ff"
+  },
+  "nativeSourceVerification": {
+    "schemaVersion": 1,
+    "deviceOpened": false,
+    "networkUsed": false,
+    "platform": "darwin",
+    "snapshots": [
+      {
+        "script": "sync_native_cdda.py",
+        "status": "passed",
+        "summary": "Native cdda SDK 0.1.7: verified fixed release (4 C/header/license/provenance files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_dx7.py",
+        "status": "passed",
+        "summary": "Native DX7 snapshot verified (32 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_game_gear.py",
+        "status": "passed",
+        "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_gameboy.py",
+        "status": "passed",
+        "summary": "Native Game Boy source verified (5 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis.py",
+        "status": "passed",
+        "summary": "Native Genesis snapshot verified (16 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_fx.py",
+        "status": "passed",
+        "summary": "Native FX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_livefx.py",
+        "status": "passed",
+        "summary": "Native LiveFX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_noise.py",
+        "status": "passed",
+        "summary": "Native noise snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_huc6280.py",
+        "status": "passed",
+        "summary": "Native HuC6280 verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_master_system.py",
+        "status": "passed",
+        "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_megacd.py",
+        "status": "passed",
+        "summary": "Native RF5C164 snapshot verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msm5205.py",
+        "status": "passed",
+        "summary": "Native msm5205 SDK 0.1.7: verified fixed release (4 C/header/license/provenance files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx.py",
+        "status": "passed",
+        "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx_audio.py",
+        "status": "passed",
+        "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nes.py",
+        "status": "passed",
+        "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nuked.py",
+        "status": "passed",
+        "summary": "Native Nuked snapshot verified (9 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_opl.py",
+        "status": "passed",
+        "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_pwm.py",
+        "status": "passed",
+        "summary": "Native PWM source verified (3 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_snes.py",
+        "status": "passed",
+        "summary": "Native SNES verified (34 exact source files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_x68000.py",
+        "status": "passed",
+        "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2203.py",
+        "status": "passed",
+        "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2608.py",
+        "status": "passed",
+        "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2610b.py",
+        "status": "passed",
+        "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "import_soundchip_sdk.py",
+        "status": "passed",
+        "summary": "SDK 0.1.7 (unpublished local candidate; sourceCommit is its base): 476 pinned files verified offline (archive SHA256 efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1)",
+        "error": ""
+      }
+    ],
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "c6e891017cda9d44c7c5442f975ccd7463572bfc8c4a3126674267166821e4b4",
+      "files": 2169,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "c805690108ff1a16d2d3a87c12ba2cf94bc13cc91352d4e098b11df022d1aa90"
+    },
+    "status": "passed",
+    "elapsedSeconds": 1.472
+  },
+  "sources": [
+    {
+      "path": "web/native_genesis_scsp.js",
+      "bytes": 15484,
+      "sha256": "7349fdd4d8ac156f3bfeed416321ffc4204dee9eb348afb7ade5386033c74a78"
+    },
+    {
+      "path": "web/native_genesis_extra_scsp.js",
+      "bytes": 499,
+      "sha256": "f56faea5f6c65ac48a3422bd1e764bba52c23d0d19d631018224883568c0b12b"
+    },
+    {
+      "path": "web/native_genesis_synth.js",
+      "bytes": 81222,
+      "sha256": "2c85540dc4d6d391cfb31ff365951c1714608b27563c3e4354032f38f8ac7022"
+    },
+    {
+      "path": "web/native_genesis_extra_chip.js",
+      "bytes": 6757,
+      "sha256": "d0cff252ce14f6a43b59bec174520a88c5959b9ff82e06568325b32b11ec4eb1"
+    },
+    {
+      "path": "web/native_genesis_worker.js",
+      "bytes": 16400,
+      "sha256": "76851f4a2f7ce464398beaa44e44207a508063b7ad685940031ea8b9b3cf8069"
+    },
+    {
+      "path": "web/playground_runtime.js",
+      "bytes": 156010,
+      "sha256": "4c0bde67ce19edeb828484f781dcafdcc947d49909f60b27debaa79982eb8362"
+    },
+    {
+      "path": "web/playground_scsp.js",
+      "bytes": 5744,
+      "sha256": "f17e7976650697d9034c12acb935923fc49472fef0633e9f08d0a9121b31e668"
+    },
+    {
+      "path": "web/scspsynth.js",
+      "bytes": 14926,
+      "sha256": "2856e84668a907365361250068b7bb1a2cf0f5d55b4f641250b04109871d1955"
+    },
+    {
+      "path": "docs/playground/playground_audio_engine.js",
+      "bytes": 6719,
+      "sha256": "fc8f02e30c383d43f15c8ad6e45fe61db6cd5d0b2d6bfd7e7d98d5a48ed6ffa9"
+    },
+    {
+      "path": "docs/js/playground_runtime.js",
+      "bytes": 157292,
+      "sha256": "e3eea6062bf80276fbb12d2d0ec1961ef3759f104fb5073bfa5a728a2dd9340f"
+    },
+    {
+      "path": "scripts/check_playground_native_scsp_browser.cjs",
+      "bytes": 9487,
+      "sha256": "ca12d6897067e0a3deb459f22b25bba482e820c4ddbcac18560390e0e453e996"
+    },
+    {
+      "path": "web/native_genesis_scsp.test.mjs",
+      "bytes": 7692,
+      "sha256": "06fef948d6189e347259023077cddfcfda56e8576d1c327c24556edba0362d14"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_scsp.rs",
+      "bytes": 36710,
+      "sha256": "96c7a7a463a222f48356baa106299cf77319e6cc99d256977a8e8ca0b18348aa"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_scsp.rs",
+      "bytes": 2862,
+      "sha256": "8521f4fe46f0b7f0ee5336f34d49efe9896de7a8ea2295839b106bb1b7a71718"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_scsp_tests.rs",
+      "bytes": 10069,
+      "sha256": "0f2841066b4877c810d68f159ffc14dcf60843bfbd1b062f43cd7985b34c70ab"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_scsp_core.rs",
+      "bytes": 8336,
+      "sha256": "e921422d68b6ba07d1ecc6b577da1f3082de8dc5e03158ed368876b9264612cc"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis.rs",
+      "bytes": 412284,
+      "sha256": "52be07389d22ad1d82af89492ac3898f8bea5086b650a142dcb2b86892ff43c6"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_extra_psg.rs",
+      "bytes": 79628,
+      "sha256": "af3f0c1923f6ec4ed26669a9334493c5da0f67f0d315be8c8bfa83d124d42783"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/main.rs",
+      "bytes": 14824,
+      "sha256": "75d92d286452f6276c0f305b0c45db9ee81027c34636b63e4f5be876639fa5c3"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_scsp_alloc_probe.cpp",
+      "bytes": 1252,
+      "sha256": "6d2913a0540051906ec4629eb6c110bdbb0d34e7d110a70c256aec1f695e9da9"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/build.rs",
+      "bytes": 31709,
+      "sha256": "bcb053f166dab7fb75a39a0ed0d2fe47a173b592c8ab757cbf635d5f828b4e5a"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/soundchip-sdk.json",
+      "bytes": 696,
+      "sha256": "35c2d422f594be23353d12b04632945dab1e8703a4dde2156cafc91117081a8e"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/release.lock.json",
+      "bytes": 118550,
+      "sha256": "248c0969101f8233c325ec232843a1ccfa16a491bf6be1928f2e02a39defd06b"
+    }
+  ],
+  "limits": [
+    "Native UI tests mock RPC; actual SDK/Rust offline PCM and scheduling tests are separate.",
+    "Physical output, device interruption, long device operation and callback deadlines were not tested.",
+    "Future notes retain the preset captured in their immutable prepared register batch.",
+    "Allocation probe counts Rust alloc/dealloc and C++ new/delete, not direct C malloc/free."
+  ],
+  "committed": false,
+  "published": false
+}

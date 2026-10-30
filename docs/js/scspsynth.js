@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {noteToHz} from './soundchip_pitch.js';
-import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js?v=scsp-pcm-files-1';
+import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js?v=scsp-native-1';
 export const SCSP_SLOT_COUNT = 32;
 let bankSequence=0;
 const int = (v,lo,hi,name) => {
@@ -212,6 +212,11 @@ export class ScspSynth {
     this._adoptResources(state);
     this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope}}));
     this.#gates=state.slots.map(v=>!!v.gate);this.#playing=state.playingSampleIds?state.playingSampleIds.map(id=>id==null?null:this.#samples.get(id)??null):this.#voices.map(v=>v.sample);
+  }
+  /** Trusted transport staging: copy pool reservations without sharing pages. */
+  _copyTransportState(source) {
+    this._adoptState(source.getState());
+    this.#editorPages=source.#editorPages.map(p=>({...p,sample:p.sample?this.#samples.get(p.sample.id):null}));
   }
   getState() {
     this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],

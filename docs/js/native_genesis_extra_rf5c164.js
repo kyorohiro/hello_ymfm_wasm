@@ -5,7 +5,7 @@ import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=scsp-native-1';
 
 export const EXTRA_RF5C164_CLOCK_HELD_ERROR='Release the manually held additional RF5C164 voices before changing the clock';
 const CLOCK=CHIP_CLOCKS.rf5c164;

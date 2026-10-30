@@ -13,7 +13,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   const pcm=synth.pcm?new MessageChannelClass():null;
   const dx7=synth.dx7?new MessageChannelClass():null;
   const nes=synth.nes?new MessageChannelClass():null;
-  const consoles = new Map(['ps1','wonderswan','gameboy','snes','huc6280','ym2151','okim6258','segapsg','ym2413','ay8910','ym3526','ym3812','ymf262','y8950'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
+  const consoles = new Map(['scsp','ps1','wonderswan','gameboy','snes','huc6280','ym2151','okim6258','segapsg','ym2413','ay8910','ym3526','ym3812','ymf262','y8950'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
   const ports = [admin.port1, chip.port1, fx.port1,...(pwm?[pwm.port1]:[]),...(pcm?[pcm.port1]:[]),...(dx7?[dx7.port1]:[]),...(nes?[nes.port1]:[]),...Array.from(consoles.values(),channel=>channel.port1)];
   const primaryPokey=new Map((synth.primaryPokey??[]).map(endpoint=>[endpoint.globalName,{endpoint,channel:new MessageChannelClass()}]));
   ports.push(...[...primaryPokey.values()].map(item=>item.channel.port1));
@@ -133,6 +133,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.method==='memory'?bytesOf(m.args?.[typeof m.args?.[0]==='number'?1:0]):0) +
         (m.method==='rom'?bytesOf(m.args?.[0]):0) +
+        (m.method==='loadPCM'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +
         (m.method==='prepareTimeline'?Array.isArray(m.args?.[0])?m.args[0].length*32+(m.args?.[1]?.reduce((total,b)=>total+bytesOf(b),0)??0):bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.data)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
         (m.method==='loadSysex'?bytesOf(m.args?.[0]):0) +
@@ -146,7 +147,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         } else for (const command of messages) {
           if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
           const result = typeof kind === 'function' ? await kind(command,timing) : kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
-            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pwm'?await synth.dispatchNativePwmCommand(command,timing):kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):kind==='dx7'?await synth.dispatchNativeDx7Command(command,timing):kind==='nes'?await synth.dispatchNativeNesCommand(command,timing):kind==='ps1'?await synth.dispatchNativePs1Command(command,timing):kind==='snes'?await synth.dispatchNativeSnesCommand(command,timing):consoles.has(kind)?await synth.dispatchNativeConsoleCommand(kind,command,timing):await synth.dispatchNativeCommand(command,timing);
+            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pwm'?await synth.dispatchNativePwmCommand(command,timing):kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):kind==='dx7'?await synth.dispatchNativeDx7Command(command,timing):kind==='nes'?await synth.dispatchNativeNesCommand(command,timing):kind==='scsp'?await synth.dispatchNativeScspCommand(command,timing):kind==='ps1'?await synth.dispatchNativePs1Command(command,timing):kind==='snes'?await synth.dispatchNativeSnesCommand(command,timing):consoles.has(kind)?await synth.dispatchNativeConsoleCommand(kind,command,timing):await synth.dispatchNativeCommand(command,timing);
           // Timeline playback acknowledges its audible end asynchronously.
           // Keep this FIFO free so stopTimeline and cancellation can arrive.
           if (result?.deferred) Promise.resolve(result.deferred).then(reply=>{
@@ -169,7 +170,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   return {
     primaryPorts:Object.fromEntries([...primaryPokey].map(([name,{channel}])=>[name,channel.port2])),
     port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pwmPort:pwm?.port2??null,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
-    ps1Port:consoles.get('ps1')?.port2??null,wonderswanPort:consoles.get('wonderswan')?.port2??null,gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,segapsgPort:consoles.get('segapsg')?.port2??null,ym2413Port:consoles.get('ym2413')?.port2??null,ay8910Port:consoles.get('ay8910')?.port2??null,y8950Port:consoles.get('y8950')?.port2??null,ym3526Port:consoles.get('ym3526')?.port2??null,ym3812Port:consoles.get('ym3812')?.port2??null,ymf262Port:consoles.get('ymf262')?.port2??null,
+    scspPort:consoles.get('scsp')?.port2??null,ps1Port:consoles.get('ps1')?.port2??null,wonderswanPort:consoles.get('wonderswan')?.port2??null,gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,segapsgPort:consoles.get('segapsg')?.port2??null,ym2413Port:consoles.get('ym2413')?.port2??null,ay8910Port:consoles.get('ay8910')?.port2??null,y8950Port:consoles.get('y8950')?.port2??null,ym3526Port:consoles.get('ym3526')?.port2??null,ym3812Port:consoles.get('ym3812')?.port2??null,ymf262Port:consoles.get('ymf262')?.port2??null,
     attachEndpoint(dispatch,{cancelOwner=()=>{},stop=()=>{}}={}) {
       if (disposed) throw abort();
       if (typeof dispatch !== 'function') throw new TypeError('Native endpoint dispatch must be a function');

@@ -3,7 +3,7 @@ import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=ps1-defer
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=ps1-deferred-release-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=scsp-native-1';
 
 export const EXTRA_YM2413_CLOCK_HELD_ERROR='Release the manually held additional YM2413 voices before changing the clock';
 const physicalDrums=[6,7,8,8,7];

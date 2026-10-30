@@ -62,7 +62,7 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
       "referenceFrequencyHz": 440,
       "measurementMetric": "acRms",
       "waveform": "square",
-      "targetAcRms": 0.06993725583765792,
+      "targetAcRms": 0.06993506559575688,
       "targetAmplitude": 0.12881777435541153,
       "referenceAmplitude": 0.1494140625,
       "codecHeadroom": 1,
@@ -74,7 +74,7 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
       "listeningReference": {
         "kind": "segapsg",
         "gain": 0.35,
-        "rawAcRms": 0.19982073096473693
+        "rawAcRms": 0.19981447313073394
       },
       "canonical": {
         "engine": "chromium",
@@ -205,7 +205,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "pokey",
-      "volume": 0.413052
+      "volume": 0.413039
     },
     {
       "name": "ps1",
@@ -213,7 +213,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "scsp",
-      "volume": 0.128826
+      "volume": 0.128825
     }
   ]
 });
@@ -640,7 +640,7 @@ const factoryModes = freeze({
         "id": "pokey",
         "name": "pokey",
         "settings": {
-          "volume": 0.413052
+          "volume": 0.413037
         }
       }
     ]
@@ -652,14 +652,14 @@ const factoryModes = freeze({
         "id": "pokey",
         "name": "pokey",
         "settings": {
-          "volume": 0.413051
+          "volume": 0.413038
         }
       },
       {
         "id": "pokey:2",
         "name": "pokey",
         "settings": {
-          "volume": 0.413051
+          "volume": 0.413033
         }
       }
     ]
@@ -683,7 +683,7 @@ const factoryModes = freeze({
         "id": "scsp",
         "name": "scsp",
         "settings": {
-          "volume": 0.128826
+          "volume": 0.128825
         }
       }
     ]

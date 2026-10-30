@@ -3,7 +3,7 @@
 import {readPwmInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=scsp-native-1';
 
 export const EXTRA_PWM_ADMISSION_ERRORS=Object.freeze([
   'Native additional PWM write queue limit reached (1000000 entries / 1024 batches)',

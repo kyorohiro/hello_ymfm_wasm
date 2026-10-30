@@ -360,6 +360,8 @@ native_genesis_nes.js
 native_genesis_console.js
 native_genesis_pokey.js
 native_genesis_extra_pokey.js
+native_genesis_scsp.js
+native_genesis_extra_scsp.js
 native_genesis_ps1.js
 native_genesis_extra_ps1.js
 native_genesis_wonderswan.js

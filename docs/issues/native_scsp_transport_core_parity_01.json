@@ -1,0 +1,2031 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "deviceOpened": false,
+  "audioContextCreated": false,
+  "physicalAudioTested": false,
+  "method": "Actual Native Rust Core (same module compiled into Tauri) + pinned C ABI against real Browser ScspSynth/WASM/Pcm44100Resampler. Identical timestamped low-level operations, all stereo samples/registers/RAM and clock counts compared exactly.",
+  "sourcePin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "fileCount": 476,
+    "localCandidate": {
+      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "changedPaths": [
+        ".github/workflows/verify-sdk.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_scsp_instrument_release.py"
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.cpp",
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scsp.cpp",
+      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.cpp",
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scsp_instrument.h",
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scsp.h",
+      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/scspdsp.h",
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f"
+    },
+    {
+      "path": "tauri/src-tauri/vendor/tetorica-soundchip-native/vendor/mame-scsp/standalone_support.h",
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7"
+    },
+    {
+      "path": "tauri/src-tauri/src/native_genesis_scsp_core.rs",
+      "sha256": "e921422d68b6ba07d1ecc6b577da1f3082de8dc5e03158ed368876b9264612cc"
+    },
+    {
+      "path": "tauri/src-tauri/src/native_genesis_scsp_fixture.rs",
+      "sha256": "e55a2c357adab97617fc1cd42d5759964015185f1409f200d7aa51ccce789ca7"
+    },
+    {
+      "path": "tauri/src-tauri/src/native_genesis_scsp_alloc_probe.cpp",
+      "sha256": "6d2913a0540051906ec4629eb6c110bdbb0d34e7d110a70c256aec1f695e9da9"
+    },
+    {
+      "path": "tauri/src-tauri/build.rs",
+      "sha256": "bcb053f166dab7fb75a39a0ed0d2fe47a173b592c8ab757cbf635d5f828b4e5a"
+    },
+    {
+      "path": "tauri/src-tauri/soundchip-sdk.json",
+      "sha256": "35c2d422f594be23353d12b04632945dab1e8703a4dde2156cafc91117081a8e"
+    },
+    {
+      "path": "web/scsp.js",
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    {
+      "path": "web/scspsynth.js",
+      "sha256": "2856e84668a907365361250068b7bb1a2cf0f5d55b4f641250b04109871d1955"
+    },
+    {
+      "path": "web/pcm_44100_resampler.js",
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    {
+      "path": "docs/generated/scsp_wasm.js",
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    {
+      "path": "docs/generated/scsp_wasm.wasm",
+      "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981"
+    },
+    {
+      "path": "tauri/scripts/check_native_scsp.mjs",
+      "sha256": "91feffd5a546dd2d49fe6cea03fa274d686ac5e33cf92ab42f63b25bb6793747"
+    }
+  ],
+  "unitTests": "running 2 tests\ntest tests::bounds_are_atomic_and_instances_are_independent ... ok\ntest tests::stop_and_clear_reset_have_different_ram_contracts ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+  "cases": [
+    {
+      "name": "cold-silence",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 3765,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "nativeFrames": 3765,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "ba61c36dd3703f9a8cce36675bb7391e9a6b1ab917ea00c4a3ebf2d7c50c4fcb",
+      "nativeFrames": 1325,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "cold-silence",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 2,
+      "peak": 0,
+      "pcmSha256": "ba61c36dd3703f9a8cce36675bb7391e9a6b1ab917ea00c4a3ebf2d7c50c4fcb",
+      "nativeFrames": 1325,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.2498554289340973,
+      "pcmSha256": "c814ab586bb721e727c5fb23bc3d2267344171cb994b8d9c5d6ca3b1ceeb5a7f",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.2498554289340973,
+      "pcmSha256": "c814ab586bb721e727c5fb23bc3d2267344171cb994b8d9c5d6ca3b1ceeb5a7f",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.25,
+      "pcmSha256": "dae1546aab40503d3e6c61dda07b1fb4d52fe579a2331898be0d8b69f969e40b",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.25,
+      "pcmSha256": "dae1546aab40503d3e6c61dda07b1fb4d52fe579a2331898be0d8b69f969e40b",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.24993324279785156,
+      "pcmSha256": "4252a8824268fe44a5919b3a4892cc39c2131f49574d6917301303686c4c7f19",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 22,
+      "peak": 0.24993324279785156,
+      "pcmSha256": "4252a8824268fe44a5919b3a4892cc39c2131f49574d6917301303686c4c7f19",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 22,
+      "peak": 0.24990949034690857,
+      "pcmSha256": "611714bba16f78abfba1b9ea9f0fd78a65289733017fc2591ab79950d38f119b",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 22,
+      "peak": 0.24990949034690857,
+      "pcmSha256": "611714bba16f78abfba1b9ea9f0fd78a65289733017fc2591ab79950d38f119b",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 22,
+      "peak": 0.2498355358839035,
+      "pcmSha256": "785e529bc6adfef5e410c8c25207cd2d09430cfae25fc7595c81484065156750",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-live-pitch-pan",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 22,
+      "peak": 0.2498355358839035,
+      "pcmSha256": "785e529bc6adfef5e410c8c25207cd2d09430cfae25fc7595c81484065156750",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "ed10fafe28e206c6886678167a26ade7b4112c1f39ba761c632deb5cdb3174c3",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "ed10fafe28e206c6886678167a26ade7b4112c1f39ba761c632deb5cdb3174c3",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "e6404082b606aee9c999fa53c1b721e56c661a7e0caa9152bde9c07b13659374",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "e6404082b606aee9c999fa53c1b721e56c661a7e0caa9152bde9c07b13659374",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "40a33fa72e568aeaf63044a574a4e928f39318de0e5fc157fa8b51baa84cb24d",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 1,
+      "pcmSha256": "40a33fa72e568aeaf63044a574a4e928f39318de0e5fc157fa8b51baa84cb24d",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 21,
+      "peak": 0.9990234375,
+      "pcmSha256": "b7e66245d6939762b2fc6a0132ad95960fb1ed4b0c58ccfef57451455323e96b",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 21,
+      "peak": 0.9990234375,
+      "pcmSha256": "b7e66245d6939762b2fc6a0132ad95960fb1ed4b0c58ccfef57451455323e96b",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 21,
+      "peak": 0.9990234375,
+      "pcmSha256": "67a4f4363454ac8e78d4bc454d8ffb72c71fbb0b60339f175afa6875c1e1f7a8",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM8-short-loop",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 21,
+      "peak": 0.9990234375,
+      "pcmSha256": "67a4f4363454ac8e78d4bc454d8ffb72c71fbb0b60339f175afa6875c1e1f7a8",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "e7a5b5846004950ee10ec9a53fed08311e3e55d605c4e9dd07cee92a36b43fe1",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "e7a5b5846004950ee10ec9a53fed08311e3e55d605c4e9dd07cee92a36b43fe1",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "7e8637009f429661c30fad43ef835d184c922a3084accd22b19774198ed84d84",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "7e8637009f429661c30fad43ef835d184c922a3084accd22b19774198ed84d84",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "d7c1f3ee7148b80ef06621efe93138d1fcc076f99202fe60886865d780726bb9",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "d7c1f3ee7148b80ef06621efe93138d1fcc076f99202fe60886865d780726bb9",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "3c3a34a1cba35c940a8fce62eaf6e4afe97c0fc829f6e3f3e2ef95a61c843544",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "3c3a34a1cba35c940a8fce62eaf6e4afe97c0fc829f6e3f3e2ef95a61c843544",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "e07efdef84667243eee31e4bc255c1b7b095430c77bb68f9c4488af85cf8c53f",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "PCM16-one-shot",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 30,
+      "peak": 0.792694091796875,
+      "pcmSha256": "e07efdef84667243eee31e4bc255c1b7b095430c77bb68f9c4488af85cf8c53f",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "31471b2b5eab8c2ca2450e4c2420463dc5990baa3bde45ea10dcebc6a64fd224",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "31471b2b5eab8c2ca2450e4c2420463dc5990baa3bde45ea10dcebc6a64fd224",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "91bbeb8b4a49a4c3a727c6ad7c386ccd5c2676c7fae4ccc8f3d868287cbe9fed",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "91bbeb8b4a49a4c3a727c6ad7c386ccd5c2676c7fae4ccc8f3d868287cbe9fed",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "c8e29e8c331cce694b82fb08068abfb9c40a4487554ce58e95d798075f1b86b9",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "c8e29e8c331cce694b82fb08068abfb9c40a4487554ce58e95d798075f1b86b9",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "f554f5bed77770c31ee6b4914fdb2f5f4c45ccd4b855ff6854cc2523f8dc8c7a",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "f554f5bed77770c31ee6b4914fdb2f5f4c45ccd4b855ff6854cc2523f8dc8c7a",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "83776d9a7203d5d0e79feeee0c5ac5702dcd2c6517bcc918bca5333fed8f606d",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "32-slot-clipping-and-isolated-retrigger",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 468,
+      "peak": 1,
+      "pcmSha256": "83776d9a7203d5d0e79feeee0c5ac5702dcd2c6517bcc918bca5333fed8f606d",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.24697265028953552,
+      "pcmSha256": "4bbc2d7eab198146365fb03fc1add40c04f910ea2265d61d1d67ae40a45c41e3",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 30,
+      "peak": 0.24697265028953552,
+      "pcmSha256": "4bbc2d7eab198146365fb03fc1add40c04f910ea2265d61d1d67ae40a45c41e3",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 22050,
+      "events": 31,
+      "peak": 0.247222900390625,
+      "pcmSha256": "fcc76f01bef7db9c9e31a7d44544ac24f33b939f8a459ef11362f4cbb0097ac2",
+      "nativeFrames": 22050,
+      "outputFrames": 22050,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 22050,
+      "events": 31,
+      "peak": 0.247222900390625,
+      "pcmSha256": "fcc76f01bef7db9c9e31a7d44544ac24f33b939f8a459ef11362f4cbb0097ac2",
+      "nativeFrames": 22050,
+      "outputFrames": 22050,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 24000,
+      "events": 31,
+      "peak": 0.24709777534008026,
+      "pcmSha256": "bf01dfc4980f94e13ff35edf6748a08863062fa5f25766b65456e40c0bf34d49",
+      "nativeFrames": 22052,
+      "outputFrames": 24000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 24000,
+      "events": 31,
+      "peak": 0.24709777534008026,
+      "pcmSha256": "bf01dfc4980f94e13ff35edf6748a08863062fa5f25766b65456e40c0bf34d49",
+      "nativeFrames": 22052,
+      "outputFrames": 24000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 48000,
+      "events": 31,
+      "peak": 0.2471969574689865,
+      "pcmSha256": "c1ff2907c86f73f29561a26b471ea0a9d64d10d7f9bf25aadbe44fc9c46daf64",
+      "nativeFrames": 22052,
+      "outputFrames": 48000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 48000,
+      "events": 31,
+      "peak": 0.2471969574689865,
+      "pcmSha256": "c1ff2907c86f73f29561a26b471ea0a9d64d10d7f9bf25aadbe44fc9c46daf64",
+      "nativeFrames": 22052,
+      "outputFrames": 48000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 192000,
+      "events": 31,
+      "peak": 0.19417795538902283,
+      "pcmSha256": "148ed54bb0eeacb952e38236794e9e06141aefdc684366b632322f054f2ce917",
+      "nativeFrames": 22052,
+      "outputFrames": 192000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "named-EG-release",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 192000,
+      "events": 31,
+      "peak": 0.19417795538902283,
+      "pcmSha256": "148ed54bb0eeacb952e38236794e9e06141aefdc684366b632322f054f2ce917",
+      "nativeFrames": 22052,
+      "outputFrames": 192000,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.24992942810058594,
+      "pcmSha256": "e6af8c515ba0152c2c0b62aca240d4cd540aa6b3f31ee9d28ee8187860bc2f19",
+      "nativeFrames": 23656,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.24992942810058594,
+      "pcmSha256": "e6af8c515ba0152c2c0b62aca240d4cd540aa6b3f31ee9d28ee8187860bc2f19",
+      "nativeFrames": 23656,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.25,
+      "pcmSha256": "0cef950bfdb496a8b284fd41d554f88f57726ba5c0869cfe511073b086e2de0e",
+      "nativeFrames": 4291,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.25,
+      "pcmSha256": "0cef950bfdb496a8b284fd41d554f88f57726ba5c0869cfe511073b086e2de0e",
+      "nativeFrames": 4291,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.25,
+      "pcmSha256": "ecc2910f12a4dec9a376465878b8251d1d2dffa36f4b68bffe8ee5452e9bbe3f",
+      "nativeFrames": 3944,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 49,
+      "peak": 0.25,
+      "pcmSha256": "ecc2910f12a4dec9a376465878b8251d1d2dffa36f4b68bffe8ee5452e9bbe3f",
+      "nativeFrames": 3944,
+      "outputFrames": 4291,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 49,
+      "peak": 0.2499290406703949,
+      "pcmSha256": "a55111db8ea8c402390f74133587f106df38499865440d12968522cc98b409fc",
+      "nativeFrames": 3501,
+      "outputFrames": 7619,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 49,
+      "peak": 0.2499290406703949,
+      "pcmSha256": "a55111db8ea8c402390f74133587f106df38499865440d12968522cc98b409fc",
+      "nativeFrames": 3501,
+      "outputFrames": 7619,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 49,
+      "peak": 0.24992048740386963,
+      "pcmSha256": "69c7dc732d49767052c78043d9ac79d018c3227958d59ab58fa3f30d54e90640",
+      "nativeFrames": 4845,
+      "outputFrames": 42179,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "Stop-retains-RAM-and-retrigger",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 49,
+      "peak": 0.24992048740386963,
+      "pcmSha256": "69c7dc732d49767052c78043d9ac79d018c3227958d59ab58fa3f30d54e90640",
+      "nativeFrames": 4845,
+      "outputFrames": 42179,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "1456b6ae98c59135795d4a9d00fb835404bde5e2fd51b3fa9cfec9719c6d3796",
+      "nativeFrames": 42354,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "1456b6ae98c59135795d4a9d00fb835404bde5e2fd51b3fa9cfec9719c6d3796",
+      "nativeFrames": 42354,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "f33c12c5498807259ee9e4548ed70949001a9e5fbae65659cdaed694fe48fa61",
+      "nativeFrames": 7683,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "f33c12c5498807259ee9e4548ed70949001a9e5fbae65659cdaed694fe48fa61",
+      "nativeFrames": 7683,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "df6a5c23cc567524a322b05b3c68ec8e1c28bf45a3c2c6665f3b96de482ee27a",
+      "nativeFrames": 7060,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "df6a5c23cc567524a322b05b3c68ec8e1c28bf45a3c2c6665f3b96de482ee27a",
+      "nativeFrames": 7060,
+      "outputFrames": 7683,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "bfabcdc2d73128b1126f48206170e4f44e376ecd3da7152f5b5c981797db1cd4",
+      "nativeFrames": 5060,
+      "outputFrames": 11011,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "bfabcdc2d73128b1126f48206170e4f44e376ecd3da7152f5b5c981797db1cd4",
+      "nativeFrames": 5060,
+      "outputFrames": 11011,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "e7105befcfb942bf77366654b63194e6c12768ef7e9379f2175d0f642f3fc40e",
+      "nativeFrames": 5235,
+      "outputFrames": 45571,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "reset-then-PCM8-upload",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 33,
+      "peak": 0.78125,
+      "pcmSha256": "e7105befcfb942bf77366654b63194e6c12768ef7e9379f2175d0f642f3fc40e",
+      "nativeFrames": 5235,
+      "outputFrames": 45571,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 8000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.36254197359085083,
+      "pcmSha256": "d4f6b178d029cf78bf62dd283130db4eb4d09b0f32692a675692272377d8bb61",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 8000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.36254197359085083,
+      "pcmSha256": "d4f6b178d029cf78bf62dd283130db4eb4d09b0f32692a675692272377d8bb61",
+      "nativeFrames": 45160,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.425079345703125,
+      "pcmSha256": "4206476d7048a46ecf761ac5df3b012537776908d614dac86820c38f8c6c0174",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.425079345703125,
+      "pcmSha256": "4206476d7048a46ecf761ac5df3b012537776908d614dac86820c38f8c6c0174",
+      "nativeFrames": 8192,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.3546188473701477,
+      "pcmSha256": "966ee9011023fba42528cb069287e7fa78f1717b6b3ac7cbafe7993b552ca581",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 8192,
+      "events": 21,
+      "peak": 0.3546188473701477,
+      "pcmSha256": "966ee9011023fba42528cb069287e7fa78f1717b6b3ac7cbafe7993b552ca581",
+      "nativeFrames": 7528,
+      "outputFrames": 8192,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 11520,
+      "events": 21,
+      "peak": 0.38133907318115234,
+      "pcmSha256": "861fbdfd1cd15c283e8ebf98bca5d0eafc6f037afb8f1b563bd4782af131ceee",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 11520,
+      "events": 21,
+      "peak": 0.38133907318115234,
+      "pcmSha256": "861fbdfd1cd15c283e8ebf98bca5d0eafc6f037afb8f1b563bd4782af131ceee",
+      "nativeFrames": 5294,
+      "outputFrames": 11520,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 384000,
+      "blocks": [
+        128
+      ],
+      "frames": 46080,
+      "events": 21,
+      "peak": 0.3725351393222809,
+      "pcmSha256": "e3ee2e6508206a6453097a45074c19f340a296fcad1224fc27483c244f5bfb71",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "RAM-mutation-boundaries-and-masked-writes",
+      "rate": 384000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 46080,
+      "events": 21,
+      "peak": 0.3725351393222809,
+      "pcmSha256": "e3ee2e6508206a6453097a45074c19f340a296fcad1224fc27483c244f5bfb71",
+      "nativeFrames": 5294,
+      "outputFrames": 46080,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 44100,
+      "blocks": [
+        128
+      ],
+      "frames": 441000,
+      "events": 35,
+      "peak": 0.25,
+      "pcmSha256": "5088f6d73935bb9126c41310f064ac15a34565335610968e8b5473adf1620167",
+      "nativeFrames": 248999,
+      "outputFrames": 248999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 44100,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 441000,
+      "events": 35,
+      "peak": 0.25,
+      "pcmSha256": "5088f6d73935bb9126c41310f064ac15a34565335610968e8b5473adf1620167",
+      "nativeFrames": 248999,
+      "outputFrames": 248999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 48000,
+      "blocks": [
+        128
+      ],
+      "frames": 480000,
+      "events": 35,
+      "peak": 0.25,
+      "pcmSha256": "da35633a224e7c888a7bb9caad4c54d6bcc828492fbf633ffee6c4efc9ff0438",
+      "nativeFrames": 264601,
+      "outputFrames": 287999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 48000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 480000,
+      "events": 35,
+      "peak": 0.25,
+      "pcmSha256": "da35633a224e7c888a7bb9caad4c54d6bcc828492fbf633ffee6c4efc9ff0438",
+      "nativeFrames": 264601,
+      "outputFrames": 287999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 96000,
+      "blocks": [
+        128
+      ],
+      "frames": 960000,
+      "events": 35,
+      "peak": 0.24999284744262695,
+      "pcmSha256": "b30100b2c100954e69be8bd81b4c6062c0906929920c4308ae7bb381580c4466",
+      "nativeFrames": 352801,
+      "outputFrames": 767999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    },
+    {
+      "name": "long-running-pitch-and-stop",
+      "rate": 96000,
+      "blocks": [
+        1,
+        7,
+        63,
+        257,
+        3,
+        1024,
+        17
+      ],
+      "frames": 960000,
+      "events": 35,
+      "peak": 0.24999284744262695,
+      "pcmSha256": "b30100b2c100954e69be8bd81b4c6062c0906929920c4308ae7bb381580c4466",
+      "nativeFrames": 352801,
+      "outputFrames": 767999,
+      "rustAllocations": 0,
+      "rustDeallocations": 0,
+      "cppNew": 0,
+      "cppDelete": 0
+    }
+  ],
+  "stereoFrames": 5589524,
+  "limits": [
+    "Native mode admission, RPC scheduling, leases, primary/extra rack and device recovery are not connected yet.",
+    "Offline equivalence does not verify hardware fidelity, physical output or callback deadlines.",
+    "Allocator probe counts Rust global alloc/dealloc and C++ new/delete; direct C malloc/free are not intercepted."
+  ]
+}

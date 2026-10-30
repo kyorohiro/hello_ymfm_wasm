@@ -3,7 +3,7 @@ import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-num
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=scsp-native-1';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';

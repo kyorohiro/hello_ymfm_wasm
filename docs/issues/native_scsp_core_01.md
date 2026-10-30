@@ -1,5 +1,7 @@
 # SCSP Native callback土台 — 2026-10-30
 
+後続：[Native transport・画面接続](native_scsp_transport_01.md)。以下は土台完成時点の記録。
+
 Native対応の最初の層として、TauriへSCSPコアとBrowser同等の出力rate変換を組み込んだ。
 **Native backendからSCSPを鳴らす接続全体は未完了**。
 今回の成果はcallback用の実コアと再現可能なPCM検証であり、primary／extra rack、

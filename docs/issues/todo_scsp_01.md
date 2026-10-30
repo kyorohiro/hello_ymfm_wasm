@@ -46,7 +46,7 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] PCMファイル入力と、編集用sampleのboundedな再利用を追加する。
   64 MiBまでのWAV／browser codec、区間・rate・root指定、mono化、最大65,535点。
   共有／held／releaseの保護、予約中Apply拒否、Main／Worker音色delta同期、idle page再利用、bank clear時の解放を検証。
-- [ ] **次：** Native音声経路（段階4）へ接続する。
+- [x] Native音声経路（段階4）のprimary／extra・画面へ接続する。
 - [ ] 編集poolの個別page返却／compactionは後続。通常loadPCMは引き続きappend-only。
 - [x] Stop・予約／owner取消・manual lease・bank／instance所有権・追加instance・再起動をNode／実ブラウザで確認する。
 - [x] Main／Worker × Chromium／WebKitで、編集後のPC Keyboard、blur release、Mixer UI mute／volume、
@@ -58,9 +58,11 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] Tauriへ同じ固定SDKを正規importし、callback所有のRust `Core`とC ABI・固定44.1kHz→host resamplingを実装する。
   [土台の実装・検証](native_scsp_core_01.md)。実Browser WASMとの96 cases／5,589,524 stereo frames完全一致。
   この層だけではNative modeを公開しない。SDK更新を含むTauri側は別Git管理。
-- [ ] Tauriのprimary／extra SCSP、C ABI呼び出し、Native callbackとresamplingへ接続する。
-- [ ] 時刻付き命令、適用確認、RAM upload、手動試奏の所有権、Stop・取消・復旧を実装する。
-- [ ] 同じ入力のWeb／Native比較とcallback負荷・長時間動作を検証する。
+- [x] Tauriのprimary／extra SCSP、C ABI呼び出し、Native callbackとresamplingへ接続する。
+- [x] 時刻付き命令、適用確認、RAM upload、手動試奏の所有権、Stop・取消・session再生成を実装する。
+  [実装・検証・制約](native_scsp_transport_01.md)。Main／Worker・Inspector／Keyboard／PCM編集を接続。
+- [x] 同じ入力のWeb／Native core比較、callbackの分割render・時刻付き命令・所有者取消をoffline検証する。
+- [ ] 実audio deviceでの試聴、長時間運転・callback負荷／deadline、device interruptionからの復旧を確認する。
 
 ## 5. SCSP固有機能とSynth
 

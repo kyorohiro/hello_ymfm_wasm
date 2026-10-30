@@ -9,8 +9,9 @@ Each handle owns 32 physical slots and 512 KiB RAM. Output is fixed at 44,100 Hz
 The wrapper injects the generated WASM factory and creates no audio device.
 There is no musical voice allocator, file decoder or output resampler here.
 This is a local repository API. The Web Audio Playground mode/Worklet and initial
-slot inspector / PCM and envelope editor are integrated. npm exports, the dedicated Synth UI and Tauri
-Native audio routing are not integrated yet.
+slot inspector / PCM and envelope editor are integrated. Tauri Native routing now
+supports primary/additional instances, Main/Worker, PCM upload and the same editor.
+The dedicated Synth UI and public npm instrument entry point remain later stages.
 `createSoundChip('scsp')` is available inside Playground; this is not an npm package entry point.
 
 ## Try it in Playground
@@ -80,16 +81,35 @@ barriers; Worker note controls retain the normal lookahead schedule.
 
 Host output at 44.1/48/96 kHz uses the streaming converter shared with PS1; the
 SCSP core itself always runs at 44.1 kHz. No extra output compensation is applied.
-Playground's System Mixer policy uses a measured SCSP source gain of **0.128826**
-for both the primary and additional instances. It comes from a full-range PCM16
+Playground's System Mixer policy uses measured SCSP source gains for the primary
+and additional instances. It comes from a full-range PCM16
 single-voice reference across Chromium/WebKit, Main/Worker and 44.1/48 kHz, with
 220/440/880 Hz checks and an unchanged shared output target. This balances digital
 output units; it is not a subjective loudness or real-hardware calibration.
 Explicit and saved Mixer values remain absolute. Raw `Scsp` / `ScspSynth` output
 and default register levels are unchanged. The npm Mixer calibrated preset also
 includes the measured SCSP fallback; it remains opt-in.
-See [measurement and verification](issues/scsp_calibration_01.md).
-Native audio, SSF/68000 execution, DSP and slot FM controls remain later stages.
+See [measurement and verification](issues/scsp_calibration_01.md) and the
+[Native integration record](issues/native_scsp_transport_01.md) for the current measurements.
+SSF/68000 execution, DSP and slot FM controls remain later stages.
+
+### Desktop Native Audio
+
+Rebuild the Tauri app with the imported frontend, select **Saturn (SCSP)** and
+**Native**, then Prepare audio. The 32-slot inspector, Hold, PC Keyboard, PCM file
+selection, Apply PCM, named EG and live mix use the Native callback. Main/Worker
+can borrow `useSoundChip('scsp')` or create an independent `createSoundChip('scsp')`.
+Each instance starts with the same original sine and owns its own 512 KiB RAM.
+
+The command transport prepares immutable register batches. A scheduled note
+captures its preset when submitted; later edits do not rewrite that reservation.
+Inspector settings are authored parameters, not an envelope/activity meter.
+Actual playing RAM addresses are observed separately, including release tails.
+Editor Apply requires scheduled playback to be stopped, and cannot overwrite RAM
+still referenced by a held/releasing Native slot. Stop retires those references;
+clear reset also invalidates the old PCM handles. Stale manual releases cannot
+release a replacement voice. A clear reset applies immediately even inside timed
+Worker playback and retires older reservations before another upload.
 
 ## Musical PCM API
 

@@ -1,4 +1,4 @@
-import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-pcm-files-1';
+import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-native-1';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 /** SCSP PCM drafts live in the UI; only explicit Apply allocates sample RAM. */
 export function scspVoiceCode(slot,voice,pcm,sample) {

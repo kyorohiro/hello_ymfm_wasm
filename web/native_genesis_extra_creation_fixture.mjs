@@ -5,7 +5,7 @@ import {createPlaygroundRuntime} from './playground_runtime.js';
 import {createInitVoice} from './msfa_dx7/src/sysex.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 
-export const EXTRA_KINDS = Object.freeze(['segapsg', 'ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b', 'ym2151', 'ym2413', 'ay8910', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'rf5c164', 'okim6258', 'gameboy', 'nes', 'huc6280', 'pokey', 'wonderswan', 'dx7', 'pwm', 'snes', 'spc']);
+export const EXTRA_KINDS = Object.freeze(['segapsg', 'ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b', 'ym2151', 'ym2413', 'ay8910', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'rf5c164', 'okim6258', 'gameboy', 'nes', 'huc6280', 'pokey', 'wonderswan', 'dx7', 'pwm', 'snes', 'spc', 'ps1', 'scsp']);
 export const tick = () => new Promise(resolve => setTimeout(resolve, 2));
 export function deferred() {
   let resolve;
@@ -131,6 +131,7 @@ export function installCreationEnvironment(t, {holdResponse = () => false, holdN
 }
 
 function initialState(kind) {
+  if(kind==='ps1'||kind==='scsp')return {registers:Array(kind==='scsp'?513:512).fill(0),nativeFrames:0,enabled:0,held:[],pendingCommands:[]};
   if (kind === 'ymf262') return {chip: kind, channels: 18, clock: CHIP_CLOCKS.ymf262, registers: Array(512).fill(0), effectiveRegisters: Array(512).fill(0), effectiveFourOpMask: 0, newMode: false, layoutRevision: 0, layoutPending: false, status: 0, irq: false, held: [], pendingCommands: []};
   if(kind==='pokey')return {clock:1789790,registers:Array(16).fill(0),readRegisters:Array(16).fill(255),levels:[8,8,8,8],held:[],pendingCommands:[],sourceMuteMask:0};
   if (kind === 'dx7') return {voices: [Array.from(createInitVoice())], selectedVoice: 0, activeNotes: [], held: [], pendingCommands: []};
