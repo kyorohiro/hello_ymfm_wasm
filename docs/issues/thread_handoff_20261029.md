@@ -4,6 +4,14 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 後続整理：release削除後も残るSPUデモ
+
+ユーザーがreleaseを削除して再buildする相談をしたため、合成VAB／PSFデモを
+`docs/playground/samples/spu-import/` へ保存。package時にfixtureから再生成し、ZIPへ全10 filesを同梱する。
+[操作・検証](spu_import_demo_assets_01.md)。新ブラウザ用ZIPは941 files、前回版のruntime 550 filesとbyte一致。
+releaseの削除は実行していない。削除すると過去版ZIPも失うため、必要な公開版は別途退避する。
+PlaygroundのbuildだけでStandalone Synth ZIPは再生成されない。
+
 ## 自動作業：2026-10-30 Playgroundの校正gate解消とZIP検証
 
 ユーザーが試聴できない間に、PS1／WonderSwan／POKEYを現在のソースで全経路再測定。

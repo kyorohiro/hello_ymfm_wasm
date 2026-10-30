@@ -38,9 +38,13 @@ SHA-256は共通：`91c35b65cafdaa7fab495b1dc5a2f8db15c868b8db369a8e304e1f788ac0
 
 - [ ] 公開版を開き、Enable audio → 初期Sineで単音とドミソを弾く。
   過去に直した羽音・飽和による妙な響きが再発していないか確認する。
-- [ ] `release/spu-psf-demo.zip` を展開する。PSF / VAB → Open PSF folderで **Demo** を選択。
+- [ ] `docs/playground/samples/spu-import/spu-psf-demo.zip` を展開する。PSF / VAB → Open PSF folderで **Demo** を選択。
   entry → Extract VAB banks → bank／Tone → Load selected Toneで演奏する。
   合成デモなのでゲーム音源を用意する必要はない。2 banksが表示される。
+
+デモは [samples/spu-import](../playground/samples/spu-import/README.md) に保存済み。
+`release` を消しても残り、Playgroundのpackage時に再生成・同梱される。
+過去の公開ZIPを残す場合は削除前に別の場所へ退避する。PlaygroundのbuildだけではSynth ZIPは再生成されない。
 - [ ] entry／bank／Toneを操作した後も、PC鍵盤で音が出ることを確認する。
 - [ ] Save preset → Reset instrument → Load presetで音色が戻ることを確認する。
 - [ ] PCMでSoftware morphをOn→Offにし、チェックと上段Morph表示が矛盾しないことを確認する。

@@ -546,6 +546,7 @@ fi
 
 node "${ROOT_DIR}/scripts/build_playground_chip_comparison.mjs" --check
 node "${ROOT_DIR}/scripts/build_playground_examples.mjs"
+node "${ROOT_DIR}/scripts/build_spu_import_demos.mjs"
 
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"

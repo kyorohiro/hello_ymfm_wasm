@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "releaseDirectoryDeleted": false,
+  "demoRoot": "docs/playground/samples/spu-import",
+  "demoFiles": {
+    "Demo/lib/Bank.psflib": {
+      "bytes": 467,
+      "sha256": "a121e7e088beddefef3e7b89d8150500a66b30eebeefb259f850b035161ee54f"
+    },
+    "Demo/patch.psflib": {
+      "bytes": 56,
+      "sha256": "6cf10794761ad26d972fab47581f52a3ef5bd8895211692fae39265446886d06"
+    },
+    "Demo/track.minipsf": {
+      "bytes": 122,
+      "sha256": "1b675deb4d3d4c9701b947e5c841ec6a2462d26ad98778b0a5207629d54f9b70"
+    },
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "README.md": {
+      "bytes": 1600,
+      "sha256": "9628cafd617e9a5afad5cb9dd30f189d572a6fce370612b0b64cd8a5bceae775"
+    },
+    "demo.vb": {
+      "bytes": 128,
+      "sha256": "ddd89a0c5270c06e1f77d70b4eb07ea649926c21e15da71a55a8e47a3fccafd8"
+    },
+    "demo.vh": {
+      "bytes": 3616,
+      "sha256": "8d73bed949ac8c3243a8503bd3be3491a7f9b3ace5e1f38d5a2b3e288fb8510a"
+    },
+    "spu-psf-demo.zip": {
+      "bytes": 2279,
+      "sha256": "22c3db3e2cfabe966765a44453fdbde4f399599a487f250e44f001c88ddfe92b"
+    },
+    "spu-synth-demo.vab": {
+      "bytes": 3744,
+      "sha256": "71a7de205c0ebe1b8743288d90cd3b0204da9bd81aed9159af31f404d7cf2be6"
+    },
+    "standalone.psf": {
+      "bytes": 477,
+      "sha256": "f407991bb397c6115674a5d7d1ecb00977c52466c29a2ef554b4082027822569"
+    }
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_spu-import-demos-20261030_itch_playground.zip",
+      "bytes": 37045965,
+      "sha256": "a145e15cf33cf680b9a8a18e7123cb91b559d455660f0f2a8374c2aadd0a675e",
+      "entries": 1204,
+      "demoFilesVerified": 10,
+      "unchangedRuntimeFiles": 626
+    },
+    {
+      "path": "release/hello_ymfm_wasm_spu-import-demos-20261030_itch_playground_for_run.zip",
+      "bytes": 37446036,
+      "sha256": "fdd45f726929590dfea1dca40c654f362a08ff57a8fe0efa4f24ae00b11a0c4b",
+      "entries": 941,
+      "demoFilesVerified": 10,
+      "unchangedRuntimeFiles": 550
+    }
+  ]
+}
