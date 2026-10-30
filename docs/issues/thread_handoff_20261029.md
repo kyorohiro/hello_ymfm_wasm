@@ -4,6 +4,17 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP固定SDK導入・低レベルJS API — 2026-10-30
+
+[SCSP TODO](todo_scsp_01.md)の段階1とraw `Scsp` wrapperを完了。[導入・検証](scsp_sdk_import_01.md)。
+SCSP配布ZIPの隔離Native／WASM再ビルドとPCM比較、33 builds／65 outputsのaggregate検証成功。
+既存63生成ファイルはbyte一致、29コアのPCM／API比較40,474件一致。Node 135／Python 143／SDK unit 107成功。
+固定snapshotを正規importerで導入。SDK 0.1.7の未公開local candidateとしてbase commit・差分・hashを明示。
+`web/scsp.js`と`docs/generated/scsp_wasm.*`、[自作Sine例](../scsp.md)を追加。
+次は`ScspSynth`のPCM／音程／EG／32 slots／RAM管理、続いてPlayground接続。
+Playground・専用Synth・Tauri Native callback・SSFはまだ未対応。公開／commit／remote CIは未実施。
+SDKと親repoの双方に未commitの変更がある。下記の「consumer pin未更新」は過去時点の記録。
+
 ## 次の開発：SCSP初期共通コア — 2026-10-30
 
 ユーザー了承でSega Saturn SCSP対応を開始。[段階別TODO](todo_scsp_01.md)。

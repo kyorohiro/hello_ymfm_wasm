@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        artifact: [ym2612, wonderswan, pokey, cdda, msm5205, ps1_spu]
+        artifact: [ym2612, wonderswan, pokey, cdda, msm5205, ps1_spu, scsp]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -114,6 +114,8 @@ jobs:
           ]
           if '${{ matrix.artifact }}' == 'ps1_spu':
               verification.append('--ps1-native-parity')
+          if '${{ matrix.artifact }}' == 'scsp':
+              verification.append('--scsp-native-parity')
           if '${{ matrix.artifact }}' == 'pokey':
               verification.append('--pokey-native-parity')
           if '${{ matrix.artifact }}' in ('cdda', 'msm5205'):

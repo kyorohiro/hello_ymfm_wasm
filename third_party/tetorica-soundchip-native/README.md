@@ -14,6 +14,14 @@ Commercial projects can select cores under **BSD-3-Clause, MIT, and Apache-2.0**
 
 ## Supported sources and build status
 
+Local development also includes an [experimental SCSP instrument](vendor/mame-scsp/README.md)
+with 32 PCM slots, a `tetorica::scsp` CMake target and Native/WASM sine parity.
+This is not a published SDK release or application integration. CPU-free PCM
+is the verified initial scope; retained FM/LFO/DSP paths need further tests.
+SCSP source/WASM archive validation requires its extracted Native fixture and
+actual PCM parity. The CI matrix includes SCSP; local development is not a
+claim that the remote CI has run or an SDK release has been published.
+
 The source catalog covers 24 chip API identifiers:
 
 - **Yamaha FM:** YM2612, YM2203, YM2608, YM2610, YM2610B, YM2151, YM2413, YM3526, YM3812, Y8950, and YMF262.

@@ -12,16 +12,16 @@
       "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
     },
     "catalog/source_inventory.json": {
-      "bytes": 145009,
-      "sha256": "ebd8396d6c685a55d03a108a30d88c7f4d1f6143491b5a1b7d0678f4b07c6338"
+      "bytes": 150504,
+      "sha256": "325ee890ce772bfb7d7b2a9428e45bbab49296184b2c16806ada9a8c4b7cc4a2"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
       "sha256": "fb63b2d23722b22add49bca62d30ad24f9c9af5cdd7fbe8807b09c01d44b92bb"
     },
     "scripts/build-wasm.sh": {
-      "bytes": 1691,
-      "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034"
+      "bytes": 1696,
+      "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f"
     },
     "scripts/build_ps1_spu_wasm.sh": {
       "bytes": 1421,
@@ -106,28 +106,22 @@
   },
   "sdk": {
     "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "0cb199b062017ecf30cd25dd2956a485cb92427c1f63d40564ea238c2c2bf0d0",
-    "fileCount": 455,
+    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "fileCount": 476,
     "localCandidate": {
-      "baseCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
+      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
       "changedPaths": [
+        ".github/workflows/verify-sdk.yml",
         "CHANGELOG.md",
-        "catalog/source_inventory.json",
-        "docs/chip-differences.md",
-        "native/reference/SOURCES.json",
-        "native/tests/ps1_spu_fixture.cpp",
-        "scripts/build_ps1_spu_wasm.sh",
-        "vendor/mame-ps1-spu/README.md",
-        "vendor/mame-ps1-spu/ps1_spu.cpp",
-        "vendor/mame-ps1-spu/ps1_spu.h",
-        "vendor/mame-ps1-spu/spu.cpp",
-        "vendor/mame-ps1-spu/spu.h"
+        "README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_scsp_instrument_release.py"
       ]
     },
-    "manifestSha256": "b62415e21cda9f346fa8bed6ae6c02a3b3b690b8914fe3e21f38015876aef476",
+    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
-    "sourceCommit": "9693c0b50f6d9f0321af7a0d1625a4d1ccd169e3",
+    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
     "version": "0.1.7"
   },
   "outputs": {

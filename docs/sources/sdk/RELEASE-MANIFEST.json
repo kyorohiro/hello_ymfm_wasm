@@ -5,16 +5,16 @@
       "size": 158
     },
     ".github/workflows/verify-sdk.yml": {
-      "sha256": "3b04199b02b0fed53f577743dde07583fb217e7958421953986e0811950d996b",
-      "size": 6184
+      "sha256": "a3f6cafd8215cffb2ee9a054a321c0f53886f1cebe59210ce4bf405868d85836",
+      "size": 6297
     },
     ".gitignore": {
       "sha256": "cd063cd906d6d4b905d24e6803b3d3de42b165ca4bf4c5acde19fcdfd9060711",
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "cec29079f764b315c617a93ec7056150b8be969d7368494819c92eedba144f5c",
-      "size": 25775
+      "sha256": "7b68191bcf315f2dee666f6fbeb440e2038944a33a0fe1cebd551d5f7e3c4645",
+      "size": 26740
     },
     "CMakeLists.txt": {
       "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
@@ -29,24 +29,24 @@
       "size": 1517
     },
     "LICENSES.md": {
-      "sha256": "3878aaeb8b5ce6bd972b08ad7869ad79003f01f136b6dec1687f3e2983ef0f53",
-      "size": 6858
+      "sha256": "945bc416cad871584e559d0fe442e906f44c5323c7e734943d73512be66a4fca",
+      "size": 7101
     },
     "README.md": {
-      "sha256": "e3c494cbfdb8a5d9a03e1bef0939e7a45874b1772915ceb025a10b54ed40ed65",
-      "size": 30833
+      "sha256": "bdab5ff57cd10f72bd8a082bc182708fa9b6b1feadc81265eb5050ee24726dcb",
+      "size": 31386
     },
     "catalog/chips.json": {
-      "sha256": "1bd019f743011675a6ccb5e8b8ff0878bc28cac4546d4ba5a42bb2dfa76ab9d2",
-      "size": 99618
+      "sha256": "b26fce3038430e1252f9060c046833a0caf5a0c3835e0c1612aa84be012469b4",
+      "size": 102268
     },
     "catalog/native_inventory.json": {
-      "sha256": "60a059b9264b60c06d4584890e759cafe846481043ce8da81d99095b68c318b3",
-      "size": 50834
+      "sha256": "36f90722cb59f992d37caf8f88f45675c3f0dcdabed6638a91e7ca80575c86db",
+      "size": 52620
     },
     "catalog/source_inventory.json": {
-      "sha256": "ebd8396d6c685a55d03a108a30d88c7f4d1f6143491b5a1b7d0678f4b07c6338",
-      "size": 145009
+      "sha256": "325ee890ce772bfb7d7b2a9428e45bbab49296184b2c16806ada9a8c4b7cc4a2",
+      "size": 150504
     },
     "docs/architecture.md": {
       "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
@@ -69,8 +69,8 @@
       "size": 104748
     },
     "native/CMakeLists.txt": {
-      "sha256": "1487e3c746ded49431c8a4ae793d341c660e0d41de7213739f1b98c630a5e50d",
-      "size": 39335
+      "sha256": "3cd7c1d79c9b7decf72831d3dfedfe01d246284eb42961c3df5665361ec06c23",
+      "size": 40263
     },
     "native/README.md": {
       "sha256": "5a9dd093497656f7c38e790a5bbd94a7bb85242a914deb365724d5ebf9ec6a93",
@@ -148,6 +148,10 @@
       "sha256": "a63088373e8a0a75457b80606d38021e291f003242f33f21d551243940f2d83b",
       "size": 2254
     },
+    "native/examples/scsp_pattern.hpp": {
+      "sha256": "27bad3decf381dc8d49ecbb9ba4d4f3b8ab3a85c7f6dac90ee974f596b0613c2",
+      "size": 2172
+    },
     "native/examples/sega32x_wav.cpp": {
       "sha256": "1fa10462582e73507d2fb0775dcd412804adc925ea3d3b1e626d11b441a8ba02",
       "size": 10283
@@ -223,6 +227,10 @@
     "native/include/tetorica/rf5c164.hpp": {
       "sha256": "f8fc6628297a3a1548cefc83f00e5997f578d6a528d8654d1ff3753f0497b9bf",
       "size": 248
+    },
+    "native/include/tetorica/scsp.h": {
+      "sha256": "43366f19b96d0f0fd9612cb68510b70304ba9afe95f6034f5bc761db9ced3148",
+      "size": 109
     },
     "native/include/tetorica/segapsg.hpp": {
       "sha256": "67e6b0885890b223243509faceb0a486ada75b4a4b602a66731d077facfaa4b2",
@@ -608,6 +616,10 @@
       "sha256": "6bf6dc300f0da50b2900ab4b1331031babd7bccf8f00ac29775b78dd23cd9a8d",
       "size": 13143
     },
+    "native/tests/scsp_fixture.cpp": {
+      "sha256": "3bf6bd898fac1e592a4df4c4d796f08d9bc8e9f6b5e38c6af929b545f374af7d",
+      "size": 4060
+    },
     "native/tests/segapsg_fixture.cpp": {
       "sha256": "55b69e8c3c553e85e5b30b968a6981a90b02238bba67828b203294763857c20e",
       "size": 12462
@@ -673,8 +685,8 @@
       "size": 134
     },
     "scripts/build-wasm.sh": {
-      "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
-      "size": 1691
+      "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f",
+      "size": 1696
     },
     "scripts/build_ay8910_wasm.sh": {
       "sha256": "5145ad700466a55a57898832eb194ac94dbaf060aa1dbd94ff52ec4a8038bd86",
@@ -735,6 +747,10 @@
     "scripts/build_rf5c164_wasm.sh": {
       "sha256": "58ca1a118995ea01b57ac665021d6c7f7ff8ee700ba0539e8e7cc3ebab85457e",
       "size": 962
+    },
+    "scripts/build_scsp_wasm.sh": {
+      "sha256": "2aba7d230903eeb99e162045afcc4dfb987a2632dbaa1449bce6d15a2ab1bd1b",
+      "size": 900
     },
     "scripts/build_segapcm_wasm.sh": {
       "sha256": "5a2b76ae2bf42240aae0c1821ab26b90aca2e3ed5267b2c6fbe8a7d2d9ca5161",
@@ -829,8 +845,8 @@
       "size": 4636
     },
     "scripts/sdk_common.py": {
-      "sha256": "d64585e8f991d043a3ff5a1fc1aec63180169cbd8cc7b3859255ea1b855f8e0b",
-      "size": 14591
+      "sha256": "0cf7cd462a43c02957c560a19cf1e243bf6b6b04a96916ed6c7489d16998e273",
+      "size": 15168
     },
     "sdk.json": {
       "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7",
@@ -853,8 +869,8 @@
       "size": 9840
     },
     "tests/check_standalone_release.py": {
-      "sha256": "edac0b7d48956088676b20403d606d02059e38b20e87c0145fc549dfec13a54c",
-      "size": 46024
+      "sha256": "c89753d20162dcb632c5582b5a9005f553c8d4e8a9b6bb965736a33dc7e03e24",
+      "size": 49335
     },
     "tests/javascript_reference_smoke.mjs": {
       "sha256": "ef97f7570de5b30233c84dcecc1d146185f6852756f8982ecc8cb43ef9d3bb02",
@@ -868,17 +884,25 @@
       "sha256": "c4e29245a187f9478702ec2c0048e251812af144ade1511995c3faf455200faa",
       "size": 7295
     },
+    "tests/scsp_wasm_smoke.mjs": {
+      "sha256": "31a1646e481ebad2475d7429601edfecb4910c944adc72005b92349d38289255",
+      "size": 4240
+    },
     "tests/test_application_audio_release.py": {
       "sha256": "fa8c17f1d6dc33413960f035c3b71435a95babc11d07070d855d77580220037a",
       "size": 15957
     },
     "tests/test_ps1_instrument_release.py": {
-      "sha256": "1b4848776635390e4b481da50b04ce874eaa58a195dc76281538f764f2e28651",
-      "size": 8191
+      "sha256": "9584262698e960ccde63df45196a5aedab74f276b140490b4bc1e9dedb1a0fff",
+      "size": 8327
     },
     "tests/test_publish_release.py": {
       "sha256": "7a6cb96356914874306d46fd9d590178060c09530cc84ba6732f2e226b4f4a39",
       "size": 12625
+    },
+    "tests/test_scsp_instrument_release.py": {
+      "sha256": "521ca36006d8f2ca0d794259ca83236155f602fdb023b744bdb1a67d0a6d55da",
+      "size": 5029
     },
     "tests/test_standalone_release.py": {
       "sha256": "48891618a338f94a855d425a3ed2d9f097e42f04959bae95be9e0b1abfc116da",
@@ -1203,6 +1227,66 @@
     "vendor/mame-rf5c164/upstream/rf5c68.cpp": {
       "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9",
       "size": 8152
+    },
+    "vendor/mame-scsp/LICENSE": {
+      "sha256": "fa63b17d27ea6c4ff5fbc5c772fba27dc3989dedf9caa9223368eb0576ddc61e",
+      "size": 1593
+    },
+    "vendor/mame-scsp/README.md": {
+      "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb",
+      "size": 4175
+    },
+    "vendor/mame-scsp/scsp.cpp": {
+      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770",
+      "size": 26800
+    },
+    "vendor/mame-scsp/scsp.h": {
+      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b",
+      "size": 2976
+    },
+    "vendor/mame-scsp/scsp_instrument.cpp": {
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd",
+      "size": 2474
+    },
+    "vendor/mame-scsp/scsp_instrument.h": {
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c",
+      "size": 1860
+    },
+    "vendor/mame-scsp/scspdsp.cpp": {
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822",
+      "size": 5882
+    },
+    "vendor/mame-scsp/scspdsp.h": {
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f",
+      "size": 852
+    },
+    "vendor/mame-scsp/standalone_support.h": {
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7",
+      "size": 1637
+    },
+    "vendor/mame-scsp/upstream/REVISION": {
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b",
+      "size": 41
+    },
+    "vendor/mame-scsp/upstream/SHA256SUMS": {
+      "sha256": "2c8a75c77e8118f2a018f166f2d9b205e44699004be4074cfbde1f4df97115c3",
+      "size": 302
+    },
+    "vendor/mame-scsp/upstream/scsp.cpp": {
+      "sha256": "5faa5b73d74438e9ad4378274dec957b9928722f743d84c5ed9681baee6d98c8",
+      "size": 43688
+    },
+    "vendor/mame-scsp/upstream/scsp.h": {
+      "sha256": "b67689dc7ce10019c9d0b189c821ae3bdb7541e561fcfb897a882d79db5a7147",
+      "size": 5034
+    },
+    "vendor/mame-scsp/upstream/scspdsp.cpp": {
+      "sha256": "9d4b1de166e5d7d5128b591c612eff3fd5cec78af79c1acabb9d5e93341917fd",
+      "size": 5867
+    },
+    "vendor/mame-scsp/upstream/scspdsp.h": {
+      "sha256": "db522ecaa04665063e46f7f6c699eb7781c672fd7624ac58a60b0b180652d3cc",
+      "size": 822
     },
     "vendor/mame-segapcm/LICENSE": {
       "sha256": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820",

@@ -3,7 +3,7 @@
 目的：PS1 SPUと同様に、共通Native／WASMコアからPlayground・Synth・Nativeへ広げる。
 READMEの「音源技術を読み解き、学び、再構成できる形で残す」目標に沿い、自作データと動く解説を併設する。
 
-## 1. 独立コアと最初の発音（着手）
+## 1. 独立コアと最初の発音（初期範囲完了）
 
 - [x] MAMEのBSD-3-Clause SCSP／DSPを固定revisionで取得し、原本・hash・ライセンスを保存する。
 - [x] 作業用SDK `w/tetorica-soundchip-native` でMAME frameworkから独立させる。
@@ -14,15 +14,18 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] 外部ファイル不要の自作Sineを発音。Native／WASM PCM一致、分割render一致、instance独立、入力不正を確認する。
   一致は移植の再現性の検証で、実機忠実度の保証ではない。
 - [x] SDK catalog／source inventory／正規WASMビルドselectorへ登録する。
-- [ ] SCSP用の配布archive監査・CIを追加し、consumerへ固定snapshotとして導入する。
-  既存のWASM配布監査はSCSPをまだ許可しない。検証を追加してから対応範囲を広げる。
+- [x] SCSP用の配布archive監査・CIを追加し、consumerへ固定snapshotとして導入する。
+  隔離ZIPのNative／WASM再ビルド・PCM比較成功。CI設定は追加済み、remote CI／公開は未実施。
+  [導入・検証記録](scsp_sdk_import_01.md)。
 
 最初の区切りは「自作SineをNative／WASMで同じ結果として生成できること」。
 音声デバイス・Playground UI・SSF再生はその後。MAME上流のDSP／EG精度の限界も引き継ぐ。
 
 ## 2. 共通音色API
 
-- [ ] `Scsp`低レベルwrapperと`ScspSynth`相当の高レベルAPI・型定義を作る。
+- [x] `Scsp`低レベルwrapperを追加。実WASMでPCM・RAM・masked writes・reset／disposeを検証する。
+  [APIと自作Sine例](../scsp.md)。音声device／resamplingは含めない。
+- [ ] **次：** `ScspSynth`相当の高レベルAPI・型定義を作る。
 - [ ] PCM8／PCM16、基準音程、32物理slots、key操作、音量・pan、loop、AR／D1R／D2R／DL／RRを扱う。
 - [ ] 自作Sine／Triangle／打楽器で音程・loop境界・EG・32音加算・clip・resamplingを検証する。
 - [ ] RAM使用量・サンプル所有権・置換／reset時の扱いを定義する。
@@ -73,3 +76,9 @@ Native CTest・ASan／UBSan、SDK出典検証、既存配布unit 101件＋SCSP c
 次はSCSPの配布検証・固定SDK導入、その後共通JS APIとPlaygroundへ進む。
 実装は別Git管理の`w/tetorica-soundchip-native`内。親repoのcommitだけでは保存されない。
 公開・commit・consumer SDK pin更新はまだ行っていない。
+
+2026-10-30後続：固定SDK導入とraw JS APIまで完了。全33 builds／65 outputsの検証成功、
+既存63生成ファイルはbyte一致、29コアのPCM／API比較40,474件一致。
+Node 135＋consumer Python 143＋SDK release unit 107 tests成功。[詳細](scsp_sdk_import_01.md)。
+次は共通Synth API（PCM読み込み・基準音程・EG・32 slots・RAM管理）からPlaygroundへ。
+公開・commitは実施していない。今回のSDK pinは未公開local candidateとして明示済み。

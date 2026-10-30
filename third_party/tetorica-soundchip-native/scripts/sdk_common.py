@@ -189,21 +189,26 @@ def check_collection(root=ROOT):
     native_instruments = native.get("instruments", [])
     catalog_instruments = catalog.get("instruments", [])
     if instruments or native_instruments or catalog_instruments or tuple(int(part) for part in metadata(root)["version"].split("-")[0].split(".")) >= (0, 1, 6):
+        expected_ids = {entry.get("id") for entry in instruments}
+        if "ps1_spu" not in expected_ids or not expected_ids.issubset({"ps1_spu", "scsp"}):
+            raise ValueError("Standalone instrument inventory requires PS1 SPU and may include experimental SCSP")
         for label, entries in (("source", instruments), ("native", native_instruments), ("catalog", catalog_instruments)):
-            if [entry.get("id") for entry in entries] != ["ps1_spu"]:
-                raise ValueError(f"Standalone instrument {label} inventory must contain PS1 SPU exactly once")
+            instrument_ids = [entry.get("id") for entry in entries]
+            if len(instrument_ids) != len(set(instrument_ids)) or set(instrument_ids) != expected_ids:
+                raise ValueError(f"Standalone instrument {label} inventory must contain PS1 SPU and each declared instrument exactly once")
         for entry in instruments:
             identifier = entry["id"]
             if entry.get("role") != "instrument" or entry.get("chipIds") != [] or entry.get("format") != "emscripten-es-module":
-                raise ValueError("PS1 SPU must remain a separate instrument API")
+                raise ValueError(f"{identifier} must remain a separate instrument API")
             if not entry.get("sourceFiles") or not entry.get("licenseFiles") or not set(entry["sourceFiles"] + entry["licenseFiles"]).issubset(recorded_sources):
-                raise ValueError("PS1 SPU source/license lacks hash provenance")
-            device = native_instruments[0]
-            if device.get("target") != "tetorica_native_ps1_spu" or device.get("cmakeAlias") != "tetorica::ps1_spu" or device.get("publicHeader") != "native/include/tetorica/ps1_spu.h":
-                raise ValueError("Invalid PS1 SPU Native target/header")
+                raise ValueError(f"{identifier} source/license lacks hash provenance")
+            device = next(item for item in native_instruments if item["id"] == identifier)
+            if device.get("target") != f"tetorica_native_{identifier}" or device.get("cmakeAlias") != f"tetorica::{identifier}" or device.get("publicHeader") != f"native/include/tetorica/{identifier}.h":
+                raise ValueError(f"Invalid {identifier} Native target/header")
             local_path(root, device["publicHeader"])
-            if catalog_instruments[0].get("native") != device or catalog_instruments[0].get("wasm", {}).get("artifacts") != [{key: entry[key] for key in ("id", "format", "buildScript")}]:
-                raise ValueError("PS1 SPU catalogs differ; run scripts/refresh_catalog.py")
+            catalog_device = next(item for item in catalog_instruments if item["id"] == identifier)
+            if catalog_device.get("native") != device or catalog_device.get("wasm", {}).get("artifacts") != [{key: entry[key] for key in ("id", "format", "buildScript")}]:
+                raise ValueError(f"{identifier} catalogs differ; run scripts/refresh_catalog.py")
     javascript = inventory.get("javascriptReferences", [])
     javascript_ids = [entry["id"] for entry in javascript]
     if len(javascript_ids) != len(set(javascript_ids)) or set(javascript_ids) != JAVASCRIPT_REFERENCE_IDS:

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — experimental SCSP instrument
+
+- Pin BSD-3-Clause MAME SCSP/DSP sources at `a64a5d6602b19f67e091a4491f0c851a9dacf79d` and retain pristine files, notices and SHA-256 hashes.
+- Add CPU-free `scsp_*`, `<tetorica/scsp.h>`, `tetorica::scsp`, a WASM recipe and original PCM fixture. Fixed 44.1 kHz, private 512 KiB RAM, 32 slots. Timer/IRQ/DMA/MIDI register access is rejected; there is no SSF player.
+- Verify PCM16 sine Native/WASM bit-exact parity and block invariance; Native checks cover PCM8, pan/slot31, finite 32-slot clipping, release/reset, instance isolation and invalid inputs. FM/LFO/DSP paths are retained but not behaviorally verified.
+- Catalog SCSP separately from generic chip factory IDs, preserving historical PS1-only catalog validation. Add SCSP archive/source-closure validation, extracted Native/WASM parity and a seventh WASM CI job. Remote CI and publication are separate from local verification; the SDK version is unchanged.
+
 ## 0.1.7 — PlayStation SPU live instrument controls (unreleased)
 
 - Add opt-in software mixing headroom with a wide accumulator and fractional dry output, preserving original voice-volume precision. Default divisor 1 keeps legacy PCM. Native fixtures cover exact compensated single-note output, partitioning, reverb and reset.

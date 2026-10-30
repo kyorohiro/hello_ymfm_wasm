@@ -6,12 +6,21 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
 import test from 'node:test';
-import {checkWasmSdk, parseWasmSdkArguments, runWasmSdkCommand, compareWasmSdkAbi, validatePs1SpuSdkReport} from '../scripts/check_wasm_sdk.mjs';
+import {checkWasmSdk, parseWasmSdkArguments, runWasmSdkCommand, compareWasmSdkAbi, validatePs1SpuSdkReport, validateScspSdkReport} from '../scripts/check_wasm_sdk.mjs';
 import {WASM_SDK_ARTIFACT_IDS,loadWasmSdkInventory} from '../scripts/wasm_sdk_inventory.mjs';
 
 const root=await realpath(resolve(dirname(fileURLToPath(import.meta.url)),'..'));
 const script=resolve(root,'scripts/check_wasm_sdk.mjs');
 const inventory=await loadWasmSdkInventory({root});
+test('SCSP comparison rejects incomplete or failed parity evidence',()=>{
+  const report={schemaVersion:1,passed:true,sampleRate:44100,frames:8192,nativeWasmBitExact:true,
+    blockPartitionInvariant:true,peak:.25,pcmSha256:'a'.repeat(64),wasmSha256:'b'.repeat(64)};
+  assert.deepEqual(validateScspSdkReport(report),report);
+  for(const patch of [{passed:false},{sampleRate:48000},{frames:0},{nativeWasmBitExact:false},
+    {blockPartitionInvariant:false},{peak:NaN},{peak:0},{pcmSha256:'bad'},{wasmSha256:''}]) {
+    assert.throws(()=>validateScspSdkReport({...report,...patch}));
+  }
+});
 async function temporary(t){
   const dir=await realpath(await mkdtemp(join(tmpdir(),'tetorica-wasm-sdk-cli-')));
   t.after(()=>rm(dir,{recursive:true,force:true}));return dir;
@@ -44,7 +53,7 @@ test('WASM SDK command help performs no build or comparison',()=>{
   const result=spawnSync(process.execPath,[script,'--help'],{encoding:'utf8',timeout:10000});
   assert.ifError(result.error);assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/Usage:/);assert.match(result.stdout,/all 29 cores/);
-  assert.match(result.stdout,/2 application-audio modules and 1 SPU instrument \(32 builds total\)/);
+  assert.match(result.stdout,/2 application-audio modules and 2 instruments \(33 builds total\)/);
   assert.match(result.stdout,/CMake >=3\.20, CTest and C11\/C\+\+17/);
   assert.doesNotMatch(result.stdout,/WASM SDK validation:|Comparing \d|Building all/);
 });

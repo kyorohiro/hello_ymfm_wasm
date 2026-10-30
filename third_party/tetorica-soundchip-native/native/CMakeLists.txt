@@ -514,6 +514,26 @@ if(MSVC)
   target_compile_options(tetorica_native_pokey PRIVATE /EHsc)
 endif()
 
+# Experimental CPU-free SCSP instrument; no MAME framework or host audio API.
+add_library(tetorica_native_scsp STATIC
+  "${TETORICA_SDK_ROOT}/vendor/mame-scsp/scsp_instrument.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/mame-scsp/scsp.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/mame-scsp/scspdsp.cpp"
+)
+add_library(tetorica::scsp ALIAS tetorica_native_scsp)
+target_compile_features(tetorica_native_scsp PUBLIC cxx_std_17)
+target_include_directories(tetorica_native_scsp PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include")
+if(MSVC)
+  target_compile_options(tetorica_native_scsp PRIVATE /EHsc)
+else()
+  target_compile_options(tetorica_native_scsp PRIVATE -fwrapv -fno-strict-aliasing -ffp-contract=off)
+endif()
+if(BUILD_TESTING)
+  add_executable(tetorica_scsp_fixture tests/scsp_fixture.cpp)
+  target_link_libraries(tetorica_scsp_fixture PRIVATE tetorica::scsp)
+  add_test(NAME tetorica.scsp.self_test COMMAND tetorica_scsp_fixture --self-test)
+endif()
+
 # CPU-free standalone PlayStation SPU instrument. Keep the exact application
 # source snapshot and C ABI; no MAME framework, host audio API or generic factory.
 add_library(tetorica_native_ps1_spu STATIC

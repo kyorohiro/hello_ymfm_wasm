@@ -5,7 +5,7 @@ The builds listed below use the complete local SDK source release at
 build recipes, provenance and component licenses. No SDK checkout, submodule,
 download or synchronized edit of another repository is required.
 
-## Verify all 32 builds
+## Verify all 33 builds
 
 With Node.js 22 or later, Python 3, Emscripten, CMake/CTest, a native C/C++
 compiler, `sh` and Perl installed, run:
@@ -18,8 +18,8 @@ node scripts/check_wasm_sdk.mjs
 
 This invokes the SDK's existing `build-wasm.sh all` in a fresh directory outside
 the checkout. It does not rebuild in `docs/generated/` or update runtime copies.
-The command requires exactly 32 receipts and 63 outputs: 29 chip recipes,
-two application-audio recipes and the PS1 SPU instrument recipe produce 31
+The command requires exactly 33 receipts and 65 outputs: 29 chip recipes,
+two application-audio recipes and the PS1 SPU/SCSP instrument recipes produce 32
 JS/WASM pairs and DX7's standalone `msfa.wasm`. It verifies each receipt's source list,
 source fingerprint and actual pinned source bytes, output sizes/hashes, WASM
 imports/exports and the three deployed DX7 copies. Missing, duplicate or extra
@@ -27,7 +27,7 @@ artifacts fail validation before generated JavaScript is imported.
 
 After building, all 29 per-core checkers compare real PCM and API
 behavior against snapshots of the committed `docs/generated/` builds. The
-application-audio and PS1 checks also compare deployed output bytes and build
+application-audio and instrument checks also compare deployed output bytes and build
 native fixtures for Native/WASM PCM parity. The runner rechecks the reference,
 candidate and repository inputs afterward.
 The DX7 checker needs only checked-in SDK/runtime inputs; a separate DX7 source
@@ -113,6 +113,7 @@ dispatch remote CI or publish anything.
 | CD-DA application audio | `scripts/build_cdda_wasm.sh` | `cdda_wasm` |
 | MSM5205 application audio | `scripts/build_msm5205_wasm.sh` | `msm5205_wasm` |
 | PS1 SPU instrument | `scripts/build_ps1_spu_wasm.sh` | `ps1_spu_wasm` |
+| Saturn SCSP instrument | `scripts/build_scsp_wasm.sh` | `scsp_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -150,14 +151,15 @@ sh scripts/build_dx7_wasm.sh
 sh scripts/build_cdda_wasm.sh
 sh scripts/build_msm5205_wasm.sh
 sh scripts/build_ps1_spu_wasm.sh
+sh scripts/build_scsp_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original module
-recipe. The 31 paired recipes produce a `.js` / `.wasm` pair under
+recipe. The 32 paired recipes produce a `.js` / `.wasm` pair under
 `docs/generated/`. DX7 produces only the standalone `msfa.wasm`, with no
 generated JS loader. Its default build also copies that same output to
 `web/msfa_dx7/wasm/msfa.wasm` and `docs/js/msfa_dx7/wasm/msfa.wasm`, retaining
-the existing runtime URLs. All 32 build receipts share `docs/generated/build-info.json`.
+the existing runtime URLs. All 33 build receipts share `docs/generated/build-info.json`.
 WonderSwan uses the same central receipt; its earlier standalone receipt is no longer generated.
 The PS1 wrapper also writes `docs/generated/ps1_spu_build.json` with the complete
 fixed SDK pin, authenticated PS1 source/build inputs and output hashes for source-bundle export.
@@ -173,6 +175,8 @@ CD-DA and MSM5205 remain application-audio modules. PS1 SPU is a separate
 instrument category with a fixed 44,100 Hz C ABI, 24 voices and 512 KiB RAM;
 see [the PS1 guide](ps1_spu.md) for `Ps1Spu`, sample instruments and Playground
 Browser/Native APIs. The package-root `createSoundChip()` factory does not expose PS1.
+The experimental [SCSP](scsp.md) instrument separately provides 32 slots, 512 KiB RAM
+and a raw `Scsp` JavaScript API; Playground/Synth integration remains in progress.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`

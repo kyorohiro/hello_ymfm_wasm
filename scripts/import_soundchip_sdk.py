@@ -122,6 +122,16 @@ PS1_INPUTS = {
         'upstream/spureverb.cpp', 'upstream/spureverb.h', 'upstream/REVISION',
         'upstream/SHA256SUMS')),
 }
+SCSP_INPUTS = {
+    'scripts/build_scsp_wasm.sh', 'tests/scsp_wasm_smoke.mjs',
+    'native/include/tetorica/scsp.h', 'native/tests/scsp_fixture.cpp',
+    'native/examples/scsp_pattern.hpp',
+    *('vendor/mame-scsp/' + name for name in (
+        'scsp_instrument.cpp', 'scsp_instrument.h', 'scsp.cpp', 'scsp.h',
+        'scspdsp.cpp', 'scspdsp.h', 'standalone_support.h', 'LICENSE', 'README.md',
+        'upstream/scsp.cpp', 'upstream/scsp.h', 'upstream/scspdsp.cpp',
+        'upstream/scspdsp.h', 'upstream/REVISION', 'upstream/SHA256SUMS')),
+}
 APPLICATION_AUDIO_INPUTS = {
     name: {
         f'vendor/tetorica-{name}/{name}_pcm.c',
@@ -188,6 +198,8 @@ def manifest_records(raw):
     # licensed source, standalone WASM bridge and self-contained checks.
     if PS1_INPUTS & names:
         require(PS1_INPUTS <= names, 'SDK PS1 SPU source release is incomplete')
+    if SCSP_INPUTS & names:
+        require(SCSP_INPUTS <= names, 'SDK SCSP source release is incomplete')
     for audio, inputs in APPLICATION_AUDIO_INPUTS.items():
         module_paths = {name for name in inputs if name.startswith((
             f'vendor/tetorica-{audio}/', f'wasm/{audio}_',

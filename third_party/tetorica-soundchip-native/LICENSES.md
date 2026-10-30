@@ -14,6 +14,10 @@ Tetorica's original code does not replace those component terms.
 
 ## Find the licenses for a component
 
+The experimental [MAME SCSP adaptation](vendor/mame-scsp/README.md) and its
+pristine SCSP/DSP sources retain ElSemi and R. Belmont's BSD-3-Clause notices.
+See [its license](vendor/mame-scsp/LICENSE); the standalone glue is also BSD-3-Clause.
+
 - [catalog/chips.json](catalog/chips.json) maps each public chip to its source
   files, original license texts, WASM artifacts, and Native build status.
 - [catalog/source_inventory.json](catalog/source_inventory.json) records upstream

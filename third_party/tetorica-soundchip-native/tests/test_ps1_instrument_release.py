@@ -24,7 +24,8 @@ class Ps1InstrumentReleaseTests(unittest.TestCase):
         self.native = json.loads((self.root/'catalog/native_inventory.json').read_text())
         self.helper.write('sdk.json', json.dumps({'name':'tetorica-soundchip-native','version':'0.1.6'}))
         for name, document in [('source_inventory',self.inventory),('native_inventory',self.native),('chips',self.catalog)]:
-            document['instruments'] = json.loads((ROOT/f'catalog/{name}.json').read_text())['instruments']
+            # Historical PS1-only release fixture remains independent of later instruments.
+            document['instruments'] = [item for item in json.loads((ROOT/f'catalog/{name}.json').read_text())['instruments'] if item['id']=='ps1_spu']
         record = self.inventory['instruments'][0]; device = self.native['instruments'][0]
         for name in set(record['sourceFiles']+record['licenseFiles']+record['buildFiles']+device['sourceFiles']+device['licenseFiles']+device['buildFiles']+[device['publicHeader']]):
             self.helper.write(name, 'Fixture '+name+'\n')

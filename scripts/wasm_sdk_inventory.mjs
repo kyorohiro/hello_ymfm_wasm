@@ -19,7 +19,7 @@ const MANIFEST = 'RELEASE-MANIFEST.json';
 // SDK snapshots may lack them; new snapshots pin their complete build inputs.
 export const WASM_SDK_APPLICATION_AUDIO_IDS = Object.freeze(['cdda', 'msm5205']);
 // CPU-free instrument cores are separate from the generic chip factory IDs.
-export const WASM_SDK_INSTRUMENT_IDS = Object.freeze(['ps1_spu']);
+export const WASM_SDK_INSTRUMENT_IDS = Object.freeze(['ps1_spu', 'scsp']);
 const APPLICATION_AUDIO = WASM_SDK_APPLICATION_AUDIO_IDS;
 const inventories = new WeakMap();
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -162,15 +162,22 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
       && builds.includes('scripts/record_wasm_build.mjs'))), `Incomplete build files: ${id}`);
     const licenses = stringPaths(artifact.licenseFiles, `${id} license files`);
     if (instrument) {
-      requireValue(id === 'ps1_spu' && artifact.role === 'instrument'
-        && artifact.kind === 'PlayStation SPU standalone instrument' && same(artifact.chipIds, []),
+      const spec = id === 'ps1_spu' ? {
+        kind:'PlayStation SPU standalone instrument',prefix:'vendor/mame-ps1-spu/',
+        sources:['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','standalone_support.h'],
+        originals:['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h'],
+      } : id === 'scsp' ? {
+        kind:'Experimental Saturn SCSP standalone instrument',prefix:'vendor/mame-scsp/',
+        sources:['scsp_instrument.cpp','scsp_instrument.h','scsp.cpp','scsp.h','scspdsp.cpp','scspdsp.h','standalone_support.h'],
+        originals:['scsp.cpp','scsp.h','scspdsp.cpp','scspdsp.h'],
+      } : null;
+      requireValue(spec && artifact.role === 'instrument'
+        && artifact.kind === spec.kind && same(artifact.chipIds, []),
       `Invalid standalone instrument metadata: ${id}`);
-      requireValue(licenses.includes('vendor/mame-ps1-spu/LICENSE')
-        && same(sources.toSorted(), ['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp',
-          'spureverb.cpp','spureverb.h','standalone_support.h'].map(name=>'vendor/mame-ps1-spu/'+name).sort())
-        && ['README.md','upstream/REVISION','upstream/SHA256SUMS','upstream/spu.cpp','upstream/spu.h',
-          'upstream/spu_tables.cpp','upstream/spureverb.cpp','upstream/spureverb.h']
-          .every(name=>manifest.files['vendor/mame-ps1-spu/'+name])
+      requireValue(licenses.includes(spec.prefix+'LICENSE')
+        && same(sources.toSorted(), spec.sources.map(name=>spec.prefix+name).sort())
+        && ['README.md','upstream/REVISION','upstream/SHA256SUMS',...spec.originals.map(name=>'upstream/'+name)]
+          .every(name=>manifest.files[spec.prefix+name])
         && licenses.every(name => manifest.files[name]), `Incomplete instrument sources/licenses: ${id}`);
     }
     if (applicationAudio) {
@@ -212,7 +219,7 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
     .sort((a, b) => a.id.localeCompare(b.id));
   requireValue(catalog.instruments === undefined || (Array.isArray(catalog.instruments)
     && same(catalog.instruments.map(artifact => artifact?.id).sort(), WASM_SDK_INSTRUMENT_IDS)),
-  'SDK instruments must contain ps1_spu exactly once');
+  'SDK instruments must contain ps1_spu and scsp exactly once');
   const instruments = (catalog.instruments ?? []).map(artifact => normalizeArtifact(artifact, false, true))
     .sort((a, b) => a.id.localeCompare(b.id));
   const builds = [...artifacts, ...applicationAudio, ...instruments].sort((a, b) => a.id.localeCompare(b.id));
@@ -340,6 +347,9 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
         if (artifact.id === 'ps1_spu') requireValue(['create','destroy','reset','sample_rate','write','read','load_ram','read_ram','render']
           .every(suffix => exports.some(entry => entry.name === `ps1_spu_${suffix}` && entry.kind === 'function')),
           `WASM output has no PS1 SPU ABI: ${output.path}`);
+        if (artifact.id === 'scsp') requireValue(['create','destroy','reset','sample_rate','write','read','load_ram','read_ram','render']
+          .every(suffix => exports.some(entry => entry.name === `scsp_${suffix}` && entry.kind === 'function')),
+          `WASM output has no SCSP ABI: ${output.path}`);
         if (artifact.id === 'dx7') requireValue(imports.length === 0, 'Standalone DX7 WASM must not have imports');
         if (artifact.format === 'standalone-audio-wasm') {
           requireValue(imports.length === 0 && ['init', 'input', 'left', 'right', 'prepare', 'play', 'stop',
@@ -359,7 +369,7 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
     }
     const validated = {id: artifact.id, format: record.format, sourceFingerprint: record.sourceFingerprint,
       sourceFiles: record.sourceFiles, outputs: record.outputs, compiler: record.compiler, wasm};
-    if (artifact.id === 'ps1_spu') instruments.push(validated);
+    if (WASM_SDK_INSTRUMENT_IDS.includes(artifact.id)) instruments.push(validated);
     else if (artifact.format === 'standalone-audio-wasm') applicationAudio.push(validated);
     else artifacts.push(validated);
   }

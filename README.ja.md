@@ -31,6 +31,9 @@ Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレ�
 
 チップごとの再生機能、制約、実装に関する詳しい記録は[Memo.md](Memo.md)を参照してください。
 
+実験的な[Saturn SCSP共通コア](docs/scsp.md)を追加しています。32スロットのNative／WASMと、
+PCM生成用の低レベルJavaScript APIが対象です。Playground・専用Synthへの接続は後続で、npmの音源選択にはまだ含まれません。
+
 ## ブラウザーで試す
 
 公開ページでWebAssemblyビルド、JavaScriptラッパー、ブラウザーツールを直接試せます。ビルド環境を一式用意せずに、YM2612の操作、音色作り、Genesis / メガドライブ向けVGM解析を試すための入口です。

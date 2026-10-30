@@ -1,0 +1,2090 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-30",
+  "scope": "SCSP SDK source/WASM archive audit, fixed snapshot adoption and raw JavaScript API; no Playground/Synth/Tauri integration yet",
+  "pin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "fileCount": 476,
+    "localCandidate": {
+      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "changedPaths": [
+        ".github/workflows/verify-sdk.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_scsp_instrument_release.py"
+      ]
+    }
+  },
+  "existingOutputComparison": {
+    "identical": [
+      "ay8910_wasm.js",
+      "ay8910_wasm.wasm",
+      "cdda_wasm.js",
+      "cdda_wasm.wasm",
+      "msfa.wasm",
+      "gameboy_apu_wasm.js",
+      "gameboy_apu_wasm.wasm",
+      "huc6280_wasm.js",
+      "huc6280_wasm.wasm",
+      "k051649_wasm.js",
+      "k051649_wasm.wasm",
+      "msm5205_wasm.js",
+      "msm5205_wasm.wasm",
+      "nesapu_wasm.js",
+      "nesapu_wasm.wasm",
+      "nuked_opn2_wasm.js",
+      "nuked_opn2_wasm.wasm",
+      "okim6258_wasm.js",
+      "okim6258_wasm.wasm",
+      "pokey_wasm.js",
+      "pokey_wasm.wasm",
+      "ps1_spu_wasm.js",
+      "ps1_spu_wasm.wasm",
+      "pwm32x_wasm.js",
+      "pwm32x_wasm.wasm",
+      "rf5c164_wasm.js",
+      "rf5c164_wasm.wasm",
+      "segapcm_wasm.js",
+      "segapcm_wasm.wasm",
+      "segapsg_wasm.js",
+      "segapsg_wasm.wasm",
+      "spc_wasm.js",
+      "spc_wasm.wasm",
+      "wonderswan_wasm.js",
+      "wonderswan_wasm.wasm",
+      "y8950_wasm.js",
+      "y8950_wasm.wasm",
+      "ym2151_wasm.js",
+      "ym2151_wasm.wasm",
+      "ym2203_wasm.js",
+      "ym2203_wasm.wasm",
+      "ym2413_wasm.js",
+      "ym2413_wasm.wasm",
+      "ym2608_wasm.js",
+      "ym2608_wasm.wasm",
+      "ym2610b_wasm.js",
+      "ym2610b_wasm.wasm",
+      "ym2612_wasm.js",
+      "ym2612_wasm.wasm",
+      "ym3438_wasm.js",
+      "ym3438_wasm.wasm",
+      "ym3526_wasm.js",
+      "ym3526_wasm.wasm",
+      "ym3812_wasm.js",
+      "ym3812_wasm.wasm",
+      "ymf262_wasm.js",
+      "ymf262_wasm.wasm",
+      "ymf276_wasm.js",
+      "ymf276_wasm.wasm",
+      "ymf278b_wasm.js",
+      "ymf278b_wasm.wasm",
+      "ymf288_wasm.js",
+      "ymf288_wasm.wasm"
+    ],
+    "changed": []
+  },
+  "archiveAudit": {
+    "passed": true,
+    "scope": "Isolated source and companion WASM ZIP, audited CMake inputs, extracted SCSP Native fixture, supplied WASM parity and rebuilt WASM parity",
+    "logSha256": "56f0584ce2b67187bfd4f232a5e1467149319673d4d2273b0d5139bc0c48670b",
+    "checksums": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1  tetorica-soundchip-native-0.1.7-sources.zip\n8d4cde3117b40d7d726a7a2326d1fc245ec4708bf058a5c00ea1badd13e2da60  tetorica-soundchip-native-0.1.7-wasm.zip\n"
+  },
+  "tests": {
+    "sdkReleaseUnitPassed": 107,
+    "consumerSdkPythonPassed": 143,
+    "consumerNodePassed": 135,
+    "rawScspTestsIncluded": 5,
+    "logSha256": {
+      "scsp-sdk-stage2-unit-final.log": "368f42c6d3b749dfa2aaef057397149f2bf437d7f23b3ec6456556c258544444",
+      "scsp-sdk-import-unit.log": "e50822f4ca9124634512c4fd8db12821f76d8c8a2039af9e7b4b068e33fb7638",
+      "scsp-js-sdk-unit-verified.log": "02c6044e44034969a19a413f6ae546b397744ae4dcb03c77b2cf0c51c674d412"
+    }
+  },
+  "aggregate": {
+    "schemaVersion": 1,
+    "passed": true,
+    "startedAt": "2026-10-30T02:47:19.985Z",
+    "completedAt": "2026-10-30T02:48:41.538Z",
+    "nodeVersion": "v26.12.0",
+    "sdk": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.7",
+      "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+      "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+      "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+      "fileCount": 476,
+      "localCandidate": {
+        "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+        "changedPaths": [
+          ".github/workflows/verify-sdk.yml",
+          "CHANGELOG.md",
+          "README.md",
+          "tests/check_standalone_release.py",
+          "tests/test_scsp_instrument_release.py"
+        ]
+      }
+    },
+    "expectedArtifacts": [
+      "ay8910",
+      "dx7",
+      "gameboy_apu",
+      "huc6280",
+      "k051649",
+      "nesapu",
+      "nuked_opn2",
+      "okim6258",
+      "pokey",
+      "pwm32x",
+      "rf5c164",
+      "segapcm",
+      "segapsg",
+      "spc",
+      "wonderswan",
+      "y8950",
+      "ym2151",
+      "ym2203",
+      "ym2413",
+      "ym2608",
+      "ym2610b",
+      "ym2612",
+      "ym3438",
+      "ym3526",
+      "ym3812",
+      "ymf262",
+      "ymf276",
+      "ymf278b",
+      "ymf288"
+    ],
+    "expectedApplicationAudio": [
+      "cdda",
+      "msm5205"
+    ],
+    "expectedInstruments": [
+      "ps1_spu",
+      "scsp"
+    ],
+    "artifacts": [
+      {
+        "id": "ay8910",
+        "passed": true,
+        "comparisons": 8208,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: all main bodies+127-frame continuation probes including selected reset/replays. Bounded chip/Engine positives and actual Player render-ahead/seek-prefix generation are separate components. Engine delegates directly to the chip; those native output frames and Player delivered/discarded frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 35223552,
+          "postScenarioProbeOutputStereoFrames": 2244852,
+          "totalWrapperSelfCheckOutputStereoFrames": 811166,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 4638492,
+          "totalPlayerDeliveredOutputStereoFrames": 3880188,
+          "totalOutputStereoFrames": 37468404,
+          "totalGeneratedOutputStereoFrames": 42918062
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ay8910_wasm_sdk.mjs",
+          "bytes": 35828,
+          "sha256": "b6364ebd8f1ab6270b24f30c6f7c2be93a22afed6ad5a0b25872e8bc92d42bba"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ay8910_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ay8910.json"
+          ],
+          "seconds": 2.766,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ay8910.log",
+            "bytes": 379,
+            "sha256": "5770045bad1fd82245fc7513e3282d4f8e75750ebfa41235d0d38afd2c2b2197"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ay8910.json",
+          "bytes": 5837723,
+          "sha256": "97fcaefd7a741250ab12d05742d006aebfff8798bceec071b4f01b9c45220bb8"
+        }
+      },
+      {
+        "id": "dx7",
+        "passed": true,
+        "comparisons": 360,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: mono scenario bodies, 257-frame continuation probes, selected panic/reprogram replays and wrapper/raw-ABI control output. Each Float32 element is one mono output frame. Internal block prefetch and unreturned core work are not counted.",
+        "frameCounts": {
+          "totalFrames": 8192,
+          "probeFrames": 257,
+          "scenarioBodyOutputMonoFrames": 6160384,
+          "postScenarioProbeOutputMonoFrames": 193264,
+          "totalScenarioOutputMonoFrames": 6353648,
+          "totalWrapperSelfCheckOutputMonoFrames": 1300492,
+          "totalGeneratedOutputMonoFrames": 7654140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_dx7_wasm_sdk.mjs",
+          "bytes": 33345,
+          "sha256": "4523239ec359408b3c9eeb72f2c4ac90066f964495afb30eeff341d9ffae0647"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_dx7_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/dx7.json"
+          ],
+          "seconds": 0.911,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/dx7.log",
+            "bytes": 247,
+            "sha256": "a364025ac379ca1827a996f4fcf0235e07a5c0a3b035c9c71a074f68ea614e44"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/dx7.json",
+          "bytes": 305012,
+          "sha256": "39749c0569e02ba587003a985a53efa8179da69cc0e2a3e3c31774ad36f23424"
+        }
+      },
+      {
+        "id": "gameboy_apu",
+        "passed": true,
+        "comparisons": 876,
+        "maximumDifference": 0,
+        "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2209836,
+          "postScenarioProbeOutputStereoFrames": 228144,
+          "totalWrapperSelfCheckOutputStereoFrames": 126486,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+          "totalPlayerDeliveredOutputStereoFrames": 248840,
+          "totalOutputStereoFrames": 2437980,
+          "totalGeneratedOutputStereoFrames": 2877906
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "bytes": 38408,
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/gameboy_apu.json"
+          ],
+          "seconds": 2.082,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/gameboy_apu.log",
+            "bytes": 349,
+            "sha256": "be378b54abd35ad6a854e40af87d2b40dd62a7d02b0e5cda9fa7b1def2e5a51e"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/gameboy_apu.json",
+          "bytes": 783337,
+          "sha256": "9ec81396ad5513e03e7a5d49c2dad73c71177a22a84293a59d6f9bb4d92c99f7"
+        }
+      },
+      {
+        "id": "huc6280",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete768-frame bodies+97-frame continuation probes; selected regular reset/replays repeat complete bodies+probes. Independent wrapper positives/direct rawC output and actual Player Engine generation are separate components. Native chip-clock ticks and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 1465344,
+          "postScenarioProbeOutputStereoFrames": 185076,
+          "totalWrapperSelfCheckOutputStereoFrames": 130044,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 1650420,
+          "totalGeneratedOutputStereoFrames": 2394918
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_huc6280_wasm_sdk.mjs",
+          "bytes": 37545,
+          "sha256": "a965bd1276141e1bac5be5f004c07e6956b0ef3c52420b2969bba3972dce4299"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_huc6280_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/huc6280.json"
+          ],
+          "seconds": 3.532,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/huc6280.log",
+            "bytes": 321,
+            "sha256": "8ed429a1f5364ceccd57a3b521d5cb3968de58ff5b6c4273d4945734a78228df"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/huc6280.json",
+          "bytes": 578246,
+          "sha256": "03d83eb38e071abbe688aa6f20ac03906313d326c0b224c841c917605d43a864"
+        }
+      },
+      {
+        "id": "k051649",
+        "passed": true,
+        "comparisons": 774,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, including selected reset/reprogram replays; bounded wrapper/engine controls and all actual MSX Player engine generation are added separately. Stereo frame is one left/right pair. Engine internal chip sources and delivered player frames are not added twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 3907584,
+          "postScenarioProbeOutputStereoFrames": 242316,
+          "totalWrapperSelfCheckOutputStereoFrames": 34122,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 2384316,
+          "totalPlayerDeliveredOutputStereoFrames": 2185560,
+          "totalOutputStereoFrames": 4149900,
+          "totalGeneratedOutputStereoFrames": 6568338
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_k051649_wasm_sdk.mjs",
+          "bytes": 34848,
+          "sha256": "6610f84886d46ba99901b307490cf1c0e006ef072eaf066ba176c73c04d0c6e3"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_k051649_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/k051649.json"
+          ],
+          "seconds": 4.892,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/k051649.log",
+            "bytes": 474,
+            "sha256": "49d71abba0a291a6e33d967d1d4c13b4e71744001837de35e974d4e0f124a511"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/k051649.json",
+          "bytes": 489371,
+          "sha256": "e3da2ca0d35ab3da13d6348681512f9fc86b9249a03ec2708fa123b702e48a15"
+        }
+      },
+      {
+        "id": "nesapu",
+        "passed": true,
+        "comparisons": 912,
+        "maximumDifference": 0,
+        "frameCountScope": "BothrealWASMbuilds:complete1024-framebody+97-frameprobe,selectedregularreset/replaysrepeatfullbody/probe. ActualWASMwrapperpositivesanddirectnative_sampleloopsareseparate. AuxiliaryJSreferenceframesrecorded/excluded; parserrecordinggeneratesnoaudio; noWASMPlayerframes.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2150400,
+          "postScenarioProbeOutputStereoFrames": 203700,
+          "totalWrapperSelfCheckOutputStereoFrames": 74820,
+          "totalJsReferenceOutputStereoFrames": 3598,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 0,
+          "totalPlayerDeliveredOutputStereoFrames": 0,
+          "totalOutputStereoFrames": 2354100,
+          "totalGeneratedOutputStereoFrames": 2428920
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nesapu_wasm_sdk.mjs",
+          "bytes": 33115,
+          "sha256": "48d3e138c580fe0f51dcba700a22f3ca3976dbbc82938d8ea69e016614af61e5"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nesapu_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/nesapu.json"
+          ],
+          "seconds": 1.818,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/nesapu.log",
+            "bytes": 281,
+            "sha256": "1cb8ac7e673ff2044513d78ebececf0401b8a8c321eb71e39cbf01bff7c53542"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/nesapu.json",
+          "bytes": 941013,
+          "sha256": "3d27c0918599f691099ac9f9b02bb1c0c57479866f8f640748f8073413fdcd58"
+        }
+      },
+      {
+        "id": "nuked_opn2",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame probes, selected reset replays, wrapper controls, real Synth and actual engine-generated player output including prefetched PCM (delivered frame count is recorded separately). One stereo frame is one left/right pair. Bus-write discarded outputs are not delivered PCM and are not counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 83816,
+          "totalSynthOutputStereoFrames": 12136,
+          "totalEngineOutputStereoFrames": 19808,
+          "totalGeneratedOutputStereoFrames": 6662684
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nuked_opn2_wasm_sdk.mjs",
+          "bytes": 38377,
+          "sha256": "98d9e90cda8aa9213f04a445f549b269dc446290cd447c80a7c3273d16263012"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nuked_opn2_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/nuked_opn2.json"
+          ],
+          "seconds": 6.804,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/nuked_opn2.log",
+            "bytes": 258,
+            "sha256": "f8e27f59107abf918b00bf7d299afd24af0b5d76d37484e04d9e7aeaeb9de576"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/nuked_opn2.json",
+          "bytes": 424098,
+          "sha256": "a5db893a4c55b9158437753bfab809991ec126e45e34bafd0840e37c487b9afe"
+        }
+      },
+      {
+        "id": "okim6258",
+        "passed": true,
+        "comparisons": 2048,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds at their configured output rates: complete raw/Engine scenario renders and own/cross/reset continuations. Bounded wrapper self-checks and 31-frame pre-restore perturbations are separately counted; all three contribute to totalGeneratedOutputStereoFrames. Setup writes and zero-frame calls render no frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 23949880,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "totalWrapperSelfCheckOutputStereoFrames": 1520,
+          "totalGeneratedOutputStereoFrames": 23953508
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+          "bytes": 36653,
+          "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/okim6258.json"
+          ],
+          "seconds": 4.395,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/okim6258.log",
+            "bytes": 469,
+            "sha256": "b8a8eacbf237dd7ff00c58ef3def2c1ef83a5511f83f374e38ea0e8913778663"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/okim6258.json",
+          "bytes": 1309642,
+          "sha256": "eac50d5b99c4141a555d5dfafb30b193c3136ce18e245c9362ec923af67e30f9"
+        }
+      },
+      {
+        "id": "pokey",
+        "passed": true,
+        "comparisons": 114,
+        "maximumDifference": 0,
+        "frameCounts": {
+          "totalComparedStereoFrames": 933888
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pokey_wasm_sdk.mjs",
+          "bytes": 7856,
+          "sha256": "fee621c84dc3e20ec11d79bc39cbd8ede6f66e240b778b033b5d845cb365f36f"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pokey_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/pokey.json"
+          ],
+          "seconds": 1.529,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/pokey.log",
+            "bytes": 85,
+            "sha256": "76c63a36b8d10f9f5779501abedefebd17a9a231b86573d9104bd49db14b9200"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/pokey.json",
+          "bytes": 60251,
+          "sha256": "2bf3aaedb885dea389f3d606534cbea72d0aa1e1fe696a97dc9032b97ed351d7"
+        }
+      },
+      {
+        "id": "pwm32x",
+        "passed": true,
+        "comparisons": 864,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete body+65-frame probes; selected regular own/cross continuation bodies start at389 with fresh65-frame probes; reset/replays have complete bodies/probes. Wrapper positives and actual Player Engine generation are separate components. Retained-JS-reference auxiliary frames are separately recorded and excluded, as are internal Engine source frames and delivered Player frames.",
+        "frameCounts": {
+          "probeFrames": 65,
+          "scenarioBodyOutputStereoFrames": 2439480,
+          "postScenarioProbeOutputStereoFrames": 168480,
+          "totalWrapperSelfCheckOutputStereoFrames": 32394,
+          "totalJsReferenceOutputStereoFrames": 7680,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 356220,
+          "totalPlayerDeliveredOutputStereoFrames": 290240,
+          "totalOutputStereoFrames": 2607960,
+          "totalGeneratedOutputStereoFrames": 2996574
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pwm32x_wasm_sdk.mjs",
+          "bytes": 44346,
+          "sha256": "a721581b5f2156ee15e6742963faac1dfc0a107f509801b8daa1e0ab5ba5c74e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pwm32x_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/pwm32x.json"
+          ],
+          "seconds": 0.651,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/pwm32x.log",
+            "bytes": 469,
+            "sha256": "9c77c90a28761df5ea4ddfb64c0deabe4e83d5a7dd2d804f3abcb04bbf3b9e17"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/pwm32x.json",
+          "bytes": 830574,
+          "sha256": "599f74b4992ccc266db0e7ea6cf5f7f002bc2dc35192c2dc2f77e7aea9146c0c"
+        }
+      },
+      {
+        "id": "rf5c164",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4634334,
+          "postScenarioProbeOutputStereoFrames": 301752,
+          "totalWrapperSelfCheckOutputStereoFrames": 16178,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+          "totalPlayerDeliveredOutputStereoFrames": 373260,
+          "totalOutputStereoFrames": 4936086,
+          "totalGeneratedOutputStereoFrames": 5422424
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+          "bytes": 41001,
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/rf5c164.json"
+          ],
+          "seconds": 2.438,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/rf5c164.log",
+            "bytes": 423,
+            "sha256": "68d02dc908510575572f571daf4a1ddc61b7da7c75ce9adb58a469108dc79519"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/rf5c164.json",
+          "bytes": 726513,
+          "sha256": "f313d090119b06ac5a6e648ba999370b6411a0d8fe25c17e19737577e3b47a5c"
+        }
+      },
+      {
+        "id": "segapcm",
+        "passed": true,
+        "comparisons": 612,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds, complete scenario bodies plus127-frame post-scenario probes, selected own/cross continuation bodies starting at613 and selected reset/replay bodies and probes. Bounded controls, actual Player Engine generation and31-frame pre-restore perturbations are separately added. Engine internal sources and Player delivered frames are not counted twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4225320,
+          "postScenarioProbeOutputStereoFrames": 281178,
+          "preRestorePerturbationOutputStereoFrames": 7812,
+          "totalWrapperSelfCheckOutputStereoFrames": 76202,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 4506498,
+          "totalGeneratedOutputStereoFrames": 5204966
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapcm_wasm_sdk.mjs",
+          "bytes": 43920,
+          "sha256": "065d7c015d55a92e3dd3b2867c2356912c13d8d65f779e3fdfbf37d985c85a7b"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapcm_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/segapcm.json"
+          ],
+          "seconds": 3.337,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/segapcm.log",
+            "bytes": 574,
+            "sha256": "3ff3ec0f0314d188c2ccf7312b9357be86871489e66ba3e262657fa944c2e177"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/segapcm.json",
+          "bytes": 619946,
+          "sha256": "c0f7f5567cfd3125b9289c01c0f8ef5f8b55a29c37d558aa8330f68ddcb30818"
+        }
+      },
+      {
+        "id": "segapsg",
+        "passed": true,
+        "comparisons": 7074,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 30918870,
+          "postScenarioProbeOutputStereoFrames": 1945386,
+          "totalWrapperSelfCheckOutputStereoFrames": 392930,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 758694,
+          "totalPlayerDeliveredOutputStereoFrames": 639348,
+          "totalOutputStereoFrames": 32864256,
+          "totalGeneratedOutputStereoFrames": 34015880
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapsg_wasm_sdk.mjs",
+          "bytes": 38903,
+          "sha256": "24d4760f0175a8f34e7c57fc22c1d0b10b4d457cf3763ed1adc1a3ee29903f3a"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapsg_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/segapsg.json"
+          ],
+          "seconds": 1.694,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/segapsg.log",
+            "bytes": 427,
+            "sha256": "8cd4824c099a6cb52755c3386fc219282d2a6257a471582d34993910bcfd5282"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/segapsg.json",
+          "bytes": 5721046,
+          "sha256": "d2ebd178731e2a2fb9a349cbabf5d8715082ee9c5a93e0ea5cd6a4a6def5e8b8"
+        }
+      },
+      {
+        "id": "spc",
+        "passed": true,
+        "comparisons": 80,
+        "maximumDifference": 0,
+        "frameCountScope": "All bounded nonzero PCM render requests go through one counter, including wrapper/trace positives, scenarios/probes, failed attempts and timeline-end silence. Direct invalid/zero validation-only calls never entering native rendering are excluded. Requested frames, successfully copied output frames and native position advances are reported separately. Internal 1024-frame chunks are not added again; failed trace rendering may advance native state before rejecting delivery, and ended timeline silence does not advance nativeFrames.",
+        "frameCounts": {
+          "bodyFrames": 4097,
+          "probeFrames": 97,
+          "totalDeliveredOutputStereoFrames": 1017898
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_spc_wasm_sdk.mjs",
+          "bytes": 29756,
+          "sha256": "015f215ca537356c7b7993d160409006fdee4de23e7a62382279abfee0df907e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_spc_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/spc.json"
+          ],
+          "seconds": 0.305,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/spc.log",
+            "bytes": 214,
+            "sha256": "ddebcbd6eefc16fa66526fe2b66f7ee9f578c4ad2bcc073569155c15b1ed84ae"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/spc.json",
+          "bytes": 135048,
+          "sha256": "ecd5664e15739383ea7146630f9738f926e8ff07de7854ce8fb5ff5882c8e5ea"
+        }
+      },
+      {
+        "id": "wonderswan",
+        "passed": true,
+        "comparisons": 378,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: full scenario body in each owned/borrowed/into partition, followed by a full reset replay. Independent expectation/wrapper self-check frames are not included.",
+        "frameCounts": {
+          "totalComparedStereoFrames": 6193152
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_wonderswan_wasm_sdk.mjs",
+          "bytes": 9667,
+          "sha256": "c88703b40c0998804c6c890672c254bf3a1daae560b705d45717f4ee03e17786"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_wonderswan_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/wonderswan.json"
+          ],
+          "seconds": 1.02,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/wonderswan.log",
+            "bytes": 186,
+            "sha256": "0316848878b761557c1d4ace85be110bc3884a5cfd05b519139b8e86d43f3214"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/wonderswan.json",
+          "bytes": 235271,
+          "sha256": "9812a052b0e68bda55f4751a96cd2161486732438e4562ea033574cc24b5b967"
+        }
+      },
+      {
+        "id": "y8950",
+        "passed": true,
+        "comparisons": 1794,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 21823488,
+          "postScenarioProbeOutputStereoFrames": 1010010,
+          "totalOutputStereoFrames": 22833498,
+          "totalWrapperSelfCheckOutputStereoFrames": 555780,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24162360
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+          "bytes": 58704,
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/y8950.json"
+          ],
+          "seconds": 2.749,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/y8950.log",
+            "bytes": 376,
+            "sha256": "7a80e9e0a8fa7bb3252f87b3af93c6cfa7b631f19ae71e99f284082910c40b1b"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/y8950.json",
+          "bytes": 1111795,
+          "sha256": "a4d9db2af5b7bed648069609940496b4a9781a82557185726b2ae5c5dfe825ff"
+        }
+      },
+      {
+        "id": "ym2151",
+        "passed": true,
+        "comparisons": 1408,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames and the 31-frame pre-restore perturbations are not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 17640320,
+          "preRestorePerturbationOutputStereoFrames": 1984,
+          "totalWrapperSelfCheckNativeStereoFrames": 398836,
+          "totalGeneratedOutputStereoFrames": 18041140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2151_wasm_sdk.mjs",
+          "bytes": 29405,
+          "sha256": "3da1be74ea5acf84f8cf3d52b3ddd1e91a36eb8e69e78d85789701cbcfd9e261"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2151_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2151.json"
+          ],
+          "seconds": 3.162,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2151.log",
+            "bytes": 418,
+            "sha256": "89bf0c5a769974051a3e0aa7fda8036e07365130685f471cd89bcfcc5e35ec0b"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2151.json",
+          "bytes": 992564,
+          "sha256": "d2f3bd0ca7826f0b1743753cfe9689396fcebfc8455ce5b67a8717373f3d82ce"
+        }
+      },
+      {
+        "id": "ym2203",
+        "passed": true,
+        "comparisons": 432,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 9770400
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2203_wasm_sdk.mjs",
+          "bytes": 25447,
+          "sha256": "255074f1515aa0117dc72c901bf216c60385c6c598fc59cae927bf6828382b88"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2203_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2203.json"
+          ],
+          "seconds": 1.433,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2203.log",
+            "bytes": 313,
+            "sha256": "bcf942193aa550d3b1eeb3e005ffef8486df6b6447cd21e897353f9adcf23b91"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2203.json",
+          "bytes": 295827,
+          "sha256": "4dfcaa746242b785eacbd3697e82523349a5ac27e56d2c9355c4b38b153512ea"
+        }
+      },
+      {
+        "id": "ym2413",
+        "passed": true,
+        "comparisons": 1284,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 15446016,
+          "postScenarioProbeOutputStereoFrames": 687732,
+          "totalOutputStereoFrames": 16133748,
+          "totalWrapperSelfCheckOutputStereoFrames": 391674,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 17298504
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2413_wasm_sdk.mjs",
+          "bytes": 34147,
+          "sha256": "7afcab6d6fb22433a7a9b24e1220f81074c38e214d7a4b832f074946d1e01d01"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2413_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2413.json"
+          ],
+          "seconds": 2.273,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2413.log",
+            "bytes": 377,
+            "sha256": "2508a15cdfeacc3acb658f9735ff4a2d00c413c2fc5e4d4d7a33de666ac50041"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2413.json",
+          "bytes": 813027,
+          "sha256": "cd637f3e39ccd96555bd2e9059b213c65dbb966bbf5c70bb0e0a1863a5cc9b47"
+        }
+      },
+      {
+        "id": "ym2608",
+        "passed": true,
+        "comparisons": 586,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 7264744
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2608_wasm_sdk.mjs",
+          "bytes": 27889,
+          "sha256": "52098aa6de97c47465ca6ffb18b75d9f77c5bbff2a849f311b8a16f9ad1f817f"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2608_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2608.json"
+          ],
+          "seconds": 1.895,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2608.log",
+            "bytes": 310,
+            "sha256": "e8f2a5f09e1ad1dd44278a7c38d0481cd6848178f4c3bf9744a8c51bc8bf509b"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2608.json",
+          "bytes": 395762,
+          "sha256": "6c00501bfd86cc25093f8d52eb6bf00b7ec14bb1ebb5799684a8f41ab1fe645c"
+        }
+      },
+      {
+        "id": "ym2610b",
+        "passed": true,
+        "comparisons": 1108,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 14063856,
+          "totalWrapperSelfCheckNativeStereoFrames": 1113736
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2610b_wasm_sdk.mjs",
+          "bytes": 31720,
+          "sha256": "784945441d06630daeec7d0db7f68efef69b0e3df1b85d0bb46c230b88f1d103"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2610b_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2610b.json"
+          ],
+          "seconds": 1.145,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2610b.log",
+            "bytes": 314,
+            "sha256": "c885e39ac80451634e35e7846853c163cb2ee6c1b6d4517d0e0a11d517331100"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2610b.json",
+          "bytes": 778390,
+          "sha256": "1e8ab94a8b844132e809d209002a70bd0d12a23516045b9ad9c2d832b1df6f2c"
+        }
+      },
+      {
+        "id": "ym2612",
+        "passed": true,
+        "comparisons": 444,
+        "maximumDifference": 0,
+        "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+        "frameCounts": {
+          "totalStereoFrames": 11557320
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+          "bytes": 25016,
+          "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2612.json"
+          ],
+          "seconds": 2.876,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym2612.log",
+            "bytes": 463,
+            "sha256": "87e670b498f1c3efaed38baf614e93dd48f21e676a7978b5962926955adfbb4e"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym2612.json",
+          "bytes": 285473,
+          "sha256": "e457c89ea7b7b53250061b9dca718cb676d867186b95ecccbdba051d707bac75"
+        }
+      },
+      {
+        "id": "ym3438",
+        "passed": true,
+        "comparisons": 450,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6230016,
+          "postScenarioProbeOutputStereoFrames": 128778,
+          "totalScenarioOutputStereoFrames": 6358794,
+          "totalWrapperSelfCheckOutputStereoFrames": 39250,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6412380
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3438_wasm_sdk.mjs",
+          "bytes": 30446,
+          "sha256": "b64357754fb3b9fe24aaf4deb024d32e100f1839177e6606458099ac4eb523b3"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3438_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3438.json"
+          ],
+          "seconds": 1.006,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym3438.log",
+            "bytes": 254,
+            "sha256": "0c12f2fd61f869f5ed4b78e4d9e5b7a24105212371abb40f878ddc7de073f266"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3438.json",
+          "bytes": 405198,
+          "sha256": "8464a8c12f55aade502173c66f2c359a6d615bd41f05bf9ecd35e881ec53db19"
+        }
+      },
+      {
+        "id": "ym3526",
+        "passed": true,
+        "comparisons": 1494,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 17952768,
+          "postScenarioProbeOutputStereoFrames": 806466,
+          "totalOutputStereoFrames": 18759234,
+          "totalWrapperSelfCheckOutputStereoFrames": 439962,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 19972278
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3526_wasm_sdk.mjs",
+          "bytes": 37404,
+          "sha256": "bb42c4ddf4222a366f06c7fa6e44401338667c902fe73b4fcb0ed6807c6b3413"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3526_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3526.json"
+          ],
+          "seconds": 2.15,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym3526.log",
+            "bytes": 377,
+            "sha256": "b11e61f6a8bf9fd5b774b176edcd6d71ee2ffa352a8811077b7b5d440e274120"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3526.json",
+          "bytes": 922520,
+          "sha256": "0eca3b7d621af0d13bf100ec861bf1b7eb5153366447563c47eea7b44127e5c5"
+        }
+      },
+      {
+        "id": "ym3812",
+        "passed": true,
+        "comparisons": 1848,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 22081536,
+          "postScenarioProbeOutputStereoFrames": 993048,
+          "totalOutputStereoFrames": 23074584,
+          "totalWrapperSelfCheckOutputStereoFrames": 609410,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24457076
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3812_wasm_sdk.mjs",
+          "bytes": 40382,
+          "sha256": "500acfee83ae5f33705953adb5bca92926aee63fad0678b546776b7857687e49"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3812_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3812.json"
+          ],
+          "seconds": 2.532,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ym3812.log",
+            "bytes": 377,
+            "sha256": "0ba8efec02b1e4e72cd7d271a0617c49eea7e6bce6acf9d8dffc644eac6a6526"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ym3812.json",
+          "bytes": 1128189,
+          "sha256": "76082a6dc59edf9a3dbd0e999b60499dda0f79f0978be462c8ffa83933d643c8"
+        }
+      },
+      {
+        "id": "ymf262",
+        "passed": true,
+        "comparisons": 3456,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 42799104,
+          "postScenarioProbeOutputStereoFrames": 1859652,
+          "totalOutputStereoFrames": 44658756,
+          "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 46586694
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+          "bytes": 47220,
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf262.json"
+          ],
+          "seconds": 6.555,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ymf262.log",
+            "bytes": 378,
+            "sha256": "18616848c7cfe52b58c748021399dbe7025ec2f6b907581a976bec4c5535b9a0"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf262.json",
+          "bytes": 2178743,
+          "sha256": "2970353f8d293db5989525ba83bf56ee13e5e38afb70835c2a5f08e58c292400"
+        }
+      },
+      {
+        "id": "ymf276",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 107080,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6668340
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf276_wasm_sdk.mjs",
+          "bytes": 36219,
+          "sha256": "3a1ad069805ed8bc463c0dbac3d8bc9f53e46799a68645590dc263966ae5bc24"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf276_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf276.json"
+          ],
+          "seconds": 1.05,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ymf276.log",
+            "bytes": 254,
+            "sha256": "a832993fded33d10e08a4ecfde6bf6d6dc2922b8cdb45c03314451309512ec38"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf276.json",
+          "bytes": 431415,
+          "sha256": "e93a282bba61f5037f6fbdb0ea5a34ced4f7fd1fed12cb31103b4abd20cea719"
+        }
+      },
+      {
+        "id": "ymf278b",
+        "passed": true,
+        "comparisons": 684,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario body and127frameprobe output, selectedpublicreset/replays, boundedchipcontrols, realEngineoutput plusindependentmanualsourcereference, actual VGMEngine renderahead andseekprefix output. Playerdeliveredframes areaseparateview, notadded. Internalnativeframes underlying Engineoutput arenotaddedagain.",
+        "frameCounts": {
+          "totalFrames": 4096,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6176768,
+          "postScenarioProbeOutputStereoFrames": 191516,
+          "totalScenarioOutputStereoFrames": 6368284,
+          "totalWrapperSelfCheckOutputStereoFrames": 605762,
+          "totalEngineControlGeneratedOutputStereoFrames": 25348,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 448386,
+          "totalGeneratedOutputStereoFrames": 7447780
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf278b_wasm_sdk.mjs",
+          "bytes": 48870,
+          "sha256": "803a6d4219c2ff15dcb6ee971df514534243165257663e9d3f8c39196766f953"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf278b_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf278b.json"
+          ],
+          "seconds": 2.135,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ymf278b.log",
+            "bytes": 255,
+            "sha256": "3c0cc45d2539d4ca4b95286ff23091174f3dd61afd634b339d61cdb110840745"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf278b.json",
+          "bytes": 530959,
+          "sha256": "2e6f0a05229d9c8269c0da635e8f0a19381262cb3fc0db7e58862fc3ff9154f7"
+        }
+      },
+      {
+        "id": "ymf288",
+        "passed": true,
+        "comparisons": 606,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 8368128,
+          "postScenarioProbeOutputStereoFrames": 172974,
+          "totalScenarioOutputStereoFrames": 8541102,
+          "totalWrapperSelfCheckOutputStereoFrames": 254050,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 8809488
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf288_wasm_sdk.mjs",
+          "bytes": 41489,
+          "sha256": "8c9d93d7b17837b1e781967c8907f9340f5a56434f110d4324ef979ef7201471"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf288_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reference",
+            "--sdk-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--out",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf288.json"
+          ],
+          "seconds": 0.643,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ymf288.log",
+            "bytes": 254,
+            "sha256": "3c283e9cd9827b0e10d50bfa67f1901339cd2ccb1dfbceb96155ad98e184b807"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/reports/ymf288.json",
+          "bytes": 505619,
+          "sha256": "a1714660c27038450e67848bc84d21691a5cc700af362c3da6c452b0b35fec17"
+        }
+      }
+    ],
+    "applicationAudio": {
+      "passed": true,
+      "byteComparisons": [
+        {
+          "id": "cdda",
+          "outputs": [
+            {
+              "path": "cdda_wasm.js",
+              "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f",
+              "size": 304
+            },
+            {
+              "path": "cdda_wasm.wasm",
+              "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+              "size": 2257
+            }
+          ],
+          "byteIdentical": true
+        },
+        {
+          "id": "msm5205",
+          "outputs": [
+            {
+              "path": "msm5205_wasm.js",
+              "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950",
+              "size": 317
+            },
+            {
+              "path": "msm5205_wasm.wasm",
+              "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+              "size": 3590
+            }
+          ],
+          "byteIdentical": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "application-audio-smoke",
+          "command": {
+            "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+            "args": [
+              "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/application_audio_wasm_smoke.mjs",
+              "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt"
+            ],
+            "seconds": 0.038,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/application-audio-smoke.log",
+              "bytes": 1524,
+              "sha256": "58d2462e43313b459b554b5c2d09233ef07e0a1054bbb1e0733274c0add2883b"
+            },
+            "exitCode": 0
+          },
+          "report": {
+            "status": "PASS",
+            "format": "standalone-audio-wasm",
+            "results": [
+              {
+                "artifact": "cdda",
+                "wasmBytes": 2257,
+                "wasmMemoryBytes": 131072,
+                "noHostImports": true,
+                "fixedMemory": true,
+                "descriptorABI": 1,
+                "checks": [
+                  {
+                    "sampleRate": 8000,
+                    "stereo": true,
+                    "pauseResumeSeekEOF": true,
+                    "muteAdvances": true
+                  },
+                  {
+                    "sampleRate": 44100,
+                    "stereo": true,
+                    "pauseResumeSeekEOF": true,
+                    "muteAdvances": true
+                  },
+                  {
+                    "sampleRate": 48000,
+                    "stereo": true,
+                    "pauseResumeSeekEOF": true,
+                    "muteAdvances": true
+                  },
+                  {
+                    "sampleRate": 384000,
+                    "stereo": true,
+                    "pauseResumeSeekEOF": true,
+                    "muteAdvances": true
+                  }
+                ]
+              },
+              {
+                "artifact": "msm5205",
+                "wasmBytes": 3590,
+                "wasmMemoryBytes": 131072,
+                "noHostImports": true,
+                "fixedMemory": true,
+                "descriptorABI": 1,
+                "checks": [
+                  {
+                    "sampleRate": 44100,
+                    "all16RateRegisters": true,
+                    "oddNibbleRanges": true,
+                    "full64KiBRAM": true,
+                    "rawRegisterPath": true,
+                    "loopMuteStop": true
+                  },
+                  {
+                    "sampleRate": 48000,
+                    "all16RateRegisters": true,
+                    "oddNibbleRanges": true,
+                    "full64KiBRAM": true,
+                    "rawRegisterPath": true,
+                    "loopMuteStop": true
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "application-audio-parity",
+          "command": {
+            "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+            "args": [
+              "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/check_application_audio_core.mjs",
+              "--wasm-dir",
+              "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+              "--artifact",
+              "all"
+            ],
+            "seconds": 2.013,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/application-audio-parity.log",
+              "bytes": 3145,
+              "sha256": "b153c747bd4ec7a1dbb7bfdfc394838e7845d11f3907b52a9153f3961cfc1a9c"
+            },
+            "exitCode": 0
+          },
+          "report": {
+            "status": "PASS",
+            "standaloneSDK": true,
+            "format": "standalone-audio-wasm",
+            "results": [
+              {
+                "artifact": "cdda",
+                "status": "PASS",
+                "sourceFrames": 131072,
+                "wasmBytes": 2257,
+                "wasmMemoryBytes": 131072,
+                "sourceCapBytes": 268435456,
+                "c11": true,
+                "cpp14": true,
+                "blockPartitionExact": true,
+                "results": [
+                  {
+                    "rate": 8000,
+                    "renderedFrames": 24589,
+                    "nativeWasmExact": true,
+                    "independentReferenceExact": true
+                  },
+                  {
+                    "rate": 44100,
+                    "renderedFrames": 131883,
+                    "nativeWasmExact": true,
+                    "independentReferenceExact": true
+                  },
+                  {
+                    "rate": 48000,
+                    "renderedFrames": 143475,
+                    "nativeWasmExact": true,
+                    "independentReferenceExact": true
+                  },
+                  {
+                    "rate": 384000,
+                    "renderedFrames": 1142119,
+                    "nativeWasmExact": true,
+                    "independentReferenceExact": true
+                  }
+                ],
+                "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-cdda-core-AiLNtJ"
+              },
+              {
+                "artifact": "msm5205",
+                "status": "PASS",
+                "wasmBytes": 3590,
+                "wasmMemoryBytes": 131072,
+                "noHostImports": true,
+                "c11": true,
+                "cpp14": true,
+                "sourceCapBytes": 65536,
+                "blockPartitionExact": true,
+                "all16RateRegisters": true,
+                "rawReference": "unchanged reference/javascript/msm5205audioengine.js",
+                "results": [
+                  {
+                    "kind": "raw",
+                    "sampleRate": 44100,
+                    "clock": 1536000,
+                    "commands": 1323,
+                    "renderedFrames": 31488,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  },
+                  {
+                    "kind": "pce-all-rates",
+                    "sampleRate": 44100,
+                    "clock": 1536000,
+                    "commands": 182,
+                    "renderedFrames": 8977,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  },
+                  {
+                    "kind": "pce-alternate-clock",
+                    "sampleRate": 44100,
+                    "clock": 1540200,
+                    "commands": 5,
+                    "renderedFrames": 8208,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  },
+                  {
+                    "kind": "raw",
+                    "sampleRate": 48000,
+                    "clock": 1536000,
+                    "commands": 1323,
+                    "renderedFrames": 31488,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  },
+                  {
+                    "kind": "pce-all-rates",
+                    "sampleRate": 48000,
+                    "clock": 1536000,
+                    "commands": 182,
+                    "renderedFrames": 9069,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  },
+                  {
+                    "kind": "pce-alternate-clock",
+                    "sampleRate": 48000,
+                    "clock": 1540200,
+                    "commands": 5,
+                    "renderedFrames": 8208,
+                    "nativeWasmExact": true,
+                    "legacyReferenceExact": true
+                  }
+                ],
+                "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-msm5205-core-USJ2th"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "instruments": {
+      "passed": true,
+      "byteComparisons": [
+        {
+          "id": "ps1_spu",
+          "outputs": [
+            {
+              "path": "ps1_spu_wasm.js",
+              "sha256": "49f1994131a8e7bd3224544d71dc5e73890f7d9584bb44f267818f99d1b799bf",
+              "size": 17148
+            },
+            {
+              "path": "ps1_spu_wasm.wasm",
+              "sha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4",
+              "size": 50282
+            }
+          ],
+          "byteIdentical": true
+        },
+        {
+          "id": "scsp",
+          "outputs": [
+            {
+              "path": "scsp_wasm.js",
+              "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9",
+              "size": 11384
+            },
+            {
+              "path": "scsp_wasm.wasm",
+              "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
+              "size": 17854
+            }
+          ],
+          "byteIdentical": true
+        }
+      ],
+      "nativeBuild": {
+        "directory": "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native",
+        "fixture": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native/native/tetorica_ps1_spu_fixture",
+          "bytes": 147976,
+          "sha256": "dc50b81de05236c1833815d492bb79ce1418cac5d8596e01e41d4895b7494c84"
+        },
+        "commands": [
+          {
+            "name": "ps1-native-configure",
+            "command": "cmake",
+            "args": [
+              "-S",
+              "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native",
+              "-B",
+              "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-DTETORICA_NATIVE_BUILD_EXAMPLES=OFF",
+              "-DTETORICA_NATIVE_BUILD_TESTS=ON"
+            ],
+            "seconds": 3.093,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ps1-native-configure.log",
+              "bytes": 2891,
+              "sha256": "b63a5ed11f86ee81cb9fcb4bd3cf3d8a35fd340cc1de26ec595bf6fc84c208ed"
+            },
+            "exitCode": 0
+          },
+          {
+            "name": "ps1-native-build",
+            "command": "cmake",
+            "args": [
+              "--build",
+              "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native",
+              "--config",
+              "Release",
+              "--target",
+              "tetorica_ps1_spu_fixture",
+              "--parallel",
+              "2"
+            ],
+            "seconds": 1.376,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ps1-native-build.log",
+              "bytes": 750,
+              "sha256": "37041970d61277d4523b28c0048c0700d8dd0585f356451f3244b7f9505a7d15"
+            },
+            "exitCode": 0
+          },
+          {
+            "name": "ps1-native-query",
+            "command": "ctest",
+            "args": [
+              "--test-dir",
+              "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native",
+              "-C",
+              "Release",
+              "--show-only=json-v1",
+              "-R",
+              "^tetorica.ps1_spu.self_test$"
+            ],
+            "seconds": 0.026,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ps1-native-query.log",
+              "bytes": 936,
+              "sha256": "26b1bc076cc34c78a43e0aea99fdd49c3871423cade34227e30ef71bad65a0ef"
+            },
+            "exitCode": 0
+          },
+          {
+            "name": "ps1-native-fixture",
+            "command": "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native/native/tetorica_ps1_spu_fixture",
+            "args": [
+              "--self-test"
+            ],
+            "seconds": 0.292,
+            "log": {
+              "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ps1-native-fixture.log",
+              "bytes": 158,
+              "sha256": "2e69df91456c85d8897b7e7db93edc76395eb9336b746594b9ea95fcccb3e80f"
+            },
+            "exitCode": 0
+          }
+        ],
+        "report": {
+          "status": "pass",
+          "scope": "register/RAM guards, 24 voices, ADSR, reverb, isolation, partition invariance, live editor controls and deferred release latching"
+        }
+      },
+      "checker": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/ps1_spu_wasm_smoke.mjs",
+        "bytes": 7295,
+        "sha256": "c4e29245a187f9478702ec2c0048e251812af144ade1511995c3faf455200faa"
+      },
+      "command": {
+        "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+        "args": [
+          "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/ps1_spu_wasm_smoke.mjs",
+          "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+          "/private/tmp/scsp-fixed-sdk-parity-20261030/ps1-native/native/tetorica_ps1_spu_fixture"
+        ],
+        "seconds": 0.1,
+        "log": {
+          "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/ps1-instrument.log",
+          "bytes": 480,
+          "sha256": "e5ff3dc6407e0ba129c37f5aac8eba3d5f7e5582bb53912acb176344f39b3ad6"
+        },
+        "exitCode": 0
+      },
+      "report": {
+        "passed": true,
+        "artifact": "ps1_spu",
+        "sampleRate": 44100,
+        "voices": 24,
+        "ramBytes": 524288,
+        "renderedFrames": 311605,
+        "checks": [
+          "fixed-rate-C-ABI-register-RAM-and-render-guards",
+          "24-voices-high-key-bank-ADSR-release-and-stereo",
+          "exact-block-partition-and-independent-instance-state",
+          "preset-reverb-tail-reset-and-retained-sample-RAM",
+          "actual-Native-WASM-24-voice-ADSR-and-reverb-parity"
+        ],
+        "nativeParity": {
+          "passed": true,
+          "interleavedSamples": 98828,
+          "maxAbsoluteError": 0,
+          "tolerance": 1e-06
+        }
+      },
+      "scsp": {
+        "passed": true,
+        "byteComparisons": [
+          {
+            "id": "scsp",
+            "outputs": [
+              {
+                "path": "scsp_wasm.js",
+                "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9",
+                "size": 11384
+              },
+              {
+                "path": "scsp_wasm.wasm",
+                "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
+                "size": 17854
+              }
+            ],
+            "byteIdentical": true
+          }
+        ],
+        "nativeBuild": {
+          "directory": "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native",
+          "fixture": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native/native/tetorica_scsp_fixture",
+            "bytes": 54920,
+            "sha256": "6396cccd934aaa0032c42df7c64b4edfcefaae9bd6a998a007751f8e58d15e49"
+          },
+          "commands": [
+            {
+              "name": "scsp-native-configure",
+              "command": "cmake",
+              "args": [
+                "-S",
+                "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native",
+                "-B",
+                "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_TESTING=ON",
+                "-DTETORICA_NATIVE_BUILD_EXAMPLES=OFF"
+              ],
+              "seconds": 2.918,
+              "log": {
+                "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/scsp-native-configure.log",
+                "bytes": 2892,
+                "sha256": "36a96f2c2745d64279e8f85247854fe08933891f7fb4e62a7d4c6a2e1fadcd84"
+              },
+              "exitCode": 0
+            },
+            {
+              "name": "scsp-native-build",
+              "command": "cmake",
+              "args": [
+                "--build",
+                "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native",
+                "--config",
+                "Release",
+                "--target",
+                "tetorica_scsp_fixture",
+                "--parallel",
+                "2"
+              ],
+              "seconds": 0.79,
+              "log": {
+                "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/scsp-native-build.log",
+                "bytes": 608,
+                "sha256": "fc52e75e118f2177fea136f97e430a7aa27783ffa0030a80f44a005b149039d0"
+              },
+              "exitCode": 0
+            },
+            {
+              "name": "scsp-native-query",
+              "command": "ctest",
+              "args": [
+                "--test-dir",
+                "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native",
+                "-C",
+                "Release",
+                "--show-only=json-v1",
+                "-R",
+                "^tetorica.scsp.self_test$"
+              ],
+              "seconds": 0.008,
+              "log": {
+                "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/scsp-native-query.log",
+                "bytes": 932,
+                "sha256": "08befb93b7bd27ef21d6eca5062cb4313c06a1b0d75f81abbc578e4a1103fe8b"
+              },
+              "exitCode": 0
+            },
+            {
+              "name": "scsp-native-fixture",
+              "command": "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native/native/tetorica_scsp_fixture",
+              "args": [
+                "--self-test"
+              ],
+              "seconds": 0.207,
+              "log": {
+                "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/scsp-native-fixture.log",
+                "bytes": 125,
+                "sha256": "35d759edbd571c3d5d6445095b4d505c59103265b98e38391844f8f388a8a6e0"
+              },
+              "exitCode": 0
+            }
+          ]
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/scsp_wasm_smoke.mjs",
+          "bytes": 4240,
+          "sha256": "31a1646e481ebad2475d7429601edfecb4910c944adc72005b92349d38289255"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/tests/scsp_wasm_smoke.mjs",
+            "--wasm-dir",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/rebuilt",
+            "--native-fixture",
+            "/private/tmp/scsp-fixed-sdk-parity-20261030/scsp-native/native/tetorica_scsp_fixture"
+          ],
+          "seconds": 0.069,
+          "log": {
+            "path": "/private/tmp/scsp-fixed-sdk-parity-20261030/logs/scsp-instrument.log",
+            "bytes": 579,
+            "sha256": "d2ffc2e9224fc0e41cec10c5e4fc86ddd369380bb2d5c92ca442578fe8bd0471"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "schemaVersion": 1,
+          "passed": true,
+          "scope": "Original 64-frame PCM16 sine, 44.1 kHz, 8192 stereo frames; Native/WASM bit-exact parity and block invariance, release, reset, handle independence and invalid input",
+          "nativeWasmBitExact": true,
+          "blockPartitionInvariant": true,
+          "frames": 8192,
+          "sampleRate": 44100,
+          "peak": 0.25,
+          "pcmSha256": "133c4b616957935aa1e75f284edcbb780c7bed0ce078bf00eeff10cc1be393b1",
+          "wasmSha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
+          "listeningPerformed": false,
+          "hardwareAccuracyVerified": false
+        }
+      }
+    },
+    "totalComparisons": 40474,
+    "repositoryInputsUnchanged": true,
+    "fullSummarySha256": "23e60da856e605f0ba57b3b6cd093d9c94728aa7919c491097e3643c1ca0469f",
+    "inputSnapshotCount": 2358,
+    "inputSnapshotSha256": "ff5b78b4792741c5fb56e47aae61b7a0e986e6c1951ca6c3fa52077d92597431"
+  },
+  "ps1SourceBundle": {
+    "passed": true,
+    "sourceInputs": 24,
+    "bundleFiles": 28,
+    "fixedSdkArtifact": true,
+    "sdkVersion": "0.1.7",
+    "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+    "rebuilt": null
+  },
+  "sources": {
+    "web/scsp.js": {
+      "bytes": 9962,
+      "sha256": "e38bcf1627bbcd76fb86f3151ee12062e44f1220433495a8ac9e8fbaf8a3e4e2"
+    },
+    "web/scsp.test.mjs": {
+      "bytes": 4674,
+      "sha256": "decd164676b6e081f35ef989717ea1b5275f116bec9334cbf1971529d1592008"
+    },
+    "scripts/build_scsp_wasm.sh": {
+      "bytes": 347,
+      "sha256": "2b8580a024ac89f5a3f8ff77c013a7b349ff8fb4768f897e6a6aba05f22c84b5"
+    },
+    "scripts/import_soundchip_sdk.py": {
+      "bytes": 19377,
+      "sha256": "2e99f85b904107a227f7ae910fff837c68fb6136aa6b392c210df2b44dfe0954"
+    },
+    "scripts/check_wasm_sdk.mjs": {
+      "bytes": 25766,
+      "sha256": "c11b704eae4a568cbf3a148d7be5c62e99f52ee88ac80ebd69566c7b5a0f7d03"
+    },
+    "scripts/wasm_sdk_inventory.mjs": {
+      "bytes": 24128,
+      "sha256": "7487722d12de81145c6e4b97ae6baa4c0df209e59722d79148b9d3c26c867152"
+    },
+    "docs/generated/build-info.json": {
+      "bytes": 145251,
+      "sha256": "9ce1e14b14bb016e0e3859d8ffe0d3348c7fd52ef07788759c518cedf87eaf0f"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17854,
+      "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981"
+    },
+    "third_party/soundchip-sdk.json": {
+      "bytes": 696,
+      "sha256": "35c2d422f594be23353d12b04632945dab1e8703a4dde2156cafc91117081a8e"
+    }
+  },
+  "ciConfigurationAdded": true,
+  "remoteCiRun": false,
+  "published": false,
+  "listeningPerformed": false,
+  "hardwareAccuracyVerified": false
+}

@@ -67,8 +67,8 @@ async function sdkFixture(t, {sources = false} = {}) {
 
 test('loads the fixed 29-artifact inventory and freezes the validated recipe set', () => {
   assert.equal(inventory.artifacts.length, 29);
-  assert.deepEqual(inventory.instruments.map(a=>a.id),['ps1_spu']);
-  assert.equal(inventory.builds.length,32);
+  assert.deepEqual(inventory.instruments.map(a=>a.id),['ps1_spu','scsp']);
+  assert.equal(inventory.builds.length,33);
   assert.deepEqual(inventory.artifacts.map(artifact => artifact.id), WASM_SDK_ARTIFACT_IDS);
   assert.equal(inventory.artifacts.flatMap(artifact => artifact.outputs).length, 57);
   assert.deepEqual(inventory.artifacts.find(artifact => artifact.id === 'dx7').outputs, ['msfa.wasm']);
@@ -84,8 +84,8 @@ test('validates all actual receipts, pinned sources and WASM ABI descriptors wit
   assert.equal(summary.sourcesVerified, true);
   assert.equal(summary.applicationAudioCount, 2);
   assert.equal(summary.applicationAudioOutputCount, 4);
-  assert.equal(summary.instrumentCount,1);assert.equal(summary.instrumentOutputCount,2);
-  assert.deepEqual(summary.instruments.map(a=>a.id),['ps1_spu']);
+  assert.equal(summary.instrumentCount,2);assert.equal(summary.instrumentOutputCount,4);
+  assert.deepEqual(summary.instruments.map(a=>a.id),['ps1_spu','scsp']);
   const dx7 = summary.artifacts.find(artifact => artifact.id === 'dx7');
   assert.deepEqual(dx7.wasm.imports, []);
   assert.ok(dx7.wasm.exports.some(entry => entry.name === 'dx7_render' && entry.kind === 'function'));
@@ -455,4 +455,20 @@ test('PS1 instrument is separate from generic chip IDs and requires the full sou
   Object.assign(record.outputs.find(a=>a.path==='ps1_spu_wasm.wasm'),{size:bytes.length,sha256:sha256(bytes)});
   await fixture.save();
   await assert.rejects(verifyWasmBuildDirectory({...fixture,inventory,verifySources:false}),/PS1|ps1_spu|instrument/i);
+});
+
+test('SCSP requires complete instrument sources, license and its own actual WASM exports',async t=>{
+  for(const edit of [
+    item=>item.sourceFiles.pop(),item=>item.licenseFiles=[],item=>item.chipIds.push('scsp'),
+    item=>item.kind='generic PCM',item=>item.role='sound-chip',
+  ]) {
+    const fixture=await sdkFixture(t);await fixture.editCatalog(catalog=>edit(catalog.instruments.find(a=>a.id==='scsp')));
+    await assert.rejects(loadWasmSdkInventory(fixture),/instrument|license files/i);
+  }
+  const fixture=await outputFixture(t),record=fixture.receipt.artifacts.find(a=>a.id==='scsp');
+  const bytes=await readFile(path.join(deployed,'wonderswan_wasm.wasm'));
+  await writeFile(path.join(fixture.directory,'scsp_wasm.wasm'),bytes);
+  Object.assign(record.outputs.find(o=>o.path==='scsp_wasm.wasm'),{size:bytes.length,sha256:sha256(bytes)});
+  await fixture.save();
+  await assert.rejects(verifyWasmBuildDirectory({...fixture,inventory,verifySources:false}),/SCSP ABI/);
 });

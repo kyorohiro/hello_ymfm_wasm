@@ -2297,6 +2297,75 @@
         ],
         "status": "build-recipes-included"
       }
+    },
+    {
+      "id": "scsp",
+      "kind": "Experimental Saturn SCSP standalone instrument",
+      "licenseFiles": [
+        "vendor/mame-scsp/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "cmakeAlias": "tetorica::scsp",
+        "declaredFileLicenses": {
+          "native/include/tetorica/scsp.h": "BSD-3-Clause",
+          "vendor/mame-scsp/scsp.cpp": "BSD-3-Clause",
+          "vendor/mame-scsp/scsp.h": "BSD-3-Clause",
+          "vendor/mame-scsp/scsp_instrument.cpp": "BSD-3-Clause",
+          "vendor/mame-scsp/scsp_instrument.h": "BSD-3-Clause",
+          "vendor/mame-scsp/scspdsp.cpp": "BSD-3-Clause",
+          "vendor/mame-scsp/scspdsp.h": "BSD-3-Clause",
+          "vendor/mame-scsp/standalone_support.h": "BSD-3-Clause"
+        },
+        "id": "scsp",
+        "licenseFiles": [
+          "vendor/mame-scsp/LICENSE"
+        ],
+        "licenseStatus": "declared",
+        "publicHeader": "native/include/tetorica/scsp.h",
+        "role": "instrument",
+        "sourceFiles": [
+          "native/include/tetorica/scsp.h",
+          "vendor/mame-scsp/scsp_instrument.cpp",
+          "vendor/mame-scsp/scsp_instrument.h",
+          "vendor/mame-scsp/scsp.cpp",
+          "vendor/mame-scsp/scsp.h",
+          "vendor/mame-scsp/scspdsp.cpp",
+          "vendor/mame-scsp/scspdsp.h",
+          "vendor/mame-scsp/standalone_support.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_scsp",
+        "tests": [
+          "native/tests/scsp_fixture.cpp",
+          "native/examples/scsp_pattern.hpp",
+          "tests/scsp_wasm_smoke.mjs"
+        ],
+        "verificationScope": "Experimental CPU-free PCM8/PCM16 instrument; 32 slots, raw synchronous RAM/registers, masked writes, original sine Native/WASM bit-exact parity, block partitioning, pan, release/reset and instance isolation. FM/LFO/DSP retained but not behaviorally verified; no hardware accuracy claim or CPU/IRQ/timer/DMA/MIDI/SSF playback."
+      },
+      "role": "instrument",
+      "sourceFiles": [
+        "vendor/mame-scsp/scsp_instrument.cpp",
+        "vendor/mame-scsp/scsp_instrument.h",
+        "vendor/mame-scsp/scsp.cpp",
+        "vendor/mame-scsp/scsp.h",
+        "vendor/mame-scsp/scspdsp.cpp",
+        "vendor/mame-scsp/scspdsp.h",
+        "vendor/mame-scsp/standalone_support.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_scsp_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "scsp"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
     }
   ],
   "javascriptReferences": [

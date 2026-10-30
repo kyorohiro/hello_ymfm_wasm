@@ -122,6 +122,16 @@ class SoundchipSdkTests(unittest.TestCase):
                 sdk.import_archive(path, checksum, 'a' * 40, self.root)
             self.assertFalse((self.root / sdk.SNAPSHOT).exists())
 
+    def test_scsp_core_recipe_fixture_and_originals_are_an_indivisible_input_set(self):
+        for missing in sorted(sdk.SCSP_INPUTS):
+            def change(payload):
+                payload.update({name: b'SCSP input' for name in sdk.SCSP_INPUTS})
+                payload.pop(missing)
+            path, checksum = self.archive(version='0.1.7', alter_payload=change)
+            with self.assertRaisesRegex(ValueError, 'SDK SCSP source release is incomplete'):
+                sdk.import_archive(path, checksum, 'a' * 40, self.root)
+            self.assertFalse((self.root / sdk.SNAPSHOT).exists())
+
     def test_pokey_adaptation_and_licensed_original_are_an_indivisible_input_set(self):
         for missing in sorted(sdk.POKEY_INPUTS):
             def change(payload):

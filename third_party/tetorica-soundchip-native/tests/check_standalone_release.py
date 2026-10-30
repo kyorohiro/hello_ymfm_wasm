@@ -269,21 +269,27 @@ def audit_instruments(root, catalog, inventory, native):
         version = read_json(root / "sdk.json").get("version", "0.0.0")
         require(tuple(int(part) for part in version.split("-")[0].split(".")) < (0, 1, 6), "PS1 instrument inventory is missing")
         return
+    expected = {item.get("id") for item in sources}
+    require("ps1_spu" in expected and expected <= {"ps1_spu", "scsp"}, "Standalone instrument inventory changed")
     for label, records in (("source", sources), ("native", devices), ("catalog", entries)):
-        require([item.get("id") for item in records] == ["ps1_spu"], f"Standalone instrument {label} inventory changed")
-    record, device, entry = sources[0], devices[0], entries[0]
-    require(record.get("role") == "instrument" and record.get("chipIds") == [] and record.get("format") == "emscripten-es-module", "PS1 must remain a separate instrument API")
+        ids = [item.get("id") for item in records]
+        require(len(ids) == len(set(ids)) and set(ids) == expected, f"Standalone instrument {label} inventory changed")
     hashes = {item["path"] for component in inventory["components"] for item in component.get("files", [])}
-    for key in ("sourceFiles", "licenseFiles"):
-        check_references(root, "ps1_spu", key, record.get(key))
-        require(set(record[key]) <= hashes, f"PS1 {key} lacks imported hash provenance")
-    for key in ("sourceFiles", "licenseFiles", "buildFiles"):
-        check_references(root, "ps1_spu", key, device.get(key))
-    check_references(root, "ps1_spu", "buildScript", [record.get("buildScript")])
-    check_references(root, "ps1_spu", "buildFiles", record.get("buildFiles"))
-    require(device.get("target") == "tetorica_native_ps1_spu" and device.get("cmakeAlias") == "tetorica::ps1_spu" and device.get("publicHeader") == "native/include/tetorica/ps1_spu.h", "PS1 Native target/header mismatch")
-    check_references(root, "ps1_spu", "publicHeader", [device.get("publicHeader")])
-    require(entry.get("native") == device and entry.get("wasm", {}).get("artifacts") == [{key: record[key] for key in ("id", "format", "buildScript")}], "PS1 instrument catalogs differ")
+    for record in sources:
+        identifier = record["id"]
+        device = next(item for item in devices if item["id"] == identifier)
+        entry = next(item for item in entries if item["id"] == identifier)
+        require(record.get("role") == "instrument" and record.get("chipIds") == [] and record.get("format") == "emscripten-es-module", f"{identifier} must remain a separate instrument API")
+        for key in ("sourceFiles", "licenseFiles"):
+            check_references(root, identifier, key, record.get(key))
+            require(set(record[key]) <= hashes, f"{identifier} {key} lacks imported hash provenance")
+        for key in ("sourceFiles", "licenseFiles", "buildFiles"):
+            check_references(root, identifier, key, device.get(key))
+        check_references(root, identifier, "buildScript", [record.get("buildScript")])
+        check_references(root, identifier, "buildFiles", record.get("buildFiles"))
+        require(device.get("target") == f"tetorica_native_{identifier}" and device.get("cmakeAlias") == f"tetorica::{identifier}" and device.get("publicHeader") == f"native/include/tetorica/{identifier}.h", f"{identifier} Native target/header mismatch")
+        check_references(root, identifier, "publicHeader", [device.get("publicHeader")])
+        require(entry.get("native") == device and entry.get("wasm", {}).get("artifacts") == [{key: record[key] for key in ("id", "format", "buildScript")}], f"{identifier} instrument catalogs differ")
 
 
 def audit_catalog(root):
@@ -382,7 +388,7 @@ def audit_wasm(root, manifest, source_root, source_archive, inventory):
             "WASM release companion source archive differs from the audited source ZIP")
     selected = manifest.get("artifacts")
     require(isinstance(selected, list) and selected and len(selected) == len(set(selected))
-            and set(selected) <= REQUIRED_ARTIFACTS | REQUIRED_APPLICATION_AUDIO | frozenset(("ps1_spu",)), "Invalid released WASM artifact list")
+            and set(selected) <= REQUIRED_ARTIFACTS | REQUIRED_APPLICATION_AUDIO | frozenset(("ps1_spu",)) | {item['id'] for item in inventory.get('instruments', [])}, "Invalid released WASM artifact list")
     info = read_json(root / "wasm/build-info.json")
     require(info.get("schemaVersion") == 1 and {record["id"] for record in info.get("artifacts", [])} == set(selected),
             "WASM build provenance differs from the released artifacts")
@@ -496,6 +502,10 @@ def audit_compile_commands(root, build, entries, *, windows=None):
 
 
 def audit_native_file_api(root, build, configuration="Release"):
+    required = set(REQUIRED_NATIVE_EXECUTABLES)
+    catalog_path = root / "catalog/chips.json"
+    if catalog_path.is_file() and any(item.get("id") == "scsp" for item in read_json(catalog_path).get("instruments", [])):
+        required.add("tetorica_scsp_fixture")
     reply = build / ".cmake/api/v1/reply"
     indices = sorted(reply.glob("index-*.json"))
     require(indices, "Native CMake build has no File API source inventory")
@@ -520,7 +530,7 @@ def audit_native_file_api(root, build, configuration="Release"):
                 path = build_path(include["path"], root)
                 require(within(path, root) or within(path, build), f"Native target borrows an outside include directory: {path}")
         name = detail.get("name")
-        if name in REQUIRED_NATIVE_EXECUTABLES:
+        if name in required:
             require(name not in fixtures, f"Duplicate Native executable target: {name}")
             require(detail.get("type") == "EXECUTABLE", f"Native target is not executable: {name}")
             artifacts = []
@@ -531,8 +541,8 @@ def audit_native_file_api(root, build, configuration="Release"):
                     artifacts.append(path)
             require(len(artifacts) == 1, f"Native CMake build has no unique executable artifact: {name}")
             fixtures[name] = artifacts[0]
-    require(set(fixtures) == REQUIRED_NATIVE_EXECUTABLES,
-            f"Native CMake build is missing required executable targets: {sorted(REQUIRED_NATIVE_EXECUTABLES-set(fixtures))}")
+    require(set(fixtures) == required,
+            f"Native CMake build is missing required executable targets: {sorted(required-set(fixtures))}")
     require(len({path.resolve() for path in fixtures.values()}) == len(fixtures),
             "Native targets share an executable artifact")
     return fixtures
@@ -627,6 +637,24 @@ def check_pokey_parity(root, fixtures, wasm, environment):
     command(["node", root / "tests/check_pokey_core.mjs", "--fixture", fixture, "--wasm-dir", wasm], root, environment)
 
 
+def build_scsp_fixture(root, build, environment):
+    """Resolve and compile SCSP from the extracted, audited source closure."""
+    root, build = root.resolve(), build.resolve()
+    fixtures = prepare_native_build(root, build, environment)
+    require("tetorica_scsp_fixture" in fixtures, "SCSP Native fixture is missing from the source catalog/build")
+    fixture = fixtures["tetorica_scsp_fixture"]
+    command(["cmake", "--build", build, "--config", "Release", "--target", "tetorica_scsp_fixture", "--parallel", "2"], root, environment)
+    require(fixture.is_file(), f"SCSP parity fixture was not built: {fixture}")
+    command([fixture, "--self-test"], root, environment)
+    return fixtures
+
+
+def check_scsp_parity(root, fixture, wasm, environment):
+    require(fixture.is_file(), f"SCSP parity fixture was not built: {fixture}")
+    command(["node", root / "tests/scsp_wasm_smoke.mjs", "--wasm-dir", wasm,
+             "--native-fixture", fixture], root, environment)
+
+
 def check_application_audio(root, wasm, selected, environment, parity=False):
     for identifier in sorted(set(selected) & REQUIRED_APPLICATION_AUDIO):
         command(["node", root / "tests/application_audio_wasm_smoke.mjs", wasm, identifier], root, environment)
@@ -646,6 +674,7 @@ def main():
     parser.add_argument("--build-wasm", metavar="ARTIFACT", help="Also rebuild one WASM artifact using installed Emscripten")
     parser.add_argument("--pokey-native-parity", action="store_true", help="Even with --audit-only, build the extracted POKEY fixture and compare supplied/rebuilt POKEY WASM")
     parser.add_argument("--ps1-native-parity", action="store_true", help="Build the extracted SPU fixture and compare supplied/rebuilt PS1 instrument WASM")
+    parser.add_argument("--scsp-native-parity", action="store_true", help="Build the extracted SCSP fixture and compare supplied/rebuilt SCSP WASM")
     parser.add_argument("--application-audio-parity", action="store_true", help="Compare selected CD-DA/MSM5205 WASM with C/C++ cores from the extracted source; requires a local C/C++ compiler")
     args = parser.parse_args()
     work = (args.work_dir or Path(tempfile.mkdtemp(prefix="tetorica SDK standalone "))).resolve()
@@ -664,6 +693,10 @@ def main():
     if getattr(args, "ps1_native_parity", False):
         require((args.wasm_zip and "ps1_spu" in wasm_manifest["artifacts"]) or args.build_wasm in ("ps1_spu", "all"),
                 "--ps1-native-parity needs supplied or rebuilt PS1 SPU WASM")
+    if getattr(args, "scsp_native_parity", False):
+        require(any(item['id'] == 'scsp' for item in inventory.get('instruments', [])), "SCSP instrument is missing from source catalog")
+        require((args.wasm_zip and "scsp" in wasm_manifest["artifacts"]) or args.build_wasm in ("scsp", "all"),
+                "--scsp-native-parity needs supplied or rebuilt SCSP WASM")
     if args.application_audio_parity:
         supplied_audio = args.wasm_zip and set(wasm_manifest["artifacts"]) & REQUIRED_APPLICATION_AUDIO
         require(supplied_audio or args.build_wasm in REQUIRED_APPLICATION_AUDIO | {"all"},
@@ -681,16 +714,25 @@ def main():
         fixtures = build_pokey_fixture(root, work / "native-build", environment)
     if getattr(args, "ps1_native_parity", False) and fixtures is None:
         fixtures = build_ps1_fixture(root, work / "native-build", environment)
+    scsp_fixture = fixtures.get("tetorica_scsp_fixture") if fixtures else None
+    has_scsp = any(item['id'] == 'scsp' for item in inventory.get('instruments', []))
+    will_smoke = not args.audit_only or args.wasm_smoke or args.pokey_native_parity or args.application_audio_parity or getattr(args, "ps1_native_parity", False) or getattr(args, "scsp_native_parity", False)
+    needs_scsp = has_scsp and (getattr(args, "scsp_native_parity", False) or args.build_wasm in ('scsp', 'all') or
+        (args.wasm_zip and 'scsp' in wasm_manifest['artifacts'] and will_smoke))
+    if needs_scsp and (scsp_fixture is None or not scsp_fixture.is_file()):
+        scsp_fixture = build_scsp_fixture(root, work / "scsp-native-build", environment)["tetorica_scsp_fixture"]
     if not args.audit_only or args.javascript_smoke:
         require(shutil.which("node"), "JavaScript reference smoke requires Node.js 22+")
         command(["node", root / "tests/javascript_reference_smoke.mjs", root / "reference/javascript"], root, environment)
-    if args.wasm_zip and (not args.audit_only or args.wasm_smoke or args.pokey_native_parity or args.application_audio_parity or getattr(args, "ps1_native_parity", False)):
+    if args.wasm_zip and (not args.audit_only or args.wasm_smoke or args.pokey_native_parity or args.application_audio_parity or getattr(args, "ps1_native_parity", False) or getattr(args, "scsp_native_parity", False)):
         require(shutil.which("node"), "WASM ABI smoke requires Node.js")
         selected = set(wasm_manifest["artifacts"])
-        if "ym2612" in selected or not selected.intersection({"wonderswan", "pokey", "cdda", "msm5205", "ps1_spu"}):
+        if "ym2612" in selected or not selected.intersection({"wonderswan", "pokey", "cdda", "msm5205", "ps1_spu", "scsp"}):
             command(["node", root / "tests/wasm_smoke.mjs", wasm / "wasm"], root, environment)
         if "ps1_spu" in selected:
             command(["node", root / "tests/ps1_spu_wasm_smoke.mjs", wasm / "wasm", *([fixtures["tetorica_ps1_spu_fixture"]] if fixtures else [])], root, environment)
+        if "scsp" in selected:
+            check_scsp_parity(root, scsp_fixture, wasm / "wasm", environment)
         if "wonderswan" in selected:
             command(["node", root / "tests/wonderswan_wasm_smoke.mjs", wasm / "wasm"], root, environment)
         if "pokey" in selected:
@@ -706,6 +748,8 @@ def main():
             command(["node", root / "tests/wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
         if args.build_wasm in ("ps1_spu", "all"):
             command(["node", root / "tests/ps1_spu_wasm_smoke.mjs", work / "rebuilt-wasm", *([fixtures["tetorica_ps1_spu_fixture"]] if fixtures else [])], root, environment)
+        if has_scsp and args.build_wasm in ("scsp", "all"):
+            check_scsp_parity(root, scsp_fixture, work / "rebuilt-wasm", environment)
         if args.build_wasm in ("wonderswan", "all"):
             command(["node", root / "tests/wonderswan_wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
         if args.build_wasm in ("pokey", "all"):

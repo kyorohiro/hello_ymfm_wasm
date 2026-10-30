@@ -75,21 +75,21 @@ async function fixture(t, {sources = false} = {}) {
 const verify = async (f, options = {}) => verifyWasmBuildDirectory({directory: f.directory,
   inventory: await loadWasmSdkInventory({root: f.root}), verifySources: false, ...options});
 
-test('new SDK requires all 32 receipts, pins audio and PS1 sources and keeps chip IDs separate', async t => {
+test('new SDK requires all 33 receipts, pins audio and PS1 sources and keeps chip IDs separate', async t => {
   const f = await fixture(t, {sources: true}), inventory = await loadWasmSdkInventory({root: f.root});
-  assert.equal(inventory.artifacts.length, 29); assert.equal(inventory.builds.length, 32);
+  assert.equal(inventory.artifacts.length, 29); assert.equal(inventory.builds.length, 33);
   assert.deepEqual(inventory.applicationAudio.map(a => a.id), ids);
-  assert.deepEqual(inventory.instruments.map(a => a.id), ['ps1_spu']);
+  assert.deepEqual(inventory.instruments.map(a => a.id), ['ps1_spu','scsp']);
   assert.deepEqual(inventory.instruments[0].chipIds, []);
   assert(!inventory.artifacts.some(a => a.id === 'ps1_spu'));
   assert(inventory.applicationAudio.every(a => a.compilerCommand === 'emcc'));
   const summary = await verify(f, {verifySources: true});
-  assert.equal(summary.artifactCount, 29); assert.equal(summary.buildCount, 32);
-  assert.equal(summary.outputCount, 57); assert.equal(summary.buildOutputCount, 63);
+  assert.equal(summary.artifactCount, 29); assert.equal(summary.buildCount, 33);
+  assert.equal(summary.outputCount, 57); assert.equal(summary.buildOutputCount, 65);
   assert.equal(summary.sdkApplicationAudioCount, 2); assert.equal(summary.applicationAudioCount, 2);
   assert.equal(summary.applicationAudioOutputCount, 4);
-  assert.equal(summary.instrumentCount, 1); assert.equal(summary.instrumentOutputCount, 2);
-  assert.deepEqual(summary.instruments.map(a => a.id), ['ps1_spu']);
+  assert.equal(summary.instrumentCount, 2); assert.equal(summary.instrumentOutputCount, 4);
+  assert.deepEqual(summary.instruments.map(a => a.id), ['ps1_spu','scsp']);
   assert.equal(summary.verifiedSourceCount, new Set(inventory.builds.flatMap(a => a.sourcePaths)).size);
   for (const a of summary.applicationAudio) {
     assert.equal(a.format, 'standalone-audio-wasm'); assert.equal(a.sourceFiles.length, 4);
@@ -100,7 +100,7 @@ test('new SDK requires all 32 receipts, pins audio and PS1 sources and keeps chi
 test('new SDK does not make its audio receipts optional even with historical opt-in', async t => {
   for (const id of ids) {
     const f = await fixture(t); f.receipt.artifacts = f.receipt.artifacts.filter(a => a.id !== id); await f.save();
-    await assert.rejects(verify(f, {allowApplicationAudio: true}), /exactly 32 artifacts/);
+    await assert.rejects(verify(f, {allowApplicationAudio: true}), /exactly 33 artifacts/);
   }
 });
 
