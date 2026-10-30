@@ -4,6 +4,30 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 自動作業：2026-10-30 Playgroundの校正gate解消とZIP検証
+
+ユーザーが試聴できない間に、PS1／WonderSwan／POKEYを現在のソースで全経路再測定。
+新reportへ切り替え、旧記録・guardを保持したままfreshnessチェックを通した。PS1 gainは不変。
+校正関連385 tests、PS1の生成設定適用後の全経路再測定、展開したRun ZIPのVAB／PSF／SPU編集の計12経路成功。
+[記録・測定・配布ZIP](playground_spu_vab_release_01.md)。ブラウザ用は931 filesでitch上限内。
+[再開TODO](todo_spu_resume_20261030.md)の4を更新済み。校正gateは未解決として再調査しなくてよい。
+人の耳での試聴、別作品の検証、公開URLの確認は後続。新ZIPの公開・npm公開・git操作は行っていない。
+
+## 次回の入口：仕事中断後の再開TODO
+
+まず [SPU Synth 再開時のTODO](todo_spu_resume_20261030.md) を読む。
+確認開始時HEADは`ef99ec18`（`v0.1.0`）。既存配布ZIPは末尾`v0.1.0.zip`／`v0.1.0_for.zip`へ整理され、
+両方とも前回の最終検証ZIPと同じSHA-256。公開ページ・devlogの実施状況は未確認なので、最初に確認する。
+以前のversion末尾なしZIP名を現在の配布物として探さない。
+
+ユーザーが仕事中で確認できない間の独立作業として、全entryの静的互換性検証CLI
+`scripts/inspect_psf_banks.mjs` と7 testsを追加。共通パーサー9 testsと合わせ16件成功。
+既存Clock Towerセット20 entriesを再走査し、overlay・bank情報・対応Tone数が前回記録と全件一致。
+[CLI操作](../../scripts/inspect_psf_banks.md)／[再検証JSON](spu_psf_compatibility_clock_tower_02.json)。
+追加作品の確認完了とは数えない。製品UI・音源・配布ZIP・校正gain／既存reportは変更していない。
+この再開メモ作成時はPlayground freshness gateで従来のエラーを再現。その後、上記の自動作業で解消した。
+公開・投稿・git操作は行っていない。
+
 ## 公開準備：2026-10-30 PSF / VAB専用タブとdevlog
 
 ユーザーがPSF読み込みの動作確認後、Audioから独立した **PSF / VAB** タブへ移動。

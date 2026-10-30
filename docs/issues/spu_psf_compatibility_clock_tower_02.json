@@ -1,0 +1,2450 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "Independent CLI metadata scan of the previously tested local Clock Tower PSF set; not an additional title or listening test",
+  "matchesPreviousAll20EntryReport": true,
+  "tests": {
+    "cli": 7,
+    "sharedPsf": 9
+  },
+  "sampleDataIncluded": false,
+  "report": {
+    "schemaVersion": 1,
+    "scope": "PSF1/MiniPSF static contiguous VAB compatibility; no playback or fidelity assessment",
+    "files": [
+      {
+        "path": "01-BOBBY_A.psf",
+        "bytes": 3991,
+        "sha256": "2c1b861db18295f419e92034aec59b0c198d56ca4e31d587c5524cd7370301ce"
+      },
+      {
+        "path": "02-BOBBY_B.psf",
+        "bytes": 3981,
+        "sha256": "fd7b02a1d59be9ebc46952111026b8ac234e1515871e485050fcc5c42eed18bf"
+      },
+      {
+        "path": "03-BOBBY_C.psf",
+        "bytes": 2908,
+        "sha256": "2b0fa1728242193d59f5a8c5d1de0d5654f83364dd0fce3756028c0d3f33f751"
+      },
+      {
+        "path": "04-CHORUS.psf",
+        "bytes": 757,
+        "sha256": "20c639d3b3782eecba800bc16369e3bd3abda9808903f70ad14d1a3652435715"
+      },
+      {
+        "path": "05-CLASSIC.psf",
+        "bytes": 819,
+        "sha256": "917ea1dce7d3c86c2ade6a99e34f7978c192ddaf591f3f8eca2f20259323ccc5"
+      },
+      {
+        "path": "06-DANTH1.psf",
+        "bytes": 1436,
+        "sha256": "f27a733bf0caea317bcc2cb44de7d43d967f23969abf6efb723dbe36eb5c727f"
+      },
+      {
+        "path": "07-DANTH2.psf",
+        "bytes": 3856,
+        "sha256": "0e1ee7e8709b09d9d96eac9c38abf61c2d1076369be0ce9e8641b2b1dcb41c10"
+      },
+      {
+        "path": "08-DANTHEME.psf",
+        "bytes": 4890,
+        "sha256": "e08c4033d79d204aac9a1f98f8b91f430276c5051a5bae0f29834306aff88e26"
+      },
+      {
+        "path": "09-ENDING.psf",
+        "bytes": 4117,
+        "sha256": "cd560fe3e1dd3175100be9f395319236a248a6b76df72d521049eba8e4608308"
+      },
+      {
+        "path": "10-FATHER.psf",
+        "bytes": 1019,
+        "sha256": "15eaa6510af99a2944bc7986cc9552d8d5b1a7bff3de860d0ee87f67b6317a2d"
+      },
+      {
+        "path": "11-OPDEMO.psf",
+        "bytes": 844,
+        "sha256": "b9590a45751863551f30e2b5ffea079d37b49f91bbee647a35fef849833e0963"
+      },
+      {
+        "path": "12-RECORD.psf",
+        "bytes": 869,
+        "sha256": "7612b5c84b3a165fa6cc6c86f88006336ae24c555fcade4a80675e8fafc2e34d"
+      },
+      {
+        "path": "13-SE_CLOCK.psf",
+        "bytes": 782,
+        "sha256": "aec1d079806d313ca89a76b09dbb7ef4d559cf35cc64d8a84903e3502838a931"
+      },
+      {
+        "path": "14-SE_RUN.psf",
+        "bytes": 664,
+        "sha256": "a3f1ec61c0e594c68dcd99870b6ce78f398310b409462d09e64957d3e04d8313"
+      },
+      {
+        "path": "15-SE_VIS.psf",
+        "bytes": 1101,
+        "sha256": "705154ae258ab9ad61b25f093f9cef6aa9b1c95caf07351689975431134923a4"
+      },
+      {
+        "path": "16-SE_WALK.psf",
+        "bytes": 665,
+        "sha256": "715f56b05fd4afc3df4780617bf63173ebc488cc2642dfd458517afdde7949fb"
+      },
+      {
+        "path": "17-SEP_PLAY.psf",
+        "bytes": 695,
+        "sha256": "a130847366e3830840c622d935b17dcc3e48589a48e165fabc7f90b06803cdff"
+      },
+      {
+        "path": "18-SHOCK.psf",
+        "bytes": 1142,
+        "sha256": "7aeccb2cbd3d5cb1f8c9af343caa3266fe28ff7e033df7a29d3134f56cc8eda4"
+      },
+      {
+        "path": "19-SHOCKSCN.psf",
+        "bytes": 779,
+        "sha256": "dbcd06fa14ee6f8b1669510fe6670a48d0f2e824f058a415af0f65147bbcafb5"
+      },
+      {
+        "path": "20-THEME.psf",
+        "bytes": 798,
+        "sha256": "b1d906e4e3802637195c213fc9aafa11c8d083a6dcaaabd4c45cdf18f6ad03a3"
+      },
+      {
+        "path": "driver.psflib",
+        "bytes": 85908,
+        "sha256": "2b57db90a0399183f53eaa78e04bc384e6d08e5b9278ac3d90833611e53e9e60"
+      },
+      {
+        "path": "vab_BGM.psflib",
+        "bytes": 116372,
+        "sha256": "1770ed470ce8ef13479f1fed5ae0783c967170b0a6c133dbb48832e9bf77353c"
+      },
+      {
+        "path": "vab_SE.psflib",
+        "bytes": 272843,
+        "sha256": "aac8a26f6a9fc1db94ce6bf1045a1fe2d525286731a1a3d5188e85c9fc15ad8b"
+      }
+    ],
+    "inputBytes": 511236,
+    "entriesInSet": 20,
+    "entriesScanned": 20,
+    "summary": {
+      "withBanks": 20,
+      "withoutBanks": 0,
+      "errors": 0
+    },
+    "results": [
+      {
+        "entry": "01-BOBBY_A.psf",
+        "title": "Bobby_A",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "01-BOBBY_A.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "02-BOBBY_B.psf",
+        "title": "Bobby_B",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "02-BOBBY_B.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "03-BOBBY_C.psf",
+        "title": "Bobby_C",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "03-BOBBY_C.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "04-CHORUS.psf",
+        "title": "Chorus",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "04-CHORUS.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "05-CLASSIC.psf",
+        "title": "Classic",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "05-CLASSIC.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "06-DANTH1.psf",
+        "title": "Danth1",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "06-DANTH1.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "07-DANTH2.psf",
+        "title": "Danth2",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "07-DANTH2.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "08-DANTHEME.psf",
+        "title": "Dantheme",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "08-DANTHEME.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "09-ENDING.psf",
+        "title": "Ending",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "09-ENDING.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "10-FATHER.psf",
+        "title": "Father",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "10-FATHER.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "11-OPDEMO.psf",
+        "title": "OpDemo",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "11-OPDEMO.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "12-RECORD.psf",
+        "title": "Record",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "12-RECORD.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "13-SE_CLOCK.psf",
+        "title": "SE_Clock",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "13-SE_CLOCK.psf",
+          "vab_SE.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 392384,
+            "version": 7,
+            "id": 0,
+            "programs": 128,
+            "tones": 201,
+            "samples": 64,
+            "playableTones": 81,
+            "unavailableTones": 120,
+            "firstPlayableTone": {
+              "listIndex": 44,
+              "program": 22,
+              "tone": 0,
+              "sample": 14
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 4
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 14
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 12 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 10
+              },
+              {
+                "reason": "VAB: sample 16 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 18 has no END packet",
+                "tones": 6
+              },
+              {
+                "reason": "VAB: sample 25 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 26 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 32 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 33 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 35 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 37 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 39 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 41 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 43 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 47 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 57 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 58 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 59 has no END packet",
+                "tones": 9
+              },
+              {
+                "reason": "VAB: sample 61 has no END packet",
+                "tones": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "14-SE_RUN.psf",
+        "title": "SE_Run",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "14-SE_RUN.psf",
+          "vab_SE.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 392384,
+            "version": 7,
+            "id": 0,
+            "programs": 128,
+            "tones": 201,
+            "samples": 64,
+            "playableTones": 81,
+            "unavailableTones": 120,
+            "firstPlayableTone": {
+              "listIndex": 44,
+              "program": 22,
+              "tone": 0,
+              "sample": 14
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 4
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 14
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 12 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 10
+              },
+              {
+                "reason": "VAB: sample 16 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 18 has no END packet",
+                "tones": 6
+              },
+              {
+                "reason": "VAB: sample 25 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 26 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 32 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 33 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 35 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 37 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 39 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 41 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 43 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 47 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 57 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 58 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 59 has no END packet",
+                "tones": 9
+              },
+              {
+                "reason": "VAB: sample 61 has no END packet",
+                "tones": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "15-SE_VIS.psf",
+        "title": "SE_Vis",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "15-SE_VIS.psf",
+          "vab_SE.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 392384,
+            "version": 7,
+            "id": 0,
+            "programs": 128,
+            "tones": 201,
+            "samples": 64,
+            "playableTones": 81,
+            "unavailableTones": 120,
+            "firstPlayableTone": {
+              "listIndex": 44,
+              "program": 22,
+              "tone": 0,
+              "sample": 14
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 4
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 14
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 12 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 10
+              },
+              {
+                "reason": "VAB: sample 16 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 18 has no END packet",
+                "tones": 6
+              },
+              {
+                "reason": "VAB: sample 25 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 26 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 32 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 33 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 35 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 37 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 39 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 41 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 43 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 47 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 57 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 58 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 59 has no END packet",
+                "tones": 9
+              },
+              {
+                "reason": "VAB: sample 61 has no END packet",
+                "tones": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "16-SE_WALK.psf",
+        "title": "SE_Walk",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "16-SE_WALK.psf",
+          "vab_SE.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 392384,
+            "version": 7,
+            "id": 0,
+            "programs": 128,
+            "tones": 201,
+            "samples": 64,
+            "playableTones": 81,
+            "unavailableTones": 120,
+            "firstPlayableTone": {
+              "listIndex": 44,
+              "program": 22,
+              "tone": 0,
+              "sample": 14
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 4
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 14
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 12 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 10
+              },
+              {
+                "reason": "VAB: sample 16 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 18 has no END packet",
+                "tones": 6
+              },
+              {
+                "reason": "VAB: sample 25 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 26 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 32 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 33 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 35 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 37 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 39 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 41 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 43 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 47 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 57 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 58 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 59 has no END packet",
+                "tones": 9
+              },
+              {
+                "reason": "VAB: sample 61 has no END packet",
+                "tones": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "17-SEP_PLAY.psf",
+        "title": "Sep_Play",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "17-SEP_PLAY.psf",
+          "vab_SE.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 392384,
+            "version": 7,
+            "id": 0,
+            "programs": 128,
+            "tones": 201,
+            "samples": 64,
+            "playableTones": 81,
+            "unavailableTones": 120,
+            "firstPlayableTone": {
+              "listIndex": 44,
+              "program": 22,
+              "tone": 0,
+              "sample": 14
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 4
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 11
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 14
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 12 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 10
+              },
+              {
+                "reason": "VAB: sample 16 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 18 has no END packet",
+                "tones": 6
+              },
+              {
+                "reason": "VAB: sample 25 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 26 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 32 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 33 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 35 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 37 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 39 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 41 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 43 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 47 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 57 has no END packet",
+                "tones": 5
+              },
+              {
+                "reason": "VAB: sample 58 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 59 has no END packet",
+                "tones": 9
+              },
+              {
+                "reason": "VAB: sample 61 has no END packet",
+                "tones": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "18-SHOCK.psf",
+        "title": "Shock",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "18-SHOCK.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "19-SHOCKSCN.psf",
+        "title": "ShockScn",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "19-SHOCKSCN.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "entry": "20-THEME.psf",
+        "title": "Theme",
+        "status": "banks",
+        "loadedFiles": [
+          "driver.psflib",
+          "20-THEME.psf",
+          "vab_BGM.psflib"
+        ],
+        "expandedBytes": 3082240,
+        "candidates": 1,
+        "rejectedCandidates": 0,
+        "banks": [
+          {
+            "address": "0x80120000",
+            "bytes": 160816,
+            "version": 7,
+            "id": 0,
+            "programs": 33,
+            "tones": 85,
+            "samples": 19,
+            "playableTones": 17,
+            "unavailableTones": 68,
+            "firstPlayableTone": {
+              "listIndex": 31,
+              "program": 38,
+              "tone": 0,
+              "sample": 18
+            },
+            "unavailableReasons": [
+              {
+                "reason": "VAB: sample 2 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 6 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 15 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 19 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 17 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 4 has no END packet",
+                "tones": 7
+              },
+              {
+                "reason": "VAB: sample 5 has no END packet",
+                "tones": 12
+              },
+              {
+                "reason": "VAB: sample 8 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 9 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: this Tone has no assigned sample",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 3 has no END packet",
+                "tones": 17
+              },
+              {
+                "reason": "VAB: sample 1 has no END packet",
+                "tones": 8
+              },
+              {
+                "reason": "VAB: sample 11 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 7 has no END packet",
+                "tones": 1
+              },
+              {
+                "reason": "VAB: sample 10 has no END packet",
+                "tones": 2
+              },
+              {
+                "reason": "VAB: sample 14 has no END packet",
+                "tones": 3
+              },
+              {
+                "reason": "VAB: sample 13 has no END packet",
+                "tones": 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "sources": {
+    "scripts/inspect_psf_banks.mjs": "aff8df28906b6c374a7f9e7b3e7aa9085c93c3442aaf2fa827cbbbb9eab990ad",
+    "scripts/inspect_psf_banks.test.mjs": "a61c0a5be6601aa07a16790b23caac663d12ab3f3a4b3b85f52e2b35d7a260fe",
+    "docs/playground/playground_ps1_psf.js": "c8120ee08edf9418bdd6d65d36119be75c0d1b4600b897f88133b6bb47b54ebf",
+    "docs/playground/playground_ps1_vab.js": "7a728478c1fab588412712bb0c1128fdc4c5f69de6d6d5757e5e2141c79987d5",
+    "docs/playground/playground_ps1_psf.test.mjs": "a60f7c0b88031b42356e7c75b9ac474f5021fb63009429ac747d517e38f3d5f9",
+    "test/helpers/spu_psf_fixture.mjs": "521b425f1399204aafa0a4484c807925909247aa8116e86a8d8a53acf572482e"
+  }
+}

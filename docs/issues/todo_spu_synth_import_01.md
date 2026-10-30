@@ -4,10 +4,13 @@
 標準VABのインポートとPSF静的抽出を実装。Clock Towerの1セットで初回確認済み。複数作品での対応率は未検証。
 実装範囲・検証記録は [VABインポート](spu_synth_vab_import_01.md) を参照。
 
+仕事中断後の優先順・公開候補・短い試聴手順は [再開TODO](todo_spu_resume_20261030.md) を入口にする。
+
 2026-10-30：PlaygroundのSPUタブにも選択Voiceへの読み込み・試奏を追加。
 [操作・検証・配布前の残作業](playground_spu_vab_01.md)。
 
-- [ ] Playground公開前に、変更後ソースの音量校正証拠を更新してfreshnessチェックを通し、配布ZIPを作成・検証する。
+- [x] Playground公開前に、変更後ソースの音量校正証拠を更新してfreshnessチェックを通し、配布ZIPを作成・検証する。
+  385 testsと展開ZIPの12ブラウザ経路成功。[新しい記録とZIP](playground_spu_vab_release_01.md)。公開自体は未実施。
 
 ## 1. 標準VABのインポート（先行）
 
@@ -39,6 +42,9 @@
   再生不能Toneを無効化し、最初の対応Toneを自動選択。読み込み／抽出中のresetは旧処理を取り消す。
 - [ ] 複数の実PSFセットで検証し、対応例・未対応形式を記録する。
   Clock Tower - The First Fearの1セット（20 entries）で初回確認済み。
+- [x] 全entryの検出bank・対応／非対応Tone数・失敗理由を集計するCLIを用意する。
+  [操作](../../scripts/inspect_psf_banks.md)。CLI 7＋共通パーサー9 tests成功。
+  既存Clock Towerの20 entriesで前回結果との一致を確認。追加作品の検証は上記TODOに残す。
 
 2026-10-30の実装・操作・合成デモ・検証：[Playground PSF抽出](playground_spu_psf_01.md)、[SPU Synth PSFインポート](spu_synth_psf_import_01.md)。
 

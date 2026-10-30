@@ -33,7 +33,7 @@ No game files or game samples are included. If you try a PSF set, feedback about
 
 Posting notes — exclude this section from the itch.io post:
 
-- Draft date: 2026-10-30. This file is the English devlog draft; it has not been posted.
-- Upload artifact: `release/tetorica_spu_synth_dev_itch.zip`. Upload as an HTML project with the root `index.html`.
-- Packaging label is `dev`; no new public version number has been assigned.
-- This post describes the standalone Synth update. Playground has the shared PSF importer too, but its distribution calibration gate remains a separate task.
+- Draft date: 2026-10-30. Codex has not posted this draft. Check the existing itch.io devlogs before posting it again.
+- Current local upload artifact: `release/tetorica_spu_synth_dev_itch_v0.1.0.zip`. Upload as an HTML project with the root `index.html`.
+- Local commit and release filenames use `v0.1.0`; the ZIP's internal packaging label remains `dev`. Public upload status has not been checked.
+- This post describes the standalone Synth update. Playground also has the shared PSF importer. Its calibration gate has since been resolved and a new local ZIP candidate has been validated; see playground_spu_vab_release_01.md. Its public upload status has not been checked.
