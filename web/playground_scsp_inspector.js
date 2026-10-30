@@ -1,18 +1,30 @@
 // SPDX-License-Identifier: BSD-3-Clause
 const slot=value=>{if(!Number.isInteger(value)||value<0||value>31)throw new RangeError('SCSP slot must be 0..31');return value;};
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Invalid audition identity');return `voice-editor:${value}`;};
-/** Read-only slot metadata and identity-safe manual Keyboard leases. */
+/** Slot editing, PCM copies and identity-safe manual Keyboard leases. */
 export class ScspVoiceInspector {
   /** @param {import('./scspsynth.js').ScspSynth} synth
-   * @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions & {validate?:(command:any)=>void}} [options] */
-  constructor(synth,{sampleRate=44100,dispatch,validate=()=>{},beginAudition=()=>{},endAudition=()=>{}}={}) {
-    Object.assign(this,{synth,sampleRate,dispatch,validate,beginAudition,endAudition});this.auditions=new Map();
+   * @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions & {validate?:(command:any)=>void, readPCM?:(sample:any)=>any, editPCM?:(ch:number,pcm:any,options:any)=>any}} [options] */
+  constructor(synth,{sampleRate=44100,dispatch,validate=()=>{},readPCM,editPCM,beginAudition=()=>{},endAudition=()=>{}}={}) {
+    Object.assign(this,{synth,sampleRate,dispatch,validate,readPCM,editPCM,beginAudition,endAudition});this.auditions=new Map();
   }
   read(){const state=this.synth.getState();return {...state,kind:'scsp',nativeSampleRate:44100,sampleRate:this.sampleRate,channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate})),auditions:[...this.auditions].map(([channel,id])=>({channel,id}))};}
   resetAuditions(){for(const [ch,id]of this.auditions)this.endAudition(ch,identity(id));this.auditions.clear();}
   invoke(method,args=[]) {
     if(method==='auditionAllOff'){for(const [ch,id]of [...this.auditions])this.invoke('auditionOff',[ch,id]);return true;}
     const ch=slot(args[0]);
+    if(method==='getPCM') {
+      const voice=this.synth.getState().slots[ch],sample=voice.sample;
+      if(!sample)throw new Error('Assign PCM first');
+      return {sample,voice,pcm:this.readPCM(sample)};
+    }
+    if(method==='applyPCM')return this.editPCM(ch,args[1],args[2]);
+    if(['setEnvelope','setMix','setPreset'].includes(method)) {
+      const patch=method==='setPreset'&&args[1]?.sample?{...args[1],sample:this.synth._resolveSample(args[1].sample)}:args[1];
+      const command={method,args:[ch,patch]};this.validate(command);
+      if(this.dispatch(command,this.auditions.has(ch)?identity(this.auditions.get(ch)):`voice-editor:settings:${ch}`)===false)throw new Error('SCSP edit was blocked');
+      return true;
+    }
     if(method==='auditionOff') {
       const owner=identity(args[1]);if(this.auditions.get(ch)!==args[1])return false;
       try{this.dispatch({method:'keyOff',args:[ch]},owner);}finally{this.auditions.delete(ch);this.endAudition(ch,owner);}return true;

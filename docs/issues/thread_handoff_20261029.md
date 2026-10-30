@@ -4,6 +4,19 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP PCM／EG編集 — 2026-10-30
+
+ユーザーのレイアウト修正確認後、PCM／EG編集とCopy voice JavaScriptを実装。
+[作業記録](scsp_editor_01.md)／[操作手順](../scsp.md)。単一canvasの描画、4波形、
+共有PCM選択、PCM8/16・root/source rate・loop、EG、live mix、適用済みPCM付きJS出力。
+描画はUI draftのみ。Apply時に新規allocationし、共有／発音中sampleは上書きしない。
+毎ApplyのRAM消費は表示・説明済み。個別解放／再利用、PCMファイル入力は後続。
+関連Node 93 tests・Playground型・npm package build成功。
+Chromium／WebKit × Main／Worker全4経路で描画・Apply・EG・コピーコード再実行・Stopを検証。
+物理出力はミュートしたPCM検証。SCSP自体の音量校正／Native／専用Synth／SSFは未実施。
+旧校正reportは改変せず、別途固定hashでUIとSCSP専用URLの差分を監査。
+未commit／未公開。既存release ZIPは未再生成。SDK／WASMは変更なし。
+
 ## SCSPタブのレイアウト修正 — 2026-10-30
 
 ユーザー確認でSCSPの音は出たが、タブ表示がFilesを圧迫していた。

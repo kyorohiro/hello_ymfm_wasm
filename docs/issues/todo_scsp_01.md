@@ -38,7 +38,11 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] `useSoundChip('scsp')`／追加instanceとSaturn Modeを追加。Main／Workerが同じAudioWorklet coreを使用する。
 - [x] 初期コード・PCM16 stereo例を用意。Prepare audioだけで32 slotsをKeyboard／Holdで試奏できる。
 - [x] 32-slotの設定／RAM Inspector、Hold／Release／Keyboardを接続する。表示gateは発音要求であり、実EG活動meterではない。
-- [ ] **次：** PCM／EG編集とCopy voice JavaScriptを接続する。
+- [x] PCM／EG編集とCopy voice JavaScriptを接続する。
+  単一canvasの描画、自作4波形、共有PCM選択、PCM8/16・root/source rate・forward loop、
+  次回keyOn用EG、live mix、適用済みPCMを含むJS出力。Apply時のみappend allocationする。
+- [ ] **次：** SCSPの音量校正と復旧／focus／Mixer／FXの残りを確認する。
+- [ ] PCMファイル入力・boundedな編集sample再利用／解放は後続。現時点は描画またはJS経由のPCMを編集する。
 - [x] Stop・予約／owner取消・manual lease・bank／instance所有権・追加instance・再起動をNode／実ブラウザで確認する。
 - [ ] 復旧・focus／blur・Mixer／FX操作の網羅とSCSP音量校正を追加する。
 
@@ -101,3 +105,9 @@ PCM16 upload例、独立instance、Stopを接続。[今回の作業・検証](sc
 既存PS1／WonderSwan／POKEYは新規reportで再測定し、source freshnessと配布生成を確認。
 Run ZIPは964 entries。SDK／生成WASMは変更なし。未commit／未公開。
 次はPCM／EG編集・Copy voice JS。Native音声／専用Synth／SSFは後続。
+
+2026-10-30後続：SCSPのPCM／EG編集UI・Copy voice JSを追加。
+[操作・制約・検証](scsp_editor_01.md)。関連Node 93 tests・Playground型・npm package build成功。
+Chromium／WebKit × Main／Workerで描画・PCM8 Apply・EG・コピーコード再実行・Stopを確認。
+旧校正reportは変更せず、正確なUI／SCSP cache URL差分を別監査で固定した。
+SDK／WASM／音声renderの変更なし。未commit／未公開、既存release ZIPは未再生成。

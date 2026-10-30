@@ -7,7 +7,14 @@ const sha=b=>createHash('sha256').update(b).digest('hex');
 test('SCSP layout audit permits only exact reviewed DOM/cache edits, without rewriting PCM reports',async()=>{
  const revision=JSON.parse(await readFile(new URL('../docs/issues/scsp_layout_ui_revision_01.json',import.meta.url)));
  for(const [path,{before,after}]of Object.entries(revision.sources)){
-  const bytes=await readFile(new URL('../docs/'+path,import.meta.url));
+  // Reconstruct the historical layout-only revision before the later, separately
+  // audited SCSP editor cache rollout.
+  const current=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
+  const historical=current.replaceAll('playground_mode.js?v=scsp-editor-1','playground_mode.js?v=scsp-playground-1')
+    .replaceAll('playground_chip_tabs.js?v=scsp-editor-1','playground_chip_tabs.js?v=scsp-playground-1')
+    .replaceAll('playground_ui.js?v=scsp-editor-1','playground_ui.js?v=scsp-playground-1')
+    .replaceAll('playground.js?v=scsp-editor-1','playground.js?v=scsp-layout-1');
+  const bytes=Buffer.from(historical);
   assert.equal(bytes.length,after.bytes);assert.equal(sha(bytes),after.sha256);
   let original=bytes.toString();
   if(path.endsWith('playground_workbench.js'))original=original

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "scope": "SCSP manual PCM/EG editor and exact cache URL revisions; no change to measured PS1/WonderSwan/POKEY renderers or gain",
+  "sources": {
+    "js/playground_scsp_audio.js": {
+      "before": {
+        "bytes": 3677,
+        "sha256": "ea8cb2df01b39ae1600c91562e6eea1e40c3e8d79f9b3cb7ab4767b35a37c605"
+      },
+      "after": {
+        "bytes": 3673,
+        "sha256": "b15407e87e8beb358e3cc62cfee5b771d940777f614de486a71faafb493efbd8"
+      }
+    },
+    "playground/index.html": {
+      "before": {
+        "bytes": 132015,
+        "sha256": "d4e8c0de2eac0721dfe6653e29547b561b759e3df68c6f5cd1c67be44a621439"
+      },
+      "after": {
+        "bytes": 132015,
+        "sha256": "af1a7fcb2473048f374fe0d6ce67684927cd0332c6b33508250467b1ca6c7d8f"
+      }
+    },
+    "playground/playground.js": {
+      "before": {
+        "bytes": 124916,
+        "sha256": "186c123511f7cc2aa5ebb8f0eccdab1aac436598bb3056d3cb7706b4ac6f4f4f"
+      },
+      "after": {
+        "bytes": 124904,
+        "sha256": "e21632af6814c10d1d200972b816fcad0e74ad460fe480086f7fbfc5eb741da3"
+      }
+    },
+    "playground/playground_chip_tabs.js": {
+      "before": {
+        "bytes": 41112,
+        "sha256": "cb3072412202acf8d0507fb74d2126a5a6c5d9ea47009c0b494fbe50dd0cedf7"
+      },
+      "after": {
+        "bytes": 41108,
+        "sha256": "625237a4948f433f7afc59733750f3521cfccfe79c98709a01437c863aa0709b"
+      }
+    },
+    "playground/playground_mode.js": {
+      "before": {
+        "bytes": 12604,
+        "sha256": "2881f51ab87d1d5d5c3541ab46e10fc8776437d32d4831faf8ed7e896538742e"
+      },
+      "after": {
+        "bytes": 12600,
+        "sha256": "0fd3732930e516645487a147f5af23f21596acada5650db085377f545a8fffde"
+      }
+    },
+    "playground/playground_scsp_voice_panel.js": {
+      "before": {
+        "bytes": 3728,
+        "sha256": "a945194ed635197283dec9ed6da30fb74c1c24f0138c345ce11ef299fe4f3293"
+      },
+      "after": {
+        "bytes": 13510,
+        "sha256": "6b193ca2425175005ccf522c4b7add22342d9dc7d691661ebbc7300243d23f3e"
+      }
+    },
+    "playground/playground_workbench.js": {
+      "before": {
+        "bytes": 7427,
+        "sha256": "3dac292fcb93554afd47c00d7dd358d80d299e6b9fc236b12f1cfa241a6d3e5c"
+      },
+      "after": {
+        "bytes": 7423,
+        "sha256": "4bcd012d022bb3aad3aca918c7778f5c5ba2351d12c317fe61ec322c888d093e"
+      }
+    }
+  }
+}

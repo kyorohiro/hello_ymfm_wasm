@@ -91,3 +91,22 @@ test('a new manual key takes over the same physical slot while its old release s
  assert.equal(i.invoke('auditionOff',[31,'first']),false);assert(peak(p.render(128).left)>.01);
  assert.equal(i.invoke('auditionOff',[31,'second']),true);assert(p.render(4410).left.subarray(-128).every(v=>v===0));
 });
+
+test('PCM editor copies signed data, allocates only on Apply, preserves shared/held samples and rejects invalid uploads atomically',async t=>{
+ const p=await setup(t),i=p.processor.inspector,initial=p.processor.synth.getState();
+ const original=i.invoke('getPCM',[0]);assert.deepEqual(Array.from(original.pcm),Array.from(createScspInitSample().pcm));
+ original.pcm.fill(0);assert.notDeepEqual(i.invoke('getPCM',[0]).pcm,original.pcm);
+ i.invoke('auditionOn',[0,69,'held']);p.render(128);
+ const pcm=Int8Array.from([-128,-64,0,64,127,64,0,-64]);
+ const sample=i.invoke('applyPCM',[0,pcm,{baseFrequencyHz:44100/8,loopStartSamples:0}]);
+ assert.equal(sample.bits,8);assert.deepEqual(Array.from(i.invoke('getPCM',[0]).pcm),Array.from(pcm));
+ const changed=p.processor.synth.getState();assert.equal(changed.slots[1].sample.id,initial.slots[1].sample.id);assert(changed.slots[0].gate);assert(peak(p.render(128).left)>0);
+ i.invoke('setEnvelope',[0,{attackRate:20}]);assert.equal(p.processor.synth.getState().slots[0].envelope.attackRate,20);
+ i.invoke('setMix',[0,{pan:15}]);assert.equal(p.processor.synth.getState().slots[0].pan,15);
+ const before=p.processor.synth.getState();
+ assert.throws(()=>i.invoke('applyPCM',[0,pcm,{baseFrequencyHz:0}]));assert.deepEqual(p.processor.synth.getState(),before);
+ assert.throws(()=>i.invoke('applyPCM',[0,pcm,{baseFrequencyHz:.001,loopStartSamples:7}]));assert.deepEqual(p.processor.synth.getState(),before);
+ assert.throws(()=>i.invoke('setEnvelope',[0,{attackRate:32}]));assert.deepEqual(p.processor.synth.getState(),before);
+ await p.client.getState();assert(p.client._getState().samples.some(s=>s.id===sample.id));
+ i.invoke('auditionOff',[0,'held']);i.invoke('auditionOn',[0,69,'new']);assert(peak(p.render(128).right)>0);
+});

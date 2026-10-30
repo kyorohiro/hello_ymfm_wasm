@@ -5,7 +5,7 @@ import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-playground-1
 import {Pcm44100Resampler} from './pcm_44100_resampler.js?v=scsp-playground-1';
 import {SCSP_CONTROLS,createScspValidation,scspCommandArgs} from './playground_scsp.js?v=scsp-playground-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-playground-1';
-import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-playground-1';
+import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-editor-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 const METHODS=new Set([...SCSP_CONTROLS,'loadPCM','getState']);
 export class ScspInstrumentProcessor extends AudioWorkletProcessor {
@@ -30,7 +30,17 @@ export class ScspInstrumentProcessor extends AudioWorkletProcessor {
       const {pcm,options}=createScspInitSample(),sample=this.synth.loadPCM(pcm,options);
       for(let ch=0;ch<32;ch++)this.synth.setPreset(ch,{sample,totalLevel:12});
       this.validation._adoptState(this.synth.getState());
-      this.inspector=new ScspVoiceInspector(this.synth,{sampleRate,validate:command=>{const check=createScspValidation();try{check._adoptState(this.synth.getState());check[command.method](...command.args);}finally{check.dispose();}},dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),beginAudition:(ch,owner)=>this.performance.beginAudition(ch,owner),endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
+      this.inspector=new ScspVoiceInspector(this.synth,{sampleRate,
+        readPCM:sample=>{
+          const bytes=core.readRam(sample.address,sample.length*(sample.bits/8)),view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+          return sample.bits===8?Int8Array.from(bytes,v=>v>127?v-256:v):Int16Array.from({length:sample.length},(_,i)=>view.getInt16(i*2,false));
+        },
+        editPCM:(ch,pcm,options)=>{
+          // Validate allocation and the pending preset before touching real RAM.
+          const check=createScspValidation();
+          try{check._adoptState(this.synth.getState());const sample=check.loadPCM(pcm,options);check.setPreset(ch,{sample});}finally{check.dispose();}
+          const sample=this.synth.loadPCM(pcm,options);this.synth.setPreset(ch,{sample});this.resourcesChanged();return sample;
+        },validate:command=>{const check=createScspValidation();try{check._adoptState(this.synth.getState());check[command.method](...command.args);}finally{check.dispose();}},dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),beginAudition:(ch,owner)=>this.performance.beginAudition(ch,owner),endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
       this.resampler=new Pcm44100Resampler(this.synth,sampleRate);
       this.port.postMessage({ready:true,sampleRate,nativeSampleRate:44100,state:this.synth.getState()});
     }).catch(error=>this.fail(error));

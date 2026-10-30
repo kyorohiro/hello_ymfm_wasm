@@ -6,14 +6,14 @@ import {installPlaygroundWorkbench} from './playground_workbench.js?v=scsp-layou
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=scsp-playground-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=scsp-playground-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=scsp-editor-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
   installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=ps1-native-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-playground-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=scsp-editor-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mega-cd-cdda-1';
 let desktopAutosave = null;
@@ -102,7 +102,7 @@ import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sen
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=scsp-playground-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=scsp-editor-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";

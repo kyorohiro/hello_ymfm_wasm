@@ -9,7 +9,7 @@ Each handle owns 32 physical slots and 512 KiB RAM. Output is fixed at 44,100 Hz
 The wrapper injects the generated WASM factory and creates no audio device.
 There is no musical voice allocator, file decoder or output resampler here.
 This is a local repository API. The Web Audio Playground mode/Worklet and initial
-slot inspector are integrated. npm exports, the dedicated Synth UI and Tauri
+slot inspector / PCM and envelope editor are integrated. npm exports, the dedicated Synth UI and Tauri
 Native audio routing are not integrated yet.
 `createSoundChip('scsp')` is available inside Playground; this is not an npm package entry point.
 
@@ -19,7 +19,25 @@ Open [Playground in Saturn mode](playground/index.html?mode=scsp). Choose **SCSP
 Prepare audio**, then **Hold to play**, or choose **Saturn SCSP / PCM slot 32** in
 Keyboard and play with the computer keyboard. Opening the mode alone creates no
 audio device. The slot inspector shows all 32 configurations and sample RAM use;
-waveform/envelope editing currently uses JavaScript.
+the editor supports waveform drawing, PCM8/16 conversion and hardware EG codes.
+
+1. Select a physical slot, then an existing PCM or **Sine / Triangle / Saw / Square**.
+2. Draw on the single waveform canvas. Set root frequency, source sample rate,
+   format and loop start (`-1` means one shot), then click **Apply PCM to this slot**.
+3. Play a new note. PCM assignment and EG edits take effect at the next keyOn;
+   TL / direct level / pan are explicit live controls.
+4. **Copy voice JavaScript** exports the applied PCM, tuning, loop, EG and mix.
+   Paste it into Code and Run to recreate the voice without private bank IDs.
+   The generated text is also available when clipboard permission is unavailable.
+
+Waveform drawing is a software authoring tool. Dragging does not write RAM.
+Apply allocates a new sample without overwriting shared or currently sounding PCM;
+old allocations remain until `reset({clearRam:true})` or runtime recreation.
+The RAM counter shows the remaining capacity. Selecting another slot or assigned
+sample discards an unapplied draft. There is no per-sample deletion or audio-file
+picker in this panel yet; JavaScript-loaded PCM appears in its sample selector.
+EG controls show SCSP register codes, not approximate milliseconds. Higher rate
+codes are faster; KRS 15 disables scaling. The requested gate is not an EG meter.
 
 **Run** starts the original sine melody. The editable
 `examples/scsp/scsp-stereo-pcm.js` uploads signed PCM16 and plays two stereo slots.
