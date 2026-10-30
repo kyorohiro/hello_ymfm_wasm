@@ -4,6 +4,20 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP Native callback土台 — 2026-10-30
+
+[実装・残作業](native_scsp_core_01.md)／[実測report](native_scsp_core_01.json)。
+別Gitの`w/tetorica-fm2612-playground-tauri`へ親と同じ476-file SDKを正規import。
+Rust `native_genesis_scsp_core.rs`とCargo C++ linkageを追加。44.1kHz direct、
+他rateではBrowserと同じ先読み／double補間。StopはRAM保持、resetは明示clear、converterをリセット。
+実Rust module＋固定C ABI対実Browser Synth／WASM／resamplerで、96 cases／5,589,524 stereo framesが
+PCM・registers・全RAM・clock countまで完全一致。Rust alloc/dealloc・C++ new/deleteは処理中0。
+Tauri全Cargo 802 passed／既存4 ignored、importer Python 14／Native source Python 10成功。
+対応する2,112-file Native source ZIPを再生成・検証済み。
+**Native mode選択・primary／extra rack・RPC／命令予約／manual lease／復旧はまだ未接続。**
+次はそのtransport層。Web Audioは変更なし。人の試聴／実機精度・device callback deadlineは未検証。
+未commit／未公開。親とTauriの両repoに変更がある。
+
 ## SCSP PCMファイル入力・RAM再利用 — 2026-10-30
 
 [実装・操作・制約](scsp_pcm_files_01.md)／[report・配布hash](scsp_pcm_files_01.json)。

@@ -55,6 +55,9 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 
 ## 4. Native音声経路
 
+- [x] Tauriへ同じ固定SDKを正規importし、callback所有のRust `Core`とC ABI・固定44.1kHz→host resamplingを実装する。
+  [土台の実装・検証](native_scsp_core_01.md)。実Browser WASMとの96 cases／5,589,524 stereo frames完全一致。
+  この層だけではNative modeを公開しない。SDK更新を含むTauri側は別Git管理。
 - [ ] Tauriのprimary／extra SCSP、C ABI呼び出し、Native callbackとresamplingへ接続する。
 - [ ] 時刻付き命令、適用確認、RAM upload、手動試奏の所有権、Stop・取消・復旧を実装する。
 - [ ] 同じ入力のWeb／Native比較とcallback負荷・長時間動作を検証する。
