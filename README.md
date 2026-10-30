@@ -247,8 +247,10 @@ See the full recipe list and [build and SDK update instructions](docs/building_y
 The experimental [Saturn SCSP core](docs/scsp.md) also provides a separate
 32-slot Native/WASM instrument, raw JavaScript and musical PCM APIs, and an
 experimental [Web Audio Playground mode](docs/playground/index.html?mode=scsp)
-with Main/Worker control and Keyboard audition. The dedicated Synth and Tauri
-Native audio integration remain later stages; it is not an npm chip-factory entry point.
+with Main/Worker control and Keyboard audition. The [dedicated SCSP Synth](docs/synth-scsp/index.html)
+adds PCM drawing/import, envelope editing, a keyboard and PCM preset files.
+Tauri Native transport is implemented; physical audio-device validation remains pending.
+It is not an npm chip-factory entry point.
 Run `npm run test:wasm:sdk` to rebuild all 33 artifacts in an isolated temporary
 directory and verify receipts, the WASM ABI and exact PCM against the committed
 builds. The same command runs in the WASM SDK CI workflow; it needs no sibling

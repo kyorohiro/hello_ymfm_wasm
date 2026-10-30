@@ -68,7 +68,8 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 
 - [ ] ハードウェアLFO、slot間変調／ring buffer、DSPプログラム・係数・routingを段階的に公開・検証する。
   共通コアへの移植時に既存処理を可能な限り保持し、未検証機能を対応済みとは表示しない。
-- [ ] 専用Synth：鍵盤、PCM読み込み／波形編集、EG、loop、pan、preset保存・再読込。
+- [x] 専用Browser Synth：鍵盤、PCM読み込み／単一canvas編集、EG、loop、pan、preset保存・再読込。
+  実装順と受入条件は [専用Synth TODO](scsp_synth_01.md)。まずBrowser版の基本PCM Synthを作る。
 - [ ] FMで複数slotsを使う音色を、単純な32音polyphonyと区別して管理する。
 - [ ] 「PCM loop」「EG」「波形RAMを使うFM」の短い説明・操作UI・動くJS・音を組にする。
 - [ ] 校正・Native／WASM配布・ソース／license同梱・展開ZIP検証を行う。

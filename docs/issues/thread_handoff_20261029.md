@@ -4,6 +4,16 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP専用Browser Synth — 2026-10-30
+
+先に[専用TODO](scsp_synth_01.md)を作成して、`docs/synth-scsp/index.html`を実装。
+既存Playgroundの単一canvas／PCM import／EG／loop／mixを再利用し、31音Keyboard、live Pitch、
+PCM込みpreset保存／再読込、blur release、Stopを追加。編集用にSlot 1を予約する。
+実WASM 2 testsとChromium／WebKitの実AudioWorklet発音・PCM保護・preset／WAV・focus・Stop成功。
+390px幅のはみ出し0。[ブラウザreport](scsp_synth_browser_01.json)。物理出力mute、人の試聴は残る。
+既存runtime／WASM／校正policyは変更なし。専用ZIP／Tauriへの新frontend取込は未実施。
+次は専用ZIPの作成・展開検証、または人による音／操作の確認。未commit／未公開。
+
 ## SCSP Native transport・画面接続 — 2026-10-30
 
 [実装・制約](native_scsp_transport_01.md)／[最終report・hash](native_scsp_transport_01.json)。

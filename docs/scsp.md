@@ -298,3 +298,19 @@ AudioWorklet. `Scsp.create` explicitly compiles supplied bytes and installs the
 loader's `instantiateWasm` hook. Invalid supplied bytes fail instead of silently
 loading a different file. No SDK source, pin or generated WASM modification is
 needed for this bridge.
+
+## Browser SCSP Synth
+
+専用ページ：[SCSP Synth](synth-scsp/index.html)。HTTPSまたはlocalhostで開く。
+
+1. **Start audio** → 画面鍵盤、または `A W S E D F T G Y H U J K` で演奏。
+2. Sine／Triangle／Saw／Squareを選ぶか、単一canvasを描画し、**Apply PCM** → 新しい音を弾く。
+3. 音声ファイルは **Use selection in waveform** → **Apply PCM** の順。
+   長い録音はhostに保持し、最大65,535点の区間を選ぶ。区間・rate・基準音は手動指定。
+4. **Save preset** は適用済みPCMとEG／mixをJSONへ保存。**Open preset** で戻せる。
+
+Slot 1を編集用に予約し、他の31 slotsを鍵盤のpolyphonyへ割り当てる。
+EG／PCMは次の発音、Pitchとmixはheld音へも反映する。**Stop** は即時消音し、
+発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
+描画／音声変換／preset保存はソフト側の機能。SCSP LFO／slot FM／DSP編集／SSFは後続。
+専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。

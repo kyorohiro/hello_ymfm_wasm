@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "engine": "chromium",
+      "peak": 0.43207892775535583,
+      "triad": true,
+      "pitch": true,
+      "presetRoundTrip": true,
+      "heldPcmProtected": true,
+      "audioImport": true,
+      "focus": true,
+      "blurRelease": true,
+      "stop": true,
+      "singleCanvas": true,
+      "mobileOverflow": 0,
+      "pageErrors": [],
+      "physicalOutput": "muted"
+    },
+    {
+      "engine": "webkit",
+      "peak": 0.24732932448387146,
+      "triad": true,
+      "pitch": true,
+      "presetRoundTrip": true,
+      "heldPcmProtected": true,
+      "audioImport": true,
+      "focus": true,
+      "blurRelease": true,
+      "stop": true,
+      "singleCanvas": true,
+      "mobileOverflow": 0,
+      "pageErrors": [],
+      "physicalOutput": "muted"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tetorica SCSP Synth</title><link rel="stylesheet" href="synth.css"></head>
+<body><main><header><a href="../index.html">Tetorica</a><h1>SCSP Synth</h1><p>Sega Saturn · 32-slot PCM sound chip · experimental</p></header>
+<section class="toolbar" aria-label="Transport"><button id="start">Start audio</button><button id="stop" disabled>Stop</button><label>Volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.6"></label><label>Pitch (semitones) <input id="pitch" type="number" min="-24" max="24" value="0"></label><button id="save" disabled>Save preset</button><label class="file">Open preset <input id="open" type="file" accept=".json,application/json" disabled></label></section>
+<p id="status" role="status">Start audio, then play the keys below or use A W S E D F T G Y H U J K.</p>
+<section aria-label="Keyboard"><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label><div id="keyboard"></div><p>Slot 1 is the source voice. Keyboard uses 31 free slots; the oldest voice is stolen when full. PCM and envelope edits affect new notes. Pitch and mix can change held notes.</p></section>
+<section id="voice" aria-label="Voice editor"></section>
+<footer><p>PCM drawing, audio conversion and preset files are software features. Forward-loop PCM and hardware envelope codes are supported. LFO, slot FM, DSP editing and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> · <a href="../playground/index.html?mode=scsp">Playground</a></footer></main><script type="module" src="synth.js"></script></body></html>
