@@ -108,9 +108,9 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 async function main(args) {
   const options = {
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_vab_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_vab_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_vab_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_scsp_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_scsp_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_scsp_chip_levels_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../web/soundchip_mixer_presets.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false;

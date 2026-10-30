@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "component": "scsp",
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "fileCount": 476,
+    "localCandidate": {
+      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "changedPaths": [
+        ".github/workflows/verify-sdk.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_scsp_instrument_release.py"
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "sources/scsp-sdk/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "sources/scsp-sdk/native/include/tetorica/scsp.h",
+      "bytes": 109,
+      "sha256": "43366f19b96d0f0fd9612cb68510b70304ba9afe95f6034f5bc761db9ced3148"
+    },
+    {
+      "path": "sources/scsp-sdk/scripts/build_scsp_wasm.sh",
+      "bytes": 900,
+      "sha256": "2aba7d230903eeb99e162045afcc4dfb987a2632dbaa1449bce6d15a2ab1bd1b"
+    },
+    {
+      "path": "sources/scsp-sdk/sdk.json",
+      "bytes": 285,
+      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/LICENSE",
+      "bytes": 1593,
+      "sha256": "fa63b17d27ea6c4ff5fbc5c772fba27dc3989dedf9caa9223368eb0576ddc61e"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/README.md",
+      "bytes": 4175,
+      "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scsp.cpp",
+      "bytes": 26800,
+      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scsp.h",
+      "bytes": 2976,
+      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scsp_instrument.cpp",
+      "bytes": 2474,
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scsp_instrument.h",
+      "bytes": 1860,
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scspdsp.cpp",
+      "bytes": 5882,
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/scspdsp.h",
+      "bytes": 852,
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/standalone_support.h",
+      "bytes": 1637,
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/REVISION",
+      "bytes": 41,
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/SHA256SUMS",
+      "bytes": 302,
+      "sha256": "2c8a75c77e8118f2a018f166f2d9b205e44699004be4074cfbde1f4df97115c3"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/scsp.cpp",
+      "bytes": 43688,
+      "sha256": "5faa5b73d74438e9ad4378274dec957b9928722f743d84c5ed9681baee6d98c8"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/scsp.h",
+      "bytes": 5034,
+      "sha256": "b67689dc7ce10019c9d0b189c821ae3bdb7541e561fcfb897a882d79db5a7147"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/scspdsp.cpp",
+      "bytes": 5867,
+      "sha256": "9d4b1de166e5d7d5128b591c612eff3fd5cec78af79c1acabb9d5e93341917fd"
+    },
+    {
+      "path": "sources/scsp-sdk/vendor/mame-scsp/upstream/scspdsp.h",
+      "bytes": 822,
+      "sha256": "db522ecaa04665063e46f7f6c699eb7781c672fd7624ac58a60b0b180652d3cc"
+    }
+  ],
+  "generated": {
+    "scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "scsp_wasm.wasm": {
+      "bytes": 17854,
+      "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981"
+    }
+  },
+  "modifications": "None: original SDK paths, source bytes and build recipe retained."
+}

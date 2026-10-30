@@ -66,3 +66,10 @@ test('WASM-backed destinations are refused, shared-memory input upload is stabil
   const source=chip.module.HEAPU8.subarray(ptr,ptr+32),expected=source.slice();
   chip.loadRam(source,0x2000);assert.deepEqual(chip.readRam(0x2000,32),expected);
 });
+
+test('supplied WASM bytes initialize without loader fetch and invalid bytes never fall back to a local file',async t=>{
+  const binary=await readFile(new URL('../docs/generated/scsp_wasm.wasm',import.meta.url));
+  const chip=await Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:binary,locateFile(){throw new Error('Must not fetch');}}});
+  t.after(()=>chip.dispose());sine(chip);assert(chip.generateStereo(64).left.some(v=>v!==0));
+  await assert.rejects(Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:new Uint8Array([0,1])}}),WebAssembly.CompileError);
+});

@@ -5,13 +5,13 @@
  * start() による実再生には Web Audio と WASM アセットが必要。
  */
 import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=ps1-deferred-release-1";
-import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=ps1-deferred-release-1";
+import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=scsp-playground-1";
 import { MegaSynth } from "./megasynth.js?v=ps1-deferred-release-1";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=ps1-mode-1";
 import { YM2608RuntimeSynth } from "./ym2608synth.js?v=ps1-mode-1";
 import { NeoGeoSynth, YM2610BRuntimeSynth } from "./ym2610bsynth.js?v=ps1-mode-1";
 
-export const TETORICA_CHIPS = Object.freeze(["ym2612", "ym2203", "ym2608", "ym2610", "ym2610b", "gameboy", "nes", "snes", "ps1", "x68000", "huc6280", "pokey", "wonderswan", "segapsg", "dx7", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "msx", "msx-audio"]);
+export const TETORICA_CHIPS = Object.freeze(["ym2612", "ym2203", "ym2608", "ym2610", "ym2610b", "gameboy", "nes", "snes", "ps1", "scsp", "x68000", "huc6280", "pokey", "wonderswan", "segapsg", "dx7", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "msx", "msx-audio"]);
 
 /**
  * Normalize a supported chip name to lowercase.
@@ -51,7 +51,7 @@ export function createTetoricaSynth(options = {}) {
     return synth;
   }
   if (chip === "gameboy") return new GameboyRuntimeSynth(options);
-  if (["nes", "snes", "ps1", "x68000", "huc6280", "pokey", "wonderswan", "segapsg", "dx7", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "msx", "msx-audio"].includes(chip)) return new NativeRuntimeSynth({...options, chip});
+  if (["nes", "snes", "ps1", "scsp", "x68000", "huc6280", "pokey", "wonderswan", "segapsg", "dx7", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "msx", "msx-audio"].includes(chip)) return new NativeRuntimeSynth({...options, chip});
   if (chip === "ym2203") return new YM2203RuntimeSynth(options);
   if (chip === "ym2608") return new YM2608RuntimeSynth(options);
   if (chip === "ym2610") return new NeoGeoSynth(options);

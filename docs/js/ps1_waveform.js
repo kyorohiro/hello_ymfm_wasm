@@ -3,7 +3,7 @@
 /** Prepare-side only: encode one short original PCM cycle for the SPU editor.
  * AudioWorklet receives the bounded packets; it never runs this encoder.
  */
-import {encodePs1AdpcmCycle} from './ps1_adpcm_encoder.js?v=ps1-cyclic-1';
+import {encodePs1AdpcmCycle} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 export const PS1_WAVEFORM_FRAMES = 112;
 export const PS1_WAVEFORM_BYTES = 64;
 export const PS1_WAVEFORM_FREQUENCY_HZ = 44100 / PS1_WAVEFORM_FRAMES;

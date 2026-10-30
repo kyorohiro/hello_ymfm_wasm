@@ -10,13 +10,13 @@ const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
     ...['ym2612', 'mega-cd', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
-    ...['ps1','pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio','atari-st'].map(chip => `playground-mode-${chip}.ts`),
+    ...['scsp','ps1','pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio','atari-st'].map(chip => `playground-mode-${chip}.ts`),
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts', 'playground-cdda.ts',
     'playground-mode-mega-cd-cdda.ts',
   ];
   for (const fixture of fixtures) {
     let fixturePath = join(root, 'test/types', fixture);
-    const nativeChip = /^playground-mode-(ps1|pokey|pokey-dual|wonderswan|gameboy|nes|snes|x68000|huc6280|pc-engine-cd|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx|msx-audio|atari-st)\.ts$/.exec(fixture)?.[1];
+    const nativeChip = /^playground-mode-(scsp|ps1|pokey|pokey-dual|wonderswan|gameboy|nes|snes|x68000|huc6280|pc-engine-cd|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx|msx-audio|atari-st)\.ts$/.exec(fixture)?.[1];
     const selectedChip = nativeChip ?? (fixture === 'playground-mode-mega-cd-cdda.ts' ? 'mega-cd' : null);
     if (selectedChip) {
       const globals = join(scratch, 'tetorica-playground-globals.d.ts');

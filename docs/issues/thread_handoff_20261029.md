@@ -4,6 +4,32 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP Playground初期接続 — 2026-10-30
+
+Saturn (SCSP) Mode、Main／Worker AudioWorklet、32-slot Inspector／Hold／Keyboardを追加。
+初期コード・自作PCM16 stereo例、primary借用／独立instance、Stopを実装。
+[今回の範囲・再実行・制約](scsp_playground_01.md)／[操作手順](../scsp.md)。
+関連253＋校正生成37＋ZIP準備10＝300 Node testsと型検証成功。
+実Run ZIPのChromium／WebKit × Main／Worker全4経路成功。物理出力をミュートしたPCM検証で、試聴ではない。
+既存PS1／WonderSwan／POKEYの新規校正reportとgenerator参照を更新。過去reportのhashは改変していない。
+Run ZIPは964 entries。SCSP source／licenseも同梱。npm package build／installed検証成功。
+専用`release/*scsp-dev-20261030*`を生成したが、公開・commitは未実施。SDK／生成WASMは変更なし。
+次はPCM／EG編集・Copy voice JavaScript。Tauri Native／専用Synth／SSFは後続。
+SCSPのMixerは未校正の等倍。WebKitのlayout observer通知はbrowser JSONに別記。
+以下の「Playground未対応」は過去時点の記録。
+
+## SCSP共通Synth API — 2026-10-30
+
+`web/scspsynth.js`に`ScspSynth`を追加。signed PCM8/16、明示的な基準音程、32物理slots、
+forward loop、named EG、音名、live pitch／mixを扱う。raw／Synthの`.d.ts`も追加。
+実WASM 14 tests＋strict TypeScript確認成功。[API・制約・例](../scsp.md)／[TODO](todo_scsp_01.md)。
+RAMは512 KiB append-only、所有descriptor、clear resetで失効。個別置換／解放なし。
+音色編集は次keyOn用、pitch／mixは明示live。Stopは無限releaseも停止しbank／音色を保持する。
+短いloop長を超えるpitch stepは現コアの単一wrap制約により拒否する。
+次はhost-rate resampling検証とPlayground Main／Worker AudioWorklet・Mode接続。
+Playground UI／専用Synth／Tauri Native／SSFは未対応。SDK・生成WASMは今回変更なし。
+今回の変更は未commit／未公開。下の作業時点の状態は履歴。
+
 ## SCSP固定SDK導入・低レベルJS API — 2026-10-30
 
 [SCSP TODO](todo_scsp_01.md)の段階1とraw `Scsp` wrapperを完了。[導入・検証](scsp_sdk_import_01.md)。

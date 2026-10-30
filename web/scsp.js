@@ -51,7 +51,17 @@ export class Scsp {
    */
   static async create({moduleFactory, moduleOptions}) {
     if (typeof moduleFactory !== 'function') throw new TypeError('moduleFactory is required');
-    const module = await moduleFactory(moduleOptions ?? {});
+    const options={...(moduleOptions??{})};
+    // This pinned loader does not consume wasmBinary in an AudioWorklet.
+    // Compile supplied bytes explicitly, then use its supported instantiate hook;
+    // never fall back to network/file loading when the caller supplied a binary.
+    if(options.wasmBinary!==undefined&&options.instantiateWasm===undefined) {
+      const compiled=await WebAssembly.compile(options.wasmBinary);
+      options.instantiateWasm=(imports,receive)=>{
+        const instance=new WebAssembly.Instance(compiled,imports);receive(instance);return instance.exports;
+      };
+    }
+    const module = await moduleFactory(options);
     const api = {
       create:module.cwrap('scsp_create', 'number', []),
       destroy:module.cwrap('scsp_destroy', null, ['number']),

@@ -10,11 +10,11 @@ import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mj
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 for(const [kind,parameter,validate,prior]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_cyclic_chip_levels_01'],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_cyclic_chip_levels_02'],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_cyclic_chip_levels_02'],
-])test(`${kind} VAB-era measurement has complete captures and exact current sources without historical substitutions`,async()=>{
-  const path=`docs/issues/${kind}_vab_chip_levels_01.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
+  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_vab_chip_levels_01'],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_vab_chip_levels_01'],
+  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_vab_chip_levels_01'],
+])test(`${kind} SCSP integration measurement has complete captures and exact current sources without historical substitutions`,async()=>{
+  const path=`docs/issues/${kind}_scsp_chip_levels_01.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));
   await validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report});
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);

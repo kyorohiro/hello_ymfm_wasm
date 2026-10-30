@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'ps1' | 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'scsp' | 'ps1' | 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -689,6 +689,7 @@ type PlaygroundSelectedFm = {
   gameboy: never;
   nes: never;
   snes: never;
+  scsp: never;
   ps1: never;
   x68000: never;
   huc6280: never;
@@ -1256,6 +1257,7 @@ type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'pokey' ? {pokey
   : TetoricaSelectedChip extends 'msx-audio' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'nes' ? {nes: PlaygroundPrimaryNes}
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
+  : TetoricaSelectedChip extends 'scsp' ? {scsp: PlaygroundPrimaryScsp}
   : TetoricaSelectedChip extends 'ps1' ? {spu: PlaygroundPrimaryPs1}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
   : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280}
@@ -2063,6 +2065,7 @@ type PlaygroundSoundChipMap = {
   pwm: PlaygroundPWM32X;
   dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
+  scsp: TetoricaSelectedChip extends 'scsp' ? PlaygroundPrimaryScsp : PlaygroundScsp;
   ps1: TetoricaSelectedChip extends 'ps1' ? PlaygroundPrimaryPs1 : PlaygroundPs1;
   spc: PlaygroundSpc;
   wonderswan: TetoricaSelectedChip extends 'wonderswan' ? PlaygroundPrimaryWonderSwan : PlaygroundWonderSwan;
@@ -2076,7 +2079,7 @@ type PlaygroundSoundChipMap = {
   ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio'|'atari-st' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc' | 'ps1'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc' | 'ps1' | 'scsp'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Borrow the mode's primary instrument when names match; otherwise reuse an
@@ -2616,3 +2619,82 @@ interface PlaygroundPokey {
 type PlaygroundPrimaryPokey = Omit<PlaygroundPokey,'dispose'>;
 /** Create an independent four-channel POKEY; dual POKEY uses two ordinary instances. */
 declare function createSoundChip(name:'pokey',options?:PlaygroundCreateSoundChipOptions & {clock?:number}):Promise<PlaygroundPokey>;
+
+/** Saturn SCSP, experimental Web Audio PCM API. Rates/mix use hardware codes. */
+type PlaygroundScspNote = string | number;
+type PlaygroundScspPCMOptions = ({rootNote: PlaygroundScspNote; baseFrequencyHz?: never} |
+  {baseFrequencyHz: number; rootNote?: never}) & {
+    sourceSampleRate?: number;
+    /** Forward loop [start, PCM length); omit for a one shot. */
+    loopStartSamples?: number;
+  };
+interface PlaygroundScspSample {
+  readonly bankId: string;
+  readonly id: number;
+  readonly address: number;
+  /** Includes one interpolation guard sample; allocation may also need alignment. */
+  readonly byteLength: number;
+  readonly length: number;
+  readonly bits: 8 | 16;
+  readonly rootFrequencyHz: number;
+  readonly sourceSampleRate: number;
+  readonly loopStartSamples: number | null;
+}
+/** Raw SCSP rates 0..31 (higher faster), KRS 0..15 (15 disables scaling).
+ * Preset EG updates take effect at the next keyOn, not during a held note. */
+interface PlaygroundScspEnvelope {
+  attackRate: number;
+  decay1Rate: number;
+  decay2Rate: number;
+  decayLevel: number;
+  releaseRate: number;
+  keyRateScaling: number;
+}
+interface PlaygroundScspMix {
+  /** 0..255 attenuation; 0 loudest. */
+  totalLevel: number;
+  /** Direct send 0..7; 0 mute. */
+  directLevel: number;
+  /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
+  pan: number;
+}
+interface PlaygroundScspPreset extends PlaygroundScspMix {
+  sample: PlaygroundScspSample | null;
+  frequencyHz: number;
+  envelope: PlaygroundScspEnvelope;
+}
+type PlaygroundScspPresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'>> & {envelope?: Partial<PlaygroundScspEnvelope>};
+interface PlaygroundScspState {
+  sampleRate: 44100;
+  bankId: string;
+  nextSampleId: number;
+  ramUsedBytes: number;
+  ramFreeBytes: number;
+  samples: PlaygroundScspSample[];
+  /** Authored presets; gate is the requested key state, not an activity meter. */
+  slots: (PlaygroundScspPreset & {gate: boolean})[];
+}
+
+interface PlaygroundScsp {
+  readonly id:string;
+  readonly sampleRate:number;
+  readonly nativeSampleRate:44100;
+  readonly channelCount:32;
+  loadPCM(pcm:Int8Array|Int16Array,options:PlaygroundScspPCMOptions):Promise<PlaygroundScspSample>;
+  setPreset(slot:number,patch:PlaygroundScspPresetPatch):void;
+  setEnvelope(slot:number,patch:Partial<PlaygroundScspEnvelope>):void;
+  setFrequency(slot:number,hz:number):number;
+  setNote(slot:number,note:string|number):number;
+  setMix(slot:number,patch:Partial<PlaygroundScspMix>):void;
+  keyOn(slot:number):void;
+  keyOff(slot:number):void;
+  noteOn(slot:number,note:string|number):void;
+  noteOff(slot:number):void;
+  allNotesOff():void;
+  reset(options?:{clearRam?:boolean}):void;
+  getState():Promise<PlaygroundScspState>;
+  dispose():void;
+}
+type PlaygroundPrimaryScsp=Omit<PlaygroundScsp,'dispose'>;
+declare const scsp: PlaygroundPrimaryScsp;
+declare function createSoundChip(name:'scsp',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundScsp>;

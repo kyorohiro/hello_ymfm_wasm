@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
+import {createScspValidation,scspCommandArgs} from './playground_scsp.js';
+import {createScspInitSample} from './scspsynth.js';
 import {SnesSynth} from './snessynth.js';
 import {Ps1Synth,createPs1InitSample} from './ps1synth.js';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js';
@@ -43,6 +45,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
       this.context = audioContext; this.name = name; this.options = options; this.messages = []; this.connections = [];
       this.loadedMemory = null;
       this.validation = name.includes('snes') ? new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}}) : null;
+      if(name.includes('scsp')){this.validation=createScspValidation();const {pcm,options}=createScspInitSample(),sample=this.validation.loadPCM(pcm,options);for(let ch=0;ch<32;ch++)this.validation.setPreset(ch,{sample});}
       if(name.includes('ps1')){this.validation=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=this.validation.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)this.validation.setPreset(ch,{sample});}
       this.port = {closed:false, close:() => { this.port.closed = true; this.remote?.close(); }, postMessage:data => {
         this.messages.push(data);
@@ -55,13 +58,13 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
       if (stage === 'ready' && (name.includes(target)||options.processorOptions.chip===target)) { reached = true; gate.promise.then(() => this.ready()); }
       else queueMicrotask(() => this.ready());
     }
-    ready() { this.port.onmessage?.({data:{ready:true,sampleRate:48000,internalSampleRate:44100,voices:[{index:0,name:'INIT SINE'}],selectedVoice:0,...(this.name.includes('ps1')?{state:this.validation.getState()}:{})}}); }
+    ready() { this.port.onmessage?.({data:{ready:true,sampleRate:48000,internalSampleRate:44100,voices:[{index:0,name:'INIT SINE'}],selectedVoice:0,...((this.name.includes('ps1')||this.name.includes('scsp'))?{state:this.validation.getState()}:{})}}); }
     receive(data, port) {
       this.messages.push(data);
       if (data.method === 'dispose') { port.close(); return; }
       let value = true;
       if(this.name.includes('dx7')&&['getState','stopVoices'].includes(data.method))value=synth.dx7._getState();
-      if (this.validation && typeof this.validation[data.method] === 'function') value = this.validation[data.method](...(data.args ?? []));
+      if (this.validation && typeof this.validation[data.method] === 'function') value = this.validation[data.method](...(this.name.includes('scsp')?scspCommandArgs(this.validation,data.method,data.args??[]):data.args??[]));
       else if(this.validation&&data.method==='stopVoices')this.validation.allNotesOff();
       if (data.method === 'loadMemory') this.loadedMemory = data.args[0].slice();
       if (data.id !== undefined) port.postMessage({id:data.id,value});
@@ -76,7 +79,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','ps1','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','ps1','scsp','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -180,7 +183,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','ps1','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','ps1','scsp','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -378,4 +381,15 @@ test('PS1 primary handoff retains authored24voice bank and Stop awaits the remot
 
 test('PS1 fatal processor failure releases its route/client and permits restart with a fresh bank',async t=>{
  const{nodes,synth}=harness(t,'ps1');await synth.start();const old=synth.spu,pending=old.snapshot();nodes[0].onprocessorerror();await pending.catch(()=>{});assert.equal(synth.isReady(),false);assert.equal(synth.state,'error');assert.equal(synth.primaryEndpoints.length,0);assert.throws(()=>old.keyOff(0),/disposed/);assert.equal(synth.mixer.list().filter(row=>row.connected).length,0);await synth.start();assert.equal(synth.isReady(),true);assert.notEqual(synth.spu,old);assert.equal(synth.spu._getState().samples.length,1);
+});
+
+test('SCSP Stop awaits remote silence, preserves bank/presets, and handoff does not replay writes',async t=>{
+  const {synth,nodes}=harness(t,'scsp');await synth.start();
+  synth.scsp.noteOn(31,'A4');const before=synth.scsp._getState();await synth.stopAllNative();
+  await until(()=>nodes[0].messages.some(data=>data.method==='stopVoices'));
+  const after=synth.scsp._getState();assert.deepEqual(after.samples,before.samples);assert.equal(after.slots[31].gate,false);
+  assert.equal(after.slots[31].frequencyHz,440);assert.equal(nodes[0].validation.getState().slots[31].gate,false);
+  const channel=new MessageChannel();let writes=0;channel.port1.onmessage=()=>writes++;channel.port1.start();
+  const borrowed=createNativePrimaryClient('scsp',channel.port2,{state:after});t.after(()=>{borrowed.dispose();channel.port1.close();});
+  await immediate();assert.equal(writes,0);assert.deepEqual(borrowed._getState(),after);
 });

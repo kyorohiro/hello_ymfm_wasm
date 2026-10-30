@@ -206,6 +206,8 @@ export function playgroundLegacyMixerTrims(modeId) {
 }
 
 export function createPlaygroundSoundChipMixer(modeId = 'genesis') {
+  // SCSP has no listening calibration yet; retain neutral source gain explicitly.
+  if(modeId==='scsp')return new SoundChipMixer({gainUnits:'source',factoryDefaults,factoryEngines,factoryEntries:{version:1,entries:[]}});
   if(!Object.hasOwn(factoryModes,modeId))throw new RangeError('No Playground Mixer calibration for mode: '+String(modeId));
   return new SoundChipMixer({gainUnits:'source',factoryDefaults,factoryEngines,factoryEntries:factoryModes[modeId]});
 }
@@ -237,9 +239,9 @@ export async function generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,
 
 async function main(args) {
   const options = {
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_vab_chip_levels_01.json',import.meta.url)),
-    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_vab_chip_levels_01.json',import.meta.url)),
-    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_vab_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_scsp_chip_levels_01.json',import.meta.url)),
+    wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_scsp_chip_levels_01.json',import.meta.url)),
+    pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_scsp_chip_levels_01.json',import.meta.url)),
     outPath:fileURLToPath(new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false;

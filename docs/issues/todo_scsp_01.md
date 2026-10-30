@@ -25,17 +25,22 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 
 - [x] `Scsp`低レベルwrapperを追加。実WASMでPCM・RAM・masked writes・reset／disposeを検証する。
   [APIと自作Sine例](../scsp.md)。音声device／resamplingは含めない。
-- [ ] **次：** `ScspSynth`相当の高レベルAPI・型定義を作る。
-- [ ] PCM8／PCM16、基準音程、32物理slots、key操作、音量・pan、loop、AR／D1R／D2R／DL／RRを扱う。
-- [ ] 自作Sine／Triangle／打楽器で音程・loop境界・EG・32音加算・clip・resamplingを検証する。
-- [ ] RAM使用量・サンプル所有権・置換／reset時の扱いを定義する。
+- [x] `ScspSynth`高レベルAPI・型定義を追加。音名・ライブ音程／mix・次回keyOn用の音色編集を分離する。
+- [x] PCM8／PCM16、基準音程、32物理slots、key操作、音量・pan、forward loop、AR／D1R／D2R／DL／RRを扱う。
+  reverse／ping-pong loopはraw coreのみ。forward loop長を超えるpitch stepは移植コアの制約として拒否する。
+- [x] 自作Sine／Triangle／打楽器で音程・forward loop境界・EG・32音加算・clipを実WASMで検証する。
+- [x] host-rate resampling（44.1／48／96 kHz）を検証し、PlaygroundのAudioWorkletへ接続する。
+- [x] RAM使用量・サンプル所有権・reset時の扱いを定義する。
+  append-only bank、PCMコピー、補間guard、alignment、所有descriptorを採用。個別置換／解放は未提供。
 
 ## 3. Playground
 
-- [ ] `useSoundChip('scsp')`とModeを追加。Main／Workerが同じAudioWorklet coreを使用する。
-- [ ] 初期コードと例を用意し、Prepare audioだけでもKeyboard演奏できるようにする。
-- [ ] 32-slot Inspector、適用済み状態、Hold／Release／Keyboard、PCM／EG編集、Copy voice JavaScriptを接続する。
-- [ ] Stop・予約取消・dispose・再起動・focus・複数instance・mixer／FXを検証する。
+- [x] `useSoundChip('scsp')`／追加instanceとSaturn Modeを追加。Main／Workerが同じAudioWorklet coreを使用する。
+- [x] 初期コード・PCM16 stereo例を用意。Prepare audioだけで32 slotsをKeyboard／Holdで試奏できる。
+- [x] 32-slotの設定／RAM Inspector、Hold／Release／Keyboardを接続する。表示gateは発音要求であり、実EG活動meterではない。
+- [ ] **次：** PCM／EG編集とCopy voice JavaScriptを接続する。
+- [x] Stop・予約／owner取消・manual lease・bank／instance所有権・追加instance・再起動をNode／実ブラウザで確認する。
+- [ ] 復旧・focus／blur・Mixer／FX操作の網羅とSCSP音量校正を追加する。
 
 ## 4. Native音声経路
 
@@ -82,3 +87,17 @@ Native CTest・ASan／UBSan、SDK出典検証、既存配布unit 101件＋SCSP c
 Node 135＋consumer Python 143＋SDK release unit 107 tests成功。[詳細](scsp_sdk_import_01.md)。
 次は共通Synth API（PCM読み込み・基準音程・EG・32 slots・RAM管理）からPlaygroundへ。
 公開・commitは実施していない。今回のSDK pinは未公開local candidateとして明示済み。
+
+2026-10-30後続：`ScspSynth`とraw／Synthの型定義を追加。実WASMのraw 5＋Synth 9＝14 tests、
+strict TypeScriptの正常例／不正利用診断が成功。[API・制約・実行例](../scsp.md)。
+発音／離鍵・32 slots・PCM8/16・RAM満杯／bank所有権・停止／reset・波形／EG／live pitchを確認。
+Native SDK／固定snapshot／生成WASMに変更なし。次はhost resamplingとPlayground接続。
+Playground／Synth UI／Tauri Native／SSFはまだ未対応。公開・commitは今回実施していない。
+
+2026-10-30後続：PlaygroundのSaturn SCSP Mode／Main・Worker AudioWorklet／32-slot表示・Hold・Keyboard、
+PCM16 upload例、独立instance、Stopを接続。[今回の作業・検証](scsp_playground_01.md)。
+関連253＋Mixer生成37＋ZIP準備10＝300 Node tests、strict型検証成功。
+実Run ZIPのChromium／WebKit × Main／Worker全4経路成功。物理出力は全てミュート。
+既存PS1／WonderSwan／POKEYは新規reportで再測定し、source freshnessと配布生成を確認。
+Run ZIPは964 entries。SDK／生成WASMは変更なし。未commit／未公開。
+次はPCM／EG編集・Copy voice JS。Native音声／専用Synth／SSFは後続。

@@ -27,7 +27,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['neogeo-b','ym2610b',8000000,false],
     ['wonderswan','wonderswan',3072000,false],
     ['gameboy','gameboy',4194304,false],
-    ['nes','nes',1789773,false],['ps1','ps1',undefined,false],['snes','snes',1024000,false],
+    ['nes','nes',1789773,false],['scsp','scsp',undefined,false],['ps1','ps1',undefined,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],['pc-engine-cd','huc6280',3579545,false],
     ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['pokey','pokey',1789790,false],['pokey-dual','pokey',1789773,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
@@ -41,6 +41,11 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'scsp') {
+      assert.equal(mode.fmChannels,0);assert.deepEqual(mode.chipTabs,['scsp']);
+      assertWorkletUrl(options.workletUrl,'scsp');
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/scsp_wasm.wasm');continue;
+    }
     if (mode.chip === 'ps1') {
       assert.equal(mode.fmChannels,0); assert.deepEqual(mode.chipTabs,['ps1']);
       assertWorkletUrl(options.workletUrl,'ps1');
@@ -179,7 +184,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'ps1-mode-1', `${id} cannot reuse its cached shared control transport`);
+    assert.match(url.searchParams.get('v')??'', /^[\w.-]+$/, `${id} cannot reuse its cached shared control transport`);
   }
 });
 

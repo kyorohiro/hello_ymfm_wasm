@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "scope": "SCSP initial Web Audio Playground integration",
+  "passed": true,
+  "published": false,
+  "committed": false,
+  "nativeAudioIntegrated": false,
+  "sdkAndGeneratedWasmChanged": false,
+  "tests": {
+    "relatedNode": 253,
+    "calibrationGeneration": 37,
+    "zipPreparation": 10,
+    "strictTypeScript": true,
+    "playgroundModeTypes": true,
+    "npmBuildAndInstalledPackage": true
+  },
+  "browser": {
+    "report": "docs/issues/scsp_playground_browser_01.json",
+    "bytes": 9969,
+    "sha256": "f9b33120f5b09a4c67b96b3d6cce6937a3353936803e9240a393fcc39dea04bd",
+    "host": "extracted Run ZIP listed below",
+    "cases": 4,
+    "captures": 40,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "sources": {
+    "web/scsp.js": {
+      "bytes": 10554,
+      "sha256": "50dcc4f4df918163e04fe67be99e6acb2720e19d5f4ee160b2cf3cbd4b08b407"
+    },
+    "web/scspsynth.js": {
+      "bytes": 11787,
+      "sha256": "704a343f9983f5856beb2c255b21863ebf9e7fea5410190780db537ab85c5de6"
+    },
+    "web/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "web/ps1_resampler.js": {
+      "bytes": 181,
+      "sha256": "3969c59a53f5bc27b6761bb488e64fd3f5925b90145debd9906a93221f2ad190"
+    },
+    "web/playground_scsp.js": {
+      "bytes": 5288,
+      "sha256": "a5e78183aece865451e8570e4381058e33e007be5194f8595e8ec21a7299ee44"
+    },
+    "web/playground_scsp_audio.js": {
+      "bytes": 3656,
+      "sha256": "bd5888d4a6f39ee35c66d40b7c9a3bbbe1c36dd0a6925f31d737a7be6564b379"
+    },
+    "web/playground_scsp_worklet.js": {
+      "bytes": 6608,
+      "sha256": "35b4a86f6c1473930a10767e0c62d5dfcb46dd3a1318a5768735e31ad5c5271e"
+    },
+    "web/playground_scsp_inspector.js": {
+      "bytes": 2567,
+      "sha256": "62faeb5d3afac1ca53a5fc4c9ba656b70bec01d4e92114e5d9e2cb50d7e1bb9d"
+    },
+    "docs/playground/playground_scsp_voice_panel.js": {
+      "bytes": 3728,
+      "sha256": "a945194ed635197283dec9ed6da30fb74c1c24f0138c345ce11ef299fe4f3293"
+    },
+    "scripts/check_playground_scsp_browser.cjs": {
+      "bytes": 8600,
+      "sha256": "46c28a80984e729099dc34542467d0d0721622d2876a9b29a46e57e5f8dae43a"
+    },
+    "docs/generated/scsp_wasm.js": {
+      "bytes": 11384,
+      "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
+    },
+    "docs/generated/scsp_wasm.wasm": {
+      "bytes": 17854,
+      "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981"
+    }
+  },
+  "artifacts": {
+    "release/hello_ymfm_wasm_scsp-dev-20261030_itch_playground.zip": {
+      "bytes": 37154845,
+      "sha256": "b7f9828368c613ae424e5784896ab8b77ea4203e07bd981283277ade4681d14b",
+      "entries": 1252,
+      "directoryEntries": 135
+    },
+    "release/hello_ymfm_wasm_scsp-dev-20261030_itch_playground_for_run.zip": {
+      "bytes": 37588288,
+      "sha256": "6d156450690d806230d595f3d69de30f47fb9d908489ec2be0aec36b5d82831a",
+      "entries": 964,
+      "directoryEntries": 0
+    }
+  },
+  "calibrationReports": {
+    "docs/issues/ps1_scsp_chip_levels_01.json": {
+      "bytes": 561621,
+      "sha256": "9df3d15a2640d76e4cecdda0ad05b8c8dc10869661038336477cbd488d5896c0"
+    },
+    "docs/issues/wonderswan_scsp_chip_levels_01.json": {
+      "bytes": 489960,
+      "sha256": "8d896e0aaa2dbfdb09270a83f82d4d12cde2086dedddaf84c2a30fba451e371c"
+    },
+    "docs/issues/pokey_scsp_chip_levels_01.json": {
+      "bytes": 1045707,
+      "sha256": "0115bfb87cb2509e920a51884c997017758899dc940c81dcf65c75656c07e186"
+    }
+  },
+  "limits": [
+    "SCSP Mixer uses neutral gain 1; no listening calibration yet.",
+    "Initial slot inspector; PCM/envelope editing currently uses JavaScript.",
+    "Native audio, dedicated Synth UI, DSP/FM controls and SSF remain later stages."
+  ]
+}

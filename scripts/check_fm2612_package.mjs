@@ -28,6 +28,10 @@ try {
   for(const file of ['ps1_parameters.js','ps1_parameters.d.ts']) {
     assert.ok(packedPaths.has(file),`PS1 named envelope/reverb parameters payload missing ${file}`);
   }
+  for(const file of ['scsp.js','scsp.d.ts','scspsynth.js','scspsynth.d.ts','pcm_44100_resampler.js',
+    'playground_scsp.js','playground_scsp_audio.js','playground_scsp_worklet.js','playground_scsp_inspector.js',
+    'generated/scsp_wasm.js','generated/scsp_wasm.wasm','licenses/mame-scsp/LICENSE','sources/SCSP.json',
+    'sources/scsp-sdk/vendor/mame-scsp/scsp.cpp','sources/scsp-sdk/scripts/build_scsp_wasm.sh'])assert(packedPaths.has(file),'SCSP dependency/source/notice missing '+file);
   for(const file of ['ps1_waveform.js','ps1_waveform.d.ts']) {
     assert.ok(packedPaths.has(file),`PS1 PCM waveform preparation payload missing ${file}`);
   }

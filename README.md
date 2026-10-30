@@ -245,8 +245,10 @@ With Emscripten and Python 3 installed, run a chip recipe such as
 `sh scripts/build_okim6258_wasm.sh` or `sh scripts/build_dx7_wasm.sh`.
 See the full recipe list and [build and SDK update instructions](docs/building_ym2612_wasm.md).
 The experimental [Saturn SCSP core](docs/scsp.md) also provides a separate
-32-slot Native/WASM instrument and a raw JavaScript API. Playground and Synth
-integration are in progress; it is not an npm chip-factory entry point.
+32-slot Native/WASM instrument, raw JavaScript and musical PCM APIs, and an
+experimental [Web Audio Playground mode](docs/playground/index.html?mode=scsp)
+with Main/Worker control and Keyboard audition. The dedicated Synth and Tauri
+Native audio integration remain later stages; it is not an npm chip-factory entry point.
 Run `npm run test:wasm:sdk` to rebuild all 33 artifacts in an isolated temporary
 directory and verify receipts, the WASM ABI and exact PCM against the committed
 builds. The same command runs in the WASM SDK CI workflow; it needs no sibling

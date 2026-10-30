@@ -1,6 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {patchPs1Envelope} from './ps1_parameters.js?v=ps1-voice-editor-1';
-import {preparePs1ADPCM} from './ps1synth.js?v=ps1-cyclic-1';
+import {preparePs1ADPCM} from './ps1synth.js?v=ps1-deferred-release-1';
 const channel=value=>{if(!Number.isInteger(value)||value<0||value>23)throw new RangeError('PS1 SPU channel must be 0..23');return value;};
 function identity(value){if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;}
 function retriggerOption(value={}){
@@ -13,7 +13,7 @@ function envelopeOptions(value={}){
 }
 /** Applied instrument state and identity-safe manual channel leases. Reads do not render. */
 export class Ps1VoiceInspector {
-  /** @param {import('./ps1synth.js').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
+  /** @param {import('./ps1synth.js?v=audio-stability-2').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
   constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{},onResourcesChanged=()=>{}}={}){
     this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.onResourcesChanged=onResourcesChanged;this.auditions=new Map();
   }

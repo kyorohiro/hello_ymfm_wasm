@@ -15,6 +15,7 @@ const definitions = [
   {id:'wonderswan', label:'WonderSwan', chip:'wonderswan', engine:'wavetable', fmChannels:0, clock:3072000, chipTabs:['wonderswan'], details:'4 channels · 32 × 4-bit waveforms · Stereo · Noise / Sweep / PCM'},
   {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, chipTabs:['gameboy']},
   {id:'nes', label:'NES + FDS', chip:'nes', engine:'apu', fmChannels:0, chipTabs:['nes']},
+  {id:'scsp', label:'Saturn (SCSP)', chip:'scsp', engine:'scsp', fmChannels:0, chipTabs:['scsp'], details:'SCSP · 44,100 Hz · 32 PCM slots · 512 KiB RAM · Experimental · Web Audio'},
   {id:'ps1', label:'PlayStation (PS1)', chip:'ps1', engine:'spu', fmChannels:0, chipTabs:['ps1'], details:'SPU · 44,100 Hz · 24 ADPCM voices · 512 KiB RAM · Experimental'},
   {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, chipTabs:['snes'], details:'S-DSP · 32,000 Hz · 8 voices'},
   {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, chipTabs:['ym2151','okim6258'], details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
@@ -73,7 +74,7 @@ export function resolvePlaygroundMode(search = '') {
   const chip = (params.get('chip') || 'ym2612').toLowerCase();
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
     ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy',
-    ps1:'ps1',wonderswan:'wonderswan',pokey:'pokey',nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
+    scsp:'scsp',ps1:'ps1',wonderswan:'wonderswan',pokey:'pokey',nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
     ym3812:'ym3812',ym3526:'ym3526',y8950:'msx-audio',ymf262:'ymf262',msx:'msx','msx-audio':'msx-audio'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
@@ -97,6 +98,10 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
+  if (mode.chip === 'scsp') return {chip:'scsp',
+    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-playground-1',base).href,
+    wasmUrl:new URL('scsp_wasm.wasm',generated).href,
+    segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'ps1') return {chip:'ps1',
     workletUrl:new URL('./playground_ps1_worklet.js?v=ps1-deferred-release-1',base).href,
     wasmUrl:new URL('ps1_spu_wasm.wasm',generated).href,

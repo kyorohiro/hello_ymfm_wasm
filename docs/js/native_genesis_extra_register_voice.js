@@ -1,5 +1,5 @@
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-deferred-release-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-playground-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {copyY8950AdpcmMemory,Y8950_ADPCM_MEMORY_BYTES} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
 import {validateY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';

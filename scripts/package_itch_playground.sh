@@ -45,6 +45,7 @@ playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
 playground_snes_voice_panel.js
 playground_ps1_voice_panel.js
+playground_scsp_voice_panel.js
 playground_ps1_vab.js
 playground_ps1_vab_panel.js
 playground_ps1_psf.js
@@ -121,6 +122,7 @@ tetorica-playground-gameboy.d.ts
 tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
 tetorica-playground-ps1.d.ts
+tetorica-playground-scsp.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
 tetorica-playground-pc-engine-cd.d.ts
@@ -174,6 +176,13 @@ ps1_parameters.js
 ps1_waveform.js
 ps1synth.js
 ps1_resampler.js
+pcm_44100_resampler.js
+scsp.js
+scspsynth.js
+playground_scsp.js
+playground_scsp_audio.js
+playground_scsp_worklet.js
+playground_scsp_inspector.js
 playground_ps1.js
 playground_ps1_audio.js
 playground_ps1_worklet.js
@@ -473,6 +482,8 @@ ymf262_wasm.js
 ymf262_wasm.wasm
 ps1_spu_wasm.js
 ps1_spu_wasm.wasm
+scsp_wasm.js
+scsp_wasm.wasm
 spc_wasm.js
 spc_wasm.wasm
 ym2151_wasm.js
@@ -661,9 +672,11 @@ DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_ps1_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_scsp_sources.mjs" "${STAGE_DIR}"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
+Saturn SCSP: MAME adaptation by ElSemi and R. Belmont, BSD-3-Clause. See licenses/mame-scsp/ and sources/SCSP.md for source and rebuilding.
 PlayStation SPU: MAME adaptation, BSD-3-Clause. See licenses/mame-ps1-spu/ and sources/PS1-SPU.md for full source, provenance and rebuilding.
 SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 Nuked OPN2: LGPL-2.1-or-later. See licenses/nuked-opn2/ and sources/Nuked-OPN2.md for corresponding source and rebuilding.
@@ -723,6 +736,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \
+  "${STAGE_DIR}/playground_scsp_voice_panel.js" \
   "${STAGE_DIR}/playground_ps1_voice_panel.js" \
   "${STAGE_DIR}/playground_ps1_vab.js" \
   "${STAGE_DIR}/playground_opl_voice_panel.js" \

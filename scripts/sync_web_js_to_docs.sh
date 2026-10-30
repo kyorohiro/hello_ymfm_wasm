@@ -29,6 +29,13 @@ ps1_parameters.js
 ps1_waveform.js
 ps1synth.js
 ps1_resampler.js
+pcm_44100_resampler.js
+scsp.js
+scspsynth.js
+playground_scsp.js
+playground_scsp_audio.js
+playground_scsp_worklet.js
+playground_scsp_inspector.js
 playground_ps1.js
 playground_ps1_audio.js
 playground_ps1_worklet.js
@@ -480,3 +487,8 @@ node "${ROOT_DIR}/scripts/version_vgm_analyzer_runtime.mjs"
 
 # Standalone WonderSwan assets use the same deployed generated directory.
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_wonderswan_audio.js" "${DOCS_JS_DIR}/playground_wonderswan_worklet.js"
+
+# Saturn shares the fixed-rate runtime, with generated WASM beside docs/js.
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_scsp_audio.js" "${DOCS_JS_DIR}/playground_scsp_worklet.js"
+
+node "${ROOT_DIR}/scripts/copy_scsp_sources.mjs" "${ROOT_DIR}/docs"

@@ -62,4 +62,11 @@ for(const file of ['tetorica-playground-ps1.d.ts','playground_ps1_voice_panel.js
 for(const file of ['js/spc.js','js/snessynth.js','js/snes_brr_encoder.js','js/spc_resampler.js','js/playground_snes.js','js/playground_snes_audio.js','js/playground_snes_worklet.js','generated/spc_wasm.js','generated/spc_wasm.wasm','licenses/snes-spc/LICENSE','sources/third_party/snes-spc/snes_spc/SPC_DSP.cpp','sources/wasm/spc_wasm.cpp','sources/scripts/build_spc_wasm.sh','examples/snes/snes-brr-melody.js','examples/snes/snes-pcm-brr.js'])if(!existsSync(resolve(root,file)))errors.push(file);
 if(!existsSync(resolve(root,'js/ps1_waveform.js')))errors.push('js/ps1_waveform.js');
 if(!existsSync(resolve(root,'playground_ps1_envelope.js')))errors.push('playground_ps1_envelope.js');
+
+for(const file of ['tetorica-playground-scsp.d.ts','playground_scsp_voice_panel.js','defaults/scsp/index.js','examples/scsp/scsp-stereo-pcm.js',
+  'js/scsp.js','js/scspsynth.js','js/pcm_44100_resampler.js','js/playground_scsp.js','js/playground_scsp_audio.js','js/playground_scsp_worklet.js','js/playground_scsp_inspector.js',
+  'generated/scsp_wasm.js','generated/scsp_wasm.wasm','sources/SCSP.json','sources/scsp-sdk/vendor/mame-scsp/scsp.cpp','licenses/mame-scsp/LICENSE']) {
+  if(!existsSync(resolve(root,file)))errors.push(file);
+}
+
 if(errors.length){console.error('ERROR: missing or out-of-package dependencies:\n'+errors.join('\n'));process.exit(1);}console.log(`PASS: ${count} local module/asset references plus all mode starters, native APIs, WASM and release licenses`);

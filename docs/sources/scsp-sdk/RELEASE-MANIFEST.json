@@ -1,0 +1,1908 @@
+{
+  "files": {
+    ".gitattributes": {
+      "sha256": "d1bf8c15f3d057157d7a915387375f443cf4d5d1d5ffdc0a4628fce2e1467384",
+      "size": 158
+    },
+    ".github/workflows/verify-sdk.yml": {
+      "sha256": "a3f6cafd8215cffb2ee9a054a321c0f53886f1cebe59210ce4bf405868d85836",
+      "size": 6297
+    },
+    ".gitignore": {
+      "sha256": "cd063cd906d6d4b905d24e6803b3d3de42b165ca4bf4c5acde19fcdfd9060711",
+      "size": 55
+    },
+    "CHANGELOG.md": {
+      "sha256": "7b68191bcf315f2dee666f6fbeb440e2038944a33a0fe1cebd551d5f7e3c4645",
+      "size": 26740
+    },
+    "CMakeLists.txt": {
+      "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
+      "size": 142
+    },
+    "LICENSE": {
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "size": 1517
+    },
+    "LICENSE.tools": {
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "size": 1517
+    },
+    "LICENSES.md": {
+      "sha256": "945bc416cad871584e559d0fe442e906f44c5323c7e734943d73512be66a4fca",
+      "size": 7101
+    },
+    "README.md": {
+      "sha256": "bdab5ff57cd10f72bd8a082bc182708fa9b6b1feadc81265eb5050ee24726dcb",
+      "size": 31386
+    },
+    "catalog/chips.json": {
+      "sha256": "b26fce3038430e1252f9060c046833a0caf5a0c3835e0c1612aa84be012469b4",
+      "size": 102268
+    },
+    "catalog/native_inventory.json": {
+      "sha256": "36f90722cb59f992d37caf8f88f45675c3f0dcdabed6638a91e7ca80575c86db",
+      "size": 52620
+    },
+    "catalog/source_inventory.json": {
+      "sha256": "325ee890ce772bfb7d7b2a9428e45bbab49296184b2c16806ada9a8c4b7cc4a2",
+      "size": 150504
+    },
+    "docs/architecture.md": {
+      "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda",
+      "size": 22501
+    },
+    "docs/chip-differences.md": {
+      "sha256": "3b6b4ddc0a5df886286843bf3c5ebf3d92a8265b8d99c2ce2a74bd4537e2a39f",
+      "size": 54155
+    },
+    "docs/releases.md": {
+      "sha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
+      "size": 23185
+    },
+    "docs/research.md": {
+      "sha256": "a7a491f75a30d0bb57639d245fe2744b82b703076486e792ddbd090cd3bc672c",
+      "size": 12695
+    },
+    "docs/verification.md": {
+      "sha256": "5973ab2808d2a7e45ce0059d146c2640b999583f8b88dbd60846357374518fe1",
+      "size": 104748
+    },
+    "native/CMakeLists.txt": {
+      "sha256": "3cd7c1d79c9b7decf72831d3dfedfe01d246284eb42961c3df5665361ec06c23",
+      "size": 40263
+    },
+    "native/README.md": {
+      "sha256": "5a9dd093497656f7c38e790a5bbd94a7bb85242a914deb365724d5ebf9ec6a93",
+      "size": 122714
+    },
+    "native/examples/dos_opl_wav.cpp": {
+      "sha256": "4428515bf93f9644e5c32f793bf6c579f8765522f6ede2386a5ef8a780ab38a5",
+      "size": 6200
+    },
+    "native/examples/dx7_wav.cpp": {
+      "sha256": "2348d1b2b7a97cb1ae2bfc138aa63f3b2b5fd315818015064f6d20c72236f946",
+      "size": 6819
+    },
+    "native/examples/gameboy_wav.cpp": {
+      "sha256": "7f824e4be23415ca9021358df095bd63d746a3f9b418f9f6c7588b01e011e9cf",
+      "size": 6145
+    },
+    "native/examples/genesis_wav.cpp": {
+      "sha256": "59c6e6e9d4ce7d48dd32f24bc9a87d236ed14f9e2681b76820c1efb86c4d02d6",
+      "size": 7006
+    },
+    "native/examples/master_system_wav.cpp": {
+      "sha256": "21683e02ea1b0f1abe116872580d53476a7a75a44a5714a2a85b88b564049cc8",
+      "size": 6943
+    },
+    "native/examples/megacd_wav.cpp": {
+      "sha256": "d59dd3f7b4a3082529b64346f7f0f9d5982b500faf7b55104bff14135f762191",
+      "size": 9838
+    },
+    "native/examples/msx_audio_wav.cpp": {
+      "sha256": "07329a63960795bbf148c4ca52ca07408bd0eaf7876719b2fdcd75bc1f60ba3a",
+      "size": 10807
+    },
+    "native/examples/msx_wav.cpp": {
+      "sha256": "46f26f26ac41b7f25af51a2e851c4d28ba8ea1a39a4693d3efe33d52e6884572",
+      "size": 6657
+    },
+    "native/examples/neogeo_wav.cpp": {
+      "sha256": "e904a8edc61ebd0086392c18c5be765b8a181aba93454c362e407207826f403f",
+      "size": 12227
+    },
+    "native/examples/nes_fds_wav.cpp": {
+      "sha256": "8a693c4e1d785271c10bed872e9e5968f0545556362ca6fd779dc5475b3e7c96",
+      "size": 7642
+    },
+    "native/examples/nuked_genesis_wav.cpp": {
+      "sha256": "d8951d006cd084b4f1d09da6c072ff9379f48b278845e557f41ee5b81e09a39b",
+      "size": 7120
+    },
+    "native/examples/pc98_ym2203_wav.cpp": {
+      "sha256": "d0ef799685d6ed68205aba6983645cf7bfa555bcf0536a307666fb2f871c7cbb",
+      "size": 7086
+    },
+    "native/examples/pc98_ym2608_wav.cpp": {
+      "sha256": "a13aa2ebbcf1b1f07844214f4a1a9071141f145c9fe4c0430e86c4abbb92ed5c",
+      "size": 11958
+    },
+    "native/examples/pcengine_cd_wav.cpp": {
+      "sha256": "1ad6848d8c5a0a6226b59d8f35e8ac9b74bb1cbe46551ad3d2ae415c94b24a78",
+      "size": 7204
+    },
+    "native/examples/pcengine_wav.cpp": {
+      "sha256": "f359fef8f7c2ef84907adf9f39ef32d50dcb7f6643f90196d38e0469092a67fe",
+      "size": 6555
+    },
+    "native/examples/pokey_wav.cpp": {
+      "sha256": "612a6855bf3016823c517eff1c650793636595baa7fcf56da590bf6869531390",
+      "size": 5208
+    },
+    "native/examples/ps1_spu_pattern.hpp": {
+      "sha256": "0f6eda8ebc7e29f61330dd1327463afb2f032045c1341c91e422de0f1d86c210",
+      "size": 4688
+    },
+    "native/examples/ps1_spu_wav.cpp": {
+      "sha256": "a63088373e8a0a75457b80606d38021e291f003242f33f21d551243940f2d83b",
+      "size": 2254
+    },
+    "native/examples/scsp_pattern.hpp": {
+      "sha256": "27bad3decf381dc8d49ecbb9ba4d4f3b8ab3a85c7f6dac90ee974f596b0613c2",
+      "size": 2172
+    },
+    "native/examples/sega32x_wav.cpp": {
+      "sha256": "1fa10462582e73507d2fb0775dcd412804adc925ea3d3b1e626d11b441a8ba02",
+      "size": 10283
+    },
+    "native/examples/snes_wav.cpp": {
+      "sha256": "4631e85cf882dbe50bf1171eca1f6d67f4f26d5c2320d259a5abf9cf06964f2b",
+      "size": 7633
+    },
+    "native/examples/spc_wav.cpp": {
+      "sha256": "e0a80ef0a6f2d36934df1a627bac5a74957b0037c02d648bea5bed1c361f1e40",
+      "size": 8172
+    },
+    "native/examples/wonderswan_wav.cpp": {
+      "sha256": "dd953ac0383b7be5c4758cfe0aa59e4cbec05b69242c17a99768afe200911fc3",
+      "size": 6537
+    },
+    "native/examples/x68000_wav.cpp": {
+      "sha256": "1e7a0702d4bdaad83392838597e6159b923752844fb002913b5ec889ea8b9163",
+      "size": 8355
+    },
+    "native/include/tetorica/ay8910.hpp": {
+      "sha256": "8e90657a3e7d17a27507d4a1f3457140a27875393dfc198c4714b3584308b06f",
+      "size": 195
+    },
+    "native/include/tetorica/cdda.h": {
+      "sha256": "81b3d515223f9a9b4a562bb35adb07a1a915e080bbb3c60f1f89094c9183a92a",
+      "size": 244
+    },
+    "native/include/tetorica/dx7.hpp": {
+      "sha256": "8c6126b68958dc3e5d251b4107e7714d05e32e11ea7d7a9a09e054ba00a5ed62",
+      "size": 1833
+    },
+    "native/include/tetorica/gameboy.hpp": {
+      "sha256": "a2bc5052db49a373069e4d0411cacd62e604d502d25759f1ce4e66d1bc57c7c4",
+      "size": 205
+    },
+    "native/include/tetorica/huc6280.hpp": {
+      "sha256": "eeec26a580308139822434608f19b6b64dc870be945b36e2fd09dda57e6aba68",
+      "size": 239
+    },
+    "native/include/tetorica/msm5205.h": {
+      "sha256": "a5fd291c32bdc6d8c0766ba2061908b137f5558ce552529a0b54f8e049f66aab",
+      "size": 253
+    },
+    "native/include/tetorica/nes.hpp": {
+      "sha256": "af1d0135d0b80bb3539bcdac677e813b99f4b9e4f205197db2119ecd9fbddc77",
+      "size": 1120
+    },
+    "native/include/tetorica/nuked_ym2612.hpp": {
+      "sha256": "bc907448078e19286c9480512716ba37a4b58b41ae5f4745b038106a795eca19",
+      "size": 2308
+    },
+    "native/include/tetorica/okim6258.hpp": {
+      "sha256": "50a265e5d34e7b3392c998a976bf639de47d281d8b7404e64e7655bdeb330338",
+      "size": 217
+    },
+    "native/include/tetorica/opl.hpp": {
+      "sha256": "bd09e4fc2bdd26b0228b3ba1e4b2ef00e4db3282e7392c72646827d9e9a6f6a3",
+      "size": 246
+    },
+    "native/include/tetorica/pokey.hpp": {
+      "sha256": "1a899cb7eb721d430f4e2dbb624c309c145601568f1168e2e246bd8e1eaa09c2",
+      "size": 761
+    },
+    "native/include/tetorica/ps1_spu.h": {
+      "sha256": "fb63b2d23722b22add49bca62d30ad24f9c9af5cdd7fbe8807b09c01d44b92bb",
+      "size": 260
+    },
+    "native/include/tetorica/pwm.hpp": {
+      "sha256": "1401fdac5e6a23da3fb24b07008a563b595343e456931b4811d811212a3ceefc",
+      "size": 1055
+    },
+    "native/include/tetorica/rf5c164.hpp": {
+      "sha256": "f8fc6628297a3a1548cefc83f00e5997f578d6a528d8654d1ff3753f0497b9bf",
+      "size": 248
+    },
+    "native/include/tetorica/scsp.h": {
+      "sha256": "43366f19b96d0f0fd9612cb68510b70304ba9afe95f6034f5bc761db9ced3148",
+      "size": 109
+    },
+    "native/include/tetorica/segapsg.hpp": {
+      "sha256": "67e6b0885890b223243509faceb0a486ada75b4a4b602a66731d077facfaa4b2",
+      "size": 211
+    },
+    "native/include/tetorica/snes.hpp": {
+      "sha256": "f4bb49053cd3a560f697ce9b38b5da9a2c5f9d1ea7df62fce9709d5fc4bb9379",
+      "size": 2370
+    },
+    "native/include/tetorica/spc.hpp": {
+      "sha256": "911b1d88f5560b27114789208d2c4e2a1e90764205e3a96fcdce225ab1b1dfd3",
+      "size": 2838
+    },
+    "native/include/tetorica/wonderswan.hpp": {
+      "sha256": "bd04ea99f17f843d19042a37bcc7dee029711f017c842951e27c217918e3d691",
+      "size": 802
+    },
+    "native/include/tetorica/y8950.hpp": {
+      "sha256": "ddb787b227c6f0dbae26d4ee0c7df824f566c300d64b85bcc8720f728047b5b3",
+      "size": 107
+    },
+    "native/include/tetorica/ym2151.hpp": {
+      "sha256": "6a6e769f63f88a5fae2d40a3a873adfd022b96ab4af6302efd711dead9c6e91f",
+      "size": 197
+    },
+    "native/include/tetorica/ym2203.hpp": {
+      "sha256": "fd936917e95053e536a7d31c0e22352272d3a078f33ceeb5a7e28061a3e1ccde",
+      "size": 205
+    },
+    "native/include/tetorica/ym2413.hpp": {
+      "sha256": "a93c785015fef567eb6a0944fd1259fee730dda404e2f6f2525389d909167ec2",
+      "size": 200
+    },
+    "native/include/tetorica/ym2608.hpp": {
+      "sha256": "35219cdb97b2d0b7e8e26d7376237f5a8fcec055ff078e269ee9fdf875c215ae",
+      "size": 202
+    },
+    "native/include/tetorica/ym2610.hpp": {
+      "sha256": "21fbb66e2cc5fabb21c814b264f866fff35094b12db38f9eb21d1ccd87bd413a",
+      "size": 212
+    },
+    "native/include/tetorica/ym2610b.hpp": {
+      "sha256": "21fbb66e2cc5fabb21c814b264f866fff35094b12db38f9eb21d1ccd87bd413a",
+      "size": 212
+    },
+    "native/include/tetorica/ym2612.hpp": {
+      "sha256": "7399eeb6759c70283eab07daf1f77b2f6625493ac19cfe6be8f87419c87534d7",
+      "size": 197
+    },
+    "native/include/tetorica/ym3526.hpp": {
+      "sha256": "416300d2294e19f44c0c337e5263f28b0541a09bb6c7a68cf578b4f9857036ae",
+      "size": 108
+    },
+    "native/include/tetorica/ym3812.hpp": {
+      "sha256": "3e2ba6f73bcffb91bb3d71225fd2af3e42c398541dde0697aa299f2c5ff82182",
+      "size": 108
+    },
+    "native/include/tetorica/ymf262.hpp": {
+      "sha256": "f0b851a1e24978001136cb79a2c96b5f585cd90f658c634adaab6aebd8f14aee",
+      "size": 108
+    },
+    "native/reference/SOURCES.json": {
+      "sha256": "060046ba173e2c33a8b8237bd9950de524218fcb622b4f2c2cc003395082bd12",
+      "size": 47172
+    },
+    "native/reference/overrides/msfa/dx7note.cc": {
+      "sha256": "f4e6d96ebce3e2435d6f43b1311a3d9aca2cb96b5f5c52b001700df9e94a98ed",
+      "size": 7935
+    },
+    "native/reference/overrides/msfa/env.cc": {
+      "sha256": "e6af8b46212080eb2730ca3f3f5163e1b59b3ba491f42a33cdd360094382cf24",
+      "size": 4913
+    },
+    "native/reference/overrides/msfa/ringbuffer.cc": {
+      "sha256": "bf95cb2f7fc05d3db6f7ef26cd1c02e963f07969451b2f0cd56aff43c74ea91f",
+      "size": 2360
+    },
+    "native/reference/overrides/msfa/synth.h": {
+      "sha256": "0ce627f8248b119b6d7b466b047b4f44f179971f080c7552706535795e4949ea",
+      "size": 2224
+    },
+    "native/reference/overrides/msfa/synth_unit.cc": {
+      "sha256": "629d430c0faa2d7dc6863b2798dd264734516d1f8a8b7bf6e6fced6a8783d500",
+      "size": 13688
+    },
+    "native/reference/overrides/msfa/synth_unit.h": {
+      "sha256": "12d843cbdc259cc13c8ae12ec3075aa5e340c910b88a6bcb5db7fe7bb20552d3",
+      "size": 3371
+    },
+    "native/reference/tauri/native_genesis_ay8910.cpp": {
+      "sha256": "a142cc1ccd2014db3081d461e6fa120351c77d8575257eb12cb5798f3df3b50d",
+      "size": 4754
+    },
+    "native/reference/tauri/native_genesis_ay8910.h": {
+      "sha256": "5c2ae126b9a7a6d516e50011e44ccb3e8acb6362fd2c2ef693ddced9fc3f94c9",
+      "size": 881
+    },
+    "native/reference/tauri/native_genesis_core.cpp": {
+      "sha256": "7ca82b7864071e6e17901787e3ce7dc49c8fded9e312b1afc99dcb093b2d8a67",
+      "size": 13871
+    },
+    "native/reference/tauri/native_genesis_dx7.cpp": {
+      "sha256": "4f7d31227f513b05762da639e3ca8569d07268df10fccc7a367d6db335666aab",
+      "size": 2873
+    },
+    "native/reference/tauri/native_genesis_dx7.h": {
+      "sha256": "184821429fed49163c068326c88bd9faae40efc6628a4c5df73bc132e87917c3",
+      "size": 832
+    },
+    "native/reference/tauri/native_genesis_extra_okim6258.cpp": {
+      "sha256": "9f6d3f3a0d685c3b9444c5ba7ae9aa37fd4848256a710797a7cab9b44131d100",
+      "size": 4759
+    },
+    "native/reference/tauri/native_genesis_extra_okim6258.h": {
+      "sha256": "e58ad3626bffc70f4b677a659535d3bf84ce1348a1041d145535fa04e3f0da03",
+      "size": 1028
+    },
+    "native/reference/tauri/native_genesis_extra_opl.cpp": {
+      "sha256": "7ff507d217a3137536a05450944af46892abeccb1f35b0c8b4e6b72ce70b0d03",
+      "size": 19330
+    },
+    "native/reference/tauri/native_genesis_extra_opl.h": {
+      "sha256": "c1923eb15bacb4a77fd05a6246b44febbaa60d7baf3e54529a5eca3e99102ed4",
+      "size": 2028
+    },
+    "native/reference/tauri/native_genesis_extra_rf5c164.cpp": {
+      "sha256": "219bac35abf31fc12329b28869a57957d18ad5777423637a8f29aa0fae23e189",
+      "size": 5967
+    },
+    "native/reference/tauri/native_genesis_extra_rf5c164.h": {
+      "sha256": "5877e8b7175469acd1e53ccb2440ae2654ced65c1bc5ccd78a9d73f590b8e61a",
+      "size": 1337
+    },
+    "native/reference/tauri/native_genesis_game_gear.cpp": {
+      "sha256": "e109e06ecb1d991aba9def4b6df370f730ac1d1049ca17c7c7b79ec25cc0cb1a",
+      "size": 1734
+    },
+    "native/reference/tauri/native_genesis_game_gear.h": {
+      "sha256": "2f837f85e46f3be99c38df026da4c0f844347b3a894f6998507c5ff814a85f8b",
+      "size": 852
+    },
+    "native/reference/tauri/native_genesis_gameboy.cpp": {
+      "sha256": "ee2a7149cd6ffb85c82a0c1b9e6239061345c6fab82817957de7eea1a7a91c20",
+      "size": 4857
+    },
+    "native/reference/tauri/native_genesis_gameboy.h": {
+      "sha256": "fe82894660613ea50f332171e86fb9e6367d94632fccdd4b5841e44dc5eed401",
+      "size": 765
+    },
+    "native/reference/tauri/native_genesis_huc6280.cpp": {
+      "sha256": "4f7712568f390a0150793d759de9c0542c604d16e8e00a1ffa85aa932c8e7286",
+      "size": 4962
+    },
+    "native/reference/tauri/native_genesis_huc6280.h": {
+      "sha256": "ebc76a91f0dbbc419d3bfbaf4426514a6ee7092aab11a4a89bfd80a3a468e9af",
+      "size": 982
+    },
+    "native/reference/tauri/native_genesis_master_system.cpp": {
+      "sha256": "9b4319bb79efff5e9083024edcf66e4b18becef3dc423ca0c04eba0fbbaa9ce1",
+      "size": 3418
+    },
+    "native/reference/tauri/native_genesis_master_system.h": {
+      "sha256": "5b630196a0418789f7fdda4c709e8061597096044980e501a6fdfd878b30965e",
+      "size": 1405
+    },
+    "native/reference/tauri/native_genesis_msx.cpp": {
+      "sha256": "ae98c72d80d16dee040a1070b1faa7d45e578bd4e023db58216daa052060ebe7",
+      "size": 5138
+    },
+    "native/reference/tauri/native_genesis_msx.h": {
+      "sha256": "fee5a1e39aeeda557f7f6da9aefc4f083b711f2b720d4f45501b903da57d03ac",
+      "size": 1198
+    },
+    "native/reference/tauri/native_genesis_nes.cpp": {
+      "sha256": "ff04f01c5b6fde9e139921fb2300d7d907ec8bd56c072453daa81f6c60b1db52",
+      "size": 32176
+    },
+    "native/reference/tauri/native_genesis_nes.h": {
+      "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
+      "size": 2163
+    },
+    "native/reference/tauri/native_genesis_nuked.cpp": {
+      "sha256": "f062bc48b6a8c7898306f7652896d897d5ffbe02ae96e729afc39421d5667d35",
+      "size": 1976
+    },
+    "native/reference/tauri/native_genesis_nuked_ym2612.inc": {
+      "sha256": "3ee181fcfaf2c055e4f6ad3129758150abd1fd60d5ce2ba28fd60973482fa45a",
+      "size": 8070
+    },
+    "native/reference/tauri/native_genesis_opl.cpp": {
+      "sha256": "b192315473e6b7e6efca999b131ef310e209c5be9bb01a13317f1dc04e24d1f3",
+      "size": 11337
+    },
+    "native/reference/tauri/native_genesis_opl.h": {
+      "sha256": "fbf447d67743e9115220e34b268e32745b36aea9812bd82d6cff5871947a54af",
+      "size": 1312
+    },
+    "native/reference/tauri/native_genesis_opll.h": {
+      "sha256": "68b5e451cbd3f80f19652a388b18764b9e81977645b993c7c382ed24ad667e3a",
+      "size": 5641
+    },
+    "native/reference/tauri/native_genesis_psg.h": {
+      "sha256": "dc3cf1da9594b281ff9433c7d4b4968a51448e0152e205c40467f436a887d5cb",
+      "size": 2537
+    },
+    "native/reference/tauri/native_genesis_pwm.cpp": {
+      "sha256": "c435befeefdc450299ce9d0bc0817134a2f2c00f547a2aa414703546f7904c09",
+      "size": 6237
+    },
+    "native/reference/tauri/native_genesis_pwm.h": {
+      "sha256": "45055365c299e153877cdebbefa0d6cc357326158bc5c82d493489865ffa6fab",
+      "size": 1188
+    },
+    "native/reference/tauri/native_genesis_rf5c164.cpp": {
+      "sha256": "ee6ccbef991bca4ebe68bc38c90e9e99409e6e49d1850a85cc498bc1d55ca254",
+      "size": 2038
+    },
+    "native/reference/tauri/native_genesis_rf5c164.h": {
+      "sha256": "70f6251a32bf2327236ba849889340e8a488c45fbae042583d9d4a8c54e571dc",
+      "size": 578
+    },
+    "native/reference/tauri/native_genesis_snes.cpp": {
+      "sha256": "736c581fae2c7ac439f0815776aa044ab980d44ac3cbfeffd29306aac8e58921",
+      "size": 6085
+    },
+    "native/reference/tauri/native_genesis_snes.h": {
+      "sha256": "cb56f2fa0b5c915cf3b9dfe8d3125aed354f71f60b766a60d6a8035cfd842526",
+      "size": 1632
+    },
+    "native/reference/tauri/native_genesis_spc.cpp": {
+      "sha256": "628a59f9d01ca3d19296dab87fc7f654b4adb444930241e30b7f19d466f77693",
+      "size": 7078
+    },
+    "native/reference/tauri/native_genesis_spc.h": {
+      "sha256": "ae6e729b76db5c8b7f51a5fab3fea84a3c7d63fcae470a6d0b7a0ec525819663",
+      "size": 1814
+    },
+    "native/reference/tauri/native_genesis_x68000.cpp": {
+      "sha256": "2cd45a01a5794109256094180a85c3813b7e5dc70e403d99ab0118224a73459b",
+      "size": 9330
+    },
+    "native/reference/tauri/native_genesis_x68000.h": {
+      "sha256": "e78a5dfc925bc063339978565185aa0b980c1426c65bdbce170ed5e48a12e0b1",
+      "size": 1639
+    },
+    "native/reference/tauri/native_genesis_y8950_memory.h": {
+      "sha256": "605bdff99028c18a651647f804f054dc4b2dd35af0e6018abd46efc19604394c",
+      "size": 1130
+    },
+    "native/reference/tauri/native_genesis_ym2151.cpp": {
+      "sha256": "ca931e1e2e635ff403c97cdff8d880b434ddacf797cd83b92f65bd69bb9ec975",
+      "size": 7687
+    },
+    "native/reference/tauri/native_genesis_ym2151.h": {
+      "sha256": "cd35cdaea881ba855452afabc62dade6a5739a4effd9cd4788b484742f9c50e7",
+      "size": 1312
+    },
+    "native/reference/tauri/native_genesis_ym2203.cpp": {
+      "sha256": "3d3a914a316f8d04afba25d73ec14e25bd58085ec2a6e7bdda5673bf0996658c",
+      "size": 9215
+    },
+    "native/reference/tauri/native_genesis_ym2203.h": {
+      "sha256": "a73f5f3c02723006c9579287f2886b84607ee76ded655db7f1b0dd155f9fdd4d",
+      "size": 1543
+    },
+    "native/reference/tauri/native_genesis_ym2413.cpp": {
+      "sha256": "67599b8f9f7ffa0cc0016b67520f88b33aab49d4899df43a7bbcbaecd4205241",
+      "size": 12188
+    },
+    "native/reference/tauri/native_genesis_ym2413.h": {
+      "sha256": "aef87e4a2beeb0009584215b1a2befaf423f5a3e347bab4317fce45aab11d263",
+      "size": 966
+    },
+    "native/reference/tauri/native_genesis_ym2608.cpp": {
+      "sha256": "f2eebcf96d9f303e0d6347f643c3c3450974a46770cd837b21e9f9c268d24249",
+      "size": 17383
+    },
+    "native/reference/tauri/native_genesis_ym2608.h": {
+      "sha256": "cb83bd1c23830146440b264eb6705c9c43fb6dd57526802e325cbc134f59f331",
+      "size": 2266
+    },
+    "native/reference/tauri/native_genesis_ym2610b.cpp": {
+      "sha256": "8984289a30accd2661c79357fa928df6101043c3da982a26e67abc66517ecaab",
+      "size": 16960
+    },
+    "native/reference/tauri/native_genesis_ym2610b.h": {
+      "sha256": "a33e251c565b727d7bad195a6c2448c5b3f878fcff623f78efd590559bf299e7",
+      "size": 3066
+    },
+    "native/reference/tauri/native_genesis_ym2612.cpp": {
+      "sha256": "ff9b7aef1078015e62d57c1e8eedbe37e02ca033f0e1bf26543893840db4eaaa",
+      "size": 9376
+    },
+    "native/reference/tauri/native_genesis_ym2612.h": {
+      "sha256": "cf987f67c1b9376f89fd867e05160a0580ff310ed1adfb34fcb33e945b70ce75",
+      "size": 1247
+    },
+    "native/src/ymfm_opl_provider.cpp": {
+      "sha256": "d2d3783960513a27ad349e72143e3ecc87d96a73f1659b9acc5a430722bea0ec",
+      "size": 817
+    },
+    "native/src/ymfm_opm_provider.cpp": {
+      "sha256": "9b6d50381d95198438109647d7931f7ec2d90b127679be205dfc8d4dacf89db2",
+      "size": 341
+    },
+    "native/src/ymfm_opn_provider.cpp": {
+      "sha256": "83f41e6966a136f019ab9be343b689446bf50f5990a1b2d18d6533f2aeefa637",
+      "size": 610
+    },
+    "native/tests/ay8910_fixture.cpp": {
+      "sha256": "cdbc9aa2e2d4d3d4c3e7dabf78f8a8072ce1c22502a88778a1d58d9c6aec5127",
+      "size": 11886
+    },
+    "native/tests/cdda_fixture.c": {
+      "sha256": "db385fe4d7722bc90978fcbe0f4db78c943e1561e289fe8aeeef5507195359ff",
+      "size": 3643
+    },
+    "native/tests/dx7_fixture.cpp": {
+      "sha256": "102a0bd96ed8b3db702e8378529b0c454fe9cc31c333a09ec3cc62476cede6f9",
+      "size": 18012
+    },
+    "native/tests/extra_opl_fixture.cpp": {
+      "sha256": "7db00a995f018f13e15844710d1da2775f2ebdc5dfdec8c6b5529e33bee90af1",
+      "size": 18286
+    },
+    "native/tests/extra_pwm_fixture.cpp": {
+      "sha256": "5cc3440ea6ae71fc6c9fc0dbc79adc27d9d5372f12c0df8e9cbd210b53844d14",
+      "size": 11786
+    },
+    "native/tests/gameboy_fixture.cpp": {
+      "sha256": "0b5b07c6dcb3ce498fd8cf914239426844f12d1368e1d6484071b5d13669c92e",
+      "size": 14428
+    },
+    "native/tests/huc6280_fixture.cpp": {
+      "sha256": "19399bbbbd4e411e4fd852f3d4ce6fde69a1ed507b51ebc7ddd7cc7c2c3e0c3b",
+      "size": 19569
+    },
+    "native/tests/msm5205_fixture.c": {
+      "sha256": "d65cf345e67d646d82bd0ccf611fc12b980d6906850a3fae2e88a33601dd5b44",
+      "size": 4566
+    },
+    "native/tests/nes_fixture.cpp": {
+      "sha256": "cab792c1380e8f893d8d7ef07e523e205bbff140dce422001affd0acb36201bd",
+      "size": 33150
+    },
+    "native/tests/nuked_audit.cpp": {
+      "sha256": "4cd23f7c6909b5ae95e1b24b80f5a87246e4044aabad589f1034a58a003e0fd5",
+      "size": 457
+    },
+    "native/tests/nuked_colink_fixture.cpp": {
+      "sha256": "20e51eb3e2102945c286d2873b4c90ce76ebc6d5bca4541f89117318ea44ab18",
+      "size": 3664
+    },
+    "native/tests/nuked_ym2612_fixture.cpp": {
+      "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673",
+      "size": 15691
+    },
+    "native/tests/okim6258_fixture.cpp": {
+      "sha256": "05cc429d155d1cb31efa1a47d695e3c03509a3dc739fbadc2e274f89009faef5",
+      "size": 13626
+    },
+    "native/tests/opl_fixture.cpp": {
+      "sha256": "83ed7bb39acd2d6b447ceb21cbd05a09a51e9cdf1d87b222373e98aee0f0f199",
+      "size": 12681
+    },
+    "native/tests/pce_cd_fixture.cpp": {
+      "sha256": "a79a8ce49a727693bc78bb6afb37e181c2652c2fd7216234979586baeb8a148a",
+      "size": 3812
+    },
+    "native/tests/pokey_fixture.cpp": {
+      "sha256": "442a7432eb3b4183a9c1591377e32e71e003a2bbf19deacea21dd84d22291424",
+      "size": 15183
+    },
+    "native/tests/ps1_spu_fixture.cpp": {
+      "sha256": "e7414d1acb6a1466c29adcb2f74963b180e21562831a68c23e0c19b989ac7a5f",
+      "size": 19234
+    },
+    "native/tests/pwm_fixture.cpp": {
+      "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812",
+      "size": 7696
+    },
+    "native/tests/rf5c164_fixture.cpp": {
+      "sha256": "6bf6dc300f0da50b2900ab4b1331031babd7bccf8f00ac29775b78dd23cd9a8d",
+      "size": 13143
+    },
+    "native/tests/scsp_fixture.cpp": {
+      "sha256": "3bf6bd898fac1e592a4df4c4d796f08d9bc8e9f6b5e38c6af929b545f374af7d",
+      "size": 4060
+    },
+    "native/tests/segapsg_fixture.cpp": {
+      "sha256": "55b69e8c3c553e85e5b30b968a6981a90b02238bba67828b203294763857c20e",
+      "size": 12462
+    },
+    "native/tests/snes_fixture.cpp": {
+      "sha256": "f7f5416ca36af165ed5035123095a00e86ddcc12c9847b92f1f09974455c102c",
+      "size": 17572
+    },
+    "native/tests/spc_fixture.cpp": {
+      "sha256": "5c0ef0614ad24cfb8770f3e7856ba205b812bb07d08e299e7aa20e394ca2dc4b",
+      "size": 20301
+    },
+    "native/tests/wonderswan_fixture.cpp": {
+      "sha256": "d9fc0260598d9fb50c92947d4d690325191b9e6071d646effe66abf0e5686445",
+      "size": 14186
+    },
+    "native/tests/y8950_memory_fixture.cpp": {
+      "sha256": "cbba9afaf6b63a7540760e7a3f5eb74a1dd74ba23d1a6cca307ce61391df3dd0",
+      "size": 12339
+    },
+    "native/tests/ym2151_fixture.cpp": {
+      "sha256": "b022e92517afd872f6440e41f445a3063b4c3cbe42da509cc161055d932edb0a",
+      "size": 11217
+    },
+    "native/tests/ym2203_fixture.cpp": {
+      "sha256": "dd29f6e044eb4bdef86a36278741acc5d1d7f53b36d20058086c148f699a3570",
+      "size": 15208
+    },
+    "native/tests/ym2413_fixture.cpp": {
+      "sha256": "48237874404d5aadaaed436ca8873a6aac4efe945198880d5525c9445277cd7f",
+      "size": 12911
+    },
+    "native/tests/ym2608_fixture.cpp": {
+      "sha256": "c22d389ba84b5fd6dd3a735a56391cca2a4fb7abae0ab0bc986921eb5b9d18bc",
+      "size": 24168
+    },
+    "native/tests/ym2610_fixture.cpp": {
+      "sha256": "f2b240c8da5696cb9c27f5bebd2c2e209c8924da908d16e034da43b1ddac1576",
+      "size": 25725
+    },
+    "native/tests/ym2612_fixture.cpp": {
+      "sha256": "c88c3cb9ce9b82cd8c1328db7bd0355cb6901028fc2ae0e720582785d8517fc7",
+      "size": 11482
+    },
+    "reference/javascript/README.md": {
+      "sha256": "3846992f0f93b70ce11fa1432ebffd381bee98537ca446401a6361f42a898fc2",
+      "size": 8533
+    },
+    "reference/javascript/examples/render-adpcm.mjs": {
+      "sha256": "91e8e51daa85b580d3ae5c0459a567caef59aac90a47298216c8cf51c3d82393",
+      "size": 4349
+    },
+    "reference/javascript/msm5205audioengine.js": {
+      "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5",
+      "size": 3560
+    },
+    "reference/javascript/okim6295audioengine.js": {
+      "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2",
+      "size": 6878
+    },
+    "reference/javascript/package.json": {
+      "sha256": "eddcfcf4e73fcaf7304c69faafd3e1a0c7df9ba1eb3e93ba4ff9dce8c0ed0fc1",
+      "size": 134
+    },
+    "scripts/build-wasm.sh": {
+      "sha256": "caf6bd1688d21b48cf5c633aac9aa9398ad727b8b5445fca7aa37718d7dca33f",
+      "size": 1696
+    },
+    "scripts/build_ay8910_wasm.sh": {
+      "sha256": "5145ad700466a55a57898832eb194ac94dbaf060aa1dbd94ff52ec4a8038bd86",
+      "size": 689
+    },
+    "scripts/build_cdda_wasm.sh": {
+      "sha256": "21ddd64e21865427b32d2d6faa43a0f79c3dd967839a8bc5b4090ee3bf3ad39f",
+      "size": 1555
+    },
+    "scripts/build_dx7_wasm.sh": {
+      "sha256": "163f066357a06596e6b8109641aed62748a65432dd4a4a3e7b6ebed8d9567598",
+      "size": 1026
+    },
+    "scripts/build_gameboy_apu_wasm.sh": {
+      "sha256": "a9591f2b4c346d2b9a9ecbc87b1e18802ac90ac474830e25e71f4b6d738baa2f",
+      "size": 778
+    },
+    "scripts/build_huc6280_wasm.sh": {
+      "sha256": "87a9ac5829a9eb139c50b5970bfb949ee71ab33908e5e76f4e9a21d2c516bd3d",
+      "size": 656
+    },
+    "scripts/build_k051649_wasm.sh": {
+      "sha256": "d0f070fb79088b427affa3b5b9409c4d6093e90dd6130d48b5e2fc30a136ec37",
+      "size": 686
+    },
+    "scripts/build_msm5205_wasm.sh": {
+      "sha256": "2712749f182d50a1c57f0615b3dc47bf6a8e1c6b2e1de9e37ca879ce623b8ca1",
+      "size": 1397
+    },
+    "scripts/build_nesapu_wasm.sh": {
+      "sha256": "07d6d82cae438db2ea2f8f329fb57c0e490cdf3d8201c67d210ab35683fa744e",
+      "size": 1072
+    },
+    "scripts/build_nuked_opn2_wasm.sh": {
+      "sha256": "660cf46f1ad9fc17aacb83e8a897a95abe31b85024d23f430e7214009e5452c9",
+      "size": 862
+    },
+    "scripts/build_okim6258_wasm.sh": {
+      "sha256": "a66e21b3a33ad04d445447a3b68ba1c08f08d2b7826a8514db0b4e8e1a610b05",
+      "size": 823
+    },
+    "scripts/build_opn_variant_wasm.sh": {
+      "sha256": "ab99ea5ea94cef31de86f41b613c7cfa20e6fa12cea7aa1a51831493005aae2b",
+      "size": 956
+    },
+    "scripts/build_pokey_wasm.sh": {
+      "sha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554",
+      "size": 761
+    },
+    "scripts/build_ps1_spu_wasm.sh": {
+      "sha256": "02300a5ebd8d5b63341da11f1617dfd3501d1d4eadfede658f83b9639ce1a2c7",
+      "size": 1421
+    },
+    "scripts/build_pwm32x_wasm.sh": {
+      "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
+      "size": 1064
+    },
+    "scripts/build_rf5c164_wasm.sh": {
+      "sha256": "58ca1a118995ea01b57ac665021d6c7f7ff8ee700ba0539e8e7cc3ebab85457e",
+      "size": 962
+    },
+    "scripts/build_scsp_wasm.sh": {
+      "sha256": "2aba7d230903eeb99e162045afcc4dfb987a2632dbaa1449bce6d15a2ab1bd1b",
+      "size": 900
+    },
+    "scripts/build_segapcm_wasm.sh": {
+      "sha256": "5a2b76ae2bf42240aae0c1821ab26b90aca2e3ed5267b2c6fbe8a7d2d9ca5161",
+      "size": 912
+    },
+    "scripts/build_segapsg_wasm.sh": {
+      "sha256": "9fb197e92a6993bb43c24aa75f16209f5e5a6144a6821cfb58340b742db2dc3f",
+      "size": 891
+    },
+    "scripts/build_spc_wasm.sh": {
+      "sha256": "3eed01347f67aaae3690db3050fdfcff104fe209f621826870c651e732b57577",
+      "size": 1480
+    },
+    "scripts/build_wonderswan_wasm.sh": {
+      "sha256": "e1f78911e0ce5795dd0963782f53a7a41e4f749c456a7fa93289ef286793f8d7",
+      "size": 849
+    },
+    "scripts/build_y8950_wasm.sh": {
+      "sha256": "da9668a4ea053d0bbb6f31870e2704bee9891e6de9eb74f9e9f7ec5d4fd9a20d",
+      "size": 841
+    },
+    "scripts/build_ym2151_wasm.sh": {
+      "sha256": "e06880df8668010270b721cf88a65d3fda16b4bd9c3772c91ab66e6d6dc6488b",
+      "size": 911
+    },
+    "scripts/build_ym2203_wasm.sh": {
+      "sha256": "664ef2d5609c02c16aa5707ff967ae81a9993b5a899c8d0edd65d14c049fb3d6",
+      "size": 1251
+    },
+    "scripts/build_ym2413_wasm.sh": {
+      "sha256": "aa9c10b835fd43ffc2b6ea0a354fe806bbf82ae6faa1c5ac90baa9e147f9f589",
+      "size": 1067
+    },
+    "scripts/build_ym2608_wasm.sh": {
+      "sha256": "d81b55c8c7486fe0a94f749fda2d5c7cbd114c34c8bdbc3aac217f7f20bda52b",
+      "size": 1238
+    },
+    "scripts/build_ym2610b_wasm.sh": {
+      "sha256": "cab13d11416f6c0ede3bbfacdb9e73fa4feb6eb4127947ba54c76fb11ab373e5",
+      "size": 1305
+    },
+    "scripts/build_ym2612_wasm.sh": {
+      "sha256": "e62bc0f95f1cd38814480f9a1b7d925987f6cd69b74f947337680972c409d21f",
+      "size": 1127
+    },
+    "scripts/build_ym3438_wasm.sh": {
+      "sha256": "a7f4caf8fe30f9486a8bcfa7f0a95b8e535bfa023bc46b60c9569bb26c1940d8",
+      "size": 176
+    },
+    "scripts/build_ym3526_wasm.sh": {
+      "sha256": "15e6e94d191c3eb515200dacc3af181a0ef0391b8ac06858b65d3d7666eec3e0",
+      "size": 801
+    },
+    "scripts/build_ym3812_wasm.sh": {
+      "sha256": "0f99a5888e6bf235653baa690ea2ad8c13ad6a9d9f55d957d2e80985c87f9407",
+      "size": 801
+    },
+    "scripts/build_ymf262_wasm.sh": {
+      "sha256": "76a58849104bf14aa492924a7c5e175c17456c5494cbf857a2d3ebb1911aa850",
+      "size": 801
+    },
+    "scripts/build_ymf276_wasm.sh": {
+      "sha256": "f95fd3d9712092912e1c890fb6bc7994f431166929d39471d00101dbf501b196",
+      "size": 176
+    },
+    "scripts/build_ymf278b_wasm.sh": {
+      "sha256": "72af68df2b0b4114af3b6692bf2098ac3f5aeec67110a48e15257a4c3a39d20b",
+      "size": 901
+    },
+    "scripts/build_ymf288_wasm.sh": {
+      "sha256": "0ae6b629f4688b623eb18b8143bfea32e8e5a2c7e79305ddeba8c1ff39f76f70",
+      "size": 176
+    },
+    "scripts/check_sdk.py": {
+      "sha256": "ea3480cc6f043c182131965f1df88947a7e1e0df322091adecbf65c292646106",
+      "size": 688
+    },
+    "scripts/package_release.py": {
+      "sha256": "dc4a2f9d7002bcff7c58398cf9050efdafa990a143e515d1770e1765ac38489f",
+      "size": 6104
+    },
+    "scripts/publish_release.py": {
+      "sha256": "f94a43f5136f6d582be6e1cb93e389ee8cf81dfe372f49d28780028a9c2a435d",
+      "size": 9707
+    },
+    "scripts/record_wasm_build.mjs": {
+      "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+      "size": 2006
+    },
+    "scripts/refresh_catalog.py": {
+      "sha256": "db505edc264c75a7be63dffbb8d1633b21f97420b8952725c10f59580c3b89a3",
+      "size": 4636
+    },
+    "scripts/sdk_common.py": {
+      "sha256": "0cf7cd462a43c02957c560a19cf1e243bf6b6b04a96916ed6c7489d16998e273",
+      "size": 15168
+    },
+    "sdk.json": {
+      "sha256": "236605758aca8e6dd7753094e64666c29b2bb112d2b5370588b54e69518112a7",
+      "size": 285
+    },
+    "tests/README.md": {
+      "sha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
+      "size": 23084
+    },
+    "tests/application_audio_wasm_smoke.mjs": {
+      "sha256": "9063317a58c84ad5dc29a11ce89922810bef6c30b9569834fad1187236a2122c",
+      "size": 19319
+    },
+    "tests/check_application_audio_core.mjs": {
+      "sha256": "04feff8a0c537fe13d7b6046e75ef4a7d589f37eb8c3c41a30f70358f85b49c4",
+      "size": 24266
+    },
+    "tests/check_pokey_core.mjs": {
+      "sha256": "1464d5f78c950ba4952f6a37b4952d99161b17b5641275bad31796e32cdfceaa",
+      "size": 9840
+    },
+    "tests/check_standalone_release.py": {
+      "sha256": "c89753d20162dcb632c5582b5a9005f553c8d4e8a9b6bb965736a33dc7e03e24",
+      "size": 49335
+    },
+    "tests/javascript_reference_smoke.mjs": {
+      "sha256": "ef97f7570de5b30233c84dcecc1d146185f6852756f8982ecc8cb43ef9d3bb02",
+      "size": 9030
+    },
+    "tests/pokey_wasm_smoke.mjs": {
+      "sha256": "763b297025d470a386e0dc40381e30528fa157626a1884b681afe55f19733fc8",
+      "size": 6994
+    },
+    "tests/ps1_spu_wasm_smoke.mjs": {
+      "sha256": "c4e29245a187f9478702ec2c0048e251812af144ade1511995c3faf455200faa",
+      "size": 7295
+    },
+    "tests/scsp_wasm_smoke.mjs": {
+      "sha256": "31a1646e481ebad2475d7429601edfecb4910c944adc72005b92349d38289255",
+      "size": 4240
+    },
+    "tests/test_application_audio_release.py": {
+      "sha256": "fa8c17f1d6dc33413960f035c3b71435a95babc11d07070d855d77580220037a",
+      "size": 15957
+    },
+    "tests/test_ps1_instrument_release.py": {
+      "sha256": "9584262698e960ccde63df45196a5aedab74f276b140490b4bc1e9dedb1a0fff",
+      "size": 8327
+    },
+    "tests/test_publish_release.py": {
+      "sha256": "7a6cb96356914874306d46fd9d590178060c09530cc84ba6732f2e226b4f4a39",
+      "size": 12625
+    },
+    "tests/test_scsp_instrument_release.py": {
+      "sha256": "521ca36006d8f2ca0d794259ca83236155f602fdb023b744bdb1a67d0a6d55da",
+      "size": 5029
+    },
+    "tests/test_standalone_release.py": {
+      "sha256": "48891618a338f94a855d425a3ed2d9f097e42f04959bae95be9e0b1abfc116da",
+      "size": 58229
+    },
+    "tests/wasm_smoke.mjs": {
+      "sha256": "d4e04962cf013da5c52d8364c6cca170d324a7780d88df1d7845c07609055da6",
+      "size": 3539
+    },
+    "tests/wonderswan_wasm_smoke.mjs": {
+      "sha256": "dd2ceb3438e69d96fc392bebde29aeea712df9328d943a3516692dfe59851b04",
+      "size": 11926
+    },
+    "vendor/README.md": {
+      "sha256": "e8bf25567d12d8fbf51772fa356d2bf713a51acbc5c8fac160ee523ac378018d",
+      "size": 2226
+    },
+    "vendor/libvgm-msm5205/LICENSE": {
+      "sha256": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e",
+      "size": 1543
+    },
+    "vendor/libvgm-msm5205/README.md": {
+      "sha256": "53ef04029add857e206b8f039a31b72d3274b5e377631ee4400350e0f1d915f7",
+      "size": 1760
+    },
+    "vendor/libvgm-msm5205/upstream/libvgm/emu/cores/msm5205.c": {
+      "sha256": "7d69c40afbeacb98a8d0798e12201b04b8dc40b4d4c60f73c61d7cb47da18ad0",
+      "size": 13241
+    },
+    "vendor/libvgm-msm5205/upstream/libvgm/snapshot-manifest.json": {
+      "sha256": "5a0c2a24b046aaa0a1a0fb2b72fe0bed036d2b8f736be33dbf75155ea427bbef",
+      "size": 1117
+    },
+    "vendor/libvgm-pokey/LICENSE": {
+      "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+      "size": 1587
+    },
+    "vendor/libvgm-pokey/README.md": {
+      "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+      "size": 7686
+    },
+    "vendor/libvgm-pokey/pokey.cpp": {
+      "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+      "size": 37305
+    },
+    "vendor/libvgm-pokey/pokey.h": {
+      "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+      "size": 1573
+    },
+    "vendor/libvgm-pokey/upstream/pokey.c": {
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+      "size": 41726
+    },
+    "vendor/libvgm-pokey/upstream/snapshot-manifest.json": {
+      "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+      "size": 841
+    },
+    "vendor/mame-32x-pwm/LICENSE": {
+      "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
+      "size": 1513
+    },
+    "vendor/mame-32x-pwm/README.md": {
+      "sha256": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec",
+      "size": 2268
+    },
+    "vendor/mame-32x-pwm/upstream/mega32x.cpp": {
+      "sha256": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a",
+      "size": 55449
+    },
+    "vendor/mame-32x-pwm/upstream/mega32x.h": {
+      "sha256": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a",
+      "size": 8280
+    },
+    "vendor/mame-ay8910/LICENSE": {
+      "sha256": "9ce97eec16b71e54663cfff119162feb89ae254464bf2bad3c8b8d73870e9a0e",
+      "size": 1510
+    },
+    "vendor/mame-ay8910/README.md": {
+      "sha256": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f",
+      "size": 4194
+    },
+    "vendor/mame-ay8910/ay8910.cpp": {
+      "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646",
+      "size": 4783
+    },
+    "vendor/mame-ay8910/ay8910.h": {
+      "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a",
+      "size": 2431
+    },
+    "vendor/mame-ay8910/upstream/ay8910.cpp": {
+      "sha256": "865e8ea6ff17acf107f00c48f39ee04df48319fc1780aa0ddb635d754fa2d514",
+      "size": 57751
+    },
+    "vendor/mame-ay8910/upstream/ay8910.h": {
+      "sha256": "837b224a5fb0be9dbedd93746518c7d97dd6cb4622d1065afb7466b041cadb51",
+      "size": 10675
+    },
+    "vendor/mame-gameboy/LICENSE": {
+      "sha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc",
+      "size": 1529
+    },
+    "vendor/mame-gameboy/README.md": {
+      "sha256": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61",
+      "size": 5351
+    },
+    "vendor/mame-gameboy/gameboy_apu.cpp": {
+      "sha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de",
+      "size": 18222
+    },
+    "vendor/mame-gameboy/gameboy_apu.h": {
+      "sha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12",
+      "size": 3661
+    },
+    "vendor/mame-gameboy/upstream/gb.cpp": {
+      "sha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3",
+      "size": 34748
+    },
+    "vendor/mame-gameboy/upstream/gb.h": {
+      "sha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599",
+      "size": 5569
+    },
+    "vendor/mame-huc6280/LICENSE": {
+      "sha256": "d9aef90a96f93be90d39250e2a85c4ce78b381b6abbf16856fc337e71263dc1d",
+      "size": 1517
+    },
+    "vendor/mame-huc6280/README.md": {
+      "sha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd",
+      "size": 956
+    },
+    "vendor/mame-huc6280/huc6280.cpp": {
+      "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f",
+      "size": 6895
+    },
+    "vendor/mame-huc6280/huc6280.h": {
+      "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6",
+      "size": 1056
+    },
+    "vendor/mame-huc6280/upstream/c6280.cpp": {
+      "sha256": "192eeee545d8f438000f68e3867a26df7cd7b26efd9985d14f4dd7b53d61c8fc",
+      "size": 9640
+    },
+    "vendor/mame-huc6280/upstream/c6280.h": {
+      "sha256": "167fd885f209efdbdbe9375f7a39fce6f2545006bc5b4e06673824865162dfe5",
+      "size": 1238
+    },
+    "vendor/mame-k051649/LICENSE": {
+      "sha256": "8c50ff4995e94ba978d1ae2e90e3fd6fd4864c7d9dd3be0bc0ce37d754cf7b07",
+      "size": 1515
+    },
+    "vendor/mame-k051649/README.md": {
+      "sha256": "ade6b36bed8d703e3fcc8924a1469c05d26f7685ab7ab430243da1edc074137a",
+      "size": 3937
+    },
+    "vendor/mame-k051649/k051649.cpp": {
+      "sha256": "27a073a5be349b4edcf1f2c9b5e464a3ec633142c0b3fee9f1a20b64153a1c36",
+      "size": 3802
+    },
+    "vendor/mame-k051649/k051649.h": {
+      "sha256": "527fa76035e60f717ffba8eaa514028a89925135e10da347b305b801e40efd8a",
+      "size": 1390
+    },
+    "vendor/mame-k051649/upstream/k051649.cpp": {
+      "sha256": "003db1a492076e437b6b22f515ddb7f0c0fde01de0722ff308123a07a4637122",
+      "size": 7422
+    },
+    "vendor/mame-k051649/upstream/k051649.h": {
+      "sha256": "42d22c7bd3a4a5665891fdec4fccc67586a226e2fcc8f971ff11cb964dfd8a06",
+      "size": 2007
+    },
+    "vendor/mame-okim6258/LICENSE": {
+      "sha256": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973",
+      "size": 1514
+    },
+    "vendor/mame-okim6258/README.md": {
+      "sha256": "290ac7774e297daacc17c25c0f15b70eea7b9b8db594468023410e7795f73df0",
+      "size": 1533
+    },
+    "vendor/mame-okim6258/okim6258.cpp": {
+      "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0",
+      "size": 3508
+    },
+    "vendor/mame-okim6258/okim6258.h": {
+      "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172",
+      "size": 1400
+    },
+    "vendor/mame-okim6258/upstream/okim6258.cpp": {
+      "sha256": "101b08bc609be97d6d051c2724ca6a2dfd0b71b533ba0094e8d1668fe7670f63",
+      "size": 7860
+    },
+    "vendor/mame-okim6258/upstream/okim6258.h": {
+      "sha256": "f971312d5699aac54755365e9f699353ee86ec5714cf79ebfc7677279f7a9228",
+      "size": 2212
+    },
+    "vendor/mame-okim6295/LICENSE": {
+      "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176",
+      "size": 1542
+    },
+    "vendor/mame-okim6295/README.md": {
+      "sha256": "56c31643a450029ade937c1738ccb8e59703394c30d003dad533d621fbe3700c",
+      "size": 2084
+    },
+    "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.c": {
+      "sha256": "95ad62ea67fb3f239873abf79200ce11d3d548c40022ec02da0dd4a3abaf5af1",
+      "size": 3536
+    },
+    "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.h": {
+      "sha256": "f850732fe0cdb032d2cedda758d4b74eb6562f701b80ec75d7a59d41cd243864",
+      "size": 949
+    },
+    "vendor/mame-okim6295/upstream/libvgm/emu/cores/okim6295.c": {
+      "sha256": "00778ea2bb630abf549ea25671e9d19df50d4ce4889be9e1fcfa6739b5ae6194",
+      "size": 18132
+    },
+    "vendor/mame-okim6295/upstream/libvgm/snapshot-manifest.json": {
+      "sha256": "7f39e5344c5dab8b87d93a3c72da4fa5ec296e0af19345415ed07064a0fe7fa4",
+      "size": 1479
+    },
+    "vendor/mame-okim6295/upstream/mame/okiadpcm.cpp": {
+      "sha256": "a49dbd1089b3163a3a38480f6d877462c506b9f85e66a0cf5ea015b2a193dcd8",
+      "size": 7892
+    },
+    "vendor/mame-okim6295/upstream/mame/okiadpcm.h": {
+      "sha256": "28f70d023aa2f18a0287b1290ac108692b5f270ce91622c636742af2e8909ab4",
+      "size": 1650
+    },
+    "vendor/mame-okim6295/upstream/mame/okim6295.cpp": {
+      "sha256": "ff6f45f2e7db51cab3344ab3e1a55d0d95e1341c2994a35983e733fae022b18b",
+      "size": 11194
+    },
+    "vendor/mame-okim6295/upstream/mame/okim6295.h": {
+      "sha256": "c2c75718818b24864911fc714c8cf61a278266c93f565d97831a81303c6db2a1",
+      "size": 2753
+    },
+    "vendor/mame-okim6295/upstream/mame/snapshot-manifest.json": {
+      "sha256": "58caadb706959f29c4fe505fb4d8659b2b217c73da6ffcf3e1f1d319f0296faf",
+      "size": 946
+    },
+    "vendor/mame-ps1-spu/LICENSE": {
+      "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b",
+      "size": 1592
+    },
+    "vendor/mame-ps1-spu/README.md": {
+      "sha256": "59a588c0da4a83b17944713283f1ee3d2d8ff23058c90ca08997c50f3031f6c5",
+      "size": 9186
+    },
+    "vendor/mame-ps1-spu/ps1_spu.cpp": {
+      "sha256": "6dd978dd9335c7b647cac4bdd8a97b1c08ed58711519ef9e82a1cfe01cb51ae5",
+      "size": 4702
+    },
+    "vendor/mame-ps1-spu/ps1_spu.h": {
+      "sha256": "3d4f4611058332ba85aa979c2b62a112efb79036396644f0734cbb9a183b7c4f",
+      "size": 3277
+    },
+    "vendor/mame-ps1-spu/spu.cpp": {
+      "sha256": "3316f13b65a92cd83d1605c049d81be28f024060ce36271cf4c42834bbe62eea",
+      "size": 76241
+    },
+    "vendor/mame-ps1-spu/spu.h": {
+      "sha256": "3f7f0264e0d1cc093d3f2006d07c601654845071625e78d2372fbf3b2d62026c",
+      "size": 9292
+    },
+    "vendor/mame-ps1-spu/spu_tables.cpp": {
+      "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab",
+      "size": 21649
+    },
+    "vendor/mame-ps1-spu/spureverb.cpp": {
+      "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
+      "size": 6365
+    },
+    "vendor/mame-ps1-spu/spureverb.h": {
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+      "size": 1594
+    },
+    "vendor/mame-ps1-spu/standalone_support.h": {
+      "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f",
+      "size": 272
+    },
+    "vendor/mame-ps1-spu/upstream/REVISION": {
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b",
+      "size": 41
+    },
+    "vendor/mame-ps1-spu/upstream/SHA256SUMS": {
+      "sha256": "0bb50b92e0e5d59590ab7863e2178ca714f50da3dbed7a17ff9083d4945e1737",
+      "size": 385
+    },
+    "vendor/mame-ps1-spu/upstream/spu.cpp": {
+      "sha256": "1bdb46de6ab7dae77a94846812b4d69f1e5168fc9a95de8a661a861afa3f0e23",
+      "size": 67593
+    },
+    "vendor/mame-ps1-spu/upstream/spu.h": {
+      "sha256": "2ce1a71da66ffeba76f8197a1ee1833188571b7e57315aec9297296af9d5a95b",
+      "size": 8594
+    },
+    "vendor/mame-ps1-spu/upstream/spu_tables.cpp": {
+      "sha256": "fbb2222beb8a5bc1a71ecaf67f827c6f4c013ac7d525dcf3752bc3e51a1a51c4",
+      "size": 21634
+    },
+    "vendor/mame-ps1-spu/upstream/spureverb.cpp": {
+      "sha256": "3d8dec58c67e8606618367a8d9850cbf3c60f10a71b3636cbf2f7e0850b1d01a",
+      "size": 6354
+    },
+    "vendor/mame-ps1-spu/upstream/spureverb.h": {
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+      "size": 1594
+    },
+    "vendor/mame-rf5c164/LICENSE": {
+      "sha256": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853",
+      "size": 1529
+    },
+    "vendor/mame-rf5c164/README.md": {
+      "sha256": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6",
+      "size": 797
+    },
+    "vendor/mame-rf5c164/rf5c164.cpp": {
+      "sha256": "9e8867bbbc74c60cf92f1300da9c01d59c0e820f69fd2a4461dfd08e3f6b8aea",
+      "size": 3136
+    },
+    "vendor/mame-rf5c164/rf5c164.h": {
+      "sha256": "438829c9b8706a78c3ac71551f44a02a3bad0431bc1ec17df1e2b1ee7d91483d",
+      "size": 1754
+    },
+    "vendor/mame-rf5c164/upstream/rf5c68.cpp": {
+      "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9",
+      "size": 8152
+    },
+    "vendor/mame-scsp/LICENSE": {
+      "sha256": "fa63b17d27ea6c4ff5fbc5c772fba27dc3989dedf9caa9223368eb0576ddc61e",
+      "size": 1593
+    },
+    "vendor/mame-scsp/README.md": {
+      "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb",
+      "size": 4175
+    },
+    "vendor/mame-scsp/scsp.cpp": {
+      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770",
+      "size": 26800
+    },
+    "vendor/mame-scsp/scsp.h": {
+      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b",
+      "size": 2976
+    },
+    "vendor/mame-scsp/scsp_instrument.cpp": {
+      "sha256": "05f9597c523db69c2003bcc5084c6d1e6c83ceece3d6907acc365eb4258774cd",
+      "size": 2474
+    },
+    "vendor/mame-scsp/scsp_instrument.h": {
+      "sha256": "1e263c7b5542ebc762a9afb66e70129306f266d1f8486f0ca1ab5d34344e082c",
+      "size": 1860
+    },
+    "vendor/mame-scsp/scspdsp.cpp": {
+      "sha256": "4b0872ceb850397960a154cc1ac83e07f66821fa1a676b00924539ca2e0bf822",
+      "size": 5882
+    },
+    "vendor/mame-scsp/scspdsp.h": {
+      "sha256": "4250050bba5c763314144b638e38deb3cc0a5363456ca924277702d53df2281f",
+      "size": 852
+    },
+    "vendor/mame-scsp/standalone_support.h": {
+      "sha256": "95789c7277f3eb8842f508ea4c9c3fe4d13de8b4271d76d41587cabd50bfabe7",
+      "size": 1637
+    },
+    "vendor/mame-scsp/upstream/REVISION": {
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b",
+      "size": 41
+    },
+    "vendor/mame-scsp/upstream/SHA256SUMS": {
+      "sha256": "2c8a75c77e8118f2a018f166f2d9b205e44699004be4074cfbde1f4df97115c3",
+      "size": 302
+    },
+    "vendor/mame-scsp/upstream/scsp.cpp": {
+      "sha256": "5faa5b73d74438e9ad4378274dec957b9928722f743d84c5ed9681baee6d98c8",
+      "size": 43688
+    },
+    "vendor/mame-scsp/upstream/scsp.h": {
+      "sha256": "b67689dc7ce10019c9d0b189c821ae3bdb7541e561fcfb897a882d79db5a7147",
+      "size": 5034
+    },
+    "vendor/mame-scsp/upstream/scspdsp.cpp": {
+      "sha256": "9d4b1de166e5d7d5128b591c612eff3fd5cec78af79c1acabb9d5e93341917fd",
+      "size": 5867
+    },
+    "vendor/mame-scsp/upstream/scspdsp.h": {
+      "sha256": "db522ecaa04665063e46f7f6c699eb7781c672fd7624ac58a60b0b180652d3cc",
+      "size": 822
+    },
+    "vendor/mame-segapcm/LICENSE": {
+      "sha256": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820",
+      "size": 1536
+    },
+    "vendor/mame-segapcm/README.md": {
+      "sha256": "03b2a82409cc298fd9a4984f6fe639cd482f36a8dd793f7816df40d5cbff2bb1",
+      "size": 5228
+    },
+    "vendor/mame-segapcm/segapcm.cpp": {
+      "sha256": "21e3979427656710d8539c124c7dfb3df3c4ce1e422f58ea30a4a2310db9fa40",
+      "size": 5451
+    },
+    "vendor/mame-segapcm/segapcm.h": {
+      "sha256": "8f54c9a2c3c80a935829da4b2b09a9562c782f133fef5e492d7bd1c77bccfcf6",
+      "size": 2702
+    },
+    "vendor/mame-segapcm/upstream/segapcm.cpp": {
+      "sha256": "fb3f2d9497d5381f9ebf16ac3c6c8ed6c094eb3273526053075b6c44859c13ee",
+      "size": 10261
+    },
+    "vendor/mame-segapcm/upstream/segapcm.h": {
+      "sha256": "7965d82e6b857fb00705e0638d7376b9266bec213a764cd08cbba6e1e6c8cbcf",
+      "size": 4234
+    },
+    "vendor/mame-wonderswan/LICENSE": {
+      "sha256": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9",
+      "size": 1574
+    },
+    "vendor/mame-wonderswan/README.md": {
+      "sha256": "0633ec8b530b0c3bad13401638649d549f833cc97cedc6c9d0263ae60607220d",
+      "size": 7400
+    },
+    "vendor/mame-wonderswan/upstream/wswansound.cpp": {
+      "sha256": "4c1c9ae39968c0dfc8230519d06439c403e387fa2b250c1dbb06b0663845bc20",
+      "size": 15337
+    },
+    "vendor/mame-wonderswan/upstream/wswansound.h": {
+      "sha256": "a4edef627dbc3fd47def5bdc0f2ebeeb25f1ba63396f5952796df3c3ff81bef3",
+      "size": 2726
+    },
+    "vendor/mame-wonderswan/wonderswan.cpp": {
+      "sha256": "fcd143482371f07d335ce3f9ef4fabb4febf6125c46888adcb02e4a400e24294",
+      "size": 8452
+    },
+    "vendor/mame-wonderswan/wonderswan.h": {
+      "sha256": "38ca485de40fc60d858b1a7d70bc2037c52d9a04e4e28e851b69945c957f6b40",
+      "size": 2134
+    },
+    "vendor/msfa/COPYING": {
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    "vendor/msfa/LICENSE": {
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size": 11358
+    },
+    "vendor/msfa/THIRD_PARTY_NOTICES.md": {
+      "sha256": "d78ec8c2979abef6e229dac2b7229135ebd94514d03cdbd18a007b14a9a68b5c",
+      "size": 889
+    },
+    "vendor/msfa/UPSTREAM.md": {
+      "sha256": "15b1157f0b45f12f9e6a61290a85b5e776e50106f37bd979c7d3993c63603964",
+      "size": 1438
+    },
+    "vendor/msfa/aligned_buf.h": {
+      "sha256": "802aefb025fb3c93584a0550be0b67a5b1fc77f003df15627104cc0a4caa5dac",
+      "size": 1177
+    },
+    "vendor/msfa/controllers.h": {
+      "sha256": "68bf695b3b3176bf618a919f840093909a89325c57057c73bf8eee5fc8ae61b9",
+      "size": 795
+    },
+    "vendor/msfa/dx7note.cc": {
+      "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d",
+      "size": 7917
+    },
+    "vendor/msfa/dx7note.h": {
+      "sha256": "fa4d2a3972597c6b1ca828b7e78d8553baf97567f7877d2396d243f626dd52a3",
+      "size": 2079
+    },
+    "vendor/msfa/env.cc": {
+      "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd",
+      "size": 4909
+    },
+    "vendor/msfa/env.h": {
+      "sha256": "ac12c10d59d2ce9ae888f6ca063caf564c4c7d3a2971c3bf04be2977ab65c340",
+      "size": 2539
+    },
+    "vendor/msfa/exp2.cc": {
+      "sha256": "fe7dc02d600fcaf198ca32b10edfb28ff695d107b401c3fa92a7ac73d2e9096f",
+      "size": 2004
+    },
+    "vendor/msfa/exp2.h": {
+      "sha256": "23aa480e221e5d1f928a5ccab654a9c01a80eb0b610fd66d9364af09d18cdda8",
+      "size": 2066
+    },
+    "vendor/msfa/fm_core.cc": {
+      "sha256": "1ae2ec59f2a353eab6ebbe558f6e4f0a3b7d5f7308a7a002c1fb792c9e9a54ee",
+      "size": 5482
+    },
+    "vendor/msfa/fm_core.h": {
+      "sha256": "8b44690d4965cffe82f71dd12125b7d3b63fb59556c4cac0472cc984cd29a1ea",
+      "size": 982
+    },
+    "vendor/msfa/fm_op_kernel.cc": {
+      "sha256": "e91aa1e067bf67c799871344eb1f3cdd92c2c0e4797b2efc2403ac7bb7113af5",
+      "size": 13659
+    },
+    "vendor/msfa/fm_op_kernel.h": {
+      "sha256": "62bfcbbccf445504dd195a6beb05179b9e03235e8e4b19e661b761ddc0e80603",
+      "size": 1384
+    },
+    "vendor/msfa/freqlut.cc": {
+      "sha256": "963e0b6fbb94b9a614d2376e3a4f753dc7c71b1d23b454af31f01fade150032f",
+      "size": 1981
+    },
+    "vendor/msfa/freqlut.h": {
+      "sha256": "d319ee2d35e8e8e2c860b6fc2a2d1382bf5782d1d147264914325ca41f89f00b",
+      "size": 710
+    },
+    "vendor/msfa/lfo.cc": {
+      "sha256": "47a34fc38eab4cfc46376732a6ddfd24631b8ef27a67ec4177300a264e5ff867",
+      "size": 2387
+    },
+    "vendor/msfa/lfo.h": {
+      "sha256": "f88ba2fbd63626483c7a028537a0434aec3b7a159fee154efc0451f8b784dba2",
+      "size": 1079
+    },
+    "vendor/msfa/module.h": {
+      "sha256": "a03078ae9e62aeb8808df4b8dd02fdb941dc90e04f4840dcf25af6c785e0427d",
+      "size": 921
+    },
+    "vendor/msfa/patch.cc": {
+      "sha256": "b4a70d7812052dc52621c2d80f480dcc17b6ff0044cc6e215caae88df41d07b7",
+      "size": 1864
+    },
+    "vendor/msfa/patch.h": {
+      "sha256": "2ddf975db873de9071adcec6bf8539a38f98e35e5f2b220045cff658e489b020",
+      "size": 711
+    },
+    "vendor/msfa/pitchenv.cc": {
+      "sha256": "da4d85e5957f103e9aae7418fc803ecc61933b42c1d4add67f4ea1dcc8b597e3",
+      "size": 2622
+    },
+    "vendor/msfa/pitchenv.h": {
+      "sha256": "5701a2dcaf13e1ba7141cfc605ba6163ddffd73a91a0362d31b18a4f99fcd72d",
+      "size": 1200
+    },
+    "vendor/msfa/resofilter.cc": {
+      "sha256": "2c1a61601aad45804f02995b1f665a43bd865f76029a84d826669a0202a3bc76",
+      "size": 10782
+    },
+    "vendor/msfa/resofilter.h": {
+      "sha256": "c83bbae6fde4c498d4b9c5116aee52295798184fc09bb79c3fdc04aa79332dec",
+      "size": 1197
+    },
+    "vendor/msfa/ringbuffer.cc": {
+      "sha256": "4337739745ed3696ba4d599bd185cedea9ebe7a64a3dc8c8e79b0f6e19fe4fe6",
+      "size": 2334
+    },
+    "vendor/msfa/ringbuffer.h": {
+      "sha256": "7a3505e990d8e27d4c4ab697d5bef51a18b2aa0c6e88866c33e100616adaac3d",
+      "size": 1374
+    },
+    "vendor/msfa/sin.cc": {
+      "sha256": "06ac6f168f6e63f73e6195bbd4a1a65713f01594aeccef469f9c36e9e22e1d11",
+      "size": 4173
+    },
+    "vendor/msfa/sin.h": {
+      "sha256": "77486d3ac19d53514a8d26cd2164374ceceab9b15f8d98f876d4db7647321cc2",
+      "size": 1705
+    },
+    "vendor/msfa/synth.h": {
+      "sha256": "06d955a1fb369aa80e53fbaf0e09dcbebef0de664bb517dcb2003f8ec2703a42",
+      "size": 2127
+    },
+    "vendor/msfa/synth_unit.cc": {
+      "sha256": "5b74290c49e7b3ea240f02520d00eaeb006bc9365140252adaa85dc01ff12d5f",
+      "size": 11206
+    },
+    "vendor/msfa/synth_unit.h": {
+      "sha256": "e9d1c1fc7d1ddfe7ab006fb93fa04d56e806d584b2d1f453d28961e6153f5063",
+      "size": 3076
+    },
+    "vendor/nuked-opn2/LICENSE": {
+      "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "size": 26526
+    },
+    "vendor/nuked-opn2/README.md": {
+      "sha256": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa",
+      "size": 806
+    },
+    "vendor/nuked-opn2/ym3438.c": {
+      "sha256": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76",
+      "size": 39696
+    },
+    "vendor/nuked-opn2/ym3438.h": {
+      "sha256": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189",
+      "size": 5196
+    },
+    "vendor/snes-spc/LICENSE": {
+      "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "size": 26526
+    },
+    "vendor/snes-spc/README.md": {
+      "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775",
+      "size": 3444
+    },
+    "vendor/snes-spc/README.upstream.md": {
+      "sha256": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362",
+      "size": 3249
+    },
+    "vendor/snes-spc/changes.txt": {
+      "sha256": "2f753e4f016d9cd8a37dc338f7a4d1bae70cd3a3623027f514542bee8daea148",
+      "size": 3569
+    },
+    "vendor/snes-spc/license.txt": {
+      "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a",
+      "size": 26436
+    },
+    "vendor/snes-spc/readme.txt": {
+      "sha256": "3832c72b8bf6c5b4e4b6d424d674c2a658b92aa595be10b14bdb715b0d6eb22b",
+      "size": 3134
+    },
+    "vendor/snes-spc/snes_spc.txt": {
+      "sha256": "bf36fda81ac9ad8fecee4efe59bd360772ea0eaa49a0ea801dc06761a07ff295",
+      "size": 10661
+    },
+    "vendor/snes-spc/snes_spc/SNES_SPC.cpp": {
+      "sha256": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f",
+      "size": 17737
+    },
+    "vendor/snes-spc/snes_spc/SNES_SPC.h": {
+      "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae",
+      "size": 9033
+    },
+    "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp": {
+      "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e",
+      "size": 9468
+    },
+    "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp": {
+      "sha256": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2",
+      "size": 3676
+    },
+    "vendor/snes-spc/snes_spc/SPC_CPU.h": {
+      "sha256": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8",
+      "size": 24078
+    },
+    "vendor/snes-spc/snes_spc/SPC_DSP.cpp": {
+      "sha256": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc",
+      "size": 26250
+    },
+    "vendor/snes-spc/snes_spc/SPC_DSP.h": {
+      "sha256": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a",
+      "size": 8413
+    },
+    "vendor/snes-spc/snes_spc/SPC_Filter.cpp": {
+      "sha256": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8",
+      "size": 1768
+    },
+    "vendor/snes-spc/snes_spc/SPC_Filter.h": {
+      "sha256": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9",
+      "size": 1065
+    },
+    "vendor/snes-spc/snes_spc/blargg_common.h": {
+      "sha256": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba",
+      "size": 5205
+    },
+    "vendor/snes-spc/snes_spc/blargg_config.h": {
+      "sha256": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8",
+      "size": 620
+    },
+    "vendor/snes-spc/snes_spc/blargg_endian.h": {
+      "sha256": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637",
+      "size": 6364
+    },
+    "vendor/snes-spc/snes_spc/blargg_source.h": {
+      "sha256": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a",
+      "size": 3037
+    },
+    "vendor/snes-spc/snes_spc/dsp.cpp": {
+      "sha256": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6",
+      "size": 2600
+    },
+    "vendor/snes-spc/snes_spc/dsp.h": {
+      "sha256": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b",
+      "size": 2512
+    },
+    "vendor/snes-spc/snes_spc/spc.cpp": {
+      "sha256": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f",
+      "size": 4212
+    },
+    "vendor/snes-spc/snes_spc/spc.h": {
+      "sha256": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7",
+      "size": 4758
+    },
+    "vendor/tetorica-cdda/LICENSE": {
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "size": 1517
+    },
+    "vendor/tetorica-cdda/NOTICE.md": {
+      "sha256": "32dd325f1ede34b3da8c72a7a2fd65d25fe4c645051788057e9c37d669ae634c",
+      "size": 791
+    },
+    "vendor/tetorica-cdda/README.md": {
+      "sha256": "dbc86540b87a112395a472dc0d84eb4f1c96d65dcc2579de245b1ec689ea6f5d",
+      "size": 4288
+    },
+    "vendor/tetorica-cdda/cdda_pcm.c": {
+      "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb",
+      "size": 5021
+    },
+    "vendor/tetorica-cdda/cdda_pcm.h": {
+      "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6",
+      "size": 2890
+    },
+    "vendor/tetorica-msm5205/LICENSE": {
+      "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a",
+      "size": 1617
+    },
+    "vendor/tetorica-msm5205/NOTICE.md": {
+      "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d",
+      "size": 2064
+    },
+    "vendor/tetorica-msm5205/README.md": {
+      "sha256": "06c3b63100c2359b5f9c02cc4bb195c713d42ebd7b5348dbbfbcc332348b0630",
+      "size": 5722
+    },
+    "vendor/tetorica-msm5205/msm5205_pcm.c": {
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be",
+      "size": 6720
+    },
+    "vendor/tetorica-msm5205/msm5205_pcm.h": {
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9",
+      "size": 3618
+    },
+    "vendor/tetorica-nes/AUTHORS-JSNES.md": {
+      "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "size": 390
+    },
+    "vendor/tetorica-nes/LICENSE-FDS": {
+      "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "size": 1062
+    },
+    "vendor/tetorica-nes/LICENSE-JSNES": {
+      "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "size": 10758
+    },
+    "vendor/tetorica-nes/README.md": {
+      "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396",
+      "size": 3903
+    },
+    "vendor/tetorica-nes/UPSTREAM-FDS.md": {
+      "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "size": 1149
+    },
+    "vendor/tetorica-nes/UPSTREAM-JSNES.md": {
+      "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "size": 924
+    },
+    "vendor/tetorica-nes/nes_core.cpp": {
+      "sha256": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959",
+      "size": 32166
+    },
+    "vendor/tetorica-nes/nes_core.h": {
+      "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
+      "size": 2163
+    },
+    "vendor/tetorica_sega_psg/LICENSE": {
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "size": 1517
+    },
+    "vendor/tetorica_sega_psg/README.md": {
+      "sha256": "9536875b83eac226b00d6e183a1040db9903a0a118b093183a7edd02a7c2e38e",
+      "size": 1912
+    },
+    "vendor/tetorica_sega_psg/segapsg.cpp": {
+      "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+      "size": 7819
+    },
+    "vendor/tetorica_sega_psg/segapsg.h": {
+      "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+      "size": 2156
+    },
+    "vendor/ymfm/LICENSE": {
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+      "size": 1519
+    },
+    "vendor/ymfm/chip_state.h": {
+      "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+      "size": 521
+    },
+    "vendor/ymfm/ymfm.h": {
+      "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+      "size": 18554
+    },
+    "vendor/ymfm/ymfm_adpcm.cpp": {
+      "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+      "size": 22040
+    },
+    "vendor/ymfm/ymfm_adpcm.h": {
+      "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+      "size": 13752
+    },
+    "vendor/ymfm/ymfm_fm.h": {
+      "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+      "size": 17705
+    },
+    "vendor/ymfm/ymfm_fm.ipp": {
+      "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+      "size": 59507
+    },
+    "vendor/ymfm/ymfm_misc.cpp": {
+      "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+      "size": 4435
+    },
+    "vendor/ymfm/ymfm_misc.h": {
+      "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+      "size": 3077
+    },
+    "vendor/ymfm/ymfm_opl.cpp": {
+      "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+      "size": 67501
+    },
+    "vendor/ymfm/ymfm_opl.h": {
+      "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+      "size": 33768
+    },
+    "vendor/ymfm/ymfm_opm.cpp": {
+      "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+      "size": 17474
+    },
+    "vendor/ymfm/ymfm_opm.h": {
+      "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+      "size": 12759
+    },
+    "vendor/ymfm/ymfm_opn.cpp": {
+      "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+      "size": 68238
+    },
+    "vendor/ymfm/ymfm_opn.h": {
+      "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+      "size": 28892
+    },
+    "vendor/ymfm/ymfm_opq.cpp": {
+      "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+      "size": 15749
+    },
+    "vendor/ymfm/ymfm_opq.h": {
+      "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+      "size": 11258
+    },
+    "vendor/ymfm/ymfm_opx.h": {
+      "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+      "size": 12535
+    },
+    "vendor/ymfm/ymfm_opz.cpp": {
+      "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+      "size": 28628
+    },
+    "vendor/ymfm/ymfm_opz.h": {
+      "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+      "size": 14377
+    },
+    "vendor/ymfm/ymfm_pcm.cpp": {
+      "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+      "size": 21684
+    },
+    "vendor/ymfm/ymfm_pcm.h": {
+      "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+      "size": 12880
+    },
+    "vendor/ymfm/ymfm_ssg.cpp": {
+      "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+      "size": 8421
+    },
+    "vendor/ymfm/ymfm_ssg.h": {
+      "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+      "size": 7752
+    },
+    "wasm/ay8910_wasm.cpp": {
+      "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb",
+      "size": 851
+    },
+    "wasm/cdda_wasm.c": {
+      "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012",
+      "size": 1954
+    },
+    "wasm/dx7/dx7.cc": {
+      "sha256": "49c1beb44b0f44a5f7638b338f5af97fbe81b4efaba6d6ac78b540391d184d14",
+      "size": 2714
+    },
+    "wasm/dx7/dx7.h": {
+      "sha256": "1b59c5dc4a39f884b8937a8ea8b1c9a393f13e2851f4d88e5c4f90fc185c13df",
+      "size": 772
+    },
+    "wasm/gameboy_apu_wasm.cpp": {
+      "sha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7",
+      "size": 2076
+    },
+    "wasm/huc6280_wasm.cpp": {
+      "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765",
+      "size": 467
+    },
+    "wasm/k051649_wasm.cpp": {
+      "sha256": "32f4dcc756a4beda40a9137f5585891e1917a1a091085398cd032c3bc723c466",
+      "size": 700
+    },
+    "wasm/msm5205_wasm.c": {
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471",
+      "size": 2191
+    },
+    "wasm/nesapu_wasm.cpp": {
+      "sha256": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105",
+      "size": 2389
+    },
+    "wasm/nuked_opn2_wasm.c": {
+      "sha256": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115",
+      "size": 4618
+    },
+    "wasm/okim6258_wasm.cpp": {
+      "sha256": "0110baff438a0fb270b7ef0426c658d560967968bc8fa16008f1d79807f31815",
+      "size": 837
+    },
+    "wasm/opn_state.h": {
+      "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+      "size": 2974
+    },
+    "wasm/opn_variant_wasm.cpp": {
+      "sha256": "3fc9abd084029938d8dbe1d73d30a92fe42e7dd7a0cc9e49f6395c35453c689d",
+      "size": 2095
+    },
+    "wasm/pokey_wasm.cpp": {
+      "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df",
+      "size": 1101
+    },
+    "wasm/pwm32x_core.h": {
+      "sha256": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c",
+      "size": 5581
+    },
+    "wasm/pwm32x_wasm.cpp": {
+      "sha256": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb",
+      "size": 4159
+    },
+    "wasm/rf5c164_wasm.cpp": {
+      "sha256": "09351371671187946edc2b7cfb9bcb6093136ba59f220add9f54b79c1e69a055",
+      "size": 1531
+    },
+    "wasm/segapcm_wasm.cpp": {
+      "sha256": "52cb59b1a94166c1081796eecc4fa803928b610ad3e1fe0becd7f603f6b7a643",
+      "size": 1244
+    },
+    "wasm/segapsg_wasm.cpp": {
+      "sha256": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e",
+      "size": 1392
+    },
+    "wasm/spc_wasm.cpp": {
+      "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77",
+      "size": 15355
+    },
+    "wasm/wonderswan_wasm.cpp": {
+      "sha256": "7f5de6a81470494b3e1b6f8f290e12ad1c9856b3024582e0618120b8d4e046cf",
+      "size": 1218
+    },
+    "wasm/y8950_wasm.cpp": {
+      "sha256": "e7b45082fc47409a77d815744e125f25a544bf86ee4a5799d4d22fc05f35cd15",
+      "size": 2705
+    },
+    "wasm/ym2151_wasm.cpp": {
+      "sha256": "545a78c39eb4de0af371f08f6bc960546f15a8d8773dfbcb57f6688d939e7fb6",
+      "size": 3010
+    },
+    "wasm/ym2203_wasm.cpp": {
+      "sha256": "9744d178ea2aa251183bdee330b532216d653946a72eb148f5196a1463b6f63d",
+      "size": 2830
+    },
+    "wasm/ym2413_wasm.cpp": {
+      "sha256": "e76d64214d86d7f57fded2e513f3fcfc807717ed0b9a7bd7591a4ef82b0af79e",
+      "size": 2026
+    },
+    "wasm/ym2608_wasm.cpp": {
+      "sha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c",
+      "size": 4744
+    },
+    "wasm/ym2610b_wasm.cpp": {
+      "sha256": "aeda15e37d3336028f46a8daf9ae48d092d7188f079d74a3492db25d21f6f849",
+      "size": 3606
+    },
+    "wasm/ym2612_wasm.cpp": {
+      "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35",
+      "size": 5226
+    },
+    "wasm/ym3526_wasm.cpp": {
+      "sha256": "cf9aa371dcf1e0146558b7f32343b9b5793300e1030b594ea4d1f9d8d8f700bd",
+      "size": 1810
+    },
+    "wasm/ym3812_wasm.cpp": {
+      "sha256": "44d2692f2281e9e34eedf72bada6846fcc83ec0d3db0989f020784cc7c047427",
+      "size": 1810
+    },
+    "wasm/ymf262_wasm.cpp": {
+      "sha256": "68a8cf2c1fd2f45065653ba3b83debd4c01e2fb534446db0141dd0e5e8e822c2",
+      "size": 1917
+    },
+    "wasm/ymf278b_wasm.cpp": {
+      "sha256": "ce11eea43c745c8e28bacb9907064a9313587a8dc4b96b7b7b5c593f3c1a2f32",
+      "size": 2912
+    },
+    "wasm/ymfm_wasm_interface.h": {
+      "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+      "size": 1719
+    }
+  },
+  "kind": "source",
+  "name": "tetorica-soundchip-native",
+  "schemaVersion": 1,
+  "version": "0.1.7"
+}

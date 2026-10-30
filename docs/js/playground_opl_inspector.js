@@ -1,6 +1,6 @@
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=ps1-mode-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-deferred-release-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-playground-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-playground-1';
 import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
 import {readY8950Adpcm,validateY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];

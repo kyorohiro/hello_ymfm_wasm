@@ -32,7 +32,8 @@ Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレ�
 チップごとの再生機能、制約、実装に関する詳しい記録は[Memo.md](Memo.md)を参照してください。
 
 実験的な[Saturn SCSP共通コア](docs/scsp.md)を追加しています。32スロットのNative／WASMと、
-PCM生成用の低レベルJavaScript APIが対象です。Playground・専用Synthへの接続は後続で、npmの音源選択にはまだ含まれません。
+低レベルJavaScript／音名で扱うPCM APIに加え、[PlaygroundのWeb Audioモード](docs/playground/index.html?mode=scsp)で
+Main／Worker・32スロットのKeyboard試奏に対応しました。専用SynthとTauri Native音声経路は後続で、npmの汎用chip factoryにはまだ含まれません。
 
 ## ブラウザーで試す
 

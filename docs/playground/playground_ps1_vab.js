@@ -6,7 +6,7 @@
 // libsnd tuning and body prefix checked against:
 // https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vmanager.c
 // https://github.com/Xeeynamo/sotn-decomp/blob/master/src/main/psxsdk/libsnd/vs_vh.c
-import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-cyclic-1';
+import {preparePs1ADPCM} from '../js/ps1synth.js?v=ps1-deferred-release-1';
 
 export const MAX_VAB_FILE_BYTES = 1024 * 1024;
 const bytesOf = input => {
