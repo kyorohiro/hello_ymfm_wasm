@@ -4,6 +4,9 @@
 次回はこのファイルから再開する。今回の作業では公開済みページを調査していないため、
 itch.ioへのアップロード・devlog投稿の実施状況は最初に確認する。
 
+後続報告：2026-10-30、ユーザーよりPlaygroundのリリース済み報告あり。
+Playground公開は完了。公開URL・使用ZIP・devlog投稿状況は未記録。Standalone Synthの公開状況とは分けて扱う。
+
 ## いまの状態
 
 - 確認開始時HEAD：`ef99ec18`、commit subject `v0.1.0`。
@@ -63,10 +66,13 @@ python3 -m http.server 8877 --directory docs
 - [x] 作品フォルダー内の全曲を調べるCLIを作る。
 - [x] 合成データのCLI 7 tests＋共通パーサー9 testsを実行する。
 - [x] Clock Towerの既存23 files／20 entriesを再検査し、以前の結果と全件一致を確認する。
-- [ ] 別作品のPSFセットを、作品ごとに1フォルダーへ展開してCLIで集計する。
-  目安はまず追加2作品。ゲームファイル・抽出音色はリポジトリや配布ZIPへ入れない。
-- [ ] 各作品の代表ToneをPlaygroundまたはSynthで試し、発音・ループ・音程・離鍵を確認する。
-- [ ] 対応例と「検出なし／依存不足／非対応Tone」の実例を記録し、必要な形式から次の対応を選ぶ。
+- [x] 追加2作品をCLIで集計。Wild Arms 66 entries／Crash Bandicoot 25 entries、処理エラー0。
+  ゲームファイル・抽出音色は一時領域のみ。リポジトリ・配布ZIPへは入れていない。
+- [x] 各作品1代表候補を両UIでロード・発音測定。Chromium／WebKitの計12経路成功。
+- [ ] 正しい本文との対応付けを確認後、代表Toneの音程・ループ・離鍵・元音色との一致を確認する。
+  現状の非ゼロPCMは忠実度の証拠ではない。人の耳での試聴は未実施。
+- [x] 検出なし・拒否理由と、本文の誤対応候補を記録し、次の課題を選ぶ。
+  [調査記録](spu_psf_multi_title_01.md)：次は分離VH／VBの対応付けと誤候補の除外。
 
 ```sh
 node scripts/inspect_psf_banks.mjs /path/to/extracted-game-set --out /private/tmp/game-psf-report.json
@@ -87,7 +93,9 @@ Clock Tower再検査は既知1作品の確認であり、複数作品のTODO完�
 - [x] 正規generatorの--check 2件、1,173 local references、ZIP CRC／itch.ioのentry上限を確認。
 - [x] 新しいPlaygroundブラウザ用ZIPを作成・展開し、VAB／PSF／SPU全般それぞれ
   Chromium／WebKit × Main／Workerの計12経路で成功。PS1は生成設定の適用後も全経路再測定に成功。
-- [ ] Playgroundも公開するタイミングで、実ブラウザで短く試聴し、アップロード・公開URLを記録する。
+- [x] Playgroundをリリースする。2026-10-30、ユーザー報告で完了。
+- [ ] 公開URL・公開画面上の版番号・使用ZIP／hashを記録する。報告時のローカルHEADは617af9bb（v0.95.2）。
+- [ ] 人の耳での短い試聴結果を記録する。今回の公開報告だけで試聴完了とは数えない。
 
 ブラウザ公開用ZIP：
 `release/hello_ymfm_wasm_psf-vab-dev-20261030_itch_playground_for_run.zip`。
@@ -99,7 +107,8 @@ Clock Tower再検査は既知1作品の確認であり、複数作品のTODO完�
 今回の新しいreportで正規チェックが通っており、同じ未解決TODOとして再調査する必要はない。
 
 この項目はStandalone SPU Synthの公開とは別。既存Synth v0.1.0 ZIPと過去の校正記録は変更していない。
-新しいPlayground候補のアップロード・Web deploy・npm公開・git操作は未実施。
+その後、ユーザーからPlaygroundのリリース完了報告あり。上記候補のどのZIPが公開されたかは未記録。
+Codexはアップロード・投稿・npm公開・git操作を行っていない。
 
 ## 後続候補と今は進めないこと
 
@@ -114,4 +123,4 @@ Clock Tower再検査は既知1作品の確認であり、複数作品のTODO完�
 - 使用ZIP／SHA-256：未記録
 - devlog URL：未記録
 - 試聴したブラウザ／OS／確認結果：未記録
-- 追加作品と結果：未記録
+- 追加作品と結果：[Wild Arms／Crash Bandicootの機械調査](spu_psf_multi_title_01.md)。候補数を復元成功数と混同しない。

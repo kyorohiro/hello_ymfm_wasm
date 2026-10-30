@@ -4,6 +4,22 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## 追加2作品のPSF調査：2026-10-30
+
+Wild Arms 66 entries／Crash Bandicoot 25 entriesを全走査し、処理エラー0。
+現行抽出器の採用候補はそれぞれ3／6 entries。代表候補のPlayground・Synth計12ブラウザ経路成功。
+ただし想定VB領域に別VABヘッダー／SEQ識別子があり、正しい元音色の復元成功とは扱わない。
+次は**VH／VB対応付けと誤候補の除外**を優先。[記録・測定JSON](spu_psf_multi_title_01.md)。
+製品コード・配布ZIPは変更せず、ゲーム由来データは一時領域のみ。人の耳での試聴は未実施。
+
+## 公開報告：2026-10-30 Playgroundリリース済み
+
+ユーザーから「Playgroundをreleaseしました」と報告あり。Playgroundの公開を完了として扱う。
+報告時のローカルHEADは`617af9bb`（commit subject `v0.95.2`）。公開URL・実際のアップロードZIP／hash・
+公開画面上の版番号・devlog投稿の有無は未記録。ローカルcommit名だけで公開版番号を断定しない。
+[再開TODO](todo_spu_resume_20261030.md)を更新済み。以下の「未公開」は各検証作業時点の履歴。
+ユーザーの実聴・別作品での互換性確認は、公開完了とは別に残す。
+
 ## 後続整理：release削除後も残るSPUデモ
 
 ユーザーがreleaseを削除して再buildする相談をしたため、合成VAB／PSFデモを

@@ -1,7 +1,7 @@
 # SPU Synth: VAB／PSFからの音色インポート — 2026-10-30
 
 ユーザー依頼でTODO化。過去のPS1ゲームの音色を取り込み、SPU Synthで弾いて検証できるようにする。
-標準VABのインポートとPSF静的抽出を実装。Clock Towerの1セットで初回確認済み。複数作品での対応率は未検証。
+標準VABのインポートとPSF静的抽出を実装。Clock Towerの1セットで初回確認済み。追加2作品の静的調査で本文の誤対応候補を確認。元音色の復元率は未検証。
 実装範囲・検証記録は [VABインポート](spu_synth_vab_import_01.md) を参照。
 
 仕事中断後の優先順・公開候補・短い試聴手順は [再開TODO](todo_spu_resume_20261030.md) を入口にする。
@@ -10,7 +10,7 @@
 [操作・検証・配布前の残作業](playground_spu_vab_01.md)。
 
 - [x] Playground公開前に、変更後ソースの音量校正証拠を更新してfreshnessチェックを通し、配布ZIPを作成・検証する。
-  385 testsと展開ZIPの12ブラウザ経路成功。[新しい記録とZIP](playground_spu_vab_release_01.md)。公開自体は未実施。
+  385 testsと展開ZIPの12ブラウザ経路成功。[新しい記録とZIP](playground_spu_vab_release_01.md)。2026-10-30にユーザーからPlayground公開済み報告あり。
 
 ## 1. 標準VABのインポート（先行）
 
@@ -34,17 +34,22 @@
   相対パスと重ね合わせ順を扱い、不足ファイルを明示する。
 - [x] 実行データをロードアドレスに従って合成し、連続配置の標準VAB候補を検出して①のパーサーで検証する。
   単純な識別子検索だけで採用せず、VHとVBの連続配置・ロード済み範囲・表・対応Toneを確認する。
-- [ ] PSF内で分離配置されたVH／VBの自動対応付けを検討・検証する。
+- [ ] **次の優先課題：PSF内のVH／VB対応付けと誤候補の除外。**
+  Wild Armsでは想定VB先頭に別VABヘッダー、Crash Bandicootでは想定サンプル内にSEQ識別子を確認。
+  分離配置を検討し、本文の根拠が弱い候補を成功として扱わない。合成fixtureで回帰を作ってから共通抽出層へ反映する。
+  [追加2作品の調査](spu_psf_multi_title_01.md)。ADPCMフラグの許容拡大だけで対処しない。
 - [x] ブラウザで関連ファイルをまとめて選べる導線を用意する。
   展開サイズ、アドレス範囲、再帰深度を制限し、循環参照を検出する。
 - [x] 抽出したバンクを①の音色一覧へ渡す。検出不能と読み込みエラーを区別して表示する。
 - [x] PlaygroundのPSF抽出処理をSPU Synthでも共用し、PSF / VABタブからPSF／MiniPSFのファイル・フォルダー選択、bank／Tone選択、鍵盤演奏・preset保存へつなぐ。
   再生不能Toneを無効化し、最初の対応Toneを自動選択。読み込み／抽出中のresetは旧処理を取り消す。
-- [ ] 複数の実PSFセットで検証し、対応例・未対応形式を記録する。
-  Clock Tower - The First Fearの1セット（20 entries）で初回確認済み。
+- [x] 複数の実PSFセットを機械調査し、候補・検出なし・拒否理由を記録する。
+  既存Clock Towerに加えWild Arms 66 entries／Crash Bandicoot 25 entriesを調査。
+  代表候補の両UI計12ブラウザ経路成功。ただし誤対応の疑いがあり、正しい音色への対応成功とは数えない。
+- [ ] 本文対応付けを改善後、元の音色との比較、音程・ループ・離鍵を確認する。
 - [x] 全entryの検出bank・対応／非対応Tone数・失敗理由を集計するCLIを用意する。
   [操作](../../scripts/inspect_psf_banks.md)。CLI 7＋共通パーサー9 tests成功。
-  既存Clock Towerの20 entriesで前回結果との一致を確認。追加作品の検証は上記TODOに残す。
+  既存Clock Towerの20 entriesで前回結果との一致を確認。追加2作品の初回調査は完了。忠実度検証は上記TODOに残す。
 
 2026-10-30の実装・操作・合成デモ・検証：[Playground PSF抽出](playground_spu_psf_01.md)、[SPU Synth PSFインポート](spu_synth_psf_import_01.md)。
 
