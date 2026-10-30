@@ -2028,17 +2028,20 @@
         {
           "path": "vendor/mame-scsp/README.md",
           "originPath": "local SCSP adaptation; pristine MAME originals under upstream/",
-          "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb"
+          "sha256": "218ffb61fa3f823383ee036445f827fac4e09b0d56a03dd4a30668b36f406d5c",
+          "size": 4560
         },
         {
           "path": "vendor/mame-scsp/scsp.cpp",
           "originPath": "local SCSP adaptation; pristine MAME originals under upstream/",
-          "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770"
+          "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639",
+          "size": 27097
         },
         {
           "path": "vendor/mame-scsp/scsp.h",
           "originPath": "local SCSP adaptation; pristine MAME originals under upstream/",
-          "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b"
+          "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed",
+          "size": 2976
         },
         {
           "path": "vendor/mame-scsp/scsp_instrument.cpp",

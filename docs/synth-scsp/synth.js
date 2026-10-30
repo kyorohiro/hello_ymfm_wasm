@@ -11,7 +11,7 @@ async function refresh(){if(audio)panel.update(await audio.read());}
 const panel=createPlaygroundScspVoicePanel({root:$('voice'),onError:report,invoke:(method,args)=>enqueue(async()=>{
   if(!audio)throw new Error('Start audio first');
   const result=await audio.invoke(method,args);
-  if(method==='setMix')for(const entry of held.values())if(entry.source===args[0])await audio.command('setMix',[entry.slot,args[1]]);
+  if(['setMix','setLfo'].includes(method))for(const entry of held.values())if(entry.source===args[0])await audio.command(method,[entry.slot,args[1]]);
   if(!['getPCM','auditionOff','auditionOn'].includes(method))await refresh();return result;
 })});
 // Keep the shared editor's detailed RAM protocol out of the standalone flow.
@@ -39,7 +39,7 @@ function press(id,index){
   void enqueue(async()=>{
     if(!audio||entry.epoch!==epoch)return;
     await audio.resume();const state=await audio.read(),voice=state.channels[source];
-    await audio.command('setPreset',[slot,{sample:voice.sample,envelope:voice.envelope,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan}]);
+    await audio.command('setPreset',[slot,{sample:voice.sample,envelope:voice.envelope,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,lfo:voice.lfo}]);
     await audio.invoke('auditionOn',[slot,midi,entry.id]);
     await audio.command('setFrequency',[slot,440*2**((midi-69+Number($('pitch').value))/12)]);
   }).catch(()=>{if(held.get(id)===entry){held.delete(id);highlight();}if(audio&&entry.epoch===epoch)void enqueue(()=>audio?.invoke('auditionOff',[entry.slot,entry.id]));});

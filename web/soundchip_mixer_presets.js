@@ -129,7 +129,7 @@ export const SOUNDCHIP_MIXER_PRESETS = freeze({
         },
         {
           "name": "scsp",
-          "volume": 0.128825
+          "volume": 0.128826
         }
       ]
     },

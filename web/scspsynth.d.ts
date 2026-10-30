@@ -1,5 +1,20 @@
 import type {Scsp} from './scsp.js';
 export const SCSP_SLOT_COUNT: 32;
+export const SCSP_LFO_FREQUENCIES_HZ: readonly number[];
+export const SCSP_LFO_PITCH_CENTS: readonly number[];
+export const SCSP_LFO_AMPLITUDE_DB: readonly number[];
+export const SCSP_LFO_WAVEFORMS: readonly string[];
+export interface ScspLfo {
+  /** Manual frequency code 0..31. */
+  frequencyCode: number;
+  /** 0 saw, 1 square, 2 triangle, 3 noise. */
+  pitchWave: number;
+  pitchDepth: number;
+  amplitudeWave: number;
+  amplitudeDepth: number;
+  /** Hold both oscillator phases at zero until cleared. */
+  reset: boolean;
+}
 export type ScspNote = string | number;
 export type ScspPCMOptions = ({rootNote: ScspNote; baseFrequencyHz?: never} |
   {baseFrequencyHz: number; rootNote?: never}) & {
@@ -43,8 +58,9 @@ export interface ScspPreset extends ScspMix {
   sample: ScspSample | null;
   frequencyHz: number;
   envelope: ScspEnvelope;
+  lfo: ScspLfo;
 }
-export type ScspPresetPatch = Partial<Omit<ScspPreset,'envelope'>> & {envelope?: Partial<ScspEnvelope>};
+export type ScspPresetPatch = Partial<Omit<ScspPreset,'envelope'|'lfo'>> & {envelope?: Partial<ScspEnvelope>; lfo?: Partial<ScspLfo>};
 export interface ScspState {
   sampleRate: 44100;
   bankId: string;
@@ -52,6 +68,8 @@ export interface ScspState {
   ramUsedBytes: number;
   ramFreeBytes: number;
   /** Native source references include releasing voices; gate alone is insufficient. */
+  playingFrequencies?: (number | null)[];
+  playingLfos?: (ScspLfo | null)[];
   playingSampleIds?: (number | null)[];
   samples: ScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
@@ -65,6 +83,8 @@ export class ScspSynth {
   readonly nativeFrames: number;
   loadPCM(pcm: Int8Array | Int16Array, options: ScspPCMOptions): ScspSample;
   setPreset(slot: number, patch: ScspPresetPatch): void;
+  /** Live partial LFO update. setPreset({lfo}) is next-keyOn only. */
+  setLfo(slot: number, patch: Partial<ScspLfo>): void;
   setEnvelope(slot: number, patch: Partial<ScspEnvelope>): void;
   setFrequency(slot: number, frequencyHz: number): number;
   setNote(slot: number, note: ScspNote): number;

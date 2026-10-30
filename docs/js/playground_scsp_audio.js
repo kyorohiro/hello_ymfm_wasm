@@ -6,11 +6,11 @@ const modules=new WeakMap();
 export async function createScspAudio(context,destination,options={}) {
   options.signal?.throwIfAborted();
   if(!context?.audioWorklet||context.state==='closed')throw new Error('Saturn SCSP requires an open AudioContext with AudioWorklet');
-  const url=String(options.workletUrl??new URL('./playground_scsp_worklet.js?v=scsp-native-1',import.meta.url));
+  const url=String(options.workletUrl??new URL('./playground_scsp_worklet.js?v=scsp-lfo-1',import.meta.url));
   let cache=modules.get(context);if(!cache)modules.set(context,cache=new Map());
   let module=cache.get(url);if(!module){module=context.audioWorklet.addModule(url);cache.set(url,module);module.catch(()=>cache.delete(url));}
   const wait=promise=>{const signal=options.signal;if(!signal)return promise;signal.throwIfAborted();return new Promise((resolve,reject)=>{const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});};
-  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/scsp_wasm.wasm',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`Saturn SCSP WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
+  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/scsp_wasm.wasm?v=scsp-lfo-1',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`Saturn SCSP WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
   options.signal?.throwIfAborted();
   const node=new AudioWorkletNode(context,'tetorica-playground-scsp',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});
   const channel=new MessageChannel();let disposed=false,endpoint=null,rejectReady,readyTimer;

@@ -2,7 +2,7 @@ import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=ps1-deferred-release-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createScspAudio} from './playground_scsp_audio.js?v=scsp-native-1';
+import {createScspAudio} from './playground_scsp_audio.js?v=scsp-lfo-1';
 import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-deferred-release-1';
 import {createPs1Client} from './playground_ps1.js?v=ps1-deferred-release-1';
 import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
@@ -10,8 +10,8 @@ import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=ps1-pcm-waveform-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=scsp-native-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=scsp-native-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=scsp-lfo-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=scsp-lfo-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesAudio} from './playground_nes_audio.js?v=ps1-deferred-release-1';
@@ -33,14 +33,14 @@ import {createSegaPsgClient} from './playground_segapsg.js?v=pokey-prepare-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createOpnAudio} from './playground_opn_audio.js?v=ps1-deferred-release-1';
 import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';
-import {createSoundChipRegistry} from './playground_soundchips.js?v=scsp-native-1';
+import {createSoundChipRegistry} from './playground_soundchips.js?v=scsp-lfo-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-pcm-waveform-1';
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-deferred-release-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=scsp-native-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=scsp-lfo-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-deferred-release-1';
 import {createCddaAudio} from './cdda_audio.js?v=cdda-pcm-1';
 import {createNativeCdda} from './cdda_native.js?v=cdda-pcm-1';
@@ -70,7 +70,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=ps1-deferred-release-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=scsp-native-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=scsp-lfo-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -273,7 +273,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=scsp-native-1",
+      "./playground_logic_worker.js?v=scsp-lfo-1",
       import.meta.url
     );
   const logicWorkerUrl =

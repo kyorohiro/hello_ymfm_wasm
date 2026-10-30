@@ -33,6 +33,14 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    const peak=await page.evaluate(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return Math.max(...v.map(Math.abs));});assert(peak<.95);
    // Applying a new source must keep all held notes on their original PCM.
    const inspect=()=>page.evaluate(()=>new Promise(resolve=>{const node=window.audit.worklets[0],id=-777;const listener=({data})=>{if(data.id===id){node.port.removeEventListener('message',listener);resolve(data.value);}};node.port.addEventListener('message',listener);node.port.postMessage({type:'chip-inspector',action:'read',id});}));
+   await page.selectOption('[data-chip-control="scsp-lfo-frequencyCode"]','20');
+   await page.selectOption('[data-chip-control="scsp-lfo-pitchWave"]','2');
+   await page.selectOption('[data-chip-control="scsp-lfo-pitchDepth"]','3');
+   await page.selectOption('[data-chip-control="scsp-lfo-amplitudeDepth"]','4');
+   await page.waitForFunction(()=>document.activeElement?.tagName!=='SELECT');
+   let lfoState;for(let attempt=0;attempt<50;attempt++){lfoState=await inspect();if(lfoState.channels[3].lfo.amplitudeDepth===4)break;await page.waitForTimeout(20);}
+   for(const slot of [0,1,2,3]){assert.equal(lfoState.channels[slot].lfo.frequencyCode,20);assert.equal(lfoState.channels[slot].lfo.pitchDepth,3);assert.equal(lfoState.channels[slot].lfo.amplitudeDepth,4);}
+   await page.check('[data-chip-control="scsp-lfo-reset"]');await page.uncheck('[data-chip-control="scsp-lfo-reset"]');
    const before=await inspect();await page.click('[data-chip-action="scsp-square"]');await page.click('[data-chip-action="scsp-apply"]');await page.waitForFunction(()=>document.querySelector('[data-chip-action="scsp-apply"]').disabled);
    const after=await inspect();assert.notEqual(after.channels[0].sample.id,before.channels[0].sample.id);for(let slot=1;slot<=3;slot++)assert.equal(after.playingSampleIds[slot],before.channels[slot].sample.id);
    await page.fill('#pitch','2');await page.dispatchEvent('#pitch','change');
@@ -40,7 +48,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));
    await page.click('[data-chip-action="scsp-triangle"]');await page.click('[data-chip-action="scsp-apply"]');
    await page.waitForFunction(()=>document.querySelector('[data-chip-action="scsp-apply"]').disabled);
-   const downloadEvent=page.waitForEvent('download');await page.click('#save');const download=await downloadEvent;const preset=JSON.parse(await fs.readFile(await download.path(),'utf8'));assert.equal(preset.format,'tetorica-scsp-voice');
+   const downloadEvent=page.waitForEvent('download');await page.click('#save');const download=await downloadEvent;const preset=JSON.parse(await fs.readFile(await download.path(),'utf8'));assert.equal(preset.format,'tetorica-scsp-voice');assert.equal(preset.voice.lfo.pitchDepth,3);assert.equal(preset.voice.lfo.amplitudeDepth,4);
    await page.setInputFiles('#open',{name:'voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Preset loaded'));
    await page.keyboard.down('a');await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===1);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('a');await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===0);
    // Real file conversion, source preserved outside RAM until Apply.
@@ -50,7 +58,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.keyboard.down('s');await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===1);await page.keyboard.up('s');await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));
    await page.screenshot({path:`/private/tmp/scsp-synth-${name}-desktop.png`,fullPage:true});
    await page.setViewportSize({width:390,height:844});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1,`mobile overflow ${overflow}`);assert.equal(await page.locator('canvas').count(),1);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
-   await page.screenshot({path:`/private/tmp/scsp-synth-${name}.png`,fullPage:true});rows.push({engine:name,peak,triad:true,pitch:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,productIcon:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
+   await page.screenshot({path:`/private/tmp/scsp-synth-${name}.png`,fullPage:true});rows.push({engine:name,peak,triad:true,pitch:true,lfo:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,productIcon:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
   }finally{await browser.close();}
  }}finally{await new Promise(resolve=>server.close(resolve));}
  const report={passed:true,entry:config.entry,rows};await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));

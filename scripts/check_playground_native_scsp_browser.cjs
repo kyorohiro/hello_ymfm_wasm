@@ -55,6 +55,10 @@ async function check(type,name,base) {
       await stop();assert(!(await read('scsp')).slots.some(c=>c.gate));
       await page.click('#scspPanel [data-chip-action="scsp-square"]');await page.click('#scspPanel [data-chip-action="scsp-apply"]');
       await until(async()=> (await read('scsp')).slots[31].sample.editorOwned,'Native PCM editor');
+      await page.selectOption('#scspPanel [data-chip-control="scsp-lfo-frequencyCode"]','20');
+      await page.selectOption('#scspPanel [data-chip-control="scsp-lfo-pitchDepth"]','3');
+      await page.selectOption('#scspPanel [data-chip-control="scsp-lfo-amplitudeDepth"]','4');
+      await until(async()=> (await read('scsp')).slots[31].lfo.amplitudeDepth===4,'Native LFO editor');
       const first=native.commands().length,hold=page.locator('#scspPanel [data-chip-action="scsp-hold"]');await hold.scrollIntoViewIfNeeded();const box=await hold.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
       try{await until(()=>native.commands().slice(first).some(c=>c.type==='scsp'&&c.message.action==='on'&&c.message.channel===31),'Hold on');}finally{await page.mouse.up();}
       await until(()=>native.commands().slice(first).some(c=>c.type==='scsp'&&c.message.action==='off'&&c.message.channel===31),'Hold off');
@@ -70,7 +74,7 @@ async function check(type,name,base) {
     }
     assert.deepEqual(await page.evaluate(()=>window.__scspAudioNodes),[]);assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
     await page.evaluate(()=>window.__nativeScsp.runtime.finalize());await context.close();
-    console.log(JSON.stringify({browser:name,primary:true,additional:true,main:true,worker:true,modeFilter:true,waveEditor:true,operatorKeyboard:true,stop:true,audioNodes:0,nativeRpc:'mocked',passed:true}));
+    console.log(JSON.stringify({browser:name,primary:true,additional:true,main:true,worker:true,modeFilter:true,waveEditor:true,lfo:true,operatorKeyboard:true,stop:true,audioNodes:0,nativeRpc:'mocked',passed:true}));
   }finally{await browser.close();}
 }
 (async()=>{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});try{const base=`http://127.0.0.1:${server.address().port}${entry}`;for(const[name,type]of process.argv.includes('--chromium')?[['chromium',chromium]]:process.argv.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]])await check(type,name,base);}finally{await new Promise(resolve=>server.close(resolve));}})().catch(error=>{console.error(error);process.exitCode=1;});

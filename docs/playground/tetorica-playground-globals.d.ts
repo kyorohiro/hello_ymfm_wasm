@@ -2660,12 +2660,22 @@ interface PlaygroundScspMix {
   /** Hardware DIPAN 0..31; 0 center, 15 right only, 31 left only. */
   pan: number;
 }
+interface PlaygroundScspLfo {
+  frequencyCode: number;
+  pitchWave: number;
+  pitchDepth: number;
+  amplitudeWave: number;
+  amplitudeDepth: number;
+  /** Hold both phases at zero until cleared. */
+  reset: boolean;
+}
 interface PlaygroundScspPreset extends PlaygroundScspMix {
   sample: PlaygroundScspSample | null;
   frequencyHz: number;
   envelope: PlaygroundScspEnvelope;
+  lfo: PlaygroundScspLfo;
 }
-type PlaygroundScspPresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'>> & {envelope?: Partial<PlaygroundScspEnvelope>};
+type PlaygroundScspPresetPatch = Partial<Omit<PlaygroundScspPreset,'envelope'|'lfo'>> & {envelope?: Partial<PlaygroundScspEnvelope>; lfo?: Partial<PlaygroundScspLfo>};
 interface PlaygroundScspState {
   sampleRate: 44100;
   bankId: string;
@@ -2686,6 +2696,7 @@ interface PlaygroundScsp {
   loadPCM(pcm:Int8Array|Int16Array,options:PlaygroundScspPCMOptions):Promise<PlaygroundScspSample>;
   setPreset(slot:number,patch:PlaygroundScspPresetPatch):void;
   setEnvelope(slot:number,patch:Partial<PlaygroundScspEnvelope>):void;
+  setLfo(slot:number,patch:Partial<PlaygroundScspLfo>):void;
   setFrequency(slot:number,hz:number):number;
   setNote(slot:number,note:string|number):number;
   setMix(slot:number,patch:Partial<PlaygroundScspMix>):void;

@@ -5,19 +5,20 @@
     "schemaVersion": 1,
     "name": "tetorica-soundchip-native",
     "version": "0.1.7",
-    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "sourceCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
     "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
-    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "archiveSha256": "f5839f3ad4bf54d84d2f67c12d9561a98ce79972e6b36394582a0cb0d3e286db",
+    "manifestSha256": "15c4a6a4e65a22abedd1512bf26accb5380b9717b3d2511fcb58adac04f3358f",
     "fileCount": 476,
     "localCandidate": {
-      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "baseCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
       "changedPaths": [
-        ".github/workflows/verify-sdk.yml",
         "CHANGELOG.md",
-        "README.md",
-        "tests/check_standalone_release.py",
-        "tests/test_scsp_instrument_release.py"
+        "catalog/source_inventory.json",
+        "native/tests/scsp_fixture.cpp",
+        "vendor/mame-scsp/README.md",
+        "vendor/mame-scsp/scsp.cpp",
+        "vendor/mame-scsp/scsp.h"
       ]
     }
   },
@@ -49,18 +50,18 @@
     },
     {
       "path": "sources/scsp-sdk/vendor/mame-scsp/README.md",
-      "bytes": 4175,
-      "sha256": "c63865cb1e23fbe7c3f340e79ce245e36dbbcfdd2cbe27deb5677a13bd14bdcb"
+      "bytes": 4560,
+      "sha256": "218ffb61fa3f823383ee036445f827fac4e09b0d56a03dd4a30668b36f406d5c"
     },
     {
       "path": "sources/scsp-sdk/vendor/mame-scsp/scsp.cpp",
-      "bytes": 26800,
-      "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770"
+      "bytes": 27097,
+      "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639"
     },
     {
       "path": "sources/scsp-sdk/vendor/mame-scsp/scsp.h",
       "bytes": 2976,
-      "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b"
+      "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed"
     },
     {
       "path": "sources/scsp-sdk/vendor/mame-scsp/scsp_instrument.cpp",
@@ -124,8 +125,8 @@
       "sha256": "296b3d0074cc0cc457e47e14e0ab55193a947fd55d9ed6ecf8932f82067281c9"
     },
     "scsp_wasm.wasm": {
-      "bytes": 17854,
-      "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981"
+      "bytes": 17722,
+      "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020"
     }
   },
   "modifications": "None: original SDK paths, source bytes and build recipe retained."

@@ -4,7 +4,7 @@ import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=ps1-deferred-release-1';
 import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=pokey-prepare-1';
 import {Oki6258Synth,OKIM6258_DIVIDERS,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=pokey-prepare-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-lfo-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 

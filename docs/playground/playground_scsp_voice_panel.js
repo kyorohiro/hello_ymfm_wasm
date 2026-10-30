@@ -1,9 +1,10 @@
-import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-native-1';
+import {SCSP_LFO_FREQUENCIES_HZ,SCSP_LFO_PITCH_CENTS,SCSP_LFO_AMPLITUDE_DB,SCSP_LFO_WAVEFORMS} from '../js/scspsynth.js?v=scsp-lfo-1';
+import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-lfo-1';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 /** SCSP PCM drafts live in the UI; only explicit Apply allocates sample RAM. */
 export function scspVoiceCode(slot,voice,pcm,sample) {
   const options={baseFrequencyHz:sample.rootFrequencyHz,sourceSampleRate:sample.sourceSampleRate,...(sample.loopStartSamples===null?{}:{loopStartSamples:sample.loopStartSamples})};
-  const preset={frequencyHz:voice.frequencyHz,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,envelope:voice.envelope};
+  const preset={frequencyHz:voice.frequencyHz,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,envelope:voice.envelope,lfo:voice.lfo};
   return `const saturn = await useSoundChip('scsp');\nconst wave = await saturn.loadPCM(new Int${sample.bits}Array(${JSON.stringify(Array.from(pcm))}), ${JSON.stringify(options)});\nsaturn.setPreset(${slot}, {...${JSON.stringify(preset)}, sample:wave});\nsaturn.keyOn(${slot});\n`;
 }
 export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelChange=()=>{},onError=()=>{}}) {
@@ -76,6 +77,18 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     item.input.addEventListener('change',guard(async()=>{if(!item.input.value.trim()||!item.input.reportValidity())return;await invoke('setEnvelope',[selected,{[key]:Number(item.input.value)}]);item.input.blur();}));
   }
   eg.append(make('p','Hardware codes: larger AR / D1R / D2R / RR are faster. DL sets the decay level; KRS 15 disables key rate scaling. These are register values, not milliseconds.'));
+  const lfoPanel=make('fieldset');lfoPanel.className='scsp-lfo-panel';lfoPanel.append(make('legend','SCSP hardware LFO — live'));root.append(lfoPanel);
+  const lfoControls={};
+  for(const [key,title,values]of [
+    ['frequencyCode','Speed',SCSP_LFO_FREQUENCIES_HZ.map((v,i)=>`${i} · ${v} Hz`)],
+    ['pitchWave','Pitch waveform',SCSP_LFO_WAVEFORMS],['pitchDepth','Pitch depth',SCSP_LFO_PITCH_CENTS.map((v,i)=>`${i} · ${v} cents`)],
+    ['amplitudeWave','Amplitude waveform',SCSP_LFO_WAVEFORMS],['amplitudeDepth','Amplitude depth',SCSP_LFO_AMPLITUDE_DB.map((v,i)=>`${i} · ${v} dB`)]]){
+    const label=make('label',title+' '),input=make('select');input.dataset.chipControl=`scsp-lfo-${key}`;values.forEach((value,index)=>{const option=make('option',value);option.value=String(index);input.append(option);});label.append(input);lfoPanel.append(label);controls.push(input);lfoControls[key]=input;
+    input.addEventListener('change',guard(async()=>{try{await invoke('setLfo',[selected,{[key]:Number(input.value)}]);}finally{input.blur();}}));
+  }
+  const resetLabel=make('label','Hold LFO reset '),lfoReset=make('input');lfoReset.type='checkbox';lfoReset.dataset.chipControl='scsp-lfo-reset';resetLabel.append(lfoReset);lfoPanel.append(resetLabel);controls.push(lfoReset);lfoControls.reset=lfoReset;
+  lfoReset.addEventListener('change',guard(async()=>{try{await invoke('setLfo',[selected,{reset:lfoReset.checked}]);}finally{lfoReset.blur();}}));
+  lfoPanel.append(make('p','Per-slot hardware modulation: pitch vibrato and amplitude tremolo share the speed. Depth 0 is off. Changes affect held notes without retriggering. Hold LFO reset freezes both phases at zero; clear it to resume. Hz and depth values are nominal hardware table values, not a hardware-accuracy guarantee.'));
   const mix=make('fieldset');mix.append(make('legend','Live mix'));root.append(mix);const mixControls={};
   for(const [key,title,max]of [['totalLevel','TL attenuation (0 = loudest)',255],['directLevel','Direct level (0 = mute)',7],['pan','Pan (0 = center, 15 = right, 31 = left)',31]]){
     const item=number(key,title,0,max);mixControls[key]=item.input;mix.append(item.label);item.input.addEventListener('change',guard(async()=>{if(!item.input.value.trim()||!item.input.reportValidity())return;await invoke('setMix',[selected,{[key]:Number(item.input.value)}]);item.input.blur();}));
@@ -109,6 +122,7 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     summary.textContent=v?`Slot ${selected+1} · ${v.frequencyHz.toFixed(2)} Hz · requested gate ${v.gate?'On':'Off'} (not an EG activity meter)`:'Prepare audio to inspect SCSP slots.';
     const sampleList=state?.samples??[],signature=sampleList.map(s=>`${s.bankId}:${s.id}`).join('|');if(sampleSelect.dataset.signature!==signature){sampleSelect.dataset.signature=signature;sampleSelect.replaceChildren(...sampleList.map(s=>{const opt=make('option',`PCM ${s.id} · ${s.bits}-bit · ${s.length} samples`);opt.value=String(s.id);return opt;}));}sampleSelect.value=String(v?.sample?.id??'');
     for(const [key,input]of Object.entries(envelopeControls))if(doc.activeElement!==input)input.value=String(v?.envelope[key]??'');for(const [key,input]of Object.entries(mixControls))if(doc.activeElement!==input)input.value=String(v?.[key]??'');
+    for(const [key,input]of Object.entries(lfoControls))if(doc.activeElement!==input){if(key==='reset')input.checked=!!v?.lfo?.reset;else input.value=String(v?.lfo?.[key]??0);}
     const key=`${selected}:${v?.sample?.bankId}:${v?.sample?.id}`;if(key!==draftKey){draftKey=key;draft=null;dirty=false;drawing=null;code.hidden=true;status.textContent='';const request=++loadSequence;draw();if(v?.sample)void invoke('getPCM',[selected]).then(loaded=>{if(disposed||request!==loadSequence||draftKey!==key)return;draft=loaded;syncDraft();refreshEnabled();}).catch(error=>{if(!disposed&&request===loadSequence)onError(error);});}
     refreshEnabled();
   }

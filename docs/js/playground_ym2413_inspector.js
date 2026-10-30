@@ -1,6 +1,6 @@
 import {YM2413Synth,YM2413_INSTRUMENTS} from './ym2413synth.js?v=pokey-mode-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-native-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-native-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-lfo-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-lfo-1';
 const DRUMS=['bassDrum','snare','tom','cymbal','hiHat'],PHYSICAL=[6,7,8,8,7];
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 /** Applied YM2413 state. Register reads neither replay controls nor advance audio. */

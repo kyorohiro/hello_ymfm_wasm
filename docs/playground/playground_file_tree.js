@@ -1,4 +1,4 @@
-import {EXAMPLE_FOLDER_ORDER} from './playground_example_order.js?v=scsp-native-1';
+import {EXAMPLE_FOLDER_ORDER} from './playground_example_order.js?v=scsp-lfo-1';
 
 export function buildFileTree(files) {
   const root = { children: new Map() };

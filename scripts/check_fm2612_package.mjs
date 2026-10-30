@@ -113,16 +113,18 @@ try {
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Scsp} from 'tetorica-fm2612/scsp';
-import {ScspSynth} from 'tetorica-fm2612/scspsynth';
+import {ScspSynth,SCSP_LFO_FREQUENCIES_HZ} from 'tetorica-fm2612/scspsynth';
 import factory from 'tetorica-fm2612/generated/scsp_wasm.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 import {readScspAudio,prepareScspPCM} from 'tetorica-fm2612/scsp_sample';
 const audio=await readScspAudio({sampleRate:44100,channels:[Float32Array.from({length:44100},(_,i)=>.25*Math.sin(i*2*Math.PI*440/44100))]});
 const draft=prepareScspPCM(audio,{startSeconds:.1,endSeconds:.35,rootNote:69});assert.equal(draft.pcm.length,11025);
+assert.equal(SCSP_LFO_FREQUENCIES_HZ.length,32);
 const synth=new ScspSynth(await Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(runtimeAssetUrl('generated/scsp_wasm.wasm'))}}));
 try {
  const options={baseFrequencyHz:draft.sample.rootFrequencyHz,sourceSampleRate:draft.sample.sourceSampleRate};
  synth._editPCM(0,draft.pcm,options);synth.noteOn(0,69);assert(synth.generateStereo(2048).left.some(v=>Math.abs(v)>.01));
+ synth.setLfo(0,{frequencyCode:20,pitchWave:2,pitchDepth:3,amplitudeDepth:4});assert.equal(synth.getState().slots[0].lfo.amplitudeDepth,4);
  synth._editPCM(0,draft.pcm,options);const used=synth.getState().ramUsedBytes;
  for(let i=0;i<100;i++)synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);
  synth.stopVoices();synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);

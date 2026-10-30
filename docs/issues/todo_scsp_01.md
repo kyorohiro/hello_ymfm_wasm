@@ -66,7 +66,9 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 
 ## 5. SCSP固有機能とSynth
 
-- [ ] ハードウェアLFO、slot間変調／ring buffer、DSPプログラム・係数・routingを段階的に公開・検証する。
+- [x] ハードウェアLFOのcore／JavaScript／型／Main・Worker・Native／Playground・Synth接続。
+  [実装・検証・配布](scsp_lfo_01.md)。
+- [ ] slot間変調／ring buffer、DSPプログラム・係数・routingを段階的に公開・検証する。
   共通コアへの移植時に既存処理を可能な限り保持し、未検証機能を対応済みとは表示しない。
 - [x] 専用Browser Synth：鍵盤、PCM読み込み／単一canvas編集、EG、loop、pan、preset保存・再読込。
   実装順と受入条件は [専用Synth TODO](scsp_synth_01.md)。まずBrowser版の基本PCM Synthを作る。

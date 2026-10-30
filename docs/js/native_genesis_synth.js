@@ -1,5 +1,5 @@
-import {createNativeGenesisScsp,SCSP_ADMISSION_ERRORS} from './native_genesis_scsp.js?v=scsp-native-1';
-import {createNativeGenesisExtraScsp} from './native_genesis_extra_scsp.js?v=scsp-native-1';
+import {createNativeGenesisScsp,SCSP_ADMISSION_ERRORS} from './native_genesis_scsp.js?v=scsp-lfo-1';
+import {createNativeGenesisExtraScsp} from './native_genesis_extra_scsp.js?v=scsp-lfo-1';
 import {createNativeGenesisPs1,PS1_ADMISSION_ERRORS} from './native_genesis_ps1.js?v=ps1-deferred-release-1';
 import {createNativeGenesisExtraPs1} from './native_genesis_extra_ps1.js?v=ps1-deferred-release-1';
 import {createNativeGenesisExtraPokey,POKEY_TIMELINE_BUSY_ERROR,POKEY_TIMELINE_HELD_ERROR} from './native_genesis_extra_pokey.js?v=ps1-deferred-release-1';

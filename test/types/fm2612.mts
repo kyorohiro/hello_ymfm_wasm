@@ -400,3 +400,15 @@ await cddaPlayer.resume(2);
 // @ts-expect-error Stop timing uses the same numeric audio clock.
 await cddaPlayer.stop({at:'3'});
 cddaOffline.dispose(); cddaPlayer.dispose();
+
+import {ScspSynth,SCSP_LFO_FREQUENCIES_HZ,type ScspLfo} from 'tetorica-fm2612/scspsynth.js';
+function checkScspLfo(synth:ScspSynth) {
+  synth.setLfo(31,{frequencyCode:20,pitchWave:2,pitchDepth:4,reset:false});
+  synth.setPreset(0,{lfo:{amplitudeDepth:7}});
+  const current:ScspLfo=synth.getState().slots[0].lfo;
+  SCSP_LFO_FREQUENCIES_HZ[current.frequencyCode].toFixed();
+  // @ts-expect-error Reset is a boolean.
+  synth.setLfo(0,{reset:1});
+  // @ts-expect-error No unimplemented software LFO frequency field.
+  synth.setLfo(0,{frequencyHz:1});
+}

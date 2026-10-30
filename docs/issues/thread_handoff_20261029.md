@@ -4,6 +4,30 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP hardware LFO完了 — 2026-10-31
+
+[実装・再開](scsp_lfo_01.md)／[最終report・配布hash](scsp_lfo_01.json)。
+低速LFOが止まる旧位相精度とLFORE無視をSDK側で修正し、正規source archive／importで親とTauriへ導入。
+JavaScript `setLfo`／preset.lfo、型、Main／Worker／Native、Playground／Synth UI・preset保存まで接続。
+slotごとの共通速度、pitch／amplitudeの4波形・8 depth、reset hold／resume。depth 0は従来PCMを維持。
+最大PLFO stepを含むloop境界をJS／Nativeの両方で検査する。
+
+Node 1,192成功、Native SCSP Rust 13成功、Native debug build成功。
+Native／WASM 132 cases／9,988,376 stereo frames差分0。SDK 33 builds／65 outputs・40,474比較一致、
+SCSP以外の63生成filesはbyte一致。396宣言・実installed npm互換性・新校正とSCSP全経路verify成功。
+途中の変更中SDK検証はguardが拒否したため、固定後の最終runを採用。
+SDK pin変更後のPS1 receiptも実recipeで再生成し、出力が同一と確認した。
+
+最新ZIPは `release/*scsp-lfo-dev-20261031*`（Playground Run 967 files）と
+`release/tetorica_scsp_synth_lfo-dev-20261031_itch.zip`（36 files）。
+実ZIPを展開してChromium／WebKit × Main／WorkerのPlaygroundとSynthが成功。
+新PlaygroundをTauriへ正規import（1,119 files）し、実distのNative UIも成功（RPCのみmock）。
+対応するNative source ZIP 2,169 filesを生成・全hash検証。物理出力はmute、実デバイス試聴は残る。
+
+公開済みnpm **0.2.35はLFO追加前のまま**。旧releaseは保持、新規公開／commit／pushなし。
+親・開発SDK・Tauriは別Gitで、3箇所に未commit変更あり。次は試聴／公開の判断、またはslot FM／DSPの調査。
+以下は前のcheckpoint。
+
 ## npm 0.2.35公開済み — 2026-10-30
 
 ユーザー指示でtetorica-fm2612のSCSP対応をrelease準備。

@@ -19,7 +19,7 @@ export class ScspVoiceInspector {
       return {sample,voice,pcm:this.readPCM(sample)};
     }
     if(method==='applyPCM')return this.editPCM(ch,args[1],args[2]);
-    if(['setEnvelope','setMix','setPreset'].includes(method)) {
+    if(['setEnvelope','setLfo','setMix','setPreset'].includes(method)) {
       const patch=method==='setPreset'&&args[1]?.sample?{...args[1],sample:this.synth._resolveSample(args[1].sample)}:args[1];
       const command={method,args:[ch,patch]};this.validate(command);
       if(this.dispatch(command,this.auditions.has(ch)?identity(this.auditions.get(ch)):`voice-editor:settings:${ch}`)===false)throw new Error('SCSP edit was blocked');

@@ -1,6 +1,6 @@
 import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=pokey-prepare-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-native-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-lfo-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
 

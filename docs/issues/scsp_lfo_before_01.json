@@ -1,0 +1,9 @@
+{
+  "frequencyCode": 0,
+  "nominalHz": 0.17,
+  "discardedAttackFrames": 128,
+  "frames": 352800,
+  "minimum": 0.015625,
+  "maximum": 0.015625,
+  "stalled": true
+}

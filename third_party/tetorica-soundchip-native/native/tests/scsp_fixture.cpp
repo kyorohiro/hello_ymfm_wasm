@@ -48,6 +48,20 @@ static int self_test() {
     const auto chord=render(many,1024);
     CHECK(std::all_of(chord.left.begin(),chord.left.end(),[](float v){return std::isfinite(v)&&v>=-1&&v<=1;}));
     CHECK(*std::max_element(chord.left.begin(),chord.left.end())==1);
+    // Slowest LFO must move; LFORE holds phase, then resumes without re-keying.
+    Chip slow;configure(slow);std::array<uint8_t,128> constant{};
+    for(unsigned i=0;i<64;++i)constant[2*i]=0x20;
+    CHECK(scsp_load_ram(slow.value,0x1000,constant.data(),constant.size()));
+    slow.write(18,7);render(slow,128);
+    const auto moving=render(slow,44100*7);
+    CHECK(*std::max_element(moving.left.begin(),moving.left.end())-*std::min_element(moving.left.begin(),moving.left.end())>.20f);
+    slow.write(18,0x8007);const auto frozen=render(slow,44100);
+    CHECK(std::all_of(frozen.left.begin(),frozen.left.end(),[&](float v){return v==frozen.left[0];}));
+    slow.write(18,7);const auto resumed=render(slow,44100);
+    CHECK(*std::max_element(resumed.left.begin(),resumed.left.end())-*std::min_element(resumed.left.begin(),resumed.left.end())>.005f);
+    Chip lfowhole,lfoparts;configure(lfowhole);configure(lfoparts);
+    lfowhole.write(18,0x7fff);lfoparts.write(18,0x7fff);
+    CHECK(render(lfowhole,44100,4096).left==render(lfoparts,44100,7).left);
     std::puts("SCSP self-test passed: sine/PCM8, stereo, slot31, 32-slot clamp, release, reset, bounds, masked writes and render partitions");return 0;
 }
 int main(int argc,char **argv) {

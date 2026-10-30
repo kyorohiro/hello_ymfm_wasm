@@ -1,7 +1,7 @@
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {Ym2413} from './ym2413.js?v=audio-stability-2';
 import factory from '../generated/ym2413_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-native-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-lfo-1';
 import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 const PHYSICAL=[6,7,8,8,7],VOLUME=[[0x36,0],[0x37,0],[0x38,4],[0x38,0],[0x37,4]];

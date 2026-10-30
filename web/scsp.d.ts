@@ -1,4 +1,4 @@
-/** Experimental local repository API. Not an npm package export. */
+/** Experimental standalone SCSP API (tetorica-fm2612/scsp.js). */
 export const SCSP_SAMPLE_RATE: 44100;
 export const SCSP_RAM_BYTES: number;
 export const SCSP_MAX_FRAMES: number;

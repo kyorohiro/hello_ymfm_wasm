@@ -14,7 +14,7 @@
   <article class="synth-shell" aria-labelledby="synthTitle">
     <header class="product-header">
       <img class="product-icon" src="../tetorica-spu-1254.webp" width="144" height="144" alt="Tetorica SCSP Synth" decoding="async">
-      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> HARDWARE EG <i>·</i> 32 SLOTS</p></div>
+      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO <i>·</i> 32 SLOTS</p></div>
       <div class="engine-badge"><span class="led"></span> SCSP <small>PCM ENGINE</small></div>
     </header>
     <section class="toolbar" aria-label="Transport">
@@ -26,6 +26,6 @@
     <p id="status" role="status">Start audio, then play the keys below or use A W S E D F T G Y H U J K.</p>
     <section class="keyboard-panel" aria-label="Keyboard"><div class="section-heading"><h2>Keyboard</h2><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label></div><div id="keyboard"></div><p class="hint">31 playable voices · Slot 1 holds your source sound. PCM and envelope edits affect new notes; Pitch and mix also affect held notes.</p></section>
     <section id="voice" aria-label="Voice editor"></section>
-    <footer><p>Drawing, audio conversion and preset files are software features. Hardware LFO, slot FM, DSP editing and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
+    <footer><p>Drawing, audio conversion and preset files are software features. Per-voice LFO runs in the SCSP core. Slot FM, DSP editing and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
   </article>
 </main><script type="module" src="synth.js"></script></body></html>

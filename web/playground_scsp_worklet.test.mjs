@@ -133,3 +133,13 @@ test('editor deltas carry actual playing sources and validate new short-loop not
  p.processor.stopVoices();i.invoke('setPreset',[0,{frequencyHz:440}]);i.invoke('applyPCM',[0,new Int16Array([1000,-1000]),{baseFrequencyHz:440,loopStartSamples:1}]);
  await new Promise(resolve=>setTimeout(resolve,10));assert.throws(()=>w.noteOn(0,81),/pitch step exceeds forward loop/);assert.equal(p.processor.dead,false);p.render(128);
 });
+
+test('Main/Worker LFO edits and inspector leases share the same processor without retriggering',async t=>{
+ const p=await setup(t),w=await worker(t,p);p.client.noteOn(0,69);await p.client.getState();p.render(256);
+ w.setLfo(0,{frequencyCode:20,pitchWave:2,pitchDepth:4,amplitudeDepth:5});await w.getState();
+ assert.equal(p.processor.synth.getState().slots[0].lfo.frequencyCode,20);assert.equal(p.processor.synth.getState().slots[0].gate,true);assert(peak(p.render(12000).left)>.01);
+ p.processor.inspector.invoke('auditionOn',[31,69,'lfo-held']);p.processor.inspector.invoke('setLfo',[31,{frequencyCode:0,amplitudeDepth:7,reset:true}]);
+ assert.equal(p.processor.synth.getState().slots[31].lfo.reset,true);assert.equal(p.processor.inspector.invoke('auditionOff',[31,'stale']),false);
+ p.processor.inspector.invoke('setLfo',[31,{reset:false}]);assert.equal(p.processor.synth.getState().slots[31].lfo.amplitudeDepth,7);
+ await p.client._stopVoices();assert(p.render(256).left.every(v=>v===0));assert.equal(p.processor.synth.getState().slots[31].lfo.amplitudeDepth,7);
+});

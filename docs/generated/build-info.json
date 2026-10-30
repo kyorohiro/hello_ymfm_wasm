@@ -970,7 +970,7 @@
     {
       "id": "scsp",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "877f07d61654aa08fa76db66d515a93cf0f581a21153832a807a70dbe74a3873",
+      "sourceFingerprint": "4bd3b1fd256b323e9791c3ba339618b5e33a92d03bb88fe20d1feb2cd206cbbc",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -989,12 +989,12 @@
         },
         {
           "path": "vendor/mame-scsp/scsp.cpp",
-          "sha256": "fa5abe1525b7d7725dcb0bb70777c4cc2fab792fcd3f8db961e2221dc053e770",
-          "size": 26800
+          "sha256": "cab1b38fcf87cc38785c7f631b689adfc3efb9f2fd379d1a8d0c14525d197639",
+          "size": 27097
         },
         {
           "path": "vendor/mame-scsp/scsp.h",
-          "sha256": "4b6a5bd49fd6b6b4a849ba06bf32b963db6940462f21d6c9e753ed74ccff0b5b",
+          "sha256": "456320dc71ee983647eb9f1e19bd2e38aa65f30a5efe17a6a8d04eca694dffed",
           "size": 2976
         },
         {
@@ -1031,8 +1031,8 @@
         },
         {
           "path": "scsp_wasm.wasm",
-          "sha256": "b3e8957600ae342b75edae8c3cdc6bf456795d86be6a9dd9529f1e56c39e9981",
-          "size": 17854
+          "sha256": "a7a9671b0065b4389b430924e420e67526878b34567f79b616c9347a0fdb9020",
+          "size": 17722
         }
       ],
       "compiler": {

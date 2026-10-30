@@ -3,6 +3,15 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js';
 export const SCSP_SLOT_COUNT = 32;
+/** Nominal manual rates; the oscillator runs at fixed 44.1 kHz. */
+export const SCSP_LFO_FREQUENCIES_HZ=Object.freeze([.17,.19,.23,.27,.34,.39,.45,.55,.68,.78,.92,1.10,1.39,1.60,1.87,2.27,2.87,3.31,3.92,4.79,6.15,7.18,8.60,10.8,14.4,17.2,21.5,28.7,43.1,57.4,86.1,172.3]);
+export const SCSP_LFO_PITCH_CENTS=Object.freeze([0,7,13.5,27,55,112,230,494]);
+export const SCSP_LFO_AMPLITUDE_DB=Object.freeze([0,.4,.8,1.5,3,6,12,24]);
+export const SCSP_LFO_WAVEFORMS=Object.freeze(['saw','square','triangle','noise']);
+const lfoDefaults=()=>({frequencyCode:0,pitchWave:0,pitchDepth:0,amplitudeWave:0,amplitudeDepth:0,reset:false});
+const lfoMasks={frequencyCode:0x7c00,pitchWave:0x300,pitchDepth:0xe0,amplitudeWave:0x18,amplitudeDepth:7,reset:0x8000};
+function lfo(value){keys(value,Object.keys(lfoMasks),'SCSP LFO');const result={...lfoDefaults(),...value};for(const k of ['frequencyCode','pitchWave','pitchDepth','amplitudeWave','amplitudeDepth'])int(result[k],0,k==='frequencyCode'?31:k.endsWith('Wave')?3:7,k);if(typeof result.reset!=='boolean')throw new TypeError('LFO reset must be boolean');return Object.freeze(result);}
+const lfoWord=l=>(l.reset?0x8000:0)|(l.frequencyCode<<10)|(l.pitchWave<<8)|(l.pitchDepth<<5)|(l.amplitudeWave<<3)|l.amplitudeDepth;
 let bankSequence=0;
 const int = (v,lo,hi,name) => {
   if (!Number.isSafeInteger(v)||v<lo||v>hi) throw new RangeError(`${name} must be ${lo}..${hi}`);
@@ -16,7 +25,7 @@ function keys(value,allowed,name) {
   if (!value||typeof value!=='object'||Array.isArray(value)||Reflect.ownKeys(value).some(k=>!allowed.includes(k))) throw new TypeError(`Invalid ${name}`);
 }
 const envelopeDefaults = () => ({attackRate:31,decay1Rate:0,decay2Rate:0,decayLevel:0,releaseRate:31,keyRateScaling:15});
-const voiceDefaults = () => ({sample:null,frequencyHz:440,totalLevel:0,directLevel:7,pan:0,envelope:envelopeDefaults()});
+const voiceDefaults = () => ({sample:null,frequencyHz:440,totalLevel:0,directLevel:7,pan:0,envelope:envelopeDefaults(),lfo:lfoDefaults()});
 function envelope(value) {
   keys(value,Object.keys(envelopeDefaults()),'SCSP envelope');
   const result={...envelopeDefaults(),...value};
@@ -41,7 +50,7 @@ export function scspPitch(ratio) {
  */
 export class ScspSynth {
   #bankId=`scsp-${Date.now().toString(36)}-${++bankSequence}-${Math.random().toString(36).slice(2)}`;
-  #editorPages=[]; #core; #samples=new Map(); #nextId=1; #used=0; #voices=Array.from({length:32},voiceDefaults); #gates=Array(32).fill(false); #playing=Array(32).fill(null); #disposed=false;
+  #editorPages=[]; #core; #samples=new Map(); #nextId=1; #used=0; #voices=Array.from({length:32},voiceDefaults); #gates=Array(32).fill(false); #playing=Array(32).fill(null); #playingLfos=Array(32).fill(null); #playingFrequencies=Array(32).fill(null); #disposed=false;
   constructor(core) {
     if (!core||core.sampleRate!==44100||!['write','loadRam','reset','renderInto','dispose'].every(k=>typeof core[k]==='function')) throw new TypeError('ScspSynth requires an exclusively owned Scsp');
     this.#core=core;
@@ -57,7 +66,7 @@ export class ScspSynth {
     const s=this.#sample(voice.sample),pitch=scspPitch(voice.frequencyHz/s.rootFrequencyHz*s.sourceSampleRate/SCSP_SAMPLE_RATE);
     // The inherited loop engine wraps once per frame. Do not let a short loop
     // advance into another allocation when a single step exceeds its length.
-    if(s.loopStartSamples!==null&&pitch.ratio>s.length-s.loopStartSamples)throw new RangeError('SCSP pitch step exceeds forward loop length');
+    if(s.loopStartSamples!==null&&pitch.ratio*2**(SCSP_LFO_PITCH_CENTS[voice.lfo?.pitchDepth??0]/1200)>s.length-s.loopStartSamples)throw new RangeError('SCSP pitch step exceeds forward loop length (including LFO)');
     return pitch;
   }
   get sampleRate() {return SCSP_SAMPLE_RATE;}
@@ -117,12 +126,14 @@ export class ScspSynth {
   }
   /** Configure a slot for its next keyOn. Invalid patches leave the slot intact. */
   setPreset(slot,patch) {
-    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','envelope'],'SCSP preset');
+    slot=this.#slot(slot);keys(patch,['sample','frequencyHz','totalLevel','directLevel','pan','envelope','lfo'],'SCSP preset');
     const current=this.#voices[slot],next={...current,...patch};
     if(next.sample!==null)this.#sample(next.sample);
     positive(next.frequencyHz,'frequencyHz');int(next.totalLevel,0,255,'totalLevel');int(next.directLevel,0,7,'directLevel');int(next.pan,0,31,'pan');
     next.envelope=envelope({...current.envelope,...(patch.envelope??{})});
     if(Object.hasOwn(patch,'envelope'))keys(patch.envelope,Object.keys(envelopeDefaults()),'SCSP envelope');
+    if(Object.hasOwn(patch,'lfo'))keys(patch.lfo,Object.keys(lfoMasks),'SCSP LFO');
+    next.lfo=lfo({...lfoDefaults(),...current.lfo,...(patch.lfo??{})});
     if(next.sample)this.#pitch(next);
     this.#voices[slot]=next;
   }
@@ -130,13 +141,25 @@ export class ScspSynth {
     slot=this.#slot(slot);keys(patch,Object.keys(envelopeDefaults()),'SCSP envelope');
     this.setPreset(slot,{envelope:patch});
   }
+  /** Hardware LFO partial update, live without retrigger. reset=true holds phase
+   * at zero until cleared; setPreset({lfo}) instead edits the next keyOn. */
+  setLfo(slot,patch) {
+    slot=this.#slot(slot);keys(patch,Object.keys(lfoMasks),'SCSP LFO');
+    const current=this.#voices[slot],next={...current,lfo:lfo({...current.lfo,...patch})};
+    if(next.sample)this.#pitch(next);
+    const sample=this.#playing[slot],actual=lfo({...((sample?this.#playingLfos[slot]:null)??current.lfo),...patch});
+    if(sample)this.#pitch({...next,sample,lfo:actual,frequencyHz:this.#playingFrequencies[slot]??current.frequencyHz});
+    const mask=Object.keys(patch).reduce((m,k)=>m|lfoMasks[k],0);
+    if(mask)this.#core.write(slot*32+18,lfoWord(actual),mask);
+    this.#voices[slot]=next;if(sample)this.#playingLfos[slot]=actual;
+  }
   /** Live pitch; returns the realized frequency after hardware quantization. */
   setFrequency(slot,frequencyHz) {
     slot=this.#slot(slot);positive(frequencyHz,'frequencyHz');
     const next={...this.#voices[slot],frequencyHz};
     this.#pitch(next);
-    const sample=this.#playing[slot]??next.sample,pitch=this.#pitch({...next,sample});
-    this.#core.write(slot*32+0x10,pitch.word);this.#voices[slot]=next;
+    const sample=this.#playing[slot]??next.sample,pitch=this.#pitch({...next,sample,lfo:this.#playingLfos[slot]??next.lfo});
+    this.#core.write(slot*32+0x10,pitch.word);this.#voices[slot]=next;if(this.#playing[slot])this.#playingFrequencies[slot]=frequencyHz;
     return pitch.ratio*sample.rootFrequencyHz*44100/sample.sourceSampleRate;
   }
   setNote(slot,note) {return this.setFrequency(slot,noteToHz(note));}
@@ -157,8 +180,8 @@ export class ScspSynth {
     const control=(s.address>>>16)|(s.bits===8?16:0)|(s.loopStartSamples===null?0:32);
     for(const [r,value]of [[2,s.address&65535],[4,s.loopStartSamples??0],[6,s.length],
       [8,(e.decay2Rate<<11)|(e.decay1Rate<<6)|e.attackRate],
-      [10,(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel],[14,0],[16,pitch.word],[18,0],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);
-    this.#core.write(b,control|0x1800);this.#gates[slot]=true;this.#playing[slot]=s;
+      [10,(e.keyRateScaling<<10)|(e.decayLevel<<5)|e.releaseRate],[12,v.totalLevel],[14,0],[16,pitch.word],[18,lfoWord(v.lfo)],[20,0],[22,(v.directLevel<<13)|(v.pan<<8)]])this.#core.write(b+r,value);
+    this.#core.write(b,control|0x1800);this.#gates[slot]=true;this.#playing[slot]=s;this.#playingLfos[slot]=v.lfo;this.#playingFrequencies[slot]=v.frequencyHz;
   }
   keyOff(slot) {slot=this.#slot(slot);this.#core.write(slot*32,0x1000,0x1800);this.#gates[slot]=false;}
   noteOn(slot,note) {
@@ -172,11 +195,11 @@ export class ScspSynth {
   }
   /** Immediate silence, including infinite releases. Retains bank/presets;
    * resets the native frame clock. Reset the downstream resampler as well. */
-  stopVoices() {this.#open();this.#core.reset();this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);}
+  stopVoices() {this.#open();this.#core.reset();this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);this.#playingLfos.fill(null);this.#playingFrequencies.fill(null);}
   reset(options={}) {
     this.#open();keys(options,['clearRam'],'SCSP reset options');
     if(options.clearRam!==undefined&&typeof options.clearRam!=='boolean')throw new TypeError('clearRam must be boolean');
-    this.#core.reset(options);this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);this.#voices=Array.from({length:32},voiceDefaults);
+    this.#core.reset(options);this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);this.#playingLfos.fill(null);this.#playingFrequencies.fill(null);this.#voices=Array.from({length:32},voiceDefaults);
     if(options.clearRam){this.#samples.clear();this.#editorPages=[];this.#used=0;}
   }
   /** Internal structured-clone transport bridge. Public PCM handles stay owned. */
@@ -195,7 +218,7 @@ export class ScspSynth {
       const s=this.#voices[i].sample;
       if(s&&next.get(s.id)!==s){
         const actual=state.slots?.[i],replacement=actual?.sample?next.get(actual.sample.id):null;
-        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},sample:replacement}:{...this.#voices[i],sample:null};
+        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},lfo:{...lfoDefaults(),...actual.lfo},sample:replacement}:{...this.#voices[i],sample:null};
         this.#gates[i]=actual?.gate??false;
         if(next.get(this.#playing[i]?.id)!==this.#playing[i])this.#playing[i]=null;
       }
@@ -204,13 +227,17 @@ export class ScspSynth {
   /** Internal editor metadata delta; the caller has excluded scheduled commands. */
   _adoptEditorState(slot,state) {
     slot=this.#slot(slot);this._adoptResources(state);const v=state.slots[slot];
-    this.#voices[slot]={...v,envelope:{...v.envelope},sample:v.sample?this._resolveSample(v.sample):null};
+    this.#voices[slot]={...v,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},sample:v.sample?this._resolveSample(v.sample):null};
     this.#gates[slot]=!!v.gate;
+    this.#playingFrequencies[slot]=state.playingFrequencies?.[slot]??v.frequencyHz;
+    this.#playingLfos[slot]=state.playingLfos?.[slot]??{...lfoDefaults(),...v.lfo};
     const id=state.playingSampleIds?.[slot];this.#playing[slot]=id==null?null:this.#samples.get(id)??null;
   }
   _adoptState(state) {
     this._adoptResources(state);
-    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope}}));
+    this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo}}));
+    this.#playingFrequencies=state.slots.map((v,i)=>state.playingFrequencies?.[i]??v.frequencyHz);
+    this.#playingLfos=state.slots.map((v,i)=>state.playingLfos?.[i]?{...state.playingLfos[i]}:{...lfoDefaults(),...v.lfo});
     this.#gates=state.slots.map(v=>!!v.gate);this.#playing=state.playingSampleIds?state.playingSampleIds.map(id=>id==null?null:this.#samples.get(id)??null):this.#voices.map(v=>v.sample);
   }
   /** Trusted transport staging: copy pool reservations without sharing pages. */
@@ -219,8 +246,8 @@ export class ScspSynth {
     this.#editorPages=source.#editorPages.map(p=>({...p,sample:p.sample?this.#samples.get(p.sample.id):null}));
   }
   getState() {
-    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],
-      slots:this.#voices.map((v,i)=>({...v,envelope:{...v.envelope},gate:this.#gates[i]}))};
+    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,playingFrequencies:[...this.#playingFrequencies],playingLfos:this.#playingLfos.map(l=>l?{...l}:null),playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],
+      slots:this.#voices.map((v,i)=>({...v,envelope:{...v.envelope},lfo:{...v.lfo},gate:this.#gates[i]}))};
   }
   prepare(frames) {this.#open();this.#core.prepare(frames);}
   renderInto(left,right,frames=left?.length,offset=0) {this.#open();this.#core.renderInto(left,right,frames,offset);}

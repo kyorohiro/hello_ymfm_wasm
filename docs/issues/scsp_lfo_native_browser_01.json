@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "frontend": "Tauri dist imported from actual Playground ZIP",
+  "rows": [
+    {
+      "browser": "chromium",
+      "primary": true,
+      "additional": true,
+      "main": true,
+      "worker": true,
+      "modeFilter": true,
+      "waveEditor": true,
+      "lfo": true,
+      "operatorKeyboard": true,
+      "stop": true,
+      "audioNodes": 0,
+      "nativeRpc": "mocked",
+      "passed": true
+    },
+    {
+      "browser": "webkit",
+      "primary": true,
+      "additional": true,
+      "main": true,
+      "worker": true,
+      "modeFilter": true,
+      "waveEditor": true,
+      "lfo": true,
+      "operatorKeyboard": true,
+      "stop": true,
+      "audioNodes": 0,
+      "nativeRpc": "mocked",
+      "passed": true
+    }
+  ],
+  "nativeRpc": "mocked",
+  "audioDeviceOpened": false
+}

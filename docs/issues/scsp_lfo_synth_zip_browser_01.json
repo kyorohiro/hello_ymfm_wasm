@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "entry": "/index.html",
+  "rows": [
+    {
+      "engine": "chromium",
+      "peak": 0.37667638063430786,
+      "triad": true,
+      "pitch": true,
+      "lfo": true,
+      "presetRoundTrip": true,
+      "heldPcmProtected": true,
+      "audioImport": true,
+      "focus": true,
+      "blurRelease": true,
+      "stop": true,
+      "singleCanvas": true,
+      "productIcon": true,
+      "mobileOverflow": 0,
+      "pageErrors": [],
+      "missingAssets": [],
+      "externalRequests": [],
+      "physicalOutput": "muted"
+    },
+    {
+      "engine": "webkit",
+      "peak": 0.14880046248435974,
+      "triad": true,
+      "pitch": true,
+      "lfo": true,
+      "presetRoundTrip": true,
+      "heldPcmProtected": true,
+      "audioImport": true,
+      "focus": true,
+      "blurRelease": true,
+      "stop": true,
+      "singleCanvas": true,
+      "productIcon": true,
+      "mobileOverflow": 0,
+      "pageErrors": [],
+      "missingAssets": [],
+      "externalRequests": [],
+      "physicalOutput": "muted"
+    }
+  ]
+}

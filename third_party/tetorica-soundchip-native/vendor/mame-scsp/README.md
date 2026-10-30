@@ -68,3 +68,9 @@ The integer sine needs no recording or downloaded assets. The smoke test
 compares 8,192 stereo frames bit for bit between Native and WASM and checks
 partitioning, release, reset and handle isolation. This confirms portability
 for those inputs, not agreement with real hardware. No listening was performed.
+
+LFO adapter correction: the oscillator now uses a wrapping 32-bit phase,
+separate from the original 8-bit gain tables, so the slow frequency codes do
+not round to zero. LFORE resets both oscillator phases and holds them until
+cleared. This follows SCSP User's Manual section 4.2.6; it is not a hardware
+measurement. Nominal table rates and original gain/waveform tables are retained.

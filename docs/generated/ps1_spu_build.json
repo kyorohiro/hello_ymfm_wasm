@@ -12,8 +12,8 @@
       "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
     },
     "catalog/source_inventory.json": {
-      "bytes": 150504,
-      "sha256": "325ee890ce772bfb7d7b2a9428e45bbab49296184b2c16806ada9a8c4b7cc4a2"
+      "bytes": 150577,
+      "sha256": "7366d24388db5f8469125eb232691cd5247215e7ac7c7922b5ad5e0461ae677a"
     },
     "native/include/tetorica/ps1_spu.h": {
       "bytes": 260,
@@ -106,22 +106,23 @@
   },
   "sdk": {
     "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "archiveSha256": "f5839f3ad4bf54d84d2f67c12d9561a98ce79972e6b36394582a0cb0d3e286db",
     "fileCount": 476,
     "localCandidate": {
-      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "baseCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
       "changedPaths": [
-        ".github/workflows/verify-sdk.yml",
         "CHANGELOG.md",
-        "README.md",
-        "tests/check_standalone_release.py",
-        "tests/test_scsp_instrument_release.py"
+        "catalog/source_inventory.json",
+        "native/tests/scsp_fixture.cpp",
+        "vendor/mame-scsp/README.md",
+        "vendor/mame-scsp/scsp.cpp",
+        "vendor/mame-scsp/scsp.h"
       ]
     },
-    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "manifestSha256": "15c4a6a4e65a22abedd1512bf26accb5380b9717b3d2511fcb58adac04f3358f",
     "name": "tetorica-soundchip-native",
     "schemaVersion": 1,
-    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "sourceCommit": "51e3f76a5cb624df8b02b608f20c66f1238ea116",
     "version": "0.1.7"
   },
   "outputs": {

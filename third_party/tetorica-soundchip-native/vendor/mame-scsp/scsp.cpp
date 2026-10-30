@@ -38,6 +38,9 @@
 
 #define SHIFT   12
 #define LFO_SHIFT   8
+// Separate oscillator precision from the original 8-bit gain tables.
+// A full u32 cycle keeps all 32 documented rates moving at 44.1 kHz.
+#define LFO_PHASE_SHIFT 24
 #define FIX(v)  ((u32) ((float) (1 << SHIFT) * (v)))
 
 
@@ -239,10 +242,14 @@ u32 scsp_device::Step(SCSP_SLOT *slot)
 
 void scsp_device::Compute_LFO(SCSP_SLOT *slot)
 {
+	if (LFORE(slot)) {
+		slot->PLFO.phase = slot->ALFO.phase = 0;
+	}
 	if (PLFOS(slot) != 0)
 		LFO_ComputeStep(&(slot->PLFO), LFOF(slot), PLFOWS(slot), PLFOS(slot), 0);
 	if (ALFOS(slot) != 0)
 		LFO_ComputeStep(&(slot->ALFO), LFOF(slot), ALFOWS(slot), ALFOS(slot), 1);
+	if (LFORE(slot)) slot->PLFO.phase_step = slot->ALFO.phase_step = 0;
 }
 
 void scsp_device::StartSlot(SCSP_SLOT *slot)
@@ -902,10 +909,7 @@ s32 scsp_device::PLFO_Step(SCSP_LFO_t *LFO)
 {
 	int p;
 	LFO->phase += LFO->phase_step;
-#if LFO_SHIFT!=8
-	LFO->phase &= (1 << (LFO_SHIFT + 8)) - 1;
-#endif
-	p=LFO->table[LFO->phase >> LFO_SHIFT];
+	p=LFO->table[LFO->phase >> LFO_PHASE_SHIFT];
 	p=LFO->scale[p+128];
 	return p << (SHIFT - LFO_SHIFT);
 }
@@ -914,18 +918,16 @@ s32 scsp_device::ALFO_Step(SCSP_LFO_t *LFO)
 {
 	int p;
 	LFO->phase += LFO->phase_step;
-#if LFO_SHIFT!=8
-	LFO->phase &= (1 << (LFO_SHIFT + 8)) - 1;
-#endif
-	p=LFO->table[LFO->phase >> LFO_SHIFT];
+	p=LFO->table[LFO->phase >> LFO_PHASE_SHIFT];
 	p=LFO->scale[p];
 	return p << (SHIFT - LFO_SHIFT);
 }
 
 void scsp_device::LFO_ComputeStep(SCSP_LFO_t *LFO,u32 LFOF,u32 LFOWS,u32 LFOS,int ALFO)
 {
-	float step = (float) LFOFreq[LFOF] * 256.0f / 44100.0f;
-	LFO->phase_step = (u32) ((float) (1 << LFO_SHIFT) * step);
+	// Unsigned addition wraps one full oscillator cycle; gain quantization below
+	// remains unchanged. The old 16-bit phase rounded slow rates down to zero.
+	LFO->phase_step = (u32) ((double) LFOFreq[LFOF] * (4294967296.0 / 44100.0));
 	if (ALFO)
 	{
 		switch (LFOWS)

@@ -274,7 +274,7 @@ finite/clamped 32-slot mixing, release/reset, transfer bounds, partial writes,
 owned-handle isolation and render-block partitioning.
 These are compatibility/portability checks, not comparisons with real hardware.
 
-FM/LFO/ring/DSP code is retained from the pinned MAME implementation but has not
+FM/ring/DSP code is retained from the pinned MAME implementation but has not
 yet been behaviorally verified. Noise uses a deterministic per-instance software
 PRNG, not a verified hardware algorithm. CPU timers/IRQ, DMA, serial MIDI,
 external inputs, SSF playback and game-tone import are not provided.
@@ -312,7 +312,7 @@ needed for this bridge.
 Slot 1を編集用に予約し、他の31 slotsを鍵盤のpolyphonyへ割り当てる。
 EG／PCMは次の発音、Pitchとmixはheld音へも反映する。**Stop** は即時消音し、
 発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
-描画／音声変換／preset保存はソフト側の機能。SCSP LFO／slot FM／DSP編集／SSFは後続。
+描画／音声変換／preset保存はソフト側の機能。SCSP hardware LFOを操作できる。slot FM／DSP編集／SSFは後続。
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
 
 専用itch.io ZIP：`sh scripts/package_itch_scsp_synth.sh VERSION`。
@@ -320,3 +320,32 @@ EG／PCMは次の発音、Pitchとmixはheld音へも反映する。**Stop** は
 ZIP内の`index.html`をHTTPS／localhostで配信すれば、repoや外部runtimeなしで動作する。
 C++／JavaScript元入力・hash・license・再ビルド手順を同梱。
 [配布検証記録](issues/scsp_synth_distribution_01.json)。
+
+## SCSP hardware LFO（0.2.35以降の開発版）
+
+`ScspSynth.setLfo(slot, patch)` は発音をやり直さず、指定fieldだけをlive更新する。
+`setPreset(slot, {lfo: patch})` は次のkeyOn用。presetとstateには `lfo` が含まれる。
+
+```js
+saturn.setLfo(0, {
+  frequencyCode: 20, // 6.15 Hz nominal
+  pitchWave: 2,     // 0 saw / 1 square / 2 triangle / 3 noise
+  pitchDepth: 3,    // 0..7; 0 is off
+  amplitudeWave: 2,
+  amplitudeDepth: 4,
+  reset: false,
+});
+saturn.setLfo(0, {reset: true});  // LFORE: both phases held at zero
+saturn.setLfo(0, {reset: false}); // resumes without note retrigger
+```
+
+Pitch／amplitudeはslotごとに同じfrequency code（0..31）を共有する。
+`SCSP_LFO_FREQUENCIES_HZ`、`SCSP_LFO_PITCH_CENTS`、`SCSP_LFO_AMPLITUDE_DB`、
+`SCSP_LFO_WAVEFORMS` は表示用の公称table。低速を維持する32-bit位相とLFOREの扱いを
+SDK adapterで修正した。既存のgain／waveform tableは維持している。
+短いforward loopはPLFOの最大stepを含めて検証し、RAM境界を越える設定を変更前に拒否する。
+Main／Worker、primary／extra Native、Inspector／Synthで共通の設定を利用する。
+
+根拠は [Sega SCSP User's Manual §4.2.6](https://docs.exodusemulator.com/Archives/SSDDV25/segahtml/hard/scsp/hon/p04_26_j.htm)。
+実機の音声測定による忠実度保証ではない。[実装・検証記録](issues/scsp_lfo_01.md)。
+公開済みnpm 0.2.35はLFO高レベルAPI追加前のまま。この変更のnpm再公開はまだ行っていない。

@@ -9,12 +9,13 @@ async function create(){return new ScspSynth(await Scsp.create({moduleFactory:fa
 test('PCM preset round-trip reproduces exact WASM output and rejects malformed data',async()=>{
   const a=await create(),b=await create();try{
     const {pcm,options}=createScspInitSample(),sample=a.loadPCM(pcm,options);
-    a.setPreset(0,{sample,totalLevel:12,pan:0});
+    a.setPreset(0,{sample,totalLevel:12,pan:0,lfo:{frequencyCode:20,pitchWave:2,pitchDepth:4,amplitudeDepth:5}});
     const json=writePreset({pcm,sample,voice:a.getState().slots[0]}),loaded=readPreset(JSON.parse(JSON.stringify(json)));
     b.setPreset(0,{...loaded.voice,sample:b.loadPCM(loaded.pcm,loaded.options)});
     a.noteOn(0,60);b.noteOn(0,60);const left=a.generateStereo(4096),right=b.generateStereo(4096);
-    assert.deepEqual(left,right);assert(left.left.some(v=>Math.abs(v)>.01));
-    for(const bad of [{...json,version:2},{...json,pcm:[0,NaN]},{...json,pcm:[0,32768]},{...json,options:{rootNote:69,loopStartSamples:999999}},{...json,voice:{...json.voice,pan:32}}])assert.throws(()=>readPreset(bad));
+    assert.deepEqual(left,right);assert.equal(loaded.voice.lfo.frequencyCode,20);
+    const legacy=structuredClone(json);delete legacy.voice.lfo;assert.equal(readPreset(legacy).voice.lfo.pitchDepth,0);assert(left.left.some(v=>Math.abs(v)>.01));
+    for(const bad of [{...json,version:2},{...json,voice:{...json.voice,lfo:{frequencyCode:32}}},{...json,pcm:[0,NaN]},{...json,pcm:[0,32768]},{...json,options:{rootNote:69,loopStartSamples:999999}},{...json,voice:{...json.voice,pan:32}}])assert.throws(()=>readPreset(bad));
   }finally{a.dispose();b.dispose();}
 });
 test('initial sine triad has headroom before output gain and stop preserves bank',async()=>{

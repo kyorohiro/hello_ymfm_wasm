@@ -59,6 +59,10 @@ function longWav(){
     const panel=page.locator('#scspPanel');
     await page.waitForFunction(()=>!!document.querySelector('[data-chip-control="scsp-root"]')?.value);
     await panel.locator('[data-chip-action="scsp-triangle"]').click();
+    await panel.locator('[data-chip-control="scsp-lfo-frequencyCode"]').selectOption('20');
+    await panel.locator('[data-chip-control="scsp-lfo-pitchWave"]').selectOption('2');
+    await panel.locator('[data-chip-control="scsp-lfo-pitchDepth"]').selectOption('3');
+    await panel.locator('[data-chip-control="scsp-lfo-amplitudeDepth"]').selectOption('4');
     await panel.locator('[data-chip-control="scsp-bits"]').selectOption('8');
     await panel.locator('[data-chip-action="scsp-apply"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-chip-control="scsp-sample"]')?.selectedOptions[0]?.textContent.includes('8-bit'));
@@ -114,7 +118,7 @@ function longWav(){
     await page.locator('#scspTab').click();await panel.locator('[data-chip-action="scsp-sine"]').click();await panel.locator('[data-chip-action="scsp-apply"]').click();
     await page.waitForFunction(()=>document.querySelector('[data-chip-action="scsp-apply"]').disabled);
     console.log('  Mixer / FX / suspend recovery');
-    const heldSource=`const saturn=await useSoundChip('scsp');saturn.allNotesOff();saturn.setMix(0,{pan:0,totalLevel:12,directLevel:7});saturn.noteOn(0,69);await mixer.set('scsp',{pan:0,muted:false,solo:true,volume:1});setMasterVolume(1);await fx.setChain([]);`;
+    const heldSource=`const saturn=await useSoundChip('scsp');saturn.allNotesOff();saturn.setLfo(0,{pitchDepth:0,amplitudeDepth:0,reset:false});saturn.setMix(0,{pan:0,totalLevel:12,directLevel:7});saturn.noteOn(0,69);await mixer.set('scsp',{pan:0,muted:false,solo:true,volume:1});setMasterVolume(1);await fx.setChain([]);`;
     let heldSequence=0;const runHeld=async(patch='')=>{
       const token=`SCSP_HELD_READY_${++heldSequence}`;
       await page.locator('#codeTab').click();await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source:heldSource+patch+`log('${token}');liveLoop('scsp-held',async()=>{await sleep(60);});`,execution});
@@ -145,7 +149,7 @@ function longWav(){
       document.getElementById('workerExecution').checked=execution==='worker';
     },execution);await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await sound(page,true);await page.locator('#stopButton').click();await sound(page,false);
     assert.deepEqual(errors.filter(e=>e!=='ResizeObserver loop completed with undelivered notifications.'),[]);if(errors.length)console.log('  Layout observer notifications: '+errors.length);assert.deepEqual(await page.evaluate(()=>__scspAudit.errors),[]);assert.equal(await page.evaluate(()=>__scspAudit.worklets.filter(n=>n==='tetorica-playground-scsp').length),2);
-    report.results.push({browser:name,version:browser.version(),execution,checks:['Files/editor separation at 1440/686px','lazy mode','Prepare audio','Hold/release','PCM8 Apply / drawing / EG / Copy voice','20 MiB audio / selection / 12x RAM reuse','Stop releases editor guard after a Run','manual blur release / editor focus','Mixer UI mute/volume / FX / Master / suspend-resume','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
+    report.results.push({browser:name,version:browser.version(),execution,checks:['Files/editor separation at 1440/686px','lazy mode','Prepare audio','Hold/release','PCM8 Apply / drawing / EG / hardware LFO / Copy voice','20 MiB audio / selection / 12x RAM reuse','Stop releases editor guard after a Run','manual blur release / editor focus','Mixer UI mute/volume / FX / Master / suspend-resume','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
     console.log(`PASS ${name}/${execution}: Prepare, Hold, 32-slot Keyboard, starter, PCM upload example, independent instance, Stop; output muted.`);
    }catch(error){throw Error(`${name}/${execution}: ${error.message}; page errors=${JSON.stringify(errors)}; state=${await page.locator('#status').textContent()}; startup=${await page.locator('#startupMessage').textContent()}`,{cause:error});}finally{await context.close();}
   }}finally{await browser.close();}

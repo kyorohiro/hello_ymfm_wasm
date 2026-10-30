@@ -34,7 +34,7 @@ private:
 
 	struct SCSP_LFO_t
 	{
-		u16 phase;
+		u32 phase;
 		u32 phase_step;
 		int *table;
 		int *scale;
