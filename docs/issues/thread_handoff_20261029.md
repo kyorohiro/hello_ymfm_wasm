@@ -4,6 +4,13 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## npm 0.2.36公開 — 2026-10-31
+
+ユーザーがLFO試聴を確認し、npm更新を指示。`tetorica-fm2612@0.2.36` 公開済み、latestも0.2.36。
+[公開記録](npm_scsp_lfo_release_01.md)／[hash・registry確認](npm_scsp_lfo_release_01.json)。
+隔離install・実WASM・型検証成功。公開tarballと検証stageの1,051 files一致、registryからの再取得も完全一致。
+旧0.2.35 tarballは保持。下記の「npm未公開」はLFO実装完了時の履歴。SDK別公開・itch公開・commit／pushは未実施。
+
 ## SCSP hardware LFO完了 — 2026-10-31
 
 [実装・再開](scsp_lfo_01.md)／[最終report・配布hash](scsp_lfo_01.json)。

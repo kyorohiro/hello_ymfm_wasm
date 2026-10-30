@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "package": "tetorica-fm2612",
+  "version": "0.2.36",
+  "date": "2026-10-31",
+  "registryLatestBefore": "0.2.35",
+  "gitBase": "5b5fcf7e5aae8e35d9e423d80c7d596995ed9629",
+  "artifact": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.36",
+    "filename": "tetorica-fm2612-0.2.36.tgz",
+    "size": 2058991,
+    "unpackedSize": 7763333,
+    "shasum": "6b7ac01b7c83065898d23f6fb607db014137cc98",
+    "integrity": "sha512-U1QcS1OXrcpHSGZ4gyeHyZIP8iquEhNu/s3ktvLZWZjCLi6V316c1+OBBqczgOwvnq7IKzbYX2e6JzT5MAogfQ=="
+  },
+  "files": 1051,
+  "sha256": "df147df78d0b1fbbc3e754bd87fbed2bf69863dd9d595056f2da54eee8629d93",
+  "stageMatchesTarball": true,
+  "published": true,
+  "publishExitCode": 0,
+  "validation": {
+    "installedConsumer": true,
+    "scspLfoWithActualWasm": true,
+    "nodeNextAndBundlerTypes": true,
+    "browserTypesWithoutNode": true,
+    "wasmEngines": 28,
+    "renderers": 15
+  },
+  "previousPublishedTarballUnchanged": true,
+  "registryPropagationPending": false,
+  "publishedTarballMatches": true,
+  "registry": {
+    "version": "0.2.36",
+    "latest": "0.2.36",
+    "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.36.tgz",
+    "shasum": "6b7ac01b7c83065898d23f6fb607db014137cc98",
+    "integrity": "sha512-U1QcS1OXrcpHSGZ4gyeHyZIP8iquEhNu/s3ktvLZWZjCLi6V316c1+OBBqczgOwvnq7IKzbYX2e6JzT5MAogfQ=="
+  }
+}

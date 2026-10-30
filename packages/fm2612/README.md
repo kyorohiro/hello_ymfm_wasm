@@ -127,13 +127,13 @@ The shared Playground runtime supports `useSoundChip('scsp')` and independent
 also support Native transport; the npm package does not install a Tauri binary.
 The package-root chip factory is separate. Slot FM and DSP controls are not
 exposed by the high-level API, and SSF/68000 execution is not included.
-Development builds after 0.2.35 add `setLfo(slot, patch)` and `preset.lfo` for live
+Version 0.2.36 adds `setLfo(slot, patch)` and `preset.lfo` for live
 per-slot hardware LFO: `frequencyCode` 0..31, `pitchWave` / `amplitudeWave` 0..3
 (saw, square, triangle, noise), `pitchDepth` / `amplitudeDepth` 0..7, and boolean
-`reset` (hold both phases at zero until cleared). `setPreset({lfo})` applies at
+`reset` (hold both phases at zero until cleared). `setPreset(slot, {lfo})` applies at
 the next keyOn. Display tables are exported as `SCSP_LFO_FREQUENCIES_HZ`,
 `SCSP_LFO_PITCH_CENTS`, `SCSP_LFO_AMPLITUDE_DB` and `SCSP_LFO_WAVEFORMS`.
-These LFO additions are not present in the already published 0.2.35 tarball.
+LFO requires 0.2.36 or later.
 See the [SCSP API and limitations](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md).
 
 ### Experimental standalone PlayStation SPU
@@ -1378,10 +1378,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.35.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.36.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.35.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.36.tgz
 ```
 
 The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
@@ -1406,6 +1406,15 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.36` adds per-slot SCSP hardware LFO with live `setLfo`, preset/state
+serialization, TypeScript declarations and Main/Worker/compatible Native transport.
+Pitch and amplitude modulation each offer four waveforms and eight depth codes,
+with 32 shared speed codes. The core fixes stalled low-speed LFO and implements
+reset/hold/resume. Forward-loop validation includes maximum pitch modulation.
+The bundled fixed SDK sources, WASM and optional Mixer calibration are updated.
+Slot FM, DSP controls and SSF playback remain outside the high-level API.
+
 
 `0.2.35` adds the experimental Saturn SCSP raw/Synth APIs, PCM selection helpers,
 32-slot Main/Worker Web Audio playback and compatible Tauri Native transport
