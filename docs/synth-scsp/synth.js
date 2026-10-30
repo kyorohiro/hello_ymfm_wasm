@@ -2,12 +2,24 @@
 import {createPlaygroundScspVoicePanel} from '../playground/playground_scsp_voice_panel.js';
 import {createAudio} from './audio.js';
 import {readPatch} from './patch.js';
+import {OPERATOR_NAMES,operatorCount} from './routing.js';
 const $=id=>document.getElementById(id),status=$('status');
 let audio=null,starting=false,queue=Promise.resolve(),serial=0,epoch=0;
+let selectedOperator=0,latestState=null;
+const operatorButtons=[...document.querySelectorAll('[data-operator]')];
 const held=new Map(),keys='awsedftgyhujk',notes=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B','C'];
 const report=error=>{status.textContent=error.message;};
 function enqueue(fn){const task=queue.then(fn);queue=task.catch(report);return task;}
-async function refresh(){if(audio){const state=await audio.read();panel.update(state);for(const [id,value]of [['voiceMode',state.config.mode],['fmDepth',state.config.fm.depth],['fmRatio',state.config.fm.ratio],['pitch',state.config.transpose]])if(document.activeElement!==$(id))$(id).value=value;for(const id of ['fmDepth','fmRatio'])$(id).disabled=state.config.mode!=='fm2';$('capacity').textContent=`${state.voiceCapacity} playable voices · 2 source slots reserved. ${state.config.mode==='fm2'?'Each key owns a Modulator + Carrier pair.':'Each key owns one PCM slot.'}`;}}
+async function refresh(){if(audio){
+  const state=await audio.read();latestState=state;panel.update(state);
+  for(const [id,value]of [['voiceMode',state.config.mode],['fmDepth',state.config.fm.depth],['fmRatio',state.config.fm.ratio],['algorithm',state.config.fm.algorithm],['operatorRatio',state.config.fm.ratios[selectedOperator]],['pitch',state.config.transpose]])if(document.activeElement!==$(id))$(id).value=value;
+  for(const id of ['fmDepth','fmRatio','algorithm','operatorRatio'])$(id).disabled=state.config.mode==='pcm';
+  $('capacity').textContent=`${state.voiceCapacity} playable voices · ${state.sourceCount} source slots reserved · ${operatorCount(state.config.mode)} slot(s) per key.`;
+  const {inputs,outputs,count}=state.routing;
+  $('routingSummary').textContent=inputs.flatMap((sources,target)=>sources.map(source=>`${OPERATOR_NAMES[source]} → ${OPERATOR_NAMES[target]}`)).concat([`Output: ${outputs.map(i=>OPERATOR_NAMES[i]).join(' + ')}`]).join(' · ');
+  for(const button of operatorButtons){const index=Number(button.dataset.operator);button.setAttribute('aria-pressed',String(index===selectedOperator));button.textContent=`${OPERATOR_NAMES[index]} · ${index>=count?'Unused':outputs.includes(index)?'Output':'Modulator'}`;}
+}}
+
 
 const panel=createPlaygroundScspVoicePanel({root:$('voice'),showModulation:false,onError:report,invoke:(method,args)=>enqueue(async()=>{
   if(!audio)throw new Error('Start audio first');
@@ -19,12 +31,12 @@ for(const p of $('voice').querySelectorAll('p'))if(p.textContent.startsWith('Sof
 $('voice').querySelector('[data-chip-action="scsp-hold"]').hidden=true;
 // These are editor source slots, so their hardware gate is not the keyboard state.
 $('voice').querySelectorAll(':scope > p')[1].hidden=true;
-const copyButton=$('voice').querySelector('[data-chip-action="scsp-copy"]');copyButton.textContent='Copy this operator as JavaScript';const copyHint=document.createElement('p');copyHint.textContent='JavaScript copy exports only the selected operator. Save preset includes the complete two-operator voice.';copyButton.after(copyHint);
+const copyButton=$('voice').querySelector('[data-chip-action="scsp-copy"]');copyButton.textContent='Copy this operator as JavaScript';const copyHint=document.createElement('p');copyHint.textContent='JavaScript copy exports only the selected operator. Save preset includes all six operators and the connection.';copyButton.after(copyHint);
 for(const label of $('voice').querySelectorAll(':scope > label'))if(label.textContent.startsWith('MIDI note'))label.hidden=true;
-function enable(value){for(const id of ['voiceMode','fmDepth','fmRatio','carrier','modulator'])$(id).disabled=!value;$('stop').disabled=!value;$('save').disabled=!value;$('open').disabled=!value;panel.setConnected(value);}
+function enable(value){for(const id of ['voiceMode','fmDepth','fmRatio','algorithm','operatorRatio'])$(id).disabled=!value;for(const button of operatorButtons)button.disabled=!value;$('stop').disabled=!value;$('save').disabled=!value;$('open').disabled=!value;panel.setConnected(value);}
 $('start').onclick=async()=>{
   $('start').blur();if(starting)return;starting=true;$('start').disabled=true;
-  try{if(audio)await audio.resume();else audio=await createAudio({volume:Number($('volume').value),onError:error=>{report(error);held.clear();epoch++;highlight();audio=null;enable(false);$('start').disabled=false;}});enable(true);await refresh();status.textContent='Ready · play the keyboard. Select Carrier or Modulator to edit its waveform.';}
+  try{if(audio)await audio.resume();else audio=await createAudio({volume:Number($('volume').value),onError:error=>{report(error);held.clear();epoch++;highlight();audio=null;enable(false);$('start').disabled=false;}});enable(true);await refresh();status.textContent='Ready · play the keyboard. Select A–F to edit an operator on the same canvas.';}
   catch(error){report(error);}finally{starting=false;$('start').disabled=false;}
 };
 function highlight(){for(const b of $('keyboard').children)b.setAttribute('aria-pressed',String([...held.values()].some(v=>v.index===Number(b.dataset.index))));}
@@ -60,7 +72,13 @@ function configure(patch,modeChange=false){return enqueue(async()=>{if(!audio)re
 $('pitch').onchange=()=>{const value=Number($('pitch').value);if(!$('pitch').value.trim()||!$('pitch').reportValidity())return;$('pitch').blur();void configure({transpose:value});};
 $('voiceMode').onchange=()=>{const mode=$('voiceMode').value;$('voiceMode').blur();void configure({mode},true);};
 for(const [id,key]of [['fmDepth','depth'],['fmRatio','ratio']])$(id).onchange=()=>{const input=$(id);if(!input.value.trim()||!input.reportValidity())return;input.blur();void configure({fm:{[key]:Number(input.value)}});};
-for(const [id,slot]of [['carrier',0],['modulator',1]])$(id).onclick=()=>{ $('voice').querySelector(`[data-scsp-slot="${slot}"]`).click();$('carrier').setAttribute('aria-pressed',String(slot===0));$('modulator').setAttribute('aria-pressed',String(slot===1));$(id).blur();};
-$('save').onclick=()=>{$('save').blur();void enqueue(async()=>{if(!audio)return;const value=await audio.command('exportPatch');const url=URL.createObjectURL(new Blob([JSON.stringify(value)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='scsp-voice.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Preset saved · both operators, PCM, ratio, depth and pitch included. Apply drafts before saving.';});};
-$('open').onchange=()=>{const file=$('open').files?.[0];$('open').value='';$('open').blur();if(!file)return;void enqueue(async()=>{if(!audio)return;if(file.size>4*1024*1024)throw new Error('Preset must be at most 4 MiB');const value=JSON.parse(await file.text());readPatch(value);await audio.command('loadPatch',[value]);held.clear();epoch++;highlight();await refresh();status.textContent='Preset loaded · voices stopped, both operators ready.';});};
+$('algorithm').onchange=()=>{const algorithm=$('algorithm').value;$('algorithm').blur();void configure({fm:{algorithm}},true);};
+$('operatorRatio').onchange=()=>{const input=$('operatorRatio');if(!input.value.trim()||!input.reportValidity())return;const value=Number(input.value),slot=selectedOperator;input.blur();void enqueue(async()=>{if(!audio)return;const state=await audio.read(),ratios=[...state.config.fm.ratios];ratios[slot]=value;await audio.command('setConfig',[{fm:{ratios}}]);await refresh();});};
+for(const button of operatorButtons)button.onclick=()=>{
+  selectedOperator=Number(button.dataset.operator);$('voice').querySelector(`[data-scsp-slot="${selectedOperator}"]`).click();
+  for(const b of operatorButtons)b.setAttribute('aria-pressed',String(b===button));
+  if(latestState)$('operatorRatio').value=latestState.config.fm.ratios[selectedOperator];button.blur();
+};
+$('save').onclick=()=>{$('save').blur();void enqueue(async()=>{if(!audio)return;const value=await audio.command('exportPatch');const url=URL.createObjectURL(new Blob([JSON.stringify(value)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='scsp-voice.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Preset saved · all six operators, connection, ratios, depth and pitch included. Apply drafts before saving.';});};
+$('open').onchange=()=>{const file=$('open').files?.[0];$('open').value='';$('open').blur();if(!file)return;void enqueue(async()=>{if(!audio)return;if(file.size>8*1024*1024)throw new Error('Preset must be at most 8 MiB');const value=JSON.parse(await file.text());readPatch(value);await audio.command('loadPatch',[value]);held.clear();epoch++;highlight();await refresh();status.textContent='Preset loaded · voices stopped, all six operators ready.';});};
 window.addEventListener('pagehide',()=>{epoch++;held.clear();void audio?.dispose();});

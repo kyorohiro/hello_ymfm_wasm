@@ -4,6 +4,17 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP専用Synth 4／6-op・固定接続完了 — 2026-10-31
+
+[操作・TODO・検証](scsp_synth_multiop_01.md)／[source・配布hash](scsp_synth_multiop_01.json)。
+PCM／2／4／6-op、Chain／Pairs／Branch。A〜Fの独立PCM／EG／LFO／mix／ratioを単一canvasで編集する。
+6 source slots予約でPCM26／2-op13／4-op6／6-op4 voices。group単位の離鍵・steal・Stop。
+v3 presetは全6PCM・接続・ratioを保存し、旧v1／v2は読込互換。live比率・Pitch・MDLとPCM保護を維持。
+Node15、展開した最終ZIPのChromium／WebKit成功。最終destination測定で発音・Volume復帰を確認。
+最新ZIP：`release/tetorica_scsp_synth_multiop-dev-20261031_itch.zip`。
+共有runtime／SDK／Native／npmに変更なし。公開・commitなし。次は人の試聴。
+下記2-op完了時の同時発音数とpreset版数は当時の履歴。自由なgraph／feedbackは後続。
+
 ## SCSP専用Synthの無音修正 — 2026-10-31
 
 [原因・修正・配布](scsp_synth_output_fix_01.md)。worklet→Volume接続の欠落を修正。

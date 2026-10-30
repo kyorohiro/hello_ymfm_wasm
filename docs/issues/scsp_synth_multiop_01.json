@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-31",
+  "passed": true,
+  "scope": "Dedicated Browser SCSP Synth only",
+  "modes": {
+    "pcm": 26,
+    "fm2": 13,
+    "fm4": 6,
+    "fm6": 4
+  },
+  "sourceSlots": 6,
+  "connections": [
+    "chain",
+    "pairs",
+    "branch"
+  ],
+  "presetVersions": {
+    "write": 3,
+    "read": [
+      1,
+      2,
+      3
+    ]
+  },
+  "nodeTests": {
+    "passed": 15,
+    "command": "node --test docs/synth-scsp/*.test.mjs scripts/package_itch_scsp_synth.test.mjs"
+  },
+  "browser": {
+    "path": "docs/issues/scsp_synth_multiop_browser_01.json",
+    "bytes": 1942,
+    "sha256": "b505edf1f6bb122067a68fb857d6d6c206569c1b8dbf52018068d5aee244154d",
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "artifact": "extracted final ZIP",
+    "measurement": "destination input after Volume; physical output muted"
+  },
+  "artifact": {
+    "path": "release/tetorica_scsp_synth_multiop-dev-20261031_itch.zip",
+    "bytes": 1182220,
+    "sha256": "a15f6de5e922af219779ca91c789c509c1ae69ea2eb9ab64fd93b44b9ac34ca6",
+    "files": 36,
+    "authenticatedOriginalInputs": 26
+  },
+  "sources": {
+    "docs/synth-scsp/audio.js": {
+      "bytes": 3069,
+      "sha256": "1e105646b20ed50865927db3574d7d151c8b089397ab29ebcd3c1b21b573ccf2"
+    },
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 7663,
+      "sha256": "06457862c377ba6b5f0456370577aeb5b3346cfd9af750673f754bbdb6eefa3e"
+    },
+    "docs/synth-scsp/patch.js": {
+      "bytes": 3760,
+      "sha256": "5ea34f98c108baab2b238b514c67103bcefb130afc5b2b2ad9f3b1ff415ed6f2"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1968,
+      "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 2079,
+      "sha256": "02e08a5bf78b82171555f8285a74fcfa4be10165c3ba0d2a55931b7669033ed3"
+    },
+    "docs/synth-scsp/routing.js": {
+      "bytes": 2133,
+      "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 10111,
+      "sha256": "86974b05f9404e76bc786eb21094d8529950f39ff020e59ff1ddde36f3dbacf0"
+    }
+  },
+  "browserTest": {
+    "path": "scripts/check_scsp_synth_browser.cjs",
+    "bytes": 19858,
+    "sha256": "2f068e63e83afefd0c2e1595cf98c34ae83e4752dcf2057b63fe1cb12810c60d"
+  },
+  "sharedRuntimeAndSdk": "unchanged",
+  "calibrationPolicyChecks": "both generators --check passed",
+  "published": false,
+  "limitations": [
+    "Pinned zero-delay SCSP core; physical hardware accuracy not guaranteed",
+    "Six source slots reserved in all modes",
+    "Global depth 0..12; arbitrary graph and feedback not exposed",
+    "Human listening pending"
+  ]
+}

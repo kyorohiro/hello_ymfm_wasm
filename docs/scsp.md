@@ -307,17 +307,21 @@ needed for this bridge.
 2. Sine／Triangle／Saw／Squareを選ぶか、単一canvasを描画し、**Apply PCM** → 新しい音を弾く。
 3. 音声ファイルは **Use selection in waveform** → **Apply PCM** の順。
    長い録音はhostに保持し、最大65,535点の区間を選ぶ。区間・rate・基準音は手動指定。
-4. **Save preset** は両operatorの適用済みPCMとEG／LFO／mix、mode／ratio／depth／Pitchをversion 2 JSONへ保存。
-   **Open preset** は全体を検証してから演奏停止・bank更新。旧version 1はPCMとして読み込める。
+4. **Save preset** はA〜F全operatorの適用済みPCMとEG／LFO／mix、mode／接続／各ratio／depth／Pitchをversion 3 JSONへ保存。
+   **Open preset** は全体を検証してから演奏停止・bank更新。旧version 1（PCM）／2（PCM・2-op）も読み込める。
 
-Carrier／Modulatorの編集元に2 slotsを予約する。PCMは30 voices、2-operator FMは15 voices。
-**Voice mode → 2-operator FM** を選び、MDL depthとModulator ratioを操作する。
-**A · Carrier / B · Modulator** で編集対象を切り替え、同じcanvasでPCM／EG／LFOを設定する。
-operator切替前にApplyする。FM carrierはloop start 0のfull forward loopが必要。
-EG／PCMは次の発音、Pitch／ratio／depth／mix／LFOは発音中とrelease中のgroupへ反映する。**Stop** は即時消音し、
-発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
-描画／音声変換／ペア単位の割当・guard配置／preset保存はソフト側の機能。
-slot FM／EG／LFOはSCSP core側。任意algorithm／feedback／DSP編集／SSFは後続。
+編集元に6 slotsを予約する。PCMは26 voices、2-opは13、4-opは6、6-opは4 voices。
+**Voice mode → 2／4／6-operator FM** と **Connection → Chain／Pairs／Branch** を選ぶ。
+Chainは全段直列、Pairsは2-op組の並列出力、Branchは最大2入力の木。接続とOutputは画面に表示する。
+**A〜F** で編集対象を切り替え、同じcanvasでPCM／EG／LFO／mixを設定する。
+operator切替前にApplyする。FM入力を受けるoperatorはloop start 0のfull forward loopが必要。
+**Selected operator ratio** はoperator別の周波数比、**All modulator ratios** はAを1・B〜Fを指定値にリセットする。
+RatioはFMに適用し、PCMはAを鍵盤の音程で鳴らす。
+EG／PCMは次の発音、Pitch／ratio／depth／mix／LFOは発音中とrelease中のgroupへ反映する。
+Output以外はdirect出力を消し、TLで変調量を調整する。mode／接続変更は検証成功後に全音停止する。
+**Stop** は即時消音し、発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
+描画／音声変換／接続プリセット／group単位の割当・guard配置／preset保存はソフト側の機能。
+slot FM／EG／LFOはSCSP core側。自由なgraph／feedback／DSP編集／SSFは後続。
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
 
 専用itch.io ZIP：`sh scripts/package_itch_scsp_synth.sh VERSION`。
@@ -396,7 +400,7 @@ paddingを越えるdepth、one-shot／途中loopは高レベルAPIで拒否す�
 Native callbackもRAM境界を検査し、変調で読まれるguardはrelease中も上書きから保護する。
 
 この段階はphysical slot単位の接続。Copy voiceは選択slotだけを出力し、変調元を含む音色全体は保存しない。
-専用SynthではModulator→Carrierの2-op FMをペア単位で自動割当し、operator込みversion 2 presetを保存できる。
+専用Synthでは2／4／6-op FMをgroup単位で自動割当し、6 operator込みversion 3 presetを保存できる。
 raw X/Y panelの代わりにdepth／ratioとCarrier／Modulator切替を表示する。
 [実装・操作・検証](issues/scsp_synth_fm_01.md)。任意graph／feedbackは後続。
 DSPのdelay用RAM ring buffer、振幅の掛け算によるring modulationとは別機能。

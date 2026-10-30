@@ -19,7 +19,7 @@ class SynthProcessor extends AudioWorkletProcessor {
           let value;
           if(data.type==='chip-inspector')value=data.action==='read'?this.instrument.read():this.instrument.invoke(data.method,data.args);
           else if(['noteOn','noteOff','setConfig','loadPatch','exportPatch','stopVoices'].includes(data.method)){
-            const mode=this.instrument.config.mode;value=this.instrument[data.method](...(data.args??[]));if(['loadPatch','stopVoices'].includes(data.method)||mode!==this.instrument.config.mode)this.resampler.reset();
+            const config=this.instrument.config;value=this.instrument[data.method](...(data.args??[]));if(['loadPatch','stopVoices'].includes(data.method)||config.mode!==this.instrument.config.mode||config.fm.algorithm!==this.instrument.config.fm.algorithm)this.resampler.reset();
           }else throw new Error('Unknown Synth command');
           if(data.id!==undefined)this.port.postMessage({id:data.id,value});
         }catch(error){this.port.postMessage({id:data.id,error:error.message});}

@@ -14,7 +14,7 @@
   <article class="synth-shell" aria-labelledby="synthTitle">
     <header class="product-header">
       <img class="product-icon" src="../tetorica-spu-1254.webp" width="144" height="144" alt="Tetorica SCSP Synth" decoding="async">
-      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO / 2-OP FM <i>·</i> 32 SLOTS</p></div>
+      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO / 2–6 OP FM <i>·</i> 32 SLOTS</p></div>
       <div class="engine-badge"><span class="led"></span> SCSP <small>PCM ENGINE</small></div>
     </header>
     <section class="toolbar" aria-label="Transport">
@@ -24,15 +24,18 @@
       <div class="preset-actions"><button id="save" disabled>Save preset</button><label class="file">Open preset <input id="open" type="file" accept=".json,application/json" disabled></label></div>
     </section>
     <p id="status" role="status">Start audio, then play the keys below or use A W S E D F T G Y H U J K.</p>
-    <section class="keyboard-panel" aria-label="Keyboard"><div class="section-heading"><h2>Keyboard</h2><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label></div><div id="keyboard"></div><p class="hint" id="capacity">30 PCM voices / 15 FM voices · 2 source slots reserved.</p></section>
+    <section class="keyboard-panel" aria-label="Keyboard"><div class="section-heading"><h2>Keyboard</h2><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label></div><div id="keyboard"></div><p class="hint" id="capacity">26 PCM / 13 two-op / 6 four-op / 4 six-op voices · 6 source slots reserved.</p></section>
     <section class="voice-routing" aria-label="Voice routing">
-      <label>Voice mode <select id="voiceMode" disabled><option value="pcm">PCM</option><option value="fm2">2-operator FM</option></select></label>
+      <label>Voice mode <select id="voiceMode" disabled><option value="pcm">PCM</option><option value="fm2">2-operator FM</option><option value="fm4">4-operator FM</option><option value="fm6">6-operator FM</option></select></label>
       <label>FM depth (MDL) <input id="fmDepth" type="number" min="0" max="12" value="9" disabled></label>
-      <label>Modulator ratio <input id="fmRatio" type="number" min="0.125" max="8" step="0.125" value="2" disabled></label>
-      <div class="operator-switch"><button id="carrier" aria-pressed="true" disabled>A · Carrier</button><span>←</span><button id="modulator" aria-pressed="false" disabled>B · Modulator</button></div>
-      <p>Switch the operator to edit its waveform on the same canvas. Apply drafts before switching; unapplied drawings are discarded. The Modulator is silent at the output; its TL controls FM strength. Mode changes stop existing notes.</p>
+      <label>All modulator ratios <input id="fmRatio" type="number" min="0.125" max="8" step="0.125" value="2" disabled></label>
+      <label>Connection <select id="algorithm" disabled><option value="chain">Chain · serial</option><option value="pairs">Pairs · parallel 2-op</option><option value="branch">Branch · two-input tree</option></select></label>
+      <label>Selected operator ratio <input id="operatorRatio" type="number" min="0.125" max="8" step="0.125" value="1" disabled></label>
+      <div class="operator-switch" role="group" aria-label="Edit operator"><button id="carrier" data-operator="0" aria-pressed="true" disabled>A</button><button id="modulator" data-operator="1" aria-pressed="false" disabled>B</button><button data-operator="2" aria-pressed="false" disabled>C</button><button data-operator="3" aria-pressed="false" disabled>D</button><button data-operator="4" aria-pressed="false" disabled>E</button><button data-operator="5" aria-pressed="false" disabled>F</button></div>
+      <p id="routingSummary" aria-live="polite">Output: A</p>
+      <p>Software connection presets group SCSP slots into voices. Select A–F to edit on the same canvas. Apply before switching; unapplied drawings are discarded. Only Output operators reach the speakers. TL controls each operator's strength. Voice mode and Connection changes stop notes. All modulator ratios resets A to 1 and B–F to the chosen value.</p>
     </section>
     <section id="voice" aria-label="Voice editor"></section>
     <footer><p>Waveform drawing, voice allocation, repeated PCM guards and preset files are software features. Slot FM, envelopes and LFO run in the SCSP core. The fixed core has zero slot-write delay; hardware timing fidelity is not guaranteed. DSP editing and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
   </article>
-</main><script type="module" src="synth.js?v=fm2-1"></script></body></html>
+</main><script type="module" src="synth.js?v=multiop-1"></script></body></html>
