@@ -18,10 +18,10 @@ function instrumentation(){
  };
 }
 async function measure(page){return page.evaluate(()=>__scspAudit.sinks.map(s=>{const pcm=new Float32Array(s.analyser.fftSize);s.analyser.getFloatTimeDomainData(pcm);return {sampleRate:s.context.sampleRate,peak:pcm.reduce((p,v)=>Math.max(p,Math.abs(v)),0),finite:pcm.every(Number.isFinite),muted:s.gate.gain.value===0};}));}
-async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(page);assert(rows.every(r=>r.finite&&r.muted));if(rows.length&&(on?rows.some(r=>r.peak>.005):rows.every(r=>r.peak===0))){report.captures.push({audible:on,rows});return rows;}await page.waitForTimeout(50);}throw Error(`Expected ${on?'sound':'silence'}: ${JSON.stringify(await measure(page))}; ${await page.locator('#status').textContent()}`);}
+async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(page);assert(rows.every(r=>r.finite&&r.muted));if(rows.length&&(on?rows.some(r=>r.peak>.0001):rows.every(r=>r.peak===0))){report.captures.push({audible:on,rows});return rows;}await page.waitForTimeout(50);}throw Error(`Expected ${on?'sound':'silence'}: ${JSON.stringify(await measure(page))}; ${await page.locator('#status').textContent()}`);}
 (async()=>{
  const nested=await fs.access(path.join(directory,'playground/index.html')).then(()=>true,()=>false);const prefix=nested?'playground/':'';
- const server=http.createServer(async(req,res)=>{try{const file=path.resolve(directory,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(directory+path.sep))throw Error();const bytes=await fs.readFile(file);res.setHeader('Content-Type',file.endsWith('.wasm')?'application/wasm':file.endsWith('.js')?'text/javascript':file.endsWith('.json')?'application/json':file.endsWith('.css')?'text/css':'text/html');res.end(bytes);}catch{res.statusCode=404;res.end();}});
+ const server=http.createServer(async(req,res)=>{try{const file=path.resolve(directory,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(directory+path.sep))throw Error();let bytes=await fs.readFile(file);if(path.basename(file)==='playground.js')bytes=Buffer.from(bytes.toString()+'\nwindow.__scspCheck={runtime};\n');res.setHeader('Content-Type',file.endsWith('.wasm')?'application/wasm':file.endsWith('.js')?'text/javascript':file.endsWith('.json')?'application/json':file.endsWith('.css')?'text/css':'text/html');res.end(bytes);}catch{res.statusCode=404;res.end();}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try{for(const [name,engine]of (process.argv.includes('--chromium-only')?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]])){
   const browser=await engine.launch({headless:true});try{for(const execution of ['main','worker']){
@@ -45,6 +45,7 @@ async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(pag
     await page.locator('#scspPanel [data-chip-action="prepare"]').click();await page.waitForFunction(()=>document.querySelectorAll('#scspPanel [data-scsp-slot]').length===32);
     const hold=page.locator('#scspPanel [data-chip-action="scsp-hold"]');await hold.waitFor();await page.waitForFunction(()=>!document.querySelector('[data-chip-action="scsp-hold"]').disabled);
     console.log('  Hold');await hold.scrollIntoViewIfNeeded();const box=await hold.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await sound(page,true);await page.mouse.up();await sound(page,false);
+    await page.mouse.down();await sound(page,true);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await sound(page,false);await page.mouse.up();
     console.log('  PCM / EG editor');
     const panel=page.locator('#scspPanel');
     await page.waitForFunction(()=>!!document.querySelector('[data-chip-control="scsp-root"]')?.value);
@@ -56,6 +57,7 @@ async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(pag
     await panel.locator('[data-chip-control="scsp-attackRate"]').dispatchEvent('change');
     await page.waitForTimeout(300);
     assert.equal(await panel.locator('[data-chip-control="scsp-attackRate"]').inputValue(),'25');
+    assert(await panel.locator('[data-chip-control="scsp-attackRate"]').evaluate(node=>node.ownerDocument.activeElement!==node),'EG edit returns keyboard focus');
     const wave=panel.locator('[data-chip-control="scsp-waveform"]');await wave.scrollIntoViewIfNeeded();const wb=await wave.boundingBox();
     await page.mouse.move(wb.x+wb.width*.2,wb.y+wb.height*.4);await page.mouse.down();await page.mouse.move(wb.x+wb.width*.4,wb.y+wb.height*.6,{steps:8});await page.mouse.up();
     assert.equal(await panel.locator('[data-chip-action="scsp-apply"]').isEnabled(),true);
@@ -66,19 +68,44 @@ async function sound(page,on){for(let n=0;n<40;n++){const rows=await measure(pag
     await hold.scrollIntoViewIfNeeded();const editedBox=await hold.boundingBox();await page.mouse.move(editedBox.x+editedBox.width/2,editedBox.y+editedBox.height/2);await page.mouse.down();await sound(page,true);await page.mouse.up();await sound(page,false);
     console.log('  Keyboard');if(!await page.locator('#keyboardTab').isVisible())await page.locator('.dock-toggle').click();await page.locator('#keyboardTab').click();await page.locator('#operatorKeyboardRoot button').filter({hasText:/^Guitar$/}).click();
     await page.selectOption('#playgroundKeyboardChip','chip:scsp');await page.selectOption('#playgroundKeyboardTargetChannel','31');assert.equal(await page.locator('#playgroundKeyboardTargetChannel option').count(),32);
-    const key=await page.locator('#operatorKeyboardRoot .key').first().getAttribute('data-key');await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down(key);await sound(page,true);await page.keyboard.up(key);await sound(page,false);
+    const key=await page.locator('#operatorKeyboardRoot .key').first().getAttribute('data-key');await page.keyboard.down(key);await sound(page,true);await page.keyboard.up(key);await sound(page,false);
     const starter=await fs.readFile(path.join(directory,prefix,'defaults/scsp/index.js'),'utf8'),example=await fs.readFile(path.join(directory,prefix,'examples/scsp/scsp-stereo-pcm.js'),'utf8');
     for(const source of [starter,example,voiceCode]){console.log('  Run '+(source===starter?'starter':source===example?'PCM':'copied voice'));
      await page.locator('#codeTab').click();await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source,execution});await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await sound(page,true);await page.locator('#stopButton').click();await sound(page,false);
     }
+    console.log('  Mixer / FX / suspend recovery');
+    const heldSource=`const saturn=await useSoundChip('scsp');saturn.allNotesOff();saturn.setMix(0,{pan:0,totalLevel:12,directLevel:7});saturn.noteOn(0,69);await mixer.set('scsp',{pan:0,muted:false,solo:true,volume:1});setMasterVolume(1);await fx.setChain([]);`;
+    let heldSequence=0;const runHeld=async(patch='')=>{
+      const token=`SCSP_HELD_READY_${++heldSequence}`;
+      await page.locator('#codeTab').click();await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source:heldSource+patch+`log('${token}');liveLoop('scsp-held',async()=>{await sleep(60);});`,execution});
+      await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await page.waitForFunction(token=>document.getElementById('consoleOutput').textContent.includes(token),token);
+      const lead=execution==='worker'?await page.evaluate(()=>__scspCheck.runtime.getTiming().workerLookaheadSeconds*1000):0;
+      await page.waitForTimeout(200+lead);await sound(page,true);
+      return Math.max(...(await measure(page)).map(row=>row.peak));
+    };
+    const base=await runHeld();
+    await page.locator('#mixerTab').click();const strip=page.locator('#mixerPanel [data-chip-id="scsp"]');await strip.waitFor();
+    await strip.locator('button').filter({hasText:/^Mute$/}).click();await sound(page,false);
+    await strip.locator('button').filter({hasText:/^Mute$/}).click();await sound(page,true);
+    await strip.locator('[data-setting="volume"]').evaluate(node=>{node.value='50';node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));});
+    await page.waitForTimeout(350);const half=Math.max(...(await measure(page)).map(row=>row.peak));assert(Math.abs(half/base-.5)<.025,`Mixer half gain ${half/base}`);
+    assert.equal(await page.evaluate(()=>__scspCheck.runtime.megaDrive.mixer.get('scsp').volume),.5);
+    const effected=await runHeld('await fx.setChain([fx.gain({gain:.2})]);');assert(Math.abs(effected/base-.2)<.025,`FX gain ${effected/base}`);
+    const master=await runHeld('setMasterVolume(.25);');assert(Math.abs(master/base-.25)<.025,`Master gain ${master/base}`);
+    await page.evaluate(async()=>{for(const context of __scspAudit.contexts)if(context.state==='running')await context.suspend();});
+    assert(await page.evaluate(()=>__scspAudit.contexts.every(c=>c.state==='suspended')));
+    const resumed=await runHeld();assert(Math.abs(resumed/base-1)<.025,`Recovered output ${resumed/base}`);
+    assert(await page.evaluate(()=>__scspAudit.contexts.every(c=>c.state==='running')));
+    await page.locator('#stopButton').click();await sound(page,false);
+    report.captures.push({browser:name,execution,checks:'Mixer / FX / Master / suspend-resume ratios',base,half,effected,master,resumed});
     if(execution==='worker')assert(await page.evaluate(()=>__scspAudit.workers.some(url=>/playground_logic_worker\.js/.test(url))),'Worker mode uses the actual logic Worker');
     assert.equal(await page.evaluate(()=>__scspAudit.worklets.filter(n=>n==='tetorica-playground-scsp').length),1);
     await page.locator('#codeTab').click();await page.evaluate(execution=>{
-      monaco.editor.getEditors()[0].setValue("const extra = await createSoundChip('scsp', {id:'saturn-extra'}); extra.noteOn(31, 'A4'); liveLoop('extra-held', async()=>{await sleep(60);});");
+      monaco.editor.getEditors()[0].setValue("await mixer.set('scsp',{solo:false}); const extra = await createSoundChip('scsp', {id:'saturn-extra'}); extra.noteOn(31, 'A4'); liveLoop('extra-held', async()=>{await sleep(60);});");
       document.getElementById('workerExecution').checked=execution==='worker';
     },execution);await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await sound(page,true);await page.locator('#stopButton').click();await sound(page,false);
     assert.deepEqual(errors.filter(e=>e!=='ResizeObserver loop completed with undelivered notifications.'),[]);if(errors.length)console.log('  Layout observer notifications: '+errors.length);assert.deepEqual(await page.evaluate(()=>__scspAudit.errors),[]);assert.equal(await page.evaluate(()=>__scspAudit.worklets.filter(n=>n==='tetorica-playground-scsp').length),2);
-    report.results.push({browser:name,version:browser.version(),execution,checks:['Files/editor separation at 1440/686px','lazy mode','Prepare audio','Hold/release','PCM8 Apply / drawing / EG / Copy voice','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
+    report.results.push({browser:name,version:browser.version(),execution,checks:['Files/editor separation at 1440/686px','lazy mode','Prepare audio','Hold/release','PCM8 Apply / drawing / EG / Copy voice','manual blur release / editor focus','Mixer UI mute/volume / FX / Master / suspend-resume','32-slot PC Keyboard','starter','PCM16 upload example','independent instance','Stop'],layoutNotifications:errors,output:await measure(page)});
     console.log(`PASS ${name}/${execution}: Prepare, Hold, 32-slot Keyboard, starter, PCM upload example, independent instance, Stop; output muted.`);
    }catch(error){throw Error(`${name}/${execution}: ${error.message}; page errors=${JSON.stringify(errors)}; state=${await page.locator('#status').textContent()}; startup=${await page.locator('#startupMessage').textContent()}`,{cause:error});}finally{await context.close();}
   }}finally{await browser.close();}

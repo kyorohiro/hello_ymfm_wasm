@@ -4,6 +4,21 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP音量校正・操作安定性 — 2026-10-30
+
+SCSP primary／extraのSystem Mixerを実測gain **0.128825** に更新。
+Chromium／WebKit × Main／Worker × 44.1／48kHz × primary／extra × 220／440／880Hzの
+48 SCSP経路＋8 FM anchorを測定し、生成policy適用後も同じ全経路を再検証した。
+[作業・再開手順](scsp_calibration_01.md)／[操作・音量仕様](../scsp.md)。
+raw／SDK／WASMは変更なし。旧校正report／他音源gain／保存Mixer設定も維持。
+UIの2 cache tokenだけ固定hash監査で更新。既存のUI監査は前の正確なbytesへ戻して検証する。
+関連Node 99 tests・Playground全mode型・npm実tarballのinstalled consumer検査成功。
+[ブラウザ4経路](scsp_stability_browser_01.json)でfocus／blur release、Mixer UI mute／volume、
+FX／Master比、AudioContext suspend→Run復帰、Copy voice再実行、Stopを確認。
+物理出力はミュートしたPCM測定。人間の試聴／実機との比較ではない。
+次はPCMファイル入力とboundedな編集sample再利用／解放。Native／専用Synth／SSFは後続。
+未commit／未公開。既存release ZIPは未再生成。
+
 ## SCSP PCM／EG編集 — 2026-10-30
 
 ユーザーのレイアウト修正確認後、PCM／EG編集とCopy voice JavaScriptを実装。

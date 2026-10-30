@@ -237,19 +237,19 @@ test('CLI generation and --check are reproducible and reject invalid input witho
   const reportPath = join(directory,'baseline report.json'), outPath = join(directory,'generated module.js');
   const report = fixture(); await writeFile(reportPath,JSON.stringify(report));
   const script = fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  let result = spawnSync(process.execPath,[script,'--no-pokey','--no-ps1','--no-wonderswan','--report',reportPath,`--out=${outPath}`],{encoding:'utf8'});
+  let result = spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1','--no-wonderswan','--report',reportPath,`--out=${outPath}`],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr); const expected = renderPlaygroundMixerDefaults(report);
   assert.equal(await readFile(outPath,'utf8'),expected);
-  result=spawnSync(process.execPath,[script,'--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,'--out',outPath,'--check'],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,'--out',outPath,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   await writeFile(outPath,'keep this authored file');
-  result=spawnSync(process.execPath,[script,'--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/stale/);
   report.passed=false;await writeFile(reportPath,JSON.stringify(report));
   await assert.rejects(generatePlaygroundMixerDefaults({reportPath,outPath}),/successful, non-verification/);
-  result=spawnSync(process.execPath,[script,'--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.equal(await readFile(outPath,'utf8'),'keep this authored file');
-  result=spawnSync(process.execPath,[script,'--no-pokey',`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey',`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/--report is required/);
 });
 
@@ -263,7 +263,7 @@ test('--check ignores only the synchronized Mixer import cache version and prese
   await generatePlaygroundMixerDefaults(options);
   assert.equal(await readFile(outPath,'utf8'),synchronized,'checking never strips the live cache version from disk');
   const script = fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  const result = spawnSync(process.execPath,[script,'--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  const result = spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1','--no-wonderswan',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   for(const changed of [
     synchronized.replace('"targetAmplitude": 0.04','"targetAmplitude": 0.05'),
@@ -311,10 +311,11 @@ test('the shipped Playground System policy reproduces from all separately measur
   const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_scsp_chip_levels_01.json',import.meta.url));
   const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_scsp_chip_levels_01.json',import.meta.url));
   const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_scsp_chip_levels_01.json',import.meta.url));
+const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_chip_levels_01.json',import.meta.url));
   const moduleUrl=new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url),outPath=fileURLToPath(moduleUrl);
   const historicalText=await readFile(reportPath,'utf8'),ps1Text=await readFile(ps1ReportPath,'utf8'),wonderswanText=await readFile(wonderswanReportPath,'utf8'),pokeyText=await readFile(pokeyReportPath,'utf8'),output=await readFile(outPath,'utf8');
   const historical=JSON.parse(historicalText),ps1Report=JSON.parse(ps1Text);
-  const calibration=await generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,wonderswanReportPath,pokeyReportPath,outPath,check:true});
+  const calibration=await generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,wonderswanReportPath,pokeyReportPath,scspReportPath,outPath,check:true});
   const generated=await import(moduleUrl),mixer=generated.createPlaygroundSoundChipMixer('ps1');
   const canonical=role=>ps1Report.rows.find(row=>row.role===role&&row.engine==='chromium'&&row.requestedSampleRate===48000&&row.execution==='main'&&row.frequencyHz===440);
   mixer.register('ps1','ps1',()=>{});mixer.register('ps1:2','ps1',()=>{});
@@ -375,9 +376,9 @@ test('PS1 extension generation and CLI check preserve output on failed reports o
   assert.equal(await readFile(outPath,'utf8'),valid);
   await generatePlaygroundMixerDefaults({...options,check:true});
   const script=fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  let result=spawnSync(process.execPath,[script,'--no-pokey','--no-wonderswan',`--report=${reportPath}`,'--ps1-report',ps1ReportPath,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  let result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-wonderswan',`--report=${reportPath}`,'--ps1-report',ps1ReportPath,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
-  result=spawnSync(process.execPath,[script,'--no-pokey',`--report=${reportPath}`,`--ps1-report=${ps1ReportPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey',`--report=${reportPath}`,`--ps1-report=${ps1ReportPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
   for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]) {
     const invalid=structuredClone(ps1Report);change(invalid);await writeFile(ps1ReportPath,JSON.stringify(invalid));
@@ -443,9 +444,9 @@ test('WonderSwan Playground generation rejects partial measurements and stale so
   assert.deepEqual(calibration,buildPlaygroundMixerPolicy(historical,undefined,wsReport).calibration);
   assert.equal(await readFile(outPath,'utf8'),valid);await generatePlaygroundMixerDefaults({...options,check:true});
   const script=fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  let result=spawnSync(process.execPath,[script,'--no-pokey','--no-ps1',`--report=${reportPath}`,'--wonderswan-report',wonderswanReportPath,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  let result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1',`--report=${reportPath}`,'--wonderswan-report',wonderswanReportPath,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
-  result=spawnSync(process.execPath,[script,'--no-pokey','--no-ps1',`--report=${reportPath}`,`--wonderswan-report=${wonderswanReportPath}`,'--no-wonderswan',`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-scsp','--no-pokey','--no-ps1',`--report=${reportPath}`,`--wonderswan-report=${wonderswanReportPath}`,'--no-wonderswan',`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
   for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]){
     const invalid=structuredClone(wsReport);change(invalid);await writeFile(wonderswanReportPath,JSON.stringify(invalid));
@@ -518,11 +519,11 @@ test('POKEY Playground generation validates complete source evidence before writ
   assert.equal(await readFile(outPath,'utf8'),valid);await generatePlaygroundMixerDefaults({...options,check:true});
   const script=fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
   for(const flags of [['--pokey-report',pokeyReportPath],[`--pokey-report=${pokeyReportPath}`]]){
-    const result=spawnSync(process.execPath,[script,'--no-ps1','--no-wonderswan',`--report=${reportPath}`,...flags,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+    const result=spawnSync(process.execPath,[script,'--no-scsp','--no-ps1','--no-wonderswan',`--report=${reportPath}`,...flags,`--out=${outPath}`,'--check'],{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
   }
   for(const flags of [['--no-pokey',`--pokey-report=${pokeyReportPath}`],[`--pokey-report=${pokeyReportPath}`,'--no-pokey']]){
-    const result=spawnSync(process.execPath,[script,'--no-ps1','--no-wonderswan',`--report=${reportPath}`,...flags,`--out=${outPath}`],{encoding:'utf8'});
+    const result=spawnSync(process.execPath,[script,'--no-scsp','--no-ps1','--no-wonderswan',`--report=${reportPath}`,...flags,`--out=${outPath}`],{encoding:'utf8'});
     assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);assert.equal(await readFile(outPath,'utf8'),valid);
   }
   for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.routes[0].volume*=.5;},report=>{report.sources['generated/pokey_wasm.wasm'].sha256='0'.repeat(64);}]){
@@ -530,6 +531,6 @@ test('POKEY Playground generation validates complete source evidence before writ
     await assert.rejects(generatePlaygroundMixerDefaults(options),/POKEY|served DSP\/WASM source changed/i);
     assert.equal(await readFile(outPath,'utf8'),valid,'rejected measurement preserves the valid System artifact');
   }
-  const result=spawnSync(process.execPath,[script,'--no-ps1','--no-wonderswan','--no-pokey',`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
+  const result=spawnSync(process.execPath,[script,'--no-scsp','--no-ps1','--no-wonderswan','--no-pokey',`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);assert.equal(await readFile(outPath,'utf8'),renderPlaygroundMixerDefaults(historical));
 });

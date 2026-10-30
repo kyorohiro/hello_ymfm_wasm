@@ -61,7 +61,15 @@ barriers; Worker note controls retain the normal lookahead schedule.
 
 Host output at 44.1/48/96 kHz uses the streaming converter shared with PS1; the
 SCSP core itself always runs at 44.1 kHz. No extra output compensation is applied.
-SCSP currently uses neutral Mixer gain (1), **without listening calibration**.
+Playground's System Mixer policy uses a measured SCSP source gain of **0.128825**
+for both the primary and additional instances. It comes from a full-range PCM16
+single-voice reference across Chromium/WebKit, Main/Worker and 44.1/48 kHz, with
+220/440/880 Hz checks and an unchanged shared output target. This balances digital
+output units; it is not a subjective loudness or real-hardware calibration.
+Explicit and saved Mixer values remain absolute. Raw `Scsp` / `ScspSynth` output
+and default register levels are unchanged. The npm Mixer calibrated preset also
+includes the measured SCSP fallback; it remains opt-in.
+See [measurement and verification](issues/scsp_calibration_01.md).
 Native audio, SSF/68000 execution, DSP and slot FM controls remain later stages.
 
 ## Musical PCM API

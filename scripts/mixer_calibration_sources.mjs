@@ -205,8 +205,45 @@ function isScspEditorRevision(path,bytes,record) {
   const known=entry&&[entry.before,...(layout?[layout.before]:[])].some(v=>record?.bytes===v.bytes&&record.sha256===v.sha256);
   return known&&Buffer.byteLength(bytes)===entry.after.bytes&&sha(bytes)===entry.after.sha256;
 }
+// Calibration rollout changes exactly two UI import cache tokens. Reconstruct
+// authenticated pre-rollout bytes before applying older evidence layers.
+const scspPolicyCacheRevision={
+  "playground/playground.js": {
+    "before": {
+      "bytes": 124904,
+      "sha256": "e21632af6814c10d1d200972b816fcad0e74ad460fe480086f7fbfc5eb741da3"
+    },
+    "after": {
+      "bytes": 124905,
+      "sha256": "5448d8c6582c2e18f991911e2cef0ef090570b367afe70282613c088a07dcc72"
+    },
+    "fromToken": "playground_mixer_defaults.js?v=scsp-playground-1",
+    "toToken": "playground_mixer_defaults.js?v=scsp-calibration-1"
+  },
+  "playground/index.html": {
+    "before": {
+      "bytes": 132015,
+      "sha256": "af1a7fcb2473048f374fe0d6ce67684927cd0332c6b33508250467b1ca6c7d8f"
+    },
+    "after": {
+      "bytes": 132020,
+      "sha256": "3c503b4e2c6f063a0e7d3c45bf80c349ab7559d22c0fe7097caf99599c920778"
+    },
+    "fromToken": "playground.js?v=scsp-editor-1",
+    "toToken": "playground.js?v=scsp-calibration-1"
+  }
+};
+export function restoreMixerCalibrationScspPolicyCacheRevision(path,bytes) {
+  const entry=scspPolicyCacheRevision[path];
+  if(!entry||Buffer.byteLength(bytes)!==entry.after.bytes||sha(bytes)!==entry.after.sha256)return bytes;
+  const original=Buffer.from(Buffer.from(bytes).toString().replace(entry.toToken,entry.fromToken));
+  if(original.length!==entry.before.bytes||sha(original)!==entry.before.sha256)fail('SCSP policy cache reconstruction failed');
+  return original;
+}
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const restored=restoreMixerCalibrationScspPolicyCacheRevision(path,bytes),policyCache=restored!==bytes;bytes=restored;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return policyCache?'ui-scsp-policy-cache':'raw';
   if(isScspEditorRevision(path,bytes,record))return 'ui-scsp-editor';
   if(isScspLayoutRevision(path,bytes,record))return 'ui-scsp-layout';
   const stale=()=>{throw new Error('served DSP/WASM source changed; remeasure: docs/'+path);};

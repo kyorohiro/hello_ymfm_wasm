@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "scope": "Two exact UI cache token changes only; measured DSP and report hashes remain untouched",
+  "sources": {
+    "playground/playground.js": {
+      "before": {
+        "bytes": 124904,
+        "sha256": "e21632af6814c10d1d200972b816fcad0e74ad460fe480086f7fbfc5eb741da3"
+      },
+      "after": {
+        "bytes": 124905,
+        "sha256": "5448d8c6582c2e18f991911e2cef0ef090570b367afe70282613c088a07dcc72"
+      },
+      "fromToken": "playground_mixer_defaults.js?v=scsp-playground-1",
+      "toToken": "playground_mixer_defaults.js?v=scsp-calibration-1"
+    },
+    "playground/index.html": {
+      "before": {
+        "bytes": 132015,
+        "sha256": "af1a7fcb2473048f374fe0d6ce67684927cd0332c6b33508250467b1ca6c7d8f"
+      },
+      "after": {
+        "bytes": 132020,
+        "sha256": "3c503b4e2c6f063a0e7d3c45bf80c349ab7559d22c0fe7097caf99599c920778"
+      },
+      "fromToken": "playground.js?v=scsp-editor-1",
+      "toToken": "playground.js?v=scsp-calibration-1"
+    }
+  }
+}

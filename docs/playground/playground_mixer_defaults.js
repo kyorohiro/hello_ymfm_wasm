@@ -82,6 +82,22 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
         "execution": "main"
       },
       "baselineSha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "scsp": {
+      "version": 1,
+      "gainUnits": "source",
+      "referenceFrequencyHz": 440,
+      "targetAmplitude": 0.12881777435541153,
+      "referenceAmplitude": 0.1494140625,
+      "codecHeadroom": 1,
+      "measuredSCSPCaptures": 48,
+      "measuredAnchorCaptures": 8,
+      "canonical": {
+        "engine": "chromium",
+        "sampleRate": 48000,
+        "execution": "main"
+      },
+      "baselineSha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
     }
   }
 });
@@ -194,6 +210,10 @@ const factoryDefaults = freeze({
     {
       "name": "ps1",
       "volume": 0.129331
+    },
+    {
+      "name": "scsp",
+      "volume": 0.128825
     }
   ]
 });
@@ -655,6 +675,18 @@ const factoryModes = freeze({
         }
       }
     ]
+  },
+  "scsp": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "scsp",
+        "name": "scsp",
+        "settings": {
+          "volume": 0.128825
+        }
+      }
+    ]
   }
 });
 
@@ -664,8 +696,7 @@ export function playgroundLegacyMixerTrims(modeId) {
 }
 
 export function createPlaygroundSoundChipMixer(modeId = 'genesis') {
-  // SCSP has no listening calibration yet; retain neutral source gain explicitly.
-  if(modeId==='scsp')return new SoundChipMixer({gainUnits:'source',factoryDefaults,factoryEngines,factoryEntries:{version:1,entries:[]}});
+
   if(!Object.hasOwn(factoryModes,modeId))throw new RangeError('No Playground Mixer calibration for mode: '+String(modeId));
   return new SoundChipMixer({gainUnits:'source',factoryDefaults,factoryEngines,factoryEntries:factoryModes[modeId]});
 }

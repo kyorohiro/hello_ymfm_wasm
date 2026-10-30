@@ -41,10 +41,14 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] PCM／EG編集とCopy voice JavaScriptを接続する。
   単一canvasの描画、自作4波形、共有PCM選択、PCM8/16・root/source rate・forward loop、
   次回keyOn用EG、live mix、適用済みPCMを含むJS出力。Apply時のみappend allocationする。
-- [ ] **次：** SCSPの音量校正と復旧／focus／Mixer／FXの残りを確認する。
+- [x] SCSPの音量校正。primary／extraの48経路とFM基準8経路を測定し、生成gainを同じ全経路で再検証する。
+  System Mixer／npm opt-in policyは両経路0.128825。旧153件の基準・既存音源gain・保存値・raw出力は維持する。
+- [ ] **次：** PCMファイル入力と、編集用sampleのboundedな再利用／解放を進める。
 - [ ] PCMファイル入力・boundedな編集sample再利用／解放は後続。現時点は描画またはJS経由のPCMを編集する。
 - [x] Stop・予約／owner取消・manual lease・bank／instance所有権・追加instance・再起動をNode／実ブラウザで確認する。
-- [ ] 復旧・focus／blur・Mixer／FX操作の網羅とSCSP音量校正を追加する。
+- [x] Main／Worker × Chromium／WebKitで、編集後のPC Keyboard、blur release、Mixer UI mute／volume、
+  FX gain、Master、AudioContext suspend→Run復帰、Stopを検証する。
+- [ ] processorerror／device interruption等の障害注入によるruntime再生成は追加検証の対象。
 
 ## 4. Native音声経路
 
@@ -111,3 +115,8 @@ Run ZIPは964 entries。SDK／生成WASMは変更なし。未commit／未公開�
 Chromium／WebKit × Main／Workerで描画・PCM8 Apply・EG・コピーコード再実行・Stopを確認。
 旧校正reportは変更せず、正確なUI／SCSP cache URL差分を別監査で固定した。
 SDK／WASM／音声renderの変更なし。未commit／未公開、既存release ZIPは未再生成。
+
+2026-10-30後続：SCSPの実測音量校正と操作安定性を確認。
+[測定・再実行・制約](scsp_calibration_01.md)。48 SCSP＋8 FM基準の校正と適用後再測定が成功。
+関連Node 99 tests、全Playground mode型、実ブラウザ4経路のfocus／復旧／Mixer／FX確認成功。
+SDK／C++／WASM／raw rendererは変更なし。未commit／未公開。既存release ZIPは未再生成。
