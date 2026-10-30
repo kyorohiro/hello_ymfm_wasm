@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "package": "tetorica-fm2612",
+  "version": "0.2.35",
+  "registryLatestBefore": "0.2.34",
+  "gitBase": "1a966cdac74e0388c2d46986a503c3f9d5399c2d",
+  "artifact": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.35",
+    "filename": "tetorica-fm2612-0.2.35.tgz",
+    "size": 2047368,
+    "unpackedSize": 7754120,
+    "shasum": "a2b8437c58a522adf8cbaf5475b3d5969f3758cf",
+    "integrity": "sha512-KPujZ+ka3Sz2cXRYsVVVKHptqmm5Po3IusjyKeEiWIpQtQQ3Le5+N/n2Jku/9TflS0mOM/wgCRx51mMhQbw3JA=="
+  },
+  "files": 1051,
+  "sha256": "8d327c98b173fe1e96589a012da81c8a3910521bd6ddcb2b103ad1dff6944070",
+  "stageMatchesTarball": true,
+  "sourceRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+  "sourceLinkIn": [
+    "README.md",
+    "sources/README.md"
+  ],
+  "sdkPin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
+    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "fileCount": 476,
+    "localCandidate": {
+      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+      "changedPaths": [
+        ".github/workflows/verify-sdk.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_scsp_instrument_release.py"
+      ]
+    }
+  },
+  "validation": {
+    "installedConsumer": true,
+    "scspPCMSelection": true,
+    "nodeNextAndBundlerTypes": true,
+    "browserTypesWithoutNode": true,
+    "wasmEngines": 28,
+    "renderers": 15,
+    "runtimeModules": 345,
+    "declarations": 396,
+    "synthLocalReferences": 1127
+  },
+  "published": true,
+  "publishExitCode": 0,
+  "registryPropagationPending": false,
+  "registry": {
+    "version": "0.2.35",
+    "latest": "0.2.35",
+    "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.35.tgz",
+    "shasum": "a2b8437c58a522adf8cbaf5475b3d5969f3758cf",
+    "integrity": "sha512-KPujZ+ka3Sz2cXRYsVVVKHptqmm5Po3IusjyKeEiWIpQtQQ3Le5+N/n2Jku/9TflS0mOM/wgCRx51mMhQbw3JA=="
+  },
+  "publishedTarballMatches": true
+}

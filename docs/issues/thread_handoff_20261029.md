@@ -4,6 +4,17 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## npm 0.2.35公開済み — 2026-10-30
+
+ユーザー指示でtetorica-fm2612のSCSP対応をrelease準備。
+README冒頭と同梱source READMEに `https://github.com/kyorohiro/tetorica-soundchip-native` を追記。
+[検証・公開状態](npm_scsp_release_01.md)／[artifact hash・SDK pin](npm_scsp_release_01.json)。
+345 runtime modules／396宣言、隔離installed consumerと28 WASM／15 renderersの検証成功。
+公開用 `tetorica-fm2612-0.2.35.tgz` の全1,051 filesがstageとbyte一致。
+npm loginと追加Web認証後、publishがexit 0で成功。registryのversion／latestは0.2.35。
+公開tarballを再取得し、検証済みtarballと全バイト／SHA1／SHA512一致を確認済み。
+git commit／push、別SDK公開は行っていない。
+
 ## SCSP Synthのアイコン／デザイン — 2026-10-30
 
 ユーザー指定 `docs/tetorica-spu-1254.webp` を無加工でheader／favicon／touch icon／トップカードへ採用。

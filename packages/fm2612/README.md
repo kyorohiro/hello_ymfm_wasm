@@ -10,6 +10,12 @@ its default entry point provides chip creation without starting browser audio.
 For browser and Node.js projects, see the
 [runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
 
+The C/C++ sound-chip cores and WASM build recipes used by this package are
+maintained in **[tetorica-soundchip-native](https://github.com/kyorohiro/tetorica-soundchip-native)**.
+This npm package adds JavaScript/TypeScript APIs and browser/Node integration.
+The included upstream cores retain their individual credits and licenses;
+`sources/` and `licenses/` contain the pinned sources, provenance and notices.
+
 ## Install
 
 ```sh
@@ -55,6 +61,9 @@ entry points, rather than every internal Worker or Worklet module.
 | Select a primary runtime synth | `tetorica-fm2612/tetorica_synth.js` | `createTetoricaSynth`, `TETORICA_CHIPS` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
+| Experimental Saturn SCSP, low level | `tetorica-fm2612/scsp.js` | `Scsp`: register/RAM access and 44.1 kHz stereo PCM |
+| SCSP tuned PCM instruments / host rate | `tetorica-fm2612/scspsynth.js`, `tetorica-fm2612/pcm_44100_resampler.js` | `ScspSynth`, `createScspInitSample`, `Pcm44100Resampler` |
+| Audio selection to SCSP PCM | `tetorica-fm2612/scsp_sample.js` | `readScspAudio`, `prepareScspPCM` |
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | PS1 named ADSR / reverb parameters | `tetorica-fm2612/ps1_parameters.js` | `decodePs1Envelope`, `encodePs1Envelope`, `patchPs1Envelope`, `PS1_REVERB_PRESETS` |
@@ -96,6 +105,29 @@ new note. The optional second argument to `hzToBlockFnum(hz, clock)` is the
 chip's input clock in Hz (default `7670454`), not the audio sample rate.
 `createPitchFromMidi(midi, {referenceMidi, referenceBlock, referenceFnum})`
 converts relative to a caller-selected MIDI/BLOCK/FNUM reference.
+
+### Experimental standalone Saturn SCSP
+
+Import `Scsp` from `tetorica-fm2612/scsp.js`, `ScspSynth` from
+`tetorica-fm2612/scspsynth.js`, and the generated factory from
+`tetorica-fm2612/generated/scsp_wasm.js`. In Node, supply the corresponding
+WASM bytes through `moduleOptions: {wasmBinary}`; `runtimeAssetUrl()` resolves
+the packaged WASM. Browser hosts can serve the generated pair together.
+
+`ScspSynth` provides signed PCM8/PCM16, manual root tuning, 32 physical slots,
+forward loops, envelope codes, live pitch and mix, and explicit note/Stop/reset
+operations. Output is 44,100 Hz; `Pcm44100Resampler` converts it to the host rate.
+`readScspAudio` and `prepareScspPCM` decode and prepare a mono selection of
+2–65,535 samples without starting a live audio device. Compressed audio requires
+an injected decoder; longer recordings stay in host memory while a selection is
+prepared for the 512 KiB SCSP RAM. These are software preparation helpers.
+
+The shared Playground runtime supports `useSoundChip('scsp')` and independent
+`createSoundChip('scsp')` instances in Main/Worker. Compatible, updated Tauri hosts
+also support Native transport; the npm package does not install a Tauri binary.
+The package-root chip factory is separate. LFO, slot FM and DSP controls are not
+exposed by the high-level API, and SSF/68000 execution is not included.
+See the [SCSP API and limitations](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md).
 
 ### Experimental standalone PlayStation SPU
 
@@ -1339,18 +1371,18 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.34.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.35.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.34.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.35.tgz
 ```
 
 The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
-candidate, including the PS1 SPU updates. The pin records its base commit,
+candidate, including the PS1 SPU and SCSP instruments. The pin records its base commit,
 changed paths, source archive hash and manifest hash; it does not claim that
 this candidate is a separately published SDK release.
 The SDK provides 29 chip WASM recipes, 2 separate application-audio recipes
-(CD-DA and MSM5205), and the standalone PS1 SPU instrument recipe. Bundled source receipts preserve its source commit, archive
+(CD-DA and MSM5205), and 2 standalone instrument recipes (PS1 SPU and Saturn SCSP). Bundled source receipts preserve its source commit, archive
 and manifest hashes; standalone recipes rebuild without checking out the SDK.
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1367,6 +1399,18 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.35` adds the experimental Saturn SCSP raw/Synth APIs, PCM selection helpers,
+32-slot Main/Worker Web Audio playback and compatible Tauri Native transport
+integration. It includes the accumulated PS1/SCSP shared runtime, inspector,
+PCM editing and measured optional Mixer policy updates since 0.2.34. Existing
+raw chip output and neutral default Mixer settings remain unchanged. SCSP LFO,
+slot FM, DSP controls and SSF playback remain outside this release's high-level
+API. Standalone Synth pages and Tauri binaries are distributed separately.
+The README now links the C/C++ source and build-recipe repository,
+[tetorica-soundchip-native](https://github.com/kyorohiro/tetorica-soundchip-native).
+The fixed SDK 0.1.7 source remains a hash-pinned unpublished candidate.
+
 
 `0.2.34` fixes the coarse staircase in the PS1 initial/editor Sine by using
 loop-aware ADPCM prediction. The source cycle stays at 112 samples / 64 bytes;
