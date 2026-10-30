@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "date": "2026-10-31",
+  "gitBase": "f8ce42c86aca519ed814fc92868bccd1d98157b7",
+  "scope": "Dedicated browser Synth: grouped 2-operator FM, one shared canvas, 30 PCM / 15 FM voices, version 2 preset / version 1 compatibility",
+  "published": false,
+  "sharedRuntimeSdkAndWasmUnchanged": true,
+  "publishedNpm036TarballUnchanged": true,
+  "tests": {
+    "node": 11,
+    "actualWasm": true,
+    "hostRates": [
+      44100,
+      48000,
+      96000
+    ],
+    "renderPartitionExact": true,
+    "presetPcmRoundTripExact": true,
+    "ramFullAtomicAndStopReuse": true,
+    "zipBrowserEngines": [
+      "chromium",
+      "webkit"
+    ],
+    "singleCanvas": true,
+    "mobile390Overflow": 0,
+    "audioContextRecovery": true,
+    "mixerPolicyFreshness": true
+  },
+  "sources": {
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 8208,
+      "sha256": "a782aa34fec471537f2653b497cef2a62d171a97027e29556f9efc953d1673e8"
+    },
+    "docs/synth-scsp/patch.js": {
+      "bytes": 3209,
+      "sha256": "565b2a44bb4b730df762aae0efbf3585e61070ed9b9461c560efa4e5f739ced8"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 2016,
+      "sha256": "95c194817b9a5ef8ecb28ee72fa3baadbb635704bc0bb57c0b0a54465b8816ce"
+    },
+    "docs/synth-scsp/audio.js": {
+      "bytes": 3046,
+      "sha256": "04e818d2f4b45ffdaca921a91d9facac5f3099ebe50a0c0f31dbf9728dd822b9"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 8559,
+      "sha256": "b6c76ad5d7678ead45dbc976f803811756472c9a5a8d5b196ba6d58195a30317"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1968,
+      "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+    },
+    "docs/synth-scsp/index.html": {
+      "bytes": 3957,
+      "sha256": "cebcebe95ca6540427f9cde6c8bdef632449316fcc31f2f52bd6b56524e37c5f"
+    },
+    "docs/synth-scsp/synth.css": {
+      "bytes": 8736,
+      "sha256": "a7d5f7c069a9a8d3bec5d8774d752887ac70af48b7ac71570cddd2feaf7f3a3e"
+    },
+    "docs/synth-scsp/README.md": {
+      "bytes": 3702,
+      "sha256": "58827322fa2e15c7420b7e2969bbbb62a330353052f12873bdd2f59a8608efe9"
+    },
+    "docs/synth-scsp/instrument.test.mjs": {
+      "bytes": 6013,
+      "sha256": "f64d212cabd983e5f0131d81e612839eb4df4a2f6ae18a88e61f1a70bce64f2a"
+    },
+    "docs/synth-scsp/processor.test.mjs": {
+      "bytes": 2145,
+      "sha256": "d820acba84c72d993c9850bc3d2777a0394a166a1ef37c62f364240fd5ffa83d"
+    },
+    "scripts/check_scsp_synth_browser.cjs": {
+      "bytes": 15238,
+      "sha256": "d9de860977fc15796e1529243c5b5373ba06a6793cd2c7707756d6ac22a304d8"
+    },
+    "scripts/package_itch_scsp_synth.mjs": {
+      "bytes": 7051,
+      "sha256": "ab20fcfd1dff0a951a794558d0bbbf0c8b5281481473559c2fe55ad0b56e35d8"
+    }
+  },
+  "browserReport": {
+    "path": "docs/issues/scsp_synth_fm_zip_browser_01.json",
+    "bytes": 1521,
+    "sha256": "df033207e5697038808b4d203b7578d2f70553f30bdb4b3b599d723fdc559306"
+  },
+  "artifact": {
+    "path": "release/tetorica_scsp_synth_fm2-dev-20261031-checked_itch.zip",
+    "bytes": 1177797,
+    "sha256": "708330ff999d26737e784e6ab8be3104f86b3d22c7fac515452f5154de455e10",
+    "files": 36,
+    "bundles": 2,
+    "browserSourceInputs": 25
+  },
+  "limits": [
+    "Physical output was muted; human listening and physical SCSP fidelity were not tested.",
+    "Fixed two-operator route, not arbitrary algorithms or self feedback.",
+    "PCM/envelope edits affect new notes; applied PCM only is saved. Unapplied drawings are discarded on operator switch.",
+    "Shared Native/Playground core remains unchanged; this dedicated page uses browser audio.",
+    "Fixed core zero slot-write delay / clipping / low-depth hardware differences remain."
+  ]
+}

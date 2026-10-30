@@ -41,7 +41,7 @@ export async function packageScspSynth({version='dev',releaseDir=join(root,'rele
  try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT')throw error;}
  const stage=await mkdtemp(join(releaseDir,`itch_scsp_synth_${version}-`)),inputs=new Set(),bundles=[];
  await mkdir(join(stage,'synth-scsp'),{recursive:true});
- for(const [name,entry]of [['synth.js','docs/synth-scsp/synth.js'],['playground_scsp_worklet.js','docs/js/playground_scsp_worklet.js']]){
+ for(const [name,entry]of [['synth.js','docs/synth-scsp/synth.js'],['processor.js','docs/synth-scsp/processor.js']]){
   const outfile=join(stage,'synth-scsp',name);
   const result=await build({absWorkingDir:root,entryPoints:[entry],outfile,bundle:true,format:'esm',platform:'browser',target:'es2022',define:{process:'undefined'},minify:true,keepNames:true,legalComments:'linked',metafile:true,write:false,logLevel:'silent',plugins:[{
    name:'unchanged-scsp-factory',setup(builder){builder.onResolve({filter:/scsp_wasm\.js(?:[?#]|$)/},args=>{
@@ -58,7 +58,7 @@ export async function packageScspSynth({version='dev',releaseDir=join(root,'rele
  let html=await readFile(join(root,'docs/synth-scsp/index.html'),'utf8');
  html=html.replaceAll('href="../index.html"','href="https://kyorohiro.github.io/hello_ymfm_wasm/"').replaceAll('href="../scsp.md"','href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md"').replaceAll('href="../playground/index.html?mode=scsp"','href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=scsp"');
  await writeFile(join(stage,'synth-scsp/index.html'),html);
- await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica-spu-1254.webp','./tetorica-spu-1254.webp').replace(/\b(href|src)="(synth\.(?:css|js))"/g,'$1="./synth-scsp/$2"'));
+ await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica-spu-1254.webp','./tetorica-spu-1254.webp').replace(/\b(href|src)="(synth\.(?:css|js)(?:\?[^"]*)?)"/g,'$1="./synth-scsp/$2"'));
  await copyFile(join(root,'docs/synth-scsp/synth.css'),join(stage,'synth-scsp/synth.css'));
  await mkdir(join(stage,'generated'),{recursive:true});
  for(const name of ['scsp_wasm.js','scsp_wasm.wasm'])await copyFile(join(root,'docs/generated',name),join(stage,'generated',name));

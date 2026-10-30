@@ -13,7 +13,8 @@ DSPのdelay用RAM ring bufferとは別機能。
 
 ## 後続（別の受入条件）
 
-- [ ] 専用Synthの複数slot音色・予約／解放・polyphony管理とPCM込み複数operator preset。
+- [x] 専用Synthの複数slot音色・予約／解放・polyphony管理とPCM込み複数operator preset。
+  2-op FMとして[完了・操作／検証](scsp_synth_fm_01.md)。下記はこの前段を完了した時点の記録。
   現行の単一slot presetを、modulatorを含む音色保存と混同しない。
 - [ ] 自己feedback／複数段algorithmの操作UI・実機精度検証。slot write latency／address clipping／低MDL域のmanualとの差をSDK側で調査する。
 - [ ] DSPプログラム／係数／routing。

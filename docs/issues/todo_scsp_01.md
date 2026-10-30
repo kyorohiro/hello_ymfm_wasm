@@ -69,12 +69,13 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] ハードウェアLFOのcore／JavaScript／型／Main・Worker・Native／Playground・Synth接続。
   [実装・検証・配布](scsp_lfo_01.md)。
 - [ ] slot間変調／sound stackを段階的に公開・検証する。[作業TODO・初期段階完了](scsp_fm_01.md)。
-  guarded PCM・live API／型／Main・Worker・Native・Playground UI／2-slot例は完了。専用Synthの複数slot割当・音色保存は後続。
+  guarded PCM・live API／型／Main・Worker・Native・Playground UI／2-slot例は完了。専用Synthの2-op FMペア割当・operator込みpresetも[完了](scsp_synth_fm_01.md)。任意graph／feedbackは後続。
 - [ ] DSPプログラム・係数・routingを段階的に公開・検証する。
   共通コアへの移植時に既存処理を可能な限り保持し、未検証機能を対応済みとは表示しない。
 - [x] 専用Browser Synth：鍵盤、PCM読み込み／単一canvas編集、EG、loop、pan、preset保存・再読込。
   実装順と受入条件は [専用Synth TODO](scsp_synth_01.md)。まずBrowser版の基本PCM Synthを作る。
-- [ ] FMで複数slotsを使う音色を、単純な32音polyphonyと区別して管理する。
+- [x] FMで複数slotsを使う音色を、単純な32音polyphonyと区別して管理する。
+  専用Synthはsource 2 slots＋PCM30 voices／FM15ペア。離鍵／steal／Stop・presetをgroup単位で管理。
 - [ ] 「PCM loop」「EG」「波形RAMを使うFM」の短い説明・操作UI・動くJS・音を組にする。
 - [ ] 校正・Native／WASM配布・ソース／license同梱・展開ZIP検証を行う。
 

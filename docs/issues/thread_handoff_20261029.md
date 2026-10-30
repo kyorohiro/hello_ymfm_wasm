@@ -4,6 +4,21 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP専用Synth 2-operator FM完了 — 2026-10-31
+
+[操作・実装・検証](scsp_synth_fm_01.md)／[最終source・配布hash](scsp_synth_fm_01.json)。
+Start audio → Voice modeを2-operator FM → 鍵盤。depth／ratio／Pitchはlive。
+Carrier／Modulatorは同じcanvasで切替編集。source 2 slots＋PCM30 voices／FM15ペアを専用controllerで管理し、
+離鍵・steal・Stopをpair単位にした。従来のheld Pitchがmanual leaseに阻まれる経路も解消。
+両PCM込みversion 2 preset、旧v1互換、不正preset時の演奏保持、RAM保護・Stop後reuseを実装。
+
+Node11成功、実最終ZIPを展開したChromium／WebKitでFM／live操作／preset／blur・Stop／再接続成功。
+単一canvas・390px overflow0。物理出力はmute。共有runtime／SDK／WASMは変更せず、既存校正freshnessも成功。
+最新ZIP：release/tetorica_scsp_synth_fm2-dev-20261031-checked_itch.zip（36 files、source／license／hash同梱）。
+今回は専用Synthの変更のみ。Native frontendやnpm配布は更新しない。公開・commit／pushは未実施。
+次は人の試聴。追加実装は任意algorithm／feedback、SDK精度調査など別TODOを選ぶ。
+下位の「複数slot Synthは次段階」は前段完了時の履歴。
+
 ## SCSP slot modulation初期段階完了 — 2026-10-31
 
 [実装・操作・次TODO](scsp_fm_01.md)／[最終report・source／配布hash](scsp_fm_01.json)。

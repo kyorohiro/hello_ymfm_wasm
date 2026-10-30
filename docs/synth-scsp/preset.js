@@ -15,7 +15,7 @@ export function readPreset(value) {
     const patch={sample,frequencyHz:voice.frequencyHz,totalLevel:voice.totalLevel,directLevel:voice.directLevel,pan:voice.pan,envelope:voice.envelope,lfo:voice.lfo??{}};
     check.setPreset(0,patch);check.keyOn(0);
     const {sample:_,...validated}=check.getState().slots[0];delete validated.gate;
-    return {pcm,options:structuredClone(options),voice:validated};
+    return {pcm,options:{...options},voice:validated};
   }finally{check.dispose();}
 }
 export function writePreset({pcm,sample,voice}) {
