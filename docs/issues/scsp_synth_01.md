@@ -64,3 +64,21 @@ license、SDK pinとhash、再ビルドrecipeを同梱した。browserの元入�
 [配布hash・検証一覧](scsp_synth_distribution_01.json)／[root入口](scsp_synth_zip_browser_01.json)／
 [nested入口](scsp_synth_zip_nested_browser_01.json)。
 Tauri frontend／npmは未更新。アップロード・公開は未実施。次は人の音／操作確認、またはSCSP固有機能の次段階。
+
+## 指定アイコンと筐体デザイン（2026-10-30）
+
+ユーザー指定の `docs/tetorica-spu-1254.webp` を加工せず採用。
+専用ページのheader／favicon／touch iconと、トップページのSCSP Synthカードへ接続。
+黒い筐体、silverの文字とkeys、blue／cyan／purpleのaccentで統一した。
+PCではEG／mixを2列、mobileでは1列にし、単一の波形canvasを維持。
+音声処理・操作の意味は変更していない。
+
+新ZIP：`release/tetorica_scsp_synth_design2-dev-20261030_itch.zip`。
+**36 files／1,198,731 bytes**。画像はruntimeとbrowser原本archiveの両方にbyte一致で同梱。
+同じnavigation先を複数置いた場合にも、すべてのlinkを配布用の外部URLへ置換するよう修正した。
+先に作った `design-dev` は修正前の中間成果物なので使用しない。
+
+NodeのSynth／配布4 tests成功。実ZIP展開後のroot／nested入口 × Chromium／WebKit成功。
+不足asset／外部request／page error 0、390px幅のoverflow 0、desktop／mobile screenshotも目視確認。
+[画像hash・配布hash・検証一覧](scsp_synth_design_distribution_01.json)。
+旧ZIPは保持。公開・Tauri取込は未実施。

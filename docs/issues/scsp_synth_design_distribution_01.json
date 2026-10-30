@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "archive": {
+    "path": "release/tetorica_scsp_synth_design2-dev-20261030_itch.zip",
+    "bytes": 1198731,
+    "sha256": "b0f19194c723d66d688dcfe013ab36e5266973fd5ea836436a9849039e454171",
+    "files": 36
+  },
+  "icon": {
+    "source": "docs/tetorica-spu-1254.webp",
+    "bytes": 496728,
+    "sha256": "3ba12223115111300d7a6f0df3d3232489be15fdb354d188a85af1e2b70f2740",
+    "unchanged": true
+  },
+  "nodeTestsPassed": 4,
+  "browserReports": [
+    {
+      "path": "docs/issues/scsp_synth_design_zip_browser_01.json",
+      "sha256": "bc560ef8ff5cf2f6f808b9cb384dc9ec65554e9c4fbe07c6ce8b5453006ac6e6",
+      "entry": "/index.html",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    },
+    {
+      "path": "docs/issues/scsp_synth_design_nested_browser_01.json",
+      "sha256": "6130f1e23b1462d4fcc69095a3d4d1394c1eeab5bc64a26c4cfaabd7594c8994",
+      "entry": "/synth-scsp/index.html",
+      "engines": [
+        "chromium",
+        "webkit"
+      ]
+    }
+  ],
+  "currentPackagedInputsMatch": true,
+  "physicalOutputMuted": true,
+  "published": false
+}

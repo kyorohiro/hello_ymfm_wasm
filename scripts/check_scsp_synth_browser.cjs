@@ -4,7 +4,7 @@ const http=require('node:http'),fs=require('node:fs/promises'),path=require('nod
 const config={root:path.resolve(__dirname,'../docs'),entry:'/synth-scsp/index.html',out:path.resolve(__dirname,'../docs/issues/scsp_synth_browser_01.json')};
 for(let i=2;i<process.argv.length;i++){const key=process.argv[i].replace(/^--/,'');assert(['root','entry','out'].includes(key),'Usage: --root DIR --entry /index.html --out REPORT');const value=process.argv[++i];assert(value);config[key]=key==='entry'?value:path.resolve(value);}
 const root=config.root;
-const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm','.md':'text/plain'};
+const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm':'application/wasm','.md':'text/plain','.webp':'image/webp'};
 (async()=>{
  const server=http.createServer(async(req,res)=>{try{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root+path.sep))throw Error();const data=await fs.readFile(file);res.writeHead(200,{'Content-Type':mime[path.extname(file)]??'application/octet-stream'});res.end(data);}catch{res.writeHead(404);res.end();}});
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
@@ -23,6 +23,8 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
     const post=MessagePort.prototype.postMessage;MessagePort.prototype.postMessage=function(data,...args){if(data?.type==='chip-inspector'||data?.method)window.audit.messages.push(data);return post.call(this,data,...args);};
    });
    await page.goto(`http://127.0.0.1:${server.address().port}${config.entry}`);
+   await page.waitForFunction(()=>document.querySelector('.product-icon')?.naturalWidth>0);
+   assert.match(await page.locator('link[rel=icon]').getAttribute('href'),/tetorica-spu-1254\.webp$/);
    await page.click('#start');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Ready'));
    await page.waitForFunction(()=>!document.querySelector('[data-chip-action="scsp-sine"]').disabled);
    await page.keyboard.down('a');await page.keyboard.down('d');await page.keyboard.down('g');
@@ -46,8 +48,9 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.setInputFiles('[data-chip-control="scsp-audio-file"]',{name:'tone.wav',mimeType:'audio/wav',buffer:wav});await page.waitForFunction(()=>document.querySelector('[data-chip-output="scsp-file-status"]').textContent.startsWith('Loaded'));
    await page.click('[data-chip-action="scsp-use-selection"]');await page.click('[data-chip-action="scsp-apply"]');await page.waitForFunction(()=>document.querySelector('[data-chip-action="scsp-apply"]').disabled);
    await page.keyboard.down('s');await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===1);await page.keyboard.up('s');await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));
+   await page.screenshot({path:`/private/tmp/scsp-synth-${name}-desktop.png`,fullPage:true});
    await page.setViewportSize({width:390,height:844});const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert(overflow<=1,`mobile overflow ${overflow}`);assert.equal(await page.locator('canvas').count(),1);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
-   await page.screenshot({path:`/private/tmp/scsp-synth-${name}.png`,fullPage:true});rows.push({engine:name,peak,triad:true,pitch:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
+   await page.screenshot({path:`/private/tmp/scsp-synth-${name}.png`,fullPage:true});rows.push({engine:name,peak,triad:true,pitch:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,productIcon:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
   }finally{await browser.close();}
  }}finally{await new Promise(resolve=>server.close(resolve));}
  const report={passed:true,entry:config.entry,rows};await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));

@@ -56,15 +56,16 @@ export async function packageScspSynth({version='dev',releaseDir=join(root,'rele
   bundles.push({path:`synth-scsp/${name}`,...record(await readFile(outfile)),localImports:metadata.imports.map(e=>e.path)});
  }
  let html=await readFile(join(root,'docs/synth-scsp/index.html'),'utf8');
- html=html.replace('href="../index.html"','href="https://kyorohiro.github.io/hello_ymfm_wasm/"').replace('href="../scsp.md"','href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md"').replace('href="../playground/index.html?mode=scsp"','href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=scsp"');
+ html=html.replaceAll('href="../index.html"','href="https://kyorohiro.github.io/hello_ymfm_wasm/"').replaceAll('href="../scsp.md"','href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md"').replaceAll('href="../playground/index.html?mode=scsp"','href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=scsp"');
  await writeFile(join(stage,'synth-scsp/index.html'),html);
- await writeFile(join(stage,'index.html'),html.replace(/\b(href|src)="(synth\.(?:css|js))"/g,'$1="./synth-scsp/$2"'));
+ await writeFile(join(stage,'index.html'),html.replaceAll('../tetorica-spu-1254.webp','./tetorica-spu-1254.webp').replace(/\b(href|src)="(synth\.(?:css|js))"/g,'$1="./synth-scsp/$2"'));
  await copyFile(join(root,'docs/synth-scsp/synth.css'),join(stage,'synth-scsp/synth.css'));
  await mkdir(join(stage,'generated'),{recursive:true});
  for(const name of ['scsp_wasm.js','scsp_wasm.wasm'])await copyFile(join(root,'docs/generated',name),join(stage,'generated',name));
  await copyFile(join(root,'LICENSE'),join(stage,'LICENSE'));
+ await copyFile(join(root,'docs/tetorica-spu-1254.webp'),join(stage,'tetorica-spu-1254.webp'));
  const sourceCheck=await copyScspSources(stage);
- for(const path of ['docs/synth-scsp/index.html','docs/synth-scsp/synth.css','docs/synth-scsp/README.md','docs/generated/scsp_wasm.js','LICENSE','scripts/package_itch_scsp_synth.mjs','scripts/package_itch_scsp_synth.sh','scripts/copy_scsp_sources.mjs'])inputs.add(path);
+ for(const path of ['docs/synth-scsp/index.html','docs/synth-scsp/synth.css','docs/synth-scsp/README.md','docs/tetorica-spu-1254.webp','docs/generated/scsp_wasm.js','LICENSE','scripts/package_itch_scsp_synth.mjs','scripts/package_itch_scsp_synth.sh','scripts/copy_scsp_sources.mjs'])inputs.add(path);
  await copyFile(join(root,'docs/synth-scsp/README.md'),join(stage,'README.md'));
  const names=[...inputs].sort(),sourceArchive='sources/scsp-synth-browser-inputs.zip';zip(root,join(stage,sourceArchive),names);
  const receipt={schemaVersion:1,product:'Tetorica SCSP Synth',version,builder:{name:'esbuild',version:esbuildVersion,define:{process:'undefined'}},bundles,originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))},factory:{path:'generated/scsp_wasm.js',...record(await readFile(join(stage,'generated/scsp_wasm.js')))},wasm:{path:'generated/scsp_wasm.wasm',...record(await readFile(join(stage,'generated/scsp_wasm.wasm')))},sourceCheck};

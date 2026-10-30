@@ -4,6 +4,16 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP Synthのアイコン／デザイン — 2026-10-30
+
+ユーザー指定 `docs/tetorica-spu-1254.webp` を無加工でheader／favicon／touch icon／トップカードへ採用。
+黒・silverの筐体にblue／cyan／purpleのaccentを合わせた。音声処理は変更なし。
+最新版専用ZIP：`release/tetorica_scsp_synth_design2-dev-20261030_itch.zip`（36 files／1,198,731 bytes）。
+`design-dev` はnavigation修正前の中間版なので使用しない。
+[配布・画像hash・検証](scsp_synth_design_distribution_01.json)。Node 4 tests、実ZIPのroot／nested入口
+× Chromium／WebKit成功、390pxのoverflow 0、desktop／mobileを目視確認。物理出力mute。
+公開・Tauri取込は未実施。以下は前のcheckpoint。
+
 ## SCSP専用Browser Synth — 2026-10-30
 
 先に[専用TODO](scsp_synth_01.md)を作成して、`docs/synth-scsp/index.html`を実装。

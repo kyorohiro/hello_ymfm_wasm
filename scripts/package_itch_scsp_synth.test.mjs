@@ -32,6 +32,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
 `,a.archive],{encoding:'utf8'}));
  assert.equal(info.names.length,a.files);assert(!JSON.stringify(info.receipt).includes('/Users/'));
  for(const name of ['generated/scsp_wasm.js','generated/scsp_wasm.wasm'])assert.deepEqual(await readFile(join(a.stage,name)),await readFile(new URL('../docs/'+name,import.meta.url)));
+ assert.deepEqual(await readFile(join(a.stage,'tetorica-spu-1254.webp')),await readFile(new URL('../docs/tetorica-spu-1254.webp',import.meta.url)));
  const native=JSON.parse(await readFile(join(a.stage,'sources/SCSP.json')));
  for(const entry of native.inputs){const data=await readFile(join(a.stage,entry.path));assert.equal(data.length,entry.bytes);assert.equal(sha(data),entry.sha256);}
  for(const [name,entry]of Object.entries(native.generated))assert.equal(sha(await readFile(join(a.stage,'generated',name))),entry.sha256);
