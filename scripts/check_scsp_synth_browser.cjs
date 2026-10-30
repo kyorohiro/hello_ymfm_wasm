@@ -1,4 +1,6 @@
-// Standalone SCSP Synth, real AudioWorklet/WASM. Physical output is muted.
+// Standalone SCSP Synth, real AudioWorklet/WASM. Measure the final destination
+// connection (after Volume), then mute physical output. A raw worklet tap would
+// conceal a missing connection between the processor and the speakers.
 const {chromium,webkit}=require('playwright');
 const http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
 const config={root:path.resolve(__dirname,'../docs'),entry:'/synth-scsp/index.html',out:path.resolve(__dirname,'../docs/issues/scsp_synth_browser_01.json')};
@@ -11,15 +13,15 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
  const rows=[];
  try{for(const [name,engine]of [['chromium',chromium],['webkit',webkit]]){
   const browser=await engine.launch({headless:true});try{
-   const page=await browser.newPage({acceptDownloads:true,viewport:{width:1100,height:900}}),errors=[],missing=[],external=[];page.on('pageerror',e=>errors.push(e.message));
+   const page=await browser.newPage({acceptDownloads:true,viewport:{width:1100,height:900}}),errors=[],missing=[],external=[];page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
    page.on('response',response=>{if(response.status()>=400)missing.push({url:response.url(),status:response.status()});});
    await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname!=='127.0.0.1'){external.push(url.href);return route.abort();}return route.continue();});
    await page.addInitScript(()=>{
     window.audit={contexts:[],worklets:[],messages:[],analysers:[]};
     const Context=window.AudioContext,Node=window.AudioWorkletNode,connect=AudioNode.prototype.connect;
     window.AudioContext=class extends Context{constructor(...args){super(...args);window.audit.contexts.push(this);}};
-    AudioNode.prototype.connect=function(dest,...args){if(dest===this.context.destination){const mute=this.context.createGain();mute.gain.value=0;connect.call(mute,dest);return connect.call(this,mute,...args);}return connect.call(this,dest,...args);};
-    window.AudioWorkletNode=class extends Node{constructor(...args){super(...args);window.audit.worklets.push(this);const analyser=this.context.createAnalyser();analyser.fftSize=2048;connect.call(this,analyser);const sink=this.context.createGain();sink.gain.value=0;connect.call(analyser,sink);connect.call(sink,this.context.destination);window.audit.analysers.push(analyser);this.port.addEventListener('message',({data})=>window.audit.messages.push(data));}};
+    AudioNode.prototype.connect=function(dest,...args){if(dest===this.context.destination){const analyser=this.context.createAnalyser();analyser.fftSize=2048;window.audit.analysers.push(analyser);const mute=this.context.createGain();mute.gain.value=0;connect.call(this,analyser);connect.call(analyser,mute);connect.call(mute,dest);return dest;}return connect.call(this,dest,...args);};
+    window.AudioWorkletNode=class extends Node{constructor(...args){super(...args);window.audit.worklets.push(this);this.port.addEventListener('message',({data})=>window.audit.messages.push(data));}};
     const post=MessagePort.prototype.postMessage;MessagePort.prototype.postMessage=function(data,...args){if(data?.type==='chip-inspector'||data?.method)window.audit.messages.push(data);return post.call(this,data,...args);};
    });
    await page.goto(`http://127.0.0.1:${server.address().port}${config.entry}`);
@@ -31,6 +33,12 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.waitForFunction(()=>document.querySelectorAll('#keyboard [aria-pressed=true]').length===3);
    await page.waitForFunction(()=>{const a=window.audit.analysers[0],data=new Float32Array(a.fftSize);a.getFloatTimeDomainData(data);return data.some(v=>Math.abs(v)>.01);});
    const peak=await page.evaluate(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return Math.max(...v.map(Math.abs));});assert(peak<.95);
+   // Volume must control the same signal sent to the real destination.
+   await page.locator('#volume').evaluate(input=>{input.value='0';input.dispatchEvent(new Event('input',{bubbles:true}));});
+   await page.waitForFunction(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.every(x=>Math.abs(x)<.000001);});
+   await page.locator('#volume').evaluate(input=>{input.value='0.6';input.dispatchEvent(new Event('input',{bubbles:true}));});
+   await page.waitForFunction(()=>{const a=window.audit.analysers[0],v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.001);});
+
    // Applying a new source must keep all held notes on their original PCM.
    const inspect=()=>page.evaluate(()=>new Promise(resolve=>{const node=window.audit.worklets[0],id=-777;const listener=({data})=>{if(data.id===id){node.port.removeEventListener('message',listener);resolve(data.value);}};node.port.addEventListener('message',listener);node.port.postMessage({type:'chip-inspector',action:'read',id});}));
    await page.selectOption('[data-chip-control="scsp-lfo-frequencyCode"]','20');
@@ -84,7 +92,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.wasm
    await page.screenshot({path:`/private/tmp/scsp-synth-${name}.png`,fullPage:true});
    await page.evaluate(()=>window.audit.contexts[0].close());await page.waitForFunction(()=>!document.querySelector('#start').disabled&&document.querySelector('#status').textContent.includes('AudioContext was closed'));
    await page.click('#start');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Ready'));await page.keyboard.down('a');await page.waitForFunction(()=>{const a=window.audit.analysers.at(-1),v=new Float32Array(a.fftSize);a.getFloatTimeDomainData(v);return v.some(x=>Math.abs(x)>.0001);});await page.keyboard.up('a');await page.click('#stop');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Stopped'));
-   rows.push({engine:name,peak,triad:true,pitch:true,lfo:true,groupedFm:true,liveRatioDepthPitch:true,operatorPcmProtected:true,presetV2:true,legacyV1:true,invalidPresetAtomic:true,modeChangeStops:true,contextRecovery:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,productIcon:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
+   rows.push({engine:name,peak,measurement:'destination input after Volume',volumeMuteRestore:true,triad:true,pitch:true,lfo:true,groupedFm:true,liveRatioDepthPitch:true,operatorPcmProtected:true,presetV2:true,legacyV1:true,invalidPresetAtomic:true,modeChangeStops:true,contextRecovery:true,presetRoundTrip:true,heldPcmProtected:true,audioImport:true,focus:true,blurRelease:true,stop:true,singleCanvas:true,productIcon:true,mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external,physicalOutput:'muted'});
   }finally{await browser.close();}
  }}finally{await new Promise(resolve=>server.close(resolve));}
  const report={passed:true,entry:config.entry,rows};await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));

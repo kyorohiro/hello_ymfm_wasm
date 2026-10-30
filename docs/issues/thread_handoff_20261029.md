@@ -4,6 +4,14 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP専用Synthの無音修正 — 2026-10-31
+
+[原因・修正・配布](scsp_synth_output_fix_01.md)。worklet→Volume接続の欠落を修正。
+旧browser検証はworklet直後の測定で最終出力の断線を見逃していたため、
+destination入力の測定へ変更し、Volume mute／復帰も検証する。
+最新修正ZIPは`release/tetorica_scsp_synth_fm2-output-fix-20261031_itch.zip`。
+下記FM完了時の旧ZIPには断線があるため、新規配布には使用しない。
+
 ## SCSP専用Synth 2-operator FM完了 — 2026-10-31
 
 [操作・実装・検証](scsp_synth_fm_01.md)／[最終source・配布hash](scsp_synth_fm_01.json)。
