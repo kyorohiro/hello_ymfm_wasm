@@ -314,3 +314,9 @@ EG／PCMは次の発音、Pitchとmixはheld音へも反映する。**Stop** は
 発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
 描画／音声変換／preset保存はソフト側の機能。SCSP LFO／slot FM／DSP編集／SSFは後続。
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
+
+専用itch.io ZIP：`sh scripts/package_itch_scsp_synth.sh VERSION`。
+作成済みZIPを保護するため同じversionの上書きは拒否する。
+ZIP内の`index.html`をHTTPS／localhostで配信すれば、repoや外部runtimeなしで動作する。
+C++／JavaScript元入力・hash・license・再ビルド手順を同梱。
+[配布検証記録](issues/scsp_synth_distribution_01.json)。

@@ -11,8 +11,12 @@ savePointの下位の「未commit／未公開／次は…」は当時の履歴�
 PCM込みpreset保存／再読込、blur release、Stopを追加。編集用にSlot 1を予約する。
 実WASM 2 testsとChromium／WebKitの実AudioWorklet発音・PCM保護・preset／WAV・focus・Stop成功。
 390px幅のはみ出し0。[ブラウザreport](scsp_synth_browser_01.json)。物理出力mute、人の試聴は残る。
-既存runtime／WASM／校正policyは変更なし。専用ZIP／Tauriへの新frontend取込は未実施。
-次は専用ZIPの作成・展開検証、または人による音／操作の確認。未commit／未公開。
+既存runtime／WASM／校正policyは変更なし。
+専用ZIP `release/tetorica_scsp_synth_scsp-dev-20261030_itch.zip` を作成済み（35 files／198,956 bytes）。
+[配布検証](scsp_synth_distribution_01.json)：実ZIP展開後のroot／nested入口 × Chromium／WebKit成功。
+HTTP error／外部request／page errorは0。NodeのSynth／配布検証4 tests成功。
+固定SDK原本とbrowser元入力・hash・license・再ビルドrecipeを同梱。Tauriへの新frontend取込／npm更新は未実施。
+次は人による音／操作の確認、またはSCSP固有機能の次段階。今回の配布作業は未commit／未公開。
 
 ## SCSP Native transport・画面接続 — 2026-10-30
 

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "archive": {
+    "path": "release/tetorica_scsp_synth_scsp-dev-20261030_itch.zip",
+    "bytes": 198956,
+    "sha256": "5465f31e753a4b003df646d9aa9f789401ab00d025a297af9da2be40ade5f3af",
+    "files": 35,
+    "directoryEntries": 0
+  },
+  "bundles": [
+    {
+      "path": "synth-scsp/synth.js",
+      "bytes": 41843,
+      "sha256": "95fc385966500218b4038e194ec779199c310194d02be8346695f8600693d72d",
+      "localImports": []
+    },
+    {
+      "path": "synth-scsp/playground_scsp_worklet.js",
+      "bytes": 48041,
+      "sha256": "f7ac8d6995a8e938a2da76406ff3c0e8145bbd2660020aa98f84316b8dacdf3f",
+      "localImports": [
+        "../generated/scsp_wasm.js"
+      ]
+    }
+  ],
+  "sourceCheck": {
+    "inputs": 19,
+    "files": 24
+  },
+  "browserSourceInputs": 33,
+  "currentBrowserSourcesMatchArchive": true,
+  "tests": {
+    "nodePassed": 4,
+    "browser": [
+      {
+        "path": "docs/issues/scsp_synth_zip_browser_01.json",
+        "sha256": "af0751df3a6b9b08a6339a8f6baee52ba9d7d0c83c07f561caddbf43f0cfda59",
+        "entry": "/index.html",
+        "engines": [
+          "chromium",
+          "webkit"
+        ]
+      },
+      {
+        "path": "docs/issues/scsp_synth_zip_nested_browser_01.json",
+        "sha256": "ceb88ed833fbec30fbd70ec82d59b9e27d7e4fdbbfb4d55f573b0e662b4dff4f",
+        "entry": "/synth-scsp/index.html",
+        "engines": [
+          "chromium",
+          "webkit"
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "Physical audio output was muted; human listening remains pending.",
+    "No upload, npm publication or Tauri frontend import was performed."
+  ]
+}
