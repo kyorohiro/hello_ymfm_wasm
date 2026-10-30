@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import {noteToHz} from './soundchip_pitch.js';
-import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js?v=scsp-playground-1';
+import {SCSP_SAMPLE_RATE, SCSP_RAM_BYTES} from './scsp.js?v=scsp-pcm-files-1';
 export const SCSP_SLOT_COUNT = 32;
 let bankSequence=0;
 const int = (v,lo,hi,name) => {
@@ -35,13 +35,13 @@ export function scspPitch(ratio) {
 }
 
 /** Musical PCM adapter over an exclusively owned Scsp. No device, automatic voice
- * allocation, sample replacement, DSP, FM or file decoder. Do not write the raw
+ * allocation, public sample replacement, DSP, FM or file decoder. Do not write the raw
  * core while this adapter owns its registers/RAM. Preset changes take effect on
  * the next keyOn; setFrequency and setMix are explicit live controls.
  */
 export class ScspSynth {
   #bankId=`scsp-${Date.now().toString(36)}-${++bankSequence}-${Math.random().toString(36).slice(2)}`;
-  #core; #samples=new Map(); #nextId=1; #used=0; #voices=Array.from({length:32},voiceDefaults); #gates=Array(32).fill(false); #playing=Array(32).fill(null); #disposed=false;
+  #editorPages=[]; #core; #samples=new Map(); #nextId=1; #used=0; #voices=Array.from({length:32},voiceDefaults); #gates=Array(32).fill(false); #playing=Array(32).fill(null); #disposed=false;
   constructor(core) {
     if (!core||core.sampleRate!==44100||!['write','loadRam','reset','renderInto','dispose'].every(k=>typeof core[k]==='function')) throw new TypeError('ScspSynth requires an exclusively owned Scsp');
     this.#core=core;
@@ -86,6 +86,34 @@ export class ScspSynth {
     this.#core.loadRam(bytes,address);
     const sample=Object.freeze({bankId:this.#bankId,id:this.#nextId++,address,byteLength:bytes.length,length:pcm.length,bits,rootFrequencyHz,sourceSampleRate,loopStartSamples});
     this.#samples.set(sample.id,sample);this.#used=address+bytes.length;return sample;
+  }
+  /** Internal editor pool. Ordinary loadPCM allocations remain permanent.
+   * Retired editor handles expire on reuse; queued commands must inhibit reuse.
+   * Requested presets and even released native voices pin their sample until
+   * retrigger or Stop. Never infer native silence from a requested gate bit.
+   */
+  _editPCM(slot,pcm,options,{reuse=true}={}) {
+    slot=this.#slot(slot);if(typeof reuse!=='boolean')throw new TypeError('reuse must be boolean');
+    let encoded,template;
+    const check=new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(bytes){encoded=bytes;},renderInto(){},dispose(){}});
+    try {
+      check._adoptState({...this.getState(),ramUsedBytes:0});
+      template=check.loadPCM(pcm,options);check.setPreset(slot,{sample:template});
+    }finally{check.dispose();}
+    const pinned=sample=>this.#playing.includes(sample)||this.#voices.some((v,i)=>i!==slot&&v.sample===sample);
+    let page=reuse?this.#editorPages.filter(p=>p.capacity>=encoded.length&&!pinned(p.sample)).sort((a,b)=>a.capacity-b.capacity)[0]:null;
+    if(!page){
+      const capacity=2**Math.ceil(Math.log2(encoded.length)),address=(this.#used+1)&~1;
+      if(address+capacity>SCSP_RAM_BYTES)throw new RangeError('SCSP editor RAM is full or protected by voices / queued notes. Stop playback or use a shorter selection.');
+      page={address,capacity,sample:null};
+    }
+    // All validation/allocation decisions precede the single RAM write.
+    this.#core.loadRam(encoded,page.address);
+    const previous=page.sample,sample=Object.freeze({...template,bankId:this.#bankId,id:this.#nextId++,address:page.address,editorOwned:true});
+    if(previous)this.#samples.delete(previous.id);
+    this.#samples.set(sample.id,sample);this.#voices[slot]={...this.#voices[slot],sample};page.sample=sample;
+    if(!this.#editorPages.includes(page)){this.#editorPages.push(page);this.#used=page.address+page.capacity;}
+    return sample;
   }
   /** Configure a slot for its next keyOn. Invalid patches leave the slot intact. */
   setPreset(slot,patch) {
@@ -149,7 +177,7 @@ export class ScspSynth {
     this.#open();keys(options,['clearRam'],'SCSP reset options');
     if(options.clearRam!==undefined&&typeof options.clearRam!=='boolean')throw new TypeError('clearRam must be boolean');
     this.#core.reset(options);this.#core.write(0x400,0x020f);this.#gates.fill(false);this.#playing.fill(null);this.#voices=Array.from({length:32},voiceDefaults);
-    if(options.clearRam){this.#samples.clear();this.#used=0;}
+    if(options.clearRam){this.#samples.clear();this.#editorPages=[];this.#used=0;}
   }
   /** Internal structured-clone transport bridge. Public PCM handles stay owned. */
   _resolveSample(value) {
@@ -165,22 +193,34 @@ export class ScspSynth {
     this.#bankId=state.bankId;
     for(let i=0;i<32;i++) {
       const s=this.#voices[i].sample;
-      if(s&&next.get(s.id)!==s){this.#voices[i]={...this.#voices[i],sample:null};this.#gates[i]=false;this.#playing[i]=null;}
+      if(s&&next.get(s.id)!==s){
+        const actual=state.slots?.[i],replacement=actual?.sample?next.get(actual.sample.id):null;
+        this.#voices[i]=actual?{...actual,envelope:{...actual.envelope},sample:replacement}:{...this.#voices[i],sample:null};
+        this.#gates[i]=actual?.gate??false;
+        if(next.get(this.#playing[i]?.id)!==this.#playing[i])this.#playing[i]=null;
+      }
     }
+  }
+  /** Internal editor metadata delta; the caller has excluded scheduled commands. */
+  _adoptEditorState(slot,state) {
+    slot=this.#slot(slot);this._adoptResources(state);const v=state.slots[slot];
+    this.#voices[slot]={...v,envelope:{...v.envelope},sample:v.sample?this._resolveSample(v.sample):null};
+    this.#gates[slot]=!!v.gate;
+    const id=state.playingSampleIds?.[slot];this.#playing[slot]=id==null?null:this.#samples.get(id)??null;
   }
   _adoptState(state) {
     this._adoptResources(state);
     this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope}}));
-    this.#gates=state.slots.map(v=>!!v.gate);this.#playing=this.#voices.map(v=>v.sample);
+    this.#gates=state.slots.map(v=>!!v.gate);this.#playing=state.playingSampleIds?state.playingSampleIds.map(id=>id==null?null:this.#samples.get(id)??null):this.#voices.map(v=>v.sample);
   }
   getState() {
-    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,samples:[...this.#samples.values()],
+    this.#open();return {sampleRate:44100,bankId:this.#bankId,nextSampleId:this.#nextId,ramUsedBytes:this.#used,ramFreeBytes:SCSP_RAM_BYTES-this.#used,playingSampleIds:this.#playing.map(s=>s?.id??null),samples:[...this.#samples.values()],
       slots:this.#voices.map((v,i)=>({...v,envelope:{...v.envelope},gate:this.#gates[i]}))};
   }
   prepare(frames) {this.#open();this.#core.prepare(frames);}
   renderInto(left,right,frames=left?.length,offset=0) {this.#open();this.#core.renderInto(left,right,frames,offset);}
   generateStereo(frames) {this.#open();return this.#core.generateStereo(frames);}
-  dispose() {if(!this.#disposed){this.#core.dispose();this.#disposed=true;this.#samples.clear();}}
+  dispose() {if(!this.#disposed){this.#core.dispose();this.#disposed=true;this.#samples.clear();this.#editorPages=[];}}
 }
 
 /** Original, low-level sine for examples. Root is 44100/64 Hz; not A4. */

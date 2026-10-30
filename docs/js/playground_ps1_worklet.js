@@ -1,8 +1,8 @@
 import factory from '../generated/ps1_spu_wasm.js?v=ps1-deferred-release-1';
 import {Ps1Spu} from './ps1_spu.js?v=ps1-deferred-release-1';
 import {Ps1Synth,createPs1InitSample} from './ps1synth.js?v=ps1-deferred-release-1';
-import {Ps1Resampler} from './ps1_resampler.js?v=scsp-playground-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-playground-1';
+import {Ps1Resampler} from './ps1_resampler.js?v=scsp-pcm-files-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-pcm-files-1';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);

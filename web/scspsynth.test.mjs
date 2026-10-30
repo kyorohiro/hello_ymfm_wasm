@@ -117,3 +117,27 @@ test('global key execution preserves the phase of another held slot',async t=>{
   synth.keyOff(31);const after=synth.generateStereo(17).right;
   for(let i=0;i<after.length;i++)assert.equal(after[i],pcm[(26+i)%64]/32768);
 });
+
+test('editor pool reuses idle pages, pins shared and released voices, and never overwrites ordinary samples',async t=>{
+ const {synth,core}=await create(t),{sample:ordinary,pcm}=init(synth);synth.setPreset(1,{sample:ordinary});
+ const options={baseFrequencyHz:44100/64,loopStartSamples:0},a=synth._editPCM(0,pcm,options),used=synth.getState().ramUsedBytes;
+ for(let i=0;i<100;i++){synth._editPCM(0,pcm.map(v=>v>>1),options);assert.equal(synth.getState().ramUsedBytes,used);}
+ assert.throws(()=>synth._resolveSample(a),/another bank/);assert.deepEqual(core.readRam(ordinary.address,ordinary.byteLength),Uint8Array.from([...pcm,pcm[0]].flatMap(v=>[v>>8&255,v&255])));
+ const current=synth.getState().slots[0].sample;synth.setPreset(1,{sample:current});
+ const sharedBytes=core.readRam(current.address,current.byteLength);const next=synth._editPCM(0,pcm,options);assert.notEqual(next.address,current.address);assert.deepEqual(core.readRam(current.address,current.byteLength),sharedBytes);
+ synth.keyOn(0);synth.keyOff(0);const releasing=core.readRam(next.address,next.byteLength);const later=synth._editPCM(0,pcm,options);assert.notEqual(later.address,next.address);assert.deepEqual(core.readRam(next.address,next.byteLength),releasing);
+ synth.stopVoices();const before=synth.getState().ramUsedBytes;for(let i=0;i<100;i++)synth._editPCM(0,pcm,options);assert.equal(synth.getState().ramUsedBytes,before);
+ const state=synth.getState();assert.throws(()=>synth._editPCM(0,pcm,{...options,baseFrequencyHz:0}));assert.deepEqual(synth.getState(),state);
+ synth.reset({clearRam:true});assert.equal(synth.getState().ramUsedBytes,0);assert.equal(synth._editPCM(0,pcm,options).address,0);
+});
+
+test('protected full editor RAM fails atomically and Stop permits reuse without clearing the bank',async t=>{
+ const {synth,core}=await create(t);init(synth);
+ const pcm=new Int16Array(65535).fill(1000),options={rootNote:69};
+ const a=synth._editPCM(0,pcm,options);synth.setPreset(1,{sample:a});
+ const b=synth._editPCM(0,pcm,options);synth.setPreset(2,{sample:b});
+ const c=synth._editPCM(0,pcm,options);synth.keyOn(0);
+ const before=synth.getState(),bytes=core.readRam(0,524288);
+ assert.throws(()=>synth._editPCM(0,pcm,options),/RAM is full or protected/);assert.deepEqual(synth.getState(),before);assert.deepEqual(core.readRam(0,524288),bytes);
+ synth.stopVoices();const reused=synth._editPCM(0,pcm,options);assert.equal(reused.address,c.address);assert.equal(synth.getState().ramUsedBytes,before.ramUsedBytes);assert.equal(synth.getState().slots[1].sample.id,a.id);
+});

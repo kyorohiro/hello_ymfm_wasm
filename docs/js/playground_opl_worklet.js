@@ -9,7 +9,7 @@ import ym3526Factory from '../generated/ym3526_wasm.js';
 import ym3812Factory from '../generated/ym3812_wasm.js';
 import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-playground-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-pcm-files-1';
 import {OplVoiceInspector} from './playground_opl_inspector.js?v=ps1-deferred-release-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 const PROFILES={ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory]};

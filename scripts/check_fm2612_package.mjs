@@ -28,7 +28,7 @@ try {
   for(const file of ['ps1_parameters.js','ps1_parameters.d.ts']) {
     assert.ok(packedPaths.has(file),`PS1 named envelope/reverb parameters payload missing ${file}`);
   }
-  for(const file of ['scsp.js','scsp.d.ts','scspsynth.js','scspsynth.d.ts','pcm_44100_resampler.js',
+  for(const file of ['scsp.js','scsp.d.ts','scspsynth.js','scspsynth.d.ts','scsp_sample.js','scsp_sample.d.ts','pcm_44100_resampler.js',
     'playground_scsp.js','playground_scsp_audio.js','playground_scsp_worklet.js','playground_scsp_inspector.js',
     'generated/scsp_wasm.js','generated/scsp_wasm.wasm','licenses/mame-scsp/LICENSE','sources/SCSP.json',
     'sources/scsp-sdk/vendor/mame-scsp/scsp.cpp','sources/scsp-sdk/scripts/build_scsp_wasm.sh'])assert(packedPaths.has(file),'SCSP dependency/source/notice missing '+file);
@@ -109,6 +109,28 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'scsp-sample-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {Scsp} from 'tetorica-fm2612/scsp';
+import {ScspSynth} from 'tetorica-fm2612/scspsynth';
+import factory from 'tetorica-fm2612/generated/scsp_wasm.js';
+import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
+import {readScspAudio,prepareScspPCM} from 'tetorica-fm2612/scsp_sample';
+const audio=await readScspAudio({sampleRate:44100,channels:[Float32Array.from({length:44100},(_,i)=>.25*Math.sin(i*2*Math.PI*440/44100))]});
+const draft=prepareScspPCM(audio,{startSeconds:.1,endSeconds:.35,rootNote:69});assert.equal(draft.pcm.length,11025);
+const synth=new ScspSynth(await Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(runtimeAssetUrl('generated/scsp_wasm.wasm'))}}));
+try {
+ const options={baseFrequencyHz:draft.sample.rootFrequencyHz,sourceSampleRate:draft.sample.sourceSampleRate};
+ synth._editPCM(0,draft.pcm,options);synth.noteOn(0,69);assert(synth.generateStereo(2048).left.some(v=>Math.abs(v)>.01));
+ synth._editPCM(0,draft.pcm,options);const used=synth.getState().ramUsedBytes;
+ for(let i=0;i<100;i++)synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);
+ synth.stopVoices();synth._editPCM(0,draft.pcm,options);assert.equal(synth.getState().ramUsedBytes,used);
+}finally{synth.dispose();}
+assert.equal(typeof globalThis.AudioContext,'undefined');
+console.log('Installed SCSP PCM selection and bounded editor RAM reuse verified with actual WASM and no live audio device.');
+`);
+  execFileSync(process.execPath,[join(consumer,'scsp-sample-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'ps1-spu-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -458,7 +480,7 @@ assert.deepEqual(wsApplied,{wonderswan:.6,'ws:2':.8});
 wsMixer.restoreState({version:1,entries:[]},{version:1,kinds:[]});
 assert.deepEqual(wsApplied,{wonderswan:wsFactor,'ws:2':wsFactor});
 const scspFactor=calibratedPreset.factoryDefaults.kinds.find(kind=>kind.name==='scsp')?.volume;
-assert.equal(scspFactor,.128825);
+assert(Number.isFinite(scspFactor)&&scspFactor>.1287&&scspFactor<.129,'measured SCSP fallback is present');
 const scspMixer=new SoundChipMixer(calibratedPreset),scspApplied={};
 for(const id of ['scsp','scsp:2'])scspMixer.register(id,'scsp',settings=>{scspApplied[id]=settings.volume;});
 assert.deepEqual(scspApplied,{scsp:scspFactor,'scsp:2':scspFactor},'one calibrated gain per SCSP instance');

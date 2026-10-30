@@ -4,6 +4,28 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP PCMファイル入力・RAM再利用 — 2026-10-30
+
+[実装・操作・制約](scsp_pcm_files_01.md)／[report・配布hash](scsp_pcm_files_01.json)。
+WAV／M4A等をhostに保持し、区間・rate・root指定でmono PCM8/16（最大65,535点）をstageする。
+64 MiBまで。単一canvasを維持。Apply時に安全な編集pageを再利用する。
+共有／実発音／releaseは保護し、実行中performance sessionはbatch未着でもStopまでApplyを拒否。
+通常loadPCMは永続、editorOwned handleはidle page再利用で失効することがある。
+編集slotと実発音元IDをMain／Workerへ同期し、旧sampleでの誤検証を防ぐ。
+
+関連Node **106 tests**、全mode型、npm実installed consumerの新helper／pool／旧音源検査成功。
+PS1／WonderSwan／POKEY／SCSPを新規`*_scsp_pcm_chip_levels_01.json`等で再測定し、SCSP --verifyも成功。
+SCSP gainは0.128826、POKEY primary／extraは0.413052（再測定による小さな丸め差）。
+旧校正JSONは保持。旧UI audit testsは旧receiptに一致するgzip fixtureで履歴として検証する。
+現在source freshnessは新しいreportの完全raw hashで確認。
+
+専用dev ZIP `release/*scsp-pcm-files-dev-20261030*`を作成。
+**実Run ZIPを展開**したChromium／WebKit × Main／Worker全4経路で、20 MiB超WAV、
+実M4A、13回ApplyのRAM一定、Stop後Apply、既存Keyboard／Mixer／FX／復旧／Stop成功。
+Run ZIPは**965 entries**。[ブラウザ結果](scsp_pcm_files_browser_01.json)。物理出力は常時mute。
+SDK／C++／WASM／render mathは変更なし。未commit／未公開。旧releaseは保持。
+次はNative音声経路。一般free／compaction、専用Synth／SSFは後続。
+
 ## SCSP音量校正・操作安定性 — 2026-10-30
 
 SCSP primary／extraのSystem Mixerを実測gain **0.128825** に更新。

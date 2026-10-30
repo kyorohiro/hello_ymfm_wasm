@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import factory from '../generated/scsp_wasm.js';
-import {Scsp} from './scsp.js?v=scsp-playground-1';
-import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-playground-1';
-import {Pcm44100Resampler} from './pcm_44100_resampler.js?v=scsp-playground-1';
-import {SCSP_CONTROLS,createScspValidation,scspCommandArgs} from './playground_scsp.js?v=scsp-playground-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-playground-1';
-import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-editor-1';
+import {Scsp} from './scsp.js?v=scsp-pcm-files-1';
+import {ScspSynth,createScspInitSample} from './scspsynth.js?v=scsp-pcm-files-1';
+import {Pcm44100Resampler} from './pcm_44100_resampler.js?v=scsp-pcm-files-1';
+import {SCSP_CONTROLS,createScspValidation,scspCommandArgs} from './playground_scsp.js?v=scsp-pcm-files-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-pcm-files-1';
+import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-pcm-files-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 const METHODS=new Set([...SCSP_CONTROLS,'loadPCM','getState']);
 export class ScspInstrumentProcessor extends AudioWorkletProcessor {
@@ -36,18 +36,17 @@ export class ScspInstrumentProcessor extends AudioWorkletProcessor {
           return sample.bits===8?Int8Array.from(bytes,v=>v>127?v-256:v):Int16Array.from({length:sample.length},(_,i)=>view.getInt16(i*2,false));
         },
         editPCM:(ch,pcm,options)=>{
-          // Validate allocation and the pending preset before touching real RAM.
-          const check=createScspValidation();
-          try{check._adoptState(this.synth.getState());const sample=check.loadPCM(pcm,options);check.setPreset(ch,{sample});}finally{check.dispose();}
-          const sample=this.synth.loadPCM(pcm,options);this.synth.setPreset(ch,{sample});this.resourcesChanged();return sample;
+          if(this.performance.getStats().activeSession||this.performance.getStats().queuedCommands)throw new Error('Stop scheduled playback before applying PCM. The waveform draft is retained.');
+          const sample=this.synth._editPCM(ch,pcm,options);
+          this.resourcesChanged(undefined,ch);return sample;
         },validate:command=>{const check=createScspValidation();try{check._adoptState(this.synth.getState());check[command.method](...command.args);}finally{check.dispose();}},dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),beginAudition:(ch,owner)=>this.performance.beginAudition(ch,owner),endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
       this.resampler=new Pcm44100Resampler(this.synth,sampleRate);
       this.port.postMessage({ready:true,sampleRate,nativeSampleRate:44100,state:this.synth.getState()});
     }).catch(error=>this.fail(error));
   }
   attach(port,worker){if(this.dead){port.close();return;}if(worker)this.workerRemote=port;else this.remote=port;port.onmessage=({data})=>{if((worker?this.workerRemote:this.remote)===port)this.receive(data,port);};port.start();this.sendResources(port);}
-  sendResources(port,resetPort){if(!port||!this.synth||this.dead)return;port.postMessage({type:'scsp-resources',revision:this.revision,bankEpoch:this.bankEpoch,resourceFence:this.fences.get(port)??0,state:this.synth.getState(),reset:!!resetPort,ownReset:port===resetPort});}
-  resourcesChanged(resetPort){this.validation._adoptResources(this.synth.getState());this.revision++;for(const port of new Set([this.port,this.remote,this.workerRemote]))this.sendResources(port,resetPort);}
+  sendResources(port,resetPort,editedSlot){if(!port||!this.synth||this.dead)return;port.postMessage({type:'scsp-resources',editedSlot,revision:this.revision,bankEpoch:this.bankEpoch,resourceFence:this.fences.get(port)??0,state:this.synth.getState(),reset:!!resetPort,ownReset:port===resetPort});}
+  resourcesChanged(resetPort,editedSlot){const state=this.synth.getState();this.validation._adoptResources(state);if(Number.isInteger(editedSlot))this.validation._adoptEditorState(editedSlot,state);this.revision++;for(const port of new Set([this.port,this.remote,this.workerRemote]))this.sendResources(port,resetPort,editedSlot);}
   receive(data,port) {
     if(data?.method==='dispose'){this.dispose();return;}
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector?(action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
@@ -56,7 +55,7 @@ export class ScspInstrumentProcessor extends AudioWorkletProcessor {
     if(data?.method==='reset'&&!data.performance){this.apply(data,port);return;}
     if(this.performance.receive(data,port))return;this.apply(data,port);
   }
-  stopVoices(){this.inspector?.resetAuditions();this.performance.clear();this.synth?.stopVoices();this.validation.stopVoices();this.resampler?.reset();}
+  stopVoices(){this.inspector?.resetAuditions();this.performance.clear();const session=this.performance.getStats().activeSession;if(session)this.performance.receive({type:'performance-stop',session},{postMessage(){}});this.synth?.stopVoices();this.validation.stopVoices();this.resampler?.reset();}
   apply({method,args=[],id,resourceFence},port,queued=false) {
     try {
       if(this.dead||!this.synth)throw new Error('SCSP is not ready');if(!METHODS.has(method))throw new Error('Unknown SCSP method');

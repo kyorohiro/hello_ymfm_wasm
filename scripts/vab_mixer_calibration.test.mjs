@@ -14,8 +14,8 @@ for(const [kind,parameter,validate,prior]of [
   ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_vab_chip_levels_01'],
   ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_vab_chip_levels_01'],
   ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_vab_chip_levels_01'],
-])test(`${kind} SCSP integration measurement has complete captures and current sources or the exact reviewed SCSP UI layout revision`,async()=>{
-  const path=`docs/issues/${kind}_scsp_chip_levels_01.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
+])test(`${kind} SCSP integration measurement has complete captures and current sources after the PCM file / editor pool update`,async()=>{
+  const path=`docs/issues/${kind}_scsp_pcm_chip_levels_01.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));
   await validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report});
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);

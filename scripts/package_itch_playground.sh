@@ -179,6 +179,7 @@ ps1_resampler.js
 pcm_44100_resampler.js
 scsp.js
 scspsynth.js
+scsp_sample.js
 playground_scsp.js
 playground_scsp_audio.js
 playground_scsp_worklet.js

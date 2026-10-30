@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "baseCommit": "fc58b73fe8c590df24ac671be0413178e2f55970",
+  "nodeTests": 106,
+  "playgroundModeTypesPassed": true,
+  "installedPackagePassed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "runZipEntries": 965,
+  "compressedInputTested": true,
+  "browserCases": 4,
+  "scspGains": [
+    {
+      "role": "primary",
+      "volume": 0.128826
+    },
+    {
+      "role": "extra",
+      "volume": 0.128826
+    }
+  ],
+  "maxVerifiedPeakRelativeError": 0.00005312786078870424,
+  "maxVerifiedRmsRelativeError": 0.0005692196072003552,
+  "clockDiagnostics": 0,
+  "changedGains": [
+    {
+      "name": "pokey",
+      "before": 0.41305,
+      "after": 0.413052
+    },
+    {
+      "name": "scsp",
+      "before": 0.128825,
+      "after": 0.128826
+    }
+  ],
+  "files": {
+    "docs/issues/ps1_scsp_pcm_chip_levels_01.json": {
+      "bytes": 545570,
+      "sha256": "0f36ce6cc43fa56ba15103c82ae5fdf72e786b25785f107c8d286a16e30f8201"
+    },
+    "docs/issues/wonderswan_scsp_pcm_chip_levels_01.json": {
+      "bytes": 490058,
+      "sha256": "2a47c7271b827d6ef300fb21d5acd39515b0fc841dced43df94468ebfe27bfe5"
+    },
+    "docs/issues/pokey_scsp_pcm_chip_levels_01.json": {
+      "bytes": 1078081,
+      "sha256": "eb637b9a9800b3f42a8096364fa72152bc334b7f4c9d0ae98b8ea661aa7244a7"
+    },
+    "docs/issues/scsp_pcm_chip_levels_01.json": {
+      "bytes": 639579,
+      "sha256": "23ea3977b5ccbd2bd860b5b1c183d87ac201830c819d13bf32e6c30c1316e3de"
+    },
+    "docs/issues/scsp_pcm_chip_levels_verify_01.json": {
+      "bytes": 635217,
+      "sha256": "3dab934de4445c8150e499a2a02c7df01c0233cd10b76f3dfaa9836e7efb0a47"
+    },
+    "docs/issues/scsp_pcm_files_browser_01.json": {
+      "bytes": 27361,
+      "sha256": "26c337441a9523dde430187055a7c822e0ac92ec6c70df80524216ef38b28236"
+    },
+    "release/hello_ymfm_wasm_scsp-pcm-files-dev-20261030_itch_playground.zip": {
+      "bytes": 37162411,
+      "sha256": "64cd081331203db4160596f27719f8ea8976b22838c55337130dfae28ea897e3"
+    },
+    "release/hello_ymfm_wasm_scsp-pcm-files-dev-20261030_itch_playground_for_run.zip": {
+      "bytes": 37599517,
+      "sha256": "22cfd79fe254fe0665f50f8e44d51980fa1896406566b82a8d2d136d034f76c8"
+    }
+  }
+}

@@ -32,7 +32,7 @@ await writeFile(join(stage,'generated/ps1_spu_wasm.d.ts'),
   'declare const moduleFactory: WasmModuleFactory;\nexport default moduleFactory;\n');
 // SCSP has an explicit local PCM contract rather than the broad inferred JS
 // structural types. Keep it when copying the complete runtime payload.
-for(const name of ['scsp.d.ts','scspsynth.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'web',name)));
+for(const name of ['scsp.d.ts','scspsynth.d.ts','scsp_sample.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'web',name)));
 await writeFile(join(stage,'generated/scsp_wasm.d.ts'),
   "import type {WasmModuleFactory} from '../soundchip.js';\n"+
   'declare const moduleFactory: WasmModuleFactory;\nexport default moduleFactory;\n');

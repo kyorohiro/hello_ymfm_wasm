@@ -40,11 +40,14 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 - [x] 32-slotの設定／RAM Inspector、Hold／Release／Keyboardを接続する。表示gateは発音要求であり、実EG活動meterではない。
 - [x] PCM／EG編集とCopy voice JavaScriptを接続する。
   単一canvasの描画、自作4波形、共有PCM選択、PCM8/16・root/source rate・forward loop、
-  次回keyOn用EG、live mix、適用済みPCMを含むJS出力。Apply時のみappend allocationする。
+  次回keyOn用EG、live mix、適用済みPCMを含むJS出力。描画中はRAMを書かず、Apply時に安全な編集pageを再利用する。
 - [x] SCSPの音量校正。primary／extraの48経路とFM基準8経路を測定し、生成gainを同じ全経路で再検証する。
-  System Mixer／npm opt-in policyは両経路0.128825。旧153件の基準・既存音源gain・保存値・raw出力は維持する。
-- [ ] **次：** PCMファイル入力と、編集用sampleのboundedな再利用／解放を進める。
-- [ ] PCMファイル入力・boundedな編集sample再利用／解放は後続。現時点は描画またはJS経由のPCMを編集する。
+  System Mixer／npm opt-in policyは両経路0.128826（PCM対応後の再測定）。旧153件の基準・保存値・raw出力は維持する。
+- [x] PCMファイル入力と、編集用sampleのboundedな再利用を追加する。
+  64 MiBまでのWAV／browser codec、区間・rate・root指定、mono化、最大65,535点。
+  共有／held／releaseの保護、予約中Apply拒否、Main／Worker音色delta同期、idle page再利用、bank clear時の解放を検証。
+- [ ] **次：** Native音声経路（段階4）へ接続する。
+- [ ] 編集poolの個別page返却／compactionは後続。通常loadPCMは引き続きappend-only。
 - [x] Stop・予約／owner取消・manual lease・bank／instance所有権・追加instance・再起動をNode／実ブラウザで確認する。
 - [x] Main／Worker × Chromium／WebKitで、編集後のPC Keyboard、blur release、Mixer UI mute／volume、
   FX gain、Master、AudioContext suspend→Run復帰、Stopを検証する。
@@ -120,3 +123,11 @@ SDK／WASM／音声renderの変更なし。未commit／未公開、既存release
 [測定・再実行・制約](scsp_calibration_01.md)。48 SCSP＋8 FM基準の校正と適用後再測定が成功。
 関連Node 99 tests、全Playground mode型、実ブラウザ4経路のfocus／復旧／Mixer／FX確認成功。
 SDK／C++／WASM／raw rendererは変更なし。未commit／未公開。既存release ZIPは未再生成。
+
+2026-10-30後続：PCMファイル入力・安全な編集RAM pool・編集slotのMain／Worker同期を追加。
+[操作・制約・検証](scsp_pcm_files_01.md)／[測定・配布hash](scsp_pcm_files_01.json)。
+関連Node 106 tests・全mode型・実npm installed consumer検査成功。
+PS1／WonderSwan／POKEY／SCSPを新reportで再測定し、SCSP生成policyも全経路で再検証。
+実Run ZIPのChromium／WebKit × Main／Workerで20 MiB超WAV・M4A・RAM再利用・既存操作成功。
+965 entriesの専用dev ZIPを作成。旧releaseは保持。commit／publishは未実施。
+次はNative音声経路。一般free／compaction、専用Synth／SSFは後続。

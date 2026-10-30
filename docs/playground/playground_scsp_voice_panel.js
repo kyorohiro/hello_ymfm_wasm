@@ -1,3 +1,5 @@
+import {readScspAudio,prepareScspPCM} from '../js/scsp_sample.js?v=scsp-pcm-files-1';
+import {createOfflineAudioDecoder} from '../js/audio_decode.js';
 /** SCSP PCM drafts live in the UI; only explicit Apply allocates sample RAM. */
 export function scspVoiceCode(slot,voice,pcm,sample) {
   const options={baseFrequencyHz:sample.rootFrequencyHz,sourceSampleRate:sample.sourceSampleRate,...(sample.loopStartSamples===null?{}:{loopStartSamples:sample.loopStartSamples})};
@@ -6,10 +8,11 @@ export function scspVoiceCode(slot,voice,pcm,sample) {
 }
 export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelChange=()=>{},onError=()=>{}}) {
   const doc=root.ownerDocument,make=(tag,text)=>{const node=doc.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
-  let state=null,selected=0,connected=false,visible=true,disposed=false,held=null,sequence=0,draft=null,draftKey='',loadSequence=0,dirty=false,busy=false,drawing=null;
+  let state=null,selected=0,connected=false,visible=true,disposed=false,held=null,sequence=0,draft=null,draftKey='',loadSequence=0,dirty=false,busy=false,drawing=null,recording=null,fileSequence=0;
+  const decodeAudio=createOfflineAudioDecoder({getSampleRate:()=>44100});
   const controls=[];
   const guard=fn=>async()=>{try{await fn();}catch(error){if(!disposed)onError(error);}};
-  const action=(name,text,fn)=>{const b=make('button',text);b.type='button';b.dataset.chipAction=`scsp-${name}`;b.addEventListener('click',guard(async()=>{await fn();b.blur();}));controls.push(b);return b;};
+  const action=(name,text,fn)=>{const b=make('button',text);b.type='button';b.dataset.chipAction=`scsp-${name}`;b.addEventListener('click',guard(async()=>{try{await fn();}finally{b.blur();}}));controls.push(b);return b;};
   const number=(name,text,min,max,step='1')=>{const label=make('label',text+' '),input=make('input');input.type='number';input.min=String(min);input.max=String(max);input.step=step;input.dataset.chipControl=`scsp-${name}`;label.append(input);controls.push(input);return {label,input};};
   const channels=make('div');channels.className='chip-channel-list';channels.setAttribute('aria-label','SCSP slot');root.append(channels);
   const buttons=Array.from({length:32},(_,slot)=>{
@@ -43,7 +46,30 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     try{const sample=await invoke('applyPCM',[ch,pcm,options]);if(!disposed&&selected===ch&&draftKey===key){draft={pcm,sample};draftKey=`${ch}:${sample.bankId}:${sample.id}`;dirty=false;syncDraft();status.textContent='PCM applied. Play a new note to hear it.';}}
     finally{busy=false;refreshEnabled();}
   });
-  editor.append(apply,status,make('p','Drawing is a software editor. Apply creates a new PCM allocation; shared samples and held notes keep their existing data. Each Apply uses RAM until the bank is cleared. Selecting a slot or assigned sample discards an unapplied draft.'));
+  editor.append(apply,status,make('p','Software editor: Apply reuses unshared editor RAM when safe. Held/releasing voices protect their data. Stop scheduled playback before Apply. Other slots and ordinary loadPCM samples are never overwritten. Retired editor sample IDs may expire. Selecting another slot or PCM discards the draft.'));
+  const files=make('fieldset');files.append(make('legend','Audio file → PCM selection (software conversion)'));editor.append(files);
+  const fileInput=make('input');fileInput.type='file';fileInput.accept='audio/*,.wav,.m4a,.mp3,.ogg,.flac,.aif,.aiff';fileInput.dataset.chipControl='scsp-audio-file';fileInput.setAttribute('aria-label','SCSP audio file');controls.push(fileInput);
+  const fileStatus=make('p');fileStatus.setAttribute('role','status');fileStatus.dataset.chipOutput='scsp-file-status';
+  const start=number('file-start','Start (seconds)',0,86400,'any'),end=number('file-end','End (seconds)',0,86400,'any'),fileRate=number('file-rate','Selection sample rate (Hz)',1,768000),rootNote=number('file-root','Recorded root MIDI note (manual)',0,127);
+  start.input.value='0';fileRate.input.value='44100';rootNote.input.value='69';
+  const useSelection=action('use-selection','Use selection in waveform',()=>{
+    if(!recording)return;
+    for(const input of [start.input,end.input,fileRate.input,rootNote.input])if(!input.value.trim()||!input.reportValidity())return;
+    const next=prepareScspPCM(recording,{startSeconds:Number(start.input.value),endSeconds:Number(end.input.value),sourceSampleRate:Number(fileRate.input.value),rootNote:Number(rootNote.input.value),bits:Number(bits.value)});
+    loadSequence++;draft=next;syncDraft();markDirty();status.textContent=`${draft.pcm.length.toLocaleString()} mono samples staged. Apply PCM, then play a new note. Root note is manual; no pitch detection.`;
+  });
+  files.append(fileInput,fileStatus,start.label,end.label,fileRate.label,rootNote.label,useSelection,make('p','WAV and browser-supported audio (up to 64 MiB). The recording stays outside SCSP RAM; select up to 65,535 samples. Stereo channels are averaged, with no automatic normalization. Lower the selection rate for a longer sound. Import and trim do not start playback.'));
+  fileInput.addEventListener('change',guard(async()=>{
+    const file=fileInput.files?.[0];fileInput.value='';fileInput.blur();if(!file)return;
+    const request=++fileSequence;fileStatus.textContent=`Decoding ${file.name}…`;
+    try{
+      const audio=await readScspAudio(file,{decodeAudio});if(disposed||request!==fileSequence)return;
+      recording=audio;const duration=audio.channels[0].length/audio.sampleRate;start.input.value='0';end.input.value=String(Math.min(duration,Math.floor(65535*audio.sampleRate/44100)/audio.sampleRate));fileRate.input.value='44100';
+      fileStatus.textContent=`Loaded ${file.name} · ${duration.toFixed(3)} s · ${audio.channels.length} channel(s). Choose a region, then Use selection. The initial selection covers the first ${Number(end.input.value).toFixed(3)} s.`;
+    }catch(error){if(!disposed&&request===fileSequence){fileStatus.textContent=`Load failed: ${error.message}. Previous audio and waveform are retained.`;throw error;}}
+    finally{refreshEnabled();}
+  }));
+  for(const item of [start,end,fileRate,rootNote])item.input.addEventListener('change',()=>item.input.blur());
   const eg=make('fieldset');eg.append(make('legend','Envelope — next keyOn'));root.append(eg);
   const envelopeControls={};for(const [key,title,max]of [['attackRate','AR',31],['decay1Rate','D1R',31],['decay2Rate','D2R',31],['decayLevel','DL',31],['releaseRate','RR',31],['keyRateScaling','KRS',15]]){
     const item=number(key,title,0,max);envelopeControls[key]=item.input;eg.append(item.label);
@@ -67,7 +93,7 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
   function paint(event){if(!draft||!drawing||event.pointerId!==drawing.id)return;event.preventDefault();const next=point(event),last=drawing.point;for(let i=Math.min(last.i,next.i);i<=Math.max(last.i,next.i);i++)draft.pcm[i]=last.i===next.i?next.v:Math.round(last.v+(next.v-last.v)*(i-last.i)/(next.i-last.i));drawing.point=next;markDirty();}
   canvas.addEventListener('pointerdown',event=>{if(!draft||busy||!connected||event.button!==0)return;drawing={id:event.pointerId,point:point(event)};canvas.setPointerCapture(event.pointerId);paint(event);});canvas.addEventListener('pointermove',paint);
   for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{drawing=null;});
-  function refreshEnabled(){controls.forEach(c=>{c.disabled=!connected||busy;});apply.disabled=!connected||busy||!dirty||!draft;hold.disabled=!connected||!state?.channels?.[selected]?.sample;}
+  function refreshEnabled(){controls.forEach(c=>{c.disabled=!connected||busy;});apply.disabled=!connected||busy||!dirty||!draft;useSelection.disabled=!connected||busy||!recording;hold.disabled=!connected||!state?.channels?.[selected]?.sample;}
   function release(){drawing=null;const entry=held;held=null;if(entry)void invoke('auditionOff',[entry.slot,entry.id]).catch(error=>{if(!disposed)onError(error);});}
   function press(event){
     if(!connected||!visible||disposed||held)return;event.preventDefault();
@@ -87,5 +113,5 @@ export function createPlaygroundScspVoicePanel({root,invoke,onSelectedChannelCha
     refreshEnabled();
   }
   update(null);
-  return {update,releaseAll:release,getSelectedChannel:()=>selected,setConnected(value){connected=value;if(!value)release();update(state);},setVisible(value){visible=value;if(!value)release();},dispose(){if(disposed)return;release();disposed=true;loadSequence++;doc.defaultView?.removeEventListener('blur',release);doc.removeEventListener('visibilitychange',visibility);root.replaceChildren();}};
+  return {update,releaseAll:release,getSelectedChannel:()=>selected,setConnected(value){connected=value;if(!value)release();update(state);},setVisible(value){visible=value;if(!value)release();},dispose(){if(disposed)return;release();disposed=true;loadSequence++;fileSequence++;recording=null;doc.defaultView?.removeEventListener('blur',release);doc.removeEventListener('visibilitychange',visibility);root.replaceChildren();}};
 }

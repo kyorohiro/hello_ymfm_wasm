@@ -110,3 +110,26 @@ test('PCM editor copies signed data, allocates only on Apply, preserves shared/h
  await p.client.getState();assert(p.client._getState().samples.some(s=>s.id===sample.id));
  i.invoke('auditionOff',[0,'held']);i.invoke('auditionOn',[0,69,'new']);assert(peak(p.render(128).right)>0);
 });
+
+test('editor reuse synchronizes clients and preserves descriptors referenced by queued presets',async t=>{
+ const p=await setup(t),i=p.processor.inspector,w=await worker(t,p),{pcm,options}=createScspInitSample();
+ const first=i.invoke('applyPCM',[0,pcm,options]);await p.client.getState();
+ const port={postMessage(){}};p.processor.receive({type:'performance-start',session:30},port);assert.throws(()=>i.invoke('applyPCM',[0,pcm,options]),/Stop scheduled playback/,'an active producer is protected even before its first batch arrives');
+ p.processor.receive({performance:{session:30,owner:'pending',time:.2},commands:[{method:'setPreset',args:[1,{sample:first}]},{method:'noteOn',args:[1,69]}]},port);
+ const beforeQueuedEdit=p.processor.synth.getState();assert.throws(()=>i.invoke('applyPCM',[0,pcm.map(v=>v/2),options]),/Stop scheduled playback/);assert.deepEqual(p.processor.synth.getState(),beforeQueuedEdit);
+ assert(peak(p.render(15000).left)>0);assert.equal(p.processor.synth.getState().slots[1].sample.id,first.id);assert.equal(p.processor.dead,false);
+ p.processor.stopVoices();i.invoke('setPreset',[1,{sample:null}]);
+ const before=p.processor.synth.getState().ramUsedBytes;
+ for(let n=0;n<100;n++)i.invoke('applyPCM',[0,pcm,options]);assert.equal(p.processor.synth.getState().ramUsedBytes,before);
+ await new Promise(resolve=>setTimeout(resolve,10));w.noteOn(0,69);await w.getState();assert(peak(p.render(128).left)>0,'Worker validation adopts the replacement for a retired editor handle');
+});
+
+test('editor deltas carry actual playing sources and validate new short-loop notes before they reach render',async t=>{
+ const p=await setup(t),w=await worker(t,p),i=p.processor.inspector,{pcm,options}=createScspInitSample();
+ const first=i.invoke('applyPCM',[0,pcm,options]);i.invoke('auditionOn',[0,69,'held-source']);
+ const second=i.invoke('applyPCM',[0,new Int16Array(128).fill(1000),{baseFrequencyHz:44100/128,loopStartSamples:0}]);
+ await new Promise(resolve=>setTimeout(resolve,10));assert.equal(w._getState().slots[0].sample.id,second.id);assert.equal(w._getState().playingSampleIds[0],first.id);
+ w.setFrequency(0,440);await w.getState();p.render(128);assert.equal(p.processor.dead,false);
+ p.processor.stopVoices();i.invoke('setPreset',[0,{frequencyHz:440}]);i.invoke('applyPCM',[0,new Int16Array([1000,-1000]),{baseFrequencyHz:440,loopStartSamples:1}]);
+ await new Promise(resolve=>setTimeout(resolve,10));assert.throws(()=>w.noteOn(0,81),/pitch step exceeds forward loop/);assert.equal(p.processor.dead,false);p.render(128);
+});

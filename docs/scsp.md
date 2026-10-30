@@ -30,12 +30,31 @@ the editor supports waveform drawing, PCM8/16 conversion and hardware EG codes.
    Paste it into Code and Run to recreate the voice without private bank IDs.
    The generated text is also available when clipboard permission is unavailable.
 
-Waveform drawing is a software authoring tool. Dragging does not write RAM.
-Apply allocates a new sample without overwriting shared or currently sounding PCM;
-old allocations remain until `reset({clearRam:true})` or runtime recreation.
-The RAM counter shows the remaining capacity. Selecting another slot or assigned
-sample discards an unapplied draft. There is no per-sample deletion or audio-file
-picker in this panel yet; JavaScript-loaded PCM appears in its sample selector.
+**Audio file → PCM selection** reads WAV and browser-supported audio such as
+M4A (up to 64 MiB). Choose start/end seconds, the selection sample rate and the
+recorded root MIDI note, then **Use selection in waveform → Apply PCM**.
+The full recording remains in browser memory. Each SCSP sample has **2..65,535
+points** (about 1.486 s at 44.1 kHz); lower the selection rate for a longer sound.
+Stereo channels are averaged with no automatic normalization or pitch detection.
+The initial selection explicitly shows the first region that fits. Oversized
+selections fail without changing the recording, waveform or chip RAM.
+Decoding uses an offline audio decoder when needed and never starts playback.
+
+Drawing and selection are software authoring tools. Neither writes chip RAM.
+Apply reuses an idle editor page when possible. All preset references in other
+slots and currently held/releasing native voices protect their sample data. Stop
+scheduled playback before Apply; queued commands are never invalidated by an edit.
+Repeated idle edits therefore keep RAM use bounded; pressing Stop
+permits reuse of pages protected only by playback. The RAM counter includes
+reserved page capacity. Pages do not shrink or become general-purpose free RAM;
+`reset({clearRam:true})` releases the whole bank.
+
+Ordinary JavaScript `loadPCM` allocations are permanent until the bank is cleared.
+Editor sample handles marked `editorOwned` may expire when an idle page is reused;
+assigned/shared/sounding samples remain valid. Copy voice exports actual PCM via
+ordinary `loadPCM`, so it does not depend on these temporary IDs. Selecting another
+slot or assigned PCM discards an unapplied waveform draft; the loaded recording
+remains available for another selection in this panel.
 EG controls show SCSP register codes, not approximate milliseconds. Higher rate
 codes are faster; KRS 15 disables scaling. The requested gate is not an EG meter.
 
@@ -61,7 +80,7 @@ barriers; Worker note controls retain the normal lookahead schedule.
 
 Host output at 44.1/48/96 kHz uses the streaming converter shared with PS1; the
 SCSP core itself always runs at 44.1 kHz. No extra output compensation is applied.
-Playground's System Mixer policy uses a measured SCSP source gain of **0.128825**
+Playground's System Mixer policy uses a measured SCSP source gain of **0.128826**
 for both the primary and additional instances. It comes from a full-range PCM16
 single-voice reference across Chromium/WebKit, Main/Worker and 44.1/48 kHz, with
 220/440/880 Hz checks and an unchanged shared output target. This balances digital

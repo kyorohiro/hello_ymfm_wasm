@@ -384,7 +384,7 @@ do {propagated=false;for(const {name,source}of sources){
 }}while(propagated);
 // SCSP changes shared routing and the fixed-rate converter. Existing SPU core
 // revisions remain independent of this new Playground entry point.
-const scspFiles=new Set(['scsp.js','scspsynth.js','playground_scsp.js','playground_scsp_audio.js',
+const scspFiles=new Set(['scsp.js','scspsynth.js','scsp_sample.js','playground_scsp.js','playground_scsp_audio.js',
   'playground_scsp_worklet.js','playground_scsp_inspector.js','pcm_44100_resampler.js','ps1_resampler.js',
   'native_runtime_synth.js','tetorica_synth.js','playground_native_primary.js','playground_runtime.js','playground_soundchips.js',
   'playground_logic_worker.js','playground_performance_processor.js','playground_performance_sender.js',
@@ -393,7 +393,7 @@ const scspFiles=new Set(['scsp.js','scspsynth.js','playground_scsp.js','playgrou
   'playground_monaco_completion.js','playground_mixer_defaults.js','playground_chip_tabs.js',
   'playground_scsp_voice_panel.js','playground_ui.js','playground.js']);
 const scspEditorFiles=new Set(['playground_scsp_voice_panel.js','playground_scsp_inspector.js','playground_scsp_worklet.js','playground_mode.js','playground_chip_tabs.js','playground_ui.js','playground.js']);
-const revisionFor=name=>['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+const revisionFor=name=>(scspFiles.has(name)||name==='playground_workbench.js')&&name!=='playground_mixer_defaults.js'?'scsp-pcm-files-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
   ...scspFiles,
   ...ps1LiveFiles,

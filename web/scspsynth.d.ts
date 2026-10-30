@@ -15,6 +15,8 @@ export interface ScspSample {
   readonly byteLength: number;
   readonly length: number;
   readonly bits: 8 | 16;
+  /** Editor-owned handles can expire when an idle editor page is reused. */
+  readonly editorOwned?: true;
   readonly rootFrequencyHz: number;
   readonly sourceSampleRate: number;
   readonly loopStartSamples: number | null;
@@ -49,6 +51,8 @@ export interface ScspState {
   nextSampleId: number;
   ramUsedBytes: number;
   ramFreeBytes: number;
+  /** Native source references include releasing voices; gate alone is insufficient. */
+  playingSampleIds?: (number | null)[];
   samples: ScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
   slots: (ScspPreset & {gate: boolean})[];

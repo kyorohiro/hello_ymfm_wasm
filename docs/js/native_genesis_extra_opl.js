@@ -1,7 +1,7 @@
 import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=pokey-prepare-1';
 import {OplVoiceInspector} from './playground_opl_inspector.js?v=ps1-deferred-release-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-playground-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-playground-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=scsp-pcm-files-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-pcm-files-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=ps1-deferred-release-1';

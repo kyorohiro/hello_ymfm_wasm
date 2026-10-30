@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {ScspSynth} from './scspsynth.js?v=scsp-playground-1';
+import {ScspSynth} from './scspsynth.js?v=scsp-pcm-files-1';
 export const SCSP_CONTROLS=Object.freeze(['setPreset','setEnvelope','setFrequency','setNote','setMix','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset']);
 export function createScspValidation() {
   return new ScspSynth({sampleRate:44100,nativeFrames:0,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
@@ -36,7 +36,7 @@ export function createScspClient(port,initial={},lifecycle={}) {
       const ownClear=pendingClearFence===data.resourceFence;
       if(!ownClear&&bankEpoch!==null&&bankEpoch!==data.bankEpoch)bankRevision++;
       if(ownClear)pendingClearFence=null;bankEpoch=data.bankEpoch;resourceRevision=data.revision;
-      if(data.reset&&!data.ownReset){bankRevision++;validation._adoptState(data.state);}else validation._adoptResources(data.state);client._onStateChange?.();return;
+      if(data.reset&&!data.ownReset){bankRevision++;validation._adoptState(data.state);}else validation._adoptResources(data.state);if(Number.isInteger(data.editedSlot))validation._adoptEditorState(data.editedSlot,data.state);client._onStateChange?.();return;
     }
     if(data.fatal){fail(new Error(data.error??'SCSP AudioWorklet failed'));return;}
     const p=pending.get(data.id);if(!p){if(data.error)fail(new Error(data.error));return;}

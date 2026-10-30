@@ -2639,6 +2639,8 @@ interface PlaygroundScspSample {
   readonly rootFrequencyHz: number;
   readonly sourceSampleRate: number;
   readonly loopStartSamples: number | null;
+  /** Temporary editor handles may expire when their idle RAM page is reused. */
+  readonly editorOwned?: true;
 }
 /** Raw SCSP rates 0..31 (higher faster), KRS 0..15 (15 disables scaling).
  * Preset EG updates take effect at the next keyOn, not during a held note. */
@@ -2670,6 +2672,7 @@ interface PlaygroundScspState {
   nextSampleId: number;
   ramUsedBytes: number;
   ramFreeBytes: number;
+  playingSampleIds?: (number | null)[];
   samples: PlaygroundScspSample[];
   /** Authored presets; gate is the requested key state, not an activity meter. */
   slots: (PlaygroundScspPreset & {gate: boolean})[];

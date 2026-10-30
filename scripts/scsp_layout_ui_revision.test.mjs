@@ -1,15 +1,16 @@
+import {readHistoricalScspUi} from '../test/helpers/scsp_historical_ui.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationScspPolicyCacheRevision} from './mixer_calibration_sources.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
-test('SCSP layout audit permits only exact reviewed DOM/cache edits, without rewriting PCM reports',async()=>{
+test('Historical SCSP layout audit permits only exact reviewed DOM/cache edits, without rewriting PCM reports',async()=>{
  const revision=JSON.parse(await readFile(new URL('../docs/issues/scsp_layout_ui_revision_01.json',import.meta.url)));
  for(const [path,{before,after}]of Object.entries(revision.sources)){
   // Reconstruct the historical layout-only revision before the later, separately
   // audited SCSP editor cache rollout.
-  const current=restoreMixerCalibrationScspPolicyCacheRevision(path,await readFile(new URL('../docs/'+path,import.meta.url))).toString();
+  const current=restoreMixerCalibrationScspPolicyCacheRevision(path,await readHistoricalScspUi(path)).toString();
   const historical=current.replaceAll('playground_mode.js?v=scsp-editor-1','playground_mode.js?v=scsp-playground-1')
     .replaceAll('playground_chip_tabs.js?v=scsp-editor-1','playground_chip_tabs.js?v=scsp-playground-1')
     .replaceAll('playground_ui.js?v=scsp-editor-1','playground_ui.js?v=scsp-playground-1')

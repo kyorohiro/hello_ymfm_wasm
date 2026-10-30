@@ -1,5 +1,5 @@
 import {noteToHz,opmPitchFromHz} from './soundchip_pitch.js';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-playground-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=scsp-pcm-files-1';
 
 // Algorithm operator order is M1, M2, C1, C2. The bus stores M1, C1, M2, C2.
 const SLOTS=[0,16,8,24];
