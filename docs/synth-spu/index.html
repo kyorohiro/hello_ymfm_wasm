@@ -44,6 +44,11 @@
               <output id="masterVolumeValue" for="masterVolume">70%</output>
             </label>
           </div>
+          <div id="synthDesktopTools" hidden>
+            <button id="synthPinButton" type="button" aria-label="Pin window on top" aria-pressed="false" hidden>Pin</button>
+            <button type="button" data-reset-offline-cache>Reload</button>
+            <div id="synthMenuAudio"></div>
+          </div>
           <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play a note to get started.</p>
         </header>
 
@@ -172,6 +177,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-master-200-1"></script>
+    <script type="module" src="./synth.js?v=spu-desktop-1"></script>
   </body>
 </html>

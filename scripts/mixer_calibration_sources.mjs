@@ -242,6 +242,8 @@ export function restoreMixerCalibrationScspPolicyCacheRevision(path,bytes) {
 }
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
+  if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';
   const restored=restoreMixerCalibrationScspPolicyCacheRevision(path,bytes),policyCache=restored!==bytes;bytes=restored;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return policyCache?'ui-scsp-policy-cache':'raw';
   if(isScspEditorRevision(path,bytes,record))return 'ui-scsp-editor';
@@ -261,6 +263,21 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(record?.bytes!==receipt.sources[path].bytes||record?.sha256!==receipt.sources[path].sha256)fail('source record detached from original receipt: '+path);
   if(mixerCalibrationUiCanonicalSha256(path,bytes)!==receipt.sources[path].canonicalSha256)return stale();
   return 'ui-cache-token';
+}
+
+/** FM Synth added an optional keyboard octave offset, defaulting to zero.
+ * Playground does not pass it. Authenticate the complete reviewed new file,
+ * then reconstruct the complete measured file; no renderer, import, gain or
+ * future keyboard edit can use this exception. Original reports stay intact.
+ */
+export function restoreMixerCalibrationKeyboardOctaveRevision(path,bytes){
+  if(path!=='synth/synth_keyboard.js'||Buffer.byteLength(bytes)!==10010||
+    sha(bytes)!=='b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795')return bytes;
+  const original=Buffer.from(Buffer.from(bytes).toString('utf8')
+    .replace('  octave = 0,\n','')
+    .replace('state.horizontalFretPosition + octave * 12;','state.horizontalFretPosition;'));
+  if(original.length!==9982||sha(original)!=='ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc')fail('keyboard octave reconstruction failed');
+  return original;
 }
 
 /** A reviewed feature revision is separate evidence from cache normalization.

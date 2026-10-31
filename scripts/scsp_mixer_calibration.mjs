@@ -7,7 +7,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildScspCalibrationReference} from './soundchip_calibration_scsp.mjs';
-import {restoreMixerCalibrationScspPolicyCacheRevision} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationScspPolicyCacheRevision,restoreMixerCalibrationKeyboardOctaveRevision} from './mixer_calibration_sources.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -164,7 +164,7 @@ export async function validateScspMixerCalibrationSources({reportPath,scspReport
   }
   for(const [path,record]of Object.entries(scspReport.sources)){
     const absolute=resolve(root,'docs',path);if(!absolute.startsWith(resolve(root,'docs')+sep))fail('served path escapes docs');
-    const current=await readFile(absolute),bytes=current.length===record.bytes&&sha(current)===record.sha256?current:restoreMixerCalibrationScspPolicyCacheRevision(path,current);if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served source changed; remeasure: '+path);
+    const current=await readFile(absolute),bytes=current.length===record.bytes&&sha(current)===record.sha256?current:restoreMixerCalibrationKeyboardOctaveRevision(path,restoreMixerCalibrationScspPolicyCacheRevision(path,current));if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served source changed; remeasure: '+path);
   }
   return result;
 }

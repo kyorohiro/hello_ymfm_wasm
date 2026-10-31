@@ -21,7 +21,7 @@ for(const [kind,parameter,validate,prior]of [
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
   for(const [path,record]of Object.entries(report.sources)) {
     const actual=await readFile(new URL('docs/'+path,root));
-    assert(['raw','ui-scsp-layout','ui-scsp-editor'].includes(assertMixerCalibrationSourceFreshness({path,bytes:actual,record})),path);
+    assert(['raw','ui-scsp-layout','ui-scsp-editor','ui-keyboard-octave'].includes(assertMixerCalibrationSourceFreshness({path,bytes:actual,record})),path);
   }
   assert.equal(sha(await readFile(new URL(path,root))),sha(bytes),'Validation must not edit a measurement');
   assert.equal(sha(await readFile(new URL(`docs/issues/${prior}.json`,root))),sha(old),'Prior measurements remain untouched');

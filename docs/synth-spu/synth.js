@@ -18,7 +18,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, state = null, stateFrame = null, epoch = 0, assetEpoch = 0, octave = 0, bend = 0;
 const notes = new Map();
 let instrumentName = 'Sine';
-let noteSequence = 0, topologyPending = 0;
+let noteSequence = 0, topologyPending = 0, switchingAudioOutput = false;
 const rmsCanvas = document.createElement('canvas');
 rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
 rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
@@ -186,7 +186,7 @@ function updateKeys() {
   }
 }
 async function press(source, entry) {
-  if (topologyPending) return;
+  if (topologyPending || switchingAudioOutput) return;
   if (notes.get(source)?.released) release(source, true);
   if (notes.has(source)) return;
   const note = {key:entry.key, midi:entry.midi, channel:null, id:`spu-synth:${++noteSequence}`, epoch, started:false};
@@ -194,7 +194,7 @@ async function press(source, entry) {
   try {
     await ensureAudio();
     if (note.epoch !== epoch || notes.get(source) !== note) return;
-    if(topologyPending){notes.delete(source);updateKeys();return;}
+    if(topologyPending || switchingAudioOutput){notes.delete(source);updateKeys();return;}
     note.started = true;
     const allocation = await invoke('instrumentNoteOn', [note.midi, note.id, bend]);
     note.channel = allocation.channel;
@@ -228,7 +228,13 @@ document.addEventListener('pointerdown', event => {
 }, {capture:true});
 document.addEventListener('change', event => {
   const select = event.target?.closest?.('select');
-  if (select && select === pointerSelect) {pointerSelect = null; select.blur();}
+  if (select?.closest('#synthDesktopTools')) return;
+  if (select && select === pointerSelect) {
+    pointerSelect = null;
+    // Let native WebKit finish committing the option and let change handlers
+    // read its value before leaving the popup.
+    setTimeout(() => {if (document.activeElement === select) select.blur();}, 0);
+  }
 }, {capture:true});
 document.addEventListener('keydown', event => {
   if (event.target?.closest?.('select') && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',' ','Enter','Escape','Tab'].includes(event.key)) pointerSelect = null;
@@ -546,3 +552,15 @@ window.addEventListener('pagehide', event => {
   if (audio) void audio.stop().catch(() => {});
 });
 renderKeyboard();
+
+// Desktop adapters reroute only the final bus. SPU rendering and monitoring
+// stay in the same Web Audio graph, with no desktop API on ordinary websites.
+if (window.__TAURI_INTERNALS__) {
+  Object.defineProperty(window, 'tetoricaSynthAudio', {value:Object.freeze({
+    setSwitching(value) {switchingAudioOutput = value === true;},
+    async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.gain};},
+    async stopPlayback() {await stop();},
+  })});
+  $('synthDesktopTools').hidden = false;
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
