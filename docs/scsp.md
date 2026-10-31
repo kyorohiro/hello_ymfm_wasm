@@ -274,8 +274,9 @@ finite/clamped 32-slot mixing, release/reset, transfer bounds, partial writes,
 owned-handle isolation and render-block partitioning.
 These are compatibility/portability checks, not comparisons with real hardware.
 
-DSP code is retained from the pinned MAME implementation but has not
-yet been behaviorally verified. Noise uses a deterministic per-instance software
+DSP code is retained from the pinned MAME implementation. The dedicated Browser
+Synth now verifies one original mono Delay microprogram (impulse timing, feedback,
+ring isolation and Stop); this does not establish general DSP or hardware accuracy. Noise uses a deterministic per-instance software
 PRNG, not a verified hardware algorithm. CPU timers/IRQ, DMA, serial MIDI,
 external inputs, SSF playback and game-tone import are not provided.
 Upstream's EG/DSP approximations remain; raw DAC clipping is retained.
@@ -307,8 +308,8 @@ needed for this bridge.
 2. Sine／Triangle／Saw／Squareを選ぶか、単一canvasを描画し、**Apply PCM** → 新しい音を弾く。
 3. 音声ファイルは **Use selection in waveform** → **Apply PCM** の順。
    長い録音はhostに保持し、最大65,535点の区間を選ぶ。区間・rate・基準音は手動指定。
-4. **Save preset** はA〜F全operatorの適用済みPCMとEG／LFO／mix、mode／接続／各ratio／depth／Pitchをversion 3 JSONへ保存。
-   **Open preset** は全体を検証してから演奏停止・bank更新。旧version 1（PCM）／2（PCM・2-op）も読み込める。
+4. **Save preset** はA〜F全operatorの適用済みPCMとEG／LFO／mix、mode／接続／各ratio／depth／PitchとDSP Delayをversion 4 JSONへ保存。
+   **Open preset** は全体を検証してから演奏停止・bank更新。旧version 1（PCM）／2（PCM・2-op）／3（6-op）もDSP Offで読み込める。
 
 編集元に6 slotsを予約する。PCMは26 voices、2-opは13、4-opは6、6-opは4 voices。
 **Voice mode → 2／4／6-operator FM** と **Connection → Chain／Pairs／Branch** を選ぶ。
@@ -321,7 +322,16 @@ EG／PCMは次の発音、Pitch／ratio／depth／mix／LFOは発音中とreleas
 Output以外はdirect出力を消し、TLで変調量を調整する。mode／接続変更は検証成功後に全音停止する。
 **Stop** は即時消音し、発音元のRAM参照を解放して編集pageを再利用できるようにする。通常の離鍵はreleaseを維持する。
 描画／音声変換／接続プリセット／group単位の割当・guard配置／preset保存はソフト側の機能。
-slot FM／EG／LFOはSCSP core側。自由なgraph／feedback／DSP編集／SSFは後続。
+slot FM／EG／LFOはSCSP core側。自由なgraph／FM feedback／汎用DSP編集／SSFは後続。
+**SCSP DSP · Delay**：Enableで有効化し、Time（20〜700ms）／Feedback（0〜0.85）／Send／Return（0〜7）を操作する。
+固定core内で独自mono Delay microprogramを実行する。Web Audio DelayNodeは使用しない。
+共有mono effectへ送るのは接続のOutput operatorのみ。各operatorのDirect levelを0にすればwetだけでも鳴らせる。
+Time／Enable変更は残響をクリアし、Stop／mode／接続変更は全音と残響を消す。通常の離鍵はtailを残す。
+DSP用に先頭64KiBを常時予約するため、PCMとguardには448KiBを利用できる。
+DSP ringは波形一覧に出さず、editorの再利用対象にも含めない。旧presetでも予算超過時は演奏を変える前に拒否する。
+[Playground DSP Lab](playground/scsp-dsp.html) は独立ページで短音・wet-only・bypassを試せる。
+Main／Worker／Nativeの共通Playground APIへDSPを公開する作業とReverbは後続。
+
 専用Synthのpost gainは0.125×Volume。raw SCSP加算の飽和特性は維持している。
 
 専用itch.io ZIP：`sh scripts/package_itch_scsp_synth.sh VERSION`。
@@ -400,7 +410,7 @@ paddingを越えるdepth、one-shot／途中loopは高レベルAPIで拒否す�
 Native callbackもRAM境界を検査し、変調で読まれるguardはrelease中も上書きから保護する。
 
 この段階はphysical slot単位の接続。Copy voiceは選択slotだけを出力し、変調元を含む音色全体は保存しない。
-専用Synthでは2／4／6-op FMをgroup単位で自動割当し、6 operator込みversion 3 presetを保存できる。
+専用Synthでは2／4／6-op FMをgroup単位で自動割当し、6 operator・DSP設定込みversion 4 presetを保存できる。
 raw X/Y panelの代わりにdepth／ratioとCarrier／Modulator切替を表示する。
 [実装・操作・検証](issues/scsp_synth_fm_01.md)。任意graph／feedbackは後続。
 DSPのdelay用RAM ring buffer、振幅の掛け算によるring modulationとは別機能。

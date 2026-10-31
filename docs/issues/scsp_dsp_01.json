@@ -1,0 +1,140 @@
+{
+  "date": "2026-10-31",
+  "passed": true,
+  "scope": "Dedicated Browser Synth and independent Playground DSP Lab",
+  "effect": "Original six-step SCSP DSP mono Delay; no Web Audio DelayNode",
+  "ring": {
+    "address": 0,
+    "bytes": 65536,
+    "rbl": 2,
+    "pcmBudgetBytes": 458752,
+    "packedSilenceWord": "0x6000"
+  },
+  "controls": {
+    "timeMs": [
+      20,
+      700
+    ],
+    "feedback": [
+      0,
+      0.85
+    ],
+    "send": [
+      0,
+      7
+    ],
+    "returnLevel": [
+      0,
+      7
+    ]
+  },
+  "preset": {
+    "write": 4,
+    "read": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "legacyDsp": "disabled"
+  },
+  "nodeTests": {
+    "passed": 19,
+    "command": "node --test docs/synth-scsp/*.test.mjs scripts/package_itch_scsp_synth.test.mjs",
+    "coverage": [
+      "20ms impulse timing and zero-feedback single echo",
+      "Six half-amplitude feedback repeats",
+      "Packed silence has no DC",
+      "Ring writes leave sample PCM unchanged",
+      "Only Output operators send to DSP",
+      "Live voice identity preserved",
+      "Stop and time/enable changes clear tail",
+      "Preset output exact and invalid edits atomic",
+      "Render partition exact at 44100/48000/96000 Hz with PCM/FM2/FM4/FM6 grouping"
+    ]
+  },
+  "browserReports": [
+    {
+      "path": "docs/issues/scsp_dsp_synth_browser_01.json",
+      "bytes": 2361,
+      "sha256": "2cb52364818d0f934a3c35cf323e4d4a87fe6c5a540dd3582f3b9b353dd684a7"
+    },
+    {
+      "path": "docs/issues/scsp_dsp_lab_browser_01.json",
+      "bytes": 679,
+      "sha256": "d5a66aadda1f944bdc7f477be0a01f80fb474f7b71a97e16293e0461326aae74"
+    }
+  ],
+  "browserArtifact": "Final ZIP extracted to a fresh temporary directory; Chromium and WebKit both pass; destination signal measured then physically muted",
+  "artifact": {
+    "path": "release/tetorica_scsp_synth_dsp-delay-dev-20261031-checked_itch.zip",
+    "bytes": 1196232,
+    "sha256": "a0ccb41399678f6f5ae1803489fca250ea581c4fd694adc80187bb3ba67b133d",
+    "files": 38,
+    "bundles": 3,
+    "authenticatedOriginalInputs": 29
+  },
+  "sources": {
+    "docs/synth-scsp/audio.js": {
+      "bytes": 3071,
+      "sha256": "74d9ca9d6218ab302b32b6a7238377a5f95ead240de24949c60940e94027ec0c"
+    },
+    "docs/synth-scsp/dsp.js": {
+      "bytes": 3777,
+      "sha256": "21f01021b825333153bbaf6ebb6df0731d671d94fd432eefb0b7d83028660920"
+    },
+    "docs/synth-scsp/instrument.js": {
+      "bytes": 8532,
+      "sha256": "a66370405e0be2c3ec27d486db657dcaf398b0aaffdd16aa39bf84f8b95377ce"
+    },
+    "docs/synth-scsp/patch.js": {
+      "bytes": 3949,
+      "sha256": "cc2e9e509602ac99cf2cdc39b795b26d9a666e3b084f508965ea8b850f12ccaf"
+    },
+    "docs/synth-scsp/preset.js": {
+      "bytes": 1968,
+      "sha256": "caf491d9c4d132335a669caf8580130463ba3ceb3a57fd0394e210fc0b4d09e7"
+    },
+    "docs/synth-scsp/processor.js": {
+      "bytes": 2091,
+      "sha256": "0978a91d2c41ba3f80f85efbaacbac73033e77e926a4acb35fe3c7cf277c15b0"
+    },
+    "docs/synth-scsp/routing.js": {
+      "bytes": 2133,
+      "sha256": "f8adb1fda401d88a73f95e556822614c9c2a1545fd5c8bf04bfef588afe4cd58"
+    },
+    "docs/synth-scsp/synth.js": {
+      "bytes": 11980,
+      "sha256": "21d91364eb5d5285ef44fb365e15e5faf13050f7a96a004145722f15bfd5873a"
+    }
+  },
+  "verificationSources": {
+    "docs/synth-scsp/dsp.test.mjs": {
+      "bytes": 4151,
+      "sha256": "ce9c1125f82aaf4d3e50fb48c334868346c1738c8a2b08e4431fa341dafad569"
+    },
+    "docs/synth-scsp/instrument.test.mjs": {
+      "bytes": 11004,
+      "sha256": "3e86b6c851722521df31b08a9158d5ae183ca3ecb6e35e0a920f621b635f62db"
+    },
+    "docs/synth-scsp/preset.test.mjs": {
+      "bytes": 2389,
+      "sha256": "27d75655268d59e7db86d932b80218485f7e70511215b87bbfb4cca52e1a6833"
+    },
+    "docs/synth-scsp/processor.test.mjs": {
+      "bytes": 2356,
+      "sha256": "21121a384ff79c65e439becc4e6486b2abd61fb5a73967253dd53961c1adaf68"
+    }
+  },
+  "calibrationPolicyChecks": "both --check generators pass; shared runtime and pinned SDK/WASM unchanged",
+  "ui": "Voice / DSP / Operators sections; connection diagram selects A-F; one waveform canvas",
+  "fmFollowup": "docs/issues/scsp_fm_followup_01.md",
+  "limitations": [
+    "Human listening and physical hardware comparison pending",
+    "Reverb and arbitrary DSP programs not exposed",
+    "Main/Worker/Native shared Playground API not extended",
+    "PCM budget is now 448 KiB; over-budget old presets are rejected before stopping sound",
+    "Arbitrary OP routing, individual MDL, and FM feedback remain TODO"
+  ],
+  "published": false
+}

@@ -8,7 +8,7 @@ export async function createAudio({volume=.6,onError=()=>{}}={}) {
   const contextClosed=()=>{if(context.state==='closed'&&!closed)fail(new Error('SCSP AudioContext was closed; Start audio to reconnect'));};context.addEventListener('statechange',contextClosed);
   try{
     const resumed=context.resume();
-    const [wasmBinary]=await Promise.all([fetch(new URL('../generated/scsp_wasm.wasm',import.meta.url)).then(r=>{if(!r.ok)throw new Error(`SCSP WASM HTTP ${r.status}`);return r.arrayBuffer();}),context.audioWorklet.addModule(new URL('./processor.js?v=multiop-1',import.meta.url))]);
+    const [wasmBinary]=await Promise.all([fetch(new URL('../generated/scsp_wasm.wasm',import.meta.url)).then(r=>{if(!r.ok)throw new Error(`SCSP WASM HTTP ${r.status}`);return r.arrayBuffer();}),context.audioWorklet.addModule(new URL('./processor.js?v=dsp-delay-1',import.meta.url))]);
     gain=context.createGain();gain.gain.value=volume*.125;gain.connect(context.destination);
     node=new AudioWorkletNode(context,'tetorica-scsp-synth',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary}});node.onprocessorerror=()=>fail(new Error('SCSP processor failed'));node.connect(gain);
     await new Promise((resolve,reject)=>{initReject=reject;const timer=setTimeout(()=>reject(new Error('SCSP initialization timed out')),15000);node.port.onmessage=({data})=>{if(data.ready){clearTimeout(timer);resolve();}else if(data.fatal){clearTimeout(timer);reject(new Error(data.error));}};});initReject=null;await resumed;

@@ -4,6 +4,7 @@ import {ScspSynth,createScspInitSample} from '../js/scspsynth.js';
 const createScspValidation=()=>new ScspSynth({sampleRate:44100,reset(){},write(){},loadRam(){},renderInto(){},dispose(){}});
 const scspCommandArgs=(synth,method,args)=>method==='setPreset'&&args[1]?.sample?[args[0],{...args[1],sample:synth._resolveSample(args[1].sample)}]:args;
 import {settings,pcmOptions,readPatch,writePatch,FM_MAX_DEPTH} from './patch.js';
+import {DspDelay,reserveDspRam,DSP_RAM_BYTES} from './dsp.js';
 import {SOURCE_COUNT,OPERATOR_KEYS,operatorCount,routing,voiceCommands,operatorSlot} from './routing.js';
 const clone=v=>Array.isArray(v)?v.map(clone):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,clone(x)])):v;
 const sourceSlot=n=>{if(!Number.isInteger(n)||n<0||n>=SOURCE_COUNT)throw new RangeError('Choose operator A–F');return n;};
@@ -11,6 +12,7 @@ const hz=(midi,transpose)=>440*2**((midi-69+transpose)/12);
 export class SynthInstrument {
   constructor(core){
     this.core=core;this.synth=new ScspSynth(core);this.config=settings({mode:'pcm',fm:{depth:9,ratio:2},transpose:0});this.groups=new Map();this.sequence=0;
+    this.reserved=reserveDspRam(this.synth);this.effect=new DspDelay(core,this.config.effect);
     const {pcm,options}=createScspInitSample();
     for(let slot=0;slot<SOURCE_COUNT;slot++){
       const sample=this.synth.loadPCM(pcm,{...options,modulationDepth:FM_MAX_DEPTH});
@@ -24,7 +26,9 @@ export class SynthInstrument {
       for(const [method,args]of voiceCommands(check,config,{midi:69,slots:Array.from({length:operatorCount(config.mode)},(_,i)=>SOURCE_COUNT+i)}))check[method](...scspCommandArgs(check,method,args));
     }finally{check.dispose();}
   }
+  #routeEffect(){const outputs=routing(this.config).outputs;this.effect.route([...this.groups.values()].flatMap(group=>outputs.map(index=>operatorSlot(group,index))));}
   #apply(commands){for(const [method,args]of commands)this.synth[method](...args);}
+  setEffect(patch){const effect=this.effect.configure(patch);this.config={...this.config,effect};this.#routeEffect();return effect;}
   noteOn(id,midi){
     if(typeof id!=='string'||!id.length||id.length>128||this.groups.has(id))throw new TypeError('Invalid or duplicate voice identity');
     if(!Number.isInteger(midi)||midi<0||midi>127)throw new RangeError('MIDI note must be 0..127');
@@ -34,14 +38,14 @@ export class SynthInstrument {
     if(!slots){victim=[...this.groups.values()].sort((a,b)=>Number(a.held)-Number(b.held)||a.order-b.order)[0];slots=victim.slots;}
     const group={id,midi,slots:[...slots],held:true,order:++this.sequence,mode:this.config.mode};
     const commands=voiceCommands(this.synth,this.config,group);this.#check(commands);
-    this.#apply(commands);if(victim)this.groups.delete(victim.id);this.groups.set(id,group);
+    this.#apply(commands);if(victim)this.groups.delete(victim.id);this.groups.set(id,group);this.#routeEffect();
     return {slots:[...slots],stolenId:victim?.id??null};
   }
   noteOff(id){const group=this.groups.get(id);if(!group||!group.held)return false;this.#apply(group.slots.map(slot=>['keyOff',[slot]]));group.held=false;return true;}
   stopVoices(){
     this.synth.stopVoices();this.groups.clear();
     for(let slot=SOURCE_COUNT;slot<32;slot++)this.synth.setPreset(slot,{sample:null,modulation:{depth:0}});
-    return true;
+    this.effect.install();this.#routeEffect();return true;
   }
   setConfig(patch){
     if(!patch||typeof patch!=='object'||Array.isArray(patch)||Object.keys(patch).some(k=>!['mode','fm','transpose'].includes(k)))throw new TypeError('Invalid voice settings');
@@ -59,7 +63,7 @@ export class SynthInstrument {
     }
     this.#check(commands,next);
     if(routeChanged)this.stopVoices();else this.#apply(commands);
-    this.config=next;return clone(next);
+    this.config=next;this.#routeEffect();return clone(next);
   }
   invoke(method,args=[]){
     const slot=sourceSlot(args[0]);
@@ -77,23 +81,23 @@ export class SynthInstrument {
     if(!['setEnvelope','setMix','setLfo','setPreset'].includes(method))throw new Error('Unsupported operator edit');
     const patch=clone(args[1]);
     if(patch.modulation!==undefined)throw new TypeError('Use the voice FM depth control');
-    if(method==='setPreset'&&patch.sample)patch.sample=this.synth._resolveSample(patch.sample);
+    if(method==='setPreset'&&patch.sample){patch.sample=this.synth._resolveSample(patch.sample);if(patch.sample===this.reserved)throw new RangeError('DSP ring is not a playable sample');}
     const commands=[[method,[slot,patch]]];
     if(['setMix','setLfo'].includes(method))for(const group of this.groups.values()){
       const target=operatorSlot(group,slot);
       if(target!==null){const live={...patch};if(method==='setMix'&&!routing(this.config).outputs.includes(slot))live.directLevel=0;commands.push([method,[target,live]]);}
     }
-    this.#check(commands);this.#apply(commands);return true;
+    this.#check(commands);this.#apply(commands);this.#routeEffect();return true;
   }
   exportPatch(){return writePatch(this.config,Object.fromEntries(OPERATOR_KEYS.map((key,slot)=>[key,this.invoke('getPCM',[slot])])));}
   loadPatch(value){
     const patch=readPatch(value); // complete validation before Stop or RAM reset
-    this.stopVoices();this.synth.reset({clearRam:true});
+    this.stopVoices();this.synth.reset({clearRam:true});this.reserved=reserveDspRam(this.synth);
     for(const [slot,kind]of OPERATOR_KEYS.entries()){
       const operator=patch.operators[kind],sample=this.synth.loadPCM(operator.pcm,pcmOptions(operator));this.synth.setPreset(slot,{...operator.voice,sample});
     }
-    this.config=settings(patch);return true;
+    this.config=settings(patch);this.effect.settings=this.config.effect;this.effect.install();this.#routeEffect();return true;
   }
-  read(){const state=this.synth.getState();return {...state,kind:'scsp',config:clone(this.config),voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
+  read(){const state=this.synth.getState();return {...state,samples:state.samples.filter(sample=>sample.id!==this.reserved.id),dspRamBytes:DSP_RAM_BYTES,kind:'scsp',config:clone(this.config),voiceCapacity:Math.floor((32-SOURCE_COUNT)/operatorCount(this.config.mode)),sourceCount:SOURCE_COUNT,routing:routing(this.config),voiceGroups:[...this.groups.values()].map(g=>clone(g)),channels:state.slots.map((v,channel)=>({...v,channel,type:'scsp-pcm',active:v.gate}))};}
   dispose(){this.groups.clear();this.synth.dispose();}
 }

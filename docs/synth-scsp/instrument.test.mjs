@@ -24,8 +24,8 @@ test('editing holds and infinite releases pins old PCM; invalid config and PCM e
 test('two-operator preset restores exact PCM and rejects malformed input without stopping current voice; v1 remains readable',async t=>{
  const a=await create(t),b=await create(t);a.setConfig({mode:'fm2',fm:{depth:10,ratio:1.5},transpose:-2});a.invoke('setLfo',[1,{frequencyCode:20,pitchDepth:3}]);
  a.invoke('applyPCM',[1,Int8Array.from({length:64},(_,n)=>Math.round(32*Math.sin(n*Math.PI/32))),{baseFrequencyHz:44100/64,loopStartSamples:0}]);
- const patch=a.exportPatch();assert.equal(patch.version,3);assert.equal(patch.operators.modulator.bits,8);b.loadPatch(JSON.parse(JSON.stringify(patch)));a.noteOn('a',64);b.noteOn('b',64);assert.deepEqual(a.synth.generateStereo(8192),b.synth.generateStereo(8192));
- const before=b.read();for(const change of [p=>p.fm.ratio=NaN,p=>p.fm.depth=13,p=>{p.fm.depth=0;delete p.operators.carrier.options.loopStartSamples;},p=>p.operators.carrier.pcm[0]=32768,p=>p.operators.carrier.options.loopStartSamples=1,p=>delete p.operators.modulator,p=>p.version=4]){const invalid=structuredClone(patch);change(invalid);assert.throws(()=>b.loadPatch(invalid));assert.deepEqual(b.read(),before);}
+ const patch=a.exportPatch();assert.equal(patch.version,4);assert.equal(patch.operators.modulator.bits,8);b.loadPatch(JSON.parse(JSON.stringify(patch)));a.noteOn('a',64);b.noteOn('b',64);assert.deepEqual(a.synth.generateStereo(8192),b.synth.generateStereo(8192));
+ const before=b.read();for(const change of [p=>p.fm.ratio=NaN,p=>p.fm.depth=13,p=>{p.fm.depth=0;delete p.operators.carrier.options.loopStartSamples;},p=>p.operators.carrier.pcm[0]=32768,p=>p.operators.carrier.options.loopStartSamples=1,p=>delete p.operators.modulator,p=>p.version=5]){const invalid=structuredClone(patch);change(invalid);assert.throws(()=>b.loadPatch(invalid));assert.deepEqual(b.read(),before);}
  const {carrier}=patch.operators,legacy={...carrier,format:'tetorica-scsp-voice',version:1};assert.equal(readPatch(legacy).mode,'pcm');b.loadPatch(legacy);assert.equal(b.read().config.mode,'pcm');assert.equal(b.read().voiceGroups.length,0);
 });
 
@@ -66,7 +66,7 @@ test('all six operators affect serial sound; independent ratios, PCM protection,
   const normal=await create(t),changed=await create(t);for(const x of [normal,changed])x.setConfig({mode:'fm6'});changed.invoke('setMix',[index,{totalLevel:255}]);normal.noteOn('a',69);changed.noteOn('b',69);assert.notDeepEqual(normal.synth.generateStereo(4096),changed.synth.generateStereo(4096),`operator ${index} must affect sound`);
  }
 });
-test('six-operator v3 roundtrip is exact; v2 migrates; illegal route and RAM overflow leave sound intact',async t=>{
+test('six-operator v4 roundtrip is exact; v2 migrates; illegal route and RAM overflow leave sound intact',async t=>{
  const a=await create(t),b=await create(t);a.setConfig({mode:'fm6',fm:{algorithm:'branch',ratios:[1,2,3,4,5,6]}});
  for(let n=0;n<6;n++)a.invoke('applyPCM',[n,Int8Array.from({length:64},(_,i)=>Math.round((16+n)*Math.sin(i*Math.PI/32))),{baseFrequencyHz:44100/64,loopStartSamples:0}]);
  const patch=JSON.parse(JSON.stringify(a.exportPatch()));b.loadPatch(patch);for(const x of [a,b])x.noteOn('held',64);assert.deepEqual(a.synth.generateStereo(8192),b.synth.generateStereo(8192));

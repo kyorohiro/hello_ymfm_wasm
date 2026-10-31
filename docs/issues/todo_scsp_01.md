@@ -66,6 +66,8 @@ READMEの「音源技術を読み解き、学び、再構成できる形で残�
 
 ## 5. SCSP固有機能とSynth
 
+DSP・UI整理は[作業TODO](scsp_dsp_01.md)、FM Depth／接続図／自由配線／Feedback／予約削減は[後続TODO](scsp_fm_followup_01.md)。
+
 - [x] ハードウェアLFOのcore／JavaScript／型／Main・Worker・Native／Playground・Synth接続。
   [実装・検証・配布](scsp_lfo_01.md)。
 - [ ] slot間変調／sound stackを段階的に公開・検証する。[作業TODO・初期段階完了](scsp_fm_01.md)。

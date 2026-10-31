@@ -4,6 +4,21 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP DSP Delay・UI整理完了 — 2026-10-31
+
+[操作・検証・配布](scsp_dsp_01.md)／[source・最終ZIP hash](scsp_dsp_01.json)。
+SynthのSCSP DSP → Enable Delay。独自mono Delay programを固定SCSP DSP coreで実行する。
+Time／Feedback／Send／Return、先頭64KiB ring予約（PCM残448KiB）、Stop／Time変更時のecho clear。
+v4 preset保存、旧v1〜v3はDSP Offで読込。予算超過は演奏を変える前に拒否する。
+Voice／DSP／Operatorsへ整理し、接続図のA〜Fボタンで単一canvasの編集対象を選択。
+独立Playground DSP Labは`docs/playground/scsp-dsp.html`。Synth footerとZIP内から開ける。
+通常PlaygroundのRun／Main／Worker／NativeへのDSP公開、Reverbは後続。
+Node19と最終展開ZIPのChromium／WebKit（Synth・Labとも）成功。測定はdestination入力、物理出力mute。
+最新ZIP：`release/tetorica_scsp_synth_dsp-delay-dev-20261031-checked_itch.zip`。
+SDK／WASM／共有runtime／npmは変更せず。人の試聴・実機比較・公開・commitは未実施。
+FM個別Depth／自由配線／Feedback／編集元予約削減は[FM後続TODO](scsp_fm_followup_01.md)。
+下記multi-op完了時のpreset version 3やRAM予算は当時の履歴。
+
 ## SCSP専用Synth 4／6-op・固定接続完了 — 2026-10-31
 
 [操作・TODO・検証](scsp_synth_multiop_01.md)／[source・配布hash](scsp_synth_multiop_01.json)。

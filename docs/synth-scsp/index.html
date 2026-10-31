@@ -14,7 +14,7 @@
   <article class="synth-shell" aria-labelledby="synthTitle">
     <header class="product-header">
       <img class="product-icon" src="../tetorica-spu-1254.webp" width="144" height="144" alt="Tetorica SCSP Synth" decoding="async">
-      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO / 2–6 OP FM <i>·</i> 32 SLOTS</p></div>
+      <div class="product-copy"><p class="eyebrow">SEGA SATURN · SOUND PROCESSOR</p><h1 id="synthTitle">Tetorica <span>SCSP</span> Synth</h1><p class="description">Shape a waveform. Play a voice.</p><p class="product-meta">PCM8 / PCM16 <i>·</i> EG / LFO / 2–6 OP FM / DSP <i>·</i> 32 SLOTS</p></div>
       <div class="engine-badge"><span class="led"></span> SCSP <small>PCM ENGINE</small></div>
     </header>
     <section class="toolbar" aria-label="Transport">
@@ -25,17 +25,35 @@
     </section>
     <p id="status" role="status">Start audio, then play the keys below or use A W S E D F T G Y H U J K.</p>
     <section class="keyboard-panel" aria-label="Keyboard"><div class="section-heading"><h2>Keyboard</h2><label>Octave <input id="octave" type="number" min="0" max="8" value="4"></label></div><div id="keyboard"></div><p class="hint" id="capacity">26 PCM / 13 two-op / 6 four-op / 4 six-op voices · 6 source slots reserved.</p></section>
-    <section class="voice-routing" aria-label="Voice routing">
-      <label>Voice mode <select id="voiceMode" disabled><option value="pcm">PCM</option><option value="fm2">2-operator FM</option><option value="fm4">4-operator FM</option><option value="fm6">6-operator FM</option></select></label>
-      <label>FM depth (MDL) <input id="fmDepth" type="number" min="0" max="12" value="9" disabled></label>
-      <label>All modulator ratios <input id="fmRatio" type="number" min="0.125" max="8" step="0.125" value="2" disabled></label>
-      <label>Connection <select id="algorithm" disabled><option value="chain">Chain · serial</option><option value="pairs">Pairs · parallel 2-op</option><option value="branch">Branch · two-input tree</option></select></label>
-      <label>Selected operator ratio <input id="operatorRatio" type="number" min="0.125" max="8" step="0.125" value="1" disabled></label>
-      <div class="operator-switch" role="group" aria-label="Edit operator"><button id="carrier" data-operator="0" aria-pressed="true" disabled>A</button><button id="modulator" data-operator="1" aria-pressed="false" disabled>B</button><button data-operator="2" aria-pressed="false" disabled>C</button><button data-operator="3" aria-pressed="false" disabled>D</button><button data-operator="4" aria-pressed="false" disabled>E</button><button data-operator="5" aria-pressed="false" disabled>F</button></div>
+    <section class="sound-settings" aria-label="Voice and effects">
+      <section class="voice-routing" aria-labelledby="voiceSettingsTitle">
+        <h2 id="voiceSettingsTitle">Voice</h2>
+        <label>Voice mode <select id="voiceMode" disabled><option value="pcm">PCM</option><option value="fm2">2-operator FM</option><option value="fm4">4-operator FM</option><option value="fm6">6-operator FM</option></select></label>
+        <label>Connection <select id="algorithm" disabled><option value="chain">Chain · serial</option><option value="pairs">Pairs · parallel 2-op</option><option value="branch">Branch · two-input tree</option></select></label>
+        <label>All FM depths (MDL) <input id="fmDepth" type="number" min="0" max="12" value="9" disabled></label>
+        <label>All modulator ratios <input id="fmRatio" type="number" min="0.125" max="8" step="0.125" value="2" disabled></label>
+        <p>Mode and Connection changes stop notes. All modulator ratios resets A to 1 and B–F to the chosen value.</p>
+      </section>
+      <section class="effects-panel" aria-labelledby="effectsTitle">
+        <h2 id="effectsTitle">SCSP DSP · Delay</h2>
+        <label class="effect-enable"><input id="effectEnabled" type="checkbox" disabled> Enable Delay</label>
+        <label>Time <span class="unit">ms</span><input id="delayTime" type="number" min="20" max="700" value="240" disabled></label>
+        <label>Feedback <input id="delayFeedback" type="number" min="0" max="0.85" step="0.01" value="0.35" disabled></label>
+        <label>Send <input id="effectSend" type="number" min="0" max="7" value="5" disabled></label>
+        <label>Return <input id="effectReturn" type="number" min="0" max="7" value="5" disabled></label>
+        <p>Shared mono Delay runs inside the SCSP DSP. Send / Return: 0 = mute, 7 = maximum. Changing Time or Enable clears echoes. Stop clears the tail.</p>
+      </section>
+    </section>
+    <section class="operator-panel" aria-labelledby="operatorsTitle">
+      <div class="section-heading"><h2 id="operatorsTitle">Operators <span id="selectedOperator">A</span></h2><label>Selected ratio <input id="operatorRatio" type="number" min="0.125" max="8" step="0.125" value="1" disabled></label></div>
+      <div id="operatorMap">
+        <svg id="connections" viewBox="0 0 600 110" role="img" aria-label="Operator modulation connections"><defs><marker id="routeArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs><g id="connectionPaths"></g></svg>
+        <div class="operator-switch" role="group" aria-label="Edit operator"><button id="carrier" data-operator="0" aria-pressed="true" disabled>A</button><button id="modulator" data-operator="1" aria-pressed="false" disabled>B</button><button data-operator="2" aria-pressed="false" disabled>C</button><button data-operator="3" aria-pressed="false" disabled>D</button><button data-operator="4" aria-pressed="false" disabled>E</button><button data-operator="5" aria-pressed="false" disabled>F</button></div>
+      </div>
       <p id="routingSummary" aria-live="polite">Output: A</p>
-      <p>Software connection presets group SCSP slots into voices. Select A–F to edit on the same canvas. Apply before switching; unapplied drawings are discarded. Only Output operators reach the speakers. TL controls each operator's strength. Voice mode and Connection changes stop notes. All modulator ratios resets A to 1 and B–F to the chosen value.</p>
+      <p>Choose an operator to edit on the single canvas below. Lines show modulation; Output operators feed the mixer and DSP Send. Apply drawings before switching. Unapplied drawings are discarded.</p>
     </section>
     <section id="voice" aria-label="Voice editor"></section>
-    <footer><p>Waveform drawing, voice allocation, repeated PCM guards and preset files are software features. Slot FM, envelopes and LFO run in the SCSP core. The fixed core has zero slot-write delay; hardware timing fidelity is not guaranteed. DSP editing and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
+    <footer><p>Waveform drawing, voice allocation, repeated PCM guards and preset files are software features. Slot FM, envelopes and LFO run in the SCSP core. The fixed core has zero slot-write delay; hardware timing fidelity is not guaranteed. The original mono Delay program uses 64 KiB of SCSP RAM, leaving 448 KiB for PCM and guards. Custom DSP programs, Reverb and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/scsp-dsp.html">DSP Lab</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
   </article>
-</main><script type="module" src="synth.js?v=multiop-1"></script></body></html>
+</main><script type="module" src="synth.js?v=dsp-delay-1"></script></body></html>
