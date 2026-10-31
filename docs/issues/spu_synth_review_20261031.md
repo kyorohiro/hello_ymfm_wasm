@@ -75,3 +75,18 @@ Node70件成功（実WASMの初期PCM一致を含む）。
 [両browserの限定検証](spu_synth_default_morph_browser_20261031.json)で、
 起動前後のOn／amount=0、初期Sineの実PCM、離鍵、Reset後のOn、RAM不足PMON拒否後の離鍵を確認。
 配布ZIPは再作成していないため、上記の既存ZIPにはこの既定値変更は含まれない。
+
+## 後続：select選択後の演奏フォーカス
+
+ユーザー報告に対応し、SPU Synth内のselectをpointerで操作した場合、changeの確定時にblurする。
+documentの演奏キー捕捉だけではOS標準popup側で処理されるキーを回収できないため、
+選択確定後は演奏へ戻す。矢印・Tab等で操作する場合はpointer扱いを解除し、select focusを保持する。
+text／number入力の編集と既存のEnter確定は維持。FM2612／Playgroundは変更していない。
+
+Node70件成功。[両browser限定検証](spu_synth_select_focus_browser_20261031.json)で、
+Sound source Noise／Sample、Morph Wave A、Reverb preset、PMON waveformのメニューをclickで開き、
+Playwrightのoption確定後にfocusが外れること、PCキーの実PCM発音・離鍵／Stopを確認。
+selectのkeyboard focusを維持した変更と、その後の文字キー発音も確認した。
+修正前controllerの隔離コピーでは同じ検証の最初のSound source選択でfocus解放のassertionが失敗。
+この限定検証ではVAB等の全selectを個別に操作したとは扱わない。実装はdocumentへの委譲で全selectに適用する。
+配布ZIPは再作成していない。

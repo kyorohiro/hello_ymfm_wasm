@@ -218,7 +218,19 @@ function editing(target) {
   const node = target?.closest?.('input,textarea,[contenteditable="true"],dialog[open]');
   return node && !node.matches('input[type=range],input[type=checkbox]');
 }
+// Native select popups can consume keys before document handlers see them.
+// Return pointer users to performance focus once a choice is committed; keep
+// focus for keyboard navigation so arrows and Tab remain usable.
+let pointerSelect = null;
+document.addEventListener('pointerdown', event => {
+  pointerSelect = event.target?.closest?.('select') ?? null;
+}, {capture:true});
+document.addEventListener('change', event => {
+  const select = event.target?.closest?.('select');
+  if (select && select === pointerSelect) {pointerSelect = null; select.blur();}
+}, {capture:true});
 document.addEventListener('keydown', event => {
+  if (event.target?.closest?.('select') && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End',' ','Enter','Escape','Tab'].includes(event.key)) pointerSelect = null;
   if (event.isComposing) return;
   const entryField=event.target?.closest?.('input[type=number],input[type=text]');
   if (event.key === 'Enter' && entryField) {event.preventDefault();entryField.blur();return;}

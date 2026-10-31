@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "publicUiOnly": true,
+  "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+  "entry": "/synth-spu/index.html",
+  "results": [
+    {
+      "browser": "chromium",
+      "selectFocus": {
+        "pointerChoices": [
+          "Sound source Noise",
+          "Sound source Sample",
+          "Morph Wave A",
+          "Shared reverb preset",
+          "PMON modulator"
+        ],
+        "keyboardNavigationRetainsFocus": true,
+        "focusedSelectMusicalKeys": true
+      }
+    },
+    {
+      "browser": "webkit",
+      "selectFocus": {
+        "pointerChoices": [
+          "Sound source Noise",
+          "Sound source Sample",
+          "Morph Wave A",
+          "Shared reverb preset",
+          "PMON modulator"
+        ],
+        "keyboardNavigationRetainsFocus": true,
+        "focusedSelectMusicalKeys": true
+      }
+    }
+  ],
+  "sources": {
+    "generated/ps1_spu_wasm.js": {
+      "bytes": 17148,
+      "sha256": "49f1994131a8e7bd3224544d71dc5e73890f7d9584bb44f267818f99d1b799bf"
+    },
+    "generated/ps1_spu_wasm.wasm": {
+      "bytes": 50282,
+      "sha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4"
+    },
+    "js/audio_decode.js": {
+      "bytes": 1955,
+      "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+    },
+    "js/pcm_44100_resampler.js": {
+      "bytes": 4242,
+      "sha256": "53b5e846322e2715fa396f92533f9b6a33da51466ec5cc4838ff6802765c615e"
+    },
+    "js/playground_ps1_inspector.js": {
+      "bytes": 8114,
+      "sha256": "0834f0777737bada6dbbfd1bd508602b1556ad4c24adbe2e753ab8b75fd224e1"
+    },
+    "js/ps1_adpcm_encoder.js": {
+      "bytes": 10402,
+      "sha256": "f1e24d4e67d609bdecebe2bedd6271961d8ea2010081f1b4f84f0ee29a97d8e2"
+    },
+    "js/ps1_parameters.js": {
+      "bytes": 6237,
+      "sha256": "c5e4d60ffb4605bac11b275a9089895c114732fc51f1a9f04c88e5133dd3ced1"
+    },
+    "js/ps1_resampler.js": {
+      "bytes": 193,
+      "sha256": "21c158a0e1c973fd2d29354663da34e93795a1cefbd7f55bc9f2bc8465315787"
+    },
+    "js/ps1_spu.js": {
+      "bytes": 10862,
+      "sha256": "d7fca7f2e4e9b7292cb5157d6e9ea1df67dd98b6facae478063f44864ae67769"
+    },
+    "js/ps1_waveform.js": {
+      "bytes": 1088,
+      "sha256": "5ca293b60ea15b87dc895c51d806ef54887efe4e961ef479f59d562d0d5dd820"
+    },
+    "js/ps1synth.js": {
+      "bytes": 21645,
+      "sha256": "cde0a54d196b5ededb494b62ebb8098553d600702128b8149bd022eab1b5e3f2"
+    },
+    "js/soundchip_mixer_presets.js": {
+      "bytes": 3296,
+      "sha256": "acd83313d9488212e1f69cf0fcc0701cd0b644f5cefbd39c36994f3d23f08a56"
+    },
+    "js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "playground/playground_ps1_envelope.js": {
+      "bytes": 1927,
+      "sha256": "bfd6b756a4edf7b80a69f42e4236f4f640905f362a5a38d3f0e5e19a219883de"
+    },
+    "playground/playground_ps1_psf.js": {
+      "bytes": 12762,
+      "sha256": "a5cd0c80e642869163301adeb6135020b408c74fb9b232c7f376fef5f4efb1bb"
+    },
+    "playground/playground_ps1_vab_panel.js": {
+      "bytes": 11671,
+      "sha256": "f2e4e2d2ea023833d99bda456d5333343761e52a9495750e5b50691adfcec21d"
+    },
+    "playground/playground_ps1_vab.js": {
+      "bytes": 7182,
+      "sha256": "43e777bd48ebcaecbf0daca88b14c2042b44ae1eb160855959d13b59ddcb78f2"
+    },
+    "playground/playground_ps1_voice_panel.js": {
+      "bytes": 36580,
+      "sha256": "6e9111155b25fb822ec4f61efd9a0a1c863fb106a933240a272444d0f7ed2ef1"
+    },
+    "synth-spu/icon.png": {
+      "bytes": 2663786,
+      "sha256": "487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580"
+    },
+    "synth-spu/index.html": {
+      "bytes": 11944,
+      "sha256": "675d0236e55c75fb4f6671c26258f2b95dc68362a75a1b514a241b5b0ae94f8c"
+    },
+    "synth-spu/spu_synth_audio.js": {
+      "bytes": 8164,
+      "sha256": "6862d1d86ebda5f7a9da2d92eb46fa690fb80b4af41e961fd6225eef1b8dd18b"
+    },
+    "synth-spu/spu_synth_instrument.js": {
+      "bytes": 7225,
+      "sha256": "f18d97276abd98468135e6da3ba5bc191f5286b5fae8e5e2eb52d544b8b5fa5b"
+    },
+    "synth-spu/spu_synth_levels.js": {
+      "bytes": 349,
+      "sha256": "f1f0a334516c0e849bae120f57d4927977daffa656ce0d49cf9af93169e2a6df"
+    },
+    "synth-spu/spu_synth_long_audio.js": {
+      "bytes": 2545,
+      "sha256": "e74c7336cf5b5364c8529b6caf5b0b0796d7ff80bc093d450d74dceee81adc3a"
+    },
+    "synth-spu/spu_synth_morph.js": {
+      "bytes": 1749,
+      "sha256": "15cf1302bb619c39a179620967e8be2cfefd18aaf17c86c262c51ea216971d05"
+    },
+    "synth-spu/spu_synth_noise.js": {
+      "bytes": 686,
+      "sha256": "a0081042773df893dbe3ee4848209530862bfbdd9c791759bbe4cfb6d0887422"
+    },
+    "synth-spu/spu_synth_panel.js": {
+      "bytes": 22095,
+      "sha256": "ab484917f62b2f9a99bdb64ce0228107c05a94dbe6eb5b2857ab6da1006decc2"
+    },
+    "synth-spu/spu_synth_pmon.js": {
+      "bytes": 2068,
+      "sha256": "2b560db15e4c73ff8a552974980eb9c1160af009434cb072d486733d2db71daa"
+    },
+    "synth-spu/spu_synth_vab.js": {
+      "bytes": 213,
+      "sha256": "3a7d49e5716c8ca8c6ec1c34668096a1e849ad5cc3cf3ae046f416ae77621235"
+    },
+    "synth-spu/spu_synth_visualizer.js": {
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    },
+    "synth-spu/spu_synth_voices.js": {
+      "bytes": 1829,
+      "sha256": "fa4325f335c5a05bc0fc470d6fca7841a9db5eefd3f4a34bcdb35aaf3dda5698"
+    },
+    "synth-spu/spu_synth_worklet.js": {
+      "bytes": 23640,
+      "sha256": "ef19464cd57d6bbbb449fbc07293676019dd34c0e0ecfce389d10fd52aeaece1"
+    },
+    "synth-spu/synth.css": {
+      "bytes": 22493,
+      "sha256": "bcdb33ce8b29d57a1fcb4f307dac3441010da403bca570c45488bc96714f6968"
+    },
+    "synth-spu/synth.js": {
+      "bytes": 32448,
+      "sha256": "8a6ad43d6bba2d4c40eb03fc72c2563516369f491a58d17f8ef246e15b73ac69"
+    },
+    "synth/synth_keyboard.js": {
+      "bytes": 10010,
+      "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+    }
+  },
+  "checkerSha256": "41d154ef9eb094daa4cad37acc8e3640f00e5d2222c7cd372225de147f478c8a",
+  "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+}

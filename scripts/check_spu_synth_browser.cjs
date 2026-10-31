@@ -8,12 +8,13 @@ const {createHash} = require('node:crypto');
 const {chromium, webkit} = require('playwright');
 const {PROCESSOR_NAMES, processorSource, analyzePilotPcm, analyzeClockRows} = require('./audio_clock_audit.cjs');
 
-const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, reviewOnly:false, engines:[]};
-const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--review-only | --psf-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
+const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, reviewOnly:false, focusOnly:false, engines:[]};
+const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--review-only | --psf-only | --focus-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
 for (let i = 2; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--help') {console.log(usage); process.exit(0);}
   if (arg === '--review-only') {config.reviewOnly=true;continue;}
+  if (arg === '--focus-only') {config.focusOnly=true;continue;}
   if (arg === '--psf-only') {config.psfOnly=true;continue;}
   if (['--chromium-only', '--webkit-only'].includes(arg)) {config.engines.push(arg.slice(2, -5)); continue;}
   const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture|psfFixture)(?:=(.*))?$/); assert(match, usage);
@@ -985,6 +986,38 @@ async function checkSineChordHeadroom(page) {
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.
+async function checkSelectCommitFocus(page, keyboardHz) {
+  console.log('CHECK select commit: pointer choice returns performance focus / keyboard navigation stays focused');
+  const checked=[];
+  async function choose(selector,value,label,expectedHz) {
+    const select=page.locator(selector);
+    // Open the actual native popup, then commit an option through Playwright.
+    await select.click();await select.selectOption(value);await settled(page);
+    assert(!(await select.evaluate(node=>node===document.activeElement)),`${label}: pointer commit releases select focus`);
+    await page.keyboard.down('y');await settled(page);await audible(page,`After ${label} pointer selection`,expectedHz);
+    await page.keyboard.up('y');await settled(page);await page.locator('#stopAudio').click();await silent(page,`${label} release/Stop`);
+    checked.push(label);
+  }
+  await editorTab(page,'pcm');
+  await choose('[data-noise="source"]','noise','Sound source Noise');
+  await choose('[data-noise="source"]','sample','Sound source Sample',keyboardHz);
+  await choose('[data-morph="a"]','triangle','Morph Wave A',keyboardHz);
+  const wave=page.locator('[data-morph="a"]');
+  await wave.focus();await page.keyboard.press('ArrowUp');await page.keyboard.press('Escape');
+  await wave.selectOption('sine');await settled(page);
+  assert(await wave.evaluate(node=>node===document.activeElement),'Keyboard changes retain select focus');
+  assert.equal(await wave.inputValue(),'sine');
+  await page.keyboard.down('y');await settled(page);await audible(page,'Focused select still permits musical keys',keyboardHz);await page.keyboard.up('y');await settled(page);
+  await editorTab(page,'fx');
+  await choose(control('reverb-preset'),'room','Shared reverb preset',keyboardHz);
+  await field(page,'reverb-preset','off');
+  await page.locator('[data-pmon="enabled"]').check();await settled(page);
+  await choose('[data-pmon="waveform"]','triangle','PMON modulator');
+  await page.locator('[data-pmon="enabled"]').uncheck();await settled(page);
+  await editorTab(page,'pcm');
+  return {pointerChoices:checked,keyboardNavigationRetainsFocus:true,focusedSelectMusicalKeys:true};
+}
+
 async function checkRejectedPmon(page) {
   console.log('CHECK rejected PMON: full sample RAM preserves held keyboard owner');
   const initial=await current(page),free=524288-initial.nextAddress;assert(!initial.pmonSampleReserved);assert.equal(free%16,0);
@@ -1040,6 +1073,11 @@ async function runCase(browser, name, origin) {
     assert(startup.morph.enabled && startup.morph.amount===0, 'Fresh Sine starts with Morph On at Wave A');
     assert(await page.locator('[data-morph="enabled"]').isChecked());
     assert(!(await page.locator('#morphAmount').isDisabled()));
+    if(config.focusOnly) {
+      const selectFocus=await checkSelectCommitFocus(page,keyboardHz);
+      assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
+      return {browser:name,selectFocus};
+    }
     if(config.reviewOnly) {
       await hold(page);const startupPcm=await audible(page,'Default Morph Sine',keyboardHz);await release(page);await silent(page,'Default Morph release');
       await page.locator('#resetPreset').click();assert((await settled(page)).morph.enabled);assert.equal((await current(page)).morph.amount,0);
@@ -1206,6 +1244,7 @@ async function runCase(browser, name, origin) {
     await page.keyboard.up('y');
 
     const keyboardFocus=await checkKeyboardFocus(page,keyboardHz);
+    keyboardFocus.pointerSelectCommit=await checkSelectCommitFocus(page,keyboardHz);
     const pmon=await checkPmon(page,keyboardHz,name);
     const noise=await checkNoise(page,name);
     const morph=await checkMorph(page,name);
