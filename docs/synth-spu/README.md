@@ -8,6 +8,7 @@ the Guitar / Bass / Ukulele keyboard from the FM2612 Synth. Its silver panels,
 charcoal displays and red / yellow / blue accents follow the supplied SPU
 Synth icon. The original icon is used in the header and browser icons.
 Master volume uses the existing calibrated PS1 System gain as its reference.
+The Master slider reaches 200%; it turns orange above 100% and blue at or below 100%.
 
 ## Play and edit
 

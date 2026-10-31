@@ -147,4 +147,4 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
   } finally {clearTimeout(readyTimer);}
 }
 
-function validateVolume(value) {if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError('SPU volume must be from 0 to 1');}
+function validateVolume(value) {if (!Number.isFinite(value) || value < 0 || value > 2) throw new RangeError('SPU volume must be from 0 to 2');}

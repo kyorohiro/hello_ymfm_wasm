@@ -259,6 +259,8 @@
       .volume-control input[type="range"] {
         width: 120px;
       }
+      #masterVolumeRange { accent-color: #7cadd8; }
+      #masterVolumeRange[data-boosted="true"] { accent-color: #e8953d; }
 
       .volume-readout {
         min-width: 3.2em;
@@ -1395,7 +1397,7 @@
             <div class="volume-row">
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
-                <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1">
+                <input id="masterVolumeRange" type="range" min="0" max="200" value="100" step="1" aria-label="Master volume, 0 to 200 percent">
                 <span id="masterVolumeValue" class="volume-readout">100%</span>
               </label>
             </div>
@@ -1464,7 +1466,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-octave-1";
+      import "./synth.js?v=synth-master-200-1";
     </script>
   </body>
 </html>

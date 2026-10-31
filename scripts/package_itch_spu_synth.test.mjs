@@ -64,7 +64,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
       assert.doesNotMatch(html, /iframe|sw-register|webmanifest/);
     }
     const html = await readFile(join(result.stage, 'index.html'), 'utf8');
-    assert.match(html, /src="\.\/synth-spu\/synth\.js\?v=spu-keyboard-wheels-1"/); assert.match(html, /href="\.\/synth-spu\/synth\.css\?v=spu-keyboard-wheels-1"/);
+    assert.match(html, /src="\.\/synth-spu\/synth\.js\?v=spu-master-200-1"/); assert.match(html, /href="\.\/synth-spu\/synth\.css\?v=spu-master-200-1"/);
     assert.doesNotMatch(JSON.stringify(info.browser), /\/private\/|\/Users\//, 'Receipt must be portable');
     for (const bundle of info.browser.bundles) {
       const bytes = await readFile(join(result.stage, bundle.path)); assert.equal(hash(bytes), bundle.sha256);

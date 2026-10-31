@@ -56,6 +56,7 @@ h1 .brand-u { color: #1d60ad; }
 .quiet-button { color: #59636b; background: #d9dfe4; border-color: #a9b3bb; }
 .master-control { display: flex; gap: 10px; align-items: center; color: #58626a; font-size: .75rem; }
 .master-control input { width: 135px; }
+#masterVolume[data-boosted="true"] { accent-color: #e8953d; }
 .master-control output { min-width: 37px; text-align: right; color: var(--ink); }
 .audio-status { min-height: 1.5em; margin: 12px 0 0; color: #556b7d; font-size: .76rem; overflow-wrap: anywhere; }
 .audio-status[data-error="true"] { color: #ac302b; }

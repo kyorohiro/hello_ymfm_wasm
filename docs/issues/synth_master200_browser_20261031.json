@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "results": [
+    {
+      "browser": "chromium",
+      "chip": "fm2612",
+      "maxPercent": 200,
+      "blue": "rgb(124, 173, 216)",
+      "orange": "rgb(232, 149, 61)",
+      "at100": 0.09933243776850706,
+      "at200": 0.19867813844210958,
+      "ratio": 2.0001335203826,
+      "mute": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "browser": "chromium",
+      "chip": "spu",
+      "maxPercent": 200,
+      "blue": "rgb(36, 104, 183)",
+      "orange": "rgb(232, 149, 61)",
+      "at100": 0.04437053662549505,
+      "at200": 0.08878496208822698,
+      "ratio": 2.000989143710551,
+      "mute": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "browser": "webkit",
+      "chip": "fm2612",
+      "maxPercent": 200,
+      "blue": "rgb(124, 173, 216)",
+      "orange": "rgb(232, 149, 61)",
+      "at100": 0.09934769725005616,
+      "at200": 0.1988051550658139,
+      "ratio": 2.001104812378543,
+      "mute": true,
+      "physicalOutputMuted": true
+    },
+    {
+      "browser": "webkit",
+      "chip": "spu",
+      "maxPercent": 200,
+      "blue": "rgb(36, 104, 183)",
+      "orange": "rgb(232, 149, 61)",
+      "at100": 0.04440463309339407,
+      "at200": 0.08873064274726719,
+      "ratio": 1.9982293865742438,
+      "mute": true,
+      "physicalOutputMuted": true
+    }
+  ]
+}

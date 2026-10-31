@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-morph-default-1';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-master-200-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -286,6 +286,7 @@ $('allNotesOff').addEventListener('click', () => {
 });
 $('masterVolume').addEventListener('input', () => {
   const value = Number($('masterVolume').value);
+  $('masterVolume').dataset.boosted = String(value > 1);
   $('masterVolumeValue').textContent = `${Math.round(value * 100)}%`; audio?.setVolume(value);
   if (audio) visualizer.wake();
 });

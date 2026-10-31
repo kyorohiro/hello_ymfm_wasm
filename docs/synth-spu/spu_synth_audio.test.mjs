@@ -59,6 +59,9 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
   const audio = await createAudio(); t.after(() => audio.dispose());
   assert.equal(gainParameters[0].value,.128832*SPU_SYNTH_MIX_HEADROOM,'post-chip gain compensates fixed voice attenuation');
   audio.setVolume(.7);assert.equal(gainParameters[0].value,.7*.128832*SPU_SYNTH_MIX_HEADROOM,'Master ramps retain compensation');
+  audio.setVolume(2);assert.equal(gainParameters[0].value,2*.128832*SPU_SYNTH_MIX_HEADROOM,'200% doubles calibrated output gain');
+  assert.throws(()=>audio.setVolume(2.01),/0 to 2/);
+  assert.throws(()=>audio.setVolume(-.01),/0 to 2/);
   assert.equal(encodes, 1, 'initial cycle is prepared once before Worklet creation');
   const pcm = Array.from({length:112}, (_, i) => .5 * Math.sin(2 * Math.PI * i / 112));
   await audio.command('setInstrumentWaveform', [pcm]);

@@ -504,6 +504,7 @@ function setStatus(message) {
 
 function updateMasterVolumeUi() {
   if (masterVolumeRange) {
+    masterVolumeRange.dataset.boosted = String(masterVolume > 1);
     masterVolumeRange.value =
       String(
         Math.round(masterVolume * 100)
