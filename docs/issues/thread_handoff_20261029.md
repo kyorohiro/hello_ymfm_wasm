@@ -4,6 +4,17 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SSを区切り、GitHub Actions修正へ — 2026-10-31
+
+SSの追加開発はいったん区切る。[SS再開用TODO](todo_scsp_resume_20261031.md)へ現状と残作業を集約した。
+ユーザー指定で、他機能のリリースより先にActionsのエラーを確認・修正。
+最新HEAD a400e1aeのVGM／SBI／SDK parity／Pagesは成功、itch-webはMixer検証で失敗。
+[原因・修正・検証記録](ci_itch_mixer_fix_20261031.md)。古いテスト期待とCI baseline参照を修正し、
+該当Node347件成功。実browserでPS1／WonderSwan／POKEYの代表primary／extra音量確認も成功。
+音源処理・gain・過去の計測reportは変更していない。
+未commit／未pushのため、修正後のremote Actions確認はまだ。リリースもしていない。
+次は差分反映後のCI確認を行い、他機能のリリース対象を決める。
+
 ## SCSP DSP初期効果量修正 — 2026-10-31
 
 [原因・修正・検証](scsp_dsp_level_fix_01.md)。Enableだけで差が聞こえにくかったため、

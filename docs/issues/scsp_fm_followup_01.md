@@ -12,7 +12,7 @@ DSPとUI整理を先行する。完了済み2／4／6-op・Chain／Pairs／Branc
 - [ ] Feedback／循環graphは履歴サンプルの扱いを検証してから解放。自己feedbackと他operator間loopを区別する。
 - [ ] modulatorsを複数出力へ分岐するfan-out、2入力の平均化、独立OutputとDSP Sendを表現する。
 - [ ] 無効接続・loop PCM不足・RAM不足を変更前に拒否し、現在の演奏を維持する。
-- [ ] preset schema更新、旧v1／v2／v3互換、group割当／離鍵／steal／PCM保護を検証する。
+- [ ] preset schema更新、旧v1〜v4互換、group割当／離鍵／steal／PCM保護を検証する。
 - [ ] 編集元6スロット予約をhost側モデルへ移す案を調査し、同時発音数を増やす。現在はPCM26／FM2 13／FM4 6／FM6 4。
 - [ ] 音色プリセット（ベル／金属音／ベース／鍵盤）は別途追加する。
 

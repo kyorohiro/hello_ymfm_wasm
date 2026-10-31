@@ -156,8 +156,8 @@ test('WonderSwan cache receipt retains its old identity and rejects the revised 
     const bytes=Buffer.from(source.replace(/(playground(?:_mixer_defaults)?\.js\?v=)[A-Za-z0-9._+-]+/,'$1receipt-freshness-test'));
     const options={path,bytes,record:report.sources[path],report,reportSha256:WONDERSWAN_CALIBRATION_REPORT_SHA256,
       receipt,receiptObjectSha256:WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256};
-    if(path==='playground/playground.js')assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
-    else assert.equal(assertMixerCalibrationSourceFreshness(options),'ui-cache-token');
+    // A cache-token replacement cannot undo later changes to either UI body.
+    assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
     assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,bytes:Buffer.concat([bytes,Buffer.from('\n')])}),/served DSP\/WASM source changed/);
     assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,reportSha256:zeroSha}),/receipt report identity or scope mismatch/);
     const edited=structuredClone(receipt);edited.sources[path].canonicalSha256=zeroSha;

@@ -1,0 +1,211 @@
+{
+  "date": "2026-10-31",
+  "baseCommit": "a400e1ae1d9da5fdaa6a4813ed7730f442c1a754",
+  "remoteAtAudit": {
+    "run": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41152903705",
+    "conclusion": "failure",
+    "failedStep": "Verify PS1 and WonderSwan Mixer references, generated defaults and saved absolute settings",
+    "otherLatestWorkflows": "VGM parser/player, SBI, WASM SDK parity, Pages all succeeded"
+  },
+  "local": {
+    "reproducedFailures": 7,
+    "fixedStepTests": 347,
+    "failed": 0,
+    "log": {
+      "path": "/private/tmp/mixer-ci-fixed-full.log",
+      "bytes": 27877,
+      "sha256": "871f2de89db7df8c7bf2ed8ff22bb5e4eb2ad9c0cbd9ad0ef3543a121c5c7ddf"
+    },
+    "canonicalBrowserChecks": [
+      {
+        "kind": "ps1",
+        "passed": true,
+        "completeCoverage": false,
+        "engines": [
+          "chromium"
+        ],
+        "sampleRates": [
+          48000
+        ],
+        "executions": [
+          "main"
+        ],
+        "roles": [
+          "primary",
+          "extra"
+        ],
+        "frequencies": [
+          440
+        ],
+        "captures": 2,
+        "anchors": 1,
+        "report": {
+          "path": "/private/tmp/ci-ps1-policy-verify.json",
+          "bytes": 71754,
+          "sha256": "88188823cb29d507201918f2910ad8122827e23465f5f9266a7855ad8e303677"
+        },
+        "routes": [
+          {
+            "role": "primary",
+            "frequencyHz": 440,
+            "mixerVolume": 0.129331,
+            "relativeError": 3.828681760520425e-08,
+            "rmsRelativeErrors": [
+              3.0615884827334128e-06,
+              3.0615884827334128e-06
+            ]
+          },
+          {
+            "role": "extra",
+            "frequencyHz": 440,
+            "mixerVolume": 0.129331,
+            "relativeError": 3.828681760520425e-08,
+            "rmsRelativeErrors": [
+              5.754790344258964e-08,
+              5.754790344258964e-08
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "wonderswan",
+        "passed": true,
+        "completeCoverage": false,
+        "engines": [
+          "chromium"
+        ],
+        "sampleRates": [
+          48000
+        ],
+        "executions": [
+          "main"
+        ],
+        "roles": [
+          "primary",
+          "extra"
+        ],
+        "frequencies": [
+          440
+        ],
+        "captures": 2,
+        "anchors": 1,
+        "report": {
+          "path": "/private/tmp/ci-wonderswan-policy-verify.json",
+          "bytes": 69472,
+          "sha256": "6e3b2df969936b5f072a4acb6b95dc0651547cc0ae9554293a3ce5f763475ab7"
+        },
+        "routes": [
+          {
+            "role": "primary",
+            "frequencyHz": 440,
+            "mixerVolume": 1.172528,
+            "relativeError": 6.496380033915727e-08,
+            "rmsRelativeErrors": [
+              2.8748234681685858e-08,
+              2.8748234681685858e-08
+            ]
+          },
+          {
+            "role": "extra",
+            "frequencyHz": 440,
+            "mixerVolume": 1.172528,
+            "relativeError": 6.496380033915727e-08,
+            "rmsRelativeErrors": [
+              2.8748234681685858e-08,
+              2.8748234681685858e-08
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "pokey",
+        "passed": true,
+        "completeCoverage": false,
+        "engines": [
+          "chromium"
+        ],
+        "sampleRates": [
+          48000
+        ],
+        "executions": [
+          "main"
+        ],
+        "roles": [
+          "primary",
+          "extra"
+        ],
+        "frequencies": [
+          440
+        ],
+        "captures": 2,
+        "anchors": 1,
+        "report": {
+          "path": "/private/tmp/ci-pokey-policy-verify.json",
+          "bytes": 79120,
+          "sha256": "51982a99b28caca944b3aae400348e8749fc0ab93ceb3d04b068430ddfe6efb9"
+        },
+        "routes": [
+          {
+            "role": "primary",
+            "frequencyHz": 440,
+            "mixerVolume": 0.413052,
+            "relativeError": 1.811101779658486e-08,
+            "rmsRelativeErrors": [
+              3.3798466290146933e-06,
+              3.3798466290146933e-06
+            ]
+          },
+          {
+            "role": "extra",
+            "frequencyHz": 440,
+            "mixerVolume": 0.413052,
+            "relativeError": 1.811101779658486e-08,
+            "rmsRelativeErrors": [
+              1.7812336161604492e-08,
+              1.7812336161604492e-08
+            ]
+          }
+        ]
+      }
+    ],
+    "browserScope": "Chromium 48000 Hz Main 440 Hz primary/extra; not a new full calibration or full CI run; dual combinations not reverified here"
+  },
+  "fixes": [
+    "Both current Playground UI bodies must reject old token-only calibration receipts",
+    "Keep immutable PS1 reference filter-0 header check; let authored cyclic starter select predictor as validated by waveform equality",
+    "Include SCSP in the 26-kind calibrated export and derive its expected gain from validated measurement",
+    "Point all three browser CI calibrations at current *_scsp_fm reports",
+    "Regression test verifies workflow reports match current source hashes and primary/extra factory gains"
+  ],
+  "sources": {
+    ".github/workflows/itch-web.yml": {
+      "bytes": 13349,
+      "sha256": "10d1450146cf0322ef28de04863c4517963e134a232df395b07c4becf7e62126"
+    },
+    "scripts/itch_web_calibration_baselines.test.mjs": {
+      "bytes": 1865,
+      "sha256": "b4df25471c0786280d88f8de3a4876147a92abaa61848264c9b3540a555f73da"
+    },
+    "scripts/mixer_calibration_sources.test.mjs": {
+      "bytes": 15473,
+      "sha256": "c9cd1ccc62229930ac98035dfa9be9bf4104d395c854b0b96679634261175820"
+    },
+    "scripts/wonderswan_mixer_calibration.test.mjs": {
+      "bytes": 13316,
+      "sha256": "d4d189862bcd2b17cfa7378c94db92213d3fd08bff2e38d1b4d4b46117fa93a5"
+    },
+    "scripts/soundchip_calibration_ps1.test.mjs": {
+      "bytes": 5848,
+      "sha256": "a1e71082d16d2d2b77db875503f1e3e83df3ce366f6eab9a981d824254898bfc"
+    },
+    "web/soundchip_mixer_presets.test.mjs": {
+      "bytes": 17105,
+      "sha256": "0efa57e60d21c068983ab75ea1f285b4a881c014ba0f6cdfa82ca30fda0283a4"
+    }
+  },
+  "runtimeOrGainChanges": false,
+  "measurementReportsModified": false,
+  "committed": false,
+  "pushed": false,
+  "remoteRecheckPending": true
+}

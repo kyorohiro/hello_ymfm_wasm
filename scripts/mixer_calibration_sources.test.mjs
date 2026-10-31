@@ -199,8 +199,9 @@ for(const [kind,receiptObjectSha256]of [
   for(const path of [js,html]){
     const bytes=await readFile(new URL('../docs/'+path,import.meta.url));
     const options={path,bytes,record:report.sources[path],report,reportSha256:sha(reportBytes),receipt,receiptObjectSha256};
-    if(path===js)assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
-    else assert(['raw','ui-cache-token'].includes(assertMixerCalibrationSourceFreshness(options)));
+    // Both shipped UI bodies now include feature changes. The old token-only
+    // receipt must authorize neither; current reports cover their new hashes.
+    assert.throws(()=>assertMixerCalibrationSourceFreshness(options),/served DSP\/WASM source changed/);
   }
   const dspPath='js/ps1synth.js',dspBytes=await readFile(new URL('../docs/'+dspPath,import.meta.url));
   assert.throws(()=>assertMixerCalibrationSourceFreshness({path:dspPath,bytes:dspBytes,record:report.sources[dspPath],report,

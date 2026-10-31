@@ -21,7 +21,9 @@ test('PS1 reference has explicit decoded headroom, loop, tuning and no Mixer edi
   // The starter is an authored instrument, not the immutable full-unit
   // calibration reference. Its later level adjustment must not redefine gain.
   const starter=createPs1InitSample();
-  assert.equal(starter.adpcm[0],0);assert.equal(metadata.adpcmBytes[0],0);
+  // The cyclic starter encoder may choose predictors; only the immutable
+  // output-unit reference is required to remain filter 0 / shift 0.
+  assert.equal(metadata.adpcmBytes[0],0);
   assert.notDeepEqual([...starter.adpcm],metadata.adpcmBytes);
   const editor=preparePs1Waveform(Array.from({length:112},(_,frame)=>.65*Math.sin(2*Math.PI*frame/112)));
   assert.deepEqual(starter.adpcm,editor.adpcm,'The authored starter follows the panel Sine without changing the independent filter-0 calibration reference');

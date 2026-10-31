@@ -5,6 +5,7 @@ import {SOUNDCHIP_MIXER_PRESETS,SOUNDCHIP_MIXER_LISTENING_LEVELS} from './soundc
 import {SOUNDCHIP_MIXER_PRESETS as rootPresets, createSoundChip} from './soundchip.js';
 import {SoundChipMixer, chipMixGains, soundChipMixDefaults} from './soundchip_mixer.js';
 import {buildPlaygroundMixerDefaults, PLAYGROUND_CALIBRATION_KINDS} from '../scripts/generate_playground_mixer_defaults.mjs';
+import {validateScspMixerCalibration} from '../scripts/scsp_mixer_calibration.mjs';
 import {Ym2612} from './ym2612.js';
 import {YM2612Synth, YM2612DirectTransport} from './ym2612synth.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
@@ -12,6 +13,8 @@ import moduleFactory from '../docs/generated/ym2612_wasm.js';
 
 const report = JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json', import.meta.url), 'utf8'));
 const measured = buildPlaygroundMixerDefaults(report);
+const scspReport=JSON.parse(await readFile(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url),'utf8'));
+const scspCalibration=validateScspMixerCalibration(report,scspReport);
 const psgReport = JSON.parse(await readFile(new URL('../docs/issues/soundchip_psg_levels_01.json', import.meta.url), 'utf8'));
 const reducedPsg = {segapsg: 0.455420, ay8910: 1.100331, nes: 1.514209};
 const listeningLevels = {segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
@@ -34,12 +37,13 @@ test('calibrated export combines measured kinds and shared listening levels with
   factoryDefaults.kinds.push({...ps1});
   factoryDefaults.kinds.push({...wonderswan});
   factoryDefaults.kinds.push({...pokey});
+  factoryDefaults.kinds.push({name:'scsp',volume:scspCalibration.extraVolume});
   assert.deepEqual(preset, {gainUnits:'source',factoryDefaults, factoryEngines: measured.factoryEngines});
-  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1', 'wonderswan', 'pokey']));
-  assert.equal(preset.factoryDefaults.kinds.length, 25);
+  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1', 'wonderswan', 'pokey', 'scsp']));
+  assert.equal(preset.factoryDefaults.kinds.length, 26);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
-  const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan','pokey'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan','pokey','scsp'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
   assert.deepEqual(new Set(changed.map(record => record.name)), new Set(Object.keys(listeningLevels)));
   for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
 });
