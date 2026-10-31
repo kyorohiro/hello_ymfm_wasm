@@ -58,8 +58,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   });
   sections[0].insertBefore(morph,sampleEditors[0]);sampleEditors.push(morph);
   const morphControls=Object.fromEntries([...morph.querySelectorAll('[data-morph]')].map(node=>[node.dataset.morph,node]));
-  const performanceAmount=morphPerformanceRoot?.querySelector('[data-morph-performance-amount]');
-  const performanceOutput=morphPerformanceRoot?.querySelector('[data-morph-performance-output]');
+  const performanceControls=[...(morphPerformanceRoot?.querySelectorAll('[data-morph-performance-amount]')??[])].map(input=>({input,output:input.closest('label').querySelector('[data-morph-performance-output]')}));
   let lastMorph=readMorph({enabled:true}),morphDraft=readMorph({enabled:true}),morphInFlight=0,currentPcm=null;
   const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
   const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
@@ -155,7 +154,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
     }
     for(const key of ['a','b'])morphControls[key].value=morphShapeName(morphDraft[key]);
     morphControls.amount.value=String(morphDraft.amount);
-    if(performanceAmount) {
+    for(const {input:performanceAmount,output:performanceOutput} of performanceControls) {
       performanceAmount.value=String(morphDraft.amount);
       performanceAmount.disabled=!morphDraft.enabled||Boolean(morphUiState?.noise?.enabled);
       const percent=Math.round(morphDraft.amount*100);
@@ -180,7 +179,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   }
   morphControls.enabled.addEventListener('change',()=>void changeMorph({enabled:morphControls.enabled.checked}));
   morphControls.amount.addEventListener('input',()=>void changeMorph({amount:Number(morphControls.amount.value)}));
-  if(performanceAmount)listenMorph(performanceAmount,'input',()=>void changeMorph({amount:Number(performanceAmount.value)}));
+  for(const {input} of performanceControls)listenMorph(input,'input',()=>void changeMorph({amount:Number(input.value)}));
   for(const key of ['a','b']) {
     morphControls[key].addEventListener('change',()=>void changeMorph({[key]:morphShape(morphControls[key].value)}));
     morph.querySelector(`[data-morph-capture="${key}"]`).addEventListener('click',()=>{if(currentPcm)void changeMorph({[key]:currentPcm.slice()});});

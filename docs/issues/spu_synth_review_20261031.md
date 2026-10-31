@@ -90,3 +90,15 @@ selectのkeyboard focusを維持した変更と、その後の文字キー発音
 修正前controllerの隔離コピーでは同じ検証の最初のSound source選択でfocus解放のassertionが失敗。
 この限定検証ではVAB等の全selectを個別に操作したとは扱わない。実装はdocumentへの委譲で全selectに適用する。
 配布ZIPは再作成していない。
+
+## 後続：鍵盤横にもPitch／Morph
+
+FM2612 Synthと同様に、鍵盤の左へ縦型Pitch／Morphを追加。
+上部monitorとPitchの値・表示・中央復帰を共有し、MorphはPCMタブを含む3か所で同期する。
+Morph Off／Noiseでは上下とも無効化。Pitchはrelease／cancel／blurで0へ戻り、Morphは離しても値を維持する。
+Fretboard操作は両wheelの上にまとめ、1440px／390pxで鍵盤と並べて表示する。
+
+Node70件成功。[両browserの限定回帰](spu_synth_keyboard_wheels_browser_20261031.json)で、
+実際のpointer操作によるPitchの発音周波数変化・中央復帰、Morphの実PCM変化、
+上下同期、押下所有情報の維持・再発音なし、Off／Noise連動、離鍵、画面幅を検証。
+ChromiumのPC／スマホ幅screenshotも目視確認した。配布ZIPは再作成していない。

@@ -8,7 +8,7 @@
     <title>Tetorica SPU Synth</title>
     <link rel="icon" href="./icon.png" type="image/png" sizes="any">
     <link rel="apple-touch-icon" href="./icon.png">
-    <link rel="stylesheet" href="./synth.css?v=spu-keyboard-1">
+    <link rel="stylesheet" href="./synth.css?v=spu-keyboard-wheels-1">
   </head>
   <body>
     <main>
@@ -148,7 +148,20 @@
             <label class="check-control" for="sustainToggle"><input id="sustainToggle" type="checkbox"> Sustain</label>
             <button id="allNotesOff" class="quiet-button" type="button">Release notes</button>
           </div>
-          <div id="keyboardMount" class="keyboard-mount" aria-label="Playable keyboard"></div>
+          <div id="keyboardFretboard"></div>
+          <div class="performance-keyboard">
+            <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Pitch bend: ±2 semitones. Release to return to the original pitch.">
+              <span>Pitch</span>
+              <input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" aria-label="Keyboard pitch bend, minus two to plus two semitones" orient="vertical">
+              <output id="keyboardPitchValue" for="keyboardPitchBend">0.00</output>
+            </label>
+            <label class="monitor-pitch monitor-morph keyboard-wheel" for="keyboardMorphAmount" title="Software morph: A at the bottom, B at the top.">
+              <span>Morph</span>
+              <input id="keyboardMorphAmount" data-morph-performance-amount type="range" min="0" max="1" step="0.01" value="0" aria-label="Keyboard software morph amount, A to B" orient="vertical" disabled>
+              <output data-morph-performance-output for="keyboardMorphAmount">Off</output>
+            </label>
+            <div id="keyboardMount" class="keyboard-mount" aria-label="Playable keyboard"></div>
+          </div>
           <p class="keyboard-hint"><output id="voiceAllocationStatus">24 voices · round robin</output>. Release notes follows the instrument’s release envelope. Stop all sound also clears held notes and reverb tails.</p>
         </section>
       </article>
@@ -159,6 +172,6 @@
       </footer>
       <noscript><p class="noscript-message">JavaScript is required to run Tetorica SPU Synth.</p></noscript>
     </main>
-    <script type="module" src="./synth.js?v=spu-select-focus-1"></script>
+    <script type="module" src="./synth.js?v=spu-keyboard-wheels-1"></script>
   </body>
 </html>

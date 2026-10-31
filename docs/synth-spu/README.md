@@ -27,6 +27,10 @@ parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.
 looping option. **PSF / VAB** imports PlayStation sound banks and extracts supported banks from PSF sets. Tab changes keep sounding notes and the current settings.
 Use Left / Right, Home and End when a settings tab has keyboard focus.
 
+Pitch and Morph wheels are available beside both the monitor and the keyboard.
+Both locations stay in sync. Pitch returns to center when released; Morph keeps
+its blend amount. Morph is disabled in both locations while Off or using Noise.
+
 The keyboard rotates through the SPU's 24 physical voices, choosing an available
 voice for each new note. All voices play the same instrument; there is no
 per-voice selector. If all 24 voices are held, the new note replaces the oldest

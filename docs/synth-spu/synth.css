@@ -147,6 +147,11 @@ fieldset:disabled .chip-section { opacity: .6; }
 .check-control { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: #58626a; }
 #allNotesOff { margin-left: auto; min-height: 28px; padding: 4px 9px; font-size: .7rem; }
 .keyboard-mount { min-width: 0; overflow-x: auto; padding: 5px 1px 8px; }
+.performance-keyboard { display: flex; gap: 10px; align-items: stretch; }
+.performance-keyboard .keyboard-mount { flex: 1; }
+.keyboard-wheel { flex: 0 0 44px; padding: 8px 2px; gap: 8px; border-radius: 12px; font-size: .68rem; }
+.keyboard-wheel input { width: 30px; height: 110px; min-height: 90px; }
+.keyboard-wheel output { font-size: .62rem; }
 .keyboard-mount .keyboard { display: grid; gap: 7px; min-width: 0; padding-right: 35px; }
 .keyboard-row { display: flex; gap: 5px; }
 .key-row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 7px; width: 100%; }
@@ -166,8 +171,8 @@ fieldset:disabled .chip-section { opacity: .6; }
 .fretboard-label, .fret-display { color: var(--muted); font-size: .64rem; }
 .fret-display { display: inline-flex; align-items: center; min-height: 20px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; }
 .toolbar-divider { color: #98a0a6; }
-.keyboard-mount .toolbar-button { min-height: 24px; padding: 2px 8px; border-radius: 20px; font-size: .68rem; line-height: 1.2; }
-.keyboard-mount .toolbar-button.is-selected { background: #426690; border-color: #90abc7; color: #f5f8fc; }
+.keyboard-section .toolbar-button { min-height: 24px; padding: 2px 8px; border-radius: 20px; font-size: .68rem; line-height: 1.2; }
+.keyboard-section .toolbar-button.is-selected { background: #426690; border-color: #90abc7; color: #f5f8fc; }
 .keyboard-hint { margin: 9px 0 0; color: #626e72; font-size: .67rem; line-height: 1.6; }
 footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 20px 6px 0; color: #62696e; font-size: .66rem; }
 footer p { margin: 0; }
@@ -223,6 +228,12 @@ footer a { color: #4a5e74; }
   .keyboard-toolbar { gap: 8px 12px; }
   #allNotesOff { margin-left: 0; }
   .keyboard-mount .keyboard { gap: 5px; padding-right: 19px; }
+  .performance-keyboard { gap: 5px; }
+  .performance-keyboard .keyboard-wheel { flex-basis: 30px; padding: 7px 1px; font-size: .58rem; border-radius: 10px; }
+  .performance-keyboard .keyboard-wheel input { width: 24px; min-height: 70px; }
+  .performance-keyboard .keyboard-wheel output { font-size: .5rem; }
+  .performance-keyboard .key-row { gap: 3px; }
+  .performance-keyboard .key { padding-left: 1px; padding-right: 1px; }
   .key-row { gap: 4px; }
   .key-row[data-row="1"] { margin-left: 6px; }
   .key-row[data-row="2"] { margin-left: 12px; }

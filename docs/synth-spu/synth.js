@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {createSpuAudio} from './spu_synth_audio.js?v=spu-morph-default-1';
-import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-morph-default-1';
+import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-keyboard-wheels-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
@@ -94,7 +94,7 @@ async function invoke(method, args = []) {
   return result;
 }
 const panel = createSpuInstrumentPanel({
-  root:$('spuVoicePanel'), morphPerformanceRoot:$('monitorMorph'), invoke, ensureAudioReady:ensureAudio, onError:report,
+  root:$('spuVoicePanel'), morphPerformanceRoot:document, invoke, ensureAudioReady:ensureAudio, onError:report,
 });
 $('monitorEnvelopeMount').append(rmsCanvas);
 const editorTabs = [...document.querySelectorAll('[data-spu-editor-tab]')];
@@ -157,7 +157,8 @@ for (const name of ['instrument', 'position', 'window']) {
   choices.append(keyboardTools[name]);
 }
 toolbar.append(summary, choices);
-$('keyboardMount').append(toolbar, keyboard);
+$('keyboardFretboard').append(toolbar);
+$('keyboardMount').append(keyboard);
 let layout;
 function renderKeyboard() {
   layout = createFretboardLayout({state:fret});
@@ -253,17 +254,21 @@ document.addEventListener('visibilitychange', () => {
 $('sustainToggle').addEventListener('change', () => {if (!$('sustainToggle').checked) for (const [source, note] of notes) if (note.released) release(source, true);});
 for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) $(id).addEventListener('click', () => {releaseKeyboard(true); octave = Math.max(-2, Math.min(2, octave + delta)); renderKeyboard();});
 let bendFrame = null;
-function applyBend() {
-  bend = Number($('pitchBend').value); $('pitchValue').textContent = `${bend > 0 ? '+' : ''}${bend.toFixed(2)} st`;
+function applyBend(value = Number($('pitchBend').value)) {
+  bend = value;
+  for (const id of ['pitchBend', 'keyboardPitchBend']) $(id).value = String(bend);
+  for (const id of ['pitchValue', 'keyboardPitchValue']) $(id).textContent = `${bend > 0 ? '+' : ''}${bend.toFixed(2)} st`;
   if (bendFrame !== null) return;
   bendFrame = requestAnimationFrame(() => {
     bendFrame = null;
     if (audio) void invoke('setInstrumentPitchBend', [bend]).catch(report);
   });
 }
-function resetBend() {$('pitchBend').value = '0'; applyBend();}
-$('pitchBend').addEventListener('input', applyBend);
-for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) $('pitchBend').addEventListener(event, resetBend);
+function resetBend() {applyBend(0);}
+for (const id of ['pitchBend', 'keyboardPitchBend']) {
+  $(id).addEventListener('input', event => applyBend(Number(event.currentTarget.value)));
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) $(id).addEventListener(event, resetBend);
+}
 $('startAudio').addEventListener('click', () => {void ensureAudio().catch(report);});
 async function stop() {
   epoch++; notes.clear(); updateKeys(); panel.releaseAll();

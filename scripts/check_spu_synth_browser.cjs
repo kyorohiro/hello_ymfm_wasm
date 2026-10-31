@@ -986,6 +986,60 @@ async function checkSineChordHeadroom(page) {
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.
+async function checkKeyboardPerformance(page, keyboardHz) {
+  console.log('CHECK keyboard Pitch/Morph: paired controls / real held edits / release behavior / layout');
+  await editorTab(page,'pcm');
+  await page.locator('h1').click();await page.keyboard.down('y');await settled(page);
+  const original=await audible(page,'Keyboard wheels initial Sine',keyboardHz),owners=(await current(page)).auditions;
+  const from=await page.evaluate(()=>__spuSynthAudit.commands.length);
+  await page.locator('#keyboardPitchBend').scrollIntoViewIfNeeded();
+  const box=await page.locator('#keyboardPitchBend').boundingBox();assert(box);
+  await page.mouse.move(box.x+box.width/2,box.y+box.height*.2);await page.mouse.down();await settled(page);
+  const bend=Number(await page.locator('#keyboardPitchBend').inputValue());assert(bend>.1);
+  assert.equal(Number(await page.locator('#pitchBend').inputValue()),bend);
+  const bent=await audible(page,'Keyboard Pitch gesture',keyboardHz*2**(bend/12));
+  await page.mouse.up();await settled(page);
+  assert.equal(await page.locator('#keyboardPitchBend').inputValue(),'0');assert.equal(await page.locator('#pitchBend').inputValue(),'0');
+  await audible(page,'Keyboard Pitch springs to center',keyboardHz);
+  await setSlider(page,'#pitchBend',-1);await settled(page);assert.equal(await page.locator('#keyboardPitchBend').inputValue(),'-1');
+  await page.locator('#pitchBend').dispatchEvent('pointercancel');await settled(page);assert.equal(await page.locator('#keyboardPitchBend').inputValue(),'0');
+  await page.locator('#keyboardMorphAmount').scrollIntoViewIfNeeded();
+  const morphBox=await page.locator('#keyboardMorphAmount').boundingBox();assert(morphBox);
+  await page.mouse.move(morphBox.x+morphBox.width/2,morphBox.y+morphBox.height*.3);await page.mouse.down();await settled(page);
+  const amount=await page.locator('#keyboardMorphAmount').inputValue();assert(Number(amount)>.2);
+  await page.mouse.up();await settled(page);
+  assert.equal(await page.locator('#keyboardMorphAmount').inputValue(),amount,'Morph retains its blend after release');
+  assert.equal(await page.locator('#morphAmount').inputValue(),amount);
+  assert.equal(await page.locator('[data-morph="amount"]').inputValue(),amount);
+  const blended=await audible(page,'Keyboard Morph changes held sound');
+  assert.notEqual(blended.channels[0].pcmFingerprint,original.channels[0].pcmFingerprint);
+  assert.deepEqual((await current(page)).auditions,owners);
+  assert(!(await page.evaluate(from=>__spuSynthAudit.commands.slice(from).some(c=>c.method==='instrumentNoteOn'),from)),'Wheels do not retrigger held notes');
+  await setSlider(page,'#morphAmount',.25);await settled(page);assert.equal(await page.locator('#keyboardMorphAmount').inputValue(),'0.25');
+  await page.keyboard.up('y');await settled(page);await silent(page,'Keyboard wheel key-up');
+  await page.locator('[data-morph="enabled"]').uncheck();await settled(page);
+  assert(await page.locator('#morphAmount').isDisabled());assert(await page.locator('#keyboardMorphAmount').isDisabled());
+  await page.locator('[data-morph="enabled"]').check();await settled(page);
+  await page.locator('[data-noise="source"]').selectOption('noise');await settled(page);
+  assert(await page.locator('#morphAmount').isDisabled());assert(await page.locator('#keyboardMorphAmount').isDisabled());
+  await page.locator('[data-noise="source"]').selectOption('sample');await settled(page);
+  await setSlider(page,'#keyboardMorphAmount',0);await settled(page);
+  const layouts=[];
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});
+    const dimensions=await page.evaluate(()=>{
+      const pitch=document.getElementById('keyboardPitchBend').getBoundingClientRect(),morph=document.getElementById('keyboardMorphAmount').getBoundingClientRect(),keys=document.getElementById('keyboardMount').getBoundingClientRect();
+      return {width:innerWidth,documentWidth:document.documentElement.scrollWidth,pitch:{left:pitch.left,right:pitch.right,width:pitch.width,height:pitch.height},morph:{left:morph.left,right:morph.right,width:morph.width,height:morph.height},keys:{left:keys.left,right:keys.right,width:keys.width}};
+    });
+    assert(dimensions.documentWidth<=width+1);assert(dimensions.pitch.right<dimensions.morph.left);assert(dimensions.morph.right<dimensions.keys.left);
+    assert(dimensions.pitch.height>dimensions.pitch.width);assert(dimensions.morph.height>dimensions.morph.width);assert(dimensions.keys.width>200);
+    layouts.push(dimensions);
+    if(config.screenshots){await fs.mkdir(config.screenshots,{recursive:true});await page.locator('.keyboard-section').screenshot({path:path.join(config.screenshots,`keyboard-wheels-${page.context().browser().browserType().name()}-${width}.png`)});}
+  }
+  await page.setViewportSize({width:1440,height:1100});
+  return {controlsSynced:true,pitchSpringsToCenter:true,morphRetainsBlend:true,heldOwnershipPreserved:true,noRetrigger:true,offAndNoiseDisableBoth:true,original,bent,blended,layouts};
+}
+
 async function checkSelectCommitFocus(page, keyboardHz) {
   console.log('CHECK select commit: pointer choice returns performance focus / keyboard navigation stays focused');
   const checked=[];
@@ -1079,9 +1133,10 @@ async function runCase(browser, name, origin) {
       return {browser:name,selectFocus};
     }
     if(config.reviewOnly) {
+      editorTabs.keyboardPerformance=await checkKeyboardPerformance(page,keyboardHz);
       await hold(page);const startupPcm=await audible(page,'Default Morph Sine',keyboardHz);await release(page);await silent(page,'Default Morph release');
       await page.locator('#resetPreset').click();assert((await settled(page)).morph.enabled);assert.equal((await current(page)).morph.amount,0);
-      const rejectedPmon=await checkRejectedPmon(page);return {browser:name,defaultMorph:true,resetMorph:true,startupPcm,rejectedPmon};
+      const rejectedPmon=await checkRejectedPmon(page);return {browser:name,defaultMorph:true,resetMorph:true,startupPcm,rejectedPmon,keyboardPerformance:editorTabs.keyboardPerformance};
     }
     if(config.psfOnly) {
       const vab=await checkVab(page,keyboardHz),psf=await checkPsf(page,keyboardHz);
@@ -1089,6 +1144,7 @@ async function runCase(browser, name, origin) {
       assert(audit.physicalOutputMuted && audit.pcmContinuous);assert.deepEqual(audit.processorErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
       return {browser:name,version:browser.version(),scope:'VAB and PSF import',vab,psf,...audit};
     }
+    editorTabs.keyboardPerformance=await checkKeyboardPerformance(page,keyboardHz);
     const idleFrom = await page.evaluate(() => __spuSynthAudit.commands.length);
     await page.waitForTimeout(250);
     const idleCommands = await page.evaluate(from => __spuSynthAudit.commands.slice(from), idleFrom);
