@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js?v=spu-recovery-1';
-import {createSpuInstrumentPanel} from './spu_synth_panel.js';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-morph-default-1';
+import {createSpuInstrumentPanel} from './spu_synth_panel.js?v=spu-morph-default-1';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
 import {createOfflineAudioDecoder} from '../js/audio_decode.js';
@@ -516,7 +516,7 @@ $('resetPreset').addEventListener('click', async () => {
     await engine.command('setInstrumentPreset', [{volumeLeft:.75, volumeRight:.75, adsr1:15, adsr2:0, pitch:4096, reverb:false}]);
     if (operation !== assetEpoch) return;
     await engine.command('setInstrumentNoise', [{enabled:false}]);
-    await engine.command('setInstrumentMorph', [{enabled:false}]);
+    await engine.command('setInstrumentMorph', [{enabled:true}]);
     await engine.command('setInstrumentPmon', [{enabled:false}]);
     instrumentName = 'Sine'; $('instrumentName').value = instrumentName;
     status('Instrument reset to Sine.'); applyState(await engine.inspect());

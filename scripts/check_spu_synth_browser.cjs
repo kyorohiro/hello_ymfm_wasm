@@ -956,12 +956,14 @@ async function checkMorph(page,name) {
   await page.locator('#presetFileInput').setInputFiles({name:'legacy-morph.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});
   await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded Software Morph.');
   assert(!(await settled(page)).morph.enabled);
-  await page.locator('#resetPreset').click();assert(!(await settled(page)).morph.enabled);
+  await page.locator('#resetPreset').click();assert((await settled(page)).morph.enabled);
+  assert.equal((await current(page)).morph.amount,0);
   return {softwareLabel:true,dualMorphControls:true,confirmedToggle,upperMorphWorksOutsidePcm:true,morphRetainsOnRelease:true,performancePcm,singleCanvas:true,threeOverlaidWaveforms:true,independentAbDrawing:true,abNumericEditing:true,selectionSendsNoAudioCommands:true,previewsBefore,previewsAfter,clockUpdatesBeforePointerRelease:true,heldOwnersPreserved:true,noRetrigger:true,ramReused:true,captureCurrentPcm:true,presetRoundTrip:true,legacyDefaultsOff:true,pmonCompatible:true,layouts,before,pcm};
 }
 
 async function checkSineChordHeadroom(page) {
   console.log('CHECK Sine headroom: C/E/G with all effects Off / compensated single level');
+  await page.locator('[data-morph="enabled"]').uncheck();await settled(page);
   const keys=await page.locator('#keyboardMount .key[data-key]').evaluateAll(nodes=>['C3','E3','G3'].map(note=>{
     const key=nodes.find(node=>node.querySelector('span')?.textContent.trim()===note);return key?{note,key:key.dataset.key}:null;
   }));assert(keys.every(Boolean),'C/E/G notes are available on the visible keyboard');
@@ -1016,12 +1018,13 @@ async function runCase(browser, name, origin) {
     const brand = await checkBrandAssets(page);
     assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 0, 'Opening the page remains audio-lazy');
     const editorTabs = await checkEditorTabsBeforeAudio(page);
+    assert(await page.locator('[data-morph="enabled"]').isChecked(), 'Morph is On before audio initialization');
     await page.locator('#startAudio').click();
     await page.locator(action('wave-sine')).waitFor({state:'visible'});
     await page.waitForFunction(() => __spuSynthAudit.states.length > 0 || document.getElementById('audioStatus').dataset.error === 'true');
     assert.notEqual(await page.locator('#audioStatus').getAttribute('data-error'), 'true', 'Audio startup: ' + await page.locator('#audioStatus').textContent());
     assert.equal(await page.locator(`${panel} [data-chip-channel]`).count(), 0, 'Hardware voice selection is automatic');
-    assert.deepEqual(await page.locator(`${panel} h3`).allTextContents(), ['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], 'The instrument exposes only PCM, ADSR and reverb editor sections');
+    assert.deepEqual(await page.locator(`${panel} h3`).allTextContents(), ['Wave A · PCM editor', 'ADSR envelope', 'SPU reverb'], 'The initial instrument exposes Morph Wave A, ADSR and reverb editor sections');
     assert(!/Voice studio|Selected ADPCM voice/.test(await page.locator(panel).innerText()), 'There is no physical-voice studio/card');
     assert.equal(await page.locator('#refreshVoice').count(), 0, 'No manual state refresh is needed');
     assert.equal(await page.evaluate(() => __spuSynthAudit.contexts.length), 1, 'A user action creates a single audio context');
@@ -1033,7 +1036,15 @@ async function runCase(browser, name, origin) {
     const computerKey = page.locator('#keyboardMount .key[data-key="y"]');
     await computerKey.waitFor({state:'visible'});
     const keyboardNote = (await computerKey.locator('span').textContent()).trim(), keyboardHz = noteFrequency(keyboardNote);
-    if(config.reviewOnly) {const rejectedPmon=await checkRejectedPmon(page);return {browser:name,rejectedPmon};}
+    const startup=await settled(page);
+    assert(startup.morph.enabled && startup.morph.amount===0, 'Fresh Sine starts with Morph On at Wave A');
+    assert(await page.locator('[data-morph="enabled"]').isChecked());
+    assert(!(await page.locator('#morphAmount').isDisabled()));
+    if(config.reviewOnly) {
+      await hold(page);const startupPcm=await audible(page,'Default Morph Sine',keyboardHz);await release(page);await silent(page,'Default Morph release');
+      await page.locator('#resetPreset').click();assert((await settled(page)).morph.enabled);assert.equal((await current(page)).morph.amount,0);
+      const rejectedPmon=await checkRejectedPmon(page);return {browser:name,defaultMorph:true,resetMorph:true,startupPcm,rejectedPmon};
+    }
     if(config.psfOnly) {
       const vab=await checkVab(page,keyboardHz),psf=await checkPsf(page,keyboardHz);
       const audit=await page.evaluate(()=>({processorErrors:__spuSynthAudit.processorErrors,physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(s=>s.gate.gain.value===0),pcmContinuous:__spuSynthAudit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid)}));

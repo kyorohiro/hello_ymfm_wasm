@@ -32,7 +32,7 @@ export class SpuSynthProcessor extends AudioWorkletProcessor {
     this.instrumentBend = 0;
     this.pmon = readPmon();
     this.noise = readNoise();
-    this.morph = readMorph();
+    this.morph = readMorph({enabled:true});
     this.pmonSample = null;
     this.hostAudio = null;
     this.hostSlot = null;

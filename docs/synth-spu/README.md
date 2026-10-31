@@ -12,9 +12,14 @@ Master volume uses the existing calibrated PS1 System gain as its reference.
 ## Play and edit
 
 1. Select **Enable audio**. Opening the page does not start an audio context.
+
 2. Play the displayed number/letter keys or click the on-screen keys.
 3. Use **PCM**, **ADSR**, **FX**, **Audio** and **PSF / VAB** beneath the monitor to edit the
    common instrument. PCM is selected initially.
+
+Software morph starts enabled, with Wave A = Sine, Wave B = Saw and amount 0%
+(Sine only). Reset instrument restores this setup. Imported audio and bank Tones
+disable morph; loaded presets restore their saved setting.
 
 **PCM** draws a short repeating waveform. **ADSR** contains the envelope
 parameters and draggable A / D / S / R guide. **FX** controls SPU reverb.

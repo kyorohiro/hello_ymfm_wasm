@@ -60,7 +60,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   const morphControls=Object.fromEntries([...morph.querySelectorAll('[data-morph]')].map(node=>[node.dataset.morph,node]));
   const performanceAmount=morphPerformanceRoot?.querySelector('[data-morph-performance-amount]');
   const performanceOutput=morphPerformanceRoot?.querySelector('[data-morph-performance-output]');
-  let lastMorph=readMorph(),morphDraft=readMorph(),morphInFlight=0,currentPcm=null;
+  let lastMorph=readMorph({enabled:true}),morphDraft=readMorph({enabled:true}),morphInFlight=0,currentPcm=null;
   const pcmCanvas=sections[0].querySelector('[data-chip-control="ps1-waveform"]');
   const pcmHeading=sections[0].querySelector('h3'),pcmHeadingText=pcmHeading.textContent;
   const pcmCanvasLabel=pcmCanvas.getAttribute('aria-label');
@@ -245,6 +245,7 @@ export function createSpuInstrumentPanel({root, morphPerformanceRoot=null, invok
   }
   for (const button of pmon.querySelectorAll('[data-pmon-ratio]')) button.addEventListener('click',() => {controls.ratio.value=button.dataset.pmonRatio; void changePmon();});
   let activeSection = 'pcm', visible = true;
+  displayMorph();
   return {...panel, setSection(name) {
     if (![...sectionNames, 'audio', 'bank'].includes(name)) throw new RangeError('Unknown SPU instrument section');
     if (name === activeSection) return;

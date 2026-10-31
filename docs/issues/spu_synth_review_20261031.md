@@ -63,3 +63,15 @@ Octaveはチップ固有の命令ではなく、`synth.js`が発音MIDI noteに`
 46 files／5,535,698 bytes、SHA-256
 `f903c0a70cc08ada52aa6a7a174399480e713565bb6b518e834bd3b084ea7486`。
 以前のレビューZIPは保持。今回も未公開・未commit・未push。
+
+## 後続：Software morphを既定でOn
+
+ユーザー指定で、起動前UI・新規音声セッション・Reset instrumentのMorphをOnに変更。
+A=Sine／B=Saw／amount=0%で始め、初期SineのPCMは維持する。
+`readMorph()`の汎用デフォルトは変更せず、Morph情報のない旧presetは従来どおりOff。
+音声・VABの読み込み時のOffと、保存presetの明示設定も保持する。
+
+Node70件成功（実WASMの初期PCM一致を含む）。
+[両browserの限定検証](spu_synth_default_morph_browser_20261031.json)で、
+起動前後のOn／amount=0、初期Sineの実PCM、離鍵、Reset後のOn、RAM不足PMON拒否後の離鍵を確認。
+配布ZIPは再作成していないため、上記の既存ZIPにはこの既定値変更は含まれない。

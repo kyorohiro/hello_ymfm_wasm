@@ -173,6 +173,9 @@ for (const rate of [44100, 48000]) test(`standalone SPU renders exact core PCM a
   assert.equal(core.module._ps1_spu_set_mix_headroom(core.handle,SPU_SYNTH_MIX_HEADROOM),1);
   const direct = new Ps1Resampler(synth, rate), initial = p.command('inspect');
   assert.equal(initial.samples.length, 24);
+  assert.equal(initial.morph.enabled, true, 'Fresh Sine enables software morph');
+  assert.equal(initial.morph.amount, 0, 'The initial blend is Wave A only');
+  assert.deepEqual(initial.channels[0].waveform.pcm, morphPcm(initial.morph));
   assert(initial.channels.every((voice, ch) => voice.sample === ch && voice.waveform.pcm.length === 112));
   for (const [channel, note] of [[0, 60], [23, 67]]) {p.command('noteOn', [channel, note]); synth.noteOn(channel, note);}
   const sent = p.messages.length;
