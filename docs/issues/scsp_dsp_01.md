@@ -1,5 +1,7 @@
 # SCSP DSP・Synth UI整理 — 2026-10-31
 
+後続：[初期Delay効果量の修正](scsp_dsp_level_fix_01.md)。最新配布はそちら。下記は初回実装時の記録。
+
 - [x] 固定SCSP DSPの独自microprogramでDelay入出力を検証する。Web Audio DelayNodeではなくSCSP core内で処理。
 - [x] Playground内のDSP Labで短い音・Delay・Send／Return・Feedbackを試す。
 - [x] DSP ring専用RAMとPCMの領域を分離し、編集・preset読込・Stopで残響や破損を残さない。

@@ -4,6 +4,16 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## SCSP DSP初期効果量修正 — 2026-10-31
+
+[原因・修正・検証](scsp_dsp_level_fix_01.md)。Enableだけで差が聞こえにくかったため、
+DSP入力の余分な1/4減衰を除き、初期Send 7／Return 6にした。
+Node20と両browserで、初期Enable-only・短音離鍵後のecho音量を確認。
+最初のechoは短音dryの約半分。Sine持続音では主に音量変化になる。
+最新ZIPは`release/tetorica_scsp_synth_dsp-delay-level-fix-20261031_itch.zip`。
+旧presetに保存済みのSend／Returnは維持する。小さい場合は7／6に調整する。
+公開・commitなし。下記は初回DSP実装時の履歴。
+
 ## SCSP DSP Delay・UI整理完了 — 2026-10-31
 
 [操作・検証・配布](scsp_dsp_01.md)／[source・最終ZIP hash](scsp_dsp_01.json)。

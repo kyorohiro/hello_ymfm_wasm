@@ -39,9 +39,9 @@
         <label class="effect-enable"><input id="effectEnabled" type="checkbox" disabled> Enable Delay</label>
         <label>Time <span class="unit">ms</span><input id="delayTime" type="number" min="20" max="700" value="240" disabled></label>
         <label>Feedback <input id="delayFeedback" type="number" min="0" max="0.85" step="0.01" value="0.35" disabled></label>
-        <label>Send <input id="effectSend" type="number" min="0" max="7" value="5" disabled></label>
-        <label>Return <input id="effectReturn" type="number" min="0" max="7" value="5" disabled></label>
-        <p>Shared mono Delay runs inside the SCSP DSP. Send / Return: 0 = mute, 7 = maximum. Changing Time or Enable clears echoes. Stop clears the tail.</p>
+        <label>Send <input id="effectSend" type="number" min="0" max="7" value="7" disabled></label>
+        <label>Return <input id="effectReturn" type="number" min="0" max="7" value="6" disabled></label>
+        <p>Release a short note to hear the repeats. A sustained sine mainly changes level. Shared mono Delay runs inside the SCSP DSP. Send / Return: 0 = mute, 7 = maximum. Changing Time or Enable clears echoes. Stop clears the tail.</p>
       </section>
     </section>
     <section class="operator-panel" aria-labelledby="operatorsTitle">
@@ -56,4 +56,4 @@
     <section id="voice" aria-label="Voice editor"></section>
     <footer><p>Waveform drawing, voice allocation, repeated PCM guards and preset files are software features. Slot FM, envelopes and LFO run in the SCSP core. The fixed core has zero slot-write delay; hardware timing fidelity is not guaranteed. The original mono Delay program uses 64 KiB of SCSP RAM, leaving 448 KiB for PCM and guards. Custom DSP programs, Reverb and SSF playback are not exposed here.</p><a href="../scsp.md">SCSP API</a> <span>·</span> <a href="../playground/scsp-dsp.html">DSP Lab</a> <span>·</span> <a href="../playground/index.html?mode=scsp">Playground</a><span class="experimental">EXPERIMENTAL · BROWSER EDITION</span></footer>
   </article>
-</main><script type="module" src="synth.js?v=dsp-delay-1"></script></body></html>
+</main><script type="module" src="synth.js?v=dsp-delay-level-2"></script></body></html>

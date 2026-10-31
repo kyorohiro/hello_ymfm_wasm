@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-31",
+  "passed": true,
+  "problem": "Default DSP wet signal was too quiet; existence-only wet tests at max Send/Return missed normal Enable-only behavior",
+  "fix": {
+    "inputCoefficient": "0x7ff8 (4095/4096), previously 0x2000 (1/4)",
+    "defaultSend": 7,
+    "defaultReturn": 6
+  },
+  "verification": {
+    "nodeTestsPassed": 20,
+    "defaultShortNoteFirstEchoDryRatio": [
+      0.45,
+      0.55
+    ],
+    "browser": {
+      "path": "docs/issues/scsp_dsp_level_fix_browser_01.json",
+      "bytes": 2448,
+      "sha256": "ec2a38076385f44931be63cd26d71199f5cafbf498aa9b301d7f8e42e2e6e788"
+    },
+    "browserMeasurement": "Source served directly; Chromium and WebKit destination input after Volume; speakers muted",
+    "archiveInputs": "All authenticated source inputs match current files"
+  },
+  "artifact": {
+    "path": "release/tetorica_scsp_synth_dsp-delay-level-fix-20261031_itch.zip",
+    "bytes": 1196583,
+    "sha256": "7899ed2ec38934f07a626f73d2ba8951e5cd9a6b0ffe1537abcddfe9989544bf"
+  },
+  "note": "A sustained sine mainly changes amplitude; use a short released note to hear echoes. Existing presets keep their explicit Send/Return values.",
+  "published": false
+}

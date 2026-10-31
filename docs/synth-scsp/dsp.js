@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Original mono-delay microprogram for the pinned SCSP DSP, not Web Audio DSP.
 export const DSP_RAM_BYTES=65536; // RBL=2: 32K words at address 0.
-export const EFFECT_DEFAULTS=Object.freeze({enabled:false,timeMs:240,feedback:.35,send:5,returnLevel:5});
+export const EFFECT_DEFAULTS=Object.freeze({enabled:false,timeMs:240,feedback:.35,send:7,returnLevel:6});
 export function effectSettings(value={}){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!Object.hasOwn(EFFECT_DEFAULTS,k)))throw new TypeError('Invalid DSP Delay settings');
   const result={...EFFECT_DEFAULTS,...value};
@@ -34,7 +34,7 @@ export class DspDelay{
     for(let offset=0;offset<1024;offset+=2)core.write(0x800+offset,0);
     core.write(0x402,2<<7);
     core.write(0x700,0x7ff8); // 4095/4096, largest positive Q12 coefficient.
-    core.write(0x704,0x2000); // MIXS -> ring scale: 1/4.
+    core.write(0x704,0x7ff8); // Unity input: MIXS scaling already matches the DSP return path.
     core.write(0x782,0); // write address: DEC
     const program=delayProgram();
     for(let index=0;index<program.length;index++)if(program[index])core.write(0x800+index*2,program[index]);

@@ -31,3 +31,10 @@ test('DSP v4 preset restores exact audio, old v3 bypasses DSP, invalid effect is
  const before=b.read(),invalid=structuredClone(patch);invalid.effect.feedback=1;assert.throws(()=>b.loadPatch(invalid));assert.deepEqual(b.read(),before);
  b.loadPatch({...patch,version:3});assert.equal(b.read().config.effect.enabled,false);
 });
+
+test('enabling Delay alone makes the first default echo about half as loud as the short dry note',async t=>{
+ const instrument=new SynthInstrument(await core(t));instrument.setEffect({enabled:true});instrument.noteOn('short',69);
+ const dry=instrument.synth.generateStereo(4410).left;instrument.noteOff('short');const tail=instrument.synth.generateStereo(16000).left;
+ const firstEcho=tail.slice(10584-4410,10584),ratio=peak(firstEcho)/peak(dry);
+ assert(ratio>.45&&ratio<.55,`default first echo / dry peak: ${ratio}`);
+});
