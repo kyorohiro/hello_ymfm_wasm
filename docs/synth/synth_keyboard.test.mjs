@@ -42,6 +42,24 @@ test(
 const pitchHz = (pitch, clock, divider = 144) =>
   pitch.fnum * clock * 2 ** (pitch.block - 1) / (divider * 2 ** 20);
 
+test('octave transposition changes note labels and chip pitches without changing frets or strings', () => {
+  const state = createFretboardState();
+  const base = createFretboardLayout({state});
+  for (const octave of [-2, -1, 1, 2]) {
+    const shifted = createFretboardLayout({state, octave});
+    assert.deepEqual(shifted.rowDefs, base.rowDefs);
+    shifted.entries.forEach((entry, i) => {
+      assert.equal(entry.midi, base.entries[i].midi + octave * 12);
+      assert.equal(entry.fret, base.entries[i].fret);
+      assert.equal(entry.stringNumber, base.entries[i].stringNumber);
+      assert.deepEqual(entry.pitch, midiToOpnPitch(entry.midi));
+    });
+    const index = base.entries.findIndex(entry => entry.midi === 60);
+    assert.equal(shifted.entries[index].noteName, `C${4 + octave}`);
+    assert(Math.abs(pitchHz(shifted.entries[index].pitch, 7670454) / pitchHz(base.entries[index].pitch, 7670454) - 2 ** octave) < .001);
+  }
+});
+
 test('UI E4/A4 use the same A4=440 pitch as Playground Run', () => {
   const state = createFretboardState();
   setInstrument(state, 'ukulele');

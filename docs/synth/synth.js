@@ -26,7 +26,7 @@ import {
   shiftStringWindowIndex,
   setStringWindowIndex,
   shiftFretPosition,
-} from "./synth_keyboard.js";
+} from "./synth_keyboard.js?v=synth-octave-1";
 import {createOperatorEnvelopeView} from './synth_operator_envelope.js?v=synth-adsr-2';
 import {
   buildCommonControls as buildCommonControlsView,
@@ -323,6 +323,7 @@ const VOICE_COUNT = 6;
 
 const fretboardState =
   createFretboardState();
+let keyboardOctave = 0;
 let fretboardLayout =
   createFretboardLayout({
     state: fretboardState,
@@ -1256,6 +1257,7 @@ function rebuildFretboardLayout() {
   fretboardLayout =
     createFretboardLayout({
       state: fretboardState,
+      octave: keyboardOctave,
       getClock: () => synth?.clock ?? YM2612_CLOCK,
     });
 }
@@ -2005,6 +2007,9 @@ function clearInputState() {
 }
 
 function renderFretboardUi() {
+  document.getElementById('octaveValue').textContent = `${keyboardOctave > 0 ? '+' : ''}${keyboardOctave}`;
+  document.getElementById('octaveDown').disabled = keyboardOctave <= -2;
+  document.getElementById('octaveUp').disabled = keyboardOctave >= 2;
   renderFretboardControls({
     instrumentRoot:
       instrumentControlsRoot,
@@ -2578,6 +2583,17 @@ function buildVgiExporter() {
     } catch (error) {
       setStatus(`Failed to export VGI: ${error.message}`);
     }
+  });
+}
+
+for (const [id, delta] of [['octaveDown', -1], ['octaveUp', 1]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    stopAllNotes();
+    keyboardOctave = Math.max(-2, Math.min(2, keyboardOctave + delta));
+    rebuildFretboardLayout();
+    buildKeyboard();
+    updateKeyboardVisuals();
+    renderFretboardUi();
   });
 }
 

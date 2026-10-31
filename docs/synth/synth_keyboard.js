@@ -183,6 +183,7 @@ export function getVisibleStrings(
 
 export function createFretboardLayout({
   state,
+  octave = 0,
   rowKeyStrings = ROW_KEY_STRINGS,
   clock = 7670454,
   divider = 144,
@@ -230,7 +231,7 @@ export function createFretboardLayout({
         const midi =
           stringBaseMidi +
           fretOffsetWithinPcRow +
-          state.horizontalFretPosition;
+          state.horizontalFretPosition + octave * 12;
 
         entries.push({
           key,
