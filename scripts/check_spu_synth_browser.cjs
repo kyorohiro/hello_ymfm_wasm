@@ -8,11 +8,12 @@ const {createHash} = require('node:crypto');
 const {chromium, webkit} = require('playwright');
 const {PROCESSOR_NAMES, processorSource, analyzePilotPcm, analyzeClockRows} = require('./audio_clock_audit.cjs');
 
-const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, engines:[]};
-const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
+const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, reviewOnly:false, engines:[]};
+const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--review-only | --psf-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
 for (let i = 2; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--help') {console.log(usage); process.exit(0);}
+  if (arg === '--review-only') {config.reviewOnly=true;continue;}
   if (arg === '--psf-only') {config.psfOnly=true;continue;}
   if (['--chromium-only', '--webkit-only'].includes(arg)) {config.engines.push(arg.slice(2, -5)); continue;}
   const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture|psfFixture)(?:=(.*))?$/); assert(match, usage);
@@ -982,6 +983,23 @@ async function checkSineChordHeadroom(page) {
 }
 
 // No private production hooks, injected chip calls or fake renderers are used.
+async function checkRejectedPmon(page) {
+  console.log('CHECK rejected PMON: full sample RAM preserves held keyboard owner');
+  const initial=await current(page),free=524288-initial.nextAddress;assert(!initial.pmonSampleReserved);assert.equal(free%16,0);
+  const {createPs1InitSample}=await import('../web/ps1synth.js');const cycle=createPs1InitSample().adpcm;
+  const adpcm=Array.from({length:free},(_,i)=>i%16===1?(i===free-15?1:0):cycle[i%cycle.length]);
+  const preset={schema:'tetorica-spu-synth.instrument',version:1,name:'RAM boundary',preset:{volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0,pitch:4096,reverb:false},sample:{adpcm,baseFrequencyHz:44100/112},reverb:{preset:'off',volumeLeft:0,volumeRight:0}};
+  await page.setInputFiles('#presetFileInput',{name:'ram-boundary.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});
+  await page.waitForFunction(()=>document.getElementById('audioStatus').textContent==='Loaded RAM boundary.');
+  assert.equal((await settled(page)).nextAddress,524288);
+  await page.locator('h1').click();await page.keyboard.down('y');const held=await settled(page);assert.equal(held.auditions.length,1);await audible(page,'held note before rejected PMON');
+  await editorTab(page,'fx');await page.locator('[data-pmon="enabled"]').check();await page.waitForFunction(()=>document.getElementById('audioStatus').dataset.error==='true'&&document.getElementById('audioStatus').textContent.includes('No sample RAM'));
+  assert.equal(await page.locator('#keyboardMount .key.is-active').count(),1,'A rejected topology change preserves the held key owner');
+  assert.deepEqual((await current(page)).auditions,held.auditions);assert.equal(await page.locator('[data-pmon="enabled"]').isChecked(),false);
+  await page.keyboard.up('y');const released=await settled(page);assert.equal(released.auditions.length,0,'The original key-up still reaches its voice');await silent(page,'release after rejected PMON');
+  return {publicPresetImport:true,fullRam:true,rejectedChangePreservesHeldKey:true,keyUpReleases:true};
+}
+
 async function runCase(browser, name, origin) {
   const context = await browser.newContext({serviceWorkers:'block', viewport:{width:1440, height:1100}, acceptDownloads:true});
   await context.addInitScript({content:`globalThis.__spuSynthClock={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
@@ -1015,6 +1033,7 @@ async function runCase(browser, name, origin) {
     const computerKey = page.locator('#keyboardMount .key[data-key="y"]');
     await computerKey.waitFor({state:'visible'});
     const keyboardNote = (await computerKey.locator('span').textContent()).trim(), keyboardHz = noteFrequency(keyboardNote);
+    if(config.reviewOnly) {const rejectedPmon=await checkRejectedPmon(page);return {browser:name,rejectedPmon};}
     if(config.psfOnly) {
       const vab=await checkVab(page,keyboardHz),psf=await checkPsf(page,keyboardHz);
       const audit=await page.evaluate(()=>({processorErrors:__spuSynthAudit.processorErrors,physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(s=>s.gate.gain.value===0),pcmContinuous:__spuSynthAudit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid)}));
@@ -1193,6 +1212,7 @@ async function runCase(browser, name, origin) {
     await hold(page); const recovery = await audible(page, 'Audio retry restores a real SPU voice', keyboardHz);
     await release(page); await silent(page, 'Recovered pointer release'); await page.locator('#stopAudio').click(); await silent(page, 'Recovered Stop');
 
+    const rejectedPmon=await checkRejectedPmon(page);
     const screenshots = [], layouts = [];
     if (config.screenshots) await fs.mkdir(config.screenshots, {recursive:true});
     for (const [label, width, height] of [['desktop', 1440, 1100], ['mobile', 390, 844]]) {
@@ -1217,7 +1237,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, rejectedPmon, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20).map(c=>({...c,args:['loadADPCM','setInstrumentWaveform','loadTone'].includes(c.method)?'[sample data omitted]':c.args})), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

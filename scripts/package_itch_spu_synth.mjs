@@ -90,7 +90,7 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
     .replace('href="../synth/index.html"', 'href="https://kyorohiro.github.io/hello_ymfm_wasm/synth/"')
     .replace('href="../playground/index.html?mode=ps1"', 'href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=ps1"');
   await writeFile(join(stage, 'synth-spu/index.html'), html);
-  await writeFile(join(stage, 'index.html'), html.replace(/\b(href|src)="\.\/(synth\.css|synth\.js|icon\.png)"/g,
+  await writeFile(join(stage, 'index.html'), html.replace(/\b(href|src)="\.\/((?:synth\.css|synth\.js|icon\.png)(?:\?[^"#]*)?(?:#[^"]*)?)"/g,
     (_, attribute, name) => `${attribute}="./synth-spu/${name}"`));
   for (const name of ['synth.css', 'icon.png']) await copy(join(root, 'docs/synth-spu', name), join(stage, 'synth-spu', name));
   await copy(join(root, 'docs/synth-spu/README.md'), join(stage, 'synth-spu/README.md'));

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "publicUiOnly": true,
+  "root": "/private/tmp/spu-compact-zip-_oqq4h6k",
+  "entry": "/index.html",
+  "results": [
+    {
+      "browser": "chromium",
+      "rejectedPmon": {
+        "publicPresetImport": true,
+        "fullRam": true,
+        "rejectedChangePreservesHeldKey": true,
+        "keyUpReleases": true
+      }
+    },
+    {
+      "browser": "webkit",
+      "rejectedPmon": {
+        "publicPresetImport": true,
+        "fullRam": true,
+        "rejectedChangePreservesHeldKey": true,
+        "keyUpReleases": true
+      }
+    }
+  ],
+  "sources": {
+    "generated/ps1_spu_wasm.js": {
+      "bytes": 17148,
+      "sha256": "49f1994131a8e7bd3224544d71dc5e73890f7d9584bb44f267818f99d1b799bf"
+    },
+    "generated/ps1_spu_wasm.wasm": {
+      "bytes": 50282,
+      "sha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4"
+    },
+    "index.html": {
+      "bytes": 12083,
+      "sha256": "9842a0a09362c3a014f3b9ce4321dae6e1010df5f23f45f4ed8be3cf67a9a579"
+    },
+    "synth-spu/icon.png": {
+      "bytes": 2663786,
+      "sha256": "487976de5e09bbef144cc5f7b187153dc5a79cf8274c96977382f337ea65d580"
+    },
+    "synth-spu/spu_synth_worklet.js": {
+      "bytes": 47574,
+      "sha256": "d6c8f6861a361eb711393970e68d29eff344fc2cff801b27b2a0c98af444019f"
+    },
+    "synth-spu/synth.css": {
+      "bytes": 22493,
+      "sha256": "bcdb33ce8b29d57a1fcb4f307dac3441010da403bca570c45488bc96714f6968"
+    },
+    "synth-spu/synth.js": {
+      "bytes": 115196,
+      "sha256": "0d191fa6c114b13256310b756a09543a0495a1dc07fded204adad301f967c178"
+    }
+  },
+  "checkerSha256": "98ae919fe96f268bcf9cc6c8b9fa0098c249d5c4b20485193138d2f7258b682a",
+  "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+}

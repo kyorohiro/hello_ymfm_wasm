@@ -4,6 +4,24 @@
 [savePoint.md](savePoint.md) と個別の作業記録を参照する。
 savePointの下位の「未commit／未公開／次は…」は当時の履歴であり、現在の残作業とは限らない。
 
+## Playgroundリリース中のSPU Synth見直し — 2026-10-31
+
+[安定性レビュー・配布候補](spu_synth_review_20261031.md)。PMON変更がRAM不足で拒否されたときの
+鍵盤所有情報の消失と、AudioWorkletコマンドの無期限待ちを修正。Node70件成功。
+実ZIPでChromium／WebKitの全回帰成功。ZIPとhashはレビュー記録を参照。未公開・未commit・未push。
+後続でユーザー指定の鍵盤コンパクト化も実施。最新ZIPは`compact-keyboard-dev-20261031`。
+Node70件・両browserのレイアウト／限定発音回帰成功。全回帰を行った上記ZIPとは区別して記録している。
+Playground／共有音源／SDK pin／WASM／校正gainは変更していない。
+
+## SDK側GitHub ActionsのWindows修正 — 2026-10-31
+
+ユーザー追加指定で`tetorica-soundchip-native`側も確認。
+[調査・修正・検証](ci_soundchip_native_fix_20261031.md)。最新runは全体cancelledだがWindowsは失敗。
+PS1 SPUの`std::out_of_range`に必要な`<stdexcept>`を追加し、inventoryのhashと変更記録を更新。
+修正は別Gitの`w/tetorica-soundchip-native`内の2ファイル。Python107、隔離ソースZIP Native再ビルド、CTest31成功。
+SDK側は未commit／未push。WindowsとキャンセルされたmacOS arm64のremote再実行が次。
+親アプリの固定SDK／WASMは変更せず、SDK公開やタグ作成もしていない。
+
 ## SSを区切り、GitHub Actions修正へ — 2026-10-31
 
 SSの追加開発はいったん区切る。[SS再開用TODO](todo_scsp_resume_20261031.md)へ現状と残作業を集約した。

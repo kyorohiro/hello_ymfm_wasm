@@ -140,12 +140,12 @@ h1 .brand-u { color: #1d60ad; }
 fieldset:disabled .chip-section { opacity: .6; }
 
 .keyboard-section { margin-top: 24px; padding: 20px 5px 4px; border-top: 1px solid var(--line); }
-.keyboard-toolbar { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; margin-bottom: 16px; }
-.octave-control { display: flex; gap: 10px; align-items: center; font-size: .75rem; color: #58626a; }
-.octave-control button { width: 33px; min-height: 32px; padding: 2px; font-size: 1rem; }
+.keyboard-toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-bottom: 10px; }
+.octave-control { display: flex; gap: 8px; align-items: center; font-size: .7rem; color: #58626a; }
+.octave-control button { width: 28px; min-height: 28px; padding: 2px; font-size: 1rem; }
 .octave-control output { color: var(--ink); }
 .check-control { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: #58626a; }
-#allNotesOff { margin-left: auto; font-size: .73rem; }
+#allNotesOff { margin-left: auto; min-height: 28px; padding: 4px 9px; font-size: .7rem; }
 .keyboard-mount { min-width: 0; overflow-x: auto; padding: 5px 1px 8px; }
 .keyboard-mount .keyboard { display: grid; gap: 7px; min-width: 0; padding-right: 35px; }
 .keyboard-row { display: flex; gap: 5px; }
@@ -153,18 +153,20 @@ fieldset:disabled .chip-section { opacity: .6; }
 .key-row[data-row="1"] { margin-left: 10px; }
 .key-row[data-row="2"] { margin-left: 20px; }
 .key-row[data-row="3"] { margin-left: 30px; }
-.keyboard-mount .key, .keyboard-mount .keyboard-key { min-width: 0; min-height: 72px; flex: 1; padding: 10px 9px; border-radius: 7px 7px 10px 10px; background: linear-gradient(#f6f8fa, #d6dee4); color: #36414d; border: 1px solid #9eabb6; box-shadow: inset 0 -4px #acb9c3, 0 3px 3px #30353b35; touch-action: none; user-select: none; font-weight: 750; text-align: left; }
+.keyboard-mount .key, .keyboard-mount .keyboard-key { min-width: 0; min-height: 0; flex: 1; padding: clamp(5px, 1.2vw, 10px) clamp(4px, 1vw, 8px); border-radius: 7px 7px 10px 10px; background: linear-gradient(#f6f8fa, #d6dee4); color: #36414d; border: 1px solid #9eabb6; box-shadow: inset 0 -4px #acb9c3, 0 3px 3px #30353b35; touch-action: none; user-select: none; font-weight: 750; text-align: left; }
 .keyboard-mount .black, .keyboard-mount .is-black, .keyboard-mount .black-key, .keyboard-mount [data-accidental="true"] { background: linear-gradient(#525b65, #303841); color: #e2e8eb; border-color: #626e7b; box-shadow: inset 0 -4px #222931, 0 3px 3px #30353b35; }
 .keyboard-mount .active, .keyboard-mount .is-active, .keyboard-mount [aria-pressed="true"] { background: linear-gradient(#a8c9e9, #7ca8d2); color: #15354c; border-color: #436b9a; box-shadow: inset 0 -2px #658db5; transform: translateY(2px); }
 .keyboard-mount kbd, .keyboard-mount small, .keyboard-mount .key-label { display: block; font: inherit; font-size: .66rem; opacity: .75; }
-.key strong { display: block; font-size: 1rem; }
+.key strong { display: block; font-size: 1rem; line-height: 1; }
 .key span { display: block; margin-top: 4px; font-size: .8rem; }
 .key small { margin-top: 3px; }
-.fretboard-toolbar { display: grid; gap: 7px; margin-bottom: 14px; }
+.fretboard-toolbar { display: grid; gap: 6px; margin-bottom: 10px; }
 .fretboard-row, .toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.fretboard-label, .fret-display { color: var(--muted); font-size: .7rem; }
+.fretboard-summary { gap: 8px; margin-bottom: 2px; }
+.fretboard-label, .fret-display { color: var(--muted); font-size: .64rem; }
+.fret-display { display: inline-flex; align-items: center; min-height: 20px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; }
 .toolbar-divider { color: #98a0a6; }
-.keyboard-mount .toolbar-button { min-height: 30px; padding: 4px 10px; border-radius: 20px; font-size: .69rem; }
+.keyboard-mount .toolbar-button { min-height: 24px; padding: 2px 8px; border-radius: 20px; font-size: .68rem; line-height: 1.2; }
 .keyboard-mount .toolbar-button.is-selected { background: #426690; border-color: #90abc7; color: #f5f8fc; }
 .keyboard-hint { margin: 9px 0 0; color: #626e72; font-size: .67rem; line-height: 1.6; }
 footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 20px 6px 0; color: #62696e; font-size: .66rem; }
@@ -218,14 +220,14 @@ footer a { color: #4a5e74; }
   .chip-field input[type="number"] { width: 104px; }
   .chip-actions { gap: 5px; }
   .chip-actions button { padding: 7px 10px; }
-  .keyboard-toolbar { gap: 14px 18px; }
+  .keyboard-toolbar { gap: 8px 12px; }
   #allNotesOff { margin-left: 0; }
   .keyboard-mount .keyboard { gap: 5px; padding-right: 19px; }
   .key-row { gap: 4px; }
   .key-row[data-row="1"] { margin-left: 6px; }
   .key-row[data-row="2"] { margin-left: 12px; }
   .key-row[data-row="3"] { margin-left: 18px; }
-  .keyboard-mount .key, .keyboard-mount .keyboard-key { min-height: 59px; padding: 7px 3px; border-radius: 6px; }
+  .keyboard-mount .key, .keyboard-mount .keyboard-key { padding: 5px 3px; border-radius: 6px; }
   .key strong { font-size: .72rem; }
   .key span { font-size: .59rem; }
   .key small { font-size: .5rem; }

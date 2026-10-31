@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createSpuAudio} from './spu_synth_audio.js';
+import {createSpuAudio} from './spu_synth_audio.js?v=spu-recovery-1';
 import {createSpuInstrumentPanel} from './spu_synth_panel.js';
 import {createSpuOutputVisualizer} from './spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard, setInstrument, setFretPosition, setStringWindowIndex} from '../synth/synth_keyboard.js';
@@ -18,7 +18,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, state = null, stateFrame = null, epoch = 0, assetEpoch = 0, octave = 0, bend = 0;
 const notes = new Map();
 let instrumentName = 'Sine';
-let noteSequence = 0;
+let noteSequence = 0, topologyPending = 0;
 const rmsCanvas = document.createElement('canvas');
 rmsCanvas.id = 'outputEnvelopeCanvas'; rmsCanvas.width = 900; rmsCanvas.height = 240;
 rmsCanvas.setAttribute('role', 'img'); rmsCanvas.setAttribute('aria-label', 'Measured SPU output RMS history');
@@ -78,9 +78,16 @@ async function invoke(method, args = []) {
   // Do not yield again here: an Off/Stop must never overtake its pending On.
   const engine = audio ?? await ensureAudio();
   const changesTopology = method === 'setInstrumentPmon' && Boolean(state?.pmon?.enabled) !== args[0]?.enabled || method === 'setInstrumentNoise' && Boolean(state?.noise?.enabled) !== args[0]?.enabled;
-  if (changesTopology) {epoch++; notes.clear(); updateKeys();}
+  if (changesTopology) topologyPending++;
   const commandEpoch = epoch;
-  const result = await engine.command(method, args);
+  let result;
+  try {
+    result = await engine.command(method, args);
+    // The worklet validates before stopping voices. Preserve note owners when
+    // it rejects the change, so their later key-up can still release them.
+    if (changesTopology && audio===engine && commandEpoch===epoch) {epoch++;notes.clear();updateKeys();}
+  } finally {if(changesTopology)topologyPending--;}
+
   // A live edit may expose a release/reverb tail after the display slept.
   // Monitoring remains passive, and an intervening Stop cancels this wake.
   if (method.startsWith('set') && commandEpoch === epoch) visualizer.wake();
@@ -138,8 +145,18 @@ const fret = createFretboardState(), keyboard = document.createElement('div');
 keyboard.className = 'keyboard'; keyboard.id = 'keyboardKeys';
 const toolbar = document.createElement('div'); toolbar.className = 'fretboard-toolbar';
 const keyboardTools = Object.fromEntries(['instrument', 'position', 'fret', 'strings', 'window'].map(name => {
-  const node = document.createElement('div'); node.className = `fretboard-${name}`; toolbar.append(node); return [name, node];
+  const node = document.createElement('div');
+  node.className = `fretboard-${name} ${['fret', 'strings'].includes(name) ? 'fret-display' : 'toolbar-group'}`;
+  return [name, node];
 }));
+const summary = document.createElement('div'); summary.className = 'fretboard-row fretboard-summary';
+summary.append(keyboardTools.fret, keyboardTools.strings);
+const choices = document.createElement('div'); choices.className = 'fretboard-row';
+for (const name of ['instrument', 'position', 'window']) {
+  if (choices.childElementCount) {const divider = document.createElement('span'); divider.className = 'toolbar-divider'; divider.textContent = '|'; divider.setAttribute('aria-hidden', 'true'); choices.append(divider);}
+  choices.append(keyboardTools[name]);
+}
+toolbar.append(summary, choices);
 $('keyboardMount').append(toolbar, keyboard);
 let layout;
 function renderKeyboard() {
@@ -168,6 +185,7 @@ function updateKeys() {
   }
 }
 async function press(source, entry) {
+  if (topologyPending) return;
   if (notes.get(source)?.released) release(source, true);
   if (notes.has(source)) return;
   const note = {key:entry.key, midi:entry.midi, channel:null, id:`spu-synth:${++noteSequence}`, epoch, started:false};
@@ -175,6 +193,7 @@ async function press(source, entry) {
   try {
     await ensureAudio();
     if (note.epoch !== epoch || notes.get(source) !== note) return;
+    if(topologyPending){notes.delete(source);updateKeys();return;}
     note.started = true;
     const allocation = await invoke('instrumentNoteOn', [note.midi, note.id, bend]);
     note.channel = allocation.channel;

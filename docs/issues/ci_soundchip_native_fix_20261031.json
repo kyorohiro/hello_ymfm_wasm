@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-31",
+  "repository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+  "sdkBaseCommit": "5e0df7acfddc17fe23874e39bbe329cab180505c",
+  "latestRun": {
+    "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/41129812375",
+    "conclusion": "cancelled",
+    "windowsJob": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/41129812375/job/124317558345",
+    "windowsConclusion": "failure",
+    "macosArm64Conclusion": "cancelled",
+    "otherNativeAndAllSevenWasmJobs": "success"
+  },
+  "previousRun": {
+    "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40994309280",
+    "conclusion": "failure",
+    "onlyFailedJob": "Native / windows-x86_64"
+  },
+  "error": "MSVC C2039/C3861: std::out_of_range not declared in vendor/mame-ps1-spu/spu.cpp:3217",
+  "fix": "Explicitly include <stdexcept>; update adapted-source SHA256 and amendment note, preserving original hashes and pristine upstream",
+  "sources": {
+    "vendor/mame-ps1-spu/spu.cpp": {
+      "bytes": 76262,
+      "sha256": "1523753541342954d612620ff27b40212244ac594cc5b62c4a974d928baae63e"
+    },
+    "catalog/source_inventory.json": {
+      "bytes": 150728,
+      "sha256": "4873f0eb4487f1b00199ba8b82a2d83b713977372b04abe67f1d199ebd419dfc"
+    }
+  },
+  "verification": {
+    "sourceCollection": "passed, 339 snapshot records",
+    "pythonTests": 107,
+    "sourceArchive": {
+      "path": "/private/tmp/sdk-windows-header-fix-release-20261031/tetorica-soundchip-native-0.1.7-sources.zip",
+      "bytes": 1309799,
+      "sha256": "0ca4bbc5fcc76df36f1f0f634ac0f039e8ec94c76b914e36ebbb12d949963c2d"
+    },
+    "isolatedNativeBuild": "passed on local macOS arm64; source ZIP extracted into new directory",
+    "ctestPassed": 31,
+    "ctestFailed": 0,
+    "examplesAndJavascriptSmokes": "passed by check_standalone_release.py",
+    "unitLog": {
+      "bytes": 29518,
+      "sha256": "b9893229d56a01812fd978052be919f563a13a46eebce8fa955f14384dba9d93"
+    },
+    "standaloneLog": {
+      "bytes": 42609,
+      "sha256": "3c98949e66e629a589d2f8562432356bb529b4629a925d6bd51c004270adea4c"
+    }
+  },
+  "limitations": [
+    "MSVC execution is pending the corrected SDK commit being pushed and Actions rerun",
+    "Latest cancelled macOS arm64 job also needs rerun",
+    "Parent application fixed SDK snapshot and WASM were not changed"
+  ],
+  "committed": false,
+  "pushed": false,
+  "published": false
+}

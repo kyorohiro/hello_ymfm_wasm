@@ -25,7 +25,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
   let node = null, gain = null, disposed = false, fatalError = null, nextId = 0, rejectReady, readyTimer;
   const pending = new Map();
   let state = null;
-  const failPending = error => {for (const {reject} of pending.values()) reject(error); pending.clear();};
+  const failPending = error => {for (const {reject,timer} of pending.values()) {clearTimeout(timer);reject(error);} pending.clear();};
   const report = error => {try {onError(error);} catch {}};
   const publish = value => {state = value; try {onState(value);} catch (error) {report(error);}};
   const assertOpen = () => {if (fatalError) throw fatalError; if (disposed || context.state === 'closed') throw new Error('SPU synth is closed');};
@@ -38,6 +38,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
     if (node) {
       node.onprocessorerror = null;
       node.port.onmessage = null;
+      node.port.onmessageerror = null;
       try {node.port.postMessage({method:'dispose'});} catch {}
       node.disconnect();
       node.port.close();
@@ -73,6 +74,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       processorOptions:{wasmBinary, initialWaveform:initialWaveform()},
     });
     node.onprocessorerror = () => fail(new Error('SPU synth audio processor failed'));
+    node.port.onmessageerror = () => fail(new Error('SPU synth received an unreadable audio reply. Enable audio to restart.'));
     const ready = new Promise((resolve, reject) => {
       rejectReady = reject;
       readyTimer = setTimeout(() => fail(new Error('SPU synth audio initialization timed out')), 15000);
@@ -81,7 +83,7 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
         if (data?.ready) {clearTimeout(readyTimer); resolve(data); return;}
         const request = pending.get(data?.id);
         if (!request) return;
-        pending.delete(data.id);
+        pending.delete(data.id);clearTimeout(request.timer);
         if (data.error) {
           const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error);
         } else {
@@ -101,8 +103,9 @@ export async function createSpuAudio({onError = () => {}, onState = () => {}, vo
       assertOpen();
       const id = ++nextId;
       return new Promise((resolve, reject) => {
-        pending.set(id, {resolve, reject});
-        try {node.port.postMessage({id, method, args}, transfer);} catch (error) {pending.delete(id); reject(error);}
+        const timer=setTimeout(()=>fail(new Error(`SPU synth command timed out (${method}). Enable audio to restart.`)),15000);
+        pending.set(id, {resolve, reject,timer});
+        try {node.port.postMessage({id, method, args}, transfer);} catch (error) {pending.delete(id);clearTimeout(timer);reject(error);}
       });
     };
     return {

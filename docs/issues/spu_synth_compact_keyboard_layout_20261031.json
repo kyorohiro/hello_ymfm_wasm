@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "browser": "chromium",
+      "width": 1440,
+      "before": {
+        "keyboardHeight": 309,
+        "sectionHeight": 634.90625,
+        "keyHeight": 72,
+        "toolbarHeight": 162,
+        "documentWidth": 1440,
+        "viewport": 1440
+      },
+      "after": {
+        "keyboardHeight": 261,
+        "sectionHeight": 458.90625,
+        "keyHeight": 60,
+        "toolbarHeight": 52,
+        "documentWidth": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "browser": "chromium",
+      "width": 390,
+      "before": {
+        "keyboardHeight": 251,
+        "sectionHeight": 696.953125,
+        "keyHeight": 59,
+        "toolbarHeight": 162,
+        "documentWidth": 390,
+        "viewport": 390
+      },
+      "after": {
+        "keyboardHeight": 173.0625,
+        "sectionHeight": 475.015625,
+        "keyHeight": 39.515625,
+        "toolbarHeight": 82,
+        "documentWidth": 390,
+        "viewport": 390
+      }
+    },
+    {
+      "browser": "webkit",
+      "width": 1440,
+      "before": {
+        "keyboardHeight": 309,
+        "sectionHeight": 634.21875,
+        "keyHeight": 72,
+        "toolbarHeight": 162,
+        "documentWidth": 1440,
+        "viewport": 1440
+      },
+      "after": {
+        "keyboardHeight": 261,
+        "sectionHeight": 458.21875,
+        "keyHeight": 60,
+        "toolbarHeight": 52,
+        "documentWidth": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "browser": "webkit",
+      "width": 390,
+      "before": {
+        "keyboardHeight": 251,
+        "sectionHeight": 696.890625,
+        "keyHeight": 59,
+        "toolbarHeight": 162,
+        "documentWidth": 390,
+        "viewport": 390
+      },
+      "after": {
+        "keyboardHeight": 173.0625,
+        "sectionHeight": 474.953125,
+        "keyHeight": 39.515625,
+        "toolbarHeight": 82,
+        "documentWidth": 390,
+        "viewport": 390
+      }
+    }
+  ]
+}

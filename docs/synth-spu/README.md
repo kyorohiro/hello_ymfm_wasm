@@ -73,7 +73,9 @@ Loading audio, loading a preset or resetting the instrument first stops the
 current notes. New keyboard notes then use the updated instrument.
 
 The current session is in memory. Save instruments before reloading or closing
-the page. An explicit restart after an audio-engine failure also starts a fresh
+the page. A rejected PMON or Noise mode change keeps held notes releasable.
+If the audio engine stops responding, the page reports an error; select
+**Enable audio** to restart. An explicit restart after an audio-engine failure also starts a fresh
 sine instrument. This standalone version provides audio-file import and short
 cycle drawing; microphone recording and the full Playground Sample Editor
 remain available in [Playground](../playground/index.html?mode=ps1).
