@@ -14,7 +14,7 @@
 - [x] Webの固定SDK snapshotは正規export/importで更新する。既存SCSP local candidate変更を保持し、無関係chipのcoreを黙って変更しない。新source commit /candidate provenance /manifestを保存する。
 - [x] Web SPU WASMを再buildし、Synth・PlaygroundのMain /Worker・Chromium /WebKitでflag4 loopを元bytesのまま持続再生できることを検証する。file読み込み、preset保存/復元、loop position、離鍵・停止も検査する。
 - [x] docs/generated /docs/sources /SDK receipts・SPU校正freshness /JS package buildを必要範囲で更新し、原本と同じsourceから再buildできることを確認する。npm publish・version/tag変更・itch/Tauri/Plugin releaseは今回行わない。
-- [ ] 修正前後の再現、byte保持、回帰結果とCIを記録し、残る実聴・配布物更新のTODOを分けてcommit /pushする。
+- [x] 修正前後の再現、byte保持、回帰結果とCIを記録し、残る実聴・配布物更新のTODOを分けてcommit /pushする。
 
 Pluginの実装TODO: `w/tetorica-spu-plugin/docs/issues/TODO.md`。
 Web版は固定SDKからのWASM buildなので、NativeのGit更新だけでは既存Webページへ反映されない。
@@ -28,7 +28,7 @@ Webは同じSDKを正規snapshotとして固定し、SPU WASMを再buildした�
 SDK 0.1.7は未releaseのためpinに `unpublished: true` を保存し、公開releaseとは扱わない。
 新しい校正48経路＋YM2612基準8経路と、適用後の同数の再検証に成功。過去の測定JSONは変更していない。
 NodeのSPU関連189件、校正policy397件、SDK importer/inventory117件が成功。
-配布ZIPのfull browser回帰と親repo CIの最終確認・検証記録は続けて保存する。
+配布ZIPのfull browser回帰と親repo CIの最終確認も完了。詳細は下記の最終記録を参照。
 
 
 ## 今回の修正後に残す確認
@@ -41,13 +41,13 @@ NodeのSPU関連189件、校正policy397件、SDK importer/inventory117件が成
 外部入力Reverb / Morph LFOは今回も追加しない。
 
 
-## 共通CIの追加切り分け（未完了）
+## 共通CIの追加切り分け（完了）
 
 実装 `948808a3` のSPU Synth /WASM33core parity /VGM /SBI /Pagesは成功。
 共通itch run `41277439005` のpackaged POKEY System gains /dual /Worker /Stopで失敗を検出した。
 PS1 /WonderSwan /POKEYの校正、packaged Analyzer /FM Synth /Playgroundはここまで成功している。
 失敗logを取得し、同じ実ZIPで再現・原因を切り分けてから必要な修正を行う。
-この項目が終わるまでCI全成功・今回全完了とは記録しない。
+POKEY参照をb8dae7d1で修正し、最終c7760213のCIでもこの検証は成功した。
 
 
 追加原因: packaged POKEY checkerだけが旧 `pokey_chip_levels_deferred_release_01.json`
@@ -58,12 +58,13 @@ PS1 /WonderSwan /POKEYの校正、packaged Analyzer /FM Synth /Playgroundはこ�
 両browser × single /dual × Main /Workerの8経路で実PCM・System復元を再検証する。
 
 
-## Sample Editor共通CIの追加切り分け（未完了）
+## Sample Editor共通CIの追加切り分け（完了）
 
 `b8dae7d1` の再実行でPOKEYは通過。SPU mode /ADPCM変換 /live voice・PCM・Reverb編集も通過した。
 続くitch run `41279067313` のPS1 Sample Editor /saved Keyboard instrumentsで失敗を検出した。
-失敗logと同じ実ZIPで再現し、原因と修正範囲を確かめてから対応する。
-CI全成功という最終記録は保留する。
+失敗logを確認し、同じZIPを追試したがローカル4経路は成功した。
+2秒予約の制御条件で固定待ちの不十分さを確認し、実際の到達を待つテストへ修正した。
+c7760213で観測時点を修正し、最終CI全5workflow /8job成功。
 
 
 Sample Editorの具体failureはCIのWebKit /Workerだけ、24note後のgate数が21。
@@ -73,3 +74,12 @@ getState /snapshotは予約NoteOnを追い越す即時RPC。固定sleep(1)はaud
 Native envelope /nativeFrames /missing channelを診断に残し、未到達は引き続き失敗させる。
 公開Worker lookahead設定を2秒へ上げたprobeで固定1秒待ちの不十分さを意図的に再現し、
 条件待ちで24音の実audio適用に到達することを検証する。productionのイベント再送・count緩和は行わない。
+
+
+## 最終保存
+
+[検証記録](ps1_loop_compat_20261101.md) / [機械記録](ps1_loop_compat_20261101.json)。
+実装はWeb `948808a3`、SDK `95cf71a`、Plugin `78e0b83`。
+共通CIのテスト参照修正 `b8dae7d1` と予約音声の観測修正 `c7760213` も保存済み。
+最終親CIは全5workflow /8job成功、SPU Synth専用CI・Native SDK /Plugin CIも成功。
+GitHub Pagesの公開WASMは修正版hashと一致。人の実聴・installed AU・手動配布更新は上の未完了項目として残す。

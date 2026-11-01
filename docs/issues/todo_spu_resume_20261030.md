@@ -1,6 +1,6 @@
 # SPU Synth 再開時のTODO
 
-2026-11-01開始：[ADPCMループ互換性のTODO](todo_ps1_loop_compat_20261101.md)。Native /Web Synth /Playground /Pluginで、開始packetにflag2を要求する制限を元ADPCMを保持したまま修正する。
+2026-11-01完了：[ADPCMループ互換性のTODO](todo_ps1_loop_compat_20261101.md) / [検証記録](ps1_loop_compat_20261101.md)。Native /Web Synth /Playground /Pluginで、開始packetにflag2を要求する制限を元ADPCMを保持して修正済み。実ZIP・CI成功。実聴とinstalled AU /手動配布更新は未確認として分ける。
 
 2026-10-31追記：[Standalone安定性レビューと新しい配布候補](spu_synth_review_20261031.md)。
 PMON変更拒否後の離鍵と、音声コマンド応答待ちの復旧を修正。下記v0.1.0 ZIPは過去版として保持する。

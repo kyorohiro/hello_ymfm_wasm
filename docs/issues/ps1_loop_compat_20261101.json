@@ -1,0 +1,1784 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-01",
+  "recordedUtc": "2026-11-01T05:36:20.485767+00:00",
+  "sourceCommits": {
+    "web": "948808a3",
+    "sdk": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "plugin": "78e0b8358bd9855dbd061b421656213b2fb34041",
+    "pluginDocs": "1e81db9dc878934cf59b660e3e9b13c6f6b19e4e",
+    "packagedPokeyTestFix": "b8dae7d1",
+    "sampleEditorPlaybackWaitFix": "c7760213",
+    "verifiedWebHead": "c7760213aece4babe1f6f193651cc70a73e4d5cf"
+  },
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.7",
+    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+    "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
+    "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c",
+    "manifestSha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365",
+    "fileCount": 476,
+    "unpublished": true
+  },
+  "before": {
+    "wasmSha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4",
+    "cases": [
+      {
+        "frequency": 220,
+        "frames": 8192,
+        "sha256": "53cc8486899f07ad403edca2a09aafb1db3fd77ed3efb74d48812173edb0e6fa"
+      },
+      {
+        "frequency": 440,
+        "frames": 8192,
+        "sha256": "d8beace158b2ddb160f0ad5c73c02d89ef744ebf507d9c458cef7fb7870f3220"
+      },
+      {
+        "frequency": 880,
+        "frames": 8192,
+        "sha256": "e0fb170c2c48f7e998b73258334cef799fd8de976dd3570fc2fa6891cc4bdb04"
+      }
+    ]
+  },
+  "after": {
+    "wasmSha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+    "cases": [
+      {
+        "frequency": 220,
+        "frames": 8192,
+        "sha256": "53cc8486899f07ad403edca2a09aafb1db3fd77ed3efb74d48812173edb0e6fa"
+      },
+      {
+        "frequency": 440,
+        "frames": 8192,
+        "sha256": "d8beace158b2ddb160f0ad5c73c02d89ef744ebf507d9c458cef7fb7870f3220"
+      },
+      {
+        "frequency": 880,
+        "frames": 8192,
+        "sha256": "e0fb170c2c48f7e998b73258334cef799fd8de976dd3570fc2fa6891cc4bdb04"
+      }
+    ]
+  },
+  "originalNormalPcmExact": true,
+  "scspCoreAllBytesPreserved": true,
+  "otherChipWasmChanged": false,
+  "sourceBundle": {
+    "passed": true,
+    "sourceInputs": 24,
+    "bundleFiles": 28,
+    "fixedSdkArtifact": true,
+    "sdkVersion": "0.1.7",
+    "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+    "rebuilt": {
+      "output": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/ps1-sdk-source-rebuild-kgiRYM",
+      "descriptorAndWasmExact": true
+    }
+  },
+  "offlineCalibration": {
+    "passed": true,
+    "routes": 12,
+    "nativeMaximumDifference": 0,
+    "physicalAudio": false
+  },
+  "unitTests": {
+    "webSpu": 189,
+    "sdkImporterInventory": 117,
+    "calibrationPolicy": 397
+  },
+  "browserRaw": {
+    "method": "Real Node WASM baseline versus Window and DedicatedWorker, exact Float32 PCM plus independent pitch/stereo/lifecycle controls.",
+    "physicalAudio": false,
+    "engines": [
+      {
+        "name": "chromium",
+        "realm": "Window",
+        "passed": true,
+        "stereoFrames": 8194,
+        "sampleComparisons": 32776,
+        "loopStereoFrames": 98304,
+        "loopSampleComparisons": 196608,
+        "maximumDifference": 0,
+        "crossings": {
+          "normal": 147,
+          "doubled": 292
+        },
+        "peak": {
+          "left": 0.05221238732337952,
+          "right": 0.02612145245075226
+        },
+        "pcmSha256": {
+          "normalLeft": "48e2c89cf3c136d47cb91cb6fc43940b7ec4612965b00cee43484dfe1c839918",
+          "normalRight": "7e2592ada6453ea934963f6b698c3f9f706ea4063eeff61f3cafd5b2beef0020",
+          "doubledLeft": "de3ffd27ce36c3be1da7feb84d1ad31ec5fd2762867d41dae676ba4fe72cd9ef",
+          "doubledRight": "b293560d165ae0e712d6d7fa9391a1a384818a97ab533dc9b59de269f0d0ba1b"
+        },
+        "loopRepeats": [
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "a8c23607255983687ca2ec4cfcbab3ed5853b2dbda597de6d5cdd7e97ecb9734",
+              "right": "a47f9c6f4373cfc5367fc1dc3201e388402abe7c75a6621fbc7dcd3ad46bc5a8"
+            }
+          },
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "26ec3604f96e2c5e9c83fde1ee164d21e131ecebf2e441a2cbdf0fcbb1481d17",
+              "right": "d6f36accb3baaaa09c6aadb2cc89f441196c58987f482f9c2b36d565ed48026b"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          }
+        ],
+        "independentInstances": true,
+        "ramCopy": true,
+        "pitch": true,
+        "keyOff": true,
+        "resetRetainsRam": true,
+        "resetClearsRam": true,
+        "disposed": true
+      },
+      {
+        "name": "chromium",
+        "realm": "DedicatedWorker",
+        "passed": true,
+        "stereoFrames": 8194,
+        "sampleComparisons": 32776,
+        "loopStereoFrames": 98304,
+        "loopSampleComparisons": 196608,
+        "maximumDifference": 0,
+        "crossings": {
+          "normal": 147,
+          "doubled": 292
+        },
+        "peak": {
+          "left": 0.05221238732337952,
+          "right": 0.02612145245075226
+        },
+        "pcmSha256": {
+          "normalLeft": "48e2c89cf3c136d47cb91cb6fc43940b7ec4612965b00cee43484dfe1c839918",
+          "normalRight": "7e2592ada6453ea934963f6b698c3f9f706ea4063eeff61f3cafd5b2beef0020",
+          "doubledLeft": "de3ffd27ce36c3be1da7feb84d1ad31ec5fd2762867d41dae676ba4fe72cd9ef",
+          "doubledRight": "b293560d165ae0e712d6d7fa9391a1a384818a97ab533dc9b59de269f0d0ba1b"
+        },
+        "loopRepeats": [
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "a8c23607255983687ca2ec4cfcbab3ed5853b2dbda597de6d5cdd7e97ecb9734",
+              "right": "a47f9c6f4373cfc5367fc1dc3201e388402abe7c75a6621fbc7dcd3ad46bc5a8"
+            }
+          },
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "26ec3604f96e2c5e9c83fde1ee164d21e131ecebf2e441a2cbdf0fcbb1481d17",
+              "right": "d6f36accb3baaaa09c6aadb2cc89f441196c58987f482f9c2b36d565ed48026b"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          }
+        ],
+        "independentInstances": true,
+        "ramCopy": true,
+        "pitch": true,
+        "keyOff": true,
+        "resetRetainsRam": true,
+        "resetClearsRam": true,
+        "disposed": true
+      },
+      {
+        "name": "webkit",
+        "realm": "Window",
+        "passed": true,
+        "stereoFrames": 8194,
+        "sampleComparisons": 32776,
+        "loopStereoFrames": 98304,
+        "loopSampleComparisons": 196608,
+        "maximumDifference": 0,
+        "crossings": {
+          "normal": 147,
+          "doubled": 292
+        },
+        "peak": {
+          "left": 0.05221238732337952,
+          "right": 0.02612145245075226
+        },
+        "pcmSha256": {
+          "normalLeft": "48e2c89cf3c136d47cb91cb6fc43940b7ec4612965b00cee43484dfe1c839918",
+          "normalRight": "7e2592ada6453ea934963f6b698c3f9f706ea4063eeff61f3cafd5b2beef0020",
+          "doubledLeft": "de3ffd27ce36c3be1da7feb84d1ad31ec5fd2762867d41dae676ba4fe72cd9ef",
+          "doubledRight": "b293560d165ae0e712d6d7fa9391a1a384818a97ab533dc9b59de269f0d0ba1b"
+        },
+        "loopRepeats": [
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "a8c23607255983687ca2ec4cfcbab3ed5853b2dbda597de6d5cdd7e97ecb9734",
+              "right": "a47f9c6f4373cfc5367fc1dc3201e388402abe7c75a6621fbc7dcd3ad46bc5a8"
+            }
+          },
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "26ec3604f96e2c5e9c83fde1ee164d21e131ecebf2e441a2cbdf0fcbb1481d17",
+              "right": "d6f36accb3baaaa09c6aadb2cc89f441196c58987f482f9c2b36d565ed48026b"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          }
+        ],
+        "independentInstances": true,
+        "ramCopy": true,
+        "pitch": true,
+        "keyOff": true,
+        "resetRetainsRam": true,
+        "resetClearsRam": true,
+        "disposed": true
+      },
+      {
+        "name": "webkit",
+        "realm": "DedicatedWorker",
+        "passed": true,
+        "stereoFrames": 8194,
+        "sampleComparisons": 32776,
+        "loopStereoFrames": 98304,
+        "loopSampleComparisons": 196608,
+        "maximumDifference": 0,
+        "crossings": {
+          "normal": 147,
+          "doubled": 292
+        },
+        "peak": {
+          "left": 0.05221238732337952,
+          "right": 0.02612145245075226
+        },
+        "pcmSha256": {
+          "normalLeft": "48e2c89cf3c136d47cb91cb6fc43940b7ec4612965b00cee43484dfe1c839918",
+          "normalRight": "7e2592ada6453ea934963f6b698c3f9f706ea4063eeff61f3cafd5b2beef0020",
+          "doubledLeft": "de3ffd27ce36c3be1da7feb84d1ad31ec5fd2762867d41dae676ba4fe72cd9ef",
+          "doubledRight": "b293560d165ae0e712d6d7fa9391a1a384818a97ab533dc9b59de269f0d0ba1b"
+        },
+        "loopRepeats": [
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "a8c23607255983687ca2ec4cfcbab3ed5853b2dbda597de6d5cdd7e97ecb9734",
+              "right": "a47f9c6f4373cfc5367fc1dc3201e388402abe7c75a6621fbc7dcd3ad46bc5a8"
+            }
+          },
+          {
+            "loopBlock": 0,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "26ec3604f96e2c5e9c83fde1ee164d21e131ecebf2e441a2cbdf0fcbb1481d17",
+              "right": "d6f36accb3baaaa09c6aadb2cc89f441196c58987f482f9c2b36d565ed48026b"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": true,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4096,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "6b7a0529e1ad9e28a1e2d8eb66197a7486c62f74de91bf4a0b3626601162cc49",
+              "right": "fb9945732431096784cdec1cf856b0cb230110376b18e854c99384c29958a23e"
+            }
+          },
+          {
+            "loopBlock": 2,
+            "marker": false,
+            "pitch": 4660,
+            "frames": 16384,
+            "tailPeak": 0.4358559548854828,
+            "originalRamExact": true,
+            "pcmSha256": {
+              "left": "79f0800c4acac30b4e059c23817990c8cf3dfd9f26599e27135f40f5eb384451",
+              "right": "6cfcd22469840e9147a465f98a7d9ad231d8e3b0eedaeea94f6be7065a371256"
+            }
+          }
+        ],
+        "independentInstances": true,
+        "ramCopy": true,
+        "pitch": true,
+        "keyOff": true,
+        "resetRetainsRam": true,
+        "resetClearsRam": true,
+        "disposed": true
+      }
+    ]
+  },
+  "synthLoopUi": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "cases": [
+      {
+        "browser": "chromium",
+        "combinedAndSplit": 2,
+        "originalBytesPreserved": true,
+        "presetRestored": true,
+        "loopAudibleBeyondEnd": true,
+        "noteOff": true,
+        "stop": true
+      },
+      {
+        "browser": "webkit",
+        "combinedAndSplit": 2,
+        "originalBytesPreserved": true,
+        "presetRestored": true,
+        "loopAudibleBeyondEnd": true,
+        "noteOff": true,
+        "stop": true
+      }
+    ]
+  },
+  "playgroundLoopUi": {
+    "passed": true,
+    "physicalOutputMuted": true,
+    "clockContinuous": true,
+    "cases": [
+      {
+        "browser": "chromium",
+        "execution": "main",
+        "originalBytesPreserved": true,
+        "snapshotScope": "Original ADPCM RAM bytes extracted and re-uploaded with loop/tuning; not all live registers"
+      },
+      {
+        "browser": "chromium",
+        "execution": "worker",
+        "originalBytesPreserved": true,
+        "snapshotScope": "Original ADPCM RAM bytes extracted and re-uploaded with loop/tuning; not all live registers"
+      },
+      {
+        "browser": "webkit",
+        "execution": "main",
+        "originalBytesPreserved": true,
+        "snapshotScope": "Original ADPCM RAM bytes extracted and re-uploaded with loop/tuning; not all live registers"
+      },
+      {
+        "browser": "webkit",
+        "execution": "worker",
+        "originalBytesPreserved": true,
+        "snapshotScope": "Original ADPCM RAM bytes extracted and re-uploaded with loop/tuning; not all live registers"
+      }
+    ]
+  },
+  "freshBrowserCalibration": {
+    "measurement": {
+      "path": "docs/issues/ps1_loop_fm_chip_levels_01.json",
+      "bytes": 545552,
+      "sha256": "b6f09a1776d093387b1acfcf993802bf24b100f5cd680230ed6f3a4d03b16485"
+    },
+    "verification": {
+      "path": "docs/issues/ps1_loop_fm_chip_levels_verify_01.json",
+      "bytes": 572816,
+      "sha256": "3b3e9f2009974a1f8a48c118170ea31d855443f1ef17a2e673d1d49cdb236fcf"
+    },
+    "ps1RoutesEach": 48,
+    "ym2612AnchorsEach": 8,
+    "generatedGainValuesChanged": false,
+    "historicalMeasurementFilesModified": false
+  },
+  "isolatedNpmPackage": {
+    "passed": true,
+    "enginesLoaded": 28,
+    "files": 1051,
+    "compressedBytes": 2064069,
+    "unpackedBytes": 7783133,
+    "published": false
+  },
+  "ci": {
+    "sdk": {
+      "headSha": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
+      "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/41275704074",
+      "conclusion": "success"
+    },
+    "pluginEvidence": {
+      "path": "/private/tmp/spu-loop-plugin-ci.json",
+      "bytes": 12084,
+      "sha256": "418024d6cdd4937e82aaeaaae2145594c5a44984e1d6915f83ef00f67afe4ef4"
+    },
+    "plugin": {
+      "sourceSha": "78e0b8358bd9855dbd061b421656213b2fb34041",
+      "conclusion": "success",
+      "workflows": [
+        {
+          "id": 41276718988,
+          "name": "Verify SPU Plugin",
+          "url": "https://github.com/kyorohiro/tetorica-spu-plugin/actions/runs/41276718988",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "webOriginal": {
+      "headSha": "948808a3a98053801c218085e81196a90f7e76ff",
+      "capturedAt": "2026-11-01T06:01:15.067623+00:00",
+      "workflows": [
+        {
+          "id": 41277439005,
+          "name": "itch web release ZIPs",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277439005",
+          "status": "completed",
+          "conclusion": "failure",
+          "jobs": [
+            {
+              "id": 124762367026,
+              "name": "Package and verify the three web applications",
+              "conclusion": "failure",
+              "failedSteps": [
+                {
+                  "number": 25,
+                  "name": "Test packaged POKEY System gains, dual chips, Worker and Stop in Chromium and WebKit",
+                  "conclusion": "failure"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 41277438951,
+          "name": "SBI export tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277438951",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124762366804,
+              "name": "sbi",
+              "conclusion": "success",
+              "failedSteps": []
+            }
+          ]
+        },
+        {
+          "id": 41277438850,
+          "name": "pages build and deployment",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277438850",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124762369224,
+              "name": "build",
+              "conclusion": "success",
+              "failedSteps": []
+            },
+            {
+              "id": 124762468735,
+              "name": "deploy",
+              "conclusion": "success",
+              "failedSteps": []
+            },
+            {
+              "id": 124762468737,
+              "name": "report-build-status",
+              "conclusion": "success",
+              "failedSteps": []
+            }
+          ]
+        },
+        {
+          "id": 41277438993,
+          "name": "VGM parser and player tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277438993",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124762366949,
+              "name": "vgm-mock",
+              "conclusion": "success",
+              "failedSteps": []
+            }
+          ]
+        },
+        {
+          "id": 41277438940,
+          "name": "SPU Synth",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277438940",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124762366944,
+              "name": "Package and play the standalone SPU Synth",
+              "conclusion": "success",
+              "failedSteps": []
+            }
+          ]
+        },
+        {
+          "id": 41277438941,
+          "name": "WASM SDK build and parity",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41277438941",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124762366971,
+              "name": "CD-DA and PC Engine CD ADPCM",
+              "conclusion": "success",
+              "failedSteps": []
+            },
+            {
+              "id": 124762367196,
+              "name": "All 33 fixed SDK WASM builds",
+              "conclusion": "success",
+              "failedSteps": []
+            }
+          ]
+        }
+      ]
+    },
+    "webAfterCalibrationFix": {
+      "headSha": "b8dae7d16656e8639784ccac4dda6a9728a0efde",
+      "capturedAt": "2026-11-01T06:37:33.650Z",
+      "workflows": [
+        {
+          "id": 41279067419,
+          "name": "SBI export tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41279067419",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        },
+        {
+          "id": 41279066932,
+          "name": "pages build and deployment",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41279066932",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        },
+        {
+          "id": 41279067313,
+          "name": "itch web release ZIPs",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41279067313",
+          "status": "completed",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Test PS1 Sample Editor and saved Keyboard instruments in the packaged Playground"
+          ]
+        },
+        {
+          "id": 41279067262,
+          "name": "VGM parser and player tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41279067262",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        },
+        {
+          "id": 41279067354,
+          "name": "WASM SDK build and parity",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41279067354",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        }
+      ]
+    },
+    "webFinal": {
+      "headSha": "c7760213aece4babe1f6f193651cc70a73e4d5cf",
+      "capturedAt": "2026-11-01T07:15:25.235Z",
+      "conclusion": "success",
+      "workflows": [
+        {
+          "id": 41281987521,
+          "name": "SBI export tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41281987521",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124775594337,
+              "name": "sbi",
+              "conclusion": "success",
+              "completedSteps": 7
+            }
+          ]
+        },
+        {
+          "id": 41281987518,
+          "name": "VGM parser and player tests",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41281987518",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124775594549,
+              "name": "vgm-mock",
+              "conclusion": "success",
+              "completedSteps": 8
+            }
+          ]
+        },
+        {
+          "id": 41281987520,
+          "name": "WASM SDK build and parity",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41281987520",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124775594450,
+              "name": "CD-DA and PC Engine CD ADPCM",
+              "conclusion": "success",
+              "completedSteps": 15
+            },
+            {
+              "id": 124775594653,
+              "name": "All 33 fixed SDK WASM builds",
+              "conclusion": "success",
+              "completedSteps": 13
+            }
+          ]
+        },
+        {
+          "id": 41281987538,
+          "name": "itch web release ZIPs",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41281987538",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124775594432,
+              "name": "Package and verify the three web applications",
+              "conclusion": "success",
+              "completedSteps": 39
+            }
+          ]
+        },
+        {
+          "id": 41281987025,
+          "name": "pages build and deployment",
+          "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/41281987025",
+          "status": "completed",
+          "conclusion": "success",
+          "jobs": [
+            {
+              "id": 124775595412,
+              "name": "build",
+              "conclusion": "success",
+              "completedSteps": 7
+            },
+            {
+              "id": 124775747641,
+              "name": "report-build-status",
+              "conclusion": "success",
+              "completedSteps": 3
+            },
+            {
+              "id": 124775747689,
+              "name": "deploy",
+              "conclusion": "success",
+              "completedSteps": 3
+            }
+          ]
+        }
+      ],
+      "jobCount": 8,
+      "failureSteps": 0,
+      "spuSynthWorkflow": "SPU Synth passed at implementation948808a3; later commits only changed independent validation scripts and TODOs so its path filter did not rerun it."
+    }
+  },
+  "artifacts": [
+    {
+      "kind": "synth",
+      "zip": "release/tetorica_spu_synth_loopfix_20261101_itch.zip",
+      "bytes": 5542036,
+      "sha256": "88cf7cd1c020d63a1cb60ccd5e11efcad3fd54b7a333c202cc35ebd5f2b2cd86",
+      "root": "/private/tmp/spu-loop-zips-w6nwx5vl/synth",
+      "report": "/private/tmp/spu-loop-zips-w6nwx5vl/synth-full.json",
+      "log": "/private/tmp/spu-loop-zips-w6nwx5vl/synth-full.log",
+      "reportSha256": "ae6ecaca40aee6faa3eafc619a1fe2175b72552a6d32634e6dbb6f9db725f22a",
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "execution": null,
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 124,
+          "frames": 1433600,
+          "newLoopRegression": true
+        },
+        {
+          "browser": "webkit",
+          "execution": null,
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 124,
+          "frames": 1433600,
+          "newLoopRegression": true
+        }
+      ]
+    },
+    {
+      "kind": "playground",
+      "zip": "release/hello_ymfm_wasm_loopfix_20261101_itch_playground_for_run.zip",
+      "bytes": 37617223,
+      "sha256": "41b1d334852e27897062dafb1e733a5c6c8607d700eb01464750622044fe1c7f",
+      "root": "/private/tmp/spu-loop-zips-w6nwx5vl/playground",
+      "report": "/private/tmp/spu-loop-zips-w6nwx5vl/playground-full.json",
+      "log": "/private/tmp/spu-loop-zips-w6nwx5vl/playground-full.log",
+      "reportSha256": "f000809b0b2e613c260dcb1e7bdb8c2fce4b4049102b0f64877f6a2f5dcfe203",
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 54,
+          "frames": 425984,
+          "newLoopRegression": true
+        },
+        {
+          "browser": "chromium",
+          "execution": "worker",
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 73,
+          "frames": 651264,
+          "newLoopRegression": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 53,
+          "frames": 421888,
+          "newLoopRegression": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "worker",
+          "pcmContinuous": true,
+          "clockAnomalies": 0,
+          "captures": 71,
+          "frames": 643072,
+          "newLoopRegression": true
+        }
+      ]
+    },
+    {
+      "kind": "playground-download",
+      "zip": "release/hello_ymfm_wasm_loopfix_20261101_itch_playground.zip",
+      "bytes": 37177071,
+      "sha256": "862b388e9a2bac845cb8dc32d8e2472e96bad6196449763351c0401ee630ff6c",
+      "browserRunTest": false,
+      "scope": "Full source download archive; browser-run regression uses the separate for_run archive"
+    }
+  ],
+  "installedAuUpdated": false,
+  "humanListeningPerformed": false,
+  "limits": [
+    "No physical listening or PS1 hardware comparison",
+    "No long-duration DAW test",
+    "Installed AU remains the previous software_audio_20261101 build",
+    "Published itch/Tauri/npm/plugin release artifacts require a separate release; existing GitHub Pages deploy follows main automatically"
+  ],
+  "evidence": [
+    {
+      "path": "/private/tmp/spu-loop-before-wasm.log",
+      "bytes": 1692,
+      "sha256": "1a5445fd97cba34e71d9d7b7fe5d7f63354bb9b57251fd5e7f3142a034efdec0"
+    },
+    {
+      "path": "/private/tmp/spu-loop-synth-before.log",
+      "bytes": 12594,
+      "sha256": "606145d1db115fd137e711691c380caec30a8ad8985ef2f1826abf6bc93629f0"
+    },
+    {
+      "path": "/private/tmp/spu-loop-playground-before.log",
+      "bytes": 14155,
+      "sha256": "0bd18b5acf0747debfae970fcf836669ba282ab77cfa1b4d58e176bce6487b1b"
+    },
+    {
+      "path": "/private/tmp/spu-loop-raw-after.json",
+      "bytes": 15195,
+      "sha256": "16186c2a6036a18bdb0d0c62fb19367a535f33b4c0c104dc7a34516f19081643"
+    },
+    {
+      "path": "/private/tmp/spu-loop-synth-after.json",
+      "bytes": 35658,
+      "sha256": "1fc0be9fdb4ff953e1f3775ddb52b112683ce1569b3e2f0213380e3af105c51e"
+    },
+    {
+      "path": "/private/tmp/spu-loop-playground-after.json",
+      "bytes": 74802,
+      "sha256": "aedff64e4e5f64ff901bd6eaf5cfdc35fcc778255ce2b316c57c9f4cc75fb79d"
+    },
+    {
+      "path": "/private/tmp/spu-loop-policy-unit-final.log",
+      "bytes": 28227,
+      "sha256": "1e9829e70be09d937d0ec6d798134e85ed98cacae92ccdd6102cc4b3cc65ee65"
+    },
+    {
+      "path": "/private/tmp/spu-loop-npm-check.log",
+      "bytes": 2714,
+      "sha256": "16793f8f4c258adf7b208ff2c0190563ced54a7378bff531d9e8f94b76c961a7"
+    },
+    {
+      "path": "/private/tmp/spu-loop-source-bundle.json",
+      "bytes": 331,
+      "sha256": "54fb3c63ebaac158b93ec751a7ad2f734147c22a063c9692dacdad6aed7bb284"
+    },
+    {
+      "path": "/private/tmp/spu-loop-offline-calibration.json",
+      "bytes": 25503,
+      "sha256": "813a35503865121327fb4c5c4514059e02247157392fadf12993a61a42c1206f"
+    },
+    {
+      "path": "/private/tmp/spu-loop-zips-w6nwx5vl/archives.json",
+      "bytes": 3106,
+      "sha256": "59d0cdc93baa7326ade6230123b92b86d6ebabbce41f0c793e7fa572600a6fe2"
+    },
+    {
+      "path": "/private/tmp/spu-loop-zips-w6nwx5vl/synth-full.json",
+      "bytes": 242503,
+      "sha256": "ae6ecaca40aee6faa3eafc619a1fe2175b72552a6d32634e6dbb6f9db725f22a"
+    },
+    {
+      "path": "/private/tmp/spu-loop-zips-w6nwx5vl/playground-full.json",
+      "bytes": 353477,
+      "sha256": "f000809b0b2e613c260dcb1e7bdb8c2fce4b4049102b0f64877f6a2f5dcfe203"
+    },
+    {
+      "path": "/private/tmp/spu-loop-pokey-package.json",
+      "bytes": 36088,
+      "sha256": "5cf0a03fdf887cf49b00e3d306c713e616b6acc04cf47513e8790497a3d022a5"
+    },
+    {
+      "path": "/private/tmp/spu-loop-pokey-package.log",
+      "bytes": 571,
+      "sha256": "8ef2251224eb22c4e2b4ccd8cc2ce1ffce3b1b0184017d103f5effbef0754c8f"
+    },
+    {
+      "path": "/private/tmp/spu-loop-pokey-package-final.json",
+      "bytes": 93538,
+      "sha256": "b7cd6af37c6d4476d23a4bf244e9d3bb12ffc14a6834e0ff377d4ffda09e145d"
+    },
+    {
+      "path": "/private/tmp/spu-loop-pokey-package-final.log",
+      "bytes": 834,
+      "sha256": "e07faab1b85acdb863f037967345c5dfd22ea64cd9782e198563769102f2071d"
+    },
+    {
+      "path": "/private/tmp/spu-loop-baseline-contract-final.log",
+      "bytes": 445,
+      "sha256": "31d3330c2337580730fc7412032bb844cd41aa6ef8d14c9fc2babb1cdbad75b9"
+    },
+    {
+      "path": "/private/tmp/spu-loop-pages-check.json",
+      "bytes": 344,
+      "sha256": "c53727b5f9425258e190f8904390945a1eb6ee7c0b75bec3c211f60e1d274aa2"
+    },
+    {
+      "path": "/private/tmp/spu-loop-parent-ci-original.json",
+      "bytes": 141467,
+      "sha256": "053f66d1500eb42d8c137acac948d8add9ae295b2b6b90af9e7c88fcc12f5b70"
+    },
+    {
+      "path": "/private/tmp/spu-loop-parent-itch-job.log",
+      "bytes": 861350,
+      "sha256": "0baee9652dda82f1d635c305f9f55f4b51639cbb77b21c5658afe5da1e08fde7"
+    },
+    {
+      "path": "/private/tmp/spu-loop-parent-ci-followup1.json",
+      "bytes": 39544,
+      "sha256": "a445e0b00ad19d4e7ef4323e2fa9b08347e4e047d4c4316ba613d05c43bcb43f"
+    },
+    {
+      "path": "/private/tmp/spu-loop-parent-followup1-job-tail.log",
+      "bytes": 37640,
+      "sha256": "f6c7d2cde5cc91c0eb57c2cb811aa3440536aac4d042cb0f0fe74365f3c6ff7a"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor.json",
+      "bytes": 124848,
+      "sha256": "fde0e974cc3100b7a3f27c4efafa802560a186387d9729806268b741a6750964"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor.log",
+      "bytes": 956,
+      "sha256": "11b6de0daac5bbf23a0fc311fe373b59dd1e8cc4235b7cbf4893cf0d5161057d"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor-final.json",
+      "bytes": 135535,
+      "sha256": "5fde95d52580b667b29bb255347b7f01468634e50059bb86021e889b99d47aca"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor-final.log",
+      "bytes": 962,
+      "sha256": "a98736f27a5c6c04eb387b803857de2a4339247476f9e40921aedfcfc3d9e4d5"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor-negative.json",
+      "bytes": 1467,
+      "sha256": "9cce03595dde8c9f33bd25f15ad9a6fbefbc25100c2df429e5e440530220e1b5"
+    },
+    {
+      "path": "/private/tmp/spu-loop-sample-editor-negative.log",
+      "bytes": 22117,
+      "sha256": "2077cff9ad892660b235bd67303ed50fe904ae7575e68dbe0494527ece6a29ab"
+    },
+    {
+      "path": "/private/tmp/spu-loop-parent-ci-final2.json",
+      "bytes": 38726,
+      "sha256": "5c9db92fbbb4c055dbb248c0523b59a9c88f44dd067af125c432393e6741ee7e"
+    }
+  ],
+  "actualZipFullRegression": {
+    "passed": true,
+    "completedUtc": "2026-11-01T05:36:21.687655+00:00",
+    "physicalOutputMuted": true,
+    "synthCases": 2,
+    "playgroundCases": 4,
+    "clockAnomalies": 0,
+    "originalArchiveDigestUnchanged": true,
+    "initialTestFailure": {
+      "log": "/private/tmp/spu-loop-zips-w6nwx5vl/synth-full-initial-failure.log",
+      "cause": "Existing Morph test prepared hidden Wave B under new default-On state; explicitly switched Morph Off to preserve its existing Off assertion. Test-only one-line correction; production and ZIP unchanged."
+    }
+  },
+  "manualReleasePublished": false,
+  "installedAu": {
+    "updated": false,
+    "expectedManifest": "w/tetorica-spu-plugin/docs/software_audio_20261101.json",
+    "binarySha256": "b46c3150a8c1b5a0c22ce41fce78bc04d38b39a8442f99392bf03ed5d585ea7f",
+    "allExpectedFilesMatched": 5,
+    "actualHostValidationUsesNewBuildBundle": true
+  },
+  "githubPagesDelivery": {
+    "url": "https://kyorohiro.github.io/hello_ymfm_wasm/generated/ps1_spu_wasm.wasm",
+    "checkedUtc": "2026-11-01T06:05:50.370191+00:00",
+    "bytes": 52082,
+    "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+    "exactToLocalWasm": true,
+    "scope": "Public binary GET/hash only; no public GUI or physical listening"
+  },
+  "packagedPokeyFollowup": {
+    "sourceCommit": "b8dae7d1",
+    "cause": "Checker used immutable historical POKEY report gain0.413029 while generator/runtime/current CI report use primary0.413052 and dual0.413051",
+    "productionAudioChanged": false,
+    "mixerGainsChanged": false,
+    "historicalMeasurementsChanged": false,
+    "archiveDigestChanged": false,
+    "currentReport": "docs/issues/pokey_scsp_fm_chip_levels_01.json",
+    "casesPassed": 8,
+    "physicalOutputMuted": true,
+    "baselineContractTestsPassed": 3
+  },
+  "sampleEditorFollowup": {
+    "observedCi": "WebKit/Worker gate21/24; other3routes passed",
+    "sameArchiveLocalBeforeFix": {
+      "routesPassed": 4,
+      "ciFailureReproduced": false
+    },
+    "causeAssessment": "Immediate getState/snapshot is not a fence for future reserved NoteOn; fixed one-second wait races with the audio clock",
+    "productionChanged": false,
+    "strict24GateAssertMaintained": true,
+    "nativeEnvelopePositiveRequired": true,
+    "pollLimitMs": 8000,
+    "pollIntervalMs": 50,
+    "workerProbeLookaheadMs": 2000,
+    "finalValidation": {
+      "passed": true,
+      "physicalOutputMuted": true,
+      "pcmContinuous": true,
+      "clockContinuous": true,
+      "cases": [
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "active": 24,
+          "workerLookaheadMs": null,
+          "observation": {
+            "attempts": 1,
+            "elapsedMs": 0.6000000238418579,
+            "limitMs": 8000,
+            "first": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "missingIDs": [],
+              "nativeFrames": 13056
+            },
+            "last": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "missingIDs": [],
+              "nativeFrames": 13056
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "execution": "worker",
+          "active": 24,
+          "workerLookaheadMs": 2000,
+          "observation": {
+            "attempts": 39,
+            "elapsedMs": 2050.1999999284744,
+            "limitMs": 8000,
+            "first": {
+              "gates": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+              ],
+              "envelopes": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "missingIDs": [
+                "voice-0",
+                "voice-1",
+                "voice-2",
+                "voice-3",
+                "voice-4",
+                "voice-5",
+                "voice-6",
+                "voice-7",
+                "voice-8",
+                "voice-9",
+                "voice-10",
+                "voice-11",
+                "voice-12",
+                "voice-13",
+                "voice-14",
+                "voice-15",
+                "voice-16",
+                "voice-17",
+                "voice-18",
+                "voice-19",
+                "voice-20",
+                "voice-21",
+                "voice-22",
+                "voice-23"
+              ],
+              "nativeFrames": 18176
+            },
+            "last": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767
+              ],
+              "missingIDs": [],
+              "nativeFrames": 108544
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "active": 24,
+          "workerLookaheadMs": null,
+          "observation": {
+            "attempts": 1,
+            "elapsedMs": 1,
+            "limitMs": 8000,
+            "first": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "missingIDs": [],
+              "nativeFrames": 14848
+            },
+            "last": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "missingIDs": [],
+              "nativeFrames": 14848
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "execution": "worker",
+          "active": 24,
+          "workerLookaheadMs": 2000,
+          "observation": {
+            "attempts": 39,
+            "elapsedMs": 2034,
+            "limitMs": 8000,
+            "first": {
+              "gates": [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+              ],
+              "envelopes": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "missingIDs": [
+                "voice-0",
+                "voice-1",
+                "voice-2",
+                "voice-3",
+                "voice-4",
+                "voice-5",
+                "voice-6",
+                "voice-7",
+                "voice-8",
+                "voice-9",
+                "voice-10",
+                "voice-11",
+                "voice-12",
+                "voice-13",
+                "voice-14",
+                "voice-15",
+                "voice-16",
+                "voice-17",
+                "voice-18",
+                "voice-19",
+                "voice-20",
+                "voice-21",
+                "voice-22",
+                "voice-23"
+              ],
+              "nativeFrames": 17664
+            },
+            "last": {
+              "gates": [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true
+              ],
+              "envelopes": [
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767,
+                32767
+              ],
+              "missingIDs": [],
+              "nativeFrames": 107392
+            }
+          }
+        }
+      ]
+    },
+    "negativeControl": {
+      "schemaVersion": 1,
+      "expectedFailureObserved": true,
+      "originalCiDefaultTimingReproduced": false,
+      "scope": "Controlled negative: public Menu Worker lookahead 2000 ms only for final 24-voice probe, with the old fixed one-second wait; no production mutation or dropped-command claim.",
+      "physicalOutputMuted": true,
+      "browser": "webkit",
+      "execution": "worker",
+      "actualActive": 0,
+      "expectedActive": 24,
+      "zip": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_loopfix_20261101_itch_playground_for_run.zip",
+        "bytes": 37617223,
+        "sha256": "41b1d334852e27897062dafb1e733a5c6c8607d700eb01464750622044fe1c7f"
+      },
+      "checker": {
+        "path": "/private/tmp/spu-loop-sample-negative-4_plb1mp/check_ps1_sample_editor_browser.cjs",
+        "bytes": 41235,
+        "sha256": "2e18576785c6000d9a99170861f6a8805bfd239f6cda185e2f33df40a50c9dd4"
+      },
+      "captureHelper": {
+        "path": "/private/tmp/spu-loop-sample-negative-4_plb1mp/audio_clock_audit.cjs",
+        "bytes": 9338,
+        "sha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+      },
+      "log": {
+        "path": "/private/tmp/spu-loop-sample-editor-negative.log",
+        "bytes": 22117,
+        "sha256": "2077cff9ad892660b235bd67303ed50fe904ae7575e68dbe0494527ece6a29ab"
+      },
+      "finalPositive": {
+        "path": "/private/tmp/spu-loop-sample-editor-final.json",
+        "bytes": 135535,
+        "sha256": "5fde95d52580b667b29bb255347b7f01468634e50059bb86021e889b99d47aca"
+      }
+    },
+    "limitScope": "8s retry budget checked after each unresolved observation; each in-flight getState retains the existing 15s transport timeout. Not a hard 8s total latency guarantee."
+  },
+  "finalizedUtc": "2026-11-01T07:17:28.193872+00:00"
+}
