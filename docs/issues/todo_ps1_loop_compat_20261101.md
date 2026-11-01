@@ -6,14 +6,14 @@
 
 ## 今回の範囲
 
-- [ ] Native /現在Web WASMで、flag4のみのLOOP STARTとrepeat register先flag0/4でループが止まる条件を元ADPCMのまま再現する。END/REPEATとSTART/repeat addressの役割を一次仕様でも確認する。
-- [ ] SDKのloop/cache経路を最小修正する。END側のREPEAT条件は維持し、開始packetにflag2を要求しない。元ADPCMを書き換えず、pristine upstream sourceは保持する。
-- [ ] flag4/6、markerless repeat register、loopまでのprefix、decoder履歴を使うloop、Gaussian seam、one-shot END、fullRAM、fractional/max pitch・render分割・RAM/cache invalidationを検証する。通常の既存PCM出力を維持する。
-- [ ] Noise /PMON /Reverb /112cycle Morph /長Software PCM2banksとRT C++ new/delete0を回帰確認する。Native Release/sanitizerとCIを通しcommit /pushする。
-- [ ] Pluginのこの制限だけを解除し、VAB /raw ADPCM /Web v1 /state9 /旧state /workerで元sample bytesを保つ。unsupported期待を成功＋PCM/loop検証に置換する。実AU/VST3 /CIも検証する。
-- [ ] Webの固定SDK snapshotは正規export/importで更新する。既存SCSP local candidate変更を保持し、無関係chipのcoreを黙って変更しない。新source commit /candidate provenance /manifestを保存する。
-- [ ] Web SPU WASMを再buildし、Synth・PlaygroundのMain /Worker・Chromium /WebKitでflag4 loopを元bytesのまま持続再生できることを検証する。file読み込み、preset保存/復元、loop position、離鍵・停止も検査する。
-- [ ] docs/generated /docs/sources /SDK receipts・SPU校正freshness /JS package buildを必要範囲で更新し、原本と同じsourceから再buildできることを確認する。npm publish・version/tag変更・itch/Tauri/Plugin releaseは今回行わない。
+- [x] Native /現在Web WASMで、flag4のみのLOOP STARTとrepeat register先flag0/4でループが止まる条件を元ADPCMのまま再現する。END/REPEATとSTART/repeat addressの役割を一次仕様でも確認する。
+- [x] SDKのloop/cache経路を最小修正する。END側のREPEAT条件は維持し、開始packetにflag2を要求しない。元ADPCMを書き換えず、pristine upstream sourceは保持する。
+- [x] flag4/6、markerless repeat register、loopまでのprefix、decoder履歴を使うloop、Gaussian seam、one-shot END、fullRAM、fractional/max pitch・render分割・RAM/cache invalidationを検証する。通常の既存PCM出力を維持する。
+- [x] Noise /PMON /Reverb /112cycle Morph /長Software PCM2banksとRT C++ new/delete0を回帰確認する。Native Release/sanitizerとCIを通しcommit /pushする。
+- [x] Pluginのこの制限だけを解除し、VAB /raw ADPCM /Web v1 /state9 /旧state /workerで元sample bytesを保つ。unsupported期待を成功＋PCM/loop検証に置換する。実AU/VST3 /CIも検証する。
+- [x] Webの固定SDK snapshotは正規export/importで更新する。既存SCSP local candidate変更を保持し、無関係chipのcoreを黙って変更しない。新source commit /candidate provenance /manifestを保存する。
+- [x] Web SPU WASMを再buildし、Synth・PlaygroundのMain /Worker・Chromium /WebKitでflag4 loopを元bytesのまま持続再生できることを検証する。file読み込み、preset保存/復元、loop position、離鍵・停止も検査する。
+- [x] docs/generated /docs/sources /SDK receipts・SPU校正freshness /JS package buildを必要範囲で更新し、原本と同じsourceから再buildできることを確認する。npm publish・version/tag変更・itch/Tauri/Plugin releaseは今回行わない。
 - [ ] 修正前後の再現、byte保持、回帰結果とCIを記録し、残る実聴・配布物更新のTODOを分けてcommit /pushする。
 
 Pluginの実装TODO: `w/tetorica-spu-plugin/docs/issues/TODO.md`。
@@ -29,3 +29,30 @@ SDK 0.1.7は未releaseのためpinに `unpublished: true` を保存し、公開r
 新しい校正48経路＋YM2612基準8経路と、適用後の同数の再検証に成功。過去の測定JSONは変更していない。
 NodeのSPU関連189件、校正policy397件、SDK importer/inventory117件が成功。
 配布ZIPのfull browser回帰と親repo CIの最終確認・検証記録は続けて保存する。
+
+
+## 今回の修正後に残す確認
+
+- [ ] 人の耳で、使用しているVAB音色の持続・ループ境界・離鍵と、通常Sineを短く試す。ブラウザの新WASM読み直し後に行う。
+- [ ] 新Pluginを実DAWでも試す場合はhostを保存・終了し、`docs/software_audio_20261101.json` のknown hash照合・退避付きでAUを更新する。現在のinstalled AUは前のSoftware audio版を維持している。
+- [ ] itch / Tauri / npm / Pluginの配布更新は、検証済み成果物と公開先を確認して別途行う。今回はversion /tagを変更していない。GitHub Pagesは既存のmain自動deployの対象。
+
+実DAWの独自UI操作・automation録音・長時間使用はPlugin側の人による確認TODOを引き続き参照する。
+外部入力Reverb / Morph LFOは今回も追加しない。
+
+
+## 共通CIの追加切り分け（未完了）
+
+実装 `948808a3` のSPU Synth /WASM33core parity /VGM /SBI /Pagesは成功。
+共通itch run `41277439005` のpackaged POKEY System gains /dual /Worker /Stopで失敗を検出した。
+PS1 /WonderSwan /POKEYの校正、packaged Analyzer /FM Synth /Playgroundはここまで成功している。
+失敗logを取得し、同じ実ZIPで再現・原因を切り分けてから必要な修正を行う。
+この項目が終わるまでCI全成功・今回全完了とは記録しない。
+
+
+追加原因: packaged POKEY checkerだけが旧 `pokey_chip_levels_deferred_release_01.json`
+（gain 0.413029）を参照していた。配布runtime /generator /CI校正は既に
+`pokey_scsp_fm_chip_levels_01.json`（primary 0.413052、dual 0.413051）。
+最初のREADYより前のexact gain比較でthrowし、40秒待ちとして表面化していた。
+同じ実ZIPでローカル再現済み。runtimeや音量値は変えずcheckerの参照を現行測定へ合わせ、
+両browser × single /dual × Main /Workerの8経路で実PCM・System復元を再検証する。
