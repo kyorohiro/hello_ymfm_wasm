@@ -64,7 +64,7 @@ This original Tetorica C++ implementation uses BSD-3-Clause, copyright 2026 kyor
 
 From this sources directory, run \`sh scripts/build_segapsg_wasm.sh ../generated\` with Emscripten installed. This standalone recipe requires no SDK checkout, importer or network access. Its default output is dist/wasm; an explicit output argument selects another directory.
 
-The wrapper, shared serialization helper and compiler recipe are verified against the fixed SDK release ${pin.version}. The separated core's complete body is also checked against that release; only the explicit copyright/SPDX comment may differ. The recipe's source and include paths are relocated for this self-contained bundle, while compiler flags and exports are retained. This does not change the application's fixed SDK pin or its prebuilt runtime.
+The wrapper, shared serialization helper and compiler recipe are verified against the fixed SDK source snapshot ${pin.version}. The separated core's complete body is also checked against that snapshot; only the explicit copyright/SPDX comment may differ. The recipe's source and include paths are relocated for this self-contained bundle, while compiler flags and exports are retained. This does not change the application's fixed SDK pin or its prebuilt runtime.
 
 The source is in third_party/tetorica_sega_psg, its shared Tetorica helper is src/chip_state.h, and its bridge is wasm/segapsg_wasm.cpp. Sega PSG is separate from the upstream ymfm implementation.
 `);

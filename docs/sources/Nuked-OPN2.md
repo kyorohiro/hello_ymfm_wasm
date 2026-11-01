@@ -1,7 +1,7 @@
 # Nuked OPN2 WASM source
 
 Nuked OPN2 is LGPL-2.1-or-later. The complete modified core, wrapper, upstream provenance,
-copyright notices and license used by this distribution come from the pinned SDK source release.
+copyright notices and license used by this distribution come from the pinned SDK source snapshot.
 See third_party/nuked-opn2/README.md and LICENSE. Original version comments are retained.
 The original Tetorica wrapper and build recipe use BSD-3-Clause; their notice
 is included as LICENSE.tetorica. The Nuked core retains its separate LGPL terms.

@@ -31,6 +31,10 @@ int ps1_spu_write(void *handle, uint32_t byte_offset, uint16_t value);
  * Raw key-on/key-off register writes keep their original behavior. */
 int ps1_spu_refresh_envelope(void *handle, uint32_t channel);
 int ps1_spu_audition_key(void *handle, uint32_t channel, int on);
+/* Instrument-only tail clear. Zeros the already allocated reverb delay/filter
+ * history without changing voices, RAM, decoded caches, registers or presets.
+ * No allocation/deallocation or rendering occurs; access remains serialized. */
+int ps1_spu_clear_reverb(void *handle);
 /* Invalid handle/offset returns 0xffffffff; valid register values are 16-bit. */
 uint32_t ps1_spu_read(void *handle, uint32_t byte_offset);
 int ps1_spu_load_ram(void *handle, uint32_t byte_address, const uint8_t *data, uint32_t length);
@@ -48,7 +52,22 @@ int ps1_spu_set_mix_headroom(void *handle, uint32_t divisor);
  * Mask selects the voices using this bank at their next key-on; bits 0..23.
  * Loops require at least 4 frames. Set/replace while stopped. Reset preserves the bank and mask. */
 int ps1_spu_set_host_pcm(void *handle, const int16_t *pcm, uint32_t frames, int loop);
+/* In-place edit of the existing nonempty software PCM bank. The exact frame
+ * count must match; invalid arguments leave it unchanged. Copies PCM and loop
+ * guards without allocation, deallocation, key events or cursor/envelope reset.
+ * Existing Gaussian history is preserved. Serialize with all access to handle;
+ * work is O(frames), so the caller must bound live edits for its audio deadline. */
+int ps1_spu_update_host_pcm(void *handle, const int16_t *pcm, uint32_t frames);
+/* Legacy routing selects bank0 and clears bank1's routing mask. */
 int ps1_spu_set_host_mask(void *handle, uint32_t mask);
+/* Two independent software banks, indexes0/1. Set/copy/clear while stopped;
+ * update requires the exact existing nonzero length and never allocates.
+ * Legacy set/update APIs above address bank0. Reset preserves both banks.
+ * Both masks have bits0..23 and must be disjoint; invalid tuples do nothing.
+ * Routing is latched at the next key-on, never changes held voice ownership. */
+int ps1_spu_set_host_pcm_bank(void *handle,uint32_t bank,const int16_t *pcm,uint32_t frames,int loop);
+int ps1_spu_update_host_pcm_bank(void *handle,uint32_t bank,const int16_t *pcm,uint32_t frames);
+int ps1_spu_set_host_masks(void *handle,uint32_t bank0_mask,uint32_t bank1_mask);
 int ps1_spu_render(void *handle, float *left, float *right, uint32_t frames);
 #ifdef __cplusplus
 }

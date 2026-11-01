@@ -1905,42 +1905,42 @@
         {
           "path": "vendor/mame-ps1-spu/README.md",
           "originPath": "native/ps1/README.md",
-          "sha256": "59a588c0da4a83b17944713283f1ee3d2d8ff23058c90ca08997c50f3031f6c5",
+          "sha256": "94d7c78a36a4f99b612614a0b63d213ef045e0893cc913e95d1febe51ff1b49a",
           "originalSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
-          "previousSdkSha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
+          "previousSdkSha256": "ea2ab54d5b886962238e30cfa2fe3f094e9639eb2d09da342b1e8948e15a6dc9",
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged. Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged. Saturate 64-bit sample/IRQ event distances before 32-bit scheduling to prevent premature END and invalid loop overshoot for long software PCM at low pitch. ABI, bank count and pristine upstream copies remain unchanged. Honor independent ADPCM Loop Start and terminal Repeat bits, accepting flag-4 markers and flag-0 repeat targets without rewriting input data. Preserve END+Mute and refreshed END behavior, marker address zero, decoder/Gaussian history, full RAM capacity and existing two host banks; pristine upstream copies and C ABI are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
           "originPath": "native/ps1/ps1_spu.cpp",
-          "sha256": "6dd978dd9335c7b647cac4bdd8a97b1c08ed58711519ef9e82a1cfe01cb51ae5",
+          "sha256": "df353230097d65130714d455fd76016f994b69d8fb019540f850b1b25eab3607",
           "originalSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
-          "previousSdkSha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
-          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation."
+          "previousSdkSha256": "cb7184c8ccf51dbabf50e54e00fe5c2965e62ef1caba7de4b9fdf4da56a7b58d",
+          "amendmentNote": "SDK 0.1.7: explicit opt-in live-envelope and per-voice smoothed-audition instrument extensions; raw register playback preserved. Updated source, exports and component documentation. Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged. Add allocation-free same-length ps1_spu_update_host_pcm live editing with preserved voice cursors/envelopes and bounded loop-cache guards. Pristine upstream files are unchanged. Add two independent software host PCM banks and validated disjoint key-on routing while retaining bank0 legacy ABI; both banks support allocation-free same-length live editing. Pristine upstream files are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.h",
           "originPath": "native/ps1/ps1_spu.h",
-          "sha256": "3d4f4611058332ba85aa979c2b62a112efb79036396644f0734cbb9a183b7c4f",
+          "sha256": "1a85ca13c37a2ec540dd2f45fec4210605ccc779f1b4cb34a30665c22c633537",
           "originalSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
-          "previousSdkSha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."
+          "previousSdkSha256": "4e8cdeff0393dffaa458151c2a8966e05ad0a53825ae43c93add0ccb2e76787e",
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged. Add allocation-free same-length ps1_spu_update_host_pcm live editing with preserved voice cursors/envelopes and bounded loop-cache guards. Pristine upstream files are unchanged. Add two independent software host PCM banks and validated disjoint key-on routing while retaining bank0 legacy ABI; both banks support allocation-free same-length live editing. Pristine upstream files are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
           "originPath": "native/ps1/spu.cpp",
-          "sha256": "3316f13b65a92cd83d1605c049d81be28f024060ce36271cf4c42834bbe62eea",
+          "sha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661",
           "originalSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
-          "previousSdkSha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged."
+          "previousSdkSha256": "314a8e21c632bb184d49d51af792307b37e9f6a0c8fb8f7730516207c1ab3935",
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Four-point Gaussian voice interpolation replaces linear interpolation, with documented PS1 hardware coefficients and persistent history. Pristine upstream copies and C ABI remain unchanged. Explicitly include <stdexcept> for std::out_of_range so the adapted source compiles with MSVC without relying on transitive standard-library includes. Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged. Add allocation-free same-length ps1_spu_update_host_pcm live editing with preserved voice cursors/envelopes and bounded loop-cache guards. Pristine upstream files are unchanged. Add two independent software host PCM banks and validated disjoint key-on routing while retaining bank0 legacy ABI; both banks support allocation-free same-length live editing. Pristine upstream files are unchanged. Saturate 64-bit sample/IRQ event distances before 32-bit scheduling to prevent premature END and invalid loop overshoot for long software PCM at low pitch. ABI, bank count and pristine upstream copies remain unchanged. Honor independent ADPCM Loop Start and terminal Repeat bits, accepting flag-4 markers and flag-0 repeat targets without rewriting input data. Preserve END+Mute and refreshed END behavior, marker address zero, decoder/Gaussian history, full RAM capacity and existing two host banks; pristine upstream copies and C ABI are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",
           "originPath": "native/ps1/spu.h",
-          "sha256": "3f7f0264e0d1cc093d3f2006d07c601654845071625e78d2372fbf3b2d62026c",
+          "sha256": "fccf488f97010ebe7e70aeadef635f6d73d29f88dd0c80efcf245e34b1ca407e",
           "originalSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
-          "previousSdkSha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
-          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged."
+          "previousSdkSha256": "f3f432904c66a5913f568efce3fb5d496dbb4c415248dc28f78c8ba136cb51b2",
+          "amendmentNote": "SDK 0.1.7: explicit live-envelope and smoothed-audition controls; preserve deferred ADSR rates across manual/raw key-off by separating the latched release slope from its manual floor. Original raw register playback and pristine upstream files are unchanged. Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged. Add allocation-free same-length ps1_spu_update_host_pcm live editing with preserved voice cursors/envelopes and bounded loop-cache guards. Pristine upstream files are unchanged. Add two independent software host PCM banks and validated disjoint key-on routing while retaining bank0 legacy ABI; both banks support allocation-free same-length live editing. Pristine upstream files are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/spu_tables.cpp",
@@ -1950,12 +1950,18 @@
         {
           "path": "vendor/mame-ps1-spu/spureverb.cpp",
           "originPath": "native/ps1/spureverb.cpp",
-          "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4"
+          "sha256": "2359959f969cb2f330bb6d0ded5da2b0e60548de4665c1fad8d3637f7ba2b993",
+          "originalSha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
+          "previousSdkSha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
+          "amendmentNote": "Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/spureverb.h",
           "originPath": "native/ps1/spureverb.h",
-          "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+          "sha256": "74a942548b93aabb7042a1f154187c177094c8ed7773a225af77654fe675a767",
+          "originalSha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+          "previousSdkSha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+          "amendmentNote": "Add allocation-free ps1_spu_clear_reverb instrument control, clearing private delay/filter history without changing voices, registers, RAM or sample caches. Pristine upstream files are unchanged."
         },
         {
           "path": "vendor/mame-ps1-spu/standalone_support.h",

@@ -1858,4 +1858,12 @@ Register addresses are even byte offsets `0..0x3fe` from `0x1f801c00`. Start/rep
 
 Each independent handle must have serialized access. RAM uploads can invalidate/rebuild decoded sample caches; creating/destroying handles, uploading or replacing samples and first-use decoding are control/preparation work. This port does **not** promise allocation-free arbitrary playback/control paths. Hosts decide how to schedule/cache these operations and connect to their devices. `reset(spu, 0)` clears voices, registers, queues and effects while retaining RAM; `reset(spu, 1)` also clears RAM. No host Stop, mixer, source ownership queue, resampler, portable save state, CPU/PSF player or external CD audio input is supplied.
 
+`ps1_spu_clear_reverb(spu)` is the narrower instrument control for clearing
+effect tails. It zeros the existing delay/filter history in place (about
+1.75 MiB), without rendering, allocation/deallocation, voice/ADSR changes,
+register changes, RAM writes or sample-cache invalidation. It returns 0 for a
+null handle and 1 otherwise. Host voice muting remains separate; a sounding
+voice can immediately excite a new tail after a clear. Native and WASM expose
+the same function. Full reset still performs allocation and cache invalidation.
+
 See the [component guide](../vendor/mame-ps1-spu/README.md) for upstream adaptations, envelope/preset approximation and unsupported register modes. Retain the [component BSD-3-Clause license](../vendor/mame-ps1-spu/LICENSE) and original authorship in source and binary redistributions.

@@ -72,6 +72,7 @@ class spu_device::reverb
 public:
 	reverb(const int hz, const size_t maxdelay=65536);
 	~reverb();
+	void clear() noexcept;
 
 	void process(
 			signed short *output,

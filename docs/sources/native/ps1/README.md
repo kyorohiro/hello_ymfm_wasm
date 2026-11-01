@@ -91,6 +91,13 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
   Repeated Off calls also preserve deferred edits. These extensions do not change
   raw register KON/KOFF or the original key-on-latched ADSR path. They are sound-design aids, not emulated
   hardware registers. Calling raw KON/KOFF resets any pending audition ramp.
+- `ps1_spu_clear_reverb(handle)` clears the private delay/filter history in
+  place. It does not render, allocate/free memory, stop voices, change registers
+  or invalidate decoded sample/loop caches. Hosts can mute voices and clear
+  residual tails without the allocation/cache work of a full reset. The clear
+  writes about 1.75 MiB of already allocated delay storage at the fixed rate;
+  callers must still serialize access to the handle. It is a software
+  instrument control, not a hardware register.
 - Replaced MAME device registration, save-state, stream scheduling, host CPU,
   DMA wiring, IRQ callbacks, and timers with pull-based rendering and the C API.
   The public interface is for instruments; CPU DMA and external XA/CD audio
@@ -107,6 +114,18 @@ Each call internally drains the upstream ring in chunks of at most 2,048 frames.
   loop-target rebuilding and interpolation, fixing an upstream cache lifetime
   issue exposed by overlapping samples and RAM replacement. RAM upload invalidates
   decoded caches before voices resume.
+- ADPCM Loop Start (`flags & 4`) updates the repeat address independently of
+  Repeat (`flags & 2`), as documented by
+  [PSX-SPX / no$psx](https://psx-spx.consoledev.net/soundprocessingunitspu/#flag-bits-in-2nd-byte-of-adpcm-header).
+  Repeat enables a loop only on an END packet. Consequently, a marker with
+  flags `4` and a repeat-register target with flags `0` are valid; neither
+  requires flags `6` or `2`. END+Mute remains one-shot even if a marker exists.
+  Cache refresh rereads these independent bits without modifying the uploaded
+  packets. Marker address zero is distinguished from an absent marker, although
+  that capture-buffer region remains unsuitable for instrument storage.
+  Regression vectors compare unchanged predictive ADPCM data across flag
+  variants, nonzero/external repeat targets, cache uploads, high-pitch Gaussian
+  boundaries and all 24 primed voices at the full 520,192-byte sample capacity.
 - Effective pitch ignores the register's upper two bits and modulation is capped
   at `0x3fff`, avoiding cache overshoot for out-of-range raw register values.
   Voice zero ignores its modulation bit because it has no preceding voice.
@@ -143,3 +162,9 @@ before rendering; changing it discards queued output. Reset retains the setting.
 The existing integer reverb algorithm and its quantization remain.
 
 Optional software sample bank: `ps1_spu_set_host_pcm` copies signed mono PCM outside physical SPU RAM (up to 30 minutes at 44.1 kHz). `ps1_spu_set_host_mask` selects voices at key-on. Gaussian interpolation, PMON, ADSR, mixing and reverb still run in the SPU core. Reset preserves the bank; zero frames clears it. Default register/RAM playback is unchanged. The browser host labels this Software audio; it is not additional PS1 hardware RAM.
+
+Long-bank boundary/IRQ event distances saturate at the 32-bit event-counter
+limit and are recomputed as playback advances. They do not wrap to a false
+END at low pitch. The fixture covers one-shot and looped banks through
+16,777,216 frames at PITCH 1, both voice register banks, exact short-reference
+PCM and allocation-free first key-on/render. No bank API or frame limit changes.

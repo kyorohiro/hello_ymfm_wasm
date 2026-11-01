@@ -620,15 +620,16 @@
       "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673"
     },
     {
-      "adaptation": "SDK-owned fixture extended with independent PSX-SPX Gaussian coefficient rows, boundary/skipped-frame and KON history tests; original import hash retained",
-      "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope/manual-audition controls, guards and deferred ADSR latching through held A/D/S, manual/raw/repeated Off and next KON; retain independent foreign-channel output.",
+      "adaptation": "SDK-owned fixture extended with independent PSX-SPX Gaussian coefficient rows, boundary/skipped-frame and KON history tests; original import hash retained; SDK same-length live host PCM and loop-cache/guard/cursor/register/allocation/PMON regressions; two-bank routing/isolation/held Gaussian history/high-pitch PMON/RT allocation regressions",
+      "amendmentNote": "SDK 0.1.7: exercise explicit live-envelope/manual-audition controls, guards and deferred ADSR latching through held A/D/S, manual/raw/repeated Off and next KON; retain independent foreign-channel output. Verify allocation-free reverb clear, unchanged registers/RAM/foreign voice phase, audible tail removal and warmed-cache reuse. Add low-pitch long host PCM event-counter regression for one-shot/loop, voices 0/23, exact reference audio and zero callback C++ allocation. Add predictive marker4/6 and repeat-target0/2 exact PCM vectors, END+Mute, cache refresh, zero/nonzero/external targets, high-pitch history and full-RAM all-voice allocation-free loop regressions. Existing two host banks and long PCM coverage remain.",
       "file": "native/tests/ps1_spu_fixture.cpp",
       "origin": "test/helpers/ps1_spu_reference.cpp",
       "originCommit": "069a2cb8211aa0159b71da5f7c806a30a4d32929",
       "originRepository": "hello_ymfm_wasm",
       "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
       "originalSha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
-      "sha256": "e7414d1acb6a1466c29adcb2f74963b180e21562831a68c23e0c19b989ac7a5f"
+      "sha256": "2e47617e40d8c08a0e09e8efb415010d8a6d6f4a2cba6ad9f852ffc48827c0d2",
+      "previousSdkSha256": "024f1489821a34d094d01db2fb4dc4aa9ae6c4c9b5cbc87724b8cd0b17910d6c"
     }
   ],
   "originRepository": "tetorica-fm2612-playground-tauri",

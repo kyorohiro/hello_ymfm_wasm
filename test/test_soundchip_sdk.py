@@ -105,6 +105,20 @@ class SoundchipSdkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'content hash/size mismatch'):
             sdk.check_installed(self.root)
 
+    def test_unpublished_exact_commit_is_distinct_from_changed_candidate(self):
+        path, checksum = self.archive()
+        pin = sdk.import_archive(path, checksum, 'a' * 40, self.root, unpublished=True)
+        self.assertIs(pin['unpublished'], True)
+        self.assertNotIn('localCandidate', pin)
+        self.assertEqual(pin['sourceCommit'], 'a' * 40)
+        self.assertEqual(sdk.check_installed(self.root), pin)
+        receipt = self.root / sdk.RECEIPT
+        for invalid in (False, 1, 'true', {}, None):
+            receipt.write_text(json.dumps({**pin, 'unpublished': invalid}))
+            with self.assertRaisesRegex(ValueError, 'unpublished SDK provenance'):
+                sdk.check_installed(self.root)
+        receipt.write_text(json.dumps(pin))
+
     def test_local_candidate_rejects_bad_changed_paths_before_mutation(self):
         path, checksum = self.archive(version='0.1.5')
         for paths in [[], ['missing.cpp'], ['sdk.json', 'sdk.json'], ['../escape']]:

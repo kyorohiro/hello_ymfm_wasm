@@ -48,7 +48,7 @@ export async function copyPs1Sources(stage){
   payload.set('licenses/mame-ps1-spu/README.md',Buffer.from(`# PlayStation SPU attribution\n\nBSD-3-Clause MAME PlayStation SPU by pSXAuthor and R. Belmont, with the Tetorica standalone adaptation. See [LICENSE](LICENSE) and the complete [source and adaptation notes](../../sources/native/ps1/README.md). Pristine upstream files, revision and hashes are included under sources/native/ps1/upstream/. These sources come from the pinned tetorica-soundchip-native SDK.\n`));
   payload.set('sources/PS1-SPU.md',Buffer.from(`# PlayStation SPU source and rebuilding
 
-The complete BSD-3-Clause standalone C++17 SPU, C API, pristine upstream MAME sources, revision, checksums, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). The source is taken from fixed tetorica-soundchip-native SDK ${pin.version}. [PS1-SPU.json](PS1-SPU.json) retains the complete SDK pin, including whether it represents an unpublished local candidate, and hashes every distributed input. [sdk/RELEASE-MANIFEST.json](sdk/RELEASE-MANIFEST.json) is the genuine release manifest authenticated by that pin.
+The complete BSD-3-Clause standalone C++17 SPU, C API, pristine upstream MAME sources, revision, checksums, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). The source is taken from fixed tetorica-soundchip-native SDK ${pin.version}. [PS1-SPU.json](PS1-SPU.json) retains the complete SDK pin, including unpublished exact-commit or local-candidate provenance, and hashes every distributed input. [sdk/RELEASE-MANIFEST.json](sdk/RELEASE-MANIFEST.json) is the genuine source-archive manifest authenticated by that pin.
 
 From this sources directory, run:
 

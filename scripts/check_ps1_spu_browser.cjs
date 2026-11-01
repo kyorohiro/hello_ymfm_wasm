@@ -91,7 +91,36 @@ async function runScenarios(Ps1Spu, factory, wasmBinary) {
     check(chip.readRam(address,64).every(value => value === 0), 'Explicit reset clears RAM');
     check(silent(chip.generateStereo(128)), 'Cleared reset silence');
     check(same(normal.left,retained), 'Returned PCM remains owned across later renders');
-    result = {sampleRate:chip.sampleRate,voice:24,normalLeft:Array.from(normal.left),normalRight:Array.from(normal.right),
+    const loopRepeats=[];
+    for(const options of [{loopBlock:0,marker:true},{loopBlock:2,marker:true},{loopBlock:2,marker:false}])for(const pitch of [4096,0x1234]) {
+      const bytes=new Uint8Array((options.loopBlock+4)*16);
+      for(let block=0;block<options.loopBlock+4;block++) {
+        const at=block*16;bytes[at]=1;
+        bytes[at+1]=block===options.loopBlock&&options.marker?4:0;
+        if(block===options.loopBlock+3)bytes[at+1]|=3;
+        for(let i=0;i<28;i++) {const value=block<options.loopBlock?3:Math.round(7*Math.sin(2*Math.PI*((block-options.loopBlock)*28+i)/112));bytes[at+2+(i>>1)]|=(value&15)<<((i&1)*4);}
+      }
+      const control=bytes.slice();control[options.loopBlock*16+1]|=2;
+      const configure=(core,packets)=>{
+        core.reset({clearRam:true});core.loadRam(packets,0x2000);
+        for(const [at,value]of [[0x180,0x3fff],[0x182,0x3fff],[0x1aa,0xc000],[0,0x3fff],[2,0x2000],[4,pitch],[6,0x400],[8,15],[10,0],[14,(0x2000+options.loopBlock*16)/8],[0x188,1]])core.write(at,value);
+      };
+      configure(chip,bytes);configure(other,control);
+      const frames=16384,left=new Float32Array(frames+10).fill(123),right=new Float32Array(frames+10).fill(123),parts=[1,27,2,113,2048];
+      for(let at=0,index=0;at<frames;index++){const count=Math.min(frames-at,parts[index%parts.length]);chip.renderInto(left,right,count,at+5);at+=count;}
+      check([left,right].every(values=>values.slice(0,5).every(v=>v===123)&&values.slice(-5).every(v=>v===123)),'Loop render offsets preserve guard frames');
+      const actual={left:left.slice(5,frames+5),right:right.slice(5,frames+5)},expected=other.generateStereo(frames);
+      check(peak(expected.left.slice(8192))>.01,'Flag6/flag2 positive control remains audible');
+      check(peak(actual.left.slice(8192))>.01,'Flag4-only/markerless loop remains audible beyond original END');
+      check(same(actual.left,expected.left)&&same(actual.right,expected.right),'Repeat packet flag2 does not change exact PCM');
+      check(same(chip.readRam(0x2000,bytes.length),bytes),'Loop playback retains original flag4/flag0 ADPCM bytes');
+      chip.write(0x18c,1);
+      const released=chip.generateStereo(8192);
+      check(released.left.slice(-128).every(value=>value===0)&&released.right.slice(-128).every(value=>value===0),'Loop keyOff release');
+      loopRepeats.push({...options,pitch,frames,tailPeak:peak(actual.left.slice(8192)),originalRamExact:true,
+        left:Array.from(actual.left),right:Array.from(actual.right)});
+    }
+    result = {sampleRate:chip.sampleRate,voice:24,normalLeft:Array.from(normal.left),normalRight:Array.from(normal.right),loopRepeats,
       doubledLeft:Array.from(doubled.left),doubledRight:Array.from(doubled.right),
       crossings:{normal:low,doubled:high},peak:{left:peak(normal.left),right:peak(normal.right)},
       independentInstances:true,ramCopy:true,pitch:true,keyOff:true,resetRetainsRam:true,resetClearsRam:true};
@@ -178,10 +207,12 @@ const pcmHash = values => hash(Buffer.from(new Float32Array(values).buffer));
             });
           },realm);
           assert.deepEqual(actual,expected,`${name} ${realm}: exact PCM/register/RAM/lifecycle agreement`);
-          report.engines.push({name,realm,passed:true,stereoFrames:8194,sampleComparisons:32776,maximumDifference:0,
+          report.engines.push({name,realm,passed:true,stereoFrames:8194,sampleComparisons:32776,
+            loopStereoFrames:actual.loopRepeats.length*16384,loopSampleComparisons:actual.loopRepeats.length*16384*2,maximumDifference:0,
             crossings:actual.crossings,peak:actual.peak,
             pcmSha256:{normalLeft:pcmHash(actual.normalLeft),normalRight:pcmHash(actual.normalRight),
               doubledLeft:pcmHash(actual.doubledLeft),doubledRight:pcmHash(actual.doubledRight)},
+            loopRepeats:actual.loopRepeats.map(({left,right,...row})=>({...row,pcmSha256:{left:pcmHash(left),right:pcmHash(right)}})),
             independentInstances:true,ramCopy:true,pitch:true,keyOff:true,resetRetainsRam:true,resetClearsRam:true,disposed:true});
           console.log(`PS1 SPU ${name} ${realm}: voice 24, 44,100 Hz, exact PCM and pitch/stereo/reset/dispose controls passed.`);
         }

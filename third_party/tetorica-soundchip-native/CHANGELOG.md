@@ -9,6 +9,7 @@
 
 ## 0.1.7 — PlayStation SPU live instrument controls (unreleased)
 
+- Add `ps1_spu_clear_reverb` in Native and WASM. It clears already allocated delay/filter history without changing voice/sample position, ADSR, RAM, decoded caches or authored registers. Repeated calls allocate and free no C++ memory; fixtures cover tail removal, foreign-voice continuity, retained settings/cache reuse and Native/WASM parity. This is an instrument control, not a PS1 register.
 - Add opt-in software mixing headroom with a wide accumulator and fractional dry output, preserving original voice-volume precision. Default divisor 1 keeps legacy PCM. Native fixtures cover exact compensated single-note output, partitioning, reverb and reset.
 
 - Replace linear voice interpolation with PS1 four-point Gaussian interpolation using the documented 512 hardware coefficients, 8-bit phase, separate signed product rounding, and persistent three-sample history across packets/loops and skipped source frames. Noise bypasses the filter. The C ABI is unchanged.

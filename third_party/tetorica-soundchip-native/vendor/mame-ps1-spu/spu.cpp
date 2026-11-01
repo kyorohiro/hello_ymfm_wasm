@@ -18,6 +18,7 @@
 
 
 #include <algorithm>
+#include <stdexcept>
 
 
 //
@@ -332,7 +333,9 @@ public:
 	unsigned int loopend,
 								loopstart,
 								len;
-	signed short data[num_loop_cache_samples];
+	// A fourteen-bit pitch can form a cursor up to three samples past the
+	// logical end before process_voice resolves overshoot at the next cache.
+	signed short data[num_loop_cache_samples+4];
 	sample_loop_cache *next;
 
 	sample_loop_cache()
@@ -815,16 +818,20 @@ bool spu_device::sample_cache::try_update(spu_device *spu)
 	{
 		unsigned int a;
 		unsigned int loop=0;
+		bool has_loop=false;
 
 		for (a=start; a<=end; a+=spu->m_counter_packet_next)
 		{
 			adpcm_packet *ap = (adpcm_packet *)spu->packet_read(a);
-			if ((ap->flags&adpcmflag_loop_start) && (ap->flags&adpcmflag_loop_repeat)) loop=a&(0xffff<<spu->m_counter_shift);
+			if (ap->flags&adpcmflag_loop_start) { loop=a&(0xffff<<spu->m_counter_shift); has_loop=true; }
 			if (ap->flags&adpcmflag_loop_end || !spu->m_counter_packet_next) break;
 		}
 
-		if ((a==(end-spu->m_counter_packet_next)) && (loop==loopaddr))
+		if ((a==(end-spu->m_counter_packet_next)) && (has_loop==(this->loop!=nullptr)) && (loop==loopaddr))
 		{
+			// Repeat belongs to the END packet, independently of the marker.
+			// An upload can change END+Repeat to END+Mute without moving it.
+			is_loop=(((adpcm_packet *)spu->packet_read(a))->flags&adpcmflag_loop_repeat)!=0;
 			#ifdef show_cache_update
 				printf("updating %p: ",this);
 			#endif
@@ -1151,7 +1158,7 @@ void spu_device::device_stop()
 	delete xa_buffer;
 	delete cdda_buffer;
 	delete[] voice;
-	if (host_sample) { host_sample->remove_ref(); host_sample=nullptr; }
+	for(auto *&sample:host_samples)if(sample){sample->remove_ref();sample=nullptr;}
 }
 //
 //
@@ -1529,6 +1536,7 @@ spu_device::sample_cache *spu_device::get_sample_cache(const unsigned int addr)
 	if (sc) return sc;
 
 	unsigned int loop=0;
+	bool has_loop=false;
 
 	sc=new sample_cache(this);
 	sc->valid=true;
@@ -1542,7 +1550,7 @@ spu_device::sample_cache *spu_device::get_sample_cache(const unsigned int addr)
 		if (cache[a>>3]) flush_cache(cache[a>>3],a,a+(m_counter_packet_next?m_counter_packet_next:8));
 		cache[a>>3]=sc;
 
-		if ((ap->flags&adpcmflag_loop_start) && (ap->flags&adpcmflag_loop_repeat)) loop=a & (0xffff<<m_counter_shift);
+		if (ap->flags&adpcmflag_loop_start) { loop=a & (0xffff<<m_counter_shift); has_loop=true; }
 		if (ap->flags&adpcmflag_loop_end) { if (ap->flags&adpcmflag_loop_repeat) sc->is_loop=true; break; }
 		if (!m_counter_packet_next) break;
 	}
@@ -1553,7 +1561,7 @@ spu_device::sample_cache *spu_device::get_sample_cache(const unsigned int addr)
 	sc->data=std::make_unique<signed short []>(sz);
 
 	sc->loopaddr=loop;
-	if (loop) sc->loop=&sc->data[((loop-sc->start)>>m_counter_packet_shift)*28];
+	if (has_loop) sc->loop=&sc->data[((loop-sc->start)>>m_counter_packet_shift)*28];
 
 	signed short *dp=sc->data.get();
 
@@ -1641,7 +1649,14 @@ void spu_device::update_voice_events(voiceinfo *vi)
 	{
 		// Calculate time until end of sample in output samples
 
-		vi->samplestoend=(unsigned int)(((((int64_t)(vi->play.cache->dend-vi->play.ptr)<<12)-vi->dptr)+(vi->pitch-1))/vi->pitch);
+		// A software PCM bank can be much longer than physical SPU RAM.
+		// At a low pitch, the next boundary can be more than UINT32_MAX
+		// output frames away. Wrapping that distance to zero reports END
+		// before the cursor reaches it (and makes loop overshoot invalid).
+		// Event times are recomputed after each generated segment, so a
+		// saturated far-future distance is safe and preserves short timing.
+		const int64_t end_distance=(((((int64_t)(vi->play.cache->dend-vi->play.ptr)<<12)-vi->dptr)+(vi->pitch-1))/vi->pitch);
+		vi->samplestoend=static_cast<unsigned int>((std::min)(end_distance,static_cast<int64_t>(spu_infinity)));
 		if (vi->inloopcache)
 		{
 			// Voice is inside loop cache, return time until end of that if lower
@@ -1658,7 +1673,8 @@ void spu_device::update_voice_events(voiceinfo *vi)
 		{
 			// Convert IRQ input sample distance to output samples
 
-			vi->samplestoirq=(unsigned int)(((((int64_t)irqdist)<<12)-vi->dptr)+(vi->pitch-1))/vi->pitch;
+			const int64_t irq_distance=(((((int64_t)irqdist)<<12)-vi->dptr)+(vi->pitch-1))/vi->pitch;
+			vi->samplestoirq=static_cast<unsigned int>((std::min)(irq_distance,static_cast<int64_t>(spu_infinity)));
 		} else
 		{
 			vi->samplestoirq=spu_infinity;
@@ -1762,7 +1778,7 @@ void spu_device::update_voice_loop(const unsigned int v)
 	// If loop address is not forced get the loop pointer from the cache
 	// block (if present)
 
-	if ((! voice[v].forceloop) &&
+	if (vi->play.cache->is_loop && (! voice[v].forceloop) &&
 			(vi->play.cache->get_loop_pointer(&vi->loop)))
 	{
 		ra=vi->play.cache->loopaddr;
@@ -1774,17 +1790,12 @@ void spu_device::update_voice_loop(const unsigned int v)
 	{
 		ra=spureg.voice[v].repaddr<<m_counter_shift;
 
-		const adpcm_packet *ap=(adpcm_packet *)packet_read(ra);
-		if (ap->flags&adpcmflag_loop_repeat)
+		// Only the END packet's Repeat bit enables looping. A repeat target
+		// may be an ordinary packet (flags 0) or a Loop Start marker (flags 4).
+		if (! vi->play.cache->get_sample_pointer(ra,&vi->loop))
 		{
-			// Repeat address points to a block with loop flag set
-
-			if (! vi->play.cache->get_sample_pointer(ra,&vi->loop))
-			{
-				// Repeat address is in a different block
-
-				translate_sample_addr(ra,&vi->loop);
-			}
+			// Repeat address is in a different block
+			translate_sample_addr(ra,&vi->loop);
 		}
 	}
 
@@ -2123,7 +2134,7 @@ void spu_device::generate_voice(const unsigned int v,
 	vi->play.ptr+=sp-first;
 	vi->dptr=phase;
 	if (vi->inloopcache) vi->lcptr+=sp-first;
-	if (first<=vi->play.cache->loop && sp>vi->play.cache->loop)
+	if (vi->play.cache->loop && first<=vi->play.cache->loop && sp>vi->play.cache->loop)
 		spureg.voice[v].repaddr=vi->play.cache->loopaddr>>m_counter_shift;
 }
 
@@ -2224,9 +2235,12 @@ void spu_device::key_on(const int v)
 
 //  printf("key_on: %d @ %x (pitch %x)\n", v, spureg.voice[v].addr<<m_counter_shift, spureg.voice[v].pitch);
 
-	if (host_sample && (host_sample_mask & (1u<<v))) {
+	sample_cache *host=nullptr;
+	for(unsigned bank=0;bank<host_samples.size();++bank)
+		if(host_samples[bank]&&(host_sample_masks[bank]&(1u<<v)))host=host_samples[bank];
+	if (host) {
 		voice[v].play.reset();
-		voice[v].play=cache_pointer(host_sample->data.get(),host_sample);
+		voice[v].play=cache_pointer(host->data.get(),host);
 	} else translate_sample_addr(spureg.voice[v].addr<<m_counter_shift,&voice[v].play);
 	assert(voice[v].play.ptr<voice[v].play.cache->dend);
 
@@ -2579,6 +2593,11 @@ void spu_device::key_off(const int v)
 //
 //
 //
+
+void spu_device::clear_reverb() noexcept
+{
+	rev->clear();
+}
 
 void spu_device::update_reverb()
 {
@@ -3246,31 +3265,52 @@ void spu_device::render(float *left, float *right, uint32_t frames)
 // Host-only PCM bank. Prepare before note-on; the audio renderer still uses
 // the normal Gaussian interpolation, PMON, envelope, volume and reverb path.
 // All voices share immutable sample storage and keep independent cursors.
-void spu_device::set_host_pcm(const int16_t *pcm, uint32_t frames, bool looping)
+void spu_device::set_host_pcm_bank(unsigned bank,const int16_t *pcm,uint32_t frames,bool looping)
 {
+    if(bank>=host_samples.size())throw std::out_of_range("Host PCM bank");
     std::unique_ptr<sample_cache> next;
     if (frames) {
         next=std::make_unique<sample_cache>(this);
         next->host_pcm=true;
         next->valid=true;
         next->is_loop=looping;
-        next->start=0x10000000;
+        next->start=0x10000000*(bank+1);
         next->end=next->start+((frames+27)/28)*m_counter_packet_next;
         next->loopaddr=next->start;
         // A tiny guard region permits the renderer to advance by pitch <= 4
         // beyond the end before the normal end/loop event consumes overshoot.
         next->data=std::make_unique<signed short []>(frames+4);
-        std::copy_n(pcm,frames,next->data.get());
         next->dend=next->data.get()+frames;
         next->loop=looping ? next->data.get() : nullptr;
         if (looping) {
             next->loop_cache=new sample_loop_cache;
             next->loop_cache->len=std::min<uint32_t>(frames,num_loop_cache_samples);
-            std::copy_n(pcm,next->loop_cache->len,next->loop_cache->data);
         }
         next->add_ref();
     }
-    if (host_sample) host_sample->remove_ref();
-    host_sample=next.release();
-    if (!host_sample) host_sample_mask=0;
+    if (host_samples[bank]) host_samples[bank]->remove_ref();
+    host_samples[bank]=next.release();
+    if (!host_samples[bank]) host_sample_masks[bank]=0;
+    else update_host_pcm_bank(bank,pcm,frames);
+}
+
+bool spu_device::update_host_pcm_bank(unsigned bank,const int16_t *pcm,uint32_t frames) noexcept
+{
+    if (bank>=host_samples.size()||!host_samples[bank]||!pcm||!frames||
+        static_cast<std::size_t>(host_samples[bank]->dend-host_samples[bank]->data.get())!=frames)
+        return false;
+    auto *cache=host_samples[bank];
+    if (cache->is_loop && (!cache->loop_cache ||
+        cache->loop_cache->len!=std::min<uint32_t>(frames,num_loop_cache_samples)))
+        return false;
+    // All validation precedes mutation. No cache/pointer ownership changes:
+    // held voices may currently address either of these two PCM arrays.
+    std::copy_n(pcm,frames,cache->data.get());
+    for(unsigned i=0;i<4;++i)cache->data[frames+i]=cache->is_loop?pcm[i%frames]:0;
+    if(cache->is_loop){
+        auto *loop=cache->loop_cache;
+        std::copy_n(pcm,loop->len,loop->data);
+        for(unsigned i=0;i<4;++i)loop->data[loop->len+i]=pcm[(loop->len+i)%frames];
+    }
+    return true;
 }

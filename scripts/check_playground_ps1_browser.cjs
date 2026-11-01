@@ -9,11 +9,12 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
-const config={host:null,zip:null,out:null,screenshots:null,engines:[]};
-const usage='Usage: node scripts/check_playground_ps1_browser.cjs [--chromium-only | --webkit-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
+const config={host:null,zip:null,out:null,screenshots:null,loopOnly:false,engines:[]};
+const usage='Usage: node scripts/check_playground_ps1_browser.cjs [--chromium-only | --webkit-only] [--loop-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
 for(let i=2;i<process.argv.length;i++){
   const arg=process.argv[i];
   if(arg==='--help'){console.log(usage);process.exit(0);}
+  if(arg==='--loop-only'){config.loopOnly=true;continue;}
   if(['--chromium-only','--webkit-only'].includes(arg)){config.engines.push(arg.slice(2,-5));continue;}
   const match=arg.match(/^--(host|zip|out|screenshots)(?:=(.*))?$/);assert(match,usage);
   const value=match[2]??process.argv[++i];assert(value&&!value.startsWith('--'),usage);config[match[1]]=path.resolve(value);
@@ -193,6 +194,34 @@ async function screenshots(page,name,execution){
   }
   await page.setViewportSize({width:1600,height:1150});return outputs;
 }
+async function checkLoopRepeat(page,execution){
+  const {createLoopRepeatFixture}=await import('../test/helpers/ps1_loop_repeat_fixture.mjs');
+  const fixture=createLoopRepeatFixture(),marker='__LOOP_REPEAT__',releasedMarker='__LOOP_RELEASED__';
+  const source=release=>`spu.reset({clearRam:true});
+const loopBytes=new Uint8Array(${JSON.stringify(Array.from(fixture.adpcm))});
+const loopOptions=${JSON.stringify({baseFrequencyHz:fixture.baseFrequencyHz,loopStartSamples:fixture.loopStartSamples})};
+const loopFirst=await spu.loadADPCM(loopBytes,loopOptions);
+const loopSnapshot=await spu.snapshot();
+const loopOriginal=loopSnapshot.ram.slice(loopFirst.startAddress,loopFirst.startAddress+loopFirst.byteLength);
+if(loopOriginal.length!==loopBytes.length||!loopOriginal.every((v,i)=>v===loopBytes[i]))throw Error('Original ADPCM changed');
+spu.reset({clearRam:true});
+const loopSample=await spu.loadADPCM(loopOriginal,loopOptions);
+spu.setPreset(0,{sample:loopSample,...${JSON.stringify(fixture.preset)}});
+log(${JSON.stringify(marker)}+JSON.stringify({sample:loopSample,original:Array.from(loopOriginal)}));
+liveLoop('loop-repeat',async()=>{spu.noteOn(0,60);${release?`await sleep(4);spu.noteOff(0);log(${JSON.stringify(releasedMarker)});`:''}await sleep(60);});`;
+  console.log('  Original flag4-only loop / snapshot restore / NoteOff / Stop');
+  await run(page,source(true),execution);const loaded=await readLog(page,marker);
+  assert.deepEqual(loaded.original,Array.from(fixture.adpcm),'Public snapshot retains every original flag4-only packet byte');
+  assert.equal(loaded.sample.loopStartSamples,fixture.loopStartSamples);
+  if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))),'Loop test uses the actual logic Worker');
+  await capture(page,8192);const pcm=await audible(page,'Flag4-only loop survives original END',44100/112);
+  await waitLog(page,releasedMarker);const released=await silent(page,'Authored NoteOff releases flag4-only loop');await stop(page,'Stop after released loop');
+  await run(page,source(false),execution);await readLog(page,marker);await capture(page,8192);
+  const held=await audible(page,'Restored original bytes loop while held',44100/112),stopped=await stop(page,'Public Stop clears held original loop');
+  await healthy(page,'Loop repeat');
+  return {originalAdpcmSha256:hash(fixture.adpcm),originalBytesPreserved:true,snapshotRestored:true,loopStartSamples:fixture.loopStartSamples,pcm,released,held,stopped};
+}
+
 async function changeMode(page,mode){
   if(!await page.locator('#playgroundMode').isVisible())await page.locator('#mainMenu > summary').click();await page.selectOption('#playgroundMode',mode);
   await page.locator('#changeModeDialog').waitFor({state:'visible'});await page.locator('#modeChoiceInitial').click();await page.waitForURL(url=>url.searchParams.get('mode')===mode);await ready(page);
@@ -210,6 +239,14 @@ async function runCase(browser,name,origin,host,execution){
     await page.goto(origin+host.entry+'?mode=ps1&no-sw=1',{waitUntil:'domcontentloaded'});await ready(page);console.log('  Startup ready');
     assert.equal(await page.locator('#playgroundMode').inputValue(),'ps1');assert(await page.locator('#ps1Tab').isVisible(),'PS1 mode has an SPU tab');assert(await page.locator('#operatorTabButton').isHidden(),'PS1 mode has no implicit FM editor');
     assert.equal(await page.evaluate(()=>monaco.editor.getEditors()[0].getValue()),host.source,'PS1 mode opens the exact selected artifact starter');
+    if(config.loopOnly){
+      const loops=await checkLoopRepeat(page,execution);
+      const audit=await page.evaluate(()=>({worklets:__ps1Audit.worklets.map(entry=>entry.name),workers:__ps1Audit.workers,processorErrors:__ps1Audit.processorErrors,physicalOutputMuted:[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0)}));
+      const captures=captureAudits.get(page)??[];assert(captures.length>0);for(const [index,pcm]of captures.entries())assertCapturePcm(pcm,'Loop capture '+(index+1));
+      audit.captureContinuity={captures:captures.length,frames:captures.reduce((sum,c)=>sum+c.frames,0),pcmContinuous:captures.every(c=>c.pilot.continuous&&c.clock.measurementValid),clockContinuous:captures.every(c=>c.clock.continuous),clockAnomalies:captures.filter(c=>!c.clock.continuous)};
+      assert(audit.worklets.includes('tetorica-playground-ps1'));assert(audit.physicalOutputMuted&&audit.captureContinuity.pcmContinuous);assert.deepEqual(audit.processorErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(badResponses,[]);
+      return {browser:name,version:browser.version(),execution,scope:'original ADPCM repeat loops',loops,...audit};
+    }
     await page.locator('#ps1Tab').click();assert.equal(await page.evaluate(()=>__ps1Audit.contexts.length),0,'Opening SPU editor is audio-lazy');assert.equal(await page.evaluate(()=>__ps1Audit.worklets.length),0,'Opening SPU editor does not create a core');
     const panel=await checkPanel(page);const prepared=await page.evaluate(()=>__ps1Audit.worklets.filter(entry=>entry.name==='tetorica-playground-ps1').map(entry=>entry.state));
     assert.equal(prepared.length,1,'Prepare and auditions reuse one primary SPU');assert(prepared[0]?.samples?.length>=1,'Prepare uploads an original instrument');assert.equal(prepared[0].channels.length,24);
@@ -251,6 +288,7 @@ liveLoop('retain-uploaded-bank',async()=>{await sleep(60);});`,execution);
     const bank=await readLog(page,bankMarker);assert(bank.state.samples.some(sample=>sample.id===bank.sample.id),'RAM-retaining reset preserves the uploaded bank');
     const bankPcm=await audible(page,'New bank remains playable after overlapping reset',440);await stop(page,'Retained-bank Stop');
     const overlappingReset={sample:bank.sample,retainedSamples:bank.retainedSamples,rejected:bank.rejected,pcm:bankPcm};
+    const loops=await checkLoopRepeat(page,execution);
     console.log('  Additional SPU / independent disposal');
     const extraMarker=`__PS1_EXTRA_${name}_${execution}__`,disposedMarker=extraMarker+'DISPOSED';
     await run(page,`const extra=await createSoundChip('ps1',{id:'ps1:browser-extra'});
@@ -285,7 +323,7 @@ liveLoop('dispose-extra',async()=>{await sleep(1.6);await extra.dispose();log(${
     // Monaco can cancel an in-flight worker request while the mode page unloads.
     const known=error=>['Canceled','Canceled: Canceled'].includes(error.message)&&error.stack?.includes('monaco-editor');
     assert.deepEqual(errors.filter(error=>!known(error)),[],'Browser exceptions');assert.deepEqual(badResponses,[],'Missing runtime assets');
-    return {browser:name,version:browser.version(),execution,openingIsLazy:true,primaryReused:true,panel,keyboard:input,runs,examples,state,overlappingReset,additional,screenshots:images,authoredErrorRecovery:recovery,modeRoundTrip:{beforeSwitch,recreated},...audit};
+    return {browser:name,version:browser.version(),execution,openingIsLazy:true,primaryReused:true,panel,keyboard:input,runs,examples,state,overlappingReset,loops,additional,screenshots:images,authoredErrorRecovery:recovery,modeRoundTrip:{beforeSwitch,recreated},...audit};
   }catch(error){
     const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,worklets:__ps1Audit?.worklets,commands:__ps1Audit?.commands.slice(-20)})).catch(()=>null);
     if(state)state.captures=captureAudits.get(page)?.slice(-5);
@@ -310,7 +348,7 @@ liveLoop('dispose-extra',async()=>{await sleep(1.6);await extra.dispose();log(${
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const results=[];
     for(const name of config.engines){
       const browser=await ({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required']}:{})});
-      try{for(const execution of ['main','worker']){results.push(await runCase(browser,name,`http://127.0.0.1:${server.address().port}`,host,execution));console.log(`PASS ${name}/${execution}: PS1 starter twice, CH24 Guitar/PC keys, SPU editor audition, Stop, error recovery and mode round trip; physical output muted.`);}}
+      try{for(const execution of ['main','worker']){results.push(await runCase(browser,name,`http://127.0.0.1:${server.address().port}`,host,execution));console.log(`PASS ${name}/${execution}: ${config.loopOnly?'original ADPCM loops, snapshot restore, NoteOff and Stop':'PS1 starter, CH24 keys/editor, original loops, Stop, error recovery and mode round trip'}; physical output muted.`);}}
       finally{await browser.close();}
     }
     for(const [name,entry]of served)assert.equal(hash(await fs.readFile(path.join(host.directory,name))),entry.sha256,'Source remained frozen: '+name);

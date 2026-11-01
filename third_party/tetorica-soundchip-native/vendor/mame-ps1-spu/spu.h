@@ -90,8 +90,8 @@ protected:
 	voiceinfo *voice = nullptr;
 	std::unique_ptr<sample_cache * []> cache;
 	// Optional software sample bank; never mapped into physical SPU RAM.
-	sample_cache *host_sample = nullptr;
-	uint32_t host_sample_mask = 0;
+	std::array<sample_cache *,2> host_samples{};
+	std::array<uint32_t,2> host_sample_masks{};
 	float samples_per_frame;
 	float samples_per_cycle;
 
@@ -262,11 +262,13 @@ public:
 	void reset(bool clear_ram);
 	void render(float *left, float *right, uint32_t frames);
 	void set_mix_headroom(uint32_t divisor);
-	void set_host_pcm(const int16_t *pcm, uint32_t frames, bool loop);
-	void set_host_mask(uint32_t mask) { host_sample_mask = mask; }
+	void set_host_pcm_bank(unsigned bank,const int16_t *pcm,uint32_t frames,bool loop);
+	bool update_host_pcm_bank(unsigned bank,const int16_t *pcm,uint32_t frames) noexcept;
+	void set_host_masks(uint32_t first,uint32_t second) { host_sample_masks={first,second}; }
 	// Instrument-editor extensions; register writes retain their original behavior.
 	void refresh_envelope(unsigned int v);
 	void audition_key(unsigned int v, bool on);
+	void clear_reverb() noexcept;
 	void load_ram(uint32_t address, const uint8_t *data, uint32_t length);
 	void read_ram(uint32_t address, uint8_t *data, uint32_t length) const;
 	void dma_read( uint32_t *ram, uint32_t n_address, int32_t n_size );

@@ -5,6 +5,10 @@ on:
     paths:
       - 'docs/synth-spu/**'
       - 'web/ps1*.js'
+      - 'web/ps1_loop_repeat.test.mjs'
+      - 'test/helpers/ps1_loop_repeat_fixture.mjs'
+      - 'scripts/check_ps1_spu_browser.cjs'
+      - 'scripts/check_playground_ps1_browser.cjs'
       - 'web/playground_ps1_inspector.js'
       - 'web/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
@@ -28,6 +32,10 @@ on:
     paths:
       - 'docs/synth-spu/**'
       - 'web/ps1*.js'
+      - 'web/ps1_loop_repeat.test.mjs'
+      - 'test/helpers/ps1_loop_repeat_fixture.mjs'
+      - 'scripts/check_ps1_spu_browser.cjs'
+      - 'scripts/check_playground_ps1_browser.cjs'
       - 'web/playground_ps1_inspector.js'
       - 'web/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
@@ -77,7 +85,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       - name: Test real SPU PCM, instruments and isolated packaging
-        run: npm run test:spu-synth
+        run: |
+          npm run test:spu-synth
+          node --test web/ps1_loop_repeat.test.mjs
       - name: Build the standalone itch.io ZIP
         run: sh scripts/package_itch_spu_synth.sh ci
       - name: Extract the actual distribution

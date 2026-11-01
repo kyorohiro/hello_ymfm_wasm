@@ -19,3 +19,13 @@
 Pluginの実装TODO: `w/tetorica-spu-plugin/docs/issues/TODO.md`。
 Web版は固定SDKからのWASM buildなので、NativeのGit更新だけでは既存Webページへ反映されない。
 Tauri配布済みbinaryや公開済みnpm /itchの更新は、この作業の検証済み成果物から別途行う。
+
+## 実装チェックポイント
+
+SDK `95cf71a` とPlugin `78e0b83` を公開commitへ保存し、両repo CI成功。
+Webは同じSDKを正規snapshotとして固定し、SPU WASMを再buildした。
+既存SCSP変更は新SDKに収録済みで、SCSP coreのbytesは移行前と一致する。
+SDK 0.1.7は未releaseのためpinに `unpublished: true` を保存し、公開releaseとは扱わない。
+新しい校正48経路＋YM2612基準8経路と、適用後の同数の再検証に成功。過去の測定JSONは変更していない。
+NodeのSPU関連189件、校正policy397件、SDK importer/inventory117件が成功。
+配布ZIPのfull browser回帰と親repo CIの最終確認・検証記録は続けて保存する。

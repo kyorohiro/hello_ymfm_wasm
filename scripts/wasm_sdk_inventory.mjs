@@ -114,6 +114,7 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
     && isHash(pin.archiveSha256) && isHash(pin.manifestSha256)
     && Number.isSafeInteger(pin.fileCount) && pin.fileCount > 0 && pin.fileCount <= 4096,
   'Invalid fixed SDK pin');
+  requireValue(pin.unpublished === undefined || pin.unpublished === true, 'Invalid unpublished SDK provenance');
   const sdkRoot = await realpath(path.join(root, 'third_party', NAME));
   requireValue(within(root, sdkRoot), 'SDK directory escapes the repository');
   const manifestBytes = await containedFile(sdkRoot, MANIFEST, 4 * 1024 * 1024);

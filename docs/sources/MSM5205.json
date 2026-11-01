@@ -5,21 +5,12 @@
     "schemaVersion": 1,
     "name": "tetorica-soundchip-native",
     "version": "0.1.7",
-    "sourceCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
+    "sourceCommit": "95cf71a857b15d0ea932ebf97d5fde80b5e80a95",
     "archiveName": "tetorica-soundchip-native-0.1.7-sources.zip",
-    "archiveSha256": "efe7daa49a97dad00de9745e92aed9a16820cde2ae89e55a0222523dee7974a1",
-    "manifestSha256": "5c1a6dd688b21040820d9bbcf5ac1fc70efeeb66a4de934c60eda5d5d5688f91",
+    "archiveSha256": "5f7cdf35bc85a7453eef42576259f615411d4fdcdd47b8778242eb2a2d7f2b9c",
+    "manifestSha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365",
     "fileCount": 476,
-    "localCandidate": {
-      "baseCommit": "f9f76df545e56fa4195cf345a9de507ae3bcb39b",
-      "changedPaths": [
-        ".github/workflows/verify-sdk.yml",
-        "CHANGELOG.md",
-        "README.md",
-        "tests/check_standalone_release.py",
-        "tests/test_scsp_instrument_release.py"
-      ]
-    }
+    "unpublished": true
   },
   "inputs": [
     {

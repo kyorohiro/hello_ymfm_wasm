@@ -52,6 +52,20 @@ spu_device::reverb::~reverb()
 {
 }
 
+void spu_device::reverb::clear() noexcept
+{
+	for (int c=0; c<2; ++c)
+	{
+		for (int f=0; f<4; ++f) std::fill_n(y[c][f].get(),max_delay,0);
+		std::fill_n(x[c].get(),max_delay,0);
+		std::fill_n(ax[c].get(),max_delay,0);
+		std::fill_n(ay[c].get(),max_delay,0);
+	}
+	memset(bx1,0,sizeof(bx1));
+	memset(by1,0,sizeof(by1));
+	yp=0;
+}
+
 //
 //
 //

@@ -115,7 +115,7 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
 async function main(args) {
   const options = {
     reportPath:fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)),
-    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_scsp_fm_chip_levels_01.json',import.meta.url)),
+    ps1ReportPath:fileURLToPath(new URL('../docs/issues/ps1_loop_fm_chip_levels_01.json',import.meta.url)),
     wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_scsp_fm_chip_levels_01.json',import.meta.url)),
     scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url)),
     pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_scsp_fm_chip_levels_01.json',import.meta.url)),

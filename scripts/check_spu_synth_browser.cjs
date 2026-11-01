@@ -8,14 +8,15 @@ const {createHash} = require('node:crypto');
 const {chromium, webkit} = require('playwright');
 const {PROCESSOR_NAMES, processorSource, analyzePilotPcm, analyzeClockRows} = require('./audio_clock_audit.cjs');
 
-const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, reviewOnly:false, focusOnly:false, engines:[]};
-const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--review-only | --psf-only | --focus-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
+const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-spu/index.html', out:null, screenshots:null, m4aFixture:null, psfFixture:null, psfOnly:false, reviewOnly:false, focusOnly:false, loopOnly:false, engines:[]};
+const usage = 'Usage: node scripts/check_spu_synth_browser.cjs [--chromium-only | --webkit-only] [--review-only | --psf-only | --focus-only | --loop-only] [--root DIR] [--entry /synth-spu/index.html] [--out REPORT.json] [--screenshots DIR]';
 for (let i = 2; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--help') {console.log(usage); process.exit(0);}
   if (arg === '--review-only') {config.reviewOnly=true;continue;}
   if (arg === '--focus-only') {config.focusOnly=true;continue;}
   if (arg === '--psf-only') {config.psfOnly=true;continue;}
+  if (arg === '--loop-only') {config.loopOnly=true;continue;}
   if (['--chromium-only', '--webkit-only'].includes(arg)) {config.engines.push(arg.slice(2, -5)); continue;}
   const match = arg.match(/^--(root|entry|out|screenshots|m4aFixture|psfFixture)(?:=(.*))?$/); assert(match, usage);
   const value = match[2] ?? process.argv[++i]; assert(value && !value.startsWith('--'), usage);
@@ -549,6 +550,46 @@ async function checkLongAudio(page) {
   return {inputBytes:wav.length,duration:imported.hostAudio.duration,softwareExtension:true,presetVersion:2,presetBytes:bytes.length,pcm,roundTrip,m4a};
 }
 
+async function checkLoopRepeatVab(page, keyboardHz) {
+  console.log('CHECK loop repeat: original flag4-only VAB / split VH+VB / preset / note release / Stop');
+  const {createLoopRepeatVabFixture}=await import('../test/helpers/ps1_loop_repeat_fixture.mjs');
+  const fixture=createLoopRepeatVabFixture(),expectedHz=44100/112*keyboardHz/fixture.baseFrequencyHz;
+  const results=[];
+  for(const split of [false,true]) {
+    await editorTab(page,'bank');
+    const fileName=split?'loop-pair.vh':'loop-original.vab';
+    await page.locator('#vabFileInput').setInputFiles(split?[
+      {name:'loop-pair.vb',mimeType:'application/octet-stream',buffer:Buffer.from(fixture.vb)},
+      {name:fileName,mimeType:'application/octet-stream',buffer:Buffer.from(fixture.vh)},
+    ]:{name:fileName,mimeType:'application/octet-stream',buffer:Buffer.from(fixture.vab)});
+    await page.waitForFunction(name=>document.getElementById('vabStatus').textContent.startsWith(name+':'),fileName);
+    await page.locator('#vabTone').selectOption('0');await page.locator('#loadVabTone').click();
+    await page.waitForFunction(name=>document.getElementById('vabStatus').textContent.startsWith('Loaded '+name+' P3 T0'),fileName);
+    const state=await settled(page),sample=state.samples.find(s=>s.id===state.channels[0].sample);
+    assert.equal(sample.byteLength,fixture.adpcm.length);assert.equal(sample.loopStartSamples,fixture.loopStartSamples);
+    assert.equal(sample.rootFrequencyHz,fixture.baseFrequencyHz);
+    assert(!state.pmon.enabled&&!state.noise.enabled&&!state.morph.enabled,'VAB uses the original sample source');
+    await page.locator('#vabTone').focus();await page.keyboard.down('y');await settled(page);
+    assertPcm(await capture(page,8192),'VAB loop warm-up beyond original END');
+    const pcm=await audible(page,'Flag4-only VAB tail beyond original END',expectedHz);
+    await page.keyboard.up('y');await settled(page);const released=await silent(page,'Flag4-only VAB key-up release');
+    const download=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const bytes=await fs.readFile(await(await download).path()),preset=JSON.parse(bytes);
+    assert.deepEqual(preset.sample.adpcm,Array.from(fixture.adpcm),'Saving retains every original ADPCM byte, including flag4 without flag2');
+    assert.equal(preset.sample.loopStartSamples,fixture.loopStartSamples);assert.equal(preset.sample.baseFrequencyHz,fixture.baseFrequencyHz);
+    assert.equal(preset.waveform??null,null);assert(!preset.morph.enabled);
+    await page.locator('#resetPreset').click();await settled(page);
+    await page.locator('#presetFileInput').setInputFiles({name:'loop-restored.spu.json',mimeType:'application/json',buffer:bytes});
+    await page.waitForFunction(name=>document.getElementById('audioStatus').textContent==='Loaded '+name+'.',preset.name);
+    await settled(page);await hold(page);assertPcm(await capture(page,8192),'Restored loop warm-up beyond END');
+    const restored=await audible(page,'Restored original loop tail',expectedHz);await release(page);await silent(page,'Restored loop release');
+    await hold(page);await audible(page,'Loop held before public Stop',expectedHz);await page.locator('#stopAudio').click();const stopped=await silent(page,'Stop clears held looping sample');
+    await release(page);
+    results.push({split,originalAdpcmSha256:hash(fixture.adpcm),presetSha256:hash(bytes),loopStartSamples:sample.loopStartSamples,pcm,released,restored,stopped});
+  }
+  return {originalBytesPreserved:true,presetRestored:true,loopAudibleBeyondEnd:true,noteOff:true,stop:true,cases:results};
+}
+
 async function checkVab(page, keyboardHz) {
   console.log('CHECK VAB: combined / split / original ADPCM / fine tune / preset / focused keyboard');
   const {createVabFixture}=await import('../test/helpers/spu_vab_fixture.mjs');
@@ -821,6 +862,7 @@ async function checkMorph(page,name) {
     else await node.selectOption(value);
     await settled(page);
   };
+  await set('enabled',false);
   await page.locator('[data-morph-capture="a"]').click();await settled(page);
   await set('b','square');
   assert.deepEqual((await current(page)).morph.a,original,'Current PCM becomes endpoint A');
@@ -1127,6 +1169,12 @@ async function runCase(browser, name, origin) {
     assert(startup.morph.enabled && startup.morph.amount===0, 'Fresh Sine starts with Morph On at Wave A');
     assert(await page.locator('[data-morph="enabled"]').isChecked());
     assert(!(await page.locator('#morphAmount').isDisabled()));
+    if(config.loopOnly) {
+      const loops=await checkLoopRepeatVab(page,keyboardHz);
+      const audit=await page.evaluate(()=>({processorErrors:__spuSynthAudit.processorErrors,physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(s=>s.gate.gain.value===0),pcmContinuous:__spuSynthAudit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid)}));
+      assert(audit.physicalOutputMuted&&audit.pcmContinuous);assert.deepEqual(audit.processorErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
+      return {browser:name,version:browser.version(),scope:'original ADPCM repeat loops',loops,...audit};
+    }
     if(config.focusOnly) {
       const selectFocus=await checkSelectCommitFocus(page,keyboardHz);
       assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
@@ -1144,6 +1192,8 @@ async function runCase(browser, name, origin) {
       assert(audit.physicalOutputMuted && audit.pcmContinuous);assert.deepEqual(audit.processorErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(failedResponses,[]);
       return {browser:name,version:browser.version(),scope:'VAB and PSF import',vab,psf,...audit};
     }
+    const loops=await checkLoopRepeatVab(page,keyboardHz);
+    await page.locator('#resetPreset').click();await settled(page);await fastEnvelope(page);
     editorTabs.keyboardPerformance=await checkKeyboardPerformance(page,keyboardHz);
     const idleFrom = await page.evaluate(() => __spuSynthAudit.commands.length);
     await page.waitForTimeout(250);
@@ -1343,7 +1393,7 @@ async function runCase(browser, name, origin) {
     const audit = await page.evaluate(() => ({worklets:__spuSynthAudit.worklets, processorErrors:__spuSynthAudit.processorErrors, physicalOutputMuted:[...__spuSynthAudit.sinks.values()].every(sink => sink.gate.gain.value === 0), captureContinuity:{captures:__spuSynthAudit.captures.length, frames:__spuSynthAudit.captures.reduce((sum, entry) => sum + entry.frames, 0), pcmContinuous:__spuSynthAudit.captures.every(entry => entry.pilot.continuous && entry.clock.measurementValid && entry.clock.frames === entry.frames), clockAnomalies:__spuSynthAudit.captures.filter(entry => !entry.clock.continuous)}}));
     assert(audit.worklets.includes('tetorica-spu-synth'), 'The dedicated real SPU AudioWorklet is used'); assert(audit.physicalOutputMuted); assert(audit.captureContinuity.pcmContinuous);
     assert.deepEqual(audit.processorErrors, []); assert.deepEqual(errors, [], 'No browser exceptions'); assert.deepEqual(failedResponses, [], 'No missing runtime assets');
-    return {browser:name, version:browser.version(), brand, rejectedPmon, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
+    return {browser:name, version:browser.version(), brand, loops, rejectedPmon, pmon, noise, morph, longAudio, sineHeadroom, keyboardFocus, audioLazy:true, hardwareVoices:24, commonInstrument:true, editorSections:['PCM cycle → SPU ADPCM', 'ADSR envelope', 'SPU reverb'], editorTabs, idlePolling:false, monitor, pointer:{pcm:pointerPcm, release:pointerRelease}, graph:{before:beforeGraph.channels[0].envelopeParameters, after:afterGraph.channels[0].envelopeParameters, allVoicesUpdated:true}, keyboard:{note:keyboardNote, pcm:keyboardPcm}, pitch:{bent:bentPcm, centered:centeredPcm, gestureBend, gesturePcm, gestureCenteredPcm, recentersOnRelease:true, retriggered:false}, chord:{voices:3, pcm:chordPcm, pcAndPointerCoexist:true, checkboxFocusPlayable:true, allVoicesLiveUpdated:true, pitchRetriggered:false, sustainReleased}, roundRobin:{noteOns:ons, hardwareVoices:24, heldAfterSteal:allocated.auditions.length, staleKeyOffPreservedReplacement:true}, waveform:{allVoicesUpdated:true, heldSampleToCycleRetuned:true, retunedPcm}, sample:{name:'browser-sine.wav', bytes:wav.length, rootMidi:69, allVoicesUpdated:true, pcm:importedPcm}, preset:{schema:preset.schema, version:preset.version, bytes:presetBytes.length, roundTrip:true, allVoicesUpdated:true}, reverb:{preset:'room', allVoicesUpdated:true, pcm:reverbPcm}, stopped, recovery, layouts, screenshots, ...audit};
   } catch (error) {
     const state = await page.evaluate(() => ({title:document.title, status:document.getElementById('status')?.textContent, body:document.body?.innerText?.slice(0, 6000), contexts:__spuSynthAudit.contexts.map(context => ({state:context.state, sampleRate:context.sampleRate})), commands:__spuSynthAudit.commands.slice(-20).map(c=>({...c,args:['loadADPCM','setInstrumentWaveform','loadTone'].includes(c.method)?'[sample data omitted]':c.args})), captures:__spuSynthAudit.captures.slice(-3)})).catch(() => null);
     throw Error(`${name}: ${error.message}\n${JSON.stringify({state, errors, failedResponses})}`, {cause:error});

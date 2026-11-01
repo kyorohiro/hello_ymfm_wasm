@@ -270,6 +270,7 @@ def check_installed(root=ROOT):
             and isinstance(pin.get('archiveSha256'), str)
             and re.fullmatch('[0-9a-f]{64}', pin['archiveSha256']),
             'Invalid SDK pin receipt')
+    require('unpublished' not in pin or pin['unpublished'] is True, 'Invalid unpublished SDK provenance')
     payload = {}
     for path in directory.rglob('*'):
         require(not path.is_symlink(), 'SDK snapshot contains a symbolic link: ' + str(path))
@@ -302,7 +303,7 @@ def validate_local_candidate(candidate, source_commit, manifest):
         require(name in manifest['files'], 'Local-candidate changed path absent from source archive: ' + name)
 
 
-def import_archive(archive, checksum, source_commit, root=ROOT, *, local_changed_paths=None):
+def import_archive(archive, checksum, source_commit, root=ROOT, *, local_changed_paths=None, unpublished=False):
     require(re.fullmatch('[0-9a-f]{40}', source_commit) is not None,
             'Expected the declared 40-character SDK source commit')
     payload, manifest = archive_payload(archive, checksum)
@@ -318,6 +319,9 @@ def import_archive(archive, checksum, source_commit, root=ROOT, *, local_changed
            'sourceCommit': source_commit, 'archiveName': archive.name,
            'archiveSha256': checksum, 'manifestSha256': digest(payload[MANIFEST]),
            'fileCount': len(payload)}
+    require(type(unpublished) is bool, 'Invalid unpublished SDK provenance')
+    if unpublished:
+        pin['unpublished'] = True
     if local_changed_paths is not None:
         # This is an immutable hash-pinned archive, but not the exact contents
         # of sourceCommit. Label that revision as its base instead of implying
@@ -357,19 +361,20 @@ def main():
     parser.add_argument('--archive', type=Path, help='local SDK sources ZIP; no download is performed')
     parser.add_argument('--sha256', help='expected source-archive SHA-256')
     parser.add_argument('--source-commit', help='declared SDK source revision, recorded as provenance')
+    parser.add_argument('--unpublished', action='store_true', help='exact committed sources packaged locally; no SDK release publication is claimed')
     parser.add_argument('--local-changed-path', action='append',
                         help='source path changed from --source-commit; marks an unpublished local candidate (repeatable)')
     args = parser.parse_args()
     if args.check:
-        if args.archive or args.sha256 or args.source_commit or args.local_changed_path:
+        if args.archive or args.sha256 or args.source_commit or args.local_changed_path or args.unpublished:
             parser.error('--check cannot be combined with import options')
         pin = check_installed()
     else:
         if not all((args.archive, args.sha256, args.source_commit)):
             parser.error('import requires --archive, --sha256 and --source-commit')
         pin = import_archive(args.archive, args.sha256, args.source_commit,
-                             local_changed_paths=args.local_changed_path)
-    label = ' (unpublished local candidate; sourceCommit is its base)' if pin.get('localCandidate') else ''
+                             local_changed_paths=args.local_changed_path, unpublished=args.unpublished)
+    label = ' (unpublished local candidate; sourceCommit is its base)' if pin.get('localCandidate') else ' (unpublished exact source commit)' if pin.get('unpublished') else ''
     print(f"SDK {pin['version']}{label}: {pin['fileCount']} pinned files verified offline "
           f"(archive SHA256 {pin['archiveSha256']})")
 

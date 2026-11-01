@@ -1,6 +1,6 @@
 # SNES SPC source
 
-snes_spc 0.9.0, LGPL-2.1-or-later; see third_party/snes-spc/LICENSE and README.md for the pinned revision and changes. The complete modified library, upstream documentation and notices are included from the pinned SDK source release.
+snes_spc 0.9.0, LGPL-2.1-or-later; see third_party/snes-spc/LICENSE and README.md for the pinned revision and changes. The complete modified library, upstream documentation and notices are included from the pinned SDK source snapshot.
 
 From this sources directory, rebuild with Emscripten: `sh scripts/build_spc_wasm.sh docs/generated`. The explicit argument writes the loader/binary under `docs/generated/`; the standalone recipe default is `dist/wasm/`. Only its five `vendor/snes-spc` paths are relocated to the existing `third_party/snes-spc` bundle layout. Compiler flags, assertions, accurate DSP selection and Perl cleanup are retained. No SDK checkout, Python importer or network access is required.
 

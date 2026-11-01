@@ -773,7 +773,7 @@
     {
       "id": "ps1_spu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "a4657c1467d3a04048681082d06a47715eb8791926dd0d84360540d674bb18b4",
+      "sourceFingerprint": "bd0622dfc92720358df23fa9116c98181db23fc9fb0474a3ed973c9bb79e8568",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
@@ -782,8 +782,8 @@
         },
         {
           "path": "scripts/build_ps1_spu_wasm.sh",
-          "sha256": "02300a5ebd8d5b63341da11f1617dfd3501d1d4eadfede658f83b9639ce1a2c7",
-          "size": 1421
+          "sha256": "0bf92624924d9cedda65f9811439e928ae99ab1c58234d47e8a4b166254cb4e0",
+          "size": 1559
         },
         {
           "path": "scripts/record_wasm_build.mjs",
@@ -792,23 +792,23 @@
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
-          "sha256": "6dd978dd9335c7b647cac4bdd8a97b1c08ed58711519ef9e82a1cfe01cb51ae5",
-          "size": 4702
+          "sha256": "df353230097d65130714d455fd76016f994b69d8fb019540f850b1b25eab3607",
+          "size": 5643
         },
         {
           "path": "vendor/mame-ps1-spu/ps1_spu.h",
-          "sha256": "3d4f4611058332ba85aa979c2b62a112efb79036396644f0734cbb9a183b7c4f",
-          "size": 3277
+          "sha256": "1a85ca13c37a2ec540dd2f45fec4210605ccc779f1b4cb34a30665c22c633537",
+          "size": 4773
         },
         {
           "path": "vendor/mame-ps1-spu/spu.cpp",
-          "sha256": "3316f13b65a92cd83d1605c049d81be28f024060ce36271cf4c42834bbe62eea",
-          "size": 76241
+          "sha256": "057ae5d52a2509d1c0efa6b1435802897ae7cb10eb75148d27fa975330970661",
+          "size": 78550
         },
         {
           "path": "vendor/mame-ps1-spu/spu.h",
-          "sha256": "3f7f0264e0d1cc093d3f2006d07c601654845071625e78d2372fbf3b2d62026c",
-          "size": 9292
+          "sha256": "fccf488f97010ebe7e70aeadef635f6d73d29f88dd0c80efcf245e34b1ca407e",
+          "size": 9475
         },
         {
           "path": "vendor/mame-ps1-spu/spu_tables.cpp",
@@ -817,13 +817,13 @@
         },
         {
           "path": "vendor/mame-ps1-spu/spureverb.cpp",
-          "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
-          "size": 6365
+          "sha256": "2359959f969cb2f330bb6d0ded5da2b0e60548de4665c1fad8d3637f7ba2b993",
+          "size": 6691
         },
         {
           "path": "vendor/mame-ps1-spu/spureverb.h",
-          "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
-          "size": 1594
+          "sha256": "74a942548b93aabb7042a1f154187c177094c8ed7773a225af77654fe675a767",
+          "size": 1618
         },
         {
           "path": "vendor/mame-ps1-spu/standalone_support.h",
@@ -834,13 +834,13 @@
       "outputs": [
         {
           "path": "ps1_spu_wasm.js",
-          "sha256": "49f1994131a8e7bd3224544d71dc5e73890f7d9584bb44f267818f99d1b799bf",
-          "size": 17148
+          "sha256": "1bce9139f84bc05662a3b8bcb1dfc6da44bebb90c104aa08dd904df3c5821b5b",
+          "size": 17985
         },
         {
           "path": "ps1_spu_wasm.wasm",
-          "sha256": "966e41128b84e39ec5aa3199bf5b7948959f8e546eb61f0e8d3d77ae419eeff4",
-          "size": 50282
+          "sha256": "cd1223fe41624db415c31395e3eba30cab18c56c46a28d57425dfa71f038f96f",
+          "size": 52082
         }
       ],
       "compiler": {

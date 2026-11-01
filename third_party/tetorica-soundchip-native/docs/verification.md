@@ -1,5 +1,39 @@
 # Verification record
 
+## Long software PCM event counters — 2026-11-01
+
+Saturate sample-boundary and IRQ distances before converting the 64-bit
+calculation to the 32-bit scheduler field. Previously, a 1,048,576-frame host
+bank at PITCH 1 produced a distance of 2^32 and wrapped to immediate END;
+looped playback could then use an invalid unsigned cursor overshoot.
+This changes no ABI, bank count, frame cap, version or release tag.
+
+The Native fixture compares one-shot and looped banks of 1,048,576,
+2,097,153 and 16,777,216 frames against a short reference at PITCH 1, using
+voices 0/23. PCM remains exact before END, ENDX stays clear, and first key-on
+plus render performs zero C++ allocations/deallocations. The full PS1 fixture
+passed Release (0.70 seconds) and AddressSanitizer Debug (2.86 seconds).
+Strict C++17 syntax passed for the fixture and adapted source, suppressing
+only its existing vendor warnings. These are local results; remote CI results
+are reported separately after the commit is pushed.
+
+## macOS ARM CI runner migration — 2026-10-31
+
+SDK commit `f16986cc264a7cd9b489a45826b349906e21ec9a` added allocation-free
+in-place SPU host PCM edits. In [Verify SDK run 41211681785](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/41211681785),
+the macOS ARM64 job `124567817556` was cancelled before runner assignment or any
+build/test step. GitHub's annotation identifies the [scheduled macOS 14 image
+brownout](https://github.com/actions/runner-images/issues/13518); the run began
+at 2026-10-31 14:46:29 UTC, within the announced 14:00–00:00 UTC window.
+That cancellation does not establish a synthesis/build failure or a macOS ARM
+test result. Other jobs retain their separately reported outcomes.
+
+The ARM matrix label is changed from `macos-14` to `macos-15` to rerun the full
+Native/WASM matrix. Intel remains `macos-15-intel`. This migration changes no
+SDK implementation, public API, generated artifact, version or release tag.
+The replacement run's results must be distinguished from the initial partial
+run; this checkpoint does not claim that the cancelled ARM job passed.
+
 ## SDK 0.1.6 main CI — 2026-10-28
 
 [Verify SDK run 40660652196](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40660652196) completed successfully for `main` commit `100e0408f6fda7569e0cdbc967b4646eb083a0e9`.
