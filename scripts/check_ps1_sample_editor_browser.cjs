@@ -267,13 +267,27 @@ const encoded=encodePs1Adpcm(saved.channels[0],{...(saved.loopEnabled?{loopStart
 if(encoded.adpcm.length!==saved.adpcm.length||!encoded.adpcm.every((value,i)=>value===saved.adpcm[i]))throw Error('Canonical conversion differs');
 const instrument=await createSampleInstrument(saved,{target:'ps1',volume:10});
 for(let voice=0;voice<24;voice++)await instrument.noteOn({id:'voice-'+voice,midi:60,velocity:100});
-// Worker playback prepares commands ahead of the device; allow its default
-// 300 ms lookahead to reach the output before reading actual native gates.
-await sleep(1);
+// A control's completion acknowledges preparation, not playback. Resource
+// reads stay immediate, so observe all held voices instead of assuming that
+// wall-clock sleep has advanced the audio device past Worker lookahead.
+const gatePollStart=performance.now(),gatePollLimitMs=8000;
+let gatePollAttempts=0,firstGateObservation=null,lastGateObservation=null;
+while(true){
+ const observed=await spu.getState();gatePollAttempts++;
+ lastGateObservation={gates:observed.channels.map(channel=>channel.gate),envelopes:observed.channels.map(channel=>channel.envelope),
+  missingIDs:observed.channels.flatMap((channel,index)=>channel.gate&&channel.envelope>0?[]:['voice-'+index]),nativeFrames:observed.nativeFrames};
+ if(firstGateObservation===null)firstGateObservation=lastGateObservation;
+ if(lastGateObservation.missingIDs.length===0)break;
+ const remaining=gatePollLimitMs-(performance.now()-gatePollStart);
+ if(remaining<=0)throw Error('24-voice playback observation timed out: '+JSON.stringify({attempts:gatePollAttempts,elapsedMs:performance.now()-gatePollStart,first:firstGateObservation,last:lastGateObservation}));
+ await sleep(Math.min(.05,remaining/1000));
+}
+const gateObservation={attempts:gatePollAttempts,elapsedMs:performance.now()-gatePollStart,limitMs:gatePollLimitMs,first:firstGateObservation,last:lastGateObservation};
 const state=await spu.snapshot(),last=state.samples.at(-1);
 if(state.channels.filter(channel=>channel.gate).length!==24)throw Error('Not all 24 voices active: '+state.channels.filter(channel=>channel.gate).length);
+if(!state.channels.every(channel=>channel.envelope>0))throw Error('Not all 24 voice envelopes audible: '+JSON.stringify(gateObservation));
 if(!encoded.adpcm.every((value,i)=>value===state.ram[last.startAddress+i]))throw Error('Uploaded SPU RAM differs from conversion');
-log(${JSON.stringify(marker)}+JSON.stringify({manifest,microphoneRecordingTested:${JSON.stringify(microphoneRecordingTested)},microphoneSource,sourceBytes:sourceBytes.byteLength,sourceRate:header.getUint32(24,true),sourceFrames:dataSize/header.getUint16(32,true),bytes:encoded.adpcm.length,loopStart:saved.loopStartFrame,loopEnd:saved.loopEndFrame,rootMidi:saved.rootMidi,tuneCents:saved.tuneCents,active:state.channels.filter(channel=>channel.gate).length,ramMatches:true,metrics:encoded.metrics}));
+log(${JSON.stringify(marker)}+JSON.stringify({manifest,microphoneRecordingTested:${JSON.stringify(microphoneRecordingTested)},microphoneSource,sourceBytes:sourceBytes.byteLength,sourceRate:header.getUint32(24,true),sourceFrames:dataSize/header.getUint16(32,true),bytes:encoded.adpcm.length,loopStart:saved.loopStartFrame,loopEnd:saved.loopEndFrame,rootMidi:saved.rootMidi,tuneCents:saved.tuneCents,active:state.channels.filter(channel=>channel.gate).length,gateObservation,ramMatches:true,metrics:encoded.metrics}));
 liveLoop('sampler-check',async()=>{await sleep(60);});`;}
 async function runCase(browser,name,origin,host,execution){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1100}});
@@ -319,8 +333,18 @@ async function runCase(browser,name,origin,host,execution){
     await selectedExample(page,execution);assert.equal(await sampleCount(page),samplesAfter,'Fresh Stop/Run does not leak another sample allocation');
     const secondInput=await keyboard(page);await stop(page,'Repeated sampler Stop');
     if(execution==='worker')assert(await page.evaluate(()=>__ps1SampleAudit.workers.some(url=>url.includes('playground_logic_worker'))),'Sampler executes in the real logic Worker');
+    let probeWorkerLookaheadMs=null;
+    if(execution==='worker'){
+      if(!await page.locator('#workerLookaheadButton').isVisible())await page.locator('#mainMenu > summary').click();
+      await page.locator('#workerLookaheadButton').click();await page.locator('#workerLookaheadMs').fill('2000');
+      await page.locator('#applyWorkerLookaheadButton').click();await page.locator('#workerLookaheadDialog').waitFor({state:'hidden'});
+      probeWorkerLookaheadMs=Number(await page.locator('#workerLookaheadMs').inputValue());assert.equal(probeWorkerLookaheadMs,2000);
+      assert.match(await page.locator('#workerLookaheadValue').textContent(),/2000\s*ms/);
+    }
     await page.locator('#runFileSelect').selectOption('/index.js');const marker=`__PS1_SAMPLE_${name}_${execution}__`;
     await run(page,probeSource(marker,microphone.tested),execution);const text=await waitLog(page,marker),probe=JSON.parse(text.slice(text.lastIndexOf(marker)+marker.length).split('\n')[0]);
+    probe.workerLookaheadMs=probeWorkerLookaheadMs;
+    assert.equal(probe.gateObservation.last.missingIDs.length,0);assert(probe.gateObservation.last.gates.every(Boolean));assert(probe.gateObservation.last.envelopes.every(value=>value>0));
     assert.equal(probe.microphoneRecordingTested,microphone.tested);assert.equal(probe.microphoneSource,microphone.tested?'microphone':null,'Only an actually recorded microphone asset is checked');
     assert.equal(probe.sourceFrames,256);assert.equal(probe.rootMidi,60);assert.equal(probe.tuneCents,17);assert.equal(probe.active,24);assert(probe.ramMatches);assert.equal(probe.manifest.settings.conversionTargets.ps1,'ps1');assert.equal(probe.manifest.settings.outputSampleRate,44100);assert.deepEqual(probe.manifest.settings.drawStrokes,settings.drawStrokes);
     // Independently started voices have different phases; cancellation can

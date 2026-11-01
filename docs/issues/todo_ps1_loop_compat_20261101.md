@@ -56,3 +56,20 @@ PS1 /WonderSwan /POKEYの校正、packaged Analyzer /FM Synth /Playgroundはこ�
 最初のREADYより前のexact gain比較でthrowし、40秒待ちとして表面化していた。
 同じ実ZIPでローカル再現済み。runtimeや音量値は変えずcheckerの参照を現行測定へ合わせ、
 両browser × single /dual × Main /Workerの8経路で実PCM・System復元を再検証する。
+
+
+## Sample Editor共通CIの追加切り分け（未完了）
+
+`b8dae7d1` の再実行でPOKEYは通過。SPU mode /ADPCM変換 /live voice・PCM・Reverb編集も通過した。
+続くitch run `41279067313` のPS1 Sample Editor /saved Keyboard instrumentsで失敗を検出した。
+失敗logと同じ実ZIPで再現し、原因と修正範囲を確かめてから対応する。
+CI全成功という最終記録は保留する。
+
+
+Sample Editorの具体failureはCIのWebKit /Workerだけ、24note後のgate数が21。
+他3経路と同じZIPのローカル4経路は成功。noteOnのawaitはcontrol投入までで、
+getState /snapshotは予約NoteOnを追い越す即時RPC。固定sleep(1)はaudio適用のbarrierではない。
+テストは厳密24条件を維持し、公開getStateで期限付きの到達待ちを行い、最後にRAM snapshotを1回検査する。
+Native envelope /nativeFrames /missing channelを診断に残し、未到達は引き続き失敗させる。
+公開Worker lookahead設定を2秒へ上げたprobeで固定1秒待ちの不十分さを意図的に再現し、
+条件待ちで24音の実audio適用に到達することを検証する。productionのイベント再送・count緩和は行わない。
