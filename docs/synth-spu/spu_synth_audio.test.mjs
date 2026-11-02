@@ -60,8 +60,13 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
   assert.equal(gainParameters[0].value,.128832*SPU_SYNTH_MIX_HEADROOM,'post-chip gain compensates fixed voice attenuation');
   audio.setVolume(.7);assert.equal(gainParameters[0].value,.7*.128832*SPU_SYNTH_MIX_HEADROOM,'Master ramps retain compensation');
   audio.setVolume(2);assert.equal(gainParameters[0].value,2*.128832*SPU_SYNTH_MIX_HEADROOM,'200% doubles calibrated output gain');
-  assert.throws(()=>audio.setVolume(2.01),/0 to 2/);
-  assert.throws(()=>audio.setVolume(-.01),/0 to 2/);
+  audio.setVolume(3.8);assert.equal(gainParameters[0].value,3.8*.128832*SPU_SYNTH_MIX_HEADROOM,'380% scales calibrated output linearly');
+  for(const value of [3.81,-.01,NaN,Infinity]) {
+    assert.throws(()=>audio.setVolume(value),/0 to 3\.8/);
+    assert.equal(gainParameters[0].value,3.8*.128832*SPU_SYNTH_MIX_HEADROOM,'rejected values leave the previous gain intact');
+    await assert.rejects(createAudio({volume:value}),/0 to 3\.8/);
+  }
+  audio.setVolume(0);assert.equal(gainParameters[0].value,0,'zero remains a full mute');
   assert.equal(encodes, 1, 'initial cycle is prepared once before Worklet creation');
   const pcm = Array.from({length:112}, (_, i) => .5 * Math.sin(2 * Math.PI * i / 112));
   await audio.command('setInstrumentWaveform', [pcm]);
@@ -82,6 +87,8 @@ test('main thread encodes one instrument wave once and sends no per-key sample u
   assert.deepEqual(requests.at(-1).args[1].pcm,morphPcm(config));
   await audio.command('setInstrumentMorph',[{...config,enabled:false}]);
   assert.equal(encodes,encodedBefore+1,'turning morph Off does not encode or upload');
+  const boosted=await createAudio({volume:3.8});t.after(()=>boosted.dispose());
+  assert.equal(gainParameters[1].value,3.8*.128832*SPU_SYNTH_MIX_HEADROOM,'380% is also valid at engine initialization');
 });
 
 test('standalone actual WASM initializes and renders without URL or Node globals like AudioWorkletGlobalScope', () => {

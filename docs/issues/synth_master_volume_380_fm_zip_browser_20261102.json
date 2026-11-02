@@ -1,0 +1,402 @@
+{
+  "artifact": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_gain380-20261102_itch_synth.zip",
+    "root": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/itch-synth-browser-3QBc8s",
+    "bytes": 779401,
+    "sha256": "887c88b3c5e79e05004be45cc43aad1f269beb2a397d5dec3bac5e59e6c0b641",
+    "entries": 231,
+    "directories": 28
+  },
+  "physicalOutputMuted": true,
+  "repositoryFallback": false,
+  "privateProductionHooks": false,
+  "cases": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "startup": {
+        "title": "Tetorica FM2612 — Sound Laboratory",
+        "status": "Press any key or click a pad to start audio.",
+        "presets": 17,
+        "audioContexts": 0
+      },
+      "importedPath": "/presets/ci-smoke/ci-smoke.tfi",
+      "held": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0.086517333984375,
+        "rms": 0.05985686467515654
+      },
+      "screenshot": "/private/tmp/synth-gain380-fm-zip/chromium-synth.png",
+      "released": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0,
+        "rms": 0
+      },
+      "replayed": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0.086517333984375,
+        "rms": 0.06005451234310105
+      },
+      "worklets": [
+        "ym2612-processor",
+        "ym2612-processor",
+        "itch-synth-release-capture"
+      ],
+      "passed": true,
+      "errors": [],
+      "failed": [],
+      "bad": [],
+      "consoleErrors": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "startup": {
+        "title": "Tetorica FM2612 — Sound Laboratory",
+        "status": "Press any key or click a pad to start audio.",
+        "presets": 17,
+        "audioContexts": 0
+      },
+      "importedPath": "/presets/ci-smoke/ci-smoke.tfi",
+      "held": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0.086517333984375,
+        "rms": 0.05970073898664126
+      },
+      "screenshot": "/private/tmp/synth-gain380-fm-zip/webkit-synth.png",
+      "released": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0,
+        "rms": 0
+      },
+      "replayed": {
+        "frames": 11264,
+        "sampleRate": 53267,
+        "peak": 0.086517333984375,
+        "rms": 0.06005451234310105
+      },
+      "worklets": [
+        "ym2612-processor",
+        "ym2612-processor",
+        "itch-synth-release-capture"
+      ],
+      "passed": true,
+      "errors": [],
+      "failed": [],
+      "bad": [],
+      "consoleErrors": []
+    }
+  ],
+  "passed": true,
+  "servedFiles": {
+    "generated/segapsg_wasm.js": {
+      "bytes": 33978,
+      "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+    },
+    "generated/ym2612_wasm.js": {
+      "bytes": 34902,
+      "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+    },
+    "generated/ym2612_wasm.wasm": {
+      "bytes": 40357,
+      "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+    },
+    "index.html": {
+      "bytes": 53803,
+      "sha256": "6333d7a85f155d5a48e469404b72f8e8ddad0d1059d9b36b3e4c769a8edfe0eb"
+    },
+    "js/audio_decode.js": {
+      "bytes": 1955,
+      "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+    },
+    "js/bitcrusher-worklet.js": {
+      "bytes": 3444,
+      "sha256": "782a8c0f015770792f7226f3d6a874c23e067ecf8665337244baa5872b3d52d9"
+    },
+    "js/looper.js": {
+      "bytes": 24025,
+      "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+    },
+    "js/megasynth_fx.js": {
+      "bytes": 62352,
+      "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+    },
+    "js/megasynth_recording.js": {
+      "bytes": 10125,
+      "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+    },
+    "js/megasynth-fm-presets.js": {
+      "bytes": 6954,
+      "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+    },
+    "js/megasynth.js": {
+      "bytes": 33457,
+      "sha256": "dfda430cf99bba242a0b4da377ecef702ae60f9a85f26a345b5bf69348899c8c"
+    },
+    "js/native_fx_rack.js": {
+      "bytes": 2128,
+      "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+    },
+    "js/native_fx.js": {
+      "bytes": 7922,
+      "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+    },
+    "js/native_noise.js": {
+      "bytes": 4209,
+      "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+    },
+    "js/native_sample.js": {
+      "bytes": 3645,
+      "sha256": "c281830126e7197cdec59cfdd8c7c1cd51ce26d53afe1887399e1aa81e5b07e0"
+    },
+    "js/opn_fm_vgm.js": {
+      "bytes": 4213,
+      "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+    },
+    "js/playground_audio_endpoint.js": {
+      "bytes": 2002,
+      "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+    },
+    "js/playground_audition_guard.js": {
+      "bytes": 6373,
+      "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+    },
+    "js/playground_chip_clock.js": {
+      "bytes": 5232,
+      "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+    },
+    "js/playground_chip_inspector_state.js": {
+      "bytes": 13144,
+      "sha256": "926c7852e5e1346ee00ff4418efbd63ebe020bc8d2bcc72fabc55513fca174a0"
+    },
+    "js/playground_chip_port.js": {
+      "bytes": 2698,
+      "sha256": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591"
+    },
+    "js/playground_keyboard_channels.js": {
+      "bytes": 5822,
+      "sha256": "079a063894f68f599a64de64df7a71bd26a54a2420f23d07986845a11423f663"
+    },
+    "js/playground_opn_inspector.js": {
+      "bytes": 7110,
+      "sha256": "7ef455ea8ded4659e1a2bac2a087eda7562e5726940da8f82bc0a8652a71442d"
+    },
+    "js/playground_performance_queue.js": {
+      "bytes": 9950,
+      "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+    },
+    "js/playground_pwm_audio.js": {
+      "bytes": 2579,
+      "sha256": "fe89ae634d7f115bde66534576e67477182617d4d6e5efff80b15c7b6cb59527"
+    },
+    "js/playground_rf5c164_audio.js": {
+      "bytes": 2625,
+      "sha256": "42053cc112bc40b578e6af6974b7667bf9c74906fae7a881415247c9d95edfe6"
+    },
+    "js/playground_rf5c164.js": {
+      "bytes": 5149,
+      "sha256": "26cffb8697b813715c1dd9de4a89305a164abcaeaba998945d36eba51d670fcb"
+    },
+    "js/pwm32x_playback.js": {
+      "bytes": 9066,
+      "sha256": "ad828d6e3f8c28c3f3651a701005970cca66ca3a04309475a2308abab2d61932"
+    },
+    "js/pwm32x_wasm.js": {
+      "bytes": 12449,
+      "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+    },
+    "js/pwm32x.js": {
+      "bytes": 6885,
+      "sha256": "32fc07ab58957d8dcb2b931cb17219e4ada4490ba46937f77abd97f140b7ff28"
+    },
+    "js/rf5c164_pcm.js": {
+      "bytes": 1537,
+      "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+    },
+    "js/rf5c164synth.js": {
+      "bytes": 4836,
+      "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+    },
+    "js/s98_file.js": {
+      "bytes": 5878,
+      "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+    },
+    "js/segapsg_api.js": {
+      "bytes": 1086,
+      "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+    },
+    "js/segapsg.js": {
+      "bytes": 10149,
+      "sha256": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46"
+    },
+    "js/segapsgsynth.js": {
+      "bytes": 10444,
+      "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+    },
+    "js/soundchip_mixer.js": {
+      "bytes": 26367,
+      "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+    },
+    "js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "js/stereo-width-worklet.js": {
+      "bytes": 1876,
+      "sha256": "36b8f452b84faef614677c97bdfca7fb34e2cb42fa4b5ec56e7cdfb68495fa50"
+    },
+    "js/tetorica_audio_runtime.js": {
+      "bytes": 35718,
+      "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+    },
+    "js/tetorica_virtual_files/filesystem.js": {
+      "bytes": 20206,
+      "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+    },
+    "js/tetorica_virtual_files/path.js": {
+      "bytes": 1112,
+      "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+    },
+    "js/tetorica_virtual_files/reader.js": {
+      "bytes": 1404,
+      "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+    },
+    "js/tetorica_virtual_files/sync.js": {
+      "bytes": 5701,
+      "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+    },
+    "js/tfi.js": {
+      "bytes": 9704,
+      "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+    },
+    "js/vgi.js": {
+      "bytes": 4366,
+      "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+    },
+    "js/vgm_file.js": {
+      "bytes": 3428,
+      "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+    },
+    "js/ym2612_dac.js": {
+      "bytes": 7251,
+      "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+    },
+    "js/ym2612-worklet.js": {
+      "bytes": 25394,
+      "sha256": "697fc19d6885b746cbfc122a60d841befc8999bfaf10b858c724355a8617126c"
+    },
+    "js/ym2612.js": {
+      "bytes": 22574,
+      "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+    },
+    "js/ym2612synth.js": {
+      "bytes": 38598,
+      "sha256": "495408c80ab002bd49fafc32f7e8fb44c1e5b0ab6bcc219eb62edd36635d1138"
+    },
+    "js/ym2612vgm.js": {
+      "bytes": 117637,
+      "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+    },
+    "playground/playground_cassette.js": {
+      "bytes": 14751,
+      "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+    },
+    "playground/playground_example_order.js": {
+      "bytes": 308,
+      "sha256": "d2c561fe35b3b0f9eee626dd678ee78ff0c35a73ffef5cf601efad62c8652395"
+    },
+    "playground/playground_file_tree.js": {
+      "bytes": 4862,
+      "sha256": "7bbc4c40fb6d30e65d36d9408c2c0337dbcee6ae3770fa85b379ba27ae9cee30"
+    },
+    "playground/playground_vgm_presets.js": {
+      "bytes": 2810,
+      "sha256": "2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e"
+    },
+    "playground/vendor/fflate.js": {
+      "bytes": 90922,
+      "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+    },
+    "synth_controls.js": {
+      "bytes": 10018,
+      "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+    },
+    "synth_envelope.js": {
+      "bytes": 13551,
+      "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+    },
+    "synth_files.js": {
+      "bytes": 30196,
+      "sha256": "efa247357ee19185f1f66eea11bde32ca09306e12f2593c8cf6b45cf44f45285"
+    },
+    "synth_input.js": {
+      "bytes": 7492,
+      "sha256": "ae05d0921729e0fc2ea0e4b9055d2daeb2dab4a005616fce65893d051881daef"
+    },
+    "synth_keyboard.js": {
+      "bytes": 10009,
+      "sha256": "da9341cd14718f6650f5ebb0fefd2e2081bbc64e5b6e2d2350f0da4f095d79ee"
+    },
+    "synth_menu.js": {
+      "bytes": 1808,
+      "sha256": "7f9ee7b7cdf3df52395ddf377af7b9f885751d8661260301cdb271289b7a4c5f"
+    },
+    "synth_modulation.js": {
+      "bytes": 752,
+      "sha256": "ef0971094fd2be036b8023eb7a155649af088802392a880833bdf5b9648ed6fb"
+    },
+    "synth_operator_envelope.js": {
+      "bytes": 9649,
+      "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+    },
+    "synth_output_visualizer.js": {
+      "bytes": 3763,
+      "sha256": "4d551cda02b4bf2b4d28573a332ef353a1e48e5773af39a1062dfd4206607e66"
+    },
+    "synth_pitch_bend.js": {
+      "bytes": 683,
+      "sha256": "7e10712646b165ae30b3a0e58c5d7afcfaa921582885f7d7c128cccd5ab5aa2b"
+    },
+    "synth_preset_import.js": {
+      "bytes": 2767,
+      "sha256": "bfd8fdfa6a26c1759b2aac4cf46d3a029bf4e09c3ea4849d2ee214ea4dc54fbd"
+    },
+    "synth_project.js": {
+      "bytes": 23430,
+      "sha256": "9c69c63c452af99c5c01880b50e73074eefecabc317eacfe6ade1c1d5c3b66f8"
+    },
+    "synth_recovery.js": {
+      "bytes": 5171,
+      "sha256": "f4005915825bb8b858ff855510ab02d778c2d6f267dff9e2e80f8a9c688f57d2"
+    },
+    "synth_runtime.js": {
+      "bytes": 3100,
+      "sha256": "2106021ccc8a43fb356d5827471555be29d42554996717b3a9f050279047eb0a"
+    },
+    "synth.js": {
+      "bytes": 65515,
+      "sha256": "58457cf313354a91ac0dd9888f959a347b67b49b22bd711ff7395f9190adfe6c"
+    },
+    "vgm_analyzer/opm_export.js": {
+      "bytes": 4742,
+      "sha256": "cfe9192492c88c142df37a0f7e06f155bf63e40f7ee3a4f49fdf3fa3bda6e120"
+    },
+    "vgm_analyzer/opm_monitor.js": {
+      "bytes": 7175,
+      "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+    },
+    "vgm_analyzer/opm_tfi.js": {
+      "bytes": 3095,
+      "sha256": "45e83093aa2643e650582b123922bcc5af6fbd7f56252ce6eaafb6a5bb2c002a"
+    },
+    "vgm_analyzer/stored_zip.js": {
+      "bytes": 4446,
+      "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+    }
+  }
+}
