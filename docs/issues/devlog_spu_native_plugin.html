@@ -1,0 +1,21 @@
+<p>I've been working on a native DAW plugin alongside the browser version of Tetorica SPU Synth. Using <a href="https://github.com/iPlug2/iPlug2">iPlug2</a>, <a href="https://github.com/kyorohiro/tetorica-soundchip-native">tetorica-soundchip-native</a>, and Codex, I now have a working <strong>PS1 SPU VST3 instrument</strong>!</p>
+
+<p>You can play it with MIDI, use it in your tracks, and save its sound settings and sample data inside your DAW project. The sound engine runs as native C++ inside the DAW.</p>
+
+<p>The plugin brings over familiar sound-design features from SPU Synth, including PCM waveform editing, Software Morph, SPU ADSR, Noise, pitch modulation, and shared Reverb. It also supports VAB sound banks and imported WAV audio.</p>
+
+<h2>Try the plugin preview</h2>
+
+<p>There are early builds for <strong>macOS and Windows</strong>. Both have VST3; the Mac download also includes an Audio Unit and a standalone app.</p>
+
+<p><a href="https://github.com/kyorohiro/tetorica-spu-plugin/releases">Download the plugin preview on GitHub</a></p>
+
+<p>This is still a development preview. I'm continuing to check how it behaves in real DAWs and during longer sessions. For now, I wanted to share that the SPU Synth project has reached the point where we can make music with it inside a DAW.</p>
+
+<h2>Build your own retro sound plugin</h2>
+
+<p>The same approach can be used for other retro console sounds. <a href="https://github.com/kyorohiro/tetorica-soundchip-native">tetorica-soundchip-native</a> brings together C/C++ sound-chip cores, native adapters, build instructions, and component licenses. Alongside PS1 SPU, it includes sources for sounds associated with the Mega Drive, NES, Game Boy, PC Engine, and more.</p>
+
+<p>You can use those cores as the sound engine, iPlug2 as the plugin framework, and Codex as a development partner to build and test your own instrument. The SPU plugin repository is a working example of that process.</p>
+
+<p>If you've wanted to bring your favourite retro console sound into your DAW, these repositories give you a place to start. I'd love to see what other instruments people make with them!</p>
