@@ -109,7 +109,19 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
       }
       if(action==='remote'){
         const remote=args.remote??'origin';if(!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(remote))throw Error('Invalid remote name');
-        if(args.url)await git.addRemote({...base,remote,url:gitHttpsUrl(args.url),force:true});
+        if(args.remove){
+          if(!(await git.listRemotes(base)).some(entry=>entry.remote===remote))throw Error(`No such remote: ${remote}`);
+          // List the common directory so a packed origin-copy ref cannot match origin.
+          for(const name of await git.listRefs({...base,filepath:'refs/remotes'})){
+            if(name.startsWith(remote+'/'))await git.deleteRef({...base,ref:`refs/remotes/${name}`});
+          }
+          for(const branch of await git.listBranches(base)){
+            if(await git.getConfig({...base,path:`branch.${branch}.remote`})!==remote)continue;
+            await git.setConfig({...base,path:`branch.${branch}.remote`,value:undefined});
+            await git.setConfig({...base,path:`branch.${branch}.merge`,value:undefined});
+          }
+          await git.deleteRemote({...base,remote});
+        }else if(args.url)await git.addRemote({...base,remote,url:gitHttpsUrl(args.url),force:true});
         return git.listRemotes(base);
       }
       if(action==='branch'){
@@ -188,7 +200,7 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
 export function registerGitShell(shell,repository){
   shell.register('git',async context=>{
     const [command,...args]=context.args;let action=command,options={};
-    if(!command||command==='help')return 'git init | status [-s|--short] [PATH...] | diff [--cached] [PATH...] | add PATH... | commit -m MESSAGE | log | branch [-a|-r|NAME] | config user.name/user.email VALUE | remote [-v] | remote add|set-url NAME HTTPS_URL | remote get-url NAME | fetch | pull | push [-u] [REMOTE [BRANCH]]\n';
+    if(!command||command==='help')return 'git init | status [-s|--short] [PATH...] | diff [--cached] [PATH...] | add PATH... | commit -m MESSAGE | log | branch [-a|-r|NAME] | config user.name/user.email VALUE | remote [-v] | remote add|set-url NAME HTTPS_URL | remote get-url|rm|remove NAME | fetch | pull | push [-u] [REMOTE [BRANCH]]\n';
     if(command==='start'){if(args.length)throw Error('Usage: git start');action='init';}
     else if(command==='add'){action='stage';options={paths:args.map(context.resolve)};if(!args.length)throw Error('Usage: git add PATH...');}
     else if(command==='commit'){if(args.length!==2||args[0]!=='-m')throw Error('Usage: git commit -m MESSAGE');options={message:args[1]};}
@@ -220,7 +232,8 @@ export function registerGitShell(shell,repository){
       if(!args.length||args.length===1&&['-v','--verbose'].includes(args[0]))options={verbose:args.length>0};
       else if(args.length===3&&['add','set-url'].includes(args[0]))options={remote:args[1],url:args[2]};
       else if(args.length===2&&args[0]==='get-url')options={getUrl:true,remote:args[1]};
-      else throw Error('Usage: git remote [-v] | git remote add|set-url NAME HTTPS_URL | git remote get-url NAME');
+      else if(args.length===2&&['rm','remove'].includes(args[0]))options={remove:true,remote:args[1]};
+      else throw Error('Usage: git remote [-v] | git remote add|set-url NAME HTTPS_URL | git remote get-url|rm|remove NAME');
     }
     else if(!['init','status','log','push','fetch','pull'].includes(command)||args.length)throw Error('Unsupported Git command. Type git help.');
     context.assertActive();const result=await repository.execute(action,options,{signal:context.signal,assertActive:context.assertActive});
@@ -235,6 +248,7 @@ export function registerGitShell(shell,repository){
       return formatGitStatus(result);
     }
     if(action==='remote'){
+      if(options.remove)return '';
       if(options.getUrl){const remote=result.find(remote=>remote.remote===options.remote);if(!remote)throw Error(`No such remote: ${options.remote}`);return remote.url+'\n';}
       return result.map(remote=>options.verbose?`${remote.remote}\t${remote.url} (fetch)\n${remote.remote}\t${remote.url} (push)`:remote.remote).join('\n')+(result.length?'\n':'');
     }

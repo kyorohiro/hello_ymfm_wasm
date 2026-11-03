@@ -244,7 +244,8 @@ The host must flush its live editor buffer before running Git commands.
 
 Supported commands: `init`, `status [-s|--short|--porcelain] [PATH...]`, `diff [--cached|--staged] [PATH...]`, `add PATH...`,
 `commit -m MESSAGE`, `log`, `branch [-a|--all|-r|--remotes|NAME]`, `config user.name|user.email [VALUE]`, and
-`remote [-v|--verbose]`, `remote add|set-url origin HTTPS_URL`, and `remote get-url origin`.
+`remote [-v|--verbose]`, `remote add|set-url NAME HTTPS_URL`, `remote get-url NAME`, and `remote rm|remove NAME`.
+Remote removal clears its tracking refs and local branch upstream settings while retaining working files, local branches and commits.
 Explicit paths are resolved relative to the shell's current directory; `--` ends option parsing.
 For example, `git status .` restricts changes to that directory and `git diff --cached index.js`
 shows only the staged diff for that file. `git start` is an alias for `git init`.

@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createVirtualFileSystem} from '../src/filesystem.js';
-import {createVirtualGit,registerGitShell} from '../src/git.js';
+import {createVirtualGit,createGitFileSystem,registerGitShell} from '../src/git.js';
+import git from 'isomorphic-git';
 import {createShell} from '../src/shell.js';
 import {createPlaygroundCassetteZip,loadPlaygroundCassette} from '../../../docs/playground/playground_cassette.js';
 
@@ -56,6 +57,43 @@ test('Git path arguments are relative to shell cwd, and remote -v lists fetch/pu
   const remote=await shell.execute('git remote -v');assert.equal(remote.code,0);assert.equal(remote.stdout,'origin\thttps://github.com/owner/one.git (fetch)\norigin\thttps://github.com/owner/one.git (push)\n');
   await shell.execute('git remote set-url origin https://github.com/owner/two.git');assert.equal((await shell.execute('git remote get-url origin')).stdout,'https://github.com/owner/two.git\n');
   assert.equal((await shell.execute('git remote')).stdout,'origin\n');assert.equal((await shell.execute('git status --unknown')).code,1);
+});
+test('remote rm/remove clears its configuration, tracking refs and upstream while preserving local work and other remotes',async()=>{
+  const fs=createVirtualFileSystem([{path:'/index.js',data:'first\n'}]),repo=createVirtualGit({fs}),shell=createShell({fs});registerGitShell(shell,repo);
+  await repo.execute('init');await repo.execute('stage',{paths:['/']});
+  const {commit}=await repo.execute('commit',{message:'first',name:'Test',email:'test@example.com'});
+  await repo.execute('remote',{remote:'origin',url:'https://example.invalid/original'});
+  await repo.execute('remote',{remote:'origin-copy',url:'https://example.invalid/keep'});
+  const base={fs:createGitFileSystem(fs),dir:'/',gitdir:'/.git'};
+  await git.setConfig({...base,path:'branch.main.remote',value:'origin'});
+  await git.setConfig({...base,path:'branch.main.merge',value:'refs/heads/main'});
+  fs.writeText('/.git/refs/remotes/origin/main',commit+'\n');
+  fs.writeText('/.git/refs/remotes/origin/HEAD','ref: refs/remotes/origin/main\n');
+  fs.writeText('/.git/packed-refs',`# pack-refs with: peeled fully-peeled sorted\n${commit} refs/remotes/origin-copy/main\n${commit} refs/remotes/origin/packed\n`);
+  fs.writeText('/index.js','uncommitted work\n');
+  const removed=await shell.execute('git remote rm origin');assert.equal(removed.code,0,removed.stderr);assert.equal(removed.stdout,'');
+  assert.equal((await shell.execute('git remote')).stdout,'origin-copy\n');
+  assert.equal((await shell.execute('git remote get-url origin-copy')).stdout,'https://example.invalid/keep.git\n');
+  assert.deepEqual(await git.listRefs({...base,filepath:'refs/remotes'}),['origin-copy/main']);
+  assert.equal(await git.getConfig({...base,path:'branch.main.remote'}),undefined);
+  assert.equal(await git.getConfig({...base,path:'branch.main.merge'}),undefined);
+  assert.equal(await git.resolveRef({...base,ref:'refs/heads/main'}),commit);
+  assert.equal((await repo.execute('log')).length,1);assert.equal(fs.get('/index.js').data,'uncommitted work\n');
+  assert.equal((await shell.execute('git remote add origin https://example.invalid/replacement')).code,0);
+  assert.equal((await shell.execute('git remote get-url origin')).stdout,'https://example.invalid/replacement.git\n');
+  const alias=await shell.execute('git remote remove origin');assert.equal(alias.code,0,alias.stderr);assert.equal(alias.stdout,'');
+  assert.equal((await shell.execute('git remote')).stdout,'origin-copy\n');
+});
+test('remote removal rejects missing names, malformed arguments and cancellation without partial changes',async()=>{
+  const fs=createVirtualFileSystem([{path:'/index.js',data:'keep'}]),repo=createVirtualGit({fs}),shell=createShell({fs});registerGitShell(shell,repo);
+  await repo.execute('init');await repo.execute('remote',{url:'https://example.invalid/original'});
+  const before=fs.checkpoint();
+  for(const command of ['git remote rm','git remote remove','git remote rm origin extra','git remote rm ../origin','git remote rm missing']){
+    const result=await shell.execute(command);assert.equal(result.code,1,command);assert.match(result.stderr,/Usage:|Invalid remote name|No such remote/);
+    assert.deepEqual(fs.checkpoint(),before);
+  }
+  const controller=new AbortController(),pending=repo.execute('remote',{remote:'origin',remove:true},{signal:controller.signal});
+  controller.abort();await assert.rejects(pending);assert.deepEqual(fs.checkpoint(),before);
 });
 test('push uses the supplied native transport, sends a pack, and closes its credential scope',async()=>{
   const fs=createVirtualFileSystem([{path:'/index.js',data:'first\n'}]);let closed=0,scope,pack;
