@@ -130,7 +130,7 @@ Node.js 22以上が必要。最低対応のNode.js 22と、普段使うNode.js�
 ```sh
 node --version
 npm run test:fm2612
-node --test web/megasynth.test.mjs web/playground_rf5c164.test.mjs web/playground_soundchips_main.test.mjs web/synth-worklet.test.mjs
+node --test test/runtime/megasynth.test.mjs test/runtime/playground_rf5c164.test.mjs test/runtime/playground_soundchips_main.test.mjs test/runtime/synth-worklet.test.mjs
 git diff --check
 ```
 

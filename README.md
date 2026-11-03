@@ -156,7 +156,7 @@ try {
 For musical note names and presets, use a chip's Synth helper. For browser speakers,
 use an AudioWorklet transport after a user gesture; Node device output uses optional Audify.
 See [runnable Web / Node projects](https://github.com/kyorohiro/tetorica-fm2612-examples),
-[local Node examples](examples/nodejs/README.md), [Playground scripts](docs/playground/examples/README.md),
+[local Node examples](tetorica_examples/nodejs/README.md), [Playground scripts](docs/playground/examples/README.md),
 and the [package's browser / PCM examples](packages/fm2612/README.md).
 
 <a id="tetorica-vgm"></a>
@@ -209,7 +209,8 @@ and source / license files shipped with the runtime you redistribute.
 | [`web/`](web/README.md) | JavaScript / TypeScript audio cores, Synth helpers, transports and shared runtime. |
 | [`docs/`](docs/index.html) | Published tools, generated WASM, guides, examples, licenses and detailed design notes. |
 | [`packages/`](packages/) | npm package manifests / READMEs for audio, VGM tools and virtual files. |
-| [`node/`](node/README.md), [`examples/`](examples/README.md) | Node adapters; runnable Node, browser and C++ examples. |
+| [`node/`](node/README.md), [`tetorica_examples/`](tetorica_examples/README.md) | Node adapters; Tetorica's runnable Node, browser and C++ examples. |
+| [`src/`](src/), [`examples/`](examples/README.md) | ymfm-derived cores and upstream examples, retaining their original directory layout. |
 | [`third_party/`](third_party/), [`scripts/`](scripts/) | Pinned upstream / SDK sources, builders and packaging / verification scripts. |
 | [Feature status](docs/feature-status.md), [Memo](Memo.md), [CLI](CLI.md) | Implementation coverage, chip notes and analysis API details. |
 | [Release procedures](README_RELEASE.md), [itch.io ZIP verification](docs/itch_web_release.md) | Maintainer build / packaging workflows. |

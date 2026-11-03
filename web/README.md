@@ -2,8 +2,8 @@
 
 `web/` contains the reusable JavaScript sound-chip runtime: low-level WASM
 wrappers, note/preset helpers, Web Audio output, VGM playback, live-code execution,
-and the JavaScript side of Native host integration. Tests currently sit beside
-the runtime modules.
+and the JavaScript side of Native host integration. Runtime tests are kept in
+[`test/runtime/`](../test/runtime/) separately from the implementation.
 
 Start with the [project overview and goals](../README.md#project-goals) for
 Tetorica's purpose, [package documentation](../packages/fm2612/README.md) for
@@ -34,7 +34,7 @@ support in the package-root `createSoundChip()` factory.
 
 | Location | Role and update path |
 | --- | --- |
-| `web/` | Edit the shared runtime here. `*.test.mjs` and `*.types.test.ts` verify these modules. |
+| `web/` | Edit the shared runtime here. Tests are in [`test/runtime/`](../test/runtime/), including the SCSP type check. |
 | [`docs/js/`](../docs/js/) | Served runtime copies and some independent browser implementations. [`sync_web_js_to_docs.sh`](../scripts/sync_web_js_to_docs.sh) lists the shared copies and rewrites their asset URLs. |
 | [`generated/`](generated/) | Complete canonical loader/WASM catalog and build receipts. Update through the chip build scripts and the pinned SDK sources. |
 | [`docs/generated/`](../docs/generated/) | Published copies of the canonical generated assets. The shared artifact synchronizer maintains these and the legacy DX7/Native FX paths. |
@@ -49,7 +49,9 @@ Runtime imports, Worker/Worklet URLs and generated-asset locations are part of
 the integration contract. The npm payload has a flat module layout; the website
 uses `js/` and `generated/`. Source moves require corresponding build/sync and
 URL updates. See the [organization TODO](../docs/issues/todo_web_organization_01.md)
-for the proposed test separation; it has not been performed.
+for the completed test separation and the next source moves. Tetorica's own
+source will move under `tetorica_src/`; the upstream ymfm `src/` and `examples/`
+keep their layout.
 
 ### Generated assets
 
@@ -87,6 +89,7 @@ change:
 | Synchronize shared website modules | `sh scripts/sync_web_js_to_docs.sh` |
 | Build the reusable npm payload and declarations | `npm run build:fm2612` |
 | Check packaged runtime and types | `npm run test:fm2612` and `npm run test:fm2612:types` |
+| Run shared runtime tests / SCSP source types | `npm run test:runtime` and `npm run test:runtime:types` |
 | Run runtime and Analyzer tests | `npm run test:analyzer` |
 | Assemble the browser Playground | `sh scripts/package_itch_playground.sh` |
 

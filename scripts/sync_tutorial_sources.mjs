@@ -7,14 +7,14 @@ const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const tutorialNames = ['ex01_hello_world.cpp', 'ex02_ym2612.cpp', 'ex03_beep.cpp'];
 const usage = `Usage: node scripts/sync_tutorial_sources.mjs [--check | --help]
 
-Copy the three canonical examples/cpp/tutorials/*.cpp files to docs/tutorials/.
+Copy the three canonical tetorica_examples/cpp/tutorials/*.cpp files to docs/tutorials/.
 --check never writes and rejects missing or stale public download mirrors.`;
 
 export async function syncTutorialSources({root = repositoryRoot, check = false} = {}) {
   // Read every canonical file before writing any public copy.
   const sources = await Promise.all(tutorialNames.map(async name => ({
     name,
-    bytes: await readFile(path.join(root, 'examples/cpp/tutorials', name)),
+    bytes: await readFile(path.join(root, 'tetorica_examples/cpp/tutorials', name)),
   })));
   const changed = [];
   for (const source of sources) {

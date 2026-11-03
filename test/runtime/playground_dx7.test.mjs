@@ -1,0 +1,569 @@
+// Resolve source and fixture URLs from the runtime directory.
+const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+import {createDx7Client} from '../../web/playground_dx7.js';
+import {createDx7Audio} from '../../web/playground_dx7_audio.js';
+import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from '../../web/msfa_dx7/src/index.js';
+import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../web/msfa_dx7/src/preset.js';
+import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
+import {Dx7VoiceInspector} from '../../web/playground_dx7_inspector.js';
+import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+
+const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', runtimeDirectoryUrl)));
+const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', runtimeDirectoryUrl), 'utf8')).replace(/^import .*;$/gm, '');
+const settle = () => new Promise(resolve => setImmediate(resolve));
+const peak = pcm => pcm.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
+
+function processorClass(port, sampleRate) {
+  let Processor;
+  const scope={currentFrame:0,createDX7, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,Dx7VoiceInspector,receiveChipInspector,sampleRate,
+    AudioWorkletProcessor: class { constructor() { this.port = port; } },
+    registerProcessor(name, value) { assert.equal(name, 'tetorica-playground-dx7'); Processor = value; },
+  };
+  scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>scope.currentFrame});
+  vm.runInNewContext(workletSource,scope);
+  Processor.__scope=scope;
+  return Processor;
+}
+
+async function setup(sampleRate = 44100) {
+  const main = new MessageChannel();
+  const ready = new Promise((resolve, reject) => {
+    main.port2.onmessage = ({data}) => {
+      if (data.ready) resolve(data);
+      else if (data.fatal) reject(new Error(data.error));
+    };
+  });
+  const Processor = processorClass(main.port1, sampleRate);
+  const processor = new Processor({processorOptions: {wasmBytes}});
+  const metadata = await ready;
+  const remote = new MessageChannel();
+  main.port2.postMessage({port: remote.port1}, [remote.port1]);
+  const client = createDx7Client(remote.port2, metadata);
+  await client.getState();
+  return {
+    client, processor, main,
+    render(frames = 128) {
+      const channels = [new Float32Array(frames), new Float32Array(frames)];
+      const active = processor.process([], [channels]);
+      Processor.__scope.currentFrame+=frames;
+      return {channels, active};
+    },
+    close() {
+      client.dispose();
+      processor.dispose();
+      main.port1.close(); main.port2.close(); remote.port2.close();
+    },
+  };
+}
+
+for (const sampleRate of [44100, 48000]) {
+  test(`DX7 direct-port Worklet matches the real WASM core, partitioned stereo at ${sampleRate} Hz`, async t => {
+    const instrument = await setup(sampleRate);
+    const core = await createDX7({sampleRate, wasmBytes});
+    t.after(() => { instrument.close(); core.dispose(); });
+    await core.loadSysex(createVoiceSysex(createInitVoice()));
+    const {client} = instrument;
+    assert.deepEqual(client.voices, [{index: 0, name: 'INIT SINE'}]);
+    assert.equal(client.selectedVoice, 0);
+    assert.equal(client.sampleRate, sampleRate);
+    assert.equal(client.internalSampleRate, 44100);
+    client.voices[0].name = 'outside';
+    assert.equal(client.voices[0].name, 'INIT SINE');
+    client.noteOn(69, 100); core.noteOn(69, 100);
+    await client.getState();
+    let maximum = 0;
+    for (const frames of [128, 1, 63, 128, 17, 257, 128, 4096]) {
+      const {channels: [left, right], active} = instrument.render(frames);
+      assert.equal(active, true);
+      assert.deepEqual(left, core.render(frames));
+      assert.deepEqual(right, left);
+      maximum = Math.max(maximum, peak(left));
+    }
+    assert.ok(maximum > .001, 'default voice must be audible');
+    client.noteOff(69); core.noteOff(69);
+    await client.getState();
+    assert.deepEqual(instrument.render(5001).channels[0], core.render(5001));
+    client.panic(); await client.getState();
+    assert.equal(peak(instrument.render(2051).channels[0]), 0);
+  });
+}
+
+test('DX7 timed preset RPC is prepared immediately and its voice/note apply at one exact audio frame',async t=>{
+  const instrument=await setup(48000),core=await createDX7({sampleRate:48000,wasmBytes});
+  t.after(()=>{instrument.close();core.dispose();});await core.loadSysex(createVoiceSysex(createInitVoice()));
+  const messages=[],port={postMessage:message=>messages.push(message)},processor=instrument.processor;
+  processor.receive({type:'performance-start',session:1},port);
+  processor.receive({performance:{session:1,owner:'melody',time:64/48000},commands:[
+    {method:'setPreset',args:[{name:'FUTURE'}],id:77},{method:'noteOn',args:[69,100]},
+  ]},port);
+  const response=messages.find(message=>message.id===77);
+  assert.equal(response.value.voices[0].name,'FUTURE','acknowledgement describes the prepared logical patch');
+  assert.equal(processor.synth.getPreset().name,'INIT SINE','preparation must not change the audible patch early');
+  assert.equal((await instrument.client.getState()).voices[0].name,'FUTURE','queries include accepted pending edits');
+  assert.equal(peak(instrument.render(64).channels[0]),0);core.render(64);
+  core.setPreset({name:'FUTURE'});core.noteOn(69,100);
+  assert.deepEqual(instrument.render(256).channels[0],core.render(256));
+  assert.equal(processor.synth.getPreset().name,'FUTURE');
+  assert.equal(messages.filter(message=>message.id===77).length,1);
+});
+
+test('DX7 cancelled future patch rebuilds its logical state without discarding another owner',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const messages=[],port={postMessage:message=>messages.push(message)},processor=instrument.processor;
+  processor.receive({type:'performance-start',session:2},port);
+  processor.receive({performance:{session:2,owner:'old',time:.1},commands:[{method:'setPreset',args:[{name:'CANCELLED'}],id:1}]},port);
+  processor.receive({performance:{session:2,owner:'kept',time:.2},commands:[{method:'setOperator',args:[6,{coarse:3}],id:2}]},port);
+  processor.receive({type:'performance-cancel-owner',session:2,owner:'old'},port);
+  const preset=await instrument.client.getPreset();
+  assert.equal(preset.name,'INIT SINE');assert.equal(preset.operators[6].coarse,3);
+  instrument.render(9601);
+  assert.equal(processor.synth.getPreset().name,'INIT SINE');assert.equal(processor.synth.getPreset().operators[6].coarse,3);
+});
+
+test('DX7 primary Main and Worker ports share one bank, and Worker detachment keeps Main usable',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {client,processor,main}=instrument,workerChannel=new MessageChannel();
+  main.port2.postMessage({primaryWorker:true,port:workerChannel.port1},[workerChannel.port1]);
+  const worker=createDx7Client(workerChannel.port2,client._getState());
+  // Closing this Worker client would dispose the shared core; the runtime only
+  // lends its guarded API and retires the port through the owning node.
+  t.after(()=>workerChannel.port2.close());
+  await worker.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  worker.selectVoice(12);await worker.setPreset({name:'SHARED',operators:{1:{coarse:3}}});
+  assert.equal((await client.getState()).selectedVoice,12);
+  assert.equal((await client.getPreset()).name,'SHARED');
+  assert.equal((await client.getPreset()).operators[1].coarse,3);
+  client.noteOn(69);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+  worker.panic();await worker.getState();assert.equal(peak(instrument.render(256).channels[0]),0);
+  main.port2.postMessage({primaryWorker:true,type:'detach-chip-port'});
+  for(let i=0;i<20&&processor.workerRemote;i++)await settle();
+  assert.equal(processor.dead,false);assert.equal(processor.workerRemote,null);
+  assert.equal((await client.getPreset()).name,'SHARED');
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+});
+
+test('DX7 primary Stop discards future notes and patches, keeps bank/selection, and ignores old session Stop',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {processor,client}=instrument,port={postMessage(){}};
+  await client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  client.selectVoice(7);await client.setOperator(1,{coarse:2});
+  processor.receive({type:'performance-start',session:3},port);
+  processor.receive({performance:{session:3,owner:'old',time:0},commands:[{method:'noteOn',args:[69,100]}]},port);
+  assert(peak(instrument.render(512).channels[0])>.001);
+  processor.receive({performance:{session:3,owner:'old',time:1},commands:[{method:'setPreset',args:[{name:'FUTURE'}],id:1},{method:'noteOn',args:[70,100]}]},port);
+  processor.receive({type:'performance-stop',session:3},port);
+  assert.equal(peak(instrument.render(48001).channels[0]),0);
+  assert.equal((await client.getPreset()).name,'VOICE 7');assert.equal((await client.getPreset()).operators[1].coarse,2);
+  assert.equal((await client.getState()).selectedVoice,7);assert.equal(client.voices.length,32);
+  processor.receive({type:'performance-start',session:4},port);
+  processor.receive({performance:{session:4,owner:'new',time:0},commands:[{method:'noteOn',args:[69,100]}]},port);
+  instrument.render(128);processor.receive({type:'performance-stop',session:3},port);
+  assert(peak(instrument.render(512).channels[0])>.001,'old Stop cannot silence the replacement performance');
+  client._stopVoices();await client.getState();assert.equal(peak(instrument.render(512).channels[0]),0);
+});
+
+test('DX7 primary Stop wins over Main commands already queued before it',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {processor,client}=instrument;
+  processor.receiveImmediate({method:'noteOn',args:[69,100]},processor.port);
+  processor.receive({method:'stopVoices'},processor.port);await processor.commands;
+  assert.equal(peak(instrument.render(1024).channels[0]),0);
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+});
+
+for(const action of ['Stop','owner cancellation'])test(`DX7 ${action} synchronizes discarded logical patch metadata to both clients and the Worker observer`,async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {client,processor,main}=instrument,channel=new MessageChannel(),observed=[];
+  await client.loadSysex(createBankSysex(Array.from({length:32},()=>createInitVoice('INIT SINE'))));
+  main.port2.postMessage({primaryWorker:true,port:channel.port1},[channel.port1]);
+  const sender=createPerformanceSender({getLoop:()=>({performanceOwner:'old'}),now:()=>0});
+  const worker=createNativeWorkerApis([{name:'dx7',globalName:'dx7',port:channel.port2,state:client._getState()}],sender,(name,state)=>observed.push(state));
+  t.after(()=>channel.port2.close());
+  processor.receive({type:'performance-start',session:10},{postMessage(){}});
+  sender.configure({session:10,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:1});
+  worker.apis.dx7.selectVoice(7);await worker.apis.dx7.setPreset({name:'FUTURE'});await settle();
+  const future=worker.raw.get('dx7')._getState();assert.equal(future.voices[7].name,'FUTURE');assert.equal(future.selectedVoice,7);
+  assert.equal(processor.synth.getPreset().name,'INIT SINE');
+  if(action==='Stop'){sender.stop();await sender.immediateCleanup(()=>worker.stop());}
+  else sender.cancelOwner('old');
+  for(let i=0;i<30&&(worker.apis.dx7.voices[7].name!=='INIT SINE'||observed.at(-1)?.voices[7].name!=='INIT SINE'||client.selectedVoice!==0);i++)await settle();
+  assert.equal(worker.apis.dx7.voices[7].name,'INIT SINE');assert.equal(client.voices[7].name,'INIT SINE');
+  assert.equal(worker.apis.dx7.selectedVoice,0);assert.equal(client.selectedVoice,0);
+  assert.equal(observed.at(-1).voices[7].name,'INIT SINE');assert.equal(observed.at(-1).selectedVoice,0);
+  assert.equal(worker.raw.get('dx7')._adoptState(future),false,'old observer snapshots cannot restore a discarded patch');
+  assert.equal(worker.apis.dx7.voices[7].name,'INIT SINE');assert.equal(peak(instrument.render(48001).channels[0]),0);
+});
+
+test('DX7 upload acknowledgement, bank selection and malformed uploads keep usable state', async t => {
+  const instrument = await setup();
+  t.after(() => instrument.close());
+  const {client} = instrument;
+  const quiet = createInitVoice('QUIET');
+  quiet[121] = 0;
+  const voices = [createInitVoice('OUR SINE'), quiet, ...Array.from({length: 30}, (_, i) => createInitVoice(`OUR ${i + 2}`))];
+  const bytes = createBankSysex(voices);
+  const snapshot = bytes.slice();
+  const info = await client.loadSysex(new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength));
+  assert.deepEqual(bytes, snapshot, 'transfer must not detach or modify caller data');
+  assert.equal(info.length, 32);
+  assert.equal(info[1].name, 'QUIET');
+  assert.equal(client.selectedVoice, 0);
+  client.selectVoice(1);
+  client.noteOn(60);
+  assert.equal((await client.getState()).selectedVoice, 1);
+  assert.ok(peak(instrument.render(8192).channels[0]) < .001);
+  const bad = createVoiceSysex(createInitVoice('BAD'));
+  bad[6] ^= 1;
+  await assert.rejects(client.loadSysex(bad), /checksum/);
+  assert.equal(client.voices.length, 32);
+  assert.equal((await client.getState()).selectedVoice, 1);
+  client.panic(); client.selectVoice(0); client.noteOn(60);
+  await client.getState();
+  assert.ok(peak(instrument.render(8192).channels[0]) > .001);
+  client.allNotesOff(); await client.getState();
+  assert.ok(peak(instrument.render(44100).channels[0]) > 0, 'allNotesOff releases instead of panic');
+  assert.equal(peak(instrument.render(44100).channels[0]), 0);
+});
+
+for (const sampleRate of [44100, 48000]) {
+  test('DX7 object edits are acknowledged, ordered before notes, and match direct PCM at '+sampleRate+' Hz', async t => {
+    const instrument = await setup(sampleRate);
+    const core = await createDX7({sampleRate, wasmBytes});
+    t.after(() => {instrument.close();core.dispose();});
+    const preset = {name:'JS BELL',algorithm:0,operators:{
+      1:{coarse:1,outputLevel:90},
+      2:{coarse:2,outputLevel:70,envelope:{rates:[99,75,50,80],levels:[99,70,0,0]}},
+    }};
+    // The following Note On cannot overtake this unawaited edit on the port.
+    const applying = instrument.client.setPreset(preset);
+    instrument.client.noteOn(60,100);
+    preset.operators[2].coarse = 7; // The transmitted request owns its snapshot.
+    core.setPreset({...preset,operators:{...preset.operators,2:{...preset.operators[2],coarse:2}}});
+    core.noteOn(60,100);
+    await applying;await instrument.client.getState();
+    assert.equal((await instrument.client.getPreset()).operators[2].coarse,2);
+    assert.equal(instrument.client.voices[0].name,'JS BELL');
+    for(const frames of [128,17,257,1024]){
+      const {channels:[left,right]} = instrument.render(frames);
+      assert.deepEqual(left,core.render(frames));
+      assert.deepEqual(right,left);
+    }
+    // Apply edits after Note On, through the actual command/acknowledgement path.
+    await instrument.client.setOperators([[1,{outputLevel:65}],[2,{coarse:3}]]);
+    core.setOperators([[1,{outputLevel:65}],[2,{coarse:3}]]);
+    await instrument.client.setFeedback(5);core.setFeedback(5);
+    assert.equal((await instrument.client.getPreset()).feedback,5);
+    assert.deepEqual(instrument.render(4096).channels[0],core.render(4096));
+    instrument.client.panic();core.panic();await instrument.client.getState();
+    const patch = [[1,{outputLevel:82}],[2,{coarse:3}]];
+    await instrument.client.setOperators(patch);core.setOperators(patch);
+    await instrument.client.setOperator(1,{fine:25});core.setOperator(1,{fine:25});
+    assert.deepEqual(await instrument.client.getPreset(),core.getPreset());
+    instrument.client.noteOn(67,100);core.noteOn(67,100);await instrument.client.getState();
+    assert.deepEqual(instrument.render(4096).channels[0],core.render(4096));
+    const before = await instrument.client.getPreset();
+    before.operators[1].outputLevel=0;
+    assert.equal((await instrument.client.getPreset()).operators[1].outputLevel,82);
+    await assert.rejects(instrument.client.setOperators([[1,{outputLevel:0}],[7,{coarse:1}]]),/operator/i);
+    await assert.rejects(instrument.client.setPreset({algorithm:NaN}),/algorithm/i);
+    assert.equal((await instrument.client.getPreset()).operators[1].outputLevel,82);
+    instrument.client.noteOff(67);core.noteOff(67);await instrument.client.getState();
+    assert.deepEqual(instrument.render(8192).channels[0],core.render(8192));
+  });
+}
+
+test('DX7 object edits keep all other SysEx voices and reject nonfatal invalid updates', async t => {
+  const instrument=await setup();t.after(()=>instrument.close());
+  await instrument.client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  instrument.client.selectVoice(31);
+  await instrument.client.setPreset({name:'EDITED',operators:{1:{coarse:3}}});
+  assert.equal(instrument.client.selectedVoice,31);
+  assert.equal(instrument.client.voices.length,32);
+  instrument.client.selectVoice(0);
+  assert.equal((await instrument.client.getPreset()).name,'VOICE 0');
+  instrument.client.selectVoice(31);
+  assert.equal((await instrument.client.getPreset()).name,'EDITED');
+  // Bypass Main validation to verify invalid requests don't kill the Worklet.
+  const reply=await new Promise(resolve=>{
+    instrument.processor.receive({id:987,method:'setPreset',args:[{algorithm:99}]},{postMessage:resolve});
+  });
+  assert.match(reply.error,/algorithm/i);
+  assert.equal((await instrument.client.getPreset()).name,'EDITED');
+  await instrument.client.setOperators([]);
+  assert.equal(instrument.client.voices.length,32);
+});
+
+test('DX7 notes cannot overtake a delayed SysEx upload on the direct port', async t => {
+  const instrument = await setup();
+  t.after(() => instrument.close());
+  const {client, processor} = instrument;
+  const nativeLoad = processor.synth.loadSysex.bind(processor.synth);
+  let release, entered;
+  const loading = new Promise(resolve => { entered = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  processor.synth.loadSysex = async bytes => { entered(); await gate; return nativeLoad(bytes); };
+  const quiet = createInitVoice('QUIET'); quiet[121] = 0;
+  const upload = client.loadSysex(createVoiceSysex(quiet));
+  client.noteOn(69);
+  await loading;
+  assert.equal(peak(instrument.render(128).channels[0]), 0, 'note stays queued while upload is pending');
+  release();
+  await upload;
+  await client.getState();
+  assert.equal(client.voices[0].name, 'QUIET');
+  assert.ok(peak(instrument.render(8192).channels[0]) < .001, 'queued note must use uploaded quiet voice');
+});
+
+test('DX7 endpoint disposal rejects pending uploads and late completion cannot revive PCM', async t => {
+  const instrument = await setup();
+  t.after(() => instrument.close());
+  const {client, processor, main} = instrument;
+  const nativeLoad = processor.synth.loadSysex.bind(processor.synth);
+  let release, entered;
+  const loading = new Promise(resolve => { entered = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  processor.synth.loadSysex = async bytes => { entered(); await gate; return nativeLoad(bytes); };
+  const upload = client.loadSysex(createVoiceSysex(createInitVoice('LATE')));
+  const rejected = assert.rejects(upload, /disposed/);
+  await loading;
+  main.port2.postMessage({method: 'dispose'});
+  await rejected;
+  release(); await processor.commands;
+  assert.equal(processor.dead, true);
+  assert.equal(processor.synth, null);
+  const {channels, active} = instrument.render();
+  assert.equal(active, false);
+  assert.equal(peak(channels[0]), 0);
+  assert.throws(() => client.noteOn(60), /disposed/);
+});
+
+test('DX7 render failure silences stereo, rejects requests and calls the current wrapped dispose', async t => {
+  const instrument = await setup();
+  t.after(() => instrument.close());
+  const {client, processor} = instrument;
+  let disposed = 0;
+  const originalDispose = client.dispose;
+  client.dispose = () => { disposed++; originalDispose(); };
+  processor.synth.renderInto = () => { throw new Error('simulated WASM render trap'); };
+  const state = client.getState();
+  const rejected = assert.rejects(state, /render trap/);
+  const {channels, active} = instrument.render();
+  assert.equal(active, false);
+  assert.equal(peak(channels[0]), 0);
+  assert.equal(peak(channels[1]), 0);
+  await rejected;
+  assert.equal(disposed, 1);
+  assert.equal(processor.synth, null);
+});
+
+test('DX7 client validates MIDI input, rejects pending requests on local disposal and never detaches input', async () => {
+  const posts = [];
+  const client = createDx7Client({start() {}, close() {}, postMessage(...args) { posts.push(args); }}, {voices: [{index: 0, name: 'INIT'}]});
+  for (const note of [-1, 128, .5, NaN, Infinity, 'C4', '60']) {
+    assert.throws(() => client.noteOn(note), /MIDI note/);
+    assert.throws(() => client.noteOff(note), /MIDI note/);
+  }
+  for (const velocity of [-1, 128, .5, NaN]) assert.throws(() => client.noteOn(60, velocity), /Velocity/);
+  for (const voice of [-1, 1, .5, NaN]) assert.throws(() => client.selectVoice(voice), /Voice index/);
+  for (const feedback of [-1,8,.5,NaN,Infinity,'3']) await assert.rejects(client.setFeedback(feedback), /Feedback/);
+  await assert.rejects(client.loadSysex('bad'), /ArrayBuffer/);
+  assert.equal(posts.length, 0);
+  const bytes = createVoiceSysex(createInitVoice());
+  const upload = client.loadSysex(bytes);
+  assert.notEqual(posts[0][0].args[0].buffer, bytes.buffer);
+  const rejected = assert.rejects(upload, /disposed/);
+  client.dispose(); client.dispose();
+  await rejected;
+  await assert.rejects(client.getState(), /disposed/);
+  assert.throws(() => client.allNotesOff(), /disposed/);
+});
+
+function fakeAudioEnvironment(t, sampleRate = 44100, addModule = async () => {}) {
+  const nodes = [];
+  const previous = globalThis.AudioWorkletNode;
+  const context = new EventTarget();
+  Object.assign(context, {sampleRate, state: 'running', audioWorklet: {addModule}});
+  globalThis.AudioWorkletNode = class {
+    constructor(actualContext, name, options) {
+      assert.equal(actualContext, context);
+      assert.equal(name, 'tetorica-playground-dx7');
+      assert.deepEqual(options.outputChannelCount, [2]);
+      const channel = new MessageChannel();
+      this.port = channel.port2;
+      this.processor = new (processorClass(channel.port1, sampleRate))(options);
+      this.disconnected = 0;
+      this.connect = target => { this.destination = target; };
+      this.disconnect = () => { this.disconnected++; };
+      nodes.push(this);
+    }
+  };
+  t.after(() => {
+    globalThis.AudioWorkletNode = previous;
+    for (const node of nodes) { node.processor.dispose(); node.processor.port.close(); node.port.close(); }
+  });
+  return {context, nodes};
+}
+
+test('DX7 endpoints reuse WASM/module loads but own independent cores and dispose through route wrappers', async t => {
+  let moduleLoads = 0, fetches = 0;
+  const {context, nodes} = fakeAudioEnvironment(t, 48000, async () => { moduleLoads++; });
+  const fetch = async url => {
+    assert.match(String(url), /\/msfa_dx7\/wasm\/msfa\.wasm$/);
+    fetches++; return new Response(wasmBytes);
+  };
+  const [a, b] = await Promise.all([createDx7Audio(context, {}, {fetch}), createDx7Audio(context, {}, {fetch})]);
+  const first = createDx7Client(a.port, a), second = createDx7Client(b.port, b);
+  t.after(() => { first.dispose(); second.dispose(); a.dispose(); b.dispose(); });
+  assert.equal(moduleLoads, 1);
+  assert.equal(fetches, 1);
+  assert.equal(a.sampleRate, 48000);
+  assert.equal(b.voices[0].name, 'INIT SINE');
+  first.noteOn(69); await first.getState(); await second.getState();
+  const firstOutput = [[new Float32Array(128), new Float32Array(128)]];
+  const secondOutput = [[new Float32Array(128), new Float32Array(128)]];
+  nodes[0].processor.process([], firstOutput);
+  nodes[1].processor.process([], secondOutput);
+  assert.ok(peak(firstOutput[0][0]) > 0);
+  assert.equal(peak(secondOutput[0][0]), 0, 'other instance cannot hear held notes');
+  let routeReleased = 0;
+  const dispose = a.dispose;
+  a.dispose = () => { routeReleased++; dispose(); };
+  nodes[0].processor.fail(new Error('fatal DX7 endpoint'));
+  for (let i = 0; i < 10 && !routeReleased; i++) await settle();
+  assert.equal(routeReleased, 1, 'fatal cleanup must call the runtime route wrapper');
+  assert.equal(nodes[0].disconnected, 1);
+  assert.throws(() => first.noteOn(60), /disposed/);
+});
+
+test('a rejected DX7 admin edit preserves the healthy endpoint, patch and subsequent audible playback', {timeout:1500},async t=>{
+  const errors=[],{context,nodes}=fakeAudioEnvironment(t,48000);
+  const endpoint=await createDx7Audio(context,{}, {fetch:async()=>new Response(wasmBytes),onError:error=>errors.push(error)});
+  const client=createDx7Client(endpoint.port,endpoint);t.after(()=>{client.dispose();endpoint.dispose();});
+  const before=await client.getPreset();let disposed=0,sequence=0;const dispose=endpoint.dispose;
+  endpoint.dispose=()=>{disposed++;dispose();};
+  const request=(action,method,args=[])=>new Promise((resolve,reject)=>{
+    const id=`admin-regression:${++sequence}`,port=endpoint.node.port;
+    const listener=({data})=>{
+      if(data.type!=='chip-inspector-result'||data.id!==id)return;
+      port.removeEventListener('message',listener);data.error?reject(new Error(data.error)):resolve(data.value);
+    };
+    port.addEventListener('message',listener);port.postMessage({type:'chip-inspector',action,method,args,id});
+  });
+  await assert.rejects(request('invoke','setOperator',[1,{outputLevel:100}]),/outputLevel/);
+  await settle();assert.equal(nodes[0].processor.dead,false);assert.equal(disposed,0);assert.equal(nodes[0].disconnected,0);assert.deepEqual(errors,[]);
+  assert.deepEqual(await client.getPreset(),before,'invalid admin RPC must preserve the existing patch');
+  const changed=await request('invoke','setOperator',[1,{coarse:2}]);assert.equal(changed.preset.operators[1].coarse,2);
+  client.noteOn(69,100);await client.getState();const output=[[new Float32Array(1024),new Float32Array(1024)]];
+  assert.equal(nodes[0].processor.process([],output),true);assert(peak(output[0][0])>.001);assert.equal(disposed,0);
+});
+
+test('DX7 initialization abort does not create a late node', async t => {
+  let resolveFetch;
+  const delayed = new Promise(resolve => { resolveFetch = resolve; });
+  const {context, nodes} = fakeAudioEnvironment(t);
+  const controller = new AbortController();
+  const opening = createDx7Audio(context, {}, {signal: controller.signal, fetch: () => delayed});
+  controller.abort(new Error('Run stopped'));
+  await assert.rejects(opening, /Run stopped/);
+  resolveFetch(new Response(wasmBytes));
+  await settle();
+  assert.equal(nodes.length, 0);
+});
+
+test('DX7 failed module loads are evicted so the same context can retry', async t => {
+  let attempts = 0;
+  const {context} = fakeAudioEnvironment(t, 44100, async () => {
+    if (++attempts === 1) throw new Error('module unavailable');
+  });
+  const fetch = async () => new Response(wasmBytes);
+  await assert.rejects(createDx7Audio(context, {}, {fetch}), /module unavailable/);
+  const endpoint = await createDx7Audio(context, {}, {fetch});
+  const client = createDx7Client(endpoint.port, endpoint);
+  assert.equal((await client.getState()).voices[0].name, 'INIT SINE');
+  client.dispose(); endpoint.dispose();
+  assert.equal(attempts, 2);
+});
+
+test('DX7 failed WASM fetches are evicted and context closure disposes current route', async t => {
+  const {context, nodes} = fakeAudioEnvironment(t);
+  let attempts = 0;
+  const fetch = async () => (++attempts === 1 ? new Response('', {status: 404}) : new Response(wasmBytes));
+  await assert.rejects(createDx7Audio(context, {}, {fetch}), /404/);
+  const endpoint = await createDx7Audio(context, {}, {fetch});
+  const client = createDx7Client(endpoint.port, endpoint);
+  t.after(() => { client.dispose(); endpoint.dispose(); });
+  await client.getState();
+  assert.equal(attempts, 2);
+  let routeReleased = 0;
+  const dispose = endpoint.dispose;
+  endpoint.dispose = () => { routeReleased++; client.dispose(); dispose(); };
+  context.state = 'closed';
+  context.dispatchEvent(new Event('statechange'));
+  assert.equal(routeReleased, 1);
+  assert.equal(nodes[0].disconnected, 1);
+  assert.throws(() => client.noteOn(60), /disposed/);
+  await assert.rejects(createDx7Audio(context, {}, {fetch}), /open AudioContext/);
+});
+
+test('DX7 unsupported context rates fail before fetching or loading a Worklet', async () => {
+  const forbidden = () => { throw new Error('must not run'); };
+  for (const sampleRate of [22050, 96000, NaN]) {
+    await assert.rejects(createDx7Audio({sampleRate, audioWorklet: {addModule: forbidden}}, {}, {fetch: forbidden}), /sampleRate/);
+  }
+});
+
+test('DX7 metadata acknowledgements keep newer selection and reads return ordered snapshots', async t => {
+  const instrument = await setup(); t.after(() => instrument.close());
+  const {client} = instrument;
+  await client.loadSysex(createBankSysex(Array.from({length:32}, (_,i)=>createInitVoice('VOICE '+i))));
+  const feedback = client.setFeedback(3);
+  client.selectVoice(1);
+  await feedback;
+  assert.equal(client.selectedVoice, 1, 'Earlier feedback reply cannot restore selection 0');
+  assert.equal((await client.getPreset()).name, 'VOICE 1', 'The Worklet uses the newer selected slot');
+  const reading = client.getState();
+  client.selectVoice(31);
+  const snapshot = await reading;
+  assert.equal(snapshot.selectedVoice, 1, 'getState resolves to its ordered command snapshot');
+  assert.equal(client.selectedVoice, 31, 'An older read snapshot cannot overwrite newer client selection');
+  const editing = client.setOperator(1, {fine:25});
+  client.selectVoice(0);
+  await editing;
+  assert.equal(client.selectedVoice, 0, 'Operator replies also preserve later selection');
+  assert.equal((await client.getPreset()).feedback, 3, 'Feedback affected the originally selected slot');
+  client.selectVoice(31);
+  assert.equal((await client.getPreset()).operators[1].fine, 25, 'Operator edit used slot 31 before the later selection');
+});
+
+test('an older cancellation notification cannot hide a newer optimistic selection',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {client,processor}=instrument;
+  await client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  processor.receive({type:'performance-start',session:20},{postMessage(){}});
+  processor.receive({type:'performance-cancel-owner',session:20,owner:'old'},{postMessage(){}});
+  client.selectVoice(1);assert.equal(client.selectedVoice,1);
+  for(let i=0;i<20&&(processor.synth.selectedVoice!==1||client._getState().stateRevision<processor.stateRevision);i++)await settle();
+  assert.equal(client.selectedVoice,1);assert.equal(processor.synth.selectedVoice,1);
+  assert.equal(client._getState().stateRevision,processor.stateRevision);
+});
+
+test('a Stop racing an unreceived select acknowledgement keeps the client usable for a new session',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {processor}=instrument,channel=new MessageChannel();
+  instrument.main.port2.postMessage({primaryWorker:true,port:channel.port1},[channel.port1]);
+  await instrument.client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  const sender=createPerformanceSender({getLoop:()=>({performanceOwner:'old'}),now:()=>0});
+  const client=createDx7Client(sender.port(channel.port2,'independent'),instrument.client._getState());t.after(()=>channel.port2.close());
+  processor.receive({type:'performance-start',session:30},{postMessage(){}});
+  sender.configure({session:30,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:1});
+  client.selectVoice(1);
+  processor.receive({type:'performance-stop',session:30},{postMessage(){}});
+  for(let i=0;i<10;i++)await settle();
+  assert.equal(processor.dead,false);
+  processor.receive({type:'performance-start',session:31},{postMessage(){}});
+  sender.configure({session:31,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:0});
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+});

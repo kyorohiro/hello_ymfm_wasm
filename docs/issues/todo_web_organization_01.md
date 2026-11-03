@@ -61,15 +61,15 @@
 
 ### 次にテストとソースを整理する
 
-2026-11-03の追加指摘を受け、ルート全体の[フォルダー配置案と移行TODO](todo_repository_organization_01.md)を作成した。同日の「進めて」を受け、教材統合まで実装済み。以下のweb内の案は全体案と合わせ、編集元は`src/runtime/`、テスト先は`test/runtime/`へ段階的に整理する。
+2026-11-03の追加指摘を受け、ルート全体の[フォルダー配置案と移行TODO](todo_repository_organization_01.md)を作成した。教材の統合と独自例の`tetorica_examples/`分離、テストの`test/runtime/`移動まで実装済み。ユーザーの追加指定によりymfm由来の`src/`・`examples/`は維持し、独自実装の移動先は`tetorica_src/runtime/`とする。
 
-1. テスト277件を`test/runtime/`へ移し、`test:runtime`を追加する。現在の直下632件を355件まで減らせる。
-2. `test:analyzer`、`test:cdrom2`、CI、`scripts/test_vgm_mock.sh`、型テスト参照を更新する。既存の`npm test`は入れ子のテストを自動で拾わないため、実行対象を明示する。
-3. 静的／動的import、`readFile(new URL(...))`、Worker URL、eval内のimportを確認する。134件が`import.meta.url`、22件がWorkerを使用するため、単なるパス置換で済ませない。
-4. SDK校正の入力にもなる`spc_test_fixture.mjs`、共有の`native_genesis_extra_creation_fixture.mjs`は最初の移動では残す。過去の測定報告のhash・記録を一括置換しない。
+1. 完了：テスト277件を`test/runtime/`へ移し、`test:runtime`を追加。直下632件を355件へ削減した。
+2. 完了：`test:analyzer`、`test:cdrom2`、CI、mock runner、型テストの参照を更新。`npm test`も入れ子のruntimeテストを明示的に実行する。
+3. 完了：静的／動的importとURL基準を移行し、全277件の逆変換比較と移動前後の3,728件の実行結果一致を確認した。
+4. 維持：`spc_test_fixture.mjs`と`native_genesis_extra_creation_fixture.mjs`は共有・SDK校正の入力として元の場所に残した。過去の測定報告は変更していない。
 5. runtimeの物理移動は、同期・配布manifestの整理後に一群ずつ検討する。公開importパスとWorker／WorkletのURLを維持する移行方法を先に決める。
 
-共有実装を`src/runtime/`へ移した後の内部配置候補：`chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`audio/`に共通音声処理、`playground/`に共有実行runtime、`native/`にNative接続、`formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
+共有実装を`tetorica_src/runtime/`へ移した後の内部配置候補：`chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`audio/`に共通音声処理、`playground/`に共有実行runtime、`native/`にNative接続、`formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
 
 ファイル移動や公開APIの変更は、このREADME整理と分けて進める。
 

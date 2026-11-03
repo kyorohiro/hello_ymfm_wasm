@@ -26,7 +26,7 @@ int main()
 From the repository root:
 % em++ -std=c++14 \
   -Isrc \
-  examples/cpp/tutorials/ex02_ym2612.cpp \
+  tetorica_examples/cpp/tutorials/ex02_ym2612.cpp \
   src/ymfm_opn.cpp \
   src/ymfm_adpcm.cpp \
   src/ymfm_ssg.cpp \

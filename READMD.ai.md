@@ -74,15 +74,18 @@ Tetoricaは、JavaScriptでメガドライブ、ゲームボーイ、ファミ�
 | `cli/` | `tetorica-vgm`のCLI / Node API実装 |
 | `packages/fm2612/`、`packages/vgm/` | npm配布情報とREADME。実装全体がここにあるわけではない |
 | `packages/virtual-files/src/` | `tetorica-virtual-files`の実装。仮想ファイルと軽量シェル |
-| `examples/` | `nodejs/`、`browser/`、`cpp/`の利用例。旧`demos/sound-color/`は`examples/nodejs/sound-color/`へ統合 |
-| `docs/tutorials/` | YM2612教材のMarkdown正本と公開用C++コピー。C++編集元は`examples/cpp/tutorials/` |
+| `examples/` | ymfm由来の`buildall/`と`vgmrender/`。ユーザー方針で上流の配置を維持 |
+| `tetorica_examples/` | Tetorica独自の`nodejs/`、`browser/`、`cpp/`利用例。音色生成の実験も`nodejs/sound-color/`へ統合 |
+| `docs/tutorials/` | YM2612教材のMarkdown正本と公開用C++コピー。C++編集元は`tetorica_examples/cpp/tutorials/` |
 | `scripts/` | ビルド、同期、パッケージ作成、検証 |
-| `test/`、`web/*.test.mjs`、`docs/*/*.test.mjs` | 機能・共有エンジン・UIなどのテスト |
+| `test/`、`test/runtime/`、`docs/*/*.test.mjs` | 機能・共有エンジン・UIなどのテスト。旧web直下の277件は`test/runtime/`へ分離済み |
 | `dist/`、`release/` | npm向け生成物、ブラウザー／itch向けの配置済み生成物とZIP |
 
 ルートの`package.json`は`private: true`の開発用ワークスペース。ルートをnpm公開しない。
 
-直下フォルダーの段階的な整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。教材統合以降の`src/runtime/`等は移行予定であり、実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`で検証し、C++教材の公開コピーは`node scripts/sync_tutorial_sources.mjs --check`で確認する。
+直下フォルダーの段階的な整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。ユーザーの追加指定でymfm由来の`src/`・`examples/`を維持し、独自実装の移動先を`tetorica_src/`とした。独自例の分離とテスト移動は完了し、`tetorica_src/`への実装移動は次段階。実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`、C++教材の公開コピーは`npm run check:tutorials`で検証する。
+
+`npm test`はルートと`test/runtime/`の両方を実行する。共有runtimeのみなら`npm run test:runtime`、SCSPのソース型検証は`npm run test:runtime:types`。`web/spc_test_fixture.mjs`と`web/native_genesis_extra_creation_fixture.mjs`は共有・校正の入力として元の場所に維持している。
 
 ### 共有ランタイムを変更したとき
 

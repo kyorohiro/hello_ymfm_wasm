@@ -1,7 +1,7 @@
 # YM2612 で Beep を鳴らす
 
 このメモは [ex03_beep.cpp](./ex03_beep.cpp) のためのものです。
-編集元は repository の `examples/cpp/tutorials/ex03_beep.cpp` です。
+編集元は repository の `tetorica_examples/cpp/tutorials/ex03_beep.cpp` です。
 このページからのダウンロードは公開用のコピーです。
 ビルド方法は [tutorial 一覧](./README.md#build-and-update)を参照してください。
 

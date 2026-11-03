@@ -105,12 +105,12 @@ greedy encoder; it does not claim globally optimal encoding.
   select either Neo Geo mode and create a New Cassette to obtain the bundled
   Example. Original PCM drums are generated at `fm.clock / 432`, packed into
   one ROM and played through the primary chip, without a Mixer override.
-- [Node example](../examples/nodejs/main_neogeo_adpcm_a.js): writes a packed
+- [Node example](../tetorica_examples/nodejs/main_neogeo_adpcm_a.js): writes a packed
   `.adpcma` bank, range/conversion JSON, and an actual YM2610/B-rendered stereo WAV.
 
 ```sh
-node examples/nodejs/main_neogeo_adpcm_a.js /tmp/neogeo-drums ym2610
-node examples/nodejs/main_neogeo_adpcm_a.js /tmp/neogeo-b-drums ym2610b
+node tetorica_examples/nodejs/main_neogeo_adpcm_a.js /tmp/neogeo-drums ym2610
+node tetorica_examples/nodejs/main_neogeo_adpcm_a.js /tmp/neogeo-b-drums ym2610b
 ```
 
 The helper and examples use the project's BSD-3-Clause licensing, with ymfm

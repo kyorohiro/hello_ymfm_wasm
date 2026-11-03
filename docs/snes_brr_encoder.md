@@ -116,13 +116,13 @@ finite, and the metrics object can be saved directly with `JSON.stringify()`.
 - [Browser Playground](playground/index.html): select the SNES
   `snes-pcm-brr` example and run it in Main or Worker mode. The
   [example source](playground/examples/snes/snes-pcm-brr.js) generates its own PCM.
-- [Node.js example](../examples/nodejs/main_snes_pcm_brr.js): writes BRR bytes,
+- [Node.js example](../tetorica_examples/nodejs/main_snes_pcm_brr.js): writes BRR bytes,
   JSON metadata and a stereo WAV rendered through the actual S-DSP core.
 
 From the repository root:
 
 ```sh
-node examples/nodejs/main_snes_pcm_brr.js /tmp/snes-pcm-brr
+node tetorica_examples/nodejs/main_snes_pcm_brr.js /tmp/snes-pcm-brr
 ```
 
 The encoder is BSD-3-Clause project JavaScript. SNES playback remains

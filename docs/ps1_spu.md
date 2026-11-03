@@ -207,8 +207,8 @@ With Emscripten and Python 3 installed:
 
 ```sh
 sh scripts/build_ps1_spu_wasm.sh
-node --test web/ps1_spu.test.mjs
-node examples/nodejs/main_ps1_spu.js /tmp/ps1-spu
+node --test test/runtime/ps1_spu.test.mjs
+node tetorica_examples/nodejs/main_ps1_spu.js /tmp/ps1-spu
 ```
 
 The example authors a looping sine and a one-shot percussion sample, plays a

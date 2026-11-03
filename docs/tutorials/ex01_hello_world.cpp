@@ -18,7 +18,7 @@ int main()
 From the repository root:
 % em++ -std=c++14 \
   -Isrc \
-  examples/cpp/tutorials/ex01_hello_world.cpp \
+  tetorica_examples/cpp/tutorials/ex01_hello_world.cpp \
   src/ymfm_adpcm.cpp \
   src/ymfm_misc.cpp \
   src/ymfm_opl.cpp \

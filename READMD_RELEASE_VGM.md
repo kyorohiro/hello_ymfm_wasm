@@ -233,6 +233,6 @@ Before packaging:
 ```sh
 node assets/opna-rhythm/generate.mjs --check
 node scripts/copy_opna_rhythm.mjs docs
-node --test web/opna_rhythm_rom.test.mjs
+node --test test/runtime/opna_rhythm_rom.test.mjs
 npm run pack:vgm:check
 ```

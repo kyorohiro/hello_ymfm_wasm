@@ -186,14 +186,14 @@ try {
 Verify without audio devices or commercial game files:
 
 ```sh
-node --test web/scsp.test.mjs web/scspsynth.test.mjs
-./node_modules/.bin/tsc --noEmit --strict --module nodenext --moduleResolution nodenext --target es2022 web/scspsynth.types.test.ts
+node --test test/runtime/scsp.test.mjs test/runtime/scspsynth.test.mjs
+npm run test:runtime:types
 ```
 
 These checks use the real WASM core. Further checks:
 
 ```sh
-node --test web/playground_scsp_worklet.test.mjs web/ps1_resampler.test.mjs
+node --test test/runtime/playground_scsp_worklet.test.mjs test/runtime/ps1_resampler.test.mjs
 node scripts/check_playground_scsp_browser.cjs
 ```
 
@@ -285,7 +285,7 @@ Build from the authenticated fixed SDK:
 
 ```sh
 sh scripts/build_scsp_wasm.sh
-node --test web/scsp.test.mjs
+node --test test/runtime/scsp.test.mjs
 ```
 
 Source and attribution are retained in

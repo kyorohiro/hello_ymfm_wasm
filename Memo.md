@@ -13,7 +13,7 @@ https://www.smspower.org/Development/SN76489?from=Development.PSG
 
 AnalyzerとCLIは、OKIM6295単体、またはYM2151 / YM2164 / YM3812との組み合わせでの再生に対応しています。JavaScriptのADPCMエンジンはBSD-3-ClauseのMAME / libvgmソースをもとにしています。[ソースに関する記録](third_party/mame-okim6295/README.md)と[ライセンス](third_party/mame-okim6295/LICENSE)を参照してください。サンプルはVGM内のROMから供給し、ゲームROMは同梱しません。
 
-テスト：`node --test web/okim6295.test.mjs`。
+テスト：`node --test test/runtime/okim6295.test.mjs`。
 
 ### MAME OKIM6258（`third_party/mame-okim6258/`）
 
@@ -22,7 +22,7 @@ Analyzerは、OKIM6258の4-bit ADPCMを単体、または主音源エンジン�
 3-bit ADPCM、録音、2つ目のOKIM6258インスタンスには対応していません。非対応のヘッダー設定は再生エラーを表示し、2つ目のインスタンスへの書き込み・ストリームは警告してスキップします。ここで追加するのは再生機能で、OKIの音色解析やサンプルエクスポートではありません。検証には合成VGMと実際のWASMコアを使っています。実際の曲の試聴は未確認です。
 
 ビルド：`sh scripts/build_okim6258_wasm.sh`。
-テスト：`node --test web/okim6258.test.mjs`。
+テスト：`node --test test/runtime/okim6258.test.mjs`。
 
 ### AY-3-8910 / YM2149のVGM再生
 
@@ -68,7 +68,7 @@ Operator Infoでは両オペレーター、フィードバック・接続、波�
 - `web/vgmplayer.js`が書き込みを`web/ym3526audioengine.js`へ送り、VGMの待機区間でチップを進め、モノラル出力をリサンプルしてステレオバッファーへ変換します。
 - `web/ym3526.js`は、`wasm/ym3526_wasm.cpp`を通じてレジスターの読み書き、IRQフック、サンプル生成を公開します。チップ本体の実装は`src/ymfm_opl.*`です。
 - `sh scripts/build_ym3526_wasm.sh`で再ビルドできます（Emscriptenが必要）。生成するブラウザー用ファイルは`docs/generated/`に置き、`sh scripts/sync_web_js_to_docs.sh`でJavaScriptを同期します。
-- `node --test web/opl.test.mjs`で、レジスター書き込みの到達、音声出力、リズムモード、タイマー、波形動作、リセット・シークの再現性を検証します。
+- `node --test test/runtime/opl.test.mjs`で、レジスター書き込みの到達、音声出力、リズムモード、タイマー、波形動作、リセット・シークの再現性を検証します。
 
 ### MSXの複数チップ再生
 
@@ -82,7 +82,7 @@ OPL4との組み合わせは汎用再生ミキサーを使い、組み合わせ�
 
 その他の対応チップの組み合わせは共有再生コアが自動で構成するため、チップの組ごとの許可リストは不要です。AY、YM2413、Y8950のDACストリームは未対応で、警告を表示してスキップし、その他の再生は続けます。
 
-`node --test web/ay8910.test.mjs`では、独立したレンダリングとの比較による3チップのミックス、埋め込みADPCM、リセット・シークの再現性、曲間のサンプル消去を検証します。テスト素材は合成データであり、実際のゲーム曲の再生は未確認です。
+`node --test test/runtime/ay8910.test.mjs`では、独立したレンダリングとの比較による3チップのミックス、埋め込みADPCM、リセット・シークの再現性、曲間のサンプル消去を検証します。テスト素材は合成データであり、実際のゲーム曲の再生は未確認です。
 
 ### ヘッダーに基づく複数チップ再生
 
@@ -124,7 +124,7 @@ Analyzer and CLI playback support OKIM6295 alone or with YM2151 / YM2164 / YM381
 The JavaScript ADPCM engine is adapted from BSD-3-Clause MAME/libvgm sources;
 see [source notes](third_party/mame-okim6295/README.md) and
 [license](third_party/mame-okim6295/LICENSE). Embedded VGM ROMs supply samples;
-no game ROMs are bundled. Tests: `node --test web/okim6295.test.mjs`.
+no game ROMs are bundled. Tests: `node --test test/runtime/okim6295.test.mjs`.
 
 ### MAME OKIM6258 (`third_party/mame-okim6258/`)
 
@@ -144,7 +144,7 @@ instrument analysis or sample export. Verification uses synthetic VGM and
 real WASM cores; real-track listening remains to be checked.
 
 Build: `sh scripts/build_okim6258_wasm.sh`.
-Test: `node --test web/okim6258.test.mjs`.
+Test: `node --test test/runtime/okim6258.test.mjs`.
 
 ### AY-3-8910 / YM2149 VGM playback
 
@@ -224,7 +224,7 @@ To inspect and reconstruct this playback path:
 - Rebuild with `sh scripts/build_ym3526_wasm.sh` (Emscripten required). Generated
   browser assets go to `docs/generated/`; sync JavaScript with
   `sh scripts/sync_web_js_to_docs.sh`.
-- Run `node --test web/opl.test.mjs` to verify register delivery, audible output,
+- Run `node --test test/runtime/opl.test.mjs` to verify register delivery, audible output,
   rhythm mode, timers, waveform behavior and reproducible resets/seeks.
 
 ### MSX multi-chip playback
@@ -250,7 +250,7 @@ Other supported chip combinations are assembled automatically by the shared
 playback core; no pair-specific allowlist is required.
 AY, YM2413 and Y8950 DAC streams remain unsupported; they are skipped with a visible warning while other playback continues.
 
-Run `node --test web/ay8910.test.mjs` for three-chip mixing against independent
+Run `node --test test/runtime/ay8910.test.mjs` for three-chip mixing against independent
 renders, embedded ADPCM, reset/seek repeatability and sample clearing between
 songs. These fixtures are synthetic; real-game playback remains to be checked.
 

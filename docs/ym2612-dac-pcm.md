@@ -56,11 +56,11 @@ const pcm = transport.generateStereo(chip.sampleRate()); // 1秒分を生成
 実行例：
 
 ```sh
-node examples/nodejs/main_ym2612_dac_sample_wave.js /tmp/ym2612-dac.wav
+node tetorica_examples/nodejs/main_ym2612_dac_sample_wave.js /tmp/ym2612-dac.wav
 ```
 
-- [Node.jsサンプル](../examples/nodejs/main_ym2612_dac_sample_wave.js)
-- [Webサンプル](../examples/browser/ym2612_dac_sample.html)：リポジトリのルートをHTTP配信し、ブラウザーで開きます。
+- [Node.jsサンプル](../tetorica_examples/nodejs/main_ym2612_dac_sample_wave.js)
+- [Webサンプル](../tetorica_examples/browser/ym2612_dac_sample.html)：リポジトリのルートをHTTP配信し、ブラウザーで開きます。
 
 ## 既存APIとの違い
 

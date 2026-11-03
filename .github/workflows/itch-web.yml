@@ -39,28 +39,28 @@ jobs:
           npm ci 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/npm-ci.log"
           npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
       - name: Test Run ZIP preparation, UI bundling, archives and Game Boy conversion
-        run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs web/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
+        run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP
-        run: node --test web/snes_brr.test.mjs web/snes_brr_encoder.test.mjs web/snessynth.test.mjs web/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
+        run: node --test test/runtime/snes_brr.test.mjs test/runtime/snes_brr_encoder.test.mjs test/runtime/snessynth.test.mjs test/runtime/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
       - name: Test PCM to ADPCM-A with native and WASM YM2610 variants
-        run: node --test web/adpcm_a_sample.test.mjs web/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
+        run: node --test test/runtime/adpcm_a_sample.test.mjs test/runtime/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
       - name: Test experimental PS1 SPU with actual native and WASM cores
         run: |
-          node --test web/ps1_spu.test.mjs web/ps1synth.test.mjs web/ps1_resampler.test.mjs web/playground_ps1.test.mjs web/playground_ps1_worklet.test.mjs web/native_genesis_ps1.test.mjs web/ps1_audition_continuity.test.mjs web/ps1_live_envelope.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
+          node --test test/runtime/ps1_spu.test.mjs test/runtime/ps1synth.test.mjs test/runtime/ps1_resampler.test.mjs test/runtime/playground_ps1.test.mjs test/runtime/playground_ps1_worklet.test.mjs test/runtime/native_genesis_ps1.test.mjs test/runtime/ps1_audition_continuity.test.mjs test/runtime/ps1_live_envelope.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
           node scripts/check_ps1_live_controls_offline.mjs --out "$RUNNER_TEMP/itch-web/ps1-live-controls-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-live-controls-offline.log"
           node scripts/check_ps1_starter_levels.mjs --out "$RUNNER_TEMP/itch-web/ps1-starter-levels.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-starter-levels.log"
-          node examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
+          node tetorica_examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
       - name: Test PCM to SPU ADPCM with the actual native and WASM decoders
         run: |
-          node --test web/ps1_adpcm_encoder.test.mjs web/ps1_adpcm_encoder_core.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-core-tests.log"
-          node examples/nodejs/main_ps1_adpcm.js "$RUNNER_TEMP/itch-web/ps1-adpcm" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-example.log"
+          node --test test/runtime/ps1_adpcm_encoder.test.mjs test/runtime/ps1_adpcm_encoder_core.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-core-tests.log"
+          node tetorica_examples/nodejs/main_ps1_adpcm.js "$RUNNER_TEMP/itch-web/ps1-adpcm" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-example.log"
       - name: Test PS1 Sample Editor conversion, isolated preview and instruments
-        run: node --test web/playground_sample_ps1.test.mjs web/playground_sample_ps1_preview.test.mjs web/playground_sample_ps1_worker.test.mjs web/playground_sample_instrument.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-tests.log"
+        run: node --test test/runtime/playground_sample_ps1.test.mjs test/runtime/playground_sample_ps1_preview.test.mjs test/runtime/playground_sample_ps1_worker.test.mjs test/runtime/playground_sample_instrument.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-tests.log"
       - name: Test PS1 ADSR, reverb and per-voice PCM drawing
-        run: node --test web/ps1_parameters.test.mjs web/ps1_waveform.test.mjs web/playground_chip_inspector.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs test/audio_clock_audit.test.cjs test/ps1_capture_reports.test.cjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
+        run: node --test test/runtime/ps1_parameters.test.mjs test/runtime/ps1_waveform.test.mjs test/runtime/playground_chip_inspector.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs test/audio_clock_audit.test.cjs test/ps1_capture_reports.test.cjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
       - name: Verify PS1 and WonderSwan Mixer references, generated defaults and saved absolute settings
         run: |
-          node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/soundchip_calibration_wonderswan.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/mixer_calibration_sources.test.mjs scripts/itch_web_calibration_baselines.test.mjs scripts/mixer_calibration_ps1_starter.test.mjs scripts/live_controls_mixer_calibration.test.mjs scripts/live_api_mixer_calibration.test.mjs scripts/live_release_mixer_calibration.test.mjs scripts/deferred_release_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs web/soundchip_mixer.test.mjs web/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
+          node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/soundchip_calibration_wonderswan.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/mixer_calibration_sources.test.mjs scripts/itch_web_calibration_baselines.test.mjs scripts/mixer_calibration_ps1_starter.test.mjs scripts/live_controls_mixer_calibration.test.mjs scripts/live_api_mixer_calibration.test.mjs scripts/live_release_mixer_calibration.test.mjs scripts/deferred_release_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs test/runtime/soundchip_mixer.test.mjs test/runtime/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
           node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_loop_fm_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
           node scripts/calibrate_wonderswan_levels.cjs --verify --baseline docs/issues/wonderswan_scsp_fm_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/wonderswan-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/wonderswan-mixer.log"
       - name: Verify POKEY square-family reference, dual chips and generated Mixer defaults

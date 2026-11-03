@@ -5,7 +5,10 @@ on:
     paths:
       - 'docs/synth-spu/**'
       - 'web/ps1*.js'
-      - 'web/ps1_loop_repeat.test.mjs'
+      - 'test/runtime/ps1*.test.mjs'
+      - 'test/runtime/playground_ps1*.test.mjs'
+      - 'test/runtime/playground_sample_ps1*.test.mjs'
+      - 'test/runtime/native_genesis_ps1.test.mjs'
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
@@ -32,7 +35,10 @@ on:
     paths:
       - 'docs/synth-spu/**'
       - 'web/ps1*.js'
-      - 'web/ps1_loop_repeat.test.mjs'
+      - 'test/runtime/ps1*.test.mjs'
+      - 'test/runtime/playground_ps1*.test.mjs'
+      - 'test/runtime/playground_sample_ps1*.test.mjs'
+      - 'test/runtime/native_genesis_ps1.test.mjs'
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
@@ -87,7 +93,7 @@ jobs:
       - name: Test real SPU PCM, instruments and isolated packaging
         run: |
           npm run test:spu-synth
-          node --test web/ps1_loop_repeat.test.mjs
+          node --test test/runtime/ps1_loop_repeat.test.mjs
       - name: Build the standalone itch.io ZIP
         run: sh scripts/package_itch_spu_synth.sh ci
       - name: Extract the actual distribution

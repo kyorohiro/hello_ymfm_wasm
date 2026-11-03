@@ -1,21 +1,37 @@
-# Tetorica examples
+# ymfm examples
 
-Runnable examples of the reusable sound-chip APIs, grouped by execution environment.
-Start with the [project goals and API choices](../README.md).
+These examples retain the directory layout of Aaron Giles's
+[ymfm examples](https://github.com/aaronsgiles/ymfm/tree/main/examples) and use
+the local core under [`src/`](../src/).
 
-| Environment | Examples |
+| Example | Purpose |
 | --- | --- |
-| Node.js | [PCM/WAV examples](nodejs/README.md), [small sound-color experiment](nodejs/sound-color/README.md) |
-| Browser | [YM2612 DAC sample](browser/ym2612_dac_sample.html) |
-| C++ | [Compile checks, YM2612 tutorials and offline VGM renderer](cpp/README.md) |
-| Guided learning | [YM2612 tutorial notes](../docs/tutorials/README.md) |
+| [`buildall/buildall.cpp`](buildall/buildall.cpp) | Exercise reset, save/restore and audio generation for the Yamaha cores. |
+| [`vgmrender/vgmrender.cpp`](vgmrender/vgmrender.cpp) | Render a supported Yamaha-chip VGM or VGZ file to WAV. |
 
-Run command-line examples from the repository root unless their README says
-otherwise. Node examples use the checked-in JavaScript and generated WASM;
-the C++ examples compile the local comparison cores under `src/`. Component
-licenses and source notices remain applicable. Normal product WASM builds use
-the pinned SDK under `third_party/tetorica-soundchip-native/`.
+Run these commands from the repository root with a C++14 compiler:
 
-The [Playground examples](../docs/playground/examples/README.md) run inside the
-Playground's live-code context. Its supplied globals and runtime differ from
-standalone Node and browser modules.
+```sh
+YMFM_EXAMPLES_OUT=$(mktemp -d "${TMPDIR:-/tmp}/ymfm-examples.XXXXXX")
+c++ -std=c++14 -Isrc examples/buildall/buildall.cpp src/*.cpp \
+  -o "$YMFM_EXAMPLES_OUT/buildall"
+"$YMFM_EXAMPLES_OUT/buildall"
+
+c++ -std=c++14 -Isrc examples/vgmrender/vgmrender.cpp \
+  examples/vgmrender/em_inflate.cpp src/*.cpp \
+  -o "$YMFM_EXAMPLES_OUT/vgmrender"
+"$YMFM_EXAMPLES_OUT/vgmrender" test/fixtures/opm-audible.vgm \
+  -o "$YMFM_EXAMPLES_OUT/opm-audible.wav" -r 44100
+```
+
+The build-all check prints `Done`. The VGM fixture is synthetic; replace its
+path with a compatible VGM or VGZ file. This upstream renderer supports fewer
+chips and file features than the [Tetorica VGM CLI](../packages/vgm/README.md).
+
+These examples retain their [BSD-3-Clause license](../LICENSE).
+`vgmrender/em_inflate.cpp` and `em_inflate.h` retain Emmanuel Marty's
+[em_inflate](https://github.com/emmanuel-marty/em_inflate) notices, including
+the additional checksum implementation credits in the source.
+
+Tetorica's Node.js, browser and teaching examples are maintained separately in
+[`tetorica_examples/`](../tetorica_examples/README.md).

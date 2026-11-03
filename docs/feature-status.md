@@ -26,7 +26,7 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 |---|---|---|---|
 | VGM／VGZ再生・音源別表示・ミュート | 実装済。OPN／OPM／OPL／PSG／PCMなど | 対応はチップ・Dual・併用構成ごとに異なる | [対応表](vgm_analyzer/support.html)、[再生構成判定](vgm_analyzer/playback_core.js) |
 | Chip Mixer | 共通PCM部品に移行。ローカル実装。Play/Ch・Effect横のMixerでチップ別Volume／Pan／Mute、Master、チップ設定Reset。再生・WAVに反映 | Game Boyの初期値・Resetは28%、他は100%。Effect On/Off・各値、チップ別音量／Pan／Mute、Masterをローカル保存し、曲変更・再起動で復元。Effect ResetはOff・初期値、Mixer Resetは保存済み全チップとMasterを初期化。今回の保存・Reset追加はローカル実装。既存のDual対応範囲は変更なし。DC除去・自動音量補正は未実装。未公開 | [PCMテスト](vgm_analyzer/playback_mixer.test.mjs)、[実装](vgm_analyzer/playback_mixer.js) |
-| Sega PSG CH別ミュート | Tone 1–3 / Noiseを個別にOn/Off。CLI / Nodeの `psg-ch-1..4` にも対応 | ミュート中もレジスター更新・発振状態・Tone 3連動ノイズを維持。PSG-only入力のFM表示を非表示。Browserで連続切替・通知遅延・Pause／再開を確認。CLI／共有コアはnpm tetorica-vgm 0.2.9で公開（2026-10-11、commit `3b416be`） | [音声テスト](../web/segapsg_mute.test.mjs)、[再生キューテスト](vgm_analyzer/playback_buffering.test.mjs) |
+| Sega PSG CH別ミュート | Tone 1–3 / Noiseを個別にOn/Off。CLI / Nodeの `psg-ch-1..4` にも対応 | ミュート中もレジスター更新・発振状態・Tone 3連動ノイズを維持。PSG-only入力のFM表示を非表示。Browserで連続切替・通知遅延・Pause／再開を確認。CLI／共有コアはnpm tetorica-vgm 0.2.9で公開（2026-10-11、commit `3b416be`） | [音声テスト](../test/runtime/segapsg_mute.test.mjs)、[再生キューテスト](vgm_analyzer/playback_buffering.test.mjs) |
 | S98入力 | 一部。単一YM2203／YM2608／YM2612／YM2151 | 圧縮S98・複数デバイスは未対応。YM2151の追加はローカル版で、npm 0.2.6には未収録 | [入力仕様](../CLI.md#s98-input-and-source-documents) |
 | 高速シーク | 一部。OPN／OPM／Genesis構成 | 下の専用表参照。実曲・長時間のブラウザー試聴未確認、公開版未照合 | [成功記録・詳細](issues/seekvgm_save_load_01.md) |
 | Note-ish／楽譜表示・MIDI／MusicXML／LilyPond Export | 一部。対応音源の基音・キー区間を抽出 | 原譜の復元ではない。チップごとに除外区間あり | [対応表](vgm_analyzer/support.html)、[MusicXMLテスト](vgm_analyzer/vgm_musicxml.test.mjs)、[LilyPond作業記録](issues/lilypond_export_01.md) |
@@ -43,12 +43,12 @@ Playback欄の`Seek cache`表示で高速シークの対応構成を確認でき
 
 | 構成 | 高速シーク | 自動検証 | 手動確認 | 公開 |
 |---|---|---|---|---|
-| YM2612＋Sega PSG／32X PWM／RF5C164（Genesis構成） | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../web/genesis_state.test.mjs) | 実曲・長時間試聴未確認 | 未照合 |
-| YM2203／YM2608／YM2610／YM2610B | 実装済。FM・SSG・搭載ADPCM等を含む | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../web/opn_state.test.mjs) | 同上 | 未照合 |
-| YM2151単体、Sega PSG／Sega PCM／OKIM6258併用 | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../web/opm_state.test.mjs) | 同上 | 未照合 |
+| YM2612＋Sega PSG／32X PWM／RF5C164（Genesis構成） | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../test/runtime/genesis_state.test.mjs) | 実曲・長時間試聴未確認 | 未照合 |
+| YM2203／YM2608／YM2610／YM2610B | 実装済。FM・SSG・搭載ADPCM等を含む | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../test/runtime/opn_state.test.mjs) | 同上 | 未照合 |
+| YM2151単体、Sega PSG／Sega PCM／OKIM6258併用 | 実装済 | [成功記録](issues/seekvgm_save_load_01.md)・[テスト](../test/runtime/opm_state.test.mjs) | 同上 | 未照合 |
 | Genesis／OPN＋OKIM6258 | 未対応 | 従来シークへフォールバック | — | — |
 | Sega PCM単体／OKIM6258単体 | Analyzer高速シークは未対応。コア保存APIは実装済 | コアとYM2151併用経路を検証 | — | — |
-| Game Boy DMG、NES APU＋FDS（NTSC） | 状態保存とAnalyzerチェックポイントを実装。波形／変調／DMC RAM／フィルタとNote-ish表示を復元 | [音声・シークテスト](../web/apu_state.test.mjs)成功。通常再生とPCM一致、キャッシュで再生成を削減 | ブラウザーでキャッシュ復元を確認。実曲・長時間試聴は未確認 | 共有コアはnpm 0.2.10公開・配布物照合済。Analyzer画面はローカル実装。CLIのstart指定は従来シーク |
+| Game Boy DMG、NES APU＋FDS（NTSC） | 状態保存とAnalyzerチェックポイントを実装。波形／変調／DMC RAM／フィルタとNote-ish表示を復元 | [音声・シークテスト](../test/runtime/apu_state.test.mjs)成功。通常再生とPCM一致、キャッシュで再生成を削減 | ブラウザーでキャッシュ復元を確認。実曲・長時間試聴は未確認 | 共有コアはnpm 0.2.10公開・配布物照合済。Analyzer画面はローカル実装。CLIのstart指定は従来シーク |
 | OPLL／OPL、AY単体、SCC、HuC6280等 | 未対応 | チップ別Save／Loadの調査・拡張が必要 | — | — |
 
 同種複数インスタンスや任意のチップ混在を一括対応したわけではない。
@@ -71,28 +71,28 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 | 機能 | 実装・範囲 | 制限・手動確認 | 自動検証・詳細 |
 |---|---|---|---|
-| ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../web/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
+| ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../test/runtime/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
 | DX7 mode | 標準`dx7`・16音ポリフォニー、Object音色の初期コードと3個の代表例、共通Guitar Keyboardを実装 | ローカル追加。音源の内部レートは44,100 Hz固定で`setClock()`なし。npm 0.2.21の追加音源DX7 APIとは別に、今回のprimary構成は次回npm更新の対象 | [mode仕様](issues/soundchip_mode.md#dx7-mode)、[型定義](playground/tetorica-playground-dx7.d.ts)、[初期コード](playground/defaults/dx7/index.js) |
 | Playground modeとネイティブ基本構成 | WebはOPN系に加えGame Boy／NES＋FDS／SNES／X68000／PC Engine／Game Gear／Master System等のmodeを実装。共有Runtimeは対応する基本音源構成を扱う | npm 0.2.21の対象。modeメニュー・初期コード・画面の切替はWeb側の機能で、npmに画面は含まれない。`play()`はOPN FM用、他音源は個別APIで操作 | [mode仕様](issues/soundchip_mode.md)、[Runtimeの収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221) |
-| ネイティブ音色情報・試奏 | Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の適用済み設定と波形を確認・編集。Hold試奏と共通Keyboardを接続 | 共有Inspector・Worklet側処理はnpm 0.2.21の対象、パネルUIはWeb専用。選択CHのmanual lease、旧IDのrelease無視、Stopの予約取消・設定保持を検証。HuCのDDAでは音符試奏不可、OKIのKeyboardは同rateの単音sample trigger | [仕様と検証](issues/soundchip_mode.md)、[HuC実core](../web/playground_huc6280_inspector.test.mjs)、[OKI実core](../web/playground_okim6258_inspector.test.mjs)、[OPM実core](../web/playground_ym2151_inspector.test.mjs) |
-| 共通Keyboard・音声入力・Sample instrument | 共有Runtimeの`keyboard.bind()`、ホスト提供の`inputAudio()`、RF5C164／Game Boy Wave／PC98・Neo Geo ADPCM-B向け`createSampleInstrument()`。ローカルWeb版にGame Boyの変換後32点比較・実コア試奏を追加 | 共有APIはnpm 0.2.21の対象。音声入力の画面とKeyboard入力面はホストが提供する。Webの録音・波形編集ダイアログ、Cassette保存UIはnpm非収録。全チップ共通のサンプラーではない | [APIと収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221)、[Sample instrumentテスト](../web/playground_sample_instrument.test.mjs)、[Game Boy変換後試奏](issues/gameboy_sample_preview_01.md) |
+| ネイティブ音色情報・試奏 | Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の適用済み設定と波形を確認・編集。Hold試奏と共通Keyboardを接続 | 共有Inspector・Worklet側処理はnpm 0.2.21の対象、パネルUIはWeb専用。選択CHのmanual lease、旧IDのrelease無視、Stopの予約取消・設定保持を検証。HuCのDDAでは音符試奏不可、OKIのKeyboardは同rateの単音sample trigger | [仕様と検証](issues/soundchip_mode.md)、[HuC実core](../test/runtime/playground_huc6280_inspector.test.mjs)、[OKI実core](../test/runtime/playground_okim6258_inspector.test.mjs)、[OPM実core](../test/runtime/playground_ym2151_inspector.test.mjs) |
+| 共通Keyboard・音声入力・Sample instrument | 共有Runtimeの`keyboard.bind()`、ホスト提供の`inputAudio()`、RF5C164／Game Boy Wave／PC98・Neo Geo ADPCM-B向け`createSampleInstrument()`。ローカルWeb版にGame Boyの変換後32点比較・実コア試奏を追加 | 共有APIはnpm 0.2.21の対象。音声入力の画面とKeyboard入力面はホストが提供する。Webの録音・波形編集ダイアログ、Cassette保存UIはnpm非収録。全チップ共通のサンプラーではない | [APIと収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221)、[Sample instrumentテスト](../test/runtime/playground_sample_instrument.test.mjs)、[Game Boy変換後試奏](issues/gameboy_sample_preview_01.md) |
 | 32X PWM 共通コア | MAME由来のFIFO／周期／ルーティング・PCM・状態復元。VGMはpwmModel: mameで比較可能 | 開発版。Analyzer／CLIのVGM再生はMAME由来方式が既定（cycle基準の振幅）。MegaSynth／MegaSynthNodeはmega32X: true、PlaygroundはuseSoundChip('pwm')。フレーム単位の書き込みと共通Worklet／Audify Transportを追加。PCMサンプル高級APIと実機比較は残作業 | [実装と検証](issues/pwm32x_01.md)、[比較ページ](demos/32x-pwm-compare.html) |
-| MegaSynth Mega CD PCM | `megaCD: true`でRF5C164を有効化。`pcm`から8CH・64 KiB RAM・サンプル読込・パンを操作。FM／PSGと共通の出力・FX経路 | npm公開版0.2.6に収録。FMコマンド録音にPCMは含まれない。CDディスク／32X対応は別 | [APIと例](../packages/fm2612/README.md)、[終了・再起動テスト](../web/megasynth.test.mjs)、[実ブラウザー検証](../scripts/check_megacd_browser.cjs)：8CH・左右パン・混合出力・Stop／Reset／再起動を確認 |
-| `createSoundChip('rf5c164')` | 実装済。独立PCM音源・RAM・CH制御 | ブラウザー試聴・実曲検証未確認 | [作業記録](issues/rf5c164_01.md)、[テスト](../web/playground_rf5c164.test.mjs) |
-| `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../web/playground_ym2608.test.mjs) |
-| `createSoundChip('gameboy')` raw API | 実装済。レジスタ操作・4CHの例 | 高水準APIは別。ブラウザー聴感確認記録なし | [成功記録](issues/playground_gameboy_raw_01.md)、[テスト](../web/playground_gameboy.test.mjs) |
+| MegaSynth Mega CD PCM | `megaCD: true`でRF5C164を有効化。`pcm`から8CH・64 KiB RAM・サンプル読込・パンを操作。FM／PSGと共通の出力・FX経路 | npm公開版0.2.6に収録。FMコマンド録音にPCMは含まれない。CDディスク／32X対応は別 | [APIと例](../packages/fm2612/README.md)、[終了・再起動テスト](../test/runtime/megasynth.test.mjs)、[実ブラウザー検証](../scripts/check_megacd_browser.cjs)：8CH・左右パン・混合出力・Stop／Reset／再起動を確認 |
+| `createSoundChip('rf5c164')` | 実装済。独立PCM音源・RAM・CH制御 | ブラウザー試聴・実曲検証未確認 | [作業記録](issues/rf5c164_01.md)、[テスト](../test/runtime/playground_rf5c164.test.mjs) |
+| `createSoundChip('ym2608')` | 実装済。FM／SSG／リズム／ADPCM-B | 同梱リズムROM・差し替え対応。同期読み取り／IRQ・サンプル単位予約は未対応。聴感未確認 | [成功記録・制限](issues/playground_ym2608_01.md)、[テスト](../test/runtime/playground_ym2608.test.mjs) |
+| `createSoundChip('gameboy')` raw API | 実装済。レジスタ操作・4CHの例 | 高水準APIは別。ブラウザー聴感確認記録なし | [成功記録](issues/playground_gameboy_raw_01.md)、[テスト](../test/runtime/playground_gameboy.test.mjs) |
 | Game Boy高水準API | 即時設定APIへ改訂・自動テスト済。v0.40.11公開報告あり | pulse／wave／noiseの個別即時設定、明示的トリガー、initialize、setNote、raw同期。ブラウザー聴感確認は未実施。duration／自動CH割当は後段 | [設計案](issues/gameboy_api_01.md) |
 | NES APU / FDS VGM→JavaScript | ローカル追加。Playground ImportでRaw／解説付き／Highを選択。APU全5ch・FDS波形／変調・DMC RAM転送 | ソースクロック1600000–1900000 Hz、単体チップのみ、1回分。1700000 Hz未満はPAL、以上はNTSC/Dendy。Highは書き込みバイトが一致する操作だけ置換。非対応命令・dual・範囲外clock・FDS flag不足を事前拒否。元VGMとのレジスタ順・時刻・RAM・PCM一致、配布版UIとMain／Worker再生を確認。npm／itch.io未公開 | [変換テスト](playground/nes_vgm_import.test.mjs) |
 | Genesis VGM→JavaScriptのPSG変換 | Schedule / Write / HighでFM・DACとPSGを出力。Include PSGで選択 | HighはPSGの個別設定API＋raw fallback、固定クロック。PSG単独Import・デュアルPSGは未対応。未公開・ブラウザー試聴未実施 | [作業記録](issues/genesis_psg_vgm_javascript.md) |
 | RF5C164 VGM→JavaScript変換 | Write／High＋raw fallbackでレジスター・RAM転送を出力。単独／YM2612＋DAC＋PSG混在に対応 | 12.5 MHz・単一チップ。liveLoop／FM CH分割対応、RFは共有ループ。非同期タイミング。ScheduleはFM/DAC/PSGに適用（RFはWrite）。最新変更のブラウザー試聴は未実施 | [作業記録](issues/rf5c164_vgm_javascript.md) |
-| YM2151 Synth API | npm `tetorica-fm2612` 0.2.11公開（2026-10-08）。8CHの共通Synth・Direct／Worklet／Audify Transport | FM_PRESETS、音名／MIDI・周波数／KC・KF、論理operator順、DT2／LFO／Noise。既存Playground clientの番号・APIは維持。全CH×operatorの発音・音程・Pan・release、公開版の型定義・CoreAudio、X68000 Web例を確認 | [仕様](../packages/fm2612/README.md#ym2151-synth)、[テスト](../web/ym2151synth.test.mjs) |
-| 共通チップミキサー | npm `tetorica-fm2612` 0.2.10公開（2026-10-08）。browser MegaSynth／OPN runtime／playground Main・Worker／createSoundChip WorkletでVolume・Pan・Mute・Reset、ID管理 | Game Boy初期値28%。ID省略時の自動採番・readonly chip.id・初期化中のID予約に対応。raw PCMは変更なし。Nodeのデバイス出力は別API。公開版の新規導入・型定義・ブラウザーPCM／Main・Workerを確認 | [仕様](../packages/fm2612/README.md#chip-mixer)、[テスト](../web/soundchip_mixer.test.mjs) |
+| YM2151 Synth API | npm `tetorica-fm2612` 0.2.11公開（2026-10-08）。8CHの共通Synth・Direct／Worklet／Audify Transport | FM_PRESETS、音名／MIDI・周波数／KC・KF、論理operator順、DT2／LFO／Noise。既存Playground clientの番号・APIは維持。全CH×operatorの発音・音程・Pan・release、公開版の型定義・CoreAudio、X68000 Web例を確認 | [仕様](../packages/fm2612/README.md#ym2151-synth)、[テスト](../test/runtime/ym2151synth.test.mjs) |
+| 共通チップミキサー | npm `tetorica-fm2612` 0.2.10公開（2026-10-08）。browser MegaSynth／OPN runtime／playground Main・Worker／createSoundChip WorkletでVolume・Pan・Mute・Reset、ID管理 | Game Boy初期値28%。ID省略時の自動採番・readonly chip.id・初期化中のID予約に対応。raw PCMは変更なし。Nodeのデバイス出力は別API。公開版の新規導入・型定義・ブラウザーPCM／Main・Workerを確認 | [仕様](../packages/fm2612/README.md#chip-mixer)、[テスト](../test/runtime/soundchip_mixer.test.mjs) |
 | Playground useSoundChip | YM2612／YM2203／YM2610の既定FM取得、RF5C164／YM2608／Game Boyの再利用。Main／Worker・型推論対応 | IDによる複数台は未対応。ブラウザー実画面・実音は未確認 | [設計・実装記録](issues/multisoundchip_01.md) |
 | 仮想ファイル・Cassette・音色編集 | 実装済。プロジェクト保存、VGMからのTFI取込等 | ファイル編集と元のディスクファイルへの保存は別。手動記録は未整理 | [Cassetteテスト](playground/playground_cassette.test.mjs)、[TFIテスト](playground/playground_tfi_editor.test.mjs)、[取込テスト](playground/playground_vgm_presets.test.mjs) |
 | Native Audio Effect | 実装済。WASM FX・ルーティング・Playground接続 | 独立ページはWindows確認記録あり。Playground移行後の試聴は残作業 | [FX一覧・成功記録](issues/native_audioeffect_01.md)、[テスト](../test/playground_native_fx.test.mjs) |
-| Tetorica製YM2608リズムROM | 実装済。同梱・差し替え、比較ページで調整／生成 | 元ROMの複製ではない。音色調整は継続 | [ROM説明](../assets/opna-rhythm/README.md)、[比較ページ](demos/opna-rhythm-compare.html)、[作業記録](issues/tetorica_ym2608_rom.md)、[テスト](../web/opna_rhythm_rom.test.mjs) |
+| Tetorica製YM2608リズムROM | 実装済。同梱・差し替え、比較ページで調整／生成 | 元ROMの複製ではない。音色調整は継続 | [ROM説明](../assets/opna-rhythm/README.md)、[比較ページ](demos/opna-rhythm-compare.html)、[作業記録](issues/tetorica_ym2608_rom.md)、[テスト](../test/runtime/opna_rhythm_rom.test.mjs) |
 | Synthアプリ | 実装済。FM音色編集・TFI／VGI・VGM／VGZ／S98音色取込・鍵盤試聴 | OPN FMと単一YM2151。YM2151はYM2612へ近似変換し、DT2／LFO／ノイズ等は保持しない。S98／OPM取込はローカル追加。ChromiumでVGM／VGZ／S98のYM2151取込・鍵盤発音・失敗時の保持を確認 | [画面](synth/index.html)、[取込テスト](synth/synth_preset_import.test.mjs)、[操作テスト](synth/synth_controls.test.mjs) |
-| Node.js例・Web Runtime配布 | 実装済。音源ラッパー・Synth・WASM・使用例 | 高水準Synthの対応はチップごとに異なる | [Node.js例](../examples/nodejs/README.md)、[Runtime](../web/README.md)、[配布説明](../README.md#download) |
+| Node.js例・Web Runtime配布 | 実装済。音源ラッパー・Synth・WASM・使用例 | 高水準Synthの対応はチップごとに異なる | [Node.js例](../tetorica_examples/nodejs/README.md)、[Runtime](../web/README.md)、[配布説明](../README.md#download) |
 
 ## CLI／Node API
 

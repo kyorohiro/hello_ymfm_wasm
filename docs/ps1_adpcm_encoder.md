@@ -75,7 +75,7 @@ scratch arrays; conversion is preparation work, not an AudioWorklet operation.
 For an actual SPU-rendered preview and reusable sample metadata:
 
 ```sh
-node examples/nodejs/main_ps1_adpcm.js /tmp/ps1-adpcm
+node tetorica_examples/nodejs/main_ps1_adpcm.js /tmp/ps1-adpcm
 ```
 
 This writes `.loop.adpcm`, `.hit.adpcm`, `.json` and a stereo `.wav`; existing

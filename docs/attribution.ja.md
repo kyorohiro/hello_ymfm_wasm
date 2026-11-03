@@ -13,7 +13,7 @@ Aaron Gilesによる[ymfm](https://github.com/aaronsgiles/ymfm)を使用して�
 次のファイル・ディレクトリーはymfmに由来します。
 
 - `src/ymfm*`（互換includeの`src/segapsg.*`と`src/chip_state.h`はTetorica独自の追加）
-- [`examples/cpp/buildall/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/cpp/buildall)と[`examples/cpp/vgmrender/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/cpp/vgmrender)（他のTetorica利用例は独自の著作物。`em_inflate`はソース内の通知を維持）
+- [`examples/buildall/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/buildall)と[`examples/vgmrender/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/vgmrender)（Tetorica独自の利用例は`tetorica_examples/`。`em_inflate`はソース内の通知を維持）
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
 ### Tetorica Sega PSG

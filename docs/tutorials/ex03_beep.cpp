@@ -233,7 +233,7 @@ From the repository root:
 mkdir -p .emcache
 EM_CACHE="$PWD/.emcache" em++ -std=c++14 \
     -Isrc \
-    examples/cpp/tutorials/ex03_beep.cpp \
+    tetorica_examples/cpp/tutorials/ex03_beep.cpp \
     src/ymfm_opn.cpp src/ymfm_adpcm.cpp src/ymfm_ssg.cpp src/ymfm_misc.cpp \
     -sNODERAWFS=1 \
     -o test.js

@@ -156,7 +156,7 @@ try {
 音名やプリセットで操作する場合は各音源のSynthヘルパーを使います。ブラウザーで音を鳴らすには
 ユーザー操作後にAudioWorklet Transportを開始します。Nodeの音声デバイス出力は任意のAudifyで扱います。
 [Web／Nodeの実行用プロジェクト](https://github.com/kyorohiro/tetorica-fm2612-examples)、
-[ローカルNode例](examples/nodejs/README.md)、[Playgroundの例](docs/playground/examples/README.md)、
+[ローカルNode例](tetorica_examples/nodejs/README.md)、[Playgroundの例](docs/playground/examples/README.md)、
 [パッケージのブラウザー／PCM例](packages/fm2612/README.md)も参照してください。
 
 <a id="tetorica-vgm"></a>
@@ -207,7 +207,8 @@ UIの着想、素材の由来を残しています。[コンポーネント別�
 | [`web/`](web/README.md) | JavaScript／TypeScriptの音源コア、Synthヘルパー、Transport、共有Runtime。 |
 | [`docs/`](docs/index-ja.html) | 公開ツール、生成済みWASM、ガイド、使用例、ライセンス、詳細な設計記録。 |
 | [`packages/`](packages/) | 音源、VGMツール、仮想ファイルのnpm manifest／README。 |
-| [`node/`](node/README.md)、[`examples/`](examples/README.md) | Node用アダプターとNode／Browser／C++の実行例。 |
+| [`node/`](node/README.md)、[`tetorica_examples/`](tetorica_examples/README.md) | Node用アダプターとTetorica独自のNode／Browser／C++実行例。 |
+| [`src/`](src/)、[`examples/`](examples/README.md) | 元のディレクトリー配置を維持する、ymfm由来のコアと利用例。 |
 | [`third_party/`](third_party/)、[`scripts/`](scripts/) | 固定した上流／SDKのソース、ビルド、パッケージ生成／検証スクリプト。 |
 | [機能対応状況](docs/feature-status.md)、[Memo](Memo.md)、[CLI](CLI.md) | 実装範囲、チップの記録、解析APIの詳細。 |
 | [リリース手順](README_RELEASE.md)、[itch.io ZIPの検証](docs/itch_web_release.md) | 開発者向けのビルド／配布手順。 |

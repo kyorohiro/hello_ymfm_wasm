@@ -19,7 +19,7 @@ From the repository root:
 ```sh
 node assets/opna-rhythm/generate.mjs
 node assets/opna-rhythm/generate.mjs --check
-node --test web/opna_rhythm_rom.test.mjs
+node --test test/runtime/opna_rhythm_rom.test.mjs
 ```
 
 The generator uses sine waves, pitch envelopes and seeded noise. No input ROM
@@ -47,13 +47,13 @@ its default parameters reproduce the checked-in binary exactly.
 The rhythm example uses these sounds by default:
 
 ```sh
-node examples/nodejs/main_ym2608_rhythm_wave.js rhythm.wav
+node tetorica_examples/nodejs/main_ym2608_rhythm_wave.js rhythm.wav
 ```
 
 An explicit ROM path still overrides the default:
 
 ```sh
-node examples/nodejs/main_ym2608_rhythm_wave.js rhythm.wav /path/to/ym2608_adpcm_rom.bin
+node tetorica_examples/nodejs/main_ym2608_rhythm_wave.js rhythm.wav /path/to/ym2608_adpcm_rom.bin
 ```
 
 The existing CLI can load the replacement directly:

@@ -76,7 +76,7 @@ jobs:
           node scripts/check_cdda_core.mjs > "$RUNNER_TEMP/cdda-core.json"
           node scripts/check_msm5205_core.mjs > "$RUNNER_TEMP/msm5205-core.json"
       - name: Check sample preparation, lifecycle and three-source offline output
-        run: node --test web/cdda_*.test.mjs web/msm5205_*.test.mjs
+        run: node --test test/runtime/cdda_*.test.mjs test/runtime/msm5205_*.test.mjs
       - name: Rebuild distributed source bundles without the SDK checkout
         run: node scripts/check_application_audio_source_bundles.mjs --build
       - name: Retain audio core comparison reports

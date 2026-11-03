@@ -1,0 +1,214 @@
+// Resolve source and fixture URLs from the runtime directory.
+const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { YM2203RuntimeSynth as RuntimeSynth } from '../../web/ym2203synth.js';
+import { YM2608RuntimeSynth } from '../../web/ym2608synth.js';
+import { NeoGeoSynth, YM2610BRuntimeSynth } from '../../web/ym2610bsynth.js';
+
+function deferred() {
+  let resolve;
+  const promise = new Promise(r => { resolve = r; });
+  return { promise, resolve };
+}
+async function until(predicate) {
+  for (let i = 0; i < 100; i++) {
+    if (predicate()) return;
+    await Promise.resolve();
+  }
+  assert.fail('Async boundary was not reached');
+}
+function harness(t, stage = '') {
+  const gate = deferred();
+  let reached = false;
+  const nodes = [];
+  const context = {
+    state: 'running', currentTime: 0, destination: {},
+    resume: async () => {}, close: async () => {},
+    audioWorklet: { addModule: async () => {
+      if (stage === 'module') { reached = true; await gate.promise; }
+    } },
+    createGain: () => ({ gain: { value: 1, cancelScheduledValues(){}, setValueAtTime(v){this.value=v;}, linearRampToValueAtTime(v){this.value=v;} }, connect() {}, disconnect() {} }),
+    createChannelSplitter: () => ({connect(){}, disconnect(){}}),
+    createChannelMerger: () => ({connect(){}, disconnect(){}}),
+  };
+  const priorNode = globalThis.AudioWorkletNode;
+  globalThis.AudioWorkletNode = class {
+    constructor() {
+      nodes.push(this);
+      this.connected = false;
+      this.handlers = new Set();
+      this.messages = [];
+      this.port = {
+        closed: false,
+        close: () => { this.port.closed = true; },
+        addEventListener: (_, fn) => this.handlers.add(fn),
+        removeEventListener: (_, fn) => this.handlers.delete(fn),
+        start() {},
+        postMessage: message => {
+          this.messages.push(message);
+          if (message.type !== 'initialize') return;
+          reached = true;
+          if (stage !== 'ready') queueMicrotask(() => this.send('ready'));
+        },
+      };
+    }
+    send(type) { for (const fn of [...this.handlers]) fn({ data: typeof type === 'string' ? {type} : type }); }
+    connect() { this.connected = true; }
+    disconnect() { this.connected = false; }
+  };
+  t.after(() => { globalThis.AudioWorkletNode = priorNode; });
+  t.mock.method(globalThis, 'fetch', async () => {
+    if (stage === 'fetch') { reached = true; await gate.promise; }
+    return { ok: true, arrayBuffer: async () => new ArrayBuffer(1) };
+  });
+  const synth = new RuntimeSynth({ audioContext: context, stereoWidthWorkletUrl: '', bitcrusherWorkletUrl: '' });
+  return { synth, context, nodes, gate, reached: () => reached };
+}
+test('YM2608 runtime loads bundled rhythm data and honors explicit overrides', async t => {
+  const h = harness(t);
+  const urls = [];
+  const bundled = new Uint8Array(8192).fill(0x12);
+  t.mock.method(globalThis, 'fetch', async url => {
+    urls.push(String(url));
+    return {ok: true, arrayBuffer: async () => String(url).endsWith('.bin') ? bundled.buffer : new ArrayBuffer(1)};
+  });
+  for (const options of [{}, {rhythmRom: new Uint8Array(8192).fill(0x34)}, {rhythmRomUrl: '/custom.bin'}]) {
+    urls.length = 0;
+    const synth = new YM2608RuntimeSynth({audioContext: h.context, ...options});
+    try {
+      await synth.start();
+      const node = h.nodes.at(-1);
+      assert.deepEqual(node.messages.find(m => m.type === 'initialize').rhythmRom, options.rhythmRom ?? bundled);
+      if (options.rhythmRom) assert.equal(urls.length, 1, 'explicit bytes avoid ROM fetch');
+      else assert.ok(urls.includes(options.rhythmRomUrl ?? new URL('./tetorica_ym2608_adpcm_rom.bin', runtimeDirectoryUrl).href));
+      const loaded = synth.fm.rhythm.loadRom(bundled), command = node.messages.at(-1);
+      assert.deepEqual(command, {type: 'loadRhythmRom', id: command.id, bytes: bundled});
+      node.send({type: 'rhythm-rom-loaded', id: command.id});
+      await loaded;
+    } finally { await synth.close(); }
+  }
+  const bad = new YM2608RuntimeSynth({audioContext: h.context, rhythmRom: new Uint8Array(1)});
+  await assert.rejects(bad.start(), /8192/);
+  await bad.close();
+});
+test('Neo Geo and YM2610B runtimes initialize the matching hardware variant', async t => {
+  const h=harness(t);
+  for(const [Synth,variant,channels] of [[NeoGeoSynth,false,4],[YM2610BRuntimeSynth,true,6]]) {
+    const synth=new Synth({audioContext:h.context});
+    try {
+      await synth.start();
+      const initialization=h.nodes.at(-1).messages.find(message=>message.type==='initialize');
+      assert.equal(initialization.variant,variant);
+      assert.equal(synth.capabilities.fmChannels,channels);
+    } finally {await synth.close();}
+  }
+});
+for (const stage of ['module', 'fetch', 'ready']) {
+  test(`close cancels initialization during ${stage} and permits restart`, async t => {
+    const h = harness(t, stage);
+    const cancelled = assert.rejects(h.synth.start(), { name: 'AbortError' });
+    await until(h.reached);
+    await h.synth.close();
+    await cancelled;
+    h.gate.resolve();
+    for (const node of h.nodes) node.send('ready');
+    assert.equal(h.synth.state, 'closed');
+    assert.equal(h.synth.fm, null);
+    assert.ok(h.nodes.every(n => !n.connected && n.port.closed && n.handlers.size === 0));
+    const restarting = h.synth.start();
+    if (stage === 'ready') {
+      await until(() => h.nodes.length === 2);
+      h.nodes[1].send('ready');
+    }
+    await restarting;
+    assert.equal(h.synth.isReady(), true);
+    await h.synth.close();
+  });
+}
+
+test('start waits for an owned AudioContext to finish closing', async t => {
+  const h = harness(t);
+  await h.synth.start();
+  const gate = deferred();
+  h.synth.audio.ownsAudioContext = true;
+  h.context.close = () => gate.promise;
+  const prior = globalThis.AudioContext;
+  globalThis.AudioContext = class { constructor() { return { ...h.context, close: async () => {} }; } };
+  t.after(() => { globalThis.AudioContext = prior; });
+  const closing = h.synth.close();
+  assert.equal(h.synth.close(), closing);
+  const restarting = h.synth.start();
+  assert.equal(h.nodes.length, 1);
+  gate.resolve();
+  await closing; await restarting;
+  assert.equal(h.synth.isReady(), true);
+  assert.equal(h.nodes.length, 2);
+  await h.synth.close();
+});
+
+test('worklet initialization failure releases its node and permits retry', async t => {
+  const h = harness(t, 'ready');
+  const failed = assert.rejects(h.synth.start(), /initialization failed/);
+  await until(h.reached);
+  h.nodes[0].send('error');
+  await failed;
+  assert.equal(h.nodes[0].connected, false);
+  assert.equal(h.nodes[0].port.closed, true);
+  const retry = h.synth.start();
+  await until(() => h.nodes.length === 2);
+  h.nodes[1].send('ready');
+  await retry;
+  await h.synth.close();
+});
+
+
+test('close cancels an existing-context resume and ignores its late completion', async t => {
+  const h = harness(t);
+  await h.synth.start();
+  const gate = deferred();
+  h.context.state = 'suspended';
+  h.context.resume = () => gate.promise;
+  const cancelled = assert.rejects(h.synth.start(), { name: 'AbortError' });
+  await Promise.resolve();
+  await h.synth.close();
+  await cancelled;
+  gate.resolve();
+  await Promise.resolve();
+  assert.equal(h.synth.state, 'closed');
+  assert.equal(h.synth.fm, null);
+});
+
+test('Neo Geo runtime closes the underlying transport and can restart after facade teardown', async t => {
+  const h = harness(t);
+  const synth = new NeoGeoSynth({audioContext: h.context});
+  await synth.start();
+  const node = h.nodes.at(-1), rawFm = synth.rawFm, transport = rawFm.transport;
+  const dispose = t.mock.method(transport, 'dispose');
+  assert.ok(node.handlers.has(transport.onMemoryMessage));
+
+  await synth.close();
+  await synth.close();
+  assert.equal(dispose.mock.callCount(), 1, 'close disposes the real transport exactly once');
+  assert.equal(transport.disposed, true);
+  assert.equal(node.handlers.size, 0, 'the transport message listener is removed');
+  assert.equal(node.connected, false);
+  assert.equal(node.port.closed, true);
+  assert.equal(synth.fm, null);
+  assert.equal(synth.state, 'closed');
+  assert.equal(h.context.state, 'running', 'an injected AudioContext remains available');
+
+  await synth.start();
+  const replacement = synth.rawFm.transport;
+  assert.notEqual(synth.rawFm, rawFm, 'restart replaces the retired underlying FM instance');
+  assert.notEqual(replacement, transport);
+  assert.equal(synth.fm.transport, replacement, 'the new facade exposes the active transport');
+  assert.equal(replacement.disposed, false);
+  assert.equal(synth.isReady(), true);
+  const disposeReplacement = t.mock.method(replacement, 'dispose');
+  await synth.close();
+  assert.equal(replacement.disposed, true);
+  assert.equal(disposeReplacement.mock.callCount(), 1);
+  assert.equal(dispose.mock.callCount() + disposeReplacement.mock.callCount(), 2);
+  assert.ok(h.nodes.every(n => !n.connected && n.port.closed && n.handlers.size === 0));
+});
