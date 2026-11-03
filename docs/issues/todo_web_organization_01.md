@@ -21,11 +21,35 @@
 
 ## 次の実装候補（今回は未着手）
 
+ユーザーの追加指摘「web/generatedを見ても全部揃わない」を受け、先に生成物の基準を決める。以下は提案であり、配置変更は未実装。
+
+### 先に生成物を一本化する
+
+- [ ] 全WASM／loader／付随metadata・ライセンスの入出力を一つのmanifestで管理する。SDK catalogを参照し、DX7とNative FXの対応付けも明示する。既存の一覧・パス判定をこれに集約する。
+- [ ] `web/generated/`を、共有runtimeが使う生成物が全部揃う正本にする。`docs/generated/`はWeb公開用のコピーとして同期する方針を第一候補とする。
+- [ ] チップbuild scriptの既定出力先を揃える。配布・検証でも同じmanifestを使い、不足・古いコピー・loader／WASMの不一致を検出する。
+- [ ] DX7のvendor layoutとNative FXの既存URLを、manifestで管理する同期先として扱う。既存の公開URL・npmのimport・Tauri・測定報告との整合性を確認して移行する。
+
+現状の調査結果：
+
+| 場所 | 内容 |
+| --- | --- |
+| `web/generated/` | 7組14ファイル。cdda、msm5205、nesapu、pwm32x、gameboy_apu、segapcm、k051649。同名のdocs側と全てバイト一致。 |
+| `docs/generated/` | 67ファイル。32組のloader＋WASM、DX7の`msfa.wasm`、metadata 2件。 |
+| `web/msfa_dx7/wasm/`、`docs/js/msfa_dx7/wasm/` | DX7のvendorパッケージ内コピー。 |
+| `docs/native_audio_effect/gain.wasm`、`web/native_audio_effect.wasm`、`docs/js/native_audio_effect.wasm` | Native FXのbuild出力とruntime／公開コピー。 |
+
+通常のチップbuildは`docs/generated/`が既定だが、CD-DA／MSM5205は`web/generated/`が既定。一部のwrapperには`/web/`というURLから参照先を切り替える処理があり、同期・npm配布時にも個別の書換がある。manifestと正本の統一でこの分岐を整理する。固定SDK snapshot内は移動しない。
+
+### 次にテストとソースを整理する
+
 1. テスト277件を`test/web/`へ移し、`test:web`を追加する。現在の直下632件を355件まで減らせる。
 2. `test:analyzer`、`test:cdrom2`、CI、`scripts/test_vgm_mock.sh`、型テスト参照を更新する。既存の`npm test`は入れ子のテストを自動で拾わないため、実行対象を明示する。
 3. 静的／動的import、`readFile(new URL(...))`、Worker URL、eval内のimportを確認する。134件が`import.meta.url`、22件がWorkerを使用するため、単なるパス置換で済ませない。
 4. SDK校正の入力にもなる`spc_test_fixture.mjs`、共有の`native_genesis_extra_creation_fixture.mjs`は最初の移動では残す。過去の測定報告のhash・記録を一括置換しない。
 5. runtimeの物理移動は、同期・配布manifestの整理後に一群ずつ検討する。公開importパスとWorker／WorkletのURLを維持する移行方法を先に決める。
+
+ソース配置の候補：`web/chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`web/audio/`に共通音声処理、`web/playground/`に共有実行runtime、`web/native/`にNative接続、`web/formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
 
 ファイル移動や公開APIの変更は、このREADME整理と分けて進める。
 

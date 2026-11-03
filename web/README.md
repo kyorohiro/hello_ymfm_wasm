@@ -50,6 +50,25 @@ uses `js/` and `generated/`. Source moves require corresponding build/sync and
 URL updates. See the [organization TODO](../docs/issues/todo_web_organization_01.md)
 for the proposed test separation; it has not been performed.
 
+### Generated assets today
+
+`web/generated/` is currently a partial copy, not the complete output catalog.
+Most chip recipes default to `docs/generated/`; CD-DA and MSM5205 default to
+`web/generated/`. Some source wrappers resolve their assets through
+`docs/generated/`, while others import the local generated loaders.
+
+| Location | Current contents |
+| --- | --- |
+| [`generated/`](generated/) | Seven loader/WASM pairs: CD-DA, MSM5205, NES, PWM, Game Boy, Sega PCM and SCC. |
+| [`docs/generated/`](../docs/generated/) | The wider chip/instrument catalog: 32 loader/WASM pairs, DX7 WASM and build metadata. |
+| [`msfa_dx7/wasm/`](msfa_dx7/wasm/) | DX7 package assets, also mirrored into the website's vendored package. |
+| `native_audio_effect.wasm` | Native FX runtime asset; built by [`build_native_audio_effect.sh`](../scripts/build_native_audio_effect.sh). |
+
+The [organization TODO](../docs/issues/todo_web_organization_01.md#先に生成物を一本化する)
+proposes one artifact manifest and a complete `web/generated/` output, with
+`docs/generated/` as its published mirror. This is a proposed migration;
+the existing source and public paths remain in use today.
+
 ## Build and check
 
 Run these commands from the repository root, choosing the ones relevant to the
