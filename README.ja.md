@@ -1,20 +1,11 @@
-# Tetorica FM2612 (hello_ymfm_wasm)
+# Tetorica FM2612 — JavaScriptとWebAssemblyでレトロ音源を扱う
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレトロゲームサウンドをライブコーディングするツールです。
-
-このプロジェクトには、次の成果物が含まれます。
-
-- `tetorica-fm2612`：レトロゲームの音源チップをJavaScriptから扱うnpmパッケージ
-- `tetorica-vgm`：レトロゲームのVGMファイルを解析するnpmパッケージ
-- VGMファイルから音色を取り出し、その場で試せるブラウザーシンセサイザーアプリ
-- Sonic PiのAPIを参考に、ブラウザーでライブコーディングを試せるPlaygroundアプリ
-- VGMファイルを解析・再生するブラウザー解析アプリ
-
-![Tetorica FM2612 Playground](docs/tetorica_fm2612_playground_screen_shot.png)
-
-[Tetorica FM2612 Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+Tetoricaは、レトロゲームの音源を学び、調べ、音を作るためのサウンドチップ実験室です。
+メガドライブのYM2612から始まり、再利用できるWASMコア、低レベルJavaScript／TypeScript API、
+ライブコーディング、シンセサイザー、音楽ファイル解析へと広がっています。
+ブラウザーツールで音源を調べ、同じ音声部品を自分のアプリやゲームへ組み込めます。
 
 ## プロジェクトの目標
 
@@ -25,239 +16,203 @@ Tetoricaは、JavaScriptでメガドライブやゲームボーイなどのレ�
 - ブラウザーアプリやゲームにYM2612の音声を組み込む方法を、誰でも理解できるドキュメントを作ること。
 - 古いゲーム音楽や音源チップの技術を文化的な遺産として残すこと。保存・再生に加え、今の人たちが読み解き、調査し、学び、再構成できる形を目指します。
 
-## 機能対応状況
+<a id="機能対応状況"></a>
 
-[機能対応状況 / Feature status](docs/feature-status.md)：Analyzer、CLI、Playgroundの実装範囲、検証記録、制約、リリース状況をまとめています。
+## やりたいことから選ぶ
 
-チップごとの再生機能、制約、実装に関する詳しい記録は[Memo.md](Memo.md)を参照してください。
+| やりたいこと | 入口 |
+| --- | --- |
+| インストールせずに試したい | [ブラウザー版ホーム](https://kyorohiro.github.io/hello_ymfm_wasm/index-ja.html) · [itch.io](https://kyorohiro.itch.io/) |
+| ビルド済みWASMと低レベルJavaScriptが欲しい | [npmの`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612) · [API一覧](packages/fm2612/README.md#api-entry-points) · [WASMとソースの配置](web/README.md) |
+| 音源・音声再生・ライブコーディングを組み込みたい | [Synth／Transport API](packages/fm2612/README.md) · [Playground Runtime](web/README.md#playground-runtime) · [Web／Nodeの実行例](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| 音楽ファイルを調べ、音色や楽譜を取り出したい | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) · [`tetorica-vgm` CLI／Node API](packages/vgm/README.md) |
+| C／C++コアを使い、NativeアプリやPluginを作りたい | [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) · [SPU Pluginのソース／Preview](https://github.com/kyorohiro/tetorica-spu-plugin) |
+| エディターに仮想ファイル・Shell・Gitを付けたい | [`tetorica-virtual-files`](packages/virtual-files/README.md) · [npm](https://www.npmjs.com/package/tetorica-virtual-files) |
+| 実装範囲と制限を確認したい | [機能対応状況](docs/feature-status.md) · [Analyzer音源対応表](docs/vgm_analyzer/support.html) · [チップ別の記録](Memo.md) |
 
-実験的な[Saturn SCSP共通コア](docs/scsp.md)を追加しています。32スロットのNative／WASMと、
-低レベルJavaScript／音名で扱うPCM APIに加え、[PlaygroundのWeb Audioモード](docs/playground/index.html?mode=scsp)で
-Main／Worker・32スロットのKeyboard試奏に対応しました。
-[専用SCSP Synth](docs/synth-scsp/index.html)にはPCM描画／読込、EG、鍵盤、preset保存を追加。
-Tauri Native transportも実装済みで、実audio deviceの検証は残っています。npmの汎用chip factoryにはまだ含まれません。
+<a id="ブラウザーで試す"></a>
+<a id="itchioで試す"></a>
 
-## ブラウザーで試す
+## ブラウザーツール
 
-公開ページでWebAssemblyビルド、JavaScriptラッパー、ブラウザーツールを直接試せます。ビルド環境を一式用意せずに、YM2612の操作、音色作り、Genesis / メガドライブ向けVGM解析を試すための入口です。
+| ツール | できること |
+| --- | --- |
+| [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) | JavaScriptライブコーディング、レジスター操作、音楽API、サンプル編集、FILES／Shell。音源modeを選んで使います。 |
+| [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FMオペレーター／エンベロープ編集、鍵盤試奏、VGM音色取込、TFI／VGI編集。 |
+| [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、PCMお絵描き、ADSR、PMON、Noise、SPU Reverb、PSF／VAB音色抽出。 |
+| [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
+| [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
+| [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
+| [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |
 
-- メインページ：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/](https://kyorohiro.github.io/hello_ymfm_wasm/)
-- JavaScriptで学ぶSega Genesis / メガドライブのYM2612 FM音源：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html)
-- Playground：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
-- Playground Runtimeの組み込みデモ：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
-- Synth：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html)
-- VGM Analyzer：
-  [https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html)
+[Playgroundの画面](docs/tetorica_fm2612_playground_screen_shot.png) ·
+[ブラウザー操作／SPC変換の詳細](docs/browser_workflows.ja.md) ·
+[Runtime組み込みデモ](https://kyorohiro.github.io/hello_ymfm_wasm/demos/playground_runtime.html)
 
-[VGM Analyzerの音源チップ対応状況と制約](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/support.html)
+## どんなゲーム機・形式に対応している？
 
+対応範囲は、ゲームタイトルの一覧ではなく、**音源チップと入力形式**で管理しています。
+このプロジェクトは音声のためのツールで、ゲームROMの実行やゲーム機全体のエミュレーションは行いません。
+次は代表的な機種です。その機種のすべてのゲーム音楽や音色を復元できるという意味ではありません。
 
-## npmjs package
+| 機種・音源系統 | 主な対象 |
+| --- | --- |
+| メガドライブ、メガCD、32X | YM2612＋Sega PSG、RF5C164 PCM、PWM。VGM解析と音源操作。CD-DAは独立した音声ソースです。 |
+| PC-88／PC-98、Neo Geo | YM2203／YM2608／YM2610/B。FM、SSG、各音源のリズム／ADPCM。 |
+| X68000、アーケードFM／PCM | YM2151、OKIM6258／OKIM6295、Sega PCM。VGMの併用構成には制限があります。 |
+| Master System／Game Gear、MSX、AdLib／OPL | Sega PSG、AY8910、YM2413、Y8950、SCC／SCC+、OPL／OPL2／OPL3／OPL4。 |
+| ファミコン／NES＋FDS、ゲームボーイ | APU音源の操作と、対応するVGMの再生／解析。リージョン・拡張の条件は音源ごとに異なります。 |
+| PCエンジン／CD-ROM² | HuC6280、MSM5205 ADPCM、CD-DA API。対応するVGMの再生／解析。 |
+| スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
+| PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
+| セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
+| Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
-### tetorica-fm2612
+| 入力 | 対応する使い方 |
+| --- | --- |
+| VGM／VGZ | Browser AnalyzerとCLIで再生／調査。チップ別に音色・サンプル・楽譜を出力。一部のPlayground modeでは編集可能なJavaScriptへ変換できます。 |
+| S98 | 対応する単一Yamaha音源構成。圧縮S98・複数デバイスは対象外です。[入力仕様](CLI.md#s98-input-and-source-documents)を確認してください。 |
+| SPC／BRR | SPCのCPU／DSP再生と解析、独立したBRR音色の作成。[変換仕様と制限](docs/browser_workflows.ja.md)。 |
+| VAB、または対応するVH＋VB | Sony標準v6／v7のバンク。Playground／SPU SynthでToneを選び試奏できます。 |
+| PSF1／MiniPSF＋PSFLib | ファイルまたはフォルダーを指定し、依存ライブラリーを解決して認識できるVABを静的抽出。ゲームドライバー実行・PSF2・すべての独自音色形式の復元には未対応です。[SPU取込ガイド](docs/synth-spu/README.md#ps1-sound-banks)。 |
+| 音声・音色ファイル | PCM作成とチップ別のサンプル変換。TFI／VGI、OPM、SBI、DX7 SysExはそれぞれ取込／出力の対応範囲が異なります。 |
 
-[`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612)は、レトロゲームの音源チップをJavaScriptから操作するパッケージです。ブラウザーでの再生と、Node.jsでのPCM・WAV生成に使えます。
+特定のVGMは`npx tetorica-vgm support song.vgz --json`で確認できます。
+併用構成、外部ROMの要否、Exportの制限は[Analyzer対応表](docs/vgm_analyzer/support.html)を参照してください。
+再生・音色編集・採譜は別の機能です。採譜は編集用の参考データで、原譜の復元ではありません。
+
+## どんなSoundChipを使える？
+
+| 系統 | 含まれるコア／API |
+| --- | --- |
+| Yamaha OPN | YM2203、YM2608、YM2610／YM2610B、YM2612、YM3438、YMF276、YMF288 |
+| Yamaha OPM／OPP | YM2151／YM2164 |
+| Yamaha OPLL／OPL | YM2413、YM3526、YM3812、Y8950、YMF262、YMF278B |
+| PSG・波形メモリー・ゲーム機音源 | AY-3-8910／YM2149、Sega PSG、Game Boy APU、NES APU＋FDS、HuC6280、K051649／K052539、POKEY、WonderSwan |
+| PCM／ADPCM | RF5C164、Sega PCM、OKIM6258、OKIM6295、MSM5205 |
+| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7 |
+
+npmルートの`createSoundChip()`、Playgroundの`createSoundChip()`／`useSoundChip()`、
+独立したクラス、高水準Synth APIは、入口と対応範囲が異なります。
+例えばPS1とSCSPはnpmの専用subpathからimportします。Playgroundの音源名を、そのままnpmルートのfactoryへ渡せるわけではありません。
+[用途別API一覧](packages/fm2612/README.md#api-entry-points)で選んでください。
+YM2612の標準コアはymfmです。任意で使えるNuked-OPN2には別のライセンスが適用されます。
+
+<a id="download"></a>
+<a id="npmjs-package"></a>
+<a id="tetorica-fm2612"></a>
+
+## WASMと低レベルJavaScriptを入手する
 
 ```sh
 npm install tetorica-fm2612
 ```
 
-主な対応チップ（抜粋）：
+パッケージにはES modules、TypeScript型定義、ビルド済みの`generated/*_wasm.js`ローダーと
+対応する`.wasm`、ソースアーカイブ、コンポーネントの通知を含みます。
+ブラウザーとNode.jsで同じ直接PCM生成コアを使えます。Node.jsは22以降が必要です。
 
-| 系統 | チップ |
+| 配布物・ソース | 場所 |
 | --- | --- |
-| Yamaha OPN | YM2203、YM2608、YM2610 / YM2610B、YM2612 |
-| Yamaha OPM | YM2151 |
-| Yamaha OPL | YM2413、YM3812、YMF262 |
-| PSG・ゲーム機音源 | AY8910、Sega PSG、Game Boy APU、NES APU + FDS、HuC6280 |
-| PCM・ADPCM | RF5C164、Sega PCM、OKIM6258、OKIM6295 |
+| npmのimportとアセットURL | [パッケージREADME](packages/fm2612/README.md)。`runtimeAssetUrl()`とWASMの独自ロード方法も記載。 |
+| ソースcheckout | [JavaScriptソースの案内](web/README.md)、ビルド済みローダー／WASMは[`docs/generated/`](docs/generated/)、Node音声は[`node/`](node/README.md)。 |
+| 単独で使えるWeb Runtime ZIP | [生成手順とファイル名](README_RELEASE.md)。Runtime、生成済みアセット、通知を同梱します。 |
+| C／C++と再現可能なWASMビルド | [Native SDK](https://github.com/kyorohiro/tetorica-soundchip-native)と[固定SDKのビルドガイド](docs/building_ym2612_wasm.md)。 |
 
-YM2612でド・レ・ミを鳴らすブラウザー向けの例です。npmのモジュールを読み込めるViteなどの環境で使い、表示されたボタンを押してください。
+## 使用例
+
+低レベルAPIでYM2612のFM 1チャンネルを設定し、短いWAVをメモリー上に生成する例です。
+直接レンダリングなのでスピーカーや音声デバイスは開きません。Node.js 22以降のES module、
+またはnpm importを解決するブラウザー向けバンドラーで使えます。
 
 ```js
-import {createSoundChip} from 'tetorica-fm2612';
-import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth.js';
-import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
-import {hzToBlockFnum} from 'tetorica-fm2612/pitch.js';
+import {createSoundChip, encodeWav} from 'tetorica-fm2612';
 
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-const button = document.createElement('button');
-button.textContent = 'ド・レ・ミ';
-document.body.append(button);
-
-button.addEventListener('click', async () => {
-  button.disabled = true;
-  let chip;
-  try {
-    chip = await createSoundChip('ym2612', {execution: 'worklet'});
-    const transport = new YM2612WorkletTransport(chip);
-    const fm = new YM2612Synth({transport});
-    fm.setPreset(0, FM_PRESETS.sine);
-    await transport.start();
-
-    for (const hz of [261.63, 293.66, 329.63]) { // C4、D4、E4
-      const {block, fnum} = hzToBlockFnum(hz);
-      fm.noteOn(0, block, fnum);
-      await wait(300);
-      fm.noteOff(0);
-      await wait(100);
-    }
-  } finally {
-    await chip?.dispose();
-    button.disabled = false;
+const chip = await createSoundChip('ym2612');
+try {
+  chip.reset();
+  for (const offset of [0, 4, 8, 12]) {
+    chip.writeRegister(0x30 + offset, 0x01); // オペレーターの倍率。
+    chip.writeRegister(0x40 + offset, offset === 12 ? 32 : 127);
+    chip.writeRegister(0x50 + offset, 0x1f); // 速いAttack。
+    chip.writeRegister(0x60 + offset, 0x00);
+    chip.writeRegister(0x70 + offset, 0x00);
+    chip.writeRegister(0x80 + offset, 0x0f);
   }
-});
+  chip.writeRegister(0xb0, 0x07); // Algorithm 7。1つのcarrierだけを鳴らす。
+  chip.writeRegister(0xb4, 0xc0); // 左右へ出力。
+  chip.writeRegister(0xa4, 0x24); // BLOCK／FNUM上位。およそA4。
+  chip.writeRegister(0xa0, 0x3b); // FNUM下位。
+  chip.writeRegister(0x28, 0xf0); // チャンネル1のKey On。
+  const pcm = chip.generateStereo(4096);
+  chip.writeRegister(0x28, 0x00); // Key Off。
+  const wav = encodeWav({...pcm, sampleRate: chip.sampleRate()});
+  console.log(wav.byteLength); // このバイト列を保存、またはPCMを自分の出力へ渡す。
+} finally {
+  chip.dispose();
+}
 ```
 
-対応チップの全一覧とAPIの使い方は[パッケージのREADME](packages/fm2612/README.md)を、実行できるWeb / Nodeの例は[examples](https://github.com/kyorohiro/tetorica-fm2612-examples)を参照してください。高水準Synth APIの対応範囲はチップごとに異なります。
+音名やプリセットで操作する場合は各音源のSynthヘルパーを使います。ブラウザーで音を鳴らすには
+ユーザー操作後にAudioWorklet Transportを開始します。Nodeの音声デバイス出力は任意のAudifyで扱います。
+[Web／Nodeの実行用プロジェクト](https://github.com/kyorohiro/tetorica-fm2612-examples)、
+[ローカルNode例](examples/nodejs/README.md)、[Playgroundの例](docs/playground/examples/README.md)、
+[パッケージのブラウザー／PCM例](packages/fm2612/README.md)も参照してください。
 
-0.2.21では、共有Playground Runtimeにネイティブ音源の基本構成、適用済み音色の読み取り・編集、チャンネルを占有する試奏、ホスト向けKeyboard／音声入力の接続を追加しています。HuC6280とOKIM6258の高水準Synthモジュールも収録します。Webサイトのmode選択、音色パネル、Guitar Keyboardの部品、Sample Editorのダイアログはnpmに含まれず、組み込み先のホストが画面を用意します。[Runtimeの組み込み説明](packages/fm2612/README.md#native-configurations-and-host-integration-0221)を参照してください。
+<a id="tetorica-vgm"></a>
 
-### tetorica-vgm
-
-VGM Analyzerは、コマンドラインでの解析、エクスポート、WAV生成向けに[`tetorica-vgm` npmパッケージ](https://www.npmjs.com/package/tetorica-vgm)としても提供しています。Node.js 22以降が必要です。
+ファイル解析とExportには`tetorica-vgm`をインストールするか、直接実行します。
 
 ```sh
 npx tetorica-vgm analyze song.vgz --json
-npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
 npx tetorica-vgm render song.vgz --output song.wav
+npx tetorica-vgm export song.vgz --format musicxml --output song.musicxml
 ```
 
-[CLIクイックスタート](packages/vgm/README.md)と[CLI / Node APIの詳細リファレンス](CLI.md)を参照してください。メンテナー向けの手順は[リリース手順](README_RELEASE.md)にまとめています。
+[CLI／Node APIリファレンス](CLI.md) · [音色Exportの例](docs/browser_workflows.ja.md#cliで音色と楽譜を出力する)
 
-OPL系のメロディー音色は、SBI（2opまたはOPL3の4op）として個別に、またはZIPにまとめてエクスポートできます。ブラウザーの**SBI Info**タブでは抽出した音色パラメーターを表示し、キーボードで試聴できます。
+## 自分のプロジェクトで再利用する
 
-曲の1.5秒時点にあるチャンネル1の音色を取り出す例です（`--channel`は1から数えます）。
+レジスター／RAM／PCMなら低レベルチップ、音楽的な操作ならSynthヘルパー、音声出力ならTransport、
+ライブコーディングならPlayground Runtimeと、必要な層だけを使えます。
+npmの音声パッケージにはPlayground／Synthの編集画面全体は含まれません。
+`tetorica-virtual-files`は、仮想ファイル／Shell／Gitを独立して使えるパッケージです。
+Native SDKと[SPU DAW Plugin](https://github.com/kyorohiro/tetorica-spu-plugin)は、
+C／C++への組み込み例を別プロジェクトとして提供します。デスクトップの対応環境はプロジェクトごとに異なります。
 
-```sh
-npx tetorica-vgm export song.vgz --format sbi --at 1.5 --channel 1 --output voice.sbi
-```
-
-曲全体からメロディー音色を抽出し、ZIPにまとめる例です。
-
-```sh
-npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
-```
-
-## itch.ioで試す
-
-- [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
-
-開発者向け：[Web版リリースZIPの生成・検証・取得手順](docs/itch_web_release.md)（英語）。
+EmscriptenとPython 3を用意し、例えば`sh scripts/build_ym2612_wasm.sh`を実行するとソースからビルドできます。
+レシピは`third_party/`の固定SDKを検証して使います。
+[ビルド／SDK更新／分離したアセット検証の手順](docs/building_ym2612_wasm.md)。
 
 ## ライセンスとクレジット
 
-特記がない限り、このリポジトリーでは、上流のymfmに由来する部分と本プロジェクトで追加した独自ファイルの両方にBSD 3-Clause Licenseを適用しています。同梱する第三者のコンポーネントと、その変更部分には、それぞれに適用されるライセンスを維持しています。
+独自ファイルとymfm由来のコンポーネントは、特記がない限り[BSD-3-Clause](LICENSE)です。
+適用されるライセンスに従って改変・再利用できます。著作権表示を維持し、使用するコンポーネントが
+求める通知やソースを配布物に含めてください。
+全体が一律BSDではありません。SNES-SPCと任意のNuked-OPN2は**LGPL-2.1-or-later**、
+MSFA DX7と関連するNESコンポーネントは**Apache-2.0**です。Sonic Piサンプルは**CC0-1.0**です。
+ゲームROM、ゲーム音楽、PSFセット、市販音色バンクの利用許諾を、このプロジェクトが与えるものではありません。
 
-Aaron Gilesによる[ymfm](https://github.com/aaronsgiles/ymfm)を使用しています。また、kyorohiroによる独自の実装も、同じBSD 3-Clause Licenseで含めています。ライセンス本文は`LICENSE`にあり、配布用のリリースファイルにも`LICENSE`を含めています。
+[クレジットと実装参考資料の全文](docs/attribution.ja.md)に、上流の著作者、確認したリビジョン、
+UIの着想、素材の由来を残しています。[コンポーネント別の通知](docs/licenses/)、
+[DX7の通知](docs/licenses/tetorica-msfa-dx7-wasm/THIRD_PARTY_NOTICES.md)、
+再配布するRuntimeに含まれるソース／ライセンスも確認してください。
 
-次のファイル・ディレクトリーはymfmに由来します。
+<a id="リンク"></a>
 
-- `src/ymfm*`（互換includeの`src/segapsg.*`と`src/chip_state.h`はTetorica独自の追加）
-- `examples/`
-- [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
+## リポジトリーの構成と参考リンク
 
-### Tetorica Sega PSG
+| ディレクトリー・資料 | 内容 |
+| --- | --- |
+| [`web/`](web/README.md) | JavaScript／TypeScriptの音源コア、Synthヘルパー、Transport、共有Runtime。 |
+| [`docs/`](docs/index-ja.html) | 公開ツール、生成済みWASM、ガイド、使用例、ライセンス、詳細な設計記録。 |
+| [`packages/`](packages/) | 音源、VGMツール、仮想ファイルのnpm manifest／README。 |
+| [`node/`](node/README.md)、[`examples/nodejs/`](examples/nodejs/README.md) | Node用アダプターとPCM／音声の実行例。 |
+| [`third_party/`](third_party/)、[`scripts/`](scripts/) | 固定した上流／SDKのソース、ビルド、パッケージ生成／検証スクリプト。 |
+| [機能対応状況](docs/feature-status.md)、[Memo](Memo.md)、[CLI](CLI.md) | 実装範囲、チップの記録、解析APIの詳細。 |
+| [リリース手順](README_RELEASE.md)、[itch.io ZIPの検証](docs/itch_web_release.md) | 開発者向けのビルド／配布手順。 |
 
-独自のSega PSGコアは[third_party/tetorica_sega_psg](third_party/tetorica_sega_psg/README.md)に分離し、
-kyorohiro名義のBSD-3-Clauseライセンスを明記しています。upstream ymfmのファイルではありません。
-[SMS Power!のSN76489資料](https://www.smspower.org/Development/SN76489)をハードウェア仕様の参考元として記載しています。
-組み込み方法、由来の確認結果、固定SDKの既存配置を維持する方針は、同ディレクトリーのREADMEを参照してください。
-
-### LilyPondエクスポート
-
-VGM Analyzerは`.ly`ファイルをエクスポートします。楽譜プレビューにはMusicXMLを使います。LilyPondのWASMエンジンとプレビュー用ソースはAnalyzerから削除しており、Analyzer、Webランタイム、Webランタイムexampleのパッケージには含みません。
-
-保存したLilyPond WASMの実験、Safari向けの修正、ビルド手順、デモは、別プロジェクトの[kyorohiro/lilypond-wasm](https://github.com/kyorohiro/lilypond-wasm/tree/master/wasm)で管理しています。LilyPondとそのWASM移植には**GPL-3.0-or-later**の成果物を含みます。別プロジェクト側で、それぞれのライセンスと第三者通知を維持しています。
-
-### MusicXMLプレビューの試用ページ
-
-独立した[MusicXML試用ページ](docs/vgm_analyzer/osmd.html)では、OpenSheetMusicDisplay 2.1.2（BSD-3-Clause）とその依存ファイルを使っています。[クレジットとライセンス](docs/vgm_analyzer/vendor/osmd/README.md)を参照してください。LilyPondの`.ly`エクスポートは引き続き利用でき、楽譜プレビューにはMusicXMLを使います。
-
-ローカルで試すには、リポジトリーのルートから`python3 -m http.server 38088 --directory docs`を実行し、`http://localhost:38088/vgm_analyzer/osmd.html`を開きます。VGM / VGZファイルを選び、チャンネルとBPMを指定してPreviewを押してください。サンプル音符やMusicXMLのダウンロードも利用できます。
-
-Analyzerの**Export Music Sheet**ボタンにも、BPM・チャンネルの選択、楽譜プレビュー、MusicXMLダウンロードを用意しています。ダイアログの構成はLilyPondと共通です。独立した試用ページも配布パッケージに含めています。
-
-MIDIとMMLのダイアログでは、LilyPondと同じ推奨BPMを使います。同じ曲でダイアログを開き直した場合、手動で変更した値を保持します。
-
-### 先行事例・実装参考：libymfm.wasm
-
-ymfmなどの音源チップエミュレーションをWebAssemblyへ移植した先行プロジェクトとして、Hiromasa Tanaka（h1romas4）による[libymfm.wasm](https://github.com/h1romas4/libymfm.wasm)を挙げます。本プロジェクトのブラウザーでの音源チップ再生と重なる部分があり、実装を検討するうえで参考にしています。
-
-OKIM6258対応では、[`chip_okim6258.rs`の`bb006894793c573b33a79a211e2769d021556aec`時点の実装](https://github.com/h1romas4/libymfm.wasm/blob/bb006894793c573b33a79a211e2769d021556aec/src/rust/sound/chip_okim6258.rs)を確認しました。このファイルは、Barry RodewaldによるMAME実装をHiromasa TanakaがRustへ移植したものと記載されています。基となるMAMEのリビジョンは`70743c6fb2602a5c2666c679b618706eabfca2ad`で、ライセンスはBSD-3-Clauseです。[確認したリビジョンのlibymfm.wasmライセンス](https://github.com/h1romas4/libymfm.wasm/blob/bb006894793c573b33a79a211e2769d021556aec/LICENSE)も参照してください。
-
-本リポジトリーのC++ OKIM6258デコーダーは、固定したMAMEソースから直接移植しています。libymfm.wasmのRust移植は先行事例として確認したもので、ここにコピーしていません。
-
-### FMエンベロープ編集UIの着想：mmlx-lsp
-
-マウスで編集できるFMエンベロープUIは、h1romas4による[mmlx-lsp](https://github.com/h1romas4/mmlx-lsp)（[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=h1romas4.mmlx-lsp)）のFM Voice編集体験から着想を得ています。本リポジトリーのエンベロープエディターは、TetoricaのYM2612操作に合わせて独自に実装しています。
-
-### MAME / libvgm OKIM6295（`third_party/mame-okim6295/`）
-
-JavaScriptのOKIM6295 ADPCMエンジンは、BSD-3-ClauseのMAME / libvgmソースをもとにしています。[ソースに関する記録](third_party/mame-okim6295/README.md)と[ライセンス](third_party/mame-okim6295/LICENSE)を参照してください。ゲームROMは同梱しません。
-
-### MAME OKIM6258（`third_party/mame-okim6258/`）
-
-OKIM6258デコーダーは、BSD-3-ClauseのBarry RodewaldによるMAME実装から移植しています。[ライセンス](third_party/mame-okim6258/LICENSE)と[固定したソース・移植に関する記録](third_party/mame-okim6258/README.md)を参照してください。Analyzerとランタイムexampleのパッケージでは、これらの通知を`licenses/mame-okim6258/`に含めています。
-
-### MAME RF5C164（`third_party/mame-rf5c164/`）
-
-Mega-CD / Sega CDのVGM再生で使うRF5C164 PCMエンジンは、Olivier GalibertとAaron Gilesによる[MAMEのRF5C68 / RF5C164実装](https://github.com/mamedev/mame/blob/d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2/src/devices/sound/rf5c68.cpp)から移植しています。移植したコアと、生成する`rf5c164_wasm.wasm`には**BSD 3-Clause License**を適用しています。[ライセンス](third_party/mame-rf5c164/LICENSE)と[ソース・移植に関する記録](third_party/mame-rf5c164/README.md)を参照してください。このエンジンを含むパッケージには、`licenses/mame-rf5c164/`にこれらの通知を収録しています。
-
-### MAME HuC6280（`third_party/mame-huc6280/`）
-
-HuC6280コアは、Charles MacDonaldによるBSD-3-ClauseのMAME実装から移植しています。固定した元ソース、ライセンス、移植に関する記録は`third_party/mame-huc6280/`にあります。
-
-### Nuked-OPN2（`third_party/nuked-opn2/`）
-
-`third_party/nuked-opn2/`には、Alexey Khokholov（Nuke.YKT）による[Nuked-OPN2](https://github.com/nukeykt/Nuked-OPN2)を、固定したフォークの[kyorohiro/Nuked-OPN2](https://github.com/kyorohiro/Nuked-OPN2)経由で同梱しています。これは**任意で切り替えられる実験的なYM2612エンジン**です。Playground、Synth、VGM Analyzerのページで`?engine=nuked`を指定すると、標準のymfmベースのエンジンから切り替えられます。
-
-リポジトリーの他の部分とは異なり、`third_party/nuked-opn2/`と、そこから生成する`nuked_opn2_wasm.wasm`のライセンスは、BSD 3-Clauseではなく**GNU Lesser General Public License v2.1 or later**です。詳細は`third_party/nuked-opn2/LICENSE`、`third_party/nuked-opn2/README.md`を参照してください。配布用のリリース・組み込みビルド（`scripts/package_*.sh`）には含めないため、標準のymfmビルドだけを組み込む場合には影響しません。
-
-### Sonic Piのサンプル音声（`docs/playground/samples/sonic-pi/`）
-
-`docs/playground/samples/sonic-pi/`の音声ファイルは、[Sonic Pi](https://github.com/sonic-pi-net/sonic-pi)のサンプル音声を、Playgroundのサンプル再生や実験に使っているものです。Tetoricaのソースコードとは別の素材で、Sonic Piでは**CC0 1.0**と記載されています。上流の[ライセンス](https://github.com/sonic-pi-net/sonic-pi/blob/stable/LICENSE.md)、[サンプルの説明](https://github.com/sonic-pi-net/sonic-pi/blob/stable/etc/samples/README.md)、ローカルの[サンプルに関する記録](docs/playground/samples/sonic-pi/README.md)を参照してください。
-
-## リンク
-
-- `ymfm`リポジトリー：
-  - https://github.com/aaronsgiles/ymfm
-- `Nuked-OPN2`（オリジナルと`third_party/nuked-opn2/`に同梱する固定フォーク）：
-  - https://github.com/nukeykt/Nuked-OPN2
-  - https://github.com/kyorohiro/Nuked-OPN2
-- `MAME`：
-  - https://www.mamedev.org/
-- `retropc.net`：
-  - http://retropc.net/cisc/m88/
-- `ymfm`のサンプル：
-  - https://github.com/aaronsgiles/ymfm/tree/main/examples
-- `libymfm.wasm`：
-  - https://github.com/h1romas4/libymfm.wasm
-- YM2612のレジスターと動作に関する`ymfm`ソース：
-  - `src/ymfm_opn.h`
-  - `src/ymfm_opn.cpp`
-- YM2612のピン情報：
-  - http://www.chipdir.nl/pinusr/ym2612.txt
-- YM2612の概要：
-  - https://www.vgmpf.com/Wiki/index.php?title=YM2612
-- Genesis開発の議論と実用的な情報：
-  - https://gendev.spritesmind.net/forum/viewtopic.php?start=585&t=386
-- YM2612の音楽投稿：
-  - https://chipmusic.org/music#s=ym2612
-- GENajam：
-  - https://github.com/jamatarmusic/GENajam
-- megatoy：
-  - https://github.com/ulalume/megatoy
-- Maple's Gardenの記事：
-  - https://another.maple4ever.net/archives/3027/
-- Aidan LawrenceのSega Genesis音楽プレーヤー：
-  - https://www.aidanlawrence.com/hardware-sega-genesis-video-game-music-player/
-- VGM仕様：
-  - https://vgmrips.net/wiki/VGM_Specification
-- SMS Power：
-  - https://www.smspower.org/
+ハードウェア・上流の参考資料：[ymfm](https://github.com/aaronsgiles/ymfm)、
+[MAME](https://www.mamedev.org/)、[VGM仕様](https://vgmrips.net/wiki/VGM_Specification)、
+[SMS Power!](https://www.smspower.org/)、[libymfm.wasm](https://github.com/h1romas4/libymfm.wasm)。
+[参考リンクの全一覧](docs/attribution.ja.md#リンク)にはYM2612レジスター資料や関連プロジェクトも掲載しています。
