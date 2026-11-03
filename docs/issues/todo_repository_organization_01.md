@@ -95,11 +95,41 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - rootを含む`npm test`は4,197件中4,194件成功。下記の既存失敗3件を確認した。移動による新規失敗はない。
 - 教材コピーと全生成物の検証は継続して成功。音源実装、ゲイン、固定SDK、過去の測定報告を変更していない。
 
-別途修正する既存テスト／状態復元の課題：
+移設時点で残っていた課題（下記の修正で解消）：
 
-- [ ] `test/runtime/native_runtime_synth.test.mjs`：SCSP停止後の状態を借用クライアントへ渡す際、非発音の`null`が440 Hz／LFO／変調の既定値へ変換される。`tetorica_src/runtime/scspsynth.js`の`_adoptState`でinactive値の保持を検討する。今回assertionは弱めていない。
-- [ ] `test/runtime/playground_megacd_default.test.mjs`：現行starterが参照する`cdda`がテスト実行環境に渡されていない。移動前から`ReferenceError: cdda is not defined`で失敗する。
-- [ ] `test/wonderswan-analyzer.test.mjs:32`：現行の測定済みGain 1.172528に対し、古い固定期待値1をassertする。テスト本体とpresetは今回の移行前から未変更。
+- [x] `test/runtime/native_runtime_synth.test.mjs`：SCSP停止後の状態を借用クライアントへ渡す際、非発音の`null`が440 Hz／LFO／変調の既定値へ変換される。`tetorica_src/runtime/scspsynth.js`の`_adoptState`でinactive値の保持を検討する。今回assertionは弱めていない。
+- [x] `test/runtime/playground_megacd_default.test.mjs`：現行starterが参照する`cdda`がテスト実行環境に渡されていない。移動前から`ReferenceError: cdda is not defined`で失敗する。
+- [x] `test/wonderswan-analyzer.test.mjs:32`：現行の測定済みGain 1.172528に対し、古い固定期待値1をassertする。テスト本体とpresetは今回の移行前から未変更。
+
+### 既存失敗3件の修正（2026-11-04 完了）
+
+- [x] SCSP：停止済みslotの明示的な`null`を状態の受け渡しで保持する。発音中の値と旧形式の省略値の扱いも確認し、必要な回帰検証と公開runtimeへの反映を行う。
+- [x] Mega CD：starterが使う`cdda`を実際のAPIに沿ってテスト環境へ提供し、既存のPCM音程・無音gate・クリック負例の検証を維持する。
+- [x] WonderSwan：固定gain=1という古い期待値を測定済み既定値を確認する検証へ更新し、mute／seek／master gainの実WASM検証を維持する。
+- [x] PS1／WonderSwan／POKEY／SCSPの現行公開runtimeを完全matrixで再測定し、`*_state_restore_chip_levels_01.json`として追加する。旧reportの測定・SHAを保持し、新reportのraw source一致からpolicyを再生成する。SCSPは新baselineで`--verify`も完走させる。
+- [x] 関連テスト・校正／同期・全体`npm test`を確認し、既存3件を含めて全件成功を確認する。
+
+今回の修正・検証結果：
+
+- SCSPの`_adoptState`と`_adoptEditorState`が、停止済みを表す明示的な`null`を保持する。旧形式で省略された値だけは従来のpresetへfallbackする。発音中／release中の保持値、snapshotのコピー所有、RAM／nativeFramesを操作しない受け渡しを実WASMで回帰検証した。
+- Mega CDのstarter用テストを現行の8音フレーズ・PSG・実CD-DA offline rendererへ対応。PCMの音程・headroom・無音gate・旧クリックの負例を維持し、CD-DAの4秒stereo出力・完走・次フレーズでの全sample一致まで確認した。
+- WonderSwanの既定gain期待を新しい実測reportのvalidatorから導出し、実WASMで絶対指定gain=1のPCMへ既定gainが左右とも一度だけ適用されることを追加確認した。mute／seek／Stop／混合／master／WAV検証も維持した。
+- SCSPは他チップの校正でも読み込む共有runtimeのため、4系統を現在のsourceで完全再測定した。旧report／旧SHA／歴史的測定は維持。新reportでは全script・served sourceをraw SHAで照合し、古いreportは意味変更を検出してstaleとして拒否する。SCSPのscript provenanceは旧2keyか新2keyの完全な一方だけを認め、混在・欠落・別名併記を拒否する。
+
+| 新しい記録 | 結果 |
+| --- | --- |
+| [PS1](ps1_state_restore_chip_levels_01.json) | 48 PS1＋8 YM2612。全経路成功 |
+| [WonderSwan](wonderswan_state_restore_chip_levels_01.json) | 48 WonderSwan＋8 YM2612。全経路成功 |
+| [POKEY](pokey_state_restore_chip_levels_01.json) | 96 POKEY＋8 YM2612＋8 PSG＋8 Dual組合せ。全経路成功 |
+| [SCSP](scsp_state_restore_chip_levels_01.json) | 48 SCSP＋8 YM2612。全経路成功 |
+| [SCSP生成policyの確認](scsp_state_restore_chip_levels_verify_01.json) | 新baseline／既定gainによる48 SCSP＋8 YM2612。全経路成功 |
+
+- 全てChromium／WebKit、44.1／48kHz、Main／Workerを含む完全matrixで、物理出力を無音にして測定。独立pilotによるPCM連続性、Stop後の零出力を確認し、clock診断の異常は0件だった。
+- 再測定から両generatorを再実行し、`--check`も成功。PS1のprimary／extra 0.129331、WonderSwan 1.172528は維持。POKEYのprimary／extraは0.413052→0.413029、Dual各0.413051→0.413028、SCSP primaryは0.128825→0.128826へ微調整（最大相対差約0.006%）。SCSP extraは0.128826を維持。共通target amplitudeは変更していない。
+- `npm test`は**4,200件すべて成功、失敗・skipとも0**。追加した回帰3件を含む。関連130件、SCSPソース型検証、校正・生成器・改変拒否・歴史保持の545件も成功。
+- npm buildは345 modules／28 engine pairs／396 declarations。ローカルの実tarballをinstallして全28 WASM・15 renderers・PCM・NodeNext／Bundler／Browser型・source／license／receiptを検証した。
+- Playground／Analyzer／Synthの実ZIP作成・依存・source／license・全CRC確認が成功。最新のSCSP／生成policyの同梱を確認し、Playground再生成対象11ファイルも実行前後で完全一致した。
+- GitHub Actionsの現行report参照とSCSP新provenance／状態復元／`--verify`を更新した。Actionsのリモート実行・公開・commit／pushは行っていない。
 
 独自実装の移動は下記第3段階で完了した。ymfm由来の`src/`・`examples/`は維持している。
 

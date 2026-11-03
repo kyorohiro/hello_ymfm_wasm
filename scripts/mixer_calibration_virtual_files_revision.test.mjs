@@ -27,12 +27,9 @@ const reports=[
 const immutable={
   'docs/issues/playground_chip_levels_01.json':'9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234',
   ...Object.fromEntries(reports.map(([path,hash])=>[path,hash])),
-  'docs/playground/playground_mixer_defaults.js':'1cc57e78a582ea9010a7ca5fda86d9f24344d5786c99a6ba1e6ebc164b19453a',
-  'docs/js/soundchip_mixer_presets.js':'acd83313d9488212e1f69cf0fcc0701cd0b644f5cefbd39c36994f3d23f08a56',
-  'tetorica_src/runtime/soundchip_mixer_presets.js':'57ce08eda7e67938dc3301d8259b9f1c3ab38faa66dd989227d5af64064d371f',
 };
 
-test('the exact reviewed Git and Shell revisions preserve all four complete measurements and generated gain bytes',async()=>{
+test('the exact reviewed Git and Shell revisions preserve all four historical measurements and cannot authorize a semantic SCSP edit',async()=>{
   for(const [path,expected]of Object.entries(immutable))assert.equal(sha(await read(path)),expected,path);
   for(const [reportPath,,parameter,validate]of reports){
     const report=JSON.parse(await read(reportPath)),original=JSON.stringify(report);
@@ -42,7 +39,9 @@ test('the exact reviewed Git and Shell revisions preserve all four complete meas
       assert.equal(isMixerCalibrationVirtualFilesRevision(path,bytes,record),true,path);
       assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record,report}),'ui-virtual-files',path);
     }
-    await validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report});
+    await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report}),
+      /source changed; remeasure: (?:docs\/js|web)\/scspsynth\.js/,
+      'The reviewed Git/Shell revision does not authorize a later semantic SCSP edit');
     assert.equal(JSON.stringify(report),original,'Validation must retain every captured result and original source hash');
   }
   for(const [path,expected]of Object.entries(immutable))assert.equal(sha(await read(path)),expected,'Validation must not rewrite '+path);

@@ -11,9 +11,9 @@ import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mj
 
 const root=new URL('../',import.meta.url),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 for(const [kind,parameter,validate,current,prior]of [
-  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_loop_fm_chip_levels_01','ps1_scsp_fm_chip_levels_01'],
-  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_scsp_fm_chip_levels_01','wonderswan_vab_chip_levels_01'],
-  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_scsp_fm_chip_levels_01','pokey_vab_chip_levels_01'],
+  ['ps1','ps1Report',validatePs1MixerCalibrationSources,'ps1_state_restore_chip_levels_01','ps1_loop_fm_chip_levels_01'],
+  ['wonderswan','wsReport',validateWonderSwanMixerCalibrationSources,'wonderswan_state_restore_chip_levels_01','wonderswan_scsp_fm_chip_levels_01'],
+  ['pokey','pokeyReport',validatePokeyMixerCalibrationSources,'pokey_state_restore_chip_levels_01','pokey_scsp_fm_chip_levels_01'],
 ])test(`${kind} latest complete measurement matches current scripts and served sources`,async()=>{
   const path=`docs/issues/${current}.json`,bytes=await readFile(new URL(path,root)),report=JSON.parse(bytes);
   const old=await readFile(new URL(`docs/issues/${prior}.json`,root));assert.notEqual(sha(bytes),sha(old));
@@ -21,10 +21,13 @@ for(const [kind,parameter,validate,current,prior]of [
   for(const [path,expected]of Object.entries(report.scripts))assert.equal(sha(await readFile(new URL(path,root))),expected,path);
   for(const [path,record]of Object.entries(report.sources)) {
     const actual=await readFile(new URL('docs/'+path,root));
-    assert(['raw','ui-scsp-layout','ui-scsp-editor','ui-keyboard-octave','ui-virtual-files'].includes(assertMixerCalibrationSourceFreshness({path,bytes:actual,record})),path);
+    assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:actual,record}),'raw',path);
   }
   assert.equal(sha(await readFile(new URL(path,root))),sha(bytes),'Validation must not edit a measurement');
   assert.equal(sha(await readFile(new URL(`docs/issues/${prior}.json`,root))),sha(old),'Prior measurements remain untouched');
+  await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:JSON.parse(old)}),
+    /served DSP\/WASM source changed; remeasure: docs\/js\/scspsynth\.js/,
+    'A semantic SCSP state fix requires new measurement provenance');
 });
 
 test('prior PS1 SCSP measurement remains valid immutable history and rejects the newer loop SDK as stale',async()=>{

@@ -15,7 +15,7 @@ import moduleFactory from '../../docs/generated/ym2612_wasm.js';
 
 const report = JSON.parse(await readFile(new URL('../../docs/issues/playground_chip_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const measured = buildPlaygroundMixerDefaults(report);
-const scspReport=JSON.parse(await readFile(new URL('../../docs/issues/scsp_fm_chip_levels_01.json',runtimeDirectoryUrl),'utf8'));
+const scspReport=JSON.parse(await readFile(new URL('../../docs/issues/scsp_state_restore_chip_levels_01.json',runtimeDirectoryUrl),'utf8'));
 const scspCalibration=validateScspMixerCalibration(report,scspReport);
 const psgReport = JSON.parse(await readFile(new URL('../../docs/issues/soundchip_psg_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const reducedPsg = {segapsg: 0.455420, ay8910: 1.100331, nes: 1.514209};

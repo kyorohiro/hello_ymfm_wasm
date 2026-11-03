@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 import {buildScspCalibrationReference} from './soundchip_calibration_scsp.mjs';
 import {validateScspMixerCalibration,validateScspMixerCalibrationSources,isScspCalibrationSourceLayoutRevision} from './scsp_mixer_calibration.mjs';
 import {buildPlaygroundMixerPolicy,generatePlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
@@ -14,6 +15,7 @@ const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
+const currentScspReportPath='docs/issues/scsp_state_restore_chip_levels_01.json';
 
 test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
  for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
@@ -26,8 +28,38 @@ test('source relocation retains the exact measured SCSP script digests and rejec
   assert.equal(isScspCalibrationSourceLayoutRevision('scripts/other.mjs',bytes,expected),false,path);
  }
  const before=await readFile(scspReportPath);
- await validateScspMixerCalibrationSources({reportPath,scspReport:report});
+ await assert.rejects(validateScspMixerCalibrationSources({reportPath,scspReport:report}),
+   /script source changed; remeasure: web\/scspsynth\.js/);
  assert.deepEqual(await readFile(scspReportPath),before,'Captured provenance keys and hashes stay unchanged');
+});
+
+test('SCSP script provenance accepts a complete historical or current layout and rejects aliases, mixtures and missing keys',()=>{
+ const expected=validateScspMixerCalibration(historical,report),current=structuredClone(report);
+ const aliases={'web/scspsynth.js':'tetorica_src/runtime/scspsynth.js','web/soundchip_pitch.js':'tetorica_src/runtime/soundchip_pitch.js'};
+ for(const [before,after]of Object.entries(aliases)){current.scripts[after]=current.scripts[before];delete current.scripts[before];}
+ assert.deepEqual(validateScspMixerCalibration(historical,current),expected,'Path layout alone does not reinterpret measurement units');
+ for(const mutate of [
+   r=>delete r.scripts['web/scspsynth.js'],
+   r=>{r.scripts['tetorica_src/runtime/scspsynth.js']=r.scripts['web/scspsynth.js'];delete r.scripts['web/scspsynth.js'];},
+   r=>{r.scripts['tetorica_src/runtime/scspsynth.js']=r.scripts['web/scspsynth.js'];},
+   r=>{r.scripts['tetorica_src/runtime/soundchip_pitch.js']=r.scripts['web/soundchip_pitch.js'];},
+ ]){const bad=structuredClone(report);mutate(bad);assert.throws(()=>validateScspMixerCalibration(historical,bad),/source provenance layout/);}
+ for(const path of Object.values(aliases))for(const mutate of [r=>delete r.scripts[path],r=>{r.scripts[path]='invalid';}]){
+   const bad=structuredClone(current);mutate(bad);assert.throws(()=>validateScspMixerCalibration(historical,bad),/provenance/);
+ }
+});
+
+test('new complete SCSP measurement matches every current script and served source without a hash exception',async()=>{
+ const bytes=await readFile(new URL('../'+currentScspReportPath,import.meta.url)),current=JSON.parse(bytes);
+ await validateScspMixerCalibrationSources({reportPath,scspReport:current});
+ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+ for(const [path,expected]of Object.entries(current.scripts))assert.equal(sha(await readFile(new URL('../'+path,import.meta.url))),expected,path);
+ for(const [path,record]of Object.entries(current.sources)){
+   const actual=await readFile(new URL('../docs/'+path,import.meta.url));assert.equal(actual.length,record.bytes,path);assert.equal(sha(actual),record.sha256,path);
+ }
+ const edited=structuredClone(current);edited.scripts['tetorica_src/runtime/scspsynth.js']='0'.repeat(64);
+ await assert.rejects(validateScspMixerCalibrationSources({reportPath,scspReport:edited}),/script source changed; remeasure: tetorica_src\/runtime\/scspsynth\.js/);
+ assert.deepEqual(await readFile(new URL('../'+currentScspReportPath,import.meta.url)),bytes,'Freshness validation never edits measurements');
 });
 
 test('PSG source relocation retains original full digests and rejects DSP, import or unknown-file changes',async()=>{
@@ -56,7 +88,7 @@ test('SCSP reference declares full-scale signed PCM16, exact symmetry, physical 
 });
 
 test('48 SCSP and eight anchor captures derive only the two canonical gains without changing history',async()=>{
- const before=JSON.stringify({historical,report}),result=await validateScspMixerCalibrationSources({reportPath,scspReport:report});
+ const before=JSON.stringify({historical,report}),result=validateScspMixerCalibration(historical,report);
  assert.equal(result.primaryVolume,report.calibration.routes.find(r=>r.role==='primary').volume);assert.equal(result.extraVolume,report.calibration.routes.find(r=>r.role==='extra').volume);assert(Math.abs(result.primaryVolume-.128825)<.00005);assert.equal(result.metadata.measuredSCSPCaptures,48);assert.equal(result.metadata.measuredAnchorCaptures,8);
  assert.equal(JSON.stringify({historical,report}),before);
  const legacy=buildPlaygroundMixerPolicy(historical),extended=buildPlaygroundMixerPolicy(historical,undefined,undefined,undefined,report);
@@ -80,6 +112,7 @@ test('partial, mistuned, clipped, reordered, normalized and edited-gain reports 
 });
 
 test('both generators check SCSP source provenance before writing; CLI opt-out and flag conflicts are independent',async t=>{
+ const report=await read(currentScspReportPath);
  const directory=await mkdtemp(join(tmpdir(),'scsp-policy-'));t.after(()=>rm(directory,{recursive:true,force:true}));
  const extension=join(directory,'report.json'),outPath=join(directory,'out.js');
  for(const [name,generate]of [['generate_playground_mixer_defaults.mjs',generatePlaygroundMixerDefaults],['generate_soundchip_mixer_presets.mjs',generateSoundChipMixerPresets]]){
@@ -96,6 +129,19 @@ test('both generators check SCSP source provenance before writing; CLI opt-out a
 
 test('generated SCSP gains pass an independent complete 48-route policy verification with unchanged anchors and silence after Stop',async()=>{
  const verify=await read('docs/issues/scsp_fm_chip_levels_verify_01.json');
+ assert.equal(verify.passed,true);assert.equal(verify.verify,true);assert.equal(verify.completeCoverage,true);assert.equal(verify.rows.length,48);assert.equal(verify.anchors.length,8);
+ assert.deepEqual(verify.baseline,report.baseline);assert.deepEqual(verify.scripts,report.scripts);assert.deepEqual(verify.sources,report.sources);assert.deepEqual(verify.calibration,report.calibration);
+ assert.equal(verify.physicalOutputMuted,true);assert.equal(verify.listeningPerformed,false);assert.equal(verify.pcmContinuous,true);
+ for(const row of verify.rows){
+  const raw=report.rows.find(r=>['engine','requestedSampleRate','execution','role','frequencyHz'].every(k=>r[k]===row[k]));assert(raw);
+  const volume=report.calibration.routes.find(r=>r.role===row.role).volume;assert.equal(row.mixer.settings.volume,volume);
+  assert(Math.abs(row.amplitude/(raw.amplitude*volume)-1)<.025);assert(row.channelRmsRelativeErrors.every(e=>e<.025));
+  assert(row.pcm.pilot.continuous&&row.stopped.pilot.continuous);assert(row.stopped.channels.every(c=>c.nonzero===0));
+ }
+});
+
+test('the state-restoration revision passes a new complete SCSP policy verification with exact current provenance',async()=>{
+ const report=await read(currentScspReportPath),verify=await read('docs/issues/scsp_state_restore_chip_levels_verify_01.json');
  assert.equal(verify.passed,true);assert.equal(verify.verify,true);assert.equal(verify.completeCoverage,true);assert.equal(verify.rows.length,48);assert.equal(verify.anchors.length,8);
  assert.deepEqual(verify.baseline,report.baseline);assert.deepEqual(verify.scripts,report.scripts);assert.deepEqual(verify.sources,report.sources);assert.deepEqual(verify.calibration,report.calibration);
  assert.equal(verify.physicalOutputMuted,true);assert.equal(verify.listeningPerformed,false);assert.equal(verify.pcmContinuous,true);

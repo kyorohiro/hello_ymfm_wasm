@@ -62,7 +62,14 @@ const pathSafe=path=>typeof path==='string'&&path.length>0&&!path.startsWith('/'
 
 function validateProvenance(report){
   if(!report.scripts||typeof report.scripts!=='object'||Array.isArray(report.scripts))fail('missing script provenance');
-  if(SCSP_CALIBRATION_REQUIRED_SCRIPTS.some(path=>!digest(report.scripts[path])))fail('missing required runner/reference/pilot/baseline provenance');
+  // A measurement records either complete source layout, never a mixture of
+  // logical historical keys and current physical paths. Digests remain raw.
+  const previous=Object.keys(relocatedSourcePaths),current=Object.values(relocatedSourcePaths);
+  const previousCount=previous.filter(path=>Object.hasOwn(report.scripts,path)).length;
+  const currentCount=current.filter(path=>Object.hasOwn(report.scripts,path)).length;
+  if(previousCount&&currentCount)fail('mixed historical and current source provenance layouts');
+  if(previousCount!==previous.length&&currentCount!==current.length)fail('missing required source provenance layout');
+  if(SCSP_CALIBRATION_REQUIRED_SCRIPTS.some(path=>!digest(report.scripts[currentCount?relocatedSourcePaths[path]??path:path])))fail('missing required runner/reference/pilot/baseline provenance');
   if(report.scripts[SCSP_CALIBRATION_BASELINE_PATH]!==SCSP_CALIBRATION_BASELINE_SHA256)fail('historical baseline SHA does not match');
   for(const [path,hash]of Object.entries(report.scripts))if(!pathSafe(path)||!digest(hash))fail('invalid script hash or path');
   if(!report.sources||typeof report.sources!=='object'||Array.isArray(report.sources))fail('missing served DSP/WASM provenance');

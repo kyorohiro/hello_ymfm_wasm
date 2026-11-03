@@ -143,3 +143,45 @@ test('protected full editor RAM fails atomically and Stop permits reuse without 
  assert.throws(()=>synth._editPCM(0,pcm,options),/RAM is full or protected/);assert.deepEqual(synth.getState(),before);assert.deepEqual(core.readRam(0,524288),bytes);
  synth.stopVoices();const reused=synth._editPCM(0,pcm,options);assert.equal(reused.address,c.address);assert.equal(synth.getState().ramUsedBytes,before.ramUsedBytes);assert.equal(synth.getState().slots[1].sample.id,a.id);
 });
+
+for(const adopt of ['_adoptState','_adoptEditorState'])test(`${adopt} preserves stopped nulls, released voice settings and owned transport state`,async t=>{
+ const {synth}=await create(t),target=await create(t),{pcm,options}=createScspInitSample();
+ const sample=synth.loadPCM(pcm,{...options,modulationDepth:2});
+ synth.setPreset(31,{sample,frequencyHz:660,envelope:{releaseRate:0},lfo:{frequencyCode:17,pitchDepth:2},modulation:{depth:2,xOffset:1,yOffset:3}});
+ const transfer=state=>adopt==='_adoptState'?target.synth._adoptState(state):target.synth._adoptEditorState(31,state);
+ const ram=target.core.readRam(0,256);target.synth.generateStereo(7);
+ const frames=target.synth.nativeFrames;
+ for(const phase of ['idle','held','released','stopped','reset']) {
+  if(phase==='held')synth.keyOn(31);
+  if(phase==='released'){
+   synth.keyOff(31);
+   synth.setPreset(31,{frequencyHz:880,lfo:{frequencyCode:5,pitchDepth:0},modulation:{depth:1,xOffset:7,yOffset:9}});
+   assert(peak(synth.generateStereo(128).left)>0,'releaseRate zero keeps the released voice audible');
+  }
+  if(phase==='stopped')synth.stopVoices();
+  if(phase==='reset')synth.reset();
+  const state=synth.getState();transfer(state);
+  assert.deepEqual(target.synth.getState(),state,phase+' snapshot must retain explicit nulls and active values');
+  assert.equal(target.synth.nativeFrames,frames,'metadata handoff must not reset or render the core');
+  assert.deepEqual(target.core.readRam(0,256),ram,'metadata handoff must not replay RAM uploads');
+  if(phase==='released'){
+   const adopted=target.synth.getState();
+   assert.equal(adopted.playingFrequencies[31],660);assert.equal(adopted.slots[31].frequencyHz,880);
+   state.playingLfos[31].frequencyCode=0;state.playingModulations[31].depth=0;
+   assert.deepEqual(target.synth.getState(),adopted,'handoff must own the mutable playing settings');
+  }
+ }
+});
+
+test('legacy snapshots with omitted playing settings retain preset fallbacks',async t=>{
+ const {synth}=await create(t),target=await create(t);init(synth,31,{frequencyHz:880,lfo:{frequencyCode:7}});
+ const state=synth.getState();
+ delete state.playingFrequencies;delete state.playingLfos;delete state.playingModulations;
+ for(const adopt of ['_adoptState','_adoptEditorState']){
+  if(adopt==='_adoptState')target.synth._adoptState(state);else target.synth._adoptEditorState(31,state);
+  const restored=target.synth.getState();
+  assert.equal(restored.playingFrequencies[31],880);
+  assert.deepEqual(restored.playingLfos[31],state.slots[31].lfo);
+  assert.deepEqual(restored.playingModulations[31],state.slots[31].modulation);
+ }
+});

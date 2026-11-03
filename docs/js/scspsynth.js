@@ -256,17 +256,19 @@ export class ScspSynth {
     slot=this.#slot(slot);this._adoptResources(state);const v=state.slots[slot];
     this.#voices[slot]={...v,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation},sample:v.sample?this._resolveSample(v.sample):null};
     this.#gates[slot]=!!v.gate;
-    this.#playingFrequencies[slot]=state.playingFrequencies?.[slot]??v.frequencyHz;
-    this.#playingLfos[slot]=state.playingLfos?.[slot]??{...lfoDefaults(),...v.lfo};
-    this.#playingModulations[slot]={...modulationDefaults(),...(state.playingModulations?.[slot]??v.modulation)};
+    const frequency=state.playingFrequencies?.[slot],playingLfo=state.playingLfos?.[slot],playingModulation=state.playingModulations?.[slot];
+    // null means stopped; only an omitted field in an older snapshot falls back.
+    this.#playingFrequencies[slot]=frequency===undefined?v.frequencyHz:frequency;
+    this.#playingLfos[slot]=playingLfo===null?null:{...lfoDefaults(),...(playingLfo??v.lfo)};
+    this.#playingModulations[slot]=playingModulation===null?null:{...modulationDefaults(),...(playingModulation??v.modulation)};
     const id=state.playingSampleIds?.[slot];this.#playing[slot]=id==null?null:this.#samples.get(id)??null;
   }
   _adoptState(state) {
     this._adoptResources(state);
     this.#voices=state.slots.map(v=>({...v,sample:v.sample?this._resolveSample(v.sample):null,envelope:{...v.envelope},lfo:{...lfoDefaults(),...v.lfo},modulation:{...modulationDefaults(),...v.modulation}}));
-    this.#playingFrequencies=state.slots.map((v,i)=>state.playingFrequencies?.[i]??v.frequencyHz);
-    this.#playingLfos=state.slots.map((v,i)=>state.playingLfos?.[i]?{...state.playingLfos[i]}:{...lfoDefaults(),...v.lfo});
-    this.#playingModulations=state.slots.map((v,i)=>({...modulationDefaults(),...(state.playingModulations?.[i]??v.modulation)}));
+    this.#playingFrequencies=state.slots.map((v,i)=>state.playingFrequencies?.[i]===undefined?v.frequencyHz:state.playingFrequencies[i]);
+    this.#playingLfos=state.slots.map((v,i)=>state.playingLfos?.[i]===null?null:state.playingLfos?.[i]?{...state.playingLfos[i]}:{...lfoDefaults(),...v.lfo});
+    this.#playingModulations=state.slots.map((v,i)=>state.playingModulations?.[i]===null?null:({...modulationDefaults(),...(state.playingModulations?.[i]??v.modulation)}));
     this.#gates=state.slots.map(v=>!!v.gate);this.#playing=state.playingSampleIds?state.playingSampleIds.map(id=>id==null?null:this.#samples.get(id)??null):this.#voices.map(v=>v.sample);
   }
   /** Trusted transport staging: copy pool reservations without sharing pages. */

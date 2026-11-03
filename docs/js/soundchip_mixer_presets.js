@@ -125,7 +125,7 @@ export const SOUNDCHIP_MIXER_PRESETS = freeze({
         },
         {
           "name": "pokey",
-          "volume": 0.413052
+          "volume": 0.413029
         },
         {
           "name": "scsp",

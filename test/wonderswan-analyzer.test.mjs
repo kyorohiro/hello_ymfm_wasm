@@ -8,6 +8,12 @@ import {getNodePlaybackFactory,renderSource} from '../tetorica_src/cli/render.js
 import {inspectSourceSupport,listSourceScoreChannels,exportSource,analyzeSource} from '../docs/vgm_analyzer/analyzer_core.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 import {sourcesForChip} from '../docs/vgm_analyzer/source_mutes.js';
+import {validateWonderSwanMixerCalibration} from '../scripts/wonderswan_mixer_calibration.mjs';
+
+const calibrationBaseline=JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url),'utf8'));
+const wonderswanCalibration=JSON.parse(await readFile(new URL('../docs/issues/wonderswan_state_restore_chip_levels_01.json',import.meta.url),'utf8'));
+// The shared source-unit preset uses the independent instrument (extra) route.
+const {extraVolume:wonderswanGain}=validateWonderSwanMixerCalibration(calibrationBaseline,wonderswanCalibration);
 
 async function open(bytes,{mute=[],volume=1}={}) {
   const parser=new Ym2612VGM(bytes),configuration=selectPlaybackConfiguration(parser);
@@ -29,12 +35,16 @@ test('WonderSwan shared playback policy, four mutes, centered output, seek and S
     assert.equal(f.configuration.kind,'wonderswan');assert.deepEqual(f.configuration.chips.map(c=>c.id),['wonderswan']);
     assert.deepEqual(playbackMuteControls(f.configuration).map(c=>c.id),[1,2,3,4].map(ch=>'wonderswan-ch-'+ch));
     assert.deepEqual(sourcesForChip('wonderswan'),[]);
-    assert.deepEqual([...f.engine.playbackMixer.strips.keys()],['wonderswan']);assert.equal(f.engine.playbackMixer.get('wonderswan').gain,1);
+    assert.deepEqual([...f.engine.playbackMixer.strips.keys()],['wonderswan']);assert.equal(f.engine.playbackMixer.get('wonderswan').gain,wonderswanGain);
     const reference=pull(f.player,20000,[1,7,113,257]);assert(reference.left.some(v=>v<0)&&reference.left.some(v=>v>0));
     assert(reference.left.every(Number.isFinite));assert.equal(f.engine.chip.readMemory(0x1200),255);assert.equal(f.player.supportsState(),false);
     await seekPlayback(f.player,1379,{yieldTask:async()=>{}});f.player.play();
     const sought=pull(f.player,4096,[31]);assert.deepEqual(sought.left,reference.left.slice(1379,1379+4096));
     f.player.stop();f.player.play();assert.deepEqual(pull(f.player,20000,[113]).left,reference.left);
+    f.engine.playbackMixer.set('wonderswan',{gain:1});f.player.stop();f.player.play();
+    assert.equal(f.engine.playbackMixer.get('wonderswan').gain,1,'An explicit source gain replaces the calibrated default');
+    const unity=pull(f.player,20000,[113]);
+    for(const channel of ['left','right'])assert.deepEqual(reference[channel],Float32Array.from(unity[channel],v=>v*wonderswanGain),'The measured source gain is applied exactly once to real WASM PCM');
   }finally{f.engine.dispose();}
   const full=await pcm(bytes),half=await pcm(bytes,{volume:.5});assert.deepEqual(half.left,Float32Array.from(full.left,v=>v*.5));
   assert((await pcm(bytes,{mute:['wonderswan-ch-3']})).left.every(v=>v===0));
