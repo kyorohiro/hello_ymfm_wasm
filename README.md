@@ -1,15 +1,20 @@
-# Tetorica FM2612 — Retro sound chips for JavaScript and WebAssembly
+# Tetorica — Retro sound chips for JavaScript, WebAssembly and C/C++
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Tetorica is a sound-chip laboratory for learning, investigating and creating retro game sounds.
-It began with the Mega Drive / Genesis YM2612 and now includes reusable WASM cores,
-low-level JavaScript / TypeScript APIs, live coding, synthesizers and music-file analysis.
-Use the browser tools to explore a chip, then use the same audio building blocks in your own app or game.
+Tetorica is a toolkit for learning, playing and embedding many retro sound chips:
+Yamaha FM, Sega PSG, Game Boy / NES APUs, SNES S-DSP, PlayStation SPU, Saturn SCSP and more.
+[Try the chips immediately in the browser Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html), with no installation.
+
+For your own apps and games, the **[`tetorica-fm2612` npm package](https://www.npmjs.com/package/tetorica-fm2612)**
+provides **high-level Synth APIs** for musical notes, presets and chip-specific sound controls,
+alongside **low-level register / RAM / PCM APIs**, TypeScript declarations and **prebuilt WASM**.
+Reusable **native C/C++ cores** and build recipes are available through
+[`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native).
 
 ## Project goals
 
-This repository has four goals:
+These four goals began with YM2612 and now guide the wider sound-chip toolkit:
 
 - To understand the YM2612 chip.
 - To create documentation that helps anyone understand the YM2612 chip.
@@ -30,7 +35,8 @@ This repository has four goals:
 | --- | --- |
 | Try the tools without installing anything | [Browser home](https://kyorohiro.github.io/hello_ymfm_wasm/) · [itch.io](https://kyorohiro.itch.io/) |
 | Get prebuilt WASM and low-level JavaScript | [`tetorica-fm2612` on npm](https://www.npmjs.com/package/tetorica-fm2612) · [API entry points](packages/fm2612/README.md#api-entry-points) · [WASM and source layout](tetorica_src/runtime/README.md) |
-| Embed an instrument, audio playback or live coding | [Synth / transport APIs](packages/fm2612/README.md) · [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) · [runnable Web / Node examples](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| Use high-level npm APIs for notes, presets and audio playback | [Synth / transport API catalog](packages/fm2612/README.md#api-entry-points) · [runnable Web / Node examples](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| Embed live coding in my app | [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) |
 | Inspect music files or extract instruments / scores | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) · [`tetorica-vgm` CLI / Node API](packages/vgm/README.md) |
 | Reuse the C / C++ cores or build a native plug-in | [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) · [SPU plug-in source / previews](https://github.com/kyorohiro/tetorica-spu-plugin) |
 | Add virtual files, Shell or Git to an editor | [`tetorica-virtual-files`](packages/virtual-files/README.md) · [npm](https://www.npmjs.com/package/tetorica-virtual-files) |
@@ -107,12 +113,18 @@ YM2612 defaults to ymfm; the optional Nuked-OPN2 backend has separate licensing.
 <a id="download"></a>
 <a id="npm-packages"></a>
 <a id="tetorica-fm2612"></a>
+<a id="get-wasm-and-low-level-javascript"></a>
 
-## Get WASM and low-level JavaScript
+## Use the npm APIs, WASM and native cores
 
 ```sh
 npm install tetorica-fm2612
 ```
+
+The `tetorica-fm2612` npm package includes many sound chips.
+Use its [high-level Synth APIs](packages/fm2612/README.md#api-entry-points) for notes,
+presets and instruments, or its low-level APIs for registers, RAM and PCM.
+Available controls and import paths vary by chip.
 
 The package contains ES modules, TypeScript declarations, prebuilt `generated/*_wasm.js`
 loaders and matching `.wasm`, source archives and component notices. Browser and Node.js

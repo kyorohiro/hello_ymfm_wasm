@@ -1,11 +1,11 @@
-# Tetorica — AI/SI向け作業引継ぎ
+# Tetorica — AI/SI development handoff
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-更新日：2026-11-03（独自実装を`tetorica_src/`へ集約）。AIがリポジトリーを調べ、作業を再開するための入口です。
-この文書は設計・作業状況の記録です。再開時は最新のユーザー依頼、実際のソース、Gitの状態を確認してください。記載された日付時点の検証結果を、最新の公開版の保証として扱わないでください。
+Updated: 2026-11-04 (English handoff; clarified the multi-chip toolkit and its API layers; Tetorica's own implementations are consolidated under `tetorica_src/`). This is an entry point for AI agents investigating the repository and resuming work.
+This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
-## まず確認すること
+## Check these first
 
 ```sh
 pwd
@@ -15,122 +15,131 @@ git diff --cached
 git log -8 --oneline
 ```
 
-- ユーザーが編集中・ステージ済みの変更を保持する。作業開始時の差分を確認し、自分の変更と区別する。
-- 作業対象に適用される`AGENTS.md`があれば読む。
-- 親リポジトリーと、ローカルの別リポジトリーを取り違えない。`w/`内の変更・commitは、親のcommitに自動では含まれない。
-- ローカル実装、配布用生成物、npm公開版、GitHub / itch.ioの公開版を区別する。公開済みかどうかは、リリース記録と対象配布物で確認する。
-- この文書の過去の作業記録だけを根拠に、公開・push・新しい機能の実装を開始しない。現在の依頼に対応する作業を進める。
+- Preserve the user's in-progress and staged changes. Inspect the initial diff and distinguish those changes from your own.
+- Read any `AGENTS.md` that applies to the files you will work on.
+- Distinguish the parent repository from separate local repositories. Changes and commits inside `w/` are not automatically included in a parent-repository commit.
+- Distinguish local implementations, generated distribution artifacts, published npm packages and releases on GitHub / itch.io. Confirm publication through release records and the actual distribution artifacts.
+- Historical work records in this document do not authorize publishing, pushing or implementing a new feature. Work on the current request.
 
-## プロジェクトの方向性とREADMEの役割
+## Project direction and the role of each README
 
-Tetoricaは、JavaScriptでメガドライブ、ゲームボーイ、ファミコンなどのレトロゲームサウンドをライブコーディングするためのツール群です。音源チップを楽器として演奏し、自作のゲームやアプリにも組み込める環境を目指しています。古いゲーム音楽と音源技術を、調べて再構成できる形で残すことも重視しています。
+Tetorica is a toolkit for learning, playing and embedding many retro sound chips: Yamaha FM, Sega PSG, Game Boy / NES APUs, SNES S-DSP, PlayStation SPU, Saturn SCSP and more. Its original YM2612 goals now guide the wider toolkit. Preserving old game music and sound technology in a form that people can investigate and reconstruct is also a priority.
 
-2026-10-10のREADME整理で決めたこと：
+Keep these entry points clear in user-facing documentation:
 
-- 日英のREADMEは利用者向けの導入にする。成果物の一覧、アプリへの入口、npmの簡単な利用例を置く。
-- アプリの「最初の操作」やPlaygroundのライブコーディング例は、READMEには不要というユーザー方針。実際のアプリを開いてもらう。
-- 「Help and bug reports／ヘルプと不具合報告」の節も、日英READMEから削除するユーザー方針。
-- npmパッケージのYM2612ド・レ・ミ例は残す。これは音源APIを使うブラウザー向けの例で、Playground内のコードではない。
-- 「プロジェクトの目標」は、YM2612の理解、理解のためのドキュメント、アプリ・ゲームへの組み込みのためのドキュメント、文化的な遺産としての保存という従来の4項目を維持する。ユーザーは、この具体的な目標一覧を好んでいる。
-- チップごとの詳細、制約、実装・検証メモは`Memo.md`へ移す。ライセンスとクレジットはREADMEにも残す。
-- ダウンロード説明と古い固定バージョン表記は削除。配布物の作成・検証・公開手順は`README_RELEASE.md`へ移す。
-- ファイル名は`README.ja.md`、AI向けはユーザー指定の`READMD.ai.md`。`READMD`という綴りを勝手に変更しない。
+- **Try immediately:** the [browser Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) lets users try supported chips and live coding without installation.
+- **High-level npm APIs:** the [`tetorica-fm2612` package](https://www.npmjs.com/package/tetorica-fm2612) provides Synth helpers for musical notes, presets and chip-specific sound controls, plus audio transports and an embeddable live-code runtime. The package name remains unchanged despite its multi-chip scope. Use the [API catalog](packages/fm2612/README.md#api-entry-points) for the actual imports and signatures.
+- **Low-level APIs and WASM:** the same package provides register / RAM / PCM APIs, TypeScript declarations and prebuilt WASM. The [runtime source guide](tetorica_src/runtime/README.md) identifies wrappers and the complete generated artifact catalog.
+- **Native C/C++:** reusable cores and build recipes are provided through [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) for native apps and plug-ins.
 
-## ドキュメントの参照先
+API and backend coverage varies by chip. PS1 SPU and SCSP use explicit npm subpath imports; their Playground chip names are not automatically valid arguments to the package-root factory. Keep the original four goals while making this broader scope visible near the top of both user READMEs.
 
-| 調べたいこと | 参照先 |
+Decisions made during the README reorganization on 2026-10-10:
+
+- Keep the English and Japanese READMEs as introductions for users, with an overview of the deliverables, links to the apps and simple npm usage examples.
+- The user requested that app first-use instructions and Playground live-coding examples stay out of the READMEs. Direct readers to the actual apps.
+- The user also requested removing the “Help and bug reports” section from both user READMEs.
+- Retain the npm package's YM2612 do–re–mi example. It is a browser example using the sound-chip API, not code to run inside the Playground.
+- Preserve the four established project goals: understanding the YM2612, documenting it so anyone can understand it, documenting how to embed it in apps and games, and preserving the technology as cultural heritage. The user values this specific list of goals.
+- Move chip-specific details, limitations, implementation notes and verification records to `Memo.md`. Keep licensing and credits in the READMEs as well.
+- Remove download instructions and outdated fixed version numbers. Put artifact creation, verification and publication procedures in `README_RELEASE.md`.
+- Use `README.ja.md` for the Japanese README and the user-specified filename `READMD.ai.md` for the AI handoff. Do not silently change the spelling `READMD`. Write this AI handoff in English.
+
+## Documentation references
+
+| What to investigate | Reference |
 | --- | --- |
-| 利用者向けの概要 | [README.md](README.md)、[README.ja.md](README.ja.md) |
-| チップ別の再生・制約・実装メモ | [Memo.md](Memo.md)（日英。元のSN76489参考リンクも保持） |
-| 機能単位の対応状況 | [docs/feature-status.md](docs/feature-status.md) |
-| Analyzerの対応表 | [docs/vgm_analyzer/support.html](docs/vgm_analyzer/support.html) |
-| CLI / Node APIと形式別の制約 | [CLI.md](CLI.md) |
-| 配布物の作成とリリース手順 | [README_RELEASE.md](README_RELEASE.md) |
-| npmの公開記録と手順 | [READMD_RELEASE_FM2612.md](READMD_RELEASE_FM2612.md)、[READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) |
-| 音源パッケージのAPI・モジュール一覧 | [packages/fm2612/README.md](packages/fm2612/README.md) |
-| VGMパッケージの利用例 | [packages/vgm/README.md](packages/vgm/README.md) |
-| 仮想ファイルとシェルのAPI | [packages/virtual-files/README.md](packages/virtual-files/README.md) |
-| 設計・個別機能の作業記録 | [docs/issues/](docs/issues/) |
-| 音声出力の設計 | [docs/issues/tetorica-audio-output.md](docs/issues/tetorica-audio-output.md) |
-| 仮想ファイル／シェルの設計経緯 | [docs/issues/tetorica-virtual-files.md](docs/issues/tetorica-virtual-files.md)、[docs/issues/tetorica-virtual-files-01.md](docs/issues/tetorica-virtual-files-01.md) |
+| User-facing overview | [README.md](README.md), [README.ja.md](README.ja.md) |
+| Chip-specific playback, limitations and implementation notes | [Memo.md](Memo.md) (English and Japanese; also preserves the original SN76489 reference links) |
+| Support status by feature | [docs/feature-status.md](docs/feature-status.md) |
+| Analyzer support matrix | [docs/vgm_analyzer/support.html](docs/vgm_analyzer/support.html) |
+| CLI / Node API and format-specific limitations | [CLI.md](CLI.md) |
+| Artifact creation and release procedures | [README_RELEASE.md](README_RELEASE.md) |
+| npm publication records and procedures | [READMD_RELEASE_FM2612.md](READMD_RELEASE_FM2612.md), [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) |
+| Audio package APIs and module catalog | [packages/fm2612/README.md](packages/fm2612/README.md) |
+| VGM package examples | [packages/vgm/README.md](packages/vgm/README.md) |
+| Virtual-file and shell APIs | [packages/virtual-files/README.md](packages/virtual-files/README.md) |
+| Design and feature-specific work records | [docs/issues/](docs/issues/) |
+| Audio-output design | [docs/issues/tetorica-audio-output.md](docs/issues/tetorica-audio-output.md) |
+| Virtual-file / shell design history | [docs/issues/tetorica-virtual-files.md](docs/issues/tetorica-virtual-files.md), [docs/issues/tetorica-virtual-files-01.md](docs/issues/tetorica-virtual-files-01.md) |
 
-`docs/issues/`には実装前の計画も残る。「未実装」「未公開」という過去の記述だけで現在の状態を決めず、ソース、テスト、更新日、公開記録を照合する。
+`docs/issues/` also contains plans written before implementation. Compare the source, tests, update dates and publication records instead of determining the current state from an old “not implemented” or “not published” statement alone.
 
-## リポジトリーの構成
+## Repository layout
 
-| 場所 | 役割 |
+| Location | Role |
 | --- | --- |
-| `src/` | ymfm由来のC++音源コアなど |
-| `tetorica_src/` | Tetorica独自実装の入口。[構成案内](tetorica_src/README.md)を参照 |
-| `tetorica_src/wasm/` | JavaScriptから使うためのWASMブリッジ |
-| `tetorica_src/native/` | Native音声エフェクトなど、親プロジェクト側のC/C++実装 |
-| `third_party/` | 固定した第三者コア、元ソース、ライセンス、移植記録 |
-| `tetorica_src/runtime/` | 再利用するJSランタイム、チップラッパー、Synth、音声エンジン |
-| `tetorica_src/runtime/generated/` | 全33件のSDKビルドとNative FXの正本。共通manifest・同期・検証で公開コピーを維持 |
-| `tetorica_src/node/` | Node向け音声出力・Worker・Synthアダプター |
-| `docs/js/` | Webサイトへ配置する共有ランタイムのコピー |
-| `docs/playground/` | PlaygroundのUI、Monaco、Cassette、仮想ファイル連携、インポート、実行例 |
-| `docs/synth/` | ブラウザーシンセサイザー |
-| `docs/vgm_analyzer/` | AnalyzerのUIと、CLIも使う共有解析・エクスポートモジュール |
-| `docs/generated/` | 正本から同期する公開用のチップJS / WASM・metadata |
-| `tetorica_src/cli/` | `tetorica-vgm`のCLI / Node API実装 |
-| `packages/fm2612/`、`packages/vgm/` | npm配布情報とREADME。実装全体がここにあるわけではない |
-| `packages/virtual-files/src/` | `tetorica-virtual-files`の実装。仮想ファイルと軽量シェル |
-| `examples/` | ymfm由来の`buildall/`と`vgmrender/`。ユーザー方針で上流の配置を維持 |
-| `tetorica_examples/` | Tetorica独自の`nodejs/`、`browser/`、`cpp/`利用例。音色生成の実験も`nodejs/sound-color/`へ統合 |
-| `docs/tutorials/` | YM2612教材のMarkdown正本と公開用C++コピー。C++編集元は`tetorica_examples/cpp/tutorials/` |
-| `scripts/` | ビルド、同期、パッケージ作成、検証 |
-| `test/`、`test/runtime/`、`docs/*/*.test.mjs` | 機能・共有エンジン・UIなどのテスト。旧web直下の277件は`test/runtime/`へ分離済み |
-| `dist/`、`release/` | npm向け生成物、ブラウザー／itch向けの配置済み生成物とZIP |
+| `src/` | ymfm-derived C++ sound-chip cores and related code |
+| `tetorica_src/` | Entry point for Tetorica's own implementations; see the [source guide](tetorica_src/README.md) |
+| `tetorica_src/wasm/` | WASM bridges for JavaScript |
+| `tetorica_src/native/` | Parent-project C/C++ implementations, including native audio effects |
+| `third_party/` | Pinned third-party cores, original sources, licenses and porting records |
+| `tetorica_src/runtime/` | Reusable JavaScript runtime, chip wrappers, Synth helpers and audio engines |
+| `tetorica_src/runtime/generated/` | Canonical artifacts for all 33 SDK builds and Native FX; shared manifests, synchronization and checks maintain the published copies |
+| `tetorica_src/node/` | Node audio-output, Worker and Synth adapters |
+| `docs/js/` | Copies of the shared runtime deployed to the website |
+| `docs/playground/` | Playground UI, Monaco, Cassette, virtual-file integration, imports and runnable examples |
+| `docs/synth/` | Browser synthesizer |
+| `docs/vgm_analyzer/` | Analyzer UI and shared analysis / export modules also used by the CLI |
+| `docs/generated/` | Published chip JS / WASM and metadata synchronized from the canonical artifacts |
+| `tetorica_src/cli/` | `tetorica-vgm` CLI / Node API implementation |
+| `packages/fm2612/`, `packages/vgm/` | npm distribution metadata and READMEs; these directories do not contain the entire implementation |
+| `packages/virtual-files/src/` | `tetorica-virtual-files` implementation: virtual files and a lightweight shell |
+| `examples/` | ymfm-derived `buildall/` and `vgmrender/`; the upstream layout is preserved at the user's request |
+| `tetorica_examples/` | Tetorica's own `nodejs/`, `browser/` and `cpp/` examples; sound-generation experiments are also consolidated under `nodejs/sound-color/` |
+| `docs/tutorials/` | Canonical Markdown for YM2612 lessons and published C++ copies; the editable C++ sources are in `tetorica_examples/cpp/tutorials/` |
+| `scripts/` | Builds, synchronization, packaging and verification |
+| `test/`, `test/runtime/`, `docs/*/*.test.mjs` | Feature, shared-engine and UI tests; the 277 tests formerly directly under web have been moved to `test/runtime/` |
+| `dist/`, `release/` | npm build outputs, staged browser / itch artifacts and ZIPs |
 
-ルートの`package.json`は`private: true`の開発用ワークスペース。ルートをnpm公開しない。
+The root `package.json` is a development workspace with `private: true`. Do not publish the root as an npm package.
 
-直下フォルダーの整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。ymfm由来の`src/`・`examples/`を維持し、独自実装は`tetorica_src/`、利用例は`tetorica_examples/`、共有テストは`test/runtime/`へ分離した。公開サイトとnpm内の配置は各同期・配布スクリプトが維持する。実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`、C++教材の公開コピーは`npm run check:tutorials`で検証する。
+See the [layout plan and TODO](docs/issues/todo_repository_organization_01.md) for the top-level directory reorganization. The ymfm-derived `src/` and `examples/` retain their upstream layout. Tetorica's implementations are under `tetorica_src/`, its examples under `tetorica_examples/`, and shared tests under `test/runtime/`. Synchronization and distribution scripts preserve the published website and npm layouts. Check Git and the actual files when locating implementations. Verify generated artifacts with `npm run check:runtime-artifacts` and the published C++ lesson copies with `npm run check:tutorials`.
 
-`npm test`はルートと`test/runtime/`の両方を実行する。共有runtimeのみなら`npm run test:runtime`、SCSPのソース型検証は`npm run test:runtime:types`。`tetorica_src/runtime/spc_test_fixture.mjs`と`tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs`は共有・校正の入力として実装側に置いている。
+`npm test` runs both the root tests and `test/runtime/`. Use `npm run test:runtime` for only the shared runtime and `npm run test:runtime:types` for SCSP source type checking. `tetorica_src/runtime/spc_test_fixture.mjs` and `tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs` remain beside the implementation because shared checks and calibration use them as inputs.
 
-### 共有ランタイムを変更したとき
+### When changing the shared runtime
 
-1. 基本の実装・JSDocは`tetorica_src/runtime/`を編集する。UI固有の変更は`docs/playground/`や`docs/vgm_analyzer/`を編集する。
-2. 共有JSをWebサイトへ同期する。
+1. Edit the core implementation and JSDoc in `tetorica_src/runtime/`. Edit UI-specific code in directories such as `docs/playground/` and `docs/vgm_analyzer/`.
+2. Synchronize shared JavaScript to the website.
 
 ```sh
 sh scripts/sync_web_js_to_docs.sh
 ```
 
-3. 配布物を変更した場合は、対象のパッケージ生成・検証も行う。既存の`release/itch_playground_dev`は自動では更新されない。
-4. 新しいモジュール依存を追加した場合は、同期対象、各配布スクリプト、モジュール一覧・Monacoの参照モデルにも必要な追加があるか調べる。
+3. If distribution contents change, also generate and verify the affected packages. An existing `release/itch_playground_dev` is not updated automatically.
+4. When adding a module dependency, check whether synchronization inputs, distribution scripts, module catalogs and Monaco reference models also need updates.
 
-同期時にはWASMの相対パスなどを配置先に合わせて変換する。`tetorica_src/runtime/`と`docs/js/`を手作業で完全一致させようとして、必要なパス変換を消さない。
+Synchronization adapts relative WASM paths and other references to the destination layout. Do not remove required path transformations while trying to make `tetorica_src/runtime/` and `docs/js/` manually identical.
 
-### 公開トップページの言語
+### Languages of the published home pages
 
-`docs/index.html`は英語、`docs/index-ja.html`は日本語。同じデザインとツールへのリンクを持つ静的ページで、言語切り替えとAI/SIへのリンクを置いている。ページの`lang`、title、description、Open Graph、表示文、aria-labelもそれぞれの言語に合わせる。
+`docs/index.html` is English and `docs/index-ja.html` is Japanese. They are static pages with the same design and tool links, a language switch and an AI/SI link. Match each page's `lang`, title, description, Open Graph metadata, visible text and aria-labels to its language.
 
-ツールや入門ページの追加・リンク変更は両方のトップページへ反映する。
+Reflect new tools, introduction pages and link changes in both home pages.
 
-YM2612の入門も`docs/introductions/index.html`（英語）と`docs/introductions/index-ja.html`（日本語）に分けている。日英トップページは、それぞれの言語の入門へリンクする。日本語版には本文・ボタン・アルゴリズム試聴のステータス表示を翻訳し、埋め込みコードとデモの動作は保持している。
+The YM2612 introduction is also split into `docs/introductions/index.html` (English) and `docs/introductions/index-ja.html` (Japanese). Each home page links to the introduction in its own language. The Japanese version translates the body, buttons and algorithm-audition status messages while preserving embedded code and demo behavior.
 
-その他の紹介記事（Sega PSG、Mega CD、Game Boy、調律、レジスター入門、FXの全15章と目次）と`docs/for-ai.html`は、英語を元のURL、日本語を`*_ja.html`として提供する。日本語だけだった記事は内容を日本語版へ残して英語版を作成した。既存の`index-ja.html`は改名しない。言語切り替え・alternateリンク・前後の章・日英トップからのリンクをそれぞれの言語に合わせる。Game Boyの動的UIと生成コードのコメントは`docs/introductions/introduction-locale.js`でページの`lang`に従う。埋め込むPlayground・Synth・Analyzer自体はこの翻訳対象に含めない。
+Other introductions (Sega PSG, Mega CD, Game Boy, tuning, the register introduction, all 15 FX chapters and their contents page) and `docs/for-ai.html` use the original URLs for English and `*_ja.html` for Japanese. Articles formerly available only in Japanese retain their content in the Japanese versions, with English versions added. Do not rename the existing `index-ja.html` pages. Match language switches, alternate links, previous / next chapters and links from the English and Japanese home pages to the respective language. The Game Boy dynamic UI and generated code comments use `docs/introductions/introduction-locale.js` to follow the page's `lang`. Embedded Playground, Synth and Analyzer apps are outside this translation scope.
 
-## ローカルでブラウザー版を開く
+## Open the browser version locally
 
 ```sh
 npm ci
 python3 -m http.server 8083 -d docs
 ```
 
-別のターミナルでサーバーを動かし、次を開く。
+Run the server in a separate terminal, then open:
 
 - `http://localhost:8083/playground/index.html`
 - `http://localhost:8083/synth/index.html`
 - `http://localhost:8083/vgm_analyzer/index.html`
 
-ブラウザーでの発音例はクリックなどのユーザー操作から開始する。npmのbare importを使うREADMEのサンプルは、Viteなどの解決環境が必要。Playgroundのユーザーコードと、npmモジュールを使う一般的なWebアプリのコードを混同しない。
+Start browser sound examples from a user gesture such as a click. README samples with bare npm imports need a resolver such as Vite. Distinguish Playground user code from general web-app code that imports npm modules.
 
-## 検証コマンド
+## Verification commands
 
-変更に関係するテストを選び、必要な範囲を実行する。以下は実行先を探すための一覧で、毎回すべてを実行する指示ではない。
+Choose tests relevant to the change and run the necessary scope. The following list helps locate checks; it is not an instruction to run everything on every change.
 
 ```sh
 git diff --check
@@ -140,7 +149,7 @@ npm run test:sbi
 npm run test:virtual-files
 ```
 
-音源パッケージ・型定義：
+Audio package and type declarations:
 
 ```sh
 npm run build:fm2612
@@ -149,63 +158,63 @@ npm run test:fm2612
 npm run test:fm2612:browser
 ```
 
-- `build:fm2612`は`dist/fm2612/`を生成し、JSDocから宣言ファイルを作成・検証する。
-- `check_fm2612_types.mjs dist/fm2612`は、生成済みの配布物を使い、NodeNext / Bundler / Nodeのambient型なしのBrowser利用を検証する。引数なしの場合はビルドも行う。
-- `test:fm2612`はtarballを独立したconsumerへ導入して検証する。リポジトリー内のimportが通っただけで、npm配布物も動くと判断しない。
-- `test:fm2612:browser`は実際のブラウザーを使う。PlaywrightのChromiumが必要なら`npm run setup:browser`を使う。
+- `build:fm2612` generates `dist/fm2612/`, creates declarations from JSDoc and checks their types.
+- `check_fm2612_types.mjs dist/fm2612` checks the generated distribution with NodeNext, Bundler and Browser consumers without Node ambient types. Without an argument, it also performs the build.
+- `test:fm2612` installs the tarball into an independent consumer and checks it there. Successful imports inside the repository alone do not establish that the npm distribution works.
+- `test:fm2612:browser` uses a real browser. Run `npm run setup:browser` if Playwright Chromium is needed.
 
-VGMと仮想ファイルのビルド：
+VGM and virtual-file builds:
 
 ```sh
 npm run build:vgm
 npm run build:virtual-files
 ```
 
-チップコアの変更では、対応する`scripts/build_*_wasm.sh`と対象チップのテストを確認する。Emscriptenなどの前提環境は各スクリプトを読む。JSDocやREADMEだけの変更にWASMの再ビルドは不要。
+For chip-core changes, check the corresponding `scripts/build_*_wasm.sh` and chip-specific tests. Read each script for prerequisites such as Emscripten. JSDoc-only or README-only changes do not require rebuilding WASM.
 
-## 音声APIの前提
+## Audio API assumptions
 
-- Direct Transportは同期PCM生成用。PCMを生成しただけではスピーカーから音は出ない。オフラインWAV生成は曲の実時間だけ待つ必要はない。
-- Worklet TransportではAudioWorkletが音声を生成する。JavaScriptの`sleep`や`beat`などは演奏の進行・継続を待つもので、それだけでサンプル精度の予約になるわけではない。
-- AudifyはNodeのネイティブ音声出力。ブラウザーのWeb Audioとは別の出力経路で、パッケージ／実行環境の前提も異なる。
-- `transport.flush()`はキューの処理確認・バリア。各レジスター書き込みのたびに呼ぶものではなく、曲が鳴り始めるための必須処理でもない。
-- `AbortSignal`をどこかへ渡しただけで、すべての`await`が自動で中断するわけではない。各処理がsignalを監視し、必要な箇所で停止・例外を処理する。
-- YM2612の`block` / `fnum`はチップの音程表現。Hzからは`pitch.js`の`hzToBlockFnum`、MIDI番号からは`createPitchFromMidi`を使える。チップの入力クロック（Hz）と音声サンプルレートは別の値。
-- WASMラッパーの収録、再生エンジン、Worklet実行、高水準Synth API、VGMの採譜・音色抽出は、それぞれ対応範囲が異なる。「対応チップ一覧」だけで全APIに同じ対応があると判断しない。
-- Game Boyのミキサー初期バランスは28%、他の音源は100%。ミキサーのバランス、出力gain、Masterを区別する。大きな出力によるクリッピングを、無条件にエミュレーターの不具合と判断しない。
-- `createSoundChip`の`chip.id`は省略時に自動採番される。初期化前にIDを予約する設計。確率的なUUIDの衝突回避ではない。IDとミキサーの所有・解除処理は共通実装を参照する。
+- Direct Transport generates PCM synchronously. Generating PCM alone does not play it through speakers. Offline WAV generation does not require waiting for the song's real-time duration.
+- With Worklet Transport, an AudioWorklet generates audio. JavaScript helpers such as `sleep` and `beat` wait for performance progress or continuation; they do not provide sample-accurate scheduling by themselves.
+- Audify provides native Node audio output. It is a separate output path from browser Web Audio, with different package and runtime requirements.
+- `transport.flush()` is a queue-processing check / barrier. It is not meant to be called after every register write, nor is it required to start a song.
+- Passing an `AbortSignal` somewhere does not automatically interrupt every `await`. Each operation must observe the signal and handle stopping or exceptions where needed.
+- YM2612 `block` / `fnum` represent chip pitch. Use the `pitch.js` helper `hzToBlockFnum` for Hz, or `createPitchFromMidi` for MIDI note numbers. The chip input clock in Hz and the audio sample rate are separate values.
+- Inclusion of a WASM wrapper, playback-engine support, Worklet execution, high-level Synth APIs, and VGM transcription / voice extraction each have their own coverage. A supported-chip list does not imply identical support across all APIs.
+- The initial Game Boy mixer balance is 28%; other chips start at 100%. Distinguish mixer balance, output gain and Master. Clipping caused by high output is not automatically an emulator defect.
+- When omitted, `createSoundChip` assigns `chip.id` automatically. IDs are reserved before initialization; this is not probabilistic UUID collision avoidance. Consult the shared implementation for ID and mixer ownership / release behavior.
 
-## 利用者READMEから外した情報
+## Information moved out of the user READMEs
 
-### VGMからTFIを編集する流れ
+### Editing TFI instruments extracted from VGM
 
-開発・検証用の確認手順として残す。利用者READMEへ自動で戻す必要はない。
+These steps are retained for development and verification. They do not need to be restored automatically to the user READMEs.
 
-1. Playgroundで対応するVGM / VGZをインポートする。
-2. 仮想ファイルの`presets/<filename>/`を開き、`.tfi`を編集する。
-3. FMパラメーターを変更し、入力欄からフォーカスを外して数字・文字キーで試聴する。
-4. Export Cassetteで仮想ファイルを含むプロジェクトを保存する。
+1. Import a supported VGM / VGZ in the Playground.
+2. Open `presets/<filename>/` in the virtual files and edit a `.tfi`.
+3. Change FM parameters, move focus out of the input field, and audition with number / letter keys.
+4. Use Export Cassette to save the project, including its virtual files.
 
-OPN FMのキーオン時の音色は、`/presets/song/ym2612_ch1_001.tfi`などに保存する。同じチャンネル内の重複音色はまとめ、同名ファイルの再インポートでは`song-2`などの新しいフォルダーを使う。TFIは静的FMパラメーターを保存し、パン、LFO、音程・音量の時間変化は保存しない。編集は仮想ファイルを更新し、元のディスク上のファイルへ書き戻さない。
+OPN FM voices captured at key-on are saved to paths such as `/presets/song/ym2612_ch1_001.tfi`. Duplicate voices within the same channel are merged. Reimporting a file with the same name uses a new directory such as `song-2`. TFI stores static FM parameters; it does not store pan, LFO or changes in pitch / volume over time. Editing updates virtual files and does not write back to the original files on disk.
 
-### 配布と実装の詳細
+### Distribution and implementation details
 
-- Webランタイム全体のアーカイブは`web_runtime` / `web_runtime_exsample`。生成コマンドと検証は`README_RELEASE.md`へ移動済み。
-- チップ別のNote-ish、MIDI、SBI、OPM、MSX、NES / FDS、ADPCMなどの制約・検証記録は`Memo.md`へ移動済み。
-- 以前の「ローカル0.2.0、npm公開0.1.0」という段落は古い固定情報なので削除した。復活させない。現在の版番号は各パッケージの`package.json`と公開記録で確認する。
-- `READMD_RELEASE.md`は`README_RELEASE.md`への案内として残している。既存リンクを壊すために不用意に削除しない。
+- The complete web runtime archives are `web_runtime` / `web_runtime_exsample`. Their generation commands and verification have moved to `README_RELEASE.md`.
+- Chip-specific limitations and verification records for Note-ish, MIDI, SBI, OPM, MSX, NES / FDS, ADPCM and related features have moved to `Memo.md`.
+- The old paragraph stating “local 0.2.0, published npm 0.1.0” was removed because those fixed values were outdated. Do not restore it. Check each package's `package.json` and publication records for current versions.
+- `READMD_RELEASE.md` remains as a pointer to `README_RELEASE.md`. Do not casually delete it and break existing links.
 
-## 別リポジトリー：Tauriデスクトップ版
+## Separate repository: Tauri desktop version
 
-この開発環境には`w/tetorica-fm2612-playground-tauri/`という別checkoutがある。別の環境では存在しないことがあるため、まずその場所とREADMEを確認する。
+This development environment has a separate checkout at `w/tetorica-fm2612-playground-tauri/`. It may not exist in other environments, so first check its location and README.
 
-- Tauri版は、親リポジトリーのPlayground配布ZIPを取り込み、展開した`dist/`をGit管理する。
-- `release.lock.json`はZIPと展開内容の整合性記録。`dist/`だけを手で書き換えると`import_release.py --check`が失敗する。
-- 親のランタイム変更を反映する場合は、配布ZIPを再生成し、Tauri側のインポート手順で更新する。lockの確認を無効化して済ませない。
-- Cassetteの自動保存はTauriのWebViewのIndexedDB。コード・素材・編集中／実行するファイルを保存し、次回起動で復元する。通常のブラウザー版とは適用範囲が異なる。
-- 音源・エフェクトはWeb Audioで処理し、選択した場合だけ最終PCMをNode/Audifyへ送る。起動時はWebView出力。
+- The Tauri app imports the parent repository's Playground distribution ZIP and tracks the extracted `dist/` in Git.
+- `release.lock.json` records the integrity of the ZIP and extracted contents. Manually changing only `dist/` makes `import_release.py --check` fail.
+- To incorporate parent-runtime changes, regenerate the distribution ZIP and update it through the Tauri import procedure. Do not disable the lock check as a workaround.
+- Cassette autosave uses IndexedDB in Tauri's WebView. It saves code, assets, the file being edited and the file selected to run, then restores them on the next launch. Its scope differs from the regular browser version.
+- Chips and effects run through Web Audio. Final PCM is sent to Node/Audify only when that output is selected. Startup uses WebView output.
 
-Tauri側のディレクトリーから実行するコマンド：
+Commands to run from the Tauri repository directory:
 
 ```sh
 npm test
@@ -215,49 +224,49 @@ node scripts/check_audio_sidecar_bundle.mjs
 cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-Windowsでは`python3`の代わりに`python`を使う。Cargoを直接実行する前にも音声リソースの準備が必要。Tauri CLIのbeforeBuildCommandだけに依存しない。
+On Windows, replace `python3` with `python`. Audio resources must also be prepared before running Cargo directly; do not rely solely on the Tauri CLI's beforeBuildCommand.
 
-### v0.52.6までのWindows Audify修正
+### Windows Audify fixes through v0.52.6
 
-- WASAPIを明示して、ASIOの自動探索を避ける。
-- Audify 1.10.1内のRtAudioで、WASAPI機器オブジェクトをCOM終了前に解放する修正を適用し、Windows用モジュールを再ビルドする。
-- Node 22で`\\?\C:\...`形式がmain moduleの解決に渡ると、`EISDIR ... lstat 'C:'`で終了する問題があった。相対スクリプトだけでは解決しない。実行ファイルと作業ディレクトリーの両方を通常のWindowsパス形式へ変換する。
-- ネイティブ側の変換は`src-tauri/src/audio.rs`、CI側は`scripts/node_resource_path.mjs`。Drive / UNC、空白、日本語パスを考慮する。
-- 機器列挙だけでなく、GC・Node正常終了、分離した同梱フォルダーでのサーバー起動・JSON応答も検証する。
-- 未使用時のstopは新しいNodeを起動しない。失敗時の全文はメニューとConsoleへ表示する。
-- エラー時もAudifyの選択を保持し、「Copy error」でコピーできる。エラーは「Clear error」まで残す。実際の音声接続はWebViewへ戻す。
+- Select WASAPI explicitly to avoid automatic ASIO discovery.
+- Patch RtAudio inside Audify 1.10.1 to release WASAPI device objects before COM shutdown, then rebuild the Windows module.
+- In Node 22, passing a `\\?\C:\...` path into main-module resolution caused termination with `EISDIR ... lstat 'C:'`. A relative script path alone does not resolve this. Convert both the executable path and working directory to normal Windows path syntax.
+- Native-side conversion is in `src-tauri/src/audio.rs`; CI-side conversion is in `scripts/node_resource_path.mjs`. Account for drive / UNC paths, spaces and Japanese paths.
+- Verify device enumeration, garbage collection, normal Node shutdown, and server startup / JSON responses from an isolated bundled directory.
+- Stopping an unused output must not start a new Node process. Show complete failure details in the menu and Console.
+- Keep Audify selected after an error and allow copying the error with “Copy error.” Retain the error until “Clear error” is used. Switch the actual audio connection back to WebView.
 
-**2026-10-10時点の実機確認：macOSとWindowsはユーザーの動作確認あり。Linuxは実機がなくunchecked。Linuxをuncheckedと明記してreleaseする方針はユーザー指定。CI成功と実機の発音確認を同一視しない。**
+**Hardware verification as of 2026-10-10: the user confirmed operation on macOS and Windows. Linux was unchecked because no physical test machine was available. The user explicitly chose to release with Linux marked unchecked. CI success and confirmed audio playback on real hardware are separate results.**
 
-## 別リポジトリー：npm利用例
+## Separate repository: npm usage examples
 
-この環境の`w/tetorica-fm2612-examples/`は、[tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples)の別checkout。npmパッケージを実際に利用するWeb / Nodeの例を管理する。
+`w/tetorica-fm2612-examples/` in this environment is a separate checkout of [tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples). It contains Web / Node examples that consume the actual npm package.
 
-音源パッケージの変更が親リポジトリーで動いても、公開npm版とexamplesには自動反映されない。公開後に依存・lockfile・配信用生成物を更新し、例の実行と停止・解放も確認する。
+Working audio-package changes in the parent repository do not automatically update the published npm package or the examples. After publication, update dependencies, lockfiles and deployed build outputs, then verify running, stopping and disposing the examples.
 
-## 今回の作業状態と検証記録
+## Historical work status and verification records
 
-2026-10-10時点のローカル設定（公開版の照合結果ではない）：
+Local settings as of 2026-10-10 (not a comparison against published releases):
 
-| 対象 | 版番号の設定 |
+| Target | Configured version |
 | --- | --- |
 | `packages/fm2612/package.json` | `0.2.12` |
 | `packages/vgm/package.json` | `0.2.8` |
 | `packages/virtual-files/package.json` | `0.1.1` |
-| Tauriのローカルcheckout | `0.52.6` |
-| examplesが依存する`tetorica-fm2612` | `0.2.12` |
+| Local Tauri checkout | `0.52.6` |
+| `tetorica-fm2612` dependency used by the examples | `0.2.12` |
 
-直近の変更・確認：
+Changes and checks recorded in that work period:
 
-- `tetorica_src/runtime/`の40ファイルで公開関数のJSDocを追加・補強し、`docs/js/`へ同期した。`createPlaygroundClock`のoptions、戻り値、秒／拍／サンプル、停止時の動作を明記。実行コードは変更していない。
-- `build:fm2612`で192件の宣言ファイルを生成・型検証した。配布物のNodeNext / Bundler / Browser consumer型検証も成功。
-- 時計、非同期タスク、OPN、S98、native FXの関連37テストが成功。これは今回実行した範囲であり、全テストの最新実行記録ではない。
-- READMEのド・レ・ミ例は、実際のWASM / AudioWorkletの初期化、C4 / D4 / E4の発音呼び出し、再生後のAudioContext解放をブラウザーで確認した。聴感評価の記録ではない。
-- READMEの整理と`Memo.md` / `README_RELEASE.md`への移動はドキュメント変更。リンク先、コードフェンス、差分の空白を確認した。
-- README変更にはユーザーの編集・ステージ済み変更が含まれる。再開時にGitの状態を確認し、まとめて消したり、許可なくcommit・公開したりしない。
+- Added or expanded public-function JSDoc in 40 files under `tetorica_src/runtime/` and synchronized it to `docs/js/`. Documented `createPlaygroundClock` options, return values, seconds / beats / samples and stop behavior. Executable code was unchanged.
+- Generated and type-checked 192 declaration files with `build:fm2612`. NodeNext / Bundler / Browser consumer checks against the distribution also passed.
+- Passed 37 related tests for clocks, asynchronous tasks, OPN, S98 and native FX. This records the scope run during that work, not the latest result for the entire test suite.
+- Checked the README's do–re–mi example in a browser: actual WASM / AudioWorklet initialization, C4 / D4 / E4 note calls and AudioContext disposal after playback. This was not a listening evaluation.
+- README reorganization and moving information to `Memo.md` / `README_RELEASE.md` were documentation changes. Link targets, code fences and diff whitespace were checked.
+- The README changes included the user's edits and staged changes. On resuming, inspect Git state; do not discard changes in bulk or commit / publish without authorization.
 
-`/private/tmp`などの一時ブラウザー検証スクリプトは、別環境や次回セッションで存在する保証がない。再検証には、リポジトリーの検証スクリプト、対象テスト、READMEの実際のコードを使う。
+Temporary browser-check scripts under locations such as `/private/tmp` are not guaranteed to exist in another environment or session. For repeatable verification, use the repository's check scripts, relevant tests and the actual README code.
 
-## 引継ぎを更新するとき
+## Updating this handoff
 
-変更した機能、確認した対象、実行した検証、未確認の範囲、公開状況、次に必要な作業を区別して記録する。版番号やテスト件数には日付を添える。機能の詳細は`Memo.md`や`docs/issues/`へ、利用者向けの説明は日英READMEへ、公開手順は`README_RELEASE.md`へ置き、同じ長い説明を複数箇所へ増やさない。
+Record changed features, checked targets, verification commands run, unchecked scope, publication status and remaining work separately. Date version numbers and test counts. Put feature details in `Memo.md` or `docs/issues/`, user-facing explanations in the English and Japanese READMEs, and publication procedures in `README_RELEASE.md`. Avoid duplicating the same long explanation across several documents.

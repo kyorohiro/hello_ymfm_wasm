@@ -1,20 +1,31 @@
-# Tetorica FM2612 — JavaScriptとWebAssemblyでレトロ音源を扱う
+# Tetorica — 多彩なレトロ音源をJavaScript・WebAssembly・C/C++で扱う
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Tetoricaは、レトロゲームの音源を学び、調べ、音を作るためのサウンドチップ実験室です。
-メガドライブのYM2612から始まり、再利用できるWASMコア、低レベルJavaScript／TypeScript API、
-ライブコーディング、シンセサイザー、音楽ファイル解析へと広がっています。
-ブラウザーツールで音源を調べ、同じ音声部品を自分のアプリやゲームへ組み込めます。
+Tetoricaは、多数のレトロ音源チップを学び、演奏し、自分のアプリへ組み込むためのツールキットです。
+Yamaha FM、Sega PSG、ゲームボーイ／NES APU、SNES S-DSP、PlayStation SPU、Saturn SCSPなどに対応しています。
+[ブラウザーのPlaygroundですぐに試せます](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)。インストールは不要です。
+
+自作アプリやゲームには、**[npmパッケージ`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612)**を使えます。
+音符・プリセット・音源固有の音作りを扱う**高水準Synth API**に加え、
+レジスター／RAM／PCMを扱う**低レベルAPI**、TypeScript型定義、**ビルド済みWASM**を提供します。
+再利用可能な**Native C/C++コア**とビルド手順は、
+[`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native)で提供しています。
 
 ## プロジェクトの目標
 
-このリポジトリーには4つの目標があります。
+YM2612から始まった次の4つの目標を、多様な音源チップへ広げながら取り組んでいます。
 
 - YM2612チップを理解すること。
 - 誰でもYM2612チップを理解できるドキュメントを作ること。
 - ブラウザーアプリやゲームにYM2612の音声を組み込む方法を、誰でも理解できるドキュメントを作ること。
 - 古いゲーム音楽や音源チップの技術を文化的な遺産として残すこと。保存・再生に加え、今の人たちが読み解き、調査し、学び、再構成できる形を目指します。
+
+## Playground
+
+[Playgroundを開く](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+
+[![Tetorica FM2612 Playgroundの画面](docs/tetorica_fm2612_playground_screen_shot.png)](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
 
 <a id="機能対応状況"></a>
 
@@ -24,7 +35,8 @@ Tetoricaは、レトロゲームの音源を学び、調べ、音を作るため
 | --- | --- |
 | インストールせずに試したい | [ブラウザー版ホーム](https://kyorohiro.github.io/hello_ymfm_wasm/index-ja.html) · [itch.io](https://kyorohiro.itch.io/) |
 | ビルド済みWASMと低レベルJavaScriptが欲しい | [npmの`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612) · [API一覧](packages/fm2612/README.md#api-entry-points) · [WASMとソースの配置](tetorica_src/runtime/README.md) |
-| 音源・音声再生・ライブコーディングを組み込みたい | [Synth／Transport API](packages/fm2612/README.md) · [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) · [Web／Nodeの実行例](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| npmの高水準APIで音符・プリセット・音声再生を扱いたい | [Synth／Transport API一覧](packages/fm2612/README.md#api-entry-points) · [Web／Nodeの実行例](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| アプリにライブコーディングを組み込みたい | [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) |
 | 音楽ファイルを調べ、音色や楽譜を取り出したい | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) · [`tetorica-vgm` CLI／Node API](packages/vgm/README.md) |
 | C／C++コアを使い、NativeアプリやPluginを作りたい | [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) · [SPU Pluginのソース／Preview](https://github.com/kyorohiro/tetorica-spu-plugin) |
 | エディターに仮想ファイル・Shell・Gitを付けたい | [`tetorica-virtual-files`](packages/virtual-files/README.md) · [npm](https://www.npmjs.com/package/tetorica-virtual-files) |
@@ -101,12 +113,17 @@ YM2612の標準コアはymfmです。任意で使えるNuked-OPN2には別のラ
 <a id="download"></a>
 <a id="npmjs-package"></a>
 <a id="tetorica-fm2612"></a>
+<a id="wasmと低レベルjavascriptを入手する"></a>
 
-## WASMと低レベルJavaScriptを入手する
+## npm API・WASM・Nativeコアを使う
 
 ```sh
 npm install tetorica-fm2612
 ```
+
+npmパッケージ`tetorica-fm2612`は、多数の音源チップを含みます。
+音符・プリセット・音色には[高水準Synth API](packages/fm2612/README.md#api-entry-points)、
+レジスター／RAM／PCMには低レベルAPIを使えます。操作できる項目とimport先は音源ごとに異なります。
 
 パッケージにはES modules、TypeScript型定義、ビルド済みの`generated/*_wasm.js`ローダーと
 対応する`.wasm`、ソースアーカイブ、コンポーネントの通知を含みます。
