@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker,MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createNesClient} from '../../web/playground_nes.js';
-import {NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createNesClient} from '../../tetorica_src/runtime/playground_nes.js';
+import {NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
 const tick=()=>new Promise(resolve=>setTimeout(resolve,2));
 async function until(predicate){const deadline=Date.now()+5000;while(!predicate()){if(Date.now()>deadline)throw new Error('Additional NES test timed out');await tick();}}
 function deferred(){let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};}

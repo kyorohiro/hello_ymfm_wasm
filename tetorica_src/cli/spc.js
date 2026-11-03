@@ -1,16 +1,16 @@
 // Node-only SPC facade. Existing synchronous VGM APIs retain their contracts.
 import {readFile} from 'node:fs/promises';
-import factory from '../docs/generated/spc_wasm.js';
-import {parseSpcFile} from '../docs/js/spc_file.js';
-import {captureSpcPerformance} from '../docs/js/spc_performance.js';
-import {estimateBrrPitch} from '../docs/js/spc_pitch.js';
-import {noteToHz} from '../docs/js/soundchip_pitch.js';
-import {buildSnesNoteAnalysis} from '../docs/vgm_analyzer/snes_notes.js';
-import {prepareSnesScore} from '../docs/vgm_analyzer/snes_score.js';
-import {exportNoteAnalysisMidi} from '../docs/vgm_analyzer/vgm_midi.js';
-import {createLilyPondScore} from '../docs/vgm_analyzer/vgm_lilypond.js';
-import {createMusicXmlScore} from '../docs/vgm_analyzer/vgm_musicxml.js';
-import {groupScoreChannels,parseScoreGroups} from '../docs/vgm_analyzer/score_groups.js';
+import factory from '../../docs/generated/spc_wasm.js';
+import {parseSpcFile} from '../../docs/js/spc_file.js';
+import {captureSpcPerformance} from '../../docs/js/spc_performance.js';
+import {estimateBrrPitch} from '../../docs/js/spc_pitch.js';
+import {noteToHz} from '../../docs/js/soundchip_pitch.js';
+import {buildSnesNoteAnalysis} from '../../docs/vgm_analyzer/snes_notes.js';
+import {prepareSnesScore} from '../../docs/vgm_analyzer/snes_score.js';
+import {exportNoteAnalysisMidi} from '../../docs/vgm_analyzer/vgm_midi.js';
+import {createLilyPondScore} from '../../docs/vgm_analyzer/vgm_lilypond.js';
+import {createMusicXmlScore} from '../../docs/vgm_analyzer/vgm_musicxml.js';
+import {groupScoreChannels,parseScoreGroups} from '../../docs/vgm_analyzer/score_groups.js';
 
 const SIGNATURE = new TextEncoder().encode('SNES-SPC700 Sound File Data');
 const channelId = index => `snes-voice-${index + 1}`;
@@ -72,7 +72,7 @@ export async function analyzeSpcSource(bytes, {durationSeconds,controlStepMs = 2
     throw new RangeError('SPC controlStepMs must be between 0 and 1000');
   }
   if (onProgress !== undefined && typeof onProgress !== 'function') throw new TypeError('onProgress must be a function');
-  const wasmBinary = await readFile(new URL('../docs/generated/spc_wasm.wasm',import.meta.url));
+  const wasmBinary = await readFile(new URL('../../docs/generated/spc_wasm.wasm',import.meta.url));
   signal?.throwIfAborted();
   const performance = await captureSpcPerformance(parsed.originalBytes,{
     durationSeconds,controlStepMs,moduleFactory:factory,moduleOptions:{wasmBinary},signal,onProgress,

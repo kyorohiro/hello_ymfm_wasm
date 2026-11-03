@@ -23,8 +23,8 @@ async function template(file,functionName){
   assert(start>=0&&end>start,'Endpoint test function must be present: '+file);
   const capture=/const captureSource\s*=\s*`([\s\S]*?)`;/m.exec(source)?.[1];
   assert(capture,'Endpoint capture processor must be present: '+file);
-  const code=source.slice(start,end).replaceAll("'/web/","'/package/");
-  assert(!code.includes("'/web/"),'All Browser imports use the package root');
+  const code=source.slice(start,end).replaceAll("'/tetorica_src/runtime/","'/package/");
+  assert(!code.includes("'/tetorica_src/runtime/"),'All Browser imports use the package root');
   return {file,sha256:sha(bytes),capture,check:vm.runInThisContext('('+code+')',{filename:file+' (isolated package endpoints)'})};
 }
 
@@ -53,7 +53,7 @@ async function template(file,functionName){
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try{
-    for(const unavailable of ['/web/msm5205_audio.js','/docs/generated/cdda_wasm.wasm']){
+    for(const unavailable of ['/tetorica_src/runtime/msm5205_audio.js','/docs/generated/cdda_wasm.wasm']){
       const response=await fetch(origin+unavailable);assert.equal(response.status,404,'Source-tree fallback is unavailable: '+unavailable);await response.arrayBuffer();
     }
     for(const name of names){

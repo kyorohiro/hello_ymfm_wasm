@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPs1Client} from '../../web/playground_ps1.js';
-import {createPs1Audio} from '../../web/playground_ps1_audio.js';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {preparePs1Waveform} from '../../web/ps1_waveform.js';
+import {createPs1Client} from '../../tetorica_src/runtime/playground_ps1.js';
+import {createPs1Audio} from '../../tetorica_src/runtime/playground_ps1_audio.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
 const core=()=>({reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}});
 function rpc(){const channel=new MessageChannel(),synth=new Ps1Synth({core:core()}),posts=[];channel.port1.onmessage=({data})=>{posts.push(data);if(data.method==='dispose')return;try{const value=synth[data.method](...data.args);if(data.id!==undefined)channel.port1.postMessage({id:data.id,value});}catch(error){channel.port1.postMessage({id:data.id,error:error.message,name:error.name});}};return{client:createPs1Client(channel.port2),synth,posts,remote:channel.port1,close(){this.client.dispose();channel.port1.close();}};}
 test('PS1 resource broadcasts are fenced across own clears, remote bank replacement and disposal',async()=>{

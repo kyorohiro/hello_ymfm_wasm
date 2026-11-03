@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createPlaygroundDx7VoicePanel, dx7OperatorTuning, dx7VoiceCode, dx7CarrierOperators} from './playground_dx7_voice_panel.js';
-import {createInitVoice} from '../../web/msfa_dx7/src/sysex.js';
-import {presetToVoice, voiceToPreset} from '../../web/msfa_dx7/src/preset.js';
+import {createInitVoice} from '../../tetorica_src/runtime/msfa_dx7/src/sysex.js';
+import {presetToVoice, voiceToPreset} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 
 class Events {
   constructor() {this.listeners = new Map();}

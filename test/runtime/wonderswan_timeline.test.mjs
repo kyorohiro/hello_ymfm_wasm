@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor,WONDERSWAN_TIMELINE_MAX_BYTES} from '../../web/wonderswan_timeline.js';
+import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor,WONDERSWAN_TIMELINE_MAX_BYTES} from '../../tetorica_src/runtime/wonderswan_timeline.js';
 
 const trace = () => ({version:1,clock:3072000,durationSamples:10,events:[[0,0,0x90,0x22],[1,2,0,6,3,7],[7,0,0x90,0]],pcmData:Uint8Array.of(0,42,3,99,3,128)});
 

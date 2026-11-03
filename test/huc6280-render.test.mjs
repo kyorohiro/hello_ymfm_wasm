@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
 const fixture=new URL('./fixtures/huc6280-tone.vgz',import.meta.url);

@@ -1,5 +1,5 @@
-import {Scsp} from '../../web/scsp.js';
-import {ScspSynth,createScspInitSample,type ScspSample} from '../../web/scspsynth.js';
+import {Scsp} from '../../tetorica_src/runtime/scsp.js';
+import {ScspSynth,createScspInitSample,type ScspSample} from '../../tetorica_src/runtime/scspsynth.js';
 async function example() {
   const chip=await Scsp.create({moduleFactory:async()=>({})});
   const synth=new ScspSynth(chip),initial=createScspInitSample();

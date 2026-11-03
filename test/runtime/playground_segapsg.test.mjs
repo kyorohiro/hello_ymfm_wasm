@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {PsgInspectorState,receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {CHIP_CLOCKS,ChipClockResampler} from '../../web/playground_chip_clock.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {PsgInspectorState,receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {CHIP_CLOCKS,ChipClockResampler} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {createSegaPsgClient} from '../../web/playground_segapsg.js';
-import {SegaPSG} from '../../web/segapsg.js';
+import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
+import {SegaPSG} from '../../tetorica_src/runtime/segapsg.js';
 import factory from '../../docs/generated/segapsg_wasm.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 for (const highLevel of [true]) test(`Sega PSG ${highLevel ? 'Synth' : 'raw'} example plays through client and worklet, then disposes`, async () => {
   let Processor, resolveReady;
@@ -20,11 +20,11 @@ for (const highLevel of [true]) test(`Sega PSG ${highLevel ? 'Synth' : 'raw'} ex
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: resolveReady}; } },
     registerProcessor: (_, value) => { Processor = value; },
   });
-  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../docs/generated/segapsg_wasm.wasm', runtimeDirectoryUrl))}});
+  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});
   assert.equal((await ready).ready, true);
   const client = createSegaPsgClient({postMessage: data => processor.receive(data), close() {}});
   try {
-    const code = await readFile(new URL('../docs/playground/examples/genesis/segapsg-tone-noise.js', runtimeDirectoryUrl), 'utf8');
+    const code = await readFile(new URL('../../docs/playground/examples/genesis/segapsg-tone-noise.js',runtimeDirectoryUrl), 'utf8');
     let played = 0;
     await new (Object.getPrototypeOf(async function() {}).constructor)('useSoundChip', 'sleep', 'write', '"use strict";\n' + code)(
       async name => { assert.equal(name, 'segapsg'); return client; },
@@ -51,7 +51,7 @@ for (const rate of [44100,48000,96000]) test(`Sega PSG: borrowed worklet PCM pre
     createProcessorPerformance:options => createProcessorPerformance({...options,rate,nowFrame:() => 0}),
     AudioWorkletProcessor:class {constructor() {this.port = {postMessage:resolveReady};}},registerProcessor(_name,Type) {Processor = Type;},
   });
-  const wasmBinary = await readFile(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl));
   const p = new Processor({processorOptions:{wasmBinary}});
   assert.equal((await ready).ready,true);
   const reference = await SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:rate});
@@ -82,7 +82,7 @@ for (const stereoEnabled of [true,false]) test(`PSG worklet keeps Main / Worker 
     createProcessorPerformance:options => createProcessorPerformance({...options,rate:48000,nowFrame:() => 0}),
     AudioWorkletProcessor:class {constructor() {this.port = {postMessage:resolveReady};}},registerProcessor(_name,Type) {Processor = Type;},
   });
-  const wasmBinary = await readFile(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl));
   const p = new Processor({processorOptions:{wasmBinary,stereoEnabled,clock:3579545}});
   assert.equal((await ready).ready,true); t.after(() => p.dispose());
   const remote = () => ({closed:false,start(){},close(){this.closed=true;},postMessage(){}});
@@ -115,7 +115,7 @@ test('primary PSG Keyboard protects manual notes, restores quiet levels, preserv
   let Processor,resolveReady,current=0;const ready=new Promise(resolve=>resolveReady=resolve),rate=48000;
   const source=(await readFile(new URL('./playground_segapsg_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:rate,createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>current}),AudioWorkletProcessor:class{constructor(){this.port={postMessage:resolveReady};}},registerProcessor(_name,Type){Processor=Type;}});
-  const p=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});await ready;t.after(()=>p.dispose());const port={postMessage(){}},client=createSegaPsgClient({postMessage:data=>p.receive(data,port),close(){}}),render=frames=>{const left=new Float32Array(frames),right=new Float32Array(frames);p.process([],[[left,right]]);current+=frames;return left;},peak=values=>values.reduce((max,value)=>Math.max(max,Math.abs(value)),0);
+  const p=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});await ready;t.after(()=>p.dispose());const port={postMessage(){}},client=createSegaPsgClient({postMessage:data=>p.receive(data,port),close(){}}),render=frames=>{const left=new Float32Array(frames),right=new Float32Array(frames);p.process([],[[left,right]]);current+=frames;return left;},peak=values=>values.reduce((max,value)=>Math.max(max,Math.abs(value)),0);
   client.tone(0,{note:'A4',attenuation:9});client.off(0);p.inspector.invoke('auditionOn',[0,69,'old']);assert.equal(p.inspector.read().channels[0].attenuation,9,'audition retains the previously edited attenuation');assert(peak(render(1024))>.005);const period=p.inspector.read().channels[0].period;
   p.inspector.invoke('auditionOn',[0,72,'new']);assert.equal(p.inspector.invoke('auditionOff',[0,'old']),false);const held=p.inspector.read().channels[0].period;assert(held<period);client.off(0);client.setPeriod(0,123);assert.equal(p.inspector.read().channels[0].period,held);assert(p.inspector.read().channels[0].active);
   // A client continuation belongs to its own last register, even when the
@@ -129,7 +129,7 @@ test('standalone PSG held tone-3-rate noise keeps its divider against Main and q
   let Processor,resolveReady,current=0;const ready=new Promise(resolve=>resolveReady=resolve),rate=48000;
   const source=(await readFile(new URL('./playground_segapsg_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:rate,createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>current}),AudioWorkletProcessor:class{constructor(){this.port={postMessage:resolveReady};}},registerProcessor(_name,Type){Processor=Type;}});
-  const wasmBinary=await readFile(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl)),p=new Processor({processorOptions:{wasmBinary}});await ready;
+  const wasmBinary=await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl)),p=new Processor({processorOptions:{wasmBinary}});await ready;
   const reference=await SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:rate});t.after(()=>{p.dispose();reference.dispose();});
   const port={postMessage(){}},client=createSegaPsgClient({postMessage:data=>p.receive(data,port),close(){}}),writeReference=bytes=>{for(const byte of bytes)reference.write(byte);};
   const render=frames=>{const actual=[new Float32Array(frames),new Float32Array(frames)];p.process([],[actual]);current+=frames;const expected=reference.generateStereo(frames);assert.deepEqual(actual[0],expected.left);assert.deepEqual(actual[1],expected.right);assert(actual.every(values=>values.every(value=>Number.isFinite(value)&&Math.abs(value)<1)));return actual;};
@@ -149,7 +149,7 @@ test('PSG Stop ACK fences the remote command before a new admin audition and sha
   let Processor,resolveReady;const ready=new Promise(resolve=>resolveReady=resolve),rate=48000;
   const source=(await readFile(new URL('./playground_segapsg_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{PsgInspectorState,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,SegaPSG,factory,sampleRate:rate,createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>0}),AudioWorkletProcessor:class{constructor(){this.port={postMessage:resolveReady};}},registerProcessor(_name,Type){Processor=Type;}});
-  const p=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});await ready;t.after(()=>p.dispose());
+  const p=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});await ready;t.after(()=>p.dispose());
   let delayed,settled=false,ackObserved=false;const port={onmessage:null,start(){},close(){},postMessage(data){if(data.method==='stopVoices')delayed=data;else p.receive(data,reply);}},reply={postMessage(data){if(data.id===delayed?.id){assert(p.inspector.read().channels.every(ch=>!ch.active),'ACK is posted after all channels stop');assert.equal(p.inspector.read().auditions.length,0);ackObserved=true;}port.onmessage?.({data});}},client=createSegaPsgClient(port);t.after(()=>client.dispose());
   p.inspector.invoke('auditionOn',[0,69,'before-stop']);const stop=client._stopVoices().then(value=>{settled=true;return value;});await Promise.resolve();assert(delayed?.id);assert.equal(settled,false,'Stop does not resolve merely after posting');assert(p.inspector.read().channels[0].active);client._cancelClockRequests('Run stopped');await Promise.resolve();assert.equal(settled,false,'clock cancellation must not retire a pending Stop ACK');
   p.receive(delayed,reply);assert.equal(await stop,true);assert(ackObserved);assert.equal(client.clock,3579545,'Stop ACK cannot change the clock');p.inspector.invoke('auditionOn',[0,69,'after-stop']);const left=new Float32Array(1024),right=new Float32Array(1024);p.process([],[[left,right]]);assert(left.some(value=>value!==0),'an audition after the fence cannot be muted by the old Stop');

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {maybeDecodeVgmFile} from '../web/vgm_file.js';
-import {Ym2612VGM} from '../web/ym2612vgm.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {maybeDecodeVgmFile} from '../tetorica_src/runtime/vgm_file.js';
+import {Ym2612VGM} from '../tetorica_src/runtime/ym2612vgm.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {createPlaybackEngine,createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
 
 test('PWM models receive the VGM clock, render and reset reproducibly, and preserve state',async()=>{

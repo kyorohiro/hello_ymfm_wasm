@@ -1,7 +1,7 @@
 // Install audify beside the app, then: node scripts/demo_megasynth_node.mjs
 // An optional first argument is a file URL to an audify installation for testing.
-import {MegaSynthNode} from '../node/megasynth.mjs';
-import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
+import {MegaSynthNode} from '../tetorica_src/node/megasynth.mjs';
+import {FM_PRESETS} from '../tetorica_src/runtime/megasynth-fm-presets.js';
 const synth = new MegaSynthNode({masterVolume: .15,
   outputOptions: process.argv[2] ? {moduleUrl: process.argv[2]} : {}});
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));

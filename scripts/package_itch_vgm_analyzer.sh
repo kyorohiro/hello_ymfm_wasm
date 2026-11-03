@@ -329,7 +329,7 @@ perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated
 
 # vgi.js is shared with the web runtime; docs/js/vgi.js is a source-tree
 # re-export, while the standalone analyzer package needs the implementation.
-cp "${ROOT_DIR}/web/vgi.js" "${STAGE_DIR}/js/vgi.js"
+cp "${ROOT_DIR}/tetorica_src/runtime/vgi.js" "${STAGE_DIR}/js/vgi.js"
 
 node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" analyzer --copy "${STAGE_DIR}"
 

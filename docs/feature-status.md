@@ -71,7 +71,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 
 | 機能 | 実装・範囲 | 制限・手動確認 | 自動検証・詳細 |
 |---|---|---|---|
-| ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../web/README.md)、[テスト](../test/runtime/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
+| ライブコーディング・埋め込みRuntime | 実装済。FM／PSG／DAC、サンプル、ループ等 | 音源選択によって使えるAPIが異なる。手動記録は未整理 | [Runtime](../tetorica_src/runtime/README.md)、[テスト](../test/runtime/playground_runtime.test.mjs)、[examples](playground/examples/README.md) |
 | DX7 mode | 標準`dx7`・16音ポリフォニー、Object音色の初期コードと3個の代表例、共通Guitar Keyboardを実装 | ローカル追加。音源の内部レートは44,100 Hz固定で`setClock()`なし。npm 0.2.21の追加音源DX7 APIとは別に、今回のprimary構成は次回npm更新の対象 | [mode仕様](issues/soundchip_mode.md#dx7-mode)、[型定義](playground/tetorica-playground-dx7.d.ts)、[初期コード](playground/defaults/dx7/index.js) |
 | Playground modeとネイティブ基本構成 | WebはOPN系に加えGame Boy／NES＋FDS／SNES／X68000／PC Engine／Game Gear／Master System等のmodeを実装。共有Runtimeは対応する基本音源構成を扱う | npm 0.2.21の対象。modeメニュー・初期コード・画面の切替はWeb側の機能で、npmに画面は含まれない。`play()`はOPN FM用、他音源は個別APIで操作 | [mode仕様](issues/soundchip_mode.md)、[Runtimeの収録範囲](../packages/fm2612/README.md#native-configurations-and-host-integration-0221) |
 | ネイティブ音色情報・試奏 | Game Boy／NES＋FDS／YM2151／OKIM6258／HuC6280の適用済み設定と波形を確認・編集。Hold試奏と共通Keyboardを接続 | 共有Inspector・Worklet側処理はnpm 0.2.21の対象、パネルUIはWeb専用。選択CHのmanual lease、旧IDのrelease無視、Stopの予約取消・設定保持を検証。HuCのDDAでは音符試奏不可、OKIのKeyboardは同rateの単音sample trigger | [仕様と検証](issues/soundchip_mode.md)、[HuC実core](../test/runtime/playground_huc6280_inspector.test.mjs)、[OKI実core](../test/runtime/playground_okim6258_inspector.test.mjs)、[OPM実core](../test/runtime/playground_ym2151_inspector.test.mjs) |
@@ -92,7 +92,7 @@ WASMが存在するだけでPlayground APIも利用可能とは判断しない�
 | Native Audio Effect | 実装済。WASM FX・ルーティング・Playground接続 | 独立ページはWindows確認記録あり。Playground移行後の試聴は残作業 | [FX一覧・成功記録](issues/native_audioeffect_01.md)、[テスト](../test/playground_native_fx.test.mjs) |
 | Tetorica製YM2608リズムROM | 実装済。同梱・差し替え、比較ページで調整／生成 | 元ROMの複製ではない。音色調整は継続 | [ROM説明](../assets/opna-rhythm/README.md)、[比較ページ](demos/opna-rhythm-compare.html)、[作業記録](issues/tetorica_ym2608_rom.md)、[テスト](../test/runtime/opna_rhythm_rom.test.mjs) |
 | Synthアプリ | 実装済。FM音色編集・TFI／VGI・VGM／VGZ／S98音色取込・鍵盤試聴 | OPN FMと単一YM2151。YM2151はYM2612へ近似変換し、DT2／LFO／ノイズ等は保持しない。S98／OPM取込はローカル追加。ChromiumでVGM／VGZ／S98のYM2151取込・鍵盤発音・失敗時の保持を確認 | [画面](synth/index.html)、[取込テスト](synth/synth_preset_import.test.mjs)、[操作テスト](synth/synth_controls.test.mjs) |
-| Node.js例・Web Runtime配布 | 実装済。音源ラッパー・Synth・WASM・使用例 | 高水準Synthの対応はチップごとに異なる | [Node.js例](../tetorica_examples/nodejs/README.md)、[Runtime](../web/README.md)、[配布説明](../README.md#download) |
+| Node.js例・Web Runtime配布 | 実装済。音源ラッパー・Synth・WASM・使用例 | 高水準Synthの対応はチップごとに異なる | [Node.js例](../tetorica_examples/nodejs/README.md)、[Runtime](../tetorica_src/runtime/README.md)、[配布説明](../README.md#download) |
 
 ## CLI／Node API
 

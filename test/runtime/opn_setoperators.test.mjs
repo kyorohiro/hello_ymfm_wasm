@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {YM2203Synth} from '../../web/ym2203synth.js';
-import {YM2608Synth} from '../../web/ym2608synth.js';
-import {YM2610BSynth, NeoGeoFMSynth} from '../../web/ym2610bsynth.js';
-import {createOpnClient} from '../../web/playground_opn.js';
-import {createYm2608Client} from '../../web/playground_ym2608.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth, NeoGeoFMSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {createOpnClient} from '../../tetorica_src/runtime/playground_opn.js';
+import {createYm2608Client} from '../../tetorica_src/runtime/playground_ym2608.js';
 
 for (const [name, make, last] of [
  ['ym2203', t=>new YM2203Synth({transport:t}),2],
@@ -38,7 +38,7 @@ for(const name of ['ym2203','ym2608','ym2610'])test(`${name} additional client f
  assert.deepEqual(messages.map(m=>m.args.at(-1)),[9,11]);chip.dispose();
 });
 
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
 for(const name of ['ym2203','ym2608','ym2610','ym2610b'])test(`${name} Worker batch uses correct channel and rejects atomically`,()=>{
  const commands=[];
  const chip=createWorkerChip({port:{postMessage:batch=>commands.push(...batch)},capabilities:{chip:name}});

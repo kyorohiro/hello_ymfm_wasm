@@ -2,18 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {LiveFX} from '../web/custom_fx.js';
-import {createNativeFXController,FX_TYPES,FX_PARAMS} from '../web/native_fx.js';
-import {createSampleProcessor} from "../web/native_sample_processor.js";
-import {setChain} from '../web/native_fx_graph.js';
-import {NativeFXEngine} from '../web/native_fx_engine.js';
-import {createPerformanceQueue} from '../web/playground_performance_queue.js';
-const module=await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url)));
+import {LiveFX} from '../tetorica_src/runtime/custom_fx.js';
+import {createNativeFXController,FX_TYPES,FX_PARAMS} from '../tetorica_src/runtime/native_fx.js';
+import {createSampleProcessor} from "../tetorica_src/runtime/native_sample_processor.js";
+import {setChain} from '../tetorica_src/runtime/native_fx_graph.js';
+import {NativeFXEngine} from '../tetorica_src/runtime/native_fx_engine.js';
+import {createPerformanceQueue} from '../tetorica_src/runtime/playground_performance_queue.js';
+const module=await WebAssembly.compile(readFileSync(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url)));
 function harness(){
  let Processor;const errors=[];
  const scope={NativeFXEngine,LiveFX,createSampleProcessor,createPerformanceQueue,WebAssembly,Float32Array,Map,Math,Number,Error,sampleRate:48000,setChain,FX_TYPES,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:d=>errors.push(d)};}},registerProcessor:(name,p)=>Processor=p};
- vm.runInNewContext(readFileSync(new URL('../web/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
+ vm.runInNewContext(readFileSync(new URL('../tetorica_src/runtime/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
  const p=new Processor({processorOptions:{module}});
  const messages=[];let beat=.5;
  const fx=createNativeFXController(d=>{messages.push(d);p.command(structuredClone(d));},{getBeatSeconds:()=>beat});
@@ -67,18 +67,18 @@ test('Worker port owns FX; returning to main closes it, discards tails and reset
  assert.ok(Math.abs(h.render(30)[0]-.1)<1e-5);
 });
 test('packaged DSP and source DSP are identical',()=>{
- const bytes=readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url));
+ const bytes=readFileSync(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url));
  assert.deepEqual(bytes,readFileSync(new URL('../docs/js/native_audio_effect.wasm',import.meta.url)));
  assert.deepEqual(bytes,readFileSync(new URL('../docs/native_audio_effect/gain.wasm',import.meta.url)));
 });
 
 test('browser rack loads local WASM, routes all sources through one Worklet and transfers a direct port',async t=>{
- const {TetoricaAudioRuntime}=await import('../web/tetorica_audio_runtime.js');
+ const {TetoricaAudioRuntime}=await import("../tetorica_src/runtime/tetorica_audio_runtime.js");
  const saved={fetch:globalThis.fetch,AudioWorkletNode:globalThis.AudioWorkletNode};
  t.after(()=>Object.assign(globalThis,saved));
  const modules=[],loads=[],sent=[];
  class Node{constructor(){this.connections=[];this.gain={value:1};}connect(n){this.connections.push(n);}disconnect(){this.connections=[];}}
- globalThis.fetch=async url=>{loads.push(String(url));return {ok:true,arrayBuffer:async()=>readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url))};};
+ globalThis.fetch=async url=>{loads.push(String(url));return {ok:true,arrayBuffer:async()=>readFileSync(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url))};};
  globalThis.AudioWorkletNode=class extends Node{constructor(context,name,options){super();assert.equal(name,'tetorica-native-fx');assert.ok(options.processorOptions.module instanceof WebAssembly.Module);this.port={postMessage:(d,transfer)=>sent.push({d,transfer}),close(){}};}};
  const context={destination:new Node(),createGain:()=>new Node(),audioWorklet:{addModule:async url=>modules.push(String(url))}};
  const audio=new TetoricaAudioRuntime({audioContext:context});audio.ensureRouting(context);
@@ -101,7 +101,7 @@ test('browser rack loads local WASM, routes all sources through one Worklet and 
 });
 
 test('native noise colors are deterministic, finite and distinct; gain, envelopes and FX work',async()=>{
- const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const {createNativeNoiseController}=await import("../tetorica_src/runtime/native_noise.js");
  const colors=[];
  for(const type of ['white','pink','brown','gray','clip']){
   const h=harness(),noise=createNativeNoiseController(d=>h.p.command(d));
@@ -118,7 +118,7 @@ test('native noise colors are deterministic, finite and distinct; gain, envelope
 });
 
 test('noise filters, pan, voice reuse and port ownership remain independent',async()=>{
- const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const {createNativeNoiseController}=await import("../tetorica_src/runtime/native_noise.js");
  const h=harness(),port={start(){},close(){}};
  h.p.port.onmessage({data:{op:'attach',port}});
  const messages=[],noise=createNativeNoiseController(d=>{messages.push(d);port.onmessage({data:d});});
@@ -131,7 +131,7 @@ test('noise filters, pan, voice reuse and port ownership remain independent',asy
 });
 
 test('native noise allocation is bounded and disposed slots can be reused',async()=>{
- const {createNativeNoiseController}=await import('../web/native_noise.js');
+ const {createNativeNoiseController}=await import("../tetorica_src/runtime/native_noise.js");
  const h=harness(),noise=createNativeNoiseController(d=>h.p.command(d));
  const voices=Array.from({length:32},()=>noise.create({autoStart:false}));
  assert.throws(()=>noise.create(),/32 voices/);
@@ -143,7 +143,7 @@ test('native noise allocation is bounded and disposed slots can be reused',async
 });
 
 async function sampleHarness(){
- const h=harness();const {createNativeSampleController}=await import('../web/native_sample.js');
+ const h=harness();const {createNativeSampleController}=await import("../tetorica_src/runtime/native_sample.js");
  const player=createNativeSampleController(d=>h.p.receive(d));
  h.p.port.postMessage=d=>player.accept(d);
  return {...h,player};
@@ -169,13 +169,13 @@ test('native PCM fades, FX, stale handles and bank unloading',async()=>{
 });
 test('native PCM allocation errors and Stop during preparation reject directly',async()=>{
  const h=await sampleHarness();await assert.rejects(h.player.load('bad',{sampleRate:48000,channels:[Float32Array.of(NaN)]}),/Invalid/);
- const {createNativeSampleController}=await import('../web/native_sample.js');const messages=[];
+ const {createNativeSampleController}=await import("../tetorica_src/runtime/native_sample.js");const messages=[];
  const player=createNativeSampleController(d=>messages.push(d));const loading=player.load('late',{sampleRate:48000,channels:[Float32Array.of(1)]});
  player.stopAll();await assert.rejects(loading,/stopped/);player.accept({op:'sample-response',id:messages[0].id});assert.equal(player.isLoaded('late'),false);
 });
 
 test('main runtime uses native PCM without allocating BufferSource nodes',async()=>{
- const h=await sampleHarness();const {TetoricaAudioRuntime}=await import('../web/tetorica_audio_runtime.js');
+ const h=await sampleHarness();const {TetoricaAudioRuntime}=await import("../tetorica_src/runtime/tetorica_audio_runtime.js");
  const audio=new TetoricaAudioRuntime({audioContext:{createBufferSource(){throw new Error('legacy source used');}}});
  audio.nativeFX={sample:h.player,mainActive:true};
  audio.storeSample('hit',{sampleRate:48000,numberOfChannels:1,getChannelData:()=>new Float32Array(16).fill(.4)});

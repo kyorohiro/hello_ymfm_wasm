@@ -4,10 +4,10 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,realpath,stat} from 'node:fs/promises';
 import {basename,dirname,resolve,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {Ymf276,YMF276_CLOCK} from '../web/ymf276.js';
-import {YMF276Synth} from '../web/opn_variant_synth.js';
-import {OPNDirectTransport} from '../web/opn_fm_synth.js';
-import {opnPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ymf276,YMF276_CLOCK} from '../tetorica_src/runtime/ymf276.js';
+import {YMF276Synth} from '../tetorica_src/runtime/opn_variant_synth.js';
+import {OPNDirectTransport} from '../tetorica_src/runtime/opn_fm_synth.js';
+import {opnPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_ymf276_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -17,10 +17,10 @@ const layouts={regular:[256],irregular:[1,17,127,509,3,1024,257,4096]};
 const totalFrames=6144,probeFrames=127;
 const dacCodes=256,dacNinthBits=[0,1],dacPans=[0,0x40,0x80,0xc0],dacProbeFrames=17;
 const requiredExports=['create','destroy','reset','write','read','read_status','get_irq','sample_rate','generate'].map(n=>'opn_'+n).concat(['malloc','free']);
-const wrapperPairs=['ymf276.js','opn_variant.js','opn_variant_synth.js','opn_fm_synth.js','soundchip_pitch.js'].map(n=>['web/'+n,'docs/js/'+n]);
+const wrapperPairs=['ymf276.js','opn_variant.js','opn_variant_synth.js','opn_fm_synth.js','soundchip_pitch.js'].map(n=>['tetorica_src/runtime/'+n,'docs/js/'+n]);
 const sdkRoot='third_party/tetorica-soundchip-native';
 const compilerFiles=['ymfm.h','ymfm_opn.h','ymfm_opn.cpp','ymfm_fm.h','ymfm_fm.ipp','ymfm_adpcm.h','ymfm_adpcm.cpp','ymfm_ssg.h','ymfm_ssg.cpp'];
-const compilerInputs=['wasm/opn_variant_wasm.cpp','wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>'src/'+n),sdkRoot+'/wasm/opn_variant_wasm.cpp',sdkRoot+'/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>sdkRoot+'/vendor/ymfm/'+n)];
+const compilerInputs=['tetorica_src/wasm/opn_variant_wasm.cpp','tetorica_src/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>'src/'+n),sdkRoot+'/wasm/opn_variant_wasm.cpp',sdkRoot+'/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>sdkRoot+'/vendor/ymfm/'+n)];
 const buildInputs=['package.json','scripts/build_ymf276_wasm.sh','scripts/build_opn_variant_wasm.sh','scripts/import_soundchip_sdk.py','third_party/soundchip-sdk.json',sdkRoot+'/scripts/build-wasm.sh',sdkRoot+'/scripts/build_ymf276_wasm.sh',sdkRoot+'/scripts/build_opn_variant_wasm.sh',sdkRoot+'/scripts/record_wasm_build.mjs',sdkRoot+'/scripts/check_sdk.py',sdkRoot+'/scripts/sdk_common.py',sdkRoot+'/sdk.json',sdkRoot+'/RELEASE-MANIFEST.json',sdkRoot+'/catalog/chips.json',sdkRoot+'/catalog/source_inventory.json'];
 // The SDK receipt hashes a broad source inventory as provenance, beyond the actual
 // compiler translation units and their quoted-include closure listed above.

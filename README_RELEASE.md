@@ -11,7 +11,7 @@
 | `tetorica-vgm` | [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) | `packages/vgm/package.json` | `npm run pack:vgm` |
 | `tetorica-fm2612` | [READMD_RELEASE_FM2612.md](READMD_RELEASE_FM2612.md) | `packages/fm2612/package.json` | `npm run pack:fm2612` |
 
-ルートの`package.json`は`private: true`の開発用ワークスペースです。配布用の情報とnpmのREADMEは`packages/vgm/`、`packages/fm2612/`にあり、実装は`cli/`、`web/`、`node/`とAnalyzerの共有モジュールにあります。
+ルートの`package.json`は`private: true`の開発用ワークスペースです。配布用の情報とnpmのREADMEは`packages/vgm/`、`packages/fm2612/`にあり、実装は`tetorica_src/cli/`、`tetorica_src/runtime/`、`tetorica_src/node/`とAnalyzerの共有モジュールにあります。
 
 ```sh
 npm run build:vgm       # dist/vgm/
@@ -24,7 +24,7 @@ npm run pack:fm2612     # tetorica-fm2612-VERSION.tgz
 
 ## 生成済みWASMの確認
 
-生成物の正本は`web/generated/`です。33件のSDKビルドとNative FXを、[共通manifest](web/generated/runtime-artifacts.json)で管理します。通常のチップビルドは正本を更新して公開用コピーを同期し、出力先を明示した比較ビルドは公開用コピーを変更しません。
+生成物の正本は`tetorica_src/runtime/generated/`です。33件のSDKビルドとNative FXを、[共通manifest](tetorica_src/runtime/generated/runtime-artifacts.json)で管理します。通常のチップビルドは正本を更新して公開用コピーを同期し、出力先を明示した比較ビルドは公開用コピーを変更しません。
 
 ```sh
 npm run check:runtime-artifacts
@@ -36,9 +36,9 @@ npm run check:runtime-artifacts
 
 ## Webランタイムのアーカイブ
 
-`web_runtime`と`web_runtime_exsample`には、`web/`ランタイム全体を収録します。OPN、OPM、OPL、PSG、PCMのラッパー・音声エンジン、Synthヘルパー、全33件のSDK生成物とNative FXを含みます。高水準Synth APIの対応範囲はチップごとに異なります。
+`web_runtime`と`web_runtime_exsample`には、`tetorica_src/runtime/`ランタイム全体を収録します。OPN、OPM、OPL、PSG、PCMのラッパー・音声エンジン、Synthヘルパー、全33件のSDK生成物とNative FXを含みます。高水準Synth APIの対応範囲はチップごとに異なります。
 
-`web_runtime_exsample`には既存のブラウザーデモページも含みます。`web/`の外にあるAnalyzer専用実装と、外部の音色・サンプルROMは含みません。
+`web_runtime_exsample`には既存のブラウザーデモページも含みます。`tetorica_src/runtime/`の外にあるAnalyzer専用実装と、外部の音色・サンプルROMは含みません。
 
 ```sh
 sh scripts/package_web_runtime_release.sh dev

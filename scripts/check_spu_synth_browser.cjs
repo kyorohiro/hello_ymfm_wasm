@@ -618,7 +618,7 @@ async function checkVab(page, keyboardHz) {
   assert.equal((await settled(page)).nextAddress,nextAddress,'Reloading a Tone reuses its sample RAM');
   const download=page.waitForEvent('download'); await page.locator('#savePreset').click();
   const bytes=await fs.readFile(await (await download).path()), preset=JSON.parse(bytes);
-  const {createPs1InitSample}=await import('../web/ps1synth.js');
+  const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");
   assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
   assert.equal(preset.sample.baseFrequencyHz,selected.rootFrequencyHz); assert.equal(preset.preset.adsr1,15);
   await page.locator('#resetPreset').click(); await settled(page);
@@ -692,7 +692,7 @@ async function checkPsf(page,keyboardHz) {
   assert.equal((await current(page)).nextAddress,nextAddress,'Switching banks preserves sample cache');
   const downloaded=page.waitForEvent('download'); await page.locator('#savePreset').click();
   const presetBytes=await fs.readFile(await (await downloaded).path()),preset=JSON.parse(presetBytes);
-  const {createPs1InitSample}=await import('../web/ps1synth.js');
+  const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");
   assert.deepEqual(preset.sample.adpcm,Array.from(createPs1InitSample().adpcm));
   await page.locator('#resetPreset').click();await settled(page);
   await page.locator('#presetFileInput').setInputFiles(payload('psf.spu.json',presetBytes));
@@ -1117,7 +1117,7 @@ async function checkSelectCommitFocus(page, keyboardHz) {
 async function checkRejectedPmon(page) {
   console.log('CHECK rejected PMON: full sample RAM preserves held keyboard owner');
   const initial=await current(page),free=524288-initial.nextAddress;assert(!initial.pmonSampleReserved);assert.equal(free%16,0);
-  const {createPs1InitSample}=await import('../web/ps1synth.js');const cycle=createPs1InitSample().adpcm;
+  const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");const cycle=createPs1InitSample().adpcm;
   const adpcm=Array.from({length:free},(_,i)=>i%16===1?(i===free-15?1:0):cycle[i%cycle.length]);
   const preset={schema:'tetorica-spu-synth.instrument',version:1,name:'RAM boundary',preset:{volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:0,pitch:4096,reverb:false},sample:{adpcm,baseFrequencyHz:44100/112},reverb:{preset:'off',volumeLeft:0,volumeRight:0}};
   await page.setInputFiles('#presetFileInput',{name:'ram-boundary.spu.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preset))});

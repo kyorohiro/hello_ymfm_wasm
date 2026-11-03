@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {WonderSwan,WONDERSWAN_CLOCK} from '../../web/wonderswan.js';
-import {WonderSwanSynth} from '../../web/wonderswansynth.js';
+import {WonderSwan,WONDERSWAN_CLOCK} from '../../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 import factory from '../../docs/generated/wonderswan_wasm.js';
-import {WonderSwanVoiceInspector} from '../../web/playground_wonderswan_inspector.js';
-import {ChipClockResampler,validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {WonderSwanVoiceInspector} from '../../tetorica_src/runtime/playground_wonderswan_inspector.js';
+import {ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
-const binary=await readFile(new URL('../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
+const binary=await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
 const source=(await readFile(new URL('./playground_wonderswan_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
 const peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 const step=values=>values.reduce((result,value,index)=>index?Math.max(result,Math.abs(value-values[index-1])):result,0);

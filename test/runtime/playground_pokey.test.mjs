@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPokeyClient,createPokeyRegisterClient} from '../../web/playground_pokey.js';
+import {createPokeyClient,createPokeyRegisterClient} from '../../tetorica_src/runtime/playground_pokey.js';
 import {createPokeyFixture,peak} from '../helpers/pokey_worklet_fixture.mjs';
 
 test('POKEY Main/Worker clients retain independent zero-based channels and physical read-map ACKs',async()=>{

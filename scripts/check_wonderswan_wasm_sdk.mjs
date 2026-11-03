@@ -7,7 +7,7 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,realpath,stat,lstat} from 'node:fs/promises';
 import {basename,dirname,resolve,join,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {WonderSwan,WONDERSWAN_CLOCK} from '../web/wonderswan.js';
+import {WonderSwan,WONDERSWAN_CLOCK} from '../tetorica_src/runtime/wonderswan.js';
 import {scenes,render,equalPcm,metrics,specifiedChecks,wrapperChecks,verifyWonderSwanBuildReceipt} from './check_wonderswan_core.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');

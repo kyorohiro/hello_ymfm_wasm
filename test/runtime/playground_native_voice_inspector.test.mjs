@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {GameboyVoiceInspector,NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {CHIP_CLOCKS,ChipClockResampler,validateChipClock} from '../../web/playground_chip_clock.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {GameboySynth} from '../../web/gameboysynth.js';
-import {NesApuWasm} from '../../web/nesapu_wasm.js';
-import {NesApuSynth} from '../../web/nesapusynth.js';
-import {createNesClient} from '../../web/playground_nes.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
-import {NativeRuntimeSynth} from '../../web/native_runtime_synth.js';
+import {GameboyVoiceInspector,NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {CHIP_CLOCKS,ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
+import {NesApuWasm} from '../../tetorica_src/runtime/nesapu_wasm.js';
+import {NesApuSynth} from '../../tetorica_src/runtime/nesapusynth.js';
+import {createNesClient} from '../../tetorica_src/runtime/playground_nes.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {NativeRuntimeSynth} from '../../tetorica_src/runtime/native_runtime_synth.js';
 import factory from '../../docs/generated/gameboy_apu_wasm.js';
 import nesFactory from '../../docs/generated/nesapu_wasm.js';
 
@@ -26,7 +26,7 @@ async function setup(kind){
   vm.runInNewContext(source,{GameboyVoiceInspector,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,validateChipClock,GameboyApu,NesApuWasm,factory:kind==='nes'?nesFactory:factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{fds:true,wasmBinary:await readFile(new URL(`../docs/generated/${kind==='nes'?'nesapu':'gameboy_apu'}_wasm.wasm`,runtimeDirectoryUrl))}});
+  const processor=new Processor({processorOptions:{fds:true,wasmBinary:await readFile(new URL(`../../docs/generated/${kind==='nes'?'nesapu':'gameboy_apu'}_wasm.wasm`,runtimeDirectoryUrl))}});
   for(let i=0;i<100&&!messages.some(m=>m.ready||m.error);i++)await new Promise(r=>setTimeout(r,1));
   assert(messages.some(m=>m.ready),JSON.stringify(messages));
   const transport={clock:CHIP_CLOCKS[kind],fdsEnabled:true,writeRegister:(...args)=>processor.receive({method:'writeRegister',args},port),setChannelEnabled:(...args)=>processor.receive({method:'setChannelEnabled',args},port),reset:()=>processor.receive({method:'reset',args:[]},port),loadMemory:(...args)=>processor.receive({method:'loadMemory',args},port)};

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeMsm5205} from '../../web/msm5205_native.js';
+import {createNativeMsm5205} from '../../tetorica_src/runtime/msm5205_native.js';
 
 function deferred() {
   let resolve, reject;

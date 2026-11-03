@@ -1,22 +1,22 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { Ym3438 } from '../../web/ym3438.js';
-import { Ymf276 } from '../../web/ymf276.js';
-import { Ymf288 } from '../../web/ymf288.js';
-import { YM3438Synth, YMF276Synth, YMF288Synth } from '../../web/opn_variant_synth.js';
-import { OPNDirectTransport } from '../../web/opn_fm_synth.js';
-import { FM_PRESETS } from '../../web/megasynth-fm-presets.js';
-import { hzToBlockFnum } from '../../web/pitch.js';
+import { Ym3438 } from '../../tetorica_src/runtime/ym3438.js';
+import { Ymf276 } from '../../tetorica_src/runtime/ymf276.js';
+import { Ymf288 } from '../../tetorica_src/runtime/ymf288.js';
+import { YM3438Synth, YMF276Synth, YMF288Synth } from '../../tetorica_src/runtime/opn_variant_synth.js';
+import { OPNDirectTransport } from '../../tetorica_src/runtime/opn_fm_synth.js';
+import { FM_PRESETS } from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import { hzToBlockFnum } from '../../tetorica_src/runtime/pitch.js';
 
 const cases = [['ym3438', Ym3438, YM3438Synth], ['ymf276', Ymf276, YMF276Synth], ['ymf288', Ymf288, YMF288Synth]];
 const peak = array => array.reduce((p, x) => Math.max(p, Math.abs(x)), 0);
 for (const [name, Chip, Synth] of cases) {
   test(`${name}: native FM on all channels, pitch, pan, release and reset`, async () => {
     const {default: moduleFactory} = await import(`../../docs/generated/${name}_wasm.js`);
-    const moduleOptions = {wasmBinary: await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl))};
+    const moduleOptions = {wasmBinary: await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))};
     const chip = await Chip.create({moduleFactory, moduleOptions});
     try {
       const synth = new Synth({transport: new OPNDirectTransport(chip, {chipName:name, portCount:2})});
@@ -60,7 +60,7 @@ test('YM3438 and YMF276 use distinct native DAC/output paths', async () => {
   const outputs = [];
   for (const [name, Chip] of cases.filter(([name]) => name !== 'ymf288')) {
     const {default: moduleFactory} = await import(`../../docs/generated/${name}_wasm.js`);
-    const chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl))}});
+    const chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))}});
     try {
       const write = (port, reg, value) => {chip.write(port*2, reg);chip.write(port*2+1,value);};
       write(1, 0xb6, 0xc0); // DAC channel pan
@@ -77,7 +77,7 @@ test('YM3438 and YMF276 use distinct native DAC/output paths', async () => {
 
 test('YMF288 mixes its mono SSG output into both stereo channels', async () => {
   const {default: moduleFactory} = await import("../../docs/generated/ymf288_wasm.js");
-  const chip = await Ymf288.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ymf288_wasm.wasm', runtimeDirectoryUrl))}});
+  const chip = await Ymf288.create({moduleFactory, moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ymf288_wasm.wasm',runtimeDirectoryUrl))}});
   try {
     const write = (reg, data) => {chip.write(0, reg); chip.write(1, data);};
     write(0, 0x80); write(1, 0x01); // SSG A period

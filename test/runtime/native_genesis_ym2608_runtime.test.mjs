@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 
 function fixture() {
   const calls=[],commands=[],errors=[],registers=[Array(256).fill(0),Array(256).fill(0)],memory=new Uint8Array(0x200000);

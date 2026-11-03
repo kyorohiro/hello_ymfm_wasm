@@ -6,8 +6,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createYm2413RegisterClient} from '../web/playground_ym2413.js';
-import {createAy8910RegisterClient} from '../web/playground_ay8910.js';
+import {createYm2413RegisterClient} from '../tetorica_src/runtime/playground_ym2413.js';
+import {createAy8910RegisterClient} from '../tetorica_src/runtime/playground_ay8910.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 export async function run(chip){

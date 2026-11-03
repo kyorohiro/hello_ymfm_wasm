@@ -7,8 +7,8 @@ const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 function installExtraRf5c164Mock(native){
   const invoke=native.invoke.bind(native);native.extraRf5c164=new Map();
   async function fresh(){
-    const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
-    const {RF5C164Synth}=await import('../web/rf5c164synth.js');
+    const {RfInspectorState}=await import("../tetorica_src/runtime/playground_chip_inspector_state.js");
+    const {RF5C164Synth}=await import("../tetorica_src/runtime/rf5c164synth.js");
     const s={clock:12500000,bank:0,held:new Map(),groups:Array(8).fill(null),memory:new Uint8Array(65536),mix:{volume:1,pan:0}};
     s.inspector=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{clock:()=>s.clock,sampleRate:48000});
     s.control=new RF5C164Synth({transport:{write:(register,value)=>{

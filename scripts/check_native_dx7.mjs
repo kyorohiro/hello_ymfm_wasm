@@ -6,8 +6,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../web/msfa_dx7/src/index.js';
-import {presetToVoice} from '../web/msfa_dx7/src/preset.js';
+import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../tetorica_src/runtime/msfa_dx7/src/index.js';
+import {presetToVoice} from '../tetorica_src/runtime/msfa_dx7/src/preset.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
@@ -32,7 +32,7 @@ async function compileSdkFixture(directory,fixture,report){
 }
 let fixture=option('--fixture'),temporary;if(fixture)fixture=path.resolve(fixture);
 const output=option('--out'),rates=[44100,48000,96000];
-const wasmBytes=await fs.readFile(path.join(root,'web/msfa_dx7/wasm/msfa.wasm'));
+const wasmBytes=await fs.readFile(path.join(root,'tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm'));
 const report={schemaVersion:1,startedAt:new Date().toISOString(),deviceOpened:false,rates,
   internalSampleRate:44100,polyphony:16,wasmSha256:createHash('sha256').update(wasmBytes).digest('hex'),
   cases:[],maximumDifference:0,

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisOpl} from '../../web/native_genesis_opl.js';
+import {createNativeGenesisOpl} from '../../tetorica_src/runtime/native_genesis_opl.js';
 
 function deferred(){let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};}
 const tick=()=>new Promise(resolve=>setTimeout(resolve,1));

@@ -54,7 +54,7 @@ async function endpointCheck(page, rate) {
       const context = new AudioContext({sampleRate:rate}); await context.resume();
       check(context.sampleRate === rate, 'Requested output rate');
       const [{createMsm5205Audio},{createMsm5205Player},{prepareMSM5205Sample},{createMSM5205PCM}] = await Promise.all([
-        import('/web/msm5205_audio.js'),import('/web/msm5205_player.js'),import('/web/msm5205_sample.js'),import('/web/msm5205_pcm.js')]);
+        import('/tetorica_src/runtime/msm5205_audio.js'),import('/tetorica_src/runtime/msm5205_player.js'),import('/tetorica_src/runtime/msm5205_sample.js'),import('/tetorica_src/runtime/msm5205_pcm.js')]);
       await context.audioWorklet.addModule('/__pce_capture.js');
       const capture = new AudioWorkletNode(context, 'pce-cd-capture', {numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
       capture.connect(context.destination); let id = 0; const waiters = new Map();

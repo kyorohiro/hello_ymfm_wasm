@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   createSampleEdit, normalizeSampleEdit, renderSampleEdit, sampleNormalizationGainDb,
   estimateSamplePitch, renderGameboyWave, encodeSampleWav, decodeSampleWav,
-} from '../../web/playground_sample_edit.js';
+} from '../../tetorica_src/runtime/playground_sample_edit.js';
 
 const audio = (values, sampleRate = 1000) => ({channels: [Float32Array.from(values)], sampleRate});
 const tone = (hz, {sampleRate = 48000, seconds = 1, gain = .6} = {}) => audio(

@@ -36,8 +36,8 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
 `, result.archive], {encoding:'utf8'}));
     assert.equal(info.names.length, result.files);
     for (const name of ['ps1_spu_wasm.js', 'ps1_spu_wasm.wasm', 'ps1_spu_build.json'])
-      assert.deepEqual(await readFile(join(result.stage, 'generated', name)), await readFile(new URL('../web/generated/'+name, import.meta.url)));
-    assert(info.browser.originalInputs.some(input => input.path === 'web/generated/ps1_spu_wasm.js'));
+      assert.deepEqual(await readFile(join(result.stage, 'generated', name)), await readFile(new URL('../tetorica_src/runtime/generated/'+name, import.meta.url)));
+    assert(info.browser.originalInputs.some(input => input.path === 'tetorica_src/runtime/generated/ps1_spu_wasm.js'));
     assert(!info.browser.originalInputs.some(input => input.path === 'docs/generated/ps1_spu_wasm.js'));
     for (const path of ['index.html', 'synth-spu/index.html', 'synth-spu/icon.png', 'synth-spu/synth.js', 'synth-spu/spu_synth_worklet.js', 'synth-spu/spu_synth_prepare_worker.js', 'generated/ps1_spu_wasm.js', 'generated/ps1_spu_wasm.wasm', 'sources/native/ps1/spu.cpp', 'sources/native/ps1/upstream/spu.cpp', 'licenses/mame-ps1-spu/LICENSE']) assert(info.names.includes(path), path);
     assert(!info.names.includes('favicon.ico'), 'The SPU icon replaces the website-wide favicon');

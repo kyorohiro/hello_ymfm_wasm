@@ -6,9 +6,9 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {NesApu} from '../web/nesapu.js';
-import {NesApuSynth} from '../web/nesapusynth.js';
-import {ChipClockResampler} from '../web/playground_chip_clock.js';
+import {NesApu} from '../tetorica_src/runtime/nesapu.js';
+import {NesApuSynth} from '../tetorica_src/runtime/nesapusynth.js';
+import {ChipClockResampler} from '../tetorica_src/runtime/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');

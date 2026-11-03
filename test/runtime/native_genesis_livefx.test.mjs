@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {nativeGenesisLiveFxMessage as normalize,createNativeGenesisLiveFxStatus} from '../../web/native_genesis_livefx.js';
-import {decodeNativeLiveFxContext} from '../../web/native_livefx_context.js';
+import {nativeGenesisLiveFxMessage as normalize,createNativeGenesisLiveFxStatus} from '../../tetorica_src/runtime/native_genesis_livefx.js';
+import {decodeNativeLiveFxContext} from '../../tetorica_src/runtime/native_livefx_context.js';
 
 test('native liveFx normalization preserves context graph and validates before transport',()=>{
   const context={gain:.5,map:new Map([['value',2n]])};context.self=context;

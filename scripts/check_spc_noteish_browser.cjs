@@ -498,7 +498,7 @@ async function checkBrowser(name,engine,url,fixture,musical) {
   } finally {await browser.close();}
 }
 (async () => {
-  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root,'web/spc_test_fixture.mjs')));
+  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root,'tetorica_src/runtime/spc_test_fixture.mjs')));
   const fixture = Buffer.from(createSyntheticSpc({voices:1})), musical = withMusicalEvents(fixture);
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   try {

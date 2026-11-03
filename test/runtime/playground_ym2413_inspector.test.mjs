@@ -1,23 +1,23 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Ym2413} from '../../web/ym2413.js';
+import {Ym2413} from '../../tetorica_src/runtime/ym2413.js';
 import factory from '../../docs/generated/ym2413_wasm.js';
-import {YM2413_USER_PRESETS} from '../../web/ym2413synth.js';
-import {createYm2413Client} from '../../web/playground_ym2413.js';
-import {Ym2413VoiceInspector} from '../../web/playground_ym2413_inspector.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
+import {YM2413_USER_PRESETS} from '../../tetorica_src/runtime/ym2413synth.js';
+import {createYm2413Client} from '../../tetorica_src/runtime/playground_ym2413.js';
+import {Ym2413VoiceInspector} from '../../tetorica_src/runtime/playground_ym2413_inspector.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 const RATE=48000,DRUMS=['bassDrum','snare','tom','cymbal','hiHat'],peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 async function setup(){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_ym2413_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{Ym2413,factory,Ym2413VoiceInspector,receiveChipInspector,validateChipClock,sampleRate:RATE,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
-  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
+  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createYm2413Client(clientPort);client.initialize();
   return {processor,client,clientPort,messages,port,receive:data=>processor.receive(data,port),read:()=>processor.inspector.read(),invoke:(method,args=[])=>processor.inspector.invoke(method,args),render(frames){const output=[new Float32Array(frames),new Float32Array(frames)];processor.process([],[output]);frame+=frames;return output;},close(){client.dispose();processor.dispose();}};
 }

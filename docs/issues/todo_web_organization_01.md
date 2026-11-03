@@ -67,11 +67,11 @@
 2. 完了：`test:analyzer`、`test:cdrom2`、CI、mock runner、型テストの参照を更新。`npm test`も入れ子のruntimeテストを明示的に実行する。
 3. 完了：静的／動的importとURL基準を移行し、全277件の逆変換比較と移動前後の3,728件の実行結果一致を確認した。
 4. 維持：`spc_test_fixture.mjs`と`native_genesis_extra_creation_fixture.mjs`は共有・SDK校正の入力として元の場所に残した。過去の測定報告は変更していない。
-5. runtimeの物理移動は、同期・配布manifestの整理後に一群ずつ検討する。公開importパスとWorker／WorkletのURLを維持する移行方法を先に決める。
+5. 完了（2026-11-04）：runtimeとNode／CLI／Native／WASMを`tetorica_src/`へ移した。正本は`tetorica_src/runtime/generated/`。公開importパスとWorker／WorkletのURLを配布境界の変換で維持し、npm実インストールとitch ZIPを検証した。詳細は[第3段階の記録](todo_repository_organization_01.md)を参照。
 
-共有実装を`tetorica_src/runtime/`へ移した後の内部配置候補：`chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`audio/`に共通音声処理、`playground/`に共有実行runtime、`native/`にNative接続、`formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
+共有実装は`tetorica_src/runtime/`へ移設済み。今後の内部配置候補：`chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`audio/`に共通音声処理、`playground/`に共有実行runtime、`native/`にNative接続、`formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
 
-ファイル移動や公開APIの変更は、このREADME整理と分けて進める。
+移設に公開APIの変更は含めていない。上記のチップ別／機能別の内部再分割は、次回以降のTODOとして残す。
 
 ## 今回の整理
 

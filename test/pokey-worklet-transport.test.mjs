@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {MessageChannel} from 'node:worker_threads';
-import {PokeyWorkletTransport} from '../web/chip_worklet_transport.js';
-import {PokeySynth} from '../web/pokeysynth.js';
-import {createWorkletSoundChip} from '../web/soundchip_worklet.js';
+import {PokeyWorkletTransport} from '../tetorica_src/runtime/chip_worklet_transport.js';
+import {PokeySynth} from '../tetorica_src/runtime/pokeysynth.js';
+import {createWorkletSoundChip} from '../tetorica_src/runtime/soundchip_worklet.js';
 
 test('POKEY Synth generic transport retains zero-based channel metadata and validates complete schedule snapshots',async()=>{
   const writes=[],requests=[],endpoint={execution:'worklet',name:'pokey',clock:1789773,port:{postMessage:message=>writes.push(message)},request:(method,args)=>new Promise((resolve,reject)=>requests.push({method,args,resolve,reject}))};

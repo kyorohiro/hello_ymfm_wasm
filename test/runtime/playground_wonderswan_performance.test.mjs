@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createProcessorPerformance,identifyPerformanceNote,nativeVoiceChannel} from '../../web/playground_performance_processor.js';
+import {createProcessorPerformance,identifyPerformanceNote,nativeVoiceChannel} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 const control=(value,controlMask)=>({method:'writeRegister',args:[0x90,value],...(controlMask===undefined?{}:{controlMask})});
 function setup(){

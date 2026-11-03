@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChipRegistry} from '../../web/playground_soundchips.js';
+import {createSoundChipRegistry} from '../../tetorica_src/runtime/playground_soundchips.js';
 
 test('concurrent lookup shares initialization and ready instance; manual dispose evicts',async()=>{
  const registry=createSoundChipRegistry();let creates=0,disposes=0,finish;

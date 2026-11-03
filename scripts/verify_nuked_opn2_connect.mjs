@@ -1,5 +1,5 @@
-import { createYm2612, YM2612_CLOCK } from "../web/ym2612.js";
-import { YM2612Synth, YM2612DirectTransport } from "../web/ym2612synth.js";
+import { createYm2612, YM2612_CLOCK } from "../tetorica_src/runtime/ym2612.js";
+import { YM2612Synth, YM2612DirectTransport } from "../tetorica_src/runtime/ym2612synth.js";
 import nukedOpn2ModuleFactory from "../docs/generated/nuked_opn2_wasm.js";
 
 function expectTrue(actual, message) {

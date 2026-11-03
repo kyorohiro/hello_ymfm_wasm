@@ -1,10 +1,10 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { VgmPlayer } from '../../web/vgmplayer.js';
+import { VgmPlayer } from '../../tetorica_src/runtime/vgmplayer.js';
 
 function vgm(samples, loop = false) {
   const bytes = new Uint8Array(0x104);

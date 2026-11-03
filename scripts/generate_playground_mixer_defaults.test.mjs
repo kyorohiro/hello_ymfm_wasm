@@ -195,7 +195,7 @@ test('every reference capture must use a unity, centered, unmuted and solo Mixer
 test('generated module constructs independent application mixers and preserves saved numbers under factory policies',async t=>{
   const directory = await mkdtemp(join(tmpdir(),'playground-mixer-generator-')); t.after(()=>rm(directory,{recursive:true,force:true}));
   await mkdir(join(directory,'playground')); await mkdir(join(directory,'js'));
-  await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
+  await copyFile(new URL('../tetorica_src/runtime/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
   const modulePath = join(directory,'playground','defaults.mjs'), report = fixture(), profile = buildPlaygroundMixerPolicy(report);
   await writeFile(modulePath,renderPlaygroundMixerDefaults(report));
   const generated = await import(pathToFileURL(modulePath));
@@ -345,7 +345,7 @@ const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_0
 test('generated PS1 System defaults apply measured primary and extra gains once while retaining authored settings',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'ps1-playground-defaults-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   await mkdir(join(directory,'playground'));await mkdir(join(directory,'js'));
-  await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
+  await copyFile(new URL('../tetorica_src/runtime/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
   const {historical,ps1Report}=await createPs1MixerCalibrationFixture();
   const modulePath=join(directory,'playground','defaults.mjs');
   await writeFile(modulePath,renderPlaygroundMixerDefaults(historical,ps1Report));
@@ -412,7 +412,7 @@ test('WonderSwan is an independent measured extension that preserves PS1 and all
 test('generated WonderSwan primary and extra gains apply once and authored common/per-ID settings remain absolute',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'wonderswan-playground-defaults-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   await mkdir(join(directory,'playground'));await mkdir(join(directory,'js'));
-  await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
+  await copyFile(new URL('../tetorica_src/runtime/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
   const {historical,wsReport}=await createWonderSwanMixerCalibrationFixture();
   const modulePath=join(directory,'playground','defaults.mjs');
   await writeFile(modulePath,renderPlaygroundMixerDefaults(historical,undefined,wsReport));
@@ -485,7 +485,7 @@ test('POKEY extends only its four measured routes while PS1, WonderSwan and hist
 test('generated POKEY single, dual and additional-source gains apply once while authored numbers remain absolute',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'pokey-playground-defaults-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   await mkdir(join(directory,'playground'));await mkdir(join(directory,'js'));
-  await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
+  await copyFile(new URL('../tetorica_src/runtime/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
   const {historical,pokeyReport}=await createPokeyMixerCalibrationFixture();
   const modulePath=join(directory,'playground','defaults.mjs');
   await writeFile(modulePath,renderPlaygroundMixerDefaults(historical,undefined,undefined,pokeyReport));

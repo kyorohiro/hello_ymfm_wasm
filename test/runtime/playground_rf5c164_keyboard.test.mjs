@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/rf5c164_wasm.js';
-import {Rf5c164} from '../../web/rf5c164.js';
-import {createRf5c164Control,createRf5c164Client} from '../../web/playground_rf5c164.js';
-import {RfInspectorState,receiveChipInspector,rfSampleMetadata} from '../../web/playground_chip_inspector_state.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {RF5C164Synth} from '../../web/rf5c164synth.js';
-import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../web/playground_chip_clock.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Control,createRf5c164Client} from '../../tetorica_src/runtime/playground_rf5c164.js';
+import {RfInspectorState,receiveChipInspector,rfSampleMetadata} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {RF5C164Synth} from '../../tetorica_src/runtime/rf5c164synth.js';
+import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 
-const RATE=48000,wasmBinary=await readFile(new URL('../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl));
+const RATE=48000,wasmBinary=await readFile(new URL('../../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl));
 const source=(await readFile(new URL('./rf5c164-worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
 async function setup(){
   let Processor,current=0,readyResolve;const messages=[],ready=new Promise(resolve=>readyResolve=resolve);

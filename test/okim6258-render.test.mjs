@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {createPlaybackEngine,createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 const fixture=name=>new URL(`./fixtures/${name}.vgz`,import.meta.url);

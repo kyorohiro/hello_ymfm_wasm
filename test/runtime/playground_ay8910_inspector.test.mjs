@@ -1,26 +1,26 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Ay8910} from '../../web/ay8910.js';
+import {Ay8910} from '../../tetorica_src/runtime/ay8910.js';
 import factory from '../../docs/generated/ay8910_wasm.js';
-import {createAy8910Client} from '../../web/playground_ay8910.js';
-import {Ay8910VoiceInspector} from '../../web/playground_ay8910_inspector.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {validateChipClock,ChipClockResampler} from '../../web/playground_chip_clock.js';
+import {createAy8910Client} from '../../tetorica_src/runtime/playground_ay8910.js';
+import {Ay8910VoiceInspector} from '../../tetorica_src/runtime/playground_ay8910_inspector.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {validateChipClock,ChipClockResampler} from '../../tetorica_src/runtime/playground_chip_clock.js';
 const RATE=48000,peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 async function setup(options={}){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_ay8910_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{Ay8910,factory,Ay8910VoiceInspector,receiveChipInspector,validateChipClock,ChipClockResampler,sampleRate:RATE,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
-  const processor=new Processor({processorOptions:{...options,wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
+  const processor=new Processor({processorOptions:{...options,wasmBinary:await readFile(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createAy8910Client(clientPort,{clock:options.clock});client.initialize();
   return {processor,client,messages,port,receive:data=>processor.receive(data,port),read:()=>processor.inspector.read(),invoke:(method,args=[])=>processor.inspector.invoke(method,args),render(frames){const output=[new Float32Array(frames),new Float32Array(frames)];processor.process([],[output]);frame+=frames;return output;},close(){client.dispose();processor.dispose();}};
 }
-async function rawChip(profile){return Ay8910.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))},sampleRate:RATE,...profile});}
+async function rawChip(profile){return Ay8910.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))},sampleRate:RATE,...profile});}
 function syncRaw(chip,p){
   for(const [register,value]of p.processor.registers.entries())chip.writeRegister(register,value);
   let mask=0;for(const channel of p.processor.mutedChannels)mask|=1<<channel;chip.setMuteMask(mask);
@@ -37,7 +37,7 @@ test('AY inspection exposes exactly three tone/noise mixes and shared envelope w
 
 test('YM2149 Worklet generates actual YM PCM, with fixed profile through reset and clock changes',async()=>{
   const profile={clock:2000000,type:0x10,flags:1};
-  const p=await setup(profile),options={moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))},sampleRate:RATE,...profile};
+  const p=await setup(profile),options={moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))},sampleRate:RATE,...profile};
   const expected=await Ay8910.create(options),ay=await Ay8910.create({...options,type:0});
   const retimed=new ChipClockResampler();
   const sync=chip=>{chip.reset();for(const [register,value]of p.client._getState().registers.entries())chip.writeRegister(register,value);chip.setMuteMask(6);};

@@ -12,7 +12,7 @@ FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDir
 で接続 → 操作 → `chip.generateStereo()` → WAV保存、という共通の流れにする。
 チップの解放は呼び出し側の `finally` で `chip.dispose()` を行う。
 既存の `createSegaPsgApi` / `createRf5c164Control` は互換窓口として同じSynthを利用する。
-RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf5c164.js` に分離している。
+RF5C164のPCM形式変換は `tetorica_src/runtime/rf5c164_pcm.js`、通信は `tetorica_src/runtime/playground_rf5c164.js` に分離している。
 
 ## Experimental PS1 SPU → WAV
 
@@ -232,7 +232,7 @@ SSGだけの `reset()` はFMを停止しない。生レジスタ操作はSynth�
 YM2203の1/2とは異なる。別クロックはSynthの `clock` にも指定し、分周変更時は
 `ssg.clock` を合わせるか生の `period` を使う。FMの `hzToBlockFnum` にはマスタークロックをそのまま渡す。
 
-`node --test web/ym2608synth.test.mjs` で全6 CHの音程・パン・停止、CH3 special、
+`node --test test/runtime/ym2608synth.test.mjs` で全6 CHの音程・パン・停止、CH3 special、
 SSGの音程・状態追跡・FMとの混合を実WASMで検証する。
 Playgroundの操作UIは今後の対象。
 
@@ -245,7 +245,7 @@ node tetorica_examples/nodejs/main_ym2608_rhythm_wave.js /tmp/tetorica_rhythm.wa
 
 第1引数は出力先（省略時はスクリプトの隣の `ym2608_rhythm.wav`）、
 第2引数は、自分で用意した8 KiBのリズムROMのパス（省略可）。
-省略時は `web/tetorica_ym2608_adpcm_rom.bin` を使う。元のYamaha ROMとは音色が異なる。
+省略時は `tetorica_src/runtime/tetorica_ym2608_adpcm_rom.bin` を使う。元のYamaha ROMとは音色が異なる。
 WAVやADPCM-Bのデータはここへ渡さない。
 
 ```javascript
@@ -371,7 +371,7 @@ a.keyOff(0);
 - 今回はNode.jsのDirectTransportで確認。独自Transportには `loadAdpcmMemory(type, bytes, address)` が必要。
   typeはA=0、B=1。RuntimeSynth / WorkerのROM転送・Playground UI・WAV/FLAC変換は今回の対象外。
 
-`node --test web/ym2610bsynth.test.mjs` で、FM 6 CH・CH3 special・SSG・A/Bの再生と状態分離を確認する。
+`node --test test/runtime/ym2610bsynth.test.mjs` で、FM 6 CH・CH3 special・SSG・A/Bの再生と状態分離を確認する。
 サンプル内のエンコーダーは試聴データ生成用。汎用の音声ファイル変換APIではない。
 
 ## YM2612 → WAV
@@ -453,7 +453,7 @@ DAC・出力の処理が違うため、YM2612 の別名として扱ってはい�
 Analyzer の機種判定や Playground の選択肢には追加していない。
 YMF288 も低レベルチップ API・FM Synth・Node.js サンプルまで対応。
 
-`node --test web/opn_variant.test.mjs` で、新規コアの全6 CH、音程、パン、
+`node --test test/runtime/opn_variant.test.mjs` で、新規コアの全6 CH、音程、パン、
 Key Off、リセット再現性、DAC 出力差を検証する。実機との音質一致や試聴は別途確認が必要。
 
 生成済みの `docs/generated/ym2612_wasm.js` と `ym2612_wasm.wasm` が必要。
@@ -513,7 +513,7 @@ node tetorica_examples/nodejs/main_rf5c164_wave.js /tmp/rf5c164.wav
 WASMがない場合は `sh scripts/build_rf5c164_wasm.sh` でビルドする。
 
 `Rf5c164` がチップ本体、`RF5C164Synth` が操作・レジスタ生成を担当する。
-`web/rf5c164synth.js` の `RF5C164DirectTransport(chip)` で接続し、Playgroundと処理を共有する。
+`tetorica_src/runtime/rf5c164synth.js` の `RF5C164DirectTransport(chip)` で接続し、Playgroundと処理を共有する。
 Node.jsでは直接接続するので、`loadMemory` / `setChannel` / `keyOn` / `keyOff` は同期操作。
 Playgroundの通信クライアントが返すPromiseとは異なる。
 
@@ -532,4 +532,4 @@ node tetorica_examples/nodejs/main_soundchip.js
 
 YM2151 / YMF262 の初期化とPCM生成を確認する最小例です（リセット直後なので無音）。
 `createSoundChip` と必要なチップだけ登録するFactoryの使い方は
-[Sound chip factories](../../web/soundchip.md) を参照してください。
+[Sound chip factories](../../tetorica_src/runtime/soundchip.md) を参照してください。

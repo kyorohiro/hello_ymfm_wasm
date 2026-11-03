@@ -1,31 +1,31 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import { createPlaygroundRuntime } from '../../web/playground_runtime.js';
-import {createNativeFXController} from '../../web/native_fx.js';
-import {createAy8910Client} from '../../web/playground_ay8910.js';
-import {createOplClient} from '../../web/playground_opl.js';
-import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../web/ym2413synth.js';
-import {createYm2413Client} from '../../web/playground_ym2413.js';
-import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
-import {LiveFX} from '../../web/custom_fx.js';
-import {createYm2608Client} from '../../web/playground_ym2608.js';
-import {GameboySynth} from '../../web/gameboysynth.js';
-import {YM2203Synth} from '../../web/ym2203synth.js';
-import {YM2608Synth} from '../../web/ym2608synth.js';
-import {YM2610BSynth, NeoGeoFMSynth} from '../../web/ym2610bsynth.js';
-import {createSegaPsgClient} from '../../web/playground_segapsg.js';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {SnesSynth} from '../../web/snessynth.js';
-import {encodeBrr} from '../../web/snes_brr_encoder.js';
-import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
-import {encodePs1Adpcm} from '../../web/ps1_adpcm_encoder.js';
+import { createPlaygroundRuntime } from '../../tetorica_src/runtime/playground_runtime.js';
+import {createNativeFXController} from '../../tetorica_src/runtime/native_fx.js';
+import {createAy8910Client} from '../../tetorica_src/runtime/playground_ay8910.js';
+import {createOplClient} from '../../tetorica_src/runtime/playground_opl.js';
+import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../tetorica_src/runtime/ym2413synth.js';
+import {createYm2413Client} from '../../tetorica_src/runtime/playground_ym2413.js';
+import {OPLSynth,OPL_PRESETS} from '../../tetorica_src/runtime/opl_synth.js';
+import {LiveFX} from '../../tetorica_src/runtime/custom_fx.js';
+import {createYm2608Client} from '../../tetorica_src/runtime/playground_ym2608.js';
+import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth, NeoGeoFMSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
+import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
+import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
+import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
 import {ps1VoiceCode} from '../../docs/playground/playground_ps1_voice_panel.js';
-import {WonderSwanSynth} from '../../web/wonderswansynth.js';
-import {PokeySynth} from '../../web/pokeysynth.js';
-import {createRf5c164Client, createRf5c164Control} from '../../web/playground_rf5c164.js';
+import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
+import {PokeySynth} from '../../tetorica_src/runtime/pokeysynth.js';
+import {createRf5c164Client, createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 
 function deferred() {
   let resolve;
@@ -1132,7 +1132,7 @@ test('sample preparation completing after Stop cannot reopen output or start a v
 
 for (const example of ['chip-raw/gameboy-raw-write-sample', 'gameboy/gameboy-synth']) test(`Game Boy ${example} compiles with the full Playground global argument list`, async t => {
   const {runtime} = setup(t);
-  const source = await readFile(new URL(`../docs/playground/examples/${example}.js`, runtimeDirectoryUrl), 'utf8');
+  const source = await readFile(new URL(`../../docs/playground/examples/${example}.js`,runtimeDirectoryUrl), 'utf8');
   globalThis.playgroundReview = {compiled: false};
   // Compile the entire example in its real scope, without opening an audio device.
   await runtime.playSource('globalThis.playgroundReview.compiled = true; return;\n' + source);
@@ -1505,7 +1505,7 @@ test('main CC API reaches the rack and Stop silences a sustained FM voice',async
 });
 
 test('compiled standalone MIDI code plays through the main runtime without reading a MIDI asset',async t=>{
- const {midiToSource}=await import("../../web/midi_source.js");
+ const {midiToSource}=await import("../../tetorica_src/runtime/midi_source.js");
  const {runtime,megaDrive}=setup(t),writes=[];const start=performance.now();
  Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>(performance.now()-start)/1000});
  megaDrive.fm.write=()=>{};megaDrive.psg.write=v=>writes.push(v);
@@ -1533,7 +1533,7 @@ test('main Worker bridge uses MIDI channel state with automatic voice allocation
 });
 
 test('generated MIDI module stops during sample wait and runs again on main',async t=>{
- const {midiToSource}=await import("../../web/midi_source.js");
+ const {midiToSource}=await import("../../tetorica_src/runtime/midi_source.js");
  const {runtime,megaDrive}=setup(t),writes=[];const start=performance.now();
  Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>(performance.now()-start)/1000});
  megaDrive.fm.write=()=>{};megaDrive.psg.write=v=>writes.push(v);
@@ -1588,7 +1588,7 @@ test('Stop during a held MIDI liveLoop note completes hard mute and allows resta
 test('Worker observer updates synth state without sending audio or waiting for a reply', async t => {
  const {runtime,megaDrive}=setup(t),workers=workerBridge(t);
  const writes=[];
- const {YM2612Synth}=await import("../../web/ym2612synth.js");
+ const {YM2612Synth}=await import("../../tetorica_src/runtime/ym2612synth.js");
  megaDrive.fm=new YM2612Synth({transport:{write(port,register,value){writes.push([port,register,value]);},clearDacPlayback(){}}});
  await runtime.playSource('',{execution:'worker'});
  writes.length=0;
@@ -2051,7 +2051,7 @@ for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocati
 });
 
 test('copied SPU PCM voice code executes under the complete Playground prologue without shadowing built-in sample',async t=>{
-  const {Ps1Synth}=await import("../../web/ps1synth.js"),{createPs1Client}=await import("../../web/playground_ps1.js");
+  const {Ps1Synth}=await import("../../tetorica_src/runtime/ps1synth.js"),{createPs1Client}=await import("../../tetorica_src/runtime/playground_ps1.js");
   const {runtime,megaDrive}=setup(t,{chip:'ps1',fmChannels:0,psg:false,dac:false});
   const synth=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});
   const port={start(){},close(){},postMessage({method,args=[],id}){if(method==='dispose')return;const value=synth[method](...args);if(id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id,value}}));}},client=createPs1Client(port,{state:synth.getState()});
@@ -2065,7 +2065,7 @@ test('copied SPU PCM voice code executes under the complete Playground prologue 
 });
 
 test('Main PS1 primary exposes spu and pg.spu, borrows useSoundChip and releases retiring 24th-voice owners',async t=>{
-  const {Ps1Synth,createPs1InitSample}=await import("../../web/ps1synth.js"),{createPs1Client}=await import("../../web/playground_ps1.js");
+  const {Ps1Synth,createPs1InitSample}=await import("../../tetorica_src/runtime/ps1synth.js"),{createPs1Client}=await import("../../tetorica_src/runtime/playground_ps1.js");
   const {runtime,megaDrive}=setup(t,{chip:'ps1',fmChannels:0,psg:false,dac:false});const synth=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=synth.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample});
   const port={start(){},close(){},postMessage({method,args=[],id}){if(method==='dispose')return;const value=synth[method](...args);if(id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id,value}}));}},client=createPs1Client(port,{state:synth.getState()});t.after(()=>client.dispose());megaDrive.fm=null;megaDrive.spu=client;megaDrive.primaryEndpoints=[{name:'ps1',globalName:'spu',client}];megaDrive.stopAllNative=()=>client._stopVoices();
   await runtime.playSource(`if(spu!==pg.spu||await useSoundChip('ps1')!==spu)throw Error('Wrong sharedSPU');if(typeof fm!=='undefined'||typeof play!=='undefined')throw Error('UnexpectedOPN');const prepared=await livePrepare('spu',({spu})=>spu);if(prepared!==spu)throw Error('MissingpreparedSPU');liveLoop('old',async()=>{spu.noteOn(23,60);await sleep(60);});context.stopOld=()=>stopLoop('old');`);await until(()=>synth.gates[23]);runtime.context.stopOld();assert.equal(synth.gates[23],false);await runtime.stop();assert.equal(synth.samples.length,1);assert.equal(synth.channels[23].sample,0);

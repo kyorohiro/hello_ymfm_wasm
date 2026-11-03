@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createChipInspector} from '../../web/playground_chip_inspector.js';
+import {createChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector.js';
 
 // The readiness listener and inspector observer share the native node's port.
 // Exercise both listeners, rather than calling the startup callback in isolation.
@@ -46,7 +46,7 @@ const endpoints=[
 ];
 const open=async(name,factory,fixture)=>{
   // Import after installing fetch: legacy endpoints capture it at module load.
-  const module=await import(`../../web/playground_${name}_audio.js?admin-error-regression`);
+  const module=await import(`../../tetorica_src/runtime/playground_${name}_audio.js?admin-error-regression`);
   return module[factory](fixture.context,{},name==='opn'?'ym2612':fixture.options);
 };
 for(const [name,factory]of endpoints){
@@ -71,7 +71,7 @@ for(const [name,factory]of endpoints){
 
 test('PWM asset loading uses its captured loader while Playground user-code networking is guarded',async t=>{
   const fixture=audioFixture(t);
-  const {createPWM32XAudio}=await import("../../web/playground_pwm_audio.js?captured-fetch-regression");
+  const {createPWM32XAudio}=await import("../../tetorica_src/runtime/playground_pwm_audio.js?captured-fetch-regression");
   globalThis.fetch=()=>{throw new Error('Network access disabled in Playground execution');};
   const device=await createPWM32XAudio(fixture.context,{});
   t.after(()=>{device.dispose();device.port.close();});

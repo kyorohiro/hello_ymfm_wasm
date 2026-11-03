@@ -2,8 +2,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
-import { Ym2610B, YM2610B_CLOCK } from "../../web/ym2610b.js";
-import { YM2610BSynth, YM2610BDirectTransport } from "../../web/ym2610bsynth.js";
+import { Ym2610B, YM2610B_CLOCK } from "../../tetorica_src/runtime/ym2610b.js";
+import { YM2610BSynth, YM2610BDirectTransport } from "../../tetorica_src/runtime/ym2610bsynth.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2610b_wasm.js";
 

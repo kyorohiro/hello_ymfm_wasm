@@ -23,8 +23,8 @@ This repository has four goals:
 | I want to… | Start here |
 | --- | --- |
 | Try the tools without installing anything | [Browser home](https://kyorohiro.github.io/hello_ymfm_wasm/) · [itch.io](https://kyorohiro.itch.io/) |
-| Get prebuilt WASM and low-level JavaScript | [`tetorica-fm2612` on npm](https://www.npmjs.com/package/tetorica-fm2612) · [API entry points](packages/fm2612/README.md#api-entry-points) · [WASM and source layout](web/README.md) |
-| Embed an instrument, audio playback or live coding | [Synth / transport APIs](packages/fm2612/README.md) · [Playground Runtime](web/README.md#playground-runtime) · [runnable Web / Node examples](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| Get prebuilt WASM and low-level JavaScript | [`tetorica-fm2612` on npm](https://www.npmjs.com/package/tetorica-fm2612) · [API entry points](packages/fm2612/README.md#api-entry-points) · [WASM and source layout](tetorica_src/runtime/README.md) |
+| Embed an instrument, audio playback or live coding | [Synth / transport APIs](packages/fm2612/README.md) · [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) · [runnable Web / Node examples](https://github.com/kyorohiro/tetorica-fm2612-examples) |
 | Inspect music files or extract instruments / scores | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) · [`tetorica-vgm` CLI / Node API](packages/vgm/README.md) |
 | Reuse the C / C++ cores or build a native plug-in | [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) · [SPU plug-in source / previews](https://github.com/kyorohiro/tetorica-spu-plugin) |
 | Add virtual files, Shell or Git to an editor | [`tetorica-virtual-files`](packages/virtual-files/README.md) · [npm](https://www.npmjs.com/package/tetorica-virtual-files) |
@@ -115,7 +115,7 @@ use the same direct PCM cores; Node.js requires version 22 or later.
 | Distribution / source | Where to find it |
 | --- | --- |
 | npm imports and asset URLs | [Package README](packages/fm2612/README.md), including `runtimeAssetUrl()` and custom WASM loading. |
-| Source checkout | [JavaScript source map](web/README.md), [`web/generated/`](web/generated/) for the complete prebuilt loader / WASM catalog, [`node/`](node/README.md) for Node audio. |
+| Source checkout | [JavaScript source map](tetorica_src/runtime/README.md), [`tetorica_src/runtime/generated/`](tetorica_src/runtime/generated/) for the complete prebuilt loader / WASM catalog, [`tetorica_src/node/`](tetorica_src/node/README.md) for Node audio. |
 | Standalone web runtime ZIPs | [Packaging and artifact names](README_RELEASE.md); these contain runtime modules, generated assets and notices. |
 | C / C++ and reproducible WASM builds | [Native SDK](https://github.com/kyorohiro/tetorica-soundchip-native) and [pinned SDK build guide](docs/building_ym2612_wasm.md). |
 
@@ -206,10 +206,10 @@ and source / license files shipped with the runtime you redistribute.
 
 | Directory / document | Contents |
 | --- | --- |
-| [`web/`](web/README.md) | JavaScript / TypeScript audio cores, Synth helpers, transports and shared runtime. |
+| [`tetorica_src/`](tetorica_src/README.md) | Shared JavaScript runtime, Node / CLI adapters, native audio effects and WASM bridges. |
 | [`docs/`](docs/index.html) | Published tools, generated WASM, guides, examples, licenses and detailed design notes. |
 | [`packages/`](packages/) | npm package manifests / READMEs for audio, VGM tools and virtual files. |
-| [`node/`](node/README.md), [`tetorica_examples/`](tetorica_examples/README.md) | Node adapters; Tetorica's runnable Node, browser and C++ examples. |
+| [`tetorica_examples/`](tetorica_examples/README.md) | Tetorica's runnable Node, browser and C++ examples. |
 | [`src/`](src/), [`examples/`](examples/README.md) | ymfm-derived cores and upstream examples, retaining their original directory layout. |
 | [`third_party/`](third_party/), [`scripts/`](scripts/) | Pinned upstream / SDK sources, builders and packaging / verification scripts. |
 | [Feature status](docs/feature-status.md), [Memo](Memo.md), [CLI](CLI.md) | Implementation coverage, chip notes and analysis API details. |

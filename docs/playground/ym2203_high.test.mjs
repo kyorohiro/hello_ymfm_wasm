@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {YM2203Synth} from '../../web/ym2203synth.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
 import {ym2203HighOperation} from './ym2203_high.js';
 import {exportYm2203FullVgm} from './playground_vgm_import.js';
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;

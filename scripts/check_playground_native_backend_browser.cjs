@@ -92,27 +92,27 @@ class FakeNative {
       this.liveFx.clear(); this.liveFxError = null;
       assert(args.mode===undefined||nativeModeIds.includes(args.mode)||args.mode==='32x'||args.mode==='genesis-nuked');
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
-      const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
+      const {RfInspectorState}=await import("../tetorica_src/runtime/playground_chip_inspector_state.js");
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
       this.pcmMemory=new Uint8Array(65536);
       this.pcmVoices=Array(8).fill(0);
-      const {createInitVoice}=await import('../web/msfa_dx7/src/sysex.js');
+      const {createInitVoice}=await import("../tetorica_src/runtime/msfa_dx7/src/sysex.js");
       this.dx7={voices:[Array.from(createInitVoice())],selectedVoice:0,revision:0};
       this.dx7Notes=new Map();
-      const {NesApu}=await import('../web/nesapu.js');
-      const {NesVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
+      const {NesApu}=await import("../tetorica_src/runtime/nesapu.js");
+      const {NesVoiceInspector}=await import("../tetorica_src/runtime/playground_native_voice_inspector.js");
       this.nesClock=1789773;this.nesChip=new NesApu({sampleRate:48000,fds:true});
       this.nesInspector=new NesVoiceInspector(this.nesChip,{clock:()=>this.nesClock,sampleRate:48000});
-      const {GameboyVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
-      const {WonderSwanVoiceInspector}=await import('../web/playground_wonderswan_inspector.js');
+      const {GameboyVoiceInspector}=await import("../tetorica_src/runtime/playground_native_voice_inspector.js");
+      const {WonderSwanVoiceInspector}=await import("../tetorica_src/runtime/playground_wonderswan_inspector.js");
       this.wonderswan={clock:args.clock??3072000,held:new Map(),inspector:new WonderSwanVoiceInspector({clock:()=>this.wonderswan.clock,sampleRate:48000})};
       this.gameboyClock=4194304;this.gameboyChip={writeRegister(){},reset(){}};
       this.gameboyInspector=new GameboyVoiceInspector(this.gameboyChip,{clock:()=>this.gameboyClock,sampleRate:48000});
-      const {Huc6280VoiceInspector}=await import('../web/playground_huc6280_inspector.js');
+      const {Huc6280VoiceInspector}=await import("../tetorica_src/runtime/playground_huc6280_inspector.js");
       this.hucClock=3579545;this.hucInspector=new Huc6280VoiceInspector({clock:()=>this.hucClock,sampleRate:48000});
       this.snes={registers:new Uint8Array(128),ram:new Uint8Array(65536),enabled:0,nativeFrames:0,
         timeline:{loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false}};
-      const {PWM32X}=await import('../web/pwm32x.js');
+      const {PWM32X}=await import("../tetorica_src/runtime/pwm32x.js");
       this.pwm=new PWM32X({sampleRate:48000,outputMode:'duty',gain:1});
       this.pwmQueue=[];this.pwmLastSchedule=null;
       this.ym2203={clock:4000000,registers:[Array(256).fill(0)],keyMasks:[0,0,0],ssgLevels:[0,0,0],ssgGates:[false,false,false],held:new Map(),sourceMuteMask:0,status:0,irq:false,prescaler:6,revision:0};
@@ -817,7 +817,7 @@ async function nativeNoiseRuns(page,native) {
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
 }
 async function nativeLiveFxRuns(page,native) {
-  const {decodeNativeLiveFxContext}=await import('../web/native_livefx_context.js');
+  const {decodeNativeLiveFxContext}=await import("../tetorica_src/runtime/native_livefx_context.js");
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   for(const execution of ['main','worker']) {
     const first=native.calls.length;
@@ -1865,7 +1865,7 @@ async function nativeMasterSystem(page,native,artifacts,name) {
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
 async function nativeX68000(page,native,artifacts,name) {
-  const {encodeWav}=await import('../web/wav.js');
+  const {encodeWav}=await import("../tetorica_src/runtime/wav.js");
   const wav=Array.from(encodeWav({sampleRate:16000,channels:[Float32Array.from({length:1024},(_,i)=>Math.sin(i/9)*.3)]}));
   await changeNativeMode(page,native,'x68000');
   const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/x68000/index.js'),'utf8');
@@ -1939,8 +1939,8 @@ async function nativeX68000(page,native,artifacts,name) {
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
 async function nativeDx7(page,native,artifacts,name) {
-  const {createInitVoice,createBankSysex}=await import('../web/msfa_dx7/src/sysex.js');
-  const {voiceToPreset}=await import('../web/msfa_dx7/src/preset.js');
+  const {createInitVoice,createBankSysex}=await import("../tetorica_src/runtime/msfa_dx7/src/sysex.js");
+  const {voiceToPreset}=await import("../tetorica_src/runtime/msfa_dx7/src/preset.js");
   const bank=Array.from(createBankSysex(Array.from({length:32},(_,index)=>createInitVoice('BANK '+String(index).padStart(2,'0')))));
   await changeNativeMode(page,native,'dx7');
   const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/dx7/index.js'),'utf8');

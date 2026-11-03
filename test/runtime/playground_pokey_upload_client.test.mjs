@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPokeyClient} from '../../web/playground_pokey.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {preparePokeyTimeline,POKEY_TIMELINE_MAX_BYTES} from '../../web/pokey_timeline.js';
-import {createPokeyTimelineUpload,POKEY_TIMELINE_CHUNK_BYTES} from '../../web/pokey_timeline_upload.js';
+import {createPokeyClient} from '../../tetorica_src/runtime/playground_pokey.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {preparePokeyTimeline,POKEY_TIMELINE_MAX_BYTES} from '../../tetorica_src/runtime/pokey_timeline.js';
+import {createPokeyTimelineUpload,POKEY_TIMELINE_CHUNK_BYTES} from '../../tetorica_src/runtime/pokey_timeline_upload.js';
 
 const trace=(writes=12000,value=7)=>{
   const data=new Uint8Array(writes*3);

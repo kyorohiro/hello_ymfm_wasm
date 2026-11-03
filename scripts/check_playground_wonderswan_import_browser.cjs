@@ -199,8 +199,8 @@ async function referencePcm(input,sampleRate,seconds=.5) {
   if(referenceCache.has(key))return referenceCache.get(key);
   referenceModules??=(async()=>{
     const [{WonderSwanAudioEngine},{Ym2612VGM},{default:factory},binary]=await Promise.all([
-      import(pathToFileURL(path.join(repository,'web/wonderswanaudioengine.js'))),
-      import(pathToFileURL(path.join(repository,'web/ym2612vgm.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/wonderswanaudioengine.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/ym2612vgm.js'))),
       import(pathToFileURL(path.join(repository,'docs/generated/wonderswan_wasm.js'))),
       fs.readFile(path.join(repository,'docs/generated/wonderswan_wasm.wasm')),
     ]);

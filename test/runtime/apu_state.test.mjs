@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createPlaybackEngine} from '../../docs/vgm_analyzer/playback_core.js';
-import {getNodePlaybackFactory} from '../../cli/render.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {getNodePlaybackFactory} from '../../tetorica_src/cli/render.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import vm from 'node:vm';
 import {createGameboyMonitor} from '../../docs/vgm_analyzer/gameboy_notes.js';
 import {createNesMonitor,applyNesWrite} from '../../docs/vgm_analyzer/nes_notes.js';
 
-const fixture=name=>readFileSync(new URL(`../test/fixtures/${name}.vgm`,runtimeDirectoryUrl));
+const fixture=name=>readFileSync(new URL(`../../test/fixtures/${name}.vgm`,runtimeDirectoryUrl));
 const make=bytes=>createPlaybackEngine(new Ym2612VGM(bytes),{getFactory:getNodePlaybackFactory});
 const render=(player,n)=>{const left=new Float32Array(n),right=new Float32Array(n);player.process(left,right,n);return {left,right};};
 const player=(engine,bytes)=>{const p=new VgmPlayer(engine);p.load(bytes);p.setPrefetchFactor(1);p.play();return p;};
@@ -99,7 +99,7 @@ test('Game Boy native snapshots reject wrong size/configuration before modifying
 
 for(const [name,kind] of [['gameboy-tone','gameboy'],['nes-tone','nes'],['fds-tone','nes']]){
   test(`${name}: Analyzer retains checkpoints and restores Note-ish including FDS methods`,async()=>{
-    const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
+    const source=readFileSync(new URL('../../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
     const body=source.slice(source.indexOf('async function ensurePlaybackReady('),source.indexOf('\nfunction isPlaybackReady('));
     const bytes=song(fixture(name)),engine=await make(bytes);
     try{

@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {encodeWav} from '../../web/wav.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 import moduleFactory from '../../docs/generated/ps1_spu_wasm.js';
 
 const prefix = process.argv[2] ?? fileURLToPath(new URL('./ps1-spu', import.meta.url));

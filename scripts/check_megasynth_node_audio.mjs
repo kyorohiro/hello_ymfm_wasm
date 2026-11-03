@@ -1,8 +1,8 @@
 // Optional hardware check; requires audify and an audio output device.
 // Args: [audify module file URL] [MegaSynthNode module file URL]
 import assert from 'node:assert/strict';
-import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
-const {MegaSynthNode} = await import(process.argv[3] ?? '../node/megasynth.mjs');
+import {FM_PRESETS} from '../tetorica_src/runtime/megasynth-fm-presets.js';
+const {MegaSynthNode} = await import(process.argv[3] ?? '../tetorica_src/node/megasynth.mjs');
 const synth = new MegaSynthNode({masterVolume: .01,
   outputOptions: process.argv[2] ? {moduleUrl: process.argv[2]} : {}});
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));

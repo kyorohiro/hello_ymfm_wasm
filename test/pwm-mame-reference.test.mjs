@@ -4,7 +4,7 @@ import {readFile,mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {PWM32X} from '../web/pwm32x.js';
+import {PWM32X} from '../tetorica_src/runtime/pwm32x.js';
 
 // Compile the actual pinned MAME function bodies, with only host devices stubbed.
 // This oracle does not duplicate the JS FIFO algorithm.

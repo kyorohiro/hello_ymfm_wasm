@@ -1,10 +1,10 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {LiveFX} from '../../web/custom_fx.js';
-import {createNativeFXController} from '../../web/native_fx.js';
+import {LiveFX} from '../../tetorica_src/runtime/custom_fx.js';
+import {createNativeFXController} from '../../tetorica_src/runtime/native_fx.js';
 const gain=function(input,output,state,context){
  state.blocks=(state.blocks??0)+1;
  for(let c=0;c<input.length;c++)for(let i=0;i<input[c].length;i++)output[c][i]=input[c][i]*context.gain;
@@ -179,7 +179,7 @@ test('actual WASM worklet accepts liveFx on main and direct Worker port; Stop cl
  globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage:d=>messages.push(d)};}};
  globalThis.registerProcessor=()=>{};
  try {
-  const {NativeFXProcessor}=await import("../../web/native-fx-worklet.js");
+  const {NativeFXProcessor}=await import("../../tetorica_src/runtime/native-fx-worklet.js");
   const module=await WebAssembly.compile(await readFile(new URL('./native_audio_effect.wasm',runtimeDirectoryUrl)));
   const processor=new NativeFXProcessor({processorOptions:{module}});
   const run=()=>{const out=block();processor.process([block()],[out]);return out;};
@@ -210,7 +210,7 @@ test('monitor is opt-in, collects contiguous per-FX stereo windows and stops aft
  globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage:d=>messages.push(d)};}};
  globalThis.registerProcessor=()=>{};
  try {
-  const {NativeFXProcessor}=await import("../../web/native-fx-worklet.js?monitor-test");
+  const {NativeFXProcessor}=await import("../../tetorica_src/runtime/native-fx-worklet.js?monitor-test");
   const module=await WebAssembly.compile(await readFile(new URL('./native_audio_effect.wasm',runtimeDirectoryUrl)));
   const p=new NativeFXProcessor({processorOptions:{module}});
   const port={start(){},close(){}};

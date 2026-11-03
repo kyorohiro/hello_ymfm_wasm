@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {buildAnalyzerPsgDefaults,generateAnalyzerMixerDefaults,verifyAnalyzerCalibrationSources} from './generate_analyzer_mixer_defaults.mjs';
+import {readFile} from 'node:fs/promises';
+import {buildAnalyzerPsgDefaults,generateAnalyzerMixerDefaults,verifyAnalyzerCalibrationSources,isAnalyzerSourceLayoutRevision} from './generate_analyzer_mixer_defaults.mjs';
 import {ANALYZER_MIXER_DEFAULTS} from '../docs/vgm_analyzer/mixer_calibration_data.js';
 
 const anchor=1.03357;
@@ -62,4 +63,28 @@ test('measurement source hashes stay mandatory and reject a changed renderer',as
   for(const report of reports)await assert.rejects(verifyAnalyzerCalibrationSources([report],async()=>new TextEncoder().encode('changed renderer')),
     /Analyzer calibration source changed; remeasure: renderer.js/);
   for(const report of [{},{sources:[]},{sources:{}}])await assert.rejects(verifyAnalyzerCalibrationSources([report]),/Missing Analyzer calibration sources/);
+});
+
+test('source-folder migration preserves historical hashes and rejects any additional renderer or measurement edit',async()=>{
+  const root=new URL('../',import.meta.url);
+  const reports=await Promise.all(['analyzer_nes_levels_01','analyzer_extra_levels_06','analyzer_psg_levels_07']
+    .map(async name=>JSON.parse(await readFile(new URL(`docs/issues/${name}.json`,root),'utf8'))));
+  const expected=new Map(reports.flatMap(report=>Array.isArray(report.sources)?report.sources.map(record=>[record.path,record.sha256]):
+    Object.entries(report.sources).map(([path,record])=>[path,typeof record==='string'?record:record.sha256])));
+  for(const [path,location]of [
+    ['scripts/measure_analyzer_nes_levels.mjs','scripts/measure_analyzer_nes_levels.mjs'],
+    ['scripts/calibrate_analyzer_extra_levels.mjs','scripts/calibrate_analyzer_extra_levels.mjs'],
+    ['scripts/measure_analyzer_psg_levels.mjs','scripts/measure_analyzer_psg_levels.mjs'],
+    ['scripts/measure_analyzer_psg_balance.mjs','scripts/measure_analyzer_psg_balance.mjs'],
+    ['cli/render.js','tetorica_src/cli/render.js'],
+  ]){
+    const bytes=await readFile(new URL(location,root)),hash=expected.get(path);
+    assert(isAnalyzerSourceLayoutRevision(path,bytes,hash),path);
+    assert.equal(isAnalyzerSourceLayoutRevision(path,Buffer.concat([bytes,Buffer.from('\n// changed audio or probe\n')]),hash),false,path);
+    assert.equal(isAnalyzerSourceLayoutRevision('unrelated.js',bytes,hash),false,path);
+    const original=JSON.stringify(reports);
+    await verifyAnalyzerCalibrationSources([{sources:{[path]:hash}}],async()=>bytes);
+    await assert.rejects(verifyAnalyzerCalibrationSources([{sources:{[path]:hash}}],async()=>Buffer.concat([bytes,Buffer.from('\n// mutation\n')])),/remeasure/);
+    assert.equal(JSON.stringify(reports),original,'Captured reports and hash records remain untouched');
+  }
 });

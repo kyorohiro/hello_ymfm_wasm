@@ -7,7 +7,7 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createPlaybackEngine} from '../docs/vgm_analyzer/playback_core.js';
 import {createVgmTargets} from '../docs/js/vgmplayer.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {OPLSynth} from '../docs/js/opl_synth.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -154,7 +154,7 @@ function summarize(samples) {
 }
 
 const sourcePaths=[
-  'scripts/calibrate_analyzer_extra_levels.mjs','cli/render.js','docs/vgm_analyzer/playback_core.js',
+  'scripts/calibrate_analyzer_extra_levels.mjs','tetorica_src/cli/render.js','docs/vgm_analyzer/playback_core.js',
   'docs/vgm_analyzer/playback_mixer.js','docs/vgm_analyzer/mixer_defaults.js','docs/js/soundchip_mixer.js',
   'docs/js/vgmplayer.js','docs/js/opl_synth.js',
   'docs/js/segapcmaudioengine.js','docs/js/segapcm.js','docs/generated/segapcm_wasm.js','docs/generated/segapcm_wasm.wasm',

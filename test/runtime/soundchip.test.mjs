@@ -1,9 +1,9 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSoundChipFactory } from '../../web/soundchip_factory.js';
-import { createSoundChip } from '../../web/soundchip.js';
+import { createSoundChipFactory } from '../../tetorica_src/runtime/soundchip_factory.js';
+import { createSoundChip } from '../../tetorica_src/runtime/soundchip.js';
 
 test('registered factory loads only the requested chip and forwards options', async () => {
   const seen = [];
@@ -51,7 +51,7 @@ test('aborted default WASM loading and injected factories', async () => {
   const {default: moduleFactory} = await import("../../docs/generated/ym2612_wasm.js");
   const {readFile} = await import('node:fs/promises');
   const chip = await createSoundChip('ym2612', {moduleFactory, moduleOptions: {
-    wasmBinary: await readFile(new URL('../docs/generated/ym2612_wasm.wasm', runtimeDirectoryUrl)),
+    wasmBinary: await readFile(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl)),
   }});
   try { assert.equal(chip.generateStereo(32).left.length, 32); }
   finally { chip.dispose(); }

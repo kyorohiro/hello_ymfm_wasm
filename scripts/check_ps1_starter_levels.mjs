@@ -7,11 +7,11 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/ps1_spu_wasm.js';
-import {Ps1Spu} from '../web/ps1_spu.js';
-import {Ps1Synth,createPs1InitSample} from '../web/ps1synth.js';
-import {Ps1Resampler} from '../web/ps1_resampler.js';
-import {preparePs1Waveform,PS1_WAVEFORM_FRAMES} from '../web/ps1_waveform.js';
-import {SOUNDCHIP_MIXER_PRESETS} from '../web/soundchip_mixer_presets.js';
+import {Ps1Spu} from '../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth,createPs1InitSample} from '../tetorica_src/runtime/ps1synth.js';
+import {Ps1Resampler} from '../tetorica_src/runtime/ps1_resampler.js';
+import {preparePs1Waveform,PS1_WAVEFORM_FRAMES} from '../tetorica_src/runtime/ps1_waveform.js';
+import {SOUNDCHIP_MIXER_PRESETS} from '../tetorica_src/runtime/soundchip_mixer_presets.js';
 import {createPlaygroundSoundChipMixer} from '../docs/playground/playground_mixer_defaults.js';
 import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 
@@ -267,9 +267,9 @@ export async function measurePs1StarterLevels() {
       frozenCalibrationPcmFloat32LeSha256:frozen.channels.map(channel=>channel.pcmFloat32LeSha256),passed:true});
   }
   const sourcePaths=['scripts/check_ps1_starter_levels.mjs','scripts/soundchip_calibration_ps1.mjs',
-    'web/ps1synth.js','web/ps1_spu.js','web/ps1_resampler.js','web/ps1_waveform.js','web/ps1_adpcm_encoder.js',
+    'tetorica_src/runtime/ps1synth.js','tetorica_src/runtime/ps1_spu.js','tetorica_src/runtime/ps1_resampler.js','tetorica_src/runtime/ps1_waveform.js','tetorica_src/runtime/ps1_adpcm_encoder.js',
     'docs/playground/playground_ps1_voice_panel.js','docs/playground/playground_mixer_defaults.js',
-    'web/soundchip_mixer_presets.js','docs/js/soundchip_mixer.js',
+    'tetorica_src/runtime/soundchip_mixer_presets.js','docs/js/soundchip_mixer.js',
     'docs/generated/ps1_spu_wasm.js','docs/generated/ps1_spu_wasm.wasm'];
   report.sources=await Promise.all(sourcePaths.map(async path=>{
     const bytes=await readFile(join(root,path));return {path,bytes:bytes.length,sha256:hash(bytes)};

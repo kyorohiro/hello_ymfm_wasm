@@ -14,7 +14,7 @@ test('independent Browser YM2612 loads the selected engine once, contains no PSG
     disconnect(){this.connections=[];this.disconnected=true;}
   };
   t.after(()=>{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;});
-  const {createOpnAudio}=await import("../../web/playground_opn_audio.js?engine-selection");
+  const {createOpnAudio}=await import("../../tetorica_src/runtime/playground_opn_audio.js?engine-selection");
   const context={state:'running',audioWorklet:{async addModule(url){modules.push(String(url));}}},destination={};
   const endpoints=await Promise.all([undefined,'ymfm','nuked'].map(engine=>createOpnAudio(context,destination,'ym2612',{engine})));
   t.after(()=>endpoints.forEach(endpoint=>endpoint.dispose()));

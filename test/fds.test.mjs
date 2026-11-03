@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FdsAudio,fdsAddress} from '../docs/js/fds_audio.js';
 import {NesApuAudioEngine} from '../docs/js/nesapuaudioengine.js';
-import {renderSource} from '../cli/render.js';
+import {renderSource} from '../tetorica_src/cli/render.js';
 import {exportSource,listSourceScoreChannels,inspectSourceSupport} from '../docs/vgm_analyzer/analyzer_core.js';
 import {extractNesNotes,createNesMonitor,applyNesWrite,describeNesNotes} from '../docs/vgm_analyzer/nes_notes.js';
 const source=new Uint8Array(readFileSync(new URL('./fixtures/fds-tone.vgm',import.meta.url)));

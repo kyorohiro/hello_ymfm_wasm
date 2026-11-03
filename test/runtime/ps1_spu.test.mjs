@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {Ps1Spu} from '../../web/ps1_spu.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
 
 // Hand-authored filter-0 PSX ADPCM: no BIOS, ROM, recording or game assets.
 // Each block is 16 bytes / 28 samples. The first nibble is the LOW nibble.
@@ -30,7 +30,7 @@ let assets,sharedModule;
 async function moduleFactory() {
   const [factory,wasmBinary]=await (assets??=Promise.all([
     import("../../docs/generated/ps1_spu_wasm.js").then(module=>module.default),
-    readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl)),
+    readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl)),
   ]));
   return sharedModule??=factory({wasmBinary});
 }
@@ -60,7 +60,7 @@ function render(chip,frames,partitions=[frames]) {
 }
 
 // Independently transcribed hardware data from PSX-SPX, not read from the core.
-const gaussianTable=JSON.parse(await readFile(new URL('../test/helpers/ps1_gaussian_table.json',runtimeDirectoryUrl),'utf8'));
+const gaussianTable=JSON.parse(await readFile(new URL('../../test/helpers/ps1_gaussian_table.json',runtimeDirectoryUrl),'utf8'));
 function gaussianOracle(source,index,phase,loopStart=0) {
   const at=n=>n<0?0:source[n<source.length?n:loopStart+(n-source.length)%(source.length-loopStart)];
   const i=(phase>>>4)&255;
@@ -345,7 +345,7 @@ test('SPU zero pitch holds a fractional final-packet sample without reading past
   assert.ok(held.every(value=>value===expected),'fractional loop-end Gaussian interpolation holds current sample and history');
 });
 
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 const u32=value=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 function stereoBytes(audio) {
   const bytes=Buffer.alloc(audio.left.length*8);

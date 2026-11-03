@@ -129,7 +129,7 @@ async function runScenarios(WonderSwan, factory, wasmBinary) {
   return {clock:3072000,rates:[44100,48000],blocks,blockFrames:frames,results,wrapper};
 }
 
-const runnerSource = `import {WonderSwan} from '/web/wonderswan.js';
+const runnerSource = `import {WonderSwan} from '/tetorica_src/runtime/wonderswan.js';
 import factory from '/docs/generated/wonderswan_wasm.js';
 const runScenarios=${runScenarios.toString()};
 export async function run(){const response=await fetch('/docs/generated/wonderswan_wasm.wasm');
@@ -141,14 +141,14 @@ const digest = value => createHash('sha256').update(Buffer.from(new Float32Array
 
 (async () => {
   const wasmBinary = await fs.readFile(path.join(root,'docs/generated/wonderswan_wasm.wasm'));
-  const {WonderSwan} = await import(pathToFileURL(path.join(root,'web/wonderswan.js')).href);
+  const {WonderSwan} = await import(pathToFileURL(path.join(root,'tetorica_src/runtime/wonderswan.js')).href);
   const {default:factory} = await import(pathToFileURL(path.join(root,'docs/generated/wonderswan_wasm.js')).href);
   const expected = await runScenarios(WonderSwan,factory,wasmBinary);
   const assets = new Map([
     ['/',{type:'text/html',body:'<!doctype html><meta charset="utf-8"><title>Standalone WonderSwan core verification</title>'}],
     ['/check_runner.mjs',{type:'text/javascript',body:runnerSource}],
     ['/check_worker.mjs',{type:'text/javascript',body:workerSource}],
-    ['/web/wonderswan.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'web/wonderswan.js'))}],
+    ['/tetorica_src/runtime/wonderswan.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'tetorica_src/runtime/wonderswan.js'))}],
     ['/docs/generated/wonderswan_wasm.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'docs/generated/wonderswan_wasm.js'))}],
     ['/docs/generated/wonderswan_wasm.wasm',{type:'application/wasm',body:wasmBinary}],
   ]);
@@ -163,7 +163,7 @@ const digest = value => createHash('sha256').update(Buffer.from(new Float32Array
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   const report = {schemaVersion:1,passed:false,deviceOpened:false,audioContextCreated:false,
     wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),clock:expected.clock,rates:expected.rates,
-    sources:await Promise.all(['scripts/check_wonderswan_core_browser.cjs','web/wonderswan.js','docs/generated/wonderswan_wasm.js'].map(async file => {
+    sources:await Promise.all(['scripts/check_wonderswan_core_browser.cjs','tetorica_src/runtime/wonderswan.js','docs/generated/wonderswan_wasm.js'].map(async file => {
       const bytes=await fs.readFile(path.join(root,file));
       return {path:file,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};
     })),

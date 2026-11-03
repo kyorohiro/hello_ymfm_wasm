@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TetoricaAudioRuntime} from '../../web/tetorica_audio_runtime.js';
+import {TetoricaAudioRuntime} from '../../tetorica_src/runtime/tetorica_audio_runtime.js';
 
 test('failed callback and Promise audio decoding rejects the load without an unhandled second rejection',async()=>{
   const error=new Error('Invalid audio file');

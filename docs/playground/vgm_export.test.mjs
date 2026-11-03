@@ -1,5 +1,5 @@
 import test from "node:test";
-import { YM2612Synth } from "../../web/ym2612synth.js";
+import { YM2612Synth } from "../../tetorica_src/runtime/ym2612synth.js";
 import assert from "node:assert/strict";
 
 test("all import modes support channel splitting and combined output with DAC files", async () => {
@@ -559,9 +559,9 @@ test("Compact retains TL knowledge across unpaired pitch writes and sums the wai
 });
 
 test("native PC-98 and Neo Geo exports execute High and Compact using FM-only APIs", async () => {
-  const {YM2203Synth}=await import('../../web/ym2203synth.js');
-  const {YM2608Synth}=await import('../../web/ym2608synth.js');
-  const {YM2610BSynth}=await import('../../web/ym2610bsynth.js');
+  const {YM2203Synth}=await import("../../tetorica_src/runtime/ym2203synth.js");
+  const {YM2608Synth}=await import("../../tetorica_src/runtime/ym2608synth.js");
+  const {YM2610BSynth}=await import("../../tetorica_src/runtime/ym2610bsynth.js");
   for (const [chip,clock,command,exporter,Synth] of [
     ['ym2203',4000000,0x55,exportYm2203VgmToPlaygroundJavaScript,YM2203Synth],
     ['ym2608',8000000,0x56,exportYm2608VgmToPlaygroundJavaScript,YM2608Synth],
@@ -647,7 +647,7 @@ test("S98 imports produce executable Playground writes with preserved sample tim
 });
 
 test("OPN translation commits on low writes with shared normal and special latches", async () => {
-  const {createOpnFmWriteTranslator,isYm2608FmRegister}=await import('../../web/opn_fm_vgm.js');
+  const {createOpnFmWriteTranslator,isYm2608FmRegister}=await import("../../tetorica_src/runtime/opn_fm_vgm.js");
   const writes=[];
   const translate=createOpnFmWriteTranslator(7670454,(...w)=>writes.push(w),isYm2608FmRegister);
   translate(0xa4,0x23);

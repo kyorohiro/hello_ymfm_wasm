@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Rf5c164} from '../web/rf5c164.js';
-import {GenesisAudioEngine} from '../web/genesisaudioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
+import {GenesisAudioEngine} from '../tetorica_src/runtime/genesisaudioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -138,8 +138,8 @@ async function playerChecks(backend){let generated=0,delivered=0,requested=0,ren
  assert(positiveCheckpointRestores>0);return {passed:true,rows,positiveCheckpointRestores,generatedEngineOutputStereoFrames:generated,deliveredPlayerOutputStereoFrames:delivered,requestedPlayerOutputStereoFrames:requested,engineRenderExecutions:renders,playerProcessCalls:calls,frameCountScope:'Actual Genesis Engine generation includes baseline/reset replay, checkpoint-or-zero seek prefixes and opaque Player replay. Source FM/PSG/RF frames and requested/delivered Player frames are not added again. Reset clears PCM RAM; authored data blocks or snapshots restore it.'};
 }
 async function main(){const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports);
- const wrappers=['web/rf5c164.js','docs/js/rf5c164.js','web/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except named import caches');
- const helpers=['web/ym2612.js','web/segapsg.js','web/pwm32x.js','web/vgmplayer.js','web/ym2612vgm.js','web/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js','docs/generated/ym2612_wasm.js','docs/generated/ym2612_wasm.wasm','docs/generated/segapsg_wasm.js','docs/generated/segapsg_wasm.wasm'];
+ const wrappers=['tetorica_src/runtime/rf5c164.js','docs/js/rf5c164.js','tetorica_src/runtime/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except named import caches');
+ const helpers=['tetorica_src/runtime/ym2612.js','tetorica_src/runtime/segapsg.js','tetorica_src/runtime/pwm32x.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','tetorica_src/runtime/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js','docs/generated/ym2612_wasm.js','docs/generated/ym2612_wasm.wasm','docs/generated/segapsg_wasm.js','docs/generated/segapsg_wasm.wasm'];
  const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,outputRates,layouts,checkpointFrame,probeFrames,inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(helpers.map(p=>inputFile(resolve(root,p))))},method:'Actual generated JS/WASM through unchanged Rf5c164 wrapper, exact owned stereo PCM and complete65,660-byte native state including64KiB RAM. Actual GenesisAudioEngine with current real YM2612/PSG WASM, existing gains and VgmPlayer opaque/checkpoint/seek. No mock, tolerance, Mixer or audio device.',
  limits:['RF5C164 produces the configured output rate using its integer clock/(rate*384) phase accumulator and held native samples. All8voices, native signed-magnitude zeros, FF marker/loop, integer envelope and pan nibbles and both clamp endpoints are tested independently.',
  'Public read() is current channel address bus readback, not a control-register mirror or status/IRQ interface. Public window writes have4KiB validation; raw offsets and banked loads use the existing OR combination. Absolute readMemory() is tested only at valid0..65535 offsets; its native narrow argument does not provide a public JavaScript out-of-range guarantee.',

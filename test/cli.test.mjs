@@ -5,14 +5,14 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readSource, analyzeSource, exportSource, renderSource } from '../cli/index.js';
+import { readSource, analyzeSource, exportSource, renderSource } from '../tetorica_src/cli/index.js';
 import { Ym2612VGM } from '../docs/js/ym2612vgm.js';
 import { exportAnalysisMidi } from '../docs/vgm_analyzer/vgm_midi.js';
 import { analyzeLilyPondSource } from '../docs/vgm_analyzer/vgm_lilypond.js';
 import { createMusicXmlScore } from '../docs/vgm_analyzer/vgm_musicxml.js';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const fixture=name=>join(root,'test/fixtures',name);
-const cli=(...args)=>spawnSync(process.execPath,[join(root,'cli/main.js'),...args],{encoding:'utf8'});
+const cli=(...args)=>spawnSync(process.execPath,[join(root,'tetorica_src/cli/main.js'),...args],{encoding:'utf8'});
 
 test('VGM/VGZ decode identically; CLI JSON matches browser parser',async()=>{
   for(const name of ['psg-tone','ay-tone','opn-tone','opm-tone']) {

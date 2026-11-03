@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Huc6280VoiceInspector} from '../../web/playground_huc6280_inspector.js';
-import {Huc6280AudioEngine} from '../../web/huc6280audioengine.js';
-import {HUC6280_CLOCK} from '../../web/huc6280synth.js';
-import {createHuc6280Client} from '../../web/playground_huc6280.js';
-import {ChipClockResampler,validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {NativeRuntimeSynth} from '../../web/native_runtime_synth.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
+import {Huc6280VoiceInspector} from '../../tetorica_src/runtime/playground_huc6280_inspector.js';
+import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
+import {HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
+import {createHuc6280Client} from '../../tetorica_src/runtime/playground_huc6280.js';
+import {ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {NativeRuntimeSynth} from '../../tetorica_src/runtime/native_runtime_synth.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
 import factory from '../../docs/generated/huc6280_wasm.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
@@ -22,7 +22,7 @@ async function setup(){
   vm.runInNewContext(source,{Huc6280VoiceInspector,Huc6280AudioEngine,HUC6280_CLOCK,ChipClockResampler,validateChipClock,receiveChipInspector,factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{clock:HUC6280_CLOCK,wasmBinary:await readFile(new URL('../docs/generated/huc6280_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
+  const processor=new Processor({processorOptions:{clock:HUC6280_CLOCK,wasmBinary:await readFile(new URL('../../docs/generated/huc6280_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createHuc6280Client(clientPort);client.initialize();
   return {processor,client,clientPort,messages,port,
     receive(data){processor.receive(data,port);},

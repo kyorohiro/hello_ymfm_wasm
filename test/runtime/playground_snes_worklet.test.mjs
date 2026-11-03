@@ -1,21 +1,21 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {SpcCore,SnesDspCore} from '../../web/spc.js';
-import {SnesSynth} from '../../web/snessynth.js';
-import {SpcResampler} from '../../web/spc_resampler.js';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
-import {SnesVoiceInspector} from '../../web/playground_snes_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {SpcCore,SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
+import {SpcResampler} from '../../tetorica_src/runtime/spc_resampler.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
+import {SnesVoiceInspector} from '../../tetorica_src/runtime/playground_snes_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 const brr=new Uint8Array([0xc3,0x12,0x34,0x56,0x76,0x54,0x32,0x10,0xfe]);
 const peak=a=>a.reduce((max,n)=>Math.max(max,Math.abs(n)),0);
 let binaries;
-async function assets(){return binaries??=Promise.all([import("../../docs/generated/spc_wasm.js").then(m=>m.default),readFile(new URL('../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),readFile(new URL('./playground_snes_worklet.js',runtimeDirectoryUrl),'utf8')]);}
+async function assets(){return binaries??=Promise.all([import("../../docs/generated/spc_wasm.js").then(m=>m.default),readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),readFile(new URL('./playground_snes_worklet.js',runtimeDirectoryUrl),'utf8')]);}
 async function setup(rate=48000) {
   const [factory,wasmBinary,source]=await assets(),main=new MessageChannel();let Processor;
   const scope={factory,SnesDspCore,SnesSynth,SpcResampler,SnesVoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,

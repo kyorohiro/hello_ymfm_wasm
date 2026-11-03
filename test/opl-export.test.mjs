@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
 
-const main=fileURLToPath(new URL('../cli/main.js',import.meta.url));
+const main=fileURLToPath(new URL('../tetorica_src/cli/main.js',import.meta.url));
 const cli=(...args)=>spawnSync(process.execPath,[main,...args],{encoding:'utf8'});
 function fixture(kind) {
  const op=kind==='ym3526'?0x5b:0x5a;

@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {MessageChannel} from 'node:worker_threads';
 import factory from '../../docs/generated/rf5c164_wasm.js';
-import {Rf5c164} from '../../web/rf5c164.js';
-import {createRf5c164Control,createRf5c164Client,encodeRf5c164} from '../../web/playground_rf5c164.js';
-import {RfInspectorState,rfSampleMetadata} from '../../web/playground_chip_inspector_state.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Control,createRf5c164Client,encodeRf5c164} from '../../tetorica_src/runtime/playground_rf5c164.js';
+import {RfInspectorState,rfSampleMetadata} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 const make=()=>Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileBytes},sampleRate:48000});
-const readFileBytes=await readFile(new URL('../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl));
+const readFileBytes=await readFile(new URL('../../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl));
 test('all eight channels produce finite PCM, stop, reset and raw register state',async()=>{
  const chip=await make(),ctl=createRf5c164Control(chip);
  try{const pcm=encodeRf5c164({channels:[Float32Array.from({length:256},(_,i)=>Math.sin(i*2*Math.PI/256))],sampleRate:32768});ctl.loadMemory(pcm.bytes.buffer,0);

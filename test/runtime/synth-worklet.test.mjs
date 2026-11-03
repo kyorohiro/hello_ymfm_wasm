@@ -1,15 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
-import {PsgInspectorState, receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+const runtimeTreeFile = (tree, file) => new URL(`../../${tree === 'web' ? 'tetorica_src/runtime' : tree}/${file}`, runtimeDirectoryUrl);
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
+import {PsgInspectorState, receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../web/playground_audition_guard.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
 
 function processor(tree, file, rate, imports = {}) {
   let Type;
@@ -18,7 +19,7 @@ function processor(tree, file, rate, imports = {}) {
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
-  vm.runInNewContext(fs.readFileSync(new URL(`../${tree}/${file}`, runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, ''), context);
+  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, file), 'utf8').replace(/^import .*;\n/gm, ''), context);
   return { p: new Type(), messages, context };
 }
 function chip(rate) {
@@ -189,7 +190,7 @@ for (const tree of ['web', 'docs/js']) {
 
 test('real YM2612 WASM advances one chip second for one second of 48 kHz output', async () => {
   const { default: factory } = await import("../../docs/generated/ym2612_wasm.js");
-  const { Ym2612 } = await import("../../web/ym2612.js");
+  const { Ym2612 } = await import("../../tetorica_src/runtime/ym2612.js");
   const ym = await Ym2612.create({ moduleFactory: factory });
   try {
     let generated = 0;
@@ -205,9 +206,9 @@ test('real YM2612 WASM advances one chip second for one second of 48 kHz output'
 for (const tree of ['web', 'docs/js']) {
   test(`${tree}: YM2612 idle DAC level is silent in browser output, including reset`, async () => {
     const {default: factory} = await import("../../docs/generated/ym2612_wasm.js");
-    const {createYm2612} = await import("../../web/ym2612.js");
+    const {createYm2612} = await import("../../tetorica_src/runtime/ym2612.js");
     const {p, messages} = processor(tree, 'ym2612-worklet.js', 48000, {ym2612ModuleFactory: factory, createYm2612});
-    await p.init(fs.readFileSync(new URL('../docs/generated/ym2612_wasm.wasm', runtimeDirectoryUrl)));
+    await p.init(fs.readFileSync(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl)));
     try {
       assert.ok(messages.some(message => message.type === 'ready'));
       assert.ok(p.idleLeft > 0.01); // Real core models the DAC ladder offset.
@@ -266,7 +267,7 @@ for(const tree of ['web','docs/js']) for(const file of ['ym2612-worklet.js','ym2
 for (const [file, wasm] of [['ym2612-worklet.js','ym2612_wasm.js'],['ym2612-worklet-nuked.js','nuked_opn2_wasm.js']]) {
  test(`${file}: direct DAC sine bank produces non-silent PCM with real WASM`,async()=>{
   const {default:factory}=await import(`../../docs/generated/${wasm}`);
-  const {Ym2612}=await import("../../web/ym2612.js");
+  const {Ym2612}=await import("../../tetorica_src/runtime/ym2612.js");
   const ym=await Ym2612.create({moduleFactory:factory});
   try {
    const {p}=processor('web',file,48000);p.ym2612=ym;
@@ -308,7 +309,7 @@ for(const tree of ['web','docs/js']) for(const file of ['ym2612-worklet.js','ym2
 
 for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
  test(`${tree} ${file}: PCM API agrees with Node rendering, including a reserved start and end`, async () => {
-  const {YM2612Synth, YM2612DirectTransport} = await import("../../web/ym2612synth.js");
+  const {YM2612Synth, YM2612DirectTransport} = await import("../../tetorica_src/runtime/ym2612synth.js");
   const rate = 48000, native = chip(rate), expected = [];
   native.writeRegister = (r,v,p) => expected.push([native.frames,p,r,v]);
   const transport = new YM2612DirectTransport(native), synth = new YM2612Synth({transport});
@@ -348,7 +349,7 @@ for (const tree of ['web', 'docs/js']) for (const file of ['ym2612-worklet.js', 
 for(const [file,wasm] of [['ym2612-worklet.js','ym2612_wasm.js'],['ym2612-worklet-nuked.js','nuked_opn2_wasm.js']]) {
  test(`${file}: high-level PCM produces audio through real WASM`,async()=>{
   const {default:factory}=await import(`../../docs/generated/${wasm}`);
-  const {Ym2612}=await import("../../web/ym2612.js");
+  const {Ym2612}=await import("../../tetorica_src/runtime/ym2612.js");
   const ym=await Ym2612.create({moduleFactory:factory});
   try {
    const {p}=processor('web',file,48000);p.ym2612=ym;

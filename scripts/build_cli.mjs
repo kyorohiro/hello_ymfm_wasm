@@ -1,6 +1,6 @@
 // Stage a dependency closure, not a second implementation of the analyzer.
 import { readFile, writeFile, mkdir, cp, rm, chmod, stat } from 'node:fs/promises';
-import { resolve, dirname, relative, basename } from 'node:path';
+import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { copyOpnaRhythm } from './copy_opna_rhythm.mjs';
 import { copySpcSources } from './copy_spc_sources.mjs';
@@ -8,8 +8,12 @@ import { copyNesSources } from './copy_nes_sources.mjs';
 import {copyPokeySources} from './copy_pokey_sources.mjs';
 import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
 import {runtimeArtifactProfiles} from './runtime_artifact_profiles.mjs';
+import {publishedSourcePath, rewriteStagedModule} from './runtime_staging_paths.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'dist/vgm');
+const entry = resolve(root, 'tetorica_src/cli/main.js');
+const packageManifest = resolve(root, 'packages/vgm/package.json');
+const stagedOverrides = new Map([[packageManifest, 'package.json']]);
 await checkRuntimeArtifacts({root, mirrors:true});
 const runtimeArtifacts = await listRuntimeArtifactFiles({root});
 const canonicalSources = new Map(runtimeArtifacts.flatMap(file =>
@@ -19,8 +23,7 @@ const seen = new Set();
 async function copy(file) {
   file = resolve(file);
   if (seen.has(file)) return;
-  const rel = relative(root, file);
-  if (rel.startsWith('..')) throw new Error(`Dependency outside repository: ${file}`);
+  const rel = publishedSourcePath(root, file);
   const sourceFile = canonicalSources.get(file) ?? file;
   if ((await stat(sourceFile)).isDirectory()) { await mkdir(resolve(out,rel),{recursive:true}); return; }
   seen.add(file);
@@ -28,24 +31,23 @@ async function copy(file) {
   await cp(sourceFile, resolve(out, rel));
   if (!/\.[cm]?js$/.test(file)) return;
   let source = await readFile(sourceFile,'utf8');
-  const entryPoint = file === resolve(root, 'cli/main.js');
+  const entryPoint = file === entry;
   if (entryPoint) {
     // Source uses its own package manifest; the installed CLI reads the staged root manifest.
-    const versionSource = "new URL('../packages/vgm/package.json', import.meta.url)";
+    const versionSource = "new URL('../../packages/vgm/package.json', import.meta.url)";
     if (!source.includes(versionSource)) throw new Error('CLI package version reference changed; update the staging rewrite');
-    source = source.replace(versionSource, "new URL('../package.json', import.meta.url)");
-    await writeFile(resolve(out, rel), source);
   }
+  await writeFile(resolve(out, rel), rewriteStagedModule(source, {root, file, overrides: stagedOverrides}));
   for (const match of source.matchAll(/\b(?:from\s*|import\s*\(?\s*|new\s+URL\s*\(\s*)["']([^"']+)["']/g)) {
     const spec = match[1].split(/[?#]/)[0];
-    if (entryPoint && spec === '../package.json') continue;
-    if (spec.endsWith('/')) { await mkdir(resolve(out, relative(root, resolve(dirname(file),spec))), {recursive:true}); continue; }
+    if (entryPoint && resolve(dirname(file), spec) === packageManifest) continue;
+    if (spec.endsWith('/')) { await mkdir(resolve(out, publishedSourcePath(root, resolve(dirname(file),spec))), {recursive:true}); continue; }
     if (spec.startsWith('.')) await copy(resolve(dirname(file),spec));
   }
   // Runtime adapters such as nesapu_wasm.js are JavaScript modules, not generated loaders.
   if (file.endsWith('_wasm.js') && basename(dirname(file)) === 'generated') await copy(file.replace(/\.js$/, '.wasm'));
 }
-await copy(resolve(root,'cli/main.js'));
+await copy(entry);
 // These adapters resolve factories dynamically; preserve the staged docs layout.
 for (const file of await listRuntimeArtifactFiles({root,ids:runtimeArtifactProfiles.cli,includeMetadata:false}))
   await copy(resolve(root,'docs/generated',file.path));

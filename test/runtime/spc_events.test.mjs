@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSpcEventDecoder, convertSpcTraceEvents, SPC_EVENT_CLOCK_RATE} from '../../web/spc_events.js';
+import {createSpcEventDecoder, convertSpcTraceEvents, SPC_EVENT_CLOCK_RATE} from '../../tetorica_src/runtime/spc_events.js';
 
 function registers() {
   const dsp = new Uint8Array(128);

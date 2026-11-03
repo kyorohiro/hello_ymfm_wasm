@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {createDx7Client} from '../../web/playground_dx7.js';
-import {createDx7Audio} from '../../web/playground_dx7_audio.js';
-import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from '../../web/msfa_dx7/src/index.js';
-import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../web/msfa_dx7/src/preset.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
-import {Dx7VoiceInspector} from '../../web/playground_dx7_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
+import {createDx7Audio} from '../../tetorica_src/runtime/playground_dx7_audio.js';
+import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
+import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {Dx7VoiceInspector} from '../../tetorica_src/runtime/playground_dx7_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
 const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', runtimeDirectoryUrl)));
 const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', runtimeDirectoryUrl), 'utf8')).replace(/^import .*;$/gm, '');

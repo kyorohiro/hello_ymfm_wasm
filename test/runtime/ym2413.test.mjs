@@ -1,17 +1,17 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Ym2612VGM } from '../../web/ym2612vgm.js';
+import { Ym2612VGM } from '../../tetorica_src/runtime/ym2612vgm.js';
 import { Ym2612VGM as DocsVGM } from '../../docs/js/ym2612vgm.js';
-import { VgmPlayer } from '../../web/vgmplayer.js';
+import { VgmPlayer } from '../../tetorica_src/runtime/vgmplayer.js';
 import { seekPlayback } from '../../docs/vgm_analyzer/seek_playback.js';
-import { Ym2413AudioEngine } from '../../web/ym2413audioengine.js';
+import { Ym2413AudioEngine } from '../../tetorica_src/runtime/ym2413audioengine.js';
 import factory from '../../docs/generated/ym2413_wasm.js';
 import vm from 'node:vm';
 // Run the browser-only PSG build with its normal browser globals and supplied bytes.
-const psgSource = readFileSync(new URL('../docs/generated/segapsg_wasm.js', runtimeDirectoryUrl), 'utf8')
+const psgSource = readFileSync(new URL('../../docs/generated/segapsg_wasm.js',runtimeDirectoryUrl), 'utf8')
   .replaceAll('import.meta.url', "'http://localhost/segapsg_wasm.js'")
   .replace('export default Module;', 'Module;');
 const psgFactory = vm.runInNewContext(psgSource, {window:{}, console, WebAssembly, URL, TextDecoder, TextEncoder, setTimeout, clearTimeout});
@@ -28,7 +28,7 @@ function vgm(commands) {
   return bytes;
 }
 const melody = [0x51,0x30,0x10, 0x51,0x10,0x80, 0x51,0x20,0x17, 0x61,0x3a,0x11, 0x51,0x20,7, 0x66];
-const moduleOptions = { wasmBinary: readFileSync(new URL('../docs/generated/ym2413_wasm.wasm', runtimeDirectoryUrl)) };
+const moduleOptions = { wasmBinary: readFileSync(new URL('../../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl)) };
 
 test('YM2413 header, write ordering, wait and truncated writes', () => {
   const parser = new Ym2612VGM(vgm(melody));
@@ -66,7 +66,7 @@ test('actual WASM renders YM2413 VGM and reset repeats identical PCM', async () 
 
 test('PSG continues generating while muted and mixes with YM2413', async () => {
   const engine = await Ym2413AudioEngine.create({ym2413ModuleFactory:factory, ym2413ModuleOptions:moduleOptions,
-    segaPsgModuleFactory: options => psgFactory({...options,wasmBinary:readFileSync(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}), psgClock:3579545});
+    segaPsgModuleFactory: options => psgFactory({...options,wasmBinary:readFileSync(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}), psgClock:3579545});
   try {
     engine.writePsg(0x84); engine.writePsg(0x10); engine.writePsg(0x90);
     assert(engine.processFrames(1000).left.some(x => Math.abs(x) > 0.001));
@@ -100,7 +100,7 @@ for (const Parser of [Ym2612VGM, DocsVGM]) {
 }
 
 test('OPLL nine channels and rhythm groups mute without losing internal phase',async()=>{
- const options={ym2413ModuleFactory:factory,ym2413ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}};
+ const options={ym2413ModuleFactory:factory,ym2413ModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}};
  const a=await Ym2413AudioEngine.create(options),b=await Ym2413AudioEngine.create(options);
  try{
   for(const rhythm of [false,true])for(let ch=rhythm?6:0;ch<9;ch++){

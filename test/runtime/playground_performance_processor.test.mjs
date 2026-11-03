@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createProcessorPerformance,identifyPerformanceNote,performanceNoteRelease} from '../../web/playground_performance_processor.js';
+import {createProcessorPerformance,identifyPerformanceNote,performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 function setup(options={}) {
   let frame=0,value=0;const applied=[],messages=[];

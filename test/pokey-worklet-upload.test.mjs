@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPokeyFixture} from './helpers/pokey_worklet_fixture.mjs';
-import {POKEY_TIMELINE_MAX_BYTES} from '../web/pokey_timeline.js';
-import {POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM} from '../web/pokey_timeline_upload.js';
-import {createPokeyTimelineBuilder} from '../web/pokey_timeline_builder.js';
+import {POKEY_TIMELINE_MAX_BYTES} from '../tetorica_src/runtime/pokey_timeline.js';
+import {POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM} from '../tetorica_src/runtime/pokey_timeline_upload.js';
+import {createPokeyTimelineBuilder} from '../tetorica_src/runtime/pokey_timeline_builder.js';
 
 function endpoint(f,metadata){
   let serial=0;const replies=[],port={postMessage:message=>replies.push(message),start(){},close(){this.closed=true;}};

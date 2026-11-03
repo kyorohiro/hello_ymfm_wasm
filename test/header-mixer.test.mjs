@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration,applyPlaybackMutes} from '../docs/vgm_analyzer/playback_core.js';
 const offsets={ym2612:0x2c,ym2151:0x30,ym2203:0x44,ym3812:0x50,y8950:0x58,segaPcm:0x38};

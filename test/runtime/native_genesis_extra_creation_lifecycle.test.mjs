@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {EXTRA_KINDS, createLifecycleFixture, installCreationEnvironment, deferred, until} from '../../web/native_genesis_extra_creation_fixture.mjs';
+import {EXTRA_KINDS, createLifecycleFixture, installCreationEnvironment, deferred, until} from '../../tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs';
 
 const selected = process.env.NATIVE_CREATION_KINDS?.split(',') ?? EXTRA_KINDS;
 const bindCancel = `keyboard.bind('cancel',{noteOn(){stopLoop('make');log('cancelled');},noteOff(){},allNotesOff(){}});`;

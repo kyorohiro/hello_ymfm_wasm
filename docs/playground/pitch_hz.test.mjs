@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hzToBlockFnum } from '../../web/pitch.js';
+import { hzToBlockFnum } from '../../tetorica_src/runtime/pitch.js';
 import { hzToBlockFnum as browserHzToBlockFnum } from '../js/pitch.js';
-import { createPlaygroundMusic } from '../../web/playground_music.js';
+import { createPlaygroundMusic } from '../../tetorica_src/runtime/playground_music.js';
 
 test('Hz conversion chooses the nearest representable frequency', () => {
   for (const clock of [7670454, 8000000]) {

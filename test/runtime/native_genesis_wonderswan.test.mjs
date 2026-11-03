@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {WonderSwanVoiceInspector} from '../../web/playground_wonderswan_inspector.js';
-import {installCreationEnvironment,until} from '../../web/native_genesis_extra_creation_fixture.mjs';
-import {WONDERSWAN_CLOCK_HELD_ERROR} from '../../web/native_genesis_wonderswan.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {WonderSwanVoiceInspector} from '../../tetorica_src/runtime/playground_wonderswan_inspector.js';
+import {installCreationEnvironment,until} from '../../tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs';
+import {WONDERSWAN_CLOCK_HELD_ERROR} from '../../tetorica_src/runtime/native_genesis_wonderswan.js';
 
 // RPC transport model only: actual rendering and callback ownership are checked
 // by Tauri's C++/Rust tests. This model exposes every command sent by production

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {WonderSwanAudioEngine} from '../web/wonderswanaudioengine.js';
+import {WonderSwanAudioEngine} from '../tetorica_src/runtime/wonderswanaudioengine.js';
 import factory from '../docs/generated/wonderswan_wasm.js';
 
 const binary=await readFile(new URL('../docs/generated/wonderswan_wasm.wasm',import.meta.url));
@@ -123,7 +123,7 @@ test('WonderSwan Stop/clear/session stop cancel future writes, and disposal rele
 
 test('WonderSwan prewarmed raw PCM prefix cache survives alternating spans and reset without new views',async()=>{
   const module=await factory({wasmBinary:binary});
-  const {WonderSwan}=await import('../web/wonderswan.js');
+  const {WonderSwan}=await import("../tetorica_src/runtime/wonderswan.js");
   const chip=await WonderSwan.create({moduleFactory:async()=>module,sampleRate:48000});
   const original=Float32Array.prototype.subarray;
   try{
@@ -137,7 +137,7 @@ test('WonderSwan prewarmed raw PCM prefix cache survives alternating spans and r
 
 test('WonderSwan bounded PCM cache rebuilds after reserve expansion and actual WASM heap growth, preserving owned output',async()=>{
   const module=await factory({wasmBinary:binary});
-  const {WonderSwan}=await import('../web/wonderswan.js');
+  const {WonderSwan}=await import("../tetorica_src/runtime/wonderswan.js");
   const chip=await WonderSwan.create({moduleFactory:async()=>module,sampleRate:44100});let allocation=0;
   try{
     chip.loadMemory(Uint8Array.from({length:16},(_,index)=>index|(15-index)<<4),0x100);

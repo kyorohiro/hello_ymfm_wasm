@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../web/ym2413synth.js';
-import {SegaPSGSynth} from '../../web/segapsgsynth.js';
+import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../tetorica_src/runtime/ym2413synth.js';
+import {SegaPSGSynth} from '../../tetorica_src/runtime/segapsgsynth.js';
 import {MODE_STARTERS,selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

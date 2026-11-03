@@ -1,4 +1,4 @@
-import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
+import {createLoopAsyncTasks} from '../../tetorica_src/runtime/playground_async_tasks.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js';
@@ -50,7 +50,7 @@ test('Schedule prepares memory once and leaves all timed operations on the audio
  await loop();await loop();assert.equal(plays,2);assert.ok(!code.includes('sleepSamples'));
 });
 
-import {createYm2608Client} from '../../web/playground_ym2608.js';
+import {createYm2608Client} from '../../tetorica_src/runtime/playground_ym2608.js';
 test('generated High matches Write across resets, repeated loops and memory transfers',async()=>{
  const bytes=input([...block,0x56,7,63,0x56,0,12,0x56,1,2,0x56,7,62,0x56,8,15,0x56,0x18,0xdf,0x56,0x11,40,0x56,0x10,1,0x57,9,10,0x57,10,2,0x57,11,200,0x57,0,0xa0,0x57,0xa4,34,0x57,0xa0,44,0x56,0x28,0xf4,0x61,100,0,0x66]);
  async function trace(mode){

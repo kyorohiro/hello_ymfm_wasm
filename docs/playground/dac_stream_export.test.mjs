@@ -13,7 +13,7 @@ import {createOpnAuditionGuard, createPsgAuditionGuard, receiveOpnAuditionComman
 import {OpnKeyboardInspector} from '../js/playground_opn_inspector.js';
 import {PsgInspectorState,receiveChipInspector} from '../js/playground_chip_inspector_state.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 
 const u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, n >>> 24];
 const wait = n => [0x61, n & 255, n >>> 8];

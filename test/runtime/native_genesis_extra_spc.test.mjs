@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {Worker as NodeWorker,MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {SpcCore} from '../../web/spc.js';
-import {SpcResampler} from '../../web/spc_resampler.js';
-import {createSpcClient} from '../../web/playground_spc.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {SpcCore} from '../../tetorica_src/runtime/spc.js';
+import {SpcResampler} from '../../tetorica_src/runtime/spc_resampler.js';
+import {createSpcClient} from '../../tetorica_src/runtime/playground_spc.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 import moduleFactory from '../../docs/generated/spc_wasm.js';
-const wasmBinary=await readFile(new URL('../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),module=await moduleFactory({wasmBinary});
+const wasmBinary=await readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),module=await moduleFactory({wasmBinary});
 const source=(await readFile(new URL('./spc-worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'').replace('export class ','class ');
 const Processor=vm.runInNewContext(source+'\nSpcProcessor;',{AudioWorkletProcessor:class{constructor(){this.port={postMessage(){},close(){}};}},SpcCore,SpcResampler,moduleFactory:async()=>module,sampleRate:48000,Float32Array,Float64Array,Uint8Array,Error,RangeError,Set,Object,Promise,registerProcessor(){}});
 

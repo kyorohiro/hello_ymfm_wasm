@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createNativeSampleEditorAudio} from '../../web/playground_native_sample_editor.js';
-import {encodeWav} from '../../web/wav.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createNativeSampleEditorAudio} from '../../tetorica_src/runtime/playground_native_sample_editor.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 const deferred=()=>{let resolve;return {promise:new Promise(done=>resolve=done),resolve:value=>resolve(value)};};
 const ticks=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
 const pcm=()=>({sampleRate:16000,channels:[Float32Array.from({length:1600},(_,i)=>.4*Math.sin(i/8))],loopEnabled:true,loopStartFrame:12,loopEndFrame:1400});

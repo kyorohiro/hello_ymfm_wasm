@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {WonderSwan,WONDERSWAN_CLOCK} from '../../web/wonderswan.js';
+import {WonderSwan,WONDERSWAN_CLOCK} from '../../tetorica_src/runtime/wonderswan.js';
 import factory from '../../docs/generated/wonderswan_wasm.js';
-import {WonderSwanVoiceInspector} from '../../web/playground_wonderswan_inspector.js';
-import {ChipClockResampler,validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createWonderSwanClient} from '../../web/playground_wonderswan.js';
+import {WonderSwanVoiceInspector} from '../../tetorica_src/runtime/playground_wonderswan_inspector.js';
+import {ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createWonderSwanClient} from '../../tetorica_src/runtime/playground_wonderswan.js';
 
 const peak=values=>values.reduce((a,v)=>Math.max(a,Math.abs(v)),0),mean=values=>values.reduce((a,v)=>a+v,0)/values.length;
 const triangle=Array.from({length:32},(_,i)=>i<16?i:31-i);
@@ -19,7 +19,7 @@ async function setup({rate=48000,clock=WONDERSWAN_CLOCK}={}){
   const source=(await readFile(new URL('./playground_wonderswan_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{WonderSwan,WONDERSWAN_CLOCK,factory,WonderSwanVoiceInspector,ChipClockResampler,validateChipClock,receiveChipInspector,sampleRate:rate,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{clock,wasmBinary:await readFile(new URL('../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
+  const processor=new Processor({processorOptions:{clock,wasmBinary:await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createWonderSwanClient(clientPort,{clock});client.initialize();
   return {processor,client,clientPort,messages,port,rate,receive(data){processor.receive(data,port);},
     read(){processor.receive({type:'chip-inspector',id:'read',action:'read'},port);const reply=messages.at(-1);if(reply.error)throw new Error(reply.error);return reply.value;},
@@ -47,7 +47,7 @@ for(const rate of [44100,48000])test(`WonderSwan ${rate}Hz speaker centers DAC w
     assert(peak(left)>.08&&peak(left)<.09);assert(peak(right)>.04&&peak(right)<.045);for(let i=0;i<left.length;i++)assert.equal(left[i],right[i]*2);
     assert(Math.abs(mean(left))<.0005);let rises=0;for(let i=1;i<left.length;i++)if(left[i-1]<0&&left[i]>=0)rises++;assert(Math.abs(rises-hz)<2);
     p.invoke('auditionOff',[0,'a4']);assert.equal(peak(p.render(rate)[0]),0);
-    const raw=await WonderSwan.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl))},sampleRate:rate});try{for(let i=0;i<16;i++)raw.writeMemory(i,triangle[i*2]|triangle[i*2+1]<<4);const value=2048-Math.round(WONDERSWAN_CLOCK/(32*440));raw.writeRegister(0x80,value&255);raw.writeRegister(0x81,value>>8);raw.writeRegister(0x88,0xc6);raw.writeRegister(0x91,8);raw.writeRegister(0x90,1);const pcm=raw.generateStereo(rate);assert(pcm.left.every(v=>v>=0));assert(mean(pcm.left)>.08,'low-level PCM remains unipolar');}finally{raw.dispose();}
+    const raw=await WonderSwan.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl))},sampleRate:rate});try{for(let i=0;i<16;i++)raw.writeMemory(i,triangle[i*2]|triangle[i*2+1]<<4);const value=2048-Math.round(WONDERSWAN_CLOCK/(32*440));raw.writeRegister(0x80,value&255);raw.writeRegister(0x81,value>>8);raw.writeRegister(0x88,0xc6);raw.writeRegister(0x91,8);raw.writeRegister(0x90,1);const pcm=raw.generateStereo(rate);assert(pcm.left.every(v=>v>=0));assert(mean(pcm.left)>.08,'low-level PCM remains unipolar');}finally{raw.dispose();}
   }finally{p.dispose();}
 });
 

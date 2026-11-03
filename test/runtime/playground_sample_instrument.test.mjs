@@ -1,25 +1,25 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createSampleInstrument} from '../../web/playground_sample_instrument.js';
-import {encodeRf5c164} from '../../web/rf5c164_pcm.js';
-import {encodeAdpcmB} from '../../web/adpcm_b_sample.js';
-import {Rf5c164} from '../../web/rf5c164.js';
-import {createRf5c164Control} from '../../web/playground_rf5c164.js';
+import {createSampleInstrument} from '../../tetorica_src/runtime/playground_sample_instrument.js';
+import {encodeRf5c164} from '../../tetorica_src/runtime/rf5c164_pcm.js';
+import {encodeAdpcmB} from '../../tetorica_src/runtime/adpcm_b_sample.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 import rfFactory from '../../docs/generated/rf5c164_wasm.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {YM2608Synth, YM2608DirectTransport} from '../../web/ym2608synth.js';
-import {Ym2610B} from '../../web/ym2610b.js';
-import {YM2610BSynth, YM2610BDirectTransport} from '../../web/ym2610bsynth.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {GameboySynth, GameboyDirectTransport} from '../../web/gameboysynth.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {YM2608Synth, YM2608DirectTransport} from '../../tetorica_src/runtime/ym2608synth.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
+import {YM2610BSynth, YM2610BDirectTransport} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboySynth, GameboyDirectTransport} from '../../tetorica_src/runtime/gameboysynth.js';
 import gbFactory from '../../docs/generated/gameboy_apu_wasm.js';
-import {registerKeyboardScope, createMusicalKeyboard, keyboardBinding} from '../../web/playground_keyboard.js';
-import {renderPs1Sample} from '../../web/playground_sample_ps1.js';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth, preparePs1ADPCM, createPs1InitSample} from '../../web/ps1synth.js';
+import {registerKeyboardScope, createMusicalKeyboard, keyboardBinding} from '../../tetorica_src/runtime/playground_keyboard.js';
+import {renderPs1Sample} from '../../tetorica_src/runtime/playground_sample_ps1.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth, preparePs1ADPCM, createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
 
 const audio = ({frames = 4096, sampleRate = 16000, hz = 440, rootMidi = 69, ...metadata} = {}) => ({
   channels: [Float32Array.from({length: frames}, (_, i) => .6 * Math.sin(2 * Math.PI * hz * i / sampleRate))],
@@ -32,7 +32,7 @@ const rms = values => Math.sqrt(values.reduce((sum, value) => sum + value * valu
 async function rfFixture({native = false, overrides = {}} = {}) {
   const commands = [], loads = [];
   const chip = native ? await Rf5c164.create({moduleFactory: rfFactory, sampleRate: 48000,
-    moduleOptions: {wasmBinary: await readFile(new URL('../docs/generated/rf5c164_wasm.wasm', runtimeDirectoryUrl))}}) : null;
+    moduleOptions: {wasmBinary: await readFile(new URL('../../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl))}}) : null;
   const control = chip ? createRf5c164Control(chip) : null;
   const pcm = {
     async loadSample(pcmAudio, options = {}) {
@@ -186,7 +186,7 @@ test('every synchronous Game Boy command retains its musical-input lease across 
 for (const chipName of ['ym2608', 'ym2610b']) test(`${chipName} real ADPCM-B uses aligned encoded silence and plays pitched source audio`, async () => {
   const neo = chipName === 'ym2610b';
   const {default: moduleFactory} = await import(`../../docs/generated/${chipName}_wasm.js`);
-  const options = {moduleFactory, moduleOptions: {wasmBinary: await readFile(new URL(`../docs/generated/${chipName}_wasm.wasm`, runtimeDirectoryUrl))}};
+  const options = {moduleFactory, moduleOptions: {wasmBinary: await readFile(new URL(`../../docs/generated/${chipName}_wasm.wasm`,runtimeDirectoryUrl))}};
   const chip = await (neo ? Ym2610B : Ym2608).create(options);
   const synth = neo ? new YM2610BSynth({transport: new YM2610BDirectTransport(chip)}) : new YM2608Synth({transport: new YM2608DirectTransport(chip)});
   const section = neo ? synth.adpcmB : synth.adpcm;
@@ -229,7 +229,7 @@ for (const chipName of ['ym2608', 'ym2610b']) test(`${chipName} real ADPCM-B use
 
 for (const primary of [true, false]) test(`Game Boy ${primary ? 'primary' : 'independent'} wave RAM uses the edited cycle and ignores a stolen key release`, async () => {
   const chip = await GameboyApu.create({moduleFactory: gbFactory, sampleRate: 48000,
-    moduleOptions: {wasmBinary: await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm', runtimeDirectoryUrl))}});
+    moduleOptions: {wasmBinary: await readFile(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
   const gameboy = new GameboySynth({transport: new GameboyDirectTransport(chip)});
   if (primary) gameboy.initialize();
   try {
@@ -254,7 +254,7 @@ async function ps1Fixture({primary = true, native = false, overrides = {}} = {})
   const ram = new Uint8Array(524288);
   let synth = null, core = null;
   if (native) {
-    ps1Module ??= Promise.all([import("../../docs/generated/ps1_spu_wasm.js"), readFile(new URL('../docs/generated/ps1_spu_wasm.wasm', runtimeDirectoryUrl))])
+    ps1Module ??= Promise.all([import("../../docs/generated/ps1_spu_wasm.js"), readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))])
       .then(([{default: factory}, wasmBinary]) => factory({wasmBinary}));
     core = await Ps1Spu.create({moduleFactory: () => ps1Module});
     synth = new Ps1Synth({core});

@@ -13,8 +13,8 @@ Node 入口は npm 0.2.5 以降、出力なし初期化・後付け接続は 0.2
 Windows / Linux と他の音声デバイスは未検証。
 
 ```js
-import {MegaSynthNode} from './node/megasynth.mjs';
-import {FM_PRESETS} from './web/megasynth-fm-presets.js';
+import {MegaSynthNode} from './tetorica_src/node/megasynth.mjs';
+import {FM_PRESETS} from './tetorica_src/runtime/megasynth-fm-presets.js';
 
 const synth = new MegaSynthNode({sampleRate: 48000, masterVolume: 0.15});
 synth.on('error', error => console.error(error));
@@ -181,7 +181,7 @@ await synth.looper.stop();
 実行例: `node scripts/demo_megasynth_node_events.mjs`。
 録音 JSON を `/private/tmp/megasynth-events.json` に保存し、録音再生・looper・undo を短く実演する。
 
-オフラインで同じイベント処理を検証する入口は `web/megasynth_session.js` の `createMegaSynthSession()`。
+オフラインで同じイベント処理を検証する入口は `tetorica_src/runtime/megasynth_session.js` の `createMegaSynthSession()`。
 `await session.render(frames)` でのみ時計が進み、壁時計を待たずに録音・ループを生成できる。
 ループ中の音符イベントを sample frame の境界で適用し、録音データの読み込みは live chip を変更する前に検証する。
 
@@ -224,7 +224,7 @@ PSG / Mega CD PCM、マイク入力、他の AudioNode への接続は未対応�
 
 ## チップ別の AudifyTransport（0.2.6）
 
-`node/chip_transports.mjs` / package の `tetorica-fm2612/node/transports` から、
+`tetorica_src/node/chip_transports.mjs` / package の `tetorica-fm2612/node/transports` から、
 YM2612 / YM2608 / Gameboy / SegaPSG / YM2151 の AudifyTransport を import できる。
 これは MegaSynthNode とは別の入口で、チップ・Synth は呼び出し元に置く。
 Transport 内の出力 Worker はデバイス管理と PCM キューだけを担当し、終了時に明示的に終了する。
@@ -235,7 +235,7 @@ bufferFrames（512）、queueBlocks（4）、gain（0.25）、outputModule / out
 `start()` / `stop()` / `close()` は Promise を返す。レジスタ操作は同期。
 `getState()` で出力のキュー・消費数・エラーを確認できる。
 Transport は借りた chip を破棄しない。終了は `await transport.close(); chip.dispose();` の順。
-詳細と WorkletTransport の例は [soundchip.md](../web/soundchip.md) を参照。
+詳細と WorkletTransport の例は [soundchip.md](../runtime/soundchip.md) を参照。
 この入口は npm 0.2.6 以降で利用できる。
 
 ### 32X PWM (MAME-derived)

@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -7,9 +7,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
-import {Ym2610B,YM2610B_CLOCK} from '../../web/ym2610b.js';
-import {YM2610BSynth,YM2610BDirectTransport} from '../../web/ym2610bsynth.js';
+import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
+import {Ym2610B,YM2610B_CLOCK} from '../../tetorica_src/runtime/ym2610b.js';
+import {YM2610BSynth,YM2610BDirectTransport} from '../../tetorica_src/runtime/ym2610bsynth.js';
 
 // Original synthetic signals; no game recordings or ROM assets are used.
 function fixtures() {
@@ -111,7 +111,7 @@ test('ADPCM-A encoder rejects invalid PCM, unsupported loop/rate options and uns
   assertMetrics(encodeAdpcmA(Float32Array.from([-1,1,0])),Float32Array.from([-1,1,0]));
 });
 
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 async function buildNative(t) {
   const compiler=process.env.CXX||'c++',probe=spawnSync(compiler,['--version'],{encoding:'utf8'});
   if(probe.error?.code==='ENOENT'){t.skip('C++ compiler unavailable; native ADPCM-A reference not run');return null;}
@@ -127,7 +127,7 @@ function pcm16(pcm) {const bytes=Buffer.alloc(pcm.length*2);for(let i=0;i<pcm.le
 const peak=pcm=>pcm.reduce((m,n)=>Math.max(m,Math.abs(n)),0);
 let assets;
 async function createChip(variant=true) {
-  const [factory,wasmBinary]=await (assets??=Promise.all([import("../../docs/generated/ym2610b_wasm.js").then(m=>m.default),readFile(new URL('../docs/generated/ym2610b_wasm.wasm',runtimeDirectoryUrl))]));
+  const [factory,wasmBinary]=await (assets??=Promise.all([import("../../docs/generated/ym2610b_wasm.js").then(m=>m.default),readFile(new URL('../../docs/generated/ym2610b_wasm.wasm',runtimeDirectoryUrl))]));
   return Ym2610B.create({moduleFactory:factory,moduleOptions:{wasmBinary},variant});
 }
 function recorder(chip) {

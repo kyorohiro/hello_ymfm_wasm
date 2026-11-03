@@ -7,9 +7,9 @@ import {spawnSync} from 'node:child_process';
 import {createWonderSwanSampleVgm,WONDER_SWAN_SAMPLE_WAVES} from './helpers/wonderswan_sample_vgm_fixture.mjs';
 import {extractSamples,listSamples,exportSamples} from '../docs/vgm_analyzer/sample_core.js';
 import {inspectSourceSupport} from '../docs/vgm_analyzer/analyzer_core.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
-import {WonderSwan} from '../web/wonderswan.js';
-import {WonderSwanSynth,WonderSwanDirectTransport} from '../web/wonderswansynth.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
+import {WonderSwan} from '../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanSynth,WonderSwanDirectTransport} from '../tetorica_src/runtime/wonderswansynth.js';
 import {wonderswanWaveCode} from '../docs/vgm_analyzer/wonderswan_waves.js';
 
 function unzip(bytes){
@@ -59,7 +59,7 @@ test('Selected-occurrence WAV and CLI exports use the same bounded real preview'
   const directory=await mkdtemp(join(tmpdir(),'ws-wave-cli-'));
   try{
     const {writeFile}=await import('node:fs/promises');const input=join(directory,'original.vgm'),output=join(directory,'wave.json');await writeFile(input,bytes);
-    const cli=(...args)=>spawnSync(process.execPath,['cli/main.js','samples',input,...args],{encoding:'utf8'});
+    const cli=(...args)=>spawnSync(process.execPath,['tetorica_src/cli/main.js','samples',input,...args],{encoding:'utf8'});
     const listing=cli('--json');assert.equal(listing.status,0,listing.stderr);assert.deepEqual(JSON.parse(listing.stdout),await listSamples(bytes));
     const native=cli('--id','1','--output',output);assert.equal(native.status,0,native.stderr);
     assert.deepEqual(new Uint8Array(await readFile(output)),(await exportSamples(bytes,{id:1})).bytes);

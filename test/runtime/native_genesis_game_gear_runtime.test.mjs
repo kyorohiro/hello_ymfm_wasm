@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 import {createPlaygroundKeyboardRouting} from '../../docs/playground/playground_mode_keyboard.js';
 
 const HELD_CLOCK_ERROR='Release the manually held Game Gear voices before changing the clock';

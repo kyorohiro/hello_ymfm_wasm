@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeCdda} from '../../web/cdda_native.js';
+import {createNativeCdda} from '../../tetorica_src/runtime/cdda_native.js';
 
 function deferred() {
   let resolve, reject;

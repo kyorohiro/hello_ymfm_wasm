@@ -112,7 +112,7 @@ async function closeDuringInitialization(page) {
   });
 }
 (async () => {
-  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'web/spc_test_fixture.mjs')));
+  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'tetorica_src/runtime/spc_test_fixture.mjs')));
   fixture = createSyntheticSpc();
   await new Promise((resolve, reject) => {server.once('error', reject); server.listen(0, '127.0.0.1', resolve);});
   const results = [], lifecycle = [];

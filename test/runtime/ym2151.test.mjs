@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import {validateOpmPlayback} from '../../docs/vgm_analyzer/playback_core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Ym2151AudioEngine} from '../../web/ym2151audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2151AudioEngine} from '../../tetorica_src/runtime/ym2151audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import factory from '../../docs/generated/ym2151_wasm.js';
-const options={ym2151ModuleFactory:factory,ym2151ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ym2151_wasm.wasm',runtimeDirectoryUrl))}};
+const options={ym2151ModuleFactory:factory,ym2151ModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/ym2151_wasm.wasm',runtimeDirectoryUrl))}};
 function writes(channel=0,pan=0xc0){
   const list=[[0x20+channel,pan|7],[0x28+channel,0x4a],[0x30+channel,0]];
   for(const slot of [0,8,16,24])for(const [base,value] of [[0x40,1],[0x60,0x20],[0x80,31],[0xa0,0],[0xc0,0],[0xe0,15]])list.push([base+slot+channel,value]);
@@ -79,8 +79,8 @@ test('YM2151 channel mute silences only selected output and preserves feedback/p
 
 test('YM2151 + Sega PCM mix matches independent chips and mutes/resets/seeks correctly',async()=>{
  const {default:segapcmFactory}=await import("../../docs/generated/segapcm_wasm.js");
- const {SegaPcmAudioEngine}=await import("../../web/segapcmaudioengine.js");
- const segaPcmModuleOptions={wasmBinary:readFileSync(new URL('../docs/generated/segapcm_wasm.wasm',runtimeDirectoryUrl))};
+ const {SegaPcmAudioEngine}=await import("../../tetorica_src/runtime/segapcmaudioengine.js");
+ const segaPcmModuleOptions={wasmBinary:readFileSync(new URL('../../docs/generated/segapcm_wasm.wasm',runtimeDirectoryUrl))};
  const rom=new Uint8Array(256);for(let i=0;i<256;i++)rom[i]=i;
  const programPcm=e=>{
   e.loadSampleMemory(rom,0,rom.length);
@@ -104,14 +104,14 @@ test('YM2151 + Sega PCM mix matches independent chips and mutes/resets/seeks cor
 
 test('YM2151 + Sega PCM VGM dispatches command 0xC0/ROM data through the player and is allowed without warning',async()=>{
  const vm=await import('node:vm');
- const {vgmBytes}=await import("../../web/test-support/vgm-mock.js");
+ const {vgmBytes}=await import("../../tetorica_src/runtime/test-support/vgm-mock.js");
  const {default:segapcmFactory}=await import("../../docs/generated/segapcm_wasm.js");
- const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
+ const source=readFileSync(new URL('../../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
  const panel={hidden:true,textContent:''},context=vm.createContext({document:{getElementById:()=>panel},status:{},console});
  vm.runInContext(source.slice(source.indexOf('const playbackWarnings ='),source.indexOf('function currentStatusSuffix')),context);
  context.validateOpmPlayback=validateOpmPlayback;
  const e=await Ym2151AudioEngine.create({...options,segaPcmModuleFactory:segapcmFactory,
-  segaPcmModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/segapcm_wasm.wasm',runtimeDirectoryUrl))},segaPcmClock:4000000});
+  segaPcmModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/segapcm_wasm.wasm',runtimeDirectoryUrl))},segaPcmClock:4000000});
  try{
   const base=vgm(),mixed=vgmBytes([
    0x67,0x66,0x80,10,0,0,0,16,0,0,0,4,0,0,0,18,52,

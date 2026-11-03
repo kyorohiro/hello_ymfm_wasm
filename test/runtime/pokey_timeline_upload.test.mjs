@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {preparePokeyTimeline,createPokeyTimelineCursor,POKEY_TIMELINE_MAX_BYTES} from '../../web/pokey_timeline.js';
-import {createPokeyTimelineUpload,createPokeyChunkTimelineCursor,POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM} from '../../web/pokey_timeline_upload.js';
+import {preparePokeyTimeline,createPokeyTimelineCursor,POKEY_TIMELINE_MAX_BYTES} from '../../tetorica_src/runtime/pokey_timeline.js';
+import {createPokeyTimelineUpload,createPokeyChunkTimelineCursor,POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM} from '../../tetorica_src/runtime/pokey_timeline_upload.js';
 
 const header=(byteLength,durationSamples=0xffffffff)=>({version:1,clock:1789790,durationSamples,byteLength});
 const trace=(data,durationSamples=0xffffffff)=>({...header(data.byteLength,durationSamples),data});

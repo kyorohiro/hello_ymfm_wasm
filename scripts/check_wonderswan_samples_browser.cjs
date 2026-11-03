@@ -95,7 +95,7 @@ async function waitForSignal(page){
 
 const decodedVgm=bytes=>bytes[0]===0x1f&&bytes[1]===0x8b?gunzipSync(bytes):bytes;
 async function rawVoiceAudit(input){
-  const {Ym2612VGM,rawCommandLength}=await import(pathToFileURL(path.join(repository,'web/ym2612vgm.js')));
+  const {Ym2612VGM,rawCommandLength}=await import(pathToFileURL(path.join(repository,'tetorica_src/runtime/ym2612vgm.js')));
   const bytes=decodedVgm(input),parser=new Ym2612VGM(bytes,{logger:null}),windows=[];
   let position=parser.header.dataOffset,time=0,totalPcmWrites=0;
   while(position<bytes.length){
@@ -125,8 +125,8 @@ let referenceModules;
 async function referenceVoiceSegment(input,startTime,frames=22050){
   referenceModules??=(async()=>{
     const [{WonderSwanAudioEngine},{Ym2612VGM},{default:factory},binary]=await Promise.all([
-      import(pathToFileURL(path.join(repository,'web/wonderswanaudioengine.js'))),
-      import(pathToFileURL(path.join(repository,'web/ym2612vgm.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/wonderswanaudioengine.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/ym2612vgm.js'))),
       import(pathToFileURL(path.join(repository,'docs/generated/wonderswan_wasm.js'))),
       fs.readFile(path.join(repository,'docs/generated/wonderswan_wasm.wasm')),
     ]);

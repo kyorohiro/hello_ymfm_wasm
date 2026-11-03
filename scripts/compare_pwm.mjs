@@ -2,9 +2,9 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
-import {maybeDecodeVgmFile} from '../web/vgm_file.js';
-import {Ym2612VGM} from '../web/ym2612vgm.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {maybeDecodeVgmFile} from '../tetorica_src/runtime/vgm_file.js';
+import {Ym2612VGM} from '../tetorica_src/runtime/ym2612vgm.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {createPlaybackEngine,createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const [input,prefix='output/pwm-comparison',seconds='10',pwmOutputMode='duty']=process.argv.slice(2);

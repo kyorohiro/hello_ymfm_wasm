@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ym2151} from '../web/ym2151.js';
-import {Ym2151AudioEngine} from '../web/ym2151audioengine.js';
-import {opmPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ym2151} from '../tetorica_src/runtime/ym2151.js';
+import {Ym2151AudioEngine} from '../tetorica_src/runtime/ym2151audioengine.js';
+import {opmPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_ym2151_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -243,12 +243,12 @@ async function wrapperChecks(backend,variant){
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
-  const wrappers=['web/ym2151.js','docs/js/ym2151.js','web/ym2151audioengine.js','docs/js/ym2151audioengine.js'];
+  const wrappers=['tetorica_src/runtime/ym2151.js','docs/js/ym2151.js','tetorica_src/runtime/ym2151audioengine.js','docs/js/ym2151audioengine.js'];
   const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ym2151|soundchip|segapsg|segapcm)\.js)\?v=[^"'\s)]+/g,'$1');
   for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,variants,layouts,checkpointFrame,
     method:'Actual generated JS/WASM and unchanged synchronous Ym2151 wrapper/AudioEngine for YM2151 and YM2164. Exact stereo PCM, rate/status/IRQ/read hooks, raw state and JS resampler held timing; no tolerance, mock, Mixer or output device.',
-    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'web/soundchip_pitch.js'))},
+    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'tetorica_src/runtime/soundchip_pitch.js'))},
     wrapperSync:'Byte-identical after removing only deployed ym2151.js/soundchip.js/segapsg.js/segapcm.js import cache suffixes; actual file hashes retained.',
     wrapperChecks:{},cases:[],totalOutputStereoFrames:0,ownStateLoads:0,crossStateLoads:0,resetContinuations:0,preRestorePerturbationOutputStereoFrames:0,maximumDifference:0,
     limits:['Both variants produce native PCM at floor(clock/64); only the YM2164 Timer B interval is doubled by the existing wrapper. Engine cases separately cover output averaging/holding, without optional PSG/PCM sources.',

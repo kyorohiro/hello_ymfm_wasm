@@ -14,9 +14,9 @@ if (isMainThread) {
   });
   console.log(JSON.stringify(result, null, 2));
 } else {
-  const {createMegaSynthOffline} = await import('../web/megasynth_offline.js');
-  const {FM_PRESETS} = await import('../web/megasynth-fm-presets.js');
-  const {encodeWav} = await import('../web/wav.js');
+  const {createMegaSynthOffline} = await import("../tetorica_src/runtime/megasynth_offline.js");
+  const {FM_PRESETS} = await import("../tetorica_src/runtime/megasynth-fm-presets.js");
+  const {encodeWav} = await import("../tetorica_src/runtime/wav.js");
   const synth = await createMegaSynthOffline({sampleRate: 48000, masterVolume: .25});
   try {
     const fx = synth.fx;

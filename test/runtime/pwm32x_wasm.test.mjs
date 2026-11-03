@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {PWM32X} from '../../web/pwm32x.js';
-import {PWM32XPlayback,PWM_METHODS,createPWM32XClient} from '../../web/pwm32x_playback.js';
-import {createSoundChip} from '../../web/soundchip.js';
-import pwmFactory from '../../web/generated/pwm32x_wasm.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {receiveChipInspector,readPwmInspector} from '../../web/playground_chip_inspector_state.js';
-import {createSoundChipFactory} from '../../web/soundchip_factory.js';
-import {ChipPCMRenderer} from '../../web/chip_pcm_renderer.js';
+import {PWM32X} from '../../tetorica_src/runtime/pwm32x.js';
+import {PWM32XPlayback,PWM_METHODS,createPWM32XClient} from '../../tetorica_src/runtime/pwm32x_playback.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import pwmFactory from '../../tetorica_src/runtime/generated/pwm32x_wasm.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {receiveChipInspector,readPwmInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createSoundChipFactory} from '../../tetorica_src/runtime/soundchip_factory.js';
+import {ChipPCMRenderer} from '../../tetorica_src/runtime/chip_pcm_renderer.js';
 
 const observed=['clock','rate','gain','outputMode','muted','control','cycle','cycleRegister','left','right','leftFifo','rightFifo','timerTick','interruptCount','untilTick'];
 function compare(a,b) {for(const name of observed)assert.deepEqual(a[name],b[name],name);assert.deepEqual(a.output(),b.output());}

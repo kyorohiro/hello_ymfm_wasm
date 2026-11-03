@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MegaSynth } from '../../web/megasynth.js';
-import { MegaSynthRecordingManager } from '../../web/megasynth_recording.js';
-import { SoundChipMixer } from '../../web/soundchip_mixer.js';
+import { MegaSynth } from '../../tetorica_src/runtime/megasynth.js';
+import { MegaSynthRecordingManager } from '../../tetorica_src/runtime/megasynth_recording.js';
+import { SoundChipMixer } from '../../tetorica_src/runtime/soundchip_mixer.js';
 
 function deferred() {
   let resolve;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAudioScheduler } from '../../web/playground_audio_scheduler.js';
+import { createAudioScheduler } from '../../tetorica_src/runtime/playground_audio_scheduler.js';
 
 test('shared lookahead preserves absolute time, ordering, and cancels pending work', () => {
   let now = 0;

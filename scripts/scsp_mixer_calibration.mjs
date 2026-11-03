@@ -34,6 +34,22 @@ export const SCSP_CALIBRATION_REQUIRED_SOURCES=Object.freeze([
 const EXCLUSIONS=['playground/playground_mixer_defaults.js','js/soundchip_mixer_presets.js'];
 const fail=message=>{throw new Error('Invalid SCSP Mixer calibration: '+message);};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+// Keep the measured provenance keys and full original digests. Only these
+// reviewed source-location literals changed during the repository move.
+const relocatedSourcePaths=Object.freeze({
+  'web/scspsynth.js':'tetorica_src/runtime/scspsynth.js',
+  'web/soundchip_pitch.js':'tetorica_src/runtime/soundchip_pitch.js',
+});
+export function isScspCalibrationSourceLayoutRevision(path,bytes,expectedHash) {
+  let source=bytes.toString();
+  if(path==='scripts/calibrate_scsp_levels.cjs') {
+    for(const [previous,current]of Object.entries(relocatedSourcePaths))
+      source=source.replaceAll(`path.join(root,'${current}')`,`path.join(root,'${previous}')`);
+  } else if(path==='scripts/soundchip_calibration_scsp.mjs') {
+    source=source.replace("from '../tetorica_src/runtime/scspsynth.js'","from '../web/scspsynth.js'");
+  } else return false;
+  return sha(source)===expectedHash;
+}
 const digest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
 const finite=value=>typeof value==='number'&&Number.isFinite(value);
 const positive=value=>finite(value)&&value>1e-6;
@@ -159,8 +175,9 @@ export async function validateScspMixerCalibrationSources({reportPath,scspReport
   if(sha(bytes)!==SCSP_CALIBRATION_BASELINE_SHA256)fail('historical baseline raw SHA changed');
   const result=validateScspMixerCalibration(JSON.parse(bytes),scspReport);
   for(const [path,hash]of Object.entries(scspReport.scripts)){
-    const absolute=resolve(root,path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
-    if(sha(await readFile(absolute))!==hash)fail('script source changed; remeasure: '+path);
+    const absolute=resolve(root,relocatedSourcePaths[path]??path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
+    const current=await readFile(absolute);
+    if(sha(current)!==hash&&!isScspCalibrationSourceLayoutRevision(path,current,hash))fail('script source changed; remeasure: '+path);
   }
   for(const [path,record]of Object.entries(scspReport.sources)){
     const absolute=resolve(root,'docs',path);if(!absolute.startsWith(resolve(root,'docs')+sep))fail('served path escapes docs');

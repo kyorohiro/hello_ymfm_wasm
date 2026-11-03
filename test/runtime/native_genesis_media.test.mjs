@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {encodeWav} from '../../web/wav.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {resolve,promise};};
 const ticks=async()=>{for(let i=0;i<25;i++)await Promise.resolve();};

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
-import {MockSoundEngine} from '../../web/test-support/vgm-engine-mock.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+import {MockSoundEngine} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 
 function drain(player, options) {
   const output = [];

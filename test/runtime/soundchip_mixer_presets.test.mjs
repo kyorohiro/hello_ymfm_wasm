@@ -1,23 +1,23 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {SOUNDCHIP_MIXER_PRESETS,SOUNDCHIP_MIXER_LISTENING_LEVELS} from '../../web/soundchip_mixer_presets.js';
-import {SOUNDCHIP_MIXER_PRESETS as rootPresets, createSoundChip} from '../../web/soundchip.js';
-import {SoundChipMixer, chipMixGains, soundChipMixDefaults} from '../../web/soundchip_mixer.js';
+import {SOUNDCHIP_MIXER_PRESETS,SOUNDCHIP_MIXER_LISTENING_LEVELS} from '../../tetorica_src/runtime/soundchip_mixer_presets.js';
+import {SOUNDCHIP_MIXER_PRESETS as rootPresets, createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {SoundChipMixer, chipMixGains, soundChipMixDefaults} from '../../tetorica_src/runtime/soundchip_mixer.js';
 import {buildPlaygroundMixerDefaults, PLAYGROUND_CALIBRATION_KINDS} from '../../scripts/generate_playground_mixer_defaults.mjs';
 import {validateScspMixerCalibration} from '../../scripts/scsp_mixer_calibration.mjs';
-import {Ym2612} from '../../web/ym2612.js';
-import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 import moduleFactory from '../../docs/generated/ym2612_wasm.js';
 
-const report = JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json', runtimeDirectoryUrl), 'utf8'));
+const report = JSON.parse(await readFile(new URL('../../docs/issues/playground_chip_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const measured = buildPlaygroundMixerDefaults(report);
-const scspReport=JSON.parse(await readFile(new URL('../docs/issues/scsp_fm_chip_levels_01.json',runtimeDirectoryUrl),'utf8'));
+const scspReport=JSON.parse(await readFile(new URL('../../docs/issues/scsp_fm_chip_levels_01.json',runtimeDirectoryUrl),'utf8'));
 const scspCalibration=validateScspMixerCalibration(report,scspReport);
-const psgReport = JSON.parse(await readFile(new URL('../docs/issues/soundchip_psg_levels_01.json', runtimeDirectoryUrl), 'utf8'));
+const psgReport = JSON.parse(await readFile(new URL('../../docs/issues/soundchip_psg_levels_01.json',runtimeDirectoryUrl), 'utf8'));
 const reducedPsg = {segapsg: 0.455420, ay8910: 1.100331, nes: 1.514209};
 const listeningLevels = {segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
 const preset = SOUNDCHIP_MIXER_PRESETS.calibrated;
@@ -89,7 +89,7 @@ test('calibration remains an output policy and does not trim legacy direct-chip 
   const chips = await Promise.all([
     createSoundChip('ym2612'),
     Ym2612.create({moduleFactory, moduleOptions: {
-      wasmBinary: await readFile(new URL('../docs/generated/ym2612_wasm.wasm', runtimeDirectoryUrl)),
+      wasmBinary: await readFile(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl)),
     }}),
   ]);
   try {

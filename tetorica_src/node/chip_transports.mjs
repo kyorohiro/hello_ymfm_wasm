@@ -1,18 +1,18 @@
-import {AY8910DirectTransport} from '../web/ay8910synth.js';
-import {PWM32XDirectTransport} from '../web/pwm32x_transport.js';
-import {YM2612DirectTransport} from '../web/ym2612synth.js';
-import {YM2608DirectTransport} from '../web/ym2608synth.js';
-import {GameboyDirectTransport} from '../web/gameboysynth.js';
-import {SegaPSGDirectTransport} from '../web/segapsgsynth.js';
-import {YM2151DirectTransport} from '../web/ym2151synth.js';
-import {NesApuDirectTransport} from '../web/nesapusynth.js';
-import {YM2413DirectTransport} from '../web/ym2413synth.js';
-import {OPLDirectTransport} from '../web/opl_synth.js';
-import {YM3526DirectTransport} from '../web/ym3526synth.js';
-import {YM3812DirectTransport} from '../web/ym3812synth.js';
-import {Y8950DirectTransport} from '../web/y8950synth.js';
-import {YMF262DirectTransport} from '../web/ymf262synth.js';
-import {ChipPCMRenderer} from '../web/chip_pcm_renderer.js';
+import {AY8910DirectTransport} from '../runtime/ay8910synth.js';
+import {PWM32XDirectTransport} from '../runtime/pwm32x_transport.js';
+import {YM2612DirectTransport} from '../runtime/ym2612synth.js';
+import {YM2608DirectTransport} from '../runtime/ym2608synth.js';
+import {GameboyDirectTransport} from '../runtime/gameboysynth.js';
+import {SegaPSGDirectTransport} from '../runtime/segapsgsynth.js';
+import {YM2151DirectTransport} from '../runtime/ym2151synth.js';
+import {NesApuDirectTransport} from '../runtime/nesapusynth.js';
+import {YM2413DirectTransport} from '../runtime/ym2413synth.js';
+import {OPLDirectTransport} from '../runtime/opl_synth.js';
+import {YM3526DirectTransport} from '../runtime/ym3526synth.js';
+import {YM3812DirectTransport} from '../runtime/ym3812synth.js';
+import {Y8950DirectTransport} from '../runtime/y8950synth.js';
+import {YMF262DirectTransport} from '../runtime/ymf262synth.js';
+import {ChipPCMRenderer} from '../runtime/chip_pcm_renderer.js';
 import {createThreadOutput} from './output_thread.mjs';
 
 class Playback {
@@ -81,7 +81,7 @@ class Playback {
     return this.closing;
   }
 }
-/** @typedef {import('./megasynth.mjs').OutputConnectionOptions & {sampleRate?: number, gain?: number, queueBlocks?: number, clock?:number, chip?:import('../web/opl_synth.js').OPLChip}} AudifyTransportOptions */
+/** @typedef {import('./megasynth.mjs').OutputConnectionOptions & {sampleRate?: number, gain?: number, queueBlocks?: number, clock?:number, chip?:import('../runtime/opl_synth.js').OPLChip}} AudifyTransportOptions */
 /** @template {new (...args: any[]) => any} T
  * @param {T} Direct @param {string} name
  * @returns {{new(chip: ConstructorParameters<T>[0], options?: AudifyTransportOptions): Omit<InstanceType<T>, 'getState'> & {

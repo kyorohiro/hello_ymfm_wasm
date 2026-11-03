@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { convertS98ToVgm, looksLikeS98 } from '../../web/s98_file.js';
-import { Ym2612VGM } from '../../web/ym2612vgm.js';
+import { convertS98ToVgm, looksLikeS98 } from '../../tetorica_src/runtime/s98_file.js';
+import { Ym2612VGM } from '../../tetorica_src/runtime/ym2612vgm.js';
 import { exportAnalysisMml } from '../../docs/vgm_analyzer/vgm_mml.js';
 
 function fixture(commands, { version = 3, type = 4, numerator = 10, denominator = 1000, loop = null } = {}) {

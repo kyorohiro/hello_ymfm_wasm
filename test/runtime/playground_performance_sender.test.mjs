@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPerformanceSender, validateWorkerLookahead, DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../../web/playground_performance_sender.js';
+import {createPerformanceSender, validateWorkerLookahead, DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../../tetorica_src/runtime/playground_performance_sender.js';
 
 function fixture() {
   let now = 100000, loop = null;

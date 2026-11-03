@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ChipPCMRenderer} from '../../web/chip_pcm_renderer.js';
+import {ChipPCMRenderer} from '../../tetorica_src/runtime/chip_pcm_renderer.js';
 
 const valueAt = frame => Math.fround(Math.sin(frame * .137) * .3);
 function source(rate) {

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Rf5c164, RF5C164_CLOCK} from '../../web/rf5c164.js';
-import {createRf5c164Control} from '../../web/playground_rf5c164.js';
+import {Rf5c164, RF5C164_CLOCK} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 import factory from '../generated/rf5c164_wasm.js';
 
 const source = await readFile(new URL('./examples/mega-cd/megacd-pcm-loop.js', import.meta.url), 'utf8');

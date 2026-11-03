@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Ym2151VoiceInspector} from '../../web/playground_ym2151_inspector.js';
-import {Ym2151} from '../../web/ym2151.js';
+import {Ym2151VoiceInspector} from '../../tetorica_src/runtime/playground_ym2151_inspector.js';
+import {Ym2151} from '../../tetorica_src/runtime/ym2151.js';
 import factory from '../../docs/generated/ym2151_wasm.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createYm2151Client} from '../../web/playground_ym2151.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {NativeRuntimeSynth} from '../../web/native_runtime_synth.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createYm2151Client} from '../../tetorica_src/runtime/playground_ym2151.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {NativeRuntimeSynth} from '../../tetorica_src/runtime/native_runtime_synth.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
 async function setup(){
@@ -21,7 +21,7 @@ async function setup(){
   vm.runInNewContext(source,{Ym2151,factory,Ym2151VoiceInspector,receiveChipInspector,validateChipClock,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2151_wasm.wasm',runtimeDirectoryUrl))}});
+  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2151_wasm.wasm',runtimeDirectoryUrl))}});
   assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})};
   const client=createYm2151Client(clientPort);

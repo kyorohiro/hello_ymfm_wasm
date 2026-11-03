@@ -5,8 +5,8 @@ import {readFile} from 'node:fs/promises';
 import {buildSpcSongSource} from './playground_spc_song_source.js';
 import {buildSpcImportFiles} from './playground_spc_source.js';
 import factory from '../generated/spc_wasm.js';
-import {SnesDspCore} from '../../web/spc.js';
-import {SnesSynth} from '../../web/snessynth.js';
+import {SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
 
 const DIRECTORY = '/spc/note-comments';
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

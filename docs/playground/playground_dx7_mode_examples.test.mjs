@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {presetToVoice, voiceToPreset, validateOperator, validateOperators} from '../../web/msfa_dx7/src/preset.js';
+import {presetToVoice, voiceToPreset, validateOperator, validateOperators} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 import {MODE_STARTERS, selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;

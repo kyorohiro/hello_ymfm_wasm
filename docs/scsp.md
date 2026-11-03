@@ -1,6 +1,6 @@
 # Experimental Saturn SCSP core
 
-`Scsp` in [web/scsp.js](../web/scsp.js) provides a synchronous raw register,
+`Scsp` in [tetorica_src/runtime/scsp.js](../tetorica_src/runtime/scsp.js) provides a synchronous raw register,
 RAM and PCM interface to the fixed SDK's MAME-derived SCSP instrument.
 The same C++ core is available to Native callers as `tetorica::scsp` and
 `<tetorica/scsp.h>`.
@@ -113,7 +113,7 @@ Worker playback and retires older reservations before another upload.
 
 ## Musical PCM API
 
-`ScspSynth` in [web/scspsynth.js](../web/scspsynth.js) wraps an exclusively owned
+`ScspSynth` in [tetorica_src/runtime/scspsynth.js](../tetorica_src/runtime/scspsynth.js) wraps an exclusively owned
 `Scsp`. Local TypeScript declarations are supplied for both classes. It takes
 signed `Int8Array` / `Int16Array` PCM, supplies big-endian RAM encoding, named EG
 fields, note names/MIDI notes, live frequency and hardware mix controls.
@@ -122,7 +122,7 @@ It creates no AudioContext. The Playground layer supplies its audio device and t
 After creating `chip` as in the raw example below:
 
 ```js
-import {ScspSynth, createScspInitSample} from './web/scspsynth.js';
+import {ScspSynth, createScspInitSample} from './tetorica_src/runtime/scspsynth.js';
 
 const synth = new ScspSynth(chip); // Resets registers; owns/disposes chip.
 try {
@@ -208,7 +208,7 @@ It returns PCM arrays; it does not play through speakers.
 ```js
 import {readFile} from 'node:fs/promises';
 import factory from './docs/generated/scsp_wasm.js';
-import {Scsp} from './web/scsp.js';
+import {Scsp} from './tetorica_src/runtime/scsp.js';
 
 const chip = await Scsp.create({
   moduleFactory: factory,

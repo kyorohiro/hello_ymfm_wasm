@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMsm5205Player} from '../../web/msm5205_player.js';
+import {createMsm5205Player} from '../../tetorica_src/runtime/msm5205_player.js';
 const deferred=()=>{let resolve;return {promise:new Promise(r=>resolve=r),resolve:()=>resolve()};};
 function fixture(){const calls=[];let gate;return {calls,hold(){gate=deferred();return gate;},async prepare(data,name,{signal}){calls.push({type:'prepare',data,name,signal});const wait=gate;gate=null;if(wait)await wait.promise;signal.throwIfAborted();},async command(action,timing){calls.push({...action,timing});return {state:'ready',sourceBytes:8};},dispose(){calls.push({type:'dispose'});}};}
 test('raw VFS bytes retain nibble units, range validation, loaded default rate and mixer state',async()=>{

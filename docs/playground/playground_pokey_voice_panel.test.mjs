@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundPokeyVoicePanel,pokeyVoiceCode} from './playground_pokey_voice_panel.js';
-import {PokeySynth} from '../../web/pokeysynth.js';
+import {PokeySynth} from '../../tetorica_src/runtime/pokeysynth.js';
 
 class Events{
   constructor(){this.listeners=new Map();}

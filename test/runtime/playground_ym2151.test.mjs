@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {createYm2151Client} from '../../web/playground_ym2151.js';
-import {Ym2151} from '../../web/ym2151.js';
+import {createYm2151Client} from '../../tetorica_src/runtime/playground_ym2151.js';
+import {Ym2151} from '../../tetorica_src/runtime/ym2151.js';
 import factory from '../../docs/generated/ym2151_wasm.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {Ym2151VoiceInspector} from '../../web/playground_ym2151_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {Ym2151VoiceInspector} from '../../tetorica_src/runtime/playground_ym2151_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
 async function setup(sampleRate) {
   let Processor, ready, frame = 0;
@@ -21,7 +21,7 @@ async function setup(sampleRate) {
     AudioWorkletProcessor: class { constructor() {this.port = {postMessage: ready};} },
     registerProcessor: (_, value) => {Processor = value;},
   });
-  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../docs/generated/ym2151_wasm.wasm', runtimeDirectoryUrl))}});
+  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../../docs/generated/ym2151_wasm.wasm',runtimeDirectoryUrl))}});
   assert.equal((await started).ready, true);
   const chip = createYm2151Client({postMessage: data => processor.receive(data), close() {}});
   const render = n => {const out = [new Float32Array(n), new Float32Array(n)]; processor.process([], [out]); frame += n; return out;};
@@ -62,7 +62,7 @@ test('OPM validates before writes and preserves adjacent bitfields, including ra
 });
 test('OPM example runs against the real worklet', async () => {
   const {chip,processor,render}=await setup(48000);
-  const source=await readFile(new URL('../docs/playground/examples/x68000/ym2151-tone.js',runtimeDirectoryUrl),'utf8');
+  const source=await readFile(new URL('../../docs/playground/examples/x68000/ym2151-tone.js',runtimeDirectoryUrl),'utf8');
   try {
     let calls=0;
     await new (Object.getPrototypeOf(async function(){}).constructor)('useSoundChip','sleep',source)(

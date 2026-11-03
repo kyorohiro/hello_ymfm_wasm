@@ -450,8 +450,8 @@ test('private PCM samples stay isolated in the sample picker and a source mismat
 });
 
 test('copied PCM voice code recreates its loop with the real encoder and retains voice/effect settings', async () => {
-  const {encodePs1Adpcm} = await import('../../web/ps1_adpcm_encoder.js');
-  const {preparePs1ADPCM} = await import('../../web/ps1synth.js');
+  const {encodePs1Adpcm} = await import("../../tetorica_src/runtime/ps1_adpcm_encoder.js");
+  const {preparePs1ADPCM} = await import("../../tetorica_src/runtime/ps1synth.js");
   const {root,copied,panel} = fixture(), next = waveformState(23); next.channels[23].reverb = true; next.reverb.preset = 'hall'; panel.update(next); await channel(root,23).fire('click');
   await action(root,'copy').fire('click'); assert.equal(copied.length,1); assert.equal(copied[0],ps1VoiceCode(next,23));
   assert.doesNotMatch(copied[0], /\b(?:const|let|var)\s+(?:sample|pcm|encoded)\b/, 'generated declarations must not shadow Playground built-ins');

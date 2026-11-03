@@ -1,5 +1,5 @@
 /** Node.js: 名前から低レベルチップを作り、PCM生成を確認する。 */
-import { createSoundChip } from '../../web/soundchip.js';
+import { createSoundChip } from '../../tetorica_src/runtime/soundchip.js';
 
 for (const name of ['ym2151', 'ymf262']) {
   const chip = await createSoundChip(name);

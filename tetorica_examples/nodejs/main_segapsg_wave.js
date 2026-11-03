@@ -1,8 +1,8 @@
 /** Node.js で Sega PSG の単音・和音・ノイズを生成し、16 bit ステレオ WAV に保存する。 */
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { SegaPSG, SEGAPSG_CLOCK } from "../../web/segapsg.js";
-import { SegaPSGSynth, SegaPSGDirectTransport } from "../../web/segapsgsynth.js";
+import { SegaPSG, SEGAPSG_CLOCK } from "../../tetorica_src/runtime/segapsg.js";
+import { SegaPSGSynth, SegaPSGDirectTransport } from "../../tetorica_src/runtime/segapsgsynth.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/segapsg_wasm.js";
 

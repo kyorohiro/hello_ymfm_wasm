@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisExtraChip} from '../../web/native_genesis_extra_chip.js';
+import {createNativeGenesisExtraChip} from '../../tetorica_src/runtime/native_genesis_extra_chip.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j;});return {promise,resolve,reject};};
 const ticks=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};

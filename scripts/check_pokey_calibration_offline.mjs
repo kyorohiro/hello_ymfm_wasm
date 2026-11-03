@@ -10,13 +10,13 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import factory from '../docs/generated/pokey_wasm.js';
-import {Pokey} from '../web/pokey.js';
-import {PokeySynth} from '../web/pokeysynth.js';
-import {PokeyAudioEngine} from '../web/pokeyaudioengine.js';
-import {PokeyVoiceInspector} from '../web/playground_pokey_inspector.js';
-import {createProcessorPerformance,performanceNoteRelease} from '../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../web/playground_chip_inspector_state.js';
-import {POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM,createPokeyTimelineUpload,createPokeyChunkTimelineCursor} from '../web/pokey_timeline_upload.js';
+import {Pokey} from '../tetorica_src/runtime/pokey.js';
+import {PokeySynth} from '../tetorica_src/runtime/pokeysynth.js';
+import {PokeyAudioEngine} from '../tetorica_src/runtime/pokeyaudioengine.js';
+import {PokeyVoiceInspector} from '../tetorica_src/runtime/playground_pokey_inspector.js';
+import {createProcessorPerformance,performanceNoteRelease} from '../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM,createPokeyTimelineUpload,createPokeyChunkTimelineCursor} from '../tetorica_src/runtime/pokey_timeline_upload.js';
 import {buildPokeyCalibrationReference} from './soundchip_calibration_pokey.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -221,8 +221,8 @@ export async function measurePokeyCalibrationOffline({nativeBridgeDirectory='w/t
           sourceFrequenciesHz:[220,880],independentRegisterState:true,independentPcmContinuation:true,otherChipStopResetDispose:true,passed:true});
       }finally{if(!firstDisposed)first.dispose();second.dispose();isolated.dispose();}
     }
-    for(const path of ['scripts/soundchip_calibration_pokey.mjs','scripts/check_pokey_calibration_offline.mjs','web/pokey.js','web/pokeysynth.js','web/pokeyaudioengine.js','web/playground_pokey_inspector.js',
-      'web/playground_performance_processor.js','web/playground_chip_inspector_state.js','web/pokey_timeline_upload.js','web/pokey_timeline.js',
+    for(const path of ['scripts/soundchip_calibration_pokey.mjs','scripts/check_pokey_calibration_offline.mjs','tetorica_src/runtime/pokey.js','tetorica_src/runtime/pokeysynth.js','tetorica_src/runtime/pokeyaudioengine.js','tetorica_src/runtime/playground_pokey_inspector.js',
+      'tetorica_src/runtime/playground_performance_processor.js','tetorica_src/runtime/playground_chip_inspector_state.js','tetorica_src/runtime/pokey_timeline_upload.js','tetorica_src/runtime/pokey_timeline.js',
       'docs/js/playground_pokey_worklet.js','docs/generated/pokey_wasm.js','docs/generated/pokey_wasm.wasm',vendor+'/pokey.cpp',vendor+'/pokey.h']){
       const bytes=await readFile(join(root,path));report.sources.push({path,bytes:bytes.length,sha256:hash(bytes)});
     }

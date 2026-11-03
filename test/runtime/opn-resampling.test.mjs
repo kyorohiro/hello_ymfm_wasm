@@ -7,7 +7,7 @@ for (const tree of ['web', 'docs/js']) {
     ['ym2608audioengine', 'Ym2608AudioEngine'],
     ['ym2610baudioengine', 'Ym2610BAudioEngine'],
   ]) {
-    const { [name]: Engine } = await import(`../../${tree}/${file}.js`);
+    const { [name]: Engine } = await import(`../../${tree === 'web' ? 'tetorica_src/runtime' : tree}/${file}.js`);
     const setup = (sourceRate, outputRate) => {
       const chip = {
         frames: 0,

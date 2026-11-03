@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 
 const delay = () => new Promise(resolve => setTimeout(resolve,1));
 async function until(predicate) {

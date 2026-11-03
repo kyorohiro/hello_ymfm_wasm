@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {preparePokeyTimeline,createPokeyTimelineCursor,POKEY_TIMELINE_MAX_BYTES} from '../../web/pokey_timeline.js';
-import {createPokeyTimelineBuilder} from '../../web/pokey_timeline_builder.js';
+import {preparePokeyTimeline,createPokeyTimelineCursor,POKEY_TIMELINE_MAX_BYTES} from '../../tetorica_src/runtime/pokey_timeline.js';
+import {createPokeyTimelineBuilder} from '../../tetorica_src/runtime/pokey_timeline_builder.js';
 
 const trace=(data,durationSamples=44100)=>({version:1,clock:1789790,durationSamples,data:Uint8Array.from(data)});
 test('POKEY compact timeline preserves canonical sample order and owns caller bytes',()=>{

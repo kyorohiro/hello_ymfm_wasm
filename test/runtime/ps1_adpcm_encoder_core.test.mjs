@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -7,14 +7,14 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {encodePs1Adpcm,encodePs1AdpcmCycle} from '../../web/ps1_adpcm_encoder.js';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth} from '../../web/ps1synth.js';
+import {encodePs1Adpcm,encodePs1AdpcmCycle} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
 
 // Both native binaries use the real pinned decoder/core. The first exposes
 // raw decoded int16 samples; the existing second helper exposes the C ABI.
 // Neither helper contains a substitute audio implementation.
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 const u32=value=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 const peak=pcm=>pcm.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 const sine=(frames=112)=>Float32Array.from({length:frames},(_,n)=>.7*Math.sin(2*Math.PI*n/112));
@@ -153,7 +153,7 @@ test('PCM encoder packets conform to the actual native decoder and native/WASM S
   });
 
   await t.test('encoded instruments retain actual native/WASM equality through CH24 tuning, signed stereo, Stop, retrigger and END',async()=>{
-    const [{default:factory},wasmBinary]=await Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]);
+    const [{default:factory},wasmBinary]=await Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]);
     const module=await factory({wasmBinary}),chip=await Ps1Spu.create({moduleFactory:async()=>module});
     t.after(()=>chip.dispose());const commands=[],expected=[];
     const recorded={

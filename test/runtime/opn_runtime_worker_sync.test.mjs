@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
-import {YM2203RuntimeSynth} from '../../web/ym2203synth.js';
-import {YM2608RuntimeSynth} from '../../web/ym2608synth.js';
-import {YM2610BRuntimeSynth,NeoGeoSynth} from '../../web/ym2610bsynth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {YM2203RuntimeSynth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608RuntimeSynth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BRuntimeSynth,NeoGeoSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 
 async function fixture(t,Synth,onMegaDriveEvent) {
   const previous = Object.fromEntries(['window','Worker','AudioWorkletNode','fetch'].map(name=>[name,globalThis[name]]));

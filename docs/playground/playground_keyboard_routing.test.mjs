@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
 import {createPlaygroundKeyboardRouting} from './playground_mode_keyboard.js';
-import {createChipInspector} from '../../web/playground_chip_inspector.js';
+import {createChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector.js';
 
 function setup(primaryChips=[{id:'ym2612',kind:'ym2612',label:'YM2612'}]) {
   let entries=[],observer,connection=1;const calls=[],targets=[];

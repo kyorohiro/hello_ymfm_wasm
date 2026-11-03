@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const root=new URL('../',import.meta.url);
 const source=new URL('w/tetorica-msfa-dx7-wasm/',root);
-for(const location of ['web/msfa_dx7/','docs/js/msfa_dx7/']){
+for(const location of ['tetorica_src/runtime/msfa_dx7/','docs/js/msfa_dx7/']){
   const target=new URL(location,root);
   await cp(new URL('src/',source),new URL('src/',target),{recursive:true});
   for (const name of ['package.json', 'README.md', 'README.ja.md', 'LICENSE',
@@ -35,9 +35,9 @@ if(declarations.includes(start)){
   declarations=declarations.replace('interface PlaygroundDx7VoiceInfo {',block+'\ninterface PlaygroundDx7VoiceInfo {');
 }
 await writeFile(globals,declarations);
-await cp(new URL('web/msfa_dx7/README.vendor.md',root),new URL('docs/js/msfa_dx7/README.vendor.md',root));
+await cp(new URL('tetorica_src/runtime/msfa_dx7/README.vendor.md',root),new URL('docs/js/msfa_dx7/README.vendor.md',root));
 if(process.argv.includes('--wasm')) {
   execFileSync('sh',[fileURLToPath(new URL('scripts/build_dx7_wasm.sh',root))],{stdio:'inherit'});
 }
-console.log('Synced DX7 JS, metadata and docs to web/docs, and declarations to Monaco; WASM '
+console.log('Synced DX7 JS, metadata and docs to tetorica_src/runtime and docs, and declarations to Monaco; WASM '
   + (process.argv.includes('--wasm') ? 'rebuilt explicitly from the fixed SDK.' : 'unchanged.'));

@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { Ym2203 } from '../../web/ym2203.js';
-import { Ym2608 } from '../../web/ym2608.js';
-import { Ym2612 } from '../../web/ym2612.js';
-import { Ym2610B } from '../../web/ym2610b.js';
-import { SegaPSG } from '../../web/segapsg.js';
-import { Rf5c164 } from '../../web/rf5c164.js';
+import { Ym2203 } from '../../tetorica_src/runtime/ym2203.js';
+import { Ym2608 } from '../../tetorica_src/runtime/ym2608.js';
+import { Ym2612 } from '../../tetorica_src/runtime/ym2612.js';
+import { Ym2610B } from '../../tetorica_src/runtime/ym2610b.js';
+import { SegaPSG } from '../../tetorica_src/runtime/segapsg.js';
+import { Rf5c164 } from '../../tetorica_src/runtime/rf5c164.js';
 
 async function createChip(name, Type) {
-  const url = new URL(`../docs/generated/${name}_wasm.js`, runtimeDirectoryUrl);
+  const url = new URL(`../../docs/generated/${name}_wasm.js`,runtimeDirectoryUrl);
   const source = readFileSync(url, 'utf8')
     .replaceAll('import.meta.url', JSON.stringify(url.href))
     .replace('export default Module;', 'Module;');
@@ -20,7 +20,7 @@ async function createChip(name, Type) {
     console, WebAssembly, Uint8Array, setTimeout, clearTimeout, performance, URL,
   });
   return Type.create({ moduleFactory, moduleOptions: {
-    wasmBinary: new Uint8Array(readFileSync(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl))),
+    wasmBinary: new Uint8Array(readFileSync(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))),
   } });
 }
 

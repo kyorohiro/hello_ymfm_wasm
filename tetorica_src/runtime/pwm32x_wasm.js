@@ -9,7 +9,7 @@ const framesValid = frames => {
 async function load(options) {
   options.signal?.throwIfAborted();
   if (options.moduleFactory) return options;
-  const base = new URL(options.assetBaseUrl ?? (import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/'), import.meta.url);
+  const base = new URL(options.assetBaseUrl ?? './generated/', import.meta.url);
   const {default:moduleFactory} = await import(new URL('pwm32x_wasm.js', base).href);
   const moduleOptions = {...options.moduleOptions};
   if (moduleOptions.wasmBinary === undefined && !moduleOptions.locateFile) {

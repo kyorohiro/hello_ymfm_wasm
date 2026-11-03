@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPokeyFixture} from '../helpers/pokey_worklet_fixture.mjs';
-import {Pokey} from '../../web/pokey.js';
-import {PokeyAudioEngine} from '../../web/pokeyaudioengine.js';
-import {preparePokeyTimeline,createPokeyTimelineCursor} from '../../web/pokey_timeline.js';
-import {createPokeyTimelineBuilder} from '../../web/pokey_timeline_builder.js';
+import {Pokey} from '../../tetorica_src/runtime/pokey.js';
+import {PokeyAudioEngine} from '../../tetorica_src/runtime/pokeyaudioengine.js';
+import {preparePokeyTimeline,createPokeyTimelineCursor} from '../../tetorica_src/runtime/pokey_timeline.js';
+import {createPokeyTimelineBuilder} from '../../tetorica_src/runtime/pokey_timeline_builder.js';
 import factory from '../../docs/generated/pokey_wasm.js';
 import {readFile} from 'node:fs/promises';
-import {createPokeyRegisterClient} from '../../web/playground_pokey.js';
-const wasmBinary=await readFile(new URL('../docs/generated/pokey_wasm.wasm',runtimeDirectoryUrl));
+import {createPokeyRegisterClient} from '../../tetorica_src/runtime/playground_pokey.js';
+const wasmBinary=await readFile(new URL('../../docs/generated/pokey_wasm.wasm',runtimeDirectoryUrl));
 const makeTrace=(clock=1789790)=>{const builder=createPokeyTimelineBuilder({clock});builder.writeRegister(15,3);builder.writeRegister(0,71);builder.writeRegister(1,0xa8);builder.at(173).writeRegister(0,93);builder.at(371).writeRegister(1,0x6a);builder.at(811).writeRegister(1,0xa0);return builder.finish(1003);};
 const makeChunkedTrace=()=>{const builder=createPokeyTimelineBuilder();builder.writeRegister(15,3);builder.writeRegister(0,71);builder.writeRegister(1,0xa8);for(let point=1;point<=6000;point++)builder.at(point*2).writeRegister(0,50+point%75);builder.at(12010).writeRegister(1,0xa0);return builder.finish(12050);};
 async function reference(trace,rate){const chip=await Pokey.create({moduleFactory:factory,moduleOptions:{wasmBinary},clock:trace.clock,sampleRate:rate}),speaker=new PokeyAudioEngine(chip,1),cursor=createPokeyTimelineCursor(preparePokeyTimeline(trace),rate),out=new Float32Array(cursor.durationFrames);let frame=0;while(frame<out.length){cursor.advance(frame,(reg,value)=>speaker.writePokey(reg,value));const count=Math.min(out.length-frame,Math.max(1,cursor.nextFrame()-frame));out.set(speaker.generateStereoView(count).left,frame);frame+=count;}chip.dispose();return out;}

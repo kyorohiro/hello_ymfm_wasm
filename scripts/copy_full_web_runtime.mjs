@@ -14,6 +14,7 @@ import {copyMsm5205Sources} from './copy_msm5205_sources.mjs';
 import {copyScspSources} from './copy_scsp_sources.mjs';
 import {copyPs1Sources} from './copy_ps1_sources.mjs';
 import {copyRuntimeArtifactProfile, runtimeArtifactProfiles} from './runtime_artifact_profiles.mjs';
+import {packagedRuntimeModule} from './runtime_module_layout.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = resolve(process.argv[2]);
 const nested = process.argv[3] === 'js';
@@ -24,26 +25,13 @@ mkdirSync(jsDir,{recursive:true});
 mkdirSync(join(stage,'generated'),{recursive:true});
 const additionalArtifacts = new Set(['cdda','msm5205','ps1_spu','scsp','dx7','native_audio_effect']);
 const chips = runtimeArtifactProfiles.full.filter(id => !additionalArtifacts.has(id));
-const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.endsWith('.test.js')).sort();
+const modules = readdirSync(join(root,'tetorica_src/runtime')).filter(n=>n.endsWith('.js') && !n.endsWith('.test.js')).sort();
 for (const name of modules) {
-  let source=readFileSync(join(root,'web',name),'utf8');
+  let source=readFileSync(join(root,'tetorica_src/runtime',name),'utf8');
   // Match the established docs/js layout for module-relative generated assets.
   if (nested && (name.includes('worklet') || ['msm5205_audio.js','msm5205_pcm.js','cdda_audio.js','cdda_pcm.js','cdda_offline.js','playground_nes_audio.js','playground_pwm_audio.js','vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js','playground_opl_audio.js','playground_ym2413_audio.js','playground_ay8910_audio.js','playground_wonderswan_audio.js','playground_pokey_audio.js','playground_scsp_audio.js'].includes(name)))
     source=source.replaceAll('./generated/', '../generated/');
-  if (name === 'nesapu.js') source=source.replace('../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
-  if(name==='pwm32x_wasm.js'){
-    const expression="(import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/')";
-    if(!source.includes(expression))throw new Error('Missing PWM WASM default asset base');
-    source=source.replace(expression,JSON.stringify(nested?'../generated/':'./generated/'));
-  }
-  if(name==='nesapu_wasm.js'){
-    const expression="(import.meta.url.includes('/web/')?'../docs/generated/':'../generated/')";
-    if(!source.includes(expression))throw new Error('Missing NES WASM default asset base');
-    source=source.replace(expression,JSON.stringify(nested?'../generated/':'./generated/'));
-  }
-  if (name === 'soundchip.js') {
-    source=source.replace("(import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/')", JSON.stringify(nested ? '../generated/' : './generated/'));
-  }
+  source = packagedRuntimeModule(source, name, {nested});
   writeFileSync(join(jsDir,name),source);
 }
 // Retain the Analyzer's JavaScript compatibility/reference renderer. The
@@ -63,9 +51,9 @@ await copyCddaSources(stage);
 await copyMsm5205Sources(stage);
 await copyPs1Sources(stage);
 await copyScspSources(stage);
-const dx7Version = JSON.parse(readFileSync(join(root,'web/msfa_dx7/package.json'),'utf8')).version;
+const dx7Version = JSON.parse(readFileSync(join(root,'tetorica_src/runtime/msfa_dx7/package.json'),'utf8')).version;
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
-copyFileSync(join(root,'web/soundchip.md'),join(jsDir,'soundchip.md'));
+copyFileSync(join(root,'tetorica_src/runtime/soundchip.md'),join(jsDir,'soundchip.md'));
 const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-wonderswan','mame-k051649','mame-okim6258','mame-okim6295','libvgm-msm5205','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
 for (const name of notices.filter(name=>name!=='nuked-opn2')) {
   const dir=join(stage,'licenses',name); mkdirSync(dir,{recursive:true});

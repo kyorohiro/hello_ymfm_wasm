@@ -1,22 +1,23 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+const runtimeTreeFile = (tree, file) => new URL(`../../${tree === 'web' ? 'tetorica_src/runtime' : tree}/${file}`, runtimeDirectoryUrl);
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../web/playground_audition_guard.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 
 const names = ['ym2612-worklet', 'ym2612-worklet-nuked', 'ym2203-worklet', 'ym2608-worklet', 'ym2610b-worklet'];
 test('served primary worklets resolve their real static module imports, including generated WASM loaders', () => {
   for (const name of names) {
     const tree = 'docs/js';
-    const sourceUrl = new URL(`../${tree}/${name}.js`, runtimeDirectoryUrl);
+    const sourceUrl = runtimeTreeFile(tree, `${name}.js`);
     const source = fs.readFileSync(sourceUrl, 'utf8');
     for (const [, path] of source.matchAll(/^import .* from ["']([^"']+)["'];/gm)) {
       const resolved = new URL(path, sourceUrl); resolved.search = '';
@@ -37,7 +38,7 @@ function processor(tree, name, rate = 48000) {
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: data => replies.push(data)};}},
     registerProcessor(_name, value) {Type = value;},
   };
-  vm.runInNewContext(fs.readFileSync(new URL(`../${tree}/${name}.js`, runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, `${name}.js`), 'utf8').replace(/^import .*;\n/gm, ''), scope);
   const p = new Type();
   const chip = {
     value: 0, reservations: [], generatedFrames: 0, sampleRate: () => rate, reset() {this.value = 0;},

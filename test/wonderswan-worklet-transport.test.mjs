@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {MessageChannel} from 'node:worker_threads';
-import {WonderSwanWorkletTransport} from '../web/chip_worklet_transport.js';
-import {WonderSwanSynth} from '../web/wonderswansynth.js';
-import {createWorkletSoundChip} from '../web/soundchip_worklet.js';
+import {WonderSwanWorkletTransport} from '../tetorica_src/runtime/chip_worklet_transport.js';
+import {WonderSwanSynth} from '../tetorica_src/runtime/wonderswansynth.js';
+import {createWorkletSoundChip} from '../tetorica_src/runtime/soundchip_worklet.js';
 
 function endpoint() {
   const messages = [], requests = [];

@@ -23,8 +23,8 @@ Tetoricaは、レトロゲームの音源を学び、調べ、音を作るため
 | やりたいこと | 入口 |
 | --- | --- |
 | インストールせずに試したい | [ブラウザー版ホーム](https://kyorohiro.github.io/hello_ymfm_wasm/index-ja.html) · [itch.io](https://kyorohiro.itch.io/) |
-| ビルド済みWASMと低レベルJavaScriptが欲しい | [npmの`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612) · [API一覧](packages/fm2612/README.md#api-entry-points) · [WASMとソースの配置](web/README.md) |
-| 音源・音声再生・ライブコーディングを組み込みたい | [Synth／Transport API](packages/fm2612/README.md) · [Playground Runtime](web/README.md#playground-runtime) · [Web／Nodeの実行例](https://github.com/kyorohiro/tetorica-fm2612-examples) |
+| ビルド済みWASMと低レベルJavaScriptが欲しい | [npmの`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612) · [API一覧](packages/fm2612/README.md#api-entry-points) · [WASMとソースの配置](tetorica_src/runtime/README.md) |
+| 音源・音声再生・ライブコーディングを組み込みたい | [Synth／Transport API](packages/fm2612/README.md) · [Playground Runtime](tetorica_src/runtime/README.md#playground-runtime) · [Web／Nodeの実行例](https://github.com/kyorohiro/tetorica-fm2612-examples) |
 | 音楽ファイルを調べ、音色や楽譜を取り出したい | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) · [`tetorica-vgm` CLI／Node API](packages/vgm/README.md) |
 | C／C++コアを使い、NativeアプリやPluginを作りたい | [`tetorica-soundchip-native`](https://github.com/kyorohiro/tetorica-soundchip-native) · [SPU Pluginのソース／Preview](https://github.com/kyorohiro/tetorica-spu-plugin) |
 | エディターに仮想ファイル・Shell・Gitを付けたい | [`tetorica-virtual-files`](packages/virtual-files/README.md) · [npm](https://www.npmjs.com/package/tetorica-virtual-files) |
@@ -115,7 +115,7 @@ npm install tetorica-fm2612
 | 配布物・ソース | 場所 |
 | --- | --- |
 | npmのimportとアセットURL | [パッケージREADME](packages/fm2612/README.md)。`runtimeAssetUrl()`とWASMの独自ロード方法も記載。 |
-| ソースcheckout | [JavaScriptソースの案内](web/README.md)、ビルド済みローダー／WASMの全一覧は[`web/generated/`](web/generated/)、Node音声は[`node/`](node/README.md)。 |
+| ソースcheckout | [JavaScriptソースの案内](tetorica_src/runtime/README.md)、ビルド済みローダー／WASMの全一覧は[`tetorica_src/runtime/generated/`](tetorica_src/runtime/generated/)、Node音声は[`tetorica_src/node/`](tetorica_src/node/README.md)。 |
 | 単独で使えるWeb Runtime ZIP | [生成手順とファイル名](README_RELEASE.md)。Runtime、生成済みアセット、通知を同梱します。 |
 | C／C++と再現可能なWASMビルド | [Native SDK](https://github.com/kyorohiro/tetorica-soundchip-native)と[固定SDKのビルドガイド](docs/building_ym2612_wasm.md)。 |
 
@@ -204,10 +204,10 @@ UIの着想、素材の由来を残しています。[コンポーネント別�
 
 | ディレクトリー・資料 | 内容 |
 | --- | --- |
-| [`web/`](web/README.md) | JavaScript／TypeScriptの音源コア、Synthヘルパー、Transport、共有Runtime。 |
+| [`tetorica_src/`](tetorica_src/README.md) | 共有JavaScript Runtime、Node／CLIアダプター、Native音声エフェクト、WASMブリッジ。 |
 | [`docs/`](docs/index-ja.html) | 公開ツール、生成済みWASM、ガイド、使用例、ライセンス、詳細な設計記録。 |
 | [`packages/`](packages/) | 音源、VGMツール、仮想ファイルのnpm manifest／README。 |
-| [`node/`](node/README.md)、[`tetorica_examples/`](tetorica_examples/README.md) | Node用アダプターとTetorica独自のNode／Browser／C++実行例。 |
+| [`tetorica_examples/`](tetorica_examples/README.md) | Tetorica独自のNode／Browser／C++実行例。 |
 | [`src/`](src/)、[`examples/`](examples/README.md) | 元のディレクトリー配置を維持する、ymfm由来のコアと利用例。 |
 | [`third_party/`](third_party/)、[`scripts/`](scripts/) | 固定した上流／SDKのソース、ビルド、パッケージ生成／検証スクリプト。 |
 | [機能対応状況](docs/feature-status.md)、[Memo](Memo.md)、[CLI](CLI.md) | 実装範囲、チップの記録、解析APIの詳細。 |

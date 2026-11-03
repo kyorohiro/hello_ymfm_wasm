@@ -12,7 +12,7 @@
 node tetorica_examples/nodejs/sound-color/gen.js
 ```
 
-`web/generated/ym2612_wasm.js` と `ym2612_wasm.wasm` が必要。
+`tetorica_src/runtime/generated/ym2612_wasm.js` と `ym2612_wasm.wasm` が必要。
 生成済みファイルがない場合は、ビルド環境を用意して
 `sh scripts/build_ym2612_wasm.sh` で生成する。
 
@@ -36,17 +36,17 @@ node tetorica_examples/nodejs/sound-color/gen.js
 
 ```javascript
 import { readFile, writeFile } from "node:fs/promises";
-import { createYm2612, YM2612_CLOCK } from "../../../web/ym2612.js";
-import { YM2612Synth, YM2612DirectTransport } from "../../../web/ym2612synth.js";
-import { FM_PRESETS } from "../../../web/megasynth-fm-presets.js";
-import { hzToBlockFnum } from "../../../web/pitch.js";
-import { encodeWav } from "../../../web/wav.js";
-import moduleFactory from "../../../web/generated/ym2612_wasm.js";
+import { createYm2612, YM2612_CLOCK } from "../../../tetorica_src/runtime/ym2612.js";
+import { YM2612Synth, YM2612DirectTransport } from "../../../tetorica_src/runtime/ym2612synth.js";
+import { FM_PRESETS } from "../../../tetorica_src/runtime/megasynth-fm-presets.js";
+import { hzToBlockFnum } from "../../../tetorica_src/runtime/pitch.js";
+import { encodeWav } from "../../../tetorica_src/runtime/wav.js";
+import moduleFactory from "../../../tetorica_src/runtime/generated/ym2612_wasm.js";
 
 async function main() {
   const chip = await createYm2612(moduleFactory, {
     wasmBinary: await readFile(
-      new URL("../../../web/generated/ym2612_wasm.wasm", import.meta.url),
+      new URL("../../../tetorica_src/runtime/generated/ym2612_wasm.wasm", import.meta.url),
     ),
   });
 
@@ -90,7 +90,7 @@ main().catch(error => {
 });
 ```
 
-`encodeWav()` は共通の `web/wav.js` を使う。
+`encodeWav()` は共通の `tetorica_src/runtime/wav.js` を使う。
 既存の [main_ym2612_wave.js](../main_ym2612_wave.js) では、48 kHzへの実リサンプリングを含むWAV保存例も実行できる。
 
 ## 時間・サンプル数の注意

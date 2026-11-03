@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../docs/generated/pokey_wasm.js';
-import {Pokey,POKEY_CLOCK} from '../web/pokey.js';
-import {PokeySynth,PokeyDirectTransport} from '../web/pokeysynth.js';
-import {PokeyAudioEngine} from '../web/pokeyaudioengine.js';
-import {createSoundChip,SoundChipMixer} from '../web/soundchip.js';
+import {Pokey,POKEY_CLOCK} from '../tetorica_src/runtime/pokey.js';
+import {PokeySynth,PokeyDirectTransport} from '../tetorica_src/runtime/pokeysynth.js';
+import {PokeyAudioEngine} from '../tetorica_src/runtime/pokeyaudioengine.js';
+import {createSoundChip,SoundChipMixer} from '../tetorica_src/runtime/soundchip.js';
 
 const binary=await readFile(new URL('../docs/generated/pokey_wasm.wasm',import.meta.url));
 const module=await factory({wasmBinary:binary});

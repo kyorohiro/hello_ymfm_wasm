@@ -29,7 +29,7 @@ test('the npm preset reproduces from the shared measured baseline; checks reject
   await writeFile(psgReportPath,await readFile(psgUrl,'utf8'));
   await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,wonderswanReportPath,pokeyReportPath,scspReportPath,outPath});
   const generated = await readFile(outPath,'utf8');
-  assert.equal(generated,await readFile(new URL('../web/soundchip_mixer_presets.js',import.meta.url),'utf8'));
+  assert.equal(generated,await readFile(new URL('../tetorica_src/runtime/soundchip_mixer_presets.js',import.meta.url),'utf8'));
   await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,wonderswanReportPath,pokeyReportPath,scspReportPath,outPath,check:true});
   const changed = generated.replace('"volume": 0.280286','"volume": 0.56');
   assert.notEqual(changed,generated,'fixture changes the measured RF5C164 fallback');

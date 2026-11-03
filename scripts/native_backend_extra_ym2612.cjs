@@ -80,7 +80,7 @@ const program=`
 async function runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,until,changeMode}){
   const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),phases=[];
   const [{unzipSync},{parseTfi},{parseVgi},{createPlaygroundSoundChipMixer}]=await Promise.all([
-    import('../docs/playground/vendor/fflate.js'),import('../web/tfi.js'),import('../web/vgi.js'),import('../docs/playground/playground_mixer_defaults.js'),
+    import('../docs/playground/vendor/fflate.js'),import("../tetorica_src/runtime/tfi.js"),import("../tetorica_src/runtime/vgi.js"),import('../docs/playground/playground_mixer_defaults.js'),
   ]);
   const reference=createPlaygroundSoundChipMixer('genesis');for(const engine of ['ymfm','nuked'])reference.register(engine,'ym2612',()=>{},undefined,{engine});
   const applySystem=async()=>{await page.click('#mixerTab');await page.getByRole('combobox',{name:'Mixer preset',exact:true}).selectOption('/sys/mixer/default.json');};

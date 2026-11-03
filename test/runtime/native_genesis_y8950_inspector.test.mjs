@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisOpl} from '../../web/native_genesis_opl.js';
-import {createNativeGenesisExtraOplEndpoint} from '../../web/native_genesis_extra_opl.js';
+import {createNativeGenesisOpl} from '../../tetorica_src/runtime/native_genesis_opl.js';
+import {createNativeGenesisExtraOplEndpoint} from '../../tetorica_src/runtime/native_genesis_extra_opl.js';
 
 // IPC contract fixture. Real channel leases and PCM remain covered by Rust and
 // C++/WASM tests; this checks JS selection, author caches and applied metadata.

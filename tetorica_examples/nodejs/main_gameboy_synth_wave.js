@@ -1,7 +1,7 @@
 /** Shared high-level GameboySynth → stereo WAV. Original raw example is main_gameboy_wave.js. */
 import {readFile, writeFile} from 'node:fs/promises';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {GameboySynth, GameboyDirectTransport} from '../../web/gameboysynth.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboySynth, GameboyDirectTransport} from '../../tetorica_src/runtime/gameboysynth.js';
 import moduleFactory from '../../docs/generated/gameboy_apu_wasm.js';
 import {encodeStereoWav} from '../../docs/vgm_analyzer/vgm_wav.js';
 

@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {OPLSynth,OPL_PRESETS} from '../web/opl_synth.js';
+import {OPLSynth,OPL_PRESETS} from '../tetorica_src/runtime/opl_synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),native=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const sdk=path.join(native,'vendor/tetorica-soundchip-native');
 const arg=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};

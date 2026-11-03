@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {YM2610BSynth, YM2610BDirectTransport} from '../../web/ym2610bsynth.js';
-import {Ym2610B} from '../../web/ym2610b.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {hzToBlockFnum} from '../../web/pitch.js';
+import {YM2610BSynth, YM2610BDirectTransport} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {hzToBlockFnum} from '../../tetorica_src/runtime/pitch.js';
 
 test('SSG mixer preserves raw writes, other channels and I/O; reset stays within SSG', () => {
   const writes = [];
@@ -40,7 +40,7 @@ test('SSG mixer preserves raw writes, other channels and I/O; reset stays within
 test('real YM2610B: six FM channels, CH3 special, SSG pitch and mixed output', async () => {
   const {default: moduleFactory} = await import("../../docs/generated/ym2610b_wasm.js");
   const chip = await Ym2610B.create({moduleFactory, moduleOptions: {
-    wasmBinary: await readFile(new URL('../docs/generated/ym2610b_wasm.wasm', runtimeDirectoryUrl)),
+    wasmBinary: await readFile(new URL('../../docs/generated/ym2610b_wasm.wasm',runtimeDirectoryUrl)),
   }});
   const peak = a => a.reduce((p,x) => Math.max(p, Math.abs(x)), 0);
   try {
@@ -140,7 +140,7 @@ test('ADPCM register maps, validation and independent shadows', () => {
 
 test('native A/B playback: ROM loads preserve regions, six A voices, auto-stop, B repeat and reset', async () => {
   const {default:moduleFactory}=await import("../../docs/generated/ym2610b_wasm.js");
-  const chip=await Ym2610B.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2610b_wasm.wasm',runtimeDirectoryUrl))}});
+  const chip=await Ym2610B.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2610b_wasm.wasm',runtimeDirectoryUrl))}});
   const peak=x=>x.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
   try {
     const synth=new YM2610BSynth({transport:new YM2610BDirectTransport(chip)});

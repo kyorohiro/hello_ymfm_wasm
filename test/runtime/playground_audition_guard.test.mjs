@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {PsgInspectorState,receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {PsgInspectorState,receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../web/playground_audition_guard.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
 
 function chip(registerApi = true) {
   const writes = [], addresses = [0, 0];

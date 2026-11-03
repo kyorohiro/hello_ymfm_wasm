@@ -7,8 +7,8 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {createRequire} from 'node:module';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {createSyntheticSpc} from '../web/spc_test_fixture.mjs';
-import {captureSpcPerformance} from '../web/spc_performance.js';
+import {createSyntheticSpc} from '../tetorica_src/runtime/spc_test_fixture.mjs';
+import {captureSpcPerformance} from '../tetorica_src/runtime/spc_performance.js';
 import {buildSnesNoteAnalysis} from '../docs/vgm_analyzer/snes_notes.js';
 import factory from '../docs/generated/spc_wasm.js';
 

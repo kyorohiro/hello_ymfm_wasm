@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TetoricaAudioRuntime} from '../../web/tetorica_audio_runtime.js';
+import {TetoricaAudioRuntime} from '../../tetorica_src/runtime/tetorica_audio_runtime.js';
 
 function context() {
   const context = {createGain: () => node()};

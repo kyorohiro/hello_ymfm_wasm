@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {readSamplePCM, encodeAdpcmB} from '../../web/adpcm_b_sample.js';
-import {YM2608Synth, YM2608DirectTransport} from '../../web/ym2608synth.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {OPNWorkletTransport} from '../../web/opn_fm_synth.js';
+import {readSamplePCM, encodeAdpcmB} from '../../tetorica_src/runtime/adpcm_b_sample.js';
+import {YM2608Synth, YM2608DirectTransport} from '../../tetorica_src/runtime/ym2608synth.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {OPNWorkletTransport} from '../../tetorica_src/runtime/opn_fm_synth.js';
 
 function wav(type, bits, samples = [-0.5, 0, 0.5]) {
   const bytes = new Uint8Array(44 + samples.length * bits / 8), v = new DataView(bytes.buffer);
@@ -94,7 +94,7 @@ test('Worklet memory: await matching acknowledgement, propagate error and reject
 });
 test('real YM2608: encoded sine reproduces frequency and stops after the padded range',async()=>{
   const {default:moduleFactory}=await import("../../docs/generated/ym2608_wasm.js");
-  const chip=await Ym2608.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl))}});
+  const chip=await Ym2608.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl))}});
   try {
     const synth=new YM2608Synth({transport:new YM2608DirectTransport(chip)});
     const input=Float32Array.from({length:1600},(_,i)=>.6*Math.sin(i*2*Math.PI*440/8000));

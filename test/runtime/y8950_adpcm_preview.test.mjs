@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createY8950AdpcmPreview,prepareY8950AdpcmSample,readY8950Adpcm,validateY8950AdpcmPreview} from '../../web/y8950_adpcm_preview.js';
+import {createY8950AdpcmPreview,prepareY8950AdpcmSample,readY8950Adpcm,validateY8950AdpcmPreview} from '../../tetorica_src/runtime/y8950_adpcm_preview.js';
 const clock=3579545;
 const tone=()=>({sampleRate:16000,channels:[Float32Array.from({length:4096},(_,i)=>.5*Math.sin(2*Math.PI*440*i/16000))]});
 test('compact waveform follows the encoded source, exact range and committed memory revision',async()=>{

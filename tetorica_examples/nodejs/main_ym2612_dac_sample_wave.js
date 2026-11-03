@@ -1,7 +1,7 @@
 /** Node.js: PCMを一度登録し、名前で2回再生してWAVへ保存する。 */
 import {readFile, writeFile} from 'node:fs/promises';
-import {createYm2612} from '../../web/ym2612.js';
-import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
+import {createYm2612} from '../../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
 import moduleFactory from '../../docs/generated/ym2612_wasm.js';
 import {encodeStereoWav} from '../../docs/vgm_analyzer/vgm_wav.js';
 import {downsamplePreview} from './preview_pcm.js';

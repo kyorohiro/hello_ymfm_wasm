@@ -153,7 +153,7 @@ async function check(page,url,browserName,worker,fixture) {
   if(process.argv.includes('--screenshots')){await page.click('#mixerTab');result.screenshot=`/private/tmp/dx7-mode-${browserName}-${worker?'worker':'main'}-success.png`;await page.screenshot({path:result.screenshot});}console.log(JSON.stringify({...result,stage:'passed'}));
 }
 (async()=>{
-  const {createInitVoice,createBankSysex}=await import(pathToFileURL(path.resolve(__dirname,'../web/msfa_dx7/src/sysex.js')).href);const fixture={bank:Array.from(createBankSysex(Array.from({length:32},(_,index)=>createInitVoice('BANK '+String(index).padStart(2,'0')))))};
+  const {createInitVoice,createBankSysex}=await import(pathToFileURL(path.resolve(__dirname,'../tetorica_src/runtime/msfa_dx7/src/sysex.js')).href);const fixture={bank:Array.from(createBankSysex(Array.from({length:32},(_,index)=>createInitVoice('BANK '+String(index).padStart(2,'0')))))};
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
   try {
     const url=`http://127.0.0.1:${server.address().port}/playground/index.html`,engines=process.argv.includes('--chromium')?[['chromium',chromium]]:process.argv.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]],workers=process.argv.includes('--main')?[false]:process.argv.includes('--worker')?[true]:[false,true];

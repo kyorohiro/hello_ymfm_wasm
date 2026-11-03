@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,exportSource} from '../cli/index.js';
+import {readSource,exportSource} from '../tetorica_src/cli/index.js';
 import {extractOpmPatches} from '../docs/vgm_analyzer/opm_export.js';
 import {createStoredZipBytes} from '../docs/vgm_analyzer/stored_zip.js';
 const fixture=name=>new URL('./fixtures/'+name+'.vgz',import.meta.url);

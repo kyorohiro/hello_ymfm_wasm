@@ -1,7 +1,7 @@
 // Optional first argument: an audify/index.js file URL. Second: WAV output path.
-import {MegaSynthNode} from '../node/megasynth.mjs';
-import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
-import {encodeWav} from '../web/wav.js';
+import {MegaSynthNode} from '../tetorica_src/node/megasynth.mjs';
+import {FM_PRESETS} from '../tetorica_src/runtime/megasynth-fm-presets.js';
+import {encodeWav} from '../tetorica_src/runtime/wav.js';
 import {writeFile} from 'node:fs/promises';
 const synth = new MegaSynthNode({masterVolume: .03, engineOptions: {looperMode: 'pcm'},
   outputOptions: process.argv[2] ? {moduleUrl: process.argv[2]} : {}});

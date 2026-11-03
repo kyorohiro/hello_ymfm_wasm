@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsParser} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {vgmBytes,mockChips} from '../../web/test-support/vgm-mock.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
+import {vgmBytes,mockChips} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 // VGM 1.71 DAC Stream Control; explicit timing in 44100 Hz ticks.
 // The msec mode follows dimensional time (frequency * msec / 1000),
 // not libvgm's currently inverted calculation in daccontrol_start.

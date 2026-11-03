@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {YM2608Synth} from '../../web/ym2608synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
 import {ym2608HighOperation} from './ym2608_high.js';
 const event=(port,register,value,time=0)=>({type:'ym2608-write',port,register,value,time});
 test('all single-byte high replacements preserve exact writes on both ports',()=>{

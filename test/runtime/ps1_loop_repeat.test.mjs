@@ -1,17 +1,17 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth} from '../../web/ps1synth.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
 import {readVab} from '../../docs/playground/playground_ps1_vab.js';
 import {prepareVabTone} from '../../docs/synth-spu/spu_synth_vab.js';
 import {readSpuInstrument,writeSpuInstrument} from '../../docs/synth-spu/spu_synth_instrument.js';
 import {createLoopRepeatFixture,createLoopRepeatVabFixture} from '../helpers/ps1_loop_repeat_fixture.mjs';
 import factory from '../../docs/generated/ps1_spu_wasm.js';
 
-const wasmBinary=await readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl));
+const wasmBinary=await readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl));
 const module=await factory({wasmBinary});
 const create=()=>Ps1Spu.create({moduleFactory:async()=>module});
 const peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);

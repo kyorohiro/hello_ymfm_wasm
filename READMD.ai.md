@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-更新日：2026-11-03（生成物・教材の配置案内を更新）。AIがリポジトリーを調べ、作業を再開するための入口です。
+更新日：2026-11-03（独自実装を`tetorica_src/`へ集約）。AIがリポジトリーを調べ、作業を再開するための入口です。
 この文書は設計・作業状況の記録です。再開時は最新のユーザー依頼、実際のソース、Gitの状態を確認してください。記載された日付時点の検証結果を、最新の公開版の保証として扱わないでください。
 
 ## まず確認すること
@@ -61,17 +61,19 @@ Tetoricaは、JavaScriptでメガドライブ、ゲームボーイ、ファミ�
 | 場所 | 役割 |
 | --- | --- |
 | `src/` | ymfm由来のC++音源コアなど |
-| `wasm/` | JavaScriptから使うためのWASMブリッジ |
+| `tetorica_src/` | Tetorica独自実装の入口。[構成案内](tetorica_src/README.md)を参照 |
+| `tetorica_src/wasm/` | JavaScriptから使うためのWASMブリッジ |
+| `tetorica_src/native/` | Native音声エフェクトなど、親プロジェクト側のC/C++実装 |
 | `third_party/` | 固定した第三者コア、元ソース、ライセンス、移植記録 |
-| `web/` | 再利用するJSランタイム、チップラッパー、Synth、音声エンジン、テスト |
-| `web/generated/` | 全33件のSDKビルドとNative FXの正本。共通manifest・同期・検証で公開コピーを維持 |
-| `node/` | Node向け音声出力・Worker・Synthアダプター |
+| `tetorica_src/runtime/` | 再利用するJSランタイム、チップラッパー、Synth、音声エンジン |
+| `tetorica_src/runtime/generated/` | 全33件のSDKビルドとNative FXの正本。共通manifest・同期・検証で公開コピーを維持 |
+| `tetorica_src/node/` | Node向け音声出力・Worker・Synthアダプター |
 | `docs/js/` | Webサイトへ配置する共有ランタイムのコピー |
 | `docs/playground/` | PlaygroundのUI、Monaco、Cassette、仮想ファイル連携、インポート、実行例 |
 | `docs/synth/` | ブラウザーシンセサイザー |
 | `docs/vgm_analyzer/` | AnalyzerのUIと、CLIも使う共有解析・エクスポートモジュール |
 | `docs/generated/` | 正本から同期する公開用のチップJS / WASM・metadata |
-| `cli/` | `tetorica-vgm`のCLI / Node API実装 |
+| `tetorica_src/cli/` | `tetorica-vgm`のCLI / Node API実装 |
 | `packages/fm2612/`、`packages/vgm/` | npm配布情報とREADME。実装全体がここにあるわけではない |
 | `packages/virtual-files/src/` | `tetorica-virtual-files`の実装。仮想ファイルと軽量シェル |
 | `examples/` | ymfm由来の`buildall/`と`vgmrender/`。ユーザー方針で上流の配置を維持 |
@@ -83,13 +85,13 @@ Tetoricaは、JavaScriptでメガドライブ、ゲームボーイ、ファミ�
 
 ルートの`package.json`は`private: true`の開発用ワークスペース。ルートをnpm公開しない。
 
-直下フォルダーの段階的な整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。ユーザーの追加指定でymfm由来の`src/`・`examples/`を維持し、独自実装の移動先を`tetorica_src/`とした。独自例の分離とテスト移動は完了し、`tetorica_src/`への実装移動は次段階。実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`、C++教材の公開コピーは`npm run check:tutorials`で検証する。
+直下フォルダーの整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。ymfm由来の`src/`・`examples/`を維持し、独自実装は`tetorica_src/`、利用例は`tetorica_examples/`、共有テストは`test/runtime/`へ分離した。公開サイトとnpm内の配置は各同期・配布スクリプトが維持する。実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`、C++教材の公開コピーは`npm run check:tutorials`で検証する。
 
-`npm test`はルートと`test/runtime/`の両方を実行する。共有runtimeのみなら`npm run test:runtime`、SCSPのソース型検証は`npm run test:runtime:types`。`web/spc_test_fixture.mjs`と`web/native_genesis_extra_creation_fixture.mjs`は共有・校正の入力として元の場所に維持している。
+`npm test`はルートと`test/runtime/`の両方を実行する。共有runtimeのみなら`npm run test:runtime`、SCSPのソース型検証は`npm run test:runtime:types`。`tetorica_src/runtime/spc_test_fixture.mjs`と`tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs`は共有・校正の入力として実装側に置いている。
 
 ### 共有ランタイムを変更したとき
 
-1. 基本の実装・JSDocは`web/`を編集する。UI固有の変更は`docs/playground/`や`docs/vgm_analyzer/`を編集する。
+1. 基本の実装・JSDocは`tetorica_src/runtime/`を編集する。UI固有の変更は`docs/playground/`や`docs/vgm_analyzer/`を編集する。
 2. 共有JSをWebサイトへ同期する。
 
 ```sh
@@ -99,7 +101,7 @@ sh scripts/sync_web_js_to_docs.sh
 3. 配布物を変更した場合は、対象のパッケージ生成・検証も行う。既存の`release/itch_playground_dev`は自動では更新されない。
 4. 新しいモジュール依存を追加した場合は、同期対象、各配布スクリプト、モジュール一覧・Monacoの参照モデルにも必要な追加があるか調べる。
 
-同期時にはWASMの相対パスなどを配置先に合わせて変換する。`web/`と`docs/js/`を手作業で完全一致させようとして、必要なパス変換を消さない。
+同期時にはWASMの相対パスなどを配置先に合わせて変換する。`tetorica_src/runtime/`と`docs/js/`を手作業で完全一致させようとして、必要なパス変換を消さない。
 
 ### 公開トップページの言語
 
@@ -247,7 +249,7 @@ Windowsでは`python3`の代わりに`python`を使う。Cargoを直接実行す
 
 直近の変更・確認：
 
-- `web/`の40ファイルで公開関数のJSDocを追加・補強し、`docs/js/`へ同期した。`createPlaygroundClock`のoptions、戻り値、秒／拍／サンプル、停止時の動作を明記。実行コードは変更していない。
+- `tetorica_src/runtime/`の40ファイルで公開関数のJSDocを追加・補強し、`docs/js/`へ同期した。`createPlaygroundClock`のoptions、戻り値、秒／拍／サンプル、停止時の動作を明記。実行コードは変更していない。
 - `build:fm2612`で192件の宣言ファイルを生成・型検証した。配布物のNodeNext / Bundler / Browser consumer型検証も成功。
 - 時計、非同期タスク、OPN、S98、native FXの関連37テストが成功。これは今回実行した範囲であり、全テストの最新実行記録ではない。
 - READMEのド・レ・ミ例は、実際のWASM / AudioWorkletの初期化、C4 / D4 / E4の発音呼び出し、再生後のAudioContext解放をブラウザーで確認した。聴感評価の記録ではない。

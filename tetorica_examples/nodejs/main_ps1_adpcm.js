@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {encodePs1Adpcm} from '../../web/ps1_adpcm_encoder.js';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth} from '../../web/ps1synth.js';
-import {encodeWav} from '../../web/wav.js';
+import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 import moduleFactory from '../../docs/generated/ps1_spu_wasm.js';
 
 const prefix = process.argv[2] ?? fileURLToPath(new URL('./ps1-adpcm', import.meta.url));

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisYm2610B} from '../../web/native_genesis_ym2610b.js';
-import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from '../../web/ym2610bsynth.js';
-import {encodeAdpcmB} from '../../web/adpcm_b_sample.js';
+import {createNativeGenesisYm2610B} from '../../tetorica_src/runtime/native_genesis_ym2610b.js';
+import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {encodeAdpcmB} from '../../tetorica_src/runtime/adpcm_b_sample.js';
 
 function fixture({variant=true}={}){
   const commands=[],requests=[],future=[],registers=[Array(256).fill(0),Array(256).fill(0)],manual=new Map(),memory=[new Map(),new Map()],loaded=[0,0];

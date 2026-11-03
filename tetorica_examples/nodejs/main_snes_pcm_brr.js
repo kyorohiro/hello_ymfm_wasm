@@ -1,9 +1,9 @@
 /** Original mono PCM → BRR, JSON metrics and real S-DSP stereo WAV. */
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {encodeBrr} from '../../web/snes_brr_encoder.js';
-import {SnesDspCore} from '../../web/spc.js';
-import {SnesSynth} from '../../web/snessynth.js';
+import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
+import {SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
 import moduleFactory from '../../docs/generated/spc_wasm.js';
 import {encodeStereoWav} from '../../docs/vgm_analyzer/vgm_wav.js';
 

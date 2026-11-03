@@ -20,13 +20,13 @@ fi
 mkdir -p "$OUT_DIR"
 OUT_DIR=$(CDPATH= cd -P -- "$OUT_DIR" && pwd -P)
 case "$OUT_DIR" in
-  "$ROOT_DIR/web/generated"|"$ROOT_DIR/docs/generated")
+  "$ROOT_DIR/tetorica_src/runtime/generated"|"$ROOT_DIR/docs/generated")
     echo "Local comparison builds cannot overwrite published SDK artifacts; choose a separate output directory" >&2
     exit 1 ;;
 esac
 cd "$ROOT_DIR"
 em++ -std=c++14 -O2 -Isrc -DOPN_VARIANT="$CHIP" $SSG_FLAG \
-  wasm/opn_variant_wasm.cpp src/ymfm_opn.cpp src/ymfm_adpcm.cpp src/ymfm_ssg.cpp \
+  tetorica_src/wasm/opn_variant_wasm.cpp src/ymfm_opn.cpp src/ymfm_adpcm.cpp src/ymfm_ssg.cpp \
   -sMODULARIZE=1 -sEXPORT_ES6=1 \
   -sINCOMING_MODULE_JS_API='["wasmBinary","locateFile"]' \
   -sENVIRONMENT=web,worker,node,shell -sALLOW_MEMORY_GROWTH=1 \

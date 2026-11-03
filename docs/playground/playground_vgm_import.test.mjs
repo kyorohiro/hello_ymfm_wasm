@@ -1,12 +1,12 @@
-import {YM2612Synth} from '../../web/ym2612synth.js';
+import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {detectVgmImport, prepareVgmImport, exportGameboyVgm, addVgmSoundChipSetup} from './playground_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {GameboySynth, GameboyDirectTransport} from '../../web/gameboysynth.js';
-import factory from '../../web/generated/gameboy_apu_wasm.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboySynth, GameboyDirectTransport} from '../../tetorica_src/runtime/gameboysynth.js';
+import factory from '../../tetorica_src/runtime/generated/gameboy_apu_wasm.js';
 const fixture=await readFile(new URL('../../test/fixtures/gameboy-tone.vgm',import.meta.url));
 const file=bytes=>({arrayBuffer:async()=>bytes});
 function vgm(commands) {
@@ -53,7 +53,7 @@ test('generated conversion disposes on interrupted wait',async()=>{
   assert.equal(disposed,true);
 });
 test('generated Game Boy code produces identical core PCM to the original event stream',async()=>{
-  const wasmBinary=await readFile(new URL('../../web/generated/gameboy_apu_wasm.wasm',import.meta.url));
+  const wasmBinary=await readFile(new URL('../../tetorica_src/runtime/generated/gameboy_apu_wasm.wasm',import.meta.url));
   const create=()=>GameboyApu.create({moduleFactory:factory,sampleRate:44100,moduleOptions:{wasmBinary}});
   const core=await create(), reference=await create();
   const actual=[],expected=[];const append=(to,out)=>{for(const x of out.left)to.push(x);for(const x of out.right)to.push(x);};

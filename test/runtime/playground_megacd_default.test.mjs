@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/rf5c164_wasm.js';
-import {Rf5c164} from '../../web/rf5c164.js';
-import {createRf5c164Client, createRf5c164Control} from '../../web/playground_rf5c164.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Client, createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 
 const sampleRate = 48000, clock = 12500000;
-const wasmBinary = await readFile(new URL('../docs/generated/rf5c164_wasm.wasm', runtimeDirectoryUrl));
-const source = await readFile(new URL('../docs/playground/defaults/mega-cd/index.js', runtimeDirectoryUrl), 'utf8');
+const wasmBinary = await readFile(new URL('../../docs/generated/rf5c164_wasm.wasm',runtimeDirectoryUrl));
+const source = await readFile(new URL('../../docs/playground/defaults/mega-cd/index.js',runtimeDirectoryUrl), 'utf8');
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 
 function maxJump(samples) {

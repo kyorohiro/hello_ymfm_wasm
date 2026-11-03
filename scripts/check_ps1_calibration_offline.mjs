@@ -9,9 +9,9 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/ps1_spu_wasm.js';
-import {Ps1Spu} from '../web/ps1_spu.js';
-import {Ps1Synth} from '../web/ps1synth.js';
-import {Ps1Resampler} from '../web/ps1_resampler.js';
+import {Ps1Spu} from '../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../tetorica_src/runtime/ps1synth.js';
+import {Ps1Resampler} from '../tetorica_src/runtime/ps1_resampler.js';
 import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -115,7 +115,7 @@ export async function measurePs1CalibrationOffline(){
       }finally{synth.dispose();}
     }
     for(const path of ['scripts/soundchip_calibration_ps1.mjs','scripts/check_ps1_calibration_offline.mjs','test/helpers/ps1_spu_reference.cpp','test/helpers/ps1_adpcm_decode_reference.cpp',
-      'web/ps1synth.js','web/ps1_spu.js','web/ps1_resampler.js','docs/generated/ps1_spu_wasm.js','docs/generated/ps1_spu_wasm.wasm',
+      'tetorica_src/runtime/ps1synth.js','tetorica_src/runtime/ps1_spu.js','tetorica_src/runtime/ps1_resampler.js','docs/generated/ps1_spu_wasm.js','docs/generated/ps1_spu_wasm.wasm',
       ...['ps1_spu.h','spu.h','spureverb.h','ps1_spu.cpp','spu.cpp','spu_tables.cpp','spureverb.cpp'].map(name=>'third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/'+name)]){
       const bytes=await readFile(join(root,path));report.sources.push({path,bytes:bytes.length,sha256:hash(bytes)});
     }

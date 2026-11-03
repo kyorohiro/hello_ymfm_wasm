@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PWM32X} from '../../web/pwm32x.js';
-import {createSoundChip} from '../../web/soundchip.js';
-import {SimplePwm} from '../../web/genesisaudioengine.js';
+import {PWM32X} from '../../tetorica_src/runtime/pwm32x.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {SimplePwm} from '../../tetorica_src/runtime/genesisaudioengine.js';
 const make = () => {const p = new PWM32X({clock:1000,sampleRate:1000,gain:1}); p.write(0,5); p.write(1,5); return p;};
 test('FIFO consumes on timer ticks, discards oldest on overflow, and holds on underrun', () => {
   const p = make(); for (const v of [2048,2560,3072,3584]) p.write(4,v);

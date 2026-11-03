@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOutput} from '../node/output_audify.mjs';
+import {createOutput} from '../tetorica_src/node/output_audify.mjs';
 test('Audify ignores process-wide RtAudio warnings but forwards genuine device errors',async()=>{
   const moduleUrl='data:text/javascript,'+encodeURIComponent(`
     export const state={};export const RtAudioFormat={RTAUDIO_FLOAT32:16};

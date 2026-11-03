@@ -125,7 +125,7 @@ test('OPL declarations navigate to the shared Synth, original presets and native
 test('OPLL definitions identify the shared YM2413 patch instead of the OPL implementation',async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8'), lines = declarations.split('\n');
   const start = lines.findIndex(line => /^interface PlaygroundYm2413 \{/.test(line)); assert(start >= 0);
-  const source = await readFile(new URL('../../web/ym2413synth.js',import.meta.url),'utf8');
+  const source = await readFile(new URL('../../tetorica_src/runtime/ym2413synth.js',import.meta.url),'utf8');
   for (const symbol of ['setVoice','setUserPatch','setUserOperator','setRhythmLevel','noteOn','keyOff']) {
     const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start);
     assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:'ym2413synth.js',symbol});
@@ -141,7 +141,7 @@ test('OPLL definitions identify the shared YM2413 patch instead of the OPL imple
 test('MSX AY definitions navigate to their own Synth and primary client',async () => {
   const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8'), lines = declarations.split('\n');
   const start = lines.findIndex(line => /^interface PlaygroundAy8910 \{/.test(line)); assert(start >= 0);
-  const source = await readFile(new URL('../../web/ay8910synth.js',import.meta.url),'utf8');
+  const source = await readFile(new URL('../../tetorica_src/runtime/ay8910synth.js',import.meta.url),'utf8');
   for (const symbol of ['setVoice','setMixer','setEnvelope','setNoisePeriod','setTonePeriod','noteOn','keyOff']) {
     const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start,symbol);
     assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:'ay8910synth.js',symbol});

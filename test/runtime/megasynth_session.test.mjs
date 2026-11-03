@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMegaSynthSession} from '../../web/megasynth_session.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {createMegaSynthSession} from '../../tetorica_src/runtime/megasynth_session.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 
 test('PCM looper captures dry FM, repeats without padding, excludes backing and explicitly exports audio', async () => {
   const session = await createMegaSynthSession({looperMode: 'pcm'});

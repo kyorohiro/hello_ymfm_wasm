@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../../docs/generated/okim6258_wasm.js';
-import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../../web/okim6258audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../../tetorica_src/runtime/okim6258audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsParser} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 const u32=n=>[n&255,n>>>8&255,n>>>16&255,n>>>24&255];
 const wait=n=>[0x61,n&255,n>>>8];
 function vgm(commands){const b=new Uint8Array(256+commands.length),v=new DataView(b.buffer);b.set([86,103,109,32]);v.setUint32(8,0x171,true);v.setUint32(0x34,204,true);v.setUint32(0x90,8192000,true);b[0x94]=4;b.set(commands,256);return b;}
@@ -81,7 +81,7 @@ test('divider, clock and output precision affect generated PCM',async()=>{
  }finally{a.dispose();b.dispose();}
 });
 test('real YM2151 plus OKIM6258 Player output repeats after reset and buffer splitting',async()=>{
- const {createYm2151AudioEngine}=await import("../../web/ym2151audioengine.js");const {default:fmFactory}=await import("../../docs/generated/ym2151_wasm.js");
+ const {createYm2151AudioEngine}=await import("../../tetorica_src/runtime/ym2151audioengine.js");const {default:fmFactory}=await import("../../docs/generated/ym2151_wasm.js");
  const base=await createYm2151AudioEngine({ym2151ModuleFactory:fmFactory});
  const oki=await Oki6258AudioEngine.create({moduleFactory:factory,clock:8192000,flags:12});attachOki6258(base,oki);
  const fm=[0x54,0x20,0xc7,0x54,0x28,0x4a];for(let i=0;i<4;i++)fm.push(0x54,0x40+8*i,1,0x54,0x60+8*i,32,0x54,0x80+8*i,31);

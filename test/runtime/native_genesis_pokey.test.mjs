@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {SoundChipMixer} from '../../web/soundchip_mixer.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip_mixer.js';
 
 function fixture(t,mode='pokey-dual',{timelineCapture=false}={}){
   const calls=[],rack=new Map(),errors=[];let revision=0,frame=0;
@@ -54,7 +54,7 @@ test('Native POKEY inspector uses separate per-chip manual audition leases',asyn
 });
 
 test('Native dual POKEY Worker bridge routes same-kind primaries over distinct real MessagePorts',async t=>{
- const {MessageChannel}=await import('node:worker_threads');const {createNativeGenesisWorkerBridge}=await import("../../web/native_genesis_worker.js");const {createPokeyClient}=await import("../../web/playground_pokey.js");const {createPerformanceHost}=await import("../../web/playground_performance_host.js");
+ const {MessageChannel}=await import('node:worker_threads');const {createNativeGenesisWorkerBridge}=await import("../../tetorica_src/runtime/native_genesis_worker.js");const {createPokeyClient}=await import("../../tetorica_src/runtime/playground_pokey.js");const {createPerformanceHost}=await import("../../tetorica_src/runtime/playground_performance_host.js");
  const f=fixture(t);await f.synth.start();const bridge=createNativeGenesisWorkerBridge({synth:f.synth,MessageChannelClass:MessageChannel,onError:error=>f.errors.push(error)});t.after(()=>bridge.dispose());
  const host=createPerformanceHost({getContext:()=>({currentTime:0,state:'running'})});await host.start([bridge.port],.1);t.after(()=>host.stop());
  assert.notEqual(bridge.primaryPorts.pokey,bridge.primaryPorts.pokey2);
@@ -79,14 +79,14 @@ test('Native POKEY rejects malformed trace before enqueue and Stop cancels pendi
  const before=f.commands().length;await assert.rejects(a.prepareTimeline(trace(2000000)),/clock/);assert.equal(f.commands().length,before);
 });
 test('Native POKEY Main owner cancellation and Worker timeline controls preserve deferred completion',async t=>{
- const {MessageChannel}=await import('node:worker_threads');const {createNativeGenesisWorkerBridge}=await import("../../web/native_genesis_worker.js");const {createPokeyClient}=await import("../../web/playground_pokey.js");const {createPerformanceHost}=await import("../../web/playground_performance_host.js");
+ const {MessageChannel}=await import('node:worker_threads');const {createNativeGenesisWorkerBridge}=await import("../../tetorica_src/runtime/native_genesis_worker.js");const {createPokeyClient}=await import("../../tetorica_src/runtime/playground_pokey.js");const {createPerformanceHost}=await import("../../tetorica_src/runtime/playground_performance_host.js");
  const f=fixture(t);await f.synth.start();const a=f.synth.pokey;const group=a._allocateMainOwner();await a._withMainOwner(group,()=>a.prepareTimeline(trace(1789773)));assert.equal(f.commands().find(c=>c.message.method==='prepare-timeline').message.group,group);const st=await a.getTimelineState();const play=a._withMainOwner(group,()=>a.playTimeline({startFrame:st.currentFrame+48000}));const reject=assert.rejects(play,{name:'AbortError'});a._cancelMainOwner(group);await reject;
  const bridge=createNativeGenesisWorkerBridge({synth:f.synth,MessageChannelClass:MessageChannel,onError:e=>f.errors.push(e)});t.after(()=>bridge.dispose());const host=createPerformanceHost({getContext:()=>({currentTime:0,state:'running'})});await host.start([bridge.port],.1);t.after(()=>host.stop());const b=createPokeyClient(bridge.primaryPorts.pokey2,{native:true,clock:1789773,state:f.synth.pokey2._getState()});await b.prepareTimeline(trace(1789773));const bs=await b.getTimelineState();const done=await b.playTimeline({startFrame:bs.currentFrame+1024});assert(done.ended);b.dispose();await host.stop();await bridge.dispose();
 });
 
 
 for(const execution of ['main','worker'])for(const dual of [false,true])for(const dense of [false,true])test(`POKEY VGM generated high source runs Native ${execution} ${dual?'dual':'single'} ${dense?'dense':'normal'} and disposes owned cores`,async t=>{
- const {createPlaygroundRuntime}=await import("../../web/playground_runtime.js");const {exportPokeyVgm}=await import("../../docs/playground/pokey_vgm_import.js");const {createPokeyImportVgm}=await import("../helpers/pokey_vgm_fixture.mjs");const {installCreationEnvironment,until}=await import("../../web/native_genesis_extra_creation_fixture.mjs");
+ const {createPlaygroundRuntime}=await import("../../tetorica_src/runtime/playground_runtime.js");const {exportPokeyVgm}=await import("../../docs/playground/pokey_vgm_import.js");const {createPokeyImportVgm}=await import("../helpers/pokey_vgm_fixture.mjs");const {installCreationEnvironment,until}=await import("../../tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs");
  const env=installCreationEnvironment(t),f=fixture(t,'pokey-dual',{timelineCapture:true}),logs=[];const runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false,onLog:line=>logs.push(line)});t.after(()=>runtime.finalize());
  const source=exportPokeyVgm(createPokeyImportVgm({dual,dense}),{mode:'high'})+"\nlog('native-import-finished');";await runtime.playSource(source,{execution});await until(()=>logs.some(line=>line.includes('native-import-finished')),'Native generated VGM completed',5000);await f.synth.flush();
  const count=dual?2:1,prepared=f.commands().filter(c=>c.message.method==='prepare-timeline'),played=f.commands().filter(c=>c.message.method==='play-timeline');assert.equal(prepared.length,count);assert.equal(played.length,count);assert.equal(new Set(played.map(c=>c.message.startFrame)).size,1);assert(played.every(c=>Number.isSafeInteger(c.message.startFrame)));assert(prepared.every(c=>c.message.trace.durationSamples===28665&&c.message.trace.data.length>0));assert.equal(new Set(prepared.map(c=>c.instance)).size,count);if(execution==='worker')assert(played.every(c=>c.performance>0&&c.owner>0));
@@ -94,7 +94,7 @@ for(const execution of ['main','worker'])for(const dual of [false,true])for(cons
 });
 
 for(const execution of ['main','worker'])test(`Native POKEY primary timeline loop cancellation fences deferred ${execution} continuation`,async t=>{
- const {createPlaygroundRuntime}=await import("../../web/playground_runtime.js");const {installCreationEnvironment,until}=await import("../../web/native_genesis_extra_creation_fixture.mjs");
+ const {createPlaygroundRuntime}=await import("../../tetorica_src/runtime/playground_runtime.js");const {installCreationEnvironment,until}=await import("../../tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs");
  installCreationEnvironment(t);const f=fixture(t),logs=[];const runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false,onLog:line=>logs.push(line)});t.after(()=>runtime.finalize());
  await runtime.playSource(`await pokey.prepareTimeline({version:1,clock:1789773,durationSamples:44100*3600,data:new Uint8Array([0,15,3,0,0,72,0,1,168])});
  liveLoop('timeline-loop',async()=>{const state=await pokey.getTimelineState();log('loop-started');await pokey.playTimeline({startFrame:state.currentFrame+48000});log('stale-timeline-continuation');await beat(100);});

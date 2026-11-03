@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisMonitor} from '../../web/native_genesis_monitor.js';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
+import {createNativeGenesisMonitor} from '../../tetorica_src/runtime/native_genesis_monitor.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
 
 const gate=()=>{let resolve,reject;return {promise:new Promise((yes,no)=>{resolve=yes;reject=no;}),resolve,reject};};
 const ticks=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};

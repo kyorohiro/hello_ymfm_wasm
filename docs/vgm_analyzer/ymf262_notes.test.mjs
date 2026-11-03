@@ -64,7 +64,7 @@ test('Song timeline worker loads OPL3 pairs without duplicate notes',async()=>{
 });
 
 test('OPL3 MIDI gives all 18 voices independent port/channel and bend events',async()=>{
- const {parseMidiFile}=await import('../../web/midi_file.js');
+ const {parseMidiFile}=await import("../../tetorica_src/runtime/midi_file.js");
  const commands=[...w(5,1,1)];
  for(let i=0;i<18;i++)commands.push(...on(i%9,580,Math.floor(i/9)));
  commands.push(...wait,...w(0xa0,600&255),...w(0xa6,620&255,1),...wait);

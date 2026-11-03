@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Oki6295AudioEngine} from '../../web/okim6295audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {Oki6295AudioEngine} from '../../tetorica_src/runtime/okim6295audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {createPlaybackEngine,selectPlaybackConfiguration,applyPlaybackMutes} from '../../docs/vgm_analyzer/playback_core.js';
-import {getNodePlaybackFactory} from '../../cli/render.js';
-import {readSource,renderSource} from '../../cli/index.js';
+import {getNodePlaybackFactory} from '../../tetorica_src/cli/render.js';
+import {readSource,renderSource} from '../../tetorica_src/cli/index.js';
 import {sourcesForChip,applySourceMutes} from '../../docs/vgm_analyzer/source_mutes.js';
 const u32=n=>[n&255,n>>>8&255,n>>>16&255,n>>>24&255];
 const clock=132*8000;
@@ -68,7 +68,7 @@ async function pcm(bytes,mute=false){
  }finally{e.dispose();}
 }
 test('real YM2151 and OKIM6295 mix equal independent outputs; CLI WAV and mute work',async()=>{
- const fm=await readSource(new URL('../test/fixtures/opm-audible.vgz',runtimeDirectoryUrl));
+ const fm=await readSource(new URL('../../test/fixtures/opm-audible.vgz',runtimeDirectoryUrl));
  const mixed=file([...commands().slice(0,-4),...fm.subarray(256)],{fm:new DataView(fm.buffer,fm.byteOffset).getUint32(0x30,true)});
  // Use mute to obtain the same real OPM output without ADPCM.
  const [oki,mix,muted]=await Promise.all([pcm(file(commands())),pcm(mixed),pcm(mixed,true)]);
@@ -81,7 +81,7 @@ test('UI source controls and shipped modules match',()=>{
  let muted=false;applySourceMutes({setOki6295Muted:v=>{muted=v;}},'okim6295',{oki6295:true});assert.equal(muted,true);
  // Website cache revisions differ from the package's module identities.
  const source=url=>readFileSync(url,'utf8').replace(/(\.js)\?v=[\w.-]+/g,'$1');
- for(const f of ['ym2612vgm.js','vgmplayer.js','okim6295audioengine.js'])assert.equal(source(new URL(f,runtimeDirectoryUrl)),source(new URL('../docs/js/'+f,runtimeDirectoryUrl)));
+ for(const f of ['ym2612vgm.js','vgmplayer.js','okim6295audioengine.js'])assert.equal(source(new URL(f,runtimeDirectoryUrl)),source(new URL('../../docs/js/'+f,runtimeDirectoryUrl)));
 });
 
 test('player reset replays identical PCM; loading another track clears sample ROM',async()=>{
@@ -95,7 +95,7 @@ test('player reset replays identical PCM; loading another track clears sample RO
 });
 
 test('YM3812 3.58 MHz + OKIM6295 1.32 MHz: independent mix, mutes and replay',async()=>{
- const fm=await readSource(new URL('../test/fixtures/ym3812-tone.vgz',runtimeDirectoryUrl));
+ const fm=await readSource(new URL('../../test/fixtures/ym3812-tone.vgz',runtimeDirectoryUrl));
  const dataOffset=new DataView(fm.buffer,fm.byteOffset).getUint32(0x34,true)+0x34;
  const mixed=file([...commands().slice(0,-4),...fm.subarray(dataOffset)],{oki:1320000});
  new DataView(mixed.buffer).setUint32(0x50,3580000,true);

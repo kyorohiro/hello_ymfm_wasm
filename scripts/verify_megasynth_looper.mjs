@@ -1,4 +1,4 @@
-import { MegaSynthLooper } from "../web/megasynth_looper.js";
+import { MegaSynthLooper } from "../tetorica_src/runtime/megasynth_looper.js";
 
 function createFakeClock() {
   let currentTime = 0;

@@ -9,8 +9,8 @@ import {prepareSnesScore} from '../docs/vgm_analyzer/snes_score.js';
 import {exportNoteAnalysisMidi} from '../docs/vgm_analyzer/vgm_midi.js';
 import {createMusicXmlScore} from '../docs/vgm_analyzer/vgm_musicxml.js';
 import {createLilyPondScore} from '../docs/vgm_analyzer/vgm_lilypond.js';
-import {createSyntheticSpc} from '../web/spc_test_fixture.mjs';
-import {isSpcSource,analyzeSpcSource,exportSpcAnalysis,listSpcScoreChannels} from '../cli/spc.js';
+import {createSyntheticSpc} from '../tetorica_src/runtime/spc_test_fixture.mjs';
+import {isSpcSource,analyzeSpcSource,exportSpcAnalysis,listSpcScoreChannels} from '../tetorica_src/cli/spc.js';
 
 function taggedFixture(seconds = 1) {
   const bytes = createSyntheticSpc({voices:2});

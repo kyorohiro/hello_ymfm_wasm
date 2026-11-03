@@ -10,6 +10,41 @@ const inputs = [
 ];
 const psgInput = 'docs/issues/analyzer_psg_levels_07.json';
 const roundGain = value => Number(value.toFixed(6));
+const sourceLocations = Object.freeze({
+  'web/nesapusynth.js': 'tetorica_src/runtime/nesapusynth.js',
+  'cli/render.js': 'tetorica_src/cli/render.js',
+});
+const hashSource = bytes => createHash('sha256').update(bytes).digest('hex');
+
+/** Retain captured hashes while allowing only the reviewed source-folder move.
+ * Reconstruct the original path spellings for these five exact modules and
+ * require their complete bytes to match the historical hash. Audio changes,
+ * edited measurements and different modules never inherit this exception. */
+export function isAnalyzerSourceLayoutRevision(path, bytes, expectedHash) {
+  let source = Buffer.from(bytes).toString('utf8');
+  switch (path) {
+    case 'scripts/measure_analyzer_nes_levels.mjs':
+      source = source.replace("from '../tetorica_src/runtime/nesapusynth.js'", "from '../web/nesapusynth.js'")
+        .replace("'tetorica_src/runtime/nesapusynth.js'", "'web/nesapusynth.js'");
+      break;
+    case 'scripts/calibrate_analyzer_extra_levels.mjs':
+      source = source.replace("from '../tetorica_src/cli/render.js'", "from '../cli/render.js'")
+        .replace("'tetorica_src/cli/render.js'", "'cli/render.js'");
+      break;
+    case 'scripts/measure_analyzer_psg_balance.mjs':
+      source = source.replace("from '../tetorica_src/cli/render.js'", "from '../cli/render.js'")
+        .replace("'tetorica_src/cli/render.js'", "'cli/render.js'");
+      break;
+    case 'scripts/measure_analyzer_psg_levels.mjs':
+      source = source.replace("'tetorica_src/cli/render.js'", "'cli/render.js'");
+      break;
+    case 'cli/render.js':
+      source = source.replaceAll('../../docs/', '../docs/');
+      break;
+    default: return false;
+  }
+  return hashSource(source) === expectedHash;
+}
 
 /** Application balance for square-wave references; leave composite-chip ratios intact. */
 export function buildAnalyzerPsgDefaults(report, referenceGain) {
@@ -65,14 +100,15 @@ export function buildAnalyzerMixerDefaults(reports, targetAmplitude) {
  * @param {object[]} reports
  * @param {(path:string)=>Promise<Uint8Array>} [readSource]
  */
-export async function verifyAnalyzerCalibrationSources(reports,readSource=path=>readFile(new URL(path,root))) {
+export async function verifyAnalyzerCalibrationSources(reports,readSource=path=>readFile(new URL(sourceLocations[path] ?? path,root))) {
   for(const report of reports) {
     const sources = Array.isArray(report.sources) ? report.sources : Object.entries(report.sources??{}).map(([path,record])=>
       typeof record==='string'?{path,sha256:record}:{path,...record});
     if(!sources.length)throw new Error('Missing Analyzer calibration sources');
     await Promise.all(sources.map(async source=>{
       const bytes=await readSource(source.path);
-      if(createHash('sha256').update(bytes).digest('hex')!==source.sha256)throw new Error('Analyzer calibration source changed; remeasure: '+source.path);
+      if(hashSource(bytes)!==source.sha256&&!isAnalyzerSourceLayoutRevision(source.path,bytes,source.sha256))
+        throw new Error('Analyzer calibration source changed; remeasure: '+source.path);
     }));
   }
 }

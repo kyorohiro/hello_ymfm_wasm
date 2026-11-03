@@ -67,7 +67,7 @@ try {
   }
 
   const sourceFiles={};
-  const required=['cli/index.js','cli/main.js','cli/render.js','README.md','CLI.md',
+  const required=['cli/index.js','cli/main.js','tetorica_src/cli/render.js','README.md','CLI.md',
     'docs/vgm_analyzer/analyzer_core.js','docs/vgm_analyzer/playback_core.js','docs/vgm_analyzer/playback_mixer.js',
     'docs/vgm_analyzer/pokey_playback.js','docs/vgm_analyzer/mixer_defaults.js',
     'docs/vgm_analyzer/mixer_calibration_data.js','docs/js/ym2612vgm.js','docs/js/vgmplayer.js',
@@ -172,7 +172,7 @@ try {
   // Public engine factory + installed parser/factory prove shared-WASM handles,
   // independent Mixer strips, cold replay and disposal without any source imports.
   const {Ym2612VGM}=await import(pathToFileURL(join(installed,'docs/js/ym2612vgm.js')).href);
-  const {getNodePlaybackFactory}=await import(pathToFileURL(join(installed,'cli/render.js')).href);
+  const {getNodePlaybackFactory}=await import(pathToFileURL(join(installed,'tetorica_src/cli/render.js')).href);
   const dualSource=createPokeyVgm({dual:true,seconds:.5,loop:false,voices:[{chip:0,channel:0,frequency:440,volume:8},{chip:1,channel:3,frequency:330,volume:8}]});
   const engine=await api.createPlaybackEngine(new Ym2612VGM(dualSource),{getFactory:getNodePlaybackFactory});
   const reference=await api.createPlaybackEngine(new Ym2612VGM(dualSource),{getFactory:getNodePlaybackFactory});

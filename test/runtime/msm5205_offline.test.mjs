@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createMSM5205PCM} from '../../web/msm5205_pcm.js';
-import {createCddaOffline} from '../../web/cdda_offline.js';
-import {createCDDAPCM} from '../../web/cdda_pcm.js';
-import {parseCddaWav} from '../../web/cdda_source.js';
-import {encodeWav} from '../../web/wav.js';
+import {createMSM5205PCM} from '../../tetorica_src/runtime/msm5205_pcm.js';
+import {createCddaOffline} from '../../tetorica_src/runtime/cdda_offline.js';
+import {createCDDAPCM} from '../../tetorica_src/runtime/cdda_pcm.js';
+import {parseCddaWav} from '../../tetorica_src/runtime/cdda_source.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 import hucFactory from '../../docs/generated/huc6280_wasm.js';
-import {Huc6280AudioEngine} from '../../web/huc6280audioengine.js';
-import {Huc6280Synth,Huc6280DirectTransport,HUC6280_CLOCK} from '../../web/huc6280synth.js';
+import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
+import {Huc6280Synth,Huc6280DirectTransport,HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
 
 const [wasmBinary,adpcmBinary]=await Promise.all([
   readFile(new URL('./generated/cdda_wasm.wasm',runtimeDirectoryUrl)),

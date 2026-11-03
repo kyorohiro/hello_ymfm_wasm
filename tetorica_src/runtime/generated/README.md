@@ -22,5 +22,5 @@ The SDK files stay flat here. Native FX uses `effects/gain.wasm`. Public assets
 remain at `docs/generated/` and the existing DX7/Native FX paths; packagers
 select their required subset through the shared inventory.
 
-See the [source guide](../README.md), [build instructions](../../docs/building_ym2612_wasm.md)
-and [organization TODO](../../docs/issues/todo_web_organization_01.md).
+See the [source guide](../README.md), [build instructions](../../../docs/building_ym2612_wasm.md)
+and [organization TODO](../../../docs/issues/todo_web_organization_01.md).

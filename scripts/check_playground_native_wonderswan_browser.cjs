@@ -10,7 +10,7 @@ const accessor='\nwindow.__nativeWs={runtime,megaDrive,selectedMode,setSource:va
 const server=http.createServer(async(request,response)=>{try{const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);let filename=path.resolve(docs,'.'+pathname);if(!filename.startsWith(docs+path.sep))throw Error('Invalid path');if((await fs.stat(filename)).isDirectory())filename=path.join(filename,'index.html');let body=await fs.readFile(filename);if(pathname.endsWith('/playground.js'))body=Buffer.from(body.toString()+accessor);response.setHeader('Content-Type',mime[path.extname(filename)]??'application/octet-stream');response.end(body);}catch(error){response.writeHead(404).end(error.message);}});
 
 async function mock() {
-  const {WonderSwanVoiceInspector}=await import('../web/playground_wonderswan_inspector.js');
+  const {WonderSwanVoiceInspector}=await import("../tetorica_src/runtime/playground_wonderswan_inspector.js");
   const calls=[],rack=new Map();let session=0,mode='genesis',primary,began=performance.now();
   const source=clock=>({clock,held:new Map(),inspector:new WonderSwanVoiceInspector({clock:()=>clock,sampleRate:48000}),initialized:false});
   const status=()=>({session,mode,sampleRate:48000,frame:Math.floor((performance.now()-began)*48),running:true,ymClock:7670454,psgClock:3579545,wonderswanClock:primary?.clock??3072000});

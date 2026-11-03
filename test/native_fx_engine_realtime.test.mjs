@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {NativeFXEngine} from '../web/native_fx_engine.js';
-import {createNativeFXController} from '../web/native_fx.js';
+import {NativeFXEngine} from '../tetorica_src/runtime/native_fx_engine.js';
+import {createNativeFXController} from '../tetorica_src/runtime/native_fx.js';
 
-const module=await WebAssembly.compile(await readFile(new URL('../web/native_audio_effect.wasm',import.meta.url)));
+const module=await WebAssembly.compile(await readFile(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url)));
 function harness(){
  const engine=new NativeFXEngine(module,48000);
  const fx=createNativeFXController(command=>engine.command(structuredClone(command)));

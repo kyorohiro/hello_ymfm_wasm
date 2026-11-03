@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../../web/msfa_dx7/src/index.js';
-import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../web/msfa_dx7/src/preset.js';
-import {createProcessorPerformance,nativeVoiceChannel} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createDx7Client} from '../../web/playground_dx7.js';
+import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex} from '../../tetorica_src/runtime/msfa_dx7/src/index.js';
+import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
+import {createProcessorPerformance,nativeVoiceChannel} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
 const wasmBytes=await readFile(new URL('./msfa_dx7/wasm/msfa.wasm',runtimeDirectoryUrl));

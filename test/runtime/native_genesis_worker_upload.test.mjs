@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createNativeGenesisYm2608} from '../../web/native_genesis_ym2608.js';
-import {createNativeGenesisYm2610B} from '../../web/native_genesis_ym2610b.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createNativeGenesisYm2608} from '../../tetorica_src/runtime/native_genesis_ym2608.js';
+import {createNativeGenesisYm2610B} from '../../tetorica_src/runtime/native_genesis_ym2610b.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
 
 function deferred(){let resolve;return {promise:new Promise(done=>{resolve=done;}),resolve};}
 function reply(port,id){

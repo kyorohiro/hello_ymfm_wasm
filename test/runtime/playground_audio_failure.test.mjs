@@ -1,13 +1,13 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
 import {setMaxListeners} from 'node:events';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {SoundChipMixer} from '../../web/soundchip_mixer.js';
-import {attachChipClock} from '../../web/playground_chip_clock.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip_mixer.js';
+import {attachChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
 
 // Factories capture the application's trusted loader at import time. Keep that
 // real behavior while routing every asset request into this device-free fixture.
@@ -17,7 +17,7 @@ globalThis.fetch = (...args) => {
   if (!loadAsset) throw new Error('Unexpected asset request outside an audio fixture');
   return loadAsset(...args);
 };
-const {createPlaygroundRuntime} = await import("../../web/playground_runtime.js");
+const {createPlaygroundRuntime} = await import("../../tetorica_src/runtime/playground_runtime.js");
 globalThis.fetch = originalFetch;
 
 const chips = [

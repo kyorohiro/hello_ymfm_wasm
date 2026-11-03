@@ -128,7 +128,7 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
 });
 
 test('Sega mode starters and examples run with the built-in PSG; stereo keeps the correct speaker bits', async () => {
-  const {SegaPSGSynth} = await import('../../web/segapsgsynth.js');
+  const {SegaPSGSynth} = await import("../../tetorica_src/runtime/segapsgsynth.js");
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   for (const id of ['game-gear', 'master-system']) {
     const sources = id === 'master-system'
@@ -167,8 +167,8 @@ test('Sega mode starters and examples run with the built-in PSG; stereo keeps th
 });
 
 test('Mega-CD starter and PCM demos use the shared PCM voices and valid waveform RAM', async () => {
-  const {RF5C164Synth} = await import('../../web/rf5c164synth.js');
-  const {encodeRf5c164} = await import('../../web/rf5c164_pcm.js');
+  const {RF5C164Synth} = await import("../../tetorica_src/runtime/rf5c164synth.js");
+  const {encodeRf5c164} = await import("../../tetorica_src/runtime/rf5c164_pcm.js");
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   const sources = [MODE_DEFAULT_CODES['mega-cd'], ...MODE_EXAMPLE_FILES['mega-cd']
     .filter(file => file.path.startsWith('/examples/mega-cd/') && file.name !== 'megacd-sampler').map(file => file.data)];

@@ -5,7 +5,7 @@ async function harness(fetcher,run,{ready=true,moduleError}={}){
   const previous={fetch:globalThis.fetch,AudioWorkletNode:globalThis.AudioWorkletNode},nodes=[],modules=[];
   globalThis.fetch=fetcher;globalThis.AudioWorkletNode=class{constructor(context,name,options){this.name=name;this.options=options;this.port={postMessage:message=>{(this.sent??=[]).push(message);},close:()=>this.closed=true};nodes.push(this);if(ready)queueMicrotask(()=>this.port.onmessage?.({data:{ready:true}}));}connect(){this.connected=true;}disconnect(){this.disconnected=true;}};
   const listeners=new Set(),context={sampleRate:48000,state:'suspended',audioWorklet:{addModule:async url=>{modules.push(String(url));if(moduleError)throw moduleError;}},addEventListener:(type,listener)=>listeners.add(listener),removeEventListener:(type,listener)=>listeners.delete(listener)};
-  try{const {createPokeyAudio}=await import(`../../web/playground_pokey_audio.js?test=${++sequence}`);await run({createPokeyAudio,context,nodes,modules,listeners});}finally{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;}
+  try{const {createPokeyAudio}=await import(`../../tetorica_src/runtime/playground_pokey_audio.js?test=${++sequence}`);await run({createPokeyAudio,context,nodes,modules,listeners});}finally{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;}
 }
 
 test('POKEY setup uses actual host sample rate, independent clock profiles and shared module registration',async()=>{

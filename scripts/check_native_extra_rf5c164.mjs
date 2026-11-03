@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {RF5C164Synth} from '../web/rf5c164synth.js';
+import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1];};

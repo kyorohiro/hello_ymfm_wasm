@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseSpcFile,SPC_MIN_FILE_SIZE,SPC_FILE_SIZE} from '../../web/spc_file.js';
+import {parseSpcFile,SPC_MIN_FILE_SIZE,SPC_FILE_SIZE} from '../../tetorica_src/runtime/spc_file.js';
 function image(size = SPC_FILE_SIZE) {
   const b = new Uint8Array(size);
   b.set(new TextEncoder().encode('SNES-SPC700 Sound File Data v0.30'));

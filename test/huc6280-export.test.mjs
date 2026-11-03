@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,exportSource,listSourceScoreChannels,inspectSourceSupport} from '../cli/index.js';
+import {readSource,exportSource,listSourceScoreChannels,inspectSourceSupport} from '../tetorica_src/cli/index.js';
 import {analyzeLilyPondSource} from '../docs/vgm_analyzer/vgm_lilypond.js';
 const w=(r,v)=>[0xb9,r,v],wait=[0x61,0x22,0x56];
 function vgm(commands){

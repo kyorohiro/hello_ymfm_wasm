@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/scsp_wasm.js';
-import {Scsp} from '../../web/scsp.js';
-import {ScspSynth,scspPitch,createScspInitSample} from '../../web/scspsynth.js';
+import {Scsp} from '../../tetorica_src/runtime/scsp.js';
+import {ScspSynth,scspPitch,createScspInitSample} from '../../tetorica_src/runtime/scspsynth.js';
 let module;
-const moduleFactory=async()=>module??=await factory({wasmBinary:await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
+const moduleFactory=async()=>module??=await factory({wasmBinary:await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
 async function create(t){const core=await Scsp.create({moduleFactory}),synth=new ScspSynth(core);t.after(()=>synth.dispose());return {core,synth};}
 function init(synth,slot=0,extra={}) {const {pcm,options}=createScspInitSample(),sample=synth.loadPCM(pcm,options);synth.setPreset(slot,{sample,frequencyHz:44100/64,...extra});return {sample,pcm};}
 const peak=a=>a.reduce((p,v)=>Math.max(p,Math.abs(v)),0);

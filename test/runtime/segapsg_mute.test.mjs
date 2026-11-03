@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SegaPSG} from '../../web/segapsg.js';
+import {SegaPSG} from '../../tetorica_src/runtime/segapsg.js';
 import factory from '../../docs/generated/segapsg_wasm.js';
-const make=()=>SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});
+const make=()=>SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))}});
 const program=p=>[0x84,0x10,0x92,0xa7,0x12,0xb3,0xc9,0x14,0xd4,0xe7,0xf5].forEach(v=>p.write(v));
 test('Sega PSG isolates all three tones and noise, retains mute on reset and restores live volume',async()=>{
  const p=await make();try {

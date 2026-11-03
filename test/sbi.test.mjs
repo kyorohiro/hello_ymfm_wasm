@@ -6,10 +6,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
-import {exportSource, inspectSourceSupport} from '../cli/index.js';
+import {exportSource, inspectSourceSupport} from '../tetorica_src/cli/index.js';
 import {snapshotSbiPatches, exportSbiZip} from '../docs/vgm_analyzer/sbi_export.js';
 
-const main=fileURLToPath(new URL('../cli/main.js',import.meta.url));
+const main=fileURLToPath(new URL('../tetorica_src/cli/main.js',import.meta.url));
 const cli=(...args)=>spawnSync(process.execPath,[main,...args],{encoding:'utf8'});
 function fixture(kind) {
   const [offset,opcode]=({ym3526:[0x54,0x5b],ym3812:[0x50,0x5a],y8950:[0x58,0x5c],ymf262:[0x5c,0x5e],ymf278b:[0x60,0xd0]})[kind];

@@ -35,9 +35,9 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 assert.deepEqual(process.argv.slice(2), ['--only', 'scsp']);
 const root = resolve(import.meta.dirname, '..');
-const receipt = JSON.parse(await readFile(resolve(root, 'web/generated/build-info.json')));
+const receipt = JSON.parse(await readFile(resolve(root, 'tetorica_src/runtime/generated/build-info.json')));
 assert.equal(receipt.artifacts[0].id, 'scsp');
-await readFile(resolve(root, 'web/generated/scsp_wasm.wasm'));
+await readFile(resolve(root, 'tetorica_src/runtime/generated/scsp_wasm.wasm'));
 await writeFile(resolve(root, 'sync-ran'), 'scsp');
 ''')
         compiler = self.work / 'recording em++'
@@ -79,7 +79,7 @@ else:
         self.assertEqual(record['cwd'], str(self.root / SDK))
         self.assertIn(str(self.root / SDK / 'vendor/mame-scsp/scsp_instrument.cpp'), record['args'])
         self.assertFalse((self.root / 'sync-ran').exists())
-        self.assertFalse((self.root / 'web').exists())
+        self.assertFalse((self.root / 'tetorica_src/runtime').exists())
         self.assertFalse((self.root / 'docs').exists())
         self.assertFalse((self.root / SDK / 'isolated relative output').exists())
         self.assert_sdk_unchanged()
@@ -87,8 +87,8 @@ else:
     def test_default_build_uses_canonical_path_and_publishes_after_receipt(self):
         result = self.build()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue((self.root / 'web/generated/scsp_wasm.js').is_file())
-        self.assertTrue((self.root / 'web/generated/scsp_wasm.wasm').is_file())
+        self.assertTrue((self.root / 'tetorica_src/runtime/generated/scsp_wasm.js').is_file())
+        self.assertTrue((self.root / 'tetorica_src/runtime/generated/scsp_wasm.wasm').is_file())
         self.assertEqual((self.root / 'sync-ran').read_text(), 'scsp')
         self.assert_sdk_unchanged()
 

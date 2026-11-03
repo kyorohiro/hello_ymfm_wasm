@@ -17,9 +17,9 @@ test('stream warnings remain visible across status changes, deduplicate and clea
 });
 
 test('actual Player DAC warning reaches the persistent warning panel',async()=>{
- const {VgmPlayer}=await import('../../web/vgmplayer.js');
- const {vgmBytes}=await import('../../web/test-support/vgm-mock.js');
- const {MockSoundEngine,drainPlayer}=await import('../../web/test-support/vgm-engine-mock.js');
+ const {VgmPlayer}=await import("../../tetorica_src/runtime/vgmplayer.js");
+ const {vgmBytes}=await import("../../tetorica_src/runtime/test-support/vgm-mock.js");
+ const {MockSoundEngine,drainPlayer}=await import("../../tetorica_src/runtime/test-support/vgm-engine-mock.js");
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  const panel={hidden:true,textContent:''},status={};
  const context=vm.createContext({document:{getElementById:()=>panel},status,console});

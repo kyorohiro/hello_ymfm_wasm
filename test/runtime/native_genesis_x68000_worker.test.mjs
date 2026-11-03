@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {createNativeGenesisX68000} from '../../web/native_genesis_x68000.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {createNativePrimaryClient} from '../../web/playground_native_primary.js';
+import {createNativeGenesisX68000} from '../../tetorica_src/runtime/native_genesis_x68000.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {createNativePrimaryClient} from '../../tetorica_src/runtime/playground_native_primary.js';
 
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 

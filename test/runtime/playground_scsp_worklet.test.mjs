@@ -1,22 +1,22 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import factory from '../../docs/generated/scsp_wasm.js';
-import {Scsp} from '../../web/scsp.js';
-import {ScspSynth,createScspInitSample} from '../../web/scspsynth.js';
-import {Pcm44100Resampler} from '../../web/pcm_44100_resampler.js';
-import {createScspClient,SCSP_CONTROLS,createScspValidation,scspCommandArgs} from '../../web/playground_scsp.js';
-import {ScspVoiceInspector} from '../../web/playground_scsp_inspector.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {Scsp} from '../../tetorica_src/runtime/scsp.js';
+import {ScspSynth,createScspInitSample} from '../../tetorica_src/runtime/scspsynth.js';
+import {Pcm44100Resampler} from '../../tetorica_src/runtime/pcm_44100_resampler.js';
+import {createScspClient,SCSP_CONTROLS,createScspValidation,scspCommandArgs} from '../../tetorica_src/runtime/playground_scsp.js';
+import {ScspVoiceInspector} from '../../tetorica_src/runtime/playground_scsp_inspector.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 const peak=a=>a.reduce((m,v)=>Math.max(m,Math.abs(v)),0);
 async function setup(t,rate=48000){
- const wasmBinary=await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl)),source=await readFile(new URL('./playground_scsp_worklet.js',runtimeDirectoryUrl),'utf8');
+ const wasmBinary=await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl)),source=await readFile(new URL('./playground_scsp_worklet.js',runtimeDirectoryUrl),'utf8');
  const main=new MessageChannel();let Processor;
  const scope={factory,Scsp,ScspSynth,createScspInitSample,Pcm44100Resampler,SCSP_CONTROLS,createScspValidation,scspCommandArgs,ScspVoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,
  AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-scsp');Processor=Class;}};

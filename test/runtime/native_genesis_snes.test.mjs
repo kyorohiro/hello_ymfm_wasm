@@ -1,19 +1,19 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {MessageChannel} from 'node:worker_threads';
 import factory from '../../docs/generated/spc_wasm.js';
-import {SnesDspCore} from '../../web/spc.js';
-import {SnesSynth} from '../../web/snessynth.js';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 
-const wasmBinary=await readFile(new URL('../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),module=await factory({wasmBinary});
+const wasmBinary=await readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl)),module=await factory({wasmBinary});
 const wave=()=>new Uint8Array([0x83,0x12,0x34,0x56,0x76,0x54,0x32,0x10,0xef]);
 async function fixture(t){
   const core=await SnesDspCore.create({moduleFactory:async()=>module}),validation=new SnesSynth({core});

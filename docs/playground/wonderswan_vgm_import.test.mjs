@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises';
 import {exportWonderSwanVgm, readWonderSwanVgm, validateWonderSwanVgm, WONDERSWAN_VGM_IMPORT_LIMITS} from './wonderswan_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import factory from '../generated/wonderswan_wasm.js';
-import {WonderSwan} from '../../web/wonderswan.js';
-import {WonderSwanSynth} from '../../web/wonderswansynth.js';
+import {WonderSwan} from '../../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 import {createWonderSwanVgm} from '../../test/helpers/wonderswan_vgm_fixture.mjs';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

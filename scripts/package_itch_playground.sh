@@ -607,7 +607,7 @@ done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
-DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${ROOT_DIR}/web/msfa_dx7/package.json")
+DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${ROOT_DIR}/tetorica_src/runtime/msfa_dx7/package.json")
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_ps1_sources.mjs" "${STAGE_DIR}"

@@ -10,13 +10,13 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import factory from '../docs/generated/wonderswan_wasm.js';
-import {WonderSwan,WONDERSWAN_CLOCK} from '../web/wonderswan.js';
-import {WonderSwanSynth} from '../web/wonderswansynth.js';
-import {WonderSwanVoiceInspector} from '../web/playground_wonderswan_inspector.js';
-import {ChipClockResampler,validateChipClock} from '../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../web/playground_chip_inspector_state.js';
-import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor} from '../web/wonderswan_timeline.js';
+import {WonderSwan,WONDERSWAN_CLOCK} from '../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanSynth} from '../tetorica_src/runtime/wonderswansynth.js';
+import {WonderSwanVoiceInspector} from '../tetorica_src/runtime/playground_wonderswan_inspector.js';
+import {ChipClockResampler,validateChipClock} from '../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor} from '../tetorica_src/runtime/wonderswan_timeline.js';
 import {buildWonderSwanCalibrationReference} from './soundchip_calibration_wonderswan.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -132,7 +132,7 @@ export async function measureWonderSwanCalibrationOffline(){
       }finally{processor.dispose();raw.dispose();synth.dispose();}
     }
     for(const path of ['scripts/soundchip_calibration_wonderswan.mjs','scripts/check_wonderswan_calibration_offline.mjs','test/helpers/wonderswan_core_fixture.cpp',
-      'web/wonderswan.js','web/wonderswansynth.js','web/playground_wonderswan_inspector.js','web/playground_chip_clock.js','web/playground_performance_processor.js','web/playground_chip_inspector_state.js','web/wonderswan_timeline.js',
+      'tetorica_src/runtime/wonderswan.js','tetorica_src/runtime/wonderswansynth.js','tetorica_src/runtime/playground_wonderswan_inspector.js','tetorica_src/runtime/playground_chip_clock.js','tetorica_src/runtime/playground_performance_processor.js','tetorica_src/runtime/playground_chip_inspector_state.js','tetorica_src/runtime/wonderswan_timeline.js',
       'docs/js/playground_wonderswan_worklet.js','docs/generated/wonderswan_wasm.js','docs/generated/wonderswan_wasm.wasm',vendor+'/wonderswan.cpp',vendor+'/wonderswan.h']){
       const bytes=await readFile(join(root,path));report.sources.push({path,bytes:bytes.length,sha256:hash(bytes)});
     }

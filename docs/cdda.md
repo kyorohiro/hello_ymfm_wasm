@@ -86,8 +86,8 @@ The same renderer works without an AudioContext:
 
 ```js
 import {readFile, writeFile} from 'node:fs/promises';
-import {createCddaOffline} from './web/cdda_offline.js';
-import {encodeWav} from './web/wav.js';
+import {createCddaOffline} from './tetorica_src/runtime/cdda_offline.js';
+import {encodeWav} from './tetorica_src/runtime/wav.js';
 
 const offline = await createCddaOffline({sampleRate: 48000});
 try {
@@ -99,7 +99,7 @@ try {
 }
 ```
 
-Place this Node script at the repository root, beside `web/`.
+Place this Node script at the repository root, beside `tetorica_src/`.
 For the npm package, import `tetorica-fm2612/cdda_offline.js` and
 `tetorica-fm2612/wav.js` instead.
 

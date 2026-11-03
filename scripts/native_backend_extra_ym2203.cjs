@@ -70,7 +70,7 @@ const program=`
 `;
 async function runExtraYm2203({page,native,artifacts,name,until,assertNoLiveAudio,changeMode}){
   const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),phases=[];
-  const [{unzipSync},{parseTfi},{parseVgi}]=await Promise.all([import('../docs/playground/vendor/fflate.js'),import('../web/tfi.js'),import('../web/vgi.js')]);
+  const [{unzipSync},{parseTfi},{parseVgi}]=await Promise.all([import('../docs/playground/vendor/fflate.js'),import("../tetorica_src/runtime/tfi.js"),import("../tetorica_src/runtime/vgi.js")]);
   async function exportFm(format){
     await page.evaluate(()=>{document.getElementById('mainMenu').open=true;document.getElementById('menuExport').open=true;});
     const downloaded=page.waitForEvent('download');await page.click(format==='tfi'?'#exportTfiButton':'#exportVgiButton');const download=await downloaded;

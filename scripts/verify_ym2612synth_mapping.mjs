@@ -1,4 +1,4 @@
-import { YM2612Synth } from "../web/ym2612synth.js";
+import { YM2612Synth } from "../tetorica_src/runtime/ym2612synth.js";
 
 function collectWrites() {
   const writes = [];

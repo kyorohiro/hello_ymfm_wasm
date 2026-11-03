@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {GameboyRuntimeSynth} from '../../web/gameboy_runtime_synth.js';
+import {GameboyRuntimeSynth} from '../../tetorica_src/runtime/gameboy_runtime_synth.js';
 
 const deferred=()=>{let resolve;return {promise:new Promise(r=>{resolve=r;}),resolve:()=>resolve()};};
 async function until(predicate){for(let i=0;i<100;i++){if(predicate())return;await Promise.resolve();}assert.fail('Async boundary not reached');}

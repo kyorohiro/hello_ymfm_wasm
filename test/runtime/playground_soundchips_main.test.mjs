@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
 // Capture a local byte provider before the audio modules bind fetch. No network/audio device.
 const originalFetch=globalThis.fetch;
 globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});
-const {createPlaygroundRuntime}=await import("../../web/playground_runtime.js");
+const {createPlaygroundRuntime}=await import("../../tetorica_src/runtime/playground_runtime.js");
 globalThis.fetch=originalFetch;
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 

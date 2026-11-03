@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Ay8910,validateAy8910} from '../../web/ay8910.js';
-import {Ay8910AudioEngine,validateAyPlaybackHeader} from '../../web/ay8910audioengine.js';
-import {MsxAudioEngine} from '../../web/msxaudioengine.js';
-import {Ym2413AudioEngine} from '../../web/ym2413audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ay8910,validateAy8910} from '../../tetorica_src/runtime/ay8910.js';
+import {Ay8910AudioEngine,validateAyPlaybackHeader} from '../../tetorica_src/runtime/ay8910audioengine.js';
+import {MsxAudioEngine} from '../../tetorica_src/runtime/msxaudioengine.js';
+import {Ym2413AudioEngine} from '../../tetorica_src/runtime/ym2413audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import factory from '../../docs/generated/ay8910_wasm.js';
 import opllFactory from '../../docs/generated/ym2413_wasm.js';
-const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}};
-const opllOptions={ym2413ModuleFactory:opllFactory,ym2413ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}};
+const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}};
+const opllOptions={ym2413ModuleFactory:opllFactory,ym2413ModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/ym2413_wasm.wasm',runtimeDirectoryUrl))}};
 function vgm(commands,{type=0,flags=1,clock=1789773,opll=0,loop=false}={}){
   const bytes=new Uint8Array(0x100+commands.length),v=new DataView(bytes.buffer);
   bytes.set([86,103,109,32]);v.setUint32(4,bytes.length-4,true);v.setUint32(8,0x171,true);v.setUint32(0x34,0xcc,true);
@@ -108,9 +108,9 @@ test('YM2149 pin26 divider equals halving the input clock',async()=>{
 });
 
 test('MSX Y8950 + AY + OPLL mixes independent audio including ADPCM, resets and seeks',async()=>{
- const {Y8950AudioEngine}=await import("../../web/y8950audioengine.js");
+ const {Y8950AudioEngine}=await import("../../tetorica_src/runtime/y8950audioengine.js");
  const {default:yFactory}=await import("../../docs/generated/y8950_wasm.js");
- const yOptions={y8950ModuleFactory:yFactory,y8950ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/y8950_wasm.wasm',runtimeDirectoryUrl))},y8950Clock:3579545};
+ const yOptions={y8950ModuleFactory:yFactory,y8950ModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/y8950_wasm.wasm',runtimeDirectoryUrl))},y8950Clock:3579545};
  const mix=await MsxAudioEngine.create({ayModuleFactory:factory,ayModuleOptions:options.moduleOptions,ayClock:1789773,...opllOptions,...yOptions});
  const a=await Ay8910AudioEngine.create({...options,clock:1789773}),b=await Ym2413AudioEngine.create(opllOptions),c=await Y8950AudioEngine.create(yOptions);
  try{

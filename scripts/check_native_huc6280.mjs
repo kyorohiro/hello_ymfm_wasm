@@ -7,9 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/huc6280_wasm.js';
-import {Huc6280AudioEngine} from '../web/huc6280audioengine.js';
-import {Huc6280Synth} from '../web/huc6280synth.js';
-import {ChipClockResampler} from '../web/playground_chip_clock.js';
+import {Huc6280AudioEngine} from '../tetorica_src/runtime/huc6280audioengine.js';
+import {Huc6280Synth} from '../tetorica_src/runtime/huc6280synth.js';
+import {ChipClockResampler} from '../tetorica_src/runtime/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri/src');

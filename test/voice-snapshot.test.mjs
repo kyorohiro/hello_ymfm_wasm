@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {exportSource} from '../cli/index.js';
+import {exportSource} from '../tetorica_src/cli/index.js';
 import {parseTfi} from '../docs/js/tfi.js';
 import {parseVgi} from '../docs/js/vgi.js';
 import {createOpmState} from '../docs/vgm_analyzer/opm_monitor.js';

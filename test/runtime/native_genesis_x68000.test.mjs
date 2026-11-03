@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisX68000} from '../../web/native_genesis_x68000.js';
-import {createYm2151Client} from '../../web/playground_ym2151.js';
-import {Oki6258Synth,encodeOki6258} from '../../web/okim6258synth.js';
+import {createNativeGenesisX68000} from '../../tetorica_src/runtime/native_genesis_x68000.js';
+import {createYm2151Client} from '../../tetorica_src/runtime/playground_ym2151.js';
+import {Oki6258Synth,encodeOki6258} from '../../tetorica_src/runtime/okim6258synth.js';
 
 function fixture(){
   const commands=[],requests=[],events=[],future=[],held=[new Map(),new Map()],regs=Array(256).fill(0),keyMasks=Array(8).fill(0);let frame=0,flushHook=null,statusHook=null,stage=null;

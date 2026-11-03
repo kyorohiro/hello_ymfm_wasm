@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {CHIP_CLOCKS, ChipClockResampler} from '../../web/playground_chip_clock.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {CHIP_CLOCKS, ChipClockResampler} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {NesApuWasm} from '../../web/nesapu_wasm.js';
-import {createNesClient} from '../../web/playground_nes.js';
-import {NesApuSynth} from '../../web/nesapusynth.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {NesApuWasm} from '../../tetorica_src/runtime/nesapu_wasm.js';
+import {createNesClient} from '../../tetorica_src/runtime/playground_nes.js';
+import {NesApuSynth} from '../../tetorica_src/runtime/nesapusynth.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import factory from '../../docs/generated/nesapu_wasm.js';
 async function setup(fds, sampleRate) {
   let Processor;
@@ -20,7 +20,7 @@ async function setup(fds, sampleRate) {
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_, value) => {Processor = value;},
   });
-  const processor = new Processor({processorOptions: {fds,wasmBinary:await readFile(new URL('../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl))}});
+  const processor = new Processor({processorOptions: {fds,wasmBinary:await readFile(new URL('../../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl))}});
   await processor.initializing;assert.equal(processor.chip?.backend,'wasm');
   const port = {start() {}, close() {}, postMessage(data) {
     processor.receive(data, {postMessage(reply) {queueMicrotask(() => port.onmessage({data: reply}));}});
@@ -48,7 +48,7 @@ for (const sampleRate of [44100, 48000]) {
     test(`${example}: real NES processor at ${sampleRate} Hz`, async () => {
       const {chip, processor, render} = await setup(fds, sampleRate);
       let peak = 0;
-      const source = await readFile(new URL(`../docs/playground/examples/nes/${example}.js`, runtimeDirectoryUrl), 'utf8');
+      const source = await readFile(new URL(`../../docs/playground/examples/nes/${example}.js`,runtimeDirectoryUrl), 'utf8');
       const open = async (name, options) => {assert.equal(name, 'nes'); assert.equal(options?.fds ?? false, fds); return chip;};
       const sleep = async seconds => {
         const output = render(seconds);

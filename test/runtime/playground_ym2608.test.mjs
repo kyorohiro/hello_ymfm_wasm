@@ -1,19 +1,19 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {Ym2608Timeline} from '../../web/playground_ym2608_timeline.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {Ym2608Timeline} from '../../tetorica_src/runtime/playground_ym2608_timeline.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {MessageChannel} from 'node:worker_threads';
-import {createYm2608Client} from '../../web/playground_ym2608.js';
-import {Ym2608AudioEngine} from '../../web/ym2608audioengine.js';
+import {createYm2608Client} from '../../tetorica_src/runtime/playground_ym2608.js';
+import {Ym2608AudioEngine} from '../../tetorica_src/runtime/ym2608audioengine.js';
 import factory from '../../docs/generated/ym2608_wasm.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 const performanceProcessor=options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0});
 
 test('client disposal rejects outstanding memory uploads and closes the port', async () => {
@@ -55,7 +55,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
   });
   const rom = await readFile(new URL('./tetorica_ym2608_adpcm_rom.bin', runtimeDirectoryUrl));
   const processor = new Processor({processorOptions: {
-    wasmBinary: await readFile(new URL('../docs/generated/ym2608_wasm.wasm', runtimeDirectoryUrl)), rom,
+    wasmBinary: await readFile(new URL('../../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl)), rom,
   }});
   const channel = new MessageChannel();
   const synth = createYm2608Client(channel.port2);
@@ -95,7 +95,7 @@ test('YM2608 port client and real worklet core: rhythm, SSG, ADPCM memory, reset
     const rejection = assert.rejects(cancelled, /cancelled/);
     synth.resetRegisters(); await rejection;
     // Execute the actual example without a global fm; every scheduled hit must sound.
-    const example = await readFile(new URL('../docs/playground/examples/pc98/ym2608-rhythm.js', runtimeDirectoryUrl), 'utf8');
+    const example = await readFile(new URL('../../docs/playground/examples/pc98/ym2608-rhythm.js',runtimeDirectoryUrl), 'utf8');
     let hits = 0;
     const run = new (Object.getPrototypeOf(async function() {}).constructor)('createSoundChip', 'sleep', example);
     await run(async name => { assert.equal(name, 'ym2608'); return synth; }, async seconds => {

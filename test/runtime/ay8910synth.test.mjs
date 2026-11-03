@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChip} from '../../web/soundchip.js';
-import {AY8910Synth,AY8910DirectTransport,AY8910_CLOCK,ay8910PeriodFromHz} from '../../web/ay8910synth.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {AY8910Synth,AY8910DirectTransport,AY8910_CLOCK,ay8910PeriodFromHz} from '../../tetorica_src/runtime/ay8910synth.js';
 
 function capture() {
   const writes = []; let resets = 0;

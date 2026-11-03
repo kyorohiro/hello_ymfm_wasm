@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
-import {createPlaygroundClock} from '../../web/playground_clock.js';
+import {createLoopAsyncTasks} from '../../tetorica_src/runtime/playground_async_tasks.js';
+import {createPlaygroundClock} from '../../tetorica_src/runtime/playground_clock.js';
 for(const method of ['sleep','sleepSamples','beat'])test(`tracked failure interrupts ${method} and the next wait with original reason`,async()=>{
  let current={runToken:1};const failed=current,other={runToken:1};let reject;
  const clock=createPlaygroundClock({runtime:{bpm:120,clockStartTime:0,sampleClockStartTime:0},getAudioContext:()=>({currentTime:0}),getCurrentRunToken:()=>1,getCurrentLoopContext:()=>current,setCurrentLoopContext:s=>{current=s;},setTimer:setTimeout});

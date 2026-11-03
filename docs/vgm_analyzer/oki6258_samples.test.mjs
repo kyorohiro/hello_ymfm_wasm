@@ -5,8 +5,8 @@ import vm from 'node:vm';
 import {createOki6258Samples} from './oki6258_samples.js';
 import {extractSamples,listSamples,exportSamples} from './sample_core.js';
 import {renderSamplePreview} from './sample_render.js';
-import {getNodePlaybackFactory} from '../../cli/render.js';
-import {exportNodeSamples} from '../../cli/index.js';
+import {getNodePlaybackFactory} from '../../tetorica_src/cli/render.js';
+import {exportNodeSamples} from '../../tetorica_src/cli/index.js';
 import {Oki6258AudioEngine} from '../js/okim6258audioengine.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {chipSupportContext} from './test_helpers/chip_support_context.mjs';
@@ -110,7 +110,7 @@ test('OKI Samples tab routing allows standalone and OPM while pure OPM remains u
 });
 test('CLI OKI inventory, native capture, ZIP and WAV commands succeed',async()=>{
  const {execFileSync}=await import('node:child_process');const {mkdtempSync,rmSync}=await import('node:fs');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
- const dir=mkdtempSync(join(tmpdir(),'oki-samples-')),cli=new URL('../../cli/main.js',import.meta.url),input=new URL('../../test/fixtures/opm-oki-mix.vgm',import.meta.url);
+ const dir=mkdtempSync(join(tmpdir(),'oki-samples-')),cli=new URL('../../tetorica_src/cli/main.js',import.meta.url),input=new URL('../../test/fixtures/opm-oki-mix.vgm',import.meta.url);
  const run=args=>execFileSync(process.execPath,[cli.pathname,'samples',input.pathname,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
  try{
   assert.equal(JSON.parse(run(['--json'])).samples[0].representation,'timed-adpcm');

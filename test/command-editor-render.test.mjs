@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
 import {CommandEditor} from '../docs/vgm_analyzer/command_editor.js';
 test('editing SCC key data changes rendered audio while original remains playable',async()=>{
  const bytes=await readSource(new URL('./fixtures/msx-scc.vgz',import.meta.url)),editor=new CommandEditor(bytes);

@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 test('actual PS1 core edits ADSR in each running stage without resetting sample phase or level',async t=>{
   const compiler=process.env.CXX||'c++',probe=spawnSync(compiler,['--version'],{encoding:'utf8'});
   if(probe.error?.code==='ENOENT'){t.skip('C++ compiler unavailable');return;}

@@ -3,7 +3,7 @@ import {
   parseTfi,
   tfiDetuneToYm2612Detune,
   ym2612DetuneToTfiDetune,
-} from "../web/tfi.js";
+} from "../tetorica_src/runtime/tfi.js";
 
 function expectEqual(actual, expected, label) {
   if (actual !== expected) {

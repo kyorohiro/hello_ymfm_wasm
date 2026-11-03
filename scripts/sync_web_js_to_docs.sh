@@ -3,13 +3,13 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-WEB_DIR="${ROOT_DIR}/web"
+WEB_DIR="${ROOT_DIR}/tetorica_src/runtime"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 
 node "${ROOT_DIR}/scripts/sync_tutorial_sources.mjs"
 
 # Copy only the browser-side runtime files that are intended to stay shared
-# between `web/` and `docs/js/`.
+# between `tetorica_src/runtime/` and `docs/js/`.
 #
 SYNC_FILES="
 cdda_source.js
@@ -373,6 +373,8 @@ for file in ${SYNC_FILES}; do
   cp "${src}" "${dst}"
   echo "synced ${file}"
 done
+
+node "${ROOT_DIR}/scripts/runtime_module_layout.mjs" "${DOCS_JS_DIR}"
 
 perl -0pi -e 's#"\./generated/ym2612_wasm\.js"#"../generated/ym2612_wasm.js"#g' \
   "${DOCS_JS_DIR}/ym2612-worklet.js"

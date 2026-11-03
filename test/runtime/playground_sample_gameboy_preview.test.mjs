@@ -1,17 +1,17 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {renderGameboySampleComparison, renderGameboySamplePreview} from '../../web/playground_sample_gameboy_preview.js';
-import {renderGameboyWave, renderSampleEdit} from '../../web/playground_sample_edit.js';
-import {createSampleInstrument} from '../../web/playground_sample_instrument.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {GameboyDirectTransport, GameboySynth} from '../../web/gameboysynth.js';
-import {SOUNDCHIP_MIXER_LISTENING_LEVELS} from '../../web/soundchip_mixer_presets.js';
+import {renderGameboySampleComparison, renderGameboySamplePreview} from '../../tetorica_src/runtime/playground_sample_gameboy_preview.js';
+import {renderGameboyWave, renderSampleEdit} from '../../tetorica_src/runtime/playground_sample_edit.js';
+import {createSampleInstrument} from '../../tetorica_src/runtime/playground_sample_instrument.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboyDirectTransport, GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
+import {SOUNDCHIP_MIXER_LISTENING_LEVELS} from '../../tetorica_src/runtime/soundchip_mixer_presets.js';
 import moduleFactory from '../../docs/generated/gameboy_apu_wasm.js';
 
-const moduleOptions = {wasmBinary: readFileSync(new URL('../docs/generated/gameboy_apu_wasm.wasm', runtimeDirectoryUrl))};
+const moduleOptions = {wasmBinary: readFileSync(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))};
 const coreOptions = {moduleFactory, moduleOptions};
 const cycle = (frames = 128) => ({channels: [Float32Array.from({length: frames}, (_, i) => .8 * Math.sin(2 * Math.PI * i / frames))], sampleRate: 32000});
 const rms = values => Math.sqrt(values.reduce((sum, value) => sum + value * value, 0) / values.length);

@@ -6,10 +6,10 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ym3526} from '../web/ym3526.js';
-import {Ym3526AudioEngine} from '../web/ym3526audioengine.js';
-import {oplPitchFromHz} from '../web/opl_synth.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {Ym3526} from '../tetorica_src/runtime/ym3526.js';
+import {Ym3526AudioEngine} from '../tetorica_src/runtime/ym3526audioengine.js';
+import {oplPitchFromHz} from '../tetorica_src/runtime/opl_synth.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -242,11 +242,11 @@ async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
   assert(!sdk.metadata.exports.some(e=>/save_state|load_state/.test(e.name)),'No invented state exports');
-  const wrappers=['web/ym3526.js','docs/js/ym3526.js','web/ym3526audioengine.js','docs/js/ym3526audioengine.js'];
+  const wrappers=['tetorica_src/runtime/ym3526.js','docs/js/ym3526.js','tetorica_src/runtime/ym3526audioengine.js','docs/js/ym3526audioengine.js'];
   const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ym3526|soundchip|segapsg)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,layouts,probeFrames,
     method:'Actual generated JS/WASM and unchanged synchronous Ym3526 wrapper/AudioEngine. Exact mono stereo PCM, explicit post-scenario PCM probes, rate/read/status/IRQ hooks, held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.',
-    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(['web/opl_synth.js','web/vgmplayer.js','web/ym2612vgm.js','docs/vgm_analyzer/seek_playback.js'].map(p=>inputFile(resolve(root,p))))},
+    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(['tetorica_src/runtime/opl_synth.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','docs/vgm_analyzer/seek_playback.js'].map(p=>inputFile(resolve(root,p))))},
     wrapperSync:'Byte-identical after removing only deployed ym3526.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.',
     authoredInput:'Original synthetic two-operator register programs. YM3526 OPL1 has one sine waveform; OPL2 waveform selection writes are verified to leave PCM unchanged.',wrapperChecks:{},playerChecks:{},cases:[],scenarioBodyOutputStereoFrames:0,postScenarioProbeOutputStereoFrames:0,totalOutputStereoFrames:0,resetReplayExecutions:0,maximumDifference:0,
     limits:['Native PCM runs at floor(clock/72). The OPL1 core supplies one mono output copied to both sides. Engine cases test averaging/holding at separate output rates, without optional Sega PSG.',

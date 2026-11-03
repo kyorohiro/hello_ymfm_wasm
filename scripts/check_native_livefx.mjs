@@ -7,8 +7,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {LiveFX} from '../web/custom_fx.js';
-import {encodeNativeLiveFxContext} from '../web/native_livefx_context.js';
+import {LiveFX} from '../tetorica_src/runtime/custom_fx.js';
+import {encodeNativeLiveFxContext} from '../tetorica_src/runtime/native_livefx_context.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri');

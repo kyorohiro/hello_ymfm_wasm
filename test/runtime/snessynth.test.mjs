@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SnesSynth,prepareSnesBRR} from '../../web/snessynth.js';
+import {SnesSynth,prepareSnesBRR} from '../../tetorica_src/runtime/snessynth.js';
 const brr=(loop=true)=>new Uint8Array([0x10,...Array(8).fill(0x77),loop?0x13:0x11,...Array(8).fill(0x88)]);
 function setup(){const memory=new Uint8Array(65536),dsp=new Uint8Array(128),writes=[];let frames=0;const core={get nativeFrames(){return frames;},reset(){memory.fill(0);dsp.fill(0);frames=0;},loadRam(b,at){memory.set(b,at);},writeDsp(r,v){dsp[r]=v;writes.push([r,v]);},readDsp:r=>dsp[r],snapshot:()=>({ram:memory.slice(),dsp:dsp.slice(),nativeFrames:frames}),renderInto(l,r,n){l.fill(0);r.fill(0);frames+=n;},dispose(){}};const synth=new SnesSynth({core});return{synth,core,memory,dsp,writes};}
 test('SNES BRR tuning and loop metadata must be explicit and validated before upload',()=>{

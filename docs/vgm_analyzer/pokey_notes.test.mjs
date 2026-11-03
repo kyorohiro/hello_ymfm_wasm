@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPokeyMonitor, applyPokeyWrite, describePokeyNotes} from './pokey_notes.js';
-import {PokeySynth} from '../../web/pokeysynth.js';
+import {PokeySynth} from '../../tetorica_src/runtime/pokeysynth.js';
 
 test('POKEY reset shadow matches the pinned core, with independent physical chips', () => {
   const state = createPokeyMonitor({pokeyClock: 1789773 | 0x40000000});

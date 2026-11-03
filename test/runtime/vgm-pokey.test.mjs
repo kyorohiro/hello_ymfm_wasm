@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
-import {VgmPlayer, createVgmTargets} from '../../web/vgmplayer.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
+import {VgmPlayer, createVgmTargets} from '../../tetorica_src/runtime/vgmplayer.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 import {createPokeyVgm} from '../helpers/pokey_vgm_fixture.mjs';
 
 function pokeyBytes(commands, {dual=false, clock=1789790}={}) {

@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {Ym2610B} from '../../web/ym2610b.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
 
 const chips = [
   ['ym2203', Ym2203], ['ym2608', Ym2608],
@@ -14,7 +14,7 @@ const chips = [
 
 async function create(name, Chip, variant) {
   const {default: moduleFactory} = await import(`../../docs/generated/${name}_wasm.js`);
-  const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl));
   const chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary}, variant});
   const write = (register, value) => {chip.write(0, register); chip.write(1, value);};
   // Program a sustained FM note and a pure SSG tone. The same bus sequence is

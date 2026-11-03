@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {GameboySynth} from '../../web/gameboysynth.js';
-import {YM2612Synth} from '../../web/ym2612synth.js';
-import {YM2203Synth} from '../../web/ym2203synth.js';
-import {YM2608Synth} from '../../web/ym2608synth.js';
-import {YM2610BSynth} from '../../web/ym2610bsynth.js';
-import {OPNWorkletTransport} from '../../web/opn_fm_synth.js';
-import {createPerformanceQueue} from '../../web/playground_performance_queue.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
+import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {OPNWorkletTransport} from '../../tetorica_src/runtime/opn_fm_synth.js';
+import {createPerformanceQueue} from '../../tetorica_src/runtime/playground_performance_queue.js';
 
 test('replacing a performance port retires its session and removes already reserved commands', () => {
   const applied = [];

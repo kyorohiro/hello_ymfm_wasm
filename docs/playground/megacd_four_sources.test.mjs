@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {MessageChannel} from 'node:worker_threads';
 import {MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES} from './playground_examples.js';
-import {createCddaOffline} from '../../web/cdda_offline.js';
-import {parseCddaWav} from '../../web/cdda_source.js';
-import {Rf5c164} from '../../web/rf5c164.js';
-import {createRf5c164Client, createRf5c164Control} from '../../web/playground_rf5c164.js';
+import {createCddaOffline} from '../../tetorica_src/runtime/cdda_offline.js';
+import {parseCddaWav} from '../../tetorica_src/runtime/cdda_source.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
+import {createRf5c164Client, createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 import factory from '../generated/rf5c164_wasm.js';
 
 const source = await readFile(new URL('./examples/mega-cd/megacd-four-sources.js', import.meta.url), 'utf8');

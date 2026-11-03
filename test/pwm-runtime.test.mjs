@@ -1,14 +1,14 @@
 import test from 'node:test';
-import {createProcessorPerformance} from '../web/playground_performance_processor.js';
-import {validateChipClock} from '../web/playground_chip_clock.js';
+import {createProcessorPerformance} from '../tetorica_src/runtime/playground_performance_processor.js';
+import {validateChipClock} from '../tetorica_src/runtime/playground_chip_clock.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {PWM32XPlayback, PWM_METHODS} from '../web/pwm32x_playback.js';
-import {createMegaSynthOffline} from '../web/megasynth_offline.js';
-import {MegaSynthNode} from '../node/megasynth.mjs';
-import {createSoundChip} from '../web/soundchip.js';
-import {PWM32XDirectTransport} from '../web/pwm32x_transport.js';
+import {PWM32XPlayback, PWM_METHODS} from '../tetorica_src/runtime/pwm32x_playback.js';
+import {createMegaSynthOffline} from '../tetorica_src/runtime/megasynth_offline.js';
+import {MegaSynthNode} from '../tetorica_src/node/megasynth.mjs';
+import {createSoundChip} from '../tetorica_src/runtime/soundchip.js';
+import {PWM32XDirectTransport} from '../tetorica_src/runtime/pwm32x_transport.js';
 
 // Stereo impulse changes at exact output frames. Pulse widths straddle neutral.
 const entries = [{frame: 0, register: 0, value: 5}, {frame: 0, register: 1, value: 1047}];
@@ -54,7 +54,7 @@ test('Node Worker, offline MegaSynth and browser PWM processor render identical 
       createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
       AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
       registerProcessor(_name, Type) {Processor = Type;}};
-    vm.runInNewContext(fs.readFileSync(new URL('../web/playground_pwm_worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+    vm.runInNewContext(fs.readFileSync(new URL('../tetorica_src/runtime/playground_pwm_worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
     const processor = new Processor({processorOptions: {}});
     await new Promise(resolve=>setTimeout(resolve,0));
     for(let attempt=0;!processor.pwm&&attempt<100;attempt++)await new Promise(resolve=>setTimeout(resolve,10));

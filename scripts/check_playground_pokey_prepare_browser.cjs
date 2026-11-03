@@ -217,7 +217,7 @@ async function snapshot(){
   }
 }
 async function independentPcm(result){
-  const [{PokeyAudioEngine},{default:factory},wasmBinary]=await Promise.all([import(pathToFileURL(path.join(repository,'web/pokeyaudioengine.js'))),import(pathToFileURL(path.join(root,'generated/pokey_wasm.js'))),fs.readFile(path.join(root,'generated/pokey_wasm.wasm'))]);
+  const [{PokeyAudioEngine},{default:factory},wasmBinary]=await Promise.all([import(pathToFileURL(path.join(repository,'tetorica_src/runtime/pokeyaudioengine.js'))),import(pathToFileURL(path.join(root,'generated/pokey_wasm.js'))),fs.readFile(path.join(root,'generated/pokey_wasm.wasm'))]);
   const engine=await PokeyAudioEngine.create({moduleFactory:factory,moduleOptions:{wasmBinary},clock:1789790,outputSampleRate:result.sampleRate});
   const bytes=Buffer.from(result.subjectBase64,'base64'),actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.byteLength/4),offset=result.capture.firstFrame-result.toneStartFrame;
   assert(offset>=0);let maximumDifference=0,mismatchedSamples=0,firstMismatch=null;

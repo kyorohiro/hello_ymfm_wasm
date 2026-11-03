@@ -8,7 +8,7 @@ const address=value=>{if(!Number.isInteger(value)||!((value>=0x4000&&value<=0x40
 async function load(options){
   options.signal?.throwIfAborted();
   if(options.moduleFactory)return options;
-  const base=new URL(options.assetBaseUrl??(import.meta.url.includes('/web/')?'../docs/generated/':'../generated/'),import.meta.url);
+  const base=new URL(options.assetBaseUrl??'./generated/',import.meta.url);
   const {default:moduleFactory}=await import(new URL('nesapu_wasm.js',base).href),moduleOptions={...options.moduleOptions};
   if(moduleOptions.wasmBinary===undefined&&!moduleOptions.locateFile){
     const url=new URL('nesapu_wasm.wasm',base);

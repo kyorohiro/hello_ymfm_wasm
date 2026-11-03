@@ -8,7 +8,7 @@ const olderKinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413
 function installExtraPwmMock(native){
   const invoke=native.invoke.bind(native);native.extraPwm=new Map();
   async function fresh(){
-    const {PWM32X}=await import('../web/pwm32x.js');
+    const {PWM32X}=await import("../tetorica_src/runtime/pwm32x.js");
     return {chip:new PWM32X({sampleRate:48000,clock:23011361,outputMode:'duty',gain:1}),queue:[],order:0,lastSchedule:null,mix:{volume:1,pan:0}};
   }
   function advance(s){const frame=native.status().frame;while(s.queue[0]?.frame<=frame){const op=s.queue.shift();s.chip.writeRegister(op.register,op.value);}}

@@ -9,8 +9,8 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {createMSM5205PCM, MSM5205_PCM_MAX_BYTES} from '../web/msm5205_pcm.js';
-import {Msm5205AudioEngine} from '../web/msm5205audioengine.js';
+import {createMSM5205PCM, MSM5205_PCM_MAX_BYTES} from '../tetorica_src/runtime/msm5205_pcm.js';
+import {Msm5205AudioEngine} from '../tetorica_src/runtime/msm5205audioengine.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const temp = await mkdtemp(join(tmpdir(), 'tetorica-msm5205-core-'));
@@ -84,7 +84,7 @@ run(process.env.CC || 'clang', ['-std=c11', '-Wall', '-Wextra', '-Werror', '-c',
 
 const bytes = Uint8Array.from({length: 65536}, (_, i) => (i * 73 + (i >> 3) + 0x37) & 255);
 await writeFile(join(temp, 'ram.adpcm'), bytes);
-const wasmBinary = await readFile(join(root, 'web/generated/msm5205_wasm.wasm'));
+const wasmBinary = await readFile(join(root, 'tetorica_src/runtime/generated/msm5205_wasm.wasm'));
 const module = new WebAssembly.Module(wasmBinary);
 assert.deepEqual(WebAssembly.Module.imports(module), []);
 const {instance} = await WebAssembly.instantiate(wasmBinary, {});

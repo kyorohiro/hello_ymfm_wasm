@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {buildSpcSongSource} from './playground_spc_song_source.js';
-import {createPlaygroundClock,createSecondsTimeline} from '../../web/playground_clock.js';
+import {createPlaygroundClock,createSecondsTimeline} from '../../tetorica_src/runtime/playground_clock.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 const DIRECTORY = '/spc/timing';

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2608Timeline} from '../../web/playground_ym2608_timeline.js';
+import {Ym2608Timeline} from '../../tetorica_src/runtime/playground_ym2608_timeline.js';
 test('timeline applies memory and both ports in order at 48k output frames, and repeats',()=>{
  let frame=0;const calls=[],replies=[];
  const engine={ym2608:{reset(){calls.push([frame,'reset']);}},writeYm2608(...args){calls.push([frame,'write',...args]);},loadAdpcmBMemory(b,offset){calls.push([frame,'memory',offset,...b]);},process(l,r,n){frame+=n;l.fill(0);r.fill(0);}};

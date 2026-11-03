@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createWorkerDac} from '../../web/playground_worker_dac.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
+import {createWorkerDac} from '../../tetorica_src/runtime/playground_worker_dac.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
 
 test('DAC views, validation and retained bank data', async () => {
  const commands=[], d=createWorkerDac(c=>commands.push(c));

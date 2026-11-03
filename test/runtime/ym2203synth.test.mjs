@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {YM2203Synth, YM2203DirectTransport} from '../../web/ym2203synth.js';
-import {Ym2203} from '../../web/ym2203.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {hzToBlockFnum} from '../../web/pitch.js';
+import {YM2203Synth, YM2203DirectTransport} from '../../tetorica_src/runtime/ym2203synth.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {hzToBlockFnum} from '../../tetorica_src/runtime/pitch.js';
 
 test('SSG mixer preserves raw writes, other channels and I/O; reset stays within SSG', () => {
   const writes = [];
@@ -40,7 +40,7 @@ test('SSG mixer preserves raw writes, other channels and I/O; reset stays within
 test('real YM2203: SSG frequency, silence and reset while FM remains active', async () => {
   const {default: moduleFactory} = await import("../../docs/generated/ym2203_wasm.js");
   const chip = await Ym2203.create({moduleFactory, moduleOptions: {
-    wasmBinary: await readFile(new URL('../docs/generated/ym2203_wasm.wasm', runtimeDirectoryUrl)),
+    wasmBinary: await readFile(new URL('../../docs/generated/ym2203_wasm.wasm',runtimeDirectoryUrl)),
   }});
   const peak = a => a.reduce((p,x) => Math.max(p, Math.abs(x)), 0);
   try {

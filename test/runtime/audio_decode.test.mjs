@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOfflineAudioDecoder,normalizeLocalMediaUrl} from '../../web/audio_decode.js';
+import {createOfflineAudioDecoder,normalizeLocalMediaUrl} from '../../tetorica_src/runtime/audio_decode.js';
 
 test('offline preparation is lazy, reuses its decoder and preserves detached input ownership',async t=>{
   const previous=globalThis.OfflineAudioContext,created=[];

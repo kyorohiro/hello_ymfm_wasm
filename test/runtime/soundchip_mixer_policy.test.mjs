@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SoundChipMixer} from '../../web/soundchip_mixer.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip_mixer.js';
 const defaults = kinds => ({version:1,kinds});
 const state = entries => ({version:1,entries});
 

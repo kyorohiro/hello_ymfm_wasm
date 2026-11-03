@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ymFactory from '../../docs/generated/ym2612_wasm.js';
 import psgFactory from '../../docs/generated/segapsg_wasm.js';
 import pcmFactory from '../../docs/generated/rf5c164_wasm.js';
-import {GenesisAudioEngine, SimplePwm} from '../../web/genesisaudioengine.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {GenesisAudioEngine, SimplePwm} from '../../tetorica_src/runtime/genesisaudioengine.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
-const options=name=>({wasmBinary:readFileSync(new URL(`../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))});
+const options=name=>({wasmBinary:readFileSync(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))});
 async function make(pcm=true) {
  return GenesisAudioEngine.create({ym2612ModuleFactory:ymFactory,ym2612ModuleOptions:options('ym2612'),
   segaPsgModuleFactory:psgFactory,segaPsgModuleOptions:options('segapsg'),
@@ -132,8 +132,8 @@ test('first-pass checkpoints remain correct after looping; near end/zero and can
 });
 
 test('Analyzer preparation retains same-track checkpoints and restores monitor snapshots',async()=>{
- const {default:vm}=await import('node:vm');const {Ym2612VGM}=await import("../../web/ym2612vgm.js");
- const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
+ const {default:vm}=await import('node:vm');const {Ym2612VGM}=await import("../../tetorica_src/runtime/ym2612vgm.js");
+ const source=readFileSync(new URL('../../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
  const body=source.slice(source.indexOf('async function ensurePlaybackReady('),source.indexOf('\nfunction isPlaybackReady('));
  const e=await make(false);try {
   let renders=0;const bytes=song();

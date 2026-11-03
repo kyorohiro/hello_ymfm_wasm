@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {exportRf5c164Vgm as exportLiveRf5c164Vgm, detectVgmImport, prepareVgmImport} from './playground_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
-import {Rf5c164} from '../../web/rf5c164.js';
+import {Rf5c164} from '../../tetorica_src/runtime/rf5c164.js';
 import factory from '../generated/rf5c164_wasm.js';
-import {RF5C164Synth} from '../../web/rf5c164synth.js';
+import {RF5C164Synth} from '../../tetorica_src/runtime/rf5c164synth.js';
 const exportRf5c164Vgm=(input,options={})=>exportLiveRf5c164Vgm(input,{loop:false,...options});
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 function vgm(commands) {

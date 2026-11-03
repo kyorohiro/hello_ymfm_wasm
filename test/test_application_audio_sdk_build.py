@@ -62,7 +62,7 @@ else:
                 output = self.work / ('custom output ' + name)
                 result = self.invoke(name, str(output))
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertFalse((self.root / 'native').exists(), 'No local native source mirror is supplied')
+                self.assertFalse((self.root / 'tetorica_src/native').exists(), 'No local native source mirror is supplied')
                 records = [json.loads(line) for line in self.log.read_text().splitlines()]
                 args = records[-1]['arguments']
                 self.assertEqual(set(arg for arg in args if arg.endswith('.c')), {
@@ -82,11 +82,11 @@ else:
                 self.assertEqual(receipt['compiler']['command'], str(self.compiler))
                 self.assertEqual(len(receipt['sourceFiles']), 4)
 
-    def test_default_output_stays_in_web_generated(self):
+    def test_default_output_stays_in_canonical_generated(self):
         result = self.invoke('cdda')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue((self.root / 'web/generated/cdda_wasm.js').is_file())
-        self.assertTrue((self.root / 'web/generated/cdda_wasm.wasm').is_file())
+        self.assertTrue((self.root / 'tetorica_src/runtime/generated/cdda_wasm.js').is_file())
+        self.assertTrue((self.root / 'tetorica_src/runtime/generated/cdda_wasm.wasm').is_file())
 
     def test_modified_sdk_is_rejected_before_invoking_a_compiler_or_creating_outputs(self):
         target = self.root / SDK / 'vendor/ymfm/ymfm.h'

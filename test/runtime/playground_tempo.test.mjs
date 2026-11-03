@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPlaygroundClock} from '../../web/playground_clock.js';
-import {createPlaygroundMusic} from '../../web/playground_music.js';
-import {createMidiApi} from '../../web/playground_midi.js';
-import {NativeFXEngine} from '../../web/native_fx_engine.js';
+import {createPlaygroundClock} from '../../tetorica_src/runtime/playground_clock.js';
+import {createPlaygroundMusic} from '../../tetorica_src/runtime/playground_music.js';
+import {createMidiApi} from '../../tetorica_src/runtime/playground_midi.js';
+import {NativeFXEngine} from '../../tetorica_src/runtime/native_fx_engine.js';
 
 function fixture() {
   let time=0, token=1, context=null;

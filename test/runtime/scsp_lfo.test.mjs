@@ -1,10 +1,10 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
-import factory from '../../docs/generated/scsp_wasm.js';import {Scsp} from '../../web/scsp.js';
-import {ScspSynth,createScspInitSample,SCSP_LFO_FREQUENCIES_HZ} from '../../web/scspsynth.js';
-const wasmBinary=await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));let module;
+import factory from '../../docs/generated/scsp_wasm.js';import {Scsp} from '../../tetorica_src/runtime/scsp.js';
+import {ScspSynth,createScspInitSample,SCSP_LFO_FREQUENCIES_HZ} from '../../tetorica_src/runtime/scspsynth.js';
+const wasmBinary=await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));let module;
 async function create(t,constant=false){const core=await Scsp.create({moduleFactory:async()=>module??=await factory({wasmBinary})}),synth=new ScspSynth(core);t.after(()=>synth.dispose());const source=constant?{pcm:new Int16Array([8192,8192]),options:{rootNote:69,loopStartSamples:0}}:createScspInitSample();const sample=synth.loadPCM(source.pcm,source.options);synth.setPreset(0,{sample,frequencyHz:constant?440:44100/64});return {core,synth,sample};}
 const span=a=>{let lo=1,hi=-1;for(const x of a){lo=Math.min(lo,x);hi=Math.max(hi,x);}return hi-lo;};
 test('all 32 LFO rates move at the nominal frequency, including the formerly stalled slow range',async t=>{

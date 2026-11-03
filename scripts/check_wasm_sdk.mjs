@@ -280,7 +280,7 @@ export async function checkWasmSdk(options={}) {
       allowApplicationAudio:allowReferenceApplicationAudio});
     const dx7=await metadata(join(referenceDirectory,'msfa.wasm'));
     summary.dx7RuntimeCopies=[];
-    for(const name of ['web/msfa_dx7/wasm/msfa.wasm','docs/js/msfa_dx7/wasm/msfa.wasm']){
+    for(const name of ['tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm','docs/js/msfa_dx7/wasm/msfa.wasm']){
       const copy=await metadata(join(root,name));assert.equal(copy.sha256,dx7.sha256,'DX7 runtime copy differs from central build: '+name);assert.equal(copy.bytes,dx7.bytes);summary.dx7RuntimeCopies.push(copy);
     }
     const reference=join(workDirectory,'reference'),candidate=join(workDirectory,'rebuilt');

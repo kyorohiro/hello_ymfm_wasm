@@ -1,19 +1,19 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from '../../web/ym2612synth.js';
-import {YM2203Synth} from '../../web/ym2203synth.js';
-import {YM2608Synth} from '../../web/ym2608synth.js';
-import {YM2610BSynth} from '../../web/ym2610bsynth.js';
-import {OPNWorkletTransport} from '../../web/opn_fm_synth.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand} from '../../web/playground_audition_guard.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
+import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {OPNWorkletTransport} from '../../tetorica_src/runtime/opn_fm_synth.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
 
 const synths=[['YM2612',YM2612Synth],['YM2203',YM2203Synth],['YM2608',YM2608Synth],['YM2610B',YM2610BSynth]];
 for(const [name,Synth] of synths){
@@ -131,9 +131,9 @@ test('immediate Main pairs do not drain or move timed Worker reservations',()=>{
 });
 
 test('real YM2612 retains identical PCM when a write observer reenters another channel',async t=>{
-  const {Ym2612}=await import("../../web/ym2612.js");
+  const {Ym2612}=await import("../../tetorica_src/runtime/ym2612.js");
   const factory=(await import("../../docs/generated/ym2612_wasm.js")).default;
-  const wasmBinary=await readFile(new URL('../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl));
+  const wasmBinary=await readFile(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl));
   const render=async nested=>{
     const chip=await Ym2612.create({moduleFactory:factory,moduleOptions:{wasmBinary}});t.after(()=>chip.dispose());
     const synth=new YM2612Synth({transport:new YM2612DirectTransport(chip)});

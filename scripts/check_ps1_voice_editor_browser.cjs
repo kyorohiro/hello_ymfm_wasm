@@ -599,7 +599,7 @@ async function checkVab(page,execution){
   assert.deepEqual(settings(imported).slice(0,23),settings(before).slice(0,23),'Other physical voices retain their instruments');
   assert.equal(sample.byteLength,64);assert.equal(sample.rootFrequencyHz,440*2**((59.5-69)/12));assert.equal(imported.channels[23].adsr1,15);assert.equal(imported.channels[23].adsr2,0);
   const uploads=await page.evaluate(()=>__ps1Audit.commands.filter(c=>c.method==='loadTone').map(c=>c.args));
-  const {createPs1InitSample}=await import('../web/ps1synth.js');assert.deepEqual(Object.values(uploads.at(-1)[1]),Array.from(createPs1InitSample().adpcm));
+  const {createPs1InitSample}=await import("../tetorica_src/runtime/ps1synth.js");assert.deepEqual(Object.values(uploads.at(-1)[1]),Array.from(createPs1InitSample().adpcm));
   await field(page,'audition-midi',60);const hz=44100/112*2**(.5/12);
   const pcm=await latch(page,'Imported VAB fine-tuned Tone',hz);await page.locator(action('release')).click();await silent(page,'Imported VAB release');
   await page.locator(action('vab-load')).click();await page.waitForFunction(()=>!document.querySelector('[data-chip-action="ps1-vab-load"]').disabled);

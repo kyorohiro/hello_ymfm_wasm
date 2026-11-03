@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createPlaygroundYm2413VoicePanel,ym2413VoiceCode} from './playground_ym2413_voice_panel.js';
-import {YM2413Synth} from '../../web/ym2413synth.js';
+import {YM2413Synth} from '../../tetorica_src/runtime/ym2413synth.js';
 
 class Events {
   constructor() {this.listeners = new Map();}

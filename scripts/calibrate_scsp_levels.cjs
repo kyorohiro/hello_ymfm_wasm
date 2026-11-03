@@ -95,7 +95,7 @@ async function capture(page,{seconds=1,warmup=1}={}){
 async function main(){
   for(const [values,allowed,label]of [[options.engines,['chromium','webkit'],'engines'],[options.rates,[44100,48000],'sample rates'],[options.executions,['main','worker'],'executions'],[options.roles,['primary','extra'],'roles'],[options.frequencies,[220,440,880],'frequencies']])assert(values.length&&new Set(values).size===values.length&&values.every(value=>allowed.includes(value)),'Invalid '+label);
   const referencePath=path.join(__dirname,'soundchip_calibration_scsp.mjs'),fmPath=path.join(__dirname,'soundchip_calibration_fm.mjs'),helperPath=require.resolve('./audio_clock_audit.cjs');
-  const files=[__filename,referencePath,fmPath,helperPath,historicalPath,path.join(root,'web/scspsynth.js'),path.join(root,'web/soundchip_pitch.js')],initialHashes=Object.fromEntries(await Promise.all(files.map(async file=>[path.relative(root,file),sha(await fs.readFile(file))])));
+  const files=[__filename,referencePath,fmPath,helperPath,historicalPath,path.join(root,'tetorica_src/runtime/scspsynth.js'),path.join(root,'tetorica_src/runtime/soundchip_pitch.js')],initialHashes=Object.fromEntries(await Promise.all(files.map(async file=>[path.relative(root,file),sha(await fs.readFile(file))])));
   const historical=JSON.parse(await fs.readFile(historicalPath,'utf8'));
   assert.equal(historical.rows.length,153,'Immutable complete historical baseline');assert.equal(historical.calibration.targetAmplitude,0.12881777435541153,'Unchanged common target');
   const baseline=options.baseline?JSON.parse(await fs.readFile(path.resolve(options.baseline),'utf8')):null;

@@ -1,23 +1,23 @@
 # リポジトリー直下のフォルダー整理
 
-2026-11-03。ユーザーの「cli...webまで、直下のFolderが雑然としている」を受けた調査・配置案。同日の「進めて」を受け、教材・利用例の整理とテスト分離を実装した。追加指定「src/、examples/はymfm由来だからそのまま」「tetorica_src、tetorica_examplesにまとめますか」を優先し、上流と独自追加を分ける方針へ更新した。`web/`、`cli/`、`node/`等の実装移動は次段階。
+2026-11-03。ユーザーの「cli...webまで、直下のFolderが雑然としている」を受けた調査・配置案。同日の「進めて」を受け、教材・利用例の整理とテスト分離を実装した。追加指定「src/、examples/はymfm由来だからそのまま」「tetorica_src、tetorica_examplesにまとめますか」を優先し、上流と独自追加を分ける方針へ更新した。2026-11-04、共有runtime・Node・CLI・Native FX・WASMブリッジの移動と配布経路の更新まで実装した。
 
-関連：[web/と生成物の整理](todo_web_organization_01.md)、[現在のソース案内](../../web/README.md)。Tetoricaの既存4つのGoalを維持する。
+関連：[web/と生成物の整理](todo_web_organization_01.md)、[現在のソース案内](../../tetorica_src/README.md)。Tetoricaの既存4つのGoalを維持する。
 
 ## 目指す配置
 
-ymfm由来の`src/`・`examples/`は元の配置で維持する。Tetorica独自実装は`tetorica_src/`、独自の利用例は`tetorica_examples/`へまとめる。フォルダー数を一律に減らすより、由来と編集場所を明確にする。最終的な管理対象の直下は下記10フォルダーの案。
+ymfm由来の`src/`・`examples/`は元の配置で維持する。Tetorica独自実装は`tetorica_src/`、独自の利用例は`tetorica_examples/`へまとめる。フォルダー数を一律に減らすより、由来と編集場所を明確にする。管理対象の直下は下記10フォルダーになった。
 
 ```text
 src/                        # ymfm由来。現在の配置を維持
 examples/                   # ymfm由来のbuildall/・vgmrender/を維持
 tetorica_src/
-  runtime/                  # 現web/。Browser/Node共通の音源JS、Synth、Worklet等
+  runtime/                  # 旧web/。Browser/Node共通の音源JS、Synth、Worklet等
     generated/              # 全WASM・loader・metadataの正本
   node/                     # Node音声出力・Workerアダプター
   cli/                      # VGM CLI / Node解析APIの入口
   native/                   # Tetorica独自のNative FX
-  wasm/                     # 現wasm/。独自ブリッジと比較検証用のビルド入力
+  wasm/                     # 旧wasm/。独自ブリッジと比較検証用のビルド入力
 tetorica_examples/          # 実装済み。独自のbrowser/、nodejs/、cpp/tutorials/
 packages/                   # npm配布定義。virtual-filesは独立した実装も持つ
 docs/                       # 公開サイト、解説、設計・検証記録
@@ -61,11 +61,12 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - [x] `demos/`とTetorica独自のC++・Node・Browser利用例を`tetorica_examples/`へ集め、上流の`examples/buildall/`・`examples/vgmrender/`を元の位置へ戻す。
 - [x] `tutorials/`の英日`ex00`を`docs/tutorials/`の版と比較し、双方の内容を保持して統合する。他の4件はバイト一致を確認済み。公開教材へのリンクも確認する。
 - [x] web直下のテスト277件を`test/runtime/`へ分離する。CI、npm scripts、fixture、動的import、型検証も更新する。
-- [ ] `wasm/`と`native/`を`tetorica_src/`配下へ移し、比較ビルド・教材・Native FXの出力とsource bundleを検証する。
-- [ ] `cli/`と`node/`を`tetorica_src/`配下へ移し、入口・version取得・Worker URL・配布時のパス変換を更新する。
-- [ ] `web/`を`tetorica_src/runtime/`へ移す。WASM探索・manifest・builder・同期・配布・型生成・Tauri側の参照を一度に更新し、生成物の正本を一つに保つ。
-- [ ] 英日README、AI引継ぎ、source guide、build／release案内を実際の配置へ更新する。
-- [ ] npmを実インストールしたPCM・型検証、itch ZIPの依存／source／license検証、ブラウザーのMain／Worker／Workletを確認する。
+- [x] `wasm/`と`native/`を`tetorica_src/`配下へ移し、比較ビルド・教材・Native FXの出力とsource bundleを検証する。
+- [x] `cli/`と`node/`を`tetorica_src/`配下へ移し、入口・version取得・Worker URL・配布時のパス変換を更新する。
+- [x] `web/`を`tetorica_src/runtime/`へ移す。WASM探索・manifest・builder・同期・配布・型生成・Tauri側の参照を一度に更新し、生成物の正本を一つに保つ。
+- [x] 英日README、AI引継ぎ、source guide、build／release案内を実際の配置へ更新する。
+- [x] npmを実インストールしたPCM・型検証、itch ZIPの依存／source／licenseを確認する。
+- [ ] ブラウザーのMain／Worker／Worklet検証を完了する。追加検証の状況は下記に記録。
 
 各段階を独立して検証・再開できる単位にする。ソースの移動にDSP計算・ゲイン変更を混ぜず、移動前後のファイル内容とPCMを比較する。過去の測定報告は歴史的記録として残し、校正の参照パス変更は現行チェックで検証する。
 
@@ -96,18 +97,37 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 
 別途修正する既存テスト／状態復元の課題：
 
-- [ ] `test/runtime/native_runtime_synth.test.mjs`：SCSP停止後の状態を借用クライアントへ渡す際、非発音の`null`が440 Hz／LFO／変調の既定値へ変換される。`web/scspsynth.js`の`_adoptState`でinactive値の保持を検討する。今回assertionは弱めていない。
+- [ ] `test/runtime/native_runtime_synth.test.mjs`：SCSP停止後の状態を借用クライアントへ渡す際、非発音の`null`が440 Hz／LFO／変調の既定値へ変換される。`tetorica_src/runtime/scspsynth.js`の`_adoptState`でinactive値の保持を検討する。今回assertionは弱めていない。
 - [ ] `test/runtime/playground_megacd_default.test.mjs`：現行starterが参照する`cdda`がテスト実行環境に渡されていない。移動前から`ReferenceError: cdda is not defined`で失敗する。
 - [ ] `test/wonderswan-analyzer.test.mjs:32`：現行の測定済みGain 1.172528に対し、古い固定期待値1をassertする。テスト本体とpresetは今回の移行前から未変更。
 
-次は独自実装の`tetorica_src/`への移動。ymfm由来の`src/`・`examples/`を維持したまま進める。
+独自実装の移動は下記第3段階で完了した。ymfm由来の`src/`・`examples/`は維持している。
+
+## 第3段階の実装移動（2026-11-04）
+
+- `web/`・`node/`・`cli/`・`native/`・`wasm/`をそれぞれ`tetorica_src/runtime/`・`node/`・`cli/`・`native/`・`wasm/`へ移した。旧ルートの5フォルダーと互換symlinkは残していない。管理対象の直下は10フォルダーになった。
+- [ソース全体の入口](../../tetorica_src/README.md)を追加。英日README、共有runtime／Nodeガイド、CLI、build／release、AI引継ぎ、利用例を更新。34文書の相対リンク425件とanchor 33件を確認し、README Goalの既存4項目は完全一致を維持した。
+- 相対import・Worker／Worklet・fixture・JSDoc・URL・CLIのversion取得を移行。npm／ZIPの配置は配布境界で変換し、既存の公開import、installed `cli/`・`node/`・`web/`と公開サイトURLを維持する。
+- 33 SDK build wrapper、Native FX、旧OPN比較ビルド、artifact manager／profile、型生成、source bundle、同期、校正、CIの参照を更新した。正本は`tetorica_src/runtime/generated/`一つ。manifest 2件の編集元パスを更新し、33 SDK builds／66 outputs／73 mirrorsの検証に成功した。
+- 過去の校正レポートは変更せず、移設された入力だけを厳密に旧配置へ正規化して元のSHA-256を確認する。SCSP／PSG／AnalyzerにはDSPを1 byte変更した場合などの拒否テストも追加。Analyzer NES／Extra／PSGの再測定はsource記録以外の全JSONが過去reportと一致した。
+- `npm run build:fm2612`・`build:vgm`が成功。FM npm tarballを実インストールし、28 WASM engines、15 chip renderers、PCM、source／license、NodeNext／Bundler／Browser型検証が成功した。VGMもローカルtarballをオフライン実インストールし、168 modules、SPC解析・音程・MIDI／MusicXML／LilyPond・CLI・VGM／S98回帰検査が成功した。ソースの`createSoundChip`でも全21対象を既定のローカルWASM探索で作成し、128 stereo framesの有限なPCMを確認した。
+- 実Playground／Analyzer／Synth ZIPを作成し、依存・source／license・CRCを確認。Playground for_run ZIPは968 entriesで1000以下。SPU／SCSPの個別ZIPはfixtureで正本一致・再現性・自己完結性を確認した。
+- artifact／配布境界の29テスト、recording compilerを使うPython 118件とSDK hash検証が成功。実WASMの全件再コンパイルは行っていない。`test:runtime:types`も成功。全体`npm test`は移行前と同じ4,197件中4,194件成功・既存失敗3件で、新規失敗はない。校正関連293件も成功した。
+- 移行開始前の`src/`25件・`examples/`6件、公開`docs/js/`404件と`docs/generated/`のWASM／loader／build receiptはすべてバイト一致。固定SDKも変更していない。公開JSコピーを一括再生成して変更を混ぜることはしていない。
+- `sync_web_js_to_docs.sh`を使い、移設後のソースと移設前HEADのソースを別々の一時コピーへ同期した。`docs/`全2,499ファイルの出力hashが完全一致し、配布境界の変換を含め同期の回帰がないことを確認した。実リポジトリの公開コピーは変更していない。
+- ローカル別repo `w/tetorica-fm2612-playground-tauri`の親ソースを読むscripts／testsも新旧配置に対応させた。履歴のsnapshot key・pins・SDK・UI・`src-tauri/`・配布物は保持し、Python 36件・JS 33件・オフラインsnapshot 24件、FX 42ケース（差最大1.49e-8）・Noise 54ケース（差0）が成功。この別repoにも未コミット変更がある。SPU Tauriは変更していない。
+
+### 残っている追加ブラウザー検証
+
+- [ ] `node scripts/check_megacd_browser.cjs`：起動・module読み込み後、最初のPCM channel/pan検査が出力0/0で失敗した。移設の影響か既存の検証／実行環境の問題かは未切り分け。assertionは変更していない。
+- [ ] `node scripts/check_megasynth_offline_browser.cjs`：sandboxでローカルサーバーのlistenがEPERM。権限付き再実行は承認待ちのまま中断したため未完了。Core PCM／installed npm検査と公開JSのバイト一致は別途確認済みだが、ブラウザー検証成功とは扱わない。
 
 ## 維持する公開・配布の契約
 
 - npmの公開import、`cli/main.js`、`node/*`、平坦な音源モジュールと生成物の配置を維持する。編集元のディレクトリー変更を利用者のAPI変更にしない。
 - 公開サイトの`/playground/`、`/synth/`、`/synth-spu/`、`/synth-scsp/`、`/vgm_analyzer/`、`/js/`、`/generated/`、`/sources/`、`/licenses/`を維持する。
-- `soundchip.js`、`nesapu_wasm.js`、`pwm32x_wasm.js`の`/web/`文字列判定と、配布時の書き換えを同時に整理する。ファイル移動だけではWASM探索が壊れる。
-- `web/generated/`を移すときは、先に実装したartifact manager／catalog／profile／builderと検証も更新する。移行完了後の正本は`tetorica_src/runtime/generated/`一つとし、`docs/generated/`を公開コピーとして維持する。
+- `soundchip.js`、`nesapu_wasm.js`、`pwm32x_wasm.js`の編集元では`./generated/`から探索する。公開コピーとnpm／ZIPの配置への変換は配布境界で行い、既存の公開JSの内容も維持する。
+- artifact manager／catalog／profile／builderと検証を移設に合わせて更新した。現在の正本は`tetorica_src/runtime/generated/`一つとし、`docs/generated/`を公開コピーとして維持する。
 - 固定SDKのsource manifest、第三者ライセンス、配布する対応ソースと再ビルド手順を保持する。
 
 ## docsとローカル作業領域

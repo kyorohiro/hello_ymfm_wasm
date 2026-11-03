@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createLifecycleFixture,installCreationEnvironment,until} from '../../web/native_genesis_extra_creation_fixture.mjs';
+import {createLifecycleFixture,installCreationEnvironment,until} from '../../tetorica_src/runtime/native_genesis_extra_creation_fixture.mjs';
 
 test('Native Stop lets awaited Keyboard cleanup finish after the rack retires without touching a replacement',async t=>{
   const env=installCreationEnvironment(t),f=createLifecycleFixture(t,env);

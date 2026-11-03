@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extractSamples,exportSamples,listSamples} from './sample_core.js';
 import {gameboyVoiceCode} from './gameboy_voices.js';
-import {GameboySynth} from '../../web/gameboysynth.js';
+import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
 import {mountSampleExplorer} from './sample_explorer.js';
 const w=(r,v)=>[0xb3,r,v], wait=[0x61,0x44,0xac];
 function vgm(commands){const b=new Uint8Array(256+commands.length);b.set([86,103,109,32]);const v=new DataView(b.buffer);v.setUint32(8,0x171,true);v.setUint32(0x34,0xcc,true);v.setUint32(0x80,4194304,true);b.set(commands,256);return b;}

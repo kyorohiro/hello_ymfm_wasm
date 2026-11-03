@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,exportSourceSamples} from '../cli/index.js';
+import {readSource,exportSourceSamples} from '../tetorica_src/cli/index.js';
 import {extractSamples} from '../docs/vgm_analyzer/sample_explorer.js';
 import {pwmCaptureJson} from '../docs/vgm_analyzer/pwm_samples.js';
 import {mkdtempSync,readFileSync,rmSync} from 'node:fs';
@@ -44,7 +44,7 @@ test('CLI sample export protects existing files, handles force and rejects inval
  const dir=mkdtempSync(join(tmpdir(),'sample-export-'));
  try{
   const input=fixture('ym2610-adpcm-a').pathname,output=join(dir,'sample.bin');
-  const cli=(...args)=>spawnSync(process.execPath,['cli/main.js','samples',input,...args],{encoding:'utf8'});
+  const cli=(...args)=>spawnSync(process.execPath,['tetorica_src/cli/main.js','samples',input,...args],{encoding:'utf8'});
   const args=['--id','1','--output',output];
   assert.equal(cli(...args).status,0);const before=readFileSync(output);
   assert.equal(cli(...args).status,1);assert.equal(cli(...args,'--force').status,0);

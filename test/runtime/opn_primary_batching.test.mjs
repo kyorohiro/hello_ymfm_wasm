@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {Ym2610B} from '../../web/ym2610b.js';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand} from '../../web/playground_audition_guard.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 
 const chips = [['ym2203', Ym2203], ['ym2608', Ym2608], ['ym2610b', Ym2610B]];
 
@@ -26,7 +26,7 @@ async function setup(name, Chip, rate) {
   const source = await readFile(new URL(`./${name}-worklet.js`, runtimeDirectoryUrl), 'utf8');
   vm.runInNewContext(source.replace(/^import .*;\n/gm, ''), scope);
   const moduleFactory = (await import(`../../docs/generated/${name}_wasm.js`)).default;
-  const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl));
   const processor = new Processor();
   processor.chip = await Chip.create({moduleFactory, moduleOptions:{wasmBinary}});
   processor.chipRate = processor.chip.sampleRate();

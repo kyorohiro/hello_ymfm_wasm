@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Oki6258VoiceInspector} from '../../web/playground_okim6258_inspector.js';
-import {Oki6258AudioEngine} from '../../web/okim6258audioengine.js';
-import {Oki6258Stream,OKIM6258_CLOCK,encodeOki6258,summarizeOki6258} from '../../web/okim6258synth.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createOki6258Client} from '../../web/playground_okim6258.js';
-import {NativeRuntimeSynth} from '../../web/native_runtime_synth.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
+import {Oki6258VoiceInspector} from '../../tetorica_src/runtime/playground_okim6258_inspector.js';
+import {Oki6258AudioEngine} from '../../tetorica_src/runtime/okim6258audioengine.js';
+import {Oki6258Stream,OKIM6258_CLOCK,encodeOki6258,summarizeOki6258} from '../../tetorica_src/runtime/okim6258synth.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createOki6258Client} from '../../tetorica_src/runtime/playground_okim6258.js';
+import {NativeRuntimeSynth} from '../../tetorica_src/runtime/native_runtime_synth.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
 import factory from '../../docs/generated/okim6258_wasm.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
@@ -22,7 +22,7 @@ async function setup(){
   vm.runInNewContext(source,{Oki6258VoiceInspector,Oki6258AudioEngine,Oki6258Stream,OKIM6258_CLOCK,validateChipClock,receiveChipInspector,factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{clock:OKIM6258_CLOCK,wasmBinary:await readFile(new URL('../docs/generated/okim6258_wasm.wasm',runtimeDirectoryUrl))}});
+  const processor=new Processor({processorOptions:{clock:OKIM6258_CLOCK,wasmBinary:await readFile(new URL('../../docs/generated/okim6258_wasm.wasm',runtimeDirectoryUrl))}});
   assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createOki6258Client(clientPort);
   return {processor,port,client,clientPort,messages,

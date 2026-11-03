@@ -10,7 +10,7 @@ async function harness(fetcher,run){
     connect(){this.connected=true;}disconnect(){this.disconnected=true;}
   };
   const context={audioWorklet:{addModule:async url=>modules.push(String(url))}};
-  try{const {createNesAudio}=await import(`../../web/playground_nes_audio.js?test=${++sequence}`);await run({createNesAudio,context,nodes,modules});}
+  try{const {createNesAudio}=await import(`../../tetorica_src/runtime/playground_nes_audio.js?test=${++sequence}`);await run({createNesAudio,context,nodes,modules});}
   finally{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;}
 }
 

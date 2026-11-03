@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createDx7Client} from '../../web/playground_dx7.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createInitVoice,createVoiceSysex,createBankSysex} from '../../web/msfa_dx7/src/sysex.js';
-import {presetToVoice,voiceToPreset} from '../../web/msfa_dx7/src/preset.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createInitVoice,createVoiceSysex,createBankSysex} from '../../tetorica_src/runtime/msfa_dx7/src/sysex.js';
+import {presetToVoice,voiceToPreset} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 
 const ticks=async()=>{for(let index=0;index<30;index++)await Promise.resolve();};
 function fixture(){

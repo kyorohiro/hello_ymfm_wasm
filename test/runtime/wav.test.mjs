@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encodeWav} from '../../web/soundchip.js';
-import {readSamplePCM} from '../../web/adpcm_b_sample.js';
+import {encodeWav} from '../../tetorica_src/runtime/soundchip.js';
+import {readSamplePCM} from '../../tetorica_src/runtime/adpcm_b_sample.js';
 
 test('mono PCM16 WAV: header, scaling, clipping and decoder round trip', async () => {
   const bytes = encodeWav({channels: [[-2, -.5, 0, .5, 2]], sampleRate: 8000});

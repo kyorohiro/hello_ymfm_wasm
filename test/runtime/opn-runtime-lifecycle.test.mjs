@@ -1,10 +1,10 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { YM2203RuntimeSynth as RuntimeSynth } from '../../web/ym2203synth.js';
-import { YM2608RuntimeSynth } from '../../web/ym2608synth.js';
-import { NeoGeoSynth, YM2610BRuntimeSynth } from '../../web/ym2610bsynth.js';
+import { YM2203RuntimeSynth as RuntimeSynth } from '../../tetorica_src/runtime/ym2203synth.js';
+import { YM2608RuntimeSynth } from '../../tetorica_src/runtime/ym2608synth.js';
+import { NeoGeoSynth, YM2610BRuntimeSynth } from '../../tetorica_src/runtime/ym2610bsynth.js';
 
 function deferred() {
   let resolve;

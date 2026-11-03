@@ -6,7 +6,7 @@ async function harness(fetcher,run){
   const previous={fetch:globalThis.fetch,AudioWorkletNode:globalThis.AudioWorkletNode},nodes=[],modules=[];
   globalThis.fetch=fetcher;globalThis.AudioWorkletNode=class{constructor(context,name,options){this.name=name;this.options=options;this.port={postMessage(){},close:()=>this.closed=true};nodes.push(this);queueMicrotask(()=>this.port.onmessage?.({data:{ready:true}}));}connect(){this.connected=true;}disconnect(){this.disconnected=true;}};
   const listeners=new Map(),context={state:'suspended',audioWorklet:{addModule:async url=>modules.push(String(url))},addEventListener:(type,listener)=>listeners.set(type,listener),removeEventListener:(type,listener)=>{if(listeners.get(type)===listener)listeners.delete(type);}};
-  try{const {createWonderSwanAudio}=await import(`../../web/playground_wonderswan_audio.js?test=${++sequence}`);await run({createWonderSwanAudio,context,nodes,modules,listeners});}finally{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;}
+  try{const {createWonderSwanAudio}=await import(`../../tetorica_src/runtime/playground_wonderswan_audio.js?test=${++sequence}`);await run({createWonderSwanAudio,context,nodes,modules,listeners});}finally{globalThis.fetch=previous.fetch;globalThis.AudioWorkletNode=previous.AudioWorkletNode;}
 }
 test('WonderSwan audio setup fetches WASM before connecting and caches module registration per context',async()=>{
   const bytes=new Uint8Array([0,97,115,109]).buffer,requests=[];

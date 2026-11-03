@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {estimateBrrPitch} from '../../web/spc_pitch.js';
-import {decodeBrr} from '../../web/snes_brr.js';
+import {estimateBrrPitch} from '../../tetorica_src/runtime/spc_pitch.js';
+import {decodeBrr} from '../../tetorica_src/runtime/snes_brr.js';
 
 // Original synthetic nibble-domain waveforms: no game samples or encoder dependency.
 function sample(wave, {frames=4096,loop=true,loopStartSamples=0,filter=0,range=10} = {}) {

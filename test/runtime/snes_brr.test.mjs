@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -7,8 +7,8 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {decodeBrr,extractBrrSamples,exportBrrSample,readSnesVoices} from '../../web/snes_brr.js';
-import {readSamplePCM} from '../../web/adpcm_b_sample.js';
+import {decodeBrr,extractBrrSamples,exportBrrSample,readSnesVoices} from '../../tetorica_src/runtime/snes_brr.js';
+import {readSamplePCM} from '../../tetorica_src/runtime/adpcm_b_sample.js';
 function snapshot() {return {ram:new Uint8Array(65536),dsp:new Uint8Array(128),nativeFrames:12345};}
 function putSample(s, {dir=0x20,srcn=3,start=0x3000,loop=start,blocks=[0x13,...Array(8).fill(0x78)]}={}) {
   s.dsp[0x5d]=dir;const at=((dir<<8)+srcn*4)&65535;
@@ -102,7 +102,7 @@ test('raw BRR decoder matches actual accurate upstream S-DSP for all filters/ran
   assert.equal(probe.status,0,probe.stderr);
   const temp=await mkdtemp(join(tmpdir(),'tetorica-brr-reference-'));
   try {
-    const root=resolve(fileURLToPath(new URL('..',runtimeDirectoryUrl))),binary=join(temp,'reference');
+    const root=resolve(fileURLToPath(new URL('../../',runtimeDirectoryUrl))),binary=join(temp,'reference');
     const build=spawnSync(compiler,['-std=c++11','-O2','-fwrapv','-I'+join(root,'third_party/snes-spc/snes_spc'),join(root,'test/helpers/snes_brr_reference.cpp'),'-o',binary],{encoding:'utf8'});
     assert.equal(build.status,0,build.stderr);
     let seed=0x582361ab;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed;};
@@ -137,8 +137,8 @@ test('BRR extraction caps total allocation/work across explicitly selected direc
   assert.equal(result.samples.length,2);assert.equal(result.rejected.length,2);assert.ok(result.warnings.some(s=>s.includes('maxTotalBlocks')));
 });
 test('original synthetic SPC fixture extracts a looped raw sample without game data',async()=>{
-  const {createSyntheticSpc}=await import("../../web/spc_test_fixture.mjs");
-  const {parseSpcFile}=await import("../../web/spc_file.js");
+  const {createSyntheticSpc}=await import("../../tetorica_src/runtime/spc_test_fixture.mjs");
+  const {parseSpcFile}=await import("../../tetorica_src/runtime/spc_file.js");
   const parsed=parseSpcFile(createSyntheticSpc());
   const sourceNumbers=[...new Set(readSnesVoices(parsed).map(v=>v.sourceNumber))];
   const result=extractBrrSamples(parsed,{sourceNumbers});

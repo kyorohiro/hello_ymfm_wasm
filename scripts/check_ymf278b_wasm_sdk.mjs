@@ -4,9 +4,9 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,realpath,stat} from 'node:fs/promises';
 import {basename,dirname,resolve,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {Ymf278b,YMF278B_CLOCK} from '../web/ymf278b.js';
-import {Ymf278bAudioEngine} from '../web/ymf278baudioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {Ymf278b,YMF278B_CLOCK} from '../tetorica_src/runtime/ymf278b.js';
+import {Ymf278bAudioEngine} from '../tetorica_src/runtime/ymf278baudioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -16,10 +16,10 @@ const rateQueryClocks=[1,100000,3579545,7670454,8000000,100000000,0xffffffff];
 const layouts={regular:[256],irregular:[1,17,127,509,3,1024,257,4096]};
 const totalFrames=4096,probeFrames=127;
 const requiredExports=['create','destroy','reset','write','read','read_status','get_irq','sample_rate','set_fm_mute_mask','set_pcm_mute_mask','generate','load_memory','clear_memory'].map(n=>'ymf278b_'+n).concat(['malloc','free']);
-const wrapperPairs=['ymf278b.js','ymf278baudioengine.js','vgmplayer.js','ym2612vgm.js'].map(n=>['web/'+n,'docs/js/'+n]);
+const wrapperPairs=['ymf278b.js','ymf278baudioengine.js','vgmplayer.js','ym2612vgm.js'].map(n=>['tetorica_src/runtime/'+n,'docs/js/'+n]);
 const sdkRoot='third_party/tetorica-soundchip-native';
 const compilerFiles=['ymfm.h','ymfm_opl.h','ymfm_opl.cpp','ymfm_fm.h','ymfm_fm.ipp','ymfm_adpcm.h','ymfm_adpcm.cpp','ymfm_pcm.h','ymfm_pcm.cpp'];
-const compilerInputs=['wasm/ymf278b_wasm.cpp','wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>'src/'+n),sdkRoot+'/wasm/ymf278b_wasm.cpp',sdkRoot+'/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>sdkRoot+'/vendor/ymfm/'+n)];
+const compilerInputs=['tetorica_src/wasm/ymf278b_wasm.cpp','tetorica_src/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>'src/'+n),sdkRoot+'/wasm/ymf278b_wasm.cpp',sdkRoot+'/wasm/ymfm_wasm_interface.h',...compilerFiles.map(n=>sdkRoot+'/vendor/ymfm/'+n)];
 const buildInputs=['package.json','scripts/build_ymf278b_wasm.sh','scripts/import_soundchip_sdk.py','third_party/soundchip-sdk.json',sdkRoot+'/scripts/build-wasm.sh',sdkRoot+'/scripts/build_ymf278b_wasm.sh',sdkRoot+'/scripts/record_wasm_build.mjs',sdkRoot+'/scripts/check_sdk.py',sdkRoot+'/scripts/sdk_common.py',sdkRoot+'/sdk.json',sdkRoot+'/RELEASE-MANIFEST.json',sdkRoot+'/catalog/chips.json',sdkRoot+'/catalog/source_inventory.json'];
 // The SDK receipt hashes a broad source inventory as provenance, beyond the actual
 // compiler translation units and their quoted-include closure listed above.

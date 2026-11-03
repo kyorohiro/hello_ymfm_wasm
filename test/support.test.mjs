@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-import {readSource,inspectSourceSupport,exportFormats} from '../cli/index.js';
+import {readSource,inspectSourceSupport,exportFormats} from '../tetorica_src/cli/index.js';
 const fixture=new URL('./fixtures/nes-tone.vgz',import.meta.url);
 test('support JSON matches shared API and separates NES score and voice exports',async()=>{
   const source=await readSource(fixture);
@@ -15,7 +15,7 @@ test('support JSON matches shared API and separates NES score and voice exports'
   assert.equal(result.exports.tfi.status,'unavailable');
   assert(result.exports.tfi.reason);
   assert.deepEqual(Object.keys(result.exports),exportFormats);
-  const cli=spawnSync(process.execPath,['cli/main.js','support',fixture.pathname,'--json'],{encoding:'utf8'});
+  const cli=spawnSync(process.execPath,['tetorica_src/cli/main.js','support',fixture.pathname,'--json'],{encoding:'utf8'});
   assert.equal(cli.status,0,cli.stderr);
   assert.deepEqual(JSON.parse(cli.stdout),result);
 });
@@ -30,7 +30,7 @@ test('unsupported render does not suppress analysis; invalid clocks and dual NES
   }
 });
 test('support rejects invalid options rather than reporting success',()=>{
-  const result=spawnSync(process.execPath,['cli/main.js','support',fixture.pathname,'--output','unused'],{encoding:'utf8'});
+  const result=spawnSync(process.execPath,['tetorica_src/cli/main.js','support',fixture.pathname,'--output','unused'],{encoding:'utf8'});
   assert.equal(result.status,1);
   assert.match(result.stderr,/not valid/);
 });

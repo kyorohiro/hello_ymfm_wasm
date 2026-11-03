@@ -8,7 +8,7 @@ const olderKinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413
 function installExtraNesMock(native){
   const invoke=native.invoke.bind(native);native.extraNes=new Map();
   async function fresh({clock=1789773,fds=false}){
-    const {NesVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
+    const {NesVoiceInspector}=await import("../tetorica_src/runtime/playground_native_voice_inspector.js");
     const s={clock,baseClock:clock,fdsEnabled:fds,held:new Map(),groups:Array(6).fill(null),memory:new Uint8Array(65536),sourceMuteMask:0,mix:{volume:1,pan:0}};
     s.chip={clock,fdsEnabled:fds,writeRegister(){},reset(){s.memory.fill(0);},loadMemory(bytes,address){s.memory.set(bytes,address);},setChannelEnabled(ch,enabled){s.inspector.observeWrite(0x4015,enabled?s.inspector.enabled|(1<<ch):s.inspector.enabled&~(1<<ch));}};
     s.inspector=new NesVoiceInspector(s.chip,{clock:()=>s.clock,sampleRate:48000});return s;

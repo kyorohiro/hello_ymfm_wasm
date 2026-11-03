@@ -2,16 +2,16 @@
  * 動作検証用の音を生成する
  */
 import { readFile } from "node:fs/promises";
-import { createYm2612 } from "../../../web/ym2612.js";
-import { YM2612Synth, YM2612DirectTransport } from "../../../web/ym2612synth.js";
-import { FM_PRESETS } from "../../../web/megasynth-fm-presets.js";
-import moduleFactory from "../../../web/generated/ym2612_wasm.js";
+import { createYm2612 } from "../../../tetorica_src/runtime/ym2612.js";
+import { YM2612Synth, YM2612DirectTransport } from "../../../tetorica_src/runtime/ym2612synth.js";
+import { FM_PRESETS } from "../../../tetorica_src/runtime/megasynth-fm-presets.js";
+import moduleFactory from "../../../tetorica_src/runtime/generated/ym2612_wasm.js";
 
 const main = async () => {
     console.log("start");
     const chip = await createYm2612(moduleFactory, {
         wasmBinary: await readFile(
-            new URL("../../../web/generated/ym2612_wasm.wasm", import.meta.url)
+            new URL("../../../tetorica_src/runtime/generated/ym2612_wasm.wasm", import.meta.url)
         )
     });
 

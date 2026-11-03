@@ -13,7 +13,7 @@ await generateSoundChipMixerPresets({
   wonderswanReportPath:join(root, 'docs/issues/wonderswan_scsp_fm_chip_levels_01.json'),
   scspReportPath:join(root, 'docs/issues/scsp_fm_chip_levels_01.json'),
   pokeyReportPath:join(root, 'docs/issues/pokey_scsp_fm_chip_levels_01.json'),
-  outPath:join(root, 'web/soundchip_mixer_presets.js'),check:true,
+  outPath:join(root, 'tetorica_src/runtime/soundchip_mixer_presets.js'),check:true,
 });
 // Only this generated package directory is replaced; the CLI distribution stays intact.
 await rm(stage, {recursive: true, force: true});
@@ -24,11 +24,11 @@ for (const name of ['package.json', 'README.md', 'package_assets.js']) {
 }
 await cp(join(root, 'LICENSE'), join(stage, 'LICENSE'));
 await mkdir(join(stage, 'node'), {recursive: true});
-for (const name of (await readdir(join(root, 'node'))).filter(name => name.endsWith('.mjs'))) {
-  const source = await readFile(join(root, 'node', name), 'utf8');
-  await writeFile(join(stage, 'node', name), source.replaceAll("'../web/", "'../").replaceAll('"../web/', '"../'));
+for (const name of (await readdir(join(root, 'tetorica_src/node'))).filter(name => name.endsWith('.mjs'))) {
+  const source = await readFile(join(root, 'tetorica_src/node', name), 'utf8');
+  await writeFile(join(stage, 'node', name), source.replaceAll("'../runtime/", "'../").replaceAll('"../runtime/', '"../'));
 }
-await cp(join(root, 'node/README.md'), join(stage, 'node/README.md'));
+await cp(join(root, 'tetorica_src/node/README.md'), join(stage, 'node/README.md'));
 
 // These existing defaults are document-relative in the website. In the npm payload,
 // resolve them beside their module so embedding pages can live at any URL depth.

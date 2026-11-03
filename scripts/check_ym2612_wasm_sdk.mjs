@@ -6,8 +6,8 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ym2612} from '../web/ym2612.js';
-import {opnPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ym2612} from '../tetorica_src/runtime/ym2612.js';
+import {opnPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_ym2612_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -272,12 +272,12 @@ async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);
   assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'WASM export surface unchanged');
-  const wrapperPaths=['web/ym2612.js','docs/js/ym2612.js'];
+  const wrapperPaths=['tetorica_src/runtime/ym2612.js','docs/js/ym2612.js'];
   sameBytes(await readFile(resolve(root,wrapperPaths[0])),await readFile(resolve(root,wrapperPaths[1])),'Web/deployed JS wrapper synchronized');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),
     method:'Actual generated JS factories and WASM, synchronous public Ym2612 wrapper, byte-exact PCM and four physical-slot envelope traces. No tolerance, gain, clipping, resampling or emulation mock.',
     clocks,layouts,checkpointFrame,inputs:{legacy:legacy.metadata,sdk:sdk.metadata,
-      checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrapperPaths.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'web/soundchip_pitch.js'))},
+      checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrapperPaths.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'tetorica_src/runtime/soundchip_pitch.js'))},
     wrapperChecks:{},cases:[],totalStereoFrames:0,totalEnvelopeValues:0,crossStateLoads:0,ownStateLoads:0,resetContinuations:0,maximumDifference:0,
     limits:['Clock changes are sampleRate queries and pitch-register quantization; this low-level chip does not contain an output resampler.',
       'Raw state bytes are tested between these exact builds only. The public JS opaque snapshot still rejects foreign wrapper instances.',

@@ -1,25 +1,25 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
-import {preparePs1Waveform} from '../../web/ps1_waveform.js';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPs1Client} from '../../web/playground_ps1.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
+import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPs1Client} from '../../tetorica_src/runtime/playground_ps1.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 import {MessageChannel,Worker as NodeWorker} from 'node:worker_threads';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {PS1_MEMORY_HELD_ERROR,PS1_STATE_HELD_ERROR} from '../../web/native_genesis_ps1.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {PS1_MEMORY_HELD_ERROR,PS1_STATE_HELD_ERROR} from '../../tetorica_src/runtime/native_genesis_ps1.js';
 import {createVabFixture} from '../helpers/spu_vab_fixture.mjs';
 import {readVab,prepareVabTone} from '../../docs/playground/playground_ps1_vab.js';
 
 let module;
 async function fixture(t,{mode='ps1'}={}){
-  module??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
+  module??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
   const primary=await source(0),rack=new Map(),calls=[],errors=[],queue=[],waiters=[];let frame=0,statusGate=null;
   async function source(instance){const core=await Ps1Spu.create({moduleFactory:()=>module});return {instance,core,validation:new Ps1Synth({core}),held:new Map(),notes:new Map(),enabled:0,revision:0,captures:new Map(),highWater:0x1000};}
   const status=()=>({session:1,mode,frame,sampleRate:48000,running:true,ymClock:7670454,psgClock:3579545});

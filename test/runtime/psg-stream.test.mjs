@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsParser} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {vgmBytes,mockChips} from '../../web/test-support/vgm-mock.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
+import {vgmBytes,mockChips} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 // PSG command conversion follows libvgm dac_control.c: volume consumes one
 // byte; tone consumes a little-endian 10-bit value and emits latch then data.
 const block=data=>[0x67,0x66,0,data.length,0,0,0,...data];

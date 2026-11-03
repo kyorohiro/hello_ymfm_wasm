@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChip} from '../../web/soundchip.js';
-import {NesApuSynth,NesApuDirectTransport,NesApuWorkletTransport} from '../../web/nesapusynth.js';
-import {NesApu} from '../../web/nesapu.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {NesApuSynth,NesApuDirectTransport,NesApuWorkletTransport} from '../../tetorica_src/runtime/nesapusynth.js';
+import {NesApu} from '../../tetorica_src/runtime/nesapu.js';
 
 for(const channel of [0,1,2,5])test(`NES/FDS tone ${channel}: A4, off/on, owned PCM`,async()=>{
  const chip=await createSoundChip('nes',{fds:true});const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});

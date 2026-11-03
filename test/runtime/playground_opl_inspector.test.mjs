@@ -1,32 +1,32 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {copyY8950AdpcmMemory} from '../../web/y8950_adpcm.js';
-import {validateY8950AdpcmPreview} from '../../web/y8950_adpcm_preview.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {copyY8950AdpcmMemory} from '../../tetorica_src/runtime/y8950_adpcm.js';
+import {validateY8950AdpcmPreview} from '../../tetorica_src/runtime/y8950_adpcm_preview.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {Ym3526} from '../../web/ym3526.js';
-import {Ym3812} from '../../web/ym3812.js';
-import {Y8950} from '../../web/y8950.js';
-import {Ymf262} from '../../web/ymf262.js';
+import {Ym3526} from '../../tetorica_src/runtime/ym3526.js';
+import {Ym3812} from '../../tetorica_src/runtime/ym3812.js';
+import {Y8950} from '../../tetorica_src/runtime/y8950.js';
+import {Ymf262} from '../../tetorica_src/runtime/ymf262.js';
 import ym3526Factory from '../../docs/generated/ym3526_wasm.js';
 import ym3812Factory from '../../docs/generated/ym3812_wasm.js';
 import y8950Factory from '../../docs/generated/y8950_wasm.js';
 import ymf262Factory from '../../docs/generated/ymf262_wasm.js';
-import {OplVoiceInspector} from '../../web/playground_opl_inspector.js';
-import {createOplClient} from '../../web/playground_opl.js';
-import {OPL_PRESETS} from '../../web/opl_synth.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
+import {OplVoiceInspector} from '../../tetorica_src/runtime/playground_opl_inspector.js';
+import {createOplClient} from '../../tetorica_src/runtime/playground_opl.js';
+import {OPL_PRESETS} from '../../tetorica_src/runtime/opl_synth.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 const RATE=48000,peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
 async function setup(chip='ym3812'){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_opl_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{copyY8950AdpcmMemory,validateY8950AdpcmPreview,Ym3526,Ym3812,Y8950,Ymf262,ym3526Factory,ym3812Factory,y8950Factory,ymf262Factory,OplVoiceInspector,receiveChipInspector,validateChipClock,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
-  const processor=new Processor({processorOptions:{chip,wasmBinary:await readFile(new URL(`../docs/generated/${chip}_wasm.wasm`,runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
+  const processor=new Processor({processorOptions:{chip,wasmBinary:await readFile(new URL(`../../docs/generated/${chip}_wasm.wasm`,runtimeDirectoryUrl))}});assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createOplClient(clientPort,{chip});client.initialize();
   return {processor,client,clientPort,messages,port,receive:data=>processor.receive(data,port),read:()=>processor.inspector.read(),invoke:(method,args=[])=>processor.inspector.invoke(method,args),
     render(frames){const output=[new Float32Array(frames),new Float32Array(frames)];processor.process([],[output]);frame+=frames;return output;},close(){client.dispose();processor.dispose();}};

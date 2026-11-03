@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {midiToOpnPitch,opnPitchFromHz} from '../../web/soundchip_pitch.js';
-import {createPlaygroundMusic} from '../../web/playground_music.js';
-import {createMidiRack,createMidiApi} from '../../web/playground_midi.js';
-import {createPitchFromMidi} from '../../web/pitch.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {Ym2612} from '../../web/ym2612.js';
-import {YM2612Synth,YM2612DirectTransport} from '../../web/ym2612synth.js';
+import {midiToOpnPitch,opnPitchFromHz} from '../../tetorica_src/runtime/soundchip_pitch.js';
+import {createPlaygroundMusic} from '../../tetorica_src/runtime/playground_music.js';
+import {createMidiRack,createMidiApi} from '../../tetorica_src/runtime/playground_midi.js';
+import {createPitchFromMidi} from '../../tetorica_src/runtime/pitch.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth,YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
 import factory from '../../docs/generated/ym2612_wasm.js';
 import {readFile} from 'node:fs/promises';
 const clock=7670454;
@@ -25,7 +25,7 @@ test('MIDI pitch converter matches MIDI Playground native rounding, fractional b
 });
 
 test('calibrated music helpers and real play agree with setNote; custom helper references still work',async()=>{
- const chip=await Ym2612.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl))}});
+ const chip=await Ym2612.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl))}});
  const synth=new YM2612Synth({transport:new YM2612DirectTransport(chip)});
  let actual;
  const options={noteToSemitone:{A:9,C:0},scaleIntervals:{},createPitchFromMidi,pitchReference:{referenceMidi:62,referenceBlock:4,referenceFnum:553},synth:()=>synth,presets:{},activeNotes:new Set(),sleep:async()=>{actual=measured(chip);}};
@@ -40,7 +40,7 @@ test('calibrated music helpers and real play agree with setNote; custom helper r
 });
 
 test('MIDI output keeps play duration/channel interface while real A4 and bend use standard Hz',async()=>{
- const chip=await Ym2612.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl))}});
+ const chip=await Ym2612.create({moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl))}});
  let inputClock=clock;const writes=[];
  const rack=createMidiRack({preset:FM_PRESETS['one-op-basic'],getClockScale:()=>clock/inputClock,write:e=>{writes.push(e);chip.writeRegister(e.register,e.value,e.port);},writePsg(){}});
  const waits=[];let actual;

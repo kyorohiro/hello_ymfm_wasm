@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { YM2612Synth } from "../../web/ym2612synth.js";
-import { createFmProxy } from "../../web/playground_sync.js";
+import { YM2612Synth } from "../../tetorica_src/runtime/ym2612synth.js";
+import { createFmProxy } from "../../tetorica_src/runtime/playground_sync.js";
 
 function fixture() {
   const writes = [];

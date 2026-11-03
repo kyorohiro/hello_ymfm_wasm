@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {SoundChipMixer} from '../../web/soundchip_mixer.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip_mixer.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
 import {createPlaygroundKeyboardRouting} from '../../docs/playground/playground_mode_keyboard.js';
 
 const deferred = () => {let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j;});return {promise,resolve,reject};};

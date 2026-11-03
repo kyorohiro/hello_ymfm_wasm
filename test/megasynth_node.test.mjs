@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MegaSynthNode} from '../node/megasynth.mjs';
-import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
+import {MegaSynthNode} from '../tetorica_src/node/megasynth.mjs';
+import {FM_PRESETS} from '../tetorica_src/runtime/megasynth-fm-presets.js';
 const outputModule = new URL('./fixtures/megasynth_output.mjs', import.meta.url).href;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const create = options => new MegaSynthNode({outputModule, ...options});

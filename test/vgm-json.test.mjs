@@ -45,7 +45,7 @@ test('invalid schema, hex, offsets, sizes and changed command boundaries are rej
 });
 test('CLI round trip preserves VGM and protects existing output',()=>{
   const dir=mkdtempSync(join(tmpdir(),'vgm-json-'));
-  const run=(...args)=>spawnSync(process.execPath,['cli/main.js',...args],{encoding:'utf8'});
+  const run=(...args)=>spawnSync(process.execPath,['tetorica_src/cli/main.js',...args],{encoding:'utf8'});
   try{
     const json=join(dir,'tone.json'),vgm=join(dir,'tone.vgm');
     let r=run('to-json',new URL('nes-tone.vgz',fixtures).pathname,'--output',json);assert.equal(r.status,0,r.stderr);
@@ -71,10 +71,10 @@ test('CLI --comments is opt-in and only accepted for to-json',()=>{
   const dir=mkdtempSync(join(tmpdir(),'vgm-comments-'));
   try {
     const path=join(dir,'tone.json');
-    const result=spawnSync(process.execPath,['cli/main.js','to-json',new URL('nes-tone.vgz',fixtures).pathname,'--comments','--output',path],{encoding:'utf8'});
+    const result=spawnSync(process.execPath,['tetorica_src/cli/main.js','to-json',new URL('nes-tone.vgz',fixtures).pathname,'--comments','--output',path],{encoding:'utf8'});
     assert.equal(result.status,0,result.stderr);
     assert(JSON.parse(readFileSync(path,'utf8')).commands[0].comment);
-    const invalid=spawnSync(process.execPath,['cli/main.js','from-json',path,'--comments','--output',join(dir,'tone.vgm')],{encoding:'utf8'});
+    const invalid=spawnSync(process.execPath,['tetorica_src/cli/main.js','from-json',path,'--comments','--output',join(dir,'tone.vgm')],{encoding:'utf8'});
     assert.equal(invalid.status,1);
     assert.match(invalid.stderr,/not valid/);
   } finally {rmSync(dir,{recursive:true,force:true});}

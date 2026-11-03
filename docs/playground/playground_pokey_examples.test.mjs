@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import createModule from '../generated/pokey_wasm.js';
-import {Pokey} from '../../web/pokey.js';
-import {PokeySynth, PokeyDirectTransport} from '../../web/pokeysynth.js';
+import {Pokey} from '../../tetorica_src/runtime/pokey.js';
+import {PokeySynth, PokeyDirectTransport} from '../../tetorica_src/runtime/pokeysynth.js';
 import {MODE_STARTERS, selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;

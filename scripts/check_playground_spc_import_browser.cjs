@@ -730,7 +730,7 @@ async function checkBrowser(name,type,url,fixture) {
 }
 
 (async () => {
-  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root,'web/spc_test_fixture.mjs')));
+  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root,'tetorica_src/runtime/spc_test_fixture.mjs')));
   const fixture = fixtureWithUnusedInstrument(createSyntheticSpc({voices:2}));
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   try {

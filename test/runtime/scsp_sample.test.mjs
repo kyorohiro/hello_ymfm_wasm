@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {readScspAudio,prepareScspPCM} from '../../web/scsp_sample.js';import {encodeWav} from '../../web/wav.js';
+import {readScspAudio,prepareScspPCM} from '../../tetorica_src/runtime/scsp_sample.js';import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 test('long stereo WAV stays in host memory; explicit selection is mono and bounded without normalization',async()=>{
  const left=Float32Array.from({length:48000*3},(_,i)=>.25*Math.sin(i*Math.PI/24)),right=left.map(v=>v*.5);
  const wav=encodeWav({channels:[left,right],sampleRate:48000}),before=wav.slice(),audio=await readScspAudio(wav);

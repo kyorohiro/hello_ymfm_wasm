@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Original synthetic Sony-format bank. No game data or external recordings.
-import {createPs1InitSample} from '../../web/ps1synth.js';
+import {createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
 
 export function createVabFixture() {
   const vh = new Uint8Array(0xe20), vb = new Uint8Array(128);

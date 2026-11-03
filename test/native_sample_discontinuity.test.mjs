@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createSampleProcessor} from '../web/native_sample_processor.js';
-import {createNativeSampleController} from '../web/native_sample.js';
-import {TetoricaAudioRuntime} from '../web/tetorica_audio_runtime.js';
+import {createSampleProcessor} from '../tetorica_src/runtime/native_sample_processor.js';
+import {createNativeSampleController} from '../tetorica_src/runtime/native_sample.js';
+import {TetoricaAudioRuntime} from '../tetorica_src/runtime/tetorica_audio_runtime.js';
 
-const module = await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm', import.meta.url)));
+const module = await WebAssembly.compile(readFileSync(new URL('../tetorica_src/runtime/native_audio_effect.wasm', import.meta.url)));
 
 function harness(rate = 48000) {
   const api = new WebAssembly.Instance(module, {env: {emscripten_notify_memory_growth() {}}}).exports;

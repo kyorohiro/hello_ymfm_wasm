@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {createGameboyClient} from '../../web/playground_gameboy.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
+import {createGameboyClient} from '../../tetorica_src/runtime/playground_gameboy.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
 import factory from '../../docs/generated/gameboy_apu_wasm.js';
-import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {GameboyVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {GameboyVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
 for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'raw'} example plays through client and worklet, then disposes`, async () => {
   let Processor, resolveReady;
@@ -21,11 +21,11 @@ for (const highLevel of [false, true]) test(`Game Boy ${highLevel ? 'Synth' : 'r
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: resolveReady}; } },
     registerProcessor: (_, value) => { Processor = value; },
   });
-  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm', runtimeDirectoryUrl))}});
+  const processor = new Processor({processorOptions: {wasmBinary: await readFile(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
   assert.equal((await ready).ready, true);
   const client = createGameboyClient({postMessage: data => processor.receive(data), close() {}});
   try {
-    const code = await readFile(new URL(highLevel ? '../docs/playground/examples/gameboy/gameboy-synth.js' : '../docs/playground/examples/chip-raw/gameboy-raw-write-sample.js', runtimeDirectoryUrl), 'utf8');
+    const code = await readFile(new URL(highLevel ? '../../docs/playground/examples/gameboy/gameboy-synth.js' : '../../docs/playground/examples/chip-raw/gameboy-raw-write-sample.js', runtimeDirectoryUrl), 'utf8');
     let played = 0;
     await new (Object.getPrototypeOf(async function() {}).constructor)('createSoundChip', 'sleep', 'write', '"use strict";\n' + code)(
       async name => { assert.equal(name, 'gameboy'); return client; },
@@ -60,7 +60,7 @@ test('primary and independent Game Boy clock setters acknowledge acceptance befo
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>{replies.push(data);if(data.ready)resolveReady();}};}},
   registerProcessor:(_,value)=>{Processor=value;},
  });
- const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
+ const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
  await ready;
  try{
   processor.receive({type:'performance-start',session:1});

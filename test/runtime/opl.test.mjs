@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Ym3526AudioEngine} from '../../web/ym3526audioengine.js';
+import {Ym3526AudioEngine} from '../../tetorica_src/runtime/ym3526audioengine.js';
 import oplFactory from '../../docs/generated/ym3526_wasm.js';
-import {Ym3812AudioEngine} from '../../web/ym3812audioengine.js';
-import {Ymf262AudioEngine} from '../../web/ymf262audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym3812AudioEngine} from '../../tetorica_src/runtime/ym3812audioengine.js';
+import {Ymf262AudioEngine} from '../../tetorica_src/runtime/ymf262audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import opl2Factory from '../../docs/generated/ym3812_wasm.js';
 import opl3Factory from '../../docs/generated/ymf262_wasm.js';
 const configs=[['ym3526',Ym3526AudioEngine,oplFactory,3579545,0x54,0x5b],['ym3812',Ym3812AudioEngine,opl2Factory,3579545,0x50,0x5a],['ymf262',Ymf262AudioEngine,opl3Factory,14318180,0x5c,0x5e]];
-function options(chip,factory){return {[`${chip}ModuleFactory`]:factory,[`${chip}ModuleOptions`]:{wasmBinary:readFileSync(new URL(`../docs/generated/${chip}_wasm.wasm`,runtimeDirectoryUrl))}};}
+function options(chip,factory){return {[`${chip}ModuleFactory`]:factory,[`${chip}ModuleOptions`]:{wasmBinary:readFileSync(new URL(`../../docs/generated/${chip}_wasm.wasm`,runtimeDirectoryUrl))}};}
 function voice(port=0,channel=0,pan=0x30){
  const base=[0,1,2,8,9,10,16,17,18][channel];const regs=[];
  for(const slot of [base,base+3])for(const [r,v] of [[0x20,1],[0x40,16],[0x60,0xf0],[0x80,0x0f],[0xe0,0]])regs.push([port,r+slot,v]);

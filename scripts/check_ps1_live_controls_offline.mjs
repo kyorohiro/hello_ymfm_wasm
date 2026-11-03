@@ -5,9 +5,9 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import factory from '../docs/generated/ps1_spu_wasm.js';
-import {Ps1Spu} from '../web/ps1_spu.js';
-import {Ps1Synth} from '../web/ps1synth.js';
-import {Ps1VoiceInspector} from '../web/playground_ps1_inspector.js';
+import {Ps1Spu} from '../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../tetorica_src/runtime/ps1synth.js';
+import {Ps1VoiceInspector} from '../tetorica_src/runtime/playground_ps1_inspector.js';
 
 const args=process.argv.slice(2);assert(args.length===0||args.length===2&&args[0]==='--out','Usage: node scripts/check_ps1_live_controls_offline.mjs [--out REPORT.json]');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');

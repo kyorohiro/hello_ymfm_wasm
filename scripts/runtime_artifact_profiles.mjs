@@ -37,8 +37,8 @@ export async function copyRuntimeArtifactProfile(profile, stage, {root = reposit
   if (selected.includes('dx7')) {
     await mkdir(jsDirectory, {recursive: true});
     // Keep vendor source, notices and relative module layout; its generated
-    // binary is copied below from web/generated rather than this source package.
-    const source = join(root, 'web/msfa_dx7');
+    // binary is copied below from tetorica_src/runtime/generated rather than this source package.
+    const source = join(root, 'tetorica_src/runtime/msfa_dx7');
     await cp(source, join(jsDirectory, 'msfa_dx7'), {
       recursive: true,
       filter: path => path !== join(source, 'wasm/msfa.wasm'),

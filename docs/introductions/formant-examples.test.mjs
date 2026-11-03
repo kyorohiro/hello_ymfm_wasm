@@ -4,19 +4,19 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {performance} from 'node:perf_hooks';
 import {formantProcess, createFormantExample} from './formant-examples.js';
-import {createNativeFXController} from '../../web/native_fx.js';
-import {LiveFX} from '../../web/custom_fx.js';
+import {createNativeFXController} from '../../tetorica_src/runtime/native_fx.js';
+import {LiveFX} from '../../tetorica_src/runtime/custom_fx.js';
 import {spectrum} from '../playground/playground_fx_monitor.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
-import {Ym2612} from '../../web/ym2612.js';
-import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {midiToOpnPitch} from '../../web/soundchip_pitch.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {midiToOpnPitch} from '../../tetorica_src/runtime/soundchip_pitch.js';
 
 // Compile the same serialized function in a Worklet-like global realm. Importing
 // the function directly would incorrectly let it see this test's globals.
-const rackSource = (await readFile(new URL('../../web/custom_fx.js', import.meta.url), 'utf8'))
+const rackSource = (await readFile(new URL('../../tetorica_src/runtime/custom_fx.js', import.meta.url), 'utf8'))
   .replace('export class LiveFX', 'class LiveFX') + '\nglobalThis.LiveFX = LiveFX;';
 function fixture(rate, patch = {}) {
   const scope = vm.createContext({sampleRate: rate});

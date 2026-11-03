@@ -1,13 +1,13 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Msm5205AudioEngine} from '../../web/msm5205audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Msm5205AudioEngine} from '../../tetorica_src/runtime/msm5205audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
-import {getNodePlaybackFactory} from '../../cli/render.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
+import {getNodePlaybackFactory} from '../../tetorica_src/cli/render.js';
 import {createPlaybackEngine,selectPlaybackConfiguration,playbackMuteControls} from '../../docs/vgm_analyzer/playback_core.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import {renderVgmToWav} from '../../docs/vgm_analyzer/vgm_wav.js';
@@ -64,7 +64,7 @@ test('MSM5205 direct playback is partition-independent and normal seeking restor
   }finally{a.dispose();b.dispose();}
 });
 test('HuC6280 + MSM5205 preserves Note-ish configuration and independently mixes/mutes ADPCM',async()=>{
-  const seed=readFileSync(new URL('../test/fixtures/huc6280-tone.vgm',runtimeDirectoryUrl));
+  const seed=readFileSync(new URL('../../test/fixtures/huc6280-tone.vgm',runtimeDirectoryUrl));
   const parser=new Ym2612VGM(seed);let pos;while(true){pos=parser.position;if(parser.step().type==='wait')break;}
   const bytes=new Uint8Array(pos+commands.length);bytes.set(seed.subarray(0,pos));bytes.set(commands,pos);
   const v=new DataView(bytes.buffer);v.setUint32(8,0x172,true);v.setUint32(0xf0,1536000,true);v.setUint8(0xd7,6);

@@ -6,7 +6,7 @@ import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {NesApuAudioEngine} from '../docs/js/nesapuaudioengine.js';
-import {NesApuSynth} from '../web/nesapusynth.js';
+import {NesApuSynth} from '../tetorica_src/runtime/nesapusynth.js';
 import {probeAmplitude} from './soundchip_calibration_metrics.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -74,7 +74,7 @@ export async function measureAnalyzerNesLevels() {
       'Enabling a silent FDS expansion must not change this APU reference');
   }
   const wasm = baseline.rows.find(row => row.kind === 'nes' && row.role === 'extra' && row.frequencyHz === 440);
-  const names = ['docs/js/nesapuaudioengine.js', 'docs/js/fds_audio.js', 'web/nesapusynth.js',
+  const names = ['docs/js/nesapuaudioengine.js', 'docs/js/fds_audio.js', 'tetorica_src/runtime/nesapusynth.js',
     'scripts/measure_analyzer_nes_levels.mjs', baselinePath,
     ...(await readdir(new URL('docs/js/nes_apu_vendor/', root))).filter(name => name.endsWith('.js')).map(name => 'docs/js/nes_apu_vendor/' + name)];
   const sources = await Promise.all(names.sort().map(async path => {

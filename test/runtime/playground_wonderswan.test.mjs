@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/wonderswan_wasm.js';
-import {WonderSwan} from '../../web/wonderswan.js';
-import {createWonderSwanClient, createPrimaryWonderSwanApi} from '../../web/playground_wonderswan.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {WonderSwan} from '../../tetorica_src/runtime/wonderswan.js';
+import {createWonderSwanClient, createPrimaryWonderSwanApi} from '../../tetorica_src/runtime/playground_wonderswan.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
-const wasmBinary = await readFile(new URL('../docs/generated/wonderswan_wasm.wasm', runtimeDirectoryUrl));
+const wasmBinary = await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
 const peak = audio => Math.max(...audio.map(Math.abs));
 async function setup() {
   const chip = await WonderSwan.create({moduleFactory:factory, moduleOptions:{wasmBinary}, sampleRate:48000});

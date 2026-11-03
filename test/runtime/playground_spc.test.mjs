@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import factory from '../../docs/generated/spc_wasm.js';
-import {SpcCore} from '../../web/spc.js';
-import {SpcResampler} from '../../web/spc_resampler.js';
-import {createSpcClient} from '../../web/playground_spc.js';
-import {createSpcAudio} from '../../web/playground_spc_audio.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {SpcCore} from '../../tetorica_src/runtime/spc.js';
+import {SpcResampler} from '../../tetorica_src/runtime/spc_resampler.js';
+import {createSpcClient} from '../../tetorica_src/runtime/playground_spc.js';
+import {createSpcAudio} from '../../tetorica_src/runtime/playground_spc_audio.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 
-const wasmBinary = await readFile(new URL('../docs/generated/spc_wasm.wasm', runtimeDirectoryUrl));
+const wasmBinary = await readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl));
 const module = await factory({wasmBinary});
 const source = (await readFile(new URL('./spc-worklet.js', runtimeDirectoryUrl), 'utf8'))
   .replace(/^import .*;$/gm, '').replace('export class ', 'class ');

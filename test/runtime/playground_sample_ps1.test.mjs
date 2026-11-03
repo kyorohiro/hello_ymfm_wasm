@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
@@ -7,10 +7,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {renderPs1Sample, renderPs1SampleComparison} from '../../web/playground_sample_ps1.js';
-import {renderSampleEdit} from '../../web/playground_sample_edit.js';
-import {encodePs1Adpcm, DEFAULT_PS1_ADPCM_MAX_BYTES} from '../../web/ps1_adpcm_encoder.js';
-import {preparePs1ADPCM} from '../../web/ps1synth.js';
+import {renderPs1Sample, renderPs1SampleComparison} from '../../tetorica_src/runtime/playground_sample_ps1.js';
+import {renderSampleEdit} from '../../tetorica_src/runtime/playground_sample_edit.js';
+import {encodePs1Adpcm, DEFAULT_PS1_ADPCM_MAX_BYTES} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {preparePs1ADPCM} from '../../tetorica_src/runtime/ps1synth.js';
 
 const signal = (sampleRate = 44100, frames = 560) => ({sampleRate,
   channels: [Float32Array.from({length: frames}, (_, i) => .7 * Math.sin(2 * Math.PI * 440 * i / sampleRate))]});
@@ -154,7 +154,7 @@ test('comparison reconstruction exactly matches the actual pinned native decoder
   const compiler = process.env.CXX || 'c++', probe = spawnSync(compiler, ['--version'], {encoding: 'utf8'});
   if (probe.error?.code === 'ENOENT') {t.skip('C++ compiler unavailable; native decoder check not run'); return;}
   assert.equal(probe.status, 0, probe.stderr || probe.error?.message);
-  const root = fileURLToPath(new URL('../', runtimeDirectoryUrl));
+  const root = fileURLToPath(new URL('../../',runtimeDirectoryUrl));
   const temp = await mkdtemp(join(tmpdir(), 'ps1-sample-comparison-')); t.after(() => rm(temp, {recursive: true, force: true}));
   const binary = join(temp, 'decoder'), directory = join(root, 'third_party/tetorica-soundchip-native/vendor/mame-ps1-spu');
   const built = spawnSync(compiler, ['-std=c++17', '-O2', '-fwrapv', '-fno-strict-aliasing', '-ffp-contract=off', '-I' + directory,

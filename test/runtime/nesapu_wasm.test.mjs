@@ -1,19 +1,19 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {NesApu} from '../../web/nesapu.js';
-import {NesApuSynth,NesApuDirectTransport} from '../../web/nesapusynth.js';
-import {createSoundChip} from '../../web/soundchip.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {ChipClockResampler,CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
-import {NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {NesApu} from '../../tetorica_src/runtime/nesapu.js';
+import {NesApuSynth,NesApuDirectTransport} from '../../tetorica_src/runtime/nesapusynth.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {ChipClockResampler,CHIP_CLOCKS} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import factory from '../../docs/generated/nesapu_wasm.js';
 
-const wasmBinary=await readFile(new URL('../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl));
+const wasmBinary=await readFile(new URL('../../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl));
 test('asynchronous NES defaults to real WASM while the synchronous constructor stays an explicit JS reference',async()=>{
   const reference=new NesApu({fds:true}),chip=await NesApu.create({fds:true,sampleRate:48000});
   try{assert.equal(reference.backend,'javascript');assert.equal(chip.backend,'wasm');assert.equal(chip.sampleRate(),48000);assert.equal(chip.engine,undefined);assert.equal(chip.getState().fdsEnabled,true);}
@@ -36,7 +36,7 @@ test('injected module loaders preserve options and preallocate stable PCM views 
 });
 
 test('NES default loader honors a caller-supplied locateFile without a WASM binary override',async()=>{
-  const located=[],url=new URL('../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl);
+  const located=[],url=new URL('../../docs/generated/nesapu_wasm.wasm',runtimeDirectoryUrl);
   const chip=await NesApu.create({moduleOptions:{locateFile(name){located.push(name);return url.href;},print(){},printErr(){}}});
   try{assert.equal(chip.backend,'wasm');assert.deepEqual(located,['nesapu_wasm.wasm']);assert.equal(chip.generateStereoView(128).left.length,128);}
   finally{chip.dispose();}

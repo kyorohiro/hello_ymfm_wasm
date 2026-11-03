@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {AY8910Synth} from '../../web/ay8910synth.js';
+import {AY8910Synth} from '../../tetorica_src/runtime/ay8910synth.js';
 import {MODE_STARTERS,selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

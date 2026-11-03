@@ -1,9 +1,9 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from '../../web/ps1_parameters.js';
+import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from '../../tetorica_src/runtime/ps1_parameters.js';
 
 test('named PS1 envelope fields roundtrip exact masks and preserve unedited raw bits',()=>{
   const values={attackRate:127,attackExponential:true,decayRate:15,sustainLevel:15,sustainRate:127,sustainDecrease:true,sustainExponential:true,releaseRate:31,releaseExponential:true};
@@ -30,7 +30,7 @@ test('PS1 envelope validation rejects unknown fields, coercion and out-of-range 
 });
 
 test('all exposed PS1 reverb tables match the pinned BSD core and omit ineffective modes',async()=>{
-  const source=await readFile(new URL('../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/upstream/spu_tables.cpp',runtimeDirectoryUrl),'utf8');
+  const source=await readFile(new URL('../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/upstream/spu_tables.cpp',runtimeDirectoryUrl),'utf8');
   const upstream=new Map([...source.matchAll(/"([^"]+)"\s*,\s*\{([^}]+)\}/g)].map(m=>[m[1],m[2].match(/0x[0-9a-f]+/gi).map(x=>parseInt(x,16))]));
   assert.deepEqual(PS1_REVERB_PRESETS.map(p=>p.id),['off','room','studio-small','studio-medium','studio-large','hall','space-echo','half-echo']);
   assert.ok(Object.isFrozen(PS1_REVERB_PRESETS));

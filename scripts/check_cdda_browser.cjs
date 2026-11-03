@@ -40,8 +40,8 @@ async function browserCheck(page,rate){
       const context=new AudioContext({sampleRate:rate});await context.resume();
       const check=(ok,message)=>{if(!ok)throw Error(message);};
       const near=(actual,expected,label,tolerance=1e-6)=>check(Math.abs(actual-expected)<=tolerance,`${label}: ${actual} != ${expected}`);
-      const {createCddaAudio}=await import('/web/cdda_audio.js');
-      const {createCddaPlayer}=await import('/web/cdda_player.js');
+      const {createCddaAudio}=await import('/tetorica_src/runtime/cdda_audio.js');
+      const {createCddaPlayer}=await import('/tetorica_src/runtime/cdda_player.js');
       check(context.sampleRate===rate,'Requested output rate must be used');
       await context.audioWorklet.addModule('/__cdda_capture.js');
       const capture=new AudioWorkletNode(context,'cdda-test-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});

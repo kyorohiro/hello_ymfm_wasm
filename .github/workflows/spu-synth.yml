@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'docs/synth-spu/**'
-      - 'web/ps1*.js'
+      - 'tetorica_src/runtime/ps1*.js'
       - 'test/runtime/ps1*.test.mjs'
       - 'test/runtime/playground_ps1*.test.mjs'
       - 'test/runtime/playground_sample_ps1*.test.mjs'
@@ -12,8 +12,8 @@ on:
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
-      - 'web/playground_ps1_inspector.js'
-      - 'web/soundchip_pitch.js'
+      - 'tetorica_src/runtime/playground_ps1_inspector.js'
+      - 'tetorica_src/runtime/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
       - 'docs/js/playground_ps1_inspector.js'
       - 'docs/js/soundchip_pitch.js'
@@ -34,7 +34,7 @@ on:
   pull_request:
     paths:
       - 'docs/synth-spu/**'
-      - 'web/ps1*.js'
+      - 'tetorica_src/runtime/ps1*.js'
       - 'test/runtime/ps1*.test.mjs'
       - 'test/runtime/playground_ps1*.test.mjs'
       - 'test/runtime/playground_sample_ps1*.test.mjs'
@@ -42,8 +42,8 @@ on:
       - 'test/helpers/ps1_loop_repeat_fixture.mjs'
       - 'scripts/check_ps1_spu_browser.cjs'
       - 'scripts/check_playground_ps1_browser.cjs'
-      - 'web/playground_ps1_inspector.js'
-      - 'web/soundchip_pitch.js'
+      - 'tetorica_src/runtime/playground_ps1_inspector.js'
+      - 'tetorica_src/runtime/soundchip_pitch.js'
       - 'docs/js/ps1*.js'
       - 'docs/js/playground_ps1_inspector.js'
       - 'docs/js/soundchip_pitch.js'

@@ -1,6 +1,6 @@
 // Optional argument: audify/index.js file URL from a separate test installation.
-import {MegaSynthNode} from '../node/megasynth.mjs';
-import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
+import {MegaSynthNode} from '../tetorica_src/node/megasynth.mjs';
+import {FM_PRESETS} from '../tetorica_src/runtime/megasynth-fm-presets.js';
 import {writeFile} from 'node:fs/promises';
 const synth = new MegaSynthNode({masterVolume: .03,
   outputOptions: process.argv[2] ? {moduleUrl: process.argv[2]} : {}});

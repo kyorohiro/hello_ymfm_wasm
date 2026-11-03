@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {Ym2610B} from '../../web/ym2610b.js';
-import {SSGSynth} from '../../web/ssgsynth.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
+import {SSGSynth} from '../../tetorica_src/runtime/ssgsynth.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 const fixtures = [
@@ -23,7 +23,7 @@ function periodicError(pcm, period) {
 for (const fixture of fixtures) test(`${fixture.mode} ${fixture.variant === true ? 'YM2610B' : fixture.chip} starter keeps SSG noise disabled across notes`, async () => {
   const {default:moduleFactory} = await import(`../../docs/generated/${fixture.chip}_wasm.js`);
   const chip = await fixture.Chip.create({moduleFactory, variant:fixture.variant, moduleOptions:{
-    wasmBinary:await readFile(new URL(`../docs/generated/${fixture.chip}_wasm.wasm`, runtimeDirectoryUrl)),
+    wasmBinary:await readFile(new URL(`../../docs/generated/${fixture.chip}_wasm.wasm`,runtimeDirectoryUrl)),
   }});
   const readRegister = register => {chip.write(0, register); return chip.read(1);};
   const createSsg = () => new SSGSynth({clock:2000000, transport:{write(register, value) {
@@ -41,7 +41,7 @@ for (const fixture of fixtures) test(`${fixture.mode} ${fixture.variant === true
       chip.reset();
       const ssg = createSsg(), pause = new Error('first note reached');
       let loop;
-      const source = await readFile(new URL(`../docs/playground/${path}`, runtimeDirectoryUrl),'utf8');
+      const source = await readFile(new URL(`../../docs/playground/${path}`,runtimeDirectoryUrl),'utf8');
       // Isolate the starter's SSG through the real chip. FM and intentional
       // rhythm percussion are separate sound sources and are silent here.
       await new AsyncFunction('setBpm','fm','CH1','FM_PRESETS','ssg','rhythm','liveLoop','play','beat',source)(

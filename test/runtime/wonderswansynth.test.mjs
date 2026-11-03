@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/wonderswan_wasm.js';
-import {WonderSwan} from '../../web/wonderswan.js';
-import {WonderSwanSynth, WonderSwanDirectTransport, WONDERSWAN_CLOCK} from '../../web/wonderswansynth.js';
+import {WonderSwan} from '../../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanSynth, WonderSwanDirectTransport, WONDERSWAN_CLOCK} from '../../tetorica_src/runtime/wonderswansynth.js';
 
 const rate = 48000;
 const square = Array.from({length:32}, (_, index) => index < 16 ? 0 : 15);
 const peak = audio => Math.max(...audio.map(Math.abs));
-const wasmBinary = await readFile(new URL('../docs/generated/wonderswan_wasm.wasm', runtimeDirectoryUrl));
+const wasmBinary = await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
 async function setup(clock = WONDERSWAN_CLOCK) {
   const chip = await WonderSwan.create({moduleFactory:factory, moduleOptions:{wasmBinary}, clock, sampleRate:rate});
   const synth = new WonderSwanSynth({clock, transport:new WonderSwanDirectTransport(chip)});

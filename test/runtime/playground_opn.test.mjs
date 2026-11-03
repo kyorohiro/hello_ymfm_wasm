@@ -1,25 +1,25 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import nukedFactory from '../../docs/generated/nuked_opn2_wasm.js';
-import {validateYm2612Engine} from '../../web/playground_soundchip_options.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
+import {validateYm2612Engine} from '../../tetorica_src/runtime/playground_soundchip_options.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {Ym2612} from '../../web/ym2612.js';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2610B} from '../../web/ym2610b.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
 import ym2612Factory from '../../docs/generated/ym2612_wasm.js';
 import ym2203Factory from '../../docs/generated/ym2203_wasm.js';
 import ym2610Factory from '../../docs/generated/ym2610b_wasm.js';
-import {createOpnClient} from '../../web/playground_opn.js';
+import {createOpnClient} from '../../tetorica_src/runtime/playground_opn.js';
 import {encodeAdpcmA} from '../../assets/opna-rhythm/generate.mjs';
-import {encodeAdpcmB} from '../../web/adpcm_b_sample.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {encodeAdpcmB} from '../../tetorica_src/runtime/adpcm_b_sample.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 const source=(await readFile(new URL('./playground_opn_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
 async function setup(name, overrides={}, engine='ymfm') {
  let Processor, ready;
@@ -27,7 +27,7 @@ async function setup(name, overrides={}, engine='ymfm') {
  vm.runInNewContext(source,{validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,validateChipClock,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,sampleRate:48000,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:ready};}},registerProcessor:(_,cls)=>{Processor=cls;},...overrides});
- const wasmBinary=await readFile(new URL(`../docs/generated/${engine==='nuked'?'nuked_opn2':name==='ym2610'?'ym2610b':name}_wasm.wasm`,runtimeDirectoryUrl));
+ const wasmBinary=await readFile(new URL(`../../docs/generated/${engine==='nuked'?'nuked_opn2':name==='ym2610'?'ym2610b':name}_wasm.wasm`,runtimeDirectoryUrl));
  const processor=new Processor({processorOptions:{name,wasmBinary,engine}});
  return {processor,promise};
 }

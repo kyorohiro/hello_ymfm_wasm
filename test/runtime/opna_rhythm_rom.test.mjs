@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, mkdtemp, readdir, rm} from 'node:fs/promises';
@@ -7,8 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {copyOpnaRhythm} from '../../scripts/copy_opna_rhythm.mjs';
 import {generateRhythmRom, encodeAdpcmA} from '../../assets/opna-rhythm/generate.mjs';
-import {Ym2608} from '../../web/ym2608.js';
-import {YM2608Synth, YM2608DirectTransport} from '../../web/ym2608synth.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {YM2608Synth, YM2608DirectTransport} from '../../tetorica_src/runtime/ym2608synth.js';
 
 const romUrl = new URL('./tetorica_ym2608_adpcm_rom.bin', runtimeDirectoryUrl);
 
@@ -19,12 +19,12 @@ test('release payload and Pages copy include identical licensed synthetic data',
     const files = ['LICENSE', 'README.md', 'generate.mjs', 'synthesis.mjs'];
     const rom = await readFile(romUrl);
     assert.deepEqual(await readFile(join(stage, 'js/tetorica_ym2608_adpcm_rom.bin')), rom);
-    assert.deepEqual(await readFile(new URL('../docs/js/tetorica_ym2608_adpcm_rom.bin', runtimeDirectoryUrl)), rom);
+    assert.deepEqual(await readFile(new URL('../../docs/js/tetorica_ym2608_adpcm_rom.bin',runtimeDirectoryUrl)), rom);
     assert.deepEqual((await readdir(join(stage, 'assets/opna-rhythm'))).sort(), files.sort());
     for (const file of files) {
-      const source = await readFile(new URL(`../assets/opna-rhythm/${file}`, runtimeDirectoryUrl));
+      const source = await readFile(new URL(`../../assets/opna-rhythm/${file}`, runtimeDirectoryUrl));
       assert.deepEqual(await readFile(join(stage, 'assets/opna-rhythm', file)), source);
-      assert.deepEqual(await readFile(new URL(`../docs/assets/opna-rhythm/${file}`, runtimeDirectoryUrl)), source);
+      assert.deepEqual(await readFile(new URL(`../../docs/assets/opna-rhythm/${file}`,runtimeDirectoryUrl)), source);
     }
     assert.match(await readFile(join(stage, 'assets/opna-rhythm/LICENSE'), 'utf8'), /BSD 3-Clause/);
   } finally { await rm(stage, {recursive: true, force: true}); }
@@ -47,7 +47,7 @@ test('ADPCM-A encoding follows high-nibble order and adaptive step changes', () 
 test('generated sounds play on YM2608 and stop at each fixed ROM boundary', async () => {
   const {default: moduleFactory} = await import("../../docs/generated/ym2608_wasm.js");
   const chip = await Ym2608.create({moduleFactory, moduleOptions: {
-    wasmBinary: await readFile(new URL('../docs/generated/ym2608_wasm.wasm', runtimeDirectoryUrl)),
+    wasmBinary: await readFile(new URL('../../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl)),
   }});
   const peak = values => values.reduce((p, x) => Math.max(p, Math.abs(x)), 0);
   try {

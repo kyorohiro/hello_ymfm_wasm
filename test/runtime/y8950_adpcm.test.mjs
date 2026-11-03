@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {OPLSynth} from '../../web/opl_synth.js';
-import {createOplRegisterClient} from '../../web/playground_opl.js';
-import {attachY8950Adpcm,copyY8950AdpcmMemory} from '../../web/y8950_adpcm.js';
-import {encodeAdpcmB} from '../../web/adpcm_b_sample.js';
+import {OPLSynth} from '../../tetorica_src/runtime/opl_synth.js';
+import {createOplRegisterClient} from '../../tetorica_src/runtime/playground_opl.js';
+import {attachY8950Adpcm,copyY8950AdpcmMemory} from '../../tetorica_src/runtime/y8950_adpcm.js';
+import {encodeAdpcmB} from '../../tetorica_src/runtime/adpcm_b_sample.js';
 const pcm=()=>({sampleRate:8000,channels:[Float32Array.from({length:400},(_,i)=>.5*Math.sin(i*Math.PI/10))]});
 const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);return {promise,resolve};};
 function setup(options={}){

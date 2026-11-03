@@ -9,7 +9,7 @@ import {readFile, writeFile, mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir, endianness} from 'node:os';
 import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {WonderSwan, WONDERSWAN_CLOCK} from '../web/wonderswan.js';
+import {WonderSwan, WONDERSWAN_CLOCK} from '../tetorica_src/runtime/wonderswan.js';
 import {loadWasmSdkInventory} from './wasm_sdk_inventory.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -430,7 +430,7 @@ async function main() {
       const m = metrics(expected); report.cases.push({name:scene.name,clock,rate,frames:scene.frames,...m,
         pcmSha256:sha256(Buffer.concat([Buffer.from(expected.left.buffer),Buffer.from(expected.right.buffer)])),maximumDifference:0});
     }
-    const files = ['web/wonderswan.js','scripts/build_wonderswan_wasm.sh','scripts/check_wonderswan_core.mjs',
+    const files = ['tetorica_src/runtime/wonderswan.js','scripts/build_wonderswan_wasm.sh','scripts/check_wonderswan_core.mjs',
       'test/helpers/wonderswan_core_fixture.cpp','test/helpers/wonderswan_core_selftest.cpp'];
     for (const path of files) { const bytes = await readFile(join(root,path)); report.sources.push({path,bytes:bytes.length,sha256:sha256(bytes)}); }
     for (const path of [join(coreDirectory,'wonderswan.h'),join(coreDirectory,'wonderswan.cpp'),wrapperPath]) {

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {AY8910Synth} from '../../web/ay8910synth.js';
-import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../web/ym2413synth.js';
-import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
-import {createOplRegisterClient} from '../../web/playground_opl.js';
+import {AY8910Synth} from '../../tetorica_src/runtime/ay8910synth.js';
+import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../../tetorica_src/runtime/ym2413synth.js';
+import {OPLSynth,OPL_PRESETS} from '../../tetorica_src/runtime/opl_synth.js';
+import {createOplRegisterClient} from '../../tetorica_src/runtime/playground_opl.js';
 import {MODE_STARTERS,selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

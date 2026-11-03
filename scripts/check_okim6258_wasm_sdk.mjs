@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Oki6258AudioEngine} from '../web/okim6258audioengine.js';
+import {Oki6258AudioEngine} from '../tetorica_src/runtime/okim6258audioengine.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_okim6258_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -236,7 +236,7 @@ async function wrapperChecks(backend){
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
-  const wrappers=['web/okim6258audioengine.js','docs/js/okim6258audioengine.js'];
+  const wrappers=['tetorica_src/runtime/okim6258audioengine.js','docs/js/okim6258audioengine.js'];
   const normalized=bytes=>bytes.toString().replace(/(\.\/soundchip\.js)\?v=[^"'\s)]+/g,'$1');sameBytes(normalized(await readFile(resolve(root,wrappers[0]))),normalized(await readFile(resolve(root,wrappers[1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,flags,rates,layouts,checkpointFrame,
     method:'Actual generated JS/WASM, direct exported C ABI and unchanged public Oki6258AudioEngine. Exact output PCM, synchronous write trace, every serialized state byte and public host mute/volume settings; no tolerance, mock, read/status API or device.',

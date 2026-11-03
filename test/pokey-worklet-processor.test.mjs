@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PokeyAudioEngine} from '../web/pokeyaudioengine.js';
+import {PokeyAudioEngine} from '../tetorica_src/runtime/pokeyaudioengine.js';
 import factory from '../docs/generated/pokey_wasm.js';
 
 const binary=await readFile(new URL('../docs/generated/pokey_wasm.wasm',import.meta.url));

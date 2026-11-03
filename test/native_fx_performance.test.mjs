@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {NativeFXEngine} from '../web/native_fx_engine.js';
-import {createPerformanceQueue} from '../web/playground_performance_queue.js';
-import {setChain} from '../web/native_fx_graph.js';
+import {NativeFXEngine} from '../tetorica_src/runtime/native_fx_engine.js';
+import {createPerformanceQueue} from '../tetorica_src/runtime/playground_performance_queue.js';
+import {setChain} from '../tetorica_src/runtime/native_fx_graph.js';
 
-const module=await WebAssembly.compile(readFileSync(new URL('../web/native_audio_effect.wasm',import.meta.url)));
+const module=await WebAssembly.compile(readFileSync(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url)));
 const sampleOptions={playbackRate:1,gain:1,pan:-1,offset:0,duration:-1,loop:false,loopStart:0,loopEnd:0,fadeIn:0,fadeOut:0};
 const constantFX={op:'live-fx',action:'register',name:'level',context:{level:0},source:'function(input,output,state,context){for(const channel of output)channel.fill(context.level);}'};
 const multiplierFX={op:'live-fx',action:'register',name:'level',context:{level:1},source:'function(input,output,state,context){for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.level;}'};
@@ -16,7 +16,7 @@ function harness(initialCommands=[]){
  const scope={NativeFXEngine,createPerformanceQueue,setChain,sampleRate:48000,
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:data=>messages.push(data)};}},registerProcessor:(_name,processor)=>{Processor=processor;}};
  Object.defineProperty(scope,'currentFrame',{get:()=>frame});
- vm.runInNewContext(readFileSync(new URL('../web/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
+ vm.runInNewContext(readFileSync(new URL('../tetorica_src/runtime/native-fx-worklet.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace('export class','class'),scope);
  const processor=new Processor({processorOptions:{module,initialCommands}});
  let worker;
  const h={processor,messages,workerMessages,

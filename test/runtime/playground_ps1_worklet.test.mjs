@@ -1,25 +1,25 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
-import {Ps1Resampler} from '../../web/ps1_resampler.js';
-import {createPs1Client} from '../../web/playground_ps1.js';
-import {Ps1VoiceInspector} from '../../web/playground_ps1_inspector.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {preparePs1Waveform} from '../../web/ps1_waveform.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
+import {Ps1Resampler} from '../../tetorica_src/runtime/ps1_resampler.js';
+import {createPs1Client} from '../../tetorica_src/runtime/playground_ps1.js';
+import {Ps1VoiceInspector} from '../../tetorica_src/runtime/playground_ps1_inspector.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
 import {createVabFixture} from '../helpers/spu_vab_fixture.mjs';
 import {readVab,prepareVabTone} from '../../docs/playground/playground_ps1_vab.js';
 const peak=a=>a.reduce((m,n)=>Math.max(m,Math.abs(n)),0);
 const waveform=()=>preparePs1Waveform(Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)));
 let assets;
 async function setup(rate=48000){
-  const [factory,wasmBinary,source]=await(assets??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js").then(m=>m.default),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl)),readFile(new URL('./playground_ps1_worklet.js',runtimeDirectoryUrl),'utf8')]));
+  const [factory,wasmBinary,source]=await(assets??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js").then(m=>m.default),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl)),readFile(new URL('./playground_ps1_worklet.js',runtimeDirectoryUrl),'utf8')]));
   const main=new MessageChannel();let Processor;
   const scope={factory,Ps1Spu,Ps1Synth,createPs1InitSample,Ps1Resampler,Ps1VoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-ps1');Processor=Class;}};
   scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate,nowFrame:()=>scope.currentFrame});
@@ -336,7 +336,7 @@ test('PS1 leased editor reverb is live, blocks competing script patches and Stop
 });
 
 test('PS1 real WASM factory boots in an AudioWorklet-like realm without URL or network APIs',async()=>{
- const source=await readFile(new URL('../docs/generated/ps1_spu_wasm.js',runtimeDirectoryUrl),'utf8'),wasmBinary=await readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl));
+ const source=await readFile(new URL('../../docs/generated/ps1_spu_wasm.js',runtimeDirectoryUrl),'utf8'),wasmBinary=await readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl));
  const scope=vm.createContext({console,WebAssembly});
  // Retain the emitted loader body. Only ESM bindings are adapted for vm.Script;
  // URL, fetch, XMLHttpRequest, WorkerGlobalScope and process remain unavailable.

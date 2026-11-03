@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../../docs/generated/spc_wasm.js';
-import {captureSpcTrace} from '../../web/spc_trace.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {captureSpcTrace} from '../../tetorica_src/runtime/spc_trace.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 
 test('offline conversion rejects invalid time/event bounds before initializing WASM', async () => {
   let created = 0;

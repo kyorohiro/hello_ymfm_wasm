@@ -1,5 +1,5 @@
 import {parentPort, workerData} from 'node:worker_threads';
-import {createMegaSynthSession} from '../web/megasynth_session.js';
+import {createMegaSynthSession} from '../runtime/megasynth_session.js';
 
 const options = workerData;
 const abort = new AbortController();

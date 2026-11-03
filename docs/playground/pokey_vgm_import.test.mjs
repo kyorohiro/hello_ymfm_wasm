@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {exportPokeyVgm,readPokeyVgm,validatePokeyVgm,POKEY_VGM_IMPORT_LIMITS} from './pokey_vgm_import.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
-import {createPokeyTimelineBuilder} from '../../web/pokey_timeline_builder.js';
+import {createPokeyTimelineBuilder} from '../../tetorica_src/runtime/pokey_timeline_builder.js';
 import {createPokeyImportVgm} from '../../test/helpers/pokey_vgm_fixture.mjs';
 
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;

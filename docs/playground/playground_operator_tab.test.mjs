@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {apiOperatorToDisplayOperator,displayOperatorToApiOperator} from '../synth/synth_controls.js';
-import {YM2612Synth} from '../../web/ym2612synth.js';
-import {YM2203Synth} from '../../web/ym2203synth.js';
-import {YM2608Synth} from '../../web/ym2608synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 
 const source = (await readFile(new URL('./playground_operator_tab.js',import.meta.url),'utf8'))
   .replace(/^import[\s\S]*?;\n/gm,'').replace('export function createPlaygroundOperatorTab','function createPlaygroundOperatorTab');

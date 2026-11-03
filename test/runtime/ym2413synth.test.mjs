@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChip} from '../../web/soundchip.js';
-import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS,ym2413PitchFromHz} from '../../web/ym2413synth.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS,ym2413PitchFromHz} from '../../tetorica_src/runtime/ym2413synth.js';
 
 function capture(clock = 3579545) {
   const writes = []; let resets = 0;

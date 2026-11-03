@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {mockChips, vgmBytes} from '../../web/test-support/vgm-mock.js';
+import {mockChips, vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 
 // Expected traces are literal specification examples, never derived from step().
 const register = (sample, chip, port, address, value) =>
   ({sample, chip, instance:0, method:'register', args:[port,address,value]});
-import {registerCases as cases} from '../../web/test-support/vgm-register-cases.js';
+import {registerCases as cases} from '../../tetorica_src/runtime/test-support/vgm-register-cases.js';
 
 for (const [label, Parser] of [['web',Ym2612VGM],['docs',DocsVGM]]) {
   for (const [chip, bytes, port, address, value] of cases) test(`${label}: ${chip} command ${bytes[0].toString(16)} routes exact write`, () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createPs1InitSample,preparePs1ADPCM} from '../web/ps1synth.js';
-import {preparePs1Waveform} from '../web/ps1_waveform.js';
+import {createPs1InitSample,preparePs1ADPCM} from '../tetorica_src/runtime/ps1synth.js';
+import {preparePs1Waveform} from '../tetorica_src/runtime/ps1_waveform.js';
 import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 import {measurePs1CalibrationOffline} from './check_ps1_calibration_offline.mjs';
 

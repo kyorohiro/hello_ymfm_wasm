@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {SegaPSG} from '../web/segapsg.js';
-import {GenesisAudioEngine} from '../web/genesisaudioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {SegaPSG} from '../tetorica_src/runtime/segapsg.js';
+import {GenesisAudioEngine} from '../tetorica_src/runtime/genesisaudioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -152,8 +152,8 @@ async function playerChecks(backend){let generated=0,delivered=0,requested=0,ren
  assert(positiveCheckpointRestores>0);return {passed:true,rows,positiveCheckpointRestores,generatedEngineOutputStereoFrames:generated,deliveredPlayerOutputStereoFrames:delivered,requestedPlayerOutputStereoFrames:requested,engineRenderExecutions:renders,playerProcessCalls:calls,frameCountScope:'Actual Genesis Engine generation includes baseline/replay, checkpoint-or-zero seek prefixes, opaque Player replay, and a second file with ignored0x4f removed. Requested/delivered Player frames include discarded prefixes and queued samples; not added again.'};
 }
 async function main(){const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports);
- const wrappers=['web/segapsg.js','docs/js/segapsg.js','web/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except named import caches');
- const helpers=['web/ym2612.js','web/rf5c164.js','web/pwm32x.js','web/vgmplayer.js','web/ym2612vgm.js','web/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js','docs/generated/ym2612_wasm.js','docs/generated/ym2612_wasm.wasm'];
+ const wrappers=['tetorica_src/runtime/segapsg.js','docs/js/segapsg.js','tetorica_src/runtime/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except named import caches');
+ const helpers=['tetorica_src/runtime/ym2612.js','tetorica_src/runtime/rf5c164.js','tetorica_src/runtime/pwm32x.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','tetorica_src/runtime/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js','docs/generated/ym2612_wasm.js','docs/generated/ym2612_wasm.wasm'];
  const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,outputRates,layouts,checkpointFrame,probeFrames,inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(helpers.map(p=>inputFile(resolve(root,p))))},method:'Actual generated JS/WASM through unchanged SegaPSG wrapper, owned and immediately consumed borrowed views, exact PCM and40-byte native state. Actual GenesisAudioEngine with real current YM2612 WASM, existing gains and real VgmPlayer save/checkpoint/seek. No mock, tolerance, Mixer or audio device.',
  limits:['Sega PSG generates directly at its configured output rate: accumulator adds input clock, clocks the generator while >=rate*16, then samples current levels. This is not the MAME AY averaging model or a JavaScript resampler. Tone period0/1 produces constant positive output.',
  'All8 periodic/white and fixed/tone2-linked noise modes, rising-edge LFSR, all256 Game Gear stereo masks and four independent mute groups are checked. Current VgmPlayer parses0x50 but ignores0x4f; that existing behavior is asserted without adding VGM stereo support.',

@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
-import {createScspValidation,scspCommandArgs} from '../../web/playground_scsp.js';
-import {createScspInitSample} from '../../web/scspsynth.js';
-import {SnesSynth} from '../../web/snessynth.js';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
-import {borrowNativeApi, createNativePrimaryClient} from '../../web/playground_native_primary.js';
+import {createScspValidation,scspCommandArgs} from '../../tetorica_src/runtime/playground_scsp.js';
+import {createScspInitSample} from '../../tetorica_src/runtime/scspsynth.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
+import {borrowNativeApi, createNativePrimaryClient} from '../../tetorica_src/runtime/playground_native_primary.js';
 
 // Browser audio helpers capture fetch when imported. Route that captured
 // function into each deterministic device harness without fetching file: URLs.
 const browserFetch=globalThis.fetch;
 let fetchAsset;
 globalThis.fetch=(...args)=>fetchAsset?fetchAsset(...args):browserFetch(...args);
-const {NativeRuntimeSynth}=await import("../../web/native_runtime_synth.js");
+const {NativeRuntimeSynth}=await import("../../tetorica_src/runtime/native_runtime_synth.js");
 globalThis.fetch=browserFetch;
 
 const deferred = () => { let resolve; return {promise:new Promise(done => { resolve = done; }), resolve:() => resolve()}; };

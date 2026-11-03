@@ -342,7 +342,7 @@ async function runBrowser(name, type, url, fixture) {
 }
 
 (async () => {
-  const {createInitVoice, createVoiceSysex, createBankSysex} = await import(pathToFileURL(path.join(root, 'web/msfa_dx7/src/sysex.js')).href);
+  const {createInitVoice, createVoiceSysex, createBankSysex} = await import(pathToFileURL(path.join(root, 'tetorica_src/runtime/msfa_dx7/src/sysex.js')).href);
   const fixture = {
     single:Array.from(createVoiceSysex(createInitVoice('TEST SINE'))),
     bank:Array.from(createBankSysex(Array.from({length:32}, (_, index) => createInitVoice(`BANK ${index}`)))),

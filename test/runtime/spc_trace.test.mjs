@@ -1,13 +1,13 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/spc_wasm.js';
-import {SpcCore, SnesDspCore, prepareSpcTimeline} from '../../web/spc.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {SpcCore, SnesDspCore, prepareSpcTimeline} from '../../tetorica_src/runtime/spc.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 
-const wasmBinary = await readFile(new URL('../docs/generated/spc_wasm.wasm', runtimeDirectoryUrl));
+const wasmBinary = await readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl));
 const module = await factory({wasmBinary});
 const options = {moduleFactory:async () => module};
 const frames = 3200;

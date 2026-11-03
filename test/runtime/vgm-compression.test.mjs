@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 const block=(type,data)=>[0x67,0x66,type,data.length,0,0,0,...data];
 // VGM 1.71 compressed blocks: literal MSB-first packed bits and expected values.
 const cases=[
@@ -48,7 +48,7 @@ for(const [label,Player] of [['web',VgmPlayer],['docs',DocsPlayer]]) {
  });
 }
 const {seekPlayback}=await import("../../docs/vgm_analyzer/seek_playback.js");
-for(const [label,path] of [['web','./ym2612vgm.js'],['docs','../docs/js/ym2612vgm.js']]) {
+for(const [label,path] of [['web','./ym2612vgm.js'],['docs','../../docs/js/ym2612vgm.js']]) {
  const {decodePwmBlock}=await import(new URL(path, runtimeDirectoryUrl).href);
  test(`${label}: 16-bit copy/shift/DPCM and packed byte boundaries`,()=>{
    assert.deepEqual([...decodePwmBlock(new Uint8Array([0,6,0,0,0,16,3,0,0,0,0x2b,0x80]))],[1,0,2,0,7,0]);

@@ -9,7 +9,7 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {createCDDAPCM, CDDA_PCM_MAX_BYTES} from '../web/cdda_pcm.js';
+import {createCDDAPCM, CDDA_PCM_MAX_BYTES} from '../tetorica_src/runtime/cdda_pcm.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const temp = await mkdtemp(join(tmpdir(), 'tetorica-cdda-core-'));
@@ -111,7 +111,7 @@ for (let i = 0; i < sourceFrames; i++) {
   pcmView.setInt16(i * 4 + 2, ((i * 137 + 65535) % 65536) - 32768, true);
 }
 await writeFile(join(temp, 'source.pcm'), pcm);
-const wasmBinary = await readFile(join(root, 'web/generated/cdda_wasm.wasm'));
+const wasmBinary = await readFile(join(root, 'tetorica_src/runtime/generated/cdda_wasm.wasm'));
 const module = new WebAssembly.Module(wasmBinary);
 assert.deepEqual(WebAssembly.Module.imports(module), [], 'Real-time renderer has no host imports.');
 const {instance} = await WebAssembly.instantiate(wasmBinary, {});

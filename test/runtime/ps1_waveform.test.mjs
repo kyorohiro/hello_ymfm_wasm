@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {preparePs1Waveform,PS1_WAVEFORM_FRAMES,PS1_WAVEFORM_BYTES,PS1_WAVEFORM_FREQUENCY_HZ} from '../../web/ps1_waveform.js';
-import {preparePs1ADPCM} from '../../web/ps1synth.js';
+import {preparePs1Waveform,PS1_WAVEFORM_FRAMES,PS1_WAVEFORM_BYTES,PS1_WAVEFORM_FREQUENCY_HZ} from '../../tetorica_src/runtime/ps1_waveform.js';
+import {preparePs1ADPCM} from '../../tetorica_src/runtime/ps1synth.js';
 test('PS1 prepare-side waveform encoder owns one bounded 112-frame looping cycle',()=>{
   const input=Float32Array.from({length:112},(_,i)=>.7*Math.sin(2*Math.PI*i/112)),saved=input.slice();
   const a=preparePs1Waveform(input),b=preparePs1Waveform(Array.from(input));

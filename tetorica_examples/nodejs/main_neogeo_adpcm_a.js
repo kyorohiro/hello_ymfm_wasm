@@ -1,10 +1,10 @@
 /** Original mono drum kit → ADPCM-A ROM, conversion metadata and real YM2610/B WAV. */
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
-import {YM2610B_CLOCK} from '../../web/ym2610b.js';
-import {Ym2610BAudioEngine} from '../../web/ym2610baudioengine.js';
-import {YM2610BSynth, YM2610BDirectTransport} from '../../web/ym2610bsynth.js';
+import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
+import {YM2610B_CLOCK} from '../../tetorica_src/runtime/ym2610b.js';
+import {Ym2610BAudioEngine} from '../../tetorica_src/runtime/ym2610baudioengine.js';
+import {YM2610BSynth, YM2610BDirectTransport} from '../../tetorica_src/runtime/ym2610bsynth.js';
 import moduleFactory from '../../docs/generated/ym2610b_wasm.js';
 import {encodeStereoWav} from '../../docs/vgm_analyzer/vgm_wav.js';
 

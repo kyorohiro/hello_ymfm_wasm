@@ -130,8 +130,8 @@ async function referencePcm(input,sampleRate){
   const key=sha256(input)+':'+sampleRate;if(references.has(key))return references.get(key);
   modules??=(async()=>{
     const [{PokeyAudioEngine},{Ym2612VGM},{VgmPlayer},{MultiChipAudioEngine},{default:factory},wasm]=await Promise.all([
-      import(pathToFileURL(path.join(repository,'web/pokeyaudioengine.js'))),import(pathToFileURL(path.join(repository,'web/ym2612vgm.js'))),
-      import(pathToFileURL(path.join(repository,'web/vgmplayer.js'))),import(pathToFileURL(path.join(repository,'web/multichipaudioengine.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/pokeyaudioengine.js'))),import(pathToFileURL(path.join(repository,'tetorica_src/runtime/ym2612vgm.js'))),
+      import(pathToFileURL(path.join(repository,'tetorica_src/runtime/vgmplayer.js'))),import(pathToFileURL(path.join(repository,'tetorica_src/runtime/multichipaudioengine.js'))),
       import(pathToFileURL(path.join(repository,'docs/generated/pokey_wasm.js'))),fs.readFile(path.join(repository,'docs/generated/pokey_wasm.wasm'))]);
     return {PokeyAudioEngine,Ym2612VGM,VgmPlayer,MultiChipAudioEngine,module:await factory({wasmBinary:wasm})};
   })();
@@ -276,7 +276,7 @@ async function checkBrowser(name,type,url,fixture){
       results.push(await checkBrowser(name,type,url,createPokeyImportVgm));
     }
     const referenceSources={};
-    for(const name of ['web/pokey.js','web/pokeyaudioengine.js','web/ym2612vgm.js','web/vgmplayer.js','web/multichipaudioengine.js','docs/generated/pokey_wasm.js','docs/generated/pokey_wasm.wasm']){
+    for(const name of ['tetorica_src/runtime/pokey.js','tetorica_src/runtime/pokeyaudioengine.js','tetorica_src/runtime/ym2612vgm.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/multichipaudioengine.js','docs/generated/pokey_wasm.js','docs/generated/pokey_wasm.wasm']){
       const bytes=await fs.readFile(path.join(repository,name));referenceSources[name]={bytes:bytes.length,sha256:sha256(bytes)};
     }
     const report={schemaVersion:1,root,fixture:{path:'test/helpers/pokey_vgm_fixture.mjs',sha256:sha256(await fs.readFile(path.join(repository,'test/helpers/pokey_vgm_fixture.mjs')))},checkerSha256:sha256(await fs.readFile(__filename)),servedSources:Object.fromEntries([...servedSources].sort(([a],[b])=>a.localeCompare(b))),referenceSources,results};

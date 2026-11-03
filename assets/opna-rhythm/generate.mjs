@@ -7,7 +7,7 @@ import {generateRhythmRom} from './synthesis.mjs';
 export {VOICES, encodeAdpcmA, synthesizeVoice, generateRhythmRom} from './synthesis.mjs';
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const target = new URL('../../web/tetorica_ym2608_adpcm_rom.bin',import.meta.url), bytes = generateRhythmRom();
+  const target = new URL('../../tetorica_src/runtime/tetorica_ym2608_adpcm_rom.bin',import.meta.url), bytes = generateRhythmRom();
   if (process.argv.includes('--check')) {
     if (!Buffer.from(bytes).equals(await readFile(target))) throw new Error('Generated rhythm ROM differs from checked-in data');
   } else await writeFile(target,bytes);

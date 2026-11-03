@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SoundChipMixer} from '../../web/soundchip_mixer.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip_mixer.js';
 import {createVirtualFileSystem} from './playground_virtual_files.js';
 import {createPlaygroundCassetteZip, loadPlaygroundCassette} from './playground_cassette.js';
 import {

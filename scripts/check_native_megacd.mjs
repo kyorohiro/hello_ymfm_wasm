@@ -7,10 +7,10 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/rf5c164_wasm.js';
-import {Rf5c164} from '../web/rf5c164.js';
-import {RF5C164Synth} from '../web/rf5c164synth.js';
-import {encodeRf5c164} from '../web/rf5c164_pcm.js';
-import {ChipClockResampler} from '../web/playground_chip_clock.js';
+import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
+import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
+import {encodeRf5c164} from '../tetorica_src/runtime/rf5c164_pcm.js';
+import {ChipClockResampler} from '../tetorica_src/runtime/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');

@@ -1,9 +1,9 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile,writeFile} from 'node:fs/promises';
-import factory from '../../docs/generated/scsp_wasm.js';import {Scsp} from '../../web/scsp.js';import {ScspSynth,createScspInitSample} from '../../web/scspsynth.js';
-const wasmBinary=await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));let module;
+import factory from '../../docs/generated/scsp_wasm.js';import {Scsp} from '../../tetorica_src/runtime/scsp.js';import {ScspSynth,createScspInitSample} from '../../tetorica_src/runtime/scspsynth.js';
+const wasmBinary=await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));let module;
 async function create(t,bits=16,depth=15){const core=await Scsp.create({moduleFactory:async()=>module??=await factory({wasmBinary})}),synth=new ScspSynth(core);t.after(()=>synth.dispose());let {pcm,options}=createScspInitSample();if(bits===8)pcm=Int8Array.from(pcm,v=>Math.round(v/256));const sample=synth.loadPCM(pcm,{...options,modulationDepth:depth});return {core,synth,sample,pcm};}
 function start(synth,sample,{depth=9,offset=63,direct=0,tl=0,inhibit=false}={}){synth.setPreset(0,{sample,frequencyHz:220,directLevel:direct,totalLevel:tl,modulation:{writeInhibit:inhibit}});synth.setPreset(1,{sample,frequencyHz:440,totalLevel:16,modulation:{depth,xOffset:offset,yOffset:offset}});synth.keyOn(0);synth.keyOn(1);}
 const delta=(a,b)=>a.reduce((v,x,i)=>Math.max(v,Math.abs(x-b[i])),0);
@@ -55,7 +55,7 @@ test('unsafe PCM/routing fails atomically and pending presets do not leak into h
 
 test('editable two-slot example renders a whole phrase through actual WASM and releases both operators',async t=>{
  const {synth}=await create(t),loops=[],audio=[];
- const source=await readFile(new URL('../docs/playground/examples/scsp/scsp-two-slot-fm.js',runtimeDirectoryUrl),'utf8');
+ const source=await readFile(new URL('../../docs/playground/examples/scsp/scsp-two-slot-fm.js',runtimeDirectoryUrl),'utf8');
  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
  await new AsyncFunction('useSoundChip','setBpm','liveLoop','beat',source)(async kind=>{assert.equal(kind,'scsp');return synth;},()=>{},(_name,fn)=>loops.push(fn),async()=>{audio.push(synth.generateStereo(4096).left);});
  assert.equal(loops.length,1);await loops[0]();assert(audio.some(a=>a.some(x=>Math.abs(x)>.01)));assert.equal(synth.getState().slots[0].gate,false);assert.equal(synth.getState().slots[1].gate,false);assert.equal(synth.getState().slots[0].directLevel,0);assert.equal(synth.getState().slots[1].modulation.depth,9);

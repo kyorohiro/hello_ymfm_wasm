@@ -150,7 +150,7 @@ inputs, and impose its own execution/resource policy.
   `vgm_musicxml.js`, `*mml.js`: existing reusable analysis/export algorithms.
 - `docs/vgm_analyzer/analyzer_core.js`: public facade and JSON summary. Browser
   score/MIDI imports and the Node adapter share these very same modules.
-- `cli/`: Node filesystem/WASM adapter and argument/output handling.
+- `tetorica_src/cli/`: Node filesystem/WASM adapter and argument/output handling.
 - `scripts/build_cli.mjs`: follows relative imports to stage a distribution under
   `dist/`. Staging copies files mechanically; there is no forked algorithm.
 
@@ -806,10 +806,10 @@ timbres are not reconstructed. Dual-chip configurations and instrument exports
 are not supported. Score channel IDs are `huc6280-ch1` through `huc6280-ch6`.
 
 ```sh
-node cli/main.js render test/fixtures/huc6280-tone.vgz --output huc6280.wav
-node cli/main.js export test/fixtures/huc6280-tone.vgz --format midi --output huc6280.mid
-node cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 120 --output huc6280.musicxml
-node cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output huc6280.ly
+node tetorica_src/cli/main.js render test/fixtures/huc6280-tone.vgz --output huc6280.wav
+node tetorica_src/cli/main.js export test/fixtures/huc6280-tone.vgz --format midi --output huc6280.mid
+node tetorica_src/cli/main.js export test/fixtures/huc6280-tone.vgz --format musicxml --bpm 120 --output huc6280.musicxml
+node tetorica_src/cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 120 --output huc6280.ly
 ```
 
 
@@ -818,9 +818,9 @@ node cli/main.js export test/fixtures/huc6280-tone.vgz --format lilypond --bpm 1
 FM only; ADPCM is omitted:
 
 ```sh
-node cli/main.js export test/fixtures/y8950-mix.vgz --format midi --output /tmp/y8950.mid
-node cli/main.js export test/fixtures/y8950-mix.vgz --format musicxml --bpm 120 --output /tmp/y8950.musicxml
-node cli/main.js export test/fixtures/y8950-mix.vgz --format lilypond --bpm 120 --output /tmp/y8950.ly
+node tetorica_src/cli/main.js export test/fixtures/y8950-mix.vgz --format midi --output /tmp/y8950.mid
+node tetorica_src/cli/main.js export test/fixtures/y8950-mix.vgz --format musicxml --bpm 120 --output /tmp/y8950.musicxml
+node tetorica_src/cli/main.js export test/fixtures/y8950-mix.vgz --format lilypond --bpm 120 --output /tmp/y8950.ly
 ```
 
 MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP combinations also support `channels` and
@@ -893,7 +893,7 @@ Adds npm discovery keywords for VGM/VGZ/S98, sound chips and supported score exp
 ## MDX file export
 
 ```sh
-node cli/main.js export song.vgz --format mdx --bpm 120 --output song.mdx
+node tetorica_src/cli/main.js export song.vgz --format mdx --bpm 120 --output song.mdx
 ```
 
 `exportSource(source, {format: 'mdx', bpm: 120, fileName: 'song'})` returns
@@ -933,8 +933,8 @@ unavailable. The host removes DC without changing Mixer gain; analog Atari
 board filtering and external POKEY I/O are not emulated.
 
 ```sh
-node cli/main.js support song.vgz --json
-node cli/main.js render song.vgz --mute pokey-ch-5 --output pokey.wav
+node tetorica_src/cli/main.js support song.vgz --json
+node tetorica_src/cli/main.js render song.vgz --mute pokey-ch-5 --output pokey.wav
 ```
 
 POKEY playback is available starting with `tetorica-vgm@0.2.16`.
@@ -956,8 +956,8 @@ notes, as are waveform harmonics and RAM rewriting. Score channel IDs are
 Written wave RAM snapshots are available as described below.
 
 ```sh
-node cli/main.js render test/fixtures/wonderswan-tone.vgz --output wonderswan.wav
-node cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output wonderswan.mid
+node tetorica_src/cli/main.js render test/fixtures/wonderswan-tone.vgz --output wonderswan.wav
+node tetorica_src/cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output wonderswan.mid
 ```
 
 The original fixture contains no game or ROM data. This repository's shared
@@ -980,10 +980,10 @@ Noise, Voice PCM and song timing are not replayed. WAV is an audition of the
 looping waveform, not a detected original sample length.
 
 ```sh
-node cli/main.js samples song.vgz --json
-node cli/main.js samples song.vgz --id 1 --output wave.json
-node cli/main.js samples song.vgz --all --output waves.zip
-node cli/main.js samples song.vgz --id 1 --format wav --occurrence 1 --output wave.wav
+node tetorica_src/cli/main.js samples song.vgz --json
+node tetorica_src/cli/main.js samples song.vgz --id 1 --output wave.json
+node tetorica_src/cli/main.js samples song.vgz --all --output waves.zip
+node tetorica_src/cli/main.js samples song.vgz --id 1 --format wav --occurrence 1 --output wave.wav
 ```
 
 JSON uses `schemaVersion: 1`, `chip: "wonderswan"`, `kind: "wave"`,
@@ -999,10 +999,10 @@ at Voice disable, CH2 key-off, end of file or 10-second display windows. These
 are timed channel-output captures, not inferred original instruments.
 
 ```sh
-node cli/main.js samples song.vgz --json
-node cli/main.js samples song.vgz --id 1 --output voice.json
-node cli/main.js samples song.vgz --id 1 --format wav --output voice.wav
-node cli/main.js samples song.vgz --all --output samples.zip
+node tetorica_src/cli/main.js samples song.vgz --json
+node tetorica_src/cli/main.js samples song.vgz --id 1 --output voice.json
+node tetorica_src/cli/main.js samples song.vgz --id 1 --format wav --output voice.wav
+node tetorica_src/cli/main.js samples song.vgz --all --output samples.zip
 ```
 
 Voice JSON uses `kind: "voice-pcm"` and `representation: "timed-voice-pcm"`,

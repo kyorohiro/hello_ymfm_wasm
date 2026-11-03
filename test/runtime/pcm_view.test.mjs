@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ym2612} from '../../web/ym2612.js';
-import {SegaPSG} from '../../web/segapsg.js';
-import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {SegaPSG} from '../../tetorica_src/runtime/segapsg.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 
 const numericBindings = {
   ym2612: {
@@ -77,7 +77,7 @@ for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
 for (const [name, Chip] of [['ym2612', Ym2612], ['nuked_opn2', Ym2612], ['segapsg', SegaPSG]]) {
   test(`${name}: direct bindings preserve legacy cwrap PCM and envelope state`, async () => {
     const {default: moduleFactory} = await import(`../../docs/generated/${name}_wasm.js`);
-    const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl));
+    const wasmBinary = await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl));
     const direct = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
     const legacy = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
     const family = Chip === Ym2612 ? 'ym2612' : 'segapsg';
@@ -124,7 +124,7 @@ for (const [name, Chip] of [['ym2612', Ym2612], ['nuked_opn2', Ym2612], ['segaps
 
   test(`${name}: borrowed views match owned output and reuse capacity`, async () => {
     const {default: moduleFactory} = await import(`../../docs/generated/${name}_wasm.js`);
-    const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, runtimeDirectoryUrl));
+    const wasmBinary = await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl));
     const a = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
     const b = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
     try {

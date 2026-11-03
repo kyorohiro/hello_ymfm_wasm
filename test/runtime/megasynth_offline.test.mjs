@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
 import test from 'node:test';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../web/playground_audition_guard.js';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createMegaSynthOffline} from '../../web/megasynth_offline.js';
-import {NativeFXEngine} from '../../web/native_fx_engine.js';
-import {createNativeFXController} from '../../web/native_fx.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {createYm2612} from '../../web/ym2612.js';
-import {YM2612Synth, YM2612WorkletTransport} from '../../web/ym2612synth.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {createPerformanceQueue, createPerformanceChipOwnership} from '../../web/playground_performance_queue.js';
+import {createMegaSynthOffline} from '../../tetorica_src/runtime/megasynth_offline.js';
+import {NativeFXEngine} from '../../tetorica_src/runtime/native_fx_engine.js';
+import {createNativeFXController} from '../../tetorica_src/runtime/native_fx.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {createYm2612} from '../../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth, YM2612WorkletTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {createPerformanceQueue, createPerformanceChipOwnership} from '../../tetorica_src/runtime/playground_performance_queue.js';
 import factory from '../../docs/generated/ym2612_wasm.js';
 
 const fxModule = await WebAssembly.compile(fs.readFileSync(new URL('./native_audio_effect.wasm', runtimeDirectoryUrl)));
@@ -74,7 +74,7 @@ test('offline stereo FM + native delay/reverb exactly match the AudioWorklet pro
     registerProcessor: (_name, Type) => {Processor = Type;}};
   vm.runInNewContext(fs.readFileSync(new URL('./ym2612-worklet.js', runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, ''), scope);
   const p = new Processor();
-  await p.init(fs.readFileSync(new URL('../docs/generated/ym2612_wasm.wasm', runtimeDirectoryUrl)));
+  await p.init(fs.readFileSync(new URL('../../docs/generated/ym2612_wasm.wasm',runtimeDirectoryUrl)));
   assert.ok(p.ym2612);
   const fm = new YM2612Synth({transport: new YM2612WorkletTransport({port: {postMessage: data => p.port.onmessage({data})}})});
   const dsp = new NativeFXEngine(fxModule, 48000);

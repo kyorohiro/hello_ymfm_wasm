@@ -1,13 +1,13 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Ym2203AudioEngine} from '../../web/ym2203audioengine.js';
-import {Ym2608AudioEngine} from '../../web/ym2608audioengine.js';
-import {Ym2610BAudioEngine} from '../../web/ym2610baudioengine.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2203AudioEngine} from '../../tetorica_src/runtime/ym2203audioengine.js';
+import {Ym2608AudioEngine} from '../../tetorica_src/runtime/ym2608audioengine.js';
+import {Ym2610BAudioEngine} from '../../tetorica_src/runtime/ym2610baudioengine.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import ym2203 from '../../docs/generated/ym2203_wasm.js';
 import ym2608 from '../../docs/generated/ym2608_wasm.js';
@@ -15,13 +15,13 @@ import ym2610b from '../../docs/generated/ym2610b_wasm.js';
 const rom=Uint8Array.from({length:8192},(_,i)=>i%2?0x99:0x11); // Authored synthetic rhythm pattern.
 async function make(kind,rate=48000){
  const name=kind==='ym2610'?'ym2610b':kind;
- const moduleOptions={wasmBinary:readFileSync(new URL(`../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))};
+ const moduleOptions={wasmBinary:readFileSync(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))};
  if(kind==='ym2203')return Ym2203AudioEngine.create({ym2203ModuleFactory:ym2203,ym2203ModuleOptions:moduleOptions,outputSampleRate:rate});
  if(kind==='ym2608') {const e=await Ym2608AudioEngine.create({ym2608ModuleFactory:ym2608,ym2608ModuleOptions:moduleOptions,outputSampleRate:rate});e.loadAdpcmARom(rom);return e;}
  return Ym2610BAudioEngine.create({moduleFactory:ym2610b,moduleOptions,variant:kind==='ym2610b',outputSampleRate:rate});
 }
 const chip=e=>e.ym2203??e.ym2608??e.chip;
-const fixture=(kind,voice)=>readFileSync(new URL(`../test/fixtures/${kind}-${voice}.vgm`,runtimeDirectoryUrl));
+const fixture=(kind,voice)=>readFileSync(new URL(`../../test/fixtures/${kind}-${voice}.vgm`,runtimeDirectoryUrl));
 const render=(p,n)=>{const left=new Float32Array(n),right=new Float32Array(n);p.process(left,right,n);return {left,right};};
 function player(e,bytes){const p=new VgmPlayer(e);p.load(bytes);p.setPrefetchFactor(1);p.play();return p;}
 function prepare(e, bytes) {
@@ -143,7 +143,7 @@ test('YM2610 variants recover variable ROM sizes and repeated mid-song blocks on
 
 test('Analyzer enables OPN checkpoints, retains same-song cache and restores FM/SSG monitors',async()=>{
  const {default:vm}=await import('node:vm');
- const source=readFileSync(new URL('../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
+ const source=readFileSync(new URL('../../docs/vgm_analyzer/vgm_analyzer.js',runtimeDirectoryUrl),'utf8');
  const body=source.slice(source.indexOf('async function ensurePlaybackReady('),source.indexOf('\nfunction isPlaybackReady('));
  for(const kind of ['ym2203','ym2608','ym2610','ym2610b']){
   const e=await make(kind);try{
@@ -166,6 +166,6 @@ test('Analyzer enables OPN checkpoints, retains same-song cache and restores FM/
 });
 
 test('OPN wrappers gracefully report missing state exports in old WASM',async()=>{
- const classes=[(await import("../../web/ym2203.js")).Ym2203,(await import("../../web/ym2608.js")).Ym2608,(await import("../../web/ym2610b.js")).Ym2610B];
+ const classes=[(await import("../../tetorica_src/runtime/ym2203.js")).Ym2203,(await import("../../tetorica_src/runtime/ym2608.js")).Ym2608,(await import("../../tetorica_src/runtime/ym2610b.js")).Ym2610B];
  for(const Chip of classes){const c=new Chip({},1,{});assert.equal(c.supportsState(),false);assert.throws(()=>c.saveState(),/unavailable/);}
 });

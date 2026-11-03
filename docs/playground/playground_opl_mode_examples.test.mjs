@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
+import {OPLSynth,OPL_PRESETS} from '../../tetorica_src/runtime/opl_synth.js';
 import {MODE_STARTERS,selectModeExamples} from './playground_mode_examples.js';
 
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;

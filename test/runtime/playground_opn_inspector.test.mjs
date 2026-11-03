@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {opnPitchFromHz} from '../../web/soundchip_pitch.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {opnPitchFromHz} from '../../tetorica_src/runtime/soundchip_pitch.js';
 
 function setup(kind,initialClock=kind==='ym2203'?4000000:kind==='ym2612'?7670454:8000000){
   const writes=[];let clock=initialClock;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from '../../web/ym2612synth.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
+import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
 
 function fixture(rate = 48000) {
   let frame = 0, value = 128;
@@ -151,7 +151,7 @@ test('borrowed DirectTransport DAC PCM retains exact event boundaries and reuses
 });
 
 test('real WASM PCM is identical with owned arrays and borrowed capacity views',async()=>{
- const {Ym2612}=await import("../../web/ym2612.js");
+ const {Ym2612}=await import("../../tetorica_src/runtime/ym2612.js");
  const {default:factory}=await import("../../docs/generated/ym2612_wasm.js");
  const chip=await Ym2612.create({moduleFactory:factory});
  try{

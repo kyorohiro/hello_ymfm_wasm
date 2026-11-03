@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,exportSource} from '../cli/index.js';
+import {readSource,exportSource} from '../tetorica_src/cli/index.js';
 import {extractTfiPatchesFromVgm} from '../docs/vgm_analyzer/tfi_extract.js';
 import {createVgiFromPreset} from '../docs/js/vgi.js';
 import {createTfiFromPreset} from '../docs/js/tfi.js';

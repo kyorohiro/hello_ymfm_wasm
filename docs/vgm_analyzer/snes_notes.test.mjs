@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../generated/spc_wasm.js';
-import {captureSpcPerformance} from '../../web/spc_performance.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {captureSpcPerformance} from '../../tetorica_src/runtime/spc_performance.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 import {buildSnesNoteAnalysis,describeSnesAt} from './snes_notes.js';
 
 const clock = seconds => Math.round(seconds * 1024000);

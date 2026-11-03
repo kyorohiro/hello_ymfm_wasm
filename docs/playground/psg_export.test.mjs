@@ -1,8 +1,8 @@
 import test from 'node:test';
-import {createSegaPsgApi} from '../../web/segapsg_api.js';
+import {createSegaPsgApi} from '../../tetorica_src/runtime/segapsg_api.js';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 const make=commands=>{const b=vgmBytes(commands);new DataView(b.buffer,b.byteOffset,b.byteLength).setUint32(12,3579545,true);return b;};
 async function execute(source) {
  const loops=[],events=[];let time=0;

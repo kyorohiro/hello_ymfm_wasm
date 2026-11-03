@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker,MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {PWM32XPlayback,createPWM32XClient} from '../../web/pwm32x_playback.js';
-import {EXTRA_PWM_ADMISSION_ERRORS,createNativeGenesisExtraPwmEndpoint} from '../../web/native_genesis_extra_pwm.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {PWM32XPlayback,createPWM32XClient} from '../../tetorica_src/runtime/pwm32x_playback.js';
+import {EXTRA_PWM_ADMISSION_ERRORS,createNativeGenesisExtraPwmEndpoint} from '../../tetorica_src/runtime/native_genesis_extra_pwm.js';
 
 const rpc=async(endpoint,message,timing)=>{const result=await endpoint.dispatch(message,timing);return result?.deferred?await result.deferred:result;};
 const tick=()=>new Promise(resolve=>setTimeout(resolve,2));

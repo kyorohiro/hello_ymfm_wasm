@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisFX} from '../../web/native_genesis_fx.js';
-import {decodeNativeLiveFxContext} from '../../web/native_livefx_context.js';
+import {createNativeGenesisFX} from '../../tetorica_src/runtime/native_genesis_fx.js';
+import {decodeNativeLiveFxContext} from '../../tetorica_src/runtime/native_livefx_context.js';
 
 test('Native device FX uses shared descriptors for series/parallel and timed parameters',()=>{
   const messages=[]; let beatSeconds=.5;

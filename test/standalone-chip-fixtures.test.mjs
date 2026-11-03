@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
 import {exportSource,listSourceScoreChannels} from '../docs/vgm_analyzer/analyzer_core.js';
-import {parseMidiFile} from '../web/midi_file.js';
+import {parseMidiFile} from '../tetorica_src/runtime/midi_file.js';
 
 for(const [chip,channel,count] of [['ym3526',1,9],['ym3812',1,9],['ymf262',10,18],['ym2413',1,9],['gameboy',1,3]]) {
   test(`${chip} fixture: VGM/VGZ, audible deterministic render, mute and score exports`,async()=>{

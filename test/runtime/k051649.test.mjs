@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {K051649, validateK051649} from '../../web/k051649.js';
-import {K051649AudioEngine} from '../../web/k051649audioengine.js';
-import {MsxAudioEngine, validateMsxPlaybackHeader} from '../../web/msxaudioengine.js';
+import {K051649, validateK051649} from '../../tetorica_src/runtime/k051649.js';
+import {K051649AudioEngine} from '../../tetorica_src/runtime/k051649audioengine.js';
+import {MsxAudioEngine, validateMsxPlaybackHeader} from '../../tetorica_src/runtime/msxaudioengine.js';
 import {validateMsxPlaybackHeader as validateDocsMsxHeader} from '../../docs/js/msxaudioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import factory from '../../docs/generated/k051649_wasm.js';
 import ayFactory from '../../docs/generated/ay8910_wasm.js';
-const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/k051649_wasm.wasm',runtimeDirectoryUrl))}};
-const ayOptions={moduleFactory:ayFactory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}};
+const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/k051649_wasm.wasm',runtimeDirectoryUrl))}};
+const ayOptions={moduleFactory:ayFactory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/ay8910_wasm.wasm',runtimeDirectoryUrl))}};
 
 function vgm(commands,{ay8910Clock=0,k051649Clock=1789773,loop=false}={}){
   const bytes=new Uint8Array(0x100+commands.length),v=new DataView(bytes.buffer);

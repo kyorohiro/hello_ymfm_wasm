@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {createNativeWorkerApis} from '../../web/playground_native_primary.js';
-import {createRf5c164Client} from '../../web/playground_rf5c164.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {PWM32XPlayback} from '../../web/pwm32x_playback.js';
-import {RfInspectorState} from '../../web/playground_chip_inspector_state.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {createRf5c164Client} from '../../tetorica_src/runtime/playground_rf5c164.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {PWM32XPlayback} from '../../tetorica_src/runtime/pwm32x_playback.js';
+import {RfInspectorState} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import {createPlaygroundKeyboardRouting} from '../../docs/playground/playground_mode_keyboard.js';
 
 function fixture(mode,{startOverride,commandHook}={}){

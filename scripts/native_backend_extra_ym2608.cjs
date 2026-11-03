@@ -71,7 +71,7 @@ const program=`
 `;
 async function runExtraYm2608({page,native,artifacts,name,until,assertNoLiveAudio,changeMode}){
   const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),phases=[];
-  const [{unzipSync},{parseTfi},{parseVgi}]=await Promise.all([import('../docs/playground/vendor/fflate.js'),import('../web/tfi.js'),import('../web/vgi.js')]);
+  const [{unzipSync},{parseTfi},{parseVgi}]=await Promise.all([import('../docs/playground/vendor/fflate.js'),import("../tetorica_src/runtime/tfi.js"),import("../tetorica_src/runtime/vgi.js")]);
   const inspect=()=>page.evaluate(async()=>{const r=window.__nativeBackendTest.runtime;return {a:await r.chipInspector.read('opna-a'),b:await r.chipInspector.read('opna-b'),mixer:r.megaDrive.mixer.list().filter(c=>c.connected),audio:window.__audioConstructions};});
   const stop=async()=>{await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());await until(()=>!native.extraYm2608.size&&!native.extraYm2203.size&&!native.extraYm2612.size&&!native.extraPsg.size,'All four additional kinds retire');};
   async function keyboard(channel){const start=all().length;await page.locator('#operatorTabButton').focus();await page.keyboard.down('z');try{await until(()=>all().slice(start).some(c=>c.type==='extra-ym2608'&&c.message.action==='on'&&c.message.channel===channel),'Keyboard channel '+channel);}finally{await page.keyboard.up('z');}await until(()=>all().slice(start).some(c=>c.type==='extra-ym2608'&&c.message.action==='off'&&c.message.channel===channel),'Keyboard channel release '+channel);}

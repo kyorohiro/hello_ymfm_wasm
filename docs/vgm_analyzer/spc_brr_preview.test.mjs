@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../generated/spc_wasm.js';
-import {parseSpcFile} from '../../web/spc_file.js';
-import {extractBrrSamples, readSnesVoices} from '../../web/snes_brr.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {parseSpcFile} from '../../tetorica_src/runtime/spc_file.js';
+import {extractBrrSamples, readSnesVoices} from '../../tetorica_src/runtime/snes_brr.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 import {renderSpcBrrVoicePreview} from './spc_brr_preview.js';
 
 const wasmBinary = await readFile(new URL('../generated/spc_wasm.wasm', import.meta.url));

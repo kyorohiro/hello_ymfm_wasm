@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
-import {validateYm2612Engine} from '../../web/playground_soundchip_options.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
-import {PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector} from '../../web/playground_chip_inspector_state.js';
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
+import {validateYm2612Engine} from '../../tetorica_src/runtime/playground_soundchip_options.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
+import {PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createProcessorPerformance,performanceNoteRelease} from '../../web/playground_performance_processor.js';
-import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../web/playground_chip_clock.js';
-import {Ym2608Timeline} from '../../web/playground_ym2608_timeline.js';
-import {RF5C164Synth} from '../../web/rf5c164synth.js';
-import {PWM_METHODS} from '../../web/pwm32x_playback.js';
-import {GameboyVoiceInspector,NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {Ym2151VoiceInspector} from '../../web/playground_ym2151_inspector.js';
+import {createProcessorPerformance,performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {ChipClockResampler,CHIP_CLOCKS,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {Ym2608Timeline} from '../../tetorica_src/runtime/playground_ym2608_timeline.js';
+import {RF5C164Synth} from '../../tetorica_src/runtime/rf5c164synth.js';
+import {PWM_METHODS} from '../../tetorica_src/runtime/pwm32x_playback.js';
+import {GameboyVoiceInspector,NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {Ym2151VoiceInspector} from '../../tetorica_src/runtime/playground_ym2151_inspector.js';
 
 async function setup(file) {
   let Type;const messages=[],rate=48000;

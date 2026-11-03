@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration,applyPlaybackMutes} from '../docs/vgm_analyzer/playback_core.js';
-import {renderSource} from '../cli/render.js';
+import {renderSource} from '../tetorica_src/cli/render.js';
 import {exportSource,listSourceScoreChannels} from '../docs/vgm_analyzer/analyzer_core.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 function vgm(commands,clock=1789773){const b=new Uint8Array(256+commands.length+1),v=new DataView(b.buffer);b.set([86,103,109,32]);v.setUint32(4,b.length-4,true);v.setUint32(8,0x171,true);v.setUint32(0x34,256-0x34,true);v.setUint32(0x84,clock,true);b.set(commands,256);b[b.length-1]=0x66;return b;}

@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {opnPitchFromHz} from '../docs/js/soundchip_pitch.js';
 import {encodeRf5c164} from '../docs/js/rf5c164_pcm.js';

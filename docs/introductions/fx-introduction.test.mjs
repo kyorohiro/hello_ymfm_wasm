@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {LiveFX} from '../../web/custom_fx.js';
-import {createNativeFXController} from '../../web/native_fx.js';
+import {LiveFX} from '../../tetorica_src/runtime/custom_fx.js';
+import {createNativeFXController} from '../../tetorica_src/runtime/native_fx.js';
 test('all embedded FX lessons register valid APIs and complete their reference loop',async()=>{
  for(const name of ['gain','slicer']){
   const html=await readFile(new URL('./tetorica-fx-'+name+'.html',import.meta.url),'utf8');

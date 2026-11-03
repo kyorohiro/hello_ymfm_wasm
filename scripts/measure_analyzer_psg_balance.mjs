@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {opnPitchFromHz} from '../docs/js/soundchip_pitch.js';
 import {createPlaybackEngine, createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
@@ -110,7 +110,7 @@ export async function measureAnalyzerPsgBalance() {
       matchYm2608SsgPeakToPeak: candidate(ssg.currentDefault.amplitude, sega.unity.amplitude),
       matchYm2608FmSineAcRms: candidate(fm.currentDefault.acRms, sega.unity.acRms)};
   });
-  const paths = ['scripts/measure_analyzer_psg_balance.mjs', 'cli/render.js',
+  const paths = ['scripts/measure_analyzer_psg_balance.mjs', 'tetorica_src/cli/render.js',
     'docs/vgm_analyzer/playback_core.js', 'docs/vgm_analyzer/playback_mixer.js', 'docs/vgm_analyzer/mixer_defaults.js',
     'docs/js/ym2608audioengine.js', 'docs/js/genesisaudioengine.js', 'docs/js/multichipaudioengine.js',
     'docs/js/ym2608.js', 'docs/js/ym2612.js', 'docs/js/segapsg.js', 'docs/js/soundchip_pitch.js', 'docs/js/vgmplayer.js', 'docs/js/soundchip_mixer.js',

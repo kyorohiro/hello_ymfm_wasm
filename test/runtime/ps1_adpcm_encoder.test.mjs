@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from '../../web/ps1_adpcm_encoder.js';
-import {preparePs1ADPCM} from '../../web/ps1synth.js';
+import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {preparePs1ADPCM} from '../../tetorica_src/runtime/ps1synth.js';
 
 // Authored test oracle. Native/core conformance is tested separately against
 // the actual pinned spu.cpp; this reader also asserts the no-wrap policy.

@@ -2,7 +2,7 @@
 # Build only the authenticated fixed SDK snapshot, never the development checkout.
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/web/generated}"
+OUT_DIR="${1:-$ROOT_DIR/tetorica_src/runtime/generated}"
 python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
 OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)

@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
@@ -9,12 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import factory from '../../docs/generated/spc_wasm.js';
-import { SpcCore, SpcPlayerCore, SnesDspCore, SPC_SAMPLE_RATE } from '../../web/spc.js';
-import { createSyntheticSpc } from '../../web/spc_test_fixture.mjs';
+import { SpcCore, SpcPlayerCore, SnesDspCore, SPC_SAMPLE_RATE } from '../../tetorica_src/runtime/spc.js';
+import { createSyntheticSpc } from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 
 const run = promisify(execFile);
-const root = fileURLToPath(new URL('../', runtimeDirectoryUrl));
-const wasmBinary = await readFile(new URL('../docs/generated/spc_wasm.wasm', runtimeDirectoryUrl));
+const root = fileURLToPath(new URL('../../',runtimeDirectoryUrl));
+const wasmBinary = await readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl));
 // Share one WASM module to exercise actual native-handle separation, not just
 // isolation provided by separate module instances.
 const module = await factory({ wasmBinary });

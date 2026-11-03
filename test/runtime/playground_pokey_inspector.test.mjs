@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPokeyFixture,peak} from '../helpers/pokey_worklet_fixture.mjs';
-import {PokeyVoiceInspector} from '../../web/playground_pokey_inspector.js';
+import {PokeyVoiceInspector} from '../../tetorica_src/runtime/playground_pokey_inspector.js';
 
 test('POKEY inspector describes applied timer bytes, both joins and high clocks without treating helpers as pitched voices',()=>{
   const inspector=new PokeyVoiceInspector();

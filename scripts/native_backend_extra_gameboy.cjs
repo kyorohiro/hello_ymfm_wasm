@@ -7,7 +7,7 @@ const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 function installExtraGameboyMock(native){
   const invoke=native.invoke.bind(native);native.extraGameboy=new Map();
   async function fresh(){
-    const {GameboyVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
+    const {GameboyVoiceInspector}=await import("../tetorica_src/runtime/playground_native_voice_inspector.js");
     const s={clock:4194304,sourceMuteMask:0,held:new Map(),groups:Array(4).fill(null),mix:{volume:1,pan:0}};
     s.chip={writeRegister(){},reset(){}};
     s.inspector=new GameboyVoiceInspector(s.chip,{clock:()=>s.clock,sampleRate:48000});return s;

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../../docs/generated/okim6258_wasm.js';
-import {Oki6258AudioEngine} from '../../web/okim6258audioengine.js';
-import {encodeOki6258, summarizeOki6258, oki6258Rate, Oki6258Synth, Oki6258Stream} from '../../web/okim6258synth.js';
-import {createOki6258Client} from '../../web/playground_okim6258.js';
+import {Oki6258AudioEngine} from '../../tetorica_src/runtime/okim6258audioengine.js';
+import {encodeOki6258, summarizeOki6258, oki6258Rate, Oki6258Synth, Oki6258Stream} from '../../tetorica_src/runtime/okim6258synth.js';
+import {createOki6258Client} from '../../tetorica_src/runtime/playground_okim6258.js';
 
 async function makeStream(clock = 8000000, rate = 44100) {
   const engine = await Oki6258AudioEngine.create({moduleFactory:factory, clock, flags:12, outputSampleRate:rate});

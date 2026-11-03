@@ -5,10 +5,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {readSourceDocument,decodeSource,decodeSourceDocument,analyzeSource,exportSource,renderSource} from '../cli/index.js';
+import {readSourceDocument,decodeSource,decodeSourceDocument,analyzeSource,exportSource,renderSource} from '../tetorica_src/cli/index.js';
 import {convertS98ToVgm} from '../docs/js/s98_file.js';
 const fixture=name=>new URL(`./fixtures/s98-${name}.s98`,import.meta.url);
-const cli=(...args)=>spawnSync(process.execPath,['cli/main.js',...args],{encoding:'utf8'});
+const cli=(...args)=>spawnSync(process.execPath,['tetorica_src/cli/main.js',...args],{encoding:'utf8'});
 test('S98 normalization, original metadata, exports and PCM match Browser for all supported devices',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'s98-cli-'));
   try{for(const name of ['ym2203','ym2608','ym2612']){

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMidiRack,createMidiApi} from '../../web/playground_midi.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {parseMidiFile} from '../../web/midi_file.js';
+import {createMidiRack,createMidiApi} from '../../tetorica_src/runtime/playground_midi.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {parseMidiFile} from '../../tetorica_src/runtime/midi_file.js';
 function rack(n=6){const writes=[],psg=[];return {writes,psg,r:createMidiRack({write:e=>writes.push(e),writePsg:e=>psg.push(e),preset:FM_PRESETS.sine,fmChannels:n})};}
 function smf(...tracks){const out=[77,84,104,100,0,0,0,6,0,tracks.length>1?1:0,0,tracks.length,0,96];for(const t of tracks){out.push(77,84,114,107,0,0,t.length>>8,t.length&255,...t);}return Uint8Array.from(out);}
 test('MIDI CH16 uses FM voice zero with pan and velocity; held voice survives patch change',()=>{
@@ -44,8 +44,8 @@ test('SMF accepts running status and rejects truncation, unsupported timing and 
 });
 
 test('MIDI voice writes produce nonzero audio through the actual YM2612 core',async()=>{
- const {getNodePlaybackFactory}=await import("../../cli/render.js");
- const {createYm2612}=await import("../../web/ym2612.js");
+ const {getNodePlaybackFactory}=await import("../../tetorica_src/cli/render.js");
+ const {createYm2612}=await import("../../tetorica_src/runtime/ym2612.js");
  const chip=await createYm2612(await getNodePlaybackFactory('ym2612'));
  try {
   const rack=createMidiRack({preset:FM_PRESETS.sine,write:e=>chip.writeRegister(e.register,e.value,e.port),writePsg(){}});

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {encodeNativeLiveFxContext as encode,decodeNativeLiveFxContext as decode} from '../../web/native_livefx_context.js';
+import {encodeNativeLiveFxContext as encode,decodeNativeLiveFxContext as decode} from '../../tetorica_src/runtime/native_livefx_context.js';
 const roundtrip=value=>decode(JSON.parse(JSON.stringify(encode(value))));
 
 test('context graph preserves cycles, aliases, collections, sparse arrays and special primitive values',()=>{

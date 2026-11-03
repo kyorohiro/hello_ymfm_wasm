@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisNoise,createNativeNoiseOwnership,nativeGenesisNoiseMessage} from '../../web/native_genesis_noise.js';
-import {controlNativeNoise} from '../../web/native_noise.js';
+import {createNativeGenesisNoise,createNativeNoiseOwnership,nativeGenesisNoiseMessage} from '../../tetorica_src/runtime/native_genesis_noise.js';
+import {controlNativeNoise} from '../../tetorica_src/runtime/native_noise.js';
 
 function fixture() {
   const messages=[];const noise=createNativeGenesisNoise({send:message=>messages.push(message)});

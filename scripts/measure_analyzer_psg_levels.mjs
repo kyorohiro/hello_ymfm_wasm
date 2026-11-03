@@ -112,7 +112,7 @@ export async function measureAnalyzerPsgLevels() {
       amplitude: row.amplitude * defaults[row.id], ratioToTarget: row.rawAcRms * defaults[row.id] / targetAcRms,
       relativeToPrevious: defaults[row.id] / row.previousRawGain};
   }
-  const paths = ['scripts/measure_analyzer_psg_levels.mjs', 'scripts/measure_analyzer_psg_balance.mjs', 'cli/render.js',
+  const paths = ['scripts/measure_analyzer_psg_levels.mjs', 'scripts/measure_analyzer_psg_balance.mjs', 'tetorica_src/cli/render.js',
     'docs/vgm_analyzer/playback_core.js', 'docs/vgm_analyzer/playback_mixer.js', 'docs/vgm_analyzer/mixer_defaults.js',
     'docs/js/ym2608audioengine.js', 'docs/js/genesisaudioengine.js', 'docs/js/ay8910audioengine.js', 'docs/js/nesapuaudioengine.js',
     'docs/js/multichipaudioengine.js', 'docs/js/nesapusynth.js', 'docs/js/ym2608.js', 'docs/js/ay8910.js', 'docs/js/segapsg.js',

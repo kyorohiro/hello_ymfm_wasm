@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
 
 class Port {
   listeners = new Set(); messages = [];

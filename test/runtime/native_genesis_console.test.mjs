@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisConsole} from '../../web/native_genesis_console.js';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {borrowNativeApi} from '../../web/playground_native_primary.js';
-import {createKeyboardApiGuard} from '../../web/playground_keyboard.js';
-import {GameboyVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {Huc6280VoiceInspector} from '../../web/playground_huc6280_inspector.js';
+import {createNativeGenesisConsole} from '../../tetorica_src/runtime/native_genesis_console.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {borrowNativeApi} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {createKeyboardApiGuard} from '../../tetorica_src/runtime/playground_keyboard.js';
+import {GameboyVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {Huc6280VoiceInspector} from '../../tetorica_src/runtime/playground_huc6280_inspector.js';
 
 function fixture(kind){
   const gameboy=kind==='gameboy',base=gameboy?4194304:3579545,calls=[],commands=[],events=[],future=[],manual=new Map();

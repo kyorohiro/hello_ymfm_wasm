@@ -1,22 +1,22 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import nukedFactory from '../../docs/generated/nuked_opn2_wasm.js';
-import {validateYm2612Engine} from '../../web/playground_soundchip_options.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {createOpnAuditionGuard} from '../../web/playground_audition_guard.js';
-import {OpnKeyboardInspector} from '../../web/playground_opn_inspector.js';
+import {validateYm2612Engine} from '../../tetorica_src/runtime/playground_soundchip_options.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createOpnAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
+import {OpnKeyboardInspector} from '../../tetorica_src/runtime/playground_opn_inspector.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {Ym2612} from '../../web/ym2612.js';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2610B} from '../../web/ym2610b.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
 import ym2612Factory from '../../docs/generated/ym2612_wasm.js';
 import ym2203Factory from '../../docs/generated/ym2203_wasm.js';
 import ym2610Factory from '../../docs/generated/ym2610b_wasm.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 async function setup(name,rate,engine='ymfm') {
   let Processor, resolveReady, calls = 0;
@@ -29,7 +29,7 @@ async function setup(name,rate,engine='ymfm') {
   };
   const source = await readFile(new URL('./playground_opn_worklet.js',runtimeDirectoryUrl),'utf8');
   vm.runInNewContext(source.replace(/^import .*;\n/gm,''),scope);
-  const wasmBinary = await readFile(new URL(`../docs/generated/${engine==='nuked'?'nuked_opn2':name === 'ym2610' ? 'ym2610b' : name}_wasm.wasm`,runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL(`../../docs/generated/${engine==='nuked'?'nuked_opn2':name === 'ym2610' ? 'ym2610b' : name}_wasm.wasm`,runtimeDirectoryUrl));
   const p = new Processor({processorOptions:{name,wasmBinary,engine}});
   assert.equal((await ready).ready,true);
   const view = p.chip.generateStereoView.bind(p.chip);

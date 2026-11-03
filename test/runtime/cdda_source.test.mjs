@@ -8,7 +8,7 @@ import {
   createCddaWavTrackSource,
   loadCddaTrack,
   loadCddaTracks,
-} from '../../web/cdda_source.js';
+} from '../../tetorica_src/runtime/cdda_source.js';
 
 function chunk(id, body) {
   const result = new Uint8Array(8 + body.length + (body.length & 1));

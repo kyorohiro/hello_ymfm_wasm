@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {executeWithPlaygroundGuards} from '../../web/playground_execution.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {executeWithPlaygroundGuards} from '../../tetorica_src/runtime/playground_execution.js';
 
 const tick=()=>new Promise(resolve=>setTimeout(resolve,2));
 async function until(predicate){const deadline=Date.now()+5000;while(!predicate()){if(Date.now()>deadline)throw new Error('Additional YM2608 test timed out');await tick();}}
@@ -164,7 +164,7 @@ test('Native additional YM2608 Main groups release completed timelines and prese
 });
 test('Native additional YM2608 default ROM fetch uses the trusted host while Run network access stays guarded',async t=>{
   installWorkers(t);const previous=globalThis.fetch,requests=[];let module;
-  try{globalThis.fetch=async(url)=>{requests.push(String(url));return {ok:true,arrayBuffer:async()=>new Uint8Array(8192).buffer};};module=await import("../../web/native_genesis_extra_ym2608.js?host-fetch-guard-test");}finally{globalThis.fetch=previous;}
+  try{globalThis.fetch=async(url)=>{requests.push(String(url));return {ok:true,arrayBuffer:async()=>new Uint8Array(8192).buffer};};module=await import("../../tetorica_src/runtime/native_genesis_extra_ym2608.js?host-fetch-guard-test");}finally{globalThis.fetch=previous;}
   const f=fixture(t);f.synth.createExtraYm2608=options=>module.createNativeGenesisExtraYm2608(f.synth,options);
   await executeWithPlaygroundGuards(()=>f.runtime.playSource(`context.chip=await createSoundChip('ym2608',{id:'guarded'});try{await fetch('https://invalid.example/user-network');}catch(error){context.networkDenied=error.message.includes('Network access is disabled');}`),globalThis);
   assert.equal(f.runtime.context.chip.id,'guarded');assert.equal(f.runtime.context.networkDenied,true);assert.equal(requests.length,1);assert(requests[0].endsWith('/tetorica_ym2608_adpcm_rom.bin'));assert.equal(f.rack.get(1).state.rom.length,8192);assert.deepEqual(f.errors,[]);

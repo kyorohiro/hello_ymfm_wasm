@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {createWonderSwanVgm} from './helpers/wonderswan_vgm_fixture.mjs';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration,playbackMuteControls,applyPlaybackMutes} from '../docs/vgm_analyzer/playback_core.js';
-import {getNodePlaybackFactory,renderSource} from '../cli/render.js';
+import {getNodePlaybackFactory,renderSource} from '../tetorica_src/cli/render.js';
 import {inspectSourceSupport,listSourceScoreChannels,exportSource,analyzeSource} from '../docs/vgm_analyzer/analyzer_core.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 import {sourcesForChip} from '../docs/vgm_analyzer/source_mutes.js';

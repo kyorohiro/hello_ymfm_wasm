@@ -4,8 +4,8 @@ import {copyFile, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {createSoundChip} from '../web/soundchip.js';
-import {WonderSwan, WONDERSWAN_CLOCK} from '../web/wonderswan.js';
+import {createSoundChip} from '../tetorica_src/runtime/soundchip.js';
+import {WonderSwan, WONDERSWAN_CLOCK} from '../tetorica_src/runtime/wonderswan.js';
 import createModule from '../docs/generated/wonderswan_wasm.js';
 
 const wasmBinary = await readFile(new URL('../docs/generated/wonderswan_wasm.wasm', import.meta.url));

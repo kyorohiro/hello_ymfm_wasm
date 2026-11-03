@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateSoundChipOptions,validateYm2612Engine} from '../../web/playground_soundchip_options.js';
+import {validateSoundChipOptions,validateYm2612Engine} from '../../tetorica_src/runtime/playground_soundchip_options.js';
 
 test('additional YM2612 defaults to ymfm and accepts only the two concrete cores',()=>{
   assert.equal(validateYm2612Engine(),'ymfm');

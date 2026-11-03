@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {RfInspectorState} from '../../web/playground_chip_inspector_state.js';
-import {encodeRf5c164} from '../../web/rf5c164_pcm.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {RfInspectorState} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {encodeRf5c164} from '../../tetorica_src/runtime/rf5c164_pcm.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
 
 const deferred=()=>{let resolve;return {promise:new Promise(done=>{resolve=done;}),resolve};};
 const pcm={sampleRate:16000,channels:[Float32Array.of(0,.5,-.5,0,.2,-.2)]};

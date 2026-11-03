@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
-import {registerCases} from '../../web/test-support/vgm-register-cases.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
+import {registerCases} from '../../tetorica_src/runtime/test-support/vgm-register-cases.js';
 const entry=(chip,method,args,frame=0)=>({frame,chip,instance:0,method,args});
 for(const [label,Player] of [['web',VgmPlayer],['docs',DocsPlayer]]) {
  test(`${label}: all 20 register formats and PSG pass real Player adapters`,()=>{

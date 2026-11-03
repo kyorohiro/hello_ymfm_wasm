@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ay8910} from '../web/ay8910.js';
-import {Ay8910AudioEngine} from '../web/ay8910audioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {Ay8910} from '../tetorica_src/runtime/ay8910.js';
+import {Ay8910AudioEngine} from '../tetorica_src/runtime/ay8910audioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -192,10 +192,10 @@ async function playerChecks(backend){
 }
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports);assert(!sdk.metadata.exports.some(e=>/save_state|load_state|read_status|get_irq/.test(e.name)));
-  const wrappers=['web/ay8910.js','docs/js/ay8910.js','web/ay8910audioengine.js','docs/js/ay8910audioengine.js'];const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ay8910|soundchip|ym2612vgm)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import keys');
+  const wrappers=['tetorica_src/runtime/ay8910.js','docs/js/ay8910.js','tetorica_src/runtime/ay8910audioengine.js','docs/js/ay8910audioengine.js'];const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ay8910|soundchip|ym2612vgm)\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,profiles,layouts,probeFrames,configuredRawOutputRate:44100,engineOutputRates:outputRates,
     method:'Actual generated JS/WASM and unchanged synchronous Ay8910 wrapper/Engine with original synthetic register programs. Exact owned mono stereo PCM, explicit continuation probes, full register readback and configured sample rates. Engine delegates directly to one chip output frame per requested frame. Actual VgmPlayer0xa0 playback/reset/seek rebuilds from zero. No synthetic state/status/IRQ/hooks/Into, tolerance, mock, Mixer or device.',
-    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(['web/vgmplayer.js','web/ym2612vgm.js','docs/vgm_analyzer/seek_playback.js'].map(p=>inputFile(resolve(root,p))))},wrapperSync:'Byte-identical after removing only AY/soundchip/VGM type import cache keys; actual hashes retained.',
+    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(['tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','docs/vgm_analyzer/seek_playback.js'].map(p=>inputFile(resolve(root,p))))},wrapperSync:'Byte-identical after removing only AY/soundchip/VGM type import cache keys; actual hashes retained.',
     limits:['This standalone MAME adaptation generates at the configured output rate, not clock divided by a YMFM operator count. Integer integration of native ticks uses divider8, or16 for YM2149 flag0x10; no JavaScript resampler, held samples or clock-setting API is invented.',
       'AY type0 supports flags0/1; YM2149 type0x10 supports0/1/0x10/0x11. Flag1 normalizes output tables; analog and normalized tables have DC baselines, including negative normalized level0. Dynamic range is required for changing test scenes; peak alone is not an audibility proof. Only mute7 is asserted exactzero.',
       'Read returns the full stored register byte; internal tone-coarse/noise/volume/shape bits are interpreted masked. Raw C register arguments truncate to8 bits then mask register number to4 bits. Public writes validate0..15 and0..255. IO14/15 and direction bits are stored latches with no external CPU callbacks.',

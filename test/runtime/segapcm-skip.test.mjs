@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsParser} from '../../docs/js/ym2612vgm.js';
-import {mockChips,vgmBytes} from '../../web/test-support/vgm-mock.js';
-// Sega PCM is dispatched (see web/segapcm.test.mjs for chip-level coverage);
+import {mockChips,vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
+// Sega PCM is dispatched (see test/runtime/segapcm.test.mjs for chip-level coverage);
 // this checks that OPM keeps exact timing when a playback target simply has
 // no `segapcm` entry (e.g. a YM2151-only mock), matching how other
 // optional-target chip events (ay8910-write, etc.) degrade silently.

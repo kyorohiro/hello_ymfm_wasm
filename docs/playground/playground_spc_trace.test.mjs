@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import factory from '../generated/spc_wasm.js';
-import {SpcCore,SnesDspCore} from '../../web/spc.js';
-import {SnesSynth} from '../../web/snessynth.js';
-import {captureSpcTrace} from '../../web/spc_trace.js';
-import {captureSpcPerformance} from '../../web/spc_performance.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {SpcCore,SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
+import {captureSpcTrace} from '../../tetorica_src/runtime/spc_trace.js';
+import {captureSpcPerformance} from '../../tetorica_src/runtime/spc_performance.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 import {prepareSpcImport,buildSpcImportFiles} from './playground_spc_source.js';
 
 const moduleOptions = {wasmBinary:new Uint8Array(await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url)))};
@@ -101,7 +101,7 @@ async function executeSavedSong(plan,trace,frames) {
 async function executeReadableSong(plan) {
   const files = new Map(plan.files.map(file => [file.path,file]));
   const core = await SnesDspCore.create(options), synth = new SnesSynth({core});
-  const {createSecondsTimeline} = await import('../../web/playground_clock.js');
+  const {createSecondsTimeline} = await import("../../tetorica_src/runtime/playground_clock.js");
   const calls = [], pcm = [], waits = [];
   let disposed = false;
   try {

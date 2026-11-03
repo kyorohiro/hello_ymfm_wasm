@@ -186,9 +186,9 @@ async function verifyVoiceModes(page, original, name) {
   return {raw,voice,attack,cancelledBy:['stop','play','file']};
 }
 (async () => {
-  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'web/spc_test_fixture.mjs')));
+  const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'tetorica_src/runtime/spc_test_fixture.mjs')));
   const original = Buffer.from(createSyntheticSpc({voices:2})), fixture = withUnusedSamples(original);
-  const {extractBrrSamples} = await import(pathToFileURL(path.join(root, 'web/snes_brr.js')));
+  const {extractBrrSamples} = await import(pathToFileURL(path.join(root, 'tetorica_src/runtime/snes_brr.js')));
   const badSource = extractBrrSamples({ram:fixture.subarray(0x100,0x10100),dsp:fixture.subarray(0x10100,0x10180)}, {sourceNumbers:[255]});
   assert.equal(badSource.samples.length, 0, 'The synthetic invalid SRCN must have no complete BRR segment');
   assert.match(badSource.rejected[0].reason, /No BRR END/);

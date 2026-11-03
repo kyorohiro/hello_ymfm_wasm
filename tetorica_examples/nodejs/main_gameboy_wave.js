@@ -1,7 +1,7 @@
 /** Game Boy DMG: two pulse channels, wave RAM and noise → 48 kHz stereo WAV. */
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {GameboyApu} from '../../web/gameboyapu.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
 import moduleFactory from '../../docs/generated/gameboy_apu_wasm.js';
 import {encodeStereoWav} from '../../docs/vgm_analyzer/vgm_wav.js';
 

@@ -6,8 +6,8 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Huc6280AudioEngine} from '../web/huc6280audioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
+import {Huc6280AudioEngine} from '../tetorica_src/runtime/huc6280audioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -126,8 +126,8 @@ async function playerChecks(backend){let generated=0,delivered=0,requested=0,ren
  return {passed:true,rows,generatedEngineOutputStereoFrames:generated,deliveredPlayerOutputStereoFrames:delivered,requestedPlayerOutputStereoFrames:requested,engineRenderExecutions:renders,playerProcessCalls:calls,frameCountScope:'Actual HuC Engine generation includes baseline/reset replay and six zero-prefix seek replays per clock/rate. There are no native or Player snapshots/checkpoints. Native tick loops and requested/delivered Player frames are not added again.'};
 }
 async function main(){const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports);
- const wrappers=['web/huc6280audioengine.js','docs/js/huc6280audioengine.js'];const normalized=b=>b.toString().replace(/(\.\/soundchip\.js)\?v=[^"'\s)]+/g,'$1');sameBytes(normalized(await readFile(resolve(root,wrappers[0]))),normalized(await readFile(resolve(root,wrappers[1]))),'Web/deployed HuC wrapper sync except known type-import cache');
- const helpers=['web/vgmplayer.js','web/ym2612vgm.js','web/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js'];
+ const wrappers=['tetorica_src/runtime/huc6280audioengine.js','docs/js/huc6280audioengine.js'];const normalized=b=>b.toString().replace(/(\.\/soundchip\.js)\?v=[^"'\s)]+/g,'$1');sameBytes(normalized(await readFile(resolve(root,wrappers[0]))),normalized(await readFile(resolve(root,wrappers[1]))),'Web/deployed HuC wrapper sync except known type-import cache');
+ const helpers=['tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','tetorica_src/runtime/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js'];
  const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,outputRates,layouts,probeFrames,inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(helpers.map(p=>inputFile(resolve(root,p))))},method:'Actual generated JS/WASM through unchanged Huc6280AudioEngine, exact owned configured-rate stereo PCM, control endpoint observations and continued97-frame probes. Independent wave/DDA/noise integer models and actual VgmPlayer b9/type05/1b streams, reset and zero-prefix seek. No native snapshots, fabricated state ABI, mock, tolerance, Mixer or audio device.',
  limits:['HuC output averages all integer chip-clock tick samples per configured output frame; phase adds clock then divides/modulos output rate. If no native tick occurs, the previous held sample remains. UnlikeRF5C164, reset does not force an initial immediate native tick.',
  'Only6physical channels produce output; internal selectors6/7 and unusedregisters10..15 remain inert for sound. Tests cover32wave entries, off/on write-index behavior, DDA-to-wave index reset,12-bit periods including0 initial-counter transient, independent channel/global balance attenuation,5-bit DDA and master-volume scaling.',

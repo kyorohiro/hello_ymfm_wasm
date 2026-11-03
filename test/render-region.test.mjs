@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource} from '../cli/index.js';
+import {readSource,renderSource} from '../tetorica_src/cli/index.js';
 const fixture=n=>new URL('./fixtures/'+n+'.vgz',import.meta.url);
 test('Region PCM equals a slice of full rendering across block boundaries',async()=>{
  for(const name of ['opm-audible','pwm-all','ym2610-adpcm-a']){

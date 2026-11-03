@@ -1,5 +1,5 @@
 /** Original full-range signed PCM16 sine. No game data or software gain. */
-import {scspPitch} from '../web/scspsynth.js';
+import {scspPitch} from '../tetorica_src/runtime/scspsynth.js';
 const frames=256;
 const pcm=Object.freeze(Array.from({length:frames},(_,i)=>Math.round(32767*Math.sin(2*Math.PI*i/frames))));
 const decoded=pcm.map(v=>v/32768);

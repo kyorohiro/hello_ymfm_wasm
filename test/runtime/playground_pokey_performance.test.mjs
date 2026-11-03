@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createProcessorPerformance,identifyPerformanceNote,nativeVoiceChannel,performanceNoteRelease} from '../../web/playground_performance_processor.js';
+import {createProcessorPerformance,identifyPerformanceNote,nativeVoiceChannel,performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {createPokeyRegisterClient} from '../../web/playground_pokey.js';
+import {createPokeyRegisterClient} from '../../tetorica_src/runtime/playground_pokey.js';
 
 const write=(reg,value)=>({method:'writeRegister',args:[reg,value]});
 function setup(){

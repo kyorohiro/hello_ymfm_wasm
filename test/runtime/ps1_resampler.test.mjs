@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ps1Resampler} from '../../web/ps1_resampler.js';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth,createPs1InitSample} from '../../web/ps1synth.js';
+import {Ps1Resampler} from '../../tetorica_src/runtime/ps1_resampler.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
 function source(){let position=0,silent=false;return {sampleRate:44100,get nativeFrames(){return position;},set silent(value){silent=value;},renderInto(left,right,count,offset=0){for(let at=0;at<count;at++){const value=silent?0:Math.sin(2*Math.PI*440*(position++)/44100);left[offset+at]=value;right[offset+at]=-value;}if(silent)position+=count;},reset(){position=0;}};}
 function output(resampler,frames,parts){const left=new Float32Array(frames),right=new Float32Array(frames);let at=0,index=0;while(at<frames){const n=Math.min(parts[index++%parts.length],frames-at);resampler.render(left,right,n,at);at+=n;}return {left,right};}
 function frequency(values,rate){let edges=0,first=-1,last=-1;for(let i=1;i<values.length;i++)if(values[i-1]<=0&&values[i]>0){if(first<0)first=i;last=i;edges++;}return (edges-1)*rate/(last-first);}
@@ -54,7 +54,7 @@ test('PS1 resampler validates complete destination ranges before advancing its s
 
 let sharedModule;
 async function synth(t) {
-  sharedModule??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
+  sharedModule??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
   const core=await Ps1Spu.create({moduleFactory:()=>sharedModule}),instrument=new Ps1Synth({core});t.after(()=>instrument.dispose());
   const {adpcm,...options}=createPs1InitSample(),sample=instrument.loadADPCM(adpcm,options);instrument.setPreset(0,{sample});instrument.noteOn(0,'A4');return instrument;
 }

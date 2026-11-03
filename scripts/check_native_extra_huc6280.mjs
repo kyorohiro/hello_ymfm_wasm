@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {Huc6280Synth} from '../web/huc6280synth.js';
+import {Huc6280Synth} from '../tetorica_src/runtime/huc6280synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri/src');
 const sdk=path.resolve(project,'../vendor/tetorica-soundchip-native');

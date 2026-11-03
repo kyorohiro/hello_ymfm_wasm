@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ym2608} from '../web/ym2608.js';
-import {Ym2608AudioEngine} from '../web/ym2608audioengine.js';
-import {opnPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ym2608} from '../tetorica_src/runtime/ym2608.js';
+import {Ym2608AudioEngine} from '../tetorica_src/runtime/ym2608audioengine.js';
+import {opnPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_ym2608_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -198,14 +198,14 @@ async function wrapperChecks(backend){
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
-  const wrappers=['web/ym2608.js','docs/js/ym2608.js','web/ym2608audioengine.js','docs/js/ym2608audioengine.js'];
+  const wrappers=['tetorica_src/runtime/ym2608.js','docs/js/ym2608.js','tetorica_src/runtime/ym2608audioengine.js','docs/js/ym2608audioengine.js'];
   // Deployment adds cache-version suffixes to these two relative module paths,
   // including JSDoc imports. Everything else must remain byte-identical.
   const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ym2608|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');
   for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,layouts,checkpointFrame,
     method:'Actual generated JS/WASM and unchanged synchronous Ym2608 wrapper/AudioEngine. Exact stereo PCM, rate/status/IRQ/read/hooks, state bytes, resampler remainder/held samples; no tolerance, mock, Mixer or output device.',
-    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'web/soundchip_pitch.js'))},
+    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'tetorica_src/runtime/soundchip_pitch.js'))},
     wrapperSync:'Byte-identical after removing only deployed ym2608.js/soundchip.js import cache suffixes; actual file hashes retained.',
     syntheticInputs:{rhythmRom:{bytes:rhythmRom.length,sha256:sha256(rhythmRom)},adpcmB:{bytes:adpcmBytes.length,sha256:sha256(adpcmBytes)}},wrapperChecks:{},cases:[],totalOutputStereoFrames:0,ownStateLoads:0,crossStateLoads:0,resetContinuations:0,maximumDifference:0,
     limits:['Native YM2608 PCM runs at clock/8 regardless of the6/3/2 prescaler; the prescaler changes internal FM/SSG timing. Engine cases separately report output rate and averaging/holding.',

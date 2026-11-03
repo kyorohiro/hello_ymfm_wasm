@@ -134,7 +134,7 @@ async function runScenarios(Ps1Spu, factory, wasmBinary) {
   return result;
 }
 
-const runnerSource = `import {Ps1Spu} from '/web/ps1_spu.js';
+const runnerSource = `import {Ps1Spu} from '/tetorica_src/runtime/ps1_spu.js';
 import factory from '/docs/generated/ps1_spu_wasm.js';
 const runScenarios=${runScenarios.toString()};
 export async function run(){const response=await fetch('/docs/generated/ps1_spu_wasm.wasm');
@@ -149,14 +149,14 @@ const pcmHash = values => hash(Buffer.from(new Float32Array(values).buffer));
 
 (async () => {
   const wasmBinary = await fs.readFile(path.join(root,'docs/generated/ps1_spu_wasm.wasm'));
-  const {Ps1Spu} = await import(pathToFileURL(path.join(root,'web/ps1_spu.js')).href);
+  const {Ps1Spu} = await import(pathToFileURL(path.join(root,'tetorica_src/runtime/ps1_spu.js')).href);
   const {default:factory} = await import(pathToFileURL(path.join(root,'docs/generated/ps1_spu_wasm.js')).href);
   const expected = await runScenarios(Ps1Spu,factory,wasmBinary);
   const assets = new Map([
     ['/',{type:'text/html',body:'<!doctype html><meta charset="utf-8"><title>Standalone PS1 SPU verification</title>'}],
     ['/check_runner.mjs',{type:'text/javascript',body:runnerSource}],
     ['/check_worker.mjs',{type:'text/javascript',body:workerSource}],
-    ['/web/ps1_spu.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'web/ps1_spu.js'))}],
+    ['/tetorica_src/runtime/ps1_spu.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'tetorica_src/runtime/ps1_spu.js'))}],
     ['/docs/generated/ps1_spu_wasm.js',{type:'text/javascript',body:await fs.readFile(path.join(root,'docs/generated/ps1_spu_wasm.js'))}],
     ['/docs/generated/ps1_spu_wasm.wasm',{type:'application/wasm',body:wasmBinary}],
   ]);
@@ -171,7 +171,7 @@ const pcmHash = values => hash(Buffer.from(new Float32Array(values).buffer));
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   const report = {schemaVersion:1,passed:false,audioContextCreated:false,physicalAudio:false,
     wasmSha256:hash(wasmBinary),sampleRate:44100,voice:24,
-    sources:await Promise.all(['scripts/check_ps1_spu_browser.cjs','web/ps1_spu.js','docs/generated/ps1_spu_wasm.js'].map(async file => {
+    sources:await Promise.all(['scripts/check_ps1_spu_browser.cjs','tetorica_src/runtime/ps1_spu.js','docs/generated/ps1_spu_wasm.js'].map(async file => {
       const bytes = await fs.readFile(path.join(root,file));
       return {path:file,bytes:bytes.length,sha256:hash(bytes)};
     })),

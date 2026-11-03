@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {keyboardChannels,keyboardChannelHint} from '../../web/playground_keyboard_channels.js';
+import {keyboardChannels,keyboardChannelHint} from '../../tetorica_src/runtime/playground_keyboard_channels.js';
 
 test('Keyboard channel catalog distinguishes OPN sections and physical voice counts',()=>{
   assert.equal(keyboardChannels('ym2612').length,6);

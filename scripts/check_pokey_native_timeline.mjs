@@ -4,9 +4,9 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {Pokey} from '../web/pokey.js';
-import {PokeyAudioEngine} from '../web/pokeyaudioengine.js';
-import {preparePokeyTimeline,createPokeyTimelineCursor} from '../web/pokey_timeline.js';
+import {Pokey} from '../tetorica_src/runtime/pokey.js';
+import {PokeyAudioEngine} from '../tetorica_src/runtime/pokeyaudioengine.js';
+import {preparePokeyTimeline,createPokeyTimelineCursor} from '../tetorica_src/runtime/pokey_timeline.js';
 import factory from '../docs/generated/pokey_wasm.js';
 const usage='Usage: node scripts/check_pokey_native_timeline.mjs [OUTPUT_DIRECTORY]';
 if(process.argv.length===3&&process.argv[2]==='--help'){console.log(usage);process.exit(0);}

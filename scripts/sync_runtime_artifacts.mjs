@@ -6,7 +6,7 @@ import {checkRuntimeArtifacts, listRuntimeArtifactFiles, syncRuntimeArtifacts} f
 const usage = `Usage: node scripts/sync_runtime_artifacts.mjs [--check | --import-existing | --list]
        [--only ID ...] [--root REPOSITORY]
 
-Default: verify web/generated SDK receipts and NativeFX ABI, refresh the
+Default: verify tetorica_src/runtime/generated SDK receipts and NativeFX ABI, refresh the
 runtime catalog, then copy canonical bytes to docs and legacy import paths.
 --check never writes and rejects missing/stale canonical files or mirrors.
 --import-existing explicitly imports the verified docs/generated set once;

@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/web/generated/effects}"
+OUT_DIR="${1:-$ROOT_DIR/tetorica_src/runtime/generated/effects}"
 mkdir -p "$OUT_DIR"
-emcc "$ROOT_DIR/native/audio_effect/sample.c" "$ROOT_DIR/native/audio_effect/noise.c" "$ROOT_DIR/native/audio_effect/gain.c" "$ROOT_DIR/native/audio_effect/reverb.c" "$ROOT_DIR/native/audio_effect/compressor.c" "$ROOT_DIR/native/audio_effect/noise_gate.c" "$ROOT_DIR/native/audio_effect/eq.c" "$ROOT_DIR/native/audio_effect/graph.c" "$ROOT_DIR/native/audio_effect/extra_fx.c" -O2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=33554432 -sSTANDALONE_WASM=1 \
+emcc "$ROOT_DIR/tetorica_src/native/audio_effect/sample.c" "$ROOT_DIR/tetorica_src/native/audio_effect/noise.c" "$ROOT_DIR/tetorica_src/native/audio_effect/gain.c" "$ROOT_DIR/tetorica_src/native/audio_effect/reverb.c" "$ROOT_DIR/tetorica_src/native/audio_effect/compressor.c" "$ROOT_DIR/tetorica_src/native/audio_effect/noise_gate.c" "$ROOT_DIR/tetorica_src/native/audio_effect/eq.c" "$ROOT_DIR/tetorica_src/native/audio_effect/graph.c" "$ROOT_DIR/tetorica_src/native/audio_effect/extra_fx.c" -O2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=33554432 -sSTANDALONE_WASM=1 \
   -Wl,--export=reverb_reset -Wl,--export=reverb_set -Wl,--export=reverb_clear \
   -Wl,--export=compressor_reset -Wl,--export=compressor_set -Wl,--export=compressor_clear \
   -Wl,--export=gate_reset -Wl,--export=gate_set -Wl,--export=gate_clear \

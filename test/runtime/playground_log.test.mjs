@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {formatLogArgs, serializeLogError} from '../../web/playground_log.js';
+import {formatLogArgs, serializeLogError} from '../../tetorica_src/runtime/playground_log.js';
 
 test('display formats errors from other realms and errors without stacks', () => {
   const error = vm.runInNewContext('new RangeError("invalid channel")');

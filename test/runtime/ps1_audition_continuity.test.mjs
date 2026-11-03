@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -9,7 +9,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 test('actual PS1 core manual audition removes event steps with Gaussian register playback',async t=>{
   const compiler=process.env.CXX||'c++';
   const probe=spawnSync(compiler,['--version'],{encoding:'utf8'});

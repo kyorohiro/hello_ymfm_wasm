@@ -29,7 +29,7 @@ const immutable={
   ...Object.fromEntries(reports.map(([path,hash])=>[path,hash])),
   'docs/playground/playground_mixer_defaults.js':'1cc57e78a582ea9010a7ca5fda86d9f24344d5786c99a6ba1e6ebc164b19453a',
   'docs/js/soundchip_mixer_presets.js':'acd83313d9488212e1f69cf0fcc0701cd0b644f5cefbd39c36994f3d23f08a56',
-  'web/soundchip_mixer_presets.js':'57ce08eda7e67938dc3301d8259b9f1c3ab38faa66dd989227d5af64064d371f',
+  'tetorica_src/runtime/soundchip_mixer_presets.js':'57ce08eda7e67938dc3301d8259b9f1c3ab38faa66dd989227d5af64064d371f',
 };
 
 test('the exact reviewed Git and Shell revisions preserve all four complete measurements and generated gain bytes',async()=>{

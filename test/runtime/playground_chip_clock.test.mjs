@@ -1,17 +1,17 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {CHIP_CLOCKS, validateChipClock, attachChipClock, ChipClockResampler} from '../../web/playground_chip_clock.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import {createGameboyClient} from '../../web/playground_gameboy.js';
+import {CHIP_CLOCKS, validateChipClock, attachChipClock, ChipClockResampler} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {createGameboyClient} from '../../tetorica_src/runtime/playground_gameboy.js';
 import factory from '../../docs/generated/gameboy_apu_wasm.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {GameboyVoiceInspector} from '../../web/playground_native_voice_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {GameboyVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
 test('clock requests are ordered, reject invalid values, coexist with RPC and reject on disposal', async () => {
  const sent=[];let previous=0,closed=0;
@@ -44,7 +44,7 @@ test('real Game Boy: clock shifts a held tone without reset; new setFrequency us
  vm.runInNewContext(source,{GameboyVoiceInspector,receiveChipInspector,GameboyApu,factory,CHIP_CLOCKS,ChipClockResampler,sampleRate:48000,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
   AudioWorkletProcessor:class{constructor(){this.port={postMessage:readyResolve};}},registerProcessor:(_,p)=>Processor=p});
- const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});await ready;
+ const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});await ready;
  const port={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>port.onmessage({data:reply})})};
  const chip=createGameboyClient(port);
  function frequency(){const left=new Float32Array(48000),right=new Float32Array(48000);for(let offset=0;offset<left.length;offset+=128)processor.process([],[[left.subarray(offset,offset+128),right.subarray(offset,offset+128)]]);let crossings=0;for(let i=1;i<left.length;i++)if(left[i-1]<=0&&left[i]>0)crossings++;return crossings;}

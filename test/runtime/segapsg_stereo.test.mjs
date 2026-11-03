@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {SegaPSG} from '../../web/segapsg.js';
+import {SegaPSG} from '../../tetorica_src/runtime/segapsg.js';
 import factory from '../../docs/generated/segapsg_wasm.js';
 
-const make = () => SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))},sampleRate:48000});
+const make = () => SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/segapsg_wasm.wasm',runtimeDirectoryUrl))},sampleRate:48000});
 const peak = samples => samples.reduce((value,sample) => Math.max(value,Math.abs(sample)),0);
 function sound(chip, channel) {
   if (channel === 3) {chip.write(0xe4); chip.write(0xf5);}

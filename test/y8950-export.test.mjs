@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {readSource,exportSource,listSourceScoreChannels,inspectSourceSupport} from '../cli/index.js';
+import {readSource,exportSource,listSourceScoreChannels,inspectSourceSupport} from '../tetorica_src/cli/index.js';
 import {analyzeLilyPondSource} from '../docs/vgm_analyzer/vgm_lilypond.js';
 import {isOpl,createOplMonitor,applyOplWrite,describeOplNotes} from '../docs/vgm_analyzer/opl_notes.js';
 import {createPlaybackEngine,createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
-import {getNodePlaybackFactory} from '../cli/render.js';
+import {getNodePlaybackFactory} from '../tetorica_src/cli/render.js';
 const fixture=name=>new URL(`./fixtures/y8950-${name}.vgz`,import.meta.url);
 test('Y8950 FM notes survive ADPCM mixing, while ADPCM-only does not create pitches',async()=>{
   const fm=await readSource(fixture('fm')),mix=await readSource(fixture('mix')),pcm=await readSource(fixture('adpcm'));

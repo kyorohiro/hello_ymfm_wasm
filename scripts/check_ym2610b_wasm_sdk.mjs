@@ -6,9 +6,9 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {Ym2610B} from '../web/ym2610b.js';
-import {Ym2610BAudioEngine} from '../web/ym2610baudioengine.js';
-import {opnPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ym2610B} from '../tetorica_src/runtime/ym2610b.js';
+import {Ym2610BAudioEngine} from '../tetorica_src/runtime/ym2610baudioengine.js';
+import {opnPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_ym2610b_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -201,14 +201,14 @@ async function wrapperChecks(backend,variant){
 async function main(){
   const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}
   const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports,'Export surface unchanged');
-  const wrappers=['web/ym2610b.js','docs/js/ym2610b.js','web/ym2610baudioengine.js','docs/js/ym2610baudioengine.js'];
+  const wrappers=['tetorica_src/runtime/ym2610b.js','docs/js/ym2610b.js','tetorica_src/runtime/ym2610baudioengine.js','docs/js/ym2610baudioengine.js'];
   // Deployment adds cache-version suffixes to these two relative module paths,
   // including JSDoc imports. Everything else must remain byte-identical.
   const normalized=bytes=>bytes.toString().replace(/(\.\/(?:ym2610b|soundchip)\.js)\?v=[^"'\s)]+/g,'$1');
   for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except import cache keys');
   const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,layouts,checkpointFrame,
     method:'Actual generated JS/WASM and unchanged synchronous Ym2610B wrapper/AudioEngine for both YM2610 and YM2610B. Exact stereo PCM, rate/status/IRQ/read traces, state bytes and JS resampler timing; no tolerance, mock, Mixer or device.',
-    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'web/soundchip_pitch.js'))},
+    inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),pitch:await inputFile(resolve(root,'tetorica_src/runtime/soundchip_pitch.js'))},
     wrapperSync:'Byte-identical after removing only deployed ym2610b.js/soundchip.js import cache suffixes; actual file hashes retained.',
     syntheticInputs:{adpcmA:{bytes:adpcmABytes.length,sha256:sha256(adpcmABytes)},adpcmB:{bytes:adpcmBBytes.length,sha256:sha256(adpcmBBytes)}},wrapperChecks:{},cases:[],totalOutputStereoFrames:0,ownStateLoads:0,crossStateLoads:0,resetContinuations:0,maximumDifference:0,
     limits:['Native YM2610B PCM runs at clock/16 with fixed prescaling; YM2610B enables physical FM0/3 in addition to YM2610 physical FM1/2/4/5. Engine cases separately report output rate and averaging/holding.',

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisGameGear} from '../../web/native_genesis_game_gear.js';
-import {createSegaPsgClient} from '../../web/playground_segapsg.js';
+import {createNativeGenesisGameGear} from '../../tetorica_src/runtime/native_genesis_game_gear.js';
+import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
 const HELD_CLOCK_ERROR='Release the manually held Game Gear voices before changing the clock';
 async function until(predicate){const deadline=Date.now()+1000;while(!predicate()){if(Date.now()>deadline)throw new Error('Game Gear command did not start');await new Promise(resolve=>setTimeout(resolve,1));}}
 

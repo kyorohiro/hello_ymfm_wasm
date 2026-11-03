@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SimplePwm, GenesisAudioEngine} from '../../web/genesisaudioengine.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
-import {Ym2612VGM, decodePwmBlock} from '../../web/ym2612vgm.js';
+import {SimplePwm, GenesisAudioEngine} from '../../tetorica_src/runtime/genesisaudioengine.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
+import {Ym2612VGM, decodePwmBlock} from '../../tetorica_src/runtime/ym2612vgm.js';
 
 function file(commands) {
   const bytes = new Uint8Array(256 + commands.length), view = new DataView(bytes.buffer);

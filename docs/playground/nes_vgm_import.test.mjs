@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {detectVgmImport, prepareVgmImport, exportNesVgm} from './playground_vgm_import.js';
-import {NesApu} from '../../web/nesapu.js';
-import {NesApuSynth, NesApuDirectTransport} from '../../web/nesapusynth.js';
+import {NesApu} from '../../tetorica_src/runtime/nesapu.js';
+import {NesApuSynth, NesApuDirectTransport} from '../../tetorica_src/runtime/nesapusynth.js';
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 function vgm(commands, clock = 1789773 | 0x80000000) {
   const bytes = new Uint8Array(0x100 + commands.length), view = new DataView(bytes.buffer);

@@ -1,13 +1,13 @@
-# Web runtime source map
+# Shared runtime source map
 
-`web/` contains the reusable JavaScript sound-chip runtime: low-level WASM
+`tetorica_src/runtime/` contains the reusable JavaScript sound-chip runtime: low-level WASM
 wrappers, note/preset helpers, Web Audio output, VGM playback, live-code execution,
 and the JavaScript side of Native host integration. Runtime tests are kept in
-[`test/runtime/`](../test/runtime/) separately from the implementation.
+[`test/runtime/`](../../test/runtime/) separately from the implementation.
 
-Start with the [project overview and goals](../README.md#project-goals) for
-Tetorica's purpose, [package documentation](../packages/fm2612/README.md) for
-reuse, and [feature status](../docs/feature-status.md) for chip/backend coverage.
+Start with the [project overview and goals](../../README.md#project-goals) for
+Tetorica's purpose, [package documentation](../../packages/fm2612/README.md) for
+reuse, and [feature status](../../docs/feature-status.md) for chip/backend coverage.
 This document identifies where to edit the implementation.
 
 ## Choose an entry point
@@ -34,37 +34,36 @@ support in the package-root `createSoundChip()` factory.
 
 | Location | Role and update path |
 | --- | --- |
-| `web/` | Edit the shared runtime here. Tests are in [`test/runtime/`](../test/runtime/), including the SCSP type check. |
-| [`docs/js/`](../docs/js/) | Served runtime copies and some independent browser implementations. [`sync_web_js_to_docs.sh`](../scripts/sync_web_js_to_docs.sh) lists the shared copies and rewrites their asset URLs. |
+| `tetorica_src/runtime/` | Edit the shared runtime here. Tests are in [`test/runtime/`](../../test/runtime/), including the SCSP type check. |
+| [`docs/js/`](../../docs/js/) | Served runtime copies and some independent browser implementations. [`sync_web_js_to_docs.sh`](../../scripts/sync_web_js_to_docs.sh) lists the shared copies and rewrites their asset URLs. |
 | [`generated/`](generated/) | Complete canonical loader/WASM catalog and build receipts. Update through the chip build scripts and the pinned SDK sources. |
-| [`docs/generated/`](../docs/generated/) | Published copies of the canonical generated assets. The shared artifact synchronizer maintains these and the legacy DX7/Native FX paths. |
-| [`docs/playground/`](../docs/playground/) | The Playground application: editor, FILES, import dialogs and chip panels. Its UI uses the runtime in `docs/js/`. |
-| [`docs/synth/`](../docs/synth/), [`docs/synth-spu/`](../docs/synth-spu/), [`docs/synth-scsp/`](../docs/synth-scsp/) | The separate instrument-editing applications. |
-| [`docs/vgm_analyzer/`](../docs/vgm_analyzer/) | Analyzer UI and analysis/export workflows. |
-| [`packages/fm2612/`](../packages/fm2612/) | npm package metadata and user documentation. [`copy_full_web_runtime.mjs`](../scripts/copy_full_web_runtime.mjs) and [`build_fm2612_package.mjs`](../scripts/build_fm2612_package.mjs) assemble `dist/fm2612/`. |
-| [`third_party/tetorica-soundchip-native/`](../third_party/tetorica-soundchip-native/) | The pinned C/C++ SDK sources used by the WASM builds. Upstream: [tetorica-soundchip-native](https://github.com/kyorohiro/tetorica-soundchip-native). |
-| `msfa_dx7/` | Vendored DX7 package and local integration. See its [provenance](msfa_dx7/README.vendor.md) and [`sync_dx7_runtime.mjs`](../scripts/sync_dx7_runtime.mjs). |
+| [`docs/generated/`](../../docs/generated/) | Published copies of the canonical generated assets. The shared artifact synchronizer maintains these and the legacy DX7/Native FX paths. |
+| [`docs/playground/`](../../docs/playground/) | The Playground application: editor, FILES, import dialogs and chip panels. Its UI uses the runtime in `docs/js/`. |
+| [`docs/synth/`](../../docs/synth/), [`docs/synth-spu/`](../../docs/synth-spu/), [`docs/synth-scsp/`](../../docs/synth-scsp/) | The separate instrument-editing applications. |
+| [`docs/vgm_analyzer/`](../../docs/vgm_analyzer/) | Analyzer UI and analysis/export workflows. |
+| [`packages/fm2612/`](../../packages/fm2612/) | npm package metadata and user documentation. [`copy_full_web_runtime.mjs`](../../scripts/copy_full_web_runtime.mjs) and [`build_fm2612_package.mjs`](../../scripts/build_fm2612_package.mjs) assemble `dist/fm2612/`. |
+| [`third_party/tetorica-soundchip-native/`](../../third_party/tetorica-soundchip-native/) | The pinned C/C++ SDK sources used by the WASM builds. Upstream: [tetorica-soundchip-native](https://github.com/kyorohiro/tetorica-soundchip-native). |
+| `msfa_dx7/` | Vendored DX7 package and local integration. See its [provenance](msfa_dx7/README.vendor.md) and [`sync_dx7_runtime.mjs`](../../scripts/sync_dx7_runtime.mjs). |
 
 Runtime imports, Worker/Worklet URLs and generated-asset locations are part of
 the integration contract. The npm payload has a flat module layout; the website
 uses `js/` and `generated/`. Source moves require corresponding build/sync and
-URL updates. See the [organization TODO](../docs/issues/todo_web_organization_01.md)
-for the completed test separation and the next source moves. Tetorica's own
-source will move under `tetorica_src/`; the upstream ymfm `src/` and `examples/`
-keep their layout.
+URL updates. The [source index](../README.md) describes the current
+`tetorica_src/` layout; the [organization record](../../docs/issues/todo_repository_organization_01.md)
+tracks this migration. The upstream ymfm `src/` and `examples/` keep their layout.
 
 ### Generated assets
 
-`web/generated/` contains the complete generated catalog. The
+`tetorica_src/runtime/generated/` contains the complete generated catalog. The
 [runtime manifest](generated/runtime-artifacts.json) records output hashes,
 source/license references and mirrors. Its SDK entries come from the pinned
-SDK catalog; [`runtime_artifacts.mjs`](../scripts/runtime_artifacts.mjs) adds
+SDK catalog; [`runtime_artifacts.mjs`](../../scripts/runtime_artifacts.mjs) adds
 the application effect and copy destinations.
 
 | Location | Contents and role |
 | --- | --- |
 | [`generated/`](generated/) | 33 SDK builds: 32 loader/WASM pairs, DX7 `msfa.wasm`, and build metadata. Native FX is at `effects/gain.wasm`. |
-| [`docs/generated/`](../docs/generated/) | Byte-identical published SDK outputs and metadata. |
+| [`docs/generated/`](../../docs/generated/) | Byte-identical published SDK outputs and metadata. |
 | [`msfa_dx7/wasm/`](msfa_dx7/wasm/) | DX7 mirror, also copied to `docs/js/msfa_dx7/wasm/`. |
 | `native_audio_effect.wasm` | Native FX mirror; the other public copies are `docs/js/native_audio_effect.wasm` and `docs/native_audio_effect/gain.wasm`. |
 
@@ -95,13 +94,13 @@ change:
 
 The normal YM2612 WASM build verifies and compiles the fixed SDK source release.
 It requires Emscripten and Python 3; no separate SDK checkout or download is
-needed. See the [build and update instructions](../docs/building_ym2612_wasm.md).
-It generates `web/generated/ym2612_wasm.js` and
-`web/generated/ym2612_wasm.wasm`, then synchronizes their public copies.
+needed. See the [build and update instructions](../../docs/building_ym2612_wasm.md).
+It generates `tetorica_src/runtime/generated/ym2612_wasm.js` and
+`tetorica_src/runtime/generated/ym2612_wasm.wasm`, then synchronizes their public copies.
 
 ## Low-level YM2612 example
 
-From a browser module under `web/`, served over HTTP:
+From a browser module under `tetorica_src/runtime/`, served over HTTP:
 
 ```js
 import ym2612ModuleFactory from "./generated/ym2612_wasm.js";
@@ -122,7 +121,7 @@ ym2612.dispose();
 ```
 
 This illustrates register access and PCM generation. For a complete playable
-voice, use the [register-level beep lesson](../docs/introductions/tetorica_ym2612_soundchip_beep.html)
+voice, use the [register-level beep lesson](../../docs/introductions/tetorica_ym2612_soundchip_beep.html)
 or the [Web/Node examples](https://github.com/kyorohiro/tetorica-fm2612-examples).
 Node callers can supply preloaded WASM through `moduleOptions.wasmBinary`.
 
@@ -256,14 +255,14 @@ An engine that finishes loading after cancellation is disposed. A subsequent
 ## Reuse, licenses and references
 
 The runtime is designed to be used independently of the editor applications.
-Use the [npm package](../packages/fm2612/README.md) for built modules and asset
+Use the [npm package](../../packages/fm2612/README.md) for built modules and asset
 deployment, or the [native SDK](https://github.com/kyorohiro/tetorica-soundchip-native)
-for C/C++ integration and WASM recipes. The [CLI/API reference](../CLI.md) covers
+for C/C++ integration and WASM recipes. The [CLI/API reference](../../CLI.md) covers
 VGM analysis and exports.
 
-Tetorica's original code uses the [BSD-3-Clause license](../LICENSE). Chip cores,
+Tetorica's original code uses the [BSD-3-Clause license](../../LICENSE). Chip cores,
 vendored packages and assets retain their own licenses; the [root license and
-attribution guide](../README.md#license-and-attribution) identifies them. The
+attribution guide](../../README.md#license-and-attribution) identifies them. The
 package/release source bundles include component notices and corresponding
-sources. See [chip notes](../Memo.md#chip-playback-notes-english) and
-[Analyzer support](../docs/vgm_analyzer/support.html) for implementation limits.
+sources. See [chip notes](../../Memo.md#chip-playback-notes-english) and
+[Analyzer support](../../docs/vgm_analyzer/support.html) for implementation limits.

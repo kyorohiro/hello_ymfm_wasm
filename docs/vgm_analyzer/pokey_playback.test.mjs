@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../generated/pokey_wasm.js';
-import {PokeyAudioEngine} from '../../web/pokeyaudioengine.js';
+import {PokeyAudioEngine} from '../../tetorica_src/runtime/pokeyaudioengine.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
 import {createPokeyVgm} from '../../test/helpers/pokey_vgm_fixture.mjs';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration,applyPlaybackMutes} from './playback_core.js';
@@ -56,7 +56,7 @@ test('dual POKEY creation fails cleanly for invalid clock/variant/factory',async
 });
 
 test('header composition preserves both POKEYs and their Mixer IDs beside another chip',async()=>{
-  const {getNodePlaybackFactory}=await import('../../cli/render.js');
+  const {getNodePlaybackFactory}=await import("../../tetorica_src/cli/render.js");
   const source=createPokeyVgm({dual:true,chip:1,channel:3,loop:false,seconds:.2});
   new DataView(source.buffer).setUint32(0x74,1789773,true); // An additional, silent AY.
   const vgm=new Ym2612VGM(source),configuration=selectPlaybackConfiguration(vgm);

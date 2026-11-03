@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {borrowNativeApi,createNativePrimaryClient,createNativeWorkerApis} from '../../web/playground_native_primary.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {GameboySynth} from '../../web/gameboysynth.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {borrowNativeApi,createNativePrimaryClient,createNativeWorkerApis} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {GameboySynth} from '../../tetorica_src/runtime/gameboysynth.js';
 
 const delay=()=>new Promise(resolve=>setTimeout(resolve,1));
 async function until(predicate){for(let n=0;n<1000;n++){if(predicate())return;await delay();}throw new Error('Native console bridge timed out');}

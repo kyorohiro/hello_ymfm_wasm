@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { parseVgmMetadata, maybeDecodeVgmFile } from "../js/vgm_file.js";
-import { parseVgmMetadata as parseSourceMetadata } from "../../web/vgm_file.js";
+import { parseVgmMetadata as parseSourceMetadata } from "../../tetorica_src/runtime/vgm_file.js";
 
 function fixture() {
   const fields = ["Neo-Geo Logo", "ネオジオロゴ", "Fatal Fury - King of Fighters", "餓狼伝説 - 宿命の闘い",

@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/huc6280_wasm.js';
-import {Huc6280AudioEngine} from '../../web/huc6280audioengine.js';
-import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../../web/huc6280synth.js';
+import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
+import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../../tetorica_src/runtime/huc6280synth.js';
 
 const sampleRate = 48000;
 const square = Array.from({length:32}, (_, i) => i < 16 ? 31 : 0);
@@ -120,6 +120,6 @@ test('HuC6280 validates full calls before writing; handoff does not replay hardw
 test('HuC6280 web and distributed modules match', async () => {
   for (const file of ['huc6280synth.js','playground_huc6280.js','playground_huc6280_audio.js','playground_huc6280_worklet.js']) {
     const normalize = source => source.replace(/(\.js)\?v=[^'"\s]+/g,'$1').replaceAll('../generated/','./generated/');
-    assert.equal(normalize(await readFile(new URL(`./${file}`, runtimeDirectoryUrl), 'utf8')), normalize(await readFile(new URL(`../docs/js/${file}`, runtimeDirectoryUrl), 'utf8')), file);
+    assert.equal(normalize(await readFile(new URL(`./${file}`, runtimeDirectoryUrl), 'utf8')), normalize(await readFile(new URL(`../../docs/js/${file}`,runtimeDirectoryUrl), 'utf8')), file);
   }
 });

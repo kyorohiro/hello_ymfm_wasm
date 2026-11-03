@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../generated/wonderswan_wasm.js';
-import {WonderSwanAudioEngine} from '../../web/wonderswanaudioengine.js';
+import {WonderSwanAudioEngine} from '../../tetorica_src/runtime/wonderswanaudioengine.js';
 import {createWonderSwanVoiceSamples} from './wonderswan_voice_samples.js';
 import {renderWonderSwanVoicePreview} from './wonderswan_voice_render.js';
 

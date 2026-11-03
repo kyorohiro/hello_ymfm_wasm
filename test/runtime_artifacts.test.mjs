@@ -11,7 +11,7 @@ import {parseRuntimeArtifactArguments} from '../scripts/sync_runtime_artifacts.m
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = await getRuntimeArtifactManifest({root});
 const outputNames = source.inventory.builds.flatMap(artifact => artifact.outputs);
-const canonical = (fixture, name) => path.join(fixture.root, 'web/generated', name);
+const canonical = (fixture, name) => path.join(fixture.root, 'tetorica_src/runtime/generated', name);
 const deployed = (fixture, name) => path.join(fixture.root, 'docs/generated', name);
 
 async function fixture(t, {initialized = false} = {}) {
@@ -26,8 +26,8 @@ async function fixture(t, {initialized = false} = {}) {
     await mkdir(path.dirname(deployed(result, name)), {recursive: true});
     await copyFile(path.join(root, 'docs/generated', name), deployed(result, name));
   }
-  for (const name of ['web/native_audio_effect.wasm', 'docs/js/native_audio_effect.wasm', 'docs/native_audio_effect/gain.wasm',
-    'web/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm']) {
+  for (const name of ['tetorica_src/runtime/native_audio_effect.wasm', 'docs/js/native_audio_effect.wasm', 'docs/native_audio_effect/gain.wasm',
+    'tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm']) {
     const target = path.join(result.root, name);
     await mkdir(path.dirname(target), {recursive: true});
     await copyFile(path.join(root, name), target);
@@ -42,14 +42,14 @@ test('one immutable inventory covers 33 SDK builds, NativeFX, metadata and licen
   assert(source.artifacts.every(artifact => artifact.licenseFiles.length > 0));
   const dx7 = source.artifacts.find(artifact => artifact.id === 'dx7');
   assert.deepEqual(dx7.files[0].mirrors,
-    ['docs/generated/msfa.wasm', 'web/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm']);
+    ['docs/generated/msfa.wasm', 'tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm']);
   const fx = source.artifacts.find(artifact => artifact.id === 'native_audio_effect');
-  assert.equal(fx.files[0].canonical, 'web/generated/effects/gain.wasm');
+  assert.equal(fx.files[0].canonical, 'tetorica_src/runtime/generated/effects/gain.wasm');
   assert.throws(() => dx7.files[0].mirrors.push('another-path'), TypeError);
   const listed = await listRuntimeArtifactFiles({root, ids: ['ps1_spu']});
   assert.deepEqual(listed.map(entry => entry.path),
     ['ps1_spu_wasm.js', 'ps1_spu_wasm.wasm', 'build-info.json', 'ps1_spu_build.json', 'runtime-artifacts.json']);
-  assert(listed.every(entry => entry.source.startsWith(path.join(root, 'web/generated'))));
+  assert(listed.every(entry => entry.source.startsWith(path.join(root, 'tetorica_src/runtime/generated'))));
   assert.deepEqual((await listRuntimeArtifactFiles({root, ids: ['msfa'], includeMetadata: false})).map(entry => entry.path), ['msfa.wasm']);
 });
 
@@ -92,7 +92,7 @@ test('bootstrap rejects divergent canonical outputs without overwriting either v
   for (const name of ['ym2612_wasm.js', 'ym2612_wasm.wasm']) await copyFile(deployed(local, name), canonical(local, name));
   await writeFile(canonical(local, 'ym2612_wasm.js'), 'local generated variant');
   const previous = await readFile(deployed(local, 'ym2612_wasm.js'));
-  await assert.rejects(syncRuntimeArtifacts({...local, importExisting: true}), /canonical differs: web\/generated\/ym2612_wasm.js/);
+  await assert.rejects(syncRuntimeArtifacts({...local, importExisting: true}), /canonical differs: tetorica_src\/runtime\/generated\/ym2612_wasm.js/);
   assert.equal(await readFile(canonical(local, 'ym2612_wasm.js'), 'utf8'), 'local generated variant');
   assert.deepEqual(await readFile(deployed(local, 'ym2612_wasm.js')), previous);
   assert.equal((await readdir(canonical(local, ''))).length, 2);
@@ -130,7 +130,7 @@ test('selected sync repairs only its mirrors while check still authenticates the
   await assert.rejects(syncRuntimeArtifacts({...local, ids: ['ym2612']}), /Output hash\/size mismatch/);
 });
 
-test('DX7 sync repairs all legacy aliases from web/generated/msfa.wasm', async t => {
+test('DX7 sync repairs all legacy aliases from tetorica_src/runtime/generated/msfa.wasm', async t => {
   const local = await fixture(t, {initialized: true});
   await writeFile(path.join(local.root, 'docs/js/msfa_dx7/wasm/msfa.wasm'), 'stale');
   await assert.rejects(checkRuntimeArtifacts({...local, ids: ['dx7']}), /mirror differs.*msfa/);
@@ -145,14 +145,14 @@ test('NativeFX ABI and catalog hashes detect changed canonical bytes; deliberate
   // A valid custom section keeps ABI unchanged but changes the output hash.
   const changed = Buffer.concat([original, Buffer.from([0, 2, 1, 120])]);
   await writeFile(canonical(local, 'effects/gain.wasm'), changed);
-  await assert.rejects(checkRuntimeArtifacts(local), /canonical differs: web\/generated\/runtime-artifacts.json/);
+  await assert.rejects(checkRuntimeArtifacts(local), /canonical differs: tetorica_src\/runtime\/generated\/runtime-artifacts.json/);
   const result = await syncRuntimeArtifacts({...local, ids: ['native_audio_effect']});
   assert.equal(result.changed.length, 5);
   await checkRuntimeArtifacts(local);
-  assert.deepEqual(await readFile(path.join(local.root, 'web/native_audio_effect.wasm')), changed);
+  assert.deepEqual(await readFile(path.join(local.root, 'tetorica_src/runtime/native_audio_effect.wasm')), changed);
   await writeFile(canonical(local, 'effects/gain.wasm'), await readFile(canonical(local, 'msfa.wasm')));
   await assert.rejects(syncRuntimeArtifacts({...local, ids: ['native_audio_effect']}), /no application effect ABI/);
-  assert.deepEqual(await readFile(path.join(local.root, 'web/native_audio_effect.wasm')), changed);
+  assert.deepEqual(await readFile(path.join(local.root, 'tetorica_src/runtime/native_audio_effect.wasm')), changed);
 });
 
 test('PS1 supplemental receipt must match the current fixed SDK and actual outputs', async t => {

@@ -1,4 +1,4 @@
-import {NesApuAudioEngine, validateNesApuClock} from '../docs/js/nesapuaudioengine.js';
+import {NesApuAudioEngine, validateNesApuClock} from '../../docs/js/nesapuaudioengine.js';
 export {validateNesApuClock};
 export const NES_APU_CLOCK = 1789773;
 /** NES APU with optional FDS. `new` retains the synchronous JavaScript reference

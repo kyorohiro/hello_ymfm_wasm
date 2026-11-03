@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from '../../web/ps1synth.js';
-import {PS1_REVERB_PRESETS} from '../../web/ps1_parameters.js';
-import {preparePs1Waveform} from '../../web/ps1_waveform.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from '../../tetorica_src/runtime/ps1synth.js';
+import {PS1_REVERB_PRESETS} from '../../tetorica_src/runtime/ps1_parameters.js';
+import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
 let sharedModule;
 async function create(t) {
-  sharedModule??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
+  sharedModule??=Promise.all([import("../../docs/generated/ps1_spu_wasm.js"),readFile(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
   const core=await Ps1Spu.create({moduleFactory:()=>sharedModule}),synth=new Ps1Synth({core});
   t.after(()=>synth.dispose());return {synth,core};
 }

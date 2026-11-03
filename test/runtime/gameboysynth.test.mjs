@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {GameboySynth, GameboyDirectTransport} from '../../web/gameboysynth.js';
-import {createGameboyClient} from '../../web/playground_gameboy.js';
-import {GameboyApu} from '../../web/gameboyapu.js';
-import moduleFactory from '../../web/generated/gameboy_apu_wasm.js';
+import {GameboySynth, GameboyDirectTransport} from '../../tetorica_src/runtime/gameboysynth.js';
+import {createGameboyClient} from '../../tetorica_src/runtime/playground_gameboy.js';
+import {GameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import moduleFactory from '../../tetorica_src/runtime/generated/gameboy_apu_wasm.js';
 function fixture() {
   const writes = [], registers = new Uint8Array(48);
   let resets = 0, disposals = 0;

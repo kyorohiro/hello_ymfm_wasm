@@ -1,10 +1,10 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Ym2608AudioEngine} from '../../web/ym2608audioengine.js';
-import {Ym2608Timeline} from '../../web/playground_ym2608_timeline.js';
+import {Ym2608AudioEngine} from '../../tetorica_src/runtime/ym2608audioengine.js';
+import {Ym2608Timeline} from '../../tetorica_src/runtime/playground_ym2608_timeline.js';
 import factory from '../../docs/generated/ym2608_wasm.js';
 
 function referenceProcess(left,right,frames) {
@@ -25,7 +25,7 @@ function referenceProcess(left,right,frames) {
 
 for (const rate of [44100,48000,96000]) {
   test(`YM2608 engine: batched real FM/SSG/rhythm/ADPCM remains exact through timeline and clocks at ${rate} Hz`,async t => {
-    const wasmBinary = await readFile(new URL('../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl));
+    const wasmBinary = await readFile(new URL('../../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl));
     const create = () => Ym2608AudioEngine.create({ym2608ModuleFactory:factory,ym2608ModuleOptions:{wasmBinary},outputSampleRate:rate,masterVolume:.73});
     const a = await create(), b = await create();
     t.after(() => {a.dispose(); b.dispose();});
@@ -75,7 +75,7 @@ for (const rate of [44100,48000,96000]) {
 }
 
 test('YM2608 engine: a synchronous IRQ register write keeps its per-output-frame PCM boundary',async t => {
-  const wasmBinary = await readFile(new URL('../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl));
+  const wasmBinary = await readFile(new URL('../../docs/generated/ym2608_wasm.wasm',runtimeDirectoryUrl));
   const create = () => Ym2608AudioEngine.create({ym2608ModuleFactory:factory,ym2608ModuleOptions:{wasmBinary},outputSampleRate:48000});
   const a = await create(), b = await create(), interrupts = [0,0];
   t.after(() => {a.dispose(); b.dispose();});

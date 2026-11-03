@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SpcCore} from '../../web/spc.js';
-import {captureSpcPerformance} from '../../web/spc_performance.js';
-import {createSyntheticSpc} from '../../web/spc_test_fixture.mjs';
+import {SpcCore} from '../../tetorica_src/runtime/spc.js';
+import {captureSpcPerformance} from '../../tetorica_src/runtime/spc_performance.js';
+import {createSyntheticSpc} from '../../tetorica_src/runtime/spc_test_fixture.mjs';
 
 // Deterministic observation source isolates musical interpretation/sampling
 // from CPU instruction timing. The real decoder and BRR extractor remain in

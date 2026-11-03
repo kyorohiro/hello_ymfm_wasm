@@ -1,13 +1,13 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import factory from '../../docs/generated/scsp_wasm.js';
-import {Scsp,SCSP_RAM_BYTES,SCSP_SAMPLE_RATE} from '../../web/scsp.js';
+import {Scsp,SCSP_RAM_BYTES,SCSP_SAMPLE_RATE} from '../../tetorica_src/runtime/scsp.js';
 let module;
-const moduleFactory=async()=>module??=await factory({wasmBinary:await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
+const moduleFactory=async()=>module??=await factory({wasmBinary:await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
 async function create(t){const chip=await Scsp.create({moduleFactory});t.after(()=>chip.dispose());return chip;}
 function sine(chip,{slot=0,pan=0}={}) {
   const pcm=Int16Array.from({length:64},(_,i)=>Math.round(8192*Math.sin(i*2*Math.PI/64)));
@@ -70,7 +70,7 @@ test('WASM-backed destinations are refused, shared-memory input upload is stabil
 });
 
 test('supplied WASM bytes initialize without loader fetch and invalid bytes never fall back to a local file',async t=>{
-  const binary=await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));
+  const binary=await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl));
   const chip=await Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:binary,locateFile(){throw new Error('Must not fetch');}}});
   t.after(()=>chip.dispose());sine(chip);assert(chip.generateStereo(64).left.some(v=>v!==0));
   await assert.rejects(Scsp.create({moduleFactory:factory,moduleOptions:{wasmBinary:new Uint8Array([0,1])}}),WebAssembly.CompileError);

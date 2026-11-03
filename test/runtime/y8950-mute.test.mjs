@@ -1,11 +1,11 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import factory from '../../docs/generated/y8950_wasm.js';
-import {Y8950AudioEngine} from '../../web/y8950audioengine.js';
-const options={y8950ModuleFactory:factory,y8950ModuleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/y8950_wasm.wasm',runtimeDirectoryUrl))}};
+import {Y8950AudioEngine} from '../../tetorica_src/runtime/y8950audioengine.js';
+const options={y8950ModuleFactory:factory,y8950ModuleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/y8950_wasm.wasm',runtimeDirectoryUrl))}};
 function voice(e,ch){
  const base=[0,1,2,8,9,10,16,17,18][ch];
  for(const slot of [base,base+3])for(const [r,v] of [[0x20,0x21],[0x40,16],[0x60,0xf0],[0x80,0x0f]])e.writeY8950(r+slot,v);
@@ -44,7 +44,7 @@ test('Y8950 FM and ADPCM stay independent; full mute restores source masks',asyn
 });
 
 test('MSX UI mute routing with real AY, OPLL and Y8950 engines',async()=>{
- const {MsxAudioEngine}=await import("../../web/msxaudioengine.js");
+ const {MsxAudioEngine}=await import("../../tetorica_src/runtime/msxaudioengine.js");
  const {default:ayFactory}=await import("../../docs/generated/ay8910_wasm.js");
  const {default:opllFactory}=await import("../../docs/generated/ym2413_wasm.js");
  const {msxMuteControls,applyMsxMute}=await import("../../docs/vgm_analyzer/msx_mutes.js");

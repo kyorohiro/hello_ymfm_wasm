@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {resolvePlaySeconds} from '../../web/playground_duration.js';
-import {createPlaygroundMusic} from '../../web/playground_music.js';
-import {createMidiApi} from '../../web/playground_midi.js';
+import {resolvePlaySeconds} from '../../tetorica_src/runtime/playground_duration.js';
+import {createPlaygroundMusic} from '../../tetorica_src/runtime/playground_music.js';
+import {createMidiApi} from '../../tetorica_src/runtime/playground_midi.js';
 
 test('explicit units, legacy defaults and validation',()=>{
  assert.equal(resolvePlaySeconds({beats:1},120),.5);

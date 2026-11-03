@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMidiApi} from '../../web/playground_midi.js';
-import {createMidiSongPlayer} from '../../web/midi_song.js';
+import {createMidiApi} from '../../tetorica_src/runtime/playground_midi.js';
+import {createMidiSongPlayer} from '../../tetorica_src/runtime/midi_song.js';
 
 test('handwritten beat score uses the public API and applies tempo changes inside notes',async()=>{
  let time=0,id=0;const events=[];

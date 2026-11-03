@@ -8,7 +8,7 @@ const olderKinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413
 function installExtraDx7Mock(native){
   const invoke=native.invoke.bind(native);native.extraDx7=new Map();
   async function fresh(){
-    const {createInitVoice}=await import('../web/msfa_dx7/src/sysex.js');
+    const {createInitVoice}=await import("../tetorica_src/runtime/msfa_dx7/src/sysex.js");
     return {voices:[Array.from(createInitVoice())],selectedVoice:0,revision:0,notes:new Map(),held:new Map(),mix:{volume:1,pan:0}};
   }
   const snapshot=s=>({sampleRate:48000,frame:native.status().frame,revision:native.calls.length,dx7:{
@@ -54,8 +54,8 @@ function installExtraDx7Mock(native){
   };
 }
 async function runExtraDx7({page,native,artifacts,name,until,assertNoLiveAudio,changeMode}){
-  const {createInitVoice,createBankSysex}=await import('../web/msfa_dx7/src/sysex.js');
-  const {voiceToPreset}=await import('../web/msfa_dx7/src/preset.js');
+  const {createInitVoice,createBankSysex}=await import("../tetorica_src/runtime/msfa_dx7/src/sysex.js");
+  const {voiceToPreset}=await import("../tetorica_src/runtime/msfa_dx7/src/preset.js");
   const bank=Array.from(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('BANK '+String(i).padStart(2,'0')))));
   const program=`
     const a=await createSoundChip('dx7',{id:'keys-a'}),b=await createSoundChip('dx7',{id:'keys-b'});

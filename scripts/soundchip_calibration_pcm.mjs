@@ -2,7 +2,7 @@
  * These measure output amplitude/DC, not perceived loudness. Hardware DAC,
  * codec, waveform and resampling differences remain part of the measurement.
  */
-import {decodeBrr} from '../web/snes_brr.js';
+import {decodeBrr} from '../tetorica_src/runtime/snes_brr.js';
 
 export const PCM_CALIBRATION_KINDS = Object.freeze([
   'segapsg', 'ay8910', 'rf5c164', 'okim6258', 'gameboy', 'nes', 'huc6280', 'pwm', 'snes', 'spc',

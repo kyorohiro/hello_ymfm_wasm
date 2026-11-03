@@ -1,9 +1,9 @@
 // Node DSP/control overhead only. This does not measure browser/device underruns.
 import {readFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
-import {NativeFXEngine} from '../web/native_fx_engine.js';
-import {createNativeFXController} from '../web/native_fx.js';
-const module=await WebAssembly.compile(await readFile(new URL('../web/native_audio_effect.wasm',import.meta.url)));
+import {NativeFXEngine} from '../tetorica_src/runtime/native_fx_engine.js';
+import {createNativeFXController} from '../tetorica_src/runtime/native_fx.js';
+const module=await WebAssembly.compile(await readFile(new URL('../tetorica_src/runtime/native_audio_effect.wasm',import.meta.url)));
 for(const scenario of ['ambient-reverb','eight-filter-ramps']){
  const engine=new NativeFXEngine(module,48000);
  const fx=createNativeFXController(command=>engine.command(structuredClone(command)));

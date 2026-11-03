@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {prepareNativeOkim6258Source} from './native_okim6258_source.mjs';
-import {encodeOki6258} from '../web/okim6258synth.js';
+import {encodeOki6258} from '../tetorica_src/runtime/okim6258synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1];};

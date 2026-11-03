@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareMSM5205Sample, MSM5205_MAX_SAMPLE_BYTES} from '../../web/msm5205_sample.js';
-import {Msm5205AudioEngine} from '../../web/msm5205audioengine.js';
+import {prepareMSM5205Sample, MSM5205_MAX_SAMPLE_BYTES} from '../../tetorica_src/runtime/msm5205_sample.js';
+import {Msm5205AudioEngine} from '../../tetorica_src/runtime/msm5205audioengine.js';
 
 function wav(channels, sampleRate = 8000, {type = 1, bits = 16} = {}) {
   const count = channels.length, frames = channels[0].length, block = count * bits / 8;

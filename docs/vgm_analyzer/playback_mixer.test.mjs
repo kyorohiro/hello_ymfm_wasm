@@ -6,7 +6,7 @@ import {createPlaybackEngine, createPlaybackPlayer} from './playback_core.js';
 import {seekPlayback} from './seek_playback.js';
 import {renderVgmToWav, encodeStereoWav} from './vgm_wav.js';
 import {Ym2612VGM} from '../js/ym2612vgm.js';
-import {getNodePlaybackFactory} from '../../cli/render.js';
+import {getNodePlaybackFactory} from '../../tetorica_src/cli/render.js';
 
 const source = () => ({frames: 0, generateStereo(n) {
   this.frames += n;

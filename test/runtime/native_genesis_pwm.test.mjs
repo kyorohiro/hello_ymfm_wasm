@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisPwm} from '../../web/native_genesis_pwm.js';
-import {PWM32XPlayback} from '../../web/pwm32x_playback.js';
+import {createNativeGenesisPwm} from '../../tetorica_src/runtime/native_genesis_pwm.js';
+import {PWM32XPlayback} from '../../tetorica_src/runtime/pwm32x_playback.js';
 
 function fixture(){
   const playback=new PWM32XPlayback({sampleRate:48000}),commands=[],calls=[],future=[];let lastSchedule=null,override;

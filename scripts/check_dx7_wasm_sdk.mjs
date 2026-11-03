@@ -4,8 +4,8 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,realpath,stat} from 'node:fs/promises';
 import {basename,dirname,resolve,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex,packVoice,unpackVoice} from '../web/msfa_dx7/src/index.js';
-import {presetToVoice} from '../web/msfa_dx7/src/preset.js';
+import {createDX7,createInitVoice,createVoiceSysex,createBankSysex,parseSysex,packVoice,unpackVoice} from '../tetorica_src/runtime/msfa_dx7/src/index.js';
+import {presetToVoice} from '../tetorica_src/runtime/msfa_dx7/src/preset.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_dx7_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -14,7 +14,7 @@ const inventory=JSON.parse(await readFile(resolve(root,sdkRoot,'catalog/source_i
 assert(inventory,'DX7 SDK inventory');
 const requiredExports=['create','destroy','voice_ptr','set_voice','output_ptr','select_voice','edit_voice','note_on','note_off','all_notes_off','panic','render'].map(n=>'dx7_'+n);
 const runtimeFiles=['index.js','preset.js','sysex.js','browser.js','dx7-worklet.js'];
-const wrapperPairs=runtimeFiles.map(n=>['web/msfa_dx7/src/'+n,'docs/js/msfa_dx7/src/'+n]);
+const wrapperPairs=runtimeFiles.map(n=>['tetorica_src/runtime/msfa_dx7/src/'+n,'docs/js/msfa_dx7/src/'+n]);
 // Both binaries are supplied by the caller. Audit the checked-in SDK inputs;
 // an optional developer checkout must not be needed to verify a fresh clone.
 const compilerInputs=inventory.sourceFiles.map(p=>sdkRoot+'/'+p);

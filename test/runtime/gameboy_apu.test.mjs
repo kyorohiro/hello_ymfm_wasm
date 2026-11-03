@@ -1,16 +1,16 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {GameboyApu, validateGameboyApu} from '../../web/gameboyapu.js';
-import {GameboyApuAudioEngine} from '../../web/gameboyapuaudioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {GameboyApu, validateGameboyApu} from '../../tetorica_src/runtime/gameboyapu.js';
+import {GameboyApuAudioEngine} from '../../tetorica_src/runtime/gameboyapuaudioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsVGM} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../../docs/vgm_analyzer/seek_playback.js';
 import factory from '../../docs/generated/gameboy_apu_wasm.js';
-const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}};
+const options={moduleFactory:factory,moduleOptions:{wasmBinary:readFileSync(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}};
 const CLOCK = 4194304;
 
 function vgm(commands,{gameBoyDmgClock=CLOCK,loop=false}={}){

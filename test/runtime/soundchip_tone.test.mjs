@@ -1,26 +1,26 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {noteToHz,opnPitchFromHz} from '../../web/soundchip_pitch.js';
-import {YM2612Synth,YM2612DirectTransport} from '../../web/ym2612synth.js';
-import {YM2203Synth,YM2203DirectTransport} from '../../web/ym2203synth.js';
-import {YM2608Synth,YM2608DirectTransport} from '../../web/ym2608synth.js';
-import {YM2610BSynth,YM2610BDirectTransport,NeoGeoFMSynth} from '../../web/ym2610bsynth.js';
-import {Ym2612} from '../../web/ym2612.js';
-import {Ym2203} from '../../web/ym2203.js';
-import {Ym2608} from '../../web/ym2608.js';
-import {Ym2610B} from '../../web/ym2610b.js';
-import {SegaPSGSynth} from '../../web/segapsgsynth.js';
-import {SSGSynth} from '../../web/ssgsynth.js';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
+import {noteToHz,opnPitchFromHz} from '../../tetorica_src/runtime/soundchip_pitch.js';
+import {YM2612Synth,YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {YM2203Synth,YM2203DirectTransport} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth,YM2608DirectTransport} from '../../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth,YM2610BDirectTransport,NeoGeoFMSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {Ym2612} from '../../tetorica_src/runtime/ym2612.js';
+import {Ym2203} from '../../tetorica_src/runtime/ym2203.js';
+import {Ym2608} from '../../tetorica_src/runtime/ym2608.js';
+import {Ym2610B} from '../../tetorica_src/runtime/ym2610b.js';
+import {SegaPSGSynth} from '../../tetorica_src/runtime/segapsgsynth.js';
+import {SSGSynth} from '../../tetorica_src/runtime/ssgsynth.js';
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
 
 function countFrequency(pcm,rate){const center=pcm.reduce((sum,x)=>sum+x,0)/pcm.length;let count=0;for(let i=1;i<pcm.length;i++)if(pcm[i-1]<center&&pcm[i]>=center)count++;return count*rate/pcm.length;}
 for(const [name,Chip,Synth,Transport] of [['ym2612',Ym2612,YM2612Synth,YM2612DirectTransport],['ym2203',Ym2203,YM2203Synth,YM2203DirectTransport],['ym2608',Ym2608,YM2608Synth,YM2608DirectTransport],['ym2610b',Ym2610B,YM2610BSynth,YM2610BDirectTransport]]){
  test(`${name}: Hz and MIDI/name note setters render the same A4; raw overloads remain exact`,async()=>{
   const {default:moduleFactory}=await import(`../../docs/generated/${name}_wasm.js`);
-  const chip=await Chip.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL(`../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))}});
+  const chip=await Chip.create({moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL(`../../docs/generated/${name}_wasm.wasm`,runtimeDirectoryUrl))}});
   const synth=new Synth({transport:new Transport(chip)});
   try{
    synth.setAlgo(0,7);if(name!=='ym2203')synth.setPan(0,true,true);
@@ -71,9 +71,9 @@ test('Neo Geo and Worker map all new pitch operations to the physical channels',
 });
 
 test('Game Boy common and grouped noteOn sound at the specified pitch and require initialization',async()=>{
- const {GameboyApu}=await import("../../web/gameboyapu.js");const {GameboySynth,GameboyDirectTransport}=await import("../../web/gameboysynth.js");
+ const {GameboyApu}=await import("../../tetorica_src/runtime/gameboyapu.js");const {GameboySynth,GameboyDirectTransport}=await import("../../tetorica_src/runtime/gameboysynth.js");
  const {default:moduleFactory}=await import("../../docs/generated/gameboy_apu_wasm.js");
- const chip=await GameboyApu.create({sampleRate:48000,moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
+ const chip=await GameboyApu.create({sampleRate:48000,moduleFactory,moduleOptions:{wasmBinary:await readFile(new URL('../../docs/generated/gameboy_apu_wasm.wasm',runtimeDirectoryUrl))}});
  const synth=new GameboySynth({transport:new GameboyDirectTransport(chip)});
  try{
   assert.throws(()=>synth.noteOn(0,'A4'),/initialize/);synth.initialize();
@@ -91,7 +91,7 @@ test('Game Boy common and grouped noteOn sound at the specified pitch and requir
 });
 
 test('NES triangle/FDS grouped setters use Hz, preserve pitch on retrigger and reject missing FDS',async()=>{
- const {NesApu}=await import("../../web/nesapu.js");const {NesApuSynth,NesApuDirectTransport}=await import("../../web/nesapusynth.js");
+ const {NesApu}=await import("../../tetorica_src/runtime/nesapu.js");const {NesApuSynth,NesApuDirectTransport}=await import("../../tetorica_src/runtime/nesapusynth.js");
  const chip=new NesApu({fds:true});const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
  try{
   for(const part of [synth.triangle,synth.fds]){
@@ -107,7 +107,7 @@ test('NES triangle/FDS grouped setters use Hz, preserve pitch on retrigger and r
 });
 
 test('note validation is shared by NES and Game Boy: lowercase, enharmonics and MIDI',async()=>{
- const {GameboySynth}=await import("../../web/gameboysynth.js");const {NesApuSynth}=await import("../../web/nesapusynth.js");
+ const {GameboySynth}=await import("../../tetorica_src/runtime/gameboysynth.js");const {NesApuSynth}=await import("../../tetorica_src/runtime/nesapusynth.js");
  const gb=new GameboySynth({transport:{writeRegister(){},reset(){}}});gb.initialize();
  const nes=new NesApuSynth({transport:{writeRegister(){}}});
  for(const synth of [gb,nes]) {

@@ -2,7 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
-import { Ym2151, YM2151_CLOCK } from "../../web/ym2151.js";
+import { Ym2151, YM2151_CLOCK } from "../../tetorica_src/runtime/ym2151.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2151_wasm.js";
 

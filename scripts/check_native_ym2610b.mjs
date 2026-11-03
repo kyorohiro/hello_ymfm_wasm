@@ -7,9 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import factory from '../docs/generated/ym2610b_wasm.js';
-import {Ym2610BAudioEngine} from '../web/ym2610baudioengine.js';
-import {YM2610BSynth} from '../web/ym2610bsynth.js';
-import {encodeAdpcmB} from '../web/adpcm_b_sample.js';
+import {Ym2610BAudioEngine} from '../tetorica_src/runtime/ym2610baudioengine.js';
+import {YM2610BSynth} from '../tetorica_src/runtime/ym2610bsynth.js';
+import {encodeAdpcmB} from '../tetorica_src/runtime/adpcm_b_sample.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');

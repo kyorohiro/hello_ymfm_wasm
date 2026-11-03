@@ -51,9 +51,9 @@ for (const layout of ['flat', 'js']) {
       assert.deepEqual(await readFile(target), await readFile(join(root, file.canonical)), target);
     }
     assert.deepEqual(await readFile(join(stage, 'generated/ps1_spu_build.json')),
-      await readFile(join(root, 'web/generated/ps1_spu_build.json')));
+      await readFile(join(root, 'tetorica_src/runtime/generated/ps1_spu_build.json')));
     for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.vendor.md', 'src/index.js', 'src/dx7-worklet.js'])
-      assert.deepEqual(await readFile(join(js, 'msfa_dx7', name)), await readFile(join(root, 'web/msfa_dx7', name)));
+      assert.deepEqual(await readFile(join(js, 'msfa_dx7', name)), await readFile(join(root, 'tetorica_src/runtime/msfa_dx7', name)));
     await absent(join(stage, 'generated/effects/gain.wasm'));
     await absent(join(stage, 'generated/msfa.wasm'));
     await absent(join(stage, 'generated/build-info.json'));
@@ -74,12 +74,12 @@ for (const profile of ['playground', 'analyzer', 'synth']) {
     if (profile === 'playground') expected.push('build-info.json');
     assert.deepEqual((await readdir(join(stage, 'generated'))).sort(), expected.sort());
     for (const name of expected)
-      assert.deepEqual(await readFile(join(stage, 'generated', name)), await readFile(join(root, 'web/generated', name)));
+      assert.deepEqual(await readFile(join(stage, 'generated', name)), await readFile(join(root, 'tetorica_src/runtime/generated', name)));
     assert.deepEqual(await readFile(join(stage, 'js/native_audio_effect.wasm')),
-      await readFile(join(root, 'web/generated/effects/gain.wasm')));
+      await readFile(join(root, 'tetorica_src/runtime/generated/effects/gain.wasm')));
     if (selected.has('dx7'))
       assert.deepEqual(await readFile(join(stage, 'js/msfa_dx7/wasm/msfa.wasm')),
-        await readFile(join(root, 'web/generated/msfa.wasm')));
+        await readFile(join(root, 'tetorica_src/runtime/generated/msfa.wasm')));
     else await absent(join(stage, 'js/msfa_dx7/wasm/msfa.wasm'));
   });
 }
@@ -98,7 +98,7 @@ test('packaging rejects stale public mirrors or missing canonical outputs withou
   await mkdir(join(checkout, 'third_party'), {recursive: true});
   await cp(join(root, 'third_party/tetorica-soundchip-native'), join(checkout, 'third_party/tetorica-soundchip-native'), {recursive: true});
   await cp(join(root, 'third_party/soundchip-sdk.json'), join(checkout, 'third_party/soundchip-sdk.json'));
-  await cp(join(root, 'web/generated'), join(checkout, 'web/generated'), {recursive: true});
+  await cp(join(root, 'tetorica_src/runtime/generated'), join(checkout, 'tetorica_src/runtime/generated'), {recursive: true});
   for (const file of await listRuntimeArtifactFiles({root, ids: runtimeArtifactProfiles.synth})) {
     for (const mirror of file.mirrors) {
       const target = join(checkout, mirror);
@@ -106,17 +106,17 @@ test('packaging rejects stale public mirrors or missing canonical outputs withou
       await cp(file.source, target);
     }
   }
-  const original = await readFile(join(checkout, 'web/generated/ym2612_wasm.wasm'));
+  const original = await readFile(join(checkout, 'tetorica_src/runtime/generated/ym2612_wasm.wasm'));
   const mirror = join(checkout, 'docs/generated/ym2612_wasm.wasm');
   const stale = Buffer.concat([original, Buffer.from('stale public output')]);
   await writeFile(mirror, stale);
   const stage = join(directory, 'untouched');
   await assert.rejects(copyRuntimeArtifactProfile('synth', stage, {root: checkout}), /mirror differs: docs\/generated\/ym2612_wasm.wasm/);
   assert.deepEqual(await readFile(mirror), stale, 'Packaging must not silently synchronize public outputs');
-  assert.deepEqual(await readFile(join(checkout, 'web/generated/ym2612_wasm.wasm')), original);
+  assert.deepEqual(await readFile(join(checkout, 'tetorica_src/runtime/generated/ym2612_wasm.wasm')), original);
   await assert.rejects(readdir(stage), {code: 'ENOENT'});
   await writeFile(mirror, original);
-  await rm(join(checkout, 'web/generated/ym2612_wasm.wasm'));
+  await rm(join(checkout, 'tetorica_src/runtime/generated/ym2612_wasm.wasm'));
   await assert.rejects(copyRuntimeArtifactProfile('synth', stage, {root: checkout}), /missing or extra JS\/WASM files|ENOENT/);
   assert.deepEqual(await readFile(mirror), original, 'Public output is never used as a canonical fallback');
   await assert.rejects(readdir(stage), {code: 'ENOENT'});

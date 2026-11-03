@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../../docs/generated/huc6280_wasm.js';
-import {Huc6280AudioEngine} from '../../web/huc6280audioengine.js';
-import {Ym2612VGM} from '../../web/ym2612vgm.js';
+import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
+import {Ym2612VGM} from '../../tetorica_src/runtime/ym2612vgm.js';
 import {Ym2612VGM as DocsParser} from '../../docs/js/ym2612vgm.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
 import {VgmPlayer as DocsPlayer} from '../../docs/js/vgmplayer.js';
-import {MockSoundEngine,drainPlayer} from '../../web/test-support/vgm-engine-mock.js';
+import {MockSoundEngine,drainPlayer} from '../../tetorica_src/runtime/test-support/vgm-engine-mock.js';
 const u32=n=>[n&255,n>>>8&255,n>>>16&255,n>>>24&255];
 function vgm(commands) {
   const b=new Uint8Array(256+commands.length),v=new DataView(b.buffer);

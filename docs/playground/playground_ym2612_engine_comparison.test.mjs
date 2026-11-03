@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {YM2612Synth} from '../../web/ym2612synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
+import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
 import {MODE_STARTERS,selectModeExamples} from './playground_mode_examples.js';
 
 const path='/examples/genesis/ym2612-engine-comparison.js';

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createDeadlineScheduler,createSecondsTimeline} from '../../web/playground_clock.js';
+import {createDeadlineScheduler,createSecondsTimeline} from '../../tetorica_src/runtime/playground_clock.js';
 function setup(){
  let time=0,timers=0;const tasks=[];
  const scheduler=createDeadlineScheduler({now:()=>time,

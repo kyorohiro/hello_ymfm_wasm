@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker,MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createOki6258Client} from '../../web/playground_okim6258.js';
-import {encodeWav} from '../../web/wav.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createOki6258Client} from '../../tetorica_src/runtime/playground_okim6258.js';
+import {encodeWav} from '../../tetorica_src/runtime/wav.js';
 
 const tick=()=>new Promise(resolve=>setTimeout(resolve,2));
 async function until(predicate){const deadline=Date.now()+5000;while(!predicate()){if(Date.now()>deadline)throw new Error('Additional OKIM6258 test timed out');await tick();}}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readSource,renderSource,applyPlaybackMutes,playbackMuteControls,selectPlaybackConfiguration} from '../cli/index.js';
+import {readSource,renderSource,applyPlaybackMutes,playbackMuteControls,selectPlaybackConfiguration} from '../tetorica_src/cli/index.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 const fixture=n=>new URL('./fixtures/'+n+'.vgz',import.meta.url);
 test('Shared mute controls silence supported channel/source while default PCM stays audible',async()=>{

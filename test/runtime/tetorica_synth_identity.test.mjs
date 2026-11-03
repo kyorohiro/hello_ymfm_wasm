@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createTetoricaSynth} from '../../web/tetorica_synth.js';
-import {GameboyRuntimeSynth} from '../../web/gameboy_runtime_synth.js';
-import {NativeRuntimeSynth} from '../../web/native_runtime_synth.js';
-import {MegaSynth} from '../../web/megasynth.js';
-import {YM2203RuntimeSynth} from '../../web/ym2203synth.js';
-import {YM2608RuntimeSynth} from '../../web/ym2608synth.js';
-import {NeoGeoSynth,YM2610BRuntimeSynth} from '../../web/ym2610bsynth.js';
-import {SoundChipMixer} from '../../web/soundchip.js';
+import {createTetoricaSynth} from '../../tetorica_src/runtime/tetorica_synth.js';
+import {GameboyRuntimeSynth} from '../../tetorica_src/runtime/gameboy_runtime_synth.js';
+import {NativeRuntimeSynth} from '../../tetorica_src/runtime/native_runtime_synth.js';
+import {MegaSynth} from '../../tetorica_src/runtime/megasynth.js';
+import {YM2203RuntimeSynth} from '../../tetorica_src/runtime/ym2203synth.js';
+import {YM2608RuntimeSynth} from '../../tetorica_src/runtime/ym2608synth.js';
+import {NeoGeoSynth,YM2610BRuntimeSynth} from '../../tetorica_src/runtime/ym2610bsynth.js';
+import {SoundChipMixer} from '../../tetorica_src/runtime/soundchip.js';
 
 // npm exposes both factories and direct class subpaths. Browser cache versions
 // must not split those canonical modules into separate constructor identities.

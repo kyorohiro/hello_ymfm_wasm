@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createNesClient} from '../../web/playground_nes.js';
-import {createPerformanceHost} from '../../web/playground_performance_host.js';
-import {NesApu,NES_APU_CLOCK} from '../../web/nesapu.js';
-import {NesVoiceInspector} from '../../web/playground_native_voice_inspector.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createNesClient} from '../../tetorica_src/runtime/playground_nes.js';
+import {createPerformanceHost} from '../../tetorica_src/runtime/playground_performance_host.js';
+import {NesApu,NES_APU_CLOCK} from '../../tetorica_src/runtime/nesapu.js';
+import {NesVoiceInspector} from '../../tetorica_src/runtime/playground_native_voice_inspector.js';
 
 const ticks=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 function fixture(){

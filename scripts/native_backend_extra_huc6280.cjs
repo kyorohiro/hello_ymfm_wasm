@@ -8,7 +8,7 @@ const olderKinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413
 function installExtraHuc6280Mock(native){
   const invoke=native.invoke.bind(native);native.extraHuc6280=new Map();
   async function fresh(){
-    const {Huc6280VoiceInspector}=await import('../web/playground_huc6280_inspector.js');
+    const {Huc6280VoiceInspector}=await import("../tetorica_src/runtime/playground_huc6280_inspector.js");
     const s={clock:3579545,held:new Map(),groups:Array(6).fill(null),sourceMuteMask:0,mix:{volume:1,pan:0}};
     s.inspector=new Huc6280VoiceInspector({clock:()=>s.clock,sampleRate:48000});return s;
   }

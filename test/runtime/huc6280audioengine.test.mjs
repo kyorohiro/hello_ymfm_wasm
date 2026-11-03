@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import factory from '../../docs/generated/huc6280_wasm.js';
-import {Huc6280AudioEngine} from '../../web/huc6280audioengine.js';
+import {Huc6280AudioEngine} from '../../tetorica_src/runtime/huc6280audioengine.js';
 
 function wave(engine) {
   const write = (register, value) => engine.writeHuc6280(register, value);

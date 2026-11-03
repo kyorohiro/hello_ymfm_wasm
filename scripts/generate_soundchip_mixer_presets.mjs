@@ -7,8 +7,30 @@ import {validatePs1MixerCalibration,validatePs1MixerCalibrationSources} from './
 import {validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibration,validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
 import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
+import {publicRuntimeModule} from './runtime_module_layout.mjs';
 
 const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url));
+const psgHistoricalSourcePaths=Object.freeze(Object.fromEntries([
+  'soundchip.js','soundchip_factory.js','segapsg.js','ay8910.js','nesapu.js','nesapu_wasm.js','nesapusynth.js',
+].map(name=>['web/'+name,'tetorica_src/runtime/'+name])));
+const sourceSha=bytes=>createHash('sha256').update(bytes).digest('hex');
+
+/** Retain the complete measured SHA; reconstruct only reviewed path literals. */
+export function isSoundChipPsgSourceLayoutRevision(path,bytes,expectedSha) {
+  let source=bytes.toString();
+  if(path==='scripts/measure_soundchip_psg_levels.mjs') {
+    for(const name of ['soundchip.js','nesapusynth.js'])
+      source=source.replace(`from '../tetorica_src/runtime/${name}'`,`from '../web/${name}'`);
+    for(const [previous,current]of Object.entries(psgHistoricalSourcePaths))
+      source=source.replaceAll(`'${current}'`,`'${previous}'`);
+  } else if(path==='web/soundchip.js'||path==='web/nesapu_wasm.js') {
+    if(!source.includes("'./generated/'"))return false;
+    source=publicRuntimeModule(source,path.slice(4));
+  } else if(path==='web/nesapu.js') {
+    source=source.replace("from '../../docs/js/nesapuaudioengine.js'","from '../docs/js/nesapuaudioengine.js'");
+  } else return false;
+  return sourceSha(source)===expectedSha;
+}
 
 /** Retain the measured output units, then balance standalone square-wave sources. */
 export function buildSoundChipMixerPresets(report, psgReport, ps1Report=undefined, wonderswanReport=undefined, pokeyReport=undefined,scspReport=undefined) {
@@ -97,8 +119,8 @@ export async function generateSoundChipMixerPresets({reportPath,psgReportPath=de
   const sources=Object.entries(psgReport.sources??{});
   if(!sources.length)throw new Error('Missing sound-chip PSG source hashes');
   for(const [path,sha256] of sources) {
-    const bytes=await readFile(new URL('../'+path,import.meta.url));
-    if(createHash('sha256').update(bytes).digest('hex')!==sha256)throw new Error('Sound-chip PSG source changed; remeasure: '+path);
+    const bytes=await readFile(new URL('../'+(psgHistoricalSourcePaths[path]??path),import.meta.url));
+    if(sourceSha(bytes)!==sha256&&!isSoundChipPsgSourceLayoutRevision(path,bytes,sha256))throw new Error('Sound-chip PSG source changed; remeasure: '+path);
   }
   if(ps1Report!==undefined)await validatePs1MixerCalibrationSources({reportPath,ps1Report});
   if(wonderswanReport!==undefined)await validateWonderSwanMixerCalibrationSources({reportPath,wsReport:wonderswanReport});
@@ -119,7 +141,7 @@ async function main(args) {
     wonderswanReportPath:fileURLToPath(new URL('../docs/issues/wonderswan_scsp_fm_chip_levels_01.json',import.meta.url)),
     scspReportPath:fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url)),
     pokeyReportPath:fileURLToPath(new URL('../docs/issues/pokey_scsp_fm_chip_levels_01.json',import.meta.url)),
-    outPath:fileURLToPath(new URL('../web/soundchip_mixer_presets.js',import.meta.url)),
+    outPath:fileURLToPath(new URL('../tetorica_src/runtime/soundchip_mixer_presets.js',import.meta.url)),
   };
   let noPs1=false,explicitPs1=false,noWonderSwan=false,explicitWonderSwan=false,noPokey=false,explicitPokey=false,noScsp=false,explicitScsp=false;
   for(let index=0;index<args.length;index++) {

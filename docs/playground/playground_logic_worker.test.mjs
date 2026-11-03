@@ -1,37 +1,37 @@
-import {validateSoundChipOptions} from '../../web/playground_soundchip_options.js';
-import {YM2413Synth,YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from '../../web/ym2413synth.js';
-import {AY8910Synth} from '../../web/ay8910synth.js';
-import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
-import {OPL_CHIPS} from '../../web/playground_opl.js';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {encodeBrr} from '../../web/snes_brr_encoder.js';
-import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
-import {encodePs1Adpcm} from '../../web/ps1_adpcm_encoder.js';
-import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
-import {CHIP_CLOCKS} from '../../web/playground_chip_clock.js';
-import {createYm2151Client} from '../../web/playground_ym2151.js';
-import {createDx7Client} from '../../web/playground_dx7.js';
-import {serializeLogError} from '../../web/playground_log.js';
-import {createSegaPsgClient} from '../../web/playground_segapsg.js';
-import {resolvePlaySeconds,resolvePlayDuration} from '../../web/playground_duration.js';
-import {createLoopAsyncTasks} from '../../web/playground_async_tasks.js';
-import {createCycle, createPlaygroundMusic} from '../../web/playground_music.js';
-import {createOpnClient} from '../../web/playground_opn.js';
-import {createRf5c164Client} from '../../web/playground_rf5c164.js';
-import {createYm2608Client} from '../../web/playground_ym2608.js';
-import {createSoundChipRegistry} from '../../web/playground_soundchips.js';
-import {createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope} from '../../web/playground_keyboard.js';
-import {createSampleInstrument as createSampleInstrumentFactory} from '../../web/playground_sample_instrument.js';
-import {createGameboyClient} from '../../web/playground_gameboy.js';
-import {createNativeSampleController} from "../../web/native_sample.js";
-import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
-import {createNativeNoiseOwnership} from '../../web/native_genesis_noise.js';
-import {createNativeGenesisFX} from '../../web/native_genesis_fx.js';
-import {createNativeFXController,createLiveFxLifecycle} from "../../web/native_fx.js";
-import {createWorkerDac} from "../../web/playground_worker_dac.js";
-import {createWorkerChip} from "../../web/playground_worker_chip.js";
+import {validateSoundChipOptions} from '../../tetorica_src/runtime/playground_soundchip_options.js';
+import {YM2413Synth,YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from '../../tetorica_src/runtime/ym2413synth.js';
+import {AY8910Synth} from '../../tetorica_src/runtime/ay8910synth.js';
+import {OPLSynth,OPL_PRESETS} from '../../tetorica_src/runtime/opl_synth.js';
+import {OPL_CHIPS} from '../../tetorica_src/runtime/playground_opl.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
+import {encodeAdpcmA} from '../../tetorica_src/runtime/adpcm_a_sample.js';
+import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
+import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../tetorica_src/runtime/playground_native_primary.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {midiToOpnPitch, opnPitchFromHz} from '../../tetorica_src/runtime/soundchip_pitch.js';
+import {CHIP_CLOCKS} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createYm2151Client} from '../../tetorica_src/runtime/playground_ym2151.js';
+import {createDx7Client} from '../../tetorica_src/runtime/playground_dx7.js';
+import {serializeLogError} from '../../tetorica_src/runtime/playground_log.js';
+import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
+import {resolvePlaySeconds,resolvePlayDuration} from '../../tetorica_src/runtime/playground_duration.js';
+import {createLoopAsyncTasks} from '../../tetorica_src/runtime/playground_async_tasks.js';
+import {createCycle, createPlaygroundMusic} from '../../tetorica_src/runtime/playground_music.js';
+import {createOpnClient} from '../../tetorica_src/runtime/playground_opn.js';
+import {createRf5c164Client} from '../../tetorica_src/runtime/playground_rf5c164.js';
+import {createYm2608Client} from '../../tetorica_src/runtime/playground_ym2608.js';
+import {createSoundChipRegistry} from '../../tetorica_src/runtime/playground_soundchips.js';
+import {createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope} from '../../tetorica_src/runtime/playground_keyboard.js';
+import {createSampleInstrument as createSampleInstrumentFactory} from '../../tetorica_src/runtime/playground_sample_instrument.js';
+import {createGameboyClient} from '../../tetorica_src/runtime/playground_gameboy.js';
+import {createNativeSampleController} from "../../tetorica_src/runtime/native_sample.js";
+import {createNativeNoiseController, controlNativeNoise} from "../../tetorica_src/runtime/native_noise.js";
+import {createNativeNoiseOwnership} from '../../tetorica_src/runtime/native_genesis_noise.js';
+import {createNativeGenesisFX} from '../../tetorica_src/runtime/native_genesis_fx.js';
+import {createNativeFXController,createLiveFxLifecycle} from "../../tetorica_src/runtime/native_fx.js";
+import {createWorkerDac} from "../../tetorica_src/runtime/playground_worker_dac.js";
+import {createWorkerChip} from "../../tetorica_src/runtime/playground_worker_chip.js";
 import {createMidiApi, createMidiRack} from "../js/playground_midi.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,7 @@ import { hzToBlockFnum } from "../js/pitch.js";
 import {createDeadlineScheduler,createBeatClock,runTween} from '../js/playground_clock.js';
 
 const workerSource = readFileSync(
-  new URL("../../web/playground_logic_worker.js", import.meta.url),
+  new URL("../../tetorica_src/runtime/playground_logic_worker.js", import.meta.url),
   "utf8"
 );
 
@@ -815,7 +815,7 @@ test('Worker timeline preserves the MIDI channel for note-off',async()=>{
 });
 
 test('generated MIDI module completes, stops in sleepSamples, and restarts on Worker',async()=>{
- const {midiToSource}=await import('../../web/midi_source.js');
+ const {midiToSource}=await import("../../tetorica_src/runtime/midi_source.js");
  const worker=createWorkerHarness();let cursor=0,voice=0;
  function entry(ticks) {
   const track=[0,0x90,60,100,ticks,0x80,60,0,0,255,47,0];

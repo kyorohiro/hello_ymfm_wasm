@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {MessageChannel} from 'node:worker_threads';
-import {YM2612Synth} from '../../web/ym2612synth.js';
-import {RF5C164Synth} from '../../web/rf5c164synth.js';
-import {createRf5c164Client} from '../../web/playground_rf5c164.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {presetToVoice,voiceToPreset} from '../../web/msfa_dx7/src/preset.js';
+import {YM2612Synth} from '../../tetorica_src/runtime/ym2612synth.js';
+import {RF5C164Synth} from '../../tetorica_src/runtime/rf5c164synth.js';
+import {createRf5c164Client} from '../../tetorica_src/runtime/playground_rf5c164.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {presetToVoice,voiceToPreset} from '../../tetorica_src/runtime/msfa_dx7/src/preset.js';
 import {EXAMPLE_FILES,MODE_EXAMPLE_FILES} from './playground_examples.js';
 
 const path='/examples/genesis/mixed-chip-stability.js';

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisYm2608} from '../../web/native_genesis_ym2608.js';
-import {YM2608Synth, YM2608AdpcmSynth} from '../../web/ym2608synth.js';
+import {createNativeGenesisYm2608} from '../../tetorica_src/runtime/native_genesis_ym2608.js';
+import {YM2608Synth, YM2608AdpcmSynth} from '../../tetorica_src/runtime/ym2608synth.js';
 
 const ROM=new Uint8Array(8192).fill(0x55);
 function fixture(){

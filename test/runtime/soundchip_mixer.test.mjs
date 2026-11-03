@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SoundChipMixer, chipMixGains, soundChipMixDefaults} from '../../web/soundchip_mixer.js';
+import {SoundChipMixer, chipMixGains, soundChipMixDefaults} from '../../tetorica_src/runtime/soundchip_mixer.js';
 
 test('shared defaults, pre-start partial settings, reset and independent source lifetime', () => {
   assert.deepEqual(soundChipMixDefaults(), {volume:1,pan:0,muted:false});

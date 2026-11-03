@@ -2,13 +2,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { downsamplePreview } from "./preview_pcm.js";
-import { Ym2608, YM2608_CLOCK } from "../../web/ym2608.js";
-import { YM2608Synth, YM2608DirectTransport } from "../../web/ym2608synth.js";
+import { Ym2608, YM2608_CLOCK } from "../../tetorica_src/runtime/ym2608.js";
+import { YM2608Synth, YM2608DirectTransport } from "../../tetorica_src/runtime/ym2608synth.js";
 import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
 import moduleFactory from "../../docs/generated/ym2608_wasm.js";
 
 async function main() {
-  const romPath = process.argv[3] ?? new URL('../../web/tetorica_ym2608_adpcm_rom.bin', import.meta.url);
+  const romPath = process.argv[3] ?? new URL('../../tetorica_src/runtime/tetorica_ym2608_adpcm_rom.bin', import.meta.url);
   if (!process.argv[3]) console.log('Using Tetorica synthetic rhythm sounds (BSD-3-Clause), not Yamaha ROM samples.');
   const chip = await Ym2608.create({
     moduleFactory,

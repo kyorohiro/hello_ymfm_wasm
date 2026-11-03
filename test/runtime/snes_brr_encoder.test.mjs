@@ -1,5 +1,5 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
@@ -7,10 +7,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {encodeBrr} from '../../web/snes_brr_encoder.js';
-import {decodeBrr} from '../../web/snes_brr.js';
-import {SnesDspCore} from '../../web/spc.js';
-import {SnesSynth,prepareSnesBRR} from '../../web/snessynth.js';
+import {encodeBrr} from '../../tetorica_src/runtime/snes_brr_encoder.js';
+import {decodeBrr} from '../../tetorica_src/runtime/snes_brr.js';
+import {SnesDspCore} from '../../tetorica_src/runtime/spc.js';
+import {SnesSynth,prepareSnesBRR} from '../../tetorica_src/runtime/snessynth.js';
 
 // Entirely authored signals; no recording, ROM, game audio or third-party asset.
 function fixtures() {
@@ -144,7 +144,7 @@ test('BRR encoder honors byte budgets before conversion and fits empty SnesSynth
   assert.equal(encodeBrr(new Float32Array(maxFrames+1),{maxBytes:65536}).brr.length,64521,'explicit raw-RAM budget may exceed the synth allocator');
 });
 
-const root=fileURLToPath(new URL('../',runtimeDirectoryUrl));
+const root=fileURLToPath(new URL('../../',runtimeDirectoryUrl));
 async function nativeReferences(t) {
   const compiler=process.env.CXX||'c++',probe=spawnSync(compiler,['--version'],{encoding:'utf8'});
   if(probe.error?.code==='ENOENT'){t.skip('C++ compiler unavailable; native S-DSP reference not run');return null;}
@@ -185,7 +185,7 @@ const u32=value=>{const b=Buffer.alloc(4);b.writeUInt32LE(value);return b;};
 const pcm16Buffer=pcm=>{const b=Buffer.alloc(pcm.length*2);pcm.forEach((value,i)=>b.writeInt16LE(value,i*2));return b;};
 let wasmAssets;
 async function createModule() {
-  const [factory,wasmBinary]=await (wasmAssets??=Promise.all([import("../../docs/generated/spc_wasm.js").then(m=>m.default),readFile(new URL('../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl))]));
+  const [factory,wasmBinary]=await (wasmAssets??=Promise.all([import("../../docs/generated/spc_wasm.js").then(m=>m.default),readFile(new URL('../../docs/generated/spc_wasm.wasm',runtimeDirectoryUrl))]));
   return factory({wasmBinary});
 }
 function render(synth,frames,partitions=[frames]) {

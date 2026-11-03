@@ -1,12 +1,12 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker as NodeWorker,MessageChannel} from 'node:worker_threads';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createPlaygroundRuntime} from '../../web/playground_runtime.js';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {EXTRA_SNES_MEMORY_HELD_ERROR,EXTRA_SNES_STATE_HELD_ERROR} from '../../web/native_genesis_extra_snes.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createPlaygroundRuntime} from '../../tetorica_src/runtime/playground_runtime.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {EXTRA_SNES_MEMORY_HELD_ERROR,EXTRA_SNES_STATE_HELD_ERROR} from '../../tetorica_src/runtime/native_genesis_extra_snes.js';
 const rpc=async(endpoint,message,timing)=>{const result=await endpoint.dispatch(message,timing);return result?.deferred?await result.deferred:result;};
 const wave=()=>new Uint8Array([0x83,0x12,0x34,0x56,0x76,0x54,0x32,0x10,0xef]);
 const trace=(frames=10)=>({version:1,clockRate:1024000,durationClocks:frames*32,initialState:{ram:new Uint8Array(65536),dsp:new Uint8Array(128),outputDelayFrames:4},events:new Uint32Array()});

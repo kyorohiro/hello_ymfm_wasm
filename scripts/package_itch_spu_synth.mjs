@@ -103,7 +103,7 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
   const receipt = JSON.parse(await readFile(join(stage, 'sources/PS1-SPU.json'), 'utf8'));
   const sourceCheck = await checkPs1SourceBundle(stage);
 
-  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/synth-spu/icon.png', 'web/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs', 'scripts/copy_ps1_sources.mjs', 'scripts/runtime_artifacts.mjs', 'scripts/wasm_sdk_inventory.mjs']) inputs.add(name);
+  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/synth-spu/icon.png', 'tetorica_src/runtime/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs', 'scripts/copy_ps1_sources.mjs', 'scripts/runtime_artifacts.mjs', 'scripts/wasm_sdk_inventory.mjs']) inputs.add(name);
   const sourceArchive = join(stage, 'sources/spu-synth-browser-inputs.zip');
   const sourceNames = [...inputs].sort();
   writeZip(root, sourceArchive, sourceNames);

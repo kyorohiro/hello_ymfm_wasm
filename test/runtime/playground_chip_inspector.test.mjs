@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {PsgInspectorState,RfInspectorState,receiveChipInspector,readPwmInspector} from '../../web/playground_chip_inspector_state.js';
-import {createChipInspector} from '../../web/playground_chip_inspector.js';
-import {RF5C164Synth} from '../../web/rf5c164synth.js';
-import {encodeRf5c164} from '../../web/rf5c164_pcm.js';
-import {PWM32XPlayback} from '../../web/pwm32x_playback.js';
-import {preparePs1Waveform} from '../../web/ps1_waveform.js';
+import {PsgInspectorState,RfInspectorState,receiveChipInspector,readPwmInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector.js';
+import {RF5C164Synth} from '../../tetorica_src/runtime/rf5c164synth.js';
+import {encodeRf5c164} from '../../tetorica_src/runtime/rf5c164_pcm.js';
+import {PWM32XPlayback} from '../../tetorica_src/runtime/pwm32x_playback.js';
+import {preparePs1Waveform} from '../../tetorica_src/runtime/ps1_waveform.js';
 
 test('PS1 admin waveform encodes and captures PCM before posting one bounded prepared command',async()=>{
  const {port1,port2}=new MessageChannel(),requests=[];

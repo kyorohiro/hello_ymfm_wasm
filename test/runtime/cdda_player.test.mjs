@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCddaPlayer} from '../../web/cdda_player.js';
+import {createCddaPlayer} from '../../tetorica_src/runtime/cdda_player.js';
 
 function wav(frames = 100) {
   const bytes = new Uint8Array(44 + frames * 4), view = new DataView(bytes.buffer);

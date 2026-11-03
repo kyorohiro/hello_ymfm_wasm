@@ -1,17 +1,17 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {MessageChannel} from 'node:worker_threads';
-import {Scsp} from '../../web/scsp.js';
+import {Scsp} from '../../tetorica_src/runtime/scsp.js';
 import factory from '../../docs/generated/scsp_wasm.js';
-import {NativeGenesisSynth} from '../../web/native_genesis_synth.js';
-import {createNativeGenesisWorkerBridge} from '../../web/native_genesis_worker.js';
-import {createScspClient} from '../../web/playground_scsp.js';
+import {NativeGenesisSynth} from '../../tetorica_src/runtime/native_genesis_synth.js';
+import {createNativeGenesisWorkerBridge} from '../../tetorica_src/runtime/native_genesis_worker.js';
+import {createScspClient} from '../../tetorica_src/runtime/playground_scsp.js';
 let module;
 async function fixture(t){
- module??=factory({wasmBinary:await readFile(new URL('../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
+ module??=factory({wasmBinary:await readFile(new URL('../../docs/generated/scsp_wasm.wasm',runtimeDirectoryUrl))});
  const cores=new Map(),calls=[],errors=[],disposers=[];let revision=0;
  async function make(id){const core=await Scsp.create({moduleFactory:()=>module});cores.set(id,{core,held:new Map(),enabled:0});}await make(0);
  const status=()=>({session:1,mode:'scsp',frame:0,sampleRate:48000,running:true,ymClock:7670454,psgClock:3579545});

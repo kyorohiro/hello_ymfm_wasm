@@ -59,7 +59,7 @@ async function loadModule(name, options = {}) {
   if (options.moduleFactory) return options;
   // Source tree: web/ -> docs/generated/. Published tree: js/ -> generated/.
   const base = new URL(options.assetBaseUrl ??
-    (import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/'), import.meta.url);
+    './generated/', import.meta.url);
   const { default: moduleFactory } = await import(new URL(`${name}_wasm.js`, base).href);
   const moduleOptions = { ...options.moduleOptions };
   if (moduleOptions.wasmBinary === undefined && !moduleOptions.locateFile) {

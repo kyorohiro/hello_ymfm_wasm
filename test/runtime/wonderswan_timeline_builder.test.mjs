@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {WonderSwanSynth} from '../../web/wonderswansynth.js';
+import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 
 test('WonderSwan offline score shares high-level byte encoding without sending audio commands', async () => {
   const calls=[];

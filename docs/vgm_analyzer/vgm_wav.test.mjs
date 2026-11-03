@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 test('renders a full (non-looped) track into a valid 16-bit stereo WAV', async () => {
-  const { VgmPlayer } = await import('../../web/vgmplayer.js');
-  const { vgmBytes } = await import('../../web/test-support/vgm-mock.js');
-  const { MockSoundEngine } = await import('../../web/test-support/vgm-engine-mock.js');
+  const { VgmPlayer } = await import("../../tetorica_src/runtime/vgmplayer.js");
+  const { vgmBytes } = await import("../../tetorica_src/runtime/test-support/vgm-mock.js");
+  const { MockSoundEngine } = await import("../../tetorica_src/runtime/test-support/vgm-engine-mock.js");
   const { renderVgmToWav } = await import('./vgm_wav.js');
   const player = new VgmPlayer(new MockSoundEngine(8000));
   // VGM waits are always in 44100Hz-reference units: 0xac44 = 44100 -> exactly 1s.
@@ -31,9 +31,9 @@ test('renders a full (non-looped) track into a valid 16-bit stereo WAV', async (
 });
 
 test('caps rendering at maxSeconds for a track that keeps producing audio (loop enabled)', async () => {
-  const { VgmPlayer } = await import('../../web/vgmplayer.js');
-  const { vgmBytes } = await import('../../web/test-support/vgm-mock.js');
-  const { MockSoundEngine } = await import('../../web/test-support/vgm-engine-mock.js');
+  const { VgmPlayer } = await import("../../tetorica_src/runtime/vgmplayer.js");
+  const { vgmBytes } = await import("../../tetorica_src/runtime/test-support/vgm-mock.js");
+  const { MockSoundEngine } = await import("../../tetorica_src/runtime/test-support/vgm-engine-mock.js");
   const { renderVgmToWav } = await import('./vgm_wav.js');
   const player = new VgmPlayer(new MockSoundEngine(1000));
   player.load(vgmBytes([0x61, 0x10, 0x27, 0x66])); // wait 10000 (44100Hz ref) samples, then end
@@ -46,9 +46,9 @@ test('caps rendering at maxSeconds for a track that keeps producing audio (loop 
 });
 
 test('rejects a non-positive maxSeconds', async () => {
-  const { VgmPlayer } = await import('../../web/vgmplayer.js');
-  const { vgmBytes } = await import('../../web/test-support/vgm-mock.js');
-  const { MockSoundEngine } = await import('../../web/test-support/vgm-engine-mock.js');
+  const { VgmPlayer } = await import("../../tetorica_src/runtime/vgmplayer.js");
+  const { vgmBytes } = await import("../../tetorica_src/runtime/test-support/vgm-mock.js");
+  const { MockSoundEngine } = await import("../../tetorica_src/runtime/test-support/vgm-engine-mock.js");
   const { renderVgmToWav } = await import('./vgm_wav.js');
   const player = new VgmPlayer(new MockSoundEngine(8000));
   player.load(vgmBytes([0x66]));

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChip} from '../../web/soundchip.js';
-import {OPLSynth,OPLDirectTransport,OPL_PRESETS,oplPitchFromHz} from '../../web/opl_synth.js';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {OPLSynth,OPLDirectTransport,OPL_PRESETS,oplPitchFromHz} from '../../tetorica_src/runtime/opl_synth.js';
 
 const names = ['ym3526','ym3812','y8950','ymf262'];
 function capture(chip = 'ym3812') {

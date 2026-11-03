@@ -4,8 +4,8 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createSoundChip} from '../web/soundchip.js';
-import {NesApuSynth, NesApuDirectTransport} from '../web/nesapusynth.js';
+import {createSoundChip} from '../tetorica_src/runtime/soundchip.js';
+import {NesApuSynth, NesApuDirectTransport} from '../tetorica_src/runtime/nesapusynth.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kinds = ['segapsg', 'ay8910', 'nes'], frequencies = [220, 440, 880];
@@ -89,8 +89,8 @@ export async function measureSoundChipPsgLevels() {
   }));
   for (const row of rows) row.after = {rawGain: defaults[row.kind], acRms: row.rawAcRms * defaults[row.kind],
     ratioToTarget: row.rawAcRms * defaults[row.kind] / targetAcRms, relativeToPrevious: defaults[row.kind] / row.previousRawGain};
-  const paths = ['scripts/measure_soundchip_psg_levels.mjs', anchorReportPath, 'web/soundchip.js', 'web/soundchip_factory.js',
-    'web/segapsg.js', 'web/ay8910.js', 'web/nesapu.js', 'web/nesapu_wasm.js', 'web/nesapusynth.js',
+  const paths = ['scripts/measure_soundchip_psg_levels.mjs', anchorReportPath, 'tetorica_src/runtime/soundchip.js', 'tetorica_src/runtime/soundchip_factory.js',
+    'tetorica_src/runtime/segapsg.js', 'tetorica_src/runtime/ay8910.js', 'tetorica_src/runtime/nesapu.js', 'tetorica_src/runtime/nesapu_wasm.js', 'tetorica_src/runtime/nesapusynth.js',
     ...['segapsg', 'ay8910', 'nesapu'].map(name => `docs/generated/${name}_wasm.wasm`)];
   const sources = Object.fromEntries(await Promise.all(paths.map(async path => [path, sha256(await readFile(resolve(root, path)))])));
   return {schemaVersion: 1, passed: true, sampleRate, referenceFrequencyHz, frequencies, comparisonSampleRates: sampleRates,

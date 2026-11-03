@@ -1,20 +1,20 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import factory from '../../docs/generated/wonderswan_wasm.js';
-import {WonderSwan,WONDERSWAN_CLOCK} from '../../web/wonderswan.js';
-import {WonderSwanAudioEngine} from '../../web/wonderswanaudioengine.js';
-import {VgmPlayer} from '../../web/vgmplayer.js';
-import {WonderSwanVoiceInspector} from '../../web/playground_wonderswan_inspector.js';
-import {ChipClockResampler,validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
-import {vgmBytes} from '../../web/test-support/vgm-mock.js';
+import {WonderSwan,WONDERSWAN_CLOCK} from '../../tetorica_src/runtime/wonderswan.js';
+import {WonderSwanAudioEngine} from '../../tetorica_src/runtime/wonderswanaudioengine.js';
+import {VgmPlayer} from '../../tetorica_src/runtime/vgmplayer.js';
+import {WonderSwanVoiceInspector} from '../../tetorica_src/runtime/playground_wonderswan_inspector.js';
+import {ChipClockResampler,validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {vgmBytes} from '../../tetorica_src/runtime/test-support/vgm-mock.js';
 
-const binary=await readFile(new URL('../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
+const binary=await readFile(new URL('../../docs/generated/wonderswan_wasm.wasm',runtimeDirectoryUrl));
 const module=await factory({wasmBinary:binary});
 const create=(rate=44100,clock=3072000,volume=1)=>WonderSwanAudioEngine.create({moduleFactory:async()=>module,clock,outputSampleRate:rate,masterVolume:volume});
 const workletSource=(await readFile(new URL('./playground_wonderswan_worklet.js',runtimeDirectoryUrl),'utf8')).replace(/^import .*;$/gm,'');
@@ -79,7 +79,7 @@ test('WonderSwan speaker mute is immediate, phase-preserving, retained across re
   }finally{engine.dispose();reference.dispose();scaled.dispose();}
 });
 test('WonderSwan real VGM renders stereo, resets identically, and restart-and-render seeking matches uninterrupted PCM',async()=>{
-  const bytes=await readFile(new URL('../test/fixtures/wonderswan-tone.vgm',runtimeDirectoryUrl));
+  const bytes=await readFile(new URL('../../test/fixtures/wonderswan-tone.vgm',runtimeDirectoryUrl));
   const engine=await create(48000),player=new VgmPlayer(engine);
   function render(frames,size){const left=new Float32Array(frames),right=new Float32Array(frames);for(let at=0;at<frames;){const n=Math.min(size,frames-at);player.process(left.subarray(at,at+n),right.subarray(at,at+n),n);at+=n;}return {left,right};}
   try{

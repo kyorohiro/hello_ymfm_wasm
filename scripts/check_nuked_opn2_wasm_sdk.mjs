@@ -4,12 +4,12 @@ import {createHash} from 'node:crypto';
 import {readFile,writeFile,mkdir,realpath,stat} from 'node:fs/promises';
 import {basename,dirname,resolve,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {Ym2612,YM2612_CLOCK} from '../web/ym2612.js';
-import {YM2612Synth,YM2612DirectTransport} from '../web/ym2612synth.js';
-import {GenesisAudioEngine} from '../web/genesisaudioengine.js';
-import {VgmPlayer} from '../web/vgmplayer.js';
-import {SegaPSG} from '../web/segapsg.js';
-import {opnPitchFromHz} from '../web/soundchip_pitch.js';
+import {Ym2612,YM2612_CLOCK} from '../tetorica_src/runtime/ym2612.js';
+import {YM2612Synth,YM2612DirectTransport} from '../tetorica_src/runtime/ym2612synth.js';
+import {GenesisAudioEngine} from '../tetorica_src/runtime/genesisaudioengine.js';
+import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
+import {SegaPSG} from '../tetorica_src/runtime/segapsg.js';
+import {opnPitchFromHz} from '../tetorica_src/runtime/soundchip_pitch.js';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_nuked_opn2_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -19,9 +19,9 @@ const layouts={regular:[256],irregular:[1,17,127,509,3,1024,257,4096]};
 const totalFrames=6144,probeFrames=127;
 
 const requiredExports=['create','destroy','reset','write','read','read_status','get_irq','sample_rate','generate','generate_with_internal_envelope'].map(n=>'ym2612_'+n).concat(['malloc','free']);
-const wrapperPairs=['ym2612.js','ym2612synth.js','genesisaudioengine.js','vgmplayer.js','segapsg.js','soundchip_pitch.js'].map(n=>['web/'+n,'docs/js/'+n]);
+const wrapperPairs=['ym2612.js','ym2612synth.js','genesisaudioengine.js','vgmplayer.js','segapsg.js','soundchip_pitch.js'].map(n=>['tetorica_src/runtime/'+n,'docs/js/'+n]);
 const sdkRoot='third_party/tetorica-soundchip-native';
-const compilerInputs=['wasm/nuked_opn2_wasm.c','third_party/nuked-opn2/ym3438.c','third_party/nuked-opn2/ym3438.h',sdkRoot+'/wasm/nuked_opn2_wasm.c',sdkRoot+'/vendor/nuked-opn2/ym3438.c',sdkRoot+'/vendor/nuked-opn2/ym3438.h'];
+const compilerInputs=['tetorica_src/wasm/nuked_opn2_wasm.c','third_party/nuked-opn2/ym3438.c','third_party/nuked-opn2/ym3438.h',sdkRoot+'/wasm/nuked_opn2_wasm.c',sdkRoot+'/vendor/nuked-opn2/ym3438.c',sdkRoot+'/vendor/nuked-opn2/ym3438.h'];
 const buildInputs=['package.json','scripts/build_nuked_opn2_wasm.sh','scripts/copy_nuked_sources.mjs','scripts/import_soundchip_sdk.py','third_party/soundchip-sdk.json',sdkRoot+'/scripts/build-wasm.sh',sdkRoot+'/scripts/build_nuked_opn2_wasm.sh',sdkRoot+'/scripts/record_wasm_build.mjs',sdkRoot+'/scripts/check_sdk.py',sdkRoot+'/scripts/sdk_common.py',sdkRoot+'/sdk.json',sdkRoot+'/RELEASE-MANIFEST.json',sdkRoot+'/catalog/chips.json',sdkRoot+'/catalog/source_inventory.json','docs/generated/segapsg_wasm.js','docs/generated/segapsg_wasm.wasm'];
 // The SDK receipt hashes a broad source inventory as provenance, beyond the actual
 // compiler translation units and their quoted-include closure listed above.

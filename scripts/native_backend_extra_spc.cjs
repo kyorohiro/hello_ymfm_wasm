@@ -65,7 +65,7 @@ function installExtraSpcMock(native){
 }
 async function runExtraSpc({page,native,artifacts,name,until,assertNoLiveAudio}){
   await page.setViewportSize({width:1440,height:1100});
-  const {createSyntheticSpc}=await import(pathToFileURL(path.join(__dirname,'../web/spc_test_fixture.mjs')));
+  const {createSyntheticSpc}=await import(pathToFileURL(path.join(__dirname,'../tetorica_src/runtime/spc_test_fixture.mjs')));
   const a=createSyntheticSpc({voices:1}),b=createSyntheticSpc({voices:2});a[0x400]=73;b[0x400]=91;
   const phases=[],all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]);
   const stop=async()=>{await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());await until(()=>extraChipCount(native)===0,'All additional SPC instances retire');};

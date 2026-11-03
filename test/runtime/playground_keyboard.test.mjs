@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMusicalKeyboard, keyboardBinding, musicalKeyboardEvent} from '../../web/playground_keyboard.js';
+import {createMusicalKeyboard, keyboardBinding, musicalKeyboardEvent} from '../../tetorica_src/runtime/playground_keyboard.js';
 
 test('musical input validates bindings and MIDI values without sharing caller event objects',()=>{
   assert.throws(()=>keyboardBinding(' ',{noteOn(){},noteOff(){},allNotesOff(){}}),/name/);

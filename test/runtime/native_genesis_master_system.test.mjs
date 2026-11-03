@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisMasterSystem} from '../../web/native_genesis_master_system.js';
-import {createSegaPsgClient} from '../../web/playground_segapsg.js';
-import {createYm2413Client} from '../../web/playground_ym2413.js';
+import {createNativeGenesisMasterSystem} from '../../tetorica_src/runtime/native_genesis_master_system.js';
+import {createSegaPsgClient} from '../../tetorica_src/runtime/playground_segapsg.js';
+import {createYm2413Client} from '../../tetorica_src/runtime/playground_ym2413.js';
 
 const physical=channel=>channel<9?channel:[6,7,8,8,7][channel-9];
 function fixture(){

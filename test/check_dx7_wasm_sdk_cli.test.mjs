@@ -19,7 +19,7 @@ const artifact=receipt.artifacts.find(a=>a.id==='dx7');
 async function freshCheckout(t){
   const dir=await realpath(await mkdtemp(join(tmpdir(),'tetorica-dx7-checker-cli-')));
   t.after(()=>rm(dir,{recursive:true,force:true}));
-  const files=[sdk,'web/msfa_dx7','docs/js/msfa_dx7','package.json',checker,
+  const files=[sdk,'tetorica_src/runtime/msfa_dx7','docs/js/msfa_dx7','package.json',checker,
     'scripts/build_dx7_wasm.sh','scripts/sync_dx7_runtime.mjs',
     'scripts/import_soundchip_sdk.py','third_party/soundchip-sdk.json'];
   for(const path of files){
@@ -28,7 +28,7 @@ async function freshCheckout(t){
   }
   const reference=resolve(dir,'reference'),candidate=resolve(dir,'candidate');
   for(const target of [reference,candidate]){
-    await mkdir(target);await cp(resolve(root,'web/msfa_dx7/wasm/msfa.wasm'),resolve(target,'msfa.wasm'));
+    await mkdir(target);await cp(resolve(root,'tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm'),resolve(target,'msfa.wasm'));
   }
   await writeFile(resolve(candidate,'build-info.json'),JSON.stringify({schemaVersion:1,artifacts:[artifact]})+'\n');
   await assert.rejects(stat(resolve(dir,'w')),{code:'ENOENT'});

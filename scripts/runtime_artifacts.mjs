@@ -1,4 +1,4 @@
-// The application runtime has one generated source: web/generated. Public
+// The application runtime has one generated source: tetorica_src/runtime/generated. Public
 // docs paths and historical import paths are byte-for-byte mirrors, not inputs.
 import {createHash, randomUUID} from 'node:crypto';
 import {lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile} from 'node:fs/promises';
@@ -25,7 +25,7 @@ const freeze = value => {
 };
 
 function file(pathname, mirrors) {
-  return {path: pathname, canonical: `web/generated/${pathname}`, mirrors};
+  return {path: pathname, canonical: `tetorica_src/runtime/generated/${pathname}`, mirrors};
 }
 
 /** Describe every SDK build and application effect, without reading generated JS. */
@@ -38,7 +38,7 @@ export async function getRuntimeArtifactManifest({root = DEFAULT_ROOT} = {}) {
     format: artifact.format,
     files: artifact.outputs.map(name => file(name, [
       `docs/generated/${name}`,
-      ...(artifact.id === 'dx7' ? ['web/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm'] : []),
+      ...(artifact.id === 'dx7' ? ['tetorica_src/runtime/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm'] : []),
     ])),
     sourceFiles: artifact.sourcePaths.map(name => `third_party/tetorica-soundchip-native/${name}`),
     licenseFiles: artifact.licenseFiles.map(name => `third_party/tetorica-soundchip-native/${name}`),
@@ -46,11 +46,11 @@ export async function getRuntimeArtifactManifest({root = DEFAULT_ROOT} = {}) {
   artifacts.push({
     id: 'native_audio_effect', kind: 'application-effect', format: 'standalone-wasm',
     files: [file('effects/gain.wasm', [
-      'web/native_audio_effect.wasm', 'docs/js/native_audio_effect.wasm', 'docs/native_audio_effect/gain.wasm',
+      'tetorica_src/runtime/native_audio_effect.wasm', 'docs/js/native_audio_effect.wasm', 'docs/native_audio_effect/gain.wasm',
     ])],
-    sourceFiles: ['native/audio_effect/', 'scripts/build_native_audio_effect.sh'], licenseFiles: ['LICENSE'],
+    sourceFiles: ['tetorica_src/native/audio_effect/', 'scripts/build_native_audio_effect.sh'], licenseFiles: ['LICENSE'],
   });
-  return freeze({schemaVersion: 1, root, canonicalDirectory: path.join(root, 'web/generated'), inventory,
+  return freeze({schemaVersion: 1, root, canonicalDirectory: path.join(root, 'tetorica_src/runtime/generated'), inventory,
     artifacts, metadata: ['build-info.json', 'ps1_spu_build.json', CATALOG]
       .map(name => file(name, [`docs/generated/${name}`]))});
 }
@@ -147,14 +147,14 @@ function generatedCatalog(manifest, bytes) {
   const record = entry => ({path: entry.path, canonical: entry.canonical, mirrors: entry.mirrors,
     size: bytes.get(entry.path).length, sha256: sha256(bytes.get(entry.path))});
   return {schemaVersion: 1, generatedBy: 'scripts/sync_runtime_artifacts.mjs',
-    canonicalDirectory: 'web/generated', sdk: manifest.inventory.pin,
+    canonicalDirectory: 'tetorica_src/runtime/generated', sdk: manifest.inventory.pin,
     artifacts: manifest.artifacts.map(artifact => ({id: artifact.id, kind: artifact.kind, format: artifact.format,
       files: artifact.files.map(record), sourceFiles: artifact.sourceFiles, licenseFiles: artifact.licenseFiles})),
     metadata: manifest.metadata.filter(entry => entry.path !== CATALOG).map(record)};
 }
 
 async function validatedBytes(manifest, {importExisting = false} = {}) {
-  const directory = path.join(manifest.root, importExisting ? 'docs/generated' : 'web/generated');
+  const directory = path.join(manifest.root, importExisting ? 'docs/generated' : 'tetorica_src/runtime/generated');
   const receiptBefore = await bytesAt(manifest.root, path.relative(manifest.root, path.join(directory, 'build-info.json')));
   const sdk = await verifyWasmBuildDirectory({root: manifest.root, directory, inventory: manifest.inventory});
   const bytes = new Map();
@@ -269,7 +269,7 @@ export async function syncRuntimeArtifacts({root = DEFAULT_ROOT, ids, importExis
   const entries = [];
   if (importExisting) for (const entry of selectedFiles(manifest))
     entries.push({name: entry.canonical, bytes: bytes.get(entry.path)});
-  else entries.push({name: `web/generated/${CATALOG}`, bytes: bytes.get(CATALOG)});
+  else entries.push({name: `tetorica_src/runtime/generated/${CATALOG}`, bytes: bytes.get(CATALOG)});
   for (const entry of files) for (const name of entry.mirrors)
     entries.push({name, bytes: bytes.get(entry.path)});
   const changed = await publish(manifest.root, entries);

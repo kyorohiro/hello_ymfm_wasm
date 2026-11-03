@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisOpl} from '../../web/native_genesis_opl.js';
-import {createOplClient} from '../../web/playground_opl.js';
+import {createNativeGenesisOpl} from '../../tetorica_src/runtime/native_genesis_opl.js';
+import {createOplClient} from '../../tetorica_src/runtime/playground_opl.js';
 
 const CHIPS = ['ym3526', 'ym3812', 'ymf262', 'y8950'];
 const PAIRS = [0, 1, 2, 9, 10, 11];

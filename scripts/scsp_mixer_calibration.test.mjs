@@ -6,14 +6,45 @@ import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {buildScspCalibrationReference} from './soundchip_calibration_scsp.mjs';
-import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
+import {validateScspMixerCalibration,validateScspMixerCalibrationSources,isScspCalibrationSourceLayoutRevision} from './scsp_mixer_calibration.mjs';
 import {buildPlaygroundMixerPolicy,generatePlaygroundMixerDefaults} from './generate_playground_mixer_defaults.mjs';
-import {buildSoundChipMixerPresets,generateSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
-import {SoundChipMixer} from '../web/soundchip_mixer.js';
+import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,isSoundChipPsgSourceLayoutRevision} from './generate_soundchip_mixer_presets.mjs';
+import {SoundChipMixer} from '../tetorica_src/runtime/soundchip_mixer.js';
 const read=async path=>JSON.parse(await readFile(new URL('../'+path,import.meta.url),'utf8'));
 const historical=await read('docs/issues/playground_chip_levels_01.json'),report=await read('docs/issues/scsp_fm_chip_levels_01.json'),psg=await read('docs/issues/soundchip_psg_levels_04.json');
 const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
 const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_fm_chip_levels_01.json',import.meta.url));
+
+test('source relocation retains the exact measured SCSP script digests and rejects unrelated edits',async()=>{
+ for(const path of ['scripts/calibrate_scsp_levels.cjs','scripts/soundchip_calibration_scsp.mjs']){
+  const bytes=await readFile(new URL('../'+path,import.meta.url)),expected=report.scripts[path];
+  assert.equal(isScspCalibrationSourceLayoutRevision(path,bytes,expected),true,path);
+  const modified=Buffer.from(bytes);modified[Math.floor(modified.length/2)]^=1;
+  for(const changed of [modified,Buffer.concat([bytes,Buffer.from('\n')])])
+   assert.equal(isScspCalibrationSourceLayoutRevision(path,changed,expected),false,path);
+  assert.equal(isScspCalibrationSourceLayoutRevision(path,bytes,'0'.repeat(64)),false,path);
+  assert.equal(isScspCalibrationSourceLayoutRevision('scripts/other.mjs',bytes,expected),false,path);
+ }
+ const before=await readFile(scspReportPath);
+ await validateScspMixerCalibrationSources({reportPath,scspReport:report});
+ assert.deepEqual(await readFile(scspReportPath),before,'Captured provenance keys and hashes stay unchanged');
+});
+
+test('PSG source relocation retains original full digests and rejects DSP, import or unknown-file changes',async()=>{
+ const measured=await read('docs/issues/soundchip_psg_levels_04.json');
+ for(const path of ['scripts/measure_soundchip_psg_levels.mjs','web/soundchip.js','web/nesapu.js','web/nesapu_wasm.js']){
+  const actual=path.startsWith('web/')?'tetorica_src/runtime/'+path.slice(4):path;
+  const bytes=await readFile(new URL('../'+actual,import.meta.url)),expected=measured.sources[path];
+  assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,expected),true,path);
+  const modified=Buffer.from(bytes);modified[Math.floor(modified.length/2)]^=1;
+  for(const changed of [modified,Buffer.concat([bytes,Buffer.from('\n')]),Buffer.from(bytes.toString().replace('Math.','math.'))]){
+   if(changed.equals(bytes))continue;
+   assert.equal(isSoundChipPsgSourceLayoutRevision(path,changed,expected),false,path);
+  }
+  assert.equal(isSoundChipPsgSourceLayoutRevision(path,bytes,'0'.repeat(64)),false,path);
+  assert.equal(isSoundChipPsgSourceLayoutRevision('web/other.js',bytes,expected),false,path);
+ }
+});
 
 test('SCSP reference declares full-scale signed PCM16, exact symmetry, physical route and quantized tuning',()=>{
  for(const role of ['primary','extra'])for(const hz of [220,440,880]){

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PsgInspectorState} from '../../web/playground_chip_inspector_state.js';
-import {createPsgAuditionGuard} from '../../web/playground_audition_guard.js';
+import {PsgInspectorState} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
+import {createPsgAuditionGuard} from '../../tetorica_src/runtime/playground_audition_guard.js';
 
 function setup(){
   const bytes=[],chip={write:byte=>bytes.push(byte),reset:()=>bytes.push('reset')};let guard;

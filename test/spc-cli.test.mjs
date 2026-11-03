@@ -4,11 +4,11 @@ import {readFileSync,writeFileSync,mkdtempSync,rmSync,existsSync,truncateSync} f
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {createSyntheticSpc} from '../web/spc_test_fixture.mjs';
-import {analyzeSpcSource,exportSpcAnalysis,listSpcScoreChannels} from '../cli/spc.js';
-import {exportFormats} from '../cli/index.js';
+import {createSyntheticSpc} from '../tetorica_src/runtime/spc_test_fixture.mjs';
+import {analyzeSpcSource,exportSpcAnalysis,listSpcScoreChannels} from '../tetorica_src/cli/spc.js';
+import {exportFormats} from '../tetorica_src/cli/index.js';
 
-const cli = (...args) => spawnSync(process.execPath,['cli/main.js',...args],{encoding:'utf8',maxBuffer:16*1024*1024});
+const cli = (...args) => spawnSync(process.execPath,['tetorica_src/cli/main.js',...args],{encoding:'utf8',maxBuffer:16*1024*1024});
 async function withFixture(run) {
   const dir = mkdtempSync(join(tmpdir(),'spc-cli-'));
   const bytes = createSyntheticSpc({voices:2});

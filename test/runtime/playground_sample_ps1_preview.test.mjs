@@ -1,15 +1,15 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {renderPs1SamplePreview} from '../../web/playground_sample_ps1_preview.js';
-import {renderPs1Sample} from '../../web/playground_sample_ps1.js';
-import {Ps1Spu} from '../../web/ps1_spu.js';
-import {Ps1Synth} from '../../web/ps1synth.js';
+import {renderPs1SamplePreview} from '../../tetorica_src/runtime/playground_sample_ps1_preview.js';
+import {renderPs1Sample} from '../../tetorica_src/runtime/playground_sample_ps1.js';
+import {Ps1Spu} from '../../tetorica_src/runtime/ps1_spu.js';
+import {Ps1Synth} from '../../tetorica_src/runtime/ps1synth.js';
 import moduleFactory from '../../docs/generated/ps1_spu_wasm.js';
 
-const moduleOptions = {wasmBinary: readFileSync(new URL('../docs/generated/ps1_spu_wasm.wasm', runtimeDirectoryUrl))};
+const moduleOptions = {wasmBinary: readFileSync(new URL('../../docs/generated/ps1_spu_wasm.wasm',runtimeDirectoryUrl))};
 const coreOptions = {moduleFactory, moduleOptions};
 const sine = (frames = 112) => ({sampleRate: 44100,
   channels: [Float32Array.from({length: frames}, (_, i) => .7 * Math.sin(2 * Math.PI * i / 112))]});

@@ -1,18 +1,18 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import factory from '../../docs/generated/okim6258_wasm.js';
-import {Oki6258AudioEngine} from '../../web/okim6258audioengine.js';
-import {Oki6258Stream, OKIM6258_CLOCK} from '../../web/okim6258synth.js';
-import {createOki6258Client} from '../../web/playground_okim6258.js';
-import {createOki6258Audio} from '../../web/playground_okim6258_audio.js';
-import {validateChipClock} from '../../web/playground_chip_clock.js';
-import {createProcessorPerformance} from '../../web/playground_performance_processor.js';
-import {Oki6258VoiceInspector} from '../../web/playground_okim6258_inspector.js';
-import {receiveChipInspector} from '../../web/playground_chip_inspector_state.js';
+import {Oki6258AudioEngine} from '../../tetorica_src/runtime/okim6258audioengine.js';
+import {Oki6258Stream, OKIM6258_CLOCK} from '../../tetorica_src/runtime/okim6258synth.js';
+import {createOki6258Client} from '../../tetorica_src/runtime/playground_okim6258.js';
+import {createOki6258Audio} from '../../tetorica_src/runtime/playground_okim6258_audio.js';
+import {validateChipClock} from '../../tetorica_src/runtime/playground_chip_clock.js';
+import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {Oki6258VoiceInspector} from '../../tetorica_src/runtime/playground_okim6258_inspector.js';
+import {receiveChipInspector} from '../../tetorica_src/runtime/playground_chip_inspector_state.js';
 
 const sampleRate = 48000;
 const peak = samples => samples.reduce((best, value) => Math.max(best, Math.abs(value)), 0);
@@ -27,7 +27,7 @@ async function worklet() {
     }}; } }, registerProcessor:(_, Class) => { Processor = Class; },
   });
   const processor = new Processor({processorOptions:{clock:8000000,
-    wasmBinary:await readFile(new URL('../docs/generated/okim6258_wasm.wasm', runtimeDirectoryUrl))}});
+    wasmBinary:await readFile(new URL('../../docs/generated/okim6258_wasm.wasm',runtimeDirectoryUrl))}});
   await ready;
   return {processor, replies, render(frames) {
     const output = [new Float32Array(frames), new Float32Array(frames)];

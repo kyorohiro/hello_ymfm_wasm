@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisYm2203} from '../../web/native_genesis_ym2203.js';
-import {YM2203Synth} from '../../web/ym2203synth.js';
+import {createNativeGenesisYm2203} from '../../tetorica_src/runtime/native_genesis_ym2203.js';
+import {YM2203Synth} from '../../tetorica_src/runtime/ym2203synth.js';
 
 const HELD_CLOCK_ERROR='Release the manually held YM2203 voices before changing the clock';
 async function until(predicate){const deadline=Date.now()+1000;while(!predicate()){if(Date.now()>deadline)throw new Error('YM2203 command did not start');await new Promise(resolve=>setTimeout(resolve,1));}}

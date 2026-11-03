@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSoundChip} from '../../web/soundchip.js';
-import {YM2151Synth, YM2151DirectTransport, YM2151WorkletTransport} from '../../web/ym2151synth.js';
-import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
-import {YM2151AudifyTransport} from '../../node/chip_transports.mjs';
+import {createSoundChip} from '../../tetorica_src/runtime/soundchip.js';
+import {YM2151Synth, YM2151DirectTransport, YM2151WorkletTransport} from '../../tetorica_src/runtime/ym2151synth.js';
+import {FM_PRESETS} from '../../tetorica_src/runtime/megasynth-fm-presets.js';
+import {YM2151AudifyTransport} from '../../tetorica_src/node/chip_transports.mjs';
 
 function capture() {
   const writes = [];

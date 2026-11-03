@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {FM_CALIBRATION_KINDS,buildFmCalibrationReference,buildYm2610bPrimaryCalibrationReference,createFmCalibrationPrograms} from './soundchip_calibration_fm.mjs';
-import {YM2612Synth} from '../web/ym2612synth.js';
-import {YM2203Synth} from '../web/ym2203synth.js';
-import {YM2608Synth} from '../web/ym2608synth.js';
-import {YM2610BSynth,NeoGeoFMSynth} from '../web/ym2610bsynth.js';
-import {YM2151Synth} from '../web/ym2151synth.js';
-import {YM2413Synth} from '../web/ym2413synth.js';
-import {OPLSynth} from '../web/opl_synth.js';
-import {presetToVoice,voiceToPreset} from '../web/msfa_dx7/src/preset.js';
+import {YM2612Synth} from '../tetorica_src/runtime/ym2612synth.js';
+import {YM2203Synth} from '../tetorica_src/runtime/ym2203synth.js';
+import {YM2608Synth} from '../tetorica_src/runtime/ym2608synth.js';
+import {YM2610BSynth,NeoGeoFMSynth} from '../tetorica_src/runtime/ym2610bsynth.js';
+import {YM2151Synth} from '../tetorica_src/runtime/ym2151synth.js';
+import {YM2413Synth} from '../tetorica_src/runtime/ym2413synth.js';
+import {OPLSynth} from '../tetorica_src/runtime/opl_synth.js';
+import {presetToVoice,voiceToPreset} from '../tetorica_src/runtime/msfa_dx7/src/preset.js';
 
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 const opnKinds=['ym2612','ym2203','ym2608','ym2610','ym2610b'];

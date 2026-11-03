@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MessageChannel} from 'node:worker_threads';
-import {createNativeGenesisMsx} from '../../web/native_genesis_msx.js';
-import {createAy8910Client} from '../../web/playground_ay8910.js';
-import {createYm2413Client} from '../../web/playground_ym2413.js';
+import {createNativeGenesisMsx} from '../../tetorica_src/runtime/native_genesis_msx.js';
+import {createAy8910Client} from '../../tetorica_src/runtime/playground_ay8910.js';
+import {createYm2413Client} from '../../tetorica_src/runtime/playground_ym2413.js';
 
 const physical=ch=>ch>=9?[6,7,8,8,7][ch-9]:ch;
 function fixture(){

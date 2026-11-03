@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {readSource,exportSource,listSourceScoreChannels} from '../cli/index.js';
+import {readSource,exportSource,listSourceScoreChannels} from '../tetorica_src/cli/index.js';
 import {analyzeLilyPondSource,createLilyPondScore} from '../docs/vgm_analyzer/vgm_lilypond.js';
 import {createMusicXmlScore} from '../docs/vgm_analyzer/vgm_musicxml.js';
 const fixture=n=>new URL('./fixtures/'+n+'.vgz',import.meta.url);
@@ -17,7 +17,7 @@ test('Score IDs and selected staves use Browser exporters with unchanged timing 
    assert.equal(actual.text,create(selected,score.time,{bpm:score.tempo.bpm,fileName:'VGM',warnings:score.warnings}).text);
    assert.equal(exportSource(source,{format}).text,create(score.channels,score.time,{bpm:score.tempo.bpm,fileName:'VGM',warnings:score.warnings}).text);
   }
-  const cli=spawnSync(process.execPath,['cli/main.js','score-channels',fixture(name).pathname,'--json'],{encoding:'utf8'});
+  const cli=spawnSync(process.execPath,['tetorica_src/cli/main.js','score-channels',fixture(name).pathname,'--json'],{encoding:'utf8'});
   assert.equal(cli.status,0,cli.stderr);assert.deepEqual(JSON.parse(cli.stdout),list);
  }
 });

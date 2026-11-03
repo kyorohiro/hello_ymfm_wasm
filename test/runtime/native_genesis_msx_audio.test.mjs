@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativeGenesisMsxAudio} from '../../web/native_genesis_msx_audio.js';
+import {createNativeGenesisMsxAudio} from '../../tetorica_src/runtime/native_genesis_msx_audio.js';
 
 test('Native MSX Audio constructs precisely three passive clients with existing public globals',()=>{
   const commands=[],synth={clock:{sampleRate:48000},enqueue:c=>commands.push(c),isReady:()=>false};

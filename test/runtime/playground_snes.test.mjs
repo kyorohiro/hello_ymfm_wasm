@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSnesClient} from '../../web/playground_snes.js';
-import {createProcessorPerformance,identifyPerformanceNote,performanceNoteRelease} from '../../web/playground_performance_processor.js';
-import {createPerformanceSender} from '../../web/playground_performance_sender.js';
-import {SnesSynth} from '../../web/snessynth.js';
+import {createSnesClient} from '../../tetorica_src/runtime/playground_snes.js';
+import {createProcessorPerformance,identifyPerformanceNote,performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
+import {createPerformanceSender} from '../../tetorica_src/runtime/playground_performance_sender.js';
+import {SnesSynth} from '../../tetorica_src/runtime/snessynth.js';
 const brr=new Uint8Array([0x13,...Array(8).fill(0x78)]);
 function rpc() {
   const channel=new MessageChannel(),synth=new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},readDsp(){return 42;},snapshot(){return {ram:new Uint8Array(65536),dsp:new Uint8Array(128),nativeFrames:0};},dispose(){}}}),messages=[];
@@ -60,7 +60,7 @@ test('Worker SNES BRR/read resources are immediate while note and preset share p
   assert.equal(posts[1].performance.time,2.5);assert.equal(posts[2].performance.time,2.5);assert.equal(posts[3].method,'snapshot');
 });
 
-import {createSnesAudio} from '../../web/playground_snes_audio.js';
+import {createSnesAudio} from '../../tetorica_src/runtime/playground_snes_audio.js';
 function audioMock(t,{ready=true}={}) {
   const original=globalThis.AudioWorkletNode,nodes=[],listeners=new Set();
   const context={sampleRate:48000,state:'running',audioWorklet:{async addModule(){}},addEventListener(_,fn){listeners.add(fn);},removeEventListener(_,fn){listeners.delete(fn);}};

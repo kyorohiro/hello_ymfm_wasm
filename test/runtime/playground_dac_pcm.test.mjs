@@ -1,14 +1,14 @@
 // Resolve source and fixture URLs from the runtime directory.
-const runtimeDirectoryUrl = new URL('../../web/', import.meta.url);
+const runtimeDirectoryUrl = new URL('../../tetorica_src/runtime/', import.meta.url);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createWorkerChip} from '../../web/playground_worker_chip.js';
-import {createChipPortReceiver} from '../../web/playground_chip_port.js';
-import {YM2612DacPlayer, receiveDacCommand} from '../../web/ym2612_dac.js';
-import {YM2612Synth, YM2612DirectTransport} from '../../web/ym2612synth.js';
-import {createFmProxy} from '../../web/playground_sync.js';
-const source=readFileSync(new URL('../docs/playground/examples/basic/dac/dac-pcm-sample.js',runtimeDirectoryUrl),'utf8');
+import {createWorkerChip} from '../../tetorica_src/runtime/playground_worker_chip.js';
+import {createChipPortReceiver} from '../../tetorica_src/runtime/playground_chip_port.js';
+import {YM2612DacPlayer, receiveDacCommand} from '../../tetorica_src/runtime/ym2612_dac.js';
+import {YM2612Synth, YM2612DirectTransport} from '../../tetorica_src/runtime/ym2612synth.js';
+import {createFmProxy} from '../../tetorica_src/runtime/playground_sync.js';
+const source=readFileSync(new URL('../../docs/playground/examples/basic/dac/dac-pcm-sample.js',runtimeDirectoryUrl),'utf8');
 
 function workerFixture() {
  const writes=[],held=[];
