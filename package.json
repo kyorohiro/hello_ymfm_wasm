@@ -45,7 +45,7 @@
     "build:fm2612": "node scripts/build_fm2612_package.mjs",
     "pack:fm2612": "node scripts/pack_fm2612.mjs",
     "test:fm2612": "node scripts/check_fm2612_package.mjs",
-    "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs",
+    "test:fm2612:browser": "npm run build:fm2612 && node scripts/check_megacd_browser.cjs && node scripts/check_megasynth_offline_browser.cjs",
     "setup:browser": "playwright install chromium",
     "test:fm2612:types": "node scripts/check_fm2612_types.mjs",
     "test:scsp-synth": "node --test docs/synth-scsp/*.test.mjs scripts/package_itch_scsp_synth.test.mjs",

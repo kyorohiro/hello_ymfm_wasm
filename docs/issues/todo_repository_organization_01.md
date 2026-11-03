@@ -66,7 +66,7 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - [x] `web/`を`tetorica_src/runtime/`へ移す。WASM探索・manifest・builder・同期・配布・型生成・Tauri側の参照を一度に更新し、生成物の正本を一つに保つ。
 - [x] 英日README、AI引継ぎ、source guide、build／release案内を実際の配置へ更新する。
 - [x] npmを実インストールしたPCM・型検証、itch ZIPの依存／source／licenseを確認する。
-- [ ] ブラウザーのMain／Worker／Worklet検証を完了する。追加検証の状況は下記に記録。
+- [x] ブラウザーのMain／Worker／Worklet検証を完了する。追加検証の結果は下記に記録。
 
 各段階を独立して検証・再開できる単位にする。ソースの移動にDSP計算・ゲイン変更を混ぜず、移動前後のファイル内容とPCMを比較する。過去の測定報告は歴史的記録として残し、校正の参照パス変更は現行チェックで検証する。
 
@@ -117,10 +117,13 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - `sync_web_js_to_docs.sh`を使い、移設後のソースと移設前HEADのソースを別々の一時コピーへ同期した。`docs/`全2,499ファイルの出力hashが完全一致し、配布境界の変換を含め同期の回帰がないことを確認した。実リポジトリの公開コピーは変更していない。
 - ローカル別repo `w/tetorica-fm2612-playground-tauri`の親ソースを読むscripts／testsも新旧配置に対応させた。履歴のsnapshot key・pins・SDK・UI・`src-tauri/`・配布物は保持し、Python 36件・JS 33件・オフラインsnapshot 24件、FX 42ケース（差最大1.49e-8）・Noise 54ケース（差0）が成功。この別repoにも未コミット変更がある。SPU Tauriは変更していない。
 
-### 残っている追加ブラウザー検証
+### 追加ブラウザー検証（2026-11-04 完了）
 
-- [ ] `node scripts/check_megacd_browser.cjs`：起動・module読み込み後、最初のPCM channel/pan検査が出力0/0で失敗した。移設の影響か既存の検証／実行環境の問題かは未切り分け。assertionは変更していない。
-- [ ] `node scripts/check_megasynth_offline_browser.cjs`：sandboxでローカルサーバーのlistenがEPERM。権限付き再実行は承認待ちのまま中断したため未完了。Core PCM／installed npm検査と公開JSのバイト一致は別途確認済みだが、ブラウザー検証成功とは扱わない。
+- [x] `node scripts/check_megacd_browser.cjs`：固定の壁時計120msではなく、AudioContextの時間が2つの新しいAnalyser window分進み、期待する左右の出力を得るまで最大5秒待つ検査へ変更した。出力／漏れの閾値は維持。8chのPCM・左右pan・keyOff・FM／PSG／PCM混合・reset後のRAM保持・close／restart・Playground Workerが成功した。失敗時には左右の値、contextの時間と状態、Mixerを記録する。
+- [x] `node scripts/check_megasynth_offline_browser.cjs`：権限付きでlocalhostサーバーを起動して完了。Node、Browser Main、実Native FX AudioWorkletのstereo PCMが4,096 framesすべて完全一致し、WASM探索・event clock・Delay／Reverbを確認した。配列長・有限値・非ゼロの確認、実行期限、通信／processorerror捕捉、終了処理も追加した。
+- [x] `node scripts/check_ps1_spu_browser.cjs --chromium --webkit`：移設したPS1 SPUのsourceをChromium／WebKitのWindow／DedicatedWorkerで実行し、実Node WASMとPCM完全一致。24番目のvoice、44.1kHz、RAMのコピー所有・独立instance、pitch／stereo／reset／disposeの制御が全4経路で成功した。
+- 初回のMega CD失敗は0/0だったが、同じサンプルを実WASMと実Worklet／RPC経由で8ch再生でき、診断のみを加えた別のブラウザー実行でも成功した。音源やWASMは変更せず、実時間計測の待ち方を修正して再検証した。
+- `npm run test:fm2612:browser`にOffline／AudioWorklet検証も接続した。検証script 2件、npm command、今回の記録のみを変更し、公開JS／WASM・校正値・既存の3件の別課題は変更していない。
 
 ## 維持する公開・配布の契約
 
