@@ -16,6 +16,12 @@ This repository has four goals:
 - To create documentation that helps anyone embed YM2612 audio in a browser app or game.
 - To preserve older game music and sound chip technology as cultural heritage that people today can read, investigate, learn from, and reconstruct—not only archive and play back.
 
+## Playground
+
+[Open the Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+
+[![Tetorica FM2612 Playground screenshot](docs/tetorica_fm2612_playground_screen_shot.png)](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)
+
 <a id="feature-status"></a>
 
 ## Start with what you want to do
