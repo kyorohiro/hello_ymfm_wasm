@@ -1,8 +1,8 @@
 /** Freshness for calibration evidence, with narrowly scoped reviewed revisions.
  * Measurement reports retain every original raw source hash. A separately pinned
  * receipt allows only the version values at six exact UI resource imports to
- * change. It cannot authorize a changed DSP, path, query, import body, or any
- * other byte in either UI file.
+ * change. Named, complete reviewed UI/Git/Shell revisions are also pinned below.
+ * None authorizes a future change to a DSP, path, import body or other source.
  */
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -240,8 +240,29 @@ export function restoreMixerCalibrationScspPolicyCacheRevision(path,bytes) {
   if(original.length!==entry.before.bytes||sha(original)!==entry.before.sha256)fail('SCSP policy cache reconstruction failed');
   return original;
 }
+
+// virtual-files 0.5.0 changed only Git operations and Shell rm option parsing.
+// These complete measured/reviewed pairs authorize neither another path nor
+// any future edit. They do not replace the original measurement source hashes.
+const virtualFilesRevision={
+  'js/tetorica_virtual_files/git.bundle.js':{
+    before:{bytes:298711,sha256:'48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1'},
+    after:{bytes:302649,sha256:'73d534801173e5a9afb2f6e88b4e2149d87c682823a1c1cff25ea989aa5e468f'},
+  },
+  'js/tetorica_virtual_files/shell.js':{
+    before:{bytes:11716,sha256:'a542bdeffd9853d43b28a453fcd973963f96c3c078079437383ef6c1565633ed'},
+    after:{bytes:12584,sha256:'e0e9947bd4b83a8765ee4e6e763469b41fe0df077301b61ef4ccba09671cb2ab'},
+  },
+};
+export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
+  const entry=Object.hasOwn(virtualFilesRevision,path)?virtualFilesRevision[path]:null;
+  return Boolean(entry&&record?.bytes===entry.before.bytes&&record.sha256===entry.before.sha256&&
+    Buffer.byteLength(bytes)===entry.after.bytes&&sha(bytes)===entry.after.sha256);
+}
+
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';
   const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
   if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';
   const restored=restoreMixerCalibrationScspPolicyCacheRevision(path,bytes),policyCache=restored!==bytes;bytes=restored;
