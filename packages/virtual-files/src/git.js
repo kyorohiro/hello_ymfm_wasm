@@ -48,7 +48,7 @@ export function gitHttpsUrl(url){
  * @param {{fs:VirtualFS,http?:HttpClient,syncWorkingFiles?:()=>void,beginRemote?:(request:{url:string,operation:string,branch:string,commit:string})=>Promise<{http:HttpClient,close:()=>Promise<void>}>}} options */
 export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) {
   let running=false;
-  async function transaction(action,{signal,assertActive=()=>{}}={}){
+  async function transaction(action,{signal,assertActive=()=>{}}={}, {exact=false}={}){
     if(running)throw Error('A Git operation is already running');running=true;
     try{syncWorkingFiles();}catch(error){running=false;throw error;}
     const original=fs.checkpoint(),draft=createVirtualFileSystem();draft.restore(original.snapshot);
@@ -64,9 +64,9 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
     }});
     const check=()=>{signal?.throwIfAborted();assertActive();const now=fs.checkpoint();if(JSON.stringify(now.revisions)!==JSON.stringify(original.revisions))throw Error('Files changed during Git operation; retry with the current project');};
     try{
-      check();const result=await action(draft,adapter);syncWorkingFiles();check();
+      check();const result=await action(draft,adapter,check);syncWorkingFiles();check();
       // Do not turn unchanged text working files into binary editor previews.
-      const prior=new Map(original.snapshot.files.map(f=>[f.path,f]));
+      const prior=new Map(exact?[]:original.snapshot.files.map(f=>[f.path,f]));
       const decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
       const entries=draft.list().map(file=>{
         if(isGitPath(file.path))return file;
@@ -76,7 +76,7 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
         }
         return file;
       });
-      fs.replace(entries,draft.listDirectories(),{checkpointChanges:true});return result;
+      fs.replace(entries,draft.listDirectories(),{checkpointChanges:!exact});return result;
     }finally{running=false;}
   }
   const initialized=store=>store.has('/.git/HEAD');
@@ -97,10 +97,48 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
   }
   const api={
     /** @param {string} action @param {any} [args] @param {{signal?:AbortSignal,assertActive?:()=>void}} [guards] */
-    async execute(action,args={},guards={}){return transaction(async(store,adapter)=>{
+    async execute(action,args={},guards={}){return transaction(async(store,adapter,check)=>{
       const base=common(adapter);
       if(action==='init'){await git.init({...base,defaultBranch:'main'});return status(store,adapter);}
       if(action==='status'){const result=await status(store,adapter);return {...result,files:result.files.filter(file=>selected(file.path,args.paths))};}
+      if(action==='clone'){
+        if(args.directory!==undefined&&args.directory!=='/')throw Error('Clone uses the current FILES project root. Only the root destination is supported.');
+        if(args.replace!==undefined&&typeof args.replace!=='boolean')throw Error('Clone replace must be a boolean');
+        const url=gitHttpsUrl(args.url);
+        if(args.branch!==undefined&&(typeof args.branch!=='string'||!args.branch||['HEAD','@'].includes(args.branch)||args.branch.startsWith('-')||args.branch.startsWith('refs/')||args.branch.endsWith('.')||args.branch.includes('..')||args.branch.includes('@{')||/[\x00-\x20\x7f~^:?*\[\\]/.test(args.branch)||args.branch.split('/').some(part=>!part||part.startsWith('.')||part.endsWith('.lock'))))throw Error('Invalid clone branch name');
+        const systemPath=path=>path.toLowerCase()==='/sys'||path.toLowerCase().startsWith('/sys/');
+        if(!args.replace&&(store.list().some(file=>!systemPath(file.path))||store.listDirectories().some(path=>path!=='/'&&!systemPath(path))))throw Error('FILES is not empty. Save or export the current project, then use git clone --replace HTTPS_URL . to replace it.');
+        if(!http&&!beginRemote)throw Error('Remote Git operations are available in the Tauri app. Browser Git supports local operations.');
+        // Download into an otherwise empty draft. Bundled guides are not part
+        // of the repository and must survive a project replacement.
+        store.replace(store.list().filter(file=>systemPath(file.path)),store.listDirectories().filter(systemPath));
+        check();
+        const session=beginRemote?await beginRemote({url,operation:'clone',branch:args.branch??'',commit:''}):{http,close:async()=>{}};
+        try{
+          check();
+          // clone() does not accept an AbortSignal. Guard every request and
+          // response chunk, including callers supplying a plain HTTP adapter.
+          const transport={async request(options){
+            check();const response=await session.http.request({...options,signal:guards.signal});check();
+            return {...response,body:(async function*(){for await(const chunk of response.body){check();yield chunk;}check();})()};
+          }};
+          await git.clone({...base,http:transport,url,remote:'origin',ref:args.branch,singleBranch:true,noCheckout:true,onAuth:()=>({cancel:true})});
+          check();
+          let oid;try{oid=await git.resolveRef({...base,ref:'HEAD'});}catch(error){if(error.code!=='NotFoundError')throw error;throw Error('The remote repository has no commits to clone');}
+          await git.walk({...base,trees:[git.TREE({ref:oid})],map:async(path,[entry])=>{
+            check();if(path==='.'||!entry)return;
+            const absolute='/'+path,parts=path.split('/');
+            if(resolvePath(absolute)!==absolute||parts.some(part=>!part||part==='.'||part==='..'||part.toLowerCase()==='.git')||systemPath(absolute)||isCheckpointPath(absolute.toLowerCase()))throw Error(`Protected path in remote repository: ${path}`);
+            const mode=await entry.mode(),type=await entry.type();
+            if(mode===0o120000)throw Error(`Symbolic links are not supported by FILES: ${path}`);
+            if(mode===0o160000||type==='commit')throw Error(`Submodules are not supported by FILES: ${path}`);
+          }});
+          const branch=await git.currentBranch(base);
+          if(!branch||args.branch&&branch!==args.branch)throw Error('Clone requires a remote branch, not a tag or detached commit');
+          check();await git.checkout({...base,ref:branch,remote:'origin'});check();
+          return {completed:true,operation:'clone',branch,url};
+        }finally{await session.close();}
+      }
       requireRepo(store);
       if(action==='config'){
         if(!['user.name','user.email'].includes(args.path))throw Error('Supported settings: user.name, user.email');
@@ -192,7 +230,7 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
         }finally{await session.close();}
       }
       throw Error('Unsupported Git operation');
-    },guards);},
+    },guards,{exact:action==='clone'});},
   };
   return api;
 }
@@ -200,8 +238,25 @@ export function createVirtualGit({fs,http,beginRemote,syncWorkingFiles=()=>{}}) 
 export function registerGitShell(shell,repository){
   shell.register('git',async context=>{
     const [command,...args]=context.args;let action=command,options={};
-    if(!command||command==='help')return 'git init | status [-s|--short] [PATH...] | diff [--cached] [PATH...] | add PATH... | commit -m MESSAGE | log | branch [-a|-r|NAME] | config user.name/user.email VALUE | remote [-v] | remote add|set-url NAME HTTPS_URL | remote get-url|rm|remove NAME | fetch | pull | push [-u] [REMOTE [BRANCH]]\n';
+    if(!command||command==='help')return 'git init | clone [--replace] [-b|--branch BRANCH] HTTPS_URL [.] | status [-s|--short] [PATH...] | diff [--cached] [PATH...] | add PATH... | commit -m MESSAGE | log | branch [-a|-r|NAME] | config user.name/user.email VALUE | remote [-v] | remote add|set-url NAME HTTPS_URL | remote get-url|rm|remove NAME | fetch | pull | push [-u] [REMOTE [BRANCH]]\n';
     if(command==='start'){if(args.length)throw Error('Usage: git start');action='init';}
+    else if(command==='clone'){
+      options={replace:false};const positional=[];let literal=false;
+      for(let index=0;index<args.length;index++){
+        const arg=args[index];
+        if(!literal&&arg==='--'){literal=true;continue;}
+        if(!literal&&arg==='--replace'){options.replace=true;continue;}
+        if(!literal&&['-b','--branch'].includes(arg)){
+          if(options.branch!==undefined||!args[index+1]||args[index+1].startsWith('-'))throw Error('Usage: git clone [--replace] [-b|--branch BRANCH] HTTPS_URL [.]');
+          options.branch=args[++index];continue;
+        }
+        if(!literal&&arg.startsWith('-'))throw Error(`Unsupported git clone option: ${arg}`);
+        positional.push(arg);
+      }
+      if(positional.length<1||positional.length>2)throw Error('Usage: git clone [--replace] [-b|--branch BRANCH] HTTPS_URL [.]');
+      options.url=positional[0];options.directory=positional.length===2?context.resolve(positional[1]):'/';
+      if(options.directory!=='/')throw Error('Clone uses the current FILES project root. Only the root destination is supported.');
+    }
     else if(command==='add'){action='stage';options={paths:args.map(context.resolve)};if(!args.length)throw Error('Usage: git add PATH...');}
     else if(command==='commit'){if(args.length!==2||args[0]!=='-m')throw Error('Usage: git commit -m MESSAGE');options={message:args[1]};}
     else if(command==='status'||command==='diff'){
@@ -237,6 +292,7 @@ export function registerGitShell(shell,repository){
     }
     else if(!['init','status','log','push','fetch','pull'].includes(command)||args.length)throw Error('Unsupported Git command. Type git help.');
     context.assertActive();const result=await repository.execute(action,options,{signal:context.signal,assertActive:context.assertActive});
+    if(action==='clone')return `Cloned ${result.url} (${result.branch}).\n`;
     if(action==='status'||action==='stage'||action==='init'){
       if(!result.initialized)return formatGitStatus(result);
       if(options.short)return result.files.map(file=>{

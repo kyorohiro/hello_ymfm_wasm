@@ -19,6 +19,23 @@ export function parseCommand(source) {
   if (started) args.push(word);
   return args;
 }
+/** Parse the virtual rm command before any filesystem mutation.
+ * @param {string[]} args @returns {{path:string,recursive:boolean,force:boolean}} */
+export function parseRmArgs(args) {
+  const paths=[];let recursive=false,force=false,options=true;
+  for(const arg of args){
+    if(options&&arg==='--'){options=false;continue;}
+    if(options&&arg==='--recursive'){recursive=true;continue;}
+    if(options&&arg==='--force'){force=true;continue;}
+    if(options&&arg.startsWith('-')&&arg!=='-'){
+      if(!/^-[rRf]+$/.test(arg))throw Error(`Unsupported rm option: ${arg}`);
+      recursive ||= /[rR]/.test(arg);force ||= arg.includes('f');continue;
+    }
+    paths.push(arg);
+  }
+  if(paths.length!==1||paths[0]==='')throw Error('Usage: rm [-rR] [-f] [--] PATH');
+  return {path:paths[0],recursive,force};
+}
 /** @typedef {{code:number,stdout:string,stderr:string,stages?:Array<{command:string[],code:number}>}} CommandResult */
 /** @typedef {{signal?:AbortSignal,stdin?:string,reportStages?:boolean,fs?:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>}} ExecuteOptions */
 /** @typedef {{execute:(source:string|string[],options?:ExecuteOptions)=>Promise<CommandResult>,assertActive:()=>void,fs:ReturnType<typeof import('./filesystem.js').createVirtualFileSystem>,args:string[],cwd:string,resolve:(path:string)=>string,signal?:AbortSignal,stdin:string}} CommandContext */
@@ -112,7 +129,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
     return {code:result.code,stdout:JSON.stringify(result)+'\n',stderr:''};
   });
   shell.register('pwd',context=>context.cwd+'\n');
-  const usages={pipeline:'pipeline --json SOURCE',pwd:'pwd',ls:'ls [PATH]',cd:'cd [PATH]',cat:'cat PATH|-',echo:'echo [TEXT...]',mkdir:'mkdir [-p] PATH',touch:'touch PATH',write:'write PATH TEXT',rm:'rm [-r] PATH',cp:'cp SOURCE DESTINATION',mv:'mv SOURCE DESTINATION',
+  const usages={pipeline:'pipeline --json SOURCE',pwd:'pwd',ls:'ls [PATH]',cd:'cd [PATH]',cat:'cat PATH|-',echo:'echo [TEXT...]',mkdir:'mkdir [-p] PATH',touch:'touch PATH',write:'write PATH TEXT',rm:'rm [-rR] [-f] [--] PATH',cp:'cp SOURCE DESTINATION',mv:'mv SOURCE DESTINATION',
     find:'find [PATH] [-name GLOB] [-type f|d] [--json] [--offset N] [--limit N]',
     rg:'rg [-n] [-F] [-i] [-l] [--json] [--offset N] [--limit N] LITERAL [PATH]',
     read:'read [--start N] [--end N] [--max-chars N] [--json] PATH',
@@ -131,7 +148,7 @@ export function createShell({fs,cwd = '/',authorize = () => {}}) {
   shell.register('mkdir',({fs,args,resolve})=>{const recursive=args[0]==='-p';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('mkdir',[path]);fs.mkdir(path,{recursive});});
   shell.register('touch',({fs,args,resolve})=>{count(args,1);const path=resolve(args[0]);write('touch',[path]);if(!fs.has(path))fs.writeText(path,'');else if(fs.stat(path).type!=='file')throw Error('Not a file');});
   shell.register('write',({fs,args,resolve})=>{count(args,2);const path=resolve(args[0]);write('write',[path]);fs.writeText(path,args[1]);});
-  shell.register('rm',({fs,args,resolve})=>{const recursive=args[0]==='-r';if(recursive)args=args.slice(1);count(args,1);const path=resolve(args[0]);write('rm',[path]);fs.remove(path,{recursive});});
+  shell.register('rm',({fs,args,resolve})=>{const options=parseRmArgs(args),path=resolve(options.path);if(options.force&&!fs.has(path)&&!fs.listDirectories().includes(path))return;write('rm',[path]);fs.remove(path,{recursive:options.recursive});});
   for (const name of ['cp','mv']) shell.register(name,({fs,args,resolve})=>{count(args,2);const paths=args.map(resolve);write(name,paths);transferVirtualFiles(fs,paths[0],paths[1],{copy:name==='cp'});});
   const agentCommands=registerAgentCommands((name,command)=>shell.register(name,command),write);
   return shell;

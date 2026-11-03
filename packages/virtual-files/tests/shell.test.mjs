@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createVirtualFileSystem,createShell,parseCommand} from '../src/index.js';
+import {parseRmArgs} from '../src/shell.js';
 test('quoting handles empty arguments; shell operators are not evaluated',()=>{
   assert.deepEqual(parseCommand(`write '/lib/a b.js' ""`),['write','/lib/a b.js','']);
   assert.throws(()=>parseCommand('ls | cat'));
@@ -46,4 +47,55 @@ test('abort releases the command queue even when a custom command never settles'
   const controller=new AbortController();const pending=shell.execute('hang',{signal:controller.signal});
   while(!started)await Promise.resolve();controller.abort();
   assert.equal((await pending).code,130);assert.equal((await shell.execute('pwd')).code,0);
+});
+test('rm accepts recursive and force aliases, including grouped flags',async()=>{
+  for(const flags of ['-r','-R','--recursive','-rf','-fr','-Rf','-fR','-r --force','--force --recursive']){
+    const fs=createVirtualFileSystem([{path:'/lib/nested/file.txt',data:'remove'}]);
+    fs.writeBinary('/lib/data.bin',new Uint8Array([0,255]));
+    const shell=createShell({fs});
+    assert.equal((await shell.execute(`rm ${flags} /lib`)).code,0,flags);
+    assert.equal(fs.has('/lib/nested/file.txt'),false,flags);
+    assert.equal(fs.has('/lib/data.bin'),false,flags);
+    assert.equal(fs.listDirectories().includes('/lib'),false,flags);
+    shell.dispose();
+  }
+  assert.deepEqual(parseRmArgs(['file','-fr']),{path:'file',recursive:true,force:true});
+});
+test('rm force ignores missing paths without hiding real filesystem errors',async()=>{
+  const fs=createVirtualFileSystem([{path:'/nonempty/file.txt',data:'keep'}]);
+  const shell=createShell({fs});
+  assert.equal((await shell.execute('rm -f /missing')).code,0);
+  assert.equal((await shell.execute('rm --force /missing/child')).code,0);
+  assert.equal((await shell.execute('rm -rf /missing')).code,0);
+  assert.equal((await shell.execute('rm /missing')).code,1);
+  assert.equal((await shell.execute('rm -f /nonempty')).code,1);
+  assert.equal((await shell.execute('rm -rf /')).code,1);
+  assert.equal(fs.get('/nonempty/file.txt').data,'keep');
+});
+test('rm validates all options and arity before authorizing or removing a target',async()=>{
+  const fs=createVirtualFileSystem([{path:'/keep.txt',data:'keep'}]);let authorized=0;
+  const shell=createShell({fs,authorize:()=>{authorized++;}});
+  for(const args of [[],['-f'],['-rf'],[''],['/keep.txt','/second'],['/keep.txt','--bogus'],['-rv','/keep.txt'],['--force=1','/keep.txt']]){
+    assert.equal((await shell.execute(['rm',...args])).code,1,JSON.stringify(args));
+    assert.equal(fs.get('/keep.txt').data,'keep');
+  }
+  assert.equal(authorized,0);
+});
+test('rm -- permits paths that begin with an option character',async()=>{
+  const fs=createVirtualFileSystem([{path:'/-rf',data:'first'},{path:'/-',data:'second'}]);
+  const shell=createShell({fs});
+  assert.equal((await shell.execute('rm -- -rf')).code,0);
+  assert.equal(fs.has('/-rf'),false);
+  assert.equal((await shell.execute('rm -')).code,0);
+  assert.equal(fs.has('/-'),false);
+  assert.deepEqual(parseRmArgs(['--','--force']),{path:'--force',recursive:false,force:false});
+});
+test('rm force still authorizes an existing normalized target before removal',async()=>{
+  const fs=createVirtualFileSystem([{path:'/lib/file.txt',data:'keep'}]);const calls=[];
+  const shell=createShell({fs,authorize:(operation,paths)=>{calls.push({operation,paths});throw Error('protected');}});
+  assert.equal((await shell.execute('rm -rf /lib/../lib')).stderr,'protected');
+  assert.equal(fs.get('/lib/file.txt').data,'keep');
+  assert.deepEqual(calls,[{operation:'rm',paths:['/lib']}]);
+  assert.equal((await shell.execute('rm -f /missing')).code,0);
+  assert.equal(calls.length,1);
 });

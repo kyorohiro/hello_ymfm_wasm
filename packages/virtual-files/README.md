@@ -181,7 +181,7 @@ the persistent **`fs.checkpoints`** manager.
 
 ## Shell
 
-The shell supports `pwd`, `ls`, `cd`, `cat`, `mkdir [-p]`, `cp`, `mv`, `rm [-r]`,
+The shell supports `pwd`, `ls`, `cd`, `cat`, `mkdir [-p]`, `cp`, `mv`, `rm [-r|-R|--recursive] [-f|--force] [--] PATH`,
 `touch`, `write PATH TEXT`, `echo`, `help`, `find`, `rg`, `read`, `edit`, `patch`, `snapshot`, `diff`, `undo` and `pipeline`. `cp` and `mv` accept files or entire directories.
 It parses quotes and escapes, runs requests in order, and returns
 `{code, stdout, stderr}`. Command chaining, expansions, host commands and JavaScript execution are
@@ -246,6 +246,12 @@ Supported commands: `init`, `status [-s|--short|--porcelain] [PATH...]`, `diff [
 `commit -m MESSAGE`, `log`, `branch [-a|--all|-r|--remotes|NAME]`, `config user.name|user.email [VALUE]`, and
 `remote [-v|--verbose]`, `remote add|set-url NAME HTTPS_URL`, `remote get-url NAME`, and `remote rm|remove NAME`.
 Remote removal clears its tracking refs and local branch upstream settings while retaining working files, local branches and commits.
+`clone [--replace] [-b|--branch BRANCH] HTTPS_URL [.]` opens a repository at the virtual project root.
+It follows the remote's default branch or the requested branch, including its complete history and `origin`.
+Without `--replace`, a nonempty project is rejected before connecting; `--replace` atomically replaces project files only after success.
+Bundled `/sys` guides survive replacement. The optional destination must resolve to `/`; without a destination it defaults to `/`.
+Symlinks, submodules and reserved metadata/checkpoint paths in the working tree are rejected.
+Clone uses the supplied HTTPS transport, guards cancellation and concurrent edits, and leaves existing files untouched on failure.
 Explicit paths are resolved relative to the shell's current directory; `--` ends option parsing.
 For example, `git status .` restricts changes to that directory and `git diff --cached index.js`
 shows only the staged diff for that file. `git start` is an alias for `git init`.

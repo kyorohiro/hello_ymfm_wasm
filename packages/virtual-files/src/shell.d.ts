@@ -1,6 +1,13 @@
 /** Quotes and escapes only. No JavaScript evaluation or host shell invocation.
  * @param {string} source @returns {string[]} */
 export declare function parseCommand(source: string): string[];
+/** Parse the virtual rm command before any filesystem mutation.
+ * @param {string[]} args @returns {{path:string,recursive:boolean,force:boolean}} */
+export declare function parseRmArgs(args: string[]): {
+    path: string;
+    recursive: boolean;
+    force: boolean;
+};
 export type CommandResult = {
     code: number;
     stdout: string;
