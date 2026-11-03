@@ -49,8 +49,16 @@ test('moved factory sources reproduce current public module bytes before website
   const withoutRevisions = text => text.replace(/(\.js)\?[^'"\s]+(?=['"])/g, '$1');
   for (const name of ['soundchip.js', 'nesapu_wasm.js', 'pwm32x_wasm.js', 'nesapu.js']) {
     const source = await readFile(join(root, 'tetorica_src/runtime', name), 'utf8');
-    assert.equal(withoutRevisions(publicRuntimeModule(source, name)),
-      withoutRevisions(await readFile(join(root, 'docs/js', name), 'utf8')), name);
+    const published = withoutRevisions(await readFile(join(root, 'docs/js', name), 'utf8'));
+    assert.equal(withoutRevisions(publicRuntimeModule(source, name)), published, name);
+    if (name === 'nesapu_wasm.js' || name === 'pwm32x_wasm.js') {
+      // Only the asset location is adapted. A one-byte change to the right PCM
+      // channel offset must still fail the SDK checker's strict byte equality.
+      const edited = source.replace('this.ptr+this.capacity*4', 'this.ptr+this.capacity*8');
+      assert.notEqual(edited, source, name + ': PCM mutation fixture');
+      assert.notEqual(withoutRevisions(publicRuntimeModule(edited, name)), published,
+        name + ': layout adaptation must retain PCM byte differences');
+    }
     for (const nested of [false, true]) {
       const packaged = packagedRuntimeModule(source, name, {nested});
       if (name === 'nesapu.js') assert.match(packaged, /from '\.\/nesapuaudioengine.js'/);

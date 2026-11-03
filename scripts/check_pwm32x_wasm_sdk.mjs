@@ -4,12 +4,13 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
-import {dirname, resolve} from 'node:path';
+import {basename, dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {PWM32X} from '../tetorica_src/runtime/pwm32x.js';
 import {GenesisAudioEngine} from '../tetorica_src/runtime/genesisaudioengine.js';
 import {VgmPlayer} from '../tetorica_src/runtime/vgmplayer.js';
 import {seekPlayback} from '../docs/vgm_analyzer/seek_playback.js';
+import {publicRuntimeModule} from './runtime_module_layout.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage='Usage: node scripts/check_pwm32x_wasm_sdk.mjs --legacy-dir DIR --sdk-dir DIR [--out REPORT.json]';
@@ -133,7 +134,7 @@ async function playerChecks(backend){let generated=0,delivered=0,requested=0,ren
  assert(positiveCheckpointRestores>0);return {passed:true,rows,positiveCheckpointRestores,generatedEngineOutputStereoFrames:generated,deliveredPlayerOutputStereoFrames:delivered,requestedPlayerOutputStereoFrames:requested,engineRenderExecutions:renders,playerProcessCalls:calls,frameCountScope:'Actual explicit-MAME Genesis Engine generation includes baseline/reset replay, checkpoint-or-zero seek prefixes and opaque Player replay. Internal FM/PSG/PWM source calls and requested/delivered Player frames are not added again. Default legacy SimplePwm is not substituted or claimed to use this WASM.'};
 }
 async function main(){const args=argumentsFor(process.argv.slice(2));if(!args){console.log(usage);return;}const legacy=await backend(args['--legacy-dir']),sdk=await backend(args['--sdk-dir']);assert.deepEqual(sdk.metadata.exports,legacy.metadata.exports);
- const wrappers=['tetorica_src/runtime/pwm32x.js','docs/js/pwm32x.js','tetorica_src/runtime/pwm32x_wasm.js','docs/js/pwm32x_wasm.js','tetorica_src/runtime/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|pwm32x_wasm|soundchip)\.js)\?v=[^"'\s)]+/g,'$1').replace(/(pwm32x_wasm\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(await readFile(resolve(root,wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Web/deployed wrapper sync except named import caches');
+ const wrappers=['tetorica_src/runtime/pwm32x.js','docs/js/pwm32x.js','tetorica_src/runtime/pwm32x_wasm.js','docs/js/pwm32x_wasm.js','tetorica_src/runtime/genesisaudioengine.js','docs/js/genesisaudioengine.js'];const normalized=b=>b.toString().replace(/(\.\/(?:ym2612|segapsg|rf5c164|pwm32x|pwm32x_wasm|soundchip)\.js)\?v=[^"'\s)]+/g,'$1').replace(/(pwm32x_wasm\.js)\?v=[^"'\s)]+/g,'$1');for(let i=0;i<wrappers.length;i+=2)sameBytes(normalized(publicRuntimeModule(await readFile(resolve(root,wrappers[i]),'utf8'),basename(wrappers[i]))),normalized(await readFile(resolve(root,wrappers[i+1]))),'Source/deployed wrapper sync except published asset layout and named import caches');
  const helpers=['tetorica_src/runtime/ym2612.js','tetorica_src/runtime/segapsg.js','tetorica_src/runtime/rf5c164.js','tetorica_src/runtime/vgmplayer.js','tetorica_src/runtime/ym2612vgm.js','tetorica_src/runtime/opn_fm_vgm.js','docs/vgm_analyzer/seek_playback.js','docs/generated/ym2612_wasm.js','docs/generated/ym2612_wasm.wasm','docs/generated/segapsg_wasm.js','docs/generated/segapsg_wasm.wasm'];
  const report={schemaVersion:1,passed:false,deviceOpened:false,startedAt:new Date().toISOString(),clocks,outputRates,outputModes,layouts,checkpointFrame,probeFrames,inputs:{legacy:legacy.metadata,sdk:sdk.metadata,checker:await inputFile(fileURLToPath(import.meta.url)),wrappers:await Promise.all(wrappers.map(p=>inputFile(resolve(root,p)))),helpers:await Promise.all(helpers.map(p=>inputFile(resolve(root,p))))},method:'Actual generated JS/WASM through unchanged PWM32X async factory/wrapper, exact owned/borrowed/renderInto stereo PCM and semantic native state. Bounded positive controls also compare retained synchronous JS reference. Actual GenesisAudioEngine with explicit paired MAME PWM and real current FM/PSG, actual VgmPlayer checkpoint/opaque/seek. No mock, tolerance, Mixer or audio device.',
  limits:['PWM render integrates held DAC/duty output over double-precision timer durations at the configured output rate. All16routing modes,3-word FIFO overflow dropping oldest, pending words, manual ticks, cycle0/1/extremes, active rewrites, all16interrupt cadences, valid clock/rate setters, gain and mute are checked. InterruptCount is a software observation, not an invented IRQ hook.',

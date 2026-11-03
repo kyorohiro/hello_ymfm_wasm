@@ -174,3 +174,17 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - `w/`は独立したGitリポジトリー群。Tauri／Plugin等を親の`src/`へ取り込まない。スクリプト約40件が現在の場所を参照するため、移動前に設定化が必要。
 - `ww/`はゲーム音楽等の検証資料、`www/`はCassette等の作業データ。削除・公開・一括移動の対象にしない。
 - `dist/`はnpm配置、`release/`はZIPと配布stage、`build/`は一時出力。将来まとめる場合も、出力先の設定化と配布コマンドの整合性を先に扱う。
+
+## WASM SDK CIの移設漏れ修正（2026-11-04 完了）
+
+- [x] `scripts/check_wasm_sdk.mjs`の入力snapshotが旧`web/`を走査するため、ActionsがpreflightでENOENTになる問題を修正する。共有runtimeの新しい正本`tetorica_src/runtime/`を保護対象にする。
+- [x] 回帰fixtureも旧`web/`を作らない現在のcheckout配置へ変更し、入れ子のJS／WASMがsnapshotに含まれることと、失敗時にも入力保持を検証する。
+- [x] SDK workflowと個別checkerの移設参照を監査し、CIの関連テストと実SDK検証を実行する。
+
+検証結果：
+
+- 原因はsnapshotの走査先が旧`web/`のままだったこと。従来の仮checkoutも旧フォルダーを作っており検出できなかった。仮checkoutから旧`web/`をなくし、新runtimeのJSと入れ子のWASMが入力snapshotへ入り、失敗時も内容が保持されることを確認した。
+- NES／32X PWM checkerにも、編集元の`./generated/`と公開用の既存配置を直接byte比較する未対応があった。source側だけ既存の配布境界変換を適用し、cache除去後の厳密なbyte比較を維持。右PCMのoffsetを1 byte変えた場合の差分を見逃さない検証も追加した。音源・公開JS・WASM・固定SDKは変更していない。
+- SDK workflowの事前チェックへ配布境界の回帰テストも追加。CIと同じ事前コマンドで**133件成功、失敗0**。個別NES 912件とPWM 864件の実parityも最大差0で成功した。
+- CIと同じ`node scripts/check_wasm_sdk.mjs --work-dir NEW_DIRECTORY`を、ローカルEmscripten 6.0.6-gitで最後まで実行。**29チップ＋2 application-audio＋2 instrumentsの33ビルド、65 outputs、40,474件の厳密比較が成功**し、最後の入力保持検証も成功した。既存WASMを再利用する`--sdk-dir`は使っていない。
+- 実行記録は`/private/tmp/tetorica-wasm-sdk-ci-fix-20261104/summary.json`と同directoryの`logs/`・`reports/`。リモートActionsの再実行・commit／pushは行っていない。

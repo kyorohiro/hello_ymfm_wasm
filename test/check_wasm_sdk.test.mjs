@@ -159,7 +159,7 @@ test('command timeout kills a TERM-resistant descendant before returning',{skip:
   assert.equal(typeof await readFile(log,'utf8'),'string');
 });
 
-test('a malformed reference emits a failed summary with all 29 cores not compared',{timeout:30000},async t=>{
+test('current source layout is snapshotted before a malformed reference reports all 29 cores not compared',{timeout:30000},async t=>{
   const dir=await temporary(t),checkout=join(dir,'checkout'),reference=join(dir,'reference'),work=join(dir,'output');
   // Exercise the real offline SDK check and failure-report path in an isolated
   // checkout so another validation run cannot change this test's input snapshot.
@@ -168,7 +168,11 @@ test('a malformed reference emits a failed summary with all 29 cores not compare
     const target=join(checkout,path);await mkdir(dirname(target),{recursive:true});
     await cp(join(root,path),target,{recursive:true});
   }
-  for(const path of ['web','docs/js','docs/generated','docs/vgm_analyzer','docs/playground'])await mkdir(join(checkout,path),{recursive:true});
+  for(const path of ['tetorica_src/runtime/generated','docs/js','docs/generated','docs/vgm_analyzer','docs/playground'])await mkdir(join(checkout,path),{recursive:true});
+  const inputs=[['tetorica_src/runtime/probe.js','export const probe = 1;\n'],
+    ['tetorica_src/runtime/generated/probe.wasm',new Uint8Array([0,97,115,109,1,0,0,0])]];
+  for(const [path,bytes]of inputs)await writeFile(join(checkout,path),bytes);
+  await absent(join(checkout,'web'));
   await mkdir(reference);await writeFile(join(reference,'build-info.json'),JSON.stringify({schemaVersion:1,artifacts:[]})+'\n');
   const result=spawnSync(process.execPath,[join(checkout,'scripts/check_wasm_sdk.mjs'),
     '--work-dir',work,'--reference-dir',reference],{cwd:checkout,encoding:'utf8',timeout:25000,maxBuffer:1024*1024});
@@ -178,6 +182,12 @@ test('a malformed reference emits a failed summary with all 29 cores not compare
   const summary=JSON.parse(await readFile(join(work,'summary.json'),'utf8'));
   assert.equal(summary.schemaVersion,1);assert.equal(summary.passed,false);assert.equal(summary.stage,'preflight');
   assert.equal(summary.repositoryInputsUnchanged,true);assert.deepEqual(summary.artifacts,[]);
+  for(const [path,bytes]of inputs){
+    const record=summary.inputSnapshot.find(input=>input.path===join(checkout,path));
+    assert(record,'Input snapshot must include '+path);
+    assert.equal(record.bytes,Buffer.byteLength(bytes));assert.match(record.sha256,/^[a-f0-9]{64}$/);
+    assert.deepEqual(await readFile(join(checkout,path)),Buffer.from(bytes));
+  }
   assert.deepEqual(summary.expectedArtifacts,[...WASM_SDK_ARTIFACT_IDS]);
   assert.deepEqual(summary.notCompared,[...WASM_SDK_ARTIFACT_IDS]);
   assert.equal(summary.offlineCheck.exitCode,0);assert.match(summary.error,new RegExp(`exactly ${inventory.builds.length} artifacts`));

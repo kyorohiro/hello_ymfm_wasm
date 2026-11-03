@@ -56,7 +56,7 @@ async function snapshotInputs(inventory) {
       else if(entry.isFile()&&(all||/\.(?:js|mjs|json|wasm|ts|sh|py)$/.test(entry.name)))paths.add(path);
     }
   }
-  for(const dir of ['scripts','web','docs/js','docs/generated','docs/vgm_analyzer','docs/playground'])await walk(join(root,dir));
+  for(const dir of ['scripts','tetorica_src/runtime','docs/js','docs/generated','docs/vgm_analyzer','docs/playground'])await walk(join(root,dir));
   await walk(inventory.sdkRoot,true);
   return Promise.all([...paths].sort().map(metadata));
 }
