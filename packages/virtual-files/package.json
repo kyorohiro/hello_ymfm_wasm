@@ -1,6 +1,6 @@
 {
   "name": "tetorica-virtual-files",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Memory filesystem and lightweight command shell for browser and Node.js editors",
   "type": "module",
   "license": "BSD-3-Clause",

@@ -23,10 +23,21 @@ try {
   run(process.execPath,['--input-type=module','-e',`
     import assert from 'node:assert/strict';
     import {createVirtualFileSystem,createShell,transferVirtualFiles,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
-    import {createShell as directShell} from 'tetorica-virtual-files/shell.js';
+    import {createShell as directShell,parseRmArgs} from 'tetorica-virtual-files/shell.js';
     const fs=createVirtualFileSystem([{path:'/index.js',data:'hello'}]);
     assert.equal(createShell,directShell);
     assert.equal((await createShell({fs}).execute('cat index.js')).stdout,'hello');
+    assert.deepEqual(parseRmArgs(['-fr','--','-sample']),{path:'-sample',recursive:true,force:true});
+    assert.deepEqual(parseRmArgs(['--recursive','--force','samples']),{path:'samples',recursive:true,force:true});
+    assert.throws(()=>parseRmArgs(['-x','samples']),/Unsupported rm option/);
+    const removal=createVirtualFileSystem([{path:'/samples/a.raw',data:new Uint8Array([1])},{path:'/-sample',data:'option-like filename'}]);
+    const removalShell=createShell({fs:removal});
+    const rejected=await removalShell.execute('rm -xf samples');
+    assert.equal(rejected.code,1);assert(removal.has('/samples/a.raw'));
+    for(const command of ['rm -fr samples','rm --force missing','rm -- -sample']) {
+      const result=await removalShell.execute(command);assert.equal(result.code,0,result.stderr);
+    }
+    assert.equal(removal.list().length,0);assert.deepEqual(removal.listDirectories(),['/']);
     assert.deepEqual(await fs.sync('/index.js',{syncRoot:'/ss.tet'}),{sourcePath:'/index.js',destinationPath:'/ss.tet/index.js',changed:true});
     assert.equal(fs.get('/ss.tet/index.js').data,'hello');
     assert.equal((await fs.sync('/index.js',{syncRoot:'/ss.tet'})).changed,false);
@@ -52,6 +63,12 @@ try {
   `],consumer);
   await writeFile(join(consumer,'checkpoints.mts'), `
     import {createVirtualFileSystem,isCheckpointPath,CHECKPOINT_ROOT} from 'tetorica-virtual-files';
+    import {parseRmArgs} from 'tetorica-virtual-files/shell.js';
+    const removal:{path:string,recursive:boolean,force:boolean}=parseRmArgs(['-rf','.']);
+    // @ts-expect-error rm arguments must be strings.
+    parseRmArgs([123]);
+    // @ts-expect-error Parsed flags are booleans.
+    const invalidRemoval:string=removal.recursive;
     const fs=createVirtualFileSystem([{path:'/a',data:'A'}],{autoCheckpoint:true});
     fs.checkpoints.set('/a',{expectedRevision:fs.getRevision('/a')});
     const saved=fs.checkpoints.get('/a');
@@ -90,6 +107,8 @@ try {
   for(const name of ['buffer','diff','isomorphic-git'])await symlink(join(root,'node_modules',name),join(consumer,'node_modules',name),'dir');
   run(process.execPath,['--input-type=module','-e',`
     import assert from 'node:assert/strict';
+    import {createHash} from 'node:crypto';
+    import {deflateSync} from 'node:zlib';
     import {createVirtualFileSystem,createShell} from 'tetorica-virtual-files';
     import {createVirtualGit,registerGitShell} from 'tetorica-virtual-files/git';
     const fs=createVirtualFileSystem([{path:'/index.js',data:'hello'}]);
@@ -99,8 +118,54 @@ try {
     }
     assert.match((await shell.execute('git status')).stdout,/Working tree clean/);
     assert(fs.has('/.git/HEAD'));
+    for(const alias of ['rm','remove']) {
+      const added=await shell.execute('git remote add origin https://example.invalid/project');
+      assert.equal(added.code,0,added.stderr);
+      const removed=await shell.execute('git remote '+alias+' origin');assert.equal(removed.code,0,removed.stderr);
+      assert.equal((await shell.execute('git remote -v')).stdout,'');
+      assert.equal(fs.get('/index.js').data,'hello');assert(fs.has('/.git/HEAD'));
+    }
+    // An isolated smart-HTTP fixture exercises the packed clone implementation.
+    // No external repository, network, credentials or host filesystem is used.
+    const objects=[];
+    const object=(type,data)=>{
+      const body=Buffer.from(data),bytes=Buffer.concat([Buffer.from(type+' '+body.length+'\\0'),body]);
+      const oid=createHash('sha1').update(bytes).digest('hex');objects.push({type,body});return oid;
+    };
+    const blob=object('blob','play("C4");\\n');
+    const tree=object('tree',Buffer.concat([Buffer.from('100644 index.js\\0'),Buffer.from(blob,'hex')]));
+    const oid=object('commit','tree '+tree+'\\nauthor Package Fixture <fixture@example.invalid> 1700000000 +0000\\ncommitter Package Fixture <fixture@example.invalid> 1700000000 +0000\\n\\nPacked clone fixture\\n');
+    const header=Buffer.alloc(12);header.write('PACK');header.writeUInt32BE(2,4);header.writeUInt32BE(objects.length,8);
+    const chunks=[header];
+    for(const {type,body} of objects) {
+      let size=body.length;const sizes=[({commit:1,tree:2,blob:3}[type]<<4)|(size&15)];size>>>=4;if(size)sizes[0]|=128;
+      while(size){let next=size&127;size>>>=7;if(size)next|=128;sizes.push(next);}
+      chunks.push(Buffer.from(sizes),deflateSync(body));
+    }
+    const packed=Buffer.concat(chunks),pack=Buffer.concat([packed,createHash('sha1').update(packed).digest()]);
+    const packet=value=>{const bytes=Buffer.from(value);return Buffer.concat([Buffer.from((bytes.length+4).toString(16).padStart(4,'0')),bytes]);};
+    const flush=Buffer.from('0000');let requests=0;
+    const http={async request({url,method='GET'}) {
+      requests++;
+      const body=method==='GET'
+        ? [packet('# service=git-upload-pack\\n'),flush,packet(oid+' HEAD\\0multi_ack_detailed side-band-64k ofs-delta symref=HEAD:refs/heads/stable\\n'),packet(oid+' refs/heads/stable\\n'),flush]
+        : [packet('NAK\\n'),packet(Buffer.concat([Buffer.from([1]),pack])),flush];
+      return {url,statusCode:200,statusMessage:'OK',headers:{'content-type':method==='GET'?'application/x-git-upload-pack-advertisement':'application/x-git-upload-pack-result'},body};
+    }};
+    const cloned=createVirtualFileSystem([{path:'/old.txt',data:'Keep until success'}]),cloneShell=createShell({fs:cloned});
+    const cloneRepo=createVirtualGit({fs:cloned,http});registerGitShell(cloneShell,cloneRepo);
+    const refused=await cloneShell.execute('git clone https://example.invalid/project .');
+    assert.equal(refused.code,1);assert.match(refused.stderr,/FILES is not empty/);assert.equal(requests,0);
+    const result=await cloneShell.execute('git clone --replace -b stable https://example.invalid/project .');
+    assert.equal(result.code,0,result.stderr);assert(requests>=2);
+    assert.equal(cloned.get('/index.js').data,'play("C4");\\n');assert(!cloned.has('/old.txt'));
+    assert.equal((await cloneRepo.execute('log')).length,1);assert.match((await cloneShell.execute('git status')).stdout,/Working tree clean/);
+    assert.equal((await cloneShell.execute('git remote rm origin')).code,0);
+    assert.equal((await cloneShell.execute('git remote -v')).stdout,'');
+    assert.equal((await cloneRepo.execute('log')).length,1);assert(cloned.has('/.git/refs/heads/stable'));
+    assert(!cloned.has('/.git/refs/remotes/origin/stable'));
   `],consumer);
-  console.log('Packed core installs without dependencies; sync/checkpoint/batch APIs/types pass NodeNext/Bundler; optional Git peers enable init/add/commit/status.');
+  console.log('Packed core installs without dependencies; sync/checkpoint/batch/rm APIs and types pass NodeNext/Bundler; optional Git peers enable local Git, remote removal and isolated HTTPS clone.');
 } finally {
   await rm(temporary,{recursive:true,force:true});
 }

@@ -1,6 +1,8 @@
 # Tetorica Virtual Files
 
-状態：`tetorica-virtual-files` 0.3.0 を npm の latest として公開（2026-10-13）。初回公開は 0.1.0（2026-10-09）、前回は 0.2.0（2026-10-11）。
+状態：`tetorica-virtual-files` 0.5.0 を npm の latest として公開（2026-11-03）。Git clone・remote rm/remove・rmの追加オプションを含む。全106件、配布物の隔離インストールと型、公開tarball一致を確認。[公開・検証記録](npm_virtual_files_050_release_01.md)を参照。
+
+以下は0.3.0公開時の実装記録。初回公開は0.1.0（2026-10-09）、0.2.0は2026-10-11、0.3.0は2026-10-13。
 
 0.3.0 は `tetorica-virtual-files/git` を追加。Git の履歴・index は仮想ファイルシステム内の `/.git` に保存し、ローカル操作とホスト提供 HTTP によるリモート操作に対応する。Git 用の `isomorphic-git`・`buffer`・`diff` は optional peer dependencies とし、通常のコア利用ではインストールされない。利用方法は [パッケージ README](../../packages/virtual-files/README.md#git-in-virtual-files) を参照。
 

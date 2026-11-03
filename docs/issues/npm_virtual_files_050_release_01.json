@@ -1,0 +1,31 @@
+{
+  "package": "tetorica-virtual-files",
+  "version": "0.5.0",
+  "status": "published",
+  "checks": {
+    "unitTestsPassed": 106,
+    "buildAndDeclarations": true,
+    "packedOfflineInstallWithoutPeers": true,
+    "nodeNextAndBundlerTypes": true,
+    "packedRmOptions": true,
+    "packedGitRemoteRemoval": true,
+    "packedIsolatedHttpsClone": true,
+    "tarballMatchesCanonicalAndDist": true
+  },
+  "artifact": {
+    "path": "/private/tmp/virtual-files-release-VOqZBp/tetorica-virtual-files-0.5.0.tgz",
+    "files": 23,
+    "bytes": 44008,
+    "unpackedBytes": 148876,
+    "shasum": "2775b5fc948a6ee5e91e66919ca512632a0c689b",
+    "integrity": "sha512-OxCpv+/6wbmu86Z8F+pNDc+4WAbp48o4l4oMlrWkzEK8kuCQfuVJPz8dK3uOoYESbEDl+0/tY2jB+nlaktD1kg=="
+  },
+  "verifiedAt": "2026-11-03T09:33:42.043037+00:00",
+  "registry": {
+    "version": "0.5.0",
+    "latest": "0.5.0",
+    "url": "https://registry.npmjs.org/tetorica-virtual-files/-/tetorica-virtual-files-0.5.0.tgz",
+    "integrity": "sha512-OxCpv+/6wbmu86Z8F+pNDc+4WAbp48o4l4oMlrWkzEK8kuCQfuVJPz8dK3uOoYESbEDl+0/tY2jB+nlaktD1kg==",
+    "publishedTarballByteIdentical": true
+  }
+}

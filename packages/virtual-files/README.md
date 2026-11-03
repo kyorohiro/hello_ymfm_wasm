@@ -1,6 +1,11 @@
 # tetorica-virtual-files
 
-Version 0.4.0 adds file/folder synchronization, persistent single-generation
+Version 0.5.0 adds transactional HTTPS Git cloning using host-provided HTTP,
+`git remote rm/remove`, and Shell `rm` support for recursive/force flags,
+combined options and `--`. Hosts can reuse `parseRmArgs()` from the shell
+entry point when defining their own deletion policy.
+
+Version 0.4.0 added file/folder synchronization, persistent single-generation
 file checkpoints, automatic first-edit capture, and atomic grouped writes and
 checkpoint updates. `sync(sourcePath, {syncRoot?})` returns a Promise; Auto is
 off unless explicitly enabled. Checkpoints use `/.tet.ss`, follow file moves,
