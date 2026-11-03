@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/docs/native_audio_effect}"
+OUT_DIR="${1:-$ROOT_DIR/web/generated/effects}"
 mkdir -p "$OUT_DIR"
 emcc "$ROOT_DIR/native/audio_effect/sample.c" "$ROOT_DIR/native/audio_effect/noise.c" "$ROOT_DIR/native/audio_effect/gain.c" "$ROOT_DIR/native/audio_effect/reverb.c" "$ROOT_DIR/native/audio_effect/compressor.c" "$ROOT_DIR/native/audio_effect/noise_gate.c" "$ROOT_DIR/native/audio_effect/eq.c" "$ROOT_DIR/native/audio_effect/graph.c" "$ROOT_DIR/native/audio_effect/extra_fx.c" -O2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=33554432 -sSTANDALONE_WASM=1 \
   -Wl,--export=reverb_reset -Wl,--export=reverb_set -Wl,--export=reverb_clear \
@@ -18,6 +18,7 @@ emcc "$ROOT_DIR/native/audio_effect/sample.c" "$ROOT_DIR/native/audio_effect/noi
   -Wl,--export=gain_set -Wl,--export=gain_process \
   -o "$OUT_DIR/gain.wasm"
 
-# Shared Playground artifact; keep the lab and shipped runtime on the same DSP.
-cp "$OUT_DIR/gain.wasm" "$ROOT_DIR/web/native_audio_effect.wasm"
-cp "$OUT_DIR/gain.wasm" "$ROOT_DIR/docs/js/native_audio_effect.wasm"
+# Publish only normal builds; explicit output directories stay isolated.
+if [ "$#" -eq 0 ]; then
+  node "$ROOT_DIR/scripts/sync_runtime_artifacts.mjs" --only native_audio_effect
+fi

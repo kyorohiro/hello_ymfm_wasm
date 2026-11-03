@@ -3,6 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" playground --check
 node "${ROOT_DIR}/scripts/generate_playground_mixer_defaults.mjs" \
   --report="${ROOT_DIR}/docs/issues/playground_chip_levels_01.json" --check
 node "${ROOT_DIR}/scripts/generate_soundchip_mixer_presets.mjs" --check
@@ -17,7 +18,6 @@ PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
 PLAYGROUND_VENDOR_DIR="${PLAYGROUND_DIR}/vendor"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 DOCS_SYNTH_DIR="${ROOT_DIR}/docs/synth"
-DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
 PLAYGROUND_SAMPLES_DIR="${ROOT_DIR}/docs/playground/samples"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
@@ -326,7 +326,6 @@ native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
 audio-diagnostic-worklet.js
-native_audio_effect.wasm
 megasynth_looper.js
 megasynth_recording.js
 megasynth-fm-presets.js
@@ -466,51 +465,7 @@ synth_operator_envelope.js
 synth_keyboard.js
 "
 
-GENERATED_FILES="
-nesapu_wasm.js
-nesapu_wasm.wasm
-pwm32x_wasm.js
-pwm32x_wasm.wasm
-ay8910_wasm.js
-ay8910_wasm.wasm
-ym2413_wasm.js
-ym2413_wasm.wasm
-ym3526_wasm.js
-ym3526_wasm.wasm
-ym3812_wasm.js
-ym3812_wasm.wasm
-y8950_wasm.js
-y8950_wasm.wasm
-ymf262_wasm.js
-ymf262_wasm.wasm
-ps1_spu_wasm.js
-ps1_spu_wasm.wasm
-scsp_wasm.js
-scsp_wasm.wasm
-spc_wasm.js
-spc_wasm.wasm
-ym2151_wasm.js
-ym2151_wasm.wasm
-gameboy_apu_wasm.js
-gameboy_apu_wasm.wasm
-huc6280_wasm.js
-huc6280_wasm.wasm
-pokey_wasm.js
-pokey_wasm.wasm
-wonderswan_wasm.js
-wonderswan_wasm.wasm
-build-info.json
-okim6258_wasm.js
-okim6258_wasm.wasm
-rf5c164_wasm.js
-rf5c164_wasm.wasm
-ym2612_wasm.js
-ym2612_wasm.wasm
-nuked_opn2_wasm.js
-nuked_opn2_wasm.wasm
-segapsg_wasm.js
-segapsg_wasm.wasm
-"
+
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
 NUKED_LICENSE_FILES="
@@ -533,10 +488,6 @@ if [ ! -d "${DOCS_SYNTH_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
-  echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
-  exit 1
-fi
 
 if [ ! -d "${PLAYGROUND_SAMPLES_DIR}" ]; then
   echo "error: missing directory: ${PLAYGROUND_SAMPLES_DIR}" >&2
@@ -595,7 +546,6 @@ for file in ${RUNTIME_FILES}; do
 done
 
 cp -R "${DOCS_JS_DIR}/nes_apu_vendor" "${STAGE_DIR}/js/nes_apu_vendor"
-cp -R "${DOCS_JS_DIR}/msfa_dx7" "${STAGE_DIR}/js/msfa_dx7"
 cp -R "${ROOT_DIR}/packages/virtual-files/src" "${STAGE_DIR}/js/tetorica_virtual_files"
 for file in git.bundle.js GIT_LICENSES.txt; do
   src="${DOCS_JS_DIR}/tetorica_virtual_files/${file}"
@@ -626,24 +576,10 @@ for file in ${SYNTH_SUPPORT_FILES}; do
   cp "${src}" "${dst}"
 done
 
-for file in ${GENERATED_FILES}; do
-  src="${DOCS_GENERATED_DIR}/${file}"
-  dst="${STAGE_DIR}/generated/${file}"
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" playground --copy "${STAGE_DIR}"
 
-  if [ ! -f "${src}" ]; then
-    echo "error: missing generated file: ${src}" >&2
-    exit 1
-  fi
 
-  cp "${src}" "${dst}"
-done
 
-for chip in ym2203 ym2608 ym2610b; do
-  if [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
-    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
-    cp "${DOCS_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
-  fi
-done
 
 mkdir -p "${STAGE_DIR}/licenses/mame-32x-pwm"
 cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${STAGE_DIR}/licenses/mame-32x-pwm/"
@@ -671,7 +607,7 @@ done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
-DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${DOCS_JS_DIR}/msfa_dx7/package.json")
+DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${ROOT_DIR}/web/msfa_dx7/package.json")
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_ps1_sources.mjs" "${STAGE_DIR}"

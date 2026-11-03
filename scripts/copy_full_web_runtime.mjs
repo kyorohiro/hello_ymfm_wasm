@@ -1,5 +1,5 @@
 // Shared runtime payload for the flat runtime ZIP and the browser-example ZIP.
-import {readdirSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync} from 'node:fs';
+import {readdirSync, readFileSync, writeFileSync, mkdirSync, copyFileSync} from 'node:fs';
 import {resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {copyOpnaRhythm} from './copy_opna_rhythm.mjs';
@@ -13,20 +13,17 @@ import {copyCddaSources} from './copy_cdda_sources.mjs';
 import {copyMsm5205Sources} from './copy_msm5205_sources.mjs';
 import {copyScspSources} from './copy_scsp_sources.mjs';
 import {copyPs1Sources} from './copy_ps1_sources.mjs';
+import {copyRuntimeArtifactProfile, runtimeArtifactProfiles} from './runtime_artifact_profiles.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = resolve(process.argv[2]);
 const nested = process.argv[3] === 'js';
+await copyRuntimeArtifactProfile('full', stage, {root, layout: nested ? 'js' : 'flat'});
 await copyOpnaRhythm(stage, nested ? 'js' : '.');
 const jsDir = nested ? join(stage,'js') : stage;
 mkdirSync(jsDir,{recursive:true});
 mkdirSync(join(stage,'generated'),{recursive:true});
-const chips = 'ay8910 gameboy_apu huc6280 wonderswan pokey k051649 nesapu pwm32x nuked_opn2 okim6258 rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288'.split(' ');
-for (const chip of chips) for (const ext of ['js','wasm']) {
-  const name = `${chip}_wasm.${ext}`;
-  const source = join(root,'docs/generated',name);
-  if (!existsSync(source)) throw new Error(`Missing ${name}; build this chip before packaging the full runtime`);
-  copyFileSync(source,join(stage,'generated',name));
-}
+const additionalArtifacts = new Set(['cdda','msm5205','ps1_spu','scsp','dx7','native_audio_effect']);
+const chips = runtimeArtifactProfiles.full.filter(id => !additionalArtifacts.has(id));
 const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.endsWith('.test.js')).sort();
 for (const name of modules) {
   let source=readFileSync(join(root,'web',name),'utf8');
@@ -54,8 +51,8 @@ for (const name of modules) {
 for (const name of ['nesapuaudioengine.js','fds_audio.js']) copyFileSync(join(root,'docs/js',name),join(jsDir,name));
 const {cpSync} = await import('node:fs');
 cpSync(join(root,'docs/js/nes_apu_vendor'),join(jsDir,'nes_apu_vendor'),{recursive:true});
-// Keep the DX7 package's module/WASM layout, local JS extensions and Apache notices.
-cpSync(join(root,'web/msfa_dx7'),join(jsDir,'msfa_dx7'),{recursive:true});
+// The shared artifact profile retains the complete DX7 vendor package and
+// copies its WASM from the canonical generated directory.
 await copySpcSources(stage);
 await copyNesSources(stage);
 await copyPwmSources(stage);
@@ -66,10 +63,8 @@ await copyCddaSources(stage);
 await copyMsm5205Sources(stage);
 await copyPs1Sources(stage);
 await copyScspSources(stage);
-for(const name of ['scsp_wasm.js','scsp_wasm.wasm'])copyFileSync(join(root,'docs/generated',name),join(stage,'generated',name));
 const dx7Version = JSON.parse(readFileSync(join(root,'web/msfa_dx7/package.json'),'utf8')).version;
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
-copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));
 copyFileSync(join(root,'web/soundchip.md'),join(jsDir,'soundchip.md'));
 const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-wonderswan','mame-k051649','mame-okim6258','mame-okim6295','libvgm-msm5205','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
 for (const name of notices.filter(name=>name!=='nuked-opn2')) {

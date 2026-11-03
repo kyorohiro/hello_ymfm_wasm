@@ -3,6 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" synth --check
 RELEASE_DIR="${ROOT_DIR}/release"
 VERSION="${1:-dev}"
 STAGE_DIR="${RELEASE_DIR}/itch_synth_${VERSION}"
@@ -11,7 +12,6 @@ ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_synth.zip"
 SOURCE_HTML="${ROOT_DIR}/docs/synth/index.html"
 SOURCE_JS="${ROOT_DIR}/docs/synth/synth.js"
 SOURCE_JS_DIR="${ROOT_DIR}/docs/js"
-SOURCE_GENERATED_DIR="${ROOT_DIR}/docs/generated"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 SYNTH_SUPPORT_DIR="${ROOT_DIR}/docs/synth"
 SYNTH_FILES="
@@ -86,7 +86,6 @@ native_fx_graph.js
 native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
-native_audio_effect.wasm
 megasynth_recording.js
 megasynth_looper.js
 megasynth-fm-presets.js
@@ -138,11 +137,6 @@ if [ ! -d "${SOURCE_JS_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -d "${SOURCE_GENERATED_DIR}" ]; then
-  echo "error: missing directory: ${SOURCE_GENERATED_DIR}" >&2
-  exit 1
-fi
-
 if [ ! -f "${LICENSE_FILE}" ]; then
   echo "error: missing file: ${LICENSE_FILE}" >&2
   exit 1
@@ -153,23 +147,6 @@ if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -f "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" ]; then
-  echo "error: YM2612 WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
-  echo "hint: run sh scripts/build_ym2612_wasm.sh first" >&2
-  exit 1
-fi
-
-if [ ! -f "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" ]; then
-  echo "error: Nuked-OPN2 WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
-  echo "hint: run sh scripts/build_nuked_opn2_wasm.sh first" >&2
-  exit 1
-fi
-
-if [ ! -f "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" ] || [ ! -f "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" ]; then
-  echo "error: Sega PSG WASM files are missing in ${SOURCE_GENERATED_DIR}" >&2
-  echo "hint: run sh scripts/build_segapsg_wasm.sh first" >&2
-  exit 1
-fi
 
 mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
@@ -235,22 +212,8 @@ cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 
-cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
-cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
-cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_opn2_wasm.js"
-cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
-cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
-cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
-cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.js" "${STAGE_DIR}/generated/nesapu_wasm.js"
-cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.wasm" "${STAGE_DIR}/generated/nesapu_wasm.wasm"
-cp "${SOURCE_GENERATED_DIR}/pwm32x_wasm.js" "${STAGE_DIR}/generated/pwm32x_wasm.js"
-cp "${SOURCE_GENERATED_DIR}/pwm32x_wasm.wasm" "${STAGE_DIR}/generated/pwm32x_wasm.wasm"
-for chip in ym2203 ym2608 rf5c164; do
-  if [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
-    cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
-    cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" "${STAGE_DIR}/generated/${chip}_wasm.wasm"
-  fi
-done
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" synth --copy "${STAGE_DIR}"
+
 cp "${LICENSE_FILE}" "${STAGE_DIR}/LICENSE"
 mkdir -p "${STAGE_DIR}/licenses/mame-32x-pwm"
 cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${STAGE_DIR}/licenses/mame-32x-pwm/"

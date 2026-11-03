@@ -31,7 +31,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
  print(json.dumps({'names':z.namelist(),'receipt':receipt}))
 `,a.archive],{encoding:'utf8'}));
  assert.equal(info.names.length,a.files);assert(!JSON.stringify(info.receipt).includes('/Users/'));
- for(const name of ['generated/scsp_wasm.js','generated/scsp_wasm.wasm'])assert.deepEqual(await readFile(join(a.stage,name)),await readFile(new URL('../docs/'+name,import.meta.url)));
+ for(const name of ['generated/scsp_wasm.js','generated/scsp_wasm.wasm'])assert.deepEqual(await readFile(join(a.stage,name)),await readFile(new URL('../web/'+name,import.meta.url)));
+ assert(info.receipt.originalInputs.some(input=>input.path==='web/generated/scsp_wasm.js'));
+ assert(!info.receipt.originalInputs.some(input=>input.path==='docs/generated/scsp_wasm.js'));
  assert.deepEqual(await readFile(join(a.stage,'tetorica-spu-1254.webp')),await readFile(new URL('../docs/tetorica-spu-1254.webp',import.meta.url)));
  const native=JSON.parse(await readFile(join(a.stage,'sources/SCSP.json')));
  for(const entry of native.inputs){const data=await readFile(join(a.stage,entry.path));assert.equal(data.length,entry.bytes);assert.equal(sha(data),entry.sha256);}

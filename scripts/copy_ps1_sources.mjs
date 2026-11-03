@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function files(directory,prefix=''){
@@ -22,9 +23,11 @@ function verify(bytes,record,label,size='bytes'){
   if(!record||bytes.length!==record[size]||sha(bytes)!==record.sha256)throw new Error('PS1 SPU source/build receipt mismatch: '+label);
 }
 export async function copyPs1Sources(stage){
+  await checkRuntimeArtifacts({root,ids:['ps1_spu'],mirrors:true});
+  const generated=new Map((await listRuntimeArtifactFiles({root,ids:['ps1_spu']})).map(file=>[file.path,file.source]));
   const sdk=join(root,'third_party/tetorica-soundchip-native'),pinBytes=await readFile(join(root,'third_party/soundchip-sdk.json')),pin=JSON.parse(pinBytes),manifestBytes=await readFile(join(sdk,'RELEASE-MANIFEST.json'));
   if(sha(manifestBytes)!==pin.manifestSha256)throw new Error('PS1 SDK manifest hash mismatch');
-  const manifest=JSON.parse(manifestBytes),receiptBytes=await readFile(join(root,'docs/generated/ps1_spu_build.json')),build=JSON.parse(receiptBytes);
+  const manifest=JSON.parse(manifestBytes),receiptBytes=await readFile(generated.get('ps1_spu_build.json')),build=JSON.parse(receiptBytes);
   if(build.schemaVersion!==1||build.component!=='ps1-spu'||build.fixedSdkArtifact!==true||!isDeepStrictEqual(build.sdk,pin))throw new Error('Expected a PS1 SPU build from the current fixed SDK');
   const component='vendor/mame-ps1-spu',names=[...(await files(join(sdk,component))).map(name=>component+'/'+name),
     'LICENSE','sdk.json','catalog/source_inventory.json','native/include/tetorica/ps1_spu.h','scripts/build_ps1_spu_wasm.sh','scripts/build-wasm.sh','scripts/record_wasm_build.mjs'].sort();
@@ -41,7 +44,7 @@ export async function copyPs1Sources(stage){
   payload.set('sources/scripts/build_ps1_spu_wasm.sh',Buffer.from(recipe));
   payload.set('sources/sdk/RELEASE-MANIFEST.json',manifestBytes);payload.set('sources/sdk/soundchip-sdk.json',pinBytes);
   for(const name of ['ps1_spu_wasm.js','ps1_spu_wasm.wasm']){
-    const bytes=await readFile(join(root,'docs/generated',name));verify(bytes,build.outputs[name],name);payload.set('generated/'+name,bytes);
+    const bytes=await readFile(generated.get(name));verify(bytes,build.outputs[name],name);payload.set('generated/'+name,bytes);
   }
   payload.set('generated/ps1_spu_build.json',receiptBytes);
   payload.set('licenses/mame-ps1-spu/LICENSE',payload.get('sources/native/ps1/LICENSE'));

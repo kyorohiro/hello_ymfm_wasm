@@ -115,7 +115,7 @@ use the same direct PCM cores; Node.js requires version 22 or later.
 | Distribution / source | Where to find it |
 | --- | --- |
 | npm imports and asset URLs | [Package README](packages/fm2612/README.md), including `runtimeAssetUrl()` and custom WASM loading. |
-| Source checkout | [JavaScript source map](web/README.md), [`docs/generated/`](docs/generated/) for prebuilt loaders / WASM, [`node/`](node/README.md) for Node audio. |
+| Source checkout | [JavaScript source map](web/README.md), [`web/generated/`](web/generated/) for the complete prebuilt loader / WASM catalog, [`node/`](node/README.md) for Node audio. |
 | Standalone web runtime ZIPs | [Packaging and artifact names](README_RELEASE.md); these contain runtime modules, generated assets and notices. |
 | C / C++ and reproducible WASM builds | [Native SDK](https://github.com/kyorohiro/tetorica-soundchip-native) and [pinned SDK build guide](docs/building_ym2612_wasm.md). |
 

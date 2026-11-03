@@ -17,7 +17,7 @@ node scripts/check_wasm_sdk.mjs
 ```
 
 This invokes the SDK's existing `build-wasm.sh all` in a fresh directory outside
-the checkout. It does not rebuild in `docs/generated/` or update runtime copies.
+the checkout. It does not rebuild in `web/generated/` or update runtime copies.
 The command requires exactly 33 receipts and 65 outputs: 29 chip recipes,
 two application-audio recipes and the PS1 SPU/SCSP instrument recipes produce 32
 JS/WASM pairs and DX7's standalone `msfa.wasm`. It verifies each receipt's source list,
@@ -156,17 +156,26 @@ sh scripts/build_scsp_wasm.sh
 
 Each build verifies the snapshot before invoking the SDK's original module
 recipe. The 32 paired recipes produce a `.js` / `.wasm` pair under
-`docs/generated/`. DX7 produces only the standalone `msfa.wasm`, with no
-generated JS loader. Its default build also copies that same output to
+`web/generated/`, the complete canonical output directory. DX7 produces only
+the standalone `msfa.wasm`, with no generated JS loader. Default builds use
+the shared artifact synchronizer to maintain `docs/generated/` and the special
+runtime paths. DX7 also copies that same output to
 `web/msfa_dx7/wasm/msfa.wasm` and `docs/js/msfa_dx7/wasm/msfa.wasm`, retaining
-the existing runtime URLs. All 33 build receipts share `docs/generated/build-info.json`.
+the existing runtime URLs. All 33 build receipts share `web/generated/build-info.json`.
 WonderSwan uses the same central receipt; its earlier standalone receipt is no longer generated.
-The PS1 wrapper also writes `docs/generated/ps1_spu_build.json` with the complete
+The PS1 wrapper also writes `web/generated/ps1_spu_build.json` with the complete
 fixed SDK pin, authenticated PS1 source/build inputs and output hashes for source-bundle export.
 The YM2203, YM2610B, YM2151, OKIM6258, SPC and Sega PCM recipes retain their generated-glue whitespace cleanup using Perl.
 With Node.js available, the SDK also writes
-`docs/generated/build-info.json` with compiler version, source hashes and
+`web/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
+An explicit output directory skips mirror synchronization. This keeps comparison
+builds separate from the public runtime. Run `npm run check:runtime-artifacts`
+to verify receipts, output hashes and all mirrors, or
+`npm run sync:runtime-artifacts` to synchronize validated canonical files.
+The generated `web/generated/runtime-artifacts.json` also lists Native FX,
+source/license references and every mirror. Native FX builds to
+`web/generated/effects/gain.wasm`; its existing public URLs remain unchanged.
 These are build records; consumers retain the existing
 `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `WonderSwan`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276`, `Ymf288` and `Ymf278b` APIs.
 DX7 retains the separate `msfa_dx7/src/index.js` `createDX7()` API and its JS

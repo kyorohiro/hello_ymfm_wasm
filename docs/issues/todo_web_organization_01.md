@@ -19,18 +19,18 @@
 - web/は再利用runtimeの編集元。`docs/js/`には生成・同期された公開用コピーと、一部の独立実装がある。配布用コピー時には相対URLの書き換えも行う。
 - npmは平坦な直接importを提供し、Tauriにも固定のweb/パスがある。移動に先立って、編集元と配布先の関係を明示する。
 
-## 次の実装候補（今回は未着手）
+## 生成物の統一（2026-11-03実装）
 
-ユーザーの追加指摘「web/generatedを見ても全部揃わない」を受け、先に生成物の基準を決める。以下は提案であり、配置変更は未実装。
+ユーザーの追加指摘「web/generatedを見ても全部揃わない」を受け、先に生成物の基準を決める。2026-11-03、ユーザーの「進めて」を受け、下記の生成物統一を実装した。テスト／runtime本体の移動は後続段階。
 
 ### 先に生成物を一本化する
 
-- [ ] 全WASM／loader／付随metadata・ライセンスの入出力を一つのmanifestで管理する。SDK catalogを参照し、DX7とNative FXの対応付けも明示する。既存の一覧・パス判定をこれに集約する。
-- [ ] `web/generated/`を、共有runtimeが使う生成物が全部揃う正本にする。`docs/generated/`はWeb公開用のコピーとして同期する方針を第一候補とする。
-- [ ] チップbuild scriptの既定出力先を揃える。配布・検証でも同じmanifestを使い、不足・古いコピー・loader／WASMの不一致を検出する。
-- [ ] DX7のvendor layoutとNative FXの既存URLを、manifestで管理する同期先として扱う。既存の公開URL・npmのimport・Tauri・測定報告との整合性を確認して移行する。
+- [x] 全WASM／loader／付随metadata・ライセンスの入出力を一つのmanifestで管理する。SDK catalogを参照し、DX7とNative FXの対応付けも明示する。既存の一覧・パス判定をこれに集約する。
+- [x] `web/generated/`を、共有runtimeが使う生成物が全部揃う正本にする。`docs/generated/`はWeb公開用のコピーとして同期する。
+- [x] チップbuild scriptの既定出力先を揃える。配布・検証でも同じmanifestを使い、不足・古いコピー・loader／WASMの不一致を検出する。
+- [x] DX7のvendor layoutとNative FXの既存URLを、manifestで管理する同期先として扱う。公開URL・npmのimport・既存のTauri参照パス・測定入力の内容を維持して移行する。
 
-現状の調査結果：
+移行前の調査結果：
 
 | 場所 | 内容 |
 | --- | --- |
@@ -39,7 +39,25 @@
 | `web/msfa_dx7/wasm/`、`docs/js/msfa_dx7/wasm/` | DX7のvendorパッケージ内コピー。 |
 | `docs/native_audio_effect/gain.wasm`、`web/native_audio_effect.wasm`、`docs/js/native_audio_effect.wasm` | Native FXのbuild出力とruntime／公開コピー。 |
 
-通常のチップbuildは`docs/generated/`が既定だが、CD-DA／MSM5205は`web/generated/`が既定。一部のwrapperには`/web/`というURLから参照先を切り替える処理があり、同期・npm配布時にも個別の書換がある。manifestと正本の統一でこの分岐を整理する。固定SDK snapshot内は移動しない。
+移行前は通常のチップbuildが`docs/generated/`、CD-DA／MSM5205が`web/generated/`へ出力していた。一部のwrapperには`/web/`というURLから参照先を切り替える処理があり、同期・npm配布時にも個別の書換がある。今回、生成物の入出力を共通化した。runtime JSのURL解決処理と固定SDK snapshotは変更していない。
+
+実装と検証：
+
+- `scripts/runtime_artifacts.mjs`で固定SDK catalogから33件のビルドを取得し、Native FX・metadata・同期先を追加。`web/generated/runtime-artifacts.json`には66出力のhash／size、source／license参照、公開先を記録し、docs側にも同じmanifestを配置する。
+- 32組のloader＋WASM、DX7の`msfa.wasm`、Native FXの`effects/gain.wasm`を正本へ集約。既存のSDKビルド記録・200件のsource入力・PS1補助記録・FX ABIと既存コピーの一致を検証してから移行し、DSPは再コンパイルしていない。
+- `npm run check:runtime-artifacts`は書き込みなしで検証する。`npm run sync:runtime-artifacts`は正本を検証して公開コピーを更新する。初期移行用の`--import-existing`以外ではdocs側へのfallbackを行わない。
+- 全33件のSDK wrapperとNative FXの既定出力・同期を統一。明示的な出力先は公開コピーを更新しない。SCSPは呼出元の相対出力先を絶対化し、SDK内へ誤生成する既存不具合も修正した。
+- 共通profileからPlayground／Analyzer／FM Synth／npmの生成物を配置。SPU／SCSPの個別Synth ZIPとsource bundleも正本を参照する。公開コピーが古い場合は、配布前に停止する。
+- 新規のartifact／builder／profileテスト26件、既存SDK inventoryテスト72件、関連統合テスト52件、固定SDKのrecording compilerを使うPython検証118件が成功。追加したSCSP 2件は呼出元からの相対パスも検証する。Python検証は実WASMの全件再ビルドを意味しない。
+- Playground／Analyzer／FM Synthの`artifact-check` ZIPを実生成し、CRC／入口を検証。Playground Run ZIPは968ファイル／968 entriesで1000件以内。SPU／SCSPの個別ZIPテスト4件でもcanonicalとのバイト一致、source receipt、リンク、SCSPの再現性を確認した。
+- `npm run build:fm2612`、インストール済みtarballの実WASM・PCM・source／license検査、NodeNext／Bundler／Browser型検査が成功。VGMのbuildは192依存ファイルを配置し、ローカルtarballのSPC／VGM／S98解析・各種export・CLI smokeも成功した。
+- 作業前の公開JS／WASM等474ファイルは全てバイト一致。既存の校正チェックも成功した。共通syncの再実行は変更0件、最終checkは33 SDK builds／66 outputs／73 mirrorsを確認。Tauri本体の再ビルドや実機UI確認は今回行っていない。
+- README／build／release案内を正本と共通コマンドに更新し、ローカルリンク163件と正本からのYM2612低レベル例（有限なstereo PCM 128フレーム）を確認。Goalの4項目は変更していない。
+
+追加CLI検証で見つかった既存課題（今回の生成物整理とは別）：
+
+- [ ] `scripts/check_pokey_vgm_package.mjs:182`と後続assertの固定gain=1を、現行の測定済み既定値0.413052を扱う検証へ更新する。公開／正本のpresetは既存と一致し、今回変更していない。追加チェックはこの古い期待値で失敗した。
+- [ ] `scripts/check_wonderswan_vgm_package.mjs`の長いvoice capture検証がexit 137で終了する原因を切り分ける。単独実行でも同じ終了で、JavaScript assertionは出ていない。通常のVGM package smokeは成功したが、この追加チェックは完了していない。
 
 ### 次にテストとソースを整理する
 

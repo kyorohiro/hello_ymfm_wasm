@@ -254,6 +254,22 @@ class SdkBuildRouteMixin:
             shutil.copyfile(ROOT / name, target)
         shutil.copytree(ROOT / SDK_PATH, self.checkout / SDK_PATH)
         self.sdk = self.checkout / SDK_PATH
+        # Isolate SDK compiler/provenance tests from the full runtime manifest.
+        # The separate artifact tests exercise the real sync manager; here the
+        # recording hook confirms default publication and models DX7 mirrors.
+        (self.checkout / 'scripts/sync_runtime_artifacts.mjs').write_text('''
+import {appendFile, copyFile, mkdir} from 'node:fs/promises';
+import {resolve, dirname} from 'node:path';
+import assert from 'node:assert/strict';
+const root = resolve(import.meta.dirname, '..');
+assert.equal(process.argv[2], '--only');
+const id = process.argv[3];
+await appendFile(resolve(root, 'sync-calls.jsonl'), JSON.stringify({id}) + '\\n');
+if (id === 'dx7') for (const target of ['web/msfa_dx7/wasm/msfa.wasm', 'docs/js/msfa_dx7/wasm/msfa.wasm']) {
+    await mkdir(dirname(resolve(root, target)), {recursive:true});
+    await copyFile(resolve(root, 'web/generated/msfa.wasm'), resolve(root, target));
+}
+''')
 
         # The build gets only its actual host tools. Git, npm, downloaders and
         # an installed Emscripten compiler cannot accidentally satisfy a test.
@@ -440,13 +456,16 @@ else:
         for _ in range(2):
             result = self.build()
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = self.checkout / 'docs/generated'
+        output = self.checkout / 'web/generated'
         self.assertTrue((output / (self.artifact + '_wasm.js')).is_file())
         self.assertTrue((output / (self.artifact + '_wasm.wasm')).is_file())
         info = json.loads((output / 'build-info.json').read_text())
         self.assertEqual([entry['id'] for entry in info['artifacts']], [self.artifact])
         self.assertFalse((self.caller / 'docs').exists())
         self.assertEqual(len(self.calls()), 4)
+        self.assertEqual([json.loads(line)['id'] for line in
+                          (self.checkout / 'sync-calls.jsonl').read_text().splitlines()],
+                         [self.artifact, self.artifact])
         result = subprocess.run(['python3', str(self.checkout / IMPORT_SCRIPT), '--check'],
                                 cwd=self.caller, env=self.environment,
                                 capture_output=True, text=True)
@@ -474,7 +493,7 @@ else:
         for artifact in previous_artifacts:
             result = self.build_artifact(artifact)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = self.checkout / 'docs/generated'
+        output = self.checkout / 'web/generated'
         previous_records = json.loads((output / 'build-info.json').read_text())['artifacts']
         previous_outputs = {
             name: (output / name).read_bytes()
@@ -1095,7 +1114,7 @@ class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         for _ in range(2):
             result = self.build()
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = self.checkout / 'docs/generated'
+        output = self.checkout / 'web/generated'
         self.assert_standalone_receipt(output)
         self.assertEqual([entry['id'] for entry in json.loads(
             (output / 'build-info.json').read_text())['artifacts']], ['dx7'])
@@ -1112,8 +1131,8 @@ class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 
     def test_custom_output_preserves_existing_active_binaries_and_central_receipt(self):
         self.assertEqual(self.build().returncode, 0)
-        protected = [self.checkout / 'docs/generated/msfa.wasm',
-                     self.checkout / 'docs/generated/build-info.json',
+        protected = [self.checkout / 'web/generated/msfa.wasm',
+                     self.checkout / 'web/generated/build-info.json',
                      *(self.checkout / name for name in self.active_binaries)]
         before = {path: path.read_bytes() for path in protected}
         result = self.build(str(self.caller / 'absolute isolated output'))
@@ -1127,7 +1146,7 @@ class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         for artifact in previous_artifacts:
             result = self.build_artifact(artifact)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = self.checkout / 'docs/generated'
+        output = self.checkout / 'web/generated'
         previous_records = json.loads((output / 'build-info.json').read_text())['artifacts']
         previous_outputs = {
             path: path.read_bytes() for path in output.iterdir()

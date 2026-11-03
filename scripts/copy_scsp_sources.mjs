@@ -2,6 +2,7 @@
 import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
 import {join,resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
 import {createHash} from 'node:crypto';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -14,6 +15,8 @@ async function list(directory,prefix='') {
 }
 /** Ship byte-exact fixed-SDK inputs in their original relative layout. */
 export async function copyScspSources(stage) {
+  await checkRuntimeArtifacts({root,ids:['scsp'],mirrors:true});
+  const artifacts=new Map((await listRuntimeArtifactFiles({root,ids:['scsp'],includeMetadata:false})).map(file=>[file.path,file.source]));
   const sdk=join(root,'third_party/tetorica-soundchip-native'),pin=JSON.parse(await readFile(join(root,'third_party/soundchip-sdk.json')));
   const manifestBytes=await readFile(join(sdk,'RELEASE-MANIFEST.json'));
   if(sha(manifestBytes)!==pin.manifestSha256)throw new Error('SCSP SDK manifest does not match the fixed pin');
@@ -50,7 +53,7 @@ fidelity are not established by the current PCM/transport checks. The original
 MAME envelope/DSP approximations remain documented in the component README.
 `));
   const generated={};for(const name of ['scsp_wasm.js','scsp_wasm.wasm']) {
-    const bytes=await readFile(join(root,'docs/generated',name));generated[name]={bytes:bytes.length,sha256:sha(bytes)};
+    const bytes=await readFile(artifacts.get(name));generated[name]={bytes:bytes.length,sha256:sha(bytes)};
   }
   payload.set('sources/SCSP.json',Buffer.from(JSON.stringify({schemaVersion:1,component:'scsp',sdk:pin,inputs,generated,modifications:'None: original SDK paths, source bytes and build recipe retained.'},null,2)+'\n'));
   for(const [name,bytes]of payload){const target=join(stage,name);await mkdir(dirname(target),{recursive:true});await writeFile(target,bytes);}

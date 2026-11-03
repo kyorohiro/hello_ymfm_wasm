@@ -6,8 +6,14 @@ import { copyOpnaRhythm } from './copy_opna_rhythm.mjs';
 import { copySpcSources } from './copy_spc_sources.mjs';
 import { copyNesSources } from './copy_nes_sources.mjs';
 import {copyPokeySources} from './copy_pokey_sources.mjs';
+import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
+import {runtimeArtifactProfiles} from './runtime_artifact_profiles.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'dist/vgm');
+await checkRuntimeArtifacts({root, mirrors:true});
+const runtimeArtifacts = await listRuntimeArtifactFiles({root});
+const canonicalSources = new Map(runtimeArtifacts.flatMap(file =>
+  file.mirrors.map(path => [resolve(root,path),file.source])));
 await rm(out, { recursive:true, force:true });
 const seen = new Set();
 async function copy(file) {
@@ -15,12 +21,13 @@ async function copy(file) {
   if (seen.has(file)) return;
   const rel = relative(root, file);
   if (rel.startsWith('..')) throw new Error(`Dependency outside repository: ${file}`);
-  if ((await stat(file)).isDirectory()) { await mkdir(resolve(out,rel),{recursive:true}); return; }
+  const sourceFile = canonicalSources.get(file) ?? file;
+  if ((await stat(sourceFile)).isDirectory()) { await mkdir(resolve(out,rel),{recursive:true}); return; }
   seen.add(file);
   await mkdir(dirname(resolve(out, rel)), {recursive:true});
-  await cp(file, resolve(out, rel));
+  await cp(sourceFile, resolve(out, rel));
   if (!/\.[cm]?js$/.test(file)) return;
-  let source = await readFile(file,'utf8');
+  let source = await readFile(sourceFile,'utf8');
   const entryPoint = file === resolve(root, 'cli/main.js');
   if (entryPoint) {
     // Source uses its own package manifest; the installed CLI reads the staged root manifest.
@@ -40,7 +47,8 @@ async function copy(file) {
 }
 await copy(resolve(root,'cli/main.js'));
 // These adapters resolve factories dynamically; preserve the staged docs layout.
-for (const chip of ['nesapu','pwm32x']) await copy(resolve(root,`docs/generated/${chip}_wasm.js`));
+for (const file of await listRuntimeArtifactFiles({root,ids:runtimeArtifactProfiles.cli,includeMetadata:false}))
+  await copy(resolve(root,'docs/generated',file.path));
 await copyOpnaRhythm(out, 'web');
 // CLI --version works identically in the source tree and staged package.
 const pkg = JSON.parse(await readFile(resolve(root,'packages/vgm/package.json'),'utf8'));

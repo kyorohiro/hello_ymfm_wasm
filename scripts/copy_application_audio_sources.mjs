@@ -5,6 +5,7 @@ import {cp, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -16,6 +17,8 @@ const descriptions={
 export async function copyApplicationAudioSources(stage,id){
   const description=descriptions[id];
   if(!description)throw new Error('Unknown application-audio module: '+id);
+  await checkRuntimeArtifacts({root,ids:[id],mirrors:true});
+  const generated=await listRuntimeArtifactFiles({root,ids:[id],includeMetadata:false});
   const sdk=join(root,'third_party/tetorica-soundchip-native');
   const pin=JSON.parse(await readFile(join(root,'third_party/soundchip-sdk.json'),'utf8'));
   const manifestBytes=await readFile(join(sdk,'RELEASE-MANIFEST.json'));
@@ -52,5 +55,5 @@ export async function copyApplicationAudioSources(stage,id){
     files:sourceFiles,modifications:[`Only source/include paths in ${recipePath} relocate ${component} and wasm/${id}_wasm.c to native/${id}. Core, header, bridge, license and notice bytes are unchanged. Bundle README/guide and this receipt are generated.`]},null,2)+'\n'));
   for(const [path,bytes]of payload){const target=join(stage,path);await mkdir(join(target,'..'),{recursive:true});await writeFile(target,bytes);}
   await mkdir(join(stage,'generated'),{recursive:true});
-  for(const ext of ['js','wasm'])await cp(join(root,'web/generated',`${id}_wasm.${ext}`),join(stage,'generated',`${id}_wasm.${ext}`));
+  for(const file of generated)await cp(file.source,join(stage,'generated',file.path));
 }

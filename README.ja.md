@@ -115,7 +115,7 @@ npm install tetorica-fm2612
 | 配布物・ソース | 場所 |
 | --- | --- |
 | npmのimportとアセットURL | [パッケージREADME](packages/fm2612/README.md)。`runtimeAssetUrl()`とWASMの独自ロード方法も記載。 |
-| ソースcheckout | [JavaScriptソースの案内](web/README.md)、ビルド済みローダー／WASMは[`docs/generated/`](docs/generated/)、Node音声は[`node/`](node/README.md)。 |
+| ソースcheckout | [JavaScriptソースの案内](web/README.md)、ビルド済みローダー／WASMの全一覧は[`web/generated/`](web/generated/)、Node音声は[`node/`](node/README.md)。 |
 | 単独で使えるWeb Runtime ZIP | [生成手順とファイル名](README_RELEASE.md)。Runtime、生成済みアセット、通知を同梱します。 |
 | C／C++と再現可能なWASMビルド | [Native SDK](https://github.com/kyorohiro/tetorica-soundchip-native)と[固定SDKのビルドガイド](docs/building_ym2612_wasm.md)。 |
 

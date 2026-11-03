@@ -22,9 +22,21 @@ npm run pack:fm2612     # tetorica-fm2612-VERSION.tgz
 
 各ビルドは、自分の出力フォルダーだけを置き換えます。`build`、`pack`、`pack:check`はVGM向けの別名です。公開時は、検証済みのtgzを明示的に指定します。
 
+## 生成済みWASMの確認
+
+生成物の正本は`web/generated/`です。33件のSDKビルドとNative FXを、[共通manifest](web/generated/runtime-artifacts.json)で管理します。通常のチップビルドは正本を更新して公開用コピーを同期し、出力先を明示した比較ビルドは公開用コピーを変更しません。
+
+```sh
+npm run check:runtime-artifacts
+```
+
+不足、loader／WASMとビルド記録の不一致、古い公開用コピーがあれば配布を止めます。検証済みの正本からコピーを更新する場合は`npm run sync:runtime-artifacts`を実行し、変更した音声処理に必要な測定・検証を行ってください。同期コマンドはWASMを再コンパイルしません。
+
+`docs/generated/`、DX7のvendorパス、Native FXの既存URLは同期先です。配布スクリプトは正本から必要な生成物を選び、既存の配布パスへ配置します。
+
 ## Webランタイムのアーカイブ
 
-`web_runtime`と`web_runtime_exsample`には、`web/`ランタイム全体を収録します。OPN、OPM、OPL、PSG、PCMのラッパー・音声エンジン、Synthヘルパー、生成済み音源チップ／エンジンJS + WASMの全23組を含みます。高水準Synth APIの対応範囲はチップごとに異なります。
+`web_runtime`と`web_runtime_exsample`には、`web/`ランタイム全体を収録します。OPN、OPM、OPL、PSG、PCMのラッパー・音声エンジン、Synthヘルパー、全33件のSDK生成物とNative FXを含みます。高水準Synth APIの対応範囲はチップごとに異なります。
 
 `web_runtime_exsample`には既存のブラウザーデモページも含みます。`web/`の外にあるAnalyzer専用実装と、外部の音色・サンプルROMは含みません。
 

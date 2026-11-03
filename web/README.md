@@ -36,7 +36,8 @@ support in the package-root `createSoundChip()` factory.
 | --- | --- |
 | `web/` | Edit the shared runtime here. `*.test.mjs` and `*.types.test.ts` verify these modules. |
 | [`docs/js/`](../docs/js/) | Served runtime copies and some independent browser implementations. [`sync_web_js_to_docs.sh`](../scripts/sync_web_js_to_docs.sh) lists the shared copies and rewrites their asset URLs. |
-| [`docs/generated/`](../docs/generated/) | Generated Emscripten loaders and WASM. Update through the chip build scripts and the pinned SDK sources. |
+| [`generated/`](generated/) | Complete canonical loader/WASM catalog and build receipts. Update through the chip build scripts and the pinned SDK sources. |
+| [`docs/generated/`](../docs/generated/) | Published copies of the canonical generated assets. The shared artifact synchronizer maintains these and the legacy DX7/Native FX paths. |
 | [`docs/playground/`](../docs/playground/) | The Playground application: editor, FILES, import dialogs and chip panels. Its UI uses the runtime in `docs/js/`. |
 | [`docs/synth/`](../docs/synth/), [`docs/synth-spu/`](../docs/synth-spu/), [`docs/synth-scsp/`](../docs/synth-scsp/) | The separate instrument-editing applications. |
 | [`docs/vgm_analyzer/`](../docs/vgm_analyzer/) | Analyzer UI and analysis/export workflows. |
@@ -50,24 +51,28 @@ uses `js/` and `generated/`. Source moves require corresponding build/sync and
 URL updates. See the [organization TODO](../docs/issues/todo_web_organization_01.md)
 for the proposed test separation; it has not been performed.
 
-### Generated assets today
+### Generated assets
 
-`web/generated/` is currently a partial copy, not the complete output catalog.
-Most chip recipes default to `docs/generated/`; CD-DA and MSM5205 default to
-`web/generated/`. Some source wrappers resolve their assets through
-`docs/generated/`, while others import the local generated loaders.
+`web/generated/` contains the complete generated catalog. The
+[runtime manifest](generated/runtime-artifacts.json) records output hashes,
+source/license references and mirrors. Its SDK entries come from the pinned
+SDK catalog; [`runtime_artifacts.mjs`](../scripts/runtime_artifacts.mjs) adds
+the application effect and copy destinations.
 
-| Location | Current contents |
+| Location | Contents and role |
 | --- | --- |
-| [`generated/`](generated/) | Seven loader/WASM pairs: CD-DA, MSM5205, NES, PWM, Game Boy, Sega PCM and SCC. |
-| [`docs/generated/`](../docs/generated/) | The wider chip/instrument catalog: 32 loader/WASM pairs, DX7 WASM and build metadata. |
-| [`msfa_dx7/wasm/`](msfa_dx7/wasm/) | DX7 package assets, also mirrored into the website's vendored package. |
-| `native_audio_effect.wasm` | Native FX runtime asset; built by [`build_native_audio_effect.sh`](../scripts/build_native_audio_effect.sh). |
+| [`generated/`](generated/) | 33 SDK builds: 32 loader/WASM pairs, DX7 `msfa.wasm`, and build metadata. Native FX is at `effects/gain.wasm`. |
+| [`docs/generated/`](../docs/generated/) | Byte-identical published SDK outputs and metadata. |
+| [`msfa_dx7/wasm/`](msfa_dx7/wasm/) | DX7 mirror, also copied to `docs/js/msfa_dx7/wasm/`. |
+| `native_audio_effect.wasm` | Native FX mirror; the other public copies are `docs/js/native_audio_effect.wasm` and `docs/native_audio_effect/gain.wasm`. |
 
-The [organization TODO](../docs/issues/todo_web_organization_01.md#先に生成物を一本化する)
-proposes one artifact manifest and a complete `web/generated/` output, with
-`docs/generated/` as its published mirror. This is a proposed migration;
-the existing source and public paths remain in use today.
+Normal builds write the canonical directory and synchronize their mirrors.
+Explicit custom output directories are isolated from the published runtime.
+`npm run check:runtime-artifacts` verifies the complete SDK receipts, output
+hashes, Native FX ABI, manifest and mirrors without writing. Use
+`npm run sync:runtime-artifacts` to synchronize validated canonical outputs.
+Packagers use the same inventory and stop on missing or stale copies.
+Existing public URLs and npm imports remain available.
 
 ## Build and check
 
@@ -77,6 +82,8 @@ change:
 | Task | Command |
 | --- | --- |
 | Rebuild YM2612 WASM | `sh scripts/build_ym2612_wasm.sh` |
+| Verify all generated assets and mirrors | `npm run check:runtime-artifacts` |
+| Synchronize generated assets after a deliberate update | `npm run sync:runtime-artifacts` |
 | Synchronize shared website modules | `sh scripts/sync_web_js_to_docs.sh` |
 | Build the reusable npm payload and declarations | `npm run build:fm2612` |
 | Check packaged runtime and types | `npm run test:fm2612` and `npm run test:fm2612:types` |
@@ -86,15 +93,15 @@ change:
 The normal YM2612 WASM build verifies and compiles the fixed SDK source release.
 It requires Emscripten and Python 3; no separate SDK checkout or download is
 needed. See the [build and update instructions](../docs/building_ym2612_wasm.md).
-It generates `docs/generated/ym2612_wasm.js` and
-`docs/generated/ym2612_wasm.wasm`.
+It generates `web/generated/ym2612_wasm.js` and
+`web/generated/ym2612_wasm.wasm`, then synchronizes their public copies.
 
 ## Low-level YM2612 example
 
 From a browser module under `web/`, served over HTTP:
 
 ```js
-import ym2612ModuleFactory from "../docs/generated/ym2612_wasm.js";
+import ym2612ModuleFactory from "./generated/ym2612_wasm.js";
 import { createYm2612, YM2612_CLOCK } from "./ym2612.js";
 
 const ym2612 = await createYm2612(ym2612ModuleFactory);

@@ -26,6 +26,12 @@ class ApplicationAudioSdkBuildTests(unittest.TestCase):
         scripts.mkdir()
         for name in ('import_soundchip_sdk.py', 'build_cdda_wasm.sh', 'build_msm5205_wasm.sh'):
             shutil.copyfile(ROOT / 'scripts' / name, scripts / name)
+        # This fixture verifies compiler routing with opaque outputs, not the
+        # complete runtime set. The real publication manager has separate tests.
+        (scripts / 'sync_runtime_artifacts.mjs').write_text('''
+import assert from 'node:assert/strict';
+assert.deepEqual(process.argv.slice(2), ['--only', 'cdda']);
+''')
         shutil.copyfile(ROOT / 'third_party/soundchip-sdk.json', self.root / 'third_party/soundchip-sdk.json')
         self.compiler = self.work / 'compiler wrapper.py'
         self.log = self.work / 'compiler.jsonl'

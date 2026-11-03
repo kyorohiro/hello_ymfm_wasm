@@ -9,6 +9,7 @@ import {dirname,join,relative,resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build,version as esbuildVersion} from 'esbuild';
 import {copyScspSources} from './copy_scsp_sources.mjs';
+import {checkRuntimeArtifacts,copyRuntimeArtifacts} from './runtime_artifacts.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const slash=s=>s.split(sep).join('/'),clean=s=>s.replace(/[?#].*$/,'');
 const record=data=>({bytes:data.length,sha256:createHash('sha256').update(data).digest('hex')});
@@ -35,7 +36,9 @@ export function validateScspSynthVersion(version){
  if(typeof version!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._+-]{0,79}$/.test(version))throw new Error('Invalid package version');return version;
 }
 export async function packageScspSynth({version='dev',releaseDir=join(root,'release')}={}){
- validateScspSynthVersion(version);releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
+ validateScspSynthVersion(version);
+ await checkRuntimeArtifacts({root,ids:['scsp'],mirrors:true});
+ releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
  const archive=join(releaseDir,`tetorica_scsp_synth_${version}_itch.zip`);
  // Exclusive final creation prevents replacing an existing release by accident.
  try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT')throw error;}
@@ -63,12 +66,11 @@ export async function packageScspSynth({version='dev',releaseDir=join(root,'rele
  const labHtml=(await readFile(join(root,'docs/playground/scsp-dsp.html'),'utf8')).replace('href="index.html?mode=scsp"','href="https://kyorohiro.github.io/hello_ymfm_wasm/playground/?mode=scsp"').replace('src="scsp_dsp_lab.js?v=delay-1"','src="../synth-scsp/lab.js?v=delay-1"').replace('href="../scsp.md"','href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/scsp.md"');
  await writeFile(join(stage,'playground/scsp-dsp.html'),labHtml);
  await copyFile(join(root,'docs/synth-scsp/synth.css'),join(stage,'synth-scsp/synth.css'));
- await mkdir(join(stage,'generated'),{recursive:true});
- for(const name of ['scsp_wasm.js','scsp_wasm.wasm'])await copyFile(join(root,'docs/generated',name),join(stage,'generated',name));
+ await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:['scsp'],includeMetadata:false});
  await copyFile(join(root,'LICENSE'),join(stage,'LICENSE'));
  await copyFile(join(root,'docs/tetorica-spu-1254.webp'),join(stage,'tetorica-spu-1254.webp'));
  const sourceCheck=await copyScspSources(stage);
- for(const path of ['docs/playground/scsp-dsp.html','docs/synth-scsp/index.html','docs/synth-scsp/synth.css','docs/synth-scsp/README.md','docs/tetorica-spu-1254.webp','docs/generated/scsp_wasm.js','LICENSE','scripts/package_itch_scsp_synth.mjs','scripts/package_itch_scsp_synth.sh','scripts/copy_scsp_sources.mjs'])inputs.add(path);
+ for(const path of ['docs/playground/scsp-dsp.html','docs/synth-scsp/index.html','docs/synth-scsp/synth.css','docs/synth-scsp/README.md','docs/tetorica-spu-1254.webp','web/generated/scsp_wasm.js','LICENSE','scripts/package_itch_scsp_synth.mjs','scripts/package_itch_scsp_synth.sh','scripts/copy_scsp_sources.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs'])inputs.add(path);
  await copyFile(join(root,'docs/synth-scsp/README.md'),join(stage,'README.md'));
  const names=[...inputs].sort(),sourceArchive='sources/scsp-synth-browser-inputs.zip';zip(root,join(stage,sourceArchive),names);
  const receipt={schemaVersion:1,product:'Tetorica SCSP Synth',version,builder:{name:'esbuild',version:esbuildVersion,define:{process:'undefined'}},bundles,originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))},factory:{path:'generated/scsp_wasm.js',...record(await readFile(join(stage,'generated/scsp_wasm.js')))},wasm:{path:'generated/scsp_wasm.wasm',...record(await readFile(join(stage,'generated/scsp_wasm.wasm')))},sourceCheck};

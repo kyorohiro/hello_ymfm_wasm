@@ -7,4 +7,9 @@ OUT_DIR="${1:-$ROOT_DIR/web/generated}"
 python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
 OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
-exec sh "$SDK_DIR/scripts/build-wasm.sh" cdda "$OUT_DIR"
+sh "$SDK_DIR/scripts/build-wasm.sh" cdda "$OUT_DIR"
+
+# Publish only normal builds; explicit output directories stay isolated.
+if [ "$#" -eq 0 ]; then
+  node "$ROOT_DIR/scripts/sync_runtime_artifacts.mjs" --only cdda
+fi

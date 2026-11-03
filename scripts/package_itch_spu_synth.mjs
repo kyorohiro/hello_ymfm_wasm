@@ -9,6 +9,8 @@ import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build, version as esbuildVersion} from 'esbuild';
 import {checkPs1SourceBundle} from './check_ps1_source_bundle.mjs';
+import {copyPs1Sources} from './copy_ps1_sources.mjs';
+import {checkRuntimeArtifacts} from './runtime_artifacts.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const slash = value => value.split(sep).join('/');
@@ -52,6 +54,7 @@ export function validateSpuSynthVersion(version) {
  * preserves its browser/Node branches instead of patching generated code. */
 export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 'release')} = {}) {
   validateSpuSynthVersion(version);
+  await checkRuntimeArtifacts({root,ids:['ps1_spu'],mirrors:true});
   releaseDir = resolve(releaseDir);
   await mkdir(releaseDir, {recursive:true});
   const stage = await mkdtemp(join(releaseDir, `itch_spu_synth_${version}-`));
@@ -96,18 +99,11 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
   await copy(join(root, 'docs/synth-spu/README.md'), join(stage, 'synth-spu/README.md'));
   inputs.add('docs/synth-spu/README.md');
   await copy(join(root, 'LICENSE'), join(stage, 'LICENSE'));
-  for (const name of ['ps1_spu_wasm.js', 'ps1_spu_wasm.wasm', 'ps1_spu_build.json']) await copy(join(root, 'docs/generated', name), join(stage, 'generated', name));
-
-  const receipt = JSON.parse(await readFile(join(root, 'docs/sources/PS1-SPU.json'), 'utf8'));
-  for (const file of receipt.files) {
-    assert(safe(file.path), `Unsafe source-bundle path: ${file.path}`);
-    await copy(join(root, 'docs/sources', file.path), join(stage, 'sources', file.path));
-  }
-  await copy(join(root, 'docs/sources/PS1-SPU.json'), join(stage, 'sources/PS1-SPU.json'));
-  for (const name of ['LICENSE', 'README.md']) await copy(join(root, 'docs/licenses/mame-ps1-spu', name), join(stage, 'licenses/mame-ps1-spu', name));
+  await copyPs1Sources(stage);
+  const receipt = JSON.parse(await readFile(join(stage, 'sources/PS1-SPU.json'), 'utf8'));
   const sourceCheck = await checkPs1SourceBundle(stage);
 
-  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/synth-spu/icon.png', 'docs/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs']) inputs.add(name);
+  for (const name of ['docs/synth-spu/index.html', 'docs/synth-spu/synth.css', 'docs/synth-spu/icon.png', 'web/generated/ps1_spu_wasm.js', 'LICENSE', 'scripts/package_itch_spu_synth.sh', 'scripts/package_itch_spu_synth.mjs', 'scripts/copy_ps1_sources.mjs', 'scripts/runtime_artifacts.mjs', 'scripts/wasm_sdk_inventory.mjs']) inputs.add(name);
   const sourceArchive = join(stage, 'sources/spu-synth-browser-inputs.zip');
   const sourceNames = [...inputs].sort();
   writeZip(root, sourceArchive, sourceNames);
@@ -115,7 +111,7 @@ export async function packageSpuSynth({version = 'dev', releaseDir = join(root, 
   const packageReceipt = {schemaVersion:1, product:'Tetorica SPU Synth', version,
     builder:{name:'esbuild', version:esbuildVersion, format:'esm', platform:'browser', target:'es2022', minify:true, keepNames:true, legalComments:'linked'},
     bundles, originalInputs:inputRecords, sourceArchive:{path:'sources/spu-synth-browser-inputs.zip', files:sourceNames.length, ...record(await readFile(sourceArchive))},
-    unchangedFactory:{path:'generated/ps1_spu_wasm.js', ...record(await readFile(generatedFactory))},
+    unchangedFactory:{path:'generated/ps1_spu_wasm.js', ...record(await readFile(join(stage,'generated/ps1_spu_wasm.js')))},
     wasm:{path:'generated/ps1_spu_wasm.wasm', ...record(await readFile(join(stage, 'generated/ps1_spu_wasm.wasm')))},
     sdk:receipt.sdk, sourceCheck};
   await writeFile(join(stage, 'sources/spu-synth-browser.json'), JSON.stringify(packageReceipt, null, 2) + '\n');

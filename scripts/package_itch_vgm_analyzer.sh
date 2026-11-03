@@ -3,6 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" analyzer --check
 node "${ROOT_DIR}/scripts/generate_soundchip_mixer_presets.mjs" --check
 node "${ROOT_DIR}/scripts/generate_analyzer_mixer_defaults.mjs" --check
 RELEASE_DIR="${ROOT_DIR}/release"
@@ -12,7 +13,6 @@ ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_vgm_analyzer.zip"
 
 ANALYZER_DIR="${ROOT_DIR}/docs/vgm_analyzer"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
-DOCS_GENERATED_DIR="${ROOT_DIR}/docs/generated"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 
 ANALYZER_FILES="
@@ -240,7 +240,6 @@ native_fx_graph.js
 native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
-native_audio_effect.wasm
 megasynth_recording.js
 pitch.js
 segapsg_api.js
@@ -251,58 +250,7 @@ ym2612synth.js
 ym2612_dac.js
 "
 
-GENERATED_FILES="
-nesapu_wasm.js
-nesapu_wasm.wasm
-pwm32x_wasm.js
-pwm32x_wasm.wasm
-spc_wasm.js
-spc_wasm.wasm
-huc6280_wasm.js
-huc6280_wasm.wasm
-wonderswan_wasm.js
-wonderswan_wasm.wasm
-pokey_wasm.js
-pokey_wasm.wasm
-okim6258_wasm.js
-okim6258_wasm.wasm
-ym2610b_wasm.js
-ym2610b_wasm.wasm
-ay8910_wasm.js
-ay8910_wasm.wasm
-k051649_wasm.js
-k051649_wasm.wasm
-segapcm_wasm.js
-segapcm_wasm.wasm
-gameboy_apu_wasm.js
-gameboy_apu_wasm.wasm
-y8950_wasm.js
-y8950_wasm.wasm
-ymf278b_wasm.js
-ymf278b_wasm.wasm
-ym3526_wasm.js
-ym3526_wasm.wasm
-ym3812_wasm.js
-ym3812_wasm.wasm
-ymf262_wasm.js
-ymf262_wasm.wasm
-ym2151_wasm.js
-ym2151_wasm.wasm
-ym2413_wasm.js
-ym2413_wasm.wasm
-ym2203_wasm.js
-ym2203_wasm.wasm
-ym2608_wasm.js
-ym2608_wasm.wasm
-ym2612_wasm.js
-ym2612_wasm.wasm
-nuked_opn2_wasm.js
-nuked_opn2_wasm.wasm
-segapsg_wasm.js
-segapsg_wasm.wasm
-rf5c164_wasm.js
-rf5c164_wasm.wasm
-"
+
 
 NUKED_LICENSE_DIR="${ROOT_DIR}/third_party/nuked-opn2"
 NUKED_LICENSE_FILES="
@@ -320,10 +268,6 @@ if [ ! -d "${DOCS_JS_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -d "${DOCS_GENERATED_DIR}" ]; then
-  echo "error: missing directory: ${DOCS_GENERATED_DIR}" >&2
-  exit 1
-fi
 
 if [ ! -f "${LICENSE_FILE}" ]; then
   echo "error: missing file: ${LICENSE_FILE}" >&2
@@ -387,17 +331,8 @@ perl -0pi -e 's#../playground/#./playground/#g; s#../js/#./js/#g; s#../generated
 # re-export, while the standalone analyzer package needs the implementation.
 cp "${ROOT_DIR}/web/vgi.js" "${STAGE_DIR}/js/vgi.js"
 
-for file in ${GENERATED_FILES}; do
-  src="${DOCS_GENERATED_DIR}/${file}"
-  dst="${STAGE_DIR}/generated/${file}"
+node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" analyzer --copy "${STAGE_DIR}"
 
-  if [ ! -f "${src}" ]; then
-    echo "error: missing generated file: ${src}" >&2
-    exit 1
-  fi
-
-  cp "${src}" "${dst}"
-done
 
 mkdir -p "${STAGE_DIR}/licenses/mame-huc6280"
 cp "${ROOT_DIR}/third_party/mame-huc6280/LICENSE" "${ROOT_DIR}/third_party/mame-huc6280/README.md" "${STAGE_DIR}/licenses/mame-huc6280/"
