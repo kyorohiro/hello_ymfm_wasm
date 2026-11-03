@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify public tutorial source copies
+        run: node scripts/sync_tutorial_sources.mjs --check
       - name: Verify pinned SDK and offline WASM build routes
         run: |
           python3 scripts/import_soundchip_sdk.py --check

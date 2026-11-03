@@ -61,13 +61,15 @@
 
 ### 次にテストとソースを整理する
 
-1. テスト277件を`test/web/`へ移し、`test:web`を追加する。現在の直下632件を355件まで減らせる。
+2026-11-03の追加指摘を受け、ルート全体の[フォルダー配置案と移行TODO](todo_repository_organization_01.md)を作成した。同日の「進めて」を受け、教材統合まで実装済み。以下のweb内の案は全体案と合わせ、編集元は`src/runtime/`、テスト先は`test/runtime/`へ段階的に整理する。
+
+1. テスト277件を`test/runtime/`へ移し、`test:runtime`を追加する。現在の直下632件を355件まで減らせる。
 2. `test:analyzer`、`test:cdrom2`、CI、`scripts/test_vgm_mock.sh`、型テスト参照を更新する。既存の`npm test`は入れ子のテストを自動で拾わないため、実行対象を明示する。
 3. 静的／動的import、`readFile(new URL(...))`、Worker URL、eval内のimportを確認する。134件が`import.meta.url`、22件がWorkerを使用するため、単なるパス置換で済ませない。
 4. SDK校正の入力にもなる`spc_test_fixture.mjs`、共有の`native_genesis_extra_creation_fixture.mjs`は最初の移動では残す。過去の測定報告のhash・記録を一括置換しない。
 5. runtimeの物理移動は、同期・配布manifestの整理後に一群ずつ検討する。公開importパスとWorker／WorkletのURLを維持する移行方法を先に決める。
 
-ソース配置の候補：`web/chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`web/audio/`に共通音声処理、`web/playground/`に共有実行runtime、`web/native/`にNative接続、`web/formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
+共有実装を`src/runtime/`へ移した後の内部配置候補：`chips/<chip>/`にchip固有のwrapper／Synth／Worklet、`audio/`に共通音声処理、`playground/`に共有実行runtime、`native/`にNative接続、`formats/`にファイル形式・codecをまとめる。公開npmの平坦なimportパスは配布時に維持し、編集時の構成と公開時の構成を分ける。
 
 ファイル移動や公開APIの変更は、このREADME整理と分けて進める。
 

@@ -1,5 +1,7 @@
 # Node.js の利用例
 
+[利用例の一覧](../README.md)・[C++の利用例](../cpp/README.md)・[短い音色生成の実験](sound-color/README.md)。以下のコマンドはリポジトリーのルートから実行します。
+
 **`ym2608_adpcm_rom.bin` と `yrw801.rom` は、このリポジトリーおよび配布物に含まれていません。**
 必要なROMは利用者自身で用意してください。自動ダウンロードも行いません。
 YM2608のリズム例は、同梱のBSD-3-Clause合成音色 `tetorica_ym2608_adpcm_rom.bin` を標準で使います。

@@ -13,7 +13,7 @@ This repository includes the license text in `LICENSE`, and the packaged release
 The following files and directories in this repository are ymfm-originated works:
 
 - `src/ymfm*` (the `src/segapsg.*` compatibility includes and `src/chip_state.h` are Tetorica additions)
-- `examples/`
+- [`examples/cpp/buildall/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/cpp/buildall) and [`examples/cpp/vgmrender/`](https://github.com/kyorohiro/hello_ymfm_wasm/tree/main/examples/cpp/vgmrender) (other Tetorica examples have their own authorship; `em_inflate` retains its source notices)
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
 
 ### Tetorica Sega PSG

@@ -6,6 +6,8 @@ ROOT_DIR="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 WEB_DIR="${ROOT_DIR}/web"
 DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 
+node "${ROOT_DIR}/scripts/sync_tutorial_sources.mjs"
+
 # Copy only the browser-side runtime files that are intended to stay shared
 # between `web/` and `docs/js/`.
 #

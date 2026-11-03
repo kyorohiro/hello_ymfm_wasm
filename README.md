@@ -209,7 +209,7 @@ and source / license files shipped with the runtime you redistribute.
 | [`web/`](web/README.md) | JavaScript / TypeScript audio cores, Synth helpers, transports and shared runtime. |
 | [`docs/`](docs/index.html) | Published tools, generated WASM, guides, examples, licenses and detailed design notes. |
 | [`packages/`](packages/) | npm package manifests / READMEs for audio, VGM tools and virtual files. |
-| [`node/`](node/README.md), [`examples/nodejs/`](examples/nodejs/README.md) | Node adapters and runnable PCM / audio examples. |
+| [`node/`](node/README.md), [`examples/`](examples/README.md) | Node adapters; runnable Node, browser and C++ examples. |
 | [`third_party/`](third_party/), [`scripts/`](scripts/) | Pinned upstream / SDK sources, builders and packaging / verification scripts. |
 | [Feature status](docs/feature-status.md), [Memo](Memo.md), [CLI](CLI.md) | Implementation coverage, chip notes and analysis API details. |
 | [Release procedures](README_RELEASE.md), [itch.io ZIP verification](docs/itch_web_release.md) | Maintainer build / packaging workflows. |

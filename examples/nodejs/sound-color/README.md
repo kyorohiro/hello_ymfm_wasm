@@ -1,18 +1,18 @@
 # Node.js で YM2612 の音を生成する
 
 音色探索用のデータを作るためのメモ。まずは1つの音色・音程から始める。
-現在の `gen.js` はチップと Synth の初期化までで、WAV 保存はまだ行わない。
-候補集の生成方針は [sound-color-02.md](../../docs/issues/sound-color-02.md) を参照。
+`gen.js` はチップと Synth を初期化し、SineをA4で128フレーム生成して、PCMの有限性とピークを確認する。WAV 保存は行わない。
+候補集の生成方針は [sound-color-02.md](../../../docs/issues/sound-color-02.md) を参照。
 
 ## 実行方法
 
 リポジトリーのルートで実行する。
 
 ```sh
-node demos/sound-color/gen.js
+node examples/nodejs/sound-color/gen.js
 ```
 
-`docs/generated/ym2612_wasm.js` と `ym2612_wasm.wasm` が必要。
+`web/generated/ym2612_wasm.js` と `ym2612_wasm.wasm` が必要。
 生成済みファイルがない場合は、ビルド環境を用意して
 `sh scripts/build_ym2612_wasm.sh` で生成する。
 
@@ -22,7 +22,7 @@ node demos/sound-color/gen.js
 - `YM2612DirectTransport`：Synth のレジスタ書き込みをチップに直接渡す。
 - `YM2612Synth`：音色・音程・Key On/Off を設定する。
 - `chip.generateStereo()`：チップの時間を進め、左右の PCM 配列を生成する。
-- `encodeStereoWav()`：PCM 配列を16 bitステレオ WAV のバイト列に変換する。
+- `encodeWav()`：PCM 配列を16 bitステレオ WAV のバイト列に変換する。
 - Node.js の `writeFile()`：バイト列をファイルに保存する。
 
 このオフライン生成では AudioContext や AudioWorklet は使わない。
@@ -31,22 +31,22 @@ node demos/sound-color/gen.js
 ## WAV 保存までの例
 
 以下は `gen.js` と同じディレクトリーで使える完全な例。
-例えば `render-one.js` として保存し、`node demos/sound-color/render-one.js` で実行する。
+例えば `render-one.js` として保存し、`node examples/nodejs/sound-color/render-one.js` で実行する。
 出力は同じディレクトリーの `sine-a4.wav`。同名ファイルは上書きする。
 
 ```javascript
 import { readFile, writeFile } from "node:fs/promises";
-import { createYm2612, YM2612_CLOCK } from "../../web/ym2612.js";
-import { YM2612Synth, YM2612DirectTransport } from "../../web/ym2612synth.js";
-import { FM_PRESETS } from "../../web/megadrive-fm-presets.js";
-import { hzToBlockFnum } from "../../web/pitch.js";
-import { encodeStereoWav } from "../../docs/vgm_analyzer/vgm_wav.js";
-import moduleFactory from "../../docs/generated/ym2612_wasm.js";
+import { createYm2612, YM2612_CLOCK } from "../../../web/ym2612.js";
+import { YM2612Synth, YM2612DirectTransport } from "../../../web/ym2612synth.js";
+import { FM_PRESETS } from "../../../web/megasynth-fm-presets.js";
+import { hzToBlockFnum } from "../../../web/pitch.js";
+import { encodeWav } from "../../../web/wav.js";
+import moduleFactory from "../../../web/generated/ym2612_wasm.js";
 
 async function main() {
   const chip = await createYm2612(moduleFactory, {
     wasmBinary: await readFile(
-      new URL("../../docs/generated/ym2612_wasm.wasm", import.meta.url),
+      new URL("../../../web/generated/ym2612_wasm.wasm", import.meta.url),
     ),
   });
 
@@ -77,7 +77,7 @@ async function main() {
 
     await writeFile(
       new URL("./sine-a4.wav", import.meta.url),
-      encodeStereoWav(left, right, sampleRate),
+      encodeWav({left, right, sampleRate}),
     );
   } finally {
     chip.dispose();
@@ -90,8 +90,8 @@ main().catch(error => {
 });
 ```
 
-`encodeStereoWav()` は現在 Analyzer 側のモジュールから借りている。
-共通の `web/wav.js` への切り出しは今後の整理案で、まだ実施していない。
+`encodeWav()` は共通の `web/wav.js` を使う。
+既存の [main_ym2612_wave.js](../main_ym2612_wave.js) では、48 kHzへの実リサンプリングを含むWAV保存例も実行できる。
 
 ## 時間・サンプル数の注意
 

@@ -15,9 +15,10 @@ int main()
     return 0;
 }
 /*
+From the repository root:
 % em++ -std=c++14 \
   -Isrc \
-  ex01_hello_world.cpp \
+  examples/cpp/tutorials/ex01_hello_world.cpp \
   src/ymfm_adpcm.cpp \
   src/ymfm_misc.cpp \
   src/ymfm_opl.cpp \

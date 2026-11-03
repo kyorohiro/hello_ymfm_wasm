@@ -2,17 +2,17 @@
 // Simple program that touches all the existing cores to help ensure
 // that everything builds cleanly.
 //
-// Compile with:
+// Compile from this file's directory with:
 //
-//   g++ --std=c++14 -I../../src buildall.cpp ../../src/ymfm_misc.cpp ../../src/ymfm_opl.cpp ../../src/ymfm_opm.cpp ../../src/ymfm_opn.cpp ../../src/ymfm_opq.cpp ../../src/ymfm_opz.cpp ../../src/ymfm_adpcm.cpp ../../src/ymfm_pcm.cpp ../../src/ymfm_ssg.cpp -o buildall.exe
-//
-// or:
-//
-//   clang --std=c++14 -I../../src buildall.cpp ../../src/ymfm_misc.cpp ../../src/ymfm_opl.cpp ../../src/ymfm_opm.cpp ../../src/ymfm_opn.cpp ../../src/ymfm_opq.cpp ../../src/ymfm_opz.cpp ../../src/ymfm_adpcm.cpp ../../src/ymfm_pcm.cpp ../../src/ymfm_ssg.cpp -o buildall.exe
+//   g++ --std=c++14 -I../../../src buildall.cpp ../../../src/ymfm_misc.cpp ../../../src/ymfm_opl.cpp ../../../src/ymfm_opm.cpp ../../../src/ymfm_opn.cpp ../../../src/ymfm_opq.cpp ../../../src/ymfm_opz.cpp ../../../src/ymfm_adpcm.cpp ../../../src/ymfm_pcm.cpp ../../../src/ymfm_ssg.cpp -o buildall.exe
 //
 // or:
 //
-//   cl -I..\..\src buildall.cpp ..\..\src\ymfm_misc.cpp ..\..\src\ymfm_opl.cpp ..\..\src\ymfm_opm.cpp ..\..\src\ymfm_opn.cpp ..\..\src\ymfm_opq.cpp ..\..\src\ymfm_opz.cpp ..\..\src\ymfm_adpcm.cpp ..\..\src\ymfm_pcm.cpp ..\..\src\ymfm_ssg.cpp /Od /Zi /std:c++14 /EHsc
+//   clang++ --std=c++14 -I../../../src buildall.cpp ../../../src/ymfm_misc.cpp ../../../src/ymfm_opl.cpp ../../../src/ymfm_opm.cpp ../../../src/ymfm_opn.cpp ../../../src/ymfm_opq.cpp ../../../src/ymfm_opz.cpp ../../../src/ymfm_adpcm.cpp ../../../src/ymfm_pcm.cpp ../../../src/ymfm_ssg.cpp -o buildall.exe
+//
+// or:
+//
+//   cl -I..\..\..\src buildall.cpp ..\..\..\src\ymfm_misc.cpp ..\..\..\src\ymfm_opl.cpp ..\..\..\src\ymfm_opm.cpp ..\..\..\src\ymfm_opn.cpp ..\..\..\src\ymfm_opq.cpp ..\..\..\src\ymfm_opz.cpp ..\..\..\src\ymfm_adpcm.cpp ..\..\..\src\ymfm_pcm.cpp ..\..\..\src\ymfm_ssg.cpp /Od /Zi /std:c++14 /EHsc
 //
 
 #include <vector>

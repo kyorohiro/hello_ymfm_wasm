@@ -23,9 +23,10 @@ int main()
 }
 
 /*
-%em++ -std=c++14 \
+From the repository root:
+% em++ -std=c++14 \
   -Isrc \
-  ex02_ym2612.cpp \
+  examples/cpp/tutorials/ex02_ym2612.cpp \
   src/ymfm_opn.cpp \
   src/ymfm_adpcm.cpp \
   src/ymfm_ssg.cpp \

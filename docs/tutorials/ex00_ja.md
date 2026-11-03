@@ -9,6 +9,9 @@ YM2612 の細かい話に入る前に、FM音源そのものの考え方を見�
 
 # YM2612 について
 
+C++ の例とビルド方法は [tutorial 一覧](./README.md)を参照してください。
+レジスタを順番に追って beep を鳴らす説明は [ex03_ja.md](./ex03_ja.md)にあります。
+
 YM2612 は Yamaha が開発した sound chip です。
 Sega Mega Drive / Genesis で使われました。
 

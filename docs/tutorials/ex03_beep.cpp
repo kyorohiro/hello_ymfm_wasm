@@ -214,6 +214,7 @@ int main()
 
     // Generate 3 seconds of stereo audio and save it as a WAV file.
     ymfm::ymfm_wavfile<2> wav(sampleRate);
+    wav.set_index(0);
 
     for (uint32_t i = 0; i < sampleRate * 3; i++)
     {
@@ -228,11 +229,12 @@ int main()
 }
 
 /*
+From the repository root:
 mkdir -p .emcache
 EM_CACHE="$PWD/.emcache" em++ -std=c++14 \
     -Isrc \
-    ex03_beep.cpp \
-    src/*.cpp \
+    examples/cpp/tutorials/ex03_beep.cpp \
+    src/ymfm_opn.cpp src/ymfm_adpcm.cpp src/ymfm_ssg.cpp src/ymfm_misc.cpp \
     -sNODERAWFS=1 \
     -o test.js
 node ./test.js

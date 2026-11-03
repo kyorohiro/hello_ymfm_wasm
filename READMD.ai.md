@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-更新日：2026-10-10。AIがリポジトリーを調べ、作業を再開するための入口です。
+更新日：2026-11-03（生成物・教材の配置案内を更新）。AIがリポジトリーを調べ、作業を再開するための入口です。
 この文書は設計・作業状況の記録です。再開時は最新のユーザー依頼、実際のソース、Gitの状態を確認してください。記載された日付時点の検証結果を、最新の公開版の保証として扱わないでください。
 
 ## まず確認すること
@@ -64,20 +64,25 @@ Tetoricaは、JavaScriptでメガドライブ、ゲームボーイ、ファミ�
 | `wasm/` | JavaScriptから使うためのWASMブリッジ |
 | `third_party/` | 固定した第三者コア、元ソース、ライセンス、移植記録 |
 | `web/` | 再利用するJSランタイム、チップラッパー、Synth、音声エンジン、テスト |
+| `web/generated/` | 全33件のSDKビルドとNative FXの正本。共通manifest・同期・検証で公開コピーを維持 |
 | `node/` | Node向け音声出力・Worker・Synthアダプター |
 | `docs/js/` | Webサイトへ配置する共有ランタイムのコピー |
 | `docs/playground/` | PlaygroundのUI、Monaco、Cassette、仮想ファイル連携、インポート、実行例 |
 | `docs/synth/` | ブラウザーシンセサイザー |
 | `docs/vgm_analyzer/` | AnalyzerのUIと、CLIも使う共有解析・エクスポートモジュール |
-| `docs/generated/` | ブラウザー向けの生成済みチップJS / WASM |
+| `docs/generated/` | 正本から同期する公開用のチップJS / WASM・metadata |
 | `cli/` | `tetorica-vgm`のCLI / Node API実装 |
 | `packages/fm2612/`、`packages/vgm/` | npm配布情報とREADME。実装全体がここにあるわけではない |
 | `packages/virtual-files/src/` | `tetorica-virtual-files`の実装。仮想ファイルと軽量シェル |
+| `examples/` | `nodejs/`、`browser/`、`cpp/`の利用例。旧`demos/sound-color/`は`examples/nodejs/sound-color/`へ統合 |
+| `docs/tutorials/` | YM2612教材のMarkdown正本と公開用C++コピー。C++編集元は`examples/cpp/tutorials/` |
 | `scripts/` | ビルド、同期、パッケージ作成、検証 |
 | `test/`、`web/*.test.mjs`、`docs/*/*.test.mjs` | 機能・共有エンジン・UIなどのテスト |
 | `dist/`、`release/` | npm向け生成物、ブラウザー／itch向けの配置済み生成物とZIP |
 
 ルートの`package.json`は`private: true`の開発用ワークスペース。ルートをnpm公開しない。
+
+直下フォルダーの段階的な整理は[配置案とTODO](docs/issues/todo_repository_organization_01.md)を参照する。教材統合以降の`src/runtime/`等は移行予定であり、実装を探す際はGitと実ファイルを確認する。生成物は`npm run check:runtime-artifacts`で検証し、C++教材の公開コピーは`node scripts/sync_tutorial_sources.mjs --check`で確認する。
 
 ### 共有ランタイムを変更したとき
 
