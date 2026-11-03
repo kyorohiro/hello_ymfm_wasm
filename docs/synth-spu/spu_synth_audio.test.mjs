@@ -101,12 +101,12 @@ test('standalone actual WASM initializes and renders without URL or Node globals
     import {readFile} from 'node:fs/promises';
     import vm from 'node:vm';
     import factory from ${url('../generated/ps1_spu_wasm.js')};
-    import {Ps1Spu} from ${url('../../web/ps1_spu.js')};
-    import {Ps1Synth} from ${url('../../web/ps1synth.js')};
-    import {Ps1Resampler} from ${url('../../web/ps1_resampler.js')};
-    import {Ps1VoiceInspector} from ${url('../../web/playground_ps1_inspector.js')};
-    import {preparePs1Waveform} from ${url('../../web/ps1_waveform.js')};
-    import {patchPs1Envelope} from ${url('../../web/ps1_parameters.js')};
+    import {Ps1Spu} from ${url('../../tetorica_src/runtime/ps1_spu.js')};
+    import {Ps1Synth} from ${url('../../tetorica_src/runtime/ps1synth.js')};
+    import {Ps1Resampler} from ${url('../../tetorica_src/runtime/ps1_resampler.js')};
+    import {Ps1VoiceInspector} from ${url('../../tetorica_src/runtime/playground_ps1_inspector.js')};
+    import {preparePs1Waveform} from ${url('../../tetorica_src/runtime/ps1_waveform.js')};
+    import {patchPs1Envelope} from ${url('../../tetorica_src/runtime/ps1_parameters.js')};
     import {SpuRoundRobinVoices} from ${url('./spu_synth_voices.js')};
     import {readPmon, pmonAdsr} from ${url('./spu_synth_pmon.js')};
     import {readNoise} from ${url('./spu_synth_noise.js')};

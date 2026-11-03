@@ -188,3 +188,16 @@ third_party/                # 固定SDK、第三者ソース、出典・ライ�
 - SDK workflowの事前チェックへ配布境界の回帰テストも追加。CIと同じ事前コマンドで**133件成功、失敗0**。個別NES 912件とPWM 864件の実parityも最大差0で成功した。
 - CIと同じ`node scripts/check_wasm_sdk.mjs --work-dir NEW_DIRECTORY`を、ローカルEmscripten 6.0.6-gitで最後まで実行。**29チップ＋2 application-audio＋2 instrumentsの33ビルド、65 outputs、40,474件の厳密比較が成功**し、最後の入力保持検証も成功した。既存WASMを再利用する`--sdk-dir`は使っていない。
 - 実行記録は`/private/tmp/tetorica-wasm-sdk-ci-fix-20261104/summary.json`と同directoryの`logs/`・`reports/`。リモートActionsの再実行・commit／pushは行っていない。
+
+## Standalone SPU Synth CIの動的import修正（2026-11-04 完了）
+
+- [x] Actions run 41729374799／job 126242408020のstep7失敗を確認。`docs/synth-spu/spu_synth_audio.test.mjs`の子プロセス用コード6箇所が旧`web/`をimportしていたため、新runtime配置へ更新する。
+- [x] missing-globals／実WASMの既存検証を維持し、CIと同じSPU testsとloop-repeat testsを確認する。
+- [x] 実Standalone ZIPを生成・展開し、Chromium／WebKitで配布物を検証する。
+
+検証結果：
+
+- Actionsの失敗ログと同じ`web/ps1_spu.js`のmodule-not-foundをローカルで再現した。移設済みのtop-level importと異なり、子プロセスへ渡すtemplate内の6参照だけが旧配置に残っていた。参照先を`tetorica_src/runtime/`へ更新し、音声処理・公開runtime・WASMは変更していない。
+- `npm run test:spu-synth`は**70件成功、失敗0**。`node --test test/runtime/ps1_loop_repeat.test.mjs`も**2件成功、失敗0**。
+- CIと同じ`sh scripts/package_itch_spu_synth.sh ci`でZIPを生成・展開し、`check_spu_synth_browser.cjs`を配布物へ実行。**Chromium／WebKitの両方で成功**。PCM、長いaudio、VAB／PSF、PMON、Noise、Morph、鍵盤操作、音声失敗からの復帰を確認した。
+- 実行記録は`/private/tmp/tetorica-spu-ci-{tests,loop,package,browser}-20261104.log`、配布物のbrowser reportは`release/spu-synth-browser.json`。リモートActionsの再実行・commit／pushは行っていない。
