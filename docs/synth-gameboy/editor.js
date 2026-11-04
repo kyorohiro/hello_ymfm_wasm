@@ -56,16 +56,65 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     performanceFocus(input); return input;
   }
   function number(parent, label, id, min, max, get, set) {
-    const row = field(parent, label, id), input = make('input');
-    input.type = 'number'; input.id = id; input.min = String(min); input.max = String(max); input.step = '1'; row.append(input);
-    fields.set(id, {input, get});
-    listen(input, 'change', () => {
-      if (!input.value.trim() || !input.checkValidity() || !Number.isInteger(Number(input.value))) {
-        input.reportValidity(); return;
-      }
-      commit(value => set(value, Number(input.value)));
+    const row = make('div', 'gb-field'), title = make('span', '', label);
+    title.id = `${id}Label`; row.append(title); parent.append(row);
+    const group = make('div', 'gb-stepper'); group.setAttribute('role', 'group');
+    group.setAttribute('aria-labelledby', title.id); row.append(group);
+    const minus = make('button', 'gb-stepper-button', '−'), plus = make('button', 'gb-stepper-button', '+');
+    const output = make('output', 'gb-stepper-value'); output.id = id;
+    output.tabIndex = 0; output.setAttribute('role', 'spinbutton');
+    output.setAttribute('aria-labelledby', title.id); output.setAttribute('aria-valuemin', String(min)); output.setAttribute('aria-valuemax', String(max));
+    output.title = 'Drag left or right, or use the arrow keys.';
+    let disabled = false, drag = null;
+    for (const [button, delta, verb] of [[minus, -1, 'Decrease'], [plus, 1, 'Increase']]) {
+      button.type = 'button'; button.dataset.stepperFor = id; button.dataset.stepperDelta = String(delta);
+      button.setAttribute('aria-label', `${verb} ${label}`);
+      listen(button, 'pointerdown', event => {
+        if (event.button !== 0) return;
+        event.preventDefault(); doc.activeElement?.blur();
+      });
+      listen(button, 'click', () => adjust(get(preset) + delta));
+    }
+    group.append(minus, output, plus);
+    function refresh() {
+      const value = get(preset); output.textContent = String(value);
+      output.setAttribute('aria-valuenow', String(value)); output.setAttribute('aria-disabled', String(disabled));
+      group.setAttribute('aria-disabled', String(disabled));
+      output.tabIndex = disabled ? -1 : 0;
+      minus.disabled = disabled || value <= min; plus.disabled = disabled || value >= max;
+    }
+    function adjust(value) {
+      if (disabled) return;
+      const next = Math.max(min, Math.min(max, Math.round(value)));
+      if (next !== get(preset)) commit(value => set(value, next));
+    }
+    listen(group, 'keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') next = get(preset) + 1;
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') next = get(preset) - 1;
+      else if (event.key === 'Home') next = min;
+      else if (event.key === 'End') next = max;
+      else return;
+      event.preventDefault(); event.stopPropagation(); adjust(next);
     });
-    performanceFocus(input); return input;
+    listen(output, 'pointerdown', event => {
+      if (disabled || event.button !== 0) return;
+      event.preventDefault(); doc.activeElement?.blur();
+      drag = {id: event.pointerId, x: event.clientX, value: get(preset)};
+      output.setPointerCapture(event.pointerId); output.classList.add('is-dragging');
+    });
+    listen(output, 'pointermove', event => {
+      if (drag?.id === event.pointerId) adjust(drag.value + Math.round((event.clientX - drag.x) / 8));
+    });
+    function endDrag(event) {
+      if (!drag || event?.pointerId !== undefined && event.pointerId !== drag.id) return;
+      const pointer = drag.id; drag = null; output.classList.remove('is-dragging');
+      if (output.hasPointerCapture?.(pointer)) output.releasePointerCapture(pointer);
+    }
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) listen(output, type, endDrag);
+    listen(win, 'blur', endDrag);
+    fields.set(id, {input: output, get, update: refresh});
+    return {setDisabled(value) {disabled = value;if(disabled) endDrag();refresh();}};
   }
   function checkbox(parent, label, id, get, set) {
     const row = field(parent, label, id); row.classList.add('gb-check');
@@ -204,13 +253,17 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   } else listen(win, 'resize', resizeWave);
   function render() {
     if (disposed) return;
-    for (const {input, get} of fields.values()) {
+    for (const {input, get, update} of fields.values()) {
+      if (update) {update();continue;}
       const value = get(preset);
       if (input.type === 'checkbox') input.checked = value;
       else if (doc.activeElement !== input) input.value = String(value);
     }
     pulse.hidden = preset.source !== 'pulse'; wave.hidden = preset.source !== 'wave'; noise.hidden = preset.source !== 'noise';
-    for (const input of sweepControls) input.disabled = !preset.pulse.sweep.enabled;
+    for (const input of sweepControls) {
+      if (input.setDisabled) input.setDisabled(!preset.pulse.sweep.enabled);
+      else input.disabled = !preset.pulse.sweep.enabled;
+    }
     sourceHint.textContent = preset.source === 'pulse' ? (preset.pulse.sweep.enabled ? 'CH1 · one voice with hardware Sweep.' : 'CH1 + CH2 · two voices in round robin.') : preset.source === 'wave' ? 'CH3 · one voice, with your own Wave RAM.' : 'CH4 · one noise voice. Keys trigger; they do not change pitch.';
     const high = preset.pulse.duty * 80; let path = '';
     for (let index = 0; index < 4; index++) {const x = index * 80; path += `${index ? 'L' : 'M'}${x} 10 L${x + high} 10 L${x + high} 36 L${x + 80} 36 `;}

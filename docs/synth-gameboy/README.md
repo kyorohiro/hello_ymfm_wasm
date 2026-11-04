@@ -66,6 +66,11 @@ Wave level, Pulse Duty, Noise clock parameters and left / right routing can
 change while a note is held. Selects return focus after a pointer selection;
 keyboard navigation stays available until you commit or leave the control.
 
+Numeric sound controls use **− / value / +** buttons. Click to step by one, or
+drag the center value horizontally. Pointer adjustments leave the performance
+keyboard available. Tab to a control for Arrow keys and Home / End; buttons
+disable at their hardware bounds. Sweep controls stay disabled while Sweep is Off.
+
 The APU generates the chip sound. Waveform drawing, round robin, keyboard
 layouts, the Pitch wheel and preset files are software performance tools.
 

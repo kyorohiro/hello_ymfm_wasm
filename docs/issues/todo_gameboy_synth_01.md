@@ -39,6 +39,16 @@
 - [ ] 原曲の音色と演奏中の変化を比較する検証。SaGa2「Save the world」をユーザーの手元の資料で試す。
 - [ ] GBS曲再生は独立した検討事項とし、今回のAPU Synthに含めない。
 
+## 数値UIの演奏向け変更（2026-11-04 完了）
+
+- [x] Pulse／Noise音量、Envelope pace、Sweep pace／shift、Noise divisor／shiftをYM2612風の「− 値 ＋」へ変更する。
+- [x] マウス操作で演奏用のFocusを奪わず、Tab・矢印・Home／Endからも調整できるようにする。範囲端とSweep無効時は操作を無効にする。
+- [x] 実ブラウザーで、ノートを保持したまま値を変更し、離鍵・次の発音が正しく動くことを確認する。
+
+中央の値の横ドラッグにも対応した。プリセットの形式と音声処理は変更していない。22件のunit／配布テストが成功し、ソース版・ZIP版ともChromium／WebKitで成功した。実WASMで、保持中のNoiseを再triggerせずにclockを変更できること、クリック／ドラッグ後の離鍵と次の発音、範囲端、Sweepの無効化、キーボードからの矢印操作、390 px幅のoverflow 0を確認した。
+
+記録：[ソース版](gameboy_synth_steppers_browser_01.json)、[ZIP版](gameboy_synth_steppers_zip_browser_01.json)。更新ZIPは`release/tetorica_gameboy_synth_steppers-20261104_itch.zip`。以前のZIPは保持した。commit／push／公開は未実行。
+
 ## 実装の接続仕様
 
 - 配置：`docs/synth-gameboy/`。`preset.js`／`instrument.js`はDOMなし、`processor.js`で実APUを所有、`audio.js`はWeb Audioの寿命、`editor.js`は編集画面、`synth.js`は鍵盤・保存・全体の接続を担当する。

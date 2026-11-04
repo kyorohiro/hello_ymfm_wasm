@@ -104,9 +104,17 @@ async function runEngine(name, engine, origin) {
       const value = window.audit.sample(); return value.finite && value.rms > .0001;
     });
     const silent = () => page.waitForFunction(() => window.audit.sample().rms < .000001);
-    const number = async (id, value) => {
-      await page.fill(id, String(value)); await page.dispatchEvent(id, 'change');
-      await page.locator(id).evaluate(input => input.blur());
+    const stepButton = (selector, delta) => page.locator(`[data-stepper-for="${selector.replace(/^#/, '')}"][data-stepper-delta="${delta}"]`);
+    const number = async (selector, value) => {
+      for (let attempt = 0; attempt < 32; attempt++) {
+        const current = Number(await page.locator(selector).textContent());
+        assert(Number.isInteger(current), `${selector} has a numeric display`);
+        if (current === value) return;
+        const delta = current < value ? 1 : -1;
+        await stepButton(selector, delta).click();
+        await page.waitForFunction(({selector,next}) => Number(document.querySelector(selector).textContent) === next, {selector,next:current+delta});
+      }
+      assert.fail(`${selector} did not reach ${value}`);
     };
     const pointerSelect = async (id, value) => {
       await page.locator(id).focus();
@@ -127,6 +135,9 @@ async function runEngine(name, engine, origin) {
     await page.goto(`${origin}${config.entry}`);
     await page.waitForSelector('#pulseDuty');
     assert.equal(await page.evaluate(() => window.audit.contexts.length), 0);
+    assert.equal(await page.locator('#voiceEditor input[type=number]').count(), 0, 'instrument values use steppers rather than text fields');
+    await number('#pulseVolume', 11); await number('#pulseVolume', 10);
+    assert.equal(await page.evaluate(() => window.audit.contexts.length), 0, 'stepping a value does not start audio');
     await pointerSelect('#pulseDuty', .25);
     await page.fill('#instrumentName', 'Game Boy browser audit'); await page.press('#instrumentName', 'Enter');
     assert.equal(await page.evaluate(() => window.audit.contexts.length), 0);
@@ -181,7 +192,12 @@ async function runEngine(name, engine, origin) {
     await setMaster(.7); await page.keyboard.up('s'); await page.keyboard.up('d'); await waitState(value => value.voices.length === 0);
 
     check('CH1 Sweep selects one hardware Pulse voice');
+    for (const selector of ['#sweepPeriod','#sweepShift']) for (const delta of [-1,1]) assert.equal(await stepButton(selector,delta).isDisabled(),true);
     await page.check('#sweepEnabled'); await waitState(value => value.capacity === 1);
+    for (const selector of ['#sweepPeriod','#sweepShift']) for (const delta of [-1,1]) assert.equal(await stepButton(selector,delta).isDisabled(),false);
+    await number('#sweepPeriod',4); await waitState(value => value.preset.pulse.sweep.period === 4);
+    await number('#sweepPeriod',3); await waitState(value => value.preset.pulse.sweep.period === 3);
+    if (config.screenshots) await page.screenshot({path:path.join(config.screenshots,`gameboy-${name}-steppers-desktop.png`),fullPage:true});
     await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); const sweepFirst = state.voices[0].id;
     await page.keyboard.down('s'); state = await waitState(value => value.voices.length === 1 && value.voices[0].id !== sweepFirst);
     assert.equal(state.voices[0].channel,0);
@@ -209,14 +225,62 @@ async function runEngine(name, engine, origin) {
     assert.equal(state.capacity,1); assert.equal(await page.isDisabled('#pitchBend'),true);
     await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); await sound();
     const noiseOwner = state.voices[0].id, oldClock = state.registers[18]; assert.equal(state.voices[0].channel,3);
+    const noiseAttacks = await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length);
     await number('#noiseShift',6); state = await waitState(value => value.preset.noise.shift === 6);
     assert.equal(state.voices[0].id,noiseOwner); assert.notEqual(state.registers[18],oldClock);
-    await pointerSelect('#noiseWidth',7); state = await waitState(value => value.preset.noise.width === 7); assert.equal(state.voices[0].id,noiseOwner);
+    assert.equal(await page.evaluate(() => Boolean(document.activeElement?.matches('input,select,textarea'))),false, 'pointer steppers leave performance keys available');
+    await number('#noiseDivisor',4); state = await waitState(value => value.preset.noise.divisor === 4);
+    assert.equal(state.voices[0].id,noiseOwner); await sound();
+    await number('#noiseDivisor',3); state = await waitState(value => value.preset.noise.divisor === 3);
+    assert.equal(state.voices[0].id,noiseOwner);
+    assert.equal(await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length),noiseAttacks, 'live steppers do not retrigger held notes');
+    await page.keyboard.up('a'); await waitState(value => value.voices.length === 0);
+    await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); await sound();
+    const steppedNoiseOwner=state.voices[0].id;
+    assert.notEqual(steppedNoiseOwner,noiseOwner, 'a subsequent performance key still triggers after stepping');
+    await pointerSelect('#noiseWidth',7); state = await waitState(value => value.preset.noise.width === 7); assert.equal(state.voices[0].id,steppedNoiseOwner);
     const noiseClock = state.registers[18];
-    await page.keyboard.down('s'); state = await waitState(value => value.voices.length === 1 && value.voices[0].id !== noiseOwner);
+    await page.keyboard.down('s'); state = await waitState(value => value.voices.length === 1 && value.voices[0].id !== steppedNoiseOwner);
     assert.equal(state.registers[18],noiseClock);
     await page.keyboard.up('a'); assert.equal((await inspect()).voices[0].id,state.voices[0].id);
     await page.keyboard.up('s'); await stop();
+
+    check('steppers clamp to hardware bounds / keyboard arrows keep performance access');
+    await stepButton('#noiseShift',-1).focus();
+    await page.keyboard.press('ArrowRight'); await waitState(value => value.preset.noise.shift === 7);
+    assert.equal(await stepButton('#noiseShift',-1).evaluate(button=>document.activeElement===button),true);
+    await page.keyboard.down('a'); await waitState(value=>value.voices.length===1); await sound();
+    await page.keyboard.up('a'); await waitState(value=>value.voices.length===0);
+    await page.keyboard.press('ArrowLeft'); await waitState(value=>value.preset.noise.shift===6);
+    await page.keyboard.press('Home'); await waitState(value=>value.preset.noise.shift===0);
+    assert.equal(await stepButton('#noiseShift',-1).isDisabled(),true);
+    assert.equal(await stepButton('#noiseShift',1).isDisabled(),false);
+    await stepButton('#noiseShift',1).focus();
+    await page.keyboard.press('End'); await waitState(value=>value.preset.noise.shift===15);
+    assert.equal(await stepButton('#noiseShift',1).isDisabled(),true);
+    assert.equal(await stepButton('#noiseShift',-1).isDisabled(),false);
+    await number('#noiseShift',6); await waitState(value=>value.preset.noise.shift===6);
+    assert.equal(await page.locator('#noiseShift').evaluate(output=>output.tagName),'OUTPUT');
+    // The center value is also a pointer control; dragging cannot steal a
+    // held keyboard owner or send another trigger into the real APU.
+    await page.keyboard.down('a'); state=await waitState(value=>value.voices.length===1);
+    const dragOwner=state.voices[0].id;
+    const dragAttacks=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length);
+    await page.locator('#noiseShift').scrollIntoViewIfNeeded();
+    const valueRect=await page.locator('#noiseShift').boundingBox();assert(valueRect);
+    await page.mouse.move(valueRect.x+valueRect.width/2,valueRect.y+valueRect.height/2);await page.mouse.down();
+    await page.mouse.move(valueRect.x+valueRect.width/2+16,valueRect.y+valueRect.height/2,{steps:4});
+    state=await waitState(value=>value.preset.noise.shift===8);assert.equal(state.voices[0].id,dragOwner);
+    await page.mouse.up();
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),dragAttacks);
+    await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
+    await number('#noiseShift',6);
+    if(config.screenshots){
+      await page.setViewportSize({width:390,height:844});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1);
+      await page.screenshot({path:path.join(config.screenshots,`gameboy-${name}-steppers-mobile.png`),fullPage:true});
+      await page.setViewportSize({width:1180,height:940});
+    }
 
     check('portable preset download / real import / invalid preset preserves the held sound');
     const downloadEvent = page.waitForEvent('download'); await page.click('#savePreset');
@@ -264,6 +328,7 @@ async function runEngine(name, engine, origin) {
       lazyStartup:true, editingSilent:true, startupLatestSource:true, startupLatestMaster:true, startupKeyRelease:true,
       physicalPulseRoundRobin:true, lateReleaseSafe:true, sweepCapacity:true,
       livePitch:true, masterMuteRestore:true, master380:true, waveDrawingAutoApply:true, noiseClockLive:true,
+      buttonSteppers:true, heldNoteStepperEdits:true, stepperDrag:true, stepperBounds:true, stepperKeyboardAccess:true,
       noiseIgnoresNotePitch:true, presetRoundTrip:true, invalidPresetAtomic:true, copyJavaScript:true,
       selectPointerCommit:true, selectKeyboardFocus:true, blurRelease:true, contextRecovery:true,
       finalDestinationMeasurement:true, physicalOutput:'muted', mobileOverflow:overflow, pageErrors:errors, missingAssets:missing, externalRequests:external};

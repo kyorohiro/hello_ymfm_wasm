@@ -26,6 +26,15 @@ button[aria-pressed="true"] { background:#685486; border-color:#5a4674; }
 .gb-fields { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:end; }
 .gb-field { display:flex; flex:0 1 140px; min-width:0; max-width:100%; flex-direction:column; gap:6px; color:var(--muted); font-size:.73rem; }
 .gb-field select,.gb-field input[type="number"] { width:100%; max-width:100%; min-height:34px; padding:6px 8px; color:var(--ink); background:#faf9f5; border:1px solid #aaa4b0; border-radius:6px; }
+.gb-stepper { display:grid; grid-template-columns:34px minmax(24px,1fr) 34px; align-items:center; width:100%; min-height:38px; border:2px solid #7d8985; border-radius:999px; background:linear-gradient(#3b4140,#303736); color:#f3eee0; box-shadow:inset 0 1px #ffffff14; }
+.gb-stepper-button { min-height:32px; padding:0; border:0; border-radius:999px; background:transparent; box-shadow:none; color:inherit; font-size:1.4rem; line-height:1; }
+.gb-stepper-button:hover { border:0; background:#ffffff12; color:#fff; }
+.gb-stepper-button:active { background:#ffffff24; }
+.gb-field .gb-stepper-value { display:block; min-height:26px; line-height:26px; text-align:center; color:inherit; font-size:1.05rem; font-weight:800; user-select:none; cursor:ew-resize; touch-action:none; border-radius:5px; }
+.gb-stepper-value.is-dragging { color:#ffc58c; }
+.gb-stepper[aria-disabled="true"] { opacity:.5; }
+.gb-stepper[aria-disabled="true"] .gb-stepper-value { cursor:default; }
+.gb-stepper-value:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .gb-check { flex-direction:row; align-items:center; min-height:34px; flex:0 1 auto; }
 .gb-check input { flex:0 0 auto; }
 .gb-field output { min-height:20px; color:#55446d; }
