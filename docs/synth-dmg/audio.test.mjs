@@ -20,7 +20,13 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     async close() { this.closeCount++; this.state = 'closed'; this.listeners.get('statechange')?.(); }
     createGain() {
       const item = {connections:[], gain:{value:0, cancelAndHoldAtTime(){}, linearRampToValueAtTime(value){this.value = value;}},
-        connect(value){this.connections.push(value);}, disconnect(){this.disconnected = true;}};
+        connect(value){if (!this.connections.includes(value)) this.connections.push(value);},
+        disconnect(value){
+          if (value === undefined) {this.connections = []; this.disconnected = true; return;}
+          const index = this.connections.indexOf(value);
+          if (index < 0) throw new Error('Missing audio edge');
+          this.connections.splice(index, 1);
+        }};
       this.gains.push(item); return item;
     }
   }
@@ -65,6 +71,22 @@ test('Game Boy audio is lazy and routes one fixed balance before the user Master
   assert.deepEqual(await audio.read(),{voices:[]});
   const first = audio.dispose(); assert.equal(audio.dispose(),first); await first;
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
+});
+
+test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {
+  const f = fixture(), audio = await f.create({volume:.7});
+  const [balance, master] = f.context.gains, monitor = {}, desktopTap = {};
+  master.connect(monitor);
+  audio.outputNode.disconnect(audio.context.destination);
+  audio.outputNode.connect(desktopTap);
+  assert.deepEqual(master.connections,[monitor, desktopTap]);
+  assert.deepEqual(f.node.connections,[balance]); assert.deepEqual(balance.connections,[master]);
+  audio.setVolume(3.8); assert.equal(master.gain.value,3.8);
+  await audio.command('stop'); await audio.command('setPitch',[0]);
+  audio.outputNode.disconnect(desktopTap); audio.outputNode.connect(audio.context.destination);
+  assert.deepEqual(master.connections,[monitor, audio.context.destination]);
+  assert.equal(f.context.closeCount,0); assert.equal(f.node.disposed,0);
+  await audio.dispose(); assert.equal(f.context.closeCount,1);
 });
 
 test('Rejected edits and uncloneable messages clear deadlines without destroying Game Boy audio', async () => {

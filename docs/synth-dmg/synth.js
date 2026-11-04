@@ -13,7 +13,7 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0;
+let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
 let vgmLibrary = null;
@@ -177,12 +177,13 @@ function canPlay(midi) {
   return midi>=0 && midi<=127 && (preset.source==='noise' || hz>=(preset.source==='wave'?32:64));
 }
 function press(source, entry) {
-  if (notes.has(source)||!canPlay(entry.midi)) return;
+  if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
   const note = {id:`gameboy-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch,started:false};
   notes.set(source,note); updateKeys();
   void enqueue(async () => {
+    if (switchingAudioOutput || notes.get(source)!==note || note.epoch!==epoch) return;
     const engine = await ensureAudio();
-    if (notes.get(source)!==note||note.epoch!==epoch) return;
+    if (switchingAudioOutput||notes.get(source)!==note||note.epoch!==epoch) return;
     note.started = true;
     const result = await engine.command('noteOn',[note.id,note.midi]);
     if (audio!==engine||note.epoch!==epoch) return;
@@ -201,7 +202,7 @@ function release(source) {
 }
 function stopNotes(message) {
   epoch++; notes.clear(); updateKeys();
-  void enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
+  return enqueue(async()=>{if(audio) await audio.command('stop'); visualizer.stop();if(message) status(message);});
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
@@ -295,3 +296,20 @@ window.addEventListener('pagehide',event=>{
   disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
 });
 updatePresetUi();setVolume();setPitchUi(0);
+
+// Desktop adapters change only the final Master bus. The DMG APU, allocator
+// and output monitor keep using the same graph; ordinary sites expose no API.
+const localDesktop = (location.protocol === 'tauri:' && location.hostname === 'localhost') ||
+  (['http:', 'https:'].includes(location.protocol) && location.hostname === 'tauri.localhost');
+if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
+  Object.defineProperty(window, 'tetoricaSynthAudio', {value:Object.freeze({
+    setSwitching(value) {switchingAudioOutput = value === true;},
+    async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
+    async stopPlayback() {
+      setPitchUi(0);
+      await stopNotes();
+      await enqueue(async () => {if (audio) await audio.command('setPitch', [0]);});
+    },
+  })});
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}

@@ -110,6 +110,12 @@
 
 ## 実装の接続仕様
 
+### Tauri版（2026-11-04）
+
+`w/tetorica-dmg-synth-tauri`に初版0.0.1を作成した。Menu／Pin／native保存／Web Audio・Rust CPAL切替、VGM／VGZを含むWeb配布物の同梱とhash lock、macOS／Windows／Linux向けActionsを用意した。親の`synth.js`にはローカルTauri画面専用の音声bridgeと出力切替中の発音予約ガードを追加し、`audio.test.mjs`でMaster出力の経路切替を検証した。共有runtime／WASMは変更していない。
+
+親32件、desktop Python 8件・Node 42件、Rust 24件が成功。Chromium／WebKitのDesktop接続検証と、macOS ARM64 appのビルド・起動・Pin・Web／Native切替を確認した。実CPAL30秒無音試験は単独実行でunderrun 0。並列負荷のある試験では各1回のunderrunを検出したため、実聴・長時間・背景動作は継続確認事項。詳細と再開TODOは`w/tetorica-dmg-synth-tauri/docs/todo_20261104.md`と`verification_20261104.md`。今回は両repoともcommit／push／公開していない。
+
 - 配置：`docs/synth-dmg/`。`preset.js`／`instrument.js`はDOMなし、`processor.js`で実APUを所有、`audio.js`はWeb Audioの寿命、`editor.js`は編集画面、`synth.js`は鍵盤・保存・全体の接続を担当する。
 - プリセット：`{format:'tetorica-gameboy-voice',version:1,name,source,pulse:{duty,volume,envelope:{direction,period},sweep:{enabled,direction,period,shift}},wave:{samples:[32個の0..15整数],level},noise:{volume,envelope:{direction,period},divisor,shift,width},pan:{left,right}}`。余分な項目・不正な数値は、現在の音を変更する前に拒否する。
 - `preset.js`：`createDefaultPreset()`、`readPreset(value)`、`waveShape(name)`、`presetToCode(value)`。
