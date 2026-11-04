@@ -16,6 +16,7 @@ let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, imp
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
 const notes = new Map(), fret = createFretboardState();
+const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
 visualizer.setMode('waveform');
 const enqueue = action => {
@@ -49,7 +50,7 @@ function updatePresetUi() {
   editor.update(preset);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
-  $('pitchBend').disabled = preset.source === 'noise';
+  for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
   updateCapacity();
   if (!layout || keyboardSource !== preset.source) renderKeyboard();
   else updateKeys();
@@ -211,7 +212,13 @@ window.addEventListener('keydown',event=>{
 window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLowerCase()}`));
 window.addEventListener('blur',()=>{stopNotes();setPitch(0);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden) {stopNotes();setPitch(0);}});
-function setPitchUi(value) {pitch=value;$('pitchBend').value=String(value);$('pitchValue').textContent=`${value>=0?'+':''}${value.toFixed(2)}`;}
+function setPitchUi(value) {
+  pitch=value;
+  for (const [wheel, output] of pitchWheels) {
+    wheel.value=String(value);
+    output.textContent=`${value>=0?'+':''}${value.toFixed(2)}`;
+  }
+}
 function setPitch(value) {
   const previous=pitch;setPitchUi(value);
   if(audio) void enqueue(async()=>{
@@ -219,9 +226,11 @@ function setPitch(value) {
     catch(error){if(pitch===value) setPitchUi(previous);throw error;}
   });
 }
-$('pitchBend').addEventListener('input',()=>setPitch(Number($('pitchBend').value)));
-for(const event of ['pointerup','pointercancel','lostpointercapture','change']) $('pitchBend').addEventListener(event,()=>setPitch(0));
-$('pitchBend').addEventListener('keydown',event=>{if(event.key==='Home'||event.key==='Escape') {event.preventDefault();setPitch(0);}});
+for (const [wheel] of pitchWheels) {
+  wheel.addEventListener('input',()=>setPitch(Number(wheel.value)));
+  for(const event of ['pointerup','pointercancel','lostpointercapture','change']) wheel.addEventListener(event,()=>setPitch(0));
+  wheel.addEventListener('keydown',event=>{if(event.key==='Home'||event.key==='Escape') {event.preventDefault();setPitch(0);}});
+}
 function setVolume() {
   const value=Number($('masterVolume').value);
   $('masterVolumeValue').textContent=`${Math.round(value*100)}%`;

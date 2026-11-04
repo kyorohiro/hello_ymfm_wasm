@@ -135,6 +135,26 @@ async function runEngine(name, engine, origin) {
         input.value = String(next); input.dispatchEvent(new Event('input', {bubbles:true}));
       }, value);
     };
+    const pitchWheels = ['#pitchBend','#keyboardPitchBend'];
+    const assertPitchUi = async value => {
+      const actual=await page.evaluate(()=>({
+        values:['pitchBend','keyboardPitchBend'].map(id=>Number(document.getElementById(id).value)),
+        labels:['pitchValue','keyboardPitchValue'].map(id=>document.getElementById(id).textContent),
+      }));
+      assert.deepEqual(actual.values,[value,value]);
+      const label=`${value>=0?'+':''}${value.toFixed(2)}`;
+      assert.deepEqual(actual.labels,[label,label]);
+    };
+    const assertPitchPositions = async () => {
+      const positions=await page.evaluate(()=>{
+        const rect=selector=>{const value=document.querySelector(selector).getBoundingClientRect();return {left:value.left,right:value.right};};
+        const monitor=document.querySelector('#pitchBend').closest('label').getBoundingClientRect();
+        const keyboard=document.querySelector('#keyboardPitchBend').closest('label').getBoundingClientRect();
+        return {monitorLeft:monitor.left,canvas:rect('#outputCanvas'),keyboardRight:keyboard.right,keys:rect('#keyboard')};
+      });
+      assert(positions.monitorLeft>=positions.canvas.right-1,'monitor Pitch is to the right of the output plot');
+      assert(positions.keyboardRight<=positions.keys.left+1,'keyboard Pitch is to the left of the keys');
+    };
 
     if (config.entry === '/synth-dmg/index.html') {
       const legacyExists = await fs.access(path.join(config.root,'synth-gameboy/index.html')).then(()=>true,()=>false);
@@ -161,6 +181,8 @@ async function runEngine(name, engine, origin) {
     assert.equal(favicons.length,2);for(const icon of favicons){assert(icon.path.endsWith('/tetorica_dmg_synth.webp'));assert(icon.ok&&icon.bytes>0);}
     check('lazy startup / editing without an audio device');
     await page.waitForSelector('#pulseDuty');
+    assert.equal(await page.locator('.monitor-pitch input[type=range]').count(),2,'Pitch is available beside both monitor and keyboard');
+    await assertPitchPositions();await assertPitchUi(0);
     assert.equal(await page.evaluate(() => window.audit.contexts.length), 0);
     assert.equal(await page.locator('#voiceEditor input[type=number]').count(), 0, 'instrument values use steppers rather than text fields');
     assert.equal(await page.locator('#voiceEditor select').count(),0,'sound choices do not use native dropdowns');
@@ -217,15 +239,24 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
     await page.keyboard.down('s');await page.keyboard.down('d');state=await waitState(value=>value.voices.length===2);
 
-    check('live Pitch / final Master mute and restore / 380% boost');
+    check('paired live Pitch wheels / bidirectional synchronization / spring reset');
     const ownersBeforePitch = state.voices.map(voice => voice.id), registersBeforePitch = [...state.registers];
     const attacksBeforePitch = await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length);
     await page.locator('#pitchBend').evaluate(input => {input.value = '1';input.dispatchEvent(new Event('input', {bubbles:true}));});
     state = await waitState(value => value.pitch === 1);
+    await assertPitchUi(1);
     assert.deepEqual(state.voices.map(voice => voice.id), ownersBeforePitch);
     assert.notDeepEqual(state.registers.slice(3,5), registersBeforePitch.slice(3,5));
     assert.equal(await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length), attacksBeforePitch);
-    await page.dispatchEvent('#pitchBend', 'pointerup'); await waitState(value => value.pitch === 0);
+    await page.locator('#keyboardPitchBend').evaluate(input=>{input.value='-1';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    state=await waitState(value=>value.pitch===-1);await assertPitchUi(-1);
+    assert.deepEqual(state.voices.map(voice=>voice.id),ownersBeforePitch);
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),attacksBeforePitch);
+    await page.dispatchEvent('#keyboardPitchBend','pointerup');await waitState(value=>value.pitch===0);await assertPitchUi(0);
+    await page.locator('#pitchBend').evaluate(input=>{input.value='.5';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    await waitState(value=>value.pitch===.5);await assertPitchUi(.5);
+    await page.dispatchEvent('#pitchBend','pointercancel');await waitState(value=>value.pitch===0);await assertPitchUi(0);
+    check('final Master mute and restore / 380% boost');
     await setMaster(0); await silent(); assert.equal((await inspect()).voices.length,2);
     await setMaster(.7); await sound();
     const normalColor = await page.locator('#masterVolume').evaluate(input => getComputedStyle(input).accentColor);
@@ -234,6 +265,11 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.locator('#masterVolume').getAttribute('data-boosted'),'true');
     assert.notEqual(await page.locator('#masterVolume').evaluate(input => getComputedStyle(input).accentColor), normalColor);
     await setMaster(.7); await page.keyboard.up('s'); await page.keyboard.up('d'); await waitState(value => value.voices.length === 0);
+    for(const selector of pitchWheels) {
+      await page.locator(selector).focus();
+      await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+      await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
+    }
 
     check('CH1 Sweep selects one hardware Pulse voice');
     for (const selector of ['#sweepPeriod','#sweepShift']) for (const delta of [-1,1]) assert.equal(await stepButton(selector,delta).isDisabled(),true);
@@ -255,6 +291,7 @@ async function runEngine(name, engine, origin) {
     check('Wave source choice leaves immediate keyboard performance / auto-applied drawing');
     await choose('#source','wave'); state = await waitState(value => value.preset.source === 'wave');
     assert.equal(state.capacity,1); assert.equal(state.voices.length,0);
+    for(const selector of pitchWheels) assert.equal(await page.isDisabled(selector),false);
     await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); await sound();
     assert.equal(state.voices[0].channel,2);
     const waveBefore = [...state.preset.wave.samples], waveOwner = state.voices[0].id;
@@ -270,7 +307,9 @@ async function runEngine(name, engine, origin) {
 
     check('Noise source / monophonic ownership / live clock without note pitch');
     await choose('#source','noise'); state = await waitState(value => value.preset.source === 'noise');
-    assert.equal(state.capacity,1); assert.equal(await page.isDisabled('#pitchBend'),true);
+    assert.equal(state.capacity,1);
+    for(const selector of pitchWheels) assert.equal(await page.isDisabled(selector),true);
+    await assertPitchUi(0);
     await page.keyboard.down('a'); state = await waitState(value => value.voices.length === 1); await sound();
     const noiseOwner = state.voices[0].id, oldClock = state.registers[18]; assert.equal(state.voices[0].channel,3);
     const noiseAttacks = await page.evaluate(() => window.audit.outgoing.filter(message => message.method === 'noteOn').length);
@@ -377,6 +416,7 @@ async function runEngine(name, engine, origin) {
     });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     assert(overflow <= 1, `${name} mobile overflow: ${overflow}`);
+    await assertPitchPositions();
     if (config.screenshots) await page.screenshot({path:path.join(config.screenshots,`dmg-${name}-mobile.png`),fullPage:true});
     await page.setViewportSize({width:1180,height:940});
     await page.evaluate(() => window.audit.contexts.at(-1).close());
@@ -390,7 +430,9 @@ async function runEngine(name, engine, origin) {
       productName:'Tetorica DMG Synth',productIcon:true,localFavicons:true,legacyRedirect,
       lazyStartup:true, editingSilent:true, startupLatestSource:true, startupLatestMaster:true, startupKeyRelease:true,
       physicalPulseRoundRobin:true, lateReleaseSafe:true, sweepCapacity:true,
-      livePitch:true, masterMuteRestore:true, master380:true, waveDrawingAutoApply:true, noiseClockLive:true,
+      livePitch:true, pairedPitchWheels:true, pitchPositions:true, pitchUiSync:true, pitchSpringReset:true,
+      focusedPitchKeyboardPerformance:true, noiseDisablesBothPitchWheels:true,
+      masterMuteRestore:true, master380:true, waveDrawingAutoApply:true, noiseClockLive:true,
       buttonSteppers:true, heldNoteStepperEdits:true, stepperDrag:true, stepperBounds:true, stepperKeyboardAccess:true,
       noiseIgnoresNotePitch:true, presetRoundTrip:true, invalidPresetAtomic:true, copyJavaScript:true,
       buttonChoices:true, heldDutyChoiceEdit:true, choiceKeyboardPerformance:true, choiceKeyboardNavigation:true,

@@ -37,14 +37,15 @@ enabling / disabling Sweep stops held notes. The voice capacity is shown above
 the editor. This initial version does not duplicate APUs to add polyphony.
 
 **Noise does not follow musical note pitch.** Every keyboard key triggers the
-same configured noise; its clock and LFSR width set the character. The Pitch
-wheel is disabled for Noise.
+same configured noise; its clock and LFSR width set the character. Both Pitch
+wheels are disabled for Noise.
 
 Guitar / Bass / Ukulele, fret positions and visible string ranges change the
 keyboard layout. **Octave − / +** shifts it by up to two octaves. Tone keys
 below the selected hardware channel's frequency range are disabled; raise the
 octave to use them. **Pitch** bends sounding Pulse / Wave notes by up to two
-semitones and returns to center on release. At the hardware pitch limit, an
+semitones and returns to center on release. The wheels to the right of the
+output display and to the left of the keyboard stay synchronized. At the hardware pitch limit, an
 unavailable bend is rejected while the previous valid pitch is kept.
 
 **Stop all sound** stops notes while retaining the instrument. Leaving the

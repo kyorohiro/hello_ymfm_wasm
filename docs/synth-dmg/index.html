@@ -54,7 +54,16 @@
           <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
         </div>
         <p id="visualizerDescription">Live output after Master volume.</p>
-        <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live DMG audio visualization"></canvas>
+        <div class="monitor-body">
+          <div class="monitor-plot">
+            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live DMG audio visualization"></canvas>
+          </div>
+          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+            <span>Pitch</span>
+            <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones">
+            <output id="pitchValue" for="pitchBend">0.00</output>
+          </label>
+        </div>
       </section>
 
       <section class="instrument-workspace gb-workspace" aria-label="Instrument editor">
@@ -86,10 +95,12 @@
         </div>
         <div id="keyboardFretboard"></div>
         <div class="performance-keyboard">
-          <div id="keyboard" class="keyboard-mount"></div>
-          <label class="monitor-pitch keyboard-wheel gb-keyboard-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
-            <span>Pitch</span><input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Pitch bend, minus two to plus two semitones"><output id="pitchValue" for="pitchBend">0.00</output>
+          <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+            <span>Pitch</span>
+            <input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones">
+            <output id="keyboardPitchValue" for="keyboardPitchBend">0.00</output>
           </label>
+          <div id="keyboard" class="keyboard-mount"></div>
         </div>
       </section>
       <footer>
