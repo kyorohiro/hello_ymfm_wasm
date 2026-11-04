@@ -1,0 +1,24 @@
+{
+  "purpose": "Low loop-harmonic power fraction in steady-state actual NES/FDS WASM PCM; this is not a measure of all noise or key attack/release clicks.",
+  "baseline": "Previous 257-byte demo: four FF bytes followed by four 00 bytes, plus a final FF byte.",
+  "replacement": "257-byte 16-cycle low-amplitude DPCM demo, initial level 64, rate 15, Loop on.",
+  "sampleRate": 48000,
+  "settleFrames": 48000,
+  "windowFrames": 95282,
+  "loopHz": 16.120595546908778,
+  "lowBandHz": [
+    16.120595546908778,
+    128.96476437527022
+  ],
+  "previous": {
+    "acPower": 0.004344943923004308,
+    "lowPower": 0.0000027509150044124966,
+    "lowRatio": 0.0006331301515418359
+  },
+  "current": {
+    "acPower": 0.004429606193153091,
+    "lowPower": 9.256967155265918e-9,
+    "lowRatio": 0.0000020897946118945184
+  },
+  "ratioImprovement": 302.96285957396896
+}

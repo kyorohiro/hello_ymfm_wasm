@@ -31,9 +31,20 @@ const dpcm = value => {
   return Array.from({length: value.length}, (_, index) => integer(value[index], 0, 255, 'DPCM byte'));
 };
 
-/** Self-authored encoded data for trying DMC without a game asset or encoder. */
+/** Software-generated DPCM demo, encoded for the standard initial level 64.
+ * Sixteen low-amplitude cycles fit the complete hardware-length sample, so
+ * looping returns to its initial level without clipping or an extra up byte.
+ * This prepares only the built-in demo; it is not a general PCM encoder. */
 export function createDemoDpcm() {
-  return Array.from({length: 257}, (_, index) => index % 8 < 4 ? 255 : 0);
+  const bytes = Array(257).fill(0), bits = bytes.length * 8;
+  let level = 64;
+  for (let index = 0; index < bits; index++) {
+    const target = 64 + 24 * Math.sin(2 * Math.PI * 16 * (index + 1) / bits);
+    const up = target > level;
+    if (up) bytes[index >> 3] |= 1 << (index & 7);
+    level += up ? 2 : -2;
+  }
+  return bytes;
 }
 
 /** Software preparation of one 64-sample, six-bit FDS wave cycle. */

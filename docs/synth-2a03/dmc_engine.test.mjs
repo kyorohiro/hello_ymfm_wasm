@@ -116,3 +116,36 @@ test('empty DMC attacks and malformed samples fail before modifying the active i
     assert.deepEqual(writes, []); assert.deepEqual(instrument.read(), before);
   }
 });
+
+test('the demo reduces periodic loop-boundary artifacts in actual WASM output', async t => {
+  for (const sampleRate of [44100,48000]) {
+    const loopHz = 1789773 / (54 * 257 * 8), frames = Math.round(32 * sampleRate / loopHz);
+    const lowBandFraction = samples => {
+      const mean = samples.reduce((sum,value) => sum + value, 0) / samples.length;
+      const power = samples.reduce((sum,value) => sum + (value - mean) ** 2, 0) / samples.length;
+      assert(power > .00001, 'the comparison is between audible tones');
+      let band = 0;
+      // The first eight loop harmonics measure the periodic disturbance below
+      // both tones. Exact clock frequencies avoid rounded FFT-bin leakage.
+      for (let harmonic = 1; harmonic <= 8; harmonic++) {
+        const omega = 2 * Math.PI * harmonic * loopHz / sampleRate;
+        let real = 0, imaginary = 0;
+        for (let index = 0; index < samples.length; index++) {
+          const value = samples[index] - mean;
+          real += value * Math.cos(omega * index); imaginary += value * Math.sin(omega * index);
+        }
+        band += 2 * (real * real + imaginary * imaginary) / samples.length ** 2;
+      }
+      return band / power;
+    };
+    const previous = await fixture(t,sampleRate), current = await fixture(t,sampleRate);
+    previous.preset.dmc.data = Array.from({length:257}, (_,index) => index % 8 < 4 ? 255 : 0);
+    const fractions = [];
+    for (const item of [previous,current]) {
+      item.preset.dmc.loop = true; item.instrument.loadPreset(item.preset); item.instrument.noteOn('loop',60);
+      item.instrument.generateStereo(sampleRate); // Exclude the initial DAC/filter transient.
+      fractions.push(lowBandFraction(item.instrument.generateStereo(frames).left));
+    }
+    assert(fractions[1] < fractions[0] / 50, `loop disturbance is reduced at ${sampleRate} Hz: ${fractions}`);
+  }
+});

@@ -70,6 +70,12 @@ or **Demo sample** to try a self-authored, software-generated sample. Loading
 data does not start audio. Play a key to trigger it; a newer key takes ownership
 of the single DMC channel. Releasing an older key cannot stop its replacement.
 
+The demo encodes 16 low-amplitude sine cycles in 257 bytes. At the standard
+**Initial level 64**, it avoids DAC saturation and returns to that level at the
+loop boundary. This improves the demo's repeating tone; one-bit quantization
+and the DAC change at key attack / release can still be audible. Choose
+**Demo sample** again after updating to replace an older demo in memory.
+
 Raw DPCM is a sequence of one-bit up / down changes for a seven-bit output
 level. It is not a WAV, MP3 or ordinary PCM audio file. The input must contain
 **1–4081 bytes**. This app pads it with `0xaa` alternating bits to a hardware

@@ -10,6 +10,27 @@
 - 2026-11-04：ユーザーより **VGM／VGZ音色読込版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込と、今回追加したDMC／DPCM読込は下記を参照。音声からのDPCM変換、VGM DMC抽出、Tauri版は後続TODOとして残す。
 
+## DMCデモのプチプチ音改善（2026-11-04 完了・追加分は未公開）
+
+ユーザーよりデフォルトのデモでプチプチ音が多いと報告。旧257-byteデータは256 bytesの上下周期に最後の`0xff`が加わり、初期level 64から上限126に当たり、末尾level 78となる。Loop時には約62 msごとに非対称な周期が入り、飽和部分を作る。実WASMの128-frame分割生成は一括生成と一致した。
+
+- [x] 同じ257-byteの長さで、標準Initial level 64から飽和せず、先頭と末尾のlevelが揃う低振幅の周期DPCMへ変更する。
+- [x] software生成のデモであることと、発音／離鍵時のDAC切替クリックとは別であることをガイドへ記録する。
+- [x] bit列のlevel範囲／始終level／釣り合いと、実WASMの繰り返し波形を確認し、旧デモの周期的な乱れが減ることを検証する。
+- [x] 既存テスト、Chromium／WebKit、独立ZIPを確認し、結果と試し方を記録する。
+
+共有DMC core・任意の読込サンプル・音量・離鍵方針は変更しない。既存の保存データはそのまま保ち、新しい`Demo sample`の内容を改善する。
+
+`createDemoDpcm()`を、257 bytes全体に16周期を収めた低振幅sineのDPCMへ変更した。標準Initial level 64でデコードするとlevel 40..88、上昇／下降bit各1028、末尾64、飽和0になる。3周しても同じlevelに戻り、hardware長に余分なbyteを足す必要はない。デモ専用のsoftware生成処理で、一般の音声DPCM encoderは公開していない。
+
+実WASMの比較は開始後1秒を除き、32周分のPCMでループ周波数16.12 Hzの低次8倍音（約16..129 Hz）の電力比を測定した。48 kHzでは旧`6.3313e-4`→新`2.0898e-6`（約303分の1）。これは周期的な乱れに着目した指標で、全ノイズ量や発音／離鍵クリックの削減率ではない。記録：[品質比較](2a03_dmc_demo_quality_01.json)。44.1／48 kHz両方で新デモの比率が旧デモの1/50未満となる回帰検証を追加した。
+
+`npm run test:2a03-synth`は**51件成功、失敗0**。新デモの範囲／終端／周期／独立bytesと実WASM比較を追加した。ソース版・独立ZIPとも**Chromium／WebKitで成功**し、Demo読込、発音、Loop／Rate、停止、ファイル・プリセット・VGM／FDSの既存操作も確認した。記録：[ソース版](2a03_synth_dmc_demo_browser_01.json)、[ZIP版](2a03_synth_dmc_demo_zip_browser_01.json)。ページエラー／欠落asset／外部requestは0、390 pxでoverflow 0、物理音声出力はmute。
+
+配布候補は`release/tetorica_2a03_synth_dmc-demo-20261104_itch.zip`（35 files、3 bundles、1,137,272 bytes、SHA-256 `8aef4b92c5556d8008fa549db33aa0ed1a4f44c1357f6d036a25361809d469cc`）。browser receiptの40 inputsは作業ファイルと一致した。元WASM pair／対応ソース／権利通知を保持する。
+
+確認方法：ページ再読込後にSource→DMC→`Demo sample`を選び直し、Initial level 64／Rate 15でLoopをOnにして鍵盤を保持する。保存済みの旧デモは自動で置き換えない。1-bit量子化の質感と発音／離鍵のDAC切替は別に残る。ガイドも更新済み。今回追加分のcommit／push／公開は未実行。
+
 ## DMC／DPCMサンプル読込（2026-11-04 完了・追加分は未公開）
 
 VGM音色読込版のリリース後の次の作業。既にエンコードされたDPCMサンプルを読み込み、既存のNES DMC回路で鍵盤から試す。音声ファイルのDPCM変換、VGMからのDMC抽出、曲再生は後続とする。

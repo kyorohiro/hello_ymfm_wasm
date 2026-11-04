@@ -41,7 +41,8 @@ test('v2 owns DPCM bytes and strictly migrates original v1 presets without enabl
   assert.throws(() => readPreset({...original, dmc:migrated.dmc}));
   const preset = createDefaultPreset(); preset.source = 'dmc'; preset.dmc.data = createDemoDpcm();
   const restored = readPreset(JSON.parse(JSON.stringify(preset)));
-  assert.deepEqual(restored, preset); restored.dmc.data[0] = 0; assert.equal(preset.dmc.data[0], 255);
+  assert.deepEqual(restored, preset);
+  const firstByte = preset.dmc.data[0]; restored.dmc.data[0] ^= 255; assert.equal(preset.dmc.data[0], firstByte);
   assert.equal(MAX_DPCM_BYTES, 4081); assert.equal(createDemoDpcm().length, 257);
   assert.equal(readPreset({...preset, dmc:{...preset.dmc, data:[]}}).dmc.data.length, 0, 'empty editable DMC draft is valid');
   for (const change of [
@@ -52,6 +53,27 @@ test('v2 owns DPCM bytes and strictly migrates original v1 presets without enabl
   ]) {const invalid = structuredClone(preset); change(invalid); assert.throws(() => readPreset(invalid));}
   const inherited = structuredClone(preset); delete inherited.dmc.data[0]; inherited.dmc.data.extra = 0;
   Object.setPrototypeOf(inherited.dmc.data, {0:255}); assert.throws(() => readPreset(inherited));
+});
+
+test('built-in DPCM demo loops at level 64 without saturation or an unmatched tail', () => {
+  const data = createDemoDpcm();
+  assert(Array.isArray(data)); assert.equal(data.length, 257);
+  assert(data.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255));
+  let level = 64, positiveSteps = 0, negativeSteps = 0, highCycles = 0, lowCycles = 0, halfCycle = 0;
+  for (let pass = 0; pass < 3; pass++) {
+    for (const byte of data) for (let bit = 0; bit < 8; bit++) {
+      const up = Boolean(byte & (1 << bit));
+      level += up ? 2 : -2;
+      if (up) positiveSteps++; else negativeSteps++;
+      assert(level >= 38 && level <= 90, 'the standard-level demo stays away from DAC saturation');
+      if (halfCycle <= 0 && level >= 76) {highCycles++; halfCycle = 1;}
+      if (halfCycle >= 0 && level <= 52) {lowCycles++; halfCycle = -1;}
+    }
+    assert.equal(level, 64, 'each whole hardware-length pass returns to the starting level');
+  }
+  assert.equal(positiveSteps, negativeSteps);
+  assert.equal(highCycles, 48); assert.equal(lowCycles, 48);
+  const original = data[0]; data[0] ^= 255; assert.equal(createDemoDpcm()[0], original, 'each call owns a fresh byte array');
 });
 
 test('DMC JavaScript export awaits encoded memory and empty drafts only explain how to load data', async () => {
