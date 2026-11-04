@@ -1,0 +1,69 @@
+name: NES + FDS Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-nes/**'
+      - 'docs/js/nesapu*'
+      - 'docs/js/fds_audio.js'
+      - 'docs/js/nes_apu_vendor/**'
+      - 'docs/generated/nesapu*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/nesapu*'
+      - 'tetorica_src/runtime/generated/**'
+      - 'scripts/*nes*'
+      - 'scripts/runtime_artifacts.mjs'
+      - 'scripts/wasm_sdk_inventory.mjs'
+      - 'third_party/soundchip-sdk.json'
+      - 'third_party/tetorica-soundchip-native/**'
+      - 'third_party/jsnes/**'
+      - 'third_party/fixnes-fds/**'
+      - 'package*.json'
+      - '.github/workflows/nes-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-nes/**'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/**'
+      - 'scripts/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/nes-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test and package the standalone NES + FDS Synth
+        run: |
+          npm run test:nes-synth
+          sh scripts/package_itch_nes_synth.sh ci
+          python3 -m zipfile -e release/tetorica_nes_synth_ci_itch.zip release/nes-synth-browser
+          node scripts/check_nes_synth_browser.cjs --root release/nes-synth-browser --entry /index.html --out release/nes-synth-browser.json --screenshots release/nes-synth-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nes-synth-check
+          path: |
+            release/tetorica_nes_synth_ci_itch.zip
+            release/nes-synth-browser.json
+            release/nes-synth-images/
+          if-no-files-found: ignore

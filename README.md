@@ -53,6 +53,7 @@ These four goals began with YM2612 and now guide the wider sound-chip toolkit:
 | [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FM operators / envelopes, keyboard audition, VGM instrument import and TFI / VGI editing. |
 | [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStation samples, PCM drawing, ADSR, PMON, noise, SPU reverb and PSF / VAB instrument extraction. |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMG Pulse / Wave / Noise on one APU, round-robin keyboard, waveform drawing, presets and JavaScript export. English UI; [guide](docs/synth-dmg/README.md). |
+| [NES + FDS Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-nes/index.html) | Play Pulse / Triangle / Noise / FDS, draw a six-bit waveform and pitch-counter modulation table, then save presets or copy JavaScript. English UI; [guide](docs/synth-nes/README.md). |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | Experimental Saturn PCM instruments, waveform drawing / import, envelopes and LFO. |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | Playback, chip/channel inspection, supported sample / FM voice extraction and reference transcriptions. |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | A separate macOS MIDI live-coding app; [source and releases](https://github.com/kyorohiro/tetorica-midi-playground). |
