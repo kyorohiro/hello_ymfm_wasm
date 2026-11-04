@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 const FORMAT = 'tetorica-nes-fds-voice';
-const SOURCES = ['pulse', 'triangle', 'noise', 'fds'];
+const SOURCES = ['pulse', 'triangle', 'noise', 'dmc', 'fds'];
+export const MAX_DPCM_BYTES = 4081;
 const own = (value, keys, label) => {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       ![null, Object.prototype].includes(Object.getPrototypeOf(value))) throw new TypeError(`${label}: expected an object`);
@@ -24,6 +25,16 @@ const samples = (value, length, max, label) => {
   if (!Array.isArray(value) || value.length !== length || Reflect.ownKeys(value).length !== length + 1) throw new RangeError(`${label}: expected exactly ${length} samples`);
   return Array.from(value, item => integer(item, 0, max, label));
 };
+const dpcm = value => {
+  if (!Array.isArray(value) || value.length > MAX_DPCM_BYTES || Reflect.ownKeys(value).length !== value.length + 1) throw new RangeError(`DPCM: expected 0–${MAX_DPCM_BYTES} bytes`);
+  for (let index = 0; index < value.length; index++) if (!Object.hasOwn(value, index)) throw new RangeError('DPCM: expected a dense byte array');
+  return Array.from({length: value.length}, (_, index) => integer(value[index], 0, 255, 'DPCM byte'));
+};
+
+/** Self-authored encoded data for trying DMC without a game asset or encoder. */
+export function createDemoDpcm() {
+  return Array.from({length: 257}, (_, index) => index % 8 < 4 ? 255 : 0);
+}
 
 /** Software preparation of one 64-sample, six-bit FDS wave cycle. */
 export function waveShape(name) {
@@ -38,10 +49,11 @@ export function waveShape(name) {
 
 export function createDefaultPreset() {
   return {
-    format: FORMAT, version: 1, name: 'Pulse', source: 'pulse',
+    format: FORMAT, version: 2, name: 'Pulse', source: 'pulse',
     pulse: {duty: .5, volume: 10, envelope: {enabled: false, period: 8, loop: false},
       sweep: {enabled: false, period: 2, negate: false, shift: 1}},
     noise: {volume: 8, period: 6, shortMode: false},
+    dmc: {data: [], rate: 15, loop: false, level: 64},
     fds: {wave: waveShape('sine'), volume: 24, master: 0,
       modulation: {enabled: false, table: [...Array(8).fill(1), ...Array(16).fill(7), ...Array(8).fill(1)], rate: 256, depth: 16, bias: 0}},
   };
@@ -49,21 +61,27 @@ export function createDefaultPreset() {
 
 /** Validate fully before sending a preset to the chip. */
 export function readPreset(value) {
-  own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds'], 'NES + FDS preset');
-  if (value.format !== FORMAT || value.version !== 1) throw new TypeError('Unsupported NES + FDS preset format/version');
+  const legacy = value?.version === 1;
+  own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc'])], 'NES + FDS preset');
+  if (value.format !== FORMAT || ![1, 2].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
   own(value.pulse, ['duty', 'volume', 'envelope', 'sweep'], 'Pulse');
   own(value.pulse.envelope, ['enabled', 'period', 'loop'], 'Pulse envelope');
   own(value.pulse.sweep, ['enabled', 'period', 'negate', 'shift'], 'Pulse sweep');
   own(value.noise, ['volume', 'period', 'shortMode'], 'Noise');
+  if (!legacy) own(value.dmc, ['data', 'rate', 'loop', 'level'], 'DMC');
   own(value.fds, ['wave', 'volume', 'master', 'modulation'], 'FDS');
   own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias'], 'FDS modulation');
   return {
-    format: FORMAT, version: 1, name: value.name.trim(), source: choice(value.source, SOURCES, 'Sound source'),
+    format: FORMAT, version: 2, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
     pulse: {duty: choice(value.pulse.duty, [.125, .25, .5, .75], 'Pulse duty'), volume: integer(value.pulse.volume, 0, 15, 'Pulse volume'),
       envelope: {enabled: boolean(value.pulse.envelope.enabled, 'Envelope enabled'), period: integer(value.pulse.envelope.period, 0, 15, 'Envelope period'), loop: boolean(value.pulse.envelope.loop, 'Envelope loop')},
       sweep: {enabled: boolean(value.pulse.sweep.enabled, 'Sweep enabled'), period: integer(value.pulse.sweep.period, 0, 7, 'Sweep period'), negate: boolean(value.pulse.sweep.negate, 'Sweep negate'), shift: integer(value.pulse.sweep.shift, 0, 7, 'Sweep shift')}},
     noise: {volume: integer(value.noise.volume, 0, 15, 'Noise volume'), period: integer(value.noise.period, 0, 15, 'Noise period'), shortMode: boolean(value.noise.shortMode, 'Noise short mode')},
+    dmc: legacy ? {data: [], rate: 15, loop: false, level: 64} : {
+      data: dpcm(value.dmc.data), rate: integer(value.dmc.rate, 0, 15, 'DMC rate'),
+      loop: boolean(value.dmc.loop, 'DMC loop'), level: integer(value.dmc.level, 0, 127, 'DMC initial level'),
+    },
     fds: {wave: samples(value.fds.wave, 64, 63, 'FDS wave'), volume: integer(value.fds.volume, 0, 32, 'FDS volume'), master: integer(value.fds.master, 0, 3, 'FDS master scale'),
       modulation: {enabled: boolean(value.fds.modulation.enabled, 'Modulation enabled'), table: samples(value.fds.modulation.table, 32, 7, 'FDS modulation table'),
         rate: integer(value.fds.modulation.rate, 0, 4095, 'Modulation rate'), depth: integer(value.fds.modulation.depth, 0, 63, 'Modulation depth'), bias: integer(value.fds.modulation.bias, -64, 63, 'Modulation bias')}},
@@ -72,7 +90,7 @@ export function readPreset(value) {
 
 /** A single-channel audition using Playground's initialized NES API. */
 export function presetToCode(value) {
-  const preset = readPreset(value), channel = preset.source === 'pulse' ? 0 : preset.source === 'triangle' ? 2 : preset.source === 'noise' ? 3 : 5;
+  const preset = readPreset(value), channel = preset.source === 'pulse' ? 0 : preset.source === 'triangle' ? 2 : preset.source === 'noise' ? 3 : preset.source === 'dmc' ? 4 : 5;
   const lines = ['// Select Mode: NES + FDS in the Playground, then Run.', `// ${preset.name || 'Untitled NES + FDS voice'}`];
   if (preset.source === 'pulse') {
     const {duty, volume, envelope, sweep} = preset.pulse;
@@ -81,6 +99,14 @@ export function presetToCode(value) {
     for (const ch of [0, 1]) lines.push(`nes.pulse.setVoice(${ch}, ${JSON.stringify(voice)});`);
   } else if (preset.source === 'triangle') lines.push('nes.writeRegister(0x4008, 0xff); // Hold the triangle linear counter.');
   else if (preset.source === 'noise') lines.push(`nes.noise.setVoice(${JSON.stringify(preset.noise)});`);
+  else if (preset.source === 'dmc') {
+    lines.push('// Encoded 1-bit DPCM bytes; each key uses the selected rate, not a musical note.');
+    if (!preset.dmc.data.length) return [...lines, '// Load a DPCM sample in the Synth before copying this source.'].join('\n');
+    const {rate, loop, level} = preset.dmc;
+    lines.push(`await nes.dmc.loadSample(Uint8Array.from(${JSON.stringify(preset.dmc.data)}));`, `nes.dmc.play(${JSON.stringify({rate, loop, level})});`);
+    lines.push('// Release with nes.dmc.stop(); nes.writeRegister(0x4011, 0);');
+    return lines.join('\n');
+  }
   else {
     lines.push('// FDS must be enabled: createSoundChip("nes", {fds: true}) for an extra chip.');
     lines.push(`nes.fds.setWave(${JSON.stringify(preset.fds.wave)});`, `nes.fds.setVolume(${preset.fds.volume}, ${preset.fds.master});`, `nes.fds.setModulation(${JSON.stringify(preset.fds.modulation)});`);

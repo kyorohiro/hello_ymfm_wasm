@@ -44,16 +44,16 @@ function readVoices(state) {
   updateCapacity();
 }
 function updateCapacity() {
-  const description = {pulse:'Pulse · CH1 / CH2',triangle:'Triangle · CH3',noise:'Noise · CH4 · keys trigger the same noise',fds:'FDS · waveform + modulation'}[preset.source];
+  const description = {pulse:'Pulse · CH1 / CH2',triangle:'Triangle · CH3',noise:'Noise · CH4 · keys trigger the same noise',dmc:'DMC · CH5 · keys trigger the same sample',fds:'FDS · waveform + modulation'}[preset.source];
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
   editor.update(preset);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
-  for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
+  for (const [wheel] of pitchWheels) wheel.disabled = ['noise', 'dmc'].includes(preset.source);
   updateCapacity();
-  if (!layout || keyboardSource !== preset.source) renderKeyboard();
+  if (!layout || keyboardSource !== preset.source || preset.source === 'dmc' && keyboardHasDpcm !== Boolean(preset.dmc.data.length)) renderKeyboard();
   else updateKeys();
 }
 function audioFailed(error) {
@@ -85,7 +85,7 @@ async function ensureAudio() {
         audio = engine;
         visualizer.connect(engine.context, engine.outputNode);
         $('startAudio').textContent = 'Audio ready';
-        status('Audio ready · play the keyboard. Choose Pulse, Triangle, Noise or FDS to explore.');
+        status('Audio ready · play the keyboard. Choose Pulse, Triangle, Noise, DMC or FDS to explore.');
         return engine;
       } catch (error) {await engine.dispose(); throw error;}
     })().finally(() => {opening = null; $('startAudio').disabled = false;});
@@ -100,7 +100,8 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source
     || JSON.stringify(previous.fds.wave) !== JSON.stringify(next.fds.wave)
-    || JSON.stringify(previous.fds.modulation.table) !== JSON.stringify(next.fds.modulation.table);
+    || JSON.stringify(previous.fds.modulation.table) !== JSON.stringify(next.fds.modulation.table)
+    || JSON.stringify(previous.dmc.data) !== JSON.stringify(next.dmc.data);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -145,10 +146,11 @@ const summary = document.createElement('div'); summary.className = 'fretboard-ro
 const choices = document.createElement('div'); choices.className = 'fretboard-row';
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
-let layout, keyboardSource;
+let layout, keyboardSource, keyboardHasDpcm;
 function renderKeyboard() {
   {
     keyboardSource = preset.source;
+    keyboardHasDpcm = Boolean(preset.dmc.data.length);
     layout = createFretboardLayout({state:fret});
     renderFretboardControls({instrumentRoot:tools.instrument,positionRoot:tools.position,fretDisplayRoot:tools.fret,
       stringDisplayRoot:tools.strings,stringWindowRoot:tools.window,state:fret,
@@ -162,7 +164,7 @@ function renderKeyboard() {
     for (const button of keyboard.querySelectorAll('.key')) {
       const entry = entries.find(item => item.key === button.dataset.key);
       button.disabled = !canPlay(entry.midi);
-      if (button.disabled) button.title = 'Outside this source’s hardware pitch range. Change the octave.';
+      if (button.disabled) button.title = preset.source === 'dmc' ? 'Load DPCM or choose Demo sample to play.' : 'Outside this source’s hardware pitch range. Change the octave.';
       button.addEventListener('keydown', event => {
         if (event.key===' '||event.key==='Enter') {event.preventDefault(); if(!event.repeat) press(`button:${entry.key}`,entry);}
       });
@@ -176,6 +178,7 @@ function renderKeyboard() {
 function canPlay(midi) {
   if (!Number.isInteger(midi) || midi<0 || midi>127) return false;
   if (preset.source==='noise') return true;
+  if (preset.source==='dmc') return preset.dmc.data.length > 0;
   const hz=440*2**((midi-69)/12), clock=1789773;
   if (preset.source==='fds') {const value=Math.round(hz*4194304/clock);return value>=1&&value<=4095;}
   const period=Math.round(clock/((preset.source==='triangle'?32:16)*hz)-1);
@@ -195,7 +198,7 @@ function press(source, entry) {
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
-    status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.' : `${midiToNoteName(note.midi)} · ${notes.size}/${capacity()} voices`);
+    status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.' : preset.source==='dmc' ? 'DMC triggered · playback speed is set by Rate.' : `${midiToNoteName(note.midi)} · ${notes.size}/${capacity()} voices`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
 function release(source) {
@@ -274,7 +277,7 @@ function saveFile(name, text) {
 }
 $('savePreset').addEventListener('click',()=>{
   $('savePreset').blur();
-  try{saveFile('2a03-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Pulse, Triangle, Noise and FDS included.');}catch(error){report(error);}
+  try{saveFile('2a03-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Pulse, Triangle, Noise, DMC sample and FDS included.');}catch(error){report(error);}
 });
 $('loadPreset').addEventListener('click',()=>{$('loadPreset').blur();$('presetFileInput').click();});
 $('presetFileInput').addEventListener('change',async()=>{

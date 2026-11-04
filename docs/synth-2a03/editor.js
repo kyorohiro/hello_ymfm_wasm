@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createDefaultPreset, readPreset, waveShape} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm} from './preset.js';
 
 /** A passive editor. Editing never creates an audio device. */
 export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
   let preset = createDefaultPreset(), disposed = false, stroke = null;
+  let dpcmRequest = 0, readingDpcm = false;
   const make = (tag, className, text) => {
     const element = doc.createElement(tag);
     if (className) element.className = className;
@@ -22,7 +23,8 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     if (disposed) return;
     try {
       const next = readPreset(preset); mutator(next);
-      preset = readPreset(next); render();
+      const checked = readPreset(next);
+      cancelDpcmRead(); preset = checked; render();
       Promise.resolve(onChange(readPreset(preset))).catch(report);
     } catch (error) { render(); report(error); }
   }
@@ -169,7 +171,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   function help(parent, text) { const element = make('p', 'nes-help', text); parent.append(element); return element; }
   const body = make('div', 'nes-editor'); root.append(body);
   const sourceBar = make('div', 'nes-source-bar'); body.append(sourceBar);
-  select(sourceBar, 'Source', 'source', [['pulse','Pulse'],['triangle','Triangle'],['noise','Noise'],['fds','FDS']], value => value.source, (value, source) => {value.source = source;});
+  select(sourceBar, 'Source', 'source', [['pulse','Pulse'],['triangle','Triangle'],['noise','Noise'],['dmc','DMC'],['fds','FDS']], value => value.source, (value, source) => {value.source = source;});
   const sourceHint = make('p'); sourceBar.append(sourceHint);
 
   const pulse = card('Pulse · hardware square waves'), pulseFields = group(pulse);
@@ -203,6 +205,60 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   number(noiseFields, 'Period code · 0–15', 'noisePeriod', 0, 15, value => value.noise.period, (value, period) => {value.noise.period = period;});
   select(noiseFields, 'LFSR mode', 'noiseShortMode', [[false,'Long sequence'],[true,'Short sequence']], value => value.noise.shortMode, (value, shortMode) => {value.noise.shortMode = shortMode === 'true';});
   help(noise, 'One Noise channel. Every key triggers the same noise; note pitch and the Pitch wheels do not tune it. Period and LFSR mode change its clock and character while it sounds.');
+
+  const dmc = card('DMC · 1-bit DPCM sample'), dmcActions = make('div', 'nes-wave-actions'); dmc.append(dmcActions);
+  const loadDpcm = make('button', '', 'Load DPCM…'), demoDpcm = make('button', '', 'Demo sample'), cancelDpcm = make('button', '', 'Cancel load');
+  loadDpcm.id = 'loadDpcm'; demoDpcm.id = 'demoDpcm'; cancelDpcm.id = 'cancelDpcm'; cancelDpcm.hidden = true;
+  const dpcmFileInput = make('input', 'file-input'); dpcmFileInput.type = 'file'; dpcmFileInput.id = 'dpcmFileInput';
+  dpcmFileInput.accept = '.dmc,.dpcm,application/octet-stream'; dpcmFileInput.setAttribute('aria-label', 'Choose a pre-encoded DPCM sample, 1 to 4081 bytes');
+  for (const button of [loadDpcm, demoDpcm, cancelDpcm]) {
+    button.type = 'button';
+    listen(button, 'pointerdown', event => {if (event.button === 0) {event.preventDefault(); doc.activeElement?.blur();}});
+  }
+  dmcActions.append(loadDpcm, demoDpcm, cancelDpcm, dpcmFileInput);
+  const dpcmStatus = make('p', 'nes-help', 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');
+  dpcmStatus.id = 'dpcmStatus'; dpcmStatus.dataset.error = 'false'; dpcmStatus.setAttribute('role', 'status'); dpcmStatus.setAttribute('aria-live', 'polite'); dmc.append(dpcmStatus);
+  const dmcFields = group(dmc);
+  number(dmcFields, 'Rate index · 0–15', 'dmcRate', 0, 15, value => value.dmc.rate, (value, rate) => {value.dmc.rate = rate;});
+  number(dmcFields, 'Initial level · 0–127', 'dmcLevel', 0, 127, value => value.dmc.level, (value, level) => {value.dmc.level = level;});
+  checkbox(dmcFields, 'Loop sample', 'dmcLoop', value => value.dmc.loop, (value, loop) => {value.dmc.loop = loop;});
+  const dmcReadout = make('p', 'nes-wave-readout'); dmc.append(dmcReadout);
+  help(dmc, 'DMC plays pre-encoded 1-bit DPCM bytes, not WAV or other ordinary audio files. A sample contains 1–4081 bytes; this app pads it to the hardware length of 16 × n + 1 bytes with alternating bits.');
+  help(dmc, 'One DMC channel. Every key triggers the same sample at the selected Rate; keys and Pitch do not tune it. Rate changes pitch and duration together. Rate and Loop edits apply live; Initial level applies on the next trigger. Releasing the key stops playback.');
+  function sampleStatus(text, error = false) {dpcmStatus.textContent = text; dpcmStatus.dataset.error = String(error);}
+  function cancelDpcmRead() {
+    dpcmRequest++;
+    if (readingDpcm) sampleStatus('DPCM load cancelled. Current sound kept.');
+    readingDpcm = false; cancelDpcm.hidden = true;
+  }
+  function installDpcm(data, label) {
+    const length = Math.ceil((data.length - 1) / 16) * 16 + 1;
+    commit(value => {value.source = 'dmc'; value.dmc.data = data;});
+    sampleStatus(`${label} · ${data.length} bytes${length !== data.length ? ` → ${length} hardware bytes` : ''} · play the keyboard.`);
+  }
+  listen(loadDpcm, 'click', () => {loadDpcm.blur(); dpcmFileInput.click();});
+  listen(demoDpcm, 'click', () => {demoDpcm.blur(); installDpcm(createDemoDpcm(), 'Demo DPCM · software generated');});
+  listen(cancelDpcm, 'click', () => {cancelDpcm.blur(); cancelDpcmRead();});
+  listen(dpcmFileInput, 'change', async () => {
+    const file = dpcmFileInput.files?.[0]; dpcmFileInput.value = ''; dpcmFileInput.blur();
+    if (!file) return;
+    cancelDpcmRead(); const token = dpcmRequest; readingDpcm = true; cancelDpcm.hidden = false;
+    sampleStatus(`Reading ${file.name}…`);
+    try {
+      if (!file.size || file.size > MAX_DPCM_BYTES) throw new RangeError(`DPCM samples must contain 1–${MAX_DPCM_BYTES} bytes.`);
+      if (/\.(?:wav|wave|aif|aiff|mp3|mp4|m4a|ogg|flac|vgm|vgz)$/i.test(file.name)) throw new TypeError('Choose pre-encoded .dmc / .dpcm data. Audio and VGM files are not raw DPCM.');
+      const buffer = await file.arrayBuffer();
+      if (disposed || token !== dpcmRequest) return;
+      // Recheck bytes rather than trusting file metadata or a stale read.
+      if (!buffer.byteLength || buffer.byteLength > MAX_DPCM_BYTES) throw new RangeError(`DPCM samples must contain 1–${MAX_DPCM_BYTES} bytes.`);
+      readingDpcm = false; cancelDpcm.hidden = true;
+      installDpcm(Array.from(new Uint8Array(buffer)), `Loaded ${file.name}`);
+    } catch (error) {
+      if (!disposed && token === dpcmRequest) sampleStatus(`DPCM load failed: ${error.message} Current sound kept.`, true);
+    } finally {
+      if (token === dpcmRequest) {readingDpcm = false; cancelDpcm.hidden = true;}
+    }
+  });
 
   const fds = card('FDS · Wave RAM + frequency modulation'), fdsFields = group(fds);
   number(fdsFields, 'Volume · 0–32', 'fdsVolume', 0, 32, value => value.fds.volume, (value, volume) => {value.fds.volume = volume;});
@@ -308,7 +364,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
       if(update){update();continue;}const value=get(preset);
       if(input.type==='checkbox')input.checked=value;else if(doc.activeElement!==input)input.value=String(value);
     }
-    pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';fds.hidden=preset.source!=='fds';
+    pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
     for(const control of sweepControls)control.setDisabled(!preset.pulse.sweep.enabled);
     for(const control of modulationControls)control.setDisabled(!preset.fds.modulation.enabled);
@@ -316,7 +372,10 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     for(const button of brushButtons)button.setAttribute('aria-pressed',String(Number(button.dataset.modCode)===brush));
     shapes.hidden=editTarget!=='wave';modShapes.hidden=brushRow.hidden=editTarget!=='modulation';
     canvas.setAttribute('aria-label',editTarget==='wave'?'Editable FDS waveform, 64 samples with values from 0 to 63':'Editable FDS modulation table, 32 pitch-counter commands');
-    sourceHint.textContent={pulse:'CH1 + CH2 · two Pulse voices in round robin.',triangle:'CH3 · one fixed Triangle voice.',noise:'CH4 · one Noise voice. Keys trigger; they do not change pitch.',fds:'FDS · one Wave RAM voice, with hardware frequency modulation.'}[preset.source];
+    sourceHint.textContent={pulse:'CH1 + CH2 · two Pulse voices in round robin.',triangle:'CH3 · one fixed Triangle voice.',noise:'CH4 · one Noise voice. Keys trigger; they do not change pitch.',dmc:'CH5 · one DPCM sample. Keys trigger; Rate sets playback speed.',fds:'FDS · one Wave RAM voice, with hardware frequency modulation.'}[preset.source];
+    const bytes = preset.dmc.data.length, hardwareBytes = bytes ? Math.ceil((bytes - 1) / 16) * 16 + 1 : 0;
+    const bitRate = 1789773 / [428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54][preset.dmc.rate];
+    dmcReadout.textContent = `${bytes} bytes${bytes !== hardwareBytes ? ` → ${hardwareBytes} hardware bytes` : ''} · ${(bitRate / 1000).toFixed(2)} kbit/s${bytes ? ` · about ${(hardwareBytes * 8 / bitRate * 1000).toFixed(0)} ms / pass` : ''}`;
     const high=preset.pulse.duty*80;let path='';for(let index=0;index<4;index++){const x=index*80;path+=`${index?'L':'M'}${x} 10 L${x+high} 10 L${x+high} 36 L${x+80} 36 `;}
     pulsePath.setAttribute('d',path);resizeWave();drawWave(stroke?.samples);
     if(!stroke)waveReadout.textContent=editTarget==='wave'?'64 samples · 6-bit levels · draw, then release to apply':`32 commands · brush ${labels[brush]} · choose a command, then paint`;
@@ -326,8 +385,10 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     update(value){
       if(disposed)return;const next=readPreset(value);
       if(stroke&&(next.source!==preset.source||JSON.stringify(next.fds)!==JSON.stringify(preset.fds)))cancelStroke();
+      cancelDpcmRead();
+      if(JSON.stringify(next.dmc.data)!==JSON.stringify(preset.dmc.data)) sampleStatus(next.dmc.data.length ? `Embedded DPCM · ${next.dmc.data.length} bytes · play the keyboard.` : 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');
       preset=next;render();
     },
-    dispose(){if(disposed)return;disposed=true;stroke=null;for(const cleanup of cleanups)cleanup();body.remove();},
+    dispose(){if(disposed)return;cancelDpcmRead();disposed=true;stroke=null;for(const cleanup of cleanups)cleanup();body.remove();},
   };
 }

@@ -16,6 +16,8 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .nes-vgm-actions .subtext { margin:0; }
 #vgmFileName { flex:1 1 200px; min-width:0; overflow-wrap:anywhere; font-size:.76rem; }
 #vgmStatus[data-error="true"] { color:#a02f31; }
+#dpcmStatus { overflow-wrap:anywhere; margin:8px 0 14px; }
+#dpcmStatus[data-error="true"] { color:#a02f31; }
 #vgmVoiceWarnings { padding:8px 10px; border-left:3px solid var(--accent); background:#e4ddd4; }
 .nes-vgm-filters { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
 .nes-vgm-filters button { border-radius:999px; }

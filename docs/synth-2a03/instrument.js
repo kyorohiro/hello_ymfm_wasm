@@ -3,7 +3,7 @@ import {NesApuSynth, NesApuDirectTransport} from '../js/nesapusynth.js';
 import {createDefaultPreset, readPreset} from './preset.js';
 
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const poolFor = preset => preset.source === 'pulse' ? [0, 1] : preset.source === 'triangle' ? [2] : preset.source === 'noise' ? [3] : [5];
+const poolFor = preset => preset.source === 'pulse' ? [0, 1] : preset.source === 'triangle' ? [2] : preset.source === 'noise' ? [3] : preset.source === 'dmc' ? [4] : [5];
 const quietSweep = {enabled: false, period: 0, negate: true, shift: 0};
 
 /** Host keyboard allocation around one physical NES APU and FDS expansion. */
@@ -41,6 +41,15 @@ export class NesInstrument {
     if (changed(p => p.pulse, next.pulse)) for (let channel = 0; channel < 2; channel++) this._pulseVoice(channel, next, {live: Boolean(this.slots[channel])});
     if (!previous) this.synth.writeRegister(0x4008, 0xff);
     if (changed(p => p.noise, next.noise)) this.synth.noise.setVoice(next.noise);
+    if (changed(p => p.dmc.data, next.dmc.data) && next.dmc.data.length) {
+      // This instrument runs inside the Worklet with a DirectTransport, so
+      // the public low-level memory upload completes synchronously. Padding
+      // matches dmc.loadSample(), without introducing a Promise into commands.
+      const length = Math.ceil((next.dmc.data.length - 1) / 16) * 16 + 1;
+      const bytes = new Uint8Array(length).fill(0xaa); bytes.set(next.dmc.data);
+      this.synth.loadMemory(bytes, 0xc000);
+    }
+    if (changed(p => [p.dmc.rate, p.dmc.loop], [next.dmc.rate, next.dmc.loop])) this.synth.writeRegister(0x4010, (next.dmc.loop ? 64 : 0) | next.dmc.rate);
     if (changed(p => p.fds.wave, next.fds.wave)) this.synth.fds.setWave(next.fds.wave);
     if (changed(p => [p.fds.volume, p.fds.master], [next.fds.volume, next.fds.master])) this.synth.fds.setVolume(next.fds.volume, next.fds.master);
     const mod = next.fds.modulation;
@@ -75,7 +84,7 @@ export class NesInstrument {
   }
   setPreset(value) {
     this._open(); const next = readPreset(value), previous = this.preset;
-    if (previous.source !== next.source || !equal(previous.fds.wave, next.fds.wave) || !equal(previous.fds.modulation.table, next.fds.modulation.table)) this.stop();
+    if (previous.source !== next.source || !equal(previous.dmc.data, next.dmc.data) || !equal(previous.fds.wave, next.fds.wave) || !equal(previous.fds.modulation.table, next.fds.modulation.table)) this.stop();
     this._apply(previous, next); this.preset = next; return this.read();
   }
   loadPreset(value) {
@@ -87,7 +96,8 @@ export class NesInstrument {
     if (typeof id !== 'string' || !id.length || id.length > 128) throw new TypeError('Expected a note identity of 1–128 characters');
     if (this.voices.has(id)) throw new Error('Note identity is already active');
     if (!Number.isInteger(midi) || midi < 0 || midi > 127) throw new RangeError('Expected a MIDI note 0–127');
-    const source = this.preset.source, tone = source === 'noise' ? null : this._frequency(midi), pool = poolFor(this.preset);
+    const source = this.preset.source, tone = source === 'noise' || source === 'dmc' ? null : this._frequency(midi), pool = poolFor(this.preset);
+    if (source === 'dmc' && !this.preset.dmc.data.length) throw new Error('Load a DPCM sample or choose Demo DPCM before playing DMC');
     let channel;
     for (let offset = 0; offset < pool.length; offset++) {
       const candidate = pool[(this.cursor + offset) % pool.length];
@@ -95,13 +105,24 @@ export class NesInstrument {
     }
     if (channel === undefined) channel = pool.reduce((oldest, candidate) => this.slots[candidate].order < this.slots[oldest].order ? candidate : oldest, pool[0]);
     const previous = this.slots[channel];
-    if (previous) {this.synth.noteOff(channel); this.voices.delete(previous.id);}
+    if (previous) {this._stopChannel(channel); this.voices.delete(previous.id);}
     if (source === 'pulse') {
       this._pulseVoice(channel, this.preset);
       this._retune(channel, tone.period, {trigger: true}); this.synth.keyOn(channel);
     } else if (source === 'triangle') {
       this.synth.writeRegister(0x4008, 0xff); this._retune(2, tone.period, {trigger: true}); this.synth.keyOn(2);
     } else if (source === 'noise') {this.synth.noise.setVoice(this.preset.noise); this.synth.noise.noteOn();}
+    else if (source === 'dmc') {
+      const {rate, loop, level, data} = this.preset.dmc;
+      this.synth.noteOff(4);
+      this.synth.writeRegister(0x4010, (loop ? 64 : 0) | rate);
+      this.synth.writeRegister(0x4011, level);
+      this.synth.writeRegister(0x4012, 0);
+      this.synth.writeRegister(0x4013, Math.ceil((data.length - 1) / 16));
+      // One selected source owns the core. An explicit DMC off/on trigger
+      // follows hardware output-unit continuation; it does not reset the APU.
+      this.synth.writeRegister(0x4015, this.synth._getState().enabled | 16);
+    }
     else {this._retune(5, tone.period); this.synth.fds.keyOn();}
     const voice = {id, midi, channel, order: ++this.sequence};
     this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
@@ -110,18 +131,24 @@ export class NesInstrument {
   noteOff(id) {
     this._open(); const voice = this.voices.get(id);
     if (!voice || this.slots[voice.channel] !== voice) return false;
-    this.synth.noteOff(voice.channel); this.voices.delete(id); this.slots[voice.channel] = null; return true;
+    this._stopChannel(voice.channel); this.voices.delete(id); this.slots[voice.channel] = null; return true;
   }
   setPitch(semitones) {
     this._open();
     if (!Number.isFinite(semitones) || semitones < -24 || semitones > 24) throw new RangeError('Pitch must be between -24 and +24 semitones');
-    const updates = this.preset.source === 'noise' ? [] : [...this.voices.values()].map(voice => [voice.channel, this._frequency(voice.midi, semitones).period]);
+    const updates = ['noise', 'dmc'].includes(this.preset.source) ? [] : [...this.voices.values()].map(voice => [voice.channel, this._frequency(voice.midi, semitones).period]);
     for (const [channel, period] of updates) this._retune(channel, period);
     this.pitch = semitones; return this.read();
   }
   stop() {
-    this._open(); for (let channel = 0; channel < 6; channel++) this.synth.noteOff(channel);
+    this._open(); for (let channel = 0; channel < 6; channel++) this._stopChannel(channel);
     this.voices.clear(); this.slots.fill(null); this.cursor = 0; return this.read();
+  }
+  _stopChannel(channel) {
+    this.synth.noteOff(channel);
+    // The hardware DAC can retain its last level after the sample ends.
+    // An explicit Synth release clears that level instead of leaving DC.
+    if (channel === 4) this.synth.writeRegister(0x4011, 0);
   }
   generateStereo(frames) {this._open(); return this.core.generateStereo(frames);}
   dispose() {if (this.disposed) return; this.stop(); this.core.dispose(); this.disposed = true;}

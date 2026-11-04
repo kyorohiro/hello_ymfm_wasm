@@ -59,7 +59,7 @@
           <div class="monitor-plot">
             <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live NES / FDS audio visualization"></canvas>
           </div>
-          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise and DMC do not follow note pitch.">
             <span>Pitch</span>
             <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones">
             <output id="pitchValue" for="pitchBend">0.00</output>
@@ -94,7 +94,7 @@
             <ul id="vgmWarningList"></ul>
           </details>
         </div>
-        <p class="subtext">Imports initial sound settings. Later changes, length counters and song playback are not imported. DMC samples are not supported yet; any approximations are shown with the selected sound.</p>
+        <p class="subtext">Imports initial sound settings. Later changes, length counters, song playback and DMC samples are not imported from VGM. Any approximations are shown with the selected sound. Load pre-encoded DPCM in the DMC editor.</p>
       </section>
 
       <section class="instrument-workspace nes-workspace" aria-label="Instrument editor">
@@ -126,7 +126,7 @@
         </div>
         <div id="keyboardFretboard"></div>
         <div class="performance-keyboard">
-          <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+          <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise and DMC do not follow note pitch.">
             <span>Pitch</span>
             <input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones">
             <output id="keyboardPitchValue" for="keyboardPitchBend">0.00</output>
@@ -135,7 +135,7 @@
         </div>
       </section>
       <footer>
-        <p>One NTSC NES APU + FDS: two Pulse voices, one Triangle, one Noise and one FDS voice. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. DMC samples and song playback are not included in this first version.</p>
+        <p>One NTSC NES APU + FDS: two Pulse voices, one Triangle, one Noise, one DMC sample and one FDS voice. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Song playback and audio-to-DPCM conversion are not included.</p>
         <div><a href="../playground/index.html?mode=nes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/nesapusynth.js">JavaScript source</a></div>
       </footer>
     </article>

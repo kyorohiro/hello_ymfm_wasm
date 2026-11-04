@@ -7,7 +7,7 @@ Project identifier: `tetorica-2a03-synth`.
 
 [Open the synthesizer](index.html) · [NES / FDS Playground](../playground/index.html?mode=nes)
 
-Play and edit NES Pulse, Triangle, Noise and FDS. Draw a waveform and modulation
+Play and edit NES Pulse, Triangle, Noise, DMC and FDS. Draw a waveform and modulation
 table, hear how the controls interact, and take the instrument away as a preset
 or JavaScript. The keyboard, two Pitch wheels, output monitor and file workflow
 follow Tetorica's FM2612, DMG and SPU Synths.
@@ -15,7 +15,7 @@ follow Tetorica's FM2612, DMG and SPU Synths.
 ## Play
 
 Select **Enable audio**, then click a key or play the displayed computer keys.
-Choose **Pulse / Triangle / Noise / FDS** with the Source buttons. Opening the
+Choose **Pulse / Triangle / Noise / DMC / FDS** with the Source buttons. Opening the
 page and editing an instrument do not start audio; playing a key can initialize it.
 
 One NTSC NES APU with FDS supplies these voices:
@@ -25,6 +25,7 @@ One NTSC NES APU with FDS supplies these voices:
 | Pulse | Two, in round robin | Four Duty settings, fixed volume, hardware Envelope and Sweep |
 | Triangle | One | Fixed hardware waveform with keyboard note and gate |
 | Noise | One | Volume, period code and long / short LFSR sequence |
+| DMC | One | Pre-encoded DPCM sample, 16 Rate settings, Loop and Initial level |
 | FDS | One | 64 six-bit samples, volume / master scale, frequency modulation |
 
 All keys play the selected source. When its channels are full, a new note replaces
@@ -34,6 +35,9 @@ capacity and held-note count are displayed above the editor.
 
 **Noise keys trigger the same configured noise.** Its period and LFSR mode set
 the character; musical note pitch and Pitch bend do not tune it.
+
+**DMC keys trigger the same loaded sample.** Rate sets its playback speed;
+musical note pitch and both Pitch wheels are disabled for DMC.
 
 **Octave − / +**, Guitar / Bass / Ukulele and the fret controls change the
 keyboard layout. Keys outside the source's timer range are disabled. The two
@@ -58,6 +62,41 @@ trigger. Sweep follows the hardware timer and can mute a voice at its limits.
 Triangle uses its fixed waveform and hardware gate. This first version keeps its
 linear / length behavior configured for held keyboard notes. It has no separate
 hardware volume setting. Noise volume, period and LFSR mode can be edited live.
+
+## DMC samples
+
+Choose **DMC**, then **Load DPCM…** to open pre-encoded `.dmc` / `.dpcm` data,
+or **Demo sample** to try a self-authored, software-generated sample. Loading
+data does not start audio. Play a key to trigger it; a newer key takes ownership
+of the single DMC channel. Releasing an older key cannot stop its replacement.
+
+Raw DPCM is a sequence of one-bit up / down changes for a seven-bit output
+level. It is not a WAV, MP3 or ordinary PCM audio file. The input must contain
+**1–4081 bytes**. This app pads it with `0xaa` alternating bits to a hardware
+length of **16 × n + 1 bytes**; the stored original bytes remain in the preset.
+For example, 32 input bytes play as 33 hardware bytes. The alternating bits are
+hardware-length padding, not PCM silence.
+
+- **Rate index 0–15** selects a hardware bit clock, about 4.18–33.14 kbit/s
+  at NTSC speed. It changes sample pitch and duration together. The readout
+  estimates one pass including padding; it is not a PCM sample-rate setting.
+- **Loop sample** repeats the configured sample. Rate and Loop apply live.
+- **Initial level 0–127** sets the starting DAC level on the next trigger.
+  It is not a gain knob; it changes how the one-bit steps reach their limits.
+
+Each key uses the selected Rate. There is no chromatic sample mapping. A
+one-shot can finish while its key remains held; press a new key to trigger
+again. The shared core retains part of an in-flight output byte on off / on,
+so triggering does not promise an identical sample-by-sample attack. Enabling
+Loop after a completed pass can resume it. Releasing a key or **Stop all sound**
+also clears the retained DAC level as this Synth's software stopping policy.
+
+Sample changes stop held notes. Empty, oversized or unsuitable files keep the
+current instrument. **Cancel load**, a newer file, Demo sample, source switch
+or another instrument edit invalidates an older asynchronous read. The last
+read cannot overwrite the newer edit. File analysis stays in the browser.
+Audio-to-DPCM encoding and DMC extraction from VGM are separate follow-ups.
+See the [DMC hardware reference](https://www.nesdev.org/wiki/APU_DMC).
 
 ## FDS waveform and modulation
 
@@ -100,7 +139,7 @@ filled with a factory waveform. Settings beyond the current editor's controls
 may need a static approximation, which is explained with the selected sound.
 Read those notes when comparing a recovered instrument with the original song.
 
-DMC samples are not imported in this stage. Files containing other supported
+DMC samples are not imported from VGM in this stage. Files containing other supported
 NES / FDS sounds can still be used. Non-NTSC clocks are reported because this
 Synth plays at its normal NTSC clock; dual NES chips are unsupported. Files and
 expanded VGZ data are limited to 64 MiB. All file analysis stays in the browser.
@@ -112,11 +151,13 @@ passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
 **Save preset** downloads `2a03-voice.json`. The validated
-`tetorica-nes-fds-voice` version-1 format includes all four sources' settings,
-the FDS wave and modulation table. Master, Octave, keyboard layout and temporary
+`tetorica-nes-fds-voice` version-2 format includes all five sources' settings,
+the original DPCM bytes, FDS wave and modulation table. Version-1 presets still
+load and are migrated; saving creates version 2, which older Synth releases do
+not read. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
 instrument. Invalid / oversized files keep the current sound. Loading a valid
-preset, Reset instrument, and source / table changes stop held notes.
+preset, Reset instrument, and source / table / DPCM-data changes stop held notes.
 
 **Copy JavaScript** produces a setup and single-channel audition for the selected
 source. Open Playground in NES mode, paste it into the editor and Run. Keyboard
@@ -127,8 +168,8 @@ away from its window also stops notes. An audio failure offers **Enable audio**
 to restart. Save the preset before closing or reloading; the session stays in
 memory rather than being saved automatically.
 
-The instrument covers Pulse / Triangle / Noise / FDS. DMC samples, PCM-to-DPCM
-encoding, NSF / song playback and sequencing are outside this version's workflow.
+The instrument covers Pulse / Triangle / Noise / DMC / FDS. PCM-to-DPCM encoding,
+VGM DMC extraction, NSF / song playback and sequencing are outside this version's workflow.
 
 ## API and sources
 

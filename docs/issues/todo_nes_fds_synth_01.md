@@ -7,9 +7,34 @@
 ## リリース記録
 
 - 2026-11-04：ユーザーより **Tetorica 2A03 Synthをリリース済み** と報告。
-- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。リリース後に追加したVGM音色読込は下記を参照。DMC／DPCM、Tauri版は後続TODOとして残す。
+- 2026-11-04：ユーザーより **VGM／VGZ音色読込版も動作確認・リリース済み** と報告。
+- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込と、今回追加したDMC／DPCM読込は下記を参照。音声からのDPCM変換、VGM DMC抽出、Tauri版は後続TODOとして残す。
 
-## VGM／VGZ音色読込（2026-11-04 完了・追加分は未公開）
+## DMC／DPCMサンプル読込（2026-11-04 完了・追加分は未公開）
+
+VGM音色読込版のリリース後の次の作業。既にエンコードされたDPCMサンプルを読み込み、既存のNES DMC回路で鍵盤から試す。音声ファイルのDPCM変換、VGMからのDMC抽出、曲再生は後続とする。
+
+- [x] 既存DMC APIと実WASMのlength／rate／loop／level／停止挙動を確認し、共有DSPを変えずに接続する。
+- [x] DMCを5番目のSound sourceとして追加し、同じサンプルを1chで再triggerする。鍵盤の音階とPitchではrateを変えない。
+- [x] 1..4081 bytesのDPCM読込、hardware長へのpaddingの説明、rate 0..15／loop／initial level 0..127を既存stepper・button UIへ追加する。
+- [x] 旧プリセットを読み込める形で、サンプルbytesを含む保存・再読込・JavaScriptコピーを追加する。
+- [x] 不正・過大ファイルや古い非同期読込から現在の音色を守る。サンプル変更・停止・置換後の古い離鍵・one-shot終了を検証する。
+- [x] 自作DPCMと実WASM、Chromium／WebKit、独立ZIPで発音・rate／loop・Focus・export・停止を確認する。
+- [x] ガイド、英日AI README、日英ホーム、検証結果と次のTODOを更新する。
+
+実装：`preset.js`へversion 2と`dmc:{data,rate,loop,level}`を追加し、旧version 1は厳密に検証してversion 2へ移行する。元の最大4081 bytesを保存し、実行時だけ`0xaa`で16×n+1 bytesへpaddingする。version 2保存物は旧リリースでは読めない。Copy JavaScriptは`await nes.dmc.loadSample(...)`→`nes.dmc.play(...)`を生成する。
+
+`instrument.js`は既存の同期DirectTransportとmemory／register APIを使用し、Workletの命令順序と共有DSP／runtime／WASMを保つ。DMCはCH5（index 4）1chで、音階やPitchはrateを変えない。Rate／Loopは即時、Initial levelは次のtriggerに反映する。one-shotが終わっても保持キーの所有権を残し、新しいtrigger・離鍵・停止で更新する。残りbytes 0だけを見て最終byteを切らない。off/on時の途中byte継続は共有coreの挙動を保ち、全core resetで隠さない。離鍵・Stop all soundではソフト側の停止方針としてDAC levelも0にする。
+
+UI：Source→DMCに`Load DPCM…`、`Demo sample`、`Cancel load`、既存形式のstepperとLoop checkboxを追加。自作257-byte demoはソフトで生成したデータと表示する。読み込みではAudioContextを作らない。空DMC draftは読込案内を出して鍵盤を無効にする。bit rate（約4.18–33.14 kbit/s）とpadding込みの概算時間を表示し、通常のPCM sample rateとは区別する。古い非同期読込は新しいファイル・Demo・source変更・その他の編集で無効になる。不正／空／過大／通常の音声ファイルやキャンセル時は現在の音色を保つ。
+
+検証：`npm run test:2a03-synth`は**49件成功、失敗0**（既存40件＋preset 2件＋DMC実WASM 7件）。44.1／48 kHzで発音、1-byte／4081-byte境界、32→33-byte padding、独立したサンプルbytes、rateによる長さ変化、loop、終了／再trigger、古い離鍵、DAC停止を確認した。最終ソース版と独立ZIPは双方**Chromium／WebKitで成功**。既存VGM／FDSに加え、無音の読込・Focus・競合／キャンセル／Demoによる無効化・サンプル交換・v2保存／コード・v1移行も確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0、物理音声出力はmute。記録：[ソース版](2a03_synth_dmc_browser_01.json)、[ZIP版](2a03_synth_dmc_zip_browser_01.json)。DMCのモバイル画面も確認済み。
+
+配布候補：`sh scripts/package_itch_2a03_synth.sh dmc-20261104`で`release/tetorica_2a03_synth_dmc-20261104_itch.zip`を作成（35 files、3 bundles、1,136,707 bytes、SHA-256 `c576d4f15830aa3de258f36205179d420750fe3143f51cc75b8783d490ee7f8a`）。browser receiptの40 inputsは作業ファイルと一致し、元WASM pair／Native対応ソース11 inputs／権利通知を保持する。共有runtimeの変更やnpm更新は不要。ガイド・英日AI README・日英ホームも更新した。
+
+次は手元の実DPCMで実聴確認。音声からのDPCM変換とVGMからのDMC抽出は未実装。今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
+## VGM／VGZ音色読込（2026-11-04 完了・リリース済み）
 
 ユーザーの希望でDPCM単体読込より先に進める。DMG版と同じ「ファイル読込→音色選択→鍵盤試奏→編集・保存・JavaScript」の流れを2A03へ追加する。
 
@@ -87,8 +112,10 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 
 ## 後続
 
-- [ ] DMC：既エンコードDPCMのファイル読込、rate／loop／level、鍵盤からのtrigger。
+- [x] DMC：既エンコードDPCMのファイル読込、rate／loop／level、鍵盤からのtrigger（上記2026-11-04の追加作業）。
+- [ ] 手元の実DPCMファイルで実聴し、Rate／Loop／Initial level、離鍵と再triggerを確認する。
 - [ ] 音声ファイルからDPCMへの変換。既存APIにPCM encoderはないため、別途仕様・検証を用意する。
+- [ ] VGM／VGZのDMCサンプル抽出。CPU RAM blockと再生address／length／rate／loop／initial levelを追い、現在のDMCプリセットへ取り込む。
 - [x] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する（上記2026-11-04の追加作業）。
 - [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
 - [ ] FDS／Triangle／Noiseの追加Envelope／length counter編集を段階的に検討する。

@@ -44,6 +44,7 @@ function makePagedInstrumentVgm() {
 function makeNoiseEnvelopeVgm() {
   return vgmBytes([...vgmWrite(0x15,8),...vgmWrite(0x0c,0x23),...vgmWrite(0x0e,0x83),...vgmWrite(0x0f,8),0x66],{fds:false});
 }
+const dpcmBytes = length => Buffer.from(Array.from({length}, (_,index)=>index%8<4?0xff:0));
 const config = {
   root:path.resolve(__dirname, '../docs'), entry:'/synth-2a03/index.html',
   out:'/private/tmp/tetorica-2a03-synth-browser.json', screenshots:null,
@@ -238,12 +239,31 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#voiceEditor input[type=number]').count(),0,'instrument values are button steppers');
     assert.equal(await page.locator('#voiceEditor select').count(),0,'sound choices avoid native type-ahead');
-    assert.equal(await page.locator('#source [role=radio]').count(),4);
+    assert.equal(await page.locator('#source [role=radio]').count(),5);
     await number('#pulseVolume',11); await number('#pulseVolume',10);
     await choose('#pulseDuty',.25);
     await page.fill('#instrumentName','NES browser audit'); await page.press('#instrumentName','Enter');
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#keyboard .key').count(),36);
+
+    check('DPCM demo and file loading are passive; an empty DMC source explains its sample requirement');
+    await choose('#source','dmc');
+    for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
+    assert.equal(await page.locator('#keyboard .key:disabled').count(),36);
+    assert.match(await page.locator('#dpcmStatus').textContent(),/load|sample/i);
+    await page.click('#demoDpcm');
+    await page.waitForFunction(()=>document.querySelectorAll('#keyboard .key:disabled').length===0);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    const dpcmChooser=page.waitForEvent('filechooser');await page.click('#loadDpcm');
+    await (await dpcmChooser).setFiles({name:'self-authored-32.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>/32.*bytes/i.test(document.querySelector('#dpcmStatus').textContent)&&document.querySelector('#dpcmStatus').dataset.error!=='true');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input:not([type=range]),select,textarea'))),false);
+    const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
+    const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
+    assert.equal(passiveDpcm.version,2);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    await choose('#source','pulse');await page.fill('#instrumentName','NES browser audit');await page.press('#instrumentName','Enter');
 
     check('VGM library is passive before audio; source filters and bounded pages retain the edited draft');
     const vgmChooser=page.waitForEvent('filechooser');await page.click('#loadVgm');
@@ -363,6 +383,107 @@ async function runEngine(name, engine, origin) {
     await number('#noisePeriod',8);
     await page.locator('#noisePeriod').focus();await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
 
+    check('DMC is one sample voice; rate and loop are live while Pitch and note selection do not tune it');
+    await choose('#source','dmc');state=await waitState(value=>value.preset.source==='dmc');
+    assert.equal(state.capacity,1);assert.equal(state.preset.dmc.data.length,0);
+    await page.click('#demoDpcm');state=await waitState(value=>value.preset.dmc.data.length===257);
+    await page.check('#dmcLoop');state=await waitState(value=>value.preset.dmc.loop);
+    for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);await assertPitchUi(0);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.dmcRemaining>0);
+    const dmcOwner=state.voices[0].id,dmcFrequency=state.coreState.dmcFrequency;
+    assert.equal(state.voices[0].channel,4);await sound();
+    const dmcAttacks=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length);
+    await number('#dmcRate',14);state=await waitState(value=>value.preset.dmc.rate===14);
+    assert.equal(state.voices[0].id,dmcOwner);assert.notEqual(state.coreState.dmcFrequency,dmcFrequency);await sound();
+    const dmcLevel=state.registers[0x11];await number('#dmcLevel',65);state=await waitState(value=>value.preset.dmc.level===65);
+    assert.equal(state.registers[0x11],dmcLevel,'initial level edits wait for the next trigger');assert.equal(state.voices[0].id,dmcOwner);
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),dmcAttacks);
+    const configuredDmcFrequency=state.coreState.dmcFrequency;
+    await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==dmcOwner);
+    const replacementDmc=state.voices[0].id;assert.equal(state.coreState.dmcFrequency,configuredDmcFrequency);assert.equal(state.registers[0x11],65);
+    await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,replacementDmc);await sound();
+    await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
+    await page.locator('#dmcRate').focus();await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+
+    check('invalid or absent DPCM input keeps the current looping sample and held owner');
+    const dmcBeforeBad=structuredClone(await inspect());
+    for(const [filename,buffer] of [['empty.dmc',Buffer.alloc(0)],['oversized.dmc',Buffer.alloc(4082)],['ordinary-audio.wav',dpcmBytes(32)]]) {
+      await page.setInputFiles('#dpcmFileInput',{name:filename,mimeType:'application/octet-stream',buffer});
+      await page.waitForFunction(()=>document.querySelector('#dpcmStatus').dataset.error==='true');
+      state=await inspect();assert.deepEqual(state.preset,dmcBeforeBad.preset);assert.deepEqual(state.voices,dmcBeforeBad.voices);await sound();
+    }
+    const noDpcmChooser=page.waitForEvent('filechooser');await page.click('#loadDpcm');await (await noDpcmChooser).setFiles([]);
+    state=await inspect();assert.deepEqual(state.preset,dmcBeforeBad.preset);assert.deepEqual(state.voices,dmcBeforeBad.voices);await sound();
+
+    const deferDpcmRead=()=>page.evaluate(()=>{
+      const original=File.prototype.arrayBuffer;window.audit.restoreDpcmRead=()=>{File.prototype.arrayBuffer=original;};
+      delete window.audit.releaseSlowDpcm;window.audit.slowDpcmCompleted=false;
+      File.prototype.arrayBuffer=function(...args){
+        const bytes=original.apply(this,args);if(this.name!=='slowfixture.dmc')return bytes;
+        return bytes.then(value=>new Promise(resolve=>{window.audit.releaseSlowDpcm=()=>resolve(value);})).finally(()=>{window.audit.slowDpcmCompleted=true;});
+      };
+    });
+    const releaseDpcmRead=async()=>{
+      await page.evaluate(()=>{window.audit.releaseSlowDpcm();window.audit.restoreDpcmRead();});
+      await page.waitForFunction(()=>window.audit.slowDpcmCompleted===true);
+    };
+    check('explicit DPCM cancellation keeps the looping sample and rejects the late file result');
+    await deferDpcmRead();
+    await page.setInputFiles('#dpcmFileInput',{name:'slowfixture.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>typeof window.audit.releaseSlowDpcm==='function');
+    assert.equal(await page.isVisible('#cancelDpcm'),true);await page.click('#cancelDpcm');
+    assert.equal(await page.isVisible('#cancelDpcm'),false);assert.match(await page.locator('#dpcmStatus').textContent(),/cancelled.*Current sound kept/i);
+    await releaseDpcmRead();state=await inspect();
+    assert.deepEqual(state.preset,dmcBeforeBad.preset);assert.deepEqual(state.voices,dmcBeforeBad.voices);await sound();
+
+    check('a newer DPCM load wins over a delayed file read and sample changes stop held notes');
+    await deferDpcmRead();
+    await page.setInputFiles('#dpcmFileInput',{name:'slowfixture.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>typeof window.audit.releaseSlowDpcm==='function');
+    await page.setInputFiles('#dpcmFileInput',{name:'newer-self-authored.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(17)});
+    state=await waitState(value=>value.preset.dmc.data.length===17);assert.equal(state.voices.length,0);
+    const dmcAfterNewer=structuredClone(state.preset);
+    await releaseDpcmRead();
+    assert.deepEqual((await inspect()).preset,dmcAfterNewer);await page.keyboard.up('a');
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+
+    check('choosing Demo sample supersedes a pending DPCM file and stops the replaced sample');
+    await deferDpcmRead();
+    await page.setInputFiles('#dpcmFileInput',{name:'slowfixture.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>typeof window.audit.releaseSlowDpcm==='function');
+    await page.click('#demoDpcm');state=await waitState(value=>value.preset.dmc.data.length===257);assert.equal(state.voices.length,0);
+    const dmcAfterDemo=structuredClone(state.preset);await releaseDpcmRead();assert.deepEqual((await inspect()).preset,dmcAfterDemo);
+    await page.keyboard.up('a');await stop();await silent();
+
+    check('DMC one-shot reaches the hardware end and the next key retriggers the configured rate');
+    await page.click('#demoDpcm');await waitState(value=>value.preset.dmc.data.length===257);
+    await number('#dmcRate',0);await page.uncheck('#dmcLoop');await waitState(value=>!value.preset.dmc.loop&&value.preset.dmc.rate===0);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.dmcRemaining>0);await sound();
+    await waitState(value=>value.coreState.dmcRemaining===0);await silent();
+    await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.coreState.dmcRemaining>0);await sound();
+    await page.keyboard.up('a');await stop();await silent();
+
+    check('DMC portable v2 presets retain original sample bytes and copied code awaits memory; v1 still migrates');
+    const dmcSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const dmcSave=await dmcSaveEvent;
+    const dmcPortable=JSON.parse(await fs.readFile(await dmcSave.path(),'utf8'));
+    assert.equal(dmcPortable.version,2);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
+    await page.click('#copyCode');const dmcCode=await page.locator('#codeOutput').inputValue();
+    assert.match(dmcCode,/await nes\.dmc\.loadSample/);assert.match(dmcCode,/Uint8Array\.from/);assert.match(dmcCode,/nes\.dmc\.play/);assert.match(dmcCode,/nes\.dmc\.stop/);
+    await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
+    await page.setInputFiles('#presetFileInput',{name:'self-authored-dmc-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(dmcPortable))});
+    state=await waitState(value=>value.preset.source==='dmc');assert.deepEqual(state.preset,dmcPortable);
+    await page.check('#dmcLoop');await waitState(value=>value.preset.dmc.loop);await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
+    if(config.screenshots) {
+      await page.setViewportSize({width:390,height:844});
+      await page.waitForFunction(()=>{const canvas=document.querySelector('#outputCanvas');return canvas.width===Math.max(240,Math.round(canvas.clientWidth));});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'DMC editor fits a narrow screen');await screenshot('dmc-mobile');
+      await page.setViewportSize({width:1180,height:940});
+    }
+    const legacyPreset=structuredClone(dmcPortable);legacyPreset.version=1;legacyPreset.source='pulse';delete legacyPreset.dmc;
+    await page.setInputFiles('#presetFileInput',{name:'old-v1-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyPreset))});
+    state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===2);
+    assert.equal(state.preset.dmc.data.length,0);assert.deepEqual(state.preset.pulse,legacyPreset.pulse);
+
     check('FDS Wave drawing applies on release and stores exactly 64 six-bit samples');
     await choose('#source','fds');state=await waitState(value=>value.preset.source==='fds');assert.equal(state.capacity,1);
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),false);
@@ -406,7 +527,7 @@ async function runEngine(name, engine, origin) {
     const downloadEvent=page.waitForEvent('download');await page.click('#savePreset');const download=await downloadEvent;
     assert.equal(download.suggestedFilename(),'2a03-voice.json');
     const portable=JSON.parse(await fs.readFile(await download.path(),'utf8'));
-    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
+    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.version,2);assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
     await page.setInputFiles('#presetFileInput',{name:'self-authored-nes-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(portable))});
     state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.modulation.enabled);assert.deepEqual(state.preset,portable);
@@ -526,6 +647,8 @@ async function runEngine(name, engine, origin) {
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,
+      dpcmLoadPassive:true,dmcEmptySampleGate:true,dmcMonophonic:true,dmcIgnoresNotePitch:true,dmcLiveRate:true,dmcLoopAndOneShot:true,
+      dpcmFailuresKeepSound:true,dpcmCancelKeepsSound:true,dpcmSupersededReadSafe:true,dpcmDemoSupersedesRead:true,dpcmSampleChangeStopsNotes:true,dmcPresetExport:true,dmcCopyAwaitedMemory:true,legacyV1PresetMigration:true,dmcMobileLayout:true,
       blurRelease:true,contextRecovery:true,finalDestinationMeasurement:true,physicalOutput:'muted',mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external};
   } catch (error) {
     if (page && config.screenshots) await page.screenshot({path:path.join(config.screenshots,`2a03-${name}-failure.png`),fullPage:true}).catch(() => {});
