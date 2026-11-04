@@ -387,6 +387,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   return {
     update(value){
       if(disposed)return;const next=readPreset(value);
+      dmcBits.cancelDrawing();
       if(stroke&&(next.source!==preset.source||JSON.stringify(next.fds)!==JSON.stringify(preset.fds)))cancelStroke();
       cancelDpcmRead();
       if(JSON.stringify(next.dmc.data)!==JSON.stringify(preset.dmc.data)) sampleStatus(next.dmc.data.length ? `Embedded DPCM · ${next.dmc.data.length} bytes · play the keyboard.` : 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');

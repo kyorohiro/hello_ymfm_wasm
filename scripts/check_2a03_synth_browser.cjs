@@ -220,6 +220,28 @@ async function runEngine(name, engine, origin) {
       return actual;
     };
     const dmcFirst = async () => {if(!await page.isDisabled('#dmcBitsFirst'))await page.click('#dmcBitsFirst');};
+    const dmcDrawPoint = async (fraction, level) => {
+      const canvas=page.locator('#dmcDacCanvas');await canvas.scrollIntoViewIfNeeded();
+      return canvas.evaluate((node,{fraction,level})=>{
+        const rect=node.getBoundingClientRect(),left=32,right=node.width-14,top=18,bottom=node.height-30;
+        return {x:rect.left+(left+(right-left)*fraction)*rect.width/node.width,
+          y:rect.top+(bottom-level/127*(bottom-top))*rect.height/node.height};
+      },{fraction,level});
+    };
+    const startDmcDraw = async (fraction, level) => {
+      await page.locator('#dmcDacCanvas').evaluate(node=>node.addEventListener('pointerdown',event=>{window.audit.dmcDrawPointer=event.pointerId;},{once:true}));
+      const point=await dmcDrawPoint(fraction,level);await page.mouse.move(point.x,point.y);await page.mouse.down();
+    };
+    const moveDmcDraw = async (fraction, level, steps=1) => {
+      const point=await dmcDrawPoint(fraction,level);await page.mouse.move(point.x,point.y,{steps});
+    };
+    const dmcDrawing = () => page.locator('#dmcDacCanvas').getAttribute('data-drawing');
+    const cancelDmcPointer = async () => {
+      const pointerId=await page.evaluate(()=>window.audit.dmcDrawPointer);
+      await page.dispatchEvent('#dmcDacCanvas','pointercancel',{pointerId,pointerType:'mouse',bubbles:true});
+      await page.mouse.up();
+      assert.notEqual(await dmcDrawing(),'true');
+    };
     const setMaster = async value => {
       await page.locator('#masterVolume').evaluate((input, next) => {
         input.value = String(next); input.dispatchEvent(new Event('input', {bubbles:true}));
@@ -354,6 +376,29 @@ async function runEngine(name, engine, origin) {
     assert.match(await page.locator('#dmcBitsPage').textContent(),/33/);
     await dmcFirst();assert.equal(await page.isDisabled('#dmcBitsPrevious'),true);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+
+    check('DMC mouse drawing previews target and bit changes passively, with Escape and padding protection');
+    const beforePassiveDraw=await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL());
+    await startDmcDraw(.02,8);await moveDmcDraw(.98,12,5);
+    assert.equal(await dmcDrawing(),'true');
+    assert(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points'))>20,'sparse pointer movement fills intervening bit targets');
+    assert.notEqual(await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL()),beforePassiveDraw,'the target and actual draft are visible before release');
+    assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'false','the bit grid previews drawn down-steps');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    await page.keyboard.press('Escape');await page.mouse.up();assert.notEqual(await dmcDrawing(),'true');
+    assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'true','Escape restores original bits');
+    await assertDmcPreview({dmc:{data:[...dpcmBytes(32)],level:64,rate:15,loop:false}});
+    await page.click('#dmcBitsLast');await startDmcDraw(.2,100);await moveDmcDraw(.8,20);await page.mouse.up();
+    assert.notEqual(await dmcDrawing(),'true','generated padding cannot start a drawing');
+    assert.equal(await dmcBit(32,0).isDisabled(),true);await dmcFirst();
+    await page.setInputFiles('#dpcmFileInput',{name:'mixed-padding.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(2)});
+    await page.waitForFunction(()=>/2.*bytes/i.test(document.querySelector('#dpcmStatus').textContent));
+    await startDmcDraw(16.2/32,120);await page.mouse.up();
+    assert.notEqual(await dmcDrawing(),'true','the first half of a padding bit must not snap back to the last real bit');
+    await assertDmcPreview({dmc:{data:[...dpcmBytes(2)],level:64,rate:15,loop:false}});
+    await page.setInputFiles('#dpcmFileInput',{name:'self-authored-32.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>/32.*bytes/i.test(document.querySelector('#dpcmStatus').textContent));
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
     const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
     assert.equal(passiveDpcm.version,2);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
@@ -612,6 +657,17 @@ async function runEngine(name, engine, origin) {
     await page.setViewportSize({width:390,height:844});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'the last DMC bit page fits a narrow screen');await screenshot('dmc-bits-last-mobile');
     await page.setViewportSize({width:1180,height:940});
+    check('whole-sample drawing stays bounded at the maximum DMC length');
+    await page.click('#dmcWaveAll');
+    const largestBeforeDraw=structuredClone((await inspect()).preset);
+    await startDmcDraw(.3,100);await moveDmcDraw(.7,24);
+    assert.equal(await dmcDrawing(),'true');
+    assert(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points'))>1000);
+    assert.deepEqual((await inspect()).preset,largestBeforeDraw,'even a long draft does not upload sample bytes before release');
+    await page.mouse.up();state=await waitState(value=>JSON.stringify(value.preset.dmc.data)!==JSON.stringify(largestBeforeDraw.dmc.data));
+    assert.equal(state.preset.dmc.data.length,4081);assert.equal(state.preset.dmc.data[4080],127,'drawing the middle leaves the final byte untouched');
+    assert((await page.locator('#dmcBitEditor button[data-dmc-byte][data-dmc-bit]').count())<=32);
+    await assertDmcPreview(state.preset);await page.click('#dmcWaveSelected');
     await dmcFirst();assert.equal(await page.isDisabled('#dmcBitsPrevious'),true);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
     await page.setInputFiles('#presetFileInput',{name:'dmc-before-bit-fixtures.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeBitFixtures))});
@@ -626,6 +682,51 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input,select,textarea'))),false);
     await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
     await page.keyboard.up('a');await stop();
+
+    check('cancelled DMC strokes preserve sample bytes across pointer, parameter and source changes');
+    const beforeCancelledDraw=structuredClone((await inspect()).preset);
+    await startDmcDraw(.05,120);await moveDmcDraw(.95,20);assert.equal(await dmcDrawing(),'true');
+    await cancelDmcPointer();assert.deepEqual((await inspect()).preset,beforeCancelledDraw);await assertDmcPreview(beforeCancelledDraw);
+    await startDmcDraw(.05,120);await moveDmcDraw(.95,20);
+    await dmcBit(0,0).focus();await page.keyboard.press('End');
+    assert.notEqual(await dmcDrawing(),'true','keyboard paging cancels a draft before changing the bit range');await page.mouse.up();
+    assert.deepEqual((await inspect()).preset,beforeCancelledDraw);await dmcFirst();
+    await startDmcDraw(.05,120);await moveDmcDraw(.95,20);
+    const resizePointer=await page.evaluate(()=>window.audit.dmcDrawPointer);
+    await page.locator('#dmcDacCanvas').evaluate((node,pointerId)=>{
+      const old=node.style.height;node.style.height='213px';const rect=node.getBoundingClientRect();
+      node.dispatchEvent(new PointerEvent('pointerup',{pointerId,button:0,clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2,bubbles:true}));
+      node.style.height=old;
+    },resizePointer);
+    assert.notEqual(await dmcDrawing(),'true','a resize during the final pointer preview cancels safely');await page.mouse.up();
+    assert.deepEqual((await inspect()).preset,beforeCancelledDraw);await assertDmcPreview(beforeCancelledDraw);
+    await startDmcDraw(.05,115);await moveDmcDraw(.95,18);
+    const rateDelta=beforeCancelledDraw.dmc.rate===15?-1:1;
+    await page.locator('#dmcRate').focus();await page.keyboard.press(rateDelta>0?'ArrowUp':'ArrowDown');
+    state=await waitState(value=>value.preset.dmc.rate===beforeCancelledDraw.dmc.rate+rateDelta);
+    assert.notEqual(await dmcDrawing(),'true');await page.mouse.up();
+    assert.deepEqual(state.preset.dmc.data,beforeCancelledDraw.dmc.data,'Rate changes discard the uncommitted stroke');
+    await number('#dmcRate',beforeCancelledDraw.dmc.rate);
+    await startDmcDraw(.05,120);await moveDmcDraw(.95,10);
+    await choiceButton('#source','dmc').focus();await page.keyboard.press('Home');
+    state=await waitState(value=>value.preset.source==='pulse');assert.notEqual(await dmcDrawing(),'true');await page.mouse.up();
+    assert.deepEqual(state.preset.dmc.data,beforeCancelledDraw.dmc.data,'source changes discard the uncommitted stroke');
+    await choose('#source','dmc');await waitState(value=>value.preset.source==='dmc');
+
+    check('DMC mouse target preview commits once on release and the edited sample plays through the real core');
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
+    const beforeDraw=structuredClone(state),waveBeforeDraw=await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL());
+    await startDmcDraw(.02,120);await moveDmcDraw(.5,104,3);await moveDmcDraw(.98,116,3);
+    assert.equal(await dmcDrawing(),'true');assert(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points'))>=30);
+    state=await inspect();assert.deepEqual(state.preset,beforeDraw.preset);assert.deepEqual(state.voices,beforeDraw.voices,'held audio is not stopped for an uncommitted drawing');
+    assert.notEqual(await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL()),waveBeforeDraw);
+    await screenshot('dmc-draw-preview');
+    await page.mouse.up();state=await waitState(value=>value.voices.length===0&&JSON.stringify(value.preset.dmc.data)!==JSON.stringify(beforeDraw.preset.dmc.data));
+    assert.notEqual(await dmcDrawing(),'true');assert.equal(state.preset.dmc.data.length,beforeDraw.preset.dmc.data.length);
+    assert.deepEqual(state.preset.dmc.data.slice(4),beforeDraw.preset.dmc.data.slice(4),'the selected four-byte stroke leaves other encoded bits alone');
+    await assertDmcPreview(state.preset);
+    assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input,select,textarea'))),false);
+    await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
     const editedDmcData=[...(await inspect()).preset.dmc.data];
 
     check('DMC portable v2 presets retain original sample bytes and copied code awaits memory; v1 still migrates');
@@ -752,6 +853,14 @@ async function runEngine(name, engine, origin) {
     await assertDmcPreview(state.preset);
     await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===vgmDmcFirst[0]);
     assert.deepEqual(state.preset.dmc,{data:[...vgmDmcFirst],rate:15,loop:true,level:66});assert.equal(state.capacity,1);
+    check('VGM-recovered DPCM uses the same mouse drawing editor');
+    const vgmBeforeDraw=structuredClone(state.preset);
+    await startDmcDraw(.02,8);await moveDmcDraw(.98,16,4);assert.equal(await dmcDrawing(),'true');
+    assert.deepEqual((await inspect()).preset,vgmBeforeDraw);
+    await page.mouse.up();state=await waitState(value=>JSON.stringify(value.preset.dmc.data)!==JSON.stringify(vgmBeforeDraw.dmc.data));
+    assert.equal(state.preset.dmc.data.length,257);await assertDmcPreview(state.preset);
+    await page.locator('[data-vgm-voice]').first().click();
+    state=await waitState(value=>value.preset.dmc.data[0]===vgmDmcFirst[0]&&JSON.stringify(value.preset.dmc.data)===JSON.stringify([...vgmDmcFirst]));
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
     state=await importVoice(1,preset=>preset.source==='dmc'&&preset.dmc.data.length===17);
     assert.deepEqual(state.preset.dmc,{data:[...vgmDmcSecond],rate:7,loop:true,level:32});
@@ -860,6 +969,7 @@ async function runEngine(name, engine, origin) {
       dpcmFailuresKeepSound:true,dpcmCancelKeepsSound:true,dpcmSupersededReadSafe:true,dpcmDemoSupersedesRead:true,dpcmSampleChangeStopsNotes:true,dmcPresetExport:true,dmcCopyAwaitedMemory:true,legacyV1PresetMigration:true,dmcMobileLayout:true,
       dmcBitEditorPassive:true,dmcBitOrder:true,dmcBitKeyboardEditing:true,dmcBitModifierShortcuts:true,dmcPaddingReadOnly:true,dmcDacPreview:true,dmcLoopPreviewCarry:true,dmcDacOddLimits:true,dmcRatePreviewTime:true,
       dmcBitWindowBounded:true,dmcBitLastByte:true,dmcBitEditStopsNotes:true,dmcEditedPresetRoundTrip:true,dmcVgmBitEditor:true,dmcBitEditorMobile:true,
+      dmcDrawPassive:true,dmcDrawPreview:true,dmcDrawReleaseCommit:true,dmcDrawPaddingProtected:true,dmcDrawEscapeCancel:true,dmcDrawPointerCancel:true,dmcDrawPageCancel:true,dmcDrawResizeCancel:true,dmcDrawParameterCancel:true,dmcDrawSourceCancel:true,dmcDrawMaximumLength:true,dmcVgmDrawEditor:true,
       blurRelease:true,contextRecovery:true,finalDestinationMeasurement:true,physicalOutput:'muted',mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external};
   } catch (error) {
     if (page && config.screenshots) await page.screenshot({path:path.join(config.screenshots,`2a03-${name}-failure.png`),fullPage:true}).catch(() => {});

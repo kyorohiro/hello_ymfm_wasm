@@ -67,7 +67,9 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .nes-wave-readout { margin:8px 0 12px; color:#64675b; font-size:.68rem; font-variant-numeric:tabular-nums; }
 .nes-dmc-editor { min-width:0; margin-bottom:17px; }
 .nes-dmc-editor > .nes-help:first-of-type { margin:0 0 12px; }
-#dmcDacCanvas { display:block; width:100%; height:210px; border:1px solid #526b7f; border-radius:8px; background:#202831; }
+#dmcDacCanvas { display:block; width:100%; height:210px; border:1px solid #526b7f; border-radius:8px; background:#202831; touch-action:none; cursor:crosshair; }
+#dmcDacCanvas[data-editable="false"] { cursor:default; }
+.nes-dmc-drawing-status { margin:8px 0; }
 .nes-dmc-legend { margin:0 0 14px; }
 .nes-dmc-navigation { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:12px 0; }
 #dmcBitsPage { flex:1 0 100%; text-align:center; color:var(--muted); font-size:.7rem; font-variant-numeric:tabular-nums; }

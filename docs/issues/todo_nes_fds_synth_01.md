@@ -11,6 +11,33 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## DMCマウス描画（2026-11-05 完了・追加分は未公開）
+
+ユーザー指定：FDSのようにマウスで波形を描きたい。描いた高さを目標に、DMCの各bitを±2／境界保持に従って選び、目標線と実際に復号したDAC波形を同時に見せる。
+
+- [x] 選択bytes／全体表示のcanvasに描画を追加し、目標線から元bytes範囲だけのbitを決める。LSB-first・DAC偶奇・上限下限を保つ。
+- [x] ドラッグ中はbit列と復号波形をpreviewし、releaseで既存DMCへ適用する。中断・source／sample変更時は未確定strokeを破棄する。
+- [x] 生成paddingは編集せず、元のsample長と保存形式を保つ。bit単独編集・VGM音色・preset保存との連携を保つ。
+- [x] ソフト側の描画支援であり、自由なPCM波形そのものや音声ファイルのPCM→DPCM自動変換とは区別して説明する。
+- [x] 純粋な描画変換処理・実WASM・Chromium／WebKit・独立ZIP、Focus・キャンセル・最大長を検証する。
+- [x] ガイド、TODO、検証結果、試し方を記録する。
+
+共有DSP／runtime／WASMは変更しない。描いた線へ完全一致できない範囲も、DMCの制約として見えるようにする。
+
+`dmc_draw.js`の`applyDmcTargets()`は、描いた各bit後のDAC目標に対し、実際の上昇／下降・境界保持のうち近い方を選ぶ。同距離なら元bitを保ち、LSB-firstで真のprefix levelから進める。指定外のbitとsample長は変えない。最大32,648個の目標に制限し、無効な入力は編集前に検証する。PCM音声の取り込み・resample・自動変換APIは追加していない。
+
+既存`dmc_editor.js`のcanvasをマウス／pointerで描けるようにした。Selected bytes／All dataの両方に対応する。pointer位置はbit後のstep endpointへ合わせ、疎なpointerイベントの間もbitごとに補間し、戻って描いた部分は最後の目標を使う。緑＝目標線、青＝復号した1周目、amber破線＝Loopの次周。目標とDMCの制約による差が見える。paddingの領域は元bitへ丸めず、境界の最初の半bitも含めて編集を開始しない。
+
+stroke中はbit列とDACだけをdraftとして更新し、Workletのbytes・保持音は変えない。releaseで変更を確定し、既存のdata-change停止／RAM uploadへ渡す。既存preset／VGM音色／keyboardと共用する。Escape、pointercancel／lost capture、blur／非表示、resize、source／sample／parameter、page／view変更で未確定strokeを破棄する。resizeが最終pointer preview内で中断した場合も、安全にcommitを中止する。適用した目標線は次の編集まで見せるが、presetへは保存しない。
+
+検証：`npm run test:2a03-synth`は**85件成功、失敗0**（既存78件＋描画helper 7件）。到達可能／不可能な目標、tie、DAC境界と偶奇、prefix／suffix、重複目標、最大長・padding保護・不正入力を確認した。描画後の各bitは44.1／48 kHzの実WASM DAC値と一致し、有限な発音も確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。実pointer操作でドラッグ中の表示と未確定bytes／owner保持、release後の確定・停止・試奏・保存、Escape／pointer／Rate／source／keyboard page／resize中断、padding境界、4081 bytes全体描画、VGMからの描画を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定した。目標と実波形のpreview、モバイル画面も確認済み。記録：[ソース版](2a03_synth_dmc_draw_browser_01.json)、[ZIP版](2a03_synth_dmc_draw_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_dmc-draw-20261105_itch.zip`（35 files、3 bundles、1,163,631 bytes、SHA-256 `5c43113379fab43b9b44eefeb14d2f2dbc93681fd999ced4cfbe3d1a959fffb9`）。browser receiptの44 inputsは作業ファイルと一致した。元WASM pair／Native対応ソース11 inputs／権利通知・preset schemaは保持し、npm更新は不要。Synthガイド・英日AI README・日英ホームも更新した。
+
+試し方：Source→DMC→Demo sample→All data→canvasをドラッグ→release→鍵盤。Loop Onで繰り返し聴ける。細部はSelected bytesで描く。手元の実聴確認、commit／push／公開は今回AIからは未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## DMCビット編集・DAC波形の可視化（2026-11-05 完了・追加分は未公開）
 
 ユーザー指定：DPCMをbit単位で表示・編集し、LSB-first／±2 step／7-bit DAC境界を視覚的に理解できるEditorを追加する。PCM→DPCM自動変換は実装しない。

@@ -107,12 +107,31 @@ See the [DMC hardware reference](https://www.nesdev.org/wiki/APU_DMC).
 
 ## DMC bit editor and DAC preview
 
-**DMC Editor · bits → DAC** opens the same bytes from a loaded DPCM file,
+**DMC Editor · draw / bits → DAC** opens the same bytes from a loaded DPCM file,
 Demo sample, VGM capture or preset. Each row shows the byte offset and its
 hexadecimal value, followed by eight editable bit buttons in **playback order,
 b0 → b7**. For example, `0x01` appears as `1 0 0 0 0 0 0 0` because DMC plays
 the least significant bit first. Click a bit to toggle it and update the
 decoded waveform immediately. The readout links that bit to its DAC step.
+
+You can also **draw on the graph with the mouse or a touch pointer**, in either
+Selected bytes or All data view. The green line is your target DAC level after
+each bit; blue shows what the DMC can actually produce. A software drawing aid
+chooses the nearer legal up / down step, keeping the original bit on a tie.
+The configured Initial level anchors the start. A steep target or a level of
+the wrong parity cannot be matched exactly; the two lines make that visible.
+
+During a stroke the bit grid and decoded wave update as a preview. The current
+instrument and sound are kept until release. **Release to apply** the drawn
+bits and stop held notes, then play a new key. **Escape**, pointer cancellation,
+leaving the app, resizing or changing the source, sample, controls, page or
+view discards the unfinished stroke. Green remains as the last drawn target
+after applying; it is temporary UI state and is not saved in the preset.
+
+Drawing changes only targeted bits in the original sample, preserving its
+length and read-only generated padding. Later decoded levels can shift even
+when later bits are unchanged, because DMC carries its previous DAC value
+forward. Drawings do not import or automatically convert PCM audio files.
 
 The preview follows the seven-bit DAC rules:
 
@@ -147,7 +166,7 @@ bytes; the view mode and page are temporary UI state. With a bit focused,
 **Space / Enter** toggles it, **0 / 1** sets it, arrows move between bits and
 bytes, **Page Up / Down** changes the window and **Home / End** jumps to the
 first / last original bit. Modifier shortcuts are left available. Pointer
-edits return to the performance keyboard. No PCM-to-DPCM conversion is added.
+edits return to the performance keyboard. No audio-file PCM-to-DPCM conversion is added.
 
 ## FDS waveform and modulation
 

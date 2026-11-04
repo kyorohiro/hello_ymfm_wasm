@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {decodeDpcm} from './dmc_decode.js';
+import {applyDmcTargets} from './dmc_draw.js';
 
 const PAGE_BYTES = 4;
 const equalBytes = (a, b) => a.length === b.length && a.every((value, index) => value === b[index]);
@@ -10,6 +11,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis, cleanups = [];
   let dmc = {data:[], level:64, rate:15, loop:false}, decoded = decodeDpcm([]);
   let page = 0, selectedBit = 0, whole = false, disposed = false;
+  let stroke = null, lastTargets = null;
   const make = (tag, className, text) => {
     const node = doc.createElement(tag); if (className) node.className = className;
     if (text !== undefined) node.textContent = text; return node;
@@ -17,7 +19,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   const listen = (node, type, callback) => {node.addEventListener(type, callback); cleanups.push(() => node.removeEventListener(type, callback));};
   const section = make('section', 'nes-dmc-editor nes-subsection'); section.id = 'dmcBitEditor';
   section.setAttribute('aria-labelledby', 'dmcEditorTitle');
-  const title = make('h4', '', 'DMC Editor · bits → DAC'); title.id = 'dmcEditorTitle'; section.append(title);
+  const title = make('h4', '', 'DMC Editor · draw / bits → DAC'); title.id = 'dmcEditorTitle'; section.append(title);
   const explanation = make('p', 'nes-help', 'Playback order: b0 → b7 (LSB first). 1 raises the DAC by 2; 0 lowers it by 2. At a boundary the level holds. Even starts stay even (0–126); odd starts stay odd (1–127). Click a bit to change it.');
   section.append(explanation);
   const modes = make('div', 'nes-wave-actions'); section.append(modes);
@@ -27,10 +29,14 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     listen(node, 'click', event => {if (event.detail) node.blur(); callback();});
     parent.append(node); return node;
   }
-  const selectedMode = button(modes, 'dmcWaveSelected', 'Selected bytes', () => {whole = false; renderWave();});
-  const allMode = button(modes, 'dmcWaveAll', 'All data', () => {whole = true; renderWave();});
+  const selectedMode = button(modes, 'dmcWaveSelected', 'Selected bytes', () => {cancelDrawing(); whole = false; renderWave();});
+  const allMode = button(modes, 'dmcWaveAll', 'All data', () => {cancelDrawing(); whole = true; renderWave();});
   const canvas = make('canvas'); canvas.id = 'dmcDacCanvas'; canvas.width = 900; canvas.height = 220;
   canvas.setAttribute('role', 'img'); section.append(canvas);
+  canvas.title = 'Draw a target curve. DMC chooses up / down bits within its hardware limits. Release to apply; Escape cancels.';
+  const drawingHint = 'Draw on the graph to set target DAC levels. Release to apply, Escape to cancel. This is a software drawing aid, not audio-file conversion.';
+  const drawingStatus = make('p', 'nes-help nes-dmc-drawing-status', drawingHint);
+  drawingStatus.id = 'dmcDrawingStatus'; drawingStatus.setAttribute('role', 'status'); section.append(drawingStatus);
   const summary = make('p', 'nes-wave-readout'); summary.id = 'dmcDacSummary'; summary.setAttribute('aria-live', 'polite'); section.append(summary);
   const legend = make('p', 'nes-help nes-dmc-legend'); section.append(legend);
   const navigation = make('div', 'nes-dmc-navigation'); section.append(navigation);
@@ -46,6 +52,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
 
   function pages() {return Math.max(1, Math.ceil(decoded.hardwareBytes / PAGE_BYTES));}
   function go(value, focusBit = false) {
+    cancelDrawing();
     page = Math.max(0, Math.min(pages() - 1, value)); selectedBit = page * PAGE_BYTES * 8;
     render(); if (focusBit) findBit(selectedBit)?.focus({preventScroll:true});
   }
@@ -57,10 +64,11 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   }
   function edit(index, bit) {
     if (disposed || index < 0 || index >= dmc.data.length * 8) return;
+    cancelDrawing(); lastTargets = null; drawingStatus.textContent = drawingHint;
     const data = [...dmc.data], byte = index >> 3, mask = 1 << (index & 7);
     data[byte] = bit ? data[byte] | mask : data[byte] & ~mask;
     selectedBit = index;
-    if (equalBytes(data, dmc.data)) {renderReadout(); draw(); return;}
+    if (equalBytes(data, dmc.data)) {renderWave(); return;}
     const old = dmc;
     try {
       dmc = {...dmc, data}; decoded = decodeDpcm(data, dmc); render();
@@ -86,6 +94,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     else if (event.key === 'End') move = dmc.data.length * 8 - 1;
     else return;
     event.preventDefault(); event.stopPropagation();
+    cancelDrawing();
     move = Math.max(0, Math.min(dmc.data.length * 8 - 1, move));
     page = Math.floor(move / (PAGE_BYTES * 8)); selectedBit = move; render(); findBit(move)?.focus({preventScroll:true});
   });
@@ -126,6 +135,72 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     const value = (decoded.paddedData[byte] >> bit) & 1, from = decoded.levels[index], to = decoded.levels[index + 1];
     bitReadout.textContent = `Byte ${byte} · b${bit} · ${value} (${value ? '+2' : '−2'}) · DAC ${from} → ${to}${from === to ? ' · held at boundary' : ''}${byte >= dmc.data.length ? ' · generated 0xAA padding, read only' : ''}`;
   }
+  function visibleRange() {
+    const total = decoded.hardwareBytes * 8, start = whole ? 0 : page * PAGE_BYTES * 8;
+    return {start, count:whole ? total : Math.min(PAGE_BYTES * 8,total - start)};
+  }
+  function drawingPoint(event) {
+    const rect = canvas.getBoundingClientRect(), {start,count} = visibleRange();
+    const px = (event.clientX - rect.left) / rect.width * canvas.width;
+    const py = (event.clientY - rect.top) / rect.height * canvas.height;
+    // A target describes the DAC AFTER a bit: snap to the nearest step
+    // endpoint, while the configured initial level remains the starting anchor.
+    const position = start + Math.max(0,Math.min(count,(px - 32) / (canvas.width - 46) * count));
+    const offset = Math.max(0,Math.min(count - 1,Math.round(position - start) - 1));
+    const padding = decoded.paddingBytes > 0 && position >= dmc.data.length * 8;
+    return {bit:padding ? Math.max(dmc.data.length * 8,start + offset) : start + offset,
+      level:Math.max(0,Math.min(127,(canvas.height - 30 - py) / (canvas.height - 48) * 127)),padding};
+  }
+  function targetEntries(targets) {return [...targets].map(([bit,level]) => ({bit,level}));}
+  function previewStroke(event) {
+    if (!stroke || stroke.id !== event.pointerId) return;
+    const point = drawingPoint(event), from = stroke.previous, distance = Math.abs(point.bit - from.bit);
+    for (let step = 0; step <= distance; step++) {
+      const ratio = distance ? step / distance : 1, bit = Math.round(from.bit + (point.bit - from.bit) * ratio);
+      if (bit < dmc.data.length * 8) stroke.targets.set(bit,from.level + (point.level - from.level) * ratio);
+    }
+    stroke.previous = point;
+    stroke.preview = applyDmcTargets(stroke.baseData,targetEntries(stroke.targets),{level:dmc.level});
+    decoded = decodeDpcm(stroke.preview,dmc);
+    selectedBit = Math.max(page * PAGE_BYTES * 8,Math.min(page * PAGE_BYTES * 8 + PAGE_BYTES * 8 - 1,point.bit));
+    drawingStatus.textContent = 'Drawing preview · green is the target, blue is decoded DMC. Current sound is kept until release. Escape cancels.';
+    render();
+  }
+  function cancelDrawing(event) {
+    if (!stroke || event?.pointerId !== undefined && event.pointerId !== stroke.id) return;
+    const id = stroke.id; stroke = null; decoded = decodeDpcm(dmc.data,dmc);
+    if (canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
+    drawingStatus.textContent = 'Drawing cancelled · previous DPCM data kept.';
+    render();
+  }
+  listen(canvas,'pointerdown',event => {
+    if (event.button !== 0 || stroke || !dmc.data.length || !canvas.clientWidth || !canvas.clientHeight) return;
+    resize();
+    const point = drawingPoint(event);
+    if (point.padding) {drawingStatus.textContent = 'Generated padding is read only. Draw over the original sample bytes.'; return;}
+    event.preventDefault(); doc.activeElement?.blur();
+    stroke = {id:event.pointerId,baseData:[...dmc.data],targets:new Map(),previous:point,preview:[...dmc.data]};
+    canvas.setPointerCapture(event.pointerId); previewStroke(event);
+  });
+  listen(canvas,'pointermove',event => {if (stroke?.id === event.pointerId) {event.preventDefault(); previewStroke(event);}});
+  listen(canvas,'pointerup',event => {
+    if (!stroke || stroke.id !== event.pointerId) return;
+    previewStroke(event);
+    if (!stroke || stroke.id !== event.pointerId) return;
+    const data = stroke.preview, targets = targetEntries(stroke.targets), id = stroke.id, previous = dmc;
+    stroke = null; lastTargets = targets;
+    if (canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
+    try {
+      const changed = !equalBytes(data,dmc.data);
+      dmc = {...dmc,data}; decoded = decodeDpcm(data,dmc); render();
+      drawingStatus.textContent = changed ? 'Drawing applied · DMC approximates the green target with up / down bits. Play a new key to hear it.' : 'Drawing kept the same bits · the green target shows the requested levels.';
+      if (changed) Promise.resolve(onChange([...data])).catch(onError);
+    } catch (error) {dmc = previous; lastTargets = null; decoded = decodeDpcm(dmc.data,dmc); render(); onError(error);}
+  });
+  listen(canvas,'pointercancel',cancelDrawing); listen(canvas,'lostpointercapture',cancelDrawing);
+  listen(win,'blur',() => cancelDrawing());
+  listen(doc,'visibilitychange',() => {if (doc.hidden) cancelDrawing();});
+  listen(win,'keydown',event => {if (stroke && event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); cancelDrawing();}});
   function draw() {
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const width = canvas.width, height = canvas.height, left = 32, right = width - 14, top = 18, bottom = height - 30;
@@ -164,6 +239,17 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       }
       trace(decoded.levels,'#85bedf');
       if (decoded.nextLevels) trace(decoded.nextLevels,'#e4b078',true);
+      const targets = stroke ? targetEntries(stroke.targets) : lastTargets;
+      if (targets?.length) {
+        const visible = targets.filter(point => point.bit >= start && point.bit < start + count).sort((a,b) => a.bit - b.bit);
+        ctx.strokeStyle = '#a0dfa5'; ctx.fillStyle = '#a0dfa5'; ctx.lineWidth = 1.5; ctx.beginPath();
+        for (let index = 0; index < visible.length; index++) {
+          const point = visible[index], px = x(point.bit + 1 - start), py = y(point.level);
+          if (!index) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.stroke();
+        if (visible.length === 1) {ctx.beginPath(); ctx.arc(x(visible[0].bit + 1 - start),y(visible[0].level),3,0,2*Math.PI); ctx.fill();}
+      }
       const pad = dmc.data.length * 8;
       if (pad < start + count && total > pad) {
         ctx.fillStyle = '#a8afb82b'; ctx.fillRect(x(Math.max(0,pad-start)),top,right - x(Math.max(0,pad-start)),bottom - top);
@@ -178,18 +264,20 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     selectedMode.setAttribute('aria-pressed', String(!whole)); allMode.setAttribute('aria-pressed', String(whole));
     Object.assign(canvas.dataset, {startLevel:String(dmc.level),endLevel:String(decoded.levels.at(-1)),bitCount:String(decoded.hardwareBytes * 8),durationMs:String(decoded.durationMs),
       nextStartLevel:decoded.nextLevels ? String(decoded.nextLevels[0]) : '',nextEndLevel:decoded.nextLevels ? String(decoded.nextLevels.at(-1)) : '',
-      visibleStartBit:String(whole ? 0 : page * PAGE_BYTES * 8),visibleBits:String(whole ? decoded.hardwareBytes * 8 : Math.min(PAGE_BYTES,decoded.hardwareBytes-page*PAGE_BYTES)*8)});
-    canvas.setAttribute('aria-label', `Decoded DMC DAC, 0 to 127, ${whole ? 'all data' : 'selected bytes'}, initial ${dmc.level}, end ${decoded.levels.at(-1)}${dmc.loop ? ', second loop continues from the previous end' : ''}`);
+      visibleStartBit:String(whole ? 0 : page * PAGE_BYTES * 8),visibleBits:String(whole ? decoded.hardwareBytes * 8 : Math.min(PAGE_BYTES,decoded.hardwareBytes-page*PAGE_BYTES)*8),
+      drawing:String(Boolean(stroke)),targetPoints:String(stroke ? stroke.targets.size : lastTargets?.length ?? 0),editable:String(Boolean(dmc.data.length))});
+    canvas.setAttribute('aria-label', `Draw DMC target levels, 0 to 127, ${whole ? 'all data' : 'selected bytes'}, initial ${dmc.level}, decoded end ${decoded.levels.at(-1)}${dmc.loop ? ', second loop continues from the previous end' : ''}`);
     summary.textContent = decoded.hardwareBytes
       ? `Whole pass: DAC ${dmc.level} → ${decoded.levels.at(-1)} · ${decoded.clipped} boundary holds${decoded.nextLevels ? ` · Next pass ${decoded.nextLevels[0]} → ${decoded.nextLevels.at(-1)} (${decoded.nextClipped} holds)` : ''}`
       : `No data · Initial DAC ${dmc.level}`;
-    legend.textContent = `Blue: first pass${dmc.loop ? ' · Amber dashed: next pass, without resetting the DAC' : ''}${decoded.paddingBytes ? ` · Grey: ${decoded.paddingBytes} generated 0xAA padding ${decoded.paddingBytes === 1 ? 'byte' : 'bytes'}` : ''}. Decoded DAC levels before the mixer, filters and Master; not the live output scope.`;
+    legend.textContent = `Blue: decoded first pass${stroke || lastTargets?.length ? ' · Green: drawn target (DMC may not reach it)' : ''}${dmc.loop ? ' · Amber dashed: next pass, without resetting the DAC' : ''}${decoded.paddingBytes ? ` · Grey: ${decoded.paddingBytes} generated 0xAA padding ${decoded.paddingBytes === 1 ? 'byte' : 'bytes'}` : ''}. Decoded DAC levels before the mixer, filters and Master; not the live output scope.`;
     renderReadout(); draw();
   }
   function resize() {
     if (disposed || !canvas.clientWidth || !canvas.clientHeight) return;
     const width = Math.max(240,Math.round(canvas.clientWidth)), height = Math.max(170,Math.round(canvas.clientHeight));
     if (canvas.width === width && canvas.height === height) return;
+    if (stroke) cancelDrawing();
     canvas.width = width; canvas.height = height; draw();
   }
   function render() {
@@ -210,11 +298,13 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       if (disposed) return;
       const dataChanged = !equalBytes(dmc.data,value.data);
       if (!dataChanged && value.level === dmc.level && value.rate === dmc.rate && value.loop === dmc.loop) return;
+      cancelDrawing(); lastTargets = null; drawingStatus.textContent = drawingHint;
       const nextDecoded = decodeDpcm(value.data,value);
       dmc = {data:[...value.data], level:value.level, rate:value.rate, loop:value.loop}; decoded = nextDecoded;
       if (dataChanged) {page = 0; selectedBit = 0;}
       render();
     },
-    dispose() {if (disposed) return; disposed = true; for (const cleanup of cleanups) cleanup(); section.remove();},
+    cancelDrawing() {cancelDrawing();},
+    dispose() {if (disposed) return; cancelDrawing(); disposed = true; for (const cleanup of cleanups) cleanup(); section.remove();},
   };
 }
