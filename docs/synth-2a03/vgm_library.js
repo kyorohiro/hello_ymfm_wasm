@@ -25,7 +25,7 @@ export function createVgmLibrary({root, onSelect}) {
     for (const button of root.querySelectorAll('[data-vgm-filter]')) {
       const kind = button.dataset.vgmFilter;
       const count = kind === 'all' ? library.voices.length : library.voices.filter(voice => voice.kind === kind).length;
-      const label = {all:'All', pulse:'Pulse', triangle:'Triangle', noise:'Noise', fds:'FDS'}[kind];
+      const label = {all:'All', pulse:'Pulse', triangle:'Triangle', noise:'Noise', dmc:'DMC', fds:'FDS'}[kind];
       button.textContent = `${label} (${count})`;
       button.setAttribute('aria-pressed', String(filter === kind));
       button.disabled = count === 0;

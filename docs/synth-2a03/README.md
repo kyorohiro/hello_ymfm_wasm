@@ -101,7 +101,8 @@ Sample changes stop held notes. Empty, oversized or unsuitable files keep the
 current instrument. **Cancel load**, a newer file, Demo sample, source switch
 or another instrument edit invalidates an older asynchronous read. The last
 read cannot overwrite the newer edit. File analysis stays in the browser.
-Audio-to-DPCM encoding and DMC extraction from VGM are separate follow-ups.
+Audio-to-DPCM encoding remains a separate follow-up. Recorded DMC samples can
+also be recovered through **Load VGM / VGZ…**, as described below.
 See the [DMC hardware reference](https://www.nesdev.org/wiki/APU_DMC).
 
 ## FDS waveform and modulation
@@ -127,7 +128,7 @@ Rate, Depth, Bias and volume can change while the FDS note is held.
 ## Import sounds from VGM
 
 Select **Load VGM / VGZ…** and choose a file containing NES or FDS sound.
-Analysis lists the recorded Pulse / Triangle / Noise / FDS sounds without
+Analysis lists the recorded Pulse / Triangle / Noise / DMC / FDS sounds without
 starting audio or changing the current instrument. Choose a sound, then play
 the keyboard. Filter by source and use **Previous / Next** for longer libraries.
 The origin channel, first time and number of matching captured settings are
@@ -145,8 +146,28 @@ filled with a factory waveform. Settings beyond the current editor's controls
 may need a static approximation, which is explained with the selected sound.
 Read those notes when comparing a recovered instrument with the original song.
 
-DMC samples are not imported from VGM in this stage. Files containing other supported
-NES / FDS sounds can still be used. Non-NTSC clocks are reported because this
+**DMC** voices include their recorded DPCM bytes, Rate, Loop and Initial level.
+Use the **DMC** filter, choose a sound and play the keyboard. They use the same
+sample editor, portable presets and JavaScript export as a directly loaded
+`.dmc` file. A file containing only complete DMC samples can be imported too.
+
+The importer follows NES CPU RAM blocks (`0xc2`) and raw data-bank / RAM-copy
+commands (`0x07` / `0x68`). A captured sample must have all its bytes recorded
+before its trigger, including any address wrap from `$ffff` to `$8000`.
+Missing bytes are not filled with silence or a demo. Later RAM writes can
+produce a different captured sound; a selected voice retains its own copy.
+
+DMC capture keeps the starting settings for keyboard audition. The original
+song's live rate changes, stopping time and RAM rewriting are not replayed.
+The initial DAC level uses the last recorded direct level write; if playback
+has advanced since then, or no level was recorded, the chosen approximation
+is explained with the voice. Read those notes when comparing with the song.
+Direct DAC PCM and NES DAC streams are not encoded DPCM instruments and are
+not reconstructed. Compressed NES data banks are unsupported in this stage.
+Unsupported / incomplete data is reported in **File notes**; if no complete
+sounds remain, the import fails and keeps the previous library and instrument.
+
+Non-NTSC clocks are reported because this
 Synth plays at its normal NTSC clock; dual NES chips are unsupported. Files and
 expanded VGZ data are limited to 64 MiB. All file analysis stays in the browser.
 
@@ -175,7 +196,7 @@ to restart. Save the preset before closing or reloading; the session stays in
 memory rather than being saved automatically.
 
 The instrument covers Pulse / Triangle / Noise / DMC / FDS. PCM-to-DPCM encoding,
-VGM DMC extraction, NSF / song playback and sequencing are outside this version's workflow.
+NSF / song playback and sequencing are outside this version's workflow.
 
 ## API and sources
 

@@ -8,9 +8,41 @@
 
 - 2026-11-04：ユーザーより **Tetorica 2A03 Synthをリリース済み** と報告。
 - 2026-11-04：ユーザーより **VGM／VGZ音色読込版も動作確認・リリース済み** と報告。
-- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込と、今回追加したDMC／DPCM読込は下記を参照。音声からのDPCM変換、VGM DMC抽出、Tauri版は後続TODOとして残す。
+- 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
+- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
-## DMCデモのプチプチ音改善（2026-11-04 完了・追加分は未公開）
+## VGM／VGZからのDMCサンプル抽出（2026-11-04 完了・追加分は未公開）
+
+ユーザーの「次に進めて」を受け、既存のVGM音色一覧とDMCプリセットを接続する。記録されたCPU RAMデータとDMCの再生設定を追い、選んだDMCを鍵盤で試奏・編集・保存・JavaScriptコピーできるようにする。
+
+- [x] VGMのNES RAM blockとDMCのaddress／length／rate／loop／initial level／triggerを調べ、対応範囲と近似を明確にする。
+- [x] 記録済みRAMからDPCMを独立コピーし、未知・不足RAMをゼロやデモで補わない。上書き・重複・境界と再triggerを扱う。
+- [x] DMCフィルターとCH5の音色選択を既存library UIへ追加し、現在のDMC editor・鍵盤・保存へつなぐ。
+- [x] 直接DACによるPCM、未対応stream、時間変化や途中書換え等は説明し、再現範囲を誤認させない。
+- [x] 自作VGM／VGZ、不正・不足・上書きRAM、実WASM、Chromium／WebKit、独立ZIPで検証する。
+- [x] ガイド、英日AI README、日英ホーム、リリース記録と後続TODOを更新する。
+
+曲再生・NSF・音声DPCM encoder・共有DSP変更は含めない。先に作った単体DPCM読込とデモ改善を保つ。
+
+実装：`vgm_import.js`から新規`vgm_dmc.js`のRAM／reader追跡を呼ぶ。`0xc2` RAM blockと、raw `0x07` bank→`0x68` RAM copy（複数bank chunkをまたぐcopyも含む）に対応。`$4012/$4013`で指定された1..4081 bytesを、`$ffff→$8000`のwrapも含め、trigger時点の独立した配列へ取り込む。bytes・Rate・Loop・Initial levelが同じ設定はまとめる。同じaddressでも上書き後の異なるbytesは別の音色になる。
+
+継続中の`$4015` mask書込を毎回新しい発音として数えないよう、残りbyteと出力byte境界を算術追跡する。1-byteの初回fetch、one-shot終了後の同一mask再trigger、live Rate、PALのsource clockも検証した。これは曲再生やCPU／DMAの完全な再現ではなく、元の出力phase／後続命令は試奏で再現しないと音色ごとに表示する。DAC levelは最後の`$4011`書込を使い、既に進行した場合は近似と表示し、未記録なら64を使う旨を明記する。再生中のRAM書換えやrate／loop変更も選択音色へ説明を付ける。
+
+未知・不足RAMや必要設定が足りないtriggerは採用しない。未対応の圧縮bank `0x47`や範囲外bank参照からのcopyは宛先をunknownへ戻し、古い`0xc2`のbytesを誤用しない。直接DAC PCMとNES DAC streamは復元しない。未対応stream後はreaderの動作状態もunknownとし、記録された明示的なDMC Off・設定・Onが来るまで新規captureを再開しない。空の解析結果や失敗では既存library／楽器を保持する。
+
+従来の64 MiB入力／展開上限、400万commands／10万observations／4096 voicesに加え、独自DMC sample合計8 MiB、NES RAM転送合計128 MiB、raw bank 65,536 chunksで制限する。長いwaitはbitごとに回さず算術計算する。小さな入力で128 MiBを超えるRAM copyと、約20時間分のloop waitも検証した。
+
+検証：`npm run test:2a03-synth`は**72件成功、失敗0**（既存51件＋DMC抽出21件）。VGM／VGZ、DMCのみ／混在、C2／07＋68、上書き・所有権・不足・wrap・1／4081 bytes・trigger timing・初期level近似・PAL・不正block／second chip／stream・保存と生成コードを確認した。抽出音色は44.1／48 kHzの実WASMで発音した。
+
+ソース版・独立ZIPとも**Chromium／WebKitで成功**。音色一覧のDMC filter、混在7音色の選択、DMC-only VGZのbank copy、bytes／Rate／Loop／levelのeditor反映、実PCM、keyboard focus、保存／コード、不足RAM時に保持中の音とlibraryを守る動作を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0、物理音声出力はmute。DMCを選んだモバイル画面も確認済み。記録：[ソース版](2a03_synth_vgm_dmc_browser_01.json)、[ZIP版](2a03_synth_vgm_dmc_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_vgm-dmc-20261104_itch.zip`（35 files、3 bundles、1,144,247 bytes、SHA-256 `bccedc5e6ef13e9d07d24a98975510a2e3fb568f13be17b4e39e599a59a5b970`）。browser receiptの41 inputsは作業ファイルと一致し、元WASM pair／Native対応ソース11 inputs／権利通知を保持する。共有DSP／runtime／WASM／preset schemaは変更していないため、npm更新は不要。Synthガイド・英日AI README・日英ホームも更新済み。
+
+仕様確認：[VGM specification](https://raw.githubusercontent.com/vgmrips/vgmplay-legacy/master/VGMPlay/vgmspec171.txt)、[NES APU registers](https://www.nesdev.org/wiki/APU_registers)、[libvgm RAM copy実装](https://raw.githubusercontent.com/ValleyBell/libvgm/master/player/vgmplayer_cmdhandler.cpp)。
+
+次は実ゲームVGM／VGZで`Load VGM / VGZ…`→DMC filter→音色選択→鍵盤試奏し、元の曲と近似部分を聴き比べる段階。今回のcommit／push／公開はAIからは未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
+## DMCデモのプチプチ音改善（2026-11-04 完了・リリース済み）
 
 ユーザーよりデフォルトのデモでプチプチ音が多いと報告。旧257-byteデータは256 bytesの上下周期に最後の`0xff`が加わり、初期level 64から上限126に当たり、末尾level 78となる。Loop時には約62 msごとに非対称な周期が入り、飽和部分を作る。実WASMの128-frame分割生成は一括生成と一致した。
 
@@ -31,7 +63,7 @@
 
 確認方法：ページ再読込後にSource→DMC→`Demo sample`を選び直し、Initial level 64／Rate 15でLoopをOnにして鍵盤を保持する。保存済みの旧デモは自動で置き換えない。1-bit量子化の質感と発音／離鍵のDAC切替は別に残る。ガイドも更新済み。今回追加分のcommit／push／公開は未実行。
 
-## DMC／DPCMサンプル読込（2026-11-04 完了・追加分は未公開）
+## DMC／DPCMサンプル読込（2026-11-04 完了・リリース済み）
 
 VGM音色読込版のリリース後の次の作業。既にエンコードされたDPCMサンプルを読み込み、既存のNES DMC回路で鍵盤から試す。音声ファイルのDPCM変換、VGMからのDMC抽出、曲再生は後続とする。
 
@@ -136,7 +168,8 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] DMC：既エンコードDPCMのファイル読込、rate／loop／level、鍵盤からのtrigger（上記2026-11-04の追加作業）。
 - [ ] 手元の実DPCMファイルで実聴し、Rate／Loop／Initial level、離鍵と再triggerを確認する。
 - [ ] 音声ファイルからDPCMへの変換。既存APIにPCM encoderはないため、別途仕様・検証を用意する。
-- [ ] VGM／VGZのDMCサンプル抽出。CPU RAM blockと再生address／length／rate／loop／initial levelを追い、現在のDMCプリセットへ取り込む。
+- [x] VGM／VGZのDMCサンプル抽出。CPU RAM blockと再生address／length／rate／loop／initial levelを追い、現在のDMCプリセットへ取り込む（上記2026-11-04の追加作業）。
+- [ ] 実ゲームVGM／VGZのDMCでRAM記録の有無と試奏を確認する。必要なら圧縮NES bank `0x47`や追加stream形式を別段階で拡張する。
 - [x] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する（上記2026-11-04の追加作業）。
 - [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
 - [ ] FDS／Triangle／Noiseの追加Envelope／length counter編集を段階的に検討する。

@@ -45,6 +45,32 @@ function makeNoiseEnvelopeVgm() {
   return vgmBytes([...vgmWrite(0x15,8),...vgmWrite(0x0c,0x23),...vgmWrite(0x0e,0x83),...vgmWrite(0x0f,8),0x66],{fds:false});
 }
 const dpcmBytes = length => Buffer.from(Array.from({length}, (_,index)=>index%8<4?0xff:0));
+const vgmDmcFirst = dpcmBytes(257), vgmDmcSecond = dpcmBytes(17);
+function dmcRamBlock(address, data) {
+  const header = Buffer.alloc(9); header.set([0x67,0x66,0xc2]);
+  header.writeUInt32LE(data.length + 2,3); header.writeUInt16LE(address,7);
+  return [...header,...data];
+}
+function makeDmcInstrumentVgm({missing = false, mixed = false} = {}) {
+  const w = vgmWrite, commands = [
+    ...w(0x15,0), ...dmcRamBlock(0xc040,missing ? vgmDmcFirst.subarray(0,256) : vgmDmcFirst),
+    ...w(0x10,0x4f), ...w(0x11,66), ...w(0x12,1), ...w(0x13,16), ...w(0x15,0x10), 0x61,0xe8,3,
+  ];
+  if (!missing) commands.push(...w(0x15,0), ...dmcRamBlock(0xc040,vgmDmcSecond),
+    ...w(0x10,0x47), ...w(0x11,32), ...w(0x12,1), ...w(0x13,1), ...w(0x15,0x10));
+  const existing = mixed ? [...makeInstrumentVgm().subarray(256,-1)] : [];
+  return vgmBytes([...existing,...commands,0x66],{fds:mixed});
+}
+function makeBankDmcVgm() {
+  const bank = Buffer.concat([Buffer.from([1,2,3]),vgmDmcSecond]);
+  const block = data => {
+    const header=Buffer.from([0x67,0x66,7,0,0,0,0]); header.writeUInt32LE(data.length,3); return [...header,...data];
+  };
+  const copy=Buffer.from([0x68,0x66,7,0,0,0,0,0,0,0,0,0]);
+  copy.writeUIntLE(3,3,3); copy.writeUIntLE(0xc080,6,3); copy.writeUIntLE(17,9,3);
+  return vgmBytes([...block(bank.subarray(0,10)),...block(bank.subarray(10)),...copy,
+    ...vgmWrite(0x10,0x4a),...vgmWrite(0x11,48),...vgmWrite(0x12,2),...vgmWrite(0x13,1),...vgmWrite(0x15,16),0x66],{fds:false});
+}
 const config = {
   root:path.resolve(__dirname, '../docs'), entry:'/synth-2a03/index.html',
   out:'/private/tmp/tetorica-2a03-synth-browser.json', screenshots:null,
@@ -292,10 +318,21 @@ async function runEngine(name, engine, origin) {
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===24);
     assert.match(await page.locator('#vgmPage').textContent(),/1–24 \/ 30 sounds/);
     assert.equal(await page.isDisabled('#vgmPrevious'),true);
-    for(const kind of ['triangle','noise','fds']) assert.equal(await page.isDisabled(`[data-vgm-filter="${kind}"]`),true);
+    for(const kind of ['triangle','noise','dmc','fds']) assert.equal(await page.isDisabled(`[data-vgm-filter="${kind}"]`),true);
     await page.click('#vgmNext');assert.equal(await page.locator('[data-vgm-voice]').count(),6);
     assert.match(await page.locator('#vgmPage').textContent(),/25–30 \/ 30 sounds/);assert.equal(await page.isDisabled('#vgmNext'),true);
     await page.click('#vgmPrevious');assert.equal(await page.locator('[data-vgm-voice]').count(),24);
+    await page.click('#closeVgm');assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+
+    check('VGM DMC RAM analysis and source filtering stay passive before audio');
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-mixed-dmc.vgm',mimeType:'application/octet-stream',buffer:makeDmcInstrumentVgm({mixed:true})});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===7);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    assert.equal(await page.locator('#instrumentName').inputValue(),'NES browser audit');
+    assert.equal(await choiceButton('#source','dmc').getAttribute('aria-checked'),'false');
+    assert.match(await page.locator('[data-vgm-filter="dmc"]').textContent(),/^DMC \(2\)$/);
+    await page.click('[data-vgm-filter="dmc"]');assert.equal(await page.locator('[data-vgm-voice]').count(),2);
+    assert.match(await page.locator('[data-vgm-voice]').first().textContent(),/DMC.*CH5/);
     await page.click('#closeVgm');assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
 
     check('initialization adopts the current source and Master; released startup note stays silent');
@@ -573,6 +610,41 @@ async function runEngine(name, engine, origin) {
     const importedSave=await importedSaveEvent,importedPreset=JSON.parse(await fs.readFile(await importedSave.path(),'utf8'));
     assert.deepEqual(importedPreset,state.preset,'imported VGM sound can be saved as a portable instrument');
 
+    check('VGM DMC RAM snapshots select into the sample editor and produce actual PCM');
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-mixed-dmc.vgm',mimeType:'application/octet-stream',buffer:makeDmcInstrumentVgm({mixed:true})});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===7);
+    await page.click('[data-vgm-filter="dmc"]');assert.equal(await page.locator('[data-vgm-voice]').count(),2);
+    state=await importVoice(0,preset=>preset.source==='dmc'&&preset.dmc.data.length===257);
+    assert.deepEqual(state.preset.dmc,{data:[...vgmDmcFirst],rate:15,loop:true,level:66});assert.equal(state.capacity,1);
+    for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
+    state=await importVoice(1,preset=>preset.source==='dmc'&&preset.dmc.data.length===17);
+    assert.deepEqual(state.preset.dmc,{data:[...vgmDmcSecond],rate:7,loop:true,level:32});
+    const vgmDmcSaveEvent=page.waitForEvent('download');await page.click('#savePreset');
+    const vgmDmcSave=await vgmDmcSaveEvent,vgmDmcPreset=JSON.parse(await fs.readFile(await vgmDmcSave.path(),'utf8'));
+    assert.deepEqual(vgmDmcPreset,state.preset,'the original captured DPCM bytes are portable');
+    await page.click('#copyCode');assert.match(await page.locator('#codeOutput').inputValue(),/await nes\.dmc\.loadSample/);
+    assert.match(await page.locator('#codeOutput').inputValue(),/"rate":7/);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);assert.equal(state.voices[0].channel,4);await sound();
+    const capturedDmc=structuredClone(state),dmcLibraryBefore=await page.locator('#vgmVoices').innerText();
+    await page.setInputFiles('#vgmFileInput',{name:'missing-dmc-ram.vgm',mimeType:'application/octet-stream',buffer:makeDmcInstrumentVgm({missing:true})});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmStatus').dataset.error==='true');
+    state=await inspect();assert.deepEqual(state.preset,capturedDmc.preset);assert.deepEqual(state.voices,capturedDmc.voices);
+    assert.equal(await page.locator('#vgmVoices').innerText(),dmcLibraryBefore);await sound();
+
+    check('DMC-only VGZ imports concatenated bank data through NES RAM copy');
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-bank-dmc.vgz',mimeType:'application/gzip',buffer:gzipSync(makeBankDmcVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-bank-dmc.vgz'&&document.querySelectorAll('[data-vgm-voice]').length===1);
+    state=await inspect();assert.deepEqual(state.preset,capturedDmc.preset);assert.deepEqual(state.voices,capturedDmc.voices);
+    await page.click('[data-vgm-filter="dmc"]');
+    state=await importVoice(0,preset=>preset.source==='dmc'&&preset.dmc.rate===10&&preset.dmc.level===48);
+    assert.deepEqual(state.preset.dmc.data,[...vgmDmcSecond]);assert.equal(state.preset.dmc.loop,true);
+    assert.match(await page.locator('#dpcmStatus').textContent(),/17.*bytes/);
+    if(config.screenshots) {
+      await page.setViewportSize({width:390,height:844});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'VGM DMC library fits a narrow screen');await screenshot('vgm-dmc-mobile');
+      await page.setViewportSize({width:1180,height:940});
+    }
+
     check('approximated Noise envelope is shown for the chosen sound');
     await page.setInputFiles('#vgmFileInput',{name:'self-authored-noise-envelope.vgm',mimeType:'application/octet-stream',buffer:makeNoiseEnvelopeVgm()});
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-noise-envelope.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===1);
@@ -647,6 +719,7 @@ async function runEngine(name, engine, origin) {
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,
+      vgmDmcImportSilent:true,vgmDmcFilter:true,vgmDmcSelectionKeyboard:true,vgmDmcSnapshots:true,vgmDmcPortableBytes:true,vgmDmcMissingRamKeepsSound:true,vgmDmcBankCopyVgz:true,
       dpcmLoadPassive:true,dmcEmptySampleGate:true,dmcMonophonic:true,dmcIgnoresNotePitch:true,dmcLiveRate:true,dmcLoopAndOneShot:true,
       dpcmFailuresKeepSound:true,dpcmCancelKeepsSound:true,dpcmSupersededReadSafe:true,dpcmDemoSupersedesRead:true,dpcmSampleChangeStopsNotes:true,dmcPresetExport:true,dmcCopyAwaitedMemory:true,legacyV1PresetMigration:true,dmcMobileLayout:true,
       blurRelease:true,contextRecovery:true,finalDestinationMeasurement:true,physicalOutput:'muted',mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external};

@@ -165,13 +165,12 @@ test('FDS timed volume and modulation envelopes use per-voice approximation note
   assert(voice.warnings.some(message => /modulation Envelope.*fixed depth/i.test(message)));
 });
 
-test('DMC data is warned and skipped while opaque other-chip blocks cannot inject NES writes', async () => {
+test('unused DMC setup and opaque other-chip blocks cannot fabricate playable NES voices', async () => {
   const fakeCommands = [...pulse1, 0x66];
   const opaque = [0x67, 0x66, 0, fakeCommands.length, 0, 0, 0, ...fakeCommands];
   const nesRam = [0x67, 0x66, 0xc2, 4, 0, 0, 0, 0, 0xc0, 0xaa, 0x55];
   const result = await extractVgmInstruments(vgm([...power, ...opaque, ...nesRam, ...w(0x10, 0x4f), ...pulse2, 0x66]));
   assert.deepEqual(result.voices.map(voice => [voice.kind, voice.channel]), [['pulse', 2]]);
-  assert(result.warnings.some(message => /DMC/i.test(message)));
 });
 
 test('VGZ round-trips settings and rejects malformed, non-NES, dual-chip, missing-end and truncated input', async () => {

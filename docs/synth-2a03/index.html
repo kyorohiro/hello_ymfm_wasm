@@ -82,6 +82,7 @@
             <button type="button" data-vgm-filter="pulse" aria-pressed="false">Pulse</button>
             <button type="button" data-vgm-filter="triangle" aria-pressed="false">Triangle</button>
             <button type="button" data-vgm-filter="noise" aria-pressed="false">Noise</button>
+            <button type="button" data-vgm-filter="dmc" aria-pressed="false">DMC</button>
             <button type="button" data-vgm-filter="fds" aria-pressed="false">FDS</button>
           </div>
           <div id="vgmVoices" class="nes-vgm-voices" role="group" aria-label="Extracted VGM sounds"></div>
@@ -94,7 +95,7 @@
             <ul id="vgmWarningList"></ul>
           </details>
         </div>
-        <p class="subtext">Imports initial sound settings. Later changes, length counters, song playback and DMC samples are not imported from VGM. Any approximations are shown with the selected sound. Load pre-encoded DPCM in the DMC editor.</p>
+        <p class="subtext">Imports initial sound settings and recorded DMC samples. Later changes, length counters and song playback are not replayed. Incomplete sample RAM and direct DAC PCM cannot be recovered as DPCM. Any approximations are shown with the selected sound.</p>
       </section>
 
       <section class="instrument-workspace nes-workspace" aria-label="Instrument editor">
