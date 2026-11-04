@@ -41,11 +41,15 @@
 - [ ] 原曲の音色と演奏中の変化を比較する検証。SaGa2「Save the world」をユーザーの手元の資料で試す。
 - [ ] GBS曲再生は独立した検討事項とし、今回のAPU Synthに含めない。
 
-## Pitchの配置をFM2612／SPUへ統一（2026-11-04）
+## Pitchの配置をFM2612／SPUへ統一（2026-11-04 完了）
 
-- [ ] モニター右側と鍵盤左側の2箇所へPitch wheelを配置する。
-- [ ] 両方の値・表示・中央復帰を同期し、Noise選択時は両方を無効にする。
-- [ ] 実ブラウザーで双方向の同期・発音中の変更・Focus・狭い画面を確認し、独立ZIPも検証する。
+- [x] モニター右側と鍵盤左側の2箇所へPitch wheelを配置する。
+- [x] 両方の値・表示・中央復帰を同期し、Noise選択時は両方を無効にする。
+- [x] 実ブラウザーで双方向の同期・発音中の変更・Focus・狭い画面を確認し、独立ZIPも検証する。
+
+22件のunit／配布テストが成功し、ソース版・ZIP版ともChromium／WebKitで成功した。実WASMで発音中の双方向のPitch同期、再triggerなしの所有権維持、離した時とpointer cancel時の中央復帰、両wheelのFocus中の演奏、Noiseで両方が無効になることを確認した。390 px幅でもモニター右・鍵盤左の配置を保ち、overflowは0。スクリーンショットも確認した。
+
+記録：[ソース版](dmg_synth_pitch_wheels_browser_01.json)、[ZIP版](dmg_synth_pitch_wheels_zip_browser_01.json)。新ZIPは`release/tetorica_dmg_synth_pitch-wheels-20261104_itch.zip`。音源処理とプリセット形式は変更していない。
 
 ## 選択UIと演奏キーの干渉解消（2026-11-04 完了）
 
