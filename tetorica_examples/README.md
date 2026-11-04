@@ -3,6 +3,9 @@
 Runnable examples of the reusable sound-chip APIs, grouped by execution environment.
 Start with the [project goals and API choices](../README.md).
 
+For standalone Web and Node.js projects using the published `tetorica-fm2612`
+npm package, see **[tetorica-fm2612-examples](https://github.com/kyorohiro/tetorica-fm2612-examples)**.
+
 | Environment | Examples |
 | --- | --- |
 | Node.js | [PCM/WAV examples](nodejs/README.md), [small sound-color experiment](nodejs/sound-color/README.md) |
