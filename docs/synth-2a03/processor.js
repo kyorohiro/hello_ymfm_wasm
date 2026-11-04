@@ -43,7 +43,7 @@ class NesSynthProcessor extends AudioWorkletProcessor {
     void this.ready.then(() => {
       if (this.dead) return;
       try {
-        if (!COMMANDS.has(data?.method)) throw new Error('Unknown NES + FDS Synth command');
+        if (!COMMANDS.has(data?.method)) throw new Error('Unknown 2A03 Synth command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('NES + FDS command arguments must be an array');
         const value = this.instrument[data.method](...(data.args ?? []));
         if (data.id !== undefined) this.port.postMessage({id:data.id, value});

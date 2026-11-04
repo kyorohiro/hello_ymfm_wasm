@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tetorica 2A03 Synth — play Pulse, Triangle, Noise and FDS, draw waves and modulation and export your instrument as JavaScript.">
+  <meta name="theme-color" content="#cdd4da">
+  <meta name="application-name" content="Tetorica 2A03 Synth">
+  <meta name="apple-mobile-web-app-title" content="Tetorica 2A03 Synth">
+  <title>Tetorica 2A03 Synth</title>
+  <link rel="icon" type="image/webp" href="../tetorica_2a03_synth.webp">
+  <link rel="apple-touch-icon" href="../tetorica_2a03_synth.webp">
+  <link rel="stylesheet" href="./synth.css">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
+      <nav aria-label="Sound Laboratory">
+        <a href="../synth/index.html">FM2612 Synth</a>
+        <a href="../synth-spu/index.html">SPU Synth</a>
+        <a href="../synth-dmg/index.html">DMG Synth</a>
+        <a href="../playground/index.html?mode=nes">Playground</a>
+      </nav>
+    </header>
+    <article class="synth-shell" aria-labelledby="synthTitle">
+      <header class="synth-heading">
+        <div class="title-row">
+          <div class="product-identity">
+            <img class="product-icon" src="../tetorica_2a03_synth.webp" width="112" height="112" alt="" decoding="async">
+            <div class="product-copy">
+              <p class="eyebrow">NES APU + FDS</p>
+              <h1 id="synthTitle">Tetorica <span class="product-name">2A03 Synth</span></h1>
+              <p class="description">Explore the sound. Draw a wave. Take the code.</p>
+            </div>
+          </div>
+          <span class="engine-badge">APU <span>NES APU + FDS</span></span>
+        </div>
+        <div class="audio-toolbar">
+          <div class="transport-actions">
+            <button id="startAudio" class="primary" type="button">Enable audio</button>
+            <button id="stopAudio" type="button">Stop all sound</button>
+          </div>
+          <label class="master-control" for="masterVolume"><span>Master</span>
+            <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent">
+            <output id="masterVolumeValue" for="masterVolume">70%</output>
+          </label>
+        </div>
+        <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
+      </header>
+
+      <section class="spu-monitor nes-monitor" aria-label="Instrument display">
+        <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
+          <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
+          <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+        </div>
+        <p id="visualizerDescription">Live output after Master volume.</p>
+        <div class="monitor-body">
+          <div class="monitor-plot">
+            <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live NES / FDS audio visualization"></canvas>
+          </div>
+          <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+            <span>Pitch</span>
+            <input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones">
+            <output id="pitchValue" for="pitchBend">0.00</output>
+          </label>
+        </div>
+      </section>
+
+      <section class="instrument-workspace nes-workspace" aria-label="Instrument editor">
+        <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></div>
+        <div id="voiceEditor"></div>
+      </section>
+
+      <section class="instrument-toolbar" aria-label="Instrument files">
+        <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Pulse" autocomplete="off"></label>
+        <div class="preset-actions">
+          <button id="loadPreset" type="button">Load preset…</button>
+          <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a NES / FDS instrument preset">
+          <button id="savePreset" type="button">Save preset…</button>
+          <button id="copyCode" type="button">Copy JavaScript</button>
+          <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
+        </div>
+        <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
+      </section>
+
+      <section class="keyboard-section" aria-labelledby="keyboardHeading">
+        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
+        <div class="keyboard-toolbar">
+          <div class="octave-control" role="group" aria-label="Keyboard octave">
+            <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
+            <span>Octave <output id="octaveValue">4</output></span>
+            <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
+          </div>
+          <p class="keyboard-hint">When full, the oldest note is replaced.</p>
+        </div>
+        <div id="keyboardFretboard"></div>
+        <div class="performance-keyboard">
+          <label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
+            <span>Pitch</span>
+            <input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones">
+            <output id="keyboardPitchValue" for="keyboardPitchBend">0.00</output>
+          </label>
+          <div id="keyboard" class="keyboard-mount"></div>
+        </div>
+      </section>
+      <footer>
+        <p>One NTSC NES APU + FDS: two Pulse voices, one Triangle, one Noise and one FDS voice. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. DMC samples and song playback are not included in this first version.</p>
+        <div><a href="../playground/index.html?mode=nes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/nesapusynth.js">JavaScript source</a></div>
+      </footer>
+    </article>
+    <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
+  </main>
+  <script type="module" src="./synth.js"></script>
+</body>
+</html>

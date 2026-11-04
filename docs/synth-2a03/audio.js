@@ -70,7 +70,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   const boundedStartup = task => Promise.race([task, startupFailure]);
 
   try {
-    if (!context.audioWorklet) throw new Error('NES + FDS Synth needs AudioWorklet. Open it over HTTPS or localhost.');
+    if (!context.audioWorklet) throw new Error('2A03 Synth needs AudioWorklet. Open it over HTTPS or localhost.');
     startupTimer = setTimeout(() => fail(new Error('NES + FDS audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
     // Invoke resume before awaiting fetch/addModule so a pointer gesture can
     // authorize playback on browsers that require transient activation.

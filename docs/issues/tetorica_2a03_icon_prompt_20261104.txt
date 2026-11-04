@@ -1,0 +1,13 @@
+Tetorica 2A03 Synth icon — 2026-11-04
+Generated with the built-in image_gen tool. Opaque background.
+Original generated PNG: docs/tetorica_2a03_synth.png
+Browser asset: docs/tetorica_2a03_synth.webp
+
+Final generation prompt:
+Use case: logo-brand.
+Asset type: final square raster app icon for the existing Tetorica retro sound-chip synthesizer series, used on a website, itch.io page and desktop app.
+Primary request: create a polished icon for "Tetorica 2A03 Synth", with the subtitle "NES APU + FDS".
+Subject and composition: one centered, substantial rounded-square hardware badge filling about 94% of a square canvas, viewed straight-on, almost orthographic. Dark charcoal double outer rim, softly beveled warm light-gray console-plastic face, restrained burgundy-red horizontal accent stripes, clean precise dark outlines, tactile fine-grained materials. Match the feel of a crafted late-1980s console-inspired audio module, without copying a real console or any third-party logo. Upper area: small but very legible silver/ivory embossed "Tetorica". Dominant center-upper text: huge bold condensed slightly italic "2A03" in deep burgundy-red with subtle three-dimensional relief. Immediately below: spaced dark graphite "SYNTH". Center-lower area: a dark recessed oscilloscope display, with clear amber and muted green luminous traces suggesting a square wave, triangle wave and a smoothly frequency-modulated wavetable wave. Bottom area: one large graphite integrated-circuit plaque with silver pins along its upper and lower edges, fine bevels and four small corner screws. Plaque text: clear silver "NES APU + FDS". Keep the plaque simple and legible; no extra small copy.
+Style: premium detailed 3D illustrated hardware emblem, crisp studio-lit product render, compatible with metallic Tetorica DMG and SPU/SCSP app badge family; dimensional but not glossy chrome overload. Strong hierarchy, large clean text, recognizable at small icon size, no elaborate scene. Background: opaque warm off-white in the small outer corners around the rounded badge, no cast shadow outside the badge.
+Text (verbatim): "Tetorica", "2A03", "SYNTH", "NES APU + FDS". The main chip name is numeral 2, capital A, numeral 0, numeral 3, exactly "2A03". No other words or letters.
+Constraints: square image, centered and symmetrical, entire badge and outer edge visible, no crop, no perspective tilt, no watermark, no manufacturer logos, no controller buttons, no cartoon characters, no collage, no multiple icon variations.

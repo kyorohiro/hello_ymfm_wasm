@@ -1,10 +1,28 @@
-# Tetorica NES + FDS Synth
+# Tetorica 2A03 Synth
 
 2026-11-04開始。FM2612／DMG／SPU Synthと同じ操作の流れで、NES APUとFDSの音作りを触って理解し、プリセット・JavaScriptとして持ち帰れる独立したブラウザーSynthを作る。
 
+現在の製品名は **Tetorica 2A03 Synth**（`tetorica-2a03-synth`）、正本は`docs/synth-2a03/`。以下のNES名・旧ZIP名は当時の実装・検証記録として残す。
+
+## 2A03への命名・アイコン（2026-11-04 完了）
+
+- ユーザー指定の製品名：`Tetorica 2A03 Synth`。NES APU + FDSをサブタイトルとして残す。
+- [x] 正本を`docs/synth-2a03/`へ移し、旧`/synth-nes/`の入口を保つ。
+- [x] 既存シリーズに揃えたグレー・赤のアイコンをimagegenで生成し、プロジェクト内へ保存する。
+- [x] 表示名、favicon、日英ホーム、英日AI README、配布ZIPとコマンドを2A03へ揃える。
+- [x] 既存NES API／WASMとプリセット形式を保ち、unit・Chromium／WebKit・独立ZIPで検証する。
+
+内蔵`image_gen`でアイコンを生成した。原本は`docs/tetorica_2a03_synth.png`（1254×1254）、Web用はlossless変換した`docs/tetorica_2a03_synth.webp`。元の生成結果も残している。使用した最終promptは[tetorica_2a03_icon_prompt_20261104.txt](tetorica_2a03_icon_prompt_20261104.txt)。グレーの筐体、深い赤の2A03、矩形波・三角波・変調波、`NES APU + FDS`の表示に揃えた。
+
+`npm run test:2a03-synth`は25件成功。ソース版と独立ZIPは双方Chromium／WebKitで成功し、製品名、1254px正方形アイコンの読込、WebPのbytes一致、favicon／Apple icon、旧URLのquery／hashを保った移動、発音・描画・Focus・保存を確認した。390 pxでoverflow 0、画面も確認済み。記録：[ソース版](2a03_synth_branding_browser_01.json)、[ZIP版](2a03_synth_branding_zip_browser_01.json)。
+
+正規コマンドは`sh scripts/package_itch_2a03_synth.sh VERSION`、`npm run test:2a03-synth`、`npm run test:2a03-synth:browser`。旧NESコマンドは互換aliasとして残す。新ZIPは`release/tetorica_2a03_synth_branding-20261104_itch.zip`（35 files、3 bundles）。元WASM pair／対応ソース／Apache-2.0・MIT通知を保持し、browser receiptの35 inputsも作業ファイルと一致した。プリセットの`tetorica-nes-fds-voice`形式とaudio processor identifierは変更していない。CIは`.github/workflows/2a03-synth.yml`。
+
+新しいローカルURLは`http://localhost:8008/synth-2a03/index.html`。今回のcommit／push／公開は未実行。
+
 ## 初版の範囲
 
-- 仮の製品名は`Tetorica NES + FDS Synth`、配置は`docs/synth-nes/`。
+- 初版実装時の仮の製品名は`Tetorica NES + FDS Synth`、旧配置は`docs/synth-nes/`。現在の製品名・配置は上記の2A03を参照する。
 - 1台のNTSC NES APU＋FDSを使用する。Pulseは2chのラウンドロビン、Triangle／Noise／FDSは各1ch。鍵盤は選択した音源を全域で演奏し、最も古いノートを置き換える。古い離鍵で置換後の音を止めない。
 - PulseのDuty／音量／Envelope／Sweep、Triangle、Noiseのperiod／mode／音量、FDSの64点6-bit波形／音量／変調table・rate・depth・biasを編集できるようにする。
 - FDSの波形と変調をUIから試し、波形の再生周波数にどう作用するかを説明する。Yamaha式のOP構成・algorithmとしては扱わない。
@@ -25,7 +43,7 @@
 
 ## 初版の実装・検証結果（2026-11-04）
 
-- 正本は`docs/synth-nes/`。`preset.js`／`instrument.js`／`audio.js`／`processor.js`／`editor.js`／`synth.js`に分け、DMGと共通の鍵盤・受動的モニターとSPUの基礎CSSを再利用した。仮の製品名のままで、専用アイコンはまだ決めていない。
+- 初版の配置は`docs/synth-nes/`（現在の正本は`docs/synth-2a03/`）。`preset.js`／`instrument.js`／`audio.js`／`processor.js`／`editor.js`／`synth.js`に分け、DMGと共通の鍵盤・受動的モニターとSPUの基礎CSSを再利用した。この時点では仮の製品名で、専用アイコンは未決定だった。
 - PulseはSweepを有効にしても2chを使う。Triangle／Noise／FDSは1ch。置換した古いキーの離鍵は現在の所有者を止めない。Noiseは音階非追従で両Pitch wheelを無効にする。
 - FDSのWave／Modulationは1つのcanvasで編集対象を切り替える。Waveは64点・0..63、Modulationは32命令・`0,+1,+2,+4,Reset,−4,−2,−1`。波形はfreehand、変調は命令brushで描画し、releaseで適用する。shape／table presetも即反映。中断したstrokeは破棄する。
 - FDSは初期modulation Offだが、非ゼロのtable・rate・depthを設定済みなのでOnにするだけで変化する。rate／depth／bias／volumeは保持中にも変更でき、tableは不用意に書き直さない。table／wave変更は保持ノートを停止する。
@@ -44,7 +62,7 @@
 - [ ] 音声ファイルからDPCMへの変換。既存APIにPCM encoderはないため、別途仕様・検証を用意する。
 - [ ] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する。
 - [ ] FDS／Triangle／Noiseの追加Envelope／length counter編集を段階的に検討する。
-- [ ] 命名・アイコン決定後、Tauri版と配布を整備する。
+- [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時
 

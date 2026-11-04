@@ -1,10 +1,12 @@
-name: NES + FDS Synth
+name: 2A03 Synth
 
 on:
   workflow_dispatch:
   push:
     paths:
+      - 'docs/synth-2a03/**'
       - 'docs/synth-nes/**'
+      - 'docs/tetorica_2a03_synth.webp'
       - 'docs/js/nesapu*'
       - 'docs/js/fds_audio.js'
       - 'docs/js/nes_apu_vendor/**'
@@ -15,6 +17,7 @@ on:
       - 'tetorica_src/runtime/nesapu*'
       - 'tetorica_src/runtime/generated/**'
       - 'scripts/*nes*'
+      - 'scripts/*2a03*'
       - 'scripts/runtime_artifacts.mjs'
       - 'scripts/wasm_sdk_inventory.mjs'
       - 'third_party/soundchip-sdk.json'
@@ -22,10 +25,12 @@ on:
       - 'third_party/jsnes/**'
       - 'third_party/fixnes-fds/**'
       - 'package*.json'
-      - '.github/workflows/nes-synth.yml'
+      - '.github/workflows/2a03-synth.yml'
   pull_request:
     paths:
+      - 'docs/synth-2a03/**'
       - 'docs/synth-nes/**'
+      - 'docs/tetorica_2a03_synth.webp'
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/synth/synth_keyboard.js'
@@ -35,7 +40,7 @@ on:
       - 'scripts/**'
       - 'third_party/**'
       - 'package*.json'
-      - '.github/workflows/nes-synth.yml'
+      - '.github/workflows/2a03-synth.yml'
 
 permissions:
   contents: read
@@ -52,18 +57,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - name: Test and package the standalone NES + FDS Synth
+      - name: Test and package the standalone 2A03 Synth
         run: |
-          npm run test:nes-synth
-          sh scripts/package_itch_nes_synth.sh ci
-          python3 -m zipfile -e release/tetorica_nes_synth_ci_itch.zip release/nes-synth-browser
-          node scripts/check_nes_synth_browser.cjs --root release/nes-synth-browser --entry /index.html --out release/nes-synth-browser.json --screenshots release/nes-synth-images
+          npm run test:2a03-synth
+          sh scripts/package_itch_2a03_synth.sh ci
+          python3 -m zipfile -e release/tetorica_2a03_synth_ci_itch.zip release/2a03-synth-browser
+          node scripts/check_2a03_synth_browser.cjs --root release/2a03-synth-browser --entry /index.html --out release/2a03-synth-browser.json --screenshots release/2a03-synth-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: nes-synth-check
+          name: 2a03-synth-check
           path: |
-            release/tetorica_nes_synth_ci_itch.zip
-            release/nes-synth-browser.json
-            release/nes-synth-images/
+            release/tetorica_2a03_synth_ci_itch.zip
+            release/2a03-synth-browser.json
+            release/2a03-synth-images/
           if-no-files-found: ignore

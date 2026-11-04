@@ -64,7 +64,7 @@ function audioFailed(error) {
   report(error);
 }
 async function ensureAudio() {
-  if (disposed) throw new Error('NES + FDS Synth is closed');
+  if (disposed) throw new Error('2A03 Synth is closed');
   if (!audio && !opening) {
     $('startAudio').disabled = true;
     status('Preparing NES + FDS audio…');
@@ -78,7 +78,7 @@ async function ensureAudio() {
           await engine.command('loadPreset', [readPreset(preset)]);
           await engine.command('setPitch', [appliedPitch]);
         } while (applied !== revision || appliedPitch !== pitch);
-        if (disposed) throw new Error('NES + FDS Synth is closed');
+        if (disposed) throw new Error('2A03 Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         audio = engine;
         visualizer.connect(engine.context, engine.outputNode);
@@ -268,7 +268,7 @@ function saveFile(name, text) {
 }
 $('savePreset').addEventListener('click',()=>{
   $('savePreset').blur();
-  try{saveFile('nes-fds-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Pulse, Triangle, Noise and FDS included.');}catch(error){report(error);}
+  try{saveFile('2a03-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Pulse, Triangle, Noise and FDS included.');}catch(error){report(error);}
 });
 $('loadPreset').addEventListener('click',()=>{$('loadPreset').blur();$('presetFileInput').click();});
 $('presetFileInput').addEventListener('change',async()=>{

@@ -1,4 +1,9 @@
-# Tetorica NES + FDS Synth
+# Tetorica 2A03 Synth
+
+Project identifier: `tetorica-2a03-synth`.
+
+**NES APU + FDS.** The former `/synth-nes/` address redirects here. The existing
+`tetorica-nes-fds-voice` preset format and NES audio APIs remain compatible.
 
 [Open the synthesizer](index.html) · [NES / FDS Playground](../playground/index.html?mode=nes)
 
@@ -80,7 +85,7 @@ Rate, Depth, Bias and volume can change while the FDS note is held.
 passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
-**Save preset** downloads `nes-fds-voice.json`. The validated
+**Save preset** downloads `2a03-voice.json`. The validated
 `tetorica-nes-fds-voice` version-1 format includes all four sources' settings,
 the FDS wave and modulation table. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
@@ -116,12 +121,12 @@ the included license and author notices. The standalone UI uses the project
 ## Build and verify
 
 ```sh
-npm run test:nes-synth
-npm run test:nes-synth:browser
-sh scripts/package_itch_nes_synth.sh dev
+npm run test:2a03-synth
+npm run test:2a03-synth:browser
+sh scripts/package_itch_2a03_synth.sh dev
 ```
 
-The ZIP is `release/tetorica_nes_synth_dev_itch.zip`. Use a new version for each
+The ZIP is `release/tetorica_2a03_synth_dev_itch.zip`. Use a new version for each
 archive; existing archives are retained. The package bundles browser modules and
 CSS, keeps the original NES WASM pair, and includes corresponding native sources,
 license notices and a hash receipt of the browser build inputs. It runs without

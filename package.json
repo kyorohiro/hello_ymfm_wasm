@@ -60,12 +60,15 @@
     "test:gameboy-synth:browser": "npm run test:dmg-synth:browser",
     "pack:dmg-synth": "sh scripts/package_itch_dmg_synth.sh",
     "pack:gameboy-synth": "npm run pack:dmg-synth --",
-    "test:nes-synth": "node --test docs/synth-nes/*.test.mjs scripts/package_itch_nes_synth.test.mjs",
-    "test:nes-synth:browser": "node scripts/check_nes_synth_browser.cjs",
-    "pack:nes-synth": "sh scripts/package_itch_nes_synth.sh",
+    "test:nes-synth": "npm run test:2a03-synth",
+    "test:nes-synth:browser": "npm run test:2a03-synth:browser",
+    "pack:nes-synth": "npm run pack:2a03-synth --",
     "build:vgm": "node scripts/build_cli.mjs",
     "pack:vgm": "node scripts/pack_cli.mjs",
     "pack:vgm:check": "npm run pack:vgm -- --dry-run",
-    "test:cdrom2": "node scripts/check_cdda_core.mjs && node scripts/check_msm5205_core.mjs && node --test test/runtime/cdda_*.test.mjs test/runtime/msm5205_*.test.mjs"
+    "test:cdrom2": "node scripts/check_cdda_core.mjs && node scripts/check_msm5205_core.mjs && node --test test/runtime/cdda_*.test.mjs test/runtime/msm5205_*.test.mjs",
+    "test:2a03-synth": "node --test docs/synth-2a03/*.test.mjs scripts/package_itch_2a03_synth.test.mjs",
+    "test:2a03-synth:browser": "node scripts/check_2a03_synth_browser.cjs",
+    "pack:2a03-synth": "sh scripts/package_itch_2a03_synth.sh"
   }
 }
