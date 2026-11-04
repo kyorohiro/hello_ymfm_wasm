@@ -1,4 +1,8 @@
-# Tetorica Game Boy Synth
+# Tetorica DMG Synth
+
+Project identifier: `tetorica-dmg-synth`.
+
+Product identifier: `tetorica-dmg-synth`.
 
 [Open the synthesizer](index.html) · [Game Boy Playground](../playground/index.html?mode=gameboy)
 
@@ -63,8 +67,10 @@ Wave samples stops held notes so the RAM can be updated; play a key again to
 hear the result. There is no separate Apply button.
 
 Wave level, Pulse Duty, Noise clock parameters and left / right routing can
-change while a note is held. Selects return focus after a pointer selection;
-keyboard navigation stays available until you commit or leave the control.
+change while a note is held. Source, Duty, directions, Wave level and Noise
+width use choice buttons. Clicking an option leaves the performance keys
+available immediately. Tab to the selected option and use Arrow keys or Home /
+End to change it; letter and number keys remain available for playing notes.
 
 Numeric sound controls use **− / value / +** buttons. Click to step by one, or
 drag the center value horizontally. Pointer adjustments leave the performance
@@ -86,7 +92,7 @@ using the existing Game Boy source balance as its reference.
 
 ## Presets and reusable code
 
-**Save preset** downloads `gameboy-voice.json`, containing the instrument name,
+**Save preset** downloads `dmg-voice.json`, containing the instrument name,
 selected source, Pulse settings shared by CH1 / CH2, Wave's 32 samples and level, Noise
 settings, and left / right routing. The portable format is
 `tetorica-gameboy-voice`, version 1. Load validates the complete preset before
@@ -127,12 +133,12 @@ the components you need and retain their source and license notices.
 From the repository root:
 
 ```sh
-npm run test:gameboy-synth
-npm run test:gameboy-synth:browser
-sh scripts/package_itch_gameboy_synth.sh dev
+npm run test:dmg-synth
+npm run test:dmg-synth:browser
+sh scripts/package_itch_dmg_synth.sh dev
 ```
 
-The package command creates `release/tetorica_gameboy_synth_dev_itch.zip`.
+The package command creates `release/tetorica_dmg_synth_dev_itch.zip`.
 Use a new version argument for another archive; an existing archive is preserved.
 The ZIP has a root `index.html`, bundled runtime / CSS, the original WASM pair,
 component notices, authenticated native source files and browser source inputs.

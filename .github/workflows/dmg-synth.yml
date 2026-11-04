@@ -1,10 +1,12 @@
-name: Game Boy Synth
+name: DMG Synth
 
 on:
   workflow_dispatch:
   push:
     paths:
+      - 'docs/synth-dmg/**'
       - 'docs/synth-gameboy/**'
+      - 'docs/tetorica_dmg_synth.webp'
       - 'docs/js/gameboy*'
       - 'docs/generated/gameboy*'
       - 'docs/synth/synth_keyboard.js'
@@ -13,15 +15,18 @@ on:
       - 'tetorica_src/runtime/gameboy*'
       - 'tetorica_src/runtime/generated/**'
       - 'scripts/*gameboy*'
+      - 'scripts/*dmg*'
       - 'scripts/runtime_artifacts.mjs'
       - 'scripts/wasm_sdk_inventory.mjs'
       - 'third_party/soundchip-sdk.json'
       - 'third_party/tetorica-soundchip-native/**'
       - 'package*.json'
-      - '.github/workflows/gameboy-synth.yml'
+      - '.github/workflows/dmg-synth.yml'
   pull_request:
     paths:
+      - 'docs/synth-dmg/**'
       - 'docs/synth-gameboy/**'
+      - 'docs/tetorica_dmg_synth.webp'
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/synth/synth_keyboard.js'
@@ -31,7 +36,7 @@ on:
       - 'scripts/**'
       - 'third_party/**'
       - 'package*.json'
-      - '.github/workflows/gameboy-synth.yml'
+      - '.github/workflows/dmg-synth.yml'
 
 permissions:
   contents: read
@@ -48,18 +53,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - name: Test and package the standalone Game Boy Synth
+      - name: Test and package the standalone DMG Synth
         run: |
-          npm run test:gameboy-synth
-          sh scripts/package_itch_gameboy_synth.sh ci
-          python3 -m zipfile -e release/tetorica_gameboy_synth_ci_itch.zip release/gameboy-synth-browser
-          node scripts/check_gameboy_synth_browser.cjs --root release/gameboy-synth-browser --entry /index.html --out release/gameboy-synth-browser.json --screenshots release/gameboy-synth-images
+          npm run test:dmg-synth
+          sh scripts/package_itch_dmg_synth.sh ci
+          python3 -m zipfile -e release/tetorica_dmg_synth_ci_itch.zip release/dmg-synth-browser
+          node scripts/check_dmg_synth_browser.cjs --root release/dmg-synth-browser --entry /index.html --out release/dmg-synth-browser.json --screenshots release/dmg-synth-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: gameboy-synth-check
+          name: dmg-synth-check
           path: |
-            release/tetorica_gameboy_synth_ci_itch.zip
-            release/gameboy-synth-browser.json
-            release/gameboy-synth-images/
+            release/tetorica_dmg_synth_ci_itch.zip
+            release/dmg-synth-browser.json
+            release/dmg-synth-images/
           if-no-files-found: ignore

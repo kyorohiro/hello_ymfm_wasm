@@ -3,98 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica Game Boy Synth — play pulse, wave and noise, draw Wave RAM and export your instrument as JavaScript.">
-  <meta name="theme-color" content="#d0cec7">
-  <title>Tetorica Game Boy Synth</title>
-  <link rel="stylesheet" href="./synth.css">
+  <meta http-equiv="refresh" content="0;url=../synth-dmg/index.html">
+  <link rel="canonical" href="../synth-dmg/index.html">
+  <link rel="icon" type="image/webp" href="../tetorica_dmg_synth.webp">
+  <title>Tetorica DMG Synth — new address</title>
 </head>
 <body>
-  <main>
-    <header class="masthead">
-      <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
-      <nav aria-label="Sound Laboratory">
-        <a href="../synth/index.html">FM2612 Synth</a>
-        <a href="../synth-spu/index.html">SPU Synth</a>
-        <a href="../playground/index.html?mode=gameboy">Playground</a>
-      </nav>
-    </header>
-    <article class="synth-shell" aria-labelledby="synthTitle">
-      <header class="synth-heading">
-        <div class="title-row">
-          <div class="product-identity">
-            <div class="product-icon gb-monogram" aria-hidden="true"><span>GB</span><i></i></div>
-            <div class="product-copy">
-              <p class="eyebrow">PULSE · WAVE · NOISE</p>
-              <h1 id="synthTitle">Tetorica <span class="product-name">Game Boy Synth</span></h1>
-              <p class="description">Explore the sound. Draw a wave. Take the code.</p>
-            </div>
-          </div>
-          <span class="engine-badge">APU <span>ONE GAME BOY</span></span>
-        </div>
-        <div class="audio-toolbar">
-          <div class="transport-actions">
-            <button id="startAudio" class="primary" type="button">Enable audio</button>
-            <button id="stopAudio" type="button">Stop all sound</button>
-          </div>
-          <label class="master-control" for="masterVolume"><span>Master</span>
-            <input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent">
-            <output id="masterVolumeValue" for="masterVolume">70%</output>
-          </label>
-        </div>
-        <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
-      </header>
-
-      <section class="spu-monitor gb-monitor" aria-label="Instrument display">
-        <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
-          <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
-          <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
-        </div>
-        <p id="visualizerDescription">Live output after Master volume.</p>
-        <canvas id="outputCanvas" width="900" height="220" role="img" aria-label="Live Game Boy audio visualization"></canvas>
-      </section>
-
-      <section class="instrument-workspace gb-workspace" aria-label="Instrument editor">
-        <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></div>
-        <div id="voiceEditor"></div>
-      </section>
-
-      <section class="instrument-toolbar" aria-label="Instrument files">
-        <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Pulse" autocomplete="off"></label>
-        <div class="preset-actions">
-          <button id="loadPreset" type="button">Load preset…</button>
-          <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a Game Boy instrument preset">
-          <button id="savePreset" type="button">Save preset…</button>
-          <button id="copyCode" type="button">Copy JavaScript</button>
-          <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
-        </div>
-        <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
-      </section>
-
-      <section class="keyboard-section" aria-labelledby="keyboardHeading">
-        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
-        <div class="keyboard-toolbar">
-          <div class="octave-control" role="group" aria-label="Keyboard octave">
-            <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
-            <span>Octave <output id="octaveValue">4</output></span>
-            <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
-          </div>
-          <p class="keyboard-hint">When full, the oldest note is replaced.</p>
-        </div>
-        <div id="keyboardFretboard"></div>
-        <div class="performance-keyboard">
-          <div id="keyboard" class="keyboard-mount"></div>
-          <label class="monitor-pitch keyboard-wheel gb-keyboard-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center. Noise does not follow note pitch.">
-            <span>Pitch</span><input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Pitch bend, minus two to plus two semitones"><output id="pitchValue" for="pitchBend">0.00</output>
-          </label>
-        </div>
-      </section>
-      <footer>
-        <p>One Game Boy APU: two Pulse channels, one Wave and one Noise. Pulse Sweep uses CH1 only. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Hardware Envelope and Sweep are configured for the next trigger. GBS song playback is not included.</p>
-        <div><a href="../playground/index.html?mode=gameboy">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/gameboysynth.js">JavaScript source</a></div>
-      </footer>
-    </article>
-    <noscript><p class="noscript-message">Enable JavaScript to play this synthesizer.</p></noscript>
-  </main>
-  <script type="module" src="./synth.js"></script>
+  <p>Tetorica DMG Synth has moved to <a href="../synth-dmg/index.html">the new Synth page</a>.</p>
+  <script>
+    const destination = new URL('../synth-dmg/index.html', location.href);
+    destination.search = location.search;
+    destination.hash = location.hash;
+    location.replace(destination.href);
+  </script>
 </body>
 </html>

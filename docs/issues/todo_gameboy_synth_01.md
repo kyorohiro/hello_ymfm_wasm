@@ -1,6 +1,8 @@
-# Game Boy Synth
+# Tetorica DMG Synth
 
 2026-11-04 初版実装・ローカル検証完了。FM2612／SPU Synthをベースに、Game Boyの音作りを触って理解し、プリセットとJavaScriptとして持ち帰れる独立したブラウザーSynthを作る。
+
+現在の製品名は **Tetorica DMG Synth**（`tetorica-dmg-synth`）、正本は`docs/synth-dmg/`。以下の初版・旧ZIP名は当時の検証記録として残す。
 
 ## 初版の方針
 
@@ -39,6 +41,30 @@
 - [ ] 原曲の音色と演奏中の変化を比較する検証。SaGa2「Save the world」をユーザーの手元の資料で試す。
 - [ ] GBS曲再生は独立した検討事項とし、今回のAPU Synthに含めない。
 
+## 選択UIと演奏キーの干渉解消（2026-11-04 完了）
+
+- [x] Source、Duty、Envelope方向、Sweep方向、Wave level、Noise幅のselectを選択ボタンへ変更する。
+- [x] マウスで選んだ直後も演奏キーを使え、Tab／矢印からの選択も維持する。
+- [x] 保持したPulseのDuty変更、選択後の発音・離鍵、Sweep無効時、狭い画面を実ブラウザーで確認する。
+
+エディター内の7個のnative selectを、選択状態が見えるradioボタンのグループへ変更した。クリックで文字入力のFocusを残さず、Tabは選択中の項目へ入り、矢印・Home／Endで選べる。ボタンにFocusがあっても通常の演奏キーは発音に使える。
+
+22件のunit／配布テストが成功し、ソース版・ZIP版ともChromium／WebKitで成功した。実WASMで、2音保持中のDuty変更が所有権を保持して再triggerを送らないこと、選択直後とradioボタンFocus中の発音・離鍵、Sweep無効時、390 pxでoverflow 0を確認した。viewport変更後の画面取得はcanvasのResizeObserver反映を待ち、グラフの軸も読める状態で検証した。
+
+記録：[ソース版](dmg_synth_choice_buttons_browser_01.json)、[ZIP版](dmg_synth_choice_buttons_zip_browser_01.json)。新ZIPは`release/tetorica_dmg_synth_choices-20261104_itch.zip`。音源処理とプリセット形式は変更していない。作業開始時のステージ済み変更は維持し、今回の変更は追加でstage／commit／pushしていない。
+
+## DMG Synthへの命名・アイコン反映（2026-11-04 完了）
+
+- ユーザー指定の製品名：`Tetorica DMG Synth`、識別名：`tetorica-dmg-synth`。
+- ユーザー指定のアイコン：`docs/tetorica_dmg_synth.webp`。
+- [x] 正本を`docs/synth-dmg/`へ配置し、旧`/synth-gameboy/`の入口も新URLへ案内する。
+- [x] 表示名、favicon／タッチアイコン、日英ホーム、英日AI README、配布ZIPとコマンドをDMGへ統一する。Game Boyを表す音源API名と既存プリセット形式は互換性を保つ。
+- [x] 認証済みの対応ソース・アイコンをZIPに同梱し、unit／Chromium／WebKitでソースとZIPを検証する。
+
+`npm run test:dmg-synth`は22件成功。ソース版と独立ZIPの双方がChromium／WebKitで成功し、製品名、指定WebPの表示、ローカルfavicon／タッチアイコン、旧URLのquery／fragmentを保持した移動、発音・数値ステッパーを確認した。指定画像の原本とZIP内のbytes一致も配布テストで確認した。
+
+正規コマンドは`sh scripts/package_itch_dmg_synth.sh VERSION`、`npm run test:dmg-synth`、`npm run test:dmg-synth:browser`。旧コマンドは転送aliasとして維持する。新ZIPは`release/tetorica_dmg_synth_preview-20261104_itch.zip`（30 files）、CIは`.github/workflows/dmg-synth.yml`。記録：[ソース版](dmg_synth_branding_browser_01.json)、[ZIP版](dmg_synth_branding_zip_browser_01.json)。commit／push／公開は未実行。
+
 ## 数値UIの演奏向け変更（2026-11-04 完了）
 
 - [x] Pulse／Noise音量、Envelope pace、Sweep pace／shift、Noise divisor／shiftをYM2612風の「− 値 ＋」へ変更する。
@@ -51,7 +77,7 @@
 
 ## 実装の接続仕様
 
-- 配置：`docs/synth-gameboy/`。`preset.js`／`instrument.js`はDOMなし、`processor.js`で実APUを所有、`audio.js`はWeb Audioの寿命、`editor.js`は編集画面、`synth.js`は鍵盤・保存・全体の接続を担当する。
+- 配置：`docs/synth-dmg/`。`preset.js`／`instrument.js`はDOMなし、`processor.js`で実APUを所有、`audio.js`はWeb Audioの寿命、`editor.js`は編集画面、`synth.js`は鍵盤・保存・全体の接続を担当する。
 - プリセット：`{format:'tetorica-gameboy-voice',version:1,name,source,pulse:{duty,volume,envelope:{direction,period},sweep:{enabled,direction,period,shift}},wave:{samples:[32個の0..15整数],level},noise:{volume,envelope:{direction,period},divisor,shift,width},pan:{left,right}}`。余分な項目・不正な数値は、現在の音を変更する前に拒否する。
 - `preset.js`：`createDefaultPreset()`、`readPreset(value)`、`waveShape(name)`、`presetToCode(value)`。
 - `instrument.js`：`GameboyInstrument(core)`、`read()`→`{preset,voices:[{id,midi,channel}],capacity,pitch}`、`setPreset(value)`、`loadPreset(value)`、`noteOn(id,midi)`→`{channel,stolenId}`、`noteOff(id)`、`setPitch(semitones)`、`stop()`、`generateStereo(frames)`、`dispose()`。

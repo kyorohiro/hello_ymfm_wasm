@@ -47,13 +47,49 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     row.append(make('span', '', label)); parent.append(row); return row;
   }
   function select(parent, label, id, choices, get, set) {
-    const row = field(parent, label, id), input = make('select'); input.id = id;
-    for (const [value, text] of choices) {
-      const option = make('option', '', text); option.value = String(value); input.append(option);
+    const row = make('div', 'gb-field gb-choice-field'), title = make('span', '', label);
+    title.id = `${id}Label`; row.dataset.choice = id; row.append(title); parent.append(row);
+    const group = make('div', 'gb-choice-group'); group.id = id;
+    group.setAttribute('role', 'radiogroup'); group.setAttribute('aria-labelledby', title.id); row.append(group);
+    let disabled = false;
+    const buttons = choices.map(([value, text]) => {
+      const button = make('button', 'gb-choice', text); button.type = 'button';
+      button.dataset.choiceFor = id; button.dataset.choiceValue = String(value);
+      button.setAttribute('role', 'radio');
+      listen(button, 'pointerdown', event => {
+        if (event.button !== 0) return;
+        event.preventDefault(); doc.activeElement?.blur();
+      });
+      listen(button, 'click', () => choose(String(value)));
+      group.append(button); return button;
+    });
+    function refresh() {
+      const selected = String(get(preset));
+      group.setAttribute('aria-disabled', String(disabled));
+      for (const button of buttons) {
+        const checked = button.dataset.choiceValue === selected;
+        button.setAttribute('aria-checked', String(checked)); button.disabled = disabled;
+        button.tabIndex = checked && !disabled ? 0 : -1;
+      }
     }
-    row.append(input); fields.set(id, {input, get});
-    listen(input, 'change', () => commit(value => set(value, input.value)));
-    performanceFocus(input); return input;
+    function choose(value, focus = false) {
+      if (disabled) return;
+      if (value !== String(get(preset))) commit(preset => set(preset, value));
+      if (focus) buttons.find(button => button.dataset.choiceValue === value)?.focus();
+    }
+    listen(group, 'keydown', event => {
+      if (disabled) return;
+      const current = Math.max(0, buttons.findIndex(button => button.dataset.choiceValue === String(get(preset))));
+      let index;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') index = (current + 1) % buttons.length;
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') index = (current + buttons.length - 1) % buttons.length;
+      else if (event.key === 'Home') index = 0;
+      else if (event.key === 'End') index = buttons.length - 1;
+      else return;
+      event.preventDefault(); event.stopPropagation(); choose(buttons[index].dataset.choiceValue, true);
+    });
+    fields.set(id, {input: group, get, update: refresh});
+    return {setDisabled(value) {disabled = value;refresh();}};
   }
   function number(parent, label, id, min, max, get, set) {
     const row = make('div', 'gb-field'), title = make('span', '', label);
@@ -174,7 +210,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   number(noiseFields, 'Initial volume · 0–15', 'noiseVolume', 0, 15, value => value.noise.volume, (value, volume) => {value.noise.volume = volume;});
   number(noiseFields, 'Clock divisor code', 'noiseDivisor', 0, 7, value => value.noise.divisor, (value, divisor) => {value.noise.divisor = divisor;});
   number(noiseFields, 'Clock shift code', 'noiseShift', 0, 15, value => value.noise.shift, (value, shift) => {value.noise.shift = shift;});
-  select(noiseFields, 'LFSR width', 'noiseWidth', [[15, '15-bit · long sequence'], [7, '7-bit · short sequence']], value => value.noise.width, (value, width) => {value.noise.width = Number(width);});
+  select(noiseFields, 'LFSR width', 'noiseWidth', [[15, '15-bit · long'], [7, '7-bit · short']], value => value.noise.width, (value, width) => {value.noise.width = Number(width);});
   envelope(noise, 'noise', 'noise');
   help(noise, 'Noise has one hardware channel. Every keyboard key triggers the same noise; keys and the Pitch wheel do not tune it to notes. Divisor, shift and LFSR width change its clock and character.');
 
