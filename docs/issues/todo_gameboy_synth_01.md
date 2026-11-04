@@ -4,6 +4,13 @@
 
 現在の製品名は **Tetorica DMG Synth**（`tetorica-dmg-synth`）、正本は`docs/synth-dmg/`。以下の初版・旧ZIP名は当時の検証記録として残す。
 
+## itch.io 初回リリース（2026-11-04）
+
+- [x] ユーザーが **v0.0.1** をitch.ioへ公開したと報告。
+- 製品ページ：[Tetorica DMG Synth](https://kyorohiro.itch.io/tetorica-dmg-synth)。
+- 公開devlog：[v0.0.1 First release — Game Boy 4-channel sound synth](https://kyorohiro.itch.io/tetorica-dmg-synth/devlog/1751766/v001-first-release-game-boy-4-channel-sound-synth)。
+- 初版の公開は完了。下記の「未公開」「公開は未実行」は各検証時点の履歴で、現在の公開状態を示さない。後続候補は「後続」を参照する。
+
 ## 初版の方針
 
 - ユーザー指定でラウンドロビン方式を採用する。鍵盤を音域で分割せず、選択したPulse／Wave／Noiseの音色を全鍵盤から演奏する。
@@ -36,10 +43,26 @@
 
 ## 後続
 
-- [ ] VGM Analyzerから抽出したPulse／Noise設定・Waveを直接読み込む導線。
+- [ ] VGM Analyzerから抽出したPulse／Noise設定・Wave JSONを直接読み込む導線。
 - [ ] Audioから32サンプルWaveへの変換UI。既存Sample Editorの実装を再利用する。
 - [ ] 原曲の音色と演奏中の変化を比較する検証。SaGa2「Save the world」をユーザーの手元の資料で試す。
 - [ ] GBS曲再生は独立した検討事項とし、今回のAPU Synthに含めない。
+
+## VGM／VGZからの音色読込（2026-11-04 完了）
+
+- [x] 既存VGM parserとGame Boy音色抽出処理を再利用し、Pulse／Wave／NoiseをDMG Synthのプリセットへ変換する。
+- [x] VGM／VGZの読込、音色の一覧・選択・即反映を追加し、選択後もキーボードで試奏できるようにする。
+- [x] 読込中・エラー・未対応データを表示し、失敗やキャンセルで現在の音色を保持する。
+- [x] 初期設定の抽出であること、曲中の自動変化や曲再生を再現する機能ではないことを説明する。
+- [x] 自作VGM fixtureで変換・境界条件・実WASM発音、Chromium／WebKit、独立ZIPを検証する。
+
+`vgm_import.js`は既存parserとAnalyzerのGame Boy collectorsを再利用する。発音開始時のPulse／Noise設定と、CH3 trigger時の完全なWave RAM・levelをプリセットへ変換し、panも反映する。同じ音色はまとめ、使用回数と最初の時刻を表示する。CH1 Sweepは有効／無効を復元し、CH2では無効にする。曲中の変化、元のnote pitch、length counter、Master volumeは持ち込まない。
+
+`vgm_library.js`は読込と選択を分ける。読込だけでは発音・現在の楽器を変えず、明示的な音色選択で適用する。音源別filter、24件ごとのpage、cancel、closeに対応。非同期の古い読込結果は破棄し、失敗・cancel・closeで現在の楽器を保つ。入力／展開後64 MiB、4百万commands、4,096音色の上限を設定し、dual-chipは未対応と表示する。共有parser未対応のcommand（例：0x64 wait override）も明示的にエラーにする。
+
+`npm run test:dmg-synth`は**31件成功、失敗0**（抽出9件を含む）。自作fixtureの4チャンネル変換、pan・Sweep・Wave nibbles、dedup、不完全設定、他chip/data blockの境界、VGZ展開上限、abort、実WASMによる全音源発音を確認した。ソース版・ZIP版とも**Chromium／WebKitで成功**し、4音色の選択と試奏、30音色のpage、filter、失敗時の発音維持、遅れたfile readのcancel、390 pxのoverflow 0を確認した。画面も確認済み。
+
+記録：[ソース版](dmg_synth_vgm_import_browser_01.json)、[ZIP版](dmg_synth_vgm_import_zip_browser_01.json)。新ZIPは`release/tetorica_dmg_synth_vgm-import-20261104_itch.zip`（30 files）。browser対応ソース30 inputsのreceiptも作業ファイルと一致。共有runtime／WASM／プリセット形式は変更していない。今回のcommit／push／itch.io公開は未実行。実ゲーム由来のVGMを使う試聴は手元のファイルでの確認として残す。
 
 ## Pitchの配置をFM2612／SPUへ統一（2026-11-04 完了）
 

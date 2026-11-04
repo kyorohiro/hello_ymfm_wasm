@@ -91,6 +91,26 @@ Master ranges from **0 to 380%** and turns **orange above 100%**. It scales
 the output separately from the chip's authored volume / envelope settings,
 using the existing Game Boy source balance as its reference.
 
+## Import sounds from VGM
+
+Select **Load VGM / VGZ…** with a Game Boy VGM or gzip-compressed VGZ file.
+Analysis lists the Pulse, Wave and Noise sounds without changing the current
+instrument or starting audio. Choose a sound to load it, then play the keyboard.
+Use **All / Pulse / Wave / Noise** to filter the list and **Previous / Next**
+for longer libraries. **Close library** keeps the selected instrument.
+
+The import uses initial register settings at each recorded trigger: Pulse Duty,
+volume envelope and CH1 Sweep; complete 32-sample Wave RAM and its output level;
+Noise clock, LFSR width and envelope. Left / right routing is included when
+recorded. Identical sounds are grouped, with their first time and use count shown.
+Imported sounds remain editable and can be saved as presets or copied as JavaScript.
+
+This is a starting sound for keyboard performance. Original note pitch, hardware
+length counters, song playback and later register changes are not imported.
+The page reports missing settings and unsupported input; failed or cancelled
+imports keep the current instrument and previous library. Files and decompressed
+VGM data are limited to 64 MiB. All analysis stays in the browser.
+
 ## Presets and reusable code
 
 **Save preset** downloads `dmg-voice.json`, containing the instrument name,
@@ -112,9 +132,9 @@ are not included. The generated code is also shown on the page
 for manual copying if clipboard access is unavailable.
 
 The current session stays in memory; save instruments before closing or
-reloading. The first standalone version does not import VGM-extracted voices
-or audio recordings directly. Those are follow-up integrations; the existing
-Analyzer and Playground provide separate extraction / Sample Editor workflows.
+reloading. Analyzer-exported voice JSON and audio recordings are not imported
+directly. The existing Analyzer and Playground provide separate extraction /
+Sample Editor workflows.
 GBS song playback and full Game Boy emulation are outside this APU Synth.
 
 ## API, source and licenses
