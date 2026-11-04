@@ -57,6 +57,7 @@ Decisions made during the README reorganization on 2026-10-10:
 | Artifact creation and release procedures | [README_RELEASE.md](README_RELEASE.md) |
 | npm publication records and procedures | [READMD_RELEASE_FM2612.md](READMD_RELEASE_FM2612.md), [READMD_RELEASE_VGM.md](READMD_RELEASE_VGM.md) |
 | Audio package APIs and module catalog | [packages/fm2612/README.md](packages/fm2612/README.md) |
+| Game Boy standalone Synth, one-APU allocation and portable presets | [Synth guide](docs/synth-gameboy/README.md), [implementation TODO](docs/issues/todo_gameboy_synth_01.md) |
 | VGM package examples | [packages/vgm/README.md](packages/vgm/README.md) |
 | Virtual-file and shell APIs | [packages/virtual-files/README.md](packages/virtual-files/README.md) |
 | Design and feature-specific work records | [docs/issues/](docs/issues/) |
@@ -80,6 +81,7 @@ Decisions made during the README reorganization on 2026-10-10:
 | `docs/js/` | Copies of the shared runtime deployed to the website |
 | `docs/playground/` | Playground UI, Monaco, Cassette, virtual-file integration, imports and runnable examples |
 | `docs/synth/` | Browser synthesizer |
+| `docs/synth-gameboy/` | Game Boy Synth: one APU, source-specific round robin, Wave RAM drawing and portable presets / JavaScript export; verify with `npm run test:gameboy-synth` and `npm run test:gameboy-synth:browser` |
 | `docs/vgm_analyzer/` | Analyzer UI and shared analysis / export modules also used by the CLI |
 | `docs/generated/` | Published chip JS / WASM and metadata synchronized from the canonical artifacts |
 | `tetorica_src/cli/` | `tetorica-vgm` CLI / Node API implementation |
