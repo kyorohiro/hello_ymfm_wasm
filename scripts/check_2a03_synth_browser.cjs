@@ -45,6 +45,20 @@ function makeNoiseEnvelopeVgm() {
   return vgmBytes([...vgmWrite(0x15,8),...vgmWrite(0x0c,0x23),...vgmWrite(0x0e,0x83),...vgmWrite(0x0f,8),0x66],{fds:false});
 }
 const dpcmBytes = length => Buffer.from(Array.from({length}, (_,index)=>index%8<4?0xff:0));
+function expectedDmcPreview(data, initial, rate, loop) {
+  const hardwareBytes=data.length ? Math.ceil((data.length-1)/16)*16+1 : 0;
+  const padded=[...data,...Array(hardwareBytes-data.length).fill(0xaa)];
+  const decode=start=>{
+    let level=start;
+    for(const byte of padded)for(let bit=0;bit<8;bit++){
+      if(byte&(1<<bit)){if(level<=125)level+=2;}else if(level>=2)level-=2;
+    }
+    return level;
+  };
+  const end=decode(initial),period=[428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54][rate];
+  return {startLevel:initial,endLevel:end,bitCount:hardwareBytes*8,durationMs:hardwareBytes*8*period/1789773*1000,
+    nextStartLevel:loop?end:null,nextEndLevel:loop?decode(end):null};
+}
 const vgmDmcFirst = dpcmBytes(257), vgmDmcSecond = dpcmBytes(17);
 function dmcRamBlock(address, data) {
   const header = Buffer.alloc(9); header.set([0x67,0x66,0xc2]);
@@ -193,6 +207,19 @@ async function runEngine(name, engine, origin) {
     const stop = async () => {
       await page.click('#stopAudio'); await waitState(state => state.voices.length === 0);
     };
+    const dmcBit = (byte,bit) => page.locator(`#dmcBitEditor button[data-dmc-byte="${byte}"][data-dmc-bit="${bit}"]`);
+    const assertDmcPreview = async preset => {
+      const actual=await page.locator('#dmcDacCanvas').evaluate(canvas=>({...canvas.dataset}));
+      const expected=expectedDmcPreview(preset.dmc.data,preset.dmc.level,preset.dmc.rate,preset.dmc.loop);
+      for(const key of ['startLevel','endLevel','bitCount'])assert.equal(Number(actual[key]),expected[key],`DAC preview ${key}`);
+      assert(Math.abs(Number(actual.durationMs)-expected.durationMs)<.0001,'DAC preview duration follows the hardware bit clock');
+      for(const key of ['nextStartLevel','nextEndLevel']) {
+        if(expected[key]===null)assert.equal(actual[key],'',`no second-pass ${key} with Loop off`);
+        else assert.equal(Number(actual[key]),expected[key],`DAC preview ${key} carries the previous pass rather than resetting`);
+      }
+      return actual;
+    };
+    const dmcFirst = async () => {if(!await page.isDisabled('#dmcBitsFirst'))await page.click('#dmcBitsFirst');};
     const setMaster = async value => {
       await page.locator('#masterVolume').evaluate((input, next) => {
         input.value = String(next); input.dispatchEvent(new Event('input', {bubbles:true}));
@@ -285,6 +312,48 @@ async function runEngine(name, engine, origin) {
     await page.waitForFunction(()=>/32.*bytes/i.test(document.querySelector('#dpcmStatus').textContent)&&document.querySelector('#dpcmStatus').dataset.error!=='true');
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input:not([type=range]),select,textarea'))),false);
+
+    check('DMC bits edit passively in playback order and generated padding stays distinct');
+    await page.waitForSelector('#dmcBitEditor');assert.equal(await page.isVisible('#dmcDacCanvas'),true);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    const passiveWave=await page.locator('#dmcDacCanvas').evaluate(canvas=>canvas.toDataURL());
+    await dmcBit(0,0).click();
+    await page.waitForFunction(()=>document.querySelector('[data-dmc-byte="0"][data-dmc-bit="0"]').getAttribute('aria-pressed')==='false');
+    assert.match(await page.locator('#dmcBitReadout').textContent(),/64\s*(?:→|->)\s*62/,'the first played zero lowers the DAC by two');
+    assert.notEqual(await page.locator('#dmcDacCanvas').evaluate(canvas=>canvas.toDataURL()),passiveWave,'a bit edit redraws its DAC trace immediately');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    for(const digit of [0,1]) {
+      const unchanged=!digit;
+      await dmcBit(0,0).focus();await page.keyboard.press(String(1-digit));
+      await page.waitForFunction(expected=>document.querySelector('[data-dmc-byte="0"][data-dmc-bit="0"]').getAttribute('aria-pressed')===String(expected),unchanged);
+      assert.equal(await page.evaluate(()=>document.activeElement?.dataset.dmcByte==='0'&&document.activeElement?.dataset.dmcBit==='0'),true,'keyboard editing retains the focused bit');
+      for(const modifier of ['ctrlKey','metaKey','altKey']) {
+        // Dispatch the chord to avoid native Ctrl/Meta+digit tab shortcuts in
+        // the test browser; ordinary unmodified editing below uses real keys.
+        const prevented=await dmcBit(0,0).evaluate((node,{digit,modifier})=>{
+          const event=new KeyboardEvent('keydown',{key:String(digit),code:`Digit${digit}`,[modifier]:true,bubbles:true,cancelable:true});
+          node.dispatchEvent(event);return event.defaultPrevented;
+        },{digit,modifier});
+        assert.equal(prevented,false,`${modifier}+${digit} remains available to the host`);
+        assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),String(unchanged),'modified numeric shortcuts do not edit DPCM');
+        assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+      }
+    }
+    for(const key of ['1','0','Enter','Space']) {
+      await dmcBit(0,0).focus();await page.keyboard.press(key);
+      const expected=key==='1'||key==='Enter';
+      await page.waitForFunction(expected=>document.querySelector('[data-dmc-byte="0"][data-dmc-bit="0"]').getAttribute('aria-pressed')===String(expected),expected);
+      assert.equal(await page.evaluate(()=>window.audit.contexts.length),0,'focused binary edits do not play a computer-key note');
+    }
+    await dmcBit(0,0).click();assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    await page.click('#dmcBitsLast');
+    assert.equal(await page.isDisabled('#dmcBitsNext'),true);
+    assert.equal(await dmcBit(32,0).getAttribute('data-dmc-padding'),'true');
+    assert.equal(await dmcBit(32,0).isDisabled(),true);
+    assert.equal(await dmcBit(32,7).isDisabled(),true);
+    assert.match(await page.locator('#dmcBitsPage').textContent(),/33/);
+    await dmcFirst();assert.equal(await page.isDisabled('#dmcBitsPrevious'),true);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
     const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
     const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
     assert.equal(passiveDpcm.version,2);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
@@ -500,15 +569,77 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.coreState.dmcRemaining>0);await sound();
     await page.keyboard.up('a');await stop();await silent();
 
+    check('DMC DAC preview shows loop carry, odd-level limits and Rate-derived time');
+    const beforeBitFixtures=structuredClone((await inspect()).preset);
+    let preview=await assertDmcPreview(beforeBitFixtures);
+    assert.equal(await page.locator('#dmcWaveSelected').getAttribute('aria-pressed'),'true');
+    assert(Number(preview.visibleBits)<=32);
+    await page.click('#dmcWaveAll');preview=await assertDmcPreview(beforeBitFixtures);
+    assert.equal(await page.locator('#dmcWaveAll').getAttribute('aria-pressed'),'true');
+    assert.equal(Number(preview.visibleBits),257*8);
+    await page.click('#dmcWaveSelected');
+    await number('#dmcLevel',64);
+    await page.setInputFiles('#dpcmFileInput',{name:'one-byte-up.dmc',mimeType:'application/octet-stream',buffer:Buffer.from([0xff])});
+    state=await waitState(value=>value.preset.dmc.data.length===1&&value.preset.dmc.data[0]===255);
+    await page.check('#dmcLoop');state=await waitState(value=>value.preset.dmc.loop);
+    preview=await assertDmcPreview(state.preset);
+    assert.equal(Number(preview.endLevel),80);assert.equal(Number(preview.nextStartLevel),80);assert.equal(Number(preview.nextEndLevel),96);
+    const slowDuration=Number(preview.durationMs);await number('#dmcRate',15);
+    state=await waitState(value=>value.preset.dmc.rate===15);preview=await assertDmcPreview(state.preset);
+    assert(Number(preview.durationMs)<slowDuration);assert.equal(Number(preview.endLevel),80,'Rate changes time, not the DAC step values');
+    await page.locator('#dmcLevel').focus();await page.keyboard.press('End');
+    state=await waitState(value=>value.preset.dmc.level===127);preview=await assertDmcPreview(state.preset);
+    assert.equal(Number(preview.endLevel),127);assert.equal(Number(preview.nextEndLevel),127);
+    assert.match(await page.locator('#dmcBitReadout').textContent(),/127\s*(?:→|->)\s*127/);
+    await page.locator('#dmcLevel').focus();await page.keyboard.press('Home');await waitState(value=>value.preset.dmc.level===0);await number('#dmcLevel',1);
+    await page.setInputFiles('#dpcmFileInput',{name:'one-byte-lsb-first.dmc',mimeType:'application/octet-stream',buffer:Buffer.from([1])});
+    state=await waitState(value=>value.preset.dmc.data.length===1&&value.preset.dmc.data[0]===1);await dmcFirst();
+    preview=await assertDmcPreview(state.preset);assert.equal(Number(preview.endLevel),1);
+    assert.match(await page.locator('#dmcBitReadout').textContent(),/1\s*(?:→|->)\s*3/,'bit zero is the first played up-step');
+    await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===0);preview=await assertDmcPreview(state.preset);
+    assert.equal(Number(preview.endLevel),1);assert.match(await page.locator('#dmcBitReadout').textContent(),/1\s*(?:→|->)\s*1/,'the odd DAC low bit is retained at its lower limit');
+
+    check('DMC bit paging stays bounded at the hardware sample limit and edits the final real byte');
+    await page.setInputFiles('#dpcmFileInput',{name:'largest-dmc-sample.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(4081)});
+    state=await waitState(value=>value.preset.dmc.data.length===4081);await assertDmcPreview(state.preset);
+    assert((await page.locator('#dmcBitEditor button[data-dmc-byte][data-dmc-bit]').count())<=32,'only one small bit window is mounted');
+    await page.click('#dmcBitsLast');
+    assert.equal(await page.isDisabled('#dmcBitsNext'),true);assert.equal(await dmcBit(4080,7).isDisabled(),false);
+    assert.notEqual(await dmcBit(4080,7).getAttribute('data-dmc-padding'),'true');
+    await dmcBit(4080,7).click();state=await waitState(value=>value.preset.dmc.data[4080]===127);
+    preview=await assertDmcPreview(state.preset);assert.equal(Number(preview.bitCount),4081*8);
+    assert.equal(Number(preview.visibleStartBit),4080*8);assert.equal(Number(preview.visibleBits),8);
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'the last DMC bit page fits a narrow screen');await screenshot('dmc-bits-last-mobile');
+    await page.setViewportSize({width:1180,height:940});
+    await dmcFirst();assert.equal(await page.isDisabled('#dmcBitsPrevious'),true);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    await page.setInputFiles('#presetFileInput',{name:'dmc-before-bit-fixtures.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeBitFixtures))});
+    state=await waitState(value=>value.preset.dmc.data.length===257&&value.preset.dmc.level===beforeBitFixtures.dmc.level);await dmcFirst();
+
+    check('a DMC bit edit stops held audio, updates the preview and returns pointer focus to musical keys');
+    await page.check('#dmcLoop');state=await waitState(value=>value.preset.dmc.loop);
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+    const originalFirstByte=state.preset.dmc.data[0];
+    await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===(originalFirstByte^1)&&value.voices.length===0);
+    await assertDmcPreview(state.preset);
+    assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input,select,textarea'))),false);
+    await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+    await page.keyboard.up('a');await stop();
+    const editedDmcData=[...(await inspect()).preset.dmc.data];
+
     check('DMC portable v2 presets retain original sample bytes and copied code awaits memory; v1 still migrates');
     const dmcSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const dmcSave=await dmcSaveEvent;
     const dmcPortable=JSON.parse(await fs.readFile(await dmcSave.path(),'utf8'));
     assert.equal(dmcPortable.version,2);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
+    assert.deepEqual(dmcPortable.dmc.data,editedDmcData,'portable presets retain the bit edits');
     await page.click('#copyCode');const dmcCode=await page.locator('#codeOutput').inputValue();
     assert.match(dmcCode,/await nes\.dmc\.loadSample/);assert.match(dmcCode,/Uint8Array\.from/);assert.match(dmcCode,/nes\.dmc\.play/);assert.match(dmcCode,/nes\.dmc\.stop/);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
     await page.setInputFiles('#presetFileInput',{name:'self-authored-dmc-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(dmcPortable))});
     state=await waitState(value=>value.preset.source==='dmc');assert.deepEqual(state.preset,dmcPortable);
+    await dmcFirst();await assertDmcPreview(state.preset);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),String(Boolean(editedDmcData[0]&1)));
     await page.check('#dmcLoop');await waitState(value=>value.preset.dmc.loop);await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
     if(config.screenshots) {
       await page.setViewportSize({width:390,height:844});
@@ -615,6 +746,11 @@ async function runEngine(name, engine, origin) {
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===7);
     await page.click('[data-vgm-filter="dmc"]');assert.equal(await page.locator('[data-vgm-voice]').count(),2);
     state=await importVoice(0,preset=>preset.source==='dmc'&&preset.dmc.data.length===257);
+    assert.equal(await page.isVisible('#dmcBitEditor'),true);await dmcFirst();await assertDmcPreview(state.preset);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===(vgmDmcFirst[0]^1));
+    await assertDmcPreview(state.preset);
+    await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===vgmDmcFirst[0]);
     assert.deepEqual(state.preset.dmc,{data:[...vgmDmcFirst],rate:15,loop:true,level:66});assert.equal(state.capacity,1);
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
     state=await importVoice(1,preset=>preset.source==='dmc'&&preset.dmc.data.length===17);
@@ -722,6 +858,8 @@ async function runEngine(name, engine, origin) {
       vgmDmcImportSilent:true,vgmDmcFilter:true,vgmDmcSelectionKeyboard:true,vgmDmcSnapshots:true,vgmDmcPortableBytes:true,vgmDmcMissingRamKeepsSound:true,vgmDmcBankCopyVgz:true,
       dpcmLoadPassive:true,dmcEmptySampleGate:true,dmcMonophonic:true,dmcIgnoresNotePitch:true,dmcLiveRate:true,dmcLoopAndOneShot:true,
       dpcmFailuresKeepSound:true,dpcmCancelKeepsSound:true,dpcmSupersededReadSafe:true,dpcmDemoSupersedesRead:true,dpcmSampleChangeStopsNotes:true,dmcPresetExport:true,dmcCopyAwaitedMemory:true,legacyV1PresetMigration:true,dmcMobileLayout:true,
+      dmcBitEditorPassive:true,dmcBitOrder:true,dmcBitKeyboardEditing:true,dmcBitModifierShortcuts:true,dmcPaddingReadOnly:true,dmcDacPreview:true,dmcLoopPreviewCarry:true,dmcDacOddLimits:true,dmcRatePreviewTime:true,
+      dmcBitWindowBounded:true,dmcBitLastByte:true,dmcBitEditStopsNotes:true,dmcEditedPresetRoundTrip:true,dmcVgmBitEditor:true,dmcBitEditorMobile:true,
       blurRelease:true,contextRecovery:true,finalDestinationMeasurement:true,physicalOutput:'muted',mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external};
   } catch (error) {
     if (page && config.screenshots) await page.screenshot({path:path.join(config.screenshots,`2a03-${name}-failure.png`),fullPage:true}).catch(() => {});

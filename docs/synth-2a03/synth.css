@@ -65,6 +65,23 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .nes-wave-actions button { min-height:30px; padding:5px 10px; font-size:.73rem; }
 #fdsCanvas { display:block; width:100%; height:190px; border:1px solid #526b7f; border-radius:8px; background:#202831; touch-action:none; cursor:crosshair; }
 .nes-wave-readout { margin:8px 0 12px; color:#64675b; font-size:.68rem; font-variant-numeric:tabular-nums; }
+.nes-dmc-editor { min-width:0; margin-bottom:17px; }
+.nes-dmc-editor > .nes-help:first-of-type { margin:0 0 12px; }
+#dmcDacCanvas { display:block; width:100%; height:210px; border:1px solid #526b7f; border-radius:8px; background:#202831; }
+.nes-dmc-legend { margin:0 0 14px; }
+.nes-dmc-navigation { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:12px 0; }
+#dmcBitsPage { flex:1 0 100%; text-align:center; color:var(--muted); font-size:.7rem; font-variant-numeric:tabular-nums; }
+.nes-dmc-navigation button { min-height:30px; padding:5px 10px; font-size:.7rem; }
+.nes-dmc-bit-grid { display:grid; gap:10px; }
+.nes-dmc-byte { min-width:0; }
+.nes-dmc-byte-label { display:block; margin:0 0 4px; color:var(--muted); font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+.nes-dmc-bits { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:4px; }
+.nes-dmc-bit { min-width:0; min-height:45px; padding:3px 0; font-size:1rem; line-height:1.2; border-radius:6px; font-variant-numeric:tabular-nums; }
+.nes-dmc-bit small { display:block; margin-bottom:2px; font-size:.55rem; font-weight:400; }
+.nes-dmc-bit.is-inspected { outline:2px solid #c2985e; outline-offset:1px; }
+.nes-dmc-byte[data-padding="true"] { opacity:.65; }
+.nes-dmc-bit-readout { min-height:2.8em; font-variant-numeric:tabular-nums; }
+@media(max-width:640px) { #dmcDacCanvas { height:190px; } }
 .nes-pulse-preview { margin:14px 0 0; height:46px; border:1px solid #b7b8aa; background:#d5ddbd; border-radius:7px; overflow:hidden; }
 .nes-pulse-preview svg { display:block; width:100%; height:100%; }
 .nes-pulse-preview path { stroke:#52643b; fill:none; stroke-width:2; vector-effect:non-scaling-stroke; }

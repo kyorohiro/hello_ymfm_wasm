@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm} from './preset.js';
+import {createDmcBitEditor} from './dmc_editor.js';
 
 /** A passive editor. Editing never creates an audio device. */
 export function createEditor({root, onChange = () => {}, onError = () => {}}) {
@@ -223,6 +224,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   number(dmcFields, 'Initial level · 0–127', 'dmcLevel', 0, 127, value => value.dmc.level, (value, level) => {value.dmc.level = level;});
   checkbox(dmcFields, 'Loop sample', 'dmcLoop', value => value.dmc.loop, (value, loop) => {value.dmc.loop = loop;});
   const dmcReadout = make('p', 'nes-wave-readout'); dmc.append(dmcReadout);
+  const dmcBits = createDmcBitEditor({root:dmc, onChange:data => commit(value => {value.dmc.data = data;}), onError:report});
   help(dmc, 'DMC plays pre-encoded 1-bit DPCM bytes, not WAV or other ordinary audio files. A sample contains 1–4081 bytes; this app pads it to the hardware length of 16 × n + 1 bytes with alternating bits.');
   help(dmc, 'One DMC channel. Every key triggers the same sample at the selected Rate; keys and Pitch do not tune it. Rate changes pitch and duration together. Rate and Loop edits apply live; Initial level applies on the next trigger. Releasing the key stops playback.');
   function sampleStatus(text, error = false) {dpcmStatus.textContent = text; dpcmStatus.dataset.error = String(error);}
@@ -376,6 +378,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     const bytes = preset.dmc.data.length, hardwareBytes = bytes ? Math.ceil((bytes - 1) / 16) * 16 + 1 : 0;
     const bitRate = 1789773 / [428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54][preset.dmc.rate];
     dmcReadout.textContent = `${bytes} bytes${bytes !== hardwareBytes ? ` → ${hardwareBytes} hardware bytes` : ''} · ${(bitRate / 1000).toFixed(2)} kbit/s${bytes ? ` · about ${(hardwareBytes * 8 / bitRate * 1000).toFixed(0)} ms / pass` : ''}`;
+    dmcBits.update(preset.dmc);
     const high=preset.pulse.duty*80;let path='';for(let index=0;index<4;index++){const x=index*80;path+=`${index?'L':'M'}${x} 10 L${x+high} 10 L${x+high} 36 L${x+80} 36 `;}
     pulsePath.setAttribute('d',path);resizeWave();drawWave(stroke?.samples);
     if(!stroke)waveReadout.textContent=editTarget==='wave'?'64 samples · 6-bit levels · draw, then release to apply':`32 commands · brush ${labels[brush]} · choose a command, then paint`;
@@ -389,6 +392,6 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
       if(JSON.stringify(next.dmc.data)!==JSON.stringify(preset.dmc.data)) sampleStatus(next.dmc.data.length ? `Embedded DPCM · ${next.dmc.data.length} bytes · play the keyboard.` : 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');
       preset=next;render();
     },
-    dispose(){if(disposed)return;cancelDpcmRead();disposed=true;stroke=null;for(const cleanup of cleanups)cleanup();body.remove();},
+    dispose(){if(disposed)return;cancelDpcmRead();disposed=true;stroke=null;dmcBits.dispose();for(const cleanup of cleanups)cleanup();body.remove();},
   };
 }

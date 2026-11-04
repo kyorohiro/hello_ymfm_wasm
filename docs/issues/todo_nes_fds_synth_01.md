@@ -11,6 +11,35 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## DMCビット編集・DAC波形の可視化（2026-11-05 完了・追加分は未公開）
+
+ユーザー指定：DPCMをbit単位で表示・編集し、LSB-first／±2 step／7-bit DAC境界を視覚的に理解できるEditorを追加する。PCM→DPCM自動変換は実装しない。
+
+- [x] LSB-first、DAC境界・LSB保持、hardware長paddingを扱う復号helperを用意し、実WASMのDAC値と比較する。
+- [x] 既存DMCカードへbit編集と7-bit DAC波形を追加する。最大4081 bytesでも操作できる範囲表示と、bitとstepの対応を示す。
+- [x] bit変更・Initial level・Rate・Loopの変更を即時に表示へ反映し、paddingとLoopの継続状態を実データと区別する。
+- [x] 既存のDMC音源・ファイル読込・VGM抽出・preset保存／読込・JavaScript出力へ同じ編集データを接続する。
+- [x] サンプル編集時の停止とFocusを保ち、実WASM・Chromium／WebKit・独立ZIP・狭い画面で検証する。
+- [x] ガイド、仕様の説明、検証結果と再開手順を記録する。
+
+共有DSP／runtime／WASMとpreset schemaは保ち、ソフト側の可視化・編集機能として追加する。波形表示はDMC DACの数値で、Master後のオシロスコープとは区別する。
+
+実装：`dmc_decode.js`が元bytesと生成paddingを分けて扱い、LSB-firstで各bitの前後DAC値を返す。1はlevel≤125のとき+2、0はlevel≥2のとき−2、それ以外は保持する。従って偶数開始は0..126、奇数開始は1..127を保つ。Rateは時間軸だけを変え、Loopの次の周回は前の終端levelから始める。実音源のDMA開始phaseや部分byte、mixer／filter／Masterはプレビューへ含めない。
+
+`dmc_editor.js`を既存DMCカードへ組み込んだ。byte offset・hex値と、b0→b7の順で並ぶbit buttonを4 bytesずつ表示する。クリックで編集・即時復号し、選択bitの0／1命令とDACの前後値・境界保持を示す。1つのcanvasで`Selected bytes`の正確な階段表示と`All data`の全体表示を切り替える。全体表示はpixelごとの範囲で描き、最大32,648 bitsを無数のDOM nodeにしない。First／Previous／Next／Lastで最大1021 pagesを移動できる。生成`0xaa` paddingは灰色・読取専用で、保存される元bytesと区別する。
+
+Loop Onでは最初の周回を青、次の周回をamber破線で重ねる。Whole pass summaryと選択bitのreadoutを分け、2周目を定常状態と誤認させない。Initial levelを変えたときのプレビューは即時で、音のInitial levelは既存どおり次のtriggerに適用する。データ編集は既存の所有権・停止・RAM再uploadを通るので、新しい鍵盤から編集済みDMCを試奏できる。preset v2保存・復元・生成JavaScript、VGMから選んだDMCにも同じEditorを使う。
+
+Focus：pointer編集はblurして演奏へ戻す。bitにfocusした状態では0／1で値を設定し、Space／Enterでtoggle、矢印／Page Up・Down／Home・Endで移動できる。0／1は演奏キーへ伝播させず、Ctrl／Meta／Alt shortcutは奪わない。親Editorの二重renderでもpage／focusを保つ。bit編集や他の編集は古い非同期ファイル読込を無効化する既存経路を使う。
+
+検証：`npm run test:2a03-synth`は**78件成功、失敗0**（既存72件＋decoder 6件）。bit順、偶奇と境界、padding、Loop継続、空／不正／最大長と独立copyを確認した。44.1／48 kHz、Initial level 0／1／64／65／126／127で、paddingを含む2周分の各bitのDAC値が実WASMと一致した。
+
+ソース版・独立ZIPとも**Chromium／WebKitで成功**。無音のbit編集と即時preview、Loop 64→80→96、奇数境界、Rate時間軸、modifier保護、focus継続／演奏復帰、編集時停止、4081 bytesの末尾編集とDOM上限32 bit buttons、編集済みpreset保存・復元、VGM DMCとの共用を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0、物理音声出力はmute。通常画面・末尾pageのモバイル画像も確認済み。記録：[ソース版](2a03_synth_dmc_editor_browser_01.json)、[ZIP版](2a03_synth_dmc_editor_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_dmc-editor-20261105_itch.zip`（35 files、3 bundles、1,157,492 bytes、SHA-256 `f18d66c4078f80c39b3871d577349e5e5500f4d19457e9d6693178c032b3a6dc`）。browser receiptの43 inputsは作業ファイルと一致した。元WASM pair／対応ソース11 inputs／権利通知は保持する。共有runtime／DSP／WASM／preset形式と、PCM→DPCM自動変換は変更していない。ガイド・英日AI README・日英ホームも更新済み。
+
+試し方：Source→DMC→Demo sampleまたはVGMのDMC音色を選択→0／1 buttonを変更→previewのstepを確認→新しい鍵盤で試奏。上の出力モニターは実音、Editorはraw DAC値。今回のcommit／push／公開はAIからは未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## VGM／VGZからのDMCサンプル抽出（2026-11-04 完了・追加分は未公開）
 
 ユーザーの「次に進めて」を受け、既存のVGM音色一覧とDMCプリセットを接続する。記録されたCPU RAMデータとDMCの再生設定を追い、選んだDMCを鍵盤で試奏・編集・保存・JavaScriptコピーできるようにする。

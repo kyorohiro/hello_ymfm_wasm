@@ -105,6 +105,50 @@ Audio-to-DPCM encoding remains a separate follow-up. Recorded DMC samples can
 also be recovered through **Load VGM / VGZ…**, as described below.
 See the [DMC hardware reference](https://www.nesdev.org/wiki/APU_DMC).
 
+## DMC bit editor and DAC preview
+
+**DMC Editor · bits → DAC** opens the same bytes from a loaded DPCM file,
+Demo sample, VGM capture or preset. Each row shows the byte offset and its
+hexadecimal value, followed by eight editable bit buttons in **playback order,
+b0 → b7**. For example, `0x01` appears as `1 0 0 0 0 0 0 0` because DMC plays
+the least significant bit first. Click a bit to toggle it and update the
+decoded waveform immediately. The readout links that bit to its DAC step.
+
+The preview follows the seven-bit DAC rules:
+
+- A **1** requests **+2**. At level 126 or 127, the level holds.
+- A **0** requests **−2**. At level 0 or 1, the level holds.
+
+The low DAC bit stays unchanged: even Initial levels stay within 0–126, odd
+Initial levels within 1–127. A step that would cross the limit is ignored,
+rather than clamped to a different parity. The fixed graph axis is **0–127**.
+
+**Selected bytes** shows exact stairs for the current four-byte page.
+**All data** shows the whole sample as an overview. **First / Previous / Next /
+Last** navigate even the maximum 4081-byte sample. Generated `0xaa` padding
+appears grey and read-only; it is included in the waveform and playback time,
+but does not become part of the saved original data.
+
+Blue is the first pass from **Initial level**. With **Loop** on, the amber dashed
+trace is the next pass starting at the first pass's ending DAC value. Loop
+reloads sample data without resetting the DAC. The second trace is one further
+pass, not a promise that a sample has reached a steady repeating state.
+**Rate** changes the time axis and duration, not the decoded step values.
+Changing Initial level updates the preview now and the sound on its next trigger.
+
+The graph shows **decoded DAC values before the mixer, output filters and
+Master**, not the live output scope or DMA startup / partial-byte timing.
+Releasing a note also clears the DAC as described above; that software stop
+is not appended to the sample preview.
+
+Bit edits stop held notes and apply to the actual DMC data. Play a new key to
+hear them. Save preset / Load preset and Copy JavaScript include the edited
+bytes; the view mode and page are temporary UI state. With a bit focused,
+**Space / Enter** toggles it, **0 / 1** sets it, arrows move between bits and
+bytes, **Page Up / Down** changes the window and **Home / End** jumps to the
+first / last original bit. Modifier shortcuts are left available. Pointer
+edits return to the performance keyboard. No PCM-to-DPCM conversion is added.
+
 ## FDS waveform and modulation
 
 The **Wave / Modulation** buttons select what to edit on a single canvas:
