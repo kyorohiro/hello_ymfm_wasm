@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
+import {createVgmLibrary} from './vgm_library.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -15,6 +16,7 @@ const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
+let vgmLibrary = null;
 const notes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -92,8 +94,9 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-function applyPreset(value, {load = false, message} = {}) {
+function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   const next = readPreset(value);
+  if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source
     || JSON.stringify(previous.fds.wave) !== JSON.stringify(next.fds.wave)
@@ -125,6 +128,9 @@ function applyPreset(value, {load = false, message} = {}) {
   });
 }
 const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report});
+vgmLibrary = createVgmLibrary({root: $('vgmImport'), onSelect: value => applyPreset(value, {
+  load: true, fromVgm: true, message: `${value.name} loaded from VGM · play the keyboard.`,
+})});
 
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
@@ -293,7 +299,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();void audio?.dispose();audio=null;
+  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
 });
 updatePresetUi();setVolume();setPitchUi(0);
 

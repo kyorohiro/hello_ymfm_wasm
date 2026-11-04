@@ -67,6 +67,36 @@
         </div>
       </section>
 
+      <section id="vgmImport" class="nes-vgm-import" aria-labelledby="vgmHeading">
+        <div class="section-heading"><h2 id="vgmHeading">Sounds from VGM</h2></div>
+        <div class="nes-vgm-actions">
+          <button id="loadVgm" type="button">Load VGM / VGZ…</button>
+          <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with NES or FDS sound">
+          <button id="cancelVgm" type="button" hidden>Cancel import</button>
+          <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose an NES / FDS VGM, then select a sound to play.</p>
+        </div>
+        <div id="vgmLibrary" hidden>
+          <div class="nes-vgm-actions"><strong id="vgmFileName"></strong><button id="closeVgm" type="button">Close library</button></div>
+          <div class="nes-vgm-filters" role="group" aria-label="Filter VGM sounds">
+            <button type="button" data-vgm-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-vgm-filter="pulse" aria-pressed="false">Pulse</button>
+            <button type="button" data-vgm-filter="triangle" aria-pressed="false">Triangle</button>
+            <button type="button" data-vgm-filter="noise" aria-pressed="false">Noise</button>
+            <button type="button" data-vgm-filter="fds" aria-pressed="false">FDS</button>
+          </div>
+          <div id="vgmVoices" class="nes-vgm-voices" role="group" aria-label="Extracted VGM sounds"></div>
+          <div class="nes-vgm-actions">
+            <button id="vgmPrevious" type="button">Previous</button><span id="vgmPage" class="subtext"></span><button id="vgmNext" type="button">Next</button>
+          </div>
+          <p id="vgmVoiceWarnings" class="subtext" hidden></p>
+          <details id="vgmWarnings" class="subtext" hidden>
+            <summary id="vgmWarningsSummary">File notes</summary>
+            <ul id="vgmWarningList"></ul>
+          </details>
+        </div>
+        <p class="subtext">Imports initial sound settings. Later changes, length counters and song playback are not imported. DMC samples are not supported yet; any approximations are shown with the selected sound.</p>
+      </section>
+
       <section class="instrument-workspace nes-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></div>
         <div id="voiceEditor"></div>

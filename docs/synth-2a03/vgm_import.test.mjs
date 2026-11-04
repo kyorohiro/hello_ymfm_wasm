@@ -1,0 +1,225 @@
+// SPDX-License-Identifier: BSD-3-Clause
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {gzipSync} from 'node:zlib';
+import {readFile} from 'node:fs/promises';
+import factory from '../generated/nesapu_wasm.js';
+import {NesApuWasm} from '../js/nesapu_wasm.js';
+import {NesInstrument} from './instrument.js';
+import {readPreset} from './preset.js';
+import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
+
+const w = (register, value) => [0xb4, register, value];
+const wait = [0x61, 0xe8, 3]; // 1,000 VGM samples.
+const wave = Array.from({length:64}, (_, index) => index);
+const mod = Array.from({length:32}, (_, index) => index % 8);
+const power = w(0x15, 0x0f);
+const pulse1 = [...w(0, 0xb9), ...w(1, 0x8a), ...w(2, 0x40), ...w(3, 0x09)];
+const pulse2 = [...w(4, 0x7a), ...w(5, 8), ...w(6, 0x55), ...w(7, 0x09)];
+const triangle = [...w(8, 0xff), ...w(0x0a, 0x80), ...w(0x0b, 8)];
+const noise = [...w(0x0c, 0x3b), ...w(0x0e, 0x86), ...w(0x0f, 8)];
+const waveWrites = values => values.flatMap((value, index) => w(0x40 + index, value));
+const modWrites = values => values.flatMap(value => w(0x28, value));
+const fdsTables = [...w(0x3f, 2), ...w(0x23, 0x80), ...w(0x29, 0x80), ...waveWrites(wave),
+  ...w(0x29, 1), ...w(0x27, 0x80), ...modWrites(mod)];
+const fdsParameters = [...w(0x20, 0x98), ...w(0x24, 0x90), ...w(0x25, 127), ...w(0x26, 0x78), ...w(0x27, 1)];
+const fdsNote = [...w(0x22, 0x90), ...w(0x23, 1)];
+function vgm(commands, clock = 1789773, fds = true) {
+  const bytes = new Uint8Array(0x100 + commands.length);
+  bytes.set([86, 103, 109, 32]);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(4, bytes.length - 4, true); view.setUint32(8, 0x171, true);
+  view.setUint32(0x34, 0xcc, true); view.setUint32(0x84, (clock | (fds ? 0x80000000 : 0)) >>> 0, true);
+  bytes.set(commands, 0x100); return bytes;
+}
+const complete = () => vgm([...power, ...pulse1, ...wait, ...pulse2, ...wait,
+  ...w(6, 0x66), ...w(7, 0x0a), ...wait, ...triangle, ...wait, ...noise,
+  ...wait, ...fdsTables, ...fdsParameters, ...fdsNote, 0x66]);
+const fdsVoices = result => result.voices.filter(voice => voice.kind === 'fds');
+
+test('NES VGM maps five channel definitions and ignores pitch-only differences when grouping sounds', async () => {
+  const result = await extractVgmInstruments(complete());
+  assert.deepEqual(result.voices.map(({kind, channel, firstTime, occurrences}) => [kind, channel, firstTime, occurrences]), [
+    ['pulse', 1, 0, 1], ['pulse', 2, 1000, 2], ['triangle', 3, 3000, 1], ['noise', 4, 4000, 1], ['fds', 6, 5000, 1],
+  ]);
+  const [a, b, c, d, e] = result.voices.map(voice => voice.preset);
+  assert.deepEqual(a.pulse, {duty:.5, volume:9, envelope:{enabled:false, period:9, loop:true},
+    sweep:{enabled:true, period:0, negate:true, shift:2}});
+  assert.equal(b.pulse.duty, .25); assert.equal(b.pulse.volume, 10);
+  assert.equal(c.source, 'triangle');
+  assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true});
+  assert.deepEqual(e.fds, {wave, volume:24, master:1, modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1}});
+  for (const voice of result.voices) assert.deepEqual(readPreset(voice.preset), voice.preset);
+  assert.equal(result.timebase, 44100);
+});
+
+test('Pulse hardware envelopes remain envelopes and Noise envelopes have an explicit fixed-volume approximation', async () => {
+  const result = await extractVgmInstruments(vgm([...power,
+    ...w(0, 0x80 | 0x20 | 7), ...w(1, 8), ...w(2, 0x40), ...w(3, 9),
+    ...w(0x0c, 2), ...w(0x0e, 5), ...w(0x0f, 8), 0x66]));
+  const p = result.voices.find(voice => voice.kind === 'pulse');
+  assert.deepEqual(p.preset.pulse.envelope, {enabled:true, period:7, loop:true});
+  const n = result.voices.find(voice => voice.kind === 'noise');
+  assert.equal(n.preset.noise.volume, 15);
+  assert(n.warnings.some(message => /Noise.*Envelope.*fixed volume 15/i.test(message)));
+  assert(result.warnings.some(message => /Noise.*Envelope/i.test(message)));
+});
+
+test('APU enable masks gate real trigger writes, while known silent attacks can open through later control writes', async () => {
+  const ignored = vgm([...w(0x15, 0), ...pulse1, ...w(0x15, 1), 0x66]);
+  await assert.rejects(extractVgmInstruments(ignored), /No complete|No .*voices/i);
+  const result = await extractVgmInstruments(vgm([...w(0x15, 0x0d),
+    ...w(0, 0xb0), ...w(1, 8), ...w(2, 0x40), ...w(3, 9), ...wait, ...w(0, 0xb7),
+    ...w(8, 0x80), ...w(0x0a, 0x80), ...w(0x0b, 8), ...wait, ...w(8, 0xff),
+    ...w(0x0c, 0x30), ...w(0x0e, 6), ...w(0x0f, 8), ...wait, ...w(0x0c, 0x3c), 0x66]));
+  assert.deepEqual(result.voices.map(voice => [voice.kind, voice.firstTime]), [['pulse', 1000], ['triangle', 2000], ['noise', 3000]]);
+  assert.equal(result.voices[0].preset.pulse.volume, 7);
+  assert.equal(result.voices[2].preset.noise.volume, 12);
+});
+
+test('FDS volume written after frequency can open the gate, and fixed modulation depth retains all six bits', async () => {
+  const result = await extractVgmInstruments(vgm([...fdsTables,
+    ...w(0x20, 0x80), ...w(0x24, 0xbf), ...w(0x25, 64), ...w(0x26, 0x56), ...w(0x27, 3),
+    ...fdsNote, ...wait, ...w(0x20, 0x98), 0x66]));
+  const [voice] = fdsVoices(result);
+  assert.equal(fdsVoices(result).length, 1); assert.equal(voice.firstTime, 1000);
+  assert.equal(voice.preset.fds.volume, 24); assert.equal(voice.preset.fds.modulation.depth, 63);
+  assert.equal(voice.preset.fds.modulation.bias, -64); assert.equal(voice.preset.fds.modulation.rate, 0x356);
+});
+
+test('FDS active-frequency setup becomes importable when Wave RAM write mode closes', async () => {
+  const result = await extractVgmInstruments(vgm([
+    ...w(0x3f, 2), ...w(0x23, 1), ...w(0x22, 0x90), ...w(0x20, 0x98), ...w(0x27, 0x80),
+    ...w(0x29, 0x80), ...waveWrites(wave), ...wait, ...w(0x29, 2), 0x66]));
+  const [voice] = fdsVoices(result);
+  assert.equal(fdsVoices(result).length, 1); assert.equal(voice.firstTime, 1000);
+  assert.deepEqual(voice.preset.fds.wave, wave); assert.equal(voice.preset.fds.master, 2);
+  assert(voice.warnings.some(message => /neutral table|not completely recorded/i.test(message)));
+});
+
+test('FDS zero-gain upward envelopes stay silent until their known envelope clock resumes', async () => {
+  for (const {setup, resume} of [
+    {setup:[...w(0x23, 0x41)], resume:w(0x23, 1)},
+    {setup:[...w(0x2a, 0), ...w(0x23, 1)], resume:w(0x2a, 1)},
+  ]) {
+    const result = await extractVgmInstruments(vgm([...power, ...pulse2, ...fdsTables,
+      ...w(0x20, 0x80), ...w(0x20, 0x40), ...w(0x22, 0x90), ...setup,
+      ...wait, ...resume, 0x66]));
+    const voices = fdsVoices(result);
+    assert.equal(voices.length, 1); assert.equal(voices[0].firstTime, 1000);
+    assert.equal(voices[0].preset.fds.volume, 32);
+    assert(voices[0].warnings.some(message => /volume Envelope.*fixed volume 32/i.test(message)));
+  }
+});
+
+test('FDS frequency-low and modulation-enable writes can finish audible instrument setup', async () => {
+  const lowFrequency = await extractVgmInstruments(vgm([...fdsTables, ...w(0x20, 0x98),
+    ...w(0x22, 0), ...w(0x23, 0), ...wait, ...w(0x22, 0x90), 0x66]));
+  assert.equal(fdsVoices(lowFrequency).length, 1);
+  assert.equal(fdsVoices(lowFrequency)[0].firstTime, 1000);
+  const enablingMod = await extractVgmInstruments(vgm([...fdsTables, ...w(0x20, 0x98),
+    ...w(0x24, 0x90), ...w(0x26, 0x78), ...w(0x27, 0x81), ...fdsNote,
+    ...wait, ...w(0x27, 1), 0x66]));
+  assert.deepEqual(fdsVoices(enablingMod).map(voice => [voice.firstTime, voice.preset.fds.modulation.enabled]), [[0, false], [1000, true]]);
+});
+
+test('unknown or rejected FDS RAM writes are never replaced with the default factory wave or enabled modulation', async () => {
+  const incompleteWave = await extractVgmInstruments(vgm([...power, ...pulse2, ...w(0x3f, 2), ...w(0x29, 0x80),
+    ...waveWrites(wave.slice(0, 63)), ...w(0x29, 0), ...fdsParameters, ...fdsNote, 0x66]));
+  assert.equal(fdsVoices(incompleteWave).length, 0); assert(incompleteWave.warnings.some(message => /incomplete.*Wave RAM/i.test(message)));
+  const rejectedWrite = await extractVgmInstruments(vgm([...power, ...pulse2, ...w(0x3f, 2),
+    ...waveWrites(wave), ...fdsParameters, ...fdsNote, 0x66]));
+  assert.equal(fdsVoices(rejectedWrite).length, 0); assert(rejectedWrite.warnings.some(message => /write gate/i.test(message)));
+  const incompleteMod = await extractVgmInstruments(vgm([...power, ...pulse2,
+    ...w(0x3f, 2), ...w(0x23, 0x80), ...w(0x29, 0x80), ...waveWrites(wave), ...w(0x29, 0),
+    ...w(0x27, 0x80), ...modWrites(mod.slice(0, 31)), ...fdsParameters, ...fdsNote, 0x66]));
+  assert.equal(fdsVoices(incompleteMod).length, 0); assert(incompleteMod.warnings.some(message => /incomplete modulation/i.test(message)));
+  const disabledPartialMod = await extractVgmInstruments(vgm([
+    ...w(0x3f, 2), ...w(0x23, 0x80), ...w(0x29, 0x80), ...waveWrites(wave), ...w(0x29, 0),
+    ...w(0x27, 0x80), ...modWrites(mod.slice(0, 31)), ...w(0x20, 0x98), ...fdsNote, 0x66]));
+  const [disabled] = fdsVoices(disabledPartialMod);
+  assert.equal(disabled.preset.fds.modulation.enabled, false);
+  assert.deepEqual(disabled.preset.fds.modulation.table, Array(32).fill(0));
+  assert(disabled.warnings.some(message => /not completely recorded.*disabled.*neutral/i.test(message)));
+});
+
+test('FDS modulation write phase after running is explicit, including quiet playback and DAC-wait commands', async () => {
+  const replacement = Array.from({length:32}, (_, index) => (index + 3) % 8);
+  const result = await extractVgmInstruments(vgm([...fdsTables,
+    ...w(0x20, 0x80), ...w(0x24, 0x90), ...w(0x25, 0), ...w(0x26, 0x80), ...w(0x27, 1), ...fdsNote,
+    0x8f, ...w(0x27, 0x81), ...modWrites(replacement), ...w(0x27, 1), ...w(0x20, 0x98), ...w(0x23, 1), 0x66]));
+  const voices = fdsVoices(result);
+  assert(voices.length >= 1);
+  assert(voices.every(voice => voice.preset.fds.modulation.table.every(Number.isInteger)));
+  const voice = voices.find(voice => JSON.stringify(voice.preset.fds.modulation.table) === JSON.stringify(replacement));
+  assert(voice); assert(voice.warnings.some(message => /phase.*unknown|written order/i.test(message)));
+  assert(voice.warnings.some(message => /phase.*counter|counter progress/i.test(message)));
+});
+
+test('FDS timed volume and modulation envelopes use per-voice approximation notes', async () => {
+  const result = await extractVgmInstruments(vgm([...fdsTables, ...w(0x20, 0x40), ...w(0x24, 0x40),
+    ...w(0x25, 0), ...w(0x26, 0x80), ...w(0x27, 1), ...fdsNote, 0x66]));
+  const [voice] = fdsVoices(result);
+  assert.equal(voice.preset.fds.volume, 32); assert.equal(voice.preset.fds.modulation.depth, 32);
+  assert(voice.warnings.some(message => /volume Envelope.*fixed volume/i.test(message)));
+  assert(voice.warnings.some(message => /modulation Envelope.*fixed depth/i.test(message)));
+});
+
+test('DMC data is warned and skipped while opaque other-chip blocks cannot inject NES writes', async () => {
+  const fakeCommands = [...pulse1, 0x66];
+  const opaque = [0x67, 0x66, 0, fakeCommands.length, 0, 0, 0, ...fakeCommands];
+  const nesRam = [0x67, 0x66, 0xc2, 4, 0, 0, 0, 0, 0xc0, 0xaa, 0x55];
+  const result = await extractVgmInstruments(vgm([...power, ...opaque, ...nesRam, ...w(0x10, 0x4f), ...pulse2, 0x66]));
+  assert.deepEqual(result.voices.map(voice => [voice.kind, voice.channel]), [['pulse', 2]]);
+  assert(result.warnings.some(message => /DMC/i.test(message)));
+});
+
+test('VGZ round-trips settings and rejects malformed, non-NES, dual-chip, missing-end and truncated input', async () => {
+  const source = complete();
+  assert.deepEqual(await extractVgmInstruments(gzipSync(source)), await extractVgmInstruments(source));
+  await assert.rejects(extractVgmInstruments(new Uint8Array(8)), /header/i);
+  await assert.rejects(extractVgmInstruments(vgm([0x66], 0, false)), /no NES/i);
+  await assert.rejects(extractVgmInstruments(vgm([...power, ...pulse1, 0x66], 1789773 | 0x40000000)), /Dual/i);
+  await assert.rejects(extractVgmInstruments(vgm([...w(0x80, 1), 0x66])), /Second NES/i);
+  await assert.rejects(extractVgmInstruments(vgm([...power, ...pulse1], 1789773, false)), /end of VGM/i);
+  await assert.rejects(extractVgmInstruments(vgm([0xb4, 0])), /Truncated VGM command/i);
+  await assert.rejects(extractVgmInstruments(vgm([0x67, 0x66, 0xc2, 1, 0, 0, 0, 0])), /RAM block header/i);
+  await assert.rejects(extractVgmInstruments(vgm([...power, ...pulse1, 0x64, 0, 0, 0, 0x66])), /Unsupported|Unknown/i);
+  await assert.rejects(extractVgmInstruments(Uint8Array.from([0x1f, 0x8b, 0])), /./);
+  const invalidOffset = complete(); new DataView(invalidOffset.buffer).setUint32(0x34, 0xffff, true);
+  await assert.rejects(extractVgmInstruments(invalidOffset), /data offset/i);
+  const invalidSize = complete(); new DataView(invalidSize.buffer).setUint32(4, invalidSize.length + 50, true);
+  await assert.rejects(extractVgmInstruments(invalidSize), /file size/i);
+});
+
+test('nonstandard clocks and missing Sweep are explicit rather than silently replaced with factory effects', async () => {
+  const result = await extractVgmInstruments(vgm([...power, ...w(0, 0xb9), ...w(2, 0x40), ...w(3, 9), 0x66], 1662607));
+  assert.equal(result.voices[0].preset.pulse.sweep.enabled, false);
+  assert(result.voices[0].warnings.some(message => /Sweep.*not recorded/i.test(message)));
+  assert(result.warnings.some(message => /normal NTSC/i.test(message)));
+});
+
+test('input, expanded gzip and asynchronous cancellation limits never publish partial libraries', async () => {
+  await assert.rejects(extractVgmInstruments(new Uint8Array(MAX_VGM_BYTES + 1)), /64 MiB/);
+  const expanded = gzipSync(Buffer.alloc(MAX_VGM_BYTES + 1));
+  await assert.rejects(extractVgmInstruments(expanded), /Expanded VGZ.*64 MiB/i);
+  const pre = new AbortController(); pre.abort();
+  await assert.rejects(extractVgmInstruments(complete(), {signal:pre.signal}), {name:'AbortError'});
+  const later = new AbortController();
+  const pending = extractVgmInstruments(vgm([...power, ...pulse1, ...Array(20000).fill(0x70), 0x66]), {signal:later.signal});
+  setTimeout(() => later.abort(), 0);
+  await assert.rejects(pending, {name:'AbortError'});
+});
+
+test('every imported source produces finite audible PCM through the actual NES / FDS WASM instrument', async t => {
+  const {voices} = await extractVgmInstruments(complete());
+  const wasmBinary = await readFile(new URL('../generated/nesapu_wasm.wasm', import.meta.url));
+  const core = await NesApuWasm.create({moduleFactory:factory, moduleOptions:{wasmBinary}, sampleRate:48000, fds:true});
+  const instrument = new NesInstrument(core); t.after(() => instrument.dispose());
+  for (const voice of voices) {
+    instrument.loadPreset(voice.preset); instrument.noteOn(String(voice.id), 60);
+    const pcm = instrument.generateStereo(4096);
+    assert(pcm.left.every(Number.isFinite) && pcm.right.every(Number.isFinite), voice.preset.name);
+    assert(pcm.left.some(value => Math.abs(value) > .0001), voice.preset.name);
+  }
+});

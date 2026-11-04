@@ -79,6 +79,32 @@ frequency-modulation path; the interface follows its waveform and counter table.
 The default table, Rate and Depth are ready to hear when modulation is enabled.
 Rate, Depth, Bias and volume can change while the FDS note is held.
 
+## Import sounds from VGM
+
+Select **Load VGM / VGZ…** and choose a file containing NES or FDS sound.
+Analysis lists the recorded Pulse / Triangle / Noise / FDS sounds without
+starting audio or changing the current instrument. Choose a sound, then play
+the keyboard. Filter by source and use **Previous / Next** for longer libraries.
+The origin channel, first time and number of matching captured settings are
+shown with each sound; this count is not the song's note count.
+
+Imported sounds remain editable and can be saved as presets or copied as
+JavaScript. **Close library** keeps the current instrument. Failed or cancelled
+imports keep both the current sound and the previous library; a superseded
+asynchronous read cannot replace a newer library.
+
+This imports initial sound settings for keyboard performance. Original note
+pitch, length / linear counters, song playback and later parameter changes are
+not reconstructed. FDS needs complete recorded Wave RAM; missing RAM is not
+filled with a factory waveform. Settings beyond the current editor's controls
+may need a static approximation, which is explained with the selected sound.
+Read those notes when comparing a recovered instrument with the original song.
+
+DMC samples are not imported in this stage. Files containing other supported
+NES / FDS sounds can still be used. Non-NTSC clocks are reported because this
+Synth plays at its normal NTSC clock; dual NES chips are unsupported. Files and
+expanded VGZ data are limited to 64 MiB. All file analysis stays in the browser.
+
 ## Output and files
 
 **Waveform / Spectrum** observes the actual output after **Master** through a
@@ -101,9 +127,8 @@ away from its window also stops notes. An audio failure offers **Enable audio**
 to restart. Save the preset before closing or reloading; the session stays in
 memory rather than being saved automatically.
 
-The first version covers Pulse / Triangle / Noise / FDS. DMC samples, PCM-to-DPCM
-encoding, VGM voice-library import, NSF / song playback and sequencing are outside
-this version's instrument workflow.
+The instrument covers Pulse / Triangle / Noise / FDS. DMC samples, PCM-to-DPCM
+encoding, NSF / song playback and sequencing are outside this version's workflow.
 
 ## API and sources
 

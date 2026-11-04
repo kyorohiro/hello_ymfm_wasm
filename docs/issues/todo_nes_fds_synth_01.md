@@ -4,6 +4,35 @@
 
 現在の製品名は **Tetorica 2A03 Synth**（`tetorica-2a03-synth`）、正本は`docs/synth-2a03/`。以下のNES名・旧ZIP名は当時の実装・検証記録として残す。
 
+## リリース記録
+
+- 2026-11-04：ユーザーより **Tetorica 2A03 Synthをリリース済み** と報告。
+- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。リリース後に追加したVGM音色読込は下記を参照。DMC／DPCM、Tauri版は後続TODOとして残す。
+
+## VGM／VGZ音色読込（2026-11-04 完了・追加分は未公開）
+
+ユーザーの希望でDPCM単体読込より先に進める。DMG版と同じ「ファイル読込→音色選択→鍵盤試奏→編集・保存・JavaScript」の流れを2A03へ追加する。
+
+- [x] 既存parserを再利用し、Pulse／Triangle／Noise／FDSの記録された初期設定を既存プリセットへ変換する。
+- [x] FDSのWave RAM・変調table・音量／depth／rate／biasを扱い、未知のRAMを記録済みとして補わず、近似値は明示する。
+- [x] 現在のSynthで再現できないEnvelopeや時間変化、DMC、非標準clock等は明示し、近似値を使う場合は音色ごとに説明する。
+- [x] DMGと同じ音色一覧・音源filter・page・cancelを接続し、読み込みだけでは演奏・現在の音色を変更しない。
+- [x] 不正／未対応ファイル、キャンセル、古い非同期読込から現在の楽器とlibraryを守る。
+- [x] 自作VGM／VGZ fixture、実WASM、Chromium／WebKit、配布ZIPで検証する。
+- [x] README・CI依存パス・検証結果・残作業を記録する。
+
+`vgm_import.js`は既存のVGM parser／raw command walkerを再利用し、VGM／展開後VGZを各64 MiBまで解析する。PulseはDuty／音量／Envelope／Sweep、Noiseはperiod／mode／音量、FDSは記録された64点Wave RAMと32命令modulation、6-bit depth／rate／signed biasを既存プリセットへ変換する。DMCと曲再生は追加していない。
+
+読み込みだけではAudioContextを作らず、楽器と保持中の音を変えない。一覧を選ぶと編集画面へ適用し、鍵盤・保存・JavaScriptコピーへ進める。24件単位のページと音源filter、キャンセルを用意した。選択音色の近似説明は常時表示し、ファイル全体の注意事項は`File notes`へ折りたたむ。表示のmatchesは同じ設定の捕捉回数で、曲中のノート数とは区別する。
+
+FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色として採用しない。無効な変調に完全な記録がない場合は、中立tableを使うことを説明する。Noise EnvelopeやFDSの時間変化するEnvelopeは静的な近似を明記し、変調phase／counterは試奏時に再開する。Envelope停止中のgain 0、後から開くvolume／frequency gate、動作後の変調table書込位置も検証した。
+
+検証：`npm run test:2a03-synth`は**40件成功、失敗0**（既存25件＋抽出15件）。自作fixtureから抽出した5音色を実WASMで発音し、VGZ、他chip blockの透過、不正データ、上限、abortも確認した。最終ソース版・独立ZIPは双方**Chromium／WebKitで成功**し、filter／ページ送り／近似説明／保存／keyboard focus、失敗・キャンセル後の保持を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声出力はmuteして測定した。記録：[ソース版](2a03_synth_vgm_import_browser_01.json)、[ZIP版](2a03_synth_vgm_import_zip_browser_01.json)。最終ZIPのモバイル画面も確認済み。
+
+最終配布候補：`sh scripts/package_itch_2a03_synth.sh vgm-import-20261104-r2`で作成した`release/tetorica_2a03_synth_vgm-import-20261104-r2_itch.zip`（35 files、3 bundles、1,129,116 bytes、SHA-256 `dfdca555721702dc5a1daefb85347ad3ead527f1114c26432505ac5a566e11d1`）。browser receiptの40 inputsは作業ファイルと一致し、元WASM pair／対応ソース11 inputs／権利通知を保持する。先の`vgm-import-20261104` ZIPはFDS Envelope停止条件の最終修正前なので、このr2を使用する。
+
+共有DSP／runtime／WASM／プリセット形式は変更していない。英日AI README・日英ホーム・Synthガイド・CIのparser依存パスも更新した。実ゲームデータとの実聴比較は次の手動確認。今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## 2A03への命名・アイコン（2026-11-04 完了）
 
 - ユーザー指定の製品名：`Tetorica 2A03 Synth`。NES APU + FDSをサブタイトルとして残す。
@@ -60,7 +89,8 @@
 
 - [ ] DMC：既エンコードDPCMのファイル読込、rate／loop／level、鍵盤からのtrigger。
 - [ ] 音声ファイルからDPCMへの変換。既存APIにPCM encoderはないため、別途仕様・検証を用意する。
-- [ ] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する。
+- [x] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する（上記2026-11-04の追加作業）。
+- [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
 - [ ] FDS／Triangle／Noiseの追加Envelope／length counter編集を段階的に検討する。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
