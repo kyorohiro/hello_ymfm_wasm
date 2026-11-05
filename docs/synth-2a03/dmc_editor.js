@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {decodeDpcm} from './dmc_decode.js';
 import {applyDmcTargets} from './dmc_draw.js';
+import {fitDmcTargets} from './dmc_fit.js';
 import {createDmcHistory} from './dmc_history.js';
 
 const PAGE_BYTES = 4;
@@ -12,7 +13,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis, cleanups = [];
   let dmc = {data:[], level:64, rate:15, loop:false}, decoded = decodeDpcm([]);
   let page = 0, selectedBit = 0, whole = false, disposed = false;
-  let stroke = null, lastTargets = null;
+  let stroke = null, lastTargets = null, lastFit = null, previewFrame = 0, autoFit = false;
   const history = createDmcHistory();
   const make = (tag, className, text) => {
     const node = doc.createElement(tag); if (className) node.className = className;
@@ -39,6 +40,20 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   undo.title = 'Undo one bit edit or completed drawing. With editor focus: Ctrl / Cmd + Z.';
   redo.title = 'Redo an edit. With editor focus: Shift + Ctrl / Cmd + Z, or Ctrl + Y.';
   const historyStatus = make('output', 'nes-help'); historyStatus.id = 'dmcHistoryStatus'; modes.append(historyStatus);
+  const fitRow = make('label', 'nes-field nes-check');
+  const fitCheck = make('input'); fitCheck.type = 'checkbox'; fitCheck.id = 'dmcAutoFit';
+  fitRow.append(fitCheck, doc.createTextNode('Auto fit height · adjust nearby bits')); section.append(fitRow);
+  const fitHelp = make('p', 'nes-help', 'Off: change only the bits you touch. On: also adjust up to 62 earlier and 63 later bits, including outside Selected bytes, to follow the drawn shape and return to the original wave when possible. Initial level stays fixed. A one-step height difference is allowed to keep the curve close to your drawing. Undo restores the whole edit.');
+  fitHelp.id = 'dmcAutoFitHelp'; fitCheck.setAttribute('aria-describedby', fitHelp.id); section.append(fitHelp);
+  let fitPointer = false;
+  listen(fitRow, 'pointerdown', () => {fitPointer = true;});
+  listen(fitCheck, 'keydown', () => {fitPointer = false;});
+  listen(fitCheck, 'change', () => {
+    cancelDrawing(); autoFit = fitCheck.checked; lastTargets = null; lastFit = null;
+    drawingStatus.textContent = autoFit ? 'Auto fit height on · draw a target; nearby bits may change. Release to apply, Escape to cancel.' : drawingHint;
+    if (fitPointer) {doc.activeElement?.blur(); fitPointer = false;}
+    renderWave();
+  });
   const canvas = make('canvas'); canvas.id = 'dmcDacCanvas'; canvas.width = 900; canvas.height = 220;
   canvas.setAttribute('role', 'img'); section.append(canvas);
   canvas.title = 'Draw a target curve. DMC chooses up / down bits within its hardware limits. Release to apply; Escape cancels.';
@@ -73,7 +88,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     if (!data) return;
     const previous = dmc;
     try {
-      lastTargets = null;
+      lastTargets = null; lastFit = null;
       dmc = {...dmc,data}; decoded = decodeDpcm(data,dmc); render();
       drawingStatus.textContent = `${direction === 'undo' ? 'Undo' : 'Redo'} applied · current Rate, Loop and Initial level kept. Play a new key to hear it.`;
       Promise.resolve(onChange([...data])).catch(onError);
@@ -84,7 +99,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   }
   listen(section,'keydown',event => {
     if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) || section.closest('[hidden]')) return;
-    if (event.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+    if (event.target.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
     const key = event.key.toLowerCase();
     const direction = key === 'z' ? (event.shiftKey ? 'redo' : 'undo') : key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey ? 'redo' : null;
     if (!direction || !history.read()[direction === 'undo' ? 'canUndo' : 'canRedo']) return;
@@ -104,7 +119,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   }
   function edit(index, bit) {
     if (disposed || index < 0 || index >= dmc.data.length * 8) return;
-    cancelDrawing(); lastTargets = null; drawingStatus.textContent = drawingHint;
+    cancelDrawing(); lastTargets = null; lastFit = null; drawingStatus.textContent = drawingHint;
     const data = [...dmc.data], byte = index >> 3, mask = 1 << (index & 7);
     data[byte] = bit ? data[byte] | mask : data[byte] & ~mask;
     selectedBit = index;
@@ -194,7 +209,28 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       level:Math.max(0,Math.min(127,(canvas.height - 30 - py) / (canvas.height - 48) * 127)),padding};
   }
   function targetEntries(targets) {return [...targets].map(([bit,level]) => ({bit,level}));}
-  function previewStroke(event) {
+  function fitStatus(fit, applied = false) {
+    const cursor = fit.cursor;
+    return `Auto fit ${applied ? 'applied' : 'preview'} · target ${cursor.target.toFixed(1)} → DAC ${cursor.actual} (error ${cursor.error.toFixed(1)}) · ${fit.changedBefore} earlier / ${fit.changedAfter} later bits changed outside the drawn range. ${fit.rejoined ? 'Returned to the original wave.' : 'End differs from the original wave; later decoded levels may shift.'} ${applied ? 'Play a new key to hear it; Undo restores all changed bits.' : 'Current sound is kept until release. Escape cancels.'}`;
+  }
+  function cancelPreviewFrame() {
+    if (previewFrame) {win.cancelAnimationFrame(previewFrame); previewFrame = 0;}
+  }
+  function calculatePreview() {
+    cancelPreviewFrame();
+    if (!stroke) return;
+    if (!canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])') || section.closest('[hidden]')) {cancelDrawing(); return;}
+    try {
+      if (autoFit) {
+        stroke.fit = fitDmcTargets(stroke.baseData, targetEntries(stroke.targets), {level:dmc.level, priorityBit:stroke.priorityBit});
+        stroke.preview = stroke.fit.data;
+      } else stroke.preview = applyDmcTargets(stroke.baseData,targetEntries(stroke.targets),{level:dmc.level});
+      decoded = decodeDpcm(stroke.preview,dmc);
+      drawingStatus.textContent = autoFit ? fitStatus(stroke.fit) : 'Drawing preview · green is the target, blue is decoded DMC. Current sound is kept until release. Escape cancels.';
+      render();
+    } catch (error) {cancelDrawing(); onError(error);}
+  }
+  function previewStroke(event, immediate = false) {
     if (!stroke || stroke.id !== event.pointerId) return;
     const point = drawingPoint(event), from = stroke.previous, distance = Math.abs(point.bit - from.bit);
     for (let step = 0; step <= distance; step++) {
@@ -202,15 +238,15 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       if (bit < dmc.data.length * 8) stroke.targets.set(bit,from.level + (point.level - from.level) * ratio);
     }
     stroke.previous = point;
-    stroke.preview = applyDmcTargets(stroke.baseData,targetEntries(stroke.targets),{level:dmc.level});
-    decoded = decodeDpcm(stroke.preview,dmc);
+    stroke.priorityBit = Math.min(dmc.data.length * 8 - 1, point.bit);
     selectedBit = Math.max(page * PAGE_BYTES * 8,Math.min(page * PAGE_BYTES * 8 + PAGE_BYTES * 8 - 1,point.bit));
-    drawingStatus.textContent = 'Drawing preview · green is the target, blue is decoded DMC. Current sound is kept until release. Escape cancels.';
-    render();
+    if (immediate || !autoFit) calculatePreview();
+    else if (!previewFrame) previewFrame = win.requestAnimationFrame(() => {previewFrame = 0; calculatePreview();});
   }
   function cancelDrawing(event) {
     if (!stroke || event?.pointerId !== undefined && event.pointerId !== stroke.id) return;
-    const id = stroke.id; stroke = null; decoded = decodeDpcm(dmc.data,dmc);
+    cancelPreviewFrame();
+    const id = stroke.id; stroke = null; lastFit = null; decoded = decodeDpcm(dmc.data,dmc);
     if (canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
     drawingStatus.textContent = 'Drawing cancelled · previous DPCM data kept.';
     render();
@@ -222,7 +258,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     if (point.padding) {drawingStatus.textContent = 'Generated padding is read only. Draw over the original sample bytes.'; return;}
     event.preventDefault(); doc.activeElement?.blur();
     stroke = {id:event.pointerId,baseData:[...dmc.data],targets:new Map(),previous:point,preview:[...dmc.data]};
-    canvas.setPointerCapture(event.pointerId); previewStroke(event);
+    canvas.setPointerCapture(event.pointerId); previewStroke(event, true);
   });
   listen(canvas,'pointermove',event => {if (stroke?.id === event.pointerId) {
     if (!canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])')) {cancelDrawing();return;}
@@ -231,21 +267,21 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   listen(canvas,'pointerup',event => {
     if (!stroke || stroke.id !== event.pointerId) return;
     if (!canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])')) {cancelDrawing();return;}
-    previewStroke(event);
+    previewStroke(event, true);
     if (!stroke || stroke.id !== event.pointerId) return;
-    const data = stroke.preview, targets = targetEntries(stroke.targets), id = stroke.id, previous = dmc;
-    stroke = null; lastTargets = targets;
+    const data = stroke.preview, targets = targetEntries(stroke.targets), fit = stroke.fit, id = stroke.id, previous = dmc;
+    stroke = null; lastTargets = targets; lastFit = fit ?? null;
     if (canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
     try {
       const changed = !equalBytes(data,dmc.data);
       dmc = {...dmc,data}; decoded = decodeDpcm(data,dmc); render();
-      drawingStatus.textContent = changed ? 'Drawing applied · DMC approximates the green target with up / down bits. Play a new key to hear it.' : 'Drawing kept the same bits · the green target shows the requested levels.';
+      drawingStatus.textContent = fit ? fitStatus(fit, true) : changed ? 'Drawing applied · DMC approximates the green target with up / down bits. Play a new key to hear it.' : 'Drawing kept the same bits · the green target shows the requested levels.';
       if (changed) {
         const result = onChange([...data]);
         history.push(data); renderHistory();
         Promise.resolve(result).catch(onError);
       }
-    } catch (error) {dmc = previous; lastTargets = null; decoded = decodeDpcm(dmc.data,dmc); render(); onError(error);}
+    } catch (error) {dmc = previous; lastTargets = null; lastFit = null; decoded = decodeDpcm(dmc.data,dmc); render(); onError(error);}
   });
   listen(canvas,'pointercancel',cancelDrawing); listen(canvas,'lostpointercapture',cancelDrawing);
   listen(win,'blur',() => cancelDrawing());
@@ -312,10 +348,13 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   }
   function renderWave() {
     selectedMode.setAttribute('aria-pressed', String(!whole)); allMode.setAttribute('aria-pressed', String(whole));
+    const fit = stroke ? stroke.fit : lastFit;
     Object.assign(canvas.dataset, {startLevel:String(dmc.level),endLevel:String(decoded.levels.at(-1)),bitCount:String(decoded.hardwareBytes * 8),durationMs:String(decoded.durationMs),
       nextStartLevel:decoded.nextLevels ? String(decoded.nextLevels[0]) : '',nextEndLevel:decoded.nextLevels ? String(decoded.nextLevels.at(-1)) : '',
       visibleStartBit:String(whole ? 0 : page * PAGE_BYTES * 8),visibleBits:String(whole ? decoded.hardwareBytes * 8 : Math.min(PAGE_BYTES,decoded.hardwareBytes-page*PAGE_BYTES)*8),
-      drawing:String(Boolean(stroke)),targetPoints:String(stroke ? stroke.targets.size : lastTargets?.length ?? 0),editable:String(Boolean(dmc.data.length))});
+      drawing:String(Boolean(stroke)),targetPoints:String(stroke ? stroke.targets.size : lastTargets?.length ?? 0),editable:String(Boolean(dmc.data.length)),
+      autoFit:String(autoFit),fitActual:fit?.cursor ? String(fit.cursor.actual) : '',fitTarget:fit?.cursor ? String(fit.cursor.target) : '',fitError:fit?.cursor ? String(fit.cursor.error) : '',
+      fitBefore:fit ? String(fit.changedBefore) : '',fitAfter:fit ? String(fit.changedAfter) : ''});
     canvas.setAttribute('aria-label', `Draw DMC target levels, 0 to 127, ${whole ? 'all data' : 'selected bytes'}, initial ${dmc.level}, decoded end ${decoded.levels.at(-1)}${dmc.loop ? ', second loop continues from the previous end' : ''}`);
     summary.textContent = decoded.hardwareBytes
       ? `Whole pass: DAC ${dmc.level} → ${decoded.levels.at(-1)} · ${decoded.clipped} boundary holds${decoded.nextLevels ? ` · Next pass ${decoded.nextLevels[0]} → ${decoded.nextLevels.at(-1)} (${decoded.nextClipped} holds)` : ''}`
@@ -349,7 +388,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       if (disposed) return;
       const dataChanged = !equalBytes(dmc.data,value.data);
       if (!resetHistory && !dataChanged && value.level === dmc.level && value.rate === dmc.rate && value.loop === dmc.loop) return;
-      cancelDrawing(); lastTargets = null; drawingStatus.textContent = drawingHint;
+      cancelDrawing(); lastTargets = null; lastFit = null; drawingStatus.textContent = drawingHint;
       const nextDecoded = decodeDpcm(value.data,value);
       dmc = {data:[...value.data], level:value.level, rate:value.rate, loop:value.loop}; decoded = nextDecoded;
       if (dataChanged || resetHistory) history.reset(dmc.data);

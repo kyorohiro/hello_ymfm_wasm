@@ -331,6 +331,15 @@ async function runEngine(name, engine, origin) {
       const point=await dmcDrawPoint(fraction,level);await page.mouse.move(point.x,point.y,{steps});
     };
     const dmcDrawing = () => page.locator('#dmcDacCanvas').getAttribute('data-drawing');
+    const dmcFit = () => page.locator('#dmcDacCanvas').evaluate(node => ({...node.dataset}));
+    const setDmcAutoFit = async checked => {
+      await page.locator('#dmcAutoFit').setChecked(checked);
+      await page.waitForFunction(checked=>document.querySelector('#dmcDacCanvas').dataset.autoFit===String(checked),checked);
+    };
+    const assertDmcFitCleared = async () => {
+      const metadata=await dmcFit();
+      for(const key of ['fitActual','fitTarget','fitError'])assert(!metadata[key],`${key} is cleared with the drawing result`);
+    };
     const cancelDmcPointer = async () => {
       const pointerId=await page.evaluate(()=>window.audit.dmcDrawPointer);
       await page.dispatchEvent('#dmcDacCanvas','pointercancel',{pointerId,pointerType:'mouse',bubbles:true});
@@ -607,6 +616,16 @@ async function runEngine(name, engine, origin) {
     assert.match(await page.locator('#dmcBitsPage').textContent(),/33/);
     await dmcFirst();assert.equal(await page.isDisabled('#dmcBitsPrevious'),true);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+
+    check('DMC auto-fit is an optional passive view preference and pointer toggles preserve keyboard focus');
+    assert.equal(await page.isChecked('#dmcAutoFit'),false,'existing local-bit drawing remains the default');
+    assert.equal((await dmcFit()).autoFit,'false');
+    const passiveFitHistory=await dmcHistory();
+    await setDmcAutoFit(true);
+    assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input,select,textarea'))),false,'pointer auto-fit toggles return to performance keys');
+    assert.deepEqual(await dmcHistory(),passiveFitHistory,'a drawing-mode toggle is not a data edit');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0,'choosing auto-fit never creates an audio device');
+    await setDmcAutoFit(false);await assertDmcFitCleared();
 
     check('DMC mouse drawing previews target and bit changes passively, with Escape and padding protection');
     const beforePassiveHistory=await dmcHistory();
@@ -1285,6 +1304,206 @@ async function runEngine(name, engine, origin) {
     state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===7);
     assert.equal(state.preset.dmc.data.length,0);assert.deepEqual(state.preset.pulse,{...legacyPreset.pulse,lengthHalt:true,lengthIndex:1});
 
+    {
+      check('DMC auto-fit reaches a drawn height by adjusting nearby bits while Off preserves local-bit drawing');
+      const beforeAutoFitFixtures=structuredClone((await inspect()).preset);
+      const fitOriginal=Array(32).fill(0xaa),fitBit=128,fitFraction=(fitBit+1)/(33*8);
+      const fitFixture=structuredClone(beforeAutoFitFixtures);
+      fitFixture.name='Self-authored DMC auto-fit audit';fitFixture.source='dmc';
+      fitFixture.dmc={...fitFixture.dmc,data:fitOriginal,level:64,rate:0,loop:true};
+      const loadFitFixture=async (data=fitOriginal,level=64) => {
+        const fixture={...fitFixture,dmc:{...fitFixture.dmc,data:[...data],level}};
+        await page.setInputFiles('#presetFileInput',{name:'self-authored-auto-fit.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(fixture))});
+        await waitState(value=>JSON.stringify(value.preset)===JSON.stringify(fixture));
+        await page.waitForFunction(()=>document.querySelector('#dmcBitEditor').dataset.undoCount==='0');
+        await assertDmcHistory(0,0);await assertDmcFitCleared();
+        return fixture;
+      };
+      const dacAfter=(data,index,initial=64)=>{
+        let level=initial;
+        for(let bit=0;bit<=index;bit++) {
+          if(data[bit>>3]&(1<<(bit&7))){if(level<=125)level+=2;}else if(level>=2)level-=2;
+        }
+        return level;
+      };
+      const dacLevels=(data,initial=64)=>{
+        let level=initial;const levels=[level];
+        const hardwareBytes=data.length?Math.ceil((data.length-1)/16)*16+1:0;
+        for(let byte=0;byte<hardwareBytes;byte++)for(let bit=0;bit<8;bit++) {
+          if((data[byte]??0xaa)&(1<<bit)){if(level<=125)level+=2;}else if(level>=2)level-=2;
+          levels.push(level);
+        }
+        return levels;
+      };
+      const changedBits=(before,after)=>{
+        assert.equal(after.length,before.length,'auto-fit preserves the original data length');
+        const changed=[];
+        for(let bit=0;bit<before.length*8;bit++)if((before[bit>>3]^after[bit>>3])&(1<<(bit&7)))changed.push(bit);
+        return changed;
+      };
+      const settledFit=async () => {
+        await page.waitForFunction(()=>{const value=document.querySelector('#dmcDacCanvas').dataset;return value.fitActual!==undefined&&value.fitActual!==''&&Number.isFinite(Number(value.fitActual));});
+        const value=await dmcFit();
+        for(const key of ['fitActual','fitTarget','fitError'])assert(Number.isFinite(Number(value[key])),`auto-fit reports finite ${key}`);
+        assert(Number(value.fitError)>=0,'auto-fit reports a nonnegative absolute cursor error');
+        return value;
+      };
+      const flushDrawingFrames=()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      await loadFitFixture();await setDmcAutoFit(false);await page.click('#dmcWaveAll');
+      await startDmcDraw(fitFraction,110);await page.mouse.up();
+      let localFitState=await waitState(value=>JSON.stringify(value.preset.dmc.data)!==JSON.stringify(fitOriginal));
+      assert.equal(dacAfter(localFitState.preset.dmc.data,fitBit),66,'Off can only choose the next local up-step');
+      assert.deepEqual(changedBits(fitOriginal,localFitState.preset.dmc.data),[fitBit],'Off does not rewrite any neighbouring encoded bits');
+      await page.click('#dmcUndo');await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(fitOriginal));await assertDmcHistory(0,1);
+
+      await setDmcAutoFit(true);await assertDmcHistory(0,1);
+      await page.keyboard.down('a');localFitState=await waitState(value=>value.voices.length===1);await sound();
+      const fitHeld=structuredClone(localFitState),fitCommands=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length);
+      await startDmcDraw(fitFraction,110);
+      let fitMetadata=await settledFit();
+      assert.equal(await dmcDrawing(),'true');
+      assert(Number(fitMetadata.fitActual)>=108&&Number(fitMetadata.fitActual)<=112,'On approaches the requested height rather than staying at the local 66 limit');
+      assert(Math.abs(Number(fitMetadata.fitTarget)-110)<1,'the cursor height remains the target');
+      assert(Number(fitMetadata.fitError)<=2,'the nearest reachable cursor height is reported');
+      assert.deepEqual((await inspect()).preset,fitHeld.preset);assert.deepEqual((await inspect()).voices,fitHeld.voices,'an auto-fit preview leaves the held real voice untouched');
+      assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length),fitCommands,'preview changes send no engine commands');
+      await assertDmcHistory(0,1);
+      await page.mouse.up();localFitState=await waitState(value=>value.voices.length===0&&JSON.stringify(value.preset.dmc.data)!==JSON.stringify(fitOriginal));
+      const fittedData=[...localFitState.preset.dmc.data],fittedChanged=changedBits(fitOriginal,fittedData);
+      fitMetadata=await settledFit();
+      assert.equal(Number(fitMetadata.fitActual),dacAfter(fittedData,fitBit),'the reported cursor result matches independently decoded committed bytes');
+      assert(fittedChanged.some(bit=>bit<fitBit),'height fitting changes preceding bits');
+      assert(fittedChanged.every(bit=>bit>=fitBit-62&&bit<=fitBit+63),'auto-fit changes stay within the bounded surrounding patch');
+      if(fitMetadata.fitBefore!==undefined&&fitMetadata.fitBefore!=='')assert.equal(Number(fitMetadata.fitBefore),fittedChanged.filter(bit=>bit<fitBit).length);
+      if(fitMetadata.fitAfter!==undefined&&fitMetadata.fitAfter!=='')assert.equal(Number(fitMetadata.fitAfter),fittedChanged.filter(bit=>bit>fitBit).length);
+      assert.match(await page.locator('#dmcDrawingStatus').textContent(),/auto|fit/i);
+      await assertDmcHistory(1,0);await assertDmcPreview(localFitState.preset);await page.keyboard.up('a');
+      await page.locator('#dmcAutoFit').scrollIntoViewIfNeeded();await screenshot('dmc-auto-fit',{fullPage:false});
+      await downloadDpcm(fittedData);
+      await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+      assert.equal((await page.evaluate(()=>window.audit.sample())).finite,true,'the fitted bytes play as finite PCM through the real WASM core');
+      await page.keyboard.up('a');await stop();
+
+      check('DMC auto-fit Undo and Redo restore the complete leading and trailing patch with checkbox focus');
+      assert.equal(await dmcShortcut(page.locator('#dmcAutoFit'),'z'),true,'a focused non-text mode checkbox retains editor Undo');
+      await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(fitOriginal));await assertDmcHistory(0,1);await assertDmcFitCleared();
+      assert.equal(await page.isChecked('#dmcAutoFit'),true,'Undo does not change the drawing preference');
+      assert.equal(await dmcShortcut(page.locator('#dmcAutoFit'),'z',{metaKey:true,shiftKey:true}),true);
+      await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(fittedData));await assertDmcHistory(1,0);await assertDmcFitCleared();
+      const fitSaveEvent=page.waitForEvent('download');await page.click('#savePreset');
+      const fitPortable=JSON.parse(await fs.readFile(await (await fitSaveEvent).path(),'utf8'));
+      assert.deepEqual(fitPortable.dmc,{...fitFixture.dmc,data:fittedData},'portable presets store actual DPCM bytes and hardware parameters only');
+      assert.equal(fitPortable.version,7,'drawing preferences do not introduce a preset schema');
+
+      check('DMC nearby auto-fit clicks stay close to the waveform instead of detouring to a DAC boundary');
+      const nearbyFitClicks=async (initial,targets)=>{
+        await loadFitFixture(fitOriginal,initial);
+        const originalLevels=dacLevels(fitOriginal,initial),snapshots=[[...fitOriginal]];
+        let lowestTarget=initial,highestTarget=initial;
+        for(const [bit,target]of targets) {
+          const before=structuredClone((await inspect()).preset.dmc.data);
+          await startDmcDraw((bit+1)/(33*8),target);
+          const preview=await settledFit();
+          assert(Math.abs(Number(preview.fitTarget)-target)<1,'real canvas pointer coordinates preserve the nearby target height');
+          assert.deepEqual((await inspect()).preset.dmc.data,before,'a nearby preview keeps committed sample bytes');
+          await page.mouse.up();
+          const result=await waitState(value=>dacAfter(value.preset.dmc.data,bit,initial)===Number(preview.fitActual));
+          const metadata=await settledFit(),levels=dacLevels(result.preset.dmc.data,initial);
+          assert.equal(Number(metadata.fitActual),levels[bit+1],'the canvas result matches independently decoded real sample bytes');
+          assert(Number(metadata.fitError)<=2,'a nearby point stays within one legal DAC step of the cursor');
+          lowestTarget=Math.min(lowestTarget,target);highestTarget=Math.max(highestTarget,target);
+          const lower=Math.min(...originalLevels,lowestTarget)-4,upper=Math.max(...originalLevels,highestTarget)+4;
+          assert(levels.every(value=>value>=lower&&value<=upper),`nearby target ${target} at bit ${bit}, initial ${initial}: full DAC trace ${Math.min(...levels)}–${Math.max(...levels)} stays in ${lower}–${upper}, without a boundary detour`);
+          assert(levels.every(value=>(value&1)===(initial&1)),'nearby fitting keeps the configured DAC parity');
+          assert.equal(result.preset.dmc.level,initial,'nearby fitting does not move the initial DAC anchor');
+          if(changedBits(before,result.preset.dmc.data).length)snapshots.push([...result.preset.dmc.data]);
+          await assertDmcHistory(snapshots.length-1,0);await assertDmcPreview(result.preset);
+        }
+        const edits=snapshots.length-1;
+        for(let index=edits;index>0;index--) {
+          await page.click('#dmcUndo');
+          await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(snapshots[index-1]));
+          await assertDmcHistory(index-1,edits-index+1);await assertDmcFitCleared();
+        }
+        assert.deepEqual((await inspect()).preset.dmc.data,fitOriginal,'Undo restores all bytes changed by repeated nearby fits');
+      };
+      await nearbyFitClicks(64,[[128,64],[129,64],[128,64],[129,64],[128,62],[129,62],[128,80],[129,80],[128,96],[129,96]]);
+      await nearbyFitClicks(65,[[128,65],[129,65],[128,65],[129,65]]);
+
+      check('DMC auto-fit throttles a real drag but applies the latest pointer position on release');
+      await loadFitFixture();assert.equal(await page.isChecked('#dmcAutoFit'),true,'preset loads keep the session drawing preference');
+      await startDmcDraw(fitFraction,110);await moveDmcDraw((fitBit+3)/(33*8),104,2);await settledFit();
+      assert.deepEqual((await inspect()).preset,fitFixture,'real pointer moves remain a local draft');await assertDmcHistory(0,0);
+      const finalFitBit=fitBit+4,finalFitPoint=await dmcDrawPoint((finalFitBit+1)/(33*8),90);
+      await page.locator('#dmcDacCanvas').evaluate((node,point)=>{
+        const pointerId=window.audit.dmcDrawPointer;
+        // Move and release in one task, before a queued animation frame can
+        // run. The release must fit this final point rather than stale work.
+        for(const type of ['pointermove','pointerup'])node.dispatchEvent(new PointerEvent(type,{pointerId,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:point.x,clientY:point.y,bubbles:true,cancelable:true}));
+      },finalFitPoint);
+      await page.mouse.up();localFitState=await waitState(value=>JSON.stringify(value.preset.dmc.data)!==JSON.stringify(fitOriginal));
+      fitMetadata=await settledFit();
+      assert(Math.abs(Number(fitMetadata.fitTarget)-90)<1,'release uses the final cursor height');
+      assert(Number(fitMetadata.fitError)<=2);assert.equal(Number(fitMetadata.fitActual),dacAfter(localFitState.preset.dmc.data,finalFitBit));
+      assert(changedBits(fitOriginal,localFitState.preset.dmc.data).every(bit=>bit>=fitBit-62&&bit<=finalFitBit+63));
+      await assertDmcHistory(1,0);await flushDrawingFrames();await assertDmcHistory(1,0);
+
+      check('DMC auto-fit cancels queued work on Escape, mode change and source-panel hiding');
+      await loadFitFixture();await startDmcDraw(fitFraction,110);
+      const cancelledFitPoint=await dmcDrawPoint((fitBit+3)/(33*8),10);
+      await page.locator('#dmcDacCanvas').evaluate((node,point)=>{
+        node.dispatchEvent(new PointerEvent('pointermove',{pointerId:window.audit.dmcDrawPointer,pointerType:'mouse',buttons:1,clientX:point.x,clientY:point.y,bubbles:true}));
+        window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+      },cancelledFitPoint);
+      await page.mouse.up();await flushDrawingFrames();assert.notEqual(await dmcDrawing(),'true');await assertDmcFitCleared();
+      assert.deepEqual((await inspect()).preset,fitFixture);await assertDmcHistory(0,0);
+      await startDmcDraw(fitFraction,110);
+      await page.locator('#dmcDacCanvas').evaluate((node,point)=>{
+        node.dispatchEvent(new PointerEvent('pointermove',{pointerId:window.audit.dmcDrawPointer,pointerType:'mouse',buttons:1,clientX:point.x,clientY:point.y,bubbles:true}));
+        const checkbox=document.querySelector('#dmcAutoFit');checkbox.checked=false;checkbox.dispatchEvent(new Event('change',{bubbles:true}));
+      },cancelledFitPoint);
+      await page.mouse.up();await flushDrawingFrames();assert.notEqual(await dmcDrawing(),'true');await assertDmcFitCleared();
+      assert.equal((await dmcFit()).autoFit,'false');assert.deepEqual((await inspect()).preset,fitFixture);await assertDmcHistory(0,0);
+      await setDmcAutoFit(true);await startDmcDraw(fitFraction,110);await moveDmcDraw((fitBit+3)/(33*8),10);
+      await page.locator('#sourcePanel').evaluate(node=>{node.open=false;});
+      await page.waitForFunction(()=>document.querySelector('#dmcDacCanvas').dataset.drawing!=='true');
+      await page.mouse.up();await flushDrawingFrames();await assertDmcFitCleared();
+      assert.deepEqual((await inspect()).preset,fitFixture);await assertDmcHistory(0,0);await setPanel('sourcePanel',true);
+
+      check('DMC selected-page auto-fit may use preceding bytes outside the view and keeps generated padding read only');
+      await page.click('#dmcWaveSelected');await dmcFirst();await page.click('#dmcBitsNext');
+      assert.equal(Number((await dmcFit()).visibleStartBit),32);
+      await startDmcDraw(1/32,110);await page.mouse.up();
+      localFitState=await waitState(value=>JSON.stringify(value.preset.dmc.data)!==JSON.stringify(fitOriginal));
+      fitMetadata=await settledFit();
+      const selectedFitChanges=changedBits(fitOriginal,localFitState.preset.dmc.data);
+      assert(selectedFitChanges.some(bit=>bit<32),'the first drawn point on page two can use bytes before the visible window');
+      assert(selectedFitChanges.every(bit=>bit<=32+63),'selected-page fitting remains bounded around the absolute target bit');
+      assert.equal(Number(fitMetadata.fitActual),dacAfter(localFitState.preset.dmc.data,32));
+      assert(Number(fitMetadata.fitActual)>=108&&Number(fitMetadata.fitActual)<=112);
+      if(fitMetadata.fitBefore!==undefined&&fitMetadata.fitBefore!=='')assert(Number(fitMetadata.fitBefore)>0,'metadata describes preceding bit edits');
+      await page.click('#dmcUndo');await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(fitOriginal));await assertDmcFitCleared();
+      const paddingFitHistory=await dmcHistory();await page.click('#dmcBitsLast');
+      assert.equal(await dmcBit(32,0).isDisabled(),true);await startDmcDraw(.4,110);await page.mouse.up();
+      assert.notEqual(await dmcDrawing(),'true');await assertDmcFitCleared();
+      assert.deepEqual((await inspect()).preset,fitFixture);assert.deepEqual(await dmcHistory(),paddingFitHistory,'auto-fit cannot make a history entry from generated padding');
+      await assertDmcPreview(fitFixture);
+
+      check('DMC auto-fit previews a maximum-length sample with finite bounded metadata and no upload');
+      const largestFitFixture=await loadFitFixture(Array(4081).fill(0xaa));await page.click('#dmcWaveAll');
+      await startDmcDraw(.5,110);fitMetadata=await settledFit();
+      assert.equal(await dmcDrawing(),'true');assert.equal(Number(fitMetadata.bitCount),4081*8);
+      assert(Number(fitMetadata.targetPoints)>0&&Number(fitMetadata.targetPoints)<=4081*8);
+      assert((await page.locator('#dmcBitEditor button[data-dmc-byte][data-dmc-bit]').count())<=32,'a maximum-length auto-fit draft keeps the bit grid bounded');
+      assert.deepEqual((await inspect()).preset,largestFitFixture);await assertDmcHistory(0,0);
+      await page.keyboard.press('Escape');await page.mouse.up();await flushDrawingFrames();await assertDmcFitCleared();
+      assert.deepEqual((await inspect()).preset,largestFitFixture);
+      await setDmcAutoFit(false);await page.click('#dmcWaveSelected');await dmcFirst();
+      await page.setInputFiles('#presetFileInput',{name:'restore-before-auto-fit.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeAutoFitFixtures))});
+      await waitState(value=>JSON.stringify(value.preset)===JSON.stringify(beforeAutoFitFixtures));
+      await assertDmcHistory(0,0);assert.equal(await page.isChecked('#dmcAutoFit'),false);
+    }
+
     check('FDS Wave drawing applies on release and stores exactly 64 six-bit samples');
     await choose('#source','fds');state=await waitState(value=>value.preset.source==='fds');assert.equal(state.capacity,1);
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),false);
@@ -1857,6 +2076,8 @@ async function runEngine(name, engine, origin) {
       dmcBitEditorPassive:true,dmcBitOrder:true,dmcBitKeyboardEditing:true,dmcBitModifierShortcuts:true,dmcPaddingReadOnly:true,dmcDacPreview:true,dmcLoopPreviewCarry:true,dmcDacOddLimits:true,dmcRatePreviewTime:true,
       dmcBitWindowBounded:true,dmcBitLastByte:true,dmcBitEditStopsNotes:true,dmcEditedPresetRoundTrip:true,dmcVgmBitEditor:true,dmcBitEditorMobile:true,
       dmcDrawPassive:true,dmcDrawPreview:true,dmcDrawReleaseCommit:true,dmcDrawPaddingProtected:true,dmcDrawEscapeCancel:true,dmcDrawPointerCancel:true,dmcDrawPageCancel:true,dmcDrawResizeCancel:true,dmcDrawParameterCancel:true,dmcDrawSourceCancel:true,dmcDrawMaximumLength:true,dmcVgmDrawEditor:true,
+      dmcAutoFitDefaultOff:true,dmcAutoFitPassive:true,dmcAutoFitKeyboardFocus:true,dmcAutoFitSessionPreference:true,dmcAutoFitHeight:true,dmcAutoFitBoundedPatch:true,dmcAutoFitPreviewKeepsAudio:true,dmcAutoFitRealPlayback:true,dmcAutoFitUndoWholePatch:true,dmcAutoFitCheckboxUndo:true,dmcAutoFitReleaseFlushesPreview:true,dmcAutoFitEscapeCancelsQueuedWork:true,dmcAutoFitToggleCancelsQueuedWork:true,dmcAutoFitHiddenSourceCancelsQueuedWork:true,dmcAutoFitSelectedPagePrefix:true,dmcAutoFitPaddingReadOnly:true,dmcAutoFitMaximumLength:true,dmcAutoFitPresetSchemaUnchanged:true,dmcAutoFitRawExport:true,
+      dmcAutoFitNearbyNoBoundarySpikes:true,dmcAutoFitOddNearbyNoBoundarySpikes:true,dmcAutoFitNearbyUndo:true,
       dmcUndoRedoPassive:true,dmcUndoBit:true,dmcUndoStroke:true,dmcUndoBranch:true,dmcUndoNoopKeepsRedo:true,dmcHistoryPreviewExcluded:true,dmcHistoryCancelExcluded:true,
       dmcHistoryShortcutsScoped:true,dmcHistoryUnavailableShortcutsPass:true,dmcHistoryPreservesControls:true,dmcHistoryPreservesSourceToggle:true,dmcUndoStopsHeldAudio:true,dmcRedoRealPlayback:true,dmcUndoClearsDraftAndTarget:true,
       dmcHistoryIdenticalFileReset:true,dmcHistoryIdenticalDemoReset:true,dmcHistoryIdenticalPresetReset:true,dmcHistoryIdenticalVgmReset:true,dmcHistoryResetPreset:true,dmcSaveAfterUndo:true,

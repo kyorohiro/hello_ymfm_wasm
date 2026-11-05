@@ -248,9 +248,24 @@ decoded waveform immediately. The readout links that bit to its DAC step.
 You can also **draw on the graph with the mouse or a touch pointer**, in either
 Selected bytes or All data view. The green line is your target DAC level after
 each bit; blue shows what the DMC can actually produce. A software drawing aid
-chooses the nearer legal up / down step, keeping the original bit on a tie.
+chooses the nearer legal up / down step, keeping the original bit on a tie
+when **Auto fit height** is Off (the default).
 The configured Initial level anchors the start. A steep target or a level of
 the wrong parity cannot be matched exactly; the two lines make that visible.
+
+Check **Auto fit height · adjust nearby bits** to draw by height. Clicking in
+the middle can then reach a distant level by rewriting earlier up / down bits.
+Dragging fits the requested curve. It allows up to one DAC step (±2) of cursor
+error to preserve the shape: insisting on an exact level can otherwise force
+a long trip to 0 or 126/127 just to change the step-count phase.
+The software may change up to **62 bits before** and **63 bits after** the
+drawn range, including bytes outside the Selected bytes page. It also tries to
+return to the original waveform after that range, allowing the same one-step
+difference at the end to avoid an unwanted detour. Sample edges and steep
+curves can prevent an exact match; the status reports the target, actual DAC,
+error, nearby bit changes and whether the original wave was rejoined.
+The initial DAC and hardware timing remain fixed. This is a software editing
+aid; every resulting bit still uses the DMC's hardware steps.
 
 During a stroke the bit grid and decoded wave update as a preview. The current
 instrument and sound are kept until release. **Release to apply** the drawn
@@ -259,10 +274,13 @@ leaving the app, resizing or changing the source, sample, controls, page or
 view discards the unfinished stroke. Green remains as the last drawn target
 after applying; it is temporary UI state and is not saved in the preset.
 
-Drawing changes only targeted bits in the original sample, preserving its
-length and read-only generated padding. Later decoded levels can shift even
-when later bits are unchanged, because DMC carries its previous DAC value
-forward. Drawings do not import or automatically convert PCM audio files.
+With Auto fit Off, drawing changes only targeted bits in the original sample.
+Both modes preserve the original length and read-only generated padding.
+Later decoded levels can shift even when later bits are unchanged, because
+DMC carries its previous DAC value forward; a successful rejoin prevents this
+after the fitted window. Drawings do not import or automatically convert PCM
+audio files. Changing the checkbox cancels an unfinished stroke and changes no
+committed bytes. The checkbox is a session preference, outside saved presets.
 
 **Undo / Redo** restores one changed bit edit or one completed stroke at a time.
 Unchanged edits and cancelled previews do not add a step. A new edit after Undo

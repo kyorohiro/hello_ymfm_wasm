@@ -11,6 +11,50 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## DMC Auto fitのクリック付近が0／127へ振り切れる（2026-11-05 修正完了・追加分は未公開）
+
+ユーザー報告：Auto fitでクリックすると隣の復元波形が0または127へ動き、描いた形にならない。前回の未commit変更は保持して修正した。
+
+- [x] 単独click・同じ場所の再click・連続描画・偶奇・実デモを使い、境界への不要な往復とpointer座標の誤りを切り分ける。
+- [x] 指定高さのためだけに0／127へ寄り道しない近似へ直し、前後を含む形を保つ。±2／境界保持／padding／長さ・Undoは維持する。
+- [x] 原因を再現する回帰検証と実WASM／ブラウザー・独立ZIPを確認し、ガイド・再開記録を更新する。
+
+原因：pointer座標や描画の誤りではなく、初回fitの最適化順だった。cursorの完全一致を最優先にしたため、step数の偶奇を変える境界holdを使い、目標付近の平坦な波形から0／126／127まで往復した。Flat 0xAA、Initial64、bit128に64を指定するとmax126、bit129に62を指定するとmin0へ動いた。Initial65・bit128・target65はmax127。Demoのbit62・target64でも0と126の両方へ達した。終端を完全一致で戻す優先順位だけでも同じ問題が出る特殊例を確認した。
+
+修正：cursor／復帰点に1 DAC step（±2）の許容を入れ、元の開始DAC→指定target列→元の終端DACへつないだ区分線形の参照波形を編集範囲全体で評価する。最適化順は①cursor誤差の±2超過分、②終端誤差の±2超過分、③参照波形全体の二乗誤差、④終端の厳密な誤差、⑤変更bit数。境界への寄り道をして1点だけ完全一致する形を避ける。targetが終端にある場合はユーザーのtargetを参照波形で上書きしない。Initial／Rate／Loop／LSB-first／±2／境界保持／padding／元sample長は維持し、modeやUndo経路も保つ。
+
+上記のFlat例はInitial64で62〜64、Initial65で63〜65へ収まり、Demoのbit62・target64は60〜66へ収まった。元の境界holdを消すと終端の位相が変わる特殊例では、元終端66へ厳密復帰させるとmax126だったが、修正版は62〜68に収めて終端68とし`rejoined=false`を返す。UIも「元波形へ戻れなかった」と断定せず、終端差があり後続の復元値がずれうると表示する。元のbitsは範囲外で保持される。通常のFlat／Demoの同じ高さ・小数pointer targetの再clickは安定したが、元の境界holdを含む特殊例では2回目に内部形状が再調整される場合がある（継続的なdriftや新たなspikeは検出せず）。
+
+検証：`npm run test:2a03-synth`は**213件成功、失敗0**（既存190＋fit単体14＋実WASM9）。短い全256経路×48条件の独立oracleを新しい目的関数で照合。40条件のclick位相・既存高さのno-op・target62／64／80／96と偶奇、fractional targetの反復、Demoの不要な山谷、終端復帰の特殊例を追加した。44.1／48 kHzの実WASM DACと生成paddingを含めて一致。最大4081 bytes／32,648 bitsはtrace約2.09 MB、別計測でwarm約22 ms、coldを含む最大約47 ms（このMacの参考値）。
+
+ソース版・独立ZIPとも**Chromium／WebKitで成功**。nearby clickは実canvasのpointer位置から操作し、復号した全波形の上下限・初期DAC・偶奇・preview中の保持音・commit・Undo全復元を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして実PCMを測定し、Auto fitの画面も確認済み。人の実聴は未確認。記録：[ソース版](2a03_synth_dmc_fit_shape_browser_01.json)、[ZIP版](2a03_synth_dmc_fit_shape_zip_browser_01.json)。配布候補は`release/tetorica_2a03_synth_dmc-fit-shape-20261105_itch.zip`。35 files／3 bundles／**1,213,531 bytes**、SHA-256 **234018d6e532158cc400d9be455b0b4a2dc7dea0caaf678de3efcd3b2b34c2f4**。52 browser original inputsは作業treeと一致。native 11 inputs／SDK 0.1.7／共有core・WASMは変更なし。
+
+再開・確認：ページを再読み込み→DMC→Demo sample→Auto fit height On→All dataで中央付近へclick／drag→離して反映→新しい鍵盤で試奏。0／127へ飛んでいた既存の編集済みbytesは自動復元しないため、元の音へ戻す場合はUndoかDemo／元presetの再読込を使う。ガイドと英語AI READMEも新しい補間方針へ更新済み。commit／push／公開は未実行。前回の`dmc-fit-20261105` ZIPには修正が含まれないため配布候補は今回の`dmc-fit-shape-20261105`を使う。
+
+## DMCの目標位置へ合わせる描画モード（2026-11-05 完了・追加分は未公開）
+
+ユーザー要望：bit編集や現行の目標線表示で動作は分かるが、イメージどおりの波形を作りにくい。チェックで切り替え、クリック／ドラッグしたDACの高さへ届くように0／1を自動調整するUIを追加したい。
+
+- [x] 現行の「触れたbitだけ±2へ寄せる」方式と、新しい目標到達の補助方式を区別する。変更範囲・前方のbit調整・実機の到達不能条件を明確にする。
+- [x] LSB-first／±2／DAC境界・偶奇・sample長・paddingを保ち、目標地点へできるだけ近づくbit列を求める。PCM音声ファイルからの変換は追加しない。
+- [x] 同じcanvasにチェック式のモード切り替えを追加し、drag中のdraft／実波形・確定時の反映・取消・Undo／Redo・保存／VGM抽出とつなぐ。
+- [x] 最大長の操作性能、到達可能／不能な目標、click・逆方向drag・境界・取消、実WASMとブラウザー／独立ZIPを確認する。
+- [x] ガイドと検証記録・再開手順を更新する。
+
+`Auto fit height · adjust nearby bits` checkboxを既存のDMC canvas上へ追加した。初期Offは従来の局所bit編集、Onはマウスで指定した高さへ届くように周辺のbitも変更するソフト側の描画補助。音声ファイルのPCM変換は行わない。緑は目標、青は復元結果のまま、statusにcursorの目標／実DAC／誤差、描画範囲の前後で変えたbit数、元波形へ復帰できたかを表示する。
+
+`dmc_fit.js`は実機の64状態を使う動的計画法。変更できる範囲は最初のtargetの最大62 bits前から最後のtargetの最大63 bits後まで（元sample内に制限）。cursorの誤差→全targetの二乗誤差→終端で元のDACへ戻る誤差→bit変更数の順に最適化する。Selected bytes画面の外側も調整しうるためUIで説明した。範囲外のbitsは保持し、終端で元DACへ戻った場合はその先の復元波形も保持する。Initial level／Rate／Loop／sample長／生成paddingは変更しない。時間方向の到達不能も残し、例えばInitial64からbit31後のDAC110は32 stepsでは到達できず108または112になる。bit30後なら110へ到達する。
+
+dragのtargetは全pointer eventから集め、計算とpreviewはanimation frameへまとめる。pointerupでは最後の位置を同期計算して一度だけ確定し、保持音停止・RAM uploadは既存経路へ渡す。Escape／capture解除／非表示／source・sample・parameter・page・view変更／resize／mode切替では予約処理も取消す。previewは保持音・engine命令を変えない。前後を含めて1 stroke＝1 Undoで戻せる。checkboxにkeyboard focusがある場合もUndoが効き、pointer操作後は演奏keyboardへ戻る。モードはsession内のUI設定でpreset schema v7を変更しない。
+
+検証：`npm run test:2a03-synth`は**207件成功、失敗0**。既存190件＋fit単体12件＋実WASM5件。短い全256経路×48条件の最適値照合、クリック到達、偶奇・時間制約・境界保持、逆向き／重複target、前後の復帰、復帰不能、長さ・保存・入力検証を確認。44.1／48 kHzの実WASMで生成paddingを含む全DAC stepが一致した。最大4081-byte／32,648-bit範囲はtrace約2.09 MB、ローカルの独立計測で全範囲のfitが約22〜23 ms、最大約28 ms。これはこのMacの参考値で、UIの実時間保証ではない。
+
+ソース版・独立ZIPとも**Chromium／WebKitで成功**。初期Off・modeの無音操作・focus、Offでは66に留まるtargetをOnで約110へ近づけること、前後の変更範囲、音声を保つpreview、実WASMでの再生、全patchのUndo／Redo、同一taskの最終move＋up、Escape／mode切替／Source非表示での予約取消、表示page外の前方bits、padding保護、最大長、元bytesのDPCM／preset保存を確認。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理出力はmuteで、実聴は未確認。記録：[ソース版](2a03_synth_dmc_fit_browser_01.json)、[ZIP版](2a03_synth_dmc_fit_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_dmc-fit-20261105_itch.zip`。35 files／3 bundles／**1,212,601 bytes**、SHA-256 **26c24bf6dcc42d89658bc7155ade776ec6d200c0865f5c866a9a17efcbe522d8**。browser receiptの52 original inputsは作業treeと一致し、新helperも収録済み。共有core／WASM／native SDK 0.1.7は変更せず、native source 11 inputsとライセンスを同梱した。独立ZIPのブラウザー検証も成功し、Auto fit Onの画面とモバイル配置を確認済み。
+
+再開・確認：ページを再読込→Source→DMC→Demo sample（またはVGMのDMC）→`Auto fit height`をOn→`All data`で途中の高い位置をクリック／曲線をdrag→離して確定→新しい鍵盤で試奏。Undoで補助bitを含めて戻る。先頭すぐの急な変化や±2の限界は完全一致しないので青い線と誤差表示で確認する。ガイドと英語AI READMEも更新。commit／push／公開は未実行。
+
 ## FDS Depth Envelopeの方向差が分かりにくい（2026-11-05 調査・比較UI完了／追加分は未公開）
 
 ユーザー報告：Hardware depth envelopeのIncrease／Decreaseが同じに聞こえ、効いているか分からない。直前のpanel整理の未commit変更は保持して調査する。
