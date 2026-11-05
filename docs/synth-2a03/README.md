@@ -22,9 +22,9 @@ One NTSC NES APU with FDS supplies these voices:
 
 | Source | Keyboard voices | Controls |
 | --- | --- | --- |
-| Pulse | Two, in round robin | Four Duty settings, fixed volume, hardware Envelope and Sweep |
+| Pulse | Two, in round robin | Four Duty settings, fixed volume, hardware Envelope, Length counter and Sweep |
 | Triangle | One | Fixed hardware waveform, held gate or Linear / Length counters |
-| Noise | One | Fixed volume or hardware Envelope, period code and long / short LFSR sequence |
+| Noise | One | Fixed volume or hardware Envelope, Length counter, period code and long / short LFSR sequence |
 | DMC | One | Pre-encoded DPCM sample, 16 Rate settings, Loop and Initial level |
 | FDS | One | 64 six-bit samples, hardware volume / modulation-depth Envelopes, shared Envelope clock, master scale, frequency modulation |
 
@@ -61,6 +61,25 @@ trigger. These are the NES APU's own envelope units, controlled through its
 registers. [NESdev's Envelope reference](https://www.nesdev.org/wiki/APU_Envelope)
 describes the shared Pulse / Noise hardware. Sweep follows the Pulse hardware
 timer and can mute a voice at its limits.
+
+Pulse and Noise also have **Hardware gate · Length counter** controls:
+
+- With Envelope off, **Hold key** keeps the sound running until release.
+  **Hardware counter** stops it when the Length counter reaches zero.
+- **Length table index 0–31** selects one of the chip's 32 durations. The
+  readout shows the tick count and approximate NTSC time; the index order is
+  not duration order. Index 0 is a valid 10-tick entry, about 83 ms.
+- With Envelope on, **Loop Envelope controls the gate**. Loop on also halts
+  Length; Loop off lets Length count down, so either Length or the decaying
+  Envelope can end the sound first. The gate buttons show this shared bit
+  and are disabled. The fixed-volume gate choice is remembered for later.
+
+These are hardware counters, clocked at about 120 Hz, rather than a software
+timer or gain envelope. Exact timing depends on frame phase. Gate edits apply
+on the next note; live Duty, fixed volume and Noise clock edits preserve the
+held note's active gate. Counter expiry retains held-key ownership until
+release or a new attack. Pulse Pitch preserves the active Length index, though
+writing the timer high byte reloads it. See the [Length Counter reference](https://www.nesdev.org/wiki/APU_Length_Counter).
 
 Triangle uses its fixed waveform and has no separate hardware volume setting.
 Its **Hardware gate · Linear + Length** controls choose how long it cycles:
@@ -292,8 +311,9 @@ JavaScript. **Close library** keeps the current instrument. Failed or cancelled
 imports keep both the current sound and the previous library; a superseded
 asynchronous read cannot replace a newer library.
 
-Pulse and Noise keep the recorded Envelope mode, divider Period and Loop flag.
-Each keyboard note starts a fresh hardware envelope using those settings.
+Pulse and Noise keep the recorded Envelope mode, divider Period, shared
+Loop / Length halt bit and Length table index, including index 0.
+Each keyboard note restarts the hardware Envelope and Length with those settings.
 Triangle keeps its recorded control flag, Linear reload and Length index.
 Counter-setting differences remain distinct; pitch-only differences share a
 voice. Keyboard audition restarts those counters; the original elapsed values
@@ -343,13 +363,15 @@ passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
 **Save preset** downloads `2a03-voice.json`. The validated
-`tetorica-nes-fds-voice` version-6 format includes all five sources' settings,
-Triangle gate / counters, Noise / FDS volume / FDS Depth Envelopes, the original
-DPCM bytes, FDS wave and modulation table. Version-1 through version-5 presets
+`tetorica-nes-fds-voice` version-7 format includes all five sources' settings,
+Pulse / Triangle / Noise gates and counters, Noise / FDS volume / FDS Depth Envelopes, the original
+DPCM bytes, FDS wave and modulation table. Version-1 through version-6 presets
 still load and preserve their supported settings. Missing Triangle controls use
-Hold key / Linear reload 127 / Length index 1; missing Envelope controls start off. Version-4's FDS
+Hold key / Linear reload 127 / Length index 1. Missing Pulse / Noise gate controls
+use fixed-volume Hold key / Length index 1, retaining existing Envelope Loop
+behavior; missing Envelope controls start off. Version-4's FDS
 clock settings move to the shared clock without changing their values.
-Saving creates version 6, which older Synth releases do
+Saving creates version 7, which older Synth releases do
 not read. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
 instrument. Invalid / oversized files keep the current sound. Loading a valid

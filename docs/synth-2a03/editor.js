@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm, TRIANGLE_LENGTHS} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm, LENGTH_TABLE} from './preset.js';
 import {createDmcBitEditor} from './dmc_editor.js';
 
 /** A passive editor. Editing never creates an audio device. */
@@ -171,6 +171,20 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   }
   function group(parent) { const element = make('div', 'nes-fields'); parent.append(element); return element; }
   function help(parent, text) { const element = make('p', 'nes-help', text); parent.append(element); return element; }
+  function lengthGate(parent, source) {
+    const controls = group(section(parent, 'Hardware gate · Length counter'));
+    const halt = value => value[source].envelope.enabled ? value[source].envelope.loop : value[source].lengthHalt;
+    const mode = select(controls, 'Gate mode · Envelope Loop controls this when enabled', `${source}LengthHalt`, [[true,'Hold key'],[false,'Hardware counter']], halt, (value, hold) => {value[source].lengthHalt = hold === 'true';});
+    const index = number(controls, 'Length table index · 0–31', `${source}LengthIndex`, 0, 31, value => value[source].lengthIndex, (value, lengthIndex) => {value[source].lengthIndex = lengthIndex;});
+    const readout = make('p', 'nes-wave-readout'); readout.id = `${source}LengthReadout`; readout.setAttribute('aria-live','polite'); parent.append(readout);
+    help(parent, 'The NES APU stops this channel when its Length counter reaches 0. Envelope Loop and Length halt share one hardware bit: Loop on holds the counter; Loop off lets it run and either the decay or Length can end the sound.');
+    help(parent, 'Gate settings apply on the next note. The fixed-volume Gate mode is remembered while Envelope is on. Times use about 120 NTSC ticks per second; table order is not duration order. Release or press a new key to retrigger.');
+    return () => {
+      const voice = preset[source], held = halt(preset), ticks = LENGTH_TABLE[voice.lengthIndex];
+      mode.setDisabled(voice.envelope.enabled); index.setDisabled(held);
+      readout.textContent = `${voice.envelope.enabled ? `Envelope Loop ${voice.envelope.loop ? 'on' : 'off'} · ` : ''}${held ? 'Hold key · Length counter halted.' : `Length index ${voice.lengthIndex}: ${ticks} ticks ≈ ${(ticks / 120 * 1000).toFixed(1)} ms${voice.envelope.enabled ? ' · Envelope may finish earlier.' : '.'}`}`;
+    };
+  }
   const body = make('div', 'nes-editor'); root.append(body);
   const sourceBar = make('div', 'nes-source-bar'); body.append(sourceBar);
   select(sourceBar, 'Source', 'source', [['pulse','Pulse'],['triangle','Triangle'],['noise','Noise'],['dmc','DMC'],['fds','FDS']], value => value.source, (value, source) => {value.source = source;});
@@ -187,6 +201,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const envelopePeriod = number(envelopeFields, 'Period · 0–15', 'pulseEnvelopePeriod', 0, 15, value => value.pulse.envelope.period, (value, period) => {value.pulse.envelope.period = period;});
   const envelopeLoop = checkbox(envelopeFields, 'Loop Envelope', 'pulseEnvelopeLoop', value => value.pulse.envelope.loop, (value, loop) => {value.pulse.envelope.loop = loop;});
   help(pulse, 'Envelope starts at the hardware maximum and decays; looping repeats it. Period 0 is the fastest setting. Fixed volume applies when Envelope is off. Envelope changes take effect on the next note.');
+  const renderPulseLength = lengthGate(pulse, 'pulse');
   const sweepFields = group(section(pulse, 'Hardware pitch sweep · both Pulse channels'));
   checkbox(sweepFields, 'Enable Sweep', 'sweepEnabled', value => value.pulse.sweep.enabled, (value, enabled) => {value.pulse.sweep.enabled = enabled;});
   const sweepControls = [
@@ -218,6 +233,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const noiseEnvelopePeriod = number(noiseEnvelopeFields, 'Period · 0–15', 'noiseEnvelopePeriod', 0, 15, value => value.noise.envelope.period, (value, period) => {value.noise.envelope.period = period;});
   const noiseEnvelopeLoop = checkbox(noiseEnvelopeFields, 'Loop Envelope', 'noiseEnvelopeLoop', value => value.noise.envelope.loop, (value, loop) => {value.noise.envelope.loop = loop;});
   help(noise, 'The NES APU generates this envelope: volume starts at 15 and decays to 0; Loop repeats the decay. Period 0 is fastest. Fixed volume applies when Envelope is off. Envelope changes apply on the next note.');
+  const renderNoiseLength = lengthGate(noise, 'noise');
   help(noise, 'One Noise channel. Every key triggers the same noise; note pitch and the Pitch wheels do not tune it. Period and LFSR mode change its clock and character while it sounds.');
 
   const dmc = card('DMC · 1-bit DPCM sample'), dmcActions = make('div', 'nes-wave-actions'); dmc.append(dmcActions);
@@ -408,11 +424,12 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
     triangleLengthIndex.setDisabled(preset.triangle.control);
-    const triangleLinearMs = preset.triangle.linearReload / 240 * 1000, triangleLengthTicks = TRIANGLE_LENGTHS[preset.triangle.lengthIndex], triangleLengthMs = triangleLengthTicks / 120 * 1000;
+    const triangleLinearMs = preset.triangle.linearReload / 240 * 1000, triangleLengthTicks = LENGTH_TABLE[preset.triangle.lengthIndex], triangleLengthMs = triangleLengthTicks / 120 * 1000;
     triangleReadout.textContent = preset.triangle.linearReload === 0 ? 'Linear reload 0 · the waveform stays stopped.'
       : preset.triangle.control ? `Hold key · Linear reload ${preset.triangle.linearReload} repeats · Length counter halted.`
       : `Linear ${preset.triangle.linearReload} ticks ≈ ${triangleLinearMs.toFixed(1)} ms · Length index ${preset.triangle.lengthIndex}: ${triangleLengthTicks} ticks ≈ ${triangleLengthMs.toFixed(1)} ms · first counter ends in about ${Math.min(triangleLinearMs,triangleLengthMs).toFixed(1)} ms.`;
     noiseFixedVolume.setDisabled(preset.noise.envelope.enabled);noiseEnvelopePeriod.setDisabled(!preset.noise.envelope.enabled);noiseEnvelopeLoop.disabled=!preset.noise.envelope.enabled;
+    renderPulseLength(); renderNoiseLength();
     fdsFixedVolume.setDisabled(preset.fds.envelope.enabled);for(const control of fdsEnvelopeControls)control.setDisabled(!preset.fds.envelope.enabled);
     const fdsClockEnabled = preset.fds.envelope.enabled || preset.fds.modulation.envelope.enabled;
     fdsEnvelopeMasterSpeed.setDisabled(!fdsClockEnabled);fdsEnvelopeHalt.disabled=!fdsClockEnabled;

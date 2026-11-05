@@ -46,12 +46,12 @@ test('NES VGM maps five channel definitions and ignores pitch-only differences w
     ['pulse', 1, 0, 1], ['pulse', 2, 1000, 2], ['triangle', 3, 3000, 1], ['noise', 4, 4000, 1], ['fds', 6, 5000, 1],
   ]);
   const [a, b, c, d, e] = result.voices.map(voice => voice.preset);
-  assert.deepEqual(a.pulse, {duty:.5, volume:9, envelope:{enabled:false, period:9, loop:true},
+  assert.deepEqual(a.pulse, {duty:.5, volume:9, lengthHalt:true, lengthIndex:1, envelope:{enabled:false, period:9, loop:true},
     sweep:{enabled:true, period:0, negate:true, shift:2}});
   assert.equal(b.pulse.duty, .25); assert.equal(b.pulse.volume, 10);
   assert.equal(c.source, 'triangle');
   assert.deepEqual(c.triangle, {control:true, linearReload:127, lengthIndex:1});
-  assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true, envelope:{enabled:false, period:11, loop:true}});
+  assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true, lengthHalt:true, lengthIndex:1, envelope:{enabled:false, period:11, loop:true}});
   assert.deepEqual(e.fds, {wave, volume:24, master:1,
     envelope:{enabled:false,increase:false,period:24,initialGain:24},envelopeClock:{masterSpeed:232,halt:false},
     modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1,envelope:{enabled:false,increase:false,period:16,initialGain:16}}});
@@ -121,10 +121,10 @@ test('Noise Envelope period and loop distinguish voices, period zero is audible,
   ]);
   const result = await extractVgmInstruments(vgm([...attacks, 0x66]));
   assert.deepEqual(result.voices.map(voice => [voice.preset.noise, voice.occurrences]), [
-    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:0, loop:false}}, 1],
-    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:15, loop:false}}, 1],
-    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:15, loop:true}}, 2],
-    [{volume:11, period:5, shortMode:true, envelope:{enabled:false, period:11, loop:true}}, 1],
+    [{volume:15, period:5, shortMode:true, lengthHalt:false, lengthIndex:1, envelope:{enabled:true, period:0, loop:false}}, 1],
+    [{volume:15, period:5, shortMode:true, lengthHalt:false, lengthIndex:1, envelope:{enabled:true, period:15, loop:false}}, 1],
+    [{volume:15, period:5, shortMode:true, lengthHalt:true, lengthIndex:1, envelope:{enabled:true, period:15, loop:true}}, 2],
+    [{volume:11, period:5, shortMode:true, lengthHalt:true, lengthIndex:1, envelope:{enabled:false, period:11, loop:true}}, 1],
   ]);
   assert.equal(result.voices[0].firstTime, 1000, 'the preceding silent fixed-volume trigger is not a voice');
   assert(result.voices.every(voice => voice.kind === 'noise' && voice.channel === 4));
@@ -141,6 +141,58 @@ test('APU enable masks gate real trigger writes, while known silent attacks can 
   assert.deepEqual(result.voices.map(voice => [voice.kind, voice.firstTime]), [['pulse', 1000], ['triangle', 2000], ['noise', 3000]]);
   assert.equal(result.voices[0].preset.pulse.volume, 7);
   assert.equal(result.voices[2].preset.noise.volume, 12);
+});
+
+test('Pulse and Noise length index and shared halt / Envelope-loop bit distinguish voices while pitch is grouped', async () => {
+  for (const channel of [0,1,3]) {
+    const base=channel*4, high=base+3, kind=channel===3?'noise':'pulse';
+    const setup=channel===3?w(0x0e,0x85):[...w(base+1,8),...w(base+2,0x80)];
+    const {voices}=await extractVgmInstruments(vgm([
+      ...w(0x15,1<<channel),...w(base,0x1a),...setup,...w(high,1),...wait,
+      ...(channel===3?[]:w(base+2,0x90)),...w(high,2),...wait,
+      ...w(base,0x3a),...wait,...w(base,0x3a),...w(high,(3<<3)|2),...wait,
+      ...w(base,0x2a),...wait,...w(base,0x0a),...wait,...w(high,(31<<3)|2),0x66,
+    ],1789773,false));
+    assert.deepEqual(voices.map(voice=>{
+      const settings=voice.preset[kind];
+      return [settings.lengthHalt,settings.lengthIndex,settings.envelope.enabled,settings.envelope.loop,voice.occurrences];
+    }),[
+      [false,0,false,false,2], [true,0,false,true,1], [true,3,false,true,1],
+      [true,3,true,true,1], [false,3,true,false,1], [false,31,true,false,1],
+    ]);
+    assert(voices.every(voice=>voice.channel===channel+1&&voice.kind===kind));
+    for(const voice of voices) {
+      assert.deepEqual(readPreset(JSON.parse(JSON.stringify(voice.preset))),voice.preset);
+      assert(voice.warnings.some(message=>/Length Counter restarts.*elapsed counter state.*frame phase/i.test(message)));
+    }
+  }
+});
+
+test('Pulse and Noise control changes need a recorded enabled trigger and known voice data before length capture', async () => {
+  for(const channel of [0,1,3]) {
+    const base=channel*4, high=base+3, kind=channel===3?'noise':'pulse';
+    const setup=channel===3?w(0x0e,5):[...w(base+1,8),...w(base+2,0x80)];
+    const {voices,warnings}=await extractVgmInstruments(vgm([
+      ...w(0x15,1<<channel),...setup,...w(base,0x1a),...w(base,0x3a),...wait,
+      ...w(0x15,0),...w(high,31<<3),...w(base,0x1a),...w(0x15,1<<channel),...w(base,0x3a),...wait,
+      ...w(high,3<<3),...wait,...w(base,0x1a),...wait,
+      ...w(0x15,0),...w(base,0x3a),...w(0x15,1<<channel),...w(base,0x1a),...wait,
+      ...w(high,0),0x66,
+    ],1789773,false));
+    assert.deepEqual(voices.map(voice=>[voice.preset[kind].lengthHalt,voice.preset[kind].lengthIndex,voice.firstTime]),[
+      [true,3,2000],[false,3,3000],[false,0,5000],
+    ]);
+    assert(!warnings.some(message=>/assumes it is enabled/i.test(message)));
+    const late=await extractVgmInstruments(vgm([
+      ...w(0x15,1<<channel),...setup,...w(high,7<<3),...wait,...w(base,0x1a),0x66,
+    ],1789773,false));
+    assert.equal(late.voices.length,1);
+    assert.equal(late.voices[0].preset[kind].lengthIndex,7);
+    assert.equal(late.voices[0].firstTime,1000);
+    assert(late.warnings.some(message=>/unknown voice settings/i.test(message)));
+  }
+  const incomplete=vgm([...w(0x15,8),...w(0x0c,0x1a),...w(0x0f,0),...w(0x0c,0x3a),0x66],1789773,false);
+  await assert.rejects(extractVgmInstruments(incomplete),/No complete|No .*voices/i);
 });
 
 test('FDS volume written after frequency can open the gate, and fixed modulation depth retains all six bits', async () => {
@@ -466,6 +518,44 @@ test('imported Triangle counters survive code export and stop or hold the actual
     }
     nes.noteOff(2);core.generateStereo(Math.round(sampleRate*.2));
     assert(acRms(core.generateStereo(Math.round(sampleRate*.05)).left)<first*.02);
+  }
+});
+
+test('imported Pulse / Noise Length Counters and shared loop bit survive code export through the public WASM API', async t => {
+  const wasmBinary=await readFile(new URL('../generated/nesapu_wasm.wasm',import.meta.url));
+  const acRms=values=>{
+    assert(values.every(Number.isFinite));
+    const mean=values.reduce((sum,value)=>sum+value,0)/values.length;
+    return Math.sqrt(values.reduce((sum,value)=>sum+(value-mean)**2,0)/values.length);
+  };
+  for(const sampleRate of [44100,48000])for(const sourceChannel of [0,1,3])for(const control of [0x1f,0x3f,0x0f,0x2f]) {
+    const base=sourceChannel*4,kind=sourceChannel===3?'noise':'pulse',channel=sourceChannel===3?3:0;
+    const setup=sourceChannel===3?w(0x0e,5):[...w(base+1,8),...w(base+2,0x80)];
+    const {voices:[voice]}=await extractVgmInstruments(vgm([
+      ...w(0x15,1<<sourceChannel),...w(base,control),...setup,...w(base+3,1),0x66,
+    ],1789773,false));
+    const settings=voice.preset[kind],halt=Boolean(control&32);
+    assert.equal(settings.lengthIndex,0);
+    assert.equal(settings.lengthHalt,halt);
+    assert.equal(settings.envelope.loop,halt);
+    const core=await NesApuWasm.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate,fds:true});
+    t.after(()=>core.dispose());
+    const nes=new NesApuSynth({transport:new NesApuDirectTransport(core),fds:true});
+    vm.runInNewContext(presetToCode(JSON.parse(JSON.stringify(voice.preset))),{nes});
+    assert.equal(core.getState().registers[channel*4]&0x3f,control);
+    assert.equal(core.getState().registers[channel*4+3]>>3,0,'index zero survives export and public triggering');
+    const first=acRms(core.generateStereo(Math.round(sampleRate*.02)).left);
+    assert(first>.0001,'imported sound is audible before length expiry');
+    core.generateStereo(Math.round(sampleRate*.2));
+    const tail=acRms(core.generateStereo(Math.round(sampleRate*.05)).left),state=core.getState();
+    if(halt) {
+      assert(state.lengths[channel]>0,'the same bit loops Envelope and halts Length');
+      assert(tail>first*.05,'a halted Length Counter keeps producing sound');
+    } else {
+      assert.equal(state.lengths[channel],0,'running Length expires even in fixed-volume mode');
+      assert(tail<first*.02,'the Length gate closes before the slow one-shot Envelope expires');
+    }
+    nes.noteOff(channel);
   }
 });
 

@@ -101,8 +101,10 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       if (!usesEnvelope && !level) return;
       const sweep = regs[base + 1];
       if (sweep === null) notes.push('Pulse Sweep was not recorded; imported Sweep is disabled.');
+      notes.push('Pulse Length Counter restarts from the recorded length-table index on each keyboard note; original elapsed counter state / frame phase is not replayed.');
       add('pulse', channel + 1, {
         duty:DUTIES[control >> 6], volume:usesEnvelope ? 15 : level,
+        lengthHalt:Boolean(control & 32), lengthIndex:regs[register] >> 3,
         envelope:{enabled:usesEnvelope, period:level, loop:Boolean(control & 32)},
         sweep:sweep === null ? {enabled:false, period:0, negate:true, shift:0}
           : {enabled:Boolean(sweep & 128), period:(sweep >> 4) & 7, negate:Boolean(sweep & 8), shift:sweep & 7},
@@ -114,8 +116,10 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     } else {
       const usesEnvelope = !(control & 16), parameter = control & 15;
       if (!usesEnvelope && !parameter) return;
+      notes.push('Noise Length Counter restarts from the recorded length-table index on each keyboard note; original elapsed counter state / frame phase is not replayed.');
       add('noise', 4, {
         volume:usesEnvelope ? 15 : parameter, period:regs[0x0e] & 15, shortMode:Boolean(regs[0x0e] & 128),
+        lengthHalt:Boolean(control & 32), lengthIndex:regs[0x0f] >> 3,
         envelope:{enabled:usesEnvelope, period:parameter, loop:Boolean(control & 32)},
       }, notes);
     }
@@ -174,7 +178,6 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   function apply(register, value) {
     if (register < 0x20) {
       const channel = [0,4,8,12].includes(register) ? register / 4 : -1;
-      const wasAudible = channel >= 0 && apuAudible(channel);
       const previous = regs[register]; regs[register] = value;
       dmc.write(register, value);
       if (register === 0x15) for (let ch = 0; ch < 4; ch++) if (!(value & (1 << ch))) triggered[ch] = false;
@@ -182,8 +185,10 @@ export async function extractVgmInstruments(source, {signal} = {}) {
         const ch = (register - 3) / 4;
         triggered[ch] = regs[0x15] === null || Boolean(regs[0x15] & (1 << ch));
         captureApu(register);
-      } else if (channel === 2 && previous !== value) captureApu(0x0b);
-      else if (channel >= 0 && !wasAudible && apuAudible(channel)) captureApu(channel * 4 + 3);
+      // Control writes can change the shared Envelope-loop / Length-halt bit
+      // without retriggering. Keep those authored settings after a recorded
+      // enabled trigger; captureApu still rejects unknown or silent setups.
+      } else if (channel >= 0 && previous !== value) captureApu(channel * 4 + 3);
       return;
     }
     if (!hasFds) throw new Error('FDS writes require the FDS header flag');
@@ -216,12 +221,6 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     if (register === 0x20 || register === 0x24 || register === 0x2a || register === 0x23 || register === 0x29 && !(value & 128)
         || !wasAudible && fdsAudible()
         || register === 0x27 && !(value & 128) && (previous === null || previous & 128)) captureFds();
-  }
-  function apuAudible(channel) {
-    if (!triggered[channel] || regs[0x15] !== null && !(regs[0x15] & (1 << channel))) return false;
-    const control = regs[channel * 4];
-    if (control === null) return false;
-    return channel === 2 ? Boolean(control & 127) : !(control & 16) || Boolean(control & 15);
   }
   function advance(samples) {
     time += samples;

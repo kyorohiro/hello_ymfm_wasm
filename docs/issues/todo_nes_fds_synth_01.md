@@ -11,6 +11,25 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## Pulse／Noise Length Counter（2026-11-05 完了・追加分は未公開）
+
+NES APUの実機Length Counterを既存のPulse／Noiseへ接続する。ソフトのタイマーや音量処理ではなく、既存coreの共有Length tableと発音gateを使う。共有runtime・DSP／WASMは変更しない。
+
+- [x] preset v7へPulse／Noiseの`lengthHalt:true`・`lengthIndex:1`を追加し、旧v1〜v6を従来の発音へ移行する。Envelope有効時は既存`envelope.loop`が共有bit 5を決め、固定音量時の`lengthHalt`とは切り替えて使う。
+- [x] 既存button UIへHold key／Hardware counterとLength table index・NTSC時間目安を追加する。Envelope有効中はLoopとLength haltが同じbitであることを表示し、独立した設定と誤解させない。
+- [x] 発音時に指定indexを読み込み、index 0を保つ。gate設定は次の発音へ反映し、保持音のDuty／固定音量／Noise clock変更とPitchがactiveなgate設定を壊さないようにする。
+- [x] VGMの共有bit・Length indexを取得し、preset保存／旧版移行／Copy JavaScriptと往復させる。元の残りcounter値・frame位相は再現しない。
+- [x] 実WASMでPulse両CH・Noiseの停止、Loop連動、全index、次発音反映、再発音・owner・Pitch・不正入力を検証する。
+- [x] Chromium／WebKit、独立ZIP、狭い画面・focusを確認し、ガイドと検証記録・再開手順を更新する。
+
+検証：`npm run test:2a03-synth`は**156件成功、失敗0**（既存141＋preset 3＋実WASM Length 9＋VGM 3）。44.1／48 kHzの実WASMで全32 index、Pulse両CH／Noiseの停止・Hold、Loopとの共有bit、次発音反映・保持中の音色編集、再発音／古いowner解放／Stop、Pitchによるtimer-high再読込、保存・旧v1〜v6移行、VGM→JavaScript→実音源を確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。無音の編集、共有bitの表示・disabled連動、次発音反映、実PCMの停止と保持中identity、index 0、v7保存と旧v1〜v6移行、VGMのLength設定差／Pitch重複統合、既存DMC／Triangle／FDSの回帰を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定し、Noise／Pulseのモバイル画面も確認した。記録：[ソース版](2a03_synth_pulse_noise_length_browser_01.json)、[ZIP版](2a03_synth_pulse_noise_length_zip_browser_01.json)。参考：[NESdev Length Counter](https://www.nesdev.org/wiki/APU_Length_Counter)、[共有Envelope bit](https://www.nesdev.org/wiki/APU_Envelope)。
+
+配布候補：`release/tetorica_2a03_synth_pulse-noise-length-20261105_itch.zip`（35 files、3 bundles、1,182,480 bytes、SHA-256 `8c31ca2e7c977a8e84c3e202e0bc907813e116eb180a9c471c7d75b23166e6c0`）。browser receiptの45 inputsは作業ファイルと一致。既存WASM pair／Native対応ソース11 inputs（SDK 0.1.7）・権利通知を保持し、共有runtime・DSP／WASMとnpm packageは変更していない。ガイド・英日AI README・日英ホームも更新した。
+
+試し方：Source→PulseまたはNoise→Envelope Off→Hardware gateでHardware counter→Length index 4→鍵盤を保持すると約0.33秒で止まる。Hold keyでは離鍵まで継続する。Envelope OnではLoopが共有gateを決め、Loop OffならLengthかEnvelopeの早い方で止まる。設定変更は次noteから。preset v7は旧Synthでは読めない。手元の実聴、commit／push／公開は今回AIから未実行。
+
 ## Triangle Linear／Length Counter（2026-11-05 完了・追加分は未公開）
 
 既存NES coreのTriangle発音gateをUI・保存・VGM読込へつなぐ。旧来のHold keyを既定にし、Hardware countersを選ぶと押したままでもカウンターで波形が止まるようにする。共有runtime・DSP／WASMは変更しない。
@@ -378,7 +397,7 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] FDS音量のハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] FDS変調の深さのEnvelopeを追加し、Volume／Depthの共通clockを分離する（上記2026-11-05）。
 - [x] TriangleのLinear／Length CounterをUI・VGM・presetへ接続する（上記2026-11-05）。
-- [ ] Pulse／NoiseのLength Counter編集を段階的に検討する。Envelope LoopとLength haltの共有flagを正しく扱う。
+- [x] Pulse／NoiseのLength Counter編集を追加し、Envelope LoopとLength haltの共有flagをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時

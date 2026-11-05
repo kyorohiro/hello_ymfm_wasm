@@ -2,15 +2,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {createDefaultPreset, readPreset, waveShape, presetToCode, createDemoDpcm, MAX_DPCM_BYTES, TRIANGLE_LENGTHS} from './preset.js';
-import {NesApuSynth} from '../js/nesapusynth.js';
+import {readFile} from 'node:fs/promises';
+import {createDefaultPreset, readPreset, waveShape, presetToCode, createDemoDpcm, MAX_DPCM_BYTES, TRIANGLE_LENGTHS, LENGTH_TABLE} from './preset.js';
+import {NesApuSynth, NesApuDirectTransport} from '../js/nesapusynth.js';
+import factory from '../generated/nesapu_wasm.js';
+import {NesApuWasm} from '../js/nesapu_wasm.js';
 
 const volumeEnvelopeDefault = {enabled:false,increase:false,period:8,initialGain:32};
 const envelopeClockDefault = {masterSpeed:232,halt:false};
 const modulationEnvelopeDefault = {enabled:false,increase:true,period:8,initialGain:0};
 const triangleDefault = {control:true,linearReload:127,lengthIndex:1};
+const lengthDefault = {lengthHalt:true,lengthIndex:1};
+const withLengthDefaults = preset => ({...preset,pulse:{...preset.pulse,...lengthDefault},noise:{...preset.noise,...lengthDefault}});
 function createLegacyPreset(version) {
-  const preset = createDefaultPreset(); preset.version = version; delete preset.triangle;
+  const preset = createDefaultPreset(); preset.version = version;
+  if (version <= 5) delete preset.triangle;
+  for (const source of ['pulse','noise']) {delete preset[source].lengthHalt; delete preset[source].lengthIndex;}
   if (version <= 4) {
     const clock = preset.fds.envelopeClock; delete preset.fds.envelopeClock; delete preset.fds.modulation.envelope;
     if (version <= 3) delete preset.fds.envelope;
@@ -43,9 +50,14 @@ test('portable NES/FDS preset owns complete independent six-bit wave and modulat
 
 test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hardware data', () => {
   const changes = [
-    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 7;}, p => {p.source = 'sid';},
+    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 8;}, p => {p.source = 'sid';},
     p => {p.name = 'a\ncode';}, p => {p.name = 'a'.repeat(81);}, p => {p.name = 'bad\u2028code';},
     p => {p.pulse.duty = .4;}, p => {p.pulse.volume = 16;}, p => {p.pulse.envelope.enabled = 1;}, p => {p.pulse.envelope.period = -1;},
+    ...['pulse','noise'].flatMap(source => [
+      p => {delete p[source].lengthHalt;}, p => {delete p[source].lengthIndex;}, p => {p[source].lengthHalt = 1;},
+      p => {p[source].lengthHalt = 'false';}, p => {p[source].lengthIndex = -1;}, p => {p[source].lengthIndex = 32;},
+      p => {p[source].lengthIndex = .5;}, p => {p[source].lengthIndex = NaN;}, p => {p[source].lengthIndex = Infinity;},
+    ]),
     p => {p.pulse.sweep.period = 8;}, p => {p.pulse.sweep.shift = 1.5;}, p => {p.pulse.sweep.negate = 'true';},
     p => {delete p.triangle;}, p => {p.triangle = null;}, p => {p.triangle.extra = 1;}, p => {delete p.triangle.control;},
     p => {p.triangle.control = 1;}, p => {p.triangle.control = 'false';}, p => {p.triangle.linearReload = -1;}, p => {p.triangle.linearReload = 128;},
@@ -73,13 +85,13 @@ test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hard
   for (const change of changes) {const preset = createDefaultPreset(); change(preset); assert.throws(() => readPreset(preset));}
 });
 
-test('v6 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
+test('v7 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
   const original = createLegacyPreset(1);
   const migrated = readPreset(original);
-  assert.equal(migrated.version, 6); assert.equal(migrated.source, 'pulse');
+  assert.equal(migrated.version, 7); assert.equal(migrated.source, 'pulse');
   assert.deepEqual(migrated.triangle,triangleDefault);
   assert.deepEqual(migrated.dmc, {data: [], rate: 15, loop: false, level: 64});
-  assert.deepEqual(migrated.noise, {...original.noise, envelope:{enabled:false, period:8, loop:false}});
+  assert.deepEqual(migrated.noise, {...original.noise, ...lengthDefault, envelope:{enabled:false, period:8, loop:false}});
   assert.deepEqual(migrated.fds, {...original.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...original.fds.modulation,envelope:modulationEnvelopeDefault}});
   assert.throws(() => readPreset({...original, source:'dmc'}));
   assert.throws(() => readPreset({...original, dmc:migrated.dmc}));
@@ -106,7 +118,7 @@ test('v2 DPCM presets migrate to a detached disabled Noise envelope without chan
   original.dmc = {data:[1,2,255], rate:3, loop:true, level:31};
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before,'migration never edits the input');
-  assert.deepEqual(migrated,{...before, version:6, triangle:triangleDefault, noise:{...before.noise,envelope:{enabled:false,period:8,loop:false}},fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
+  assert.deepEqual(migrated,withLengthDefaults({...before, version:7, triangle:triangleDefault, noise:{...before.noise,envelope:{enabled:false,period:8,loop:false}},fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}}));
   migrated.dmc.data[0] = 0; assert.equal(original.dmc.data[0],1);
   const another = readPreset(original); migrated.noise.envelope.period = 15;
   assert.equal(another.noise.envelope.period,8,'each legacy migration owns its Envelope settings');
@@ -123,7 +135,7 @@ test('v3 presets retain Noise Envelope and fixed FDS output while adding indepen
   original.fds.volume = 0; original.fds.master = 3;
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before);
-  assert.deepEqual(migrated,{...before,version:6,triangle:triangleDefault,fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
+  assert.deepEqual(migrated,withLengthDefaults({...before,version:7,triangle:triangleDefault,fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}}));
   migrated.fds.envelope.enabled = true; migrated.fds.envelope.initialGain = 63;
   assert.deepEqual(readPreset(original).fds.envelope,createDefaultPreset().fds.envelope);
   assert.throws(() => readPreset({...original,fds:migrated.fds}),'v3 rejects an unversioned FDS Envelope extension');
@@ -136,9 +148,9 @@ test('v4 FDS Envelope presets split the shared clock without changing volume or 
   original.fds.modulation.enabled = true; original.fds.modulation.depth = 47;
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before);
-  assert.deepEqual(migrated,{...before,version:6,triangle:triangleDefault,fds:{...before.fds,
+  assert.deepEqual(migrated,withLengthDefaults({...before,version:7,triangle:triangleDefault,fds:{...before.fds,
     envelope:{enabled:true,increase:true,period:63,initialGain:63},envelopeClock:{masterSpeed:0,halt:true},
-    modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
+    modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}}));
   migrated.fds.envelopeClock.halt = false; migrated.fds.modulation.envelope.initialGain = 63;
   assert.deepEqual(readPreset(original).fds.envelopeClock,{masterSpeed:0,halt:true});
   assert.deepEqual(readPreset(original).fds.modulation.envelope,modulationEnvelopeDefault);
@@ -161,7 +173,7 @@ test('v5 presets gain independent held Triangle settings without changing existi
   original.dmc = {data:[1,2,255],rate:7,loop:true,level:33};
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before);
-  assert.deepEqual(migrated,{...before,version:6,triangle:triangleDefault});
+  assert.deepEqual(migrated,withLengthDefaults({...before,version:7,triangle:triangleDefault}));
   migrated.triangle.control = false; migrated.triangle.lengthIndex = 0;
   migrated.dmc.data[0] = 255;
   assert.deepEqual(readPreset(original).triangle,triangleDefault);
@@ -195,6 +207,76 @@ test('Triangle counter settings survive JSON and exported code triggers every au
     assert(!writes.slice(triggerAt+1).some(([address])=>address===0x400b),'no later generic noteOn resets the authored length index');
     assert.match(code,/nes\.triangle\.keyOn\(\)/); assert(!code.includes('nes.noteOn('));
     assert(!code.includes('nes._getState(')); assert.match(code,/Release with nes\.noteOff\(2\)/);
+  }
+});
+
+test('v1–v6 migration keeps old fixed-volume holds and Envelope Loop while adding strict independent Length settings', () => {
+  for (let version=1;version<=6;version++) {
+    const original = createLegacyPreset(version);
+    original.pulse.envelope = {enabled:true,period:0,loop:false};
+    if (version>=3) original.noise.envelope = {enabled:true,period:15,loop:true};
+    if (version===6) original.triangle = {control:false,linearReload:24,lengthIndex:0};
+    const before = structuredClone(original), migrated = readPreset(original);
+    assert.equal(migrated.version,7); assert.deepEqual(original,before);
+    for (const source of ['pulse','noise']) {
+      assert.equal(migrated[source].lengthHalt,true); assert.equal(migrated[source].lengthIndex,1);
+      assert.deepEqual(migrated[source].envelope,source==='noise'&&version<3?{enabled:false,period:8,loop:false}:original[source].envelope);
+      for (const [field,value] of Object.entries(lengthDefault)) {
+        const invalid = structuredClone(original); invalid[source][field]=value;
+        assert.throws(()=>readPreset(invalid),`v${version} ${source} rejects hidden ${field}`);
+      }
+    }
+    if (version===6) assert.deepEqual(migrated.triangle,original.triangle);
+    migrated.pulse.lengthHalt=false; migrated.noise.lengthIndex=0;
+    assert.equal(readPreset(original).pulse.lengthHalt,true); assert.equal(readPreset(original).noise.lengthIndex,1);
+  }
+});
+
+test('Pulse and Noise exported code preserves every Length index and the shared Envelope Loop / halt bit', () => {
+  assert.equal(LENGTH_TABLE,TRIANGLE_LENGTHS,'all three APU generators share the same hardware table');
+  for (const source of ['pulse','noise']) for (const enabled of [false,true]) for (const loop of [false,true])
+    for (const lengthHalt of [false,true]) for (let lengthIndex=0;lengthIndex<32;lengthIndex++) {
+      const preset=createDefaultPreset(); preset.source=source;
+      Object.assign(preset[source],{lengthHalt,lengthIndex});
+      preset[source].envelope={enabled,period:15,loop};
+      assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+      const writes=[],nes=new NesApuSynth({transport:{writeRegister:(address,value)=>writes.push([address,value])}});
+      nes.pulse.noteOn(1,'C4'); writes.length=0;
+      const code=presetToCode(preset); vm.runInNewContext(code,{nes});
+      const channel=source==='pulse'?0:3,base=channel*4,state=nes._getState();
+      const halt=enabled?loop:lengthHalt;
+      assert.equal(Boolean(state.registers[base]&32),halt);
+      assert.equal(Boolean(state.registers[base]&16),!enabled);
+      assert.equal(state.registers[base+3]>>3,lengthIndex);
+      assert.equal(state.enabled&(1<<channel),1<<channel);
+      assert.equal(state.enabled&2,2,'audition preserves an already enabled second Pulse');
+      const trigger=writes.findLastIndex(([address])=>address===0x4003+base);
+      assert(trigger>=0); assert.equal(writes[trigger][1]>>3,lengthIndex);
+      assert(!code.includes('nes._getState(')); assert(!code.includes('nes.noteOn('));
+      assert.match(code,new RegExp(`Release with nes\\.noteOff\\(${channel}\\)`));
+    }
+});
+
+test('exported Pulse / Noise code starts the real WASM Length Counter, including index zero and Envelope-coupled holds', async t => {
+  const wasmBinary=await readFile(new URL('../generated/nesapu_wasm.wasm',import.meta.url));
+  for (const sampleRate of [44100,48000]) {
+    const core=await NesApuWasm.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate,fds:true});
+    t.after(()=>core.dispose());
+    const nes=new NesApuSynth({transport:new NesApuDirectTransport(core),fds:true});
+    for (const source of ['pulse','noise']) for (const lengthIndex of [0,3,31])
+      for (const [enabled,loop,lengthHalt] of [[false,false,false],[false,false,true],[true,false,true],[true,true,false]]) {
+        nes.reset();
+        const preset=createDefaultPreset();preset.source=source;
+        Object.assign(preset[source],{lengthIndex,lengthHalt});preset[source].envelope={enabled,period:15,loop};
+        vm.runInNewContext(presetToCode(preset),{nes});
+        const channel=source==='pulse'?0:3,halt=enabled?loop:lengthHalt;
+        assert.equal(core.getState().lengths[channel],LENGTH_TABLE[lengthIndex]);
+        const pcm=core.generateStereo(Math.ceil(sampleRate*(LENGTH_TABLE[lengthIndex]/120+.06)));
+        assert(pcm.left.every(Number.isFinite));assert(pcm.right.every(Number.isFinite));
+        assert.equal(core.getState().lengths[channel],halt?LENGTH_TABLE[lengthIndex]:0,`${source} ${sampleRate} ${lengthIndex} halt=${halt}`);
+        assert(pcm.left.some(value=>Math.abs(value)>.0001),'a real oscillator produced audible data before gate expiry');
+        nes.noteOff(channel); assert.equal(core.getState().lengths[channel],0);
+      }
   }
 });
 
@@ -241,7 +323,7 @@ test('FDS Volume and Depth Envelope exports share a clock and preserve independe
 test('Noise Envelope endpoints survive JSON round-trip and generated code configures the existing register API before trigger', () => {
   for (const enabled of [false,true]) for (const period of [0,15]) for (const loop of [false,true]) {
     const preset = createDefaultPreset(); preset.source = 'noise';
-    preset.noise = {volume:3,period:7,shortMode:true,envelope:{enabled,period,loop}};
+    preset.noise = {...preset.noise,volume:3,period:7,shortMode:true,envelope:{enabled,period,loop}};
     assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
     const writes = [], nes = new NesApuSynth({transport:{writeRegister:(r,v)=>writes.push([r,v])}});
     writes.length = 0;
@@ -250,7 +332,7 @@ test('Noise Envelope endpoints survive JSON round-trip and generated code config
     const controlWrites = writes.filter(([r]) => r === 0x400c);
     assert.equal(controlWrites.at(-1)[1],expectedControl);
     assert(writes.some(([r,v]) => r === 0x400e && v === 0x87));
-    const controlIndex = writes.findLastIndex(([r]) => r === 0x400c), triggerIndex = writes.findIndex(([r]) => r === 0x400f);
+    const controlIndex = writes.findLastIndex(([r]) => r === 0x400c), triggerIndex = writes.findLastIndex(([r]) => r === 0x400f);
     assert(controlIndex < triggerIndex && triggerIndex >= 0,'Envelope control is established before the real Noise trigger');
     assert.equal(writes[triggerIndex][1],8);
     assert.equal(nes._getState().registers[0x0c],expectedControl);

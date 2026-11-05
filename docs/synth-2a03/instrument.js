@@ -24,25 +24,28 @@ export class NesInstrument {
     return {hz, period};
   }
   _pulseVoice(channel, preset, {live = false} = {}) {
-    const {duty, volume, envelope, sweep} = preset.pulse;
-    // Envelope/sweep authored changes are used on the next attack. Constant
-    // volume and Duty can be changed without writing the trigger register.
-    const voice = {duty};
-    const constantVolume = Boolean(this.synth._getState().registers[channel * 4] & 16);
-    if (!live || constantVolume && !envelope.enabled) {
-      if (envelope.enabled) voice.envelope = {period: envelope.period, loop: envelope.loop};
-      else voice.volume = volume;
+    const {duty, volume, envelope, sweep, lengthHalt} = preset.pulse;
+    const base = 0x4000 + channel * 4, active = this.synth._getState().registers[channel * 4];
+    // Envelope, shared loop/length halt and Sweep wait for the next attack.
+    // Live fixed-volume/Duty editing must preserve the active shared bit,
+    // rather than using the public fixed-volume helper that always sets it.
+    const control = live
+      ? (active & 16) && !envelope.enabled ? (active & 0x30) | volume : active & 0x3f
+      : ((envelope.enabled ? envelope.loop : lengthHalt) ? 32 : 0) | (envelope.enabled ? envelope.period : 16 | volume);
+    this.synth.writeRegister(base, ([.125, .25, .5, .75].indexOf(duty) << 6) | control);
+    if (!live) {
+      const value = sweep.enabled ? sweep : quietSweep;
+      this.synth.writeRegister(base + 1, (value.enabled ? 128 : 0) | (value.period << 4) | (value.negate ? 8 : 0) | value.shift);
     }
-    if (!live) voice.sweep = sweep.enabled ? sweep : quietSweep;
-    this.synth.pulse.setVoice(channel, voice);
   }
   _noiseVoice(preset, {live = false} = {}) {
-    const {volume, period, shortMode, envelope} = preset.noise;
-    const constantVolume = Boolean(this.synth._getState().registers[0x0c] & 16);
+    const {volume, period, shortMode, envelope, lengthHalt} = preset.noise;
+    const active = this.synth._getState().registers[0x0c], constantVolume = Boolean(active & 16);
     // Match Pulse editing: keep a held envelope's mode and decay state until
     // the next attack. LFSR clock/mode remain live without a trigger write.
     if (!live || constantVolume && !envelope.enabled) {
-      this.synth.writeRegister(0x400c, envelope.enabled ? (envelope.loop ? 32 : 0) | envelope.period : 0x30 | volume);
+      this.synth.writeRegister(0x400c, live ? (active & 0x30) | volume
+        : ((envelope.enabled ? envelope.loop : lengthHalt) ? 32 : 0) | (envelope.enabled ? envelope.period : 16 | volume));
     }
     this.synth.writeRegister(0x400e, (shortMode ? 128 : 0) | period);
   }
@@ -105,9 +108,9 @@ export class NesInstrument {
     // NES timer-high writes restart the hardware envelope/length. Skip them
     // while the high bits are unchanged. Crossing a timer-byte boundary still
     // has that hardware side effect; the host voice identity stays unchanged.
-    // Triangle length index 0 is meaningful. Pitch retains the active index,
-    // rather than applying a pending draft or substituting Pulse's default.
-    const length = channel === 2 ? (lengthIndex === undefined ? previous & 0xf8 : lengthIndex << 3) : (previous & 0xf8 || 8);
+    // Length index 0 is meaningful for every tone channel. Pitch retains the
+    // active index instead of applying a pending authored gate setting.
+    const length = lengthIndex === undefined ? previous & 0xf8 : lengthIndex << 3;
     if (trigger || (previous & 7) !== (period >> 8)) this.synth.writeRegister(base + 3, length | (period >> 8));
   }
   read() {
@@ -142,11 +145,17 @@ export class NesInstrument {
     if (previous) {this._stopChannel(channel); this.voices.delete(previous.id);}
     if (source === 'pulse') {
       this._pulseVoice(channel, this.preset);
-      this._retune(channel, tone.period, {trigger: true}); this.synth.keyOn(channel);
+      this._retune(channel, tone.period, {trigger: true, lengthIndex:this.preset.pulse.lengthIndex}); this.synth.keyOn(channel);
     } else if (source === 'triangle') {
       this._triangleControl(this.preset);
       this._retune(2, tone.period, {trigger:true, lengthIndex:this.preset.triangle.lengthIndex}); this.synth.keyOn(2);
-    } else if (source === 'noise') {this._noiseVoice(this.preset); this.synth.noise.noteOn();}
+    } else if (source === 'noise') {
+      this._noiseVoice(this.preset);
+      // The high-level Noise attack selects length index 1. Enable first,
+      // then load the authored index so all 32 hardware entries remain usable.
+      this.synth.writeRegister(0x4015, this.synth._getState().enabled | 8);
+      this.synth.writeRegister(0x400f, this.preset.noise.lengthIndex << 3);
+    }
     else if (source === 'dmc') {
       const {rate, loop, level, data} = this.preset.dmc;
       this.synth.noteOff(4);

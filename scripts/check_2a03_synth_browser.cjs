@@ -54,6 +54,16 @@ function makeTriangleGateVgm() {
     ...w(0x15,0),...w(8,0),...w(0x15,4),...w(0x0b,8),0x66,
   ],{fds:false});
 }
+function makePulseNoiseLengthVgm() {
+  const w=vgmWrite,wait=[0x61,0xe8,0x03];
+  return vgmBytes([
+    ...w(0x15,1),...w(0,0x9a),...w(1,8),...w(2,0x40),...w(3,0x21),...wait,
+    ...w(2,0x50),...w(3,0x22),...wait,
+    ...w(0x15,0),...w(0,0xba),...w(0x15,1),...w(3,0),...wait,
+    ...w(0x15,0),...w(0x0c,0x1a),...w(0x0e,6),...w(0x15,8),...w(0x0f,0x20),...wait,
+    ...w(0x15,0),...w(0x0c,0x0f),...w(0x15,8),...w(0x0f,0x20),0x66,
+  ],{fds:false});
+}
 function makeFdsEnvelopeVgm() {
   const w=vgmWrite;
   return vgmBytes([
@@ -388,6 +398,23 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#keyboard .key').count(),36);
 
+    check('Pulse and Noise Length controls edit passively and show the shared Envelope Loop bit');
+    for(const source of ['pulse','noise']) {
+      await choose('#source',source);
+      assert.equal(await stepButton(`#${source}LengthIndex`,1).isDisabled(),true);
+      await choose(`#${source}LengthHalt`,false);await number(`#${source}LengthIndex`,4);
+      assert.match(await page.locator(`#${source}LengthReadout`).textContent(),/40 ticks.*333\.3 ms/);
+      await page.check(`#${source}EnvelopeEnabled`);
+      assert.equal(await choiceButton(`#${source}LengthHalt`,false).isDisabled(),true);
+      await page.check(`#${source}EnvelopeLoop`);
+      assert.equal(await choiceButton(`#${source}LengthHalt`,true).getAttribute('aria-checked'),'true');
+      assert.equal(await stepButton(`#${source}LengthIndex`,1).isDisabled(),true);
+      await page.uncheck(`#${source}EnvelopeLoop`);await page.uncheck(`#${source}EnvelopeEnabled`);
+      assert.equal(await choiceButton(`#${source}LengthHalt`,false).getAttribute('aria-checked'),'true','fixed-mode choice is remembered independently');
+      await number(`#${source}LengthIndex`,1);await choose(`#${source}LengthHalt`,true);
+    }
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+
     check('Triangle gate controls edit passively and expose NTSC counter-time estimates');
     await choose('#source','triangle');
     assert.equal(await stepButton('#triangleLengthIndex',1).isDisabled(),true);
@@ -573,7 +600,7 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
     const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
-    assert.equal(passiveDpcm.version,6);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
+    assert.equal(passiveDpcm.version,7);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     await choose('#source','pulse');await page.fill('#instrumentName','NES browser audit');await page.press('#instrumentName','Enter');
 
@@ -684,6 +711,33 @@ async function runEngine(name, engine, origin) {
     await page.check('#pulseEnvelopeEnabled'); await waitState(value=>value.preset.pulse.envelope.enabled);
     await page.uncheck('#pulseEnvelopeEnabled');await waitState(value=>!value.preset.pulse.envelope.enabled);
 
+    check('Pulse and Noise hardware Length gates expire, retain owners and reload authored index zero');
+    for(const source of ['pulse','noise']) {
+      await choose('#source',source);await choose(`#${source}LengthHalt`,false);await number(`#${source}LengthIndex`,4);
+      await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
+      const owner=state.voices[0].id,channel=state.voices[0].channel,high=channel*4+3;
+      assert.equal(state.registers[high]>>3,4);assert.equal(state.registers[channel*4]&32,0);
+      state=await waitState(value=>value.coreState.lengths[channel]===0);await silent();assert.equal(state.voices[0].id,owner);
+      await choose(`#${source}LengthHalt`,true);await number(`#${source}Volume`,9);
+      if(source==='pulse')await choose('#pulseDuty',.5);else await number('#noisePeriod',7);
+      state=await inspect();assert.equal(state.registers[channel*4]&32,0,'live sound edits preserve the active counter mode');
+      assert.equal(state.voices[0].id,owner);await silent();
+      await page.keyboard.up('a');await stop();
+      await choose(`#${source}LengthHalt`,false);await number(`#${source}LengthIndex`,0);
+      await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);
+      assert.equal(state.registers[state.voices[0].channel*4+3]>>3,0);await waitState(value=>value.coreState.lengths[value.voices[0].channel]===0);
+      await page.keyboard.up('a');await stop();
+      const download=page.waitForEvent('download');await page.click('#savePreset');const saved=JSON.parse(await fs.readFile(await (await download).path(),'utf8'));
+      assert.equal(saved.version,7);assert.equal(saved[source].lengthIndex,0);assert.equal(saved[source].lengthHalt,false);
+      await page.click('#copyCode');const code=await page.locator('#codeOutput').inputValue();
+      assert.match(code,source==='pulse'?/nes\.writeRegister\(0x4003,/i:/nes\.writeRegister\(0x400f,/i);
+      await choose(`#${source}LengthHalt`,true);
+      await page.setInputFiles('#presetFileInput',{name:`${source}-length-v7.json`,mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+      state=await waitState(value=>value.preset.source===source&&!value.preset[source].lengthHalt);assert.deepEqual(state.preset,saved);
+      if(config.screenshots){await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1);await screenshot(`${source}-length-mobile`);await page.setViewportSize({width:1180,height:940});}
+      await number(`#${source}LengthIndex`,1);await choose(`#${source}LengthHalt`,true);
+    }
+
     check('Triangle is one physical channel and a replaced note owns the late release');
     await choose('#source','triangle'); state=await waitState(value=>value.preset.source==='triangle');assert.equal(state.capacity,1);
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);const triangleOwner=state.voices[0].id;assert.equal(state.voices[0].channel,2);await sound();
@@ -721,11 +775,11 @@ async function runEngine(name, engine, origin) {
     await number('#triangleLinearReload',48);await number('#triangleLengthIndex',1);
     const triangleSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const triangleSave=await triangleSaveEvent;
     const trianglePortable=JSON.parse(await fs.readFile(await triangleSave.path(),'utf8'));
-    assert.equal(trianglePortable.version,6);assert.deepEqual(trianglePortable.triangle,{control:false,linearReload:48,lengthIndex:1});
+    assert.equal(trianglePortable.version,7);assert.deepEqual(trianglePortable.triangle,{control:false,linearReload:48,lengthIndex:1});
     await page.click('#copyCode');const triangleCode=await page.locator('#codeOutput').inputValue();
     assert.match(triangleCode,/nes\.writeRegister\(0x4008,\s*48\)/i);assert.match(triangleCode,/nes\.writeRegister\(0x400b,/i);assert.match(triangleCode,/nes\.triangle\.keyOn\(\)/);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
-    await page.setInputFiles('#presetFileInput',{name:'triangle-counter-v6.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(trianglePortable))});
+    await page.setInputFiles('#presetFileInput',{name:'triangle-counter-v7.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(trianglePortable))});
     state=await waitState(value=>value.preset.source==='triangle'&&!value.preset.triangle.control&&value.preset.triangle.linearReload===48);assert.deepEqual(state.preset,trianglePortable);
     if(config.screenshots) {
       await page.setViewportSize({width:390,height:844});
@@ -782,7 +836,7 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
     const noiseSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const noiseSave=await noiseSaveEvent;
     const noisePortable=JSON.parse(await fs.readFile(await noiseSave.path(),'utf8'));
-    assert.equal(noisePortable.version,6);assert.deepEqual(noisePortable.noise.envelope,{enabled:true,period:5,loop:false});
+    assert.equal(noisePortable.version,7);assert.deepEqual(noisePortable.noise.envelope,{enabled:true,period:5,loop:false});
     await page.click('#copyCode');assert.match(await page.locator('#codeOutput').inputValue(),/nes\.writeRegister\(0x400c,\s*5\)/i);
     await page.uncheck('#noiseEnvelopeEnabled');await waitState(value=>!value.preset.noise.envelope.enabled);
     assert.equal(await stepButton('#noiseVolume',1).isDisabled(),false);assert.equal(await page.isDisabled('#noiseEnvelopeLoop'),true);
@@ -1047,10 +1101,10 @@ async function runEngine(name, engine, origin) {
     const undoneDpcm=await downloadDpcm(editedDmcData);
     assert.notDeepEqual([...undoneDpcm],drawnDmcData);
 
-    check('portable v6 presets retain original DMC bytes and copied code awaits memory; v1 through v5 still migrate');
+    check('portable v7 presets retain original DMC bytes and copied code awaits memory; v1 through v6 still migrate');
     const dmcSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const dmcSave=await dmcSaveEvent;
     const dmcPortable=JSON.parse(await fs.readFile(await dmcSave.path(),'utf8'));
-    assert.equal(dmcPortable.version,6);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
+    assert.equal(dmcPortable.version,7);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
     assert.deepEqual(dmcPortable.dmc.data,editedDmcData,'portable presets retain the bit edits');
     assert.notDeepEqual(dmcPortable.dmc.data,drawnDmcData,'saving after Undo exports restored data rather than Redo data');
     await page.click('#copyCode');const dmcCode=await page.locator('#codeOutput').inputValue();
@@ -1080,32 +1134,38 @@ async function runEngine(name, engine, origin) {
       assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'DMC editor fits a narrow screen');await screenshot('dmc-mobile');
       await page.setViewportSize({width:1180,height:940});
     }
-    const legacyV5Preset=structuredClone(dmcPortable);legacyV5Preset.name='Imported legacy v5';legacyV5Preset.version=5;delete legacyV5Preset.triangle;
+    const legacyV6Preset=structuredClone(dmcPortable);legacyV6Preset.name='Imported legacy v6';legacyV6Preset.version=6;
+    for(const source of ['pulse','noise']) {delete legacyV6Preset[source].lengthHalt;delete legacyV6Preset[source].lengthIndex;}
+    await page.setInputFiles('#presetFileInput',{name:'old-v6-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV6Preset))});
+    state=await waitState(value=>value.preset.version===7&&value.preset.name==='Imported legacy v6');
+    for(const source of ['pulse','noise']) {assert.equal(state.preset[source].lengthHalt,true);assert.equal(state.preset[source].lengthIndex,1);}
+    assert.deepEqual(state.preset.triangle,dmcPortable.triangle);assert.deepEqual(state.preset.fds,dmcPortable.fds);
+    const legacyV5Preset=structuredClone(legacyV6Preset);legacyV5Preset.name='Imported legacy v5';legacyV5Preset.version=5;delete legacyV5Preset.triangle;
     await page.setInputFiles('#presetFileInput',{name:'old-v5-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV5Preset))});
-    state=await waitState(value=>value.preset.version===6&&value.preset.name==='Imported legacy v5');
+    state=await waitState(value=>value.preset.version===7&&value.preset.name==='Imported legacy v5');
     assert.deepEqual(state.preset.triangle,{control:true,linearReload:127,lengthIndex:1});assert.deepEqual(state.preset.fds,dmcPortable.fds);
     const legacyV4Preset=structuredClone(legacyV5Preset);legacyV4Preset.name='Imported legacy v4';legacyV4Preset.version=4;
     legacyV4Preset.fds.envelope={enabled:true,increase:true,period:11,initialGain:17,masterSpeed:37,halt:true};
     delete legacyV4Preset.fds.envelopeClock;delete legacyV4Preset.fds.modulation.envelope;
     await page.setInputFiles('#presetFileInput',{name:'old-v4-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV4Preset))});
-    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===6&&value.preset.name==='Imported legacy v4');
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===7&&value.preset.name==='Imported legacy v4');
     assert.deepEqual(state.preset.fds.envelope,{enabled:true,increase:true,period:11,initialGain:17});
     assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:37,halt:true});
     assert.deepEqual(state.preset.fds.modulation.envelope,{enabled:false,increase:true,period:8,initialGain:0});
     const legacyV3Preset=structuredClone(legacyV4Preset);legacyV3Preset.name='Imported legacy v3';legacyV3Preset.version=3;delete legacyV3Preset.fds.envelope;
     await page.setInputFiles('#presetFileInput',{name:'old-v3-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV3Preset))});
-    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===6&&value.preset.name==='Imported legacy v3');
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===7&&value.preset.name==='Imported legacy v3');
     assert.deepEqual(state.preset.dmc,dmcPortable.dmc);
     assert.deepEqual(state.preset.fds.envelope,{enabled:false,increase:false,period:8,initialGain:32});
     assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:232,halt:false});
     const legacyV2Preset=structuredClone(legacyV3Preset);legacyV2Preset.name='Imported legacy v2';legacyV2Preset.version=2;delete legacyV2Preset.noise.envelope;
     await page.setInputFiles('#presetFileInput',{name:'old-v2-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV2Preset))});
-    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===6&&value.preset.name==='Imported legacy v2'&&value.preset.noise.envelope.period===8);
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===7&&value.preset.name==='Imported legacy v2'&&value.preset.noise.envelope.period===8);
     assert.deepEqual(state.preset.dmc,dmcPortable.dmc);assert.deepEqual(state.preset.noise.envelope,{enabled:false,period:8,loop:false});
     const legacyPreset=structuredClone(legacyV2Preset);legacyPreset.version=1;legacyPreset.source='pulse';delete legacyPreset.dmc;
     await page.setInputFiles('#presetFileInput',{name:'old-v1-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyPreset))});
-    state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===6);
-    assert.equal(state.preset.dmc.data.length,0);assert.deepEqual(state.preset.pulse,legacyPreset.pulse);
+    state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===7);
+    assert.equal(state.preset.dmc.data.length,0);assert.deepEqual(state.preset.pulse,{...legacyPreset.pulse,lengthHalt:true,lengthIndex:1});
 
     check('FDS Wave drawing applies on release and stores exactly 64 six-bit samples');
     await choose('#source','fds');state=await waitState(value=>value.preset.source==='fds');assert.equal(state.capacity,1);
@@ -1179,7 +1239,7 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
     const fdsEnvelopeSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const fdsEnvelopeSave=await fdsEnvelopeSaveEvent;
     const fdsEnvelopePortable=JSON.parse(await fs.readFile(await fdsEnvelopeSave.path(),'utf8'));
-    assert.equal(fdsEnvelopePortable.version,6);
+    assert.equal(fdsEnvelopePortable.version,7);
     assert.deepEqual(fdsEnvelopePortable.fds.envelope,{enabled:true,increase:false,period:9,initialGain:7});
     assert.deepEqual(fdsEnvelopePortable.fds.envelopeClock,{masterSpeed:0,halt:true});
     await page.click('#copyCode');const fdsEnvelopeCode=await page.locator('#codeOutput').inputValue();
@@ -1237,7 +1297,7 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('a');await stop();
     const depthSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const depthSave=await depthSaveEvent;
     const depthPortable=JSON.parse(await fs.readFile(await depthSave.path(),'utf8'));
-    assert.equal(depthPortable.version,6);assert.deepEqual(depthPortable.fds.envelopeClock,{masterSpeed:0,halt:true});
+    assert.equal(depthPortable.version,7);assert.deepEqual(depthPortable.fds.envelopeClock,{masterSpeed:0,halt:true});
     assert.deepEqual(depthPortable.fds.modulation.envelope,{enabled:true,increase:false,period:8,initialGain:13});
     await page.click('#copyCode');const depthCode=await page.locator('#codeOutput').inputValue();
     assert.match(depthCode,/nes\.writeRegister\(0x4084,\s*141\)/i);assert.match(depthCode,/nes\.writeRegister\(0x4080,\s*135\)/i);
@@ -1260,7 +1320,7 @@ async function runEngine(name, engine, origin) {
     const downloadEvent=page.waitForEvent('download');await page.click('#savePreset');const download=await downloadEvent;
     assert.equal(download.suggestedFilename(),'2a03-voice.json');
     const portable=JSON.parse(await fs.readFile(await download.path(),'utf8'));
-    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.version,6);assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
+    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.version,7);assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
     await page.setInputFiles('#presetFileInput',{name:'self-authored-nes-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(portable))});
     state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.modulation.enabled);assert.deepEqual(state.preset,portable);
@@ -1298,7 +1358,7 @@ async function runEngine(name, engine, origin) {
     state=await importVoice(2,preset=>preset.source==='triangle');assert.equal(state.capacity,1);
     assert.deepEqual(state.preset.triangle,{control:true,linearReload:127,lengthIndex:17});
     state=await importVoice(3,preset=>preset.source==='noise'&&preset.noise.volume===11);
-    assert.deepEqual(state.preset.noise,{volume:11,period:3,shortMode:true,envelope:{enabled:false,period:11,loop:true}});
+    assert.deepEqual(state.preset.noise,{volume:11,period:3,shortMode:true,envelope:{enabled:false,period:11,loop:true},lengthHalt:true,lengthIndex:1});
     state=await importVoice(4,preset=>preset.source==='fds'&&preset.fds.volume===24&&preset.fds.modulation.enabled);
     assert.deepEqual(state.preset.fds.wave,vgmWave);assert.equal(state.preset.fds.master,0);
     assert.deepEqual(state.preset.fds.modulation,{enabled:true,table:vgmModulation,rate:256,depth:16,bias:0,envelope:{enabled:false,increase:false,period:16,initialGain:16}});
@@ -1368,7 +1428,7 @@ async function runEngine(name, engine, origin) {
     assert.deepEqual(state.preset.noise.envelope,{enabled:true,period:3,loop:true});
     assert.equal(await page.isChecked('#noiseEnvelopeEnabled'),true);assert.equal(await page.isChecked('#noiseEnvelopeLoop'),true);
     assert.equal(await page.locator('#noiseEnvelopePeriod').textContent(),'3');
-    assert.equal(await page.isVisible('#vgmVoiceWarnings'),false);
+    assert.match(await page.locator('#vgmVoiceWarnings').textContent(),/Length Counter.*restarts.*frame phase/);
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);
     assert.equal(state.registers[0x0c],0x23);await sound();await page.keyboard.up('a');await stop();
 
@@ -1395,6 +1455,24 @@ async function runEngine(name, engine, origin) {
     assert(!/FDS modulation Envelope is approximated by fixed depth/i.test(await page.locator('#vgmVoiceWarnings').textContent()));
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsSweepGain>0);
     assert.equal(state.registers[0x84],0x48);assert.equal(state.registers[0x83]&0xc0,0);await sound();await page.keyboard.up('a');await stop();
+
+    check('VGM Pulse / Noise Length settings survive import, including shared Envelope bits and index zero');
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-pulse-noise-length.vgm',mimeType:'application/octet-stream',buffer:makePulseNoiseLengthVgm()});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-pulse-noise-length.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===4);
+    state=await importVoice(0,preset=>preset.source==='pulse'&&!preset.pulse.lengthHalt&&preset.pulse.lengthIndex===4);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
+    const importedPulseChannel=state.voices[0].channel;assert.equal(state.registers[importedPulseChannel*4]&32,0);assert.equal(state.registers[importedPulseChannel*4+3]>>3,4);
+    await waitState(value=>value.coreState.lengths[importedPulseChannel]===0);await silent();await page.keyboard.up('a');await stop();
+    state=await importVoice(1,preset=>preset.source==='pulse'&&preset.pulse.lengthHalt&&preset.pulse.lengthIndex===0);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);assert.equal(state.registers[state.voices[0].channel*4+3]>>3,0);await sound();await page.keyboard.up('a');await stop();
+    for(const index of [2,3]) {
+      state=await importVoice(index,preset=>preset.source==='noise'&&preset.noise.envelope.enabled===(index===3));
+      assert.equal(state.preset.noise.lengthHalt,false);assert.equal(state.preset.noise.lengthIndex,4);
+      await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
+      assert.equal(state.registers[0x0c]&32,0);assert.equal(state.registers[0x0f]>>3,4);
+      state=await waitState(value=>value.coreState.lengths[3]===0);if(index===3)assert(state.coreState.volumes[3]>0,'Length ends before the slow one-shot Envelope');
+      await silent();await page.keyboard.up('a');await stop();
+    }
 
     check('VGM Triangle counter settings remain distinct from pitch and drive the hardware gate');
     await page.setInputFiles('#vgmFileInput',{name:'self-authored-triangle-gates.vgm',mimeType:'application/octet-stream',buffer:makeTriangleGateVgm()});
@@ -1479,7 +1557,8 @@ async function runEngine(name, engine, origin) {
       noiseEnvelopePassive:true,noiseEnvelopeHardwareDecay:true,noiseEnvelopeHardwareLoop:true,noiseEnvelopeNextTrigger:true,noiseEnvelopeLiveClock:true,noiseEnvelopeLateRelease:true,noiseEnvelopeKeyboardFocus:true,noiseEnvelopePresetRoundTrip:true,noiseEnvelopeCodeExport:true,noiseEnvelopeVgmImport:true,noiseEnvelopeMobile:true,presetV1V2Migration:true,
       fdsEnvelopePassive:true,fdsEnvelopeHardwareRise:true,fdsEnvelopeHardwareDecay:true,fdsEnvelopeSeed:true,fdsEnvelopeFreeze:true,fdsEnvelopeNextTrigger:true,fdsEnvelopeMasterLive:true,fdsEnvelopePitchLive:true,fdsEnvelopeModulationLive:true,fdsEnvelopeLateRelease:true,fdsEnvelopeKeyboardFocus:true,fdsEnvelopePresetRoundTrip:true,fdsEnvelopeCodeExport:true,fdsEnvelopeVgmImport:true,fdsEnvelopeMobile:true,presetV1V2V3Migration:true,
       fdsDepthEnvelopePassive:true,fdsDepthEnvelopeHardwareRise:true,fdsDepthEnvelopeHardwareDecay:true,fdsDepthEnvelopeOnly:true,fdsDepthEnvelopeSharedClock:true,fdsDepthEnvelopeDualFreeze:true,fdsDepthEnvelopeNextTrigger:true,fdsDepthEnvelopeLiveEdits:true,fdsDepthEnvelopeLateRelease:true,fdsDepthEnvelopePresetRoundTrip:true,fdsDepthEnvelopeCodeExport:true,fdsDepthEnvelopeVgmImport:true,fdsDepthEnvelopeMobile:true,presetV1V2V3V4Migration:true,
-      triangleGatePassive:true,triangleGateTimeEstimates:true,triangleLinearGate:true,triangleLengthGate:true,triangleLengthIndexZero:true,triangleReloadZeroSilent:true,triangleGateNextTrigger:true,triangleGateLateRelease:true,triangleGateOwnership:true,triangleGatePresetRoundTrip:true,triangleGateCodeExport:true,triangleGateVgmImport:true,triangleGateVgmPitchDedup:true,triangleGateMobile:true,presetV1ThroughV5Migration:true,
+      triangleGatePassive:true,triangleGateTimeEstimates:true,triangleLinearGate:true,triangleLengthGate:true,triangleLengthIndexZero:true,triangleReloadZeroSilent:true,triangleGateNextTrigger:true,triangleGateLateRelease:true,triangleGateOwnership:true,triangleGatePresetRoundTrip:true,triangleGateCodeExport:true,triangleGateVgmImport:true,triangleGateVgmPitchDedup:true,triangleGateMobile:true,presetV1ThroughV6Migration:true,
+      pulseNoiseLengthPassive:true,pulseNoiseLengthTimeEstimates:true,pulseNoiseLengthGate:true,pulseNoiseLengthOwnership:true,pulseNoiseLengthNextTrigger:true,pulseNoiseLengthIndexZero:true,pulseNoiseLengthLoopCoupling:true,pulseNoiseLengthPresetRoundTrip:true,pulseNoiseLengthCodeExport:true,pulseNoiseLengthVgmImport:true,pulseNoiseLengthVgmPitchDedup:true,pulseNoiseLengthMobile:true,
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,

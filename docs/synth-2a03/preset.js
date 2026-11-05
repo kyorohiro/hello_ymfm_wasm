@@ -3,7 +3,8 @@
 const FORMAT = 'tetorica-nes-fds-voice';
 const SOURCES = ['pulse', 'triangle', 'noise', 'dmc', 'fds'];
 export const MAX_DPCM_BYTES = 4081;
-export const TRIANGLE_LENGTHS = Object.freeze([10,254,20,2,40,4,80,6,160,8,60,10,14,12,26,14,12,16,24,18,48,20,96,22,192,24,72,26,16,28,32,30]);
+export const LENGTH_TABLE = Object.freeze([10,254,20,2,40,4,80,6,160,8,60,10,14,12,26,14,12,16,24,18,48,20,96,22,192,24,72,26,16,28,32,30]);
+export const TRIANGLE_LENGTHS = LENGTH_TABLE;
 const own = (value, keys, label) => {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       ![null, Object.prototype].includes(Object.getPrototypeOf(value))) throw new TypeError(`${label}: expected an object`);
@@ -61,11 +62,11 @@ export function waveShape(name) {
 
 export function createDefaultPreset() {
   return {
-    format: FORMAT, version: 6, name: 'Pulse', source: 'pulse',
-    pulse: {duty: .5, volume: 10, envelope: {enabled: false, period: 8, loop: false},
+    format: FORMAT, version: 7, name: 'Pulse', source: 'pulse',
+    pulse: {duty: .5, volume: 10, lengthHalt: true, lengthIndex: 1, envelope: {enabled: false, period: 8, loop: false},
       sweep: {enabled: false, period: 2, negate: false, shift: 1}},
     triangle: {control: true, linearReload: 127, lengthIndex: 1},
-    noise: {volume: 8, period: 6, shortMode: false, envelope: {enabled: false, period: 8, loop: false}},
+    noise: {volume: 8, period: 6, shortMode: false, lengthHalt: true, lengthIndex: 1, envelope: {enabled: false, period: 8, loop: false}},
     dmc: {data: [], rate: 15, loop: false, level: 64},
     fds: {wave: waveShape('sine'), volume: 24, master: 0,
       envelope: {enabled: false, increase: false, period: 8, initialGain: 32},
@@ -83,14 +84,15 @@ export function readPreset(value) {
   const legacyFdsClock = value?.version === 4;
   const legacyModulation = [1, 2, 3, 4].includes(value?.version);
   const legacyTriangle = [1, 2, 3, 4, 5].includes(value?.version);
+  const legacyLength = [1, 2, 3, 4, 5, 6].includes(value?.version);
   own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc']), ...(legacyTriangle ? [] : ['triangle'])], 'NES + FDS preset');
-  if (value.format !== FORMAT || ![1, 2, 3, 4, 5, 6].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
+  if (value.format !== FORMAT || ![1, 2, 3, 4, 5, 6, 7].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
-  own(value.pulse, ['duty', 'volume', 'envelope', 'sweep'], 'Pulse');
+  own(value.pulse, ['duty', 'volume', 'envelope', 'sweep', ...(legacyLength ? [] : ['lengthHalt', 'lengthIndex'])], 'Pulse');
   own(value.pulse.envelope, ['enabled', 'period', 'loop'], 'Pulse envelope');
   own(value.pulse.sweep, ['enabled', 'period', 'negate', 'shift'], 'Pulse sweep');
   if (!legacyTriangle) own(value.triangle, ['control', 'linearReload', 'lengthIndex'], 'Triangle');
-  own(value.noise, ['volume', 'period', 'shortMode', ...(legacyNoise ? [] : ['envelope'])], 'Noise');
+  own(value.noise, ['volume', 'period', 'shortMode', ...(legacyNoise ? [] : ['envelope']), ...(legacyLength ? [] : ['lengthHalt', 'lengthIndex'])], 'Noise');
   if (!legacyNoise) own(value.noise.envelope, ['enabled', 'period', 'loop'], 'Noise envelope');
   if (!legacy) own(value.dmc, ['data', 'rate', 'loop', 'level'], 'DMC');
   own(value.fds, ['wave', 'volume', 'master', 'modulation', ...(legacyFds ? [] : ['envelope']), ...(legacyModulation ? [] : ['envelopeClock'])], 'FDS');
@@ -99,8 +101,9 @@ export function readPreset(value) {
   own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias', ...(legacyModulation ? [] : ['envelope'])], 'FDS modulation');
   if (!legacyModulation) own(value.fds.modulation.envelope, ['enabled', 'increase', 'period', 'initialGain'], 'FDS modulation envelope');
   return {
-    format: FORMAT, version: 6, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
+    format: FORMAT, version: 7, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
     pulse: {duty: choice(value.pulse.duty, [.125, .25, .5, .75], 'Pulse duty'), volume: integer(value.pulse.volume, 0, 15, 'Pulse volume'),
+      lengthHalt: legacyLength ? true : boolean(value.pulse.lengthHalt, 'Pulse length halt'), lengthIndex: legacyLength ? 1 : integer(value.pulse.lengthIndex, 0, 31, 'Pulse length index'),
       envelope: {enabled: boolean(value.pulse.envelope.enabled, 'Envelope enabled'), period: integer(value.pulse.envelope.period, 0, 15, 'Envelope period'), loop: boolean(value.pulse.envelope.loop, 'Envelope loop')},
       sweep: {enabled: boolean(value.pulse.sweep.enabled, 'Sweep enabled'), period: integer(value.pulse.sweep.period, 0, 7, 'Sweep period'), negate: boolean(value.pulse.sweep.negate, 'Sweep negate'), shift: integer(value.pulse.sweep.shift, 0, 7, 'Sweep shift')}},
     triangle: legacyTriangle ? {control:true, linearReload:127, lengthIndex:1} : {
@@ -108,6 +111,7 @@ export function readPreset(value) {
       lengthIndex: integer(value.triangle.lengthIndex, 0, 31, 'Triangle length index'),
     },
     noise: {volume: integer(value.noise.volume, 0, 15, 'Noise volume'), period: integer(value.noise.period, 0, 15, 'Noise period'), shortMode: boolean(value.noise.shortMode, 'Noise short mode'),
+      lengthHalt: legacyLength ? true : boolean(value.noise.lengthHalt, 'Noise length halt'), lengthIndex: legacyLength ? 1 : integer(value.noise.lengthIndex, 0, 31, 'Noise length index'),
       envelope: legacyNoise ? {enabled: false, period: 8, loop: false} : {
         enabled: boolean(value.noise.envelope.enabled, 'Noise envelope enabled'), period: integer(value.noise.envelope.period, 0, 15, 'Noise envelope period'), loop: boolean(value.noise.envelope.loop, 'Noise envelope loop'),
       }},
@@ -138,10 +142,18 @@ export function presetToCode(value) {
   const preset = readPreset(value), channel = preset.source === 'pulse' ? 0 : preset.source === 'triangle' ? 2 : preset.source === 'noise' ? 3 : preset.source === 'dmc' ? 4 : 5;
   const lines = ['// Select Mode: NES + FDS in the Playground, then Run.', `// ${preset.name || 'Untitled NES + FDS voice'}`];
   if (preset.source === 'pulse') {
-    const {duty, volume, envelope, sweep} = preset.pulse;
+    const {duty, volume, envelope, sweep, lengthHalt, lengthIndex} = preset.pulse;
     const voice = {duty, ...(envelope.enabled ? {envelope: {period: envelope.period, loop: envelope.loop}} : {volume}),
       sweep: sweep.enabled ? sweep : {enabled: false, period: 0, negate: true, shift: 0}};
     for (const ch of [0, 1]) lines.push(`nes.pulse.setVoice(${ch}, ${JSON.stringify(voice)});`);
+    if (!envelope.enabled) {
+      const dutyBits = [.125, .25, .5, .75].indexOf(duty) << 6;
+      for (const ch of [0, 1]) lines.push(`nes.writeRegister(0x${(0x4000 + ch * 4).toString(16)}, ${dutyBits | 16 | (lengthHalt ? 32 : 0) | volume}); // Fixed volume / hardware length halt.`);
+    }
+    lines.push('const pulsePeriod = nes.pulse.setFrequency(0, 440 * 2 ** ((60 - 69) / 12)); // C4.',
+      `nes.writeRegister(0x4003, ${lengthIndex << 3} | (pulsePeriod >> 8)); // Authored length-table index, including zero.`,
+      'nes.pulse.keyOn(0);', '// Release with nes.noteOff(0);');
+    return lines.join('\n');
   } else if (preset.source === 'triangle') {
     const {control, linearReload, lengthIndex} = preset.triangle;
     lines.push('const trianglePeriod = nes.triangle.setFrequency(440 * 2 ** ((60 - 69) / 12)); // C4.',
@@ -151,9 +163,14 @@ export function presetToCode(value) {
     return lines.join('\n');
   }
   else if (preset.source === 'noise') {
-    const {volume, period, shortMode, envelope} = preset.noise;
+    const {volume, period, shortMode, envelope, lengthHalt, lengthIndex} = preset.noise;
     lines.push(`nes.noise.setVoice(${JSON.stringify({volume, period, shortMode})});`);
     if (envelope.enabled) lines.push(`nes.writeRegister(0x400c, ${(envelope.loop ? 32 : 0) | envelope.period}); // Hardware Noise volume envelope.`);
+    else lines.push(`nes.writeRegister(0x400c, ${16 | (lengthHalt ? 32 : 0) | volume}); // Fixed volume / hardware length halt.`);
+    lines.push('nes.noise.noteOn(); // Enable Noise; its clock sets texture, not note pitch.',
+      `nes.writeRegister(0x400f, ${lengthIndex << 3}); // Replace the helper default with the authored length index.`,
+      '// Release with nes.noteOff(3);');
+    return lines.join('\n');
   }
   else if (preset.source === 'dmc') {
     lines.push('// Encoded 1-bit DPCM bytes; each key uses the selected rate, not a musical note.');
