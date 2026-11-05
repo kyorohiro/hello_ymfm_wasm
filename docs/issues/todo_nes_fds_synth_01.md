@@ -11,6 +11,29 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## NoiseハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
+
+既存NES APU coreにあるNoise Envelopeを、独立Synthの操作・preset・VGM読込へつなぐ。ソフト側のgain automationやADSRは追加せず、既存の公開register APIで実機のcontrol／triggerを設定する。共有runtime・DSP／WASMは変更しない。
+
+- [x] Noiseに`envelope:{enabled,period,loop}`を持つpreset v3を用意し、厳密なv1／v2からEnvelope Offへ移行する。保存・Copy JavaScriptも現在のAPIで再現する。
+- [x] NoiseカードにHardware volume envelope、Enable／Period／LoopをPulseと同様のbutton中心UIで追加し、固定volumeとの有効状態と実機機能であることを示す。
+- [x] 固定volume・LFSR Period／modeのlive編集を保ち、Envelope設定の変更はPulse同様に次のnoteから適用する。保持中のclock変更でEnvelopeを固定volumeへ戻したり再triggerしたりしない。
+- [x] VGMのNoise Envelope enable／period／loopを取り込み、固定volume近似の警告を外す。初期設定読込と曲全体の再生は区別する。
+- [x] 実WASMで減衰・Loop・period差・再trigger・離鍵・古いowner・live編集、旧preset移行と不正入力のatomicityを検証する。
+- [x] Chromium／WebKitと独立ZIPでUI・focus・実PCM・VGM・preset・code exportを確認し、ガイドと検証結果を記録する。
+
+`instrument.js`の`_noiseVoice()`は既存公開register APIで`$400c`の固定volume／Envelope divider／Loopを設定し、`$400e`でLFSR clock／modeを設定する。発音時は既存`noise.noteOn()`の`$400f`で実機Envelopeを開始する。保持中はEnvelopeのmode・divider・Loopを維持し、clock変更で`$400c`やtriggerを書き直さない。ソフトのgain automationは追加していない。参考：[NESdev APU Envelope](https://www.nesdev.org/wiki/APU_Envelope)。
+
+preset v3はNoise Envelopeを必須として厳密に検証する。v1／v2は従来のNoise構造を検証してOff／Period 8／Loop falseを追加し、元の固定volumeを保つ。新規保存はv3なので、古いSynthでは読めない。Copy JavaScriptは既存の`noise.setVoice({volume,period,shortMode})`後、Envelope Onなら`writeRegister(0x400c, ...)`を追加してから発音する。共有runtime／DSP／WASMは変更せず、npm公開も不要。VGMは記録されたEnvelope enable／divider／loopを維持し、従来の固定volume 15近似を外した。曲の後続register変更・note timingを再生する機能は追加していない。
+
+検証：`npm run test:2a03-synth`は**102件成功、失敗0**（既存93＋preset 2＋実WASM Noise 5＋VGM 2）。44.1／48 kHzで減衰・Loop再開・Period 0／15の速度差・再trigger・離鍵・mono owner、保持中のclock編集とEnvelope位相維持、次triggerへの設定反映、不正値のatomicity、生成codeとVGM設定の実レジスター反映を確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。無音の編集、fixed／Envelope controlの無効状態、実PCM、decay／Loop、次note反映、keyboard focus、preset v3保存・復元、v1／v2移行、VGM設定・code export、既存DMC／FDSの回帰を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定した。Noiseのmobile画面も確認済み。記録：[ソース版](2a03_synth_noise_envelope_browser_01.json)、[ZIP版](2a03_synth_noise_envelope_zip_browser_01.json)。初回検証で残っていた旧Noise形式の期待値と、旧presetの読込完了待ちを修正して最終matrixを通した。
+
+配布候補：`release/tetorica_2a03_synth_noise-envelope-20261105_itch.zip`（35 files／3 bundles、1,169,967 bytes、SHA-256 `e08e60c8aabc6da157e78b275a50402f6cda570a26b70ca6e1e96ab98085c66b`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。ガイド・英日AI README・homeの案内も更新した。
+
+試し方：ページ再読込 → Noise → Hardware volume envelopeの`Enable Envelope`をOn → Periodを調整して鍵盤 → Loop Onで再発音。設定変更は次のnoteから反映する。手元の実聴、今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## DPCMファイル書き出し（2026-11-05 完了・追加分は未公開）
 
 編集・抽出したDMCのbytesを`.dmc`として持ち帰れるようにする。先にTODOを記録してから実装する。Noise Envelope、PCM音声の自動変換、範囲編集は今回の対象に含めない。
@@ -275,7 +298,8 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [ ] 実ゲームVGM／VGZのDMCでRAM記録の有無と試奏を確認する。必要なら圧縮NES bank `0x47`や追加stream形式を別段階で拡張する。
 - [x] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する（上記2026-11-04の追加作業）。
 - [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
-- [ ] FDS／Triangle／Noiseの追加Envelope／length counter編集を段階的に検討する。
+- [x] NoiseのハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
+- [ ] FDS／Triangleの追加Envelope／counter制御と、各channelのlength counter編集を段階的に検討する。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時

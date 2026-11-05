@@ -9,19 +9,24 @@ test('portable NES/FDS preset owns complete independent six-bit wave and modulat
   const source = createDefaultPreset(); source.name = '  FDS flute  '; source.source = 'fds';
   source.fds.modulation.enabled = true; source.fds.modulation.bias = -24;
   source.pulse.envelope = {enabled: true, period: 4, loop: true};
+  source.noise.envelope = {enabled: true, period: 5, loop: true};
   const copy = readPreset(JSON.parse(JSON.stringify(source)));
   assert.deepEqual(copy, {...source, name: 'FDS flute'});
-  copy.fds.wave[0] = 63; copy.fds.modulation.table[0] = 4;
+  copy.fds.wave[0] = 63; copy.fds.modulation.table[0] = 4; copy.noise.envelope.period = 0;
   assert.notEqual(source.fds.wave[0], 63); assert.equal(source.fds.modulation.table[0], 1);
+  assert.equal(source.noise.envelope.period, 5);
 });
 
 test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hardware data', () => {
   const changes = [
-    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 3;}, p => {p.source = 'sid';},
+    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 4;}, p => {p.source = 'sid';},
     p => {p.name = 'a\ncode';}, p => {p.name = 'a'.repeat(81);}, p => {p.name = 'bad\u2028code';},
     p => {p.pulse.duty = .4;}, p => {p.pulse.volume = 16;}, p => {p.pulse.envelope.enabled = 1;}, p => {p.pulse.envelope.period = -1;},
     p => {p.pulse.sweep.period = 8;}, p => {p.pulse.sweep.shift = 1.5;}, p => {p.pulse.sweep.negate = 'true';},
     p => {p.noise.period = 16;}, p => {p.noise.volume = -1;}, p => {p.noise.shortMode = 0;},
+    p => {delete p.noise.envelope;}, p => {p.noise.envelope = null;}, p => {p.noise.envelope.extra = 1;},
+    p => {delete p.noise.envelope.loop;}, p => {p.noise.envelope.enabled = 1;}, p => {p.noise.envelope.loop = 'false';},
+    p => {p.noise.envelope.period = -1;}, p => {p.noise.envelope.period = 16;}, p => {p.noise.envelope.period = .5;}, p => {p.noise.envelope.period = NaN;},
     p => {p.fds.wave.pop();}, p => {delete p.fds.wave[4];}, p => {p.fds.wave.foo = 1;}, p => {p.fds.wave[5] = 64;},
     p => {p.fds.volume = 33;}, p => {p.fds.master = 4;}, p => {p.fds.modulation.table[1] = 8;},
     p => {p.fds.modulation.table.length = 31;}, p => {p.fds.modulation.table.extra = 1;},
@@ -31,14 +36,16 @@ test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hard
   for (const change of changes) {const preset = createDefaultPreset(); change(preset); assert.throws(() => readPreset(preset));}
 });
 
-test('v2 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
-  const original = createDefaultPreset(); delete original.dmc; original.version = 1;
+test('v3 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
+  const original = createDefaultPreset(); delete original.dmc; delete original.noise.envelope; original.version = 1;
   const migrated = readPreset(original);
-  assert.equal(migrated.version, 2); assert.equal(migrated.source, 'pulse');
+  assert.equal(migrated.version, 3); assert.equal(migrated.source, 'pulse');
   assert.deepEqual(migrated.dmc, {data: [], rate: 15, loop: false, level: 64});
+  assert.deepEqual(migrated.noise, {...original.noise, envelope:{enabled:false, period:8, loop:false}});
   assert.deepEqual(migrated.fds, original.fds);
   assert.throws(() => readPreset({...original, source:'dmc'}));
   assert.throws(() => readPreset({...original, dmc:migrated.dmc}));
+  assert.throws(() => readPreset({...original, noise:migrated.noise}), 'v1 does not accept a hidden v3 Envelope field');
   const preset = createDefaultPreset(); preset.source = 'dmc'; preset.dmc.data = createDemoDpcm();
   const restored = readPreset(JSON.parse(JSON.stringify(preset)));
   assert.deepEqual(restored, preset);
@@ -53,6 +60,40 @@ test('v2 owns DPCM bytes and strictly migrates original v1 presets without enabl
   ]) {const invalid = structuredClone(preset); change(invalid); assert.throws(() => readPreset(invalid));}
   const inherited = structuredClone(preset); delete inherited.dmc.data[0]; inherited.dmc.data.extra = 0;
   Object.setPrototypeOf(inherited.dmc.data, {0:255}); assert.throws(() => readPreset(inherited));
+});
+
+test('v2 DPCM presets migrate to a detached disabled Noise envelope without changing other settings', () => {
+  const original = createDefaultPreset(); original.version = 2; original.source = 'dmc';
+  original.dmc = {data:[1,2,255], rate:3, loop:true, level:31}; delete original.noise.envelope;
+  const before = structuredClone(original), migrated = readPreset(original);
+  assert.deepEqual(original,before,'migration never edits the input');
+  assert.deepEqual(migrated,{...before, version:3, noise:{...before.noise,envelope:{enabled:false,period:8,loop:false}}});
+  migrated.dmc.data[0] = 0; assert.equal(original.dmc.data[0],1);
+  const another = readPreset(original); migrated.noise.envelope.period = 15;
+  assert.equal(another.noise.envelope.period,8,'each legacy migration owns its Envelope settings');
+  assert.throws(() => readPreset({...original,noise:another.noise}),'v2 rejects unexpected Envelope fields');
+  assert.throws(() => readPreset({...original,version:3}),'v3 requires explicit Envelope settings');
+  const invalid = structuredClone(original); invalid.noise.shortMode = 1;
+  assert.throws(() => readPreset(invalid),'migration validates old fields before accepting them');
+});
+
+test('Noise Envelope endpoints survive JSON round-trip and generated code configures the existing register API before trigger', () => {
+  for (const enabled of [false,true]) for (const period of [0,15]) for (const loop of [false,true]) {
+    const preset = createDefaultPreset(); preset.source = 'noise';
+    preset.noise = {volume:3,period:7,shortMode:true,envelope:{enabled,period,loop}};
+    assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+    const writes = [], nes = new NesApuSynth({transport:{writeRegister:(r,v)=>writes.push([r,v])}});
+    writes.length = 0;
+    vm.runInNewContext(presetToCode(preset),{nes});
+    const expectedControl = enabled ? (loop ? 32 : 0) | period : 0x30 | preset.noise.volume;
+    const controlWrites = writes.filter(([r]) => r === 0x400c);
+    assert.equal(controlWrites.at(-1)[1],expectedControl);
+    assert(writes.some(([r,v]) => r === 0x400e && v === 0x87));
+    const controlIndex = writes.findLastIndex(([r]) => r === 0x400c), triggerIndex = writes.findIndex(([r]) => r === 0x400f);
+    assert(controlIndex < triggerIndex && triggerIndex >= 0,'Envelope control is established before the real Noise trigger');
+    assert.equal(writes[triggerIndex][1],8);
+    assert.equal(nes._getState().registers[0x0c],expectedControl);
+  }
 });
 
 test('built-in DPCM demo loops at level 64 without saturation or an unmatched tail', () => {

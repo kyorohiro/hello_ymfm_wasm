@@ -47,13 +47,13 @@ test('NES VGM maps five channel definitions and ignores pitch-only differences w
     sweep:{enabled:true, period:0, negate:true, shift:2}});
   assert.equal(b.pulse.duty, .25); assert.equal(b.pulse.volume, 10);
   assert.equal(c.source, 'triangle');
-  assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true});
+  assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true, envelope:{enabled:false, period:11, loop:true}});
   assert.deepEqual(e.fds, {wave, volume:24, master:1, modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1}});
   for (const voice of result.voices) assert.deepEqual(readPreset(voice.preset), voice.preset);
   assert.equal(result.timebase, 44100);
 });
 
-test('Pulse hardware envelopes remain envelopes and Noise envelopes have an explicit fixed-volume approximation', async () => {
+test('Pulse and Noise hardware envelopes retain their recorded initial settings', async () => {
   const result = await extractVgmInstruments(vgm([...power,
     ...w(0, 0x80 | 0x20 | 7), ...w(1, 8), ...w(2, 0x40), ...w(3, 9),
     ...w(0x0c, 2), ...w(0x0e, 5), ...w(0x0f, 8), 0x66]));
@@ -61,8 +61,26 @@ test('Pulse hardware envelopes remain envelopes and Noise envelopes have an expl
   assert.deepEqual(p.preset.pulse.envelope, {enabled:true, period:7, loop:true});
   const n = result.voices.find(voice => voice.kind === 'noise');
   assert.equal(n.preset.noise.volume, 15);
-  assert(n.warnings.some(message => /Noise.*Envelope.*fixed volume 15/i.test(message)));
-  assert(result.warnings.some(message => /Noise.*Envelope/i.test(message)));
+  assert.deepEqual(n.preset.noise.envelope, {enabled:true, period:2, loop:false});
+  assert(!n.warnings.some(message => /Noise.*Envelope.*fixed volume|decay.*not imported/i.test(message)));
+  assert(!result.warnings.some(message => /Noise.*Envelope.*fixed volume|decay.*not imported/i.test(message)));
+  assert(result.warnings.some(message => /Initial settings only.*later register changes/i.test(message)));
+});
+
+test('Noise Envelope period and loop distinguish voices, period zero is audible, and fixed zero is omitted', async () => {
+  const attacks = [0x30, 0, 15, 0x2f, 0x3b, 0x2f].flatMap(control => [
+    ...w(0x15, 0), ...w(0x0c, control), ...w(0x0e, 0x85), ...w(0x15, 8), ...w(0x0f, 8), ...wait,
+  ]);
+  const result = await extractVgmInstruments(vgm([...attacks, 0x66]));
+  assert.deepEqual(result.voices.map(voice => [voice.preset.noise, voice.occurrences]), [
+    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:0, loop:false}}, 1],
+    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:15, loop:false}}, 1],
+    [{volume:15, period:5, shortMode:true, envelope:{enabled:true, period:15, loop:true}}, 2],
+    [{volume:11, period:5, shortMode:true, envelope:{enabled:false, period:11, loop:true}}, 1],
+  ]);
+  assert.equal(result.voices[0].firstTime, 1000, 'the preceding silent fixed-volume trigger is not a voice');
+  assert(result.voices.every(voice => voice.kind === 'noise' && voice.channel === 4));
+  for (const voice of result.voices) assert.deepEqual(readPreset(voice.preset), voice.preset);
 });
 
 test('APU enable masks gate real trigger writes, while known silent attacks can open through later control writes', async () => {
@@ -221,4 +239,20 @@ test('every imported source produces finite audible PCM through the actual NES /
     assert(pcm.left.every(Number.isFinite) && pcm.right.every(Number.isFinite), voice.preset.name);
     assert(pcm.left.some(value => Math.abs(value) > .0001), voice.preset.name);
   }
+});
+
+test('imported Noise Envelope settings reach the real WASM hardware control without fixed-volume approximation', async t => {
+  const {voices:[voice]} = await extractVgmInstruments(vgm([
+    ...w(0x15, 8), ...w(0x0c, 0x23), ...w(0x0e, 0x85), ...w(0x0f, 8), 0x66,
+  ]));
+  const wasmBinary = await readFile(new URL('../generated/nesapu_wasm.wasm', import.meta.url));
+  const core = await NesApuWasm.create({moduleFactory:factory, moduleOptions:{wasmBinary}, sampleRate:48000, fds:true});
+  const instrument = new NesInstrument(core); t.after(() => instrument.dispose());
+  instrument.loadPreset(voice.preset); instrument.noteOn('imported-noise-envelope', 60);
+  const state = instrument.read();
+  assert.equal(state.registers[0x0c], 0x23, 'Envelope mode, loop and divider are retained in $400C');
+  assert.equal(state.registers[0x0e], 0x85, 'the independent Noise clock and LFSR mode are retained');
+  const pcm = instrument.generateStereo(4096);
+  assert(pcm.left.every(Number.isFinite) && pcm.right.every(Number.isFinite));
+  assert(pcm.left.some(value => Math.abs(value) > .0001));
 });

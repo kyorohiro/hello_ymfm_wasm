@@ -36,11 +36,21 @@ export class NesInstrument {
     if (!live) voice.sweep = sweep.enabled ? sweep : quietSweep;
     this.synth.pulse.setVoice(channel, voice);
   }
+  _noiseVoice(preset, {live = false} = {}) {
+    const {volume, period, shortMode, envelope} = preset.noise;
+    const constantVolume = Boolean(this.synth._getState().registers[0x0c] & 16);
+    // Match Pulse editing: keep a held envelope's mode and decay state until
+    // the next attack. LFSR clock/mode remain live without a trigger write.
+    if (!live || constantVolume && !envelope.enabled) {
+      this.synth.writeRegister(0x400c, envelope.enabled ? (envelope.loop ? 32 : 0) | envelope.period : 0x30 | volume);
+    }
+    this.synth.writeRegister(0x400e, (shortMode ? 128 : 0) | period);
+  }
   _apply(previous, next) {
     const changed = (path, value) => !previous || !equal(path(previous), value);
     if (changed(p => p.pulse, next.pulse)) for (let channel = 0; channel < 2; channel++) this._pulseVoice(channel, next, {live: Boolean(this.slots[channel])});
     if (!previous) this.synth.writeRegister(0x4008, 0xff);
-    if (changed(p => p.noise, next.noise)) this.synth.noise.setVoice(next.noise);
+    if (changed(p => p.noise, next.noise)) this._noiseVoice(next, {live:Boolean(this.slots[3])});
     if (changed(p => p.dmc.data, next.dmc.data) && next.dmc.data.length) {
       // This instrument runs inside the Worklet with a DirectTransport, so
       // the public low-level memory upload completes synchronously. Padding
@@ -111,7 +121,7 @@ export class NesInstrument {
       this._retune(channel, tone.period, {trigger: true}); this.synth.keyOn(channel);
     } else if (source === 'triangle') {
       this.synth.writeRegister(0x4008, 0xff); this._retune(2, tone.period, {trigger: true}); this.synth.keyOn(2);
-    } else if (source === 'noise') {this.synth.noise.setVoice(this.preset.noise); this.synth.noise.noteOn();}
+    } else if (source === 'noise') {this._noiseVoice(this.preset); this.synth.noise.noteOn();}
     else if (source === 'dmc') {
       const {rate, loop, level, data} = this.preset.dmc;
       this.synth.noteOff(4);

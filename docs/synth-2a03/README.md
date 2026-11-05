@@ -24,7 +24,7 @@ One NTSC NES APU with FDS supplies these voices:
 | --- | --- | --- |
 | Pulse | Two, in round robin | Four Duty settings, fixed volume, hardware Envelope and Sweep |
 | Triangle | One | Fixed hardware waveform with keyboard note and gate |
-| Noise | One | Volume, period code and long / short LFSR sequence |
+| Noise | One | Fixed volume or hardware Envelope, period code and long / short LFSR sequence |
 | DMC | One | Pre-encoded DPCM sample, 16 Rate settings, Loop and Initial level |
 | FDS | One | 64 six-bit samples, volume / master scale, frequency modulation |
 
@@ -54,14 +54,27 @@ navigation; letter keys remain available for notes. Numeric controls use
 **− / value / +** buttons. Drag the center value or use Arrow / Home / End to
 change it. The instrument name is an ordinary text input.
 
-Pulse Envelope starts at the hardware maximum and decays. Its period is 0–15;
+Pulse and Noise Envelope start at the hardware maximum and decay. Their period is 0–15;
 0 is the fastest hardware setting, not Off. Loop repeats the decay. Fixed volume
 is used when Envelope is disabled. Envelope / Sweep edits are applied on the next
-trigger. Sweep follows the hardware timer and can mute a voice at its limits.
+trigger. These are the NES APU's own envelope units, controlled through its
+registers. [NESdev's Envelope reference](https://www.nesdev.org/wiki/APU_Envelope)
+describes the shared Pulse / Noise hardware. Sweep follows the Pulse hardware
+timer and can mute a voice at its limits.
 
 Triangle uses its fixed waveform and hardware gate. This first version keeps its
 linear / length behavior configured for held keyboard notes. It has no separate
-hardware volume setting. Noise volume, period and LFSR mode can be edited live.
+hardware volume setting.
+
+Noise has its own **Hardware volume envelope** section, with **Enable Envelope**,
+**Period** and **Loop Envelope**. The volume decays from 15 to 0; Loop repeats it
+while the note is held. Fixed volume is available with Envelope off. The Envelope
+Period controls the decay rate; the separate LFSR **Period code** controls the
+noise clock and character. Noise clock / LFSR mode and an active fixed volume can
+be edited live. Editing Envelope enable / Period / Loop applies on the next
+trigger, keeping a held envelope's current decay running. Clock edits do not
+restart it. A completed decay retains held-key ownership until release or a new
+key replaces it.
 
 ## DMC samples
 
@@ -229,6 +242,9 @@ JavaScript. **Close library** keeps the current instrument. Failed or cancelled
 imports keep both the current sound and the previous library; a superseded
 asynchronous read cannot replace a newer library.
 
+Pulse and Noise keep the recorded Envelope mode, divider Period and Loop flag.
+Each keyboard note starts a fresh hardware envelope using those settings.
+
 This imports initial sound settings for keyboard performance. Original note
 pitch, length / linear counters, song playback and later parameter changes are
 not reconstructed. FDS needs complete recorded Wave RAM; missing RAM is not
@@ -268,9 +284,9 @@ passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
 **Save preset** downloads `2a03-voice.json`. The validated
-`tetorica-nes-fds-voice` version-2 format includes all five sources' settings,
-the original DPCM bytes, FDS wave and modulation table. Version-1 presets still
-load and are migrated; saving creates version 2, which older Synth releases do
+`tetorica-nes-fds-voice` version-3 format includes all five sources' settings,
+Noise Envelope, the original DPCM bytes, FDS wave and modulation table. Version-1
+and version-2 presets still load with Noise Envelope off; saving creates version 3, which older Synth releases do
 not read. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
 instrument. Invalid / oversized files keep the current sound. Loading a valid

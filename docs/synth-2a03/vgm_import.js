@@ -112,10 +112,12 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       notes.push('Triangle length / linear-counter timing is replaced by the Synth keyboard gate.');
       add('triangle', 3, null, notes);
     } else {
-      const usesEnvelope = !(control & 16), level = usesEnvelope ? 15 : control & 15;
-      if (!level) return;
-      if (usesEnvelope) notes.push('Noise hardware Envelope is approximated by fixed volume 15; its timed decay / loop is not imported.');
-      add('noise', 4, {volume:level, period:regs[0x0e] & 15, shortMode:Boolean(regs[0x0e] & 128)}, notes);
+      const usesEnvelope = !(control & 16), parameter = control & 15;
+      if (!usesEnvelope && !parameter) return;
+      add('noise', 4, {
+        volume:usesEnvelope ? 15 : parameter, period:regs[0x0e] & 15, shortMode:Boolean(regs[0x0e] & 128),
+        envelope:{enabled:usesEnvelope, period:parameter, loop:Boolean(control & 32)},
+      }, notes);
     }
   }
   function fdsAudible() {

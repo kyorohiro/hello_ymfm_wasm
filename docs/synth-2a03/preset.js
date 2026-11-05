@@ -60,10 +60,10 @@ export function waveShape(name) {
 
 export function createDefaultPreset() {
   return {
-    format: FORMAT, version: 2, name: 'Pulse', source: 'pulse',
+    format: FORMAT, version: 3, name: 'Pulse', source: 'pulse',
     pulse: {duty: .5, volume: 10, envelope: {enabled: false, period: 8, loop: false},
       sweep: {enabled: false, period: 2, negate: false, shift: 1}},
-    noise: {volume: 8, period: 6, shortMode: false},
+    noise: {volume: 8, period: 6, shortMode: false, envelope: {enabled: false, period: 8, loop: false}},
     dmc: {data: [], rate: 15, loop: false, level: 64},
     fds: {wave: waveShape('sine'), volume: 24, master: 0,
       modulation: {enabled: false, table: [...Array(8).fill(1), ...Array(16).fill(7), ...Array(8).fill(1)], rate: 256, depth: 16, bias: 0}},
@@ -73,22 +73,27 @@ export function createDefaultPreset() {
 /** Validate fully before sending a preset to the chip. */
 export function readPreset(value) {
   const legacy = value?.version === 1;
+  const legacyNoise = value?.version === 1 || value?.version === 2;
   own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc'])], 'NES + FDS preset');
-  if (value.format !== FORMAT || ![1, 2].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
+  if (value.format !== FORMAT || ![1, 2, 3].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
   own(value.pulse, ['duty', 'volume', 'envelope', 'sweep'], 'Pulse');
   own(value.pulse.envelope, ['enabled', 'period', 'loop'], 'Pulse envelope');
   own(value.pulse.sweep, ['enabled', 'period', 'negate', 'shift'], 'Pulse sweep');
-  own(value.noise, ['volume', 'period', 'shortMode'], 'Noise');
+  own(value.noise, ['volume', 'period', 'shortMode', ...(legacyNoise ? [] : ['envelope'])], 'Noise');
+  if (!legacyNoise) own(value.noise.envelope, ['enabled', 'period', 'loop'], 'Noise envelope');
   if (!legacy) own(value.dmc, ['data', 'rate', 'loop', 'level'], 'DMC');
   own(value.fds, ['wave', 'volume', 'master', 'modulation'], 'FDS');
   own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias'], 'FDS modulation');
   return {
-    format: FORMAT, version: 2, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
+    format: FORMAT, version: 3, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
     pulse: {duty: choice(value.pulse.duty, [.125, .25, .5, .75], 'Pulse duty'), volume: integer(value.pulse.volume, 0, 15, 'Pulse volume'),
       envelope: {enabled: boolean(value.pulse.envelope.enabled, 'Envelope enabled'), period: integer(value.pulse.envelope.period, 0, 15, 'Envelope period'), loop: boolean(value.pulse.envelope.loop, 'Envelope loop')},
       sweep: {enabled: boolean(value.pulse.sweep.enabled, 'Sweep enabled'), period: integer(value.pulse.sweep.period, 0, 7, 'Sweep period'), negate: boolean(value.pulse.sweep.negate, 'Sweep negate'), shift: integer(value.pulse.sweep.shift, 0, 7, 'Sweep shift')}},
-    noise: {volume: integer(value.noise.volume, 0, 15, 'Noise volume'), period: integer(value.noise.period, 0, 15, 'Noise period'), shortMode: boolean(value.noise.shortMode, 'Noise short mode')},
+    noise: {volume: integer(value.noise.volume, 0, 15, 'Noise volume'), period: integer(value.noise.period, 0, 15, 'Noise period'), shortMode: boolean(value.noise.shortMode, 'Noise short mode'),
+      envelope: legacyNoise ? {enabled: false, period: 8, loop: false} : {
+        enabled: boolean(value.noise.envelope.enabled, 'Noise envelope enabled'), period: integer(value.noise.envelope.period, 0, 15, 'Noise envelope period'), loop: boolean(value.noise.envelope.loop, 'Noise envelope loop'),
+      }},
     dmc: legacy ? {data: [], rate: 15, loop: false, level: 64} : {
       data: dpcm(value.dmc.data), rate: integer(value.dmc.rate, 0, 15, 'DMC rate'),
       loop: boolean(value.dmc.loop, 'DMC loop'), level: integer(value.dmc.level, 0, 127, 'DMC initial level'),
@@ -109,7 +114,11 @@ export function presetToCode(value) {
       sweep: sweep.enabled ? sweep : {enabled: false, period: 0, negate: true, shift: 0}};
     for (const ch of [0, 1]) lines.push(`nes.pulse.setVoice(${ch}, ${JSON.stringify(voice)});`);
   } else if (preset.source === 'triangle') lines.push('nes.writeRegister(0x4008, 0xff); // Hold the triangle linear counter.');
-  else if (preset.source === 'noise') lines.push(`nes.noise.setVoice(${JSON.stringify(preset.noise)});`);
+  else if (preset.source === 'noise') {
+    const {volume, period, shortMode, envelope} = preset.noise;
+    lines.push(`nes.noise.setVoice(${JSON.stringify({volume, period, shortMode})});`);
+    if (envelope.enabled) lines.push(`nes.writeRegister(0x400c, ${(envelope.loop ? 32 : 0) | envelope.period}); // Hardware Noise volume envelope.`);
+  }
   else if (preset.source === 'dmc') {
     lines.push('// Encoded 1-bit DPCM bytes; each key uses the selected rate, not a musical note.');
     if (!preset.dmc.data.length) return [...lines, '// Load a DPCM sample in the Synth before copying this source.'].join('\n');

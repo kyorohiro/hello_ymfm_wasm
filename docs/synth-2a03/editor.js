@@ -203,9 +203,14 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   help(triangle, 'One Triangle channel follows your keyboard notes. Its waveform and level are fixed by the hardware; use Master for the output level. This version keeps the hardware gate open while a key is held.');
 
   const noise = card('Noise · hardware LFSR'), noiseFields = group(noise);
-  number(noiseFields, 'Volume · 0–15', 'noiseVolume', 0, 15, value => value.noise.volume, (value, volume) => {value.noise.volume = volume;});
+  const noiseFixedVolume = number(noiseFields, 'Fixed volume · 0–15', 'noiseVolume', 0, 15, value => value.noise.volume, (value, volume) => {value.noise.volume = volume;});
   number(noiseFields, 'Period code · 0–15', 'noisePeriod', 0, 15, value => value.noise.period, (value, period) => {value.noise.period = period;});
   select(noiseFields, 'LFSR mode', 'noiseShortMode', [[false,'Long sequence'],[true,'Short sequence']], value => value.noise.shortMode, (value, shortMode) => {value.noise.shortMode = shortMode === 'true';});
+  const noiseEnvelopeFields = group(section(noise, 'Hardware volume envelope'));
+  checkbox(noiseEnvelopeFields, 'Enable Envelope', 'noiseEnvelopeEnabled', value => value.noise.envelope.enabled, (value, enabled) => {value.noise.envelope.enabled = enabled;});
+  const noiseEnvelopePeriod = number(noiseEnvelopeFields, 'Period · 0–15', 'noiseEnvelopePeriod', 0, 15, value => value.noise.envelope.period, (value, period) => {value.noise.envelope.period = period;});
+  const noiseEnvelopeLoop = checkbox(noiseEnvelopeFields, 'Loop Envelope', 'noiseEnvelopeLoop', value => value.noise.envelope.loop, (value, loop) => {value.noise.envelope.loop = loop;});
+  help(noise, 'The NES APU generates this envelope: volume starts at 15 and decays to 0; Loop repeats the decay. Period 0 is fastest. Fixed volume applies when Envelope is off. Envelope changes apply on the next note.');
   help(noise, 'One Noise channel. Every key triggers the same noise; note pitch and the Pitch wheels do not tune it. Period and LFSR mode change its clock and character while it sounds.');
 
   const dmc = card('DMC · 1-bit DPCM sample'), dmcActions = make('div', 'nes-wave-actions'); dmc.append(dmcActions);
@@ -376,6 +381,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     }
     pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
+    noiseFixedVolume.setDisabled(preset.noise.envelope.enabled);noiseEnvelopePeriod.setDisabled(!preset.noise.envelope.enabled);noiseEnvelopeLoop.disabled=!preset.noise.envelope.enabled;
     for(const control of sweepControls)control.setDisabled(!preset.pulse.sweep.enabled);
     for(const control of modulationControls)control.setDisabled(!preset.fds.modulation.enabled);
     for(const button of targetButtons)button.setAttribute('aria-pressed',String(button.dataset.fdsEdit===editTarget));
