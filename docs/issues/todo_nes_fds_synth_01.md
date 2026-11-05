@@ -11,6 +11,28 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## DPCMファイル書き出し（2026-11-05 完了・追加分は未公開）
+
+編集・抽出したDMCのbytesを`.dmc`として持ち帰れるようにする。先にTODOを記録してから実装する。Noise Envelope、PCM音声の自動変換、範囲編集は今回の対象に含めない。
+
+- [x] DMCカードへ`Save DPCM…`を追加し、現在確定している元bytesをraw binaryで保存する。空sampleでは無効にする。
+- [x] 生成padding・未確定stroke・Redo側のbytesを混ぜず、Undo後とVGM抽出後の現在値を保存する。
+- [x] 保存で音声device・sample・parameter・Undo履歴を変更せず、pointer操作後のkeyboard演奏を保つ。
+- [x] `.dmc`はRate／Loop／Initial levelを含まず、それらは既存preset保存に残せることをUIとガイドへ記載する。
+- [x] Chromium／WebKitの実download、1／4081 bytes・paddingあり・Undo／描画・VGM・再読込、独立ZIPを検証し、結果と再開方法を記録する。
+
+既存preset schema・runtime・共有DSP／WASMは変更しない。
+
+`editor.js`は確定済みの`preset.dmc.data`を独立copyし、`onSaveDpcm`へ渡す。`synth.js`は既存download helperを使い、headerなしの`application/octet-stream`として`2a03-sample.dmc`を保存する。32-byte originalは32 bytesのまま書き出し、再生用に生成した33-byte bufferは使わない。保存はcommit／音声更新／読込cancelを通さない。空ではbuttonを無効にし、設定も保存したい時は`Save preset…`を使う説明を近くへ置いた。
+
+検証：`npm run test:2a03-synth`は既存の**93件成功、失敗0**。ソース版・独立ZIPは双方**Chromium／WebKitで成功**。実downloadのfilenameと全bytes、1／4081-byte境界、生成padding除外、bit／描画／Undo／VGM、未確定stroke中の確定値保存、保持音・設定・履歴・非同期読込の保持、保存したファイルの再読込を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理出力はmuteして実PCMを測定した。記録：[ソース版](2a03_synth_dpcm_export_browser_01.json)、[ZIP版](2a03_synth_dpcm_export_zip_browser_01.json)。mobileの保存buttonと設定説明、描画previewの画像も確認済み。
+
+初回ZIP検証は全ページ撮影のviewport変更で描画が正しくcancelされ、release検証が失敗した。描画中だけviewport撮影へ変更し、撮影直後もdrawing中であることを追加確認して、両matrixを再検証した。製品のresize時cancel動作は変更していない。
+
+配布候補：`release/tetorica_2a03_synth_dpcm-export-20261105_itch.zip`（35 files／3 bundles、1,168,443 bytes、SHA-256 `abc8b2c3dac36c8753ad85da4579c1bc21f7c19b86505325ca0a815a5e5e2d68`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。ガイド・英日AI README・homeの案内も更新した。
+
+試し方：ページ再読込 → DMC → Demo sampleまたはVGM音色を選択 → bit／描画で編集 → `Save DPCM…` → `Load DPCM…`で保存したfileを再読込。Rate／Loop／Initial levelを含む全設定は`Save preset…`へ保存する。今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## DMC Undo／Redo（2026-11-05 完了・追加分は未公開）
 
 マウス描画の次の作業として、DMCのbit編集・確定した描画を1操作ずつ戻し、やり直せるようにする。PCM音声変換と範囲編集は今回追加しない。

@@ -128,7 +128,13 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
     }
   });
 }
-const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report});
+const editor = createEditor({
+  root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report,
+  onSaveDpcm: data => {
+    saveFile('2a03-sample.dmc', Uint8Array.from(data), 'application/octet-stream');
+    status(`DPCM download started · ${data.length} bytes. Save preset to keep Rate, Loop and Initial level too.`);
+  },
+});
 vgmLibrary = createVgmLibrary({root: $('vgmImport'), onSelect: value => applyPreset(value, {
   load: true, fromVgm: true, message: `${value.name} loaded from VGM · play the keyboard.`,
 })});
@@ -271,8 +277,8 @@ monitorResize.observe($('outputCanvas'));
 function commitName() {void applyPreset({...preset,name:$('instrumentName').value}).catch(report);$('instrumentName').blur();}
 $('instrumentName').addEventListener('change',commitName);
 $('instrumentName').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();commitName();}});
-function saveFile(name, text) {
-  const url=URL.createObjectURL(new Blob([text],{type:'application/json'})),link=document.createElement('a');
+function saveFile(name, data, type = 'application/json') {
+  const url=URL.createObjectURL(new Blob([data],{type})),link=document.createElement('a');
   link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('savePreset').addEventListener('click',()=>{

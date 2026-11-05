@@ -4,7 +4,7 @@ import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDp
 import {createDmcBitEditor} from './dmc_editor.js';
 
 /** A passive editor. Editing never creates an audio device. */
-export function createEditor({root, onChange = () => {}, onError = () => {}}) {
+export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
   let preset = createDefaultPreset(), disposed = false, stroke = null;
@@ -209,17 +209,19 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   help(noise, 'One Noise channel. Every key triggers the same noise; note pitch and the Pitch wheels do not tune it. Period and LFSR mode change its clock and character while it sounds.');
 
   const dmc = card('DMC · 1-bit DPCM sample'), dmcActions = make('div', 'nes-wave-actions'); dmc.append(dmcActions);
-  const loadDpcm = make('button', '', 'Load DPCM…'), demoDpcm = make('button', '', 'Demo sample'), cancelDpcm = make('button', '', 'Cancel load');
-  loadDpcm.id = 'loadDpcm'; demoDpcm.id = 'demoDpcm'; cancelDpcm.id = 'cancelDpcm'; cancelDpcm.hidden = true;
+  const loadDpcm = make('button', '', 'Load DPCM…'), demoDpcm = make('button', '', 'Demo sample'), saveDpcm = make('button', '', 'Save DPCM…'), cancelDpcm = make('button', '', 'Cancel load');
+  loadDpcm.id = 'loadDpcm'; demoDpcm.id = 'demoDpcm'; saveDpcm.id = 'saveDpcm'; cancelDpcm.id = 'cancelDpcm'; cancelDpcm.hidden = true;
+  saveDpcm.title = 'Save the committed sample bytes as .dmc, without generated padding. Save a preset to keep playback settings too.';
   const dpcmFileInput = make('input', 'file-input'); dpcmFileInput.type = 'file'; dpcmFileInput.id = 'dpcmFileInput';
   dpcmFileInput.accept = '.dmc,.dpcm,application/octet-stream'; dpcmFileInput.setAttribute('aria-label', 'Choose a pre-encoded DPCM sample, 1 to 4081 bytes');
-  for (const button of [loadDpcm, demoDpcm, cancelDpcm]) {
+  for (const button of [loadDpcm, demoDpcm, saveDpcm, cancelDpcm]) {
     button.type = 'button';
     listen(button, 'pointerdown', event => {if (event.button === 0) {event.preventDefault(); doc.activeElement?.blur();}});
   }
-  dmcActions.append(loadDpcm, demoDpcm, cancelDpcm, dpcmFileInput);
+  dmcActions.append(loadDpcm, demoDpcm, saveDpcm, cancelDpcm, dpcmFileInput);
   const dpcmStatus = make('p', 'nes-help', 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');
   dpcmStatus.id = 'dpcmStatus'; dpcmStatus.dataset.error = 'false'; dpcmStatus.setAttribute('role', 'status'); dpcmStatus.setAttribute('aria-live', 'polite'); dmc.append(dpcmStatus);
+  help(dmc, 'Save DPCM exports the committed bytes only, without generated padding. Save preset also keeps Rate, Loop and Initial level.');
   const dmcFields = group(dmc);
   number(dmcFields, 'Rate index · 0–15', 'dmcRate', 0, 15, value => value.dmc.rate, (value, rate) => {value.dmc.rate = rate;});
   number(dmcFields, 'Initial level · 0–127', 'dmcLevel', 0, 127, value => value.dmc.level, (value, level) => {value.dmc.level = level;});
@@ -241,6 +243,11 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   }
   listen(loadDpcm, 'click', () => {loadDpcm.blur(); dpcmFileInput.click();});
   listen(demoDpcm, 'click', () => {demoDpcm.blur(); installDpcm(createDemoDpcm(), 'Demo DPCM · software generated');});
+  listen(saveDpcm, 'click', () => {
+    saveDpcm.blur();
+    if (disposed || !preset.dmc.data.length) return;
+    try {Promise.resolve(onSaveDpcm([...preset.dmc.data])).catch(report);} catch (error) {report(error);}
+  });
   listen(cancelDpcm, 'click', () => {cancelDpcm.blur(); cancelDpcmRead();});
   listen(dpcmFileInput, 'change', async () => {
     const file = dpcmFileInput.files?.[0]; dpcmFileInput.value = ''; dpcmFileInput.blur();
@@ -377,6 +384,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     canvas.setAttribute('aria-label',editTarget==='wave'?'Editable FDS waveform, 64 samples with values from 0 to 63':'Editable FDS modulation table, 32 pitch-counter commands');
     sourceHint.textContent={pulse:'CH1 + CH2 · two Pulse voices in round robin.',triangle:'CH3 · one fixed Triangle voice.',noise:'CH4 · one Noise voice. Keys trigger; they do not change pitch.',dmc:'CH5 · one DPCM sample. Keys trigger; Rate sets playback speed.',fds:'FDS · one Wave RAM voice, with hardware frequency modulation.'}[preset.source];
     const bytes = preset.dmc.data.length, hardwareBytes = bytes ? Math.ceil((bytes - 1) / 16) * 16 + 1 : 0;
+    saveDpcm.disabled = bytes === 0;
     const bitRate = 1789773 / [428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54][preset.dmc.rate];
     dmcReadout.textContent = `${bytes} bytes${bytes !== hardwareBytes ? ` → ${hardwareBytes} hardware bytes` : ''} · ${(bitRate / 1000).toFixed(2)} kbit/s${bytes ? ` · about ${(hardwareBytes * 8 / bitRate * 1000).toFixed(0)} ms / pass` : ''}`;
     dmcBits.update(preset.dmc, {resetHistory:resetDmcHistory});

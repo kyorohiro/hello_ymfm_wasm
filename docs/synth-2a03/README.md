@@ -83,6 +83,18 @@ length of **16 × n + 1 bytes**; the stored original bytes remain in the preset.
 For example, 32 input bytes play as 33 hardware bytes. The alternating bits are
 hardware-length padding, not PCM silence.
 
+**Save DPCM…** downloads `2a03-sample.dmc` containing the current committed
+original bytes. It works with loaded files, Demo sample, VGM captures and edited
+data, including the result of Undo. Generated padding, an unfinished drawing
+and the Redo branch are excluded: a 32-byte original is saved as 32 bytes.
+The button is disabled until a sample is available. Saving does not initialize
+audio, change the instrument or its history, or cancel a pending file read.
+
+The raw `.dmc` file contains no header or playback settings. **Save preset…**
+keeps **Rate / Loop / Initial level** together with the sample. Reopening a
+`.dmc` through **Load DPCM…** retains the current playback settings and starts
+fresh edit history; use the preset to restore the whole instrument.
+
 - **Rate index 0–15** selects a hardware bit clock, about 4.18–33.14 kbit/s
   at NTSC speed. It changes sample pitch and duration together. The readout
   estimates one pass including padding; it is not a PCM sample-rate setting.
