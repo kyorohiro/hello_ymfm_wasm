@@ -46,6 +46,37 @@ software performance control using hardware frequency registers. On NES Pulse / 
 crossing the timer's high-byte boundary reloads the hardware Envelope / counters;
 Pitch is not a promise of continuous, sample-accurate tuning.
 
+## Observe the chip
+
+**Hardware now**, above the sound editor, displays sampled internal chip values
+while you hold a key:
+
+- **Pulse CH1 / CH2** and **Noise** show current volume (0–15) and Length
+  remaining (0–254 ticks). A decaying Envelope changes Volume; Loop also halts
+  Length. Both Pulse channels have their own rows.
+- **Triangle** shows Linear remaining (0–127 ticks) and Length remaining.
+  Linear is a gate counter, not an amplitude control. Either counter can stop
+  the waveform while the key remains held.
+- **FDS** shows raw Volume and Depth gains (0–63). Volume also reports the
+  effective gain, capped at 32 in the mixer. Depth uses its raw value; an
+  increasing Depth Envelope stops rising at 32, but written values above 32
+  remain effective.
+
+The row status describes the actual applied registers and counters. Edits that
+wait for the next attack do not replace the currently observed state. A held
+key can therefore show an ended counter or an active Loop even while the
+editor has different next-note settings. These values do not measure output
+loudness: Sweep, gates and filters can affect the final sound independently.
+
+This is a **software observation display** using existing core state, without
+changing audio or adding an Envelope. It samples about ten times per second;
+very fast transitions may occur between readings. Observation starts only
+after audio is ready and a key is held. Releasing all keys, Stop, page hiding,
+audio suspension or failure stops observation and clears the bars to **—**
+rather than inventing zero values. DMC continues to use its existing DAC
+preview below. Observations do not change presets, drawings, keyboard focus,
+VGM selection or saved files.
+
 ## Edit the sound
 
 Source, Duty, direction and scale use choice buttons. They keep performance keys

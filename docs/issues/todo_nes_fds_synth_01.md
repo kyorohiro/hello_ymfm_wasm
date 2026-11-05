@@ -11,6 +11,25 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## Envelope／Counterの現在値表示（2026-11-05 完了・追加分は未公開）
+
+NES APU／FDSの実際の内部状態を読み取り、選択した音源の小さなバーで観察できるようにする。ソフト側の表示機能で、音源の制御・音質・preset schema・共有runtime／DSP／WASMは変更しない。
+
+- [x] Pulse両CH／Noiseの現在volumeとLength残量、TriangleのLinear／Length残量、FDSのVolume／Depth gainを表示する。Triangle Linearを音量と混同せず、FDS raw gainと有効範囲を区別する。
+- [x] 実際のregister／counterと保持中ownerを使い、減衰・Loop・Length停止を表示する。次発音用の編集値から架空の進行を作らない。
+- [x] 音声開始前は読み取りを行わず、開始後も低頻度・同時1件で取得する。停止・非表示・破棄・エラー・音源入替時に古い返答を破棄し、演奏commandを待たせない。
+- [x] 表示を受動的に更新し、focus・preset保存・VGM選択・DMC/FDSの描画draftを変えない。最速の変化は全stepを捕捉できないことを明示する。
+- [x] 状態の意味とpolling寿命を単体検証し、実WASMのChromium／WebKitと独立ZIP・390px表示で動作を確認する。
+- [x] ガイド・検証記録と再開手順を更新する。
+
+単体検証：`npm run test:2a03-synth`は**171件成功、失敗0**（既存156＋表示model 6＋observer寿命9）。44.1／48 kHzの実WASMで現在値・実registerの区別、TriangleのLinear／Length停止、FDS Volume上限とDepth raw値、preset／owner／PCM不変を確認した。fake clock・遅延返答で同時1件、停止／再開／音源入替／破棄時の古い返答・エラー破棄、例外の封じ込めを確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。Pulse両CHのvolume／Length、Envelope減衰・Loopとhalt、Length終了後のowner保持、Triangle LinearとLengthの区別、Noiseの実Envelopeと次発音用draftの分離、FDSのraw gain・Volume上限32・Depth 63、停止時のpoll終了と未知値表示、Context失敗後の復旧を確認した。既存preset／VGM／DMC描画／Undo・Redo／keyboardの回帰も成功。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定し、両Pulseを保持したモバイル表示を確認した。記録：[ソース版](2a03_synth_hardware_monitor_browser_01.json)、[ZIP版](2a03_synth_hardware_monitor_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_hardware-monitor-20261105_itch.zip`（35 files、3 bundles、1,193,299 bytes、SHA-256 `f37f9d3c76965771753a6e722b55c00ea7ae42986b6be4de867540faad2d8116`）。browser receiptの48 inputsは作業ファイルと一致した。元WASM pair／Native対応ソース11 inputs（SDK 0.1.7）・権利通知を保持。preset schemaはv7のまま、共有runtime・DSP／WASM・npm packageは変更していない。ガイド・英日AI README・日英ホームを更新した。
+
+試し方：ページ再読込→Pulse→Envelope On→Period 15→鍵盤保持でHardware nowのVolumeが減衰する。Loop OnでLengthが止まり、Hardware counterではLengthが0になる。TriangleはLinear／Length、FDSはVolume／Depthを別々に観察する。離鍵・Stopではバーが「—」へ戻り読み取りを止める。最速の動作は全stepを捕捉できない。手元の実聴、commit／push／公開は今回AIから未実行。
+
 ## Pulse／Noise Length Counter（2026-11-05 完了・追加分は未公開）
 
 NES APUの実機Length Counterを既存のPulse／Noiseへ接続する。ソフトのタイマーや音量処理ではなく、既存coreの共有Length tableと発音gateを使う。共有runtime・DSP／WASMは変更しない。

@@ -180,7 +180,7 @@ async function runEngine(name, engine, origin) {
       };
       const post = MessagePort.prototype.postMessage;
       MessagePort.prototype.postMessage = function(data, ...args) {
-        if (data?.method) window.audit.outgoing.push({method:data.method, args:data.args});
+        if (data?.method) window.audit.outgoing.push({id:data.id,method:data.method, args:data.args});
         return post.call(this, data, ...args);
       };
       window.audit.read = () => new Promise((resolve, reject) => {
@@ -218,6 +218,18 @@ async function runEngine(name, engine, origin) {
       const value = window.audit.sample(); return value.finite && value.rms > .0001;
     });
     const silent = () => page.waitForFunction(() => window.audit.sample().rms < .000001);
+    const hardwareMeter = id => page.locator(`[data-hardware-meter="${id}"]`);
+    const meterIs = (id,value) => page.waitForFunction(({id,value})=>{
+      const meter=document.querySelector(`[data-hardware-meter="${id}"]`);
+      return meter?.hasAttribute('aria-valuenow')&&Number(meter.getAttribute('aria-valuenow'))===value;
+    },{id,value});
+    const applicationReads = () => page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='read'&&message.id>0).length);
+    const idleHardware = async () => {
+      await page.waitForFunction(()=>document.querySelector('#hardwareMonitor').dataset.mode==='idle');
+      assert.equal(await page.locator('#hardwareMonitor [aria-valuenow]').count(),0,'idle values are unknown rather than a fabricated zero');
+      await page.waitForTimeout(150);const reads=await applicationReads();await page.waitForTimeout(250);
+      assert.equal(await applicationReads(),reads,'hardware polling stops with no held keys');
+    };
     const stepButton = (selector, delta) => page.locator(`[data-stepper-for="${selector.replace(/^#/, '')}"][data-stepper-delta="${delta}"]`);
     const number = async (selector, value) => {
       const output=page.locator(selector),start=Number(await output.textContent());
@@ -397,6 +409,10 @@ async function runEngine(name, engine, origin) {
     await page.fill('#instrumentName','NES browser audit'); await page.press('#instrumentName','Enter');
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#keyboard .key').count(),36);
+    assert.equal(await page.locator('#hardwareMonitor').getAttribute('data-mode'),'waiting');
+    assert.equal(await page.locator('#hardwareMonitor').getAttribute('data-source'),'pulse');
+    assert.equal(await page.locator('#hardwareMonitor [aria-valuenow]').count(),0);
+    assert.equal(await applicationReads(),0,'passive hardware meters never create or read an audio engine');
 
     check('Pulse and Noise Length controls edit passively and show the shared Envelope Loop bit');
     for(const source of ['pulse','noise']) {
@@ -718,6 +734,8 @@ async function runEngine(name, engine, origin) {
       const owner=state.voices[0].id,channel=state.voices[0].channel,high=channel*4+3;
       assert.equal(state.registers[high]>>3,4);assert.equal(state.registers[channel*4]&32,0);
       state=await waitState(value=>value.coreState.lengths[channel]===0);await silent();assert.equal(state.voices[0].id,owner);
+      await meterIs(source==='pulse'?`pulse${channel+1}-length`:'noise-length',0);
+      assert.equal(await page.locator('#hardwareMonitor').getAttribute('data-mode'),'live','an expired gate remains observable while its key is held');
       await choose(`#${source}LengthHalt`,true);await number(`#${source}Volume`,9);
       if(source==='pulse')await choose('#pulseDuty',.5);else await number('#noisePeriod',7);
       state=await inspect();assert.equal(state.registers[channel*4]&32,0,'live sound edits preserve the active counter mode');
@@ -738,6 +756,36 @@ async function runEngine(name, engine, origin) {
       await number(`#${source}LengthIndex`,1);await choose(`#${source}LengthHalt`,true);
     }
 
+    check('hardware meters observe both Pulse channels without issuing sound commands and stop polling when idle');
+    await choose('#source','pulse');await number('#pulseVolume',10);
+    await page.keyboard.down('a');await page.keyboard.down('s');state=await waitState(value=>value.voices.length===2);
+    await meterIs('pulse1-volume',10);await meterIs('pulse2-volume',10);
+    await meterIs('pulse1-length',254);await meterIs('pulse2-length',254);
+    assert.equal(await hardwareMeter('pulse1-volume').getAttribute('role'),'meter');
+    assert.equal(await hardwareMeter('pulse1-volume').getAttribute('aria-valuemax'),'15');
+    assert.equal(await hardwareMeter('pulse1-length').getAttribute('aria-valuemax'),'254');
+    const meterOwners=state.voices,readsBeforeMeters=await applicationReads();
+    const meterCommands=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length);
+    await page.waitForTimeout(350);assert(await applicationReads()>readsBeforeMeters,'held keys enable low-frequency hardware observation');
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length),meterCommands,'observing hardware never writes a sound command');
+    assert.deepEqual((await inspect()).voices,meterOwners);await sound();
+    if(config.screenshots){await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1);await screenshot('hardware-pulse-mobile');await page.setViewportSize({width:1180,height:940});}
+    await page.keyboard.up('a');await page.keyboard.up('s');await stop();await idleHardware();
+
+    check('hardware Volume bars follow an actual Envelope rather than authored fixed volume or a simulated timer');
+    await page.check('#pulseEnvelopeEnabled');await number('#pulseEnvelopePeriod',15);
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);
+    await page.waitForFunction(()=>{const value=document.querySelector('[data-hardware-meter="pulse1-volume"]')?.getAttribute('aria-valuenow');return value!==null&&Number(value)>1&&Number(value)<15;});
+    const observedPulseVolume=Number(await hardwareMeter('pulse1-volume').getAttribute('aria-valuenow'));
+    await page.waitForFunction(previous=>{const value=document.querySelector('[data-hardware-meter="pulse1-volume"]')?.getAttribute('aria-valuenow');return value!==null&&Number(value)<previous;},observedPulseVolume);
+    assert.equal((await inspect()).preset.pulse.volume,10,'the fixed-volume draft is separate from observed Envelope state');
+    await page.keyboard.up('a');await stop();await idleHardware();
+    await page.check('#pulseEnvelopeLoop');await number('#pulseEnvelopePeriod',3);
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);
+    await meterIs('pulse1-length',254);await page.waitForTimeout(350);await meterIs('pulse1-length',254);
+    assert.equal((await inspect()).registers[0]&32,32,'Loop halts the real Length counter');
+    await page.keyboard.up('a');await stop();await page.uncheck('#pulseEnvelopeLoop');await page.uncheck('#pulseEnvelopeEnabled');
+
     check('Triangle is one physical channel and a replaced note owns the late release');
     await choose('#source','triangle'); state=await waitState(value=>value.preset.source==='triangle');assert.equal(state.capacity,1);
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);const triangleOwner=state.voices[0].id;assert.equal(state.voices[0].channel,2);await sound();
@@ -751,6 +799,9 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.volumes[2]>0);await sound();
     const counterTriangleOwner=state.voices[0].id;assert.equal(state.registers[8],48);assert.equal(state.registers[0x0b]>>3,1);
     state=await waitState(value=>value.coreState.volumes[2]===0&&value.coreState.lengths[2]>0);await silent();
+    await meterIs('triangle-linear',0);assert.equal(await hardwareMeter('triangle-linear').getAttribute('aria-valuemax'),'127');
+    assert(Number(await hardwareMeter('triangle-length').getAttribute('aria-valuenow'))>0,'Linear expires while the separate Length counter remains');
+    assert.equal(await page.locator('[data-hardware-meter="triangle-volume"]').count(),0,'Triangle Linear is not a volume meter');
     assert.equal(state.voices[0].id,counterTriangleOwner,'counter expiry keeps the current held-key identity');
     const triangleAttacks=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length);
     await number('#triangleLinearReload',127);await number('#triangleLengthIndex',4);
@@ -761,6 +812,10 @@ async function runEngine(name, engine, origin) {
     const lengthTriangleOwner=state.voices[0].id;assert.equal(state.registers[8],127);assert.equal(state.registers[0x0b]>>3,4);
     await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,lengthTriangleOwner);
     state=await waitState(value=>value.coreState.lengths[2]===0&&value.coreState.volumes[2]>0);await silent();
+    // The display samples asynchronously. By the time the output filter has
+    // settled, Linear may also have reached zero; do not compare a later UI
+    // sample with the earlier core snapshot above.
+    await meterIs('triangle-length',0);assert.notEqual(await hardwareMeter('triangle-linear').getAttribute('aria-valuenow'),null);
     assert.equal(state.voices[0].id,lengthTriangleOwner);await page.keyboard.up('s');await stop();
     await number('#triangleLengthIndex',0);await page.keyboard.down('a');
     // Index 0 expires after about 84 ms. Assert the actual register and its
@@ -811,6 +866,7 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);
     assert.equal(state.registers[0x0c],1);await sound();
     state=await waitState(value=>value.coreState.volumes[3]===0);assert.equal(state.voices.length,1,'a finished decay keeps its held-key owner');await silent();
+    await meterIs('noise-volume',0);
     await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
     await page.check('#noiseEnvelopeLoop');await waitState(value=>value.preset.noise.envelope.loop);
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
@@ -828,6 +884,7 @@ async function runEngine(name, engine, origin) {
     await number('#noisePeriod',7);await choose('#noiseShortMode',false);
     state=await waitState(value=>value.preset.noise.envelope.period===5&&!value.preset.noise.envelope.loop&&value.preset.noise.period===7&&!value.preset.noise.shortMode);
     assert.equal(state.registers[0x0c],0x21,'Envelope settings wait for a fresh trigger even during live clock changes');
+    await meterIs('noise-length',254);assert.match(await page.locator('#hardwareMonitor').textContent(),/halt/i,'the observed active gate retains Loop halt while the next-note draft has Loop off');
     assert.equal(state.registers[0x0e],7);assert.equal(state.voices[0].id,envelopeNoiseOwner);
     assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),envelopeNoiseAttacks);
     await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==envelopeNoiseOwner);
@@ -1213,10 +1270,12 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
     assert.equal(state.registers[0x80],8);assert.equal(state.registers[0x8a],232);assert.equal(state.registers[0x83]&0xc0,0);
     state=await waitState(value=>value.coreState.fdsGain===0);assert.equal(state.voices.length,1);await silent();
+    await meterIs('fds-volumeGain',0);
     await page.keyboard.up('a');await stop();
     await choose('#fdsEnvelopeIncrease',true);await number('#fdsEnvelopeInitialGain',0);
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsGain>0);await sound();
     const risingFdsOwner=state.voices[0].id,risingGain=state.coreState.fdsGain;
+    await page.waitForFunction(()=>Number(document.querySelector('[data-hardware-meter="fds-volumeGain"]')?.getAttribute('aria-valuenow'))>0);
     assert.equal(state.registers[0x80],0x48);
     const fdsEnvelopeAttacks=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length);
     await choose('#fdsMaster',1);
@@ -1235,6 +1294,7 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==risingFdsOwner);
     const frozenFdsOwner=state.voices[0].id;assert.equal(state.registers[0x80],9);assert.equal(state.registers[0x8a],0);assert.equal(state.registers[0x83]&0xc0,0x40);
     assert.equal(state.coreState.fdsGain,7);await page.waitForTimeout(150);assert.equal((await inspect()).coreState.fdsGain,7);await sound();
+    await meterIs('fds-volumeGain',7);
     await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,frozenFdsOwner);
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
     const fdsEnvelopeSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const fdsEnvelopeSave=await fdsEnvelopeSaveEvent;
@@ -1294,7 +1354,15 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsGain===7&&value.coreState.fdsSweepGain===13);
     assert.equal(state.registers[0x83]&0xc0,0x40);assert.equal(state.registers[0x8a],0);await sound();
     await page.waitForTimeout(150);state=await inspect();assert.equal(state.coreState.fdsGain,7);assert.equal(state.coreState.fdsSweepGain,13);
-    await page.keyboard.up('a');await stop();
+    await meterIs('fds-volumeGain',7);await meterIs('fds-depthGain',13);
+    await number('#fdsEnvelopeInitialGain',63);await number('#fdsModEnvelopeInitialGain',63);
+    await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsGain===63&&value.coreState.fdsSweepGain===63);
+    await meterIs('fds-volumeGain',63);await meterIs('fds-depthGain',63);
+    assert.equal(await hardwareMeter('fds-volumeGain').getAttribute('aria-valuemax'),'63');
+    assert.match(await page.locator('[data-hardware-value="fds-volumeGain"]').textContent(),/63.*32/,'raw FDS Volume 63 is distinct from its effective limit 32');
+    assert.match(await page.locator('[data-hardware-value="fds-depthGain"]').textContent(),/63/,'Depth retains its raw six-bit value');
+    await number('#fdsEnvelopeInitialGain',7);await number('#fdsModEnvelopeInitialGain',13);
+    await page.keyboard.up('a');await page.keyboard.up('s');await stop();
     const depthSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const depthSave=await depthSaveEvent;
     const depthPortable=JSON.parse(await fs.readFile(await depthSave.path(),'utf8'));
     assert.equal(depthPortable.version,7);assert.deepEqual(depthPortable.fds.envelopeClock,{masterSpeed:0,halt:true});
@@ -1544,9 +1612,13 @@ async function runEngine(name, engine, origin) {
     await page.setViewportSize({width:1180,height:940});
     await page.evaluate(()=>window.audit.contexts.at(-1).close());
     await page.waitForFunction(()=>document.querySelector('#audioStatus').textContent.includes('AudioContext was closed')&&!document.querySelector('#startAudio').disabled);
+    await page.waitForFunction(()=>document.querySelector('#hardwareMonitor').dataset.mode!=='live');
+    assert.equal(await page.locator('#hardwareMonitor [aria-valuenow]').count(),0,'audio failure clears old hardware values');
     await page.click('#startAudio');await page.waitForFunction(()=>document.querySelector('#audioStatus').textContent.startsWith('Audio ready'));
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),2);
-    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+    await page.waitForFunction(()=>document.querySelector('#hardwareMonitor').dataset.mode==='live');
+    await page.keyboard.up('a');await stop();await idleHardware();
     assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);assert.deepEqual(external,[]);
     console.log('PASS '+name+': standalone 2A03 Synth');
     return {engine:name,sampleRate:await page.evaluate(()=>window.audit.contexts.at(-1).sampleRate),pulseLevel,modulationDifference,
@@ -1559,6 +1631,7 @@ async function runEngine(name, engine, origin) {
       fdsDepthEnvelopePassive:true,fdsDepthEnvelopeHardwareRise:true,fdsDepthEnvelopeHardwareDecay:true,fdsDepthEnvelopeOnly:true,fdsDepthEnvelopeSharedClock:true,fdsDepthEnvelopeDualFreeze:true,fdsDepthEnvelopeNextTrigger:true,fdsDepthEnvelopeLiveEdits:true,fdsDepthEnvelopeLateRelease:true,fdsDepthEnvelopePresetRoundTrip:true,fdsDepthEnvelopeCodeExport:true,fdsDepthEnvelopeVgmImport:true,fdsDepthEnvelopeMobile:true,presetV1V2V3V4Migration:true,
       triangleGatePassive:true,triangleGateTimeEstimates:true,triangleLinearGate:true,triangleLengthGate:true,triangleLengthIndexZero:true,triangleReloadZeroSilent:true,triangleGateNextTrigger:true,triangleGateLateRelease:true,triangleGateOwnership:true,triangleGatePresetRoundTrip:true,triangleGateCodeExport:true,triangleGateVgmImport:true,triangleGateVgmPitchDedup:true,triangleGateMobile:true,presetV1ThroughV6Migration:true,
       pulseNoiseLengthPassive:true,pulseNoiseLengthTimeEstimates:true,pulseNoiseLengthGate:true,pulseNoiseLengthOwnership:true,pulseNoiseLengthNextTrigger:true,pulseNoiseLengthIndexZero:true,pulseNoiseLengthLoopCoupling:true,pulseNoiseLengthPresetRoundTrip:true,pulseNoiseLengthCodeExport:true,pulseNoiseLengthVgmImport:true,pulseNoiseLengthVgmPitchDedup:true,pulseNoiseLengthMobile:true,
+      hardwareMonitorPassive:true,hardwareMonitorBothPulseChannels:true,hardwareMonitorReadOnly:true,hardwareMonitorOwnership:true,hardwareMonitorVolumeDecay:true,hardwareMonitorLoopHalt:true,hardwareMonitorLengthClosure:true,hardwareMonitorTriangleLinear:true,hardwareMonitorNoiseDecay:true,hardwareMonitorActiveVsDraft:true,hardwareMonitorFdsGain:true,hardwareMonitorFdsRawVolumeCap:true,hardwareMonitorDepthSixBit:true,hardwareMonitorIdleStopsReads:true,hardwareMonitorFailureRecovery:true,hardwareMonitorMobile:true,
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,

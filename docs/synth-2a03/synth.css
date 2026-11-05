@@ -28,6 +28,19 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .nes-workspace { padding:8px 0 0; }
 .nes-workspace .section-heading { justify-content:space-between; margin-bottom:10px; }
 #voiceCapacity { color:#7f353b; font-weight:650; }
+.nes-hardware-monitor { margin:0 0 14px; padding:12px 14px; border:1px solid #9ca6a4; border-radius:9px; background:#e3e8de; min-width:0; }
+.nes-hardware-heading,.nes-hardware-channel-heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 12px; }
+.nes-hardware-heading h3 { margin:0; font-size:.8rem; color:#4e6050; }
+#hardwareMonitorStatus,.nes-hardware-channel-heading span { color:#58675f; font-size:.65rem; }
+.nes-hardware-channels { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:10px 20px; margin-top:8px; }
+.nes-hardware-channel { min-width:0; }
+.nes-hardware-channel-heading h4 { margin:0; font-size:.7rem; }
+.nes-hardware-metric { display:grid; grid-template-columns:74px minmax(30px,1fr) minmax(32px,auto); align-items:center; gap:8px; margin-top:6px; font-size:.66rem; }
+.nes-hardware-value { text-align:right; font-variant-numeric:tabular-nums; }
+.nes-hardware-meter { height:8px; overflow:hidden; border-radius:4px; background:#c4cec1; }
+.nes-hardware-meter > span { display:block; height:100%; background:#657e5a; }
+.nes-hardware-monitor[data-mode="live"] .nes-hardware-meter[data-available="true"] > span { background:#667d4a; }
+.nes-hardware-monitor .nes-help { margin:8px 0 0; font-size:.64rem; line-height:1.5; }
 .nes-editor { min-width:0; }
 .nes-source-bar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px; margin:0 0 14px; }
 .nes-source-bar .nes-field { flex:0 1 390px; }

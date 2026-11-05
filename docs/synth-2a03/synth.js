@@ -3,6 +3,8 @@ import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createVgmLibrary} from './vgm_library.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
+import {createHardwareMonitor} from './hardware_monitor.js';
+import {createStateObserver} from './state_observer.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
   setInstrument, setFretPosition, setStringWindowIndex, midiToNoteName} from '../synth/synth_keyboard.js';
@@ -21,6 +23,28 @@ const notes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
 visualizer.setMode('waveform');
+const hardwareMonitor = createHardwareMonitor({root: $('hardwareMonitor')});
+const hardwareObserver = createStateObserver({
+  read: engine => engine.read(),
+  onState(state, engine) {if (audio === engine && state?.preset?.source === preset.source) hardwareMonitor.update(state);},
+  onStatus(mode) {
+    if (mode === 'disposed') return;
+    hardwareMonitor.setMode(!audio ? 'waiting' : mode);
+  },
+});
+let observedContext = null;
+function syncHardwareMonitor() {
+  const visible = !document.hidden, running = audio?.context.state === 'running';
+  const active = Boolean(!disposed && visible && running && !switchingAudioOutput && preset.source !== 'dmc' && [...notes.values()].some(note => note.started));
+  hardwareObserver.update({engine:audio, active});
+  if (!active) hardwareMonitor.setMode(!audio ? 'waiting' : !visible || !running || switchingAudioOutput ? 'paused' : 'idle');
+}
+function watchHardwareContext(context) {
+  observedContext?.removeEventListener('statechange', syncHardwareMonitor);
+  observedContext = context;
+  observedContext?.addEventListener('statechange', syncHardwareMonitor);
+  syncHardwareMonitor();
+}
 const enqueue = action => {
   const task = queue.then(action);
   queue = task.catch(report);
@@ -36,6 +60,7 @@ function updateKeys() {
   }
   visualizer.setRunning(notes.size > 0);
   updateCapacity();
+  syncHardwareMonitor();
 }
 function readVoices(state) {
   const owners = new Set(state.voices.map(voice => voice.id));
@@ -48,6 +73,7 @@ function updateCapacity() {
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
 }
 function updatePresetUi({resetDmcHistory = false} = {}) {
+  hardwareMonitor.setSource(preset.source);
   editor.update(preset, {resetDmcHistory});
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
@@ -60,6 +86,7 @@ function audioFailed(error) {
   epoch++;
   notes.clear(); updateKeys();
   const failed = audio; audio = null;
+  watchHardwareContext(null);
   visualizer.disconnect();
   if (failed) void failed.dispose().catch(() => {});
   $('startAudio').textContent = 'Enable audio';
@@ -83,6 +110,7 @@ async function ensureAudio() {
         if (disposed) throw new Error('2A03 Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         audio = engine;
+        watchHardwareContext(engine.context);
         visualizer.connect(engine.context, engine.outputNode);
         $('startAudio').textContent = 'Audio ready';
         status('Audio ready · play the keyboard. Choose Pulse, Triangle, Noise, DMC or FDS to explore.');
@@ -233,7 +261,7 @@ window.addEventListener('keydown',event=>{
 });
 window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLowerCase()}`));
 window.addEventListener('blur',()=>{stopNotes();setPitch(0);});
-document.addEventListener('visibilitychange',()=>{if(document.hidden) {stopNotes();setPitch(0);}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden) {stopNotes();setPitch(0);}syncHardwareMonitor();});
 function setPitchUi(value) {
   pitch=value;
   for (const [wheel, output] of pitchWheels) {
@@ -308,7 +336,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
+  disposed=true;epoch++;notes.clear();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
 });
 updatePresetUi();setVolume();setPitchUi(0);
 
@@ -318,7 +346,7 @@ const localDesktop = (location.protocol === 'tauri:' && location.hostname === 'l
   (['http:', 'https:'].includes(location.protocol) && location.hostname === 'tauri.localhost');
 if (window.top === window && localDesktop && window.__TAURI_INTERNALS__) {
   Object.defineProperty(window, 'tetoricaSynthAudio', {value:Object.freeze({
-    setSwitching(value) {switchingAudioOutput = value === true;},
+    setSwitching(value) {switchingAudioOutput = value === true;syncHardwareMonitor();},
     async ensureReady() {const engine = await ensureAudio(); return {context:engine.context, output:engine.outputNode};},
     async stopPlayback() {
       setPitchUi(0);
