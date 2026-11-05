@@ -284,10 +284,12 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     select(fdsEnvelopeFields, 'Direction', 'fdsEnvelopeIncrease', [[false,'Decrease'],[true,'Increase']], value => value.fds.envelope.increase, (value, increase) => {value.fds.envelope.increase = increase === 'true';}),
     number(fdsEnvelopeFields, 'Initial gain · 0–63', 'fdsEnvelopeInitialGain', 0, 63, value => value.fds.envelope.initialGain, (value, initialGain) => {value.fds.envelope.initialGain = initialGain;}),
     number(fdsEnvelopeFields, 'Period · 0–63', 'fdsEnvelopePeriod', 0, 63, value => value.fds.envelope.period, (value, period) => {value.fds.envelope.period = period;}),
-    number(fdsEnvelopeFields, 'Master period · 0–255', 'fdsEnvelopeMasterSpeed', 0, 255, value => value.fds.envelope.masterSpeed, (value, masterSpeed) => {value.fds.envelope.masterSpeed = masterSpeed;}),
   ];
-  const fdsEnvelopeHalt = checkbox(fdsEnvelopeFields, 'Pause envelope clock', 'fdsEnvelopeHalt', value => value.fds.envelope.halt, (value, halt) => {value.fds.envelope.halt = halt;});
-  help(fds, 'The FDS hardware raises or lowers gain. Start at 0 for a rise, or 32 for a decay. Gain 33–63 stays at the output limit of 32 until it falls below it. Larger periods are slower; Master period 0 or Pause stops the envelope clock. Envelope settings apply on the next note.');
+  help(fds, 'The FDS hardware raises or lowers gain. Start at 0 for a rise, or 32 for a decay. Gain 33–63 stays at the output limit of 32 until it falls below it. Envelope settings apply on the next note.');
+  const fdsClockFields = group(section(fds, 'Shared envelope clock · Volume + Depth'));
+  const fdsEnvelopeMasterSpeed = number(fdsClockFields, 'Master period · 0–255', 'fdsEnvelopeMasterSpeed', 0, 255, value => value.fds.envelopeClock.masterSpeed, (value, masterSpeed) => {value.fds.envelopeClock.masterSpeed = masterSpeed;});
+  const fdsEnvelopeHalt = checkbox(fdsClockFields, 'Pause both envelopes', 'fdsEnvelopeHalt', value => value.fds.envelopeClock.halt, (value, halt) => {value.fds.envelopeClock.halt = halt;});
+  help(fds, 'Volume and Depth envelopes share this clock. Larger periods are slower; Master period 0 or Pause stops both. Each envelope has its own Period. Clock changes apply on the next note.');
   const editHeading = make('div','nes-wave-heading'), targets = make('div','nes-wave-actions');
   editHeading.append(make('span','nes-help','Edit one hardware table'),targets); fds.append(editHeading);
   let editTarget = 'wave', brush = 1;
@@ -316,13 +318,20 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const waveReadout=make('p','nes-wave-readout');fds.append(waveReadout);
   const modulationFields = group(section(fds,'Hardware frequency modulation'));
   checkbox(modulationFields,'Enable modulation','fdsModEnabled',value=>value.fds.modulation.enabled,(value,enabled)=>{value.fds.modulation.enabled=enabled;});
-  const modulationControls = [
-    number(modulationFields,'Rate · 0–4095','fdsModRate',0,4095,value=>value.fds.modulation.rate,(value,rate)=>{value.fds.modulation.rate=rate;}),
-    number(modulationFields,'Depth · 0–63','fdsModDepth',0,63,value=>value.fds.modulation.depth,(value,depth)=>{value.fds.modulation.depth=depth;}),
-    number(modulationFields,'Bias · −64 to +63','fdsModBias',-64,63,value=>value.fds.modulation.bias,(value,bias)=>{value.fds.modulation.bias=bias;}),
-  ];
+  const fdsModRate = number(modulationFields,'Rate · 0–4095','fdsModRate',0,4095,value=>value.fds.modulation.rate,(value,rate)=>{value.fds.modulation.rate=rate;});
+  const fdsFixedDepth = number(modulationFields,'Fixed depth · 0–63','fdsModDepth',0,63,value=>value.fds.modulation.depth,(value,depth)=>{value.fds.modulation.depth=depth;});
+  const fdsModBias = number(modulationFields,'Bias · −64 to +63','fdsModBias',-64,63,value=>value.fds.modulation.bias,(value,bias)=>{value.fds.modulation.bias=bias;});
+  const modulationControls = [fdsModRate,fdsFixedDepth,fdsModBias];
   help(fds,'Wave stores 64 six-bit samples. Modulation stores 32 commands that change an internal pitch counter; Reset clears that counter. Enable modulation to hear it vary the wave’s playback frequency. Rate controls its speed, Depth its strength and Bias its starting offset.');
-  help(fds,'Wave and modulation-table edits apply on release and stop held notes. Play a new note to hear them. Rate, Depth, Bias and volume can change while the FDS note is held. Drawing and shape presets are software tools for editing these hardware tables.');
+  const fdsDepthEnvelopeFields = group(section(fds, 'Hardware depth envelope'));
+  const fdsDepthEnvelopeEnabled = checkbox(fdsDepthEnvelopeFields, 'Enable Depth Envelope', 'fdsModEnvelopeEnabled', value => value.fds.modulation.envelope.enabled, (value, enabled) => {value.fds.modulation.envelope.enabled = enabled;});
+  const fdsDepthEnvelopeControls = [
+    select(fdsDepthEnvelopeFields, 'Direction', 'fdsModEnvelopeIncrease', [[false,'Decrease'],[true,'Increase']], value => value.fds.modulation.envelope.increase, (value, increase) => {value.fds.modulation.envelope.increase = increase === 'true';}),
+    number(fdsDepthEnvelopeFields, 'Initial depth · 0–63', 'fdsModEnvelopeInitialGain', 0, 63, value => value.fds.modulation.envelope.initialGain, (value, initialGain) => {value.fds.modulation.envelope.initialGain = initialGain;}),
+    number(fdsDepthEnvelopeFields, 'Period · 0–63', 'fdsModEnvelopePeriod', 0, 63, value => value.fds.modulation.envelope.period, (value, period) => {value.fds.modulation.envelope.period = period;}),
+  ];
+  help(fds, 'Enable modulation to hear the Depth Envelope. Increase raises depths below 32; Decrease falls toward 0. Start at 0 for a gradual increase. Fixed depth and Initial depth can reach 63. Volume and Depth use the Shared envelope clock above. Envelope edits apply on the next note.');
+  help(fds,'Wave and modulation-table edits apply on release and stop held notes. Play a new note to hear them. Rate, Bias, Master scale and active fixed volume / depth can change while a note is held. Drawing and shape presets are software tools for editing these hardware tables.');
 
   function drawWave(samples = editTarget==='wave'?preset.fds.wave:preset.fds.modulation.table) {
     const context=canvas.getContext('2d');if(!context)return;
@@ -392,9 +401,14 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
     noiseFixedVolume.setDisabled(preset.noise.envelope.enabled);noiseEnvelopePeriod.setDisabled(!preset.noise.envelope.enabled);noiseEnvelopeLoop.disabled=!preset.noise.envelope.enabled;
-    fdsFixedVolume.setDisabled(preset.fds.envelope.enabled);for(const control of fdsEnvelopeControls)control.setDisabled(!preset.fds.envelope.enabled);fdsEnvelopeHalt.disabled=!preset.fds.envelope.enabled;
+    fdsFixedVolume.setDisabled(preset.fds.envelope.enabled);for(const control of fdsEnvelopeControls)control.setDisabled(!preset.fds.envelope.enabled);
+    const fdsClockEnabled = preset.fds.envelope.enabled || preset.fds.modulation.envelope.enabled;
+    fdsEnvelopeMasterSpeed.setDisabled(!fdsClockEnabled);fdsEnvelopeHalt.disabled=!fdsClockEnabled;
     for(const control of sweepControls)control.setDisabled(!preset.pulse.sweep.enabled);
     for(const control of modulationControls)control.setDisabled(!preset.fds.modulation.enabled);
+    fdsFixedDepth.setDisabled(!preset.fds.modulation.enabled || preset.fds.modulation.envelope.enabled);
+    fdsDepthEnvelopeEnabled.disabled=!preset.fds.modulation.enabled;
+    for(const control of fdsDepthEnvelopeControls)control.setDisabled(!preset.fds.modulation.enabled || !preset.fds.modulation.envelope.enabled);
     for(const button of targetButtons)button.setAttribute('aria-pressed',String(button.dataset.fdsEdit===editTarget));
     for(const button of brushButtons)button.setAttribute('aria-pressed',String(Number(button.dataset.modCode)===brush));
     shapes.hidden=editTarget!=='wave';modShapes.hidden=brushRow.hidden=editTarget!=='modulation';

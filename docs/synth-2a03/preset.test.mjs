@@ -5,23 +5,40 @@ import vm from 'node:vm';
 import {createDefaultPreset, readPreset, waveShape, presetToCode, createDemoDpcm, MAX_DPCM_BYTES} from './preset.js';
 import {NesApuSynth} from '../js/nesapusynth.js';
 
+const volumeEnvelopeDefault = {enabled:false,increase:false,period:8,initialGain:32};
+const envelopeClockDefault = {masterSpeed:232,halt:false};
+const modulationEnvelopeDefault = {enabled:false,increase:true,period:8,initialGain:0};
+function createLegacyPreset(version) {
+  const preset = createDefaultPreset(); preset.version = version;
+  const clock = preset.fds.envelopeClock; delete preset.fds.envelopeClock; delete preset.fds.modulation.envelope;
+  if (version <= 3) delete preset.fds.envelope;
+  else preset.fds.envelope = {...preset.fds.envelope,...clock};
+  if (version <= 2) delete preset.noise.envelope;
+  if (version === 1) delete preset.dmc;
+  return preset;
+}
+
 test('portable NES/FDS preset owns complete independent six-bit wave and modulation data', () => {
   const source = createDefaultPreset(); source.name = '  FDS flute  '; source.source = 'fds';
   source.fds.modulation.enabled = true; source.fds.modulation.bias = -24;
   source.pulse.envelope = {enabled: true, period: 4, loop: true};
   source.noise.envelope = {enabled: true, period: 5, loop: true};
-  source.fds.envelope = {enabled:true,increase:false,period:63,masterSpeed:255,initialGain:63,halt:true};
+  source.fds.envelope = {enabled:true,increase:false,period:63,initialGain:63};
+  source.fds.envelopeClock = {masterSpeed:255,halt:true};
+  source.fds.modulation.envelope = {enabled:true,increase:true,period:63,initialGain:63};
   const copy = readPreset(JSON.parse(JSON.stringify(source)));
   assert.deepEqual(copy, {...source, name: 'FDS flute'});
   copy.fds.wave[0] = 63; copy.fds.modulation.table[0] = 4; copy.noise.envelope.period = 0; copy.fds.envelope.initialGain = 0;
   assert.notEqual(source.fds.wave[0], 63); assert.equal(source.fds.modulation.table[0], 1);
   assert.equal(source.noise.envelope.period, 5);
   assert.equal(source.fds.envelope.initialGain, 63);
+  copy.fds.envelopeClock.masterSpeed = 0; copy.fds.modulation.envelope.initialGain = 0;
+  assert.equal(source.fds.envelopeClock.masterSpeed,255); assert.equal(source.fds.modulation.envelope.initialGain,63);
 });
 
 test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hardware data', () => {
   const changes = [
-    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 5;}, p => {p.source = 'sid';},
+    p => {p.extra = 1;}, p => {delete p.noise;}, p => {p.format = 'nes';}, p => {p.version = 6;}, p => {p.source = 'sid';},
     p => {p.name = 'a\ncode';}, p => {p.name = 'a'.repeat(81);}, p => {p.name = 'bad\u2028code';},
     p => {p.pulse.duty = .4;}, p => {p.pulse.volume = 16;}, p => {p.pulse.envelope.enabled = 1;}, p => {p.pulse.envelope.period = -1;},
     p => {p.pulse.sweep.period = 8;}, p => {p.pulse.sweep.shift = 1.5;}, p => {p.pulse.sweep.negate = 'true';},
@@ -32,24 +49,29 @@ test('strict presets reject ambiguous, sparse, non-finite, extra and out-of-hard
     p => {p.fds.wave.pop();}, p => {delete p.fds.wave[4];}, p => {p.fds.wave.foo = 1;}, p => {p.fds.wave[5] = 64;},
     p => {p.fds.volume = 33;}, p => {p.fds.master = 4;}, p => {p.fds.modulation.table[1] = 8;},
     p => {delete p.fds.envelope;}, p => {p.fds.envelope = null;}, p => {p.fds.envelope.extra = 1;},
-    p => {delete p.fds.envelope.halt;}, p => {p.fds.envelope.enabled = 1;}, p => {p.fds.envelope.increase = 'false';}, p => {p.fds.envelope.halt = 0;},
+    p => {delete p.fds.envelope.initialGain;}, p => {p.fds.envelope.enabled = 1;}, p => {p.fds.envelope.increase = 'false';}, p => {p.fds.envelope.halt = false;},
     p => {p.fds.envelope.period = -1;}, p => {p.fds.envelope.period = 64;}, p => {p.fds.envelope.period = .5;},
-    p => {p.fds.envelope.masterSpeed = -1;}, p => {p.fds.envelope.masterSpeed = 256;}, p => {p.fds.envelope.masterSpeed = NaN;},
+    p => {delete p.fds.envelopeClock;}, p => {p.fds.envelopeClock = null;}, p => {p.fds.envelopeClock.extra = 1;}, p => {delete p.fds.envelopeClock.halt;},
+    p => {p.fds.envelopeClock.masterSpeed = -1;}, p => {p.fds.envelopeClock.masterSpeed = 256;}, p => {p.fds.envelopeClock.masterSpeed = NaN;}, p => {p.fds.envelopeClock.halt = 0;},
     p => {p.fds.envelope.initialGain = -1;}, p => {p.fds.envelope.initialGain = 64;}, p => {p.fds.envelope.initialGain = Infinity;},
     p => {p.fds.modulation.table.length = 31;}, p => {p.fds.modulation.table.extra = 1;},
     p => {p.fds.modulation.rate = 4096;}, p => {p.fds.modulation.depth = NaN;}, p => {p.fds.modulation.bias = -65;},
+    p => {delete p.fds.modulation.envelope;}, p => {p.fds.modulation.envelope = null;}, p => {p.fds.modulation.envelope.extra = 1;}, p => {delete p.fds.modulation.envelope.initialGain;},
+    p => {p.fds.modulation.envelope.enabled = 1;}, p => {p.fds.modulation.envelope.increase = 'true';},
+    p => {p.fds.modulation.envelope.period = -1;}, p => {p.fds.modulation.envelope.period = 64;}, p => {p.fds.modulation.envelope.period = NaN;},
+    p => {p.fds.modulation.envelope.initialGain = -1;}, p => {p.fds.modulation.envelope.initialGain = 64;}, p => {p.fds.modulation.envelope.initialGain = .5;},
     p => {Object.setPrototypeOf(p, {source: 'noise'});},
   ];
   for (const change of changes) {const preset = createDefaultPreset(); change(preset); assert.throws(() => readPreset(preset));}
 });
 
-test('v4 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
-  const original = createDefaultPreset(); delete original.dmc; delete original.noise.envelope; delete original.fds.envelope; original.version = 1;
+test('v5 owns DPCM bytes and strictly migrates original v1 presets without enabling DMC', () => {
+  const original = createLegacyPreset(1);
   const migrated = readPreset(original);
-  assert.equal(migrated.version, 4); assert.equal(migrated.source, 'pulse');
+  assert.equal(migrated.version, 5); assert.equal(migrated.source, 'pulse');
   assert.deepEqual(migrated.dmc, {data: [], rate: 15, loop: false, level: 64});
   assert.deepEqual(migrated.noise, {...original.noise, envelope:{enabled:false, period:8, loop:false}});
-  assert.deepEqual(migrated.fds, {...original.fds,envelope:createDefaultPreset().fds.envelope});
+  assert.deepEqual(migrated.fds, {...original.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...original.fds.modulation,envelope:modulationEnvelopeDefault}});
   assert.throws(() => readPreset({...original, source:'dmc'}));
   assert.throws(() => readPreset({...original, dmc:migrated.dmc}));
   assert.throws(() => readPreset({...original, noise:migrated.noise}), 'v1 does not accept a hidden v3 Envelope field');
@@ -71,11 +93,11 @@ test('v4 owns DPCM bytes and strictly migrates original v1 presets without enabl
 });
 
 test('v2 DPCM presets migrate to a detached disabled Noise envelope without changing other settings', () => {
-  const original = createDefaultPreset(); original.version = 2; original.source = 'dmc';
-  original.dmc = {data:[1,2,255], rate:3, loop:true, level:31}; delete original.noise.envelope; delete original.fds.envelope;
+  const original = createLegacyPreset(2); original.source = 'dmc';
+  original.dmc = {data:[1,2,255], rate:3, loop:true, level:31};
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before,'migration never edits the input');
-  assert.deepEqual(migrated,{...before, version:4, noise:{...before.noise,envelope:{enabled:false,period:8,loop:false}},fds:{...before.fds,envelope:createDefaultPreset().fds.envelope}});
+  assert.deepEqual(migrated,{...before, version:5, noise:{...before.noise,envelope:{enabled:false,period:8,loop:false}},fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
   migrated.dmc.data[0] = 0; assert.equal(original.dmc.data[0],1);
   const another = readPreset(original); migrated.noise.envelope.period = 15;
   assert.equal(another.noise.envelope.period,8,'each legacy migration owns its Envelope settings');
@@ -87,46 +109,78 @@ test('v2 DPCM presets migrate to a detached disabled Noise envelope without chan
 });
 
 test('v3 presets retain Noise Envelope and fixed FDS output while adding independent disabled FDS Envelope settings', () => {
-  const original = createDefaultPreset(); original.version = 3; original.source = 'fds';
+  const original = createLegacyPreset(3); original.source = 'fds';
   original.noise.envelope = {enabled:true,period:3,loop:true};
-  original.fds.volume = 0; original.fds.master = 3; delete original.fds.envelope;
+  original.fds.volume = 0; original.fds.master = 3;
   const before = structuredClone(original), migrated = readPreset(original);
   assert.deepEqual(original,before);
-  assert.deepEqual(migrated,{...before,version:4,fds:{...before.fds,envelope:createDefaultPreset().fds.envelope}});
+  assert.deepEqual(migrated,{...before,version:5,fds:{...before.fds,envelope:volumeEnvelopeDefault,envelopeClock:envelopeClockDefault,modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
   migrated.fds.envelope.enabled = true; migrated.fds.envelope.initialGain = 63;
   assert.deepEqual(readPreset(original).fds.envelope,createDefaultPreset().fds.envelope);
   assert.throws(() => readPreset({...original,fds:migrated.fds}),'v3 rejects an unversioned FDS Envelope extension');
   const invalid = structuredClone(original); invalid.fds.volume = 33; assert.throws(() => readPreset(invalid));
 });
 
-test('FDS Envelope endpoints round-trip and generated code preserves raw gain and clock settings after keyOn', () => {
-  for (const increase of [false,true]) for (const period of [0,63]) for (const masterSpeed of [0,255]) for (const initialGain of [0,63]) for (const halt of [false,true]) {
-    const preset = createDefaultPreset(); preset.source = 'fds'; preset.fds.master = 3;
-    preset.fds.envelope = {enabled:true,increase,period,masterSpeed,initialGain,halt};
-    assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
-    const writes = [], nes = new NesApuSynth({transport:{writeRegister:(r,v)=>writes.push([r,v])},fds:true});
-    writes.length = 0; const code = presetToCode(preset);
-    vm.runInNewContext(code,{nes});
-    const control = (increase ? 64 : 0) | period;
-    const pitch = Math.round((440 * 2 ** ((60 - 69) / 12)) * 4194304 / nes.clock);
-    assert.equal(nes._getState().registers[0x80],control);
-    assert.equal(nes._getState().registers[0x8a],masterSpeed);
-    assert.equal(nes._getState().registers[0x83],(pitch >> 8) | (halt ? 64 : 0));
-    assert.equal(nes._getState().registers[0x89],3);
-    const seed = writes.findLastIndex(([r,v])=>r===0x4080&&v===(128|initialGain));
-    const speed = writes.findLastIndex(([r])=>r===0x408a), envelope = writes.findLastIndex(([r])=>r===0x4080), start = writes.findLastIndex(([r])=>r===0x4083);
-    assert(seed>=0&&seed<speed&&speed<envelope&&envelope<start,'seed, master period, Envelope and clock gate follow keyOn in order');
-    assert.equal(writes[envelope][1],control);
-    assert.equal(writes.slice(start+1).some(([r])=>r===0x4080||r===0x4083),false,'no later noteOn can overwrite the Envelope');
-    assert(!code.includes('nes._getState('),'export uses the existing public API');
-    assert.match(code,/Release with nes\.noteOff\(5\)/);
+test('v4 FDS Envelope presets split the shared clock without changing volume or modulation settings', () => {
+  const original = createLegacyPreset(4); original.source = 'fds';
+  original.fds.envelope = {enabled:true,increase:true,period:63,masterSpeed:0,initialGain:63,halt:true};
+  original.fds.modulation.enabled = true; original.fds.modulation.depth = 47;
+  const before = structuredClone(original), migrated = readPreset(original);
+  assert.deepEqual(original,before);
+  assert.deepEqual(migrated,{...before,version:5,fds:{...before.fds,
+    envelope:{enabled:true,increase:true,period:63,initialGain:63},envelopeClock:{masterSpeed:0,halt:true},
+    modulation:{...before.fds.modulation,envelope:modulationEnvelopeDefault}}});
+  migrated.fds.envelopeClock.halt = false; migrated.fds.modulation.envelope.initialGain = 63;
+  assert.deepEqual(readPreset(original).fds.envelopeClock,{masterSpeed:0,halt:true});
+  assert.deepEqual(readPreset(original).fds.modulation.envelope,modulationEnvelopeDefault);
+  for (const version of [1,2,3,4]) {
+    const legacy = createLegacyPreset(version);
+    assert.throws(()=>readPreset({...legacy,fds:{...legacy.fds,envelopeClock:envelopeClockDefault}}),'legacy versions reject a hidden shared clock');
+    assert.throws(()=>readPreset({...legacy,fds:{...legacy.fds,modulation:{...legacy.fds.modulation,envelope:modulationEnvelopeDefault}}}),'legacy versions reject a hidden depth Envelope');
   }
-  const fixed = createDefaultPreset(); fixed.source = 'fds';
-  const writes = [], nes = new NesApuSynth({transport:{writeRegister:(r,v)=>writes.push([r,v])},fds:true});
-  writes.length = 0; const code = presetToCode(fixed); vm.runInNewContext(code,{nes});
-  assert.match(code,/nes\.noteOn\(5, 'C4'\)/); assert(!code.includes('0x408a'));
-  assert.equal(nes._getState().registers[0x80],128|fixed.fds.volume);
-  assert.equal(nes._getState().registers[0x83]&64,64,'fixed FDS playback keeps its existing envelope-halt policy');
+  for (const mutate of [
+    p=>{delete p.fds.envelope.masterSpeed;},p=>{delete p.fds.envelope.halt;},p=>{p.fds.envelope.masterSpeed=256;},p=>{p.fds.envelope.halt=1;},
+  ]) {const invalid=createLegacyPreset(4);mutate(invalid);assert.throws(()=>readPreset(invalid));}
+});
+
+test('FDS Volume and Depth Envelope exports share a clock and preserve independent raw gains after keyOn', () => {
+  for (const volumeEnabled of [false,true]) for (const depthEnabled of [false,true])
+    for (const increase of [false,true]) for (const period of [0,63]) for (const masterSpeed of [0,255]) for (const initialGain of [0,63]) for (const halt of [false,true]) {
+      const preset = createDefaultPreset(); preset.source = 'fds'; preset.fds.master = 3;
+      preset.fds.envelope = {enabled:volumeEnabled,increase,period,initialGain};
+      preset.fds.envelopeClock = {masterSpeed,halt};
+      preset.fds.modulation.enabled = true;
+      preset.fds.modulation.envelope = {enabled:depthEnabled,increase:!increase,period:63-period,initialGain:63-initialGain};
+      assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+      const writes = [], nes = new NesApuSynth({transport:{writeRegister:(r,v)=>writes.push([r,v])},fds:true});
+      let modulationOptions; const setModulation = nes.fds.setModulation;
+      nes.fds.setModulation = options=>{modulationOptions=options;return setModulation(options);};
+      writes.length = 0; const code = presetToCode(preset); vm.runInNewContext(code,{nes});
+      assert.deepEqual(Object.keys(modulationOptions).sort(),['bias','depth','enabled','rate','table'],'setModulation receives only fields supported by the existing public API');
+      const anyEnvelope = volumeEnabled || depthEnabled;
+      const volumeControl = volumeEnabled ? (increase ? 64 : 0) | period : 128 | preset.fds.volume;
+      const depthControl = depthEnabled ? (!increase ? 64 : 0) | (63-period) : 128 | preset.fds.modulation.depth;
+      const pitch = Math.round((440 * 2 ** ((60 - 69) / 12)) * 4194304 / nes.clock), state = nes._getState();
+      assert.equal(state.registers[0x80],volumeControl); assert.equal(state.registers[0x84],depthControl);
+      assert.equal(state.registers[0x83],(pitch >> 8) | (anyEnvelope && !halt ? 0 : 64));
+      assert.equal(state.registers[0x89],3);
+      if (anyEnvelope) {
+        assert.equal(state.registers[0x8a],masterSpeed);
+        const clock = writes.findLastIndex(([r])=>r===0x408a), start = writes.findLastIndex(([r])=>r===0x4083);
+        for (const [enabled,address,gain,control] of [[volumeEnabled,0x4080,initialGain,volumeControl],[depthEnabled,0x4084,63-initialGain,depthControl]]) {
+          if (!enabled) continue;
+          const seed=writes.findLastIndex(([r,v],index)=>index<clock&&r===address&&v===(128|gain));
+          const envelope=writes.findLastIndex(([r])=>r===address);
+          assert(seed>=0&&seed<clock&&clock<envelope&&envelope<start,'each seed precedes the shared clock and its envelope starts before clock release');
+          assert.equal(writes[envelope][1],control);
+        }
+        assert.equal(writes.slice(start+1).some(([r])=>[0x4080,0x4084,0x4083].includes(r)),false,'no later noteOn overwrites either envelope');
+      } else {
+        assert.match(code,/nes\.noteOn\(5, 'C4'\)/); assert(!code.includes('0x408a'));
+      }
+      assert(!code.includes('nes._getState('),'export uses the existing public API');
+      assert.match(code,/Release with nes\.noteOff\(5\)/);
+    }
 });
 
 test('Noise Envelope endpoints survive JSON round-trip and generated code configures the existing register API before trigger', () => {

@@ -54,6 +54,13 @@ export class NesInstrument {
     if (!live || constantVolume && !envelope.enabled) this.synth.fds.setVolume(volume, master);
     else this.synth.writeRegister(0x4089, master);
   }
+  _fdsDepth(preset, {live = false} = {}) {
+    const {depth, envelope} = preset.fds.modulation;
+    const constantDepth = Boolean(this.synth._getState().registers[0x84] & 128);
+    // The depth envelope has its own divider. Live FM clock / bias changes
+    // must not rewrite its control or reset that divider's current phase.
+    if (!live || constantDepth && !envelope.enabled) this.synth.writeRegister(0x4084, 128 | depth);
+  }
   _apply(previous, next) {
     const changed = (path, value) => !previous || !equal(path(previous), value);
     if (changed(p => p.pulse, next.pulse)) for (let channel = 0; channel < 2; channel++) this._pulseVoice(channel, next, {live: Boolean(this.slots[channel])});
@@ -75,7 +82,7 @@ export class NesInstrument {
     else {
       // Avoid rewriting the modulation RAM and resetting its clock for an
       // ordinary rate/depth/bias adjustment on a held FDS note.
-      if (changed(p => p.fds.modulation.depth, mod.depth)) this.synth.writeRegister(0x4084, 128 | mod.depth);
+      if (changed(p => [p.fds.modulation.depth, p.fds.modulation.envelope], [mod.depth, mod.envelope])) this._fdsDepth(next, {live:Boolean(this.slots[5])});
       if (changed(p => p.fds.modulation.bias, mod.bias)) this.synth.writeRegister(0x4085, mod.bias & 127);
       if (changed(p => p.fds.modulation.rate, mod.rate)) this.synth.writeRegister(0x4086, mod.rate & 255);
       if (changed(p => [p.fds.modulation.rate, p.fds.modulation.enabled], [mod.rate, mod.enabled])) this.synth.writeRegister(0x4087, (mod.enabled ? 0 : 128) | (mod.rate >> 8));
@@ -147,12 +154,18 @@ export class NesInstrument {
       // envelope only afterwards so the public API cannot overwrite it.
       this.synth.fds.setVolume(this.preset.fds.volume, this.preset.fds.master);
       this._retune(5, tone.period); this.synth.fds.keyOn();
-      const envelope = this.preset.fds.envelope;
-      if (envelope.enabled) {
-        this.synth.writeRegister(0x4080, 128 | envelope.initialGain);
-        this.synth.writeRegister(0x408a, envelope.masterSpeed);
-        this.synth.writeRegister(0x4080, (envelope.increase ? 64 : 0) | envelope.period);
-        this.synth.writeRegister(0x4083, (this.synth._getState().registers[0x83] & 15) | (envelope.halt ? 64 : 0));
+      const envelope = this.preset.fds.envelope, depthEnvelope = this.preset.fds.modulation.envelope;
+      // Restore a pending fixed-depth change as well as seeding every enabled
+      // envelope. The master clock and halt line are shared by both units.
+      this.synth.writeRegister(0x4084, 128 | this.preset.fds.modulation.depth);
+      if (envelope.enabled || depthEnvelope.enabled) {
+        const clock = this.preset.fds.envelopeClock;
+        if (envelope.enabled) this.synth.writeRegister(0x4080, 128 | envelope.initialGain);
+        if (depthEnvelope.enabled) this.synth.writeRegister(0x4084, 128 | depthEnvelope.initialGain);
+        this.synth.writeRegister(0x408a, clock.masterSpeed);
+        if (envelope.enabled) this.synth.writeRegister(0x4080, (envelope.increase ? 64 : 0) | envelope.period);
+        if (depthEnvelope.enabled) this.synth.writeRegister(0x4084, (depthEnvelope.increase ? 64 : 0) | depthEnvelope.period);
+        this.synth.writeRegister(0x4083, (this.synth._getState().registers[0x83] & 15) | (clock.halt ? 64 : 0));
       }
     }
     const voice = {id, midi, channel, order: ++this.sequence};

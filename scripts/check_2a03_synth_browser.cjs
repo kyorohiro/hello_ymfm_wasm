@@ -52,6 +52,14 @@ function makeFdsEnvelopeVgm() {
     ...w(0x20,0x80),...w(0x2a,232),...w(0x20,0x48),...w(0x22,0x90),...w(0x23,1),0x66,
   ]);
 }
+function makeFdsDepthEnvelopeVgm() {
+  const w=vgmWrite;
+  return vgmBytes([
+    ...w(0x3f,2),...w(0x23,0xc0),...w(0x29,0x80),...vgmWave.flatMap((value,index)=>w(0x40+index,value)),...w(0x29,0),
+    ...w(0x27,0x80),...vgmModulation.flatMap(value=>w(0x28,value)),...w(0x25,0),...w(0x26,0),
+    ...w(0x20,0x98),...w(0x24,0x80),...w(0x2a,232),...w(0x24,0x48),...w(0x27,1),...w(0x22,0x90),...w(0x23,1),0x66,
+  ]);
+}
 const dpcmBytes = length => Buffer.from(Array.from({length}, (_,index)=>index%8<4?0xff:0));
 function expectedDmcPreview(data, initial, rate, loop) {
   const hardwareBytes=data.length ? Math.ceil((data.length-1)/16)*16+1 : 0;
@@ -392,6 +400,18 @@ async function runEngine(name, engine, origin) {
     await page.check('#fdsEnvelopeHalt');await page.uncheck('#fdsEnvelopeHalt');await page.uncheck('#fdsEnvelopeEnabled');
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
 
+    check('FDS Depth Envelope shares the clock without enabling the volume Envelope');
+    assert.equal(await page.isDisabled('#fdsModEnvelopeEnabled'),true);
+    await page.check('#fdsModEnabled');await page.check('#fdsModEnvelopeEnabled');
+    assert.equal(await page.isChecked('#fdsEnvelopeEnabled'),false);
+    assert.equal(await stepButton('#fdsEnvelopeMasterSpeed',1).isDisabled(),false);
+    assert.equal(await stepButton('#fdsModDepth',1).isDisabled(),true);
+    await choose('#fdsModEnvelopeIncrease',false);await choose('#fdsModEnvelopeIncrease',true);
+    await number('#fdsModEnvelopeInitialGain',63);await number('#fdsModEnvelopeInitialGain',0);
+    await page.uncheck('#fdsModEnvelopeEnabled');await page.uncheck('#fdsModEnabled');
+    assert.equal(await page.isDisabled('#fdsEnvelopeHalt'),true);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+
     check('DPCM demo and file loading are passive; an empty DMC source explains its sample requirement');
     await choose('#source','dmc');
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
@@ -532,7 +552,7 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
     const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
-    assert.equal(passiveDpcm.version,4);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
+    assert.equal(passiveDpcm.version,5);assert.equal(passiveDpcm.source,'dmc');assert.deepEqual(passiveDpcm.dmc.data,[...dpcmBytes(32)]);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     await choose('#source','pulse');await page.fill('#instrumentName','NES browser audit');await page.press('#instrumentName','Enter');
 
@@ -697,11 +717,11 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
     const noiseSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const noiseSave=await noiseSaveEvent;
     const noisePortable=JSON.parse(await fs.readFile(await noiseSave.path(),'utf8'));
-    assert.equal(noisePortable.version,4);assert.deepEqual(noisePortable.noise.envelope,{enabled:true,period:5,loop:false});
+    assert.equal(noisePortable.version,5);assert.deepEqual(noisePortable.noise.envelope,{enabled:true,period:5,loop:false});
     await page.click('#copyCode');assert.match(await page.locator('#codeOutput').inputValue(),/nes\.writeRegister\(0x400c,\s*5\)/i);
     await page.uncheck('#noiseEnvelopeEnabled');await waitState(value=>!value.preset.noise.envelope.enabled);
     assert.equal(await stepButton('#noiseVolume',1).isDisabled(),false);assert.equal(await page.isDisabled('#noiseEnvelopeLoop'),true);
-    await page.setInputFiles('#presetFileInput',{name:'noise-envelope-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(noisePortable))});
+    await page.setInputFiles('#presetFileInput',{name:'noise-envelope-v5.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(noisePortable))});
     state=await waitState(value=>value.preset.noise.envelope.enabled&&value.preset.noise.envelope.period===5);
     assert.deepEqual(state.preset,noisePortable);assert.equal(await page.isChecked('#noiseEnvelopeEnabled'),true);
     if(config.screenshots) {
@@ -962,10 +982,10 @@ async function runEngine(name, engine, origin) {
     const undoneDpcm=await downloadDpcm(editedDmcData);
     assert.notDeepEqual([...undoneDpcm],drawnDmcData);
 
-    check('portable v4 presets retain original DMC bytes and copied code awaits memory; v1 through v3 still migrate');
+    check('portable v5 presets retain original DMC bytes and copied code awaits memory; v1 through v4 still migrate');
     const dmcSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const dmcSave=await dmcSaveEvent;
     const dmcPortable=JSON.parse(await fs.readFile(await dmcSave.path(),'utf8'));
-    assert.equal(dmcPortable.version,4);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
+    assert.equal(dmcPortable.version,5);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
     assert.deepEqual(dmcPortable.dmc.data,editedDmcData,'portable presets retain the bit edits');
     assert.notDeepEqual(dmcPortable.dmc.data,drawnDmcData,'saving after Undo exports restored data rather than Redo data');
     await page.click('#copyCode');const dmcCode=await page.locator('#codeOutput').inputValue();
@@ -995,18 +1015,27 @@ async function runEngine(name, engine, origin) {
       assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'DMC editor fits a narrow screen');await screenshot('dmc-mobile');
       await page.setViewportSize({width:1180,height:940});
     }
-    const legacyV3Preset=structuredClone(dmcPortable);legacyV3Preset.name='Imported legacy v3';legacyV3Preset.version=3;delete legacyV3Preset.fds.envelope;
+    const legacyV4Preset=structuredClone(dmcPortable);legacyV4Preset.name='Imported legacy v4';legacyV4Preset.version=4;
+    legacyV4Preset.fds.envelope={enabled:true,increase:true,period:11,initialGain:17,masterSpeed:37,halt:true};
+    delete legacyV4Preset.fds.envelopeClock;delete legacyV4Preset.fds.modulation.envelope;
+    await page.setInputFiles('#presetFileInput',{name:'old-v4-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV4Preset))});
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===5&&value.preset.name==='Imported legacy v4');
+    assert.deepEqual(state.preset.fds.envelope,{enabled:true,increase:true,period:11,initialGain:17});
+    assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:37,halt:true});
+    assert.deepEqual(state.preset.fds.modulation.envelope,{enabled:false,increase:true,period:8,initialGain:0});
+    const legacyV3Preset=structuredClone(legacyV4Preset);legacyV3Preset.name='Imported legacy v3';legacyV3Preset.version=3;delete legacyV3Preset.fds.envelope;
     await page.setInputFiles('#presetFileInput',{name:'old-v3-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV3Preset))});
-    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===4&&value.preset.name==='Imported legacy v3');
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===5&&value.preset.name==='Imported legacy v3');
     assert.deepEqual(state.preset.dmc,dmcPortable.dmc);
-    assert.deepEqual(state.preset.fds.envelope,{enabled:false,increase:false,period:8,masterSpeed:232,initialGain:32,halt:false});
+    assert.deepEqual(state.preset.fds.envelope,{enabled:false,increase:false,period:8,initialGain:32});
+    assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:232,halt:false});
     const legacyV2Preset=structuredClone(legacyV3Preset);legacyV2Preset.name='Imported legacy v2';legacyV2Preset.version=2;delete legacyV2Preset.noise.envelope;
     await page.setInputFiles('#presetFileInput',{name:'old-v2-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV2Preset))});
-    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===4&&value.preset.name==='Imported legacy v2'&&value.preset.noise.envelope.period===8);
+    state=await waitState(value=>value.preset.source==='dmc'&&value.preset.version===5&&value.preset.name==='Imported legacy v2'&&value.preset.noise.envelope.period===8);
     assert.deepEqual(state.preset.dmc,dmcPortable.dmc);assert.deepEqual(state.preset.noise.envelope,{enabled:false,period:8,loop:false});
     const legacyPreset=structuredClone(legacyV2Preset);legacyPreset.version=1;legacyPreset.source='pulse';delete legacyPreset.dmc;
     await page.setInputFiles('#presetFileInput',{name:'old-v1-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyPreset))});
-    state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===4);
+    state=await waitState(value=>value.preset.source==='pulse'&&value.preset.version===5);
     assert.equal(state.preset.dmc.data.length,0);assert.deepEqual(state.preset.pulse,legacyPreset.pulse);
 
     check('FDS Wave drawing applies on release and stores exactly 64 six-bit samples');
@@ -1070,7 +1099,7 @@ async function runEngine(name, engine, origin) {
     assert(state.coreState.fdsGain>=risingGain,'Master / Pitch / modulation edits keep the rising gain progressing');
     await choose('#fdsEnvelopeIncrease',false);await number('#fdsEnvelopeInitialGain',7);await number('#fdsEnvelopePeriod',9);
     await number('#fdsEnvelopeMasterSpeed',0);await page.check('#fdsEnvelopeHalt');
-    state=await waitState(value=>value.preset.fds.envelope.halt&&value.preset.fds.envelope.masterSpeed===0);
+    state=await waitState(value=>value.preset.fds.envelopeClock.halt&&value.preset.fds.envelopeClock.masterSpeed===0);
     assert.equal(state.registers[0x80],0x48);assert.equal(state.registers[0x8a],232);assert.equal(state.registers[0x83]&0xc0,0);
     assert.equal(state.voices[0].id,risingFdsOwner);
     assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),fdsEnvelopeAttacks);
@@ -1081,13 +1110,14 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
     const fdsEnvelopeSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const fdsEnvelopeSave=await fdsEnvelopeSaveEvent;
     const fdsEnvelopePortable=JSON.parse(await fs.readFile(await fdsEnvelopeSave.path(),'utf8'));
-    assert.equal(fdsEnvelopePortable.version,4);
-    assert.deepEqual(fdsEnvelopePortable.fds.envelope,{enabled:true,increase:false,period:9,masterSpeed:0,initialGain:7,halt:true});
+    assert.equal(fdsEnvelopePortable.version,5);
+    assert.deepEqual(fdsEnvelopePortable.fds.envelope,{enabled:true,increase:false,period:9,initialGain:7});
+    assert.deepEqual(fdsEnvelopePortable.fds.envelopeClock,{masterSpeed:0,halt:true});
     await page.click('#copyCode');const fdsEnvelopeCode=await page.locator('#codeOutput').inputValue();
     assert.match(fdsEnvelopeCode,/nes\.fds\.keyOn\(\)/);assert.match(fdsEnvelopeCode,/nes\.writeRegister\(0x408a,\s*0\)/i);
     assert.match(fdsEnvelopeCode,/nes\.writeRegister\(0x4080,\s*135\)/i);assert.match(fdsEnvelopeCode,/nes\.writeRegister\(0x4083,/i);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
-    await page.setInputFiles('#presetFileInput',{name:'fds-envelope-v4.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(fdsEnvelopePortable))});
+    await page.setInputFiles('#presetFileInput',{name:'fds-envelope-v5.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(fdsEnvelopePortable))});
     state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.envelope.enabled&&value.preset.fds.envelope.initialGain===7);
     assert.deepEqual(state.preset,fdsEnvelopePortable);assert.equal(await page.isChecked('#fdsEnvelopeHalt'),true);
     if(config.screenshots) {
@@ -1098,11 +1128,70 @@ async function runEngine(name, engine, origin) {
     await page.uncheck('#fdsEnvelopeEnabled');await waitState(value=>!value.preset.fds.envelope.enabled);
     assert.equal(await stepButton('#fdsVolume',1).isDisabled(),false);
 
+    check('FDS Depth Envelope works alone, preserves live edits and shares its clock with volume');
+    await page.check('#fdsModEnvelopeEnabled');await number('#fdsEnvelopeMasterSpeed',232);await page.uncheck('#fdsEnvelopeHalt');
+    state=await waitState(value=>value.preset.fds.modulation.envelope.enabled&&value.preset.fds.envelopeClock.masterSpeed===232&&!value.preset.fds.envelopeClock.halt);
+    assert.equal(state.preset.fds.envelope.enabled,false);assert.equal(await stepButton('#fdsModDepth',1).isDisabled(),true);
+    assert.equal(await stepButton('#fdsEnvelopeMasterSpeed',1).isDisabled(),false);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsSweepGain>0);await sound();
+    const depthFdsOwner=state.voices[0].id,startingDepth=state.coreState.fdsSweepGain;
+    assert.equal(state.registers[0x84],0x48);assert.equal(state.registers[0x80],128|state.preset.fds.volume);
+    assert.equal(state.registers[0x83]&0xc0,0);assert.equal(state.registers[0x8a],232);
+    const depthAttacks=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length);
+    await choose('#fdsMaster',0);
+    await page.locator('#pitchBend').evaluate(input=>{input.value='1';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    await waitState(value=>value.pitch===1);await page.dispatchEvent('#pitchBend','pointerup');await waitState(value=>value.pitch===0);
+    const depthRate=(await inspect()).preset.fds.modulation.rate;await number('#fdsModRate',depthRate+1);
+    await number('#fdsModBias',1);await number('#fdsModBias',0);
+    await page.uncheck('#fdsModEnabled');await waitState(value=>!value.preset.fds.modulation.enabled);
+    assert.equal(await page.isDisabled('#fdsModEnvelopeEnabled'),true);
+    await page.check('#fdsModEnabled');state=await waitState(value=>value.preset.fds.modulation.enabled);
+    assert.equal(state.voices[0].id,depthFdsOwner);assert.equal(state.registers[0x84],0x48);assert.equal(state.registers[0x8a],232);
+    assert(state.coreState.fdsSweepGain>=startingDepth,'live edits keep increasing Depth progressing');
+    await page.check('#fdsEnvelopeEnabled');await choose('#fdsEnvelopeIncrease',true);await number('#fdsEnvelopeInitialGain',0);await number('#fdsEnvelopePeriod',8);
+    await choose('#fdsModEnvelopeIncrease',false);await number('#fdsModEnvelopeInitialGain',63);
+    state=await waitState(value=>value.preset.fds.envelope.enabled&&value.preset.fds.modulation.envelope.initialGain===63);
+    assert.equal(state.registers[0x80],128|state.preset.fds.volume,'pending volume Envelope waits for a new note');
+    assert.equal(state.registers[0x84],0x48,'pending Depth Envelope keeps the current hardware settings');
+    assert.equal(state.voices[0].id,depthFdsOwner);
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),depthAttacks);
+    await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==depthFdsOwner&&value.coreState.fdsGain>0&&value.coreState.fdsSweepGain<63);
+    const dualFdsOwner=state.voices[0].id;assert.equal(state.registers[0x80],0x48);assert.equal(state.registers[0x84],8);await sound();
+    await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,dualFdsOwner);
+    state=await waitState(value=>value.coreState.fdsGain===32&&value.coreState.fdsSweepGain===0);
+    assert.equal(state.voices[0].id,dualFdsOwner);await page.keyboard.up('s');await stop();
+    await number('#fdsEnvelopeInitialGain',7);await number('#fdsModEnvelopeInitialGain',13);
+    await number('#fdsEnvelopeMasterSpeed',0);await page.check('#fdsEnvelopeHalt');
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsGain===7&&value.coreState.fdsSweepGain===13);
+    assert.equal(state.registers[0x83]&0xc0,0x40);assert.equal(state.registers[0x8a],0);await sound();
+    await page.waitForTimeout(150);state=await inspect();assert.equal(state.coreState.fdsGain,7);assert.equal(state.coreState.fdsSweepGain,13);
+    await page.keyboard.up('a');await stop();
+    const depthSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const depthSave=await depthSaveEvent;
+    const depthPortable=JSON.parse(await fs.readFile(await depthSave.path(),'utf8'));
+    assert.equal(depthPortable.version,5);assert.deepEqual(depthPortable.fds.envelopeClock,{masterSpeed:0,halt:true});
+    assert.deepEqual(depthPortable.fds.modulation.envelope,{enabled:true,increase:false,period:8,initialGain:13});
+    await page.click('#copyCode');const depthCode=await page.locator('#codeOutput').inputValue();
+    assert.match(depthCode,/nes\.writeRegister\(0x4084,\s*141\)/i);assert.match(depthCode,/nes\.writeRegister\(0x4080,\s*135\)/i);
+    assert.match(depthCode,/nes\.writeRegister\(0x408a,\s*0\)/i);assert.match(depthCode,/nes\.fds\.keyOn\(\)/);
+    await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
+    await page.setInputFiles('#presetFileInput',{name:'fds-depth-envelope-v5.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(depthPortable))});
+    state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.modulation.envelope.enabled&&value.preset.fds.modulation.envelope.initialGain===13);
+    assert.deepEqual(state.preset,depthPortable);assert.equal(await page.isChecked('#fdsModEnvelopeEnabled'),true);
+    assert.equal(await page.isChecked('#fdsEnvelopeHalt'),true);assert.equal(await stepButton('#fdsModDepth',1).isDisabled(),true);
+    if(config.screenshots) {
+      await page.setViewportSize({width:390,height:844});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1,'FDS Depth Envelope fits a narrow screen');await screenshot('fds-depth-envelope-mobile');
+      await page.setViewportSize({width:1180,height:940});
+    }
+    await page.uncheck('#fdsEnvelopeEnabled');await page.uncheck('#fdsModEnvelopeEnabled');
+    await waitState(value=>!value.preset.fds.envelope.enabled&&!value.preset.fds.modulation.envelope.enabled);
+    assert.equal(await stepButton('#fdsModDepth',1).isDisabled(),false);assert.equal(await page.isDisabled('#fdsEnvelopeHalt'),true);
+
     check('portable presets, actual import, invalid input atomicity, JavaScript export');
     const downloadEvent=page.waitForEvent('download');await page.click('#savePreset');const download=await downloadEvent;
     assert.equal(download.suggestedFilename(),'2a03-voice.json');
     const portable=JSON.parse(await fs.readFile(await download.path(),'utf8'));
-    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.version,4);assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
+    assert.equal(portable.format,'tetorica-nes-fds-voice');assert.equal(portable.version,5);assert.equal(portable.source,'fds');assert.equal(portable.fds.wave.length,64);assert.equal(portable.fds.modulation.table.length,32);
     await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
     await page.setInputFiles('#presetFileInput',{name:'self-authored-nes-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(portable))});
     state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.modulation.enabled);assert.deepEqual(state.preset,portable);
@@ -1142,7 +1231,7 @@ async function runEngine(name, engine, origin) {
     assert.deepEqual(state.preset.noise,{volume:11,period:3,shortMode:true,envelope:{enabled:false,period:11,loop:true}});
     state=await importVoice(4,preset=>preset.source==='fds'&&preset.fds.volume===24&&preset.fds.modulation.enabled);
     assert.deepEqual(state.preset.fds.wave,vgmWave);assert.equal(state.preset.fds.master,0);
-    assert.deepEqual(state.preset.fds.modulation,{enabled:true,table:vgmModulation,rate:256,depth:16,bias:0});
+    assert.deepEqual(state.preset.fds.modulation,{enabled:true,table:vgmModulation,rate:256,depth:16,bias:0,envelope:{enabled:false,increase:false,period:16,initialGain:16}});
     await page.click('#copyCode');assert.match(await page.locator('#codeOutput').inputValue(),/nes\.fds\.setWave/);
     const importedSaveEvent=page.waitForEvent('download');await page.click('#savePreset');
     const importedSave=await importedSaveEvent,importedPreset=JSON.parse(await fs.readFile(await importedSave.path(),'utf8'));
@@ -1217,12 +1306,25 @@ async function runEngine(name, engine, origin) {
     await page.setInputFiles('#vgmFileInput',{name:'self-authored-fds-envelope.vgm',mimeType:'application/octet-stream',buffer:makeFdsEnvelopeVgm()});
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-fds-envelope.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===1);
     state=await importVoice(0,preset=>preset.source==='fds'&&preset.fds.envelope.enabled);
-    assert.deepEqual(state.preset.fds.envelope,{enabled:true,increase:true,period:8,masterSpeed:232,initialGain:0,halt:false});
+    assert.deepEqual(state.preset.fds.envelope,{enabled:true,increase:true,period:8,initialGain:0});
+    assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:232,halt:false});
     assert.equal(await page.isChecked('#fdsEnvelopeEnabled'),true);assert.equal(await page.locator('#fdsEnvelopeInitialGain').textContent(),'0');
     assert.equal(await choiceButton('#fdsEnvelopeIncrease',true).getAttribute('aria-checked'),'true');
     assert(!/FDS volume Envelope is approximated by fixed volume/i.test(await page.locator('#vgmVoiceWarnings').textContent()));
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsGain>0);
     assert.equal(state.registers[0x80],0x48);assert.equal(state.registers[0x8a],232);await sound();await page.keyboard.up('a');await stop();
+
+    check('VGM FDS Depth Envelope uses the shared clock with fixed volume');
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-fds-depth-envelope.vgm',mimeType:'application/octet-stream',buffer:makeFdsDepthEnvelopeVgm()});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-fds-depth-envelope.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===1);
+    state=await importVoice(0,preset=>preset.source==='fds'&&preset.fds.modulation.envelope.enabled);
+    assert.equal(state.preset.fds.envelope.enabled,false);
+    assert.deepEqual(state.preset.fds.modulation.envelope,{enabled:true,increase:true,period:8,initialGain:0});
+    assert.deepEqual(state.preset.fds.envelopeClock,{masterSpeed:232,halt:false});
+    assert.equal(await page.isChecked('#fdsModEnvelopeEnabled'),true);assert.equal(await page.isChecked('#fdsEnvelopeEnabled'),false);
+    assert(!/FDS modulation Envelope is approximated by fixed depth/i.test(await page.locator('#vgmVoiceWarnings').textContent()));
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsSweepGain>0);
+    assert.equal(state.registers[0x84],0x48);assert.equal(state.registers[0x83]&0xc0,0);await sound();await page.keyboard.up('a');await stop();
     await page.setInputFiles('#vgmFileInput',{name:'self-authored-2a03.vgm',mimeType:'application/octet-stream',buffer:makeInstrumentVgm()});
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-2a03.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===5);
     await importVoice(3,preset=>preset.source==='noise'&&preset.noise.volume===11);
@@ -1290,6 +1392,7 @@ async function runEngine(name, engine, origin) {
       masterMuteRestore:true,master380:true,buttonSteppers:true,choiceKeyboardAccess:true,noiseLiveTexture:true,noiseIgnoresNotePitch:true,
       noiseEnvelopePassive:true,noiseEnvelopeHardwareDecay:true,noiseEnvelopeHardwareLoop:true,noiseEnvelopeNextTrigger:true,noiseEnvelopeLiveClock:true,noiseEnvelopeLateRelease:true,noiseEnvelopeKeyboardFocus:true,noiseEnvelopePresetRoundTrip:true,noiseEnvelopeCodeExport:true,noiseEnvelopeVgmImport:true,noiseEnvelopeMobile:true,presetV1V2Migration:true,
       fdsEnvelopePassive:true,fdsEnvelopeHardwareRise:true,fdsEnvelopeHardwareDecay:true,fdsEnvelopeSeed:true,fdsEnvelopeFreeze:true,fdsEnvelopeNextTrigger:true,fdsEnvelopeMasterLive:true,fdsEnvelopePitchLive:true,fdsEnvelopeModulationLive:true,fdsEnvelopeLateRelease:true,fdsEnvelopeKeyboardFocus:true,fdsEnvelopePresetRoundTrip:true,fdsEnvelopeCodeExport:true,fdsEnvelopeVgmImport:true,fdsEnvelopeMobile:true,presetV1V2V3Migration:true,
+      fdsDepthEnvelopePassive:true,fdsDepthEnvelopeHardwareRise:true,fdsDepthEnvelopeHardwareDecay:true,fdsDepthEnvelopeOnly:true,fdsDepthEnvelopeSharedClock:true,fdsDepthEnvelopeDualFreeze:true,fdsDepthEnvelopeNextTrigger:true,fdsDepthEnvelopeLiveEdits:true,fdsDepthEnvelopeLateRelease:true,fdsDepthEnvelopePresetRoundTrip:true,fdsDepthEnvelopeCodeExport:true,fdsDepthEnvelopeVgmImport:true,fdsDepthEnvelopeMobile:true,presetV1V2V3V4Migration:true,
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,

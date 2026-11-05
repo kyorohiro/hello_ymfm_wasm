@@ -60,14 +60,16 @@ export function waveShape(name) {
 
 export function createDefaultPreset() {
   return {
-    format: FORMAT, version: 4, name: 'Pulse', source: 'pulse',
+    format: FORMAT, version: 5, name: 'Pulse', source: 'pulse',
     pulse: {duty: .5, volume: 10, envelope: {enabled: false, period: 8, loop: false},
       sweep: {enabled: false, period: 2, negate: false, shift: 1}},
     noise: {volume: 8, period: 6, shortMode: false, envelope: {enabled: false, period: 8, loop: false}},
     dmc: {data: [], rate: 15, loop: false, level: 64},
     fds: {wave: waveShape('sine'), volume: 24, master: 0,
-      envelope: {enabled: false, increase: false, period: 8, masterSpeed: 232, initialGain: 32, halt: false},
-      modulation: {enabled: false, table: [...Array(8).fill(1), ...Array(16).fill(7), ...Array(8).fill(1)], rate: 256, depth: 16, bias: 0}},
+      envelope: {enabled: false, increase: false, period: 8, initialGain: 32},
+      envelopeClock: {masterSpeed: 232, halt: false},
+      modulation: {enabled: false, table: [...Array(8).fill(1), ...Array(16).fill(7), ...Array(8).fill(1)], rate: 256, depth: 16, bias: 0,
+        envelope: {enabled: false, increase: true, period: 8, initialGain: 0}}},
   };
 }
 
@@ -76,8 +78,10 @@ export function readPreset(value) {
   const legacy = value?.version === 1;
   const legacyNoise = value?.version === 1 || value?.version === 2;
   const legacyFds = [1, 2, 3].includes(value?.version);
+  const legacyFdsClock = value?.version === 4;
+  const legacyModulation = [1, 2, 3, 4].includes(value?.version);
   own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc'])], 'NES + FDS preset');
-  if (value.format !== FORMAT || ![1, 2, 3, 4].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
+  if (value.format !== FORMAT || ![1, 2, 3, 4, 5].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
   own(value.pulse, ['duty', 'volume', 'envelope', 'sweep'], 'Pulse');
   own(value.pulse.envelope, ['enabled', 'period', 'loop'], 'Pulse envelope');
@@ -85,11 +89,13 @@ export function readPreset(value) {
   own(value.noise, ['volume', 'period', 'shortMode', ...(legacyNoise ? [] : ['envelope'])], 'Noise');
   if (!legacyNoise) own(value.noise.envelope, ['enabled', 'period', 'loop'], 'Noise envelope');
   if (!legacy) own(value.dmc, ['data', 'rate', 'loop', 'level'], 'DMC');
-  own(value.fds, ['wave', 'volume', 'master', 'modulation', ...(legacyFds ? [] : ['envelope'])], 'FDS');
-  if (!legacyFds) own(value.fds.envelope, ['enabled', 'increase', 'period', 'masterSpeed', 'initialGain', 'halt'], 'FDS envelope');
-  own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias'], 'FDS modulation');
+  own(value.fds, ['wave', 'volume', 'master', 'modulation', ...(legacyFds ? [] : ['envelope']), ...(legacyModulation ? [] : ['envelopeClock'])], 'FDS');
+  if (!legacyFds) own(value.fds.envelope, ['enabled', 'increase', 'period', 'initialGain', ...(legacyFdsClock ? ['masterSpeed', 'halt'] : [])], 'FDS envelope');
+  if (!legacyModulation) own(value.fds.envelopeClock, ['masterSpeed', 'halt'], 'FDS envelope clock');
+  own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias', ...(legacyModulation ? [] : ['envelope'])], 'FDS modulation');
+  if (!legacyModulation) own(value.fds.modulation.envelope, ['enabled', 'increase', 'period', 'initialGain'], 'FDS modulation envelope');
   return {
-    format: FORMAT, version: 4, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
+    format: FORMAT, version: 5, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
     pulse: {duty: choice(value.pulse.duty, [.125, .25, .5, .75], 'Pulse duty'), volume: integer(value.pulse.volume, 0, 15, 'Pulse volume'),
       envelope: {enabled: boolean(value.pulse.envelope.enabled, 'Envelope enabled'), period: integer(value.pulse.envelope.period, 0, 15, 'Envelope period'), loop: boolean(value.pulse.envelope.loop, 'Envelope loop')},
       sweep: {enabled: boolean(value.pulse.sweep.enabled, 'Sweep enabled'), period: integer(value.pulse.sweep.period, 0, 7, 'Sweep period'), negate: boolean(value.pulse.sweep.negate, 'Sweep negate'), shift: integer(value.pulse.sweep.shift, 0, 7, 'Sweep shift')}},
@@ -102,13 +108,20 @@ export function readPreset(value) {
       loop: boolean(value.dmc.loop, 'DMC loop'), level: integer(value.dmc.level, 0, 127, 'DMC initial level'),
     },
     fds: {wave: samples(value.fds.wave, 64, 63, 'FDS wave'), volume: integer(value.fds.volume, 0, 32, 'FDS volume'), master: integer(value.fds.master, 0, 3, 'FDS master scale'),
-      envelope: legacyFds ? {enabled: false, increase: false, period: 8, masterSpeed: 232, initialGain: 32, halt: false} : {
+      envelope: legacyFds ? {enabled: false, increase: false, period: 8, initialGain: 32} : {
         enabled: boolean(value.fds.envelope.enabled, 'FDS envelope enabled'), increase: boolean(value.fds.envelope.increase, 'FDS envelope increase'),
-        period: integer(value.fds.envelope.period, 0, 63, 'FDS envelope period'), masterSpeed: integer(value.fds.envelope.masterSpeed, 0, 255, 'FDS master envelope speed'),
-        initialGain: integer(value.fds.envelope.initialGain, 0, 63, 'FDS envelope initial gain'), halt: boolean(value.fds.envelope.halt, 'FDS envelope halt'),
+        period: integer(value.fds.envelope.period, 0, 63, 'FDS envelope period'), initialGain: integer(value.fds.envelope.initialGain, 0, 63, 'FDS envelope initial gain'),
+      },
+      envelopeClock: legacyFds ? {masterSpeed: 232, halt: false} : {
+        masterSpeed: integer((legacyFdsClock ? value.fds.envelope : value.fds.envelopeClock).masterSpeed, 0, 255, 'FDS master envelope speed'),
+        halt: boolean((legacyFdsClock ? value.fds.envelope : value.fds.envelopeClock).halt, 'FDS envelope halt'),
       },
       modulation: {enabled: boolean(value.fds.modulation.enabled, 'Modulation enabled'), table: samples(value.fds.modulation.table, 32, 7, 'FDS modulation table'),
-        rate: integer(value.fds.modulation.rate, 0, 4095, 'Modulation rate'), depth: integer(value.fds.modulation.depth, 0, 63, 'Modulation depth'), bias: integer(value.fds.modulation.bias, -64, 63, 'Modulation bias')}},
+        rate: integer(value.fds.modulation.rate, 0, 4095, 'Modulation rate'), depth: integer(value.fds.modulation.depth, 0, 63, 'Modulation depth'), bias: integer(value.fds.modulation.bias, -64, 63, 'Modulation bias'),
+        envelope: legacyModulation ? {enabled: false, increase: true, period: 8, initialGain: 0} : {
+          enabled: boolean(value.fds.modulation.envelope.enabled, 'FDS modulation envelope enabled'), increase: boolean(value.fds.modulation.envelope.increase, 'FDS modulation envelope increase'),
+          period: integer(value.fds.modulation.envelope.period, 0, 63, 'FDS modulation envelope period'), initialGain: integer(value.fds.modulation.envelope.initialGain, 0, 63, 'FDS modulation envelope initial gain'),
+        }}},
   };
 }
 
@@ -137,14 +150,17 @@ export function presetToCode(value) {
   }
   else {
     lines.push('// FDS must be enabled: createSoundChip("nes", {fds: true}) for an extra chip.');
-    lines.push(`nes.fds.setWave(${JSON.stringify(preset.fds.wave)});`, `nes.fds.setVolume(${preset.fds.volume}, ${preset.fds.master});`, `nes.fds.setModulation(${JSON.stringify(preset.fds.modulation)});`);
-    const envelope = preset.fds.envelope;
-    if (envelope.enabled) {
+    const {enabled, table, rate, depth, bias, envelope: modulationEnvelope} = preset.fds.modulation;
+    lines.push(`nes.fds.setWave(${JSON.stringify(preset.fds.wave)});`, `nes.fds.setVolume(${preset.fds.volume}, ${preset.fds.master});`, `nes.fds.setModulation(${JSON.stringify({enabled, table, rate, depth, bias})});`);
+    const envelope = preset.fds.envelope, clock = preset.fds.envelopeClock;
+    if (envelope.enabled || modulationEnvelope.enabled) {
       lines.push('const fdsPeriod = nes.fds.setFrequency(440 * 2 ** ((60 - 69) / 12)); // C4.', 'nes.fds.keyOn();');
-      lines.push(`nes.writeRegister(0x4080, ${128 | envelope.initialGain}); // Seed the hardware gain after keyOn.`,
-        `nes.writeRegister(0x408a, ${envelope.masterSpeed});`,
-        `nes.writeRegister(0x4080, ${(envelope.increase ? 64 : 0) | envelope.period}); // Hardware volume envelope.`,
-        `nes.writeRegister(0x4083, (fdsPeriod >> 8) | ${envelope.halt ? 64 : 0}); // Keep pitch and set the envelope clock.`);
+      if (envelope.enabled) lines.push(`nes.writeRegister(0x4080, ${128 | envelope.initialGain}); // Seed the hardware volume gain after keyOn.`);
+      if (modulationEnvelope.enabled) lines.push(`nes.writeRegister(0x4084, ${128 | modulationEnvelope.initialGain}); // Seed the hardware modulation gain.`);
+      lines.push(`nes.writeRegister(0x408a, ${clock.masterSpeed});`);
+      if (envelope.enabled) lines.push(`nes.writeRegister(0x4080, ${(envelope.increase ? 64 : 0) | envelope.period}); // Hardware volume envelope.`);
+      if (modulationEnvelope.enabled) lines.push(`nes.writeRegister(0x4084, ${(modulationEnvelope.increase ? 64 : 0) | modulationEnvelope.period}); // Hardware modulation depth envelope.`);
+      lines.push(`nes.writeRegister(0x4083, (fdsPeriod >> 8) | ${clock.halt ? 64 : 0}); // Keep pitch and set the shared envelope clock.`);
       lines.push('// Release with nes.noteOff(5);');
       return lines.join('\n');
     }

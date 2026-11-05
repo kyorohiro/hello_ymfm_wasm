@@ -13,7 +13,9 @@ async function fixture(t, sampleRate = 48000, envelope = {}) {
   core.writeRegister = (address,value) => {writes.push([address,value]); return write(address,value);};
   const instrument = new NesInstrument(core); t.after(() => instrument.dispose());
   const preset = instrument.read().preset; preset.source = 'fds';
-  preset.fds.envelope = {enabled:true,increase:false,period:63,masterSpeed:8,initialGain:32,halt:false,...envelope};
+  const {masterSpeed = 8, halt = false, ...volumeEnvelope} = envelope;
+  preset.fds.envelope = {enabled:true,increase:false,period:63,initialGain:32,...volumeEnvelope};
+  preset.fds.envelopeClock = {masterSpeed,halt};
   instrument.loadPreset(preset); writes.length = 0;
   return {instrument,core,writes,render:seconds => instrument.generateStereo(Math.round(seconds * sampleRate))};
 }
@@ -81,7 +83,8 @@ test('held FDS envelopes keep gain phase during live Master, Pitch and modulatio
   const gain = a.core.getState().fdsGain, owners = a.instrument.read().voices;
   const preset = a.instrument.read().preset;
   preset.fds.master = 2;
-  preset.fds.envelope = {enabled:true,increase:true,period:0,masterSpeed:0,initialGain:9,halt:true};
+  preset.fds.envelope = {enabled:true,increase:true,period:0,initialGain:9};
+  preset.fds.envelopeClock = {masterSpeed:0,halt:true};
   preset.fds.modulation.depth = 22; preset.fds.modulation.rate = 77; preset.fds.modulation.bias = 5; preset.fds.modulation.enabled = true;
   a.writes.length = 0; a.instrument.setPreset(preset);
   assert.deepEqual(a.writes.map(([address]) => address),[0x4089,0x4084,0x4085,0x4086,0x4087]);
@@ -108,7 +111,8 @@ test('held fixed FDS volume stays live while enabling Envelope waits for a fresh
   const preset = instrument.read().preset; preset.fds.volume = 11; preset.fds.master = 2;
   writes.length = 0; instrument.setPreset(preset);
   assert.deepEqual(writes,[[0x4023,2],[0x4080,128|11],[0x4089,2]]); assert.equal(core.getState().fdsGain,11);
-  preset.fds.envelope = {enabled:true,increase:false,period:8,masterSpeed:232,initialGain:32,halt:false};
+  preset.fds.envelope = {enabled:true,increase:false,period:8,initialGain:32};
+  preset.fds.envelopeClock = {masterSpeed:232,halt:false};
   writes.length = 0; instrument.setPreset(preset); assert.deepEqual(writes,[[0x4089,2]]);
   render(.1); assert.equal(core.getState().fdsGain,11); assert.equal(instrument.read().voices[0].id,'fixed');
   instrument.noteOff('fixed'); instrument.noteOn('envelope',60);
@@ -121,9 +125,9 @@ test('invalid FDS Envelope presets cannot write registers or replace a held owne
   const before = instrument.read(), count = writes.length;
   for (const mutate of [
     p => {p.fds.envelope.period = 64;}, p => {p.fds.envelope.period = -1;},
-    p => {p.fds.envelope.masterSpeed = 256;}, p => {p.fds.envelope.masterSpeed = .5;},
+    p => {p.fds.envelopeClock.masterSpeed = 256;}, p => {p.fds.envelopeClock.masterSpeed = .5;},
     p => {p.fds.envelope.initialGain = 64;}, p => {p.fds.envelope.initialGain = -1;},
-    p => {p.fds.envelope.enabled = 1;}, p => {p.fds.envelope.increase = 'yes';}, p => {p.fds.envelope.halt = 0;},
+    p => {p.fds.envelope.enabled = 1;}, p => {p.fds.envelope.increase = 'yes';}, p => {p.fds.envelopeClock.halt = 0;},
     p => {delete p.fds.envelope;}, p => {p.fds.envelope.extra = 1;},
   ]) {
     const invalid = instrument.read().preset; mutate(invalid);

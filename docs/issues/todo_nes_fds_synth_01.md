@@ -11,6 +11,32 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## FDS変調DepthハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
+
+既存coreのMod gain Envelopeを操作・保存・VGM読込へ接続し、Volume／Depthの共通clockを明示する。共有runtime・DSP／WASMは変更しない。
+
+- [x] preset v5へ`fds.modulation.envelope:{enabled,increase,period,initialGain}`を追加し、`fds.envelopeClock:{masterSpeed,halt}`へ共通clockを分離する。音量Envelopeは`enabled,increase,period,initialGain`とし、旧v4のclockを厳密移行する。v1〜v3も従来設定を保って移行する。
+- [x] FDSにHardware depth envelopeのEnable／Direction／Initial depth／Periodを追加する。Master period／PauseはVolumeとDepthの共通欄へ移し、片方だけOnでも操作できるようにする。
+- [x] Depth Envelope設定と共通clockは次noteから適用する。保持中のRate／Bias／modulation enable／Master／PitchでEnvelopeを上書き・再開始せず、固定Depthは実際の固定modeで即時編集できるようにする。
+- [x] 発音時に両Envelopeの初期gainと共通clockを正しい順序で設定する。既存公開APIで再現するCopy JavaScriptを出力する。
+- [x] VGMから方向・divider・既知の初期Depth 0〜63を保持し、未記録／経過後のDepthは近似として明示する。Depth Envelopeの固定値近似を外し、共有clock・停止を保つ。
+- [x] 実WASMでDepthの増減・初期値0／63・共通clock停止・両Envelope併用・live編集・再発音・離鍵・不正入力と実PCMの変化を検証する。
+- [x] Chromium／WebKit・独立ZIPでUI・focus・保存・旧版移行・VGM設定・生成code・既存機能を確認し、ガイド・TODO・検証記録を更新する。
+
+新しいDepth Envelopeの既定値は`enabled:false,increase:true,period:8,initialGain:0`。共通clockの既定値は`masterSpeed:232,halt:false`。Volume／DepthいずれかのEnvelopeがOnなら共通clockを使い、設定変更は次noteへ反映する。固定Depthと初期Depthは0〜63、Increaseは32未満から増加し、32以上の初期値を自動で下げない。
+
+`instrument.js`は発音時に固定Depthを復元し、有効な音量／Depth Envelopeの初期gainをseedしてから、共通`$408a`と各control、`$4083`の停止bitを設定する。保持中は実際の`$4084`が固定modeで、次の設定もEnvelope Offの場合だけ固定Depthを即時反映する。Depth単独でも共通clockを解除でき、Volume／Depthの両方を開始できる。Rate／Bias／modulation enable／Master／Pitchは保持中のEnvelopeを上書きしない。共有runtime／DSP／WASMは変更せず、既存APIのコード出力を使う。参考：[NESdev FDS audio](https://www.nesdev.org/wiki/FDS_audio)。
+
+preset v5はVolume・Depth Envelope各4fieldsと共有clockを厳密に検証し、v4の6field Volume Envelopeからclockを分離して値を保持する。v1〜v4は対応済み設定を保ち、欠けるDepth EnvelopeはOffで追加する。新しいv5保存物は古いSynthでは読めない。VGMは`$4084`の方向・dividerと既知の初期Depthを保持し、共有clockが進んだ後のgain／timer位相は未知として明示する。Mod tableの停止や波形停止とDepth Envelopeのclock停止は区別し、変調phase／counterのaudition再開始の説明は保つ。
+
+検証：`npm run test:2a03-synth`は**128件成功、失敗0**（既存116＋preset 1＋実WASM Depth 7＋VGM 4）。44.1／48 kHzでDepth 0からの上昇・63からの下降、共有clockの速度0／Pause・独立divider、実PCMの周波数変化、live編集での両Envelope位相維持、次noteへの反映、再発音・離鍵・mono owner・不正入力のatomicity、公開APIの生成code、VGMのgain進行を確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。Depth単独で共通clockを操作するUI、無音の編集、実gain／PCM・両Envelope同時進行・共通停止、保持中のMaster／Pitch／Rate／Bias／modulation enable、次noteの初期値、keyboard focus、v5保存・復元、v1〜v4移行、VGM設定・code出力と既存DMC／Noise／FDSの回帰を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理出力はmuteして測定した。共通clock・Depth Envelopeのmobile画面も確認済み。記録：[ソース版](2a03_synth_fds_depth_envelope_browser_01.json)、[ZIP版](2a03_synth_fds_depth_envelope_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_fds-depth-envelope-20261105_itch.zip`（35 files／3 bundles、1,176,418 bytes、SHA-256 `3f9b93a82ee9a890c30705fce9f803651ae0d858dc0927f5bd7e1228735419a3`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。ガイド・英日AI README・homeの案内も更新した。
+
+試し方：ページ再読込 → FDS → Enable modulation → Enable Depth Envelope → 新しい鍵盤を弾く。既定Increase／Initial depth 0で変調が徐々に強くなる。DecreaseはInitial depthを上げて再発音する。Volume Envelopeとは別々に方向・Periodを選べ、Shared envelope clockで両方を停止できる。設定変更は次noteから反映する。手元の実聴、今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## FDS音量ハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
 
 既存FDS coreの音量Envelopeを、操作・保存・VGM読込へ接続する。変調の深さのEnvelopeは後続とし、共有runtime・DSP／WASMは変更しない。
@@ -325,7 +351,7 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
 - [x] NoiseのハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] FDS音量のハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
-- [ ] FDS変調の深さのEnvelopeを段階的に追加する。共通速度・停止の設定は今回のFDS音量Envelopeと共有する。
+- [x] FDS変調の深さのEnvelopeを追加し、Volume／Depthの共通clockを分離する（上記2026-11-05）。
 - [ ] Triangleの追加counter制御と、各channelのlength counter編集を段階的に検討する。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 

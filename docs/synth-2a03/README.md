@@ -26,7 +26,7 @@ One NTSC NES APU with FDS supplies these voices:
 | Triangle | One | Fixed hardware waveform with keyboard note and gate |
 | Noise | One | Fixed volume or hardware Envelope, period code and long / short LFSR sequence |
 | DMC | One | Pre-encoded DPCM sample, 16 Rate settings, Loop and Initial level |
-| FDS | One | 64 six-bit samples, fixed volume or rising / falling hardware Envelope, master scale, frequency modulation |
+| FDS | One | 64 six-bit samples, hardware volume / modulation-depth Envelopes, shared Envelope clock, master scale, frequency modulation |
 
 All keys play the selected source. When its channels are full, a new note replaces
 the oldest; releasing the old key cannot stop the replacement. NES Sweep works on
@@ -226,7 +226,7 @@ play a new note to hear it. Interrupted strokes keep the previous table.
 clock, Depth its strength and Bias the counter offset. This is the FDS hardware
 frequency-modulation path; the interface follows its waveform and counter table.
 The default table, Rate and Depth are ready to hear when modulation is enabled.
-Rate, Depth, Bias, an active fixed volume and Master scale can change while the
+Rate, Bias, active fixed Depth / volume and Master scale can change while the
 FDS note is held.
 
 **Hardware volume envelope** controls the FDS gain using its existing hardware
@@ -235,19 +235,33 @@ decay. For a rise, choose **Increase** and set **Initial gain** to 0.
 
 - **Initial gain 0–63** is loaded on each new note. Output is limited to 32;
   a gain above 32 stays at that output limit until a decrease takes it below 32.
-- **Direction** moves gain upward toward 32 or downward toward 0. It stays at
-  its endpoint; there is no repeating Envelope option.
-- **Period 0–63** and **Master period 0–255** set the clock. Larger values are
-  slower. Master period 0 stops the envelope clock.
-- **Pause envelope clock** stops the clock while the wave keeps playing.
-  The master clock and pause flag are shared by volume and modulation envelopes;
-  this version's modulation Depth still uses its fixed value.
+- **Direction** increases gains below 32 or decreases a positive gain toward 0.
+  It stays at its endpoint; there is no repeating Envelope option.
+- **Period 0–63** controls the volume Envelope's own divider. Larger values are slower.
 
-Envelope changes apply on the **next note**, keeping the current gain and timer
-running while a key is held. Master scale, Pitch and modulation parameter edits
-preserve that progression. Fixed volume is available with Envelope off.
-The app starts each note from Initial gain through register writes; the decay
-or rise then runs in the FDS core. See the [FDS hardware reference](https://www.nesdev.org/wiki/FDS_audio).
+**Hardware depth envelope** changes the strength of frequency modulation.
+Turn on **Enable modulation**, then **Enable Depth Envelope**, and play a new
+note. The default **Increase / Initial depth 0** gradually introduces modulation.
+Choose **Decrease** and a nonzero Initial depth for modulation that fades away.
+Initial / fixed Depth use the full 0–63 range. Increase raises depths below 32;
+it holds an initial value already at or above 32. Decrease can fall from 63 to 0.
+The Depth Envelope has its own **Period 0–63**. Fixed Depth is available with
+the Depth Envelope off.
+
+**Shared envelope clock · Volume + Depth** applies to both units:
+
+- **Master period 0–255** sets their shared clock. Larger values are slower;
+  Master period 0 stops both envelopes.
+- **Pause both envelopes** freezes their gains while the wave keeps playing.
+- These controls are available when either Envelope is on, including Depth alone.
+
+Envelope and shared-clock changes apply on the **next note**, keeping current
+gains and timers running while a key is held. Master scale, Pitch, modulation
+Rate / Bias and modulation-enable edits preserve that progression. Fixed volume
+is available with the volume Envelope off. Modulation-table playback and the
+Depth Envelope use separate clocks; stopping the table does not stop the Depth
+Envelope. The app seeds each new note through register writes, then both
+envelopes run in the FDS core. See the [FDS hardware reference](https://www.nesdev.org/wiki/FDS_audio).
 
 ## Import sounds from VGM
 
@@ -265,11 +279,11 @@ asynchronous read cannot replace a newer library.
 
 Pulse and Noise keep the recorded Envelope mode, divider Period and Loop flag.
 Each keyboard note starts a fresh hardware envelope using those settings.
-FDS volume Envelope retains its direction, divider, master speed, pause and
-known initial gain, including values above 32. Missing initial gain or a timer
-that already progressed is disclosed as an approximate restart. An unrecorded
-FDS master Envelope speed uses 232 with a note. Modulation Envelope timing still
-uses the existing fixed-depth approximation.
+FDS volume / Depth Envelopes retain their directions, dividers, known initial
+gains and shared clock / pause. Missing gains or timers that already progressed
+are disclosed as approximate restarts. An unrecorded FDS master Envelope speed
+uses 232 with a note. The modulation table's running phase / counter is still
+restarted for keyboard audition, as disclosed with the voice.
 
 This imports initial sound settings for keyboard performance. Original note
 pitch, length / linear counters, song playback and later parameter changes are
@@ -310,10 +324,12 @@ passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
 **Save preset** downloads `2a03-voice.json`. The validated
-`tetorica-nes-fds-voice` version-4 format includes all five sources' settings,
-Noise / FDS volume Envelope, the original DPCM bytes, FDS wave and modulation
-table. Version-1 through version-3 presets still load and preserve their supported
-settings; missing Envelope controls start off. Saving creates version 4, which older Synth releases do
+`tetorica-nes-fds-voice` version-5 format includes all five sources' settings,
+Noise / FDS volume / FDS Depth Envelopes, the original DPCM bytes, FDS wave and
+modulation table. Version-1 through version-4 presets still load and preserve
+their supported settings; missing Envelope controls start off. Version-4's FDS
+clock settings move to the shared clock without changing their values.
+Saving creates version 5, which older Synth releases do
 not read. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
 instrument. Invalid / oversized files keep the current sound. Loading a valid
