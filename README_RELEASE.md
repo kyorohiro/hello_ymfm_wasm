@@ -36,7 +36,7 @@ npm run check:runtime-artifacts
 
 ## SynthとTauriへ渡すソース
 
-DMG／2A03／SPU／SCSPの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
+DMG／2A03／HuC6280／SPU／SCSPの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
 コメント・識別子のままコピーします。`copy_readable_modules.mjs`は依存関係の
 調査だけにesbuildを使い、bundleやminifyされた出力を配布しません。
 `synth-*/`、`js/`、共有UIのファイルを直接編集して試せます。
@@ -45,6 +45,7 @@ DMG／2A03／SPU／SCSPの配布は、`docs/`のJavaScript／CSSを元のファ�
 ```sh
 sh scripts/package_itch_dmg_synth.sh VERSION
 sh scripts/package_itch_2a03_synth.sh VERSION
+sh scripts/package_itch_huc6280_synth.sh VERSION
 sh scripts/package_itch_spu_synth.sh VERSION
 sh scripts/package_itch_scsp_synth.sh VERSION
 ```

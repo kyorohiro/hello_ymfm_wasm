@@ -1,0 +1,137 @@
+# Tetorica HuC6280 Synth
+
+Product identifier: `tetorica-huc6280-synth`.
+
+[Open the synthesizer](index.html) · [HuC6280 Playground](../playground/index.html?mode=huc6280)
+
+Play the PC Engine's six-channel PSG, draw a wavetable and take the sound away
+as a preset or JavaScript. The English-language browser UI follows Tetorica's
+SPU / DMG Synths: output monitor, compact keyboard, two Pitch wheels, Octave,
+and controls that leave the computer keys available for playing.
+
+## Play and edit
+
+1. Select **Enable audio**, then click a key or use the displayed computer keys.
+2. Choose **Wave** or **Noise**. Every key plays the selected source.
+3. Draw a waveform, change the controls, then save a preset or copy JavaScript.
+
+Opening the page or editing a sound does not start an audio device. Playing a
+key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
+
+| Source | Keyboard voices | Hardware controls |
+| --- | --- | --- |
+| Wave, LFO off | Six, CH1–CH6 | 32 five-bit samples, volume and left / right balance |
+| Wave, LFO on | One, CH1 | CH2's waveform modulates CH1; CH2 is muted as an audio source |
+| Noise | Two, CH5 / CH6 | Shared noise-clock code, volume and left / right balance |
+
+Allocation uses available channels in round-robin order and replaces an old
+voice when the pool is full. Releasing a replaced key cannot stop its new owner.
+Changing source, wave data or the LFO routing can stop held notes; play a new
+note after applying those edits. There is no separate Apply button.
+
+**Noise does not follow the keyboard note or Pitch wheel.** Its 0–31 clock code
+sets the noise texture; it is not a frequency in Hz. Noise controls can change
+while notes are held. LFO is inactive while Noise is selected.
+
+## One waveform editor
+
+Choose **Main** or **LFO** as the edit target on the same canvas. **Sine**,
+**Triangle**, **Saw** and **Square** prepare a waveform, or draw all 32 samples
+yourself. Each sample is an integer from 0 to 31, matching the PSG's five-bit
+Wave RAM. A shape applies immediately; a drawing applies on pointer release.
+An interrupted stroke is discarded.
+
+Numbers use **− / value / +** controls with drag and keyboard adjustment.
+Source and other discrete choices use buttons. Clicking sound controls leaves
+the performance keys available; text fields retain normal text editing.
+Sections can be collapsed while watching the output display.
+
+## Hardware LFO and software Envelope
+
+Hardware LFO uses the PSG's fixed **CH2 → CH1** path. It is not arbitrary FM
+routing. Enabling it selects a single carrier on CH1, with the LFO waveform
+on CH2 muted from direct output. Frequency is the 0–255 register code and Depth
+selects one of the hardware modulation ranges. The carrier note also affects
+the modulator's timing, so changing notes can change the modulation character.
+
+**Software Envelope** is a host feature. The HuC6280 PSG does not have SPU-style
+hardware ADSR or reverb. Attack, Decay, Sustain and Release schedule channel
+volume writes in software. Turn it off to compare the sustained raw PSG voice.
+The default short attack / release makes the instrument easier to play.
+
+The main waveform, volume, balance, noise generator and LFO are chip features.
+Drawing, envelope scheduling, keyboard allocation, preset files and Pitch wheels
+are software authoring / performance tools.
+
+## Output and keyboard
+
+**Waveform** and **Spectrum** monitor the final signal after Master through a
+passive analyser branch. The monitor does not add a second speaker connection.
+Master ranges from **0 to 380%**, with an orange bar above 100%.
+
+Both **Pitch** wheels bend Wave notes by up to two semitones, stay synchronized
+and return to center on release. Noise disables them. **Octave − / +** and the
+shared Guitar / Bass / Ukulele layouts change the visible playing range.
+**Stop all sound**, hiding the page or leaving its window stops held notes.
+If the audio engine fails, use **Enable audio** to reconnect.
+
+## Presets and JavaScript
+
+Save / Load uses the portable `tetorica-huc6280-voice` preset, version 1. It
+contains the name, selected source, main and LFO waveforms, chip volume / balance,
+noise clock, hardware LFO and Software Envelope. Invalid presets are rejected
+before the current sound changes. Master, keyboard layout, octave and temporary
+Pitch position are performance controls outside the preset.
+
+**Copy JavaScript** produces a single-voice chip setup for the initialized
+`pce` API in Playground's **HuC6280** mode. The snippet demonstrates hardware
+parameters; keyboard allocation, software envelope scheduling and Master belong
+to the host and are not reproduced by that chip-only audition. The generated
+code stays visible for manual copying when the clipboard is unavailable.
+
+VGM / VGZ voice import, streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
+and full PC Engine emulation are not included in this first Synth.
+
+## API, sources and licenses
+
+- [npm API catalog](../../packages/fm2612/README.md#api-entry-points): musical helpers and low-level APIs.
+- [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
+- [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
+- [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
+- [Project license](../../LICENSE) and [complete attribution](../attribution.md).
+
+The shared WASM is unchanged. The core retains MAME's imperfect / unverified
+noise and LFO behavior; this UI does not claim complete hardware or analog
+output fidelity. Reuse the modules you need and retain their source notices.
+
+## Build and verify
+
+From the repository root:
+
+```sh
+npm run test:huc6280-synth
+npm run test:huc6280-synth:browser
+sh scripts/package_itch_huc6280_synth.sh 0.0.1
+```
+
+The package command creates `release/tetorica_huc6280_synth_0.0.1_itch.zip`.
+Use a new version argument for another archive; existing archives are preserved.
+The ZIP has a root `index.html`, original editable JavaScript / CSS modules,
+the original WASM pair, authenticated native sources, rebuild recipes, browser
+source inputs and licenses. It can be served independently of this checkout.
+
+Edit `synth-huc6280/` for the UI and instrument, `js/` for reusable helpers, or
+`synth/synth_keyboard.js` for the shared keyboard, then reload. No JavaScript
+build is needed. Authored files retain comments, identifiers and relative
+imports without bundling or minification. Compiler-generated artifacts remain
+unchanged under `generated/`, with corresponding C/C++ under `sources/`.
+
+## 日本語での概要
+
+PC EngineのHuC6280を、SPU Synthと同じ流れで試せるシンセです。
+Waveは6声、Noiseは実機のCH5／CH6を使う2声。波形は32点・5bitで、
+Main／LFOを切り替えて1つのcanvasで描きます。
+Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
+Software Envelopeはソフト側の音量制御で、実機のADSRではありません。
+プリセット保存・読込とPlayground向けJavaScript出力に対応します。
+VGM音色抽出、DDAのPCM再生、CD-ROM²音源は後続の検討対象です。

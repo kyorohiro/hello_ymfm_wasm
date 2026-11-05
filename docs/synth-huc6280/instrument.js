@@ -1,0 +1,173 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026 kyorohiro.
+import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../js/huc6280synth.js';
+import {createDefaultPreset, readPreset} from './preset.js';
+
+const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const hasLfo = preset => preset.source === 'wave' && preset.lfo.enabled;
+const poolFor = preset => preset.source === 'noise' ? [4,5] : hasLfo(preset) ? [0] : [0,1,2,3,4,5];
+// Software volume automation is quantized to the real 1.5 dB channel steps.
+// A fixed timeline makes rendering independent of AudioWorklet block sizes.
+const ENVELOPE_QUANTUM = 16;
+
+/** One physical six-channel PSG, with host keyboard allocation and optional
+ * software ADSR. It does not invent extra Noise channels or FM routing. */
+export class Huc6280Instrument {
+  constructor(core) {
+    if (!core || typeof core.processFrames !== 'function' || typeof core.writeHuc6280 !== 'function' ||
+        typeof core.sampleRate !== 'function') throw new TypeError('Expected a HuC6280AudioEngine');
+    this.core = core;
+    this.synth = new Huc6280Synth({transport:new Huc6280DirectTransport(core)});
+    this.synth.initialize();
+    this.rate = core.sampleRate(); this.preset = createDefaultPreset();
+    this.pitch = 0; this.cursor = 0; this.sequence = 0; this.frame = 0;
+    this.voices = new Map(); this.slots = Array(6).fill(null); this.levels = Array(6).fill(null); this.disposed = false;
+    this._apply(null, this.preset); this.stop();
+  }
+  _open() { if (this.disposed) throw new Error('HuC6280 instrument is disposed'); }
+  _frequency(midi, pitch = this.pitch) {
+    const hz = 440 * 2 ** ((midi - 69 + pitch) / 12);
+    // Notes outside the 12-bit period range reach the hardware endpoint.
+    return Math.max(HUC6280_CLOCK / (32 * 4096), Math.min(HUC6280_CLOCK / 32, hz));
+  }
+  _heldLevel(voice, frame = this.frame) {
+    const env = voice.envelope;
+    if (!env.enabled) return 1;
+    const time = Math.max(0, (frame - voice.startFrame) / this.rate);
+    if (env.attack > 0 && time < env.attack) return time / env.attack;
+    if (env.decay > 0 && time < env.attack + env.decay) return 1 - (1 - env.sustain) * (time - env.attack) / env.decay;
+    return env.sustain;
+  }
+  _level(voice) {
+    if (!voice.released) return this._heldLevel(voice);
+    const elapsed = (this.frame - voice.releaseFrame) / this.rate;
+    if (voice.envelope.release <= 0 || elapsed >= voice.envelope.release) return 0;
+    return voice.releaseLevel * (1 - elapsed / voice.envelope.release);
+  }
+  _setLevel(channel, level) {
+    const volume = level <= 0 ? 0 : Math.max(0, Math.min(31, this.preset.volume + Math.round(20 * Math.log10(level) / 1.5)));
+    if (this.levels[channel] !== volume) { this.synth.setVolume(channel, volume); this.levels[channel] = volume; }
+  }
+  _retire(voice) {
+    this.synth.keyOff(voice.channel);
+    if (this.voices.get(voice.id) === voice) this.voices.delete(voice.id);
+    if (this.slots[voice.channel] === voice) this.slots[voice.channel] = null;
+  }
+  _advanceEnvelopes() {
+    for (const voice of this.slots) {
+      if (!voice) continue;
+      const level = this._level(voice);
+      if (voice.released && level <= 0) this._retire(voice);
+      else this._setLevel(voice.channel, level);
+    }
+  }
+  _apply(previous, next) {
+    const changed = getter => !previous || !same(getter(previous), getter(next));
+    const lfo = hasLfo(next);
+    if (changed(p => p.wave) || changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.wave)) {
+      for (let ch = 0; ch < 6; ch++) this.synth.setWaveform(ch, lfo && ch === 1 ? next.lfo.wave : next.wave);
+      this.levels.fill(null);
+    }
+    if (changed(p => p.pan)) for (let ch = 0; ch < 6; ch++) this.synth.setPan(ch, next.pan.left, next.pan.right);
+    if (changed(p => p.source) || changed(p => p.noise.frequency)) for (const ch of [4,5]) {
+      this.synth.setNoise(ch, {enabled:next.source === 'noise', frequency:next.noise.frequency});
+    }
+    if (changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.frequency) || changed(p => p.lfo.depth)) {
+      this.synth.setLfo({frequency:next.lfo.frequency, depth:lfo ? next.lfo.depth : 0});
+    }
+    if (lfo) { this.synth.setVolume(1, 0); this.synth.keyOff(1); this.levels[1] = 0; }
+  }
+  read() {
+    this._open();
+    const state = this.synth._getState();
+    return {preset:readPreset(this.preset), voices:[...this.voices.values()].map(({id,midi,channel}) => ({id,midi,channel})),
+      tails:this.slots.filter(voice => voice?.released).map(({id,channel}) => ({id,channel})),
+      capacity:poolFor(this.preset).length, pitch:this.pitch, registers:state.registers, globals:state.globals};
+  }
+  setPreset(value) {
+    this._open();
+    const next = readPreset(value), previous = this.preset;
+    const clear = previous.source !== next.source || !same(previous.wave, next.wave) || previous.lfo.enabled !== next.lfo.enabled ||
+      !same(previous.lfo.wave, next.lfo.wave) || previous.envelope.enabled !== next.envelope.enabled;
+    if (clear) this.stop();
+    this._apply(previous, next); this.preset = next; this._advanceEnvelopes();
+    return this.read();
+  }
+  loadPreset(value) {
+    this._open(); const next = readPreset(value);
+    this.stop(); this._apply(this.preset, next); this.preset = next; this.pitch = 0;
+    return this.read();
+  }
+  noteOn(id, midi) {
+    this._open();
+    if (typeof id !== 'string' || !id.length || id.length > 128) throw new TypeError('Expected a note identity of 1–128 characters');
+    if (this.voices.has(id)) throw new Error('Note identity is already active');
+    if (!Number.isInteger(midi) || midi < 0 || midi > 127) throw new RangeError('Expected a MIDI note 0–127');
+    const pool = poolFor(this.preset);
+    let channel;
+    for (let offset = 0; offset < pool.length; offset++) {
+      const candidate = pool[(this.cursor + offset) % pool.length];
+      if (this.slots[candidate] === null) { channel = candidate; break; }
+    }
+    if (channel === undefined) channel = pool.reduce((oldest, candidate) => {
+      const a = this.slots[oldest], b = this.slots[candidate];
+      return b.released && !a.released || b.released === a.released && b.order < a.order ? candidate : oldest;
+    }, pool[0]);
+    const previous = this.slots[channel];
+    if (previous) this._retire(previous);
+    const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,envelope:{...this.preset.envelope}};
+    if (this.preset.source === 'wave') {
+      const hz = this._frequency(midi); this.synth.setFrequency(channel, hz);
+      if (hasLfo(this.preset)) this.synth.setFrequency(1, hz);
+    }
+    this._setLevel(channel, this._heldLevel(voice)); this.synth.keyOn(channel);
+    this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
+    return {channel, stolenId:previous?.released ? null : previous?.id ?? null};
+  }
+  noteOff(id) {
+    this._open(); const voice = this.voices.get(id);
+    if (!voice || this.slots[voice.channel] !== voice) return false;
+    this.voices.delete(id);
+    if (!voice.envelope.enabled || voice.envelope.release <= 0) this._retire(voice);
+    else {
+      voice.releaseLevel = this._heldLevel(voice); voice.releaseFrame = this.frame; voice.released = true;
+      if (voice.releaseLevel <= 0) this._retire(voice);
+      else this._setLevel(voice.channel, voice.releaseLevel);
+    }
+    return true;
+  }
+  setPitch(semitones) {
+    this._open();
+    if (!Number.isFinite(semitones) || semitones < -24 || semitones > 24) throw new RangeError('Pitch must be between -24 and +24 semitones');
+    if (this.preset.source === 'wave') for (const voice of this.slots) {
+      if (!voice) continue;
+      const hz = this._frequency(voice.midi, semitones); this.synth.setFrequency(voice.channel, hz);
+      if (hasLfo(this.preset)) this.synth.setFrequency(1, hz);
+    }
+    this.pitch = semitones; return this.read();
+  }
+  stop() {
+    this._open(); this.synth.allNotesOff();
+    this.voices.clear(); this.slots.fill(null); this.cursor = 0;
+    return this.read();
+  }
+  generateStereo(frames) {
+    this._open();
+    if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError('Invalid frame count');
+    const left = new Float32Array(frames), right = new Float32Array(frames);
+    let offset = 0;
+    while (offset < frames) {
+      if (this.frame % ENVELOPE_QUANTUM === 0) this._advanceEnvelopes();
+      const count = Math.min(frames - offset, ENVELOPE_QUANTUM - this.frame % ENVELOPE_QUANTUM);
+      const output = this.core.processFrames(count);
+      left.set(output.left, offset); right.set(output.right, offset);
+      this.frame += count; offset += count;
+    }
+    if (this.frame % ENVELOPE_QUANTUM === 0) this._advanceEnvelopes();
+    return {left,right};
+  }
+  dispose() {
+    if (this.disposed) return;
+    this.stop(); this.synth.dispose(); this.core.dispose(); this.disposed = true;
+  }
+}

@@ -69,6 +69,9 @@
     "test:cdrom2": "node scripts/check_cdda_core.mjs && node scripts/check_msm5205_core.mjs && node --test test/runtime/cdda_*.test.mjs test/runtime/msm5205_*.test.mjs",
     "test:2a03-synth": "node --test docs/synth-2a03/*.test.mjs scripts/package_itch_2a03_synth.test.mjs",
     "test:2a03-synth:browser": "node scripts/check_2a03_synth_browser.cjs",
-    "pack:2a03-synth": "sh scripts/package_itch_2a03_synth.sh"
+    "pack:2a03-synth": "sh scripts/package_itch_2a03_synth.sh",
+    "test:huc6280-synth": "node --test docs/synth-huc6280/*.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
+    "test:huc6280-synth:browser": "node scripts/check_huc6280_synth_browser.cjs",
+    "pack:huc6280-synth": "sh scripts/package_itch_huc6280_synth.sh"
   }
 }

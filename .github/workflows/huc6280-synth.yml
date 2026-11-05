@@ -1,0 +1,68 @@
+name: HuC6280 Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-huc6280/**'
+      - 'docs/tetorica_huc6280_synth.webp'
+      - 'docs/js/huc6280*'
+      - 'docs/generated/huc6280*'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/huc6280*'
+      - 'tetorica_src/runtime/generated/**'
+      - 'scripts/*huc6280*'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'scripts/runtime_artifacts.mjs'
+      - 'scripts/wasm_sdk_inventory.mjs'
+      - 'third_party/soundchip-sdk.json'
+      - 'third_party/tetorica-soundchip-native/**'
+      - 'package*.json'
+      - '.github/workflows/huc6280-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-huc6280/**'
+      - 'docs/tetorica_huc6280_synth.webp'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/**'
+      - 'scripts/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/huc6280-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test and package the standalone HuC6280 Synth
+        run: |
+          npm run test:huc6280-synth
+          sh scripts/package_itch_huc6280_synth.sh ci
+          python3 -m zipfile -e release/tetorica_huc6280_synth_ci_itch.zip release/huc6280-synth-browser
+          node scripts/check_huc6280_synth_browser.cjs --root release/huc6280-synth-browser --entry /index.html --out release/huc6280-synth-browser.json --screenshots release/huc6280-synth-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: huc6280-synth-check
+          path: |
+            release/tetorica_huc6280_synth_ci_itch.zip
+            release/huc6280-synth-browser.json
+            release/huc6280-synth-images/
+          if-no-files-found: ignore
