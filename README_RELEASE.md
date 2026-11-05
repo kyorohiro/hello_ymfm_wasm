@@ -34,6 +34,28 @@ npm run check:runtime-artifacts
 
 `docs/generated/`、DX7のvendorパス、Native FXの既存URLは同期先です。配布スクリプトは正本から必要な生成物を選び、既存の配布パスへ配置します。
 
+## SynthとTauriへ渡すソース
+
+DMG／2A03／SPU／SCSPの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
+コメント・識別子のままコピーします。`copy_readable_modules.mjs`は依存関係の
+調査だけにesbuildを使い、bundleやminifyされた出力を配布しません。
+`synth-*/`、`js/`、共有UIのファイルを直接編集して試せます。
+生成済みWASMとローダーには、対応するC/C++と再ビルド手順を同梱します。
+
+```sh
+sh scripts/package_itch_dmg_synth.sh VERSION
+sh scripts/package_itch_2a03_synth.sh VERSION
+sh scripts/package_itch_spu_synth.sh VERSION
+sh scripts/package_itch_scsp_synth.sh VERSION
+```
+
+Tauriリポジトリでは、新しいZIPを`npm run import:release -- /path/to/ZIP`で取り込み、
+`dist/`と`release.lock.json`を一緒にcommitします。配布元の元ソースZIPとreceiptも保持します。
+FM2612／SPU／DMGのTauri版では、`dist/`を直接編集した後に`npm run record:edits`を実行し、
+`npm run dev`または`npm run build`で試せます。ローカルの変更記録は
+`local-changes.json`へ保存され、元の配布lockと区別されます。
+詳細は各TauriリポジトリのREADMEを参照してください。
+
 ## Webランタイムのアーカイブ
 
 `web_runtime`と`web_runtime_exsample`には、`tetorica_src/runtime/`ランタイム全体を収録します。OPN、OPM、OPL、PSG、PCMのラッパー・音声エンジン、Synthヘルパー、全33件のSDK生成物とNative FXを含みます。高水準Synth APIの対応範囲はチップごとに異なります。

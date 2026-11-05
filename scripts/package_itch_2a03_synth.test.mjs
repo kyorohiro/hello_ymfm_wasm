@@ -17,7 +17,7 @@ test('2A03 Synth package version cannot escape its release directory',()=>{
   for(const value of ['dev','v1+test','2026-11-04']) assert.equal(validate2a03SynthVersion(value),value);
 });
 
-test('2A03 ZIP is standalone and deterministic with original WASM and corresponding source receipts',async t=>{
+test('2A03 ZIP runs original editable modules with standalone deterministic WASM and corresponding sources',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'2a03-synth-package-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const a=await package2a03Synth({version:'test',releaseDir:join(directory,'a')});
   const b=await package2a03Synth({version:'test',releaseDir:join(directory,'b')});
@@ -52,14 +52,37 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   const originalRecipe=await readFile(new URL('../third_party/tetorica-soundchip-native/scripts/build_nesapu_wasm.sh',import.meta.url),'utf8');
   assert.equal(await readFile(join(a.stage,'sources/scripts/build_nesapu_wasm.sh'),'utf8'),originalRecipe.replaceAll('vendor/tetorica-nes','third_party/tetorica-nes'));
   assert.deepEqual(await readFile(join(a.stage,'sources/third_party/tetorica-nes/nes_core.cpp')),await readFile(new URL('../third_party/tetorica-soundchip-native/vendor/tetorica-nes/nes_core.cpp',import.meta.url)));
-  for(const bundle of info.receipt.bundles) {
-    const bytes=await readFile(join(a.stage,bundle.path));assert.equal(sha(bytes),bundle.sha256);
-    assert(bundle.localImports.every(path=>path==='../generated/nesapu_wasm.js'));
-    assert(!bytes.toString().includes('node:fs'));
-    for(const match of bytes.toString().matchAll(/new URL\("([^"?#]+)(?:[?#][^"]*)?",import\.meta\.url\)/g)) {
-      const url=new URL(match[1],new URL(bundle.path,'https://zip.invalid/'));assert(info.names.includes(url.pathname.slice(1)),`${bundle.path}: ${match[1]}`);
+  assert.equal(info.receipt.builder.name,'source-copy');assert.equal(info.receipt.builder.minify,false);assert.equal(info.receipt.builder.bundle,false);
+  assert.equal(info.receipt.builder.dependencyAnalyzer.name,'esbuild');
+  assert.equal(typeof info.receipt.builder.dependencyAnalyzer.version,'string');
+  assert(info.receipt.modules.length>info.receipt.bundles.length);
+  let staticAssets=0;
+  for(const module of info.receipt.modules) {
+    assert.equal(module.path,module.sourcePath.slice('docs/'.length));
+    const bytes=await readFile(join(a.stage,module.path));
+    assert.deepEqual(bytes,await readFile(new URL('../'+module.sourcePath,import.meta.url)),`${module.path}: preserve comments, identifiers, imports and original bytes`);
+    assert.equal(bytes.length,module.bytes);assert.equal(sha(bytes),module.sha256);
+    for(const specifier of module.localImports) {
+      assert.match(specifier,/^\.\.?\//,'localImports retain the original relative specifiers');
+      const url=new URL(specifier,new URL(module.path,'https://zip.invalid/'));
+      assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))),`${module.path}: ${specifier}`);
+    }
+    for(const match of bytes.toString().matchAll(/new URL\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g)) {
+      const url=new URL(match[2],new URL(module.path,'https://zip.invalid/'));
+      if(url.origin!=='https://zip.invalid') continue;
+      assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))),`${module.path}: ${match[2]}`);staticAssets++;
     }
   }
+  assert(staticAssets>=2,'original audio module references local WASM and AudioWorklet assets');
+  for(const entry of info.receipt.bundles) assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
+  const main=await readFile(join(a.stage,'synth-2a03/synth.js'),'utf8');
+  assert(main.split('\n').length>100);assert.match(main,/^\/\/ SPDX-License-Identifier: BSD-3-Clause\n/);
+  assert.match(main,/import \{createAudio\} from '\.\/audio\.js'/);
+  assert.match(await readFile(join(a.stage,'synth-2a03/synth.css'),'utf8'),/@import url\('\.\.\/synth-spu\/synth\.css'\)/);
+  assert(info.receipt.modules.some(module=>module.path==='synth-spu/synth.css'));
+  assert(info.receipt.modules.some(module=>module.path==='synth-2a03/dmc_fit.js'));
+  assert.match(await readFile(join(a.stage,'js/nesapu_wasm.js'),'utf8'),/typeof process\s*!==\s*'undefined'/,'Node file loading keeps its original browser-safe guard');
+  for(const path of ['scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs']) assert(info.receipt.originalInputs.some(input=>input.path===path));
   for(const entry of ['index.html','synth-2a03/index.html']) {
     const html=await readFile(join(a.stage,entry),'utf8');
     assert.match(html,/<title>Tetorica 2A03 Synth<\/title>/);

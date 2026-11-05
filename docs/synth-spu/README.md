@@ -183,11 +183,26 @@ sh scripts/package_itch_spu_synth.sh v0.1.0
 ```
 
 The output is `release/tetorica_spu_synth_v0.1.0_itch.zip`. Change the version
-argument for later releases; omitting it uses `dev`. The script bundles and
-minifies the application, includes its icon, WASM, sources and licences, and
-checks the ZIP's integrity. It does not upload or publish anything.
+argument for later releases; omitting it uses `dev`. The script copies the
+authored JavaScript and CSS byte-for-byte, includes the icon, WASM, sources and
+licences, and checks the ZIP's integrity. It does not upload or publish anything.
 
 Upload this ZIP as an HTML project on itch.io and select the root `index.html`.
+
+## Modify the distributed application
+
+The live JavaScript and CSS in the ZIP are the original modules, with their
+comments, names and directory layout preserved. They are not bundled or
+minified. Edit files in `synth-spu/`, `js/`, `synth/` or `playground/` and reload
+the served page to try a change; no JavaScript build step is required. The same
+editable frontend tree can be used as the web assets of a Tauri application.
+Rebuild that application after changing its packaged assets.
+
+`sources/spu-synth-browser.json` records every live module's source path, hash
+and local imports. The original inputs and packaging recipe are also included
+in `sources/spu-synth-browser-inputs.zip`. The generated Emscripten loader and
+WASM under `generated/` remain byte-identical to the fixed native SDK; changing
+the chip implementation requires rebuilding the C++ sources described below.
 
 The product code is BSD-3-Clause. Retained SPU source attribution, upstream
 licenses, local changes and reproducible build inputs are described in

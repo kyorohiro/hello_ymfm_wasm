@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "scope": "Private copy of DMG Tauri dist; original app files unchanged",
+  "entry": "/index.html",
+  "baselineLockUnchanged": true,
+  "originalFilesUnchanged": true,
+  "unrecordedEditRejected": true,
+  "recordedEditCheckPassed": true,
+  "recordedFiles": [
+    "synth-dmg/synth.js"
+  ],
+  "baseSha256": "0ec2bd98d4fd00f98c6d740df585cd5fa4145cb2a7f90abcd326b0bbca2876ea",
+  "rows": [
+    {
+      "engine": "chromium",
+      "editedHeading": "Edited DMG source",
+      "javascriptBuildRequired": false,
+      "audioContextsCreated": 0,
+      "pageErrors": [],
+      "missingAssets": [],
+      "externalRequests": []
+    },
+    {
+      "engine": "webkit",
+      "editedHeading": "Edited DMG source",
+      "javascriptBuildRequired": false,
+      "audioContextsCreated": 0,
+      "pageErrors": [],
+      "missingAssets": [],
+      "externalRequests": []
+    }
+  ]
+}

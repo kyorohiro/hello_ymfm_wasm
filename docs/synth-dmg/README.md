@@ -161,6 +161,15 @@ sh scripts/package_itch_dmg_synth.sh dev
 
 The package command creates `release/tetorica_dmg_synth_dev_itch.zip`.
 Use a new version argument for another archive; an existing archive is preserved.
-The ZIP has a root `index.html`, bundled runtime / CSS, the original WASM pair,
-component notices, authenticated native source files and browser source inputs.
-It can be served independently of this checkout.
+The ZIP has a root `index.html`, the original JavaScript / CSS modules, the
+original WASM pair, component notices, authenticated native sources and browser
+source inputs. It can be served independently of this checkout.
+
+The running JavaScript and CSS retain their source paths, comments, identifiers
+and imports without bundling or minification. Edit `synth-dmg/` for the UI and
+instrument, `js/` for the reusable chip helpers, or the shared keyboard in
+`synth/synth_keyboard.js`, then reload. No JavaScript build is needed. This also
+keeps the ZIP suitable as editable input for the Tauri app. Compiler-generated
+WASM loaders and binaries remain unchanged under `generated/`; their native
+sources and rebuild instructions are under `sources/`. The browser-input ZIP is
+an additional source snapshot with hashes, rather than the only editable copy.

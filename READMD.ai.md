@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-04 (English handoff; clarified the multi-chip toolkit and its API layers; Tetorica's own implementations are consolidated under `tetorica_src/`). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-05 (English handoff; readable, editable Synth distributions and Tauri source workflows; Tetorica's own implementations are consolidated under `tetorica_src/`). This is an entry point for AI agents investigating the repository and resuming work.
 This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
 ## Check these first
@@ -24,6 +24,15 @@ git log -8 --oneline
 ## Project direction and the role of each README
 
 Tetorica is a toolkit for learning, playing and embedding many retro sound chips: Yamaha FM, Sega PSG, Game Boy / NES APUs, SNES S-DSP, PlayStation SPU, Saturn SCSP and more. Its original YM2612 goals now guide the wider toolkit. Preserving old game music and sound technology in a form that people can investigate and reconstruct is also a priority.
+
+Distribution requirement clarified by the user on 2026-11-05: preserve readable,
+modifiable authored JavaScript and CSS in Web ZIPs and Tauri applications. Copy
+the original module files, comments and identifiers; do not minify, obfuscate or
+serve a bundled rewrite in their place. `scripts/copy_readable_modules.mjs` uses
+esbuild only to discover dependencies and copies the original bytes. Keep the
+compiler-generated WASM / loader artifacts unchanged with their corresponding
+C/C++ sources and rebuild recipes. A source ZIP alone does not make a minified
+runtime sufficiently easy to modify. See the [work record](docs/issues/todo_readable_synth_distributions_20261105.md).
 
 Keep these entry points clear in user-facing documentation:
 

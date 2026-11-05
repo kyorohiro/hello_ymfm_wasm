@@ -24,4 +24,21 @@ Save preset stores **version 4 JSON**, including all six applied PCM waveforms, 
 
 Drawing, conversion, repeated PCM guards, voice allocation and preset files are software features. Slot modulation, EG and LFO run in the SCSP core. The fixed core has zero slot-write delay; physical SCSP timing, low-depth behavior and address clipping are not hardware-fidelity guarantees. Custom DSP programs, Reverb, SSF playback and Native audio are not exposed by this standalone page.
 
-All runtime dependencies are local. Navigation links open the full website. This archive contains no game, BIOS or recording. The main page, dedicated AudioWorklet and DSP Lab are bundled separately. The Lab is included at playground/scsp-dsp.html and linked from the footer. The original Emscripten factory and WASM remain byte-identical under generated/. Original JavaScript inputs and hashes are included in sources/scsp-synth-browser-inputs.zip and sources/scsp-synth-browser.json. SCSP/DSP C++ source, pristine MAME upstream, license and the standalone Emscripten recipe are under sources/; start with sources/SCSP.md. The fixed SDK retains its unpublished local-candidate provenance. See LICENSE and licenses/mame-scsp/LICENSE (BSD-3-Clause).
+All runtime dependencies are local. Navigation links open the full website. This archive contains no game, BIOS or recording. The Lab is included at playground/scsp-dsp.html and linked from the footer. SCSP/DSP C++ source, pristine MAME upstream, license and the standalone Emscripten recipe are under sources/; start with sources/SCSP.md. The fixed SDK retains its unpublished local-candidate provenance. See LICENSE and licenses/mame-scsp/LICENSE (BSD-3-Clause).
+
+## Modify the distributed application
+
+The live JavaScript and CSS are copied byte-for-byte from the authored modules,
+preserving comments, names and directory layout. They are not bundled or
+minified. Edit files in `synth-scsp/`, `js/` or `playground/` and reload the
+served page to try a change; no JavaScript build step is required. DSP Lab keeps
+its original entry at `playground/scsp_dsp_lab.js`. The same editable frontend
+tree can be used as the web assets of a Tauri application; rebuild that
+application after changing its packaged assets.
+
+`sources/scsp-synth-browser.json` records every live module's source path, hash
+and local imports. Original inputs and the packaging recipe are included in
+`sources/scsp-synth-browser-inputs.zip`. The Emscripten loader and WASM remain
+byte-identical under `generated/`. Rebuild the C++ sources when changing the
+chip implementation; the unchanged generated loader may retain its upstream
+compact formatting.

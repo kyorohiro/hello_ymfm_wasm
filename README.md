@@ -21,6 +21,11 @@ These four goals began with YM2612 and now guide the wider sound-chip toolkit:
 - To create documentation that helps anyone embed YM2612 audio in a browser app or game.
 - To preserve older game music and sound chip technology as cultural heritage that people today can read, investigate, learn from, and reconstruct—not only archive and play back.
 
+Distributions should also be easy to read and modify. Ship authored JavaScript
+and CSS as original modules, with comments and names intact, without minification
+or obfuscation. Desktop wrappers follow the same rule. Generated WASM and its
+loaders are accompanied by their corresponding sources and rebuild instructions.
+
 ## Playground
 
 [Open the Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)

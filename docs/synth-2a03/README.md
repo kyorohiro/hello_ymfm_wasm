@@ -524,7 +524,17 @@ sh scripts/package_itch_2a03_synth.sh dev
 ```
 
 The ZIP is `release/tetorica_2a03_synth_dev_itch.zip`. Use a new version for each
-archive; existing archives are retained. The package bundles browser modules and
-CSS, keeps the original NES WASM pair, and includes corresponding native sources,
-license notices and a hash receipt of the browser build inputs. It runs without
-the parent repository.
+archive; existing archives are retained. The package keeps the original browser
+JavaScript / CSS modules and NES WASM pair, and includes corresponding native
+sources, license notices and a hash receipt of the browser inputs. It runs
+without the parent repository.
+
+The running JavaScript and CSS preserve their source paths, comments,
+identifiers and imports without bundling or minification. Edit `synth-2a03/` for
+the UI, DMC editor and instrument, `js/` for reusable chip helpers, or
+`synth/synth_keyboard.js` for the shared keyboard, then reload. No JavaScript
+build is needed. The same editable layout is retained when the ZIP is imported
+by the Tauri app. Compiler-generated loaders and WASM stay unchanged under
+`generated/`; native sources and their rebuild recipe are under `sources/`.
+The browser-input ZIP provides an additional authenticated source snapshot;
+the live modules are directly available beside the page.

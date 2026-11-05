@@ -2,18 +2,16 @@
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
 import {mkdir, mkdtemp, readFile, readdir, writeFile, copyFile, rm} from 'node:fs/promises';
-import {dirname, join, relative, resolve, sep} from 'node:path';
+import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {build, version as esbuildVersion} from 'esbuild';
+import {version as esbuildVersion} from 'esbuild';
 import {checkRuntimeArtifacts, copyRuntimeArtifacts} from './runtime_artifacts.mjs';
 import {copyGameboySources} from './copy_gameboy_sources.mjs';
+import {copyReadableModules} from './copy_readable_modules.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const slash = value => value.split(sep).join('/');
-const clean = value => value.replace(/[?#].*$/, '');
 const record = bytes => ({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
-const safe = name => /^[\w./+-]+$/.test(name) && !name.startsWith('/') && !name.split('/').some(part=>part==='..'||part==='');
 async function filesIn(base, prefix='') {
   const result=[];
   for (const entry of await readdir(join(base,prefix),{withFileTypes:true})) {
@@ -45,24 +43,11 @@ export async function packageDmgSynth({version='dev',releaseDir=join(root,'relea
   releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
   const archive=join(releaseDir,`tetorica_dmg_synth_${version}_itch.zip`);
   try{await readFile(archive);throw new Error(`Archive already exists: ${archive}`);}catch(error){if(error.code!=='ENOENT') throw error;}
-  const stage=await mkdtemp(join(releaseDir,`itch_dmg_synth_${version}-`)),inputs=new Set(),bundles=[];
-  await mkdir(join(stage,'synth-dmg'),{recursive:true});
-  for(const name of ['synth.js','processor.js','synth.css']) {
-    const outfile=join(stage,'synth-dmg',name);
-    const result=await build({absWorkingDir:root,entryPoints:[`docs/synth-dmg/${name}`],outfile,
-      bundle:true,format:'esm',platform:'browser',target:'es2022',define:{process:'undefined'},minify:true,
-      keepNames:true,legalComments:'linked',metafile:true,write:false,logLevel:'silent',plugins:[{
-        name:'unchanged-gameboy-factory',setup(builder){builder.onResolve({filter:/gameboy_apu_wasm\.js(?:[?#]|$)/},args=>{
-          assert.equal(resolve(args.resolveDir,clean(args.path)),resolve(root,'docs/generated/gameboy_apu_wasm.js'));
-          return {path:'../generated/gameboy_apu_wasm.js',external:true};
-        });}
-      }]});
-    for(const path of Object.keys(result.metafile.inputs)){assert(safe(clean(path)),path);inputs.add(clean(path));}
-    for(const output of result.outputFiles){assert(safe(slash(relative(stage,output.path))));await writeFile(output.path,output.contents);}
-    const metadata=result.metafile.outputs[slash(relative(root,outfile))];assert(metadata);
-    for(const edge of metadata.imports) assert(edge.external&&edge.path==='../generated/gameboy_apu_wasm.js');
-    bundles.push({path:`synth-dmg/${name}`,...record(await readFile(outfile)),localImports:metadata.imports.map(edge=>edge.path)});
-  }
+  const stage=await mkdtemp(join(releaseDir,`itch_dmg_synth_${version}-`));
+  const browser=await copyReadableModules({root,stage,
+    entries:['docs/synth-dmg/synth.js','docs/synth-dmg/processor.js','docs/synth-dmg/synth.css'],
+    factories:['docs/generated/gameboy_apu_wasm.js']});
+  const inputs=new Set(browser.inputs),bundles=browser.entries;
   const home='https://kyorohiro.github.io/hello_ymfm_wasm/';
   let html=await readFile(join(root,'docs/synth-dmg/index.html'),'utf8');
   html=html.replace(/href="(\.\.\/[^"#]+)"/g,(_match,path)=>{
@@ -83,10 +68,12 @@ export async function packageDmgSynth({version='dev',releaseDir=join(root,'relea
   await writeFile(join(stage,'README.md'),guide+'\n## Included sources\n\nSee [Game Boy native sources and rebuilding](sources/GameBoy.md), [browser build inputs](sources/dmg-synth-browser-inputs.zip) and their [hash receipt](sources/dmg-synth-browser.json).\n');
   for(const path of ['docs/synth-dmg/index.html','docs/synth-dmg/README.md','docs/tetorica_dmg_synth.webp','LICENSE','package.json','package-lock.json',
     'scripts/package_itch_dmg_synth.mjs','scripts/package_itch_dmg_synth.sh','scripts/copy_gameboy_sources.mjs',
+    'scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs',
     'tetorica_src/runtime/generated/gameboy_apu_wasm.js']) inputs.add(path);
   const names=[...inputs].sort(),sourceArchive='sources/dmg-synth-browser-inputs.zip';
   zip(root,join(stage,sourceArchive),names);
-  const receipt={schemaVersion:1,product:'Tetorica DMG Synth',productId:'tetorica-dmg-synth',version,builder:{name:'esbuild',version:esbuildVersion,define:{process:'undefined'}},bundles,
+  const receipt={schemaVersion:1,product:'Tetorica DMG Synth',productId:'tetorica-dmg-synth',version,
+    builder:{name:'source-copy',minify:false,bundle:false,dependencyAnalyzer:{name:'esbuild',version:esbuildVersion}},bundles,modules:browser.modules,
     originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),
     sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))},sourceCheck};
   await writeFile(join(stage,'sources/dmg-synth-browser.json'),JSON.stringify(receipt,null,2)+'\n');
