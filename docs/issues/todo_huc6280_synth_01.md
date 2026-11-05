@@ -185,3 +185,23 @@
 - `npm run check:runtime-artifacts` で33 SDK builds／66 outputs／73 mirrorsの一致を確認した。README en／ja／AI、英日ホーム、Synthガイドを更新した。共有runtime／WASMは未変更。こちらからstage／commit／push／公開操作は行っていない。
 
 残る確認は実ゲーム由来VGM／VGZの試奏・実聴・長時間確認。ブラウザー検証中のスピーカー出力はミュートしている。変動間隔／不明な境界の直接DAC列、圧縮bank、port255のDAC stream、曲の自動制御、CD-ROM²は今回の対象外。
+
+
+## VGM PCMの音量違いをまとめるオプション（2026-11-06 完了）
+
+- [x] Sounds from VGMに「PCM: keep loudest volume variant」チェックを追加する。初期Offで既存一覧を保持し、読込後にも切り替え可能にする。切り替えだけでは現在の音・保持キーを変更しない。
+- [x] PCM本体と音量以外の演奏設定が完全一致する場合だけ、channel volume最大の音を一覧の代表にする。pan／rate／Loop等の異なる音、Wave／Noise／LFOはまとめない。元データは保持し、Offで全件に戻せる。
+- [x] 代表のpreset／id／channel等を保持し、使用回数・由来・警告を統合する。隠れた音を選択済みなら代表へ勝手に選択を移さず表示だけ解除する。件数・ページ・選択・フォーカスを整合させる。
+- [x] unitとChromium／WebKitで最大音量の採用、同率、異なるpan／rate／data／Loopの保持、On/Off復元、保持音と保存結果、狭い画面を検証し、README／TODOを更新する。
+
+
+実装・検証結果（2026-11-06）:
+
+- Sounds from VGMへ `PCM: keep loudest volume variant` を追加した。初期Offで、読込前・読込後のどちらでも指定できる。同じページで次のfileを開く時も現在の指定を使う。
+- `vgm_pcm_variants.js` の純粋関数で、PCM本体とすべてのpreset設定を比較する。比較から除くのはchannel volume、instrument name、DDA nameのみ。pan／rate／root／speed／Loop／envelope等が異なる音とWave／Noise／LFOは保持する。最大volumeを採用し、同率は入力順の先を保つ。波形値をnormalize／変更しない。
+- 代表のid／channel／firstTime／presetを保ち、occurrences・origins・warningsを合計／統合する。一覧は最初のgroup位置を使う。元のvoices／presetは不変で、Offで全件を復元する。groupingはlibraryごとに初回だけ計算してcacheし、PCMをdecodeせず比較する。
+- 切り替えは音源への命令を送らず、保持音・現在の音色を保つ。非表示になったquiet entryの選択表示だけを解除し、代表へ勝手に読み替えない。代表を明示選択した後は、On／Offしても同じidの選択を保つ。非同期の古い選択完了はtokenで無効化する。checkbox操作後はfocusを戻して鍵盤入力を継続できる。
+- `npm run test:huc6280-synth`: **119件成功**。新規unit4件で最大値・同率・逆順・統合metadata・元data不変・異なる14種類の設定・非PCM保持を検証した。
+- ソース版と独立ZIPをChromium／WebKitで確認した。[ソース記録](huc6280_synth_pcm_volume_browser_01.json)・[ZIP記録](huc6280_synth_pcm_volume_zip_browser_01.json)。自作VGM／VGZのPCM5件＋Wave1件が、volume12／20／27を27へまとめてPCM3件＋Wave1件になること、異なるpan／rateは残ること、Offで全件へ戻ることを確認した。保持音のowner／音色・追加の演奏キー・選択表示・最大音量27のJSON保存・次fileへの設定引継ぎ・390px幅overflow 0も確認した。外部通信・404・page errorは0。desktop／mobile画像も確認した。
+- 配布ZIP: `release/tetorica_huc6280_synth_0.0.7_itch.zip`（51 files、1,158,002 bytes）。SHA-256 `e709aacfa044b211a139fc143ef6cdb59748afa4e70b31595a2856d883ae7a3c`。可読JS／CSS・相対import・対応WASM／C++・ライセンスを維持し、過去ZIPは保持した。
+- Synthガイドを更新し、共有runtime／WASM・抽出ロジック・preset formatは変更していない。こちらからstage／commit／push／公開操作は行っていない。

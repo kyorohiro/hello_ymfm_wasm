@@ -60,6 +60,16 @@ function makeDirectPcmVgm({irregular=false}={}) {
   for(let index=0;index<directPcm.length;index++) commands.push(...write(6,directPcm[index]),irregular&&index===12?0x76:0x77);
   return vgmBytes([...commands,...write(4,0),0x66]);
 }
+function makePcmVolumeVariantsVgm() {
+  const block=Buffer.alloc(7);block.set([0x67,0x66,5]);block.writeUInt32LE(streamPcm.length,3);
+  const commands=[...write(1,255),...write(9,0),0x90,0,0x1b,2,6,0x91,0,5,1,0];
+  for(const [volume,pan,rate]of[[12,0xcb,7000],[27,0xcb,7000],[20,0xcb,7000],[27,0xbd,7000],[27,0xcb,8000]]) {
+    commands.push(...write(0,2),...write(5,pan),...write(4,0xc0|volume),0x92,0,rate&255,rate>>8,0,0,
+      0x95,0,0,0,1,0x61,0x44,0xac,0x94,0,...write(4,0));
+  }
+  commands.push(...upload(0,vgmWave),...vgmWait,...write(4,0),0x66);
+  return vgmBytes(Buffer.concat([block,streamPcm,Buffer.from(commands)]));
+}
 function makeWav() {
   const rate=44100,frames=rate*5,channels=2,bytes=Buffer.alloc(44+frames*channels*2);
   bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);
@@ -159,6 +169,7 @@ async function checkEngine(name, engine, origin) {
     assert(await page.locator('.product-icon').evaluate(img => img.complete&&img.naturalWidth===1254));
     check('VGM analysis is passive and the import control is discoverable');
     assert(await page.locator('#loadVgm').isVisible());
+    assert.equal(await page.locator('#vgmKeepLoudestPcm').isChecked(),false);
     await page.locator('#vgmFileInput').setInputFiles({name:'original-pce.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
     await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
@@ -502,6 +513,46 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.down(c4);await wait(s=>s.voices.length===1);await page.locator('#stopAudio').click();
     await wait(s=>s.voices.length===0);await silent();await page.keyboard.up(c4);
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-dda-1180.png`),fullPage:true});
+    check('optional loudest PCM grouping preserves different pan/rates and never changes a held sound');
+    await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgm',mimeType:'application/octet-stream',buffer:makePcmVolumeVariantsVgm()});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='volume-variants.vgm');
+    assert.equal(await page.locator('[data-vgm-voice]').count(),6);
+    await page.locator('[data-vgm-filter="pcm"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),5);
+    await page.locator('[data-vgm-voice="1"]').click();state=await wait(s=>s.preset.source==='dda'&&s.preset.volume===12);
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);await sound();const quietOwner=state.voices[0].id;
+    await page.locator('#vgmKeepLoudestPcm').check();
+    assert.equal(await page.locator('[data-vgm-voice]').count(),3);
+    assert.equal(await page.locator('[data-vgm-filter="pcm"]').textContent(),'PCM (3)');
+    assert.equal(await page.locator('[data-vgm-voice="1"]').count(),0);
+    assert.equal(await page.locator('[data-vgm-voice="2"]').count(),1);
+    assert.match(await page.locator('[data-vgm-voice="2"] small').textContent(),/level 27\/31.*3 volume variants grouped/);
+    assert.equal(await page.locator('[data-vgm-voice][aria-pressed="true"]').count(),0,'hidden quiet selection does not move to the loud representative');
+    state=await read();assert.equal(state.preset.volume,12);assert.equal(state.voices[0].id,quietOwner);await sound();
+    assert(await page.locator('#vgmKeepLoudestPcm').evaluate(node=>node.ownerDocument.activeElement!==node));
+    const otherKey=keys.find(key=>key!==c4);await page.keyboard.down(otherKey);await wait(s=>s.voices.length===2);
+    await page.keyboard.up(otherKey);await wait(s=>s.voices.length===1);
+    await page.locator('#vgmKeepLoudestPcm').uncheck();assert.equal(await page.locator('[data-vgm-voice]').count(),5);
+    state=await read();assert.equal(state.preset.volume,12);assert.equal(state.voices[0].id,quietOwner);
+    await page.locator('#vgmKeepLoudestPcm').check();await page.keyboard.up(c4);await wait(s=>s.voices.length===0);await silent();
+    await page.locator('[data-vgm-voice="2"]').click();state=await wait(s=>s.preset.volume===27&&s.preset.dda.sampleRate===7000);
+    assert.deepEqual(state.preset.pan,{left:12,right:11});
+    const loudDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const loudSaved=JSON.parse(await fs.readFile(await(await loudDownload).path(),'utf8'));
+    assert.equal(loudSaved.volume,27);assert.deepEqual(Buffer.from(loudSaved.dda.data,'base64'),Buffer.from(streamPcm.map(value=>value&31)));
+    await page.locator('#vgmKeepLoudestPcm').uncheck();assert.equal(await page.locator('[data-vgm-voice="2"]').getAttribute('aria-pressed'),'true');
+    await page.locator('#vgmKeepLoudestPcm').check();assert.equal(await page.locator('[data-vgm-voice="2"]').getAttribute('aria-pressed'),'true');
+    await page.locator('[data-vgm-filter="wave"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
+    check('loudest PCM preference applies to the next file and its reversible view fits a narrow screen');
+    await page.locator('#vgmFileInput').setInputFiles({name:'volume-variants.vgz',mimeType:'application/gzip',buffer:gzipSync(makePcmVolumeVariantsVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='volume-variants.vgz');
+    assert.equal(await page.locator('[data-vgm-voice]').count(),4);assert.equal((await read()).preset.volume,27);
+    await page.locator('[data-vgm-filter="pcm"]').click();
+    await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+    assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-loudest-pcm-390.png`),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});await page.waitForTimeout(120);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-loudest-pcm-1180.png`),fullPage:true});
+    await page.locator('#vgmKeepLoudestPcm').uncheck();
     await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#stopAudio').click();await wait(s=>s.voices.length===0);await silent();

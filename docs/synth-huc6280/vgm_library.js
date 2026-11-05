@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
 import {decodeDdaData} from './dda_pcm.js';
+import {mergePcmVolumeVariants} from './vgm_pcm_variants.js';
 
 /** Passive file analysis. Only choosing a sound asks the host to replace its
  * instrument; opening, failing, cancelling or closing a library never does. */
@@ -15,6 +16,8 @@ export function createVgmLibrary({root, onSelect}) {
     $('vgmStatus').textContent = message;
     $('vgmStatus').dataset.error = String(error);
   };
+  const visibleVoices = () => !library ? [] : $('vgmKeepLoudestPcm').checked
+    ? library.loudestPcmVoices ??= mergePcmVolumeVariants(library.voices) : library.voices;
   const pcmDescription = voice => {
     let description = pcmInfo.get(voice);
     if (description) return description;
@@ -25,13 +28,14 @@ export function createVgmLibrary({root, onSelect}) {
     const source = names.length ? `${names.join(' + ')} · ` : '';
     const approximate = Number(sampleRate.toFixed(6)) !== sampleRate ? '≈' : '';
     const rate = sampleRate.toLocaleString('en-US', {maximumFractionDigits:6});
-    description = `${source}${approximate}${rate} Hz · ${seconds.toFixed(2)} s · ${loop ? 'Loop' : 'One-shot'} · C4 = recorded rate`;
+    const variants=voice.volumeVariants>1?` · ${voice.volumeVariants} volume variants grouped`:'';
+    description = `${source}${approximate}${rate} Hz · ${seconds.toFixed(2)} s · ${loop ? 'Loop' : 'One-shot'} · level ${voice.preset.volume}/31${variants} · C4 = recorded rate`;
     pcmInfo.set(voice, description);
     return description;
   };
 
   function renderWarnings() {
-    const voice = library?.voices.find(value => value.id === selected);
+    const voice = visibleVoices().find(value => value.id === selected);
     const messages = [...new Set([...(library?.warnings ?? []), ...(voice?.warnings ?? [])])];
     $('vgmWarnings').textContent = messages.join(' ');
     $('vgmWarnings').hidden = messages.length === 0;
@@ -39,7 +43,8 @@ export function createVgmLibrary({root, onSelect}) {
   function render() {
     $('vgmLibrary').hidden = !library;
     if (!library) return;
-    const voices = library.voices.filter(voice => filter === 'all' || voice.kind === filter);
+    const available=visibleVoices();
+    const voices = available.filter(voice => filter === 'all' || voice.kind === filter);
     page = Math.max(0, Math.min(page, Math.ceil(voices.length / pageSize) - 1));
     $('vgmFileName').textContent = library.name;
     const start = page * pageSize;
@@ -49,7 +54,7 @@ export function createVgmLibrary({root, onSelect}) {
     $('vgmNext').disabled = start + pageSize >= voices.length;
     for (const button of root.querySelectorAll('[data-vgm-filter]')) {
       const kind = button.dataset.vgmFilter;
-      const count = kind === 'all' ? library.voices.length : library.voices.filter(voice => voice.kind === kind).length;
+      const count = kind === 'all' ? available.length : available.filter(voice => voice.kind === kind).length;
       button.textContent = `${kind === 'all' ? 'All' : ['lfo','pcm'].includes(kind) ? kind.toUpperCase() : kind[0].toUpperCase() + kind.slice(1)} (${count})`;
       button.setAttribute('aria-pressed', String(filter === kind));
       button.disabled = count === 0;
@@ -67,7 +72,7 @@ export function createVgmLibrary({root, onSelect}) {
       button.append(name, detail);
       button.addEventListener('click', async () => {
         button.blur();
-        if (disposed || source !== library) return;
+        if (disposed || source !== library || !visibleVoices().some(value=>value.id===voice.id)) return;
         const token = ++selection;
         try {
           await onSelect(voice.preset);
@@ -93,6 +98,13 @@ export function createVgmLibrary({root, onSelect}) {
     $('cancelVgm').hidden = true;
   }
   listen($('loadVgm'), 'click', () => {$('loadVgm').blur(); $('vgmFileInput').click();});
+  listen($('vgmKeepLoudestPcm'),'change',()=>{
+    $('vgmKeepLoudestPcm').blur();selection++;page=0;
+    const available=visibleVoices();
+    if (selected!==null&&!available.some(voice=>voice.id===selected)) selected=null;
+    render();
+    if (library) status(`${available.length} sounds shown · ${$('vgmKeepLoudestPcm').checked?'loudest PCM volume variants grouped':'all PCM volume variants shown'}. Current instrument kept.`);
+  });
   listen($('vgmFileInput'), 'cancel', () => {
     $('vgmFileInput').blur();
     if (!pending) status('File selection cancelled. Current sound kept.');
@@ -113,7 +125,7 @@ export function createVgmLibrary({root, onSelect}) {
       if (disposed || token !== request) return;
       library = {...result, name:file.name}; filter = 'all'; page = 0; selected = null; selection++;
       render();
-      status(`${result.voices.length} sounds found · choose one to play. Current instrument kept.`);
+      status(`${visibleVoices().length} sounds found · choose one to play. Current instrument kept.`);
     } catch (error) {
       if (!disposed && token === request && error.name !== 'AbortError') status(`VGM import failed: ${error.message} Current sound kept.`, true);
     } finally {
