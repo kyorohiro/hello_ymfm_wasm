@@ -1,4 +1,4 @@
-# 改造しやすいSynth配布物とTauri版（2026-11-05 実装・検証完了／push準備中）
+# 改造しやすいSynth配布物とTauri版（2026-11-05 完了・GitHub反映済み）
 
 ユーザー要望：Tauriのdist/synth-dmg/synth.jsなどがminifyされ、Tetoricaの「読んで調べて再構築する」Goalに反する。Tauri版にもなるべく改造しやすい形を含める。
 
@@ -35,3 +35,14 @@
 ユーザーよりGitHubへのcommit／pushも依頼済み。SSH公開鍵認証が通らなかった親・DMG・FMはHTTPSでfetchし、全4 repositoriesのHEADとorigin/mainが一致することを確認した。pushにはログイン済みGitHub CLIのcredential helperを使う。tag／GitHub Release／itch.io差替えはこの作業では行わない。
 
 最終の変更反映検証：一時copyのDMG `dist/synth-dmg/synth.js`だけを編集し、追加buildなしでChromium／WebKitの見出しが変更されることを確認。AudioContextは0、errors／missing assets／external requestsも0。未記録時はcheckが変更を検出し、record:editsで1 fileだけ記録するとcheckが成功。元のrelease.lockと実checkoutのdistは変更なし。[記録](dmg_synth_editable_source_01.json)。
+
+## GitHub反映
+
+2026-11-05、依頼された4 repositoriesのmainへHTTPS＋GitHub CLI認証でpush成功。DMGの公開`dist/synth-dmg/synth.js`が17,121 bytes（元の315行）であることもGitHub APIで確認した。
+
+- 親コード：[7b465451](https://github.com/kyorohiro/hello_ymfm_wasm/commit/7b465451)（先行Webリリース報告の記録：[b8eba06c](https://github.com/kyorohiro/hello_ymfm_wasm/commit/b8eba06c)）。
+- DMG Tauri：[1d93aa1](https://github.com/kyorohiro/tetorica-dmg-synth-tauri/commit/1d93aa1)。
+- SPU Tauri：[e87c558](https://github.com/kyorohiro/tetorica-spu-synth-tauri/commit/e87c558)。現行Webソース・対応SDK／WASMを読みやすいmodule構成で取り込んだ。
+- FM2612 Tauri：[3110e3a](https://github.com/kyorohiro/tetorica-fm2612-synth-tauri/commit/3110e3a)。既存の元module配布を保ち、local変更の記録と手順を追加。
+
+GitHubのコード反映まで完了。新しいapp tag／binary Releaseやitch.ioの差替えは行っていない。次に実行するWeb packageコマンドからは読みやすい元moduleを配布する。
