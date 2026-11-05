@@ -173,9 +173,9 @@ test('extracted low-rate PCM at C4 matches direct timed DAC writes through real 
     expectedCore.writeHuc6280(1,255);expectedCore.writeHuc6280(0,0);
     expectedCore.writeHuc6280(5,247);expectedCore.writeHuc6280(4,217);
     const frames=Math.floor((source.length-1)*48000/rate),left=new Float32Array(frames),right=new Float32Array(frames);
-    let previous=-1,position=0;
+    let previous=-1;
     for(let frame=0;frame<frames;frame++) {
-      const code=source[Math.floor(position)];position+=rate/48000;
+      const code=source[Math.floor(frame*rate/48000)];
       if(code!==previous){expectedCore.writeHuc6280(6,code);previous=code;}
       const output=expectedCore.processFrames(1);left[frame]=output.left[0];right[frame]=output.right[0];
     }

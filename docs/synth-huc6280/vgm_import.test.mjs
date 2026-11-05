@@ -47,6 +47,27 @@ test('PCM-only VGM/VGZ and mixed libraries merge chronologically with portable e
   assert.deepEqual(mixed.voices.map(value=>value.preset.name),['Wave CH3 · 1','PCM CH1 · 2','Wave CH4 · 3']);
   for(const value of mixed.voices)assert.deepEqual(value.preset,readPreset(value.preset));
 });
+
+test('direct PCM keeps fractional rates and merges identical stream/direct assets with both origins',async()=>{
+  const data=[16,31,0,23,8,16],different=[1,29,5,25];
+  const direct=(channel,values,spacing)=>[...w(0,channel),...w(5,0xab),...w(4,0xdf),
+    ...values.flatMap(value=>[...w(6,value|0xe0),...wait(spacing)]),...stop(channel)];
+  const commands=[...globals,0x67,0x66,5,data.length,0,0,0,...data,
+    ...w(0,0),...w(5,0xab),...w(4,0xdf),0x90,0,0x1b,0,6,0x91,0,5,1,0,
+    0x92,0,0xb6,0x1c,0,0,0x95,0,0,0,0,...wait(36),0x94,0,...stop(0),
+    ...direct(1,data,6),...direct(2,different,8),0x66];
+  const result=await extractVgmInstruments(vgm(commands));
+  assert.equal(result.voices.length,2);
+  const [shared,fractional]=result.voices;
+  assert.deepEqual([shared.id,shared.kind,shared.channel,shared.firstTime,shared.occurrences],[1,'pcm',1,0,2]);
+  assert.deepEqual(shared.origins,['stream','direct']);assert.equal(shared.preset.dda.sampleRate,7350);
+  assert.deepEqual([...decodeDdaData(shared.preset.dda.data)],data);
+  assert.deepEqual([fractional.id,fractional.kind,fractional.channel,fractional.firstTime],[2,'pcm',3,72]);
+  assert.deepEqual(fractional.origins,['direct']);assert.equal(fractional.preset.dda.sampleRate,5512.5);
+  assert.deepEqual([...decodeDdaData(fractional.preset.dda.data)],different);
+  assert.equal(fractional.preset.dda.loop,false);assert.equal(fractional.preset.envelope.enabled,false);
+  assert.deepEqual(result,await extractVgmInstruments(gzipSync(vgm(commands))));
+});
 const period = (channel,value) => [...w(0,channel),...w(2,value&255),...w(3,(value&4095)>>8)];
 function lfoSetup({carrierPeriod=700,modulatorPeriod=913,rate=7,depth=2,reset=false,output=true,
   carrierWave=wave,modulatorWave=other,carrierVolume=25,modulatorVolume=19}={}) {

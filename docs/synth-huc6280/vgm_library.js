@@ -20,7 +20,12 @@ export function createVgmLibrary({root, onSelect}) {
     if (description) return description;
     const {data, sampleRate, loop} = voice.preset.dda;
     const seconds = decodeDdaData(data).length / sampleRate;
-    description = `${sampleRate.toLocaleString()} Hz · ${seconds.toFixed(2)} s · ${loop ? 'Loop' : 'One-shot'} · C4 = recorded rate`;
+    const origins = voice.origins ?? [voice.origin];
+    const names = [['stream','DAC stream'],['direct','Direct DAC']].filter(([origin]) => origins.includes(origin)).map(([,label]) => label);
+    const source = names.length ? `${names.join(' + ')} · ` : '';
+    const approximate = Number(sampleRate.toFixed(6)) !== sampleRate ? '≈' : '';
+    const rate = sampleRate.toLocaleString('en-US', {maximumFractionDigits:6});
+    description = `${source}${approximate}${rate} Hz · ${seconds.toFixed(2)} s · ${loop ? 'Loop' : 'One-shot'} · C4 = recorded rate`;
     pcmInfo.set(voice, description);
     return description;
   };

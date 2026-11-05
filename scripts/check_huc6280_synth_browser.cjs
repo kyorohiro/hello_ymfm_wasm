@@ -54,6 +54,12 @@ function makePcmVgm({missing=false}={}) {
   return vgmBytes(Buffer.concat([block,streamPcm,Buffer.from(setup),frequency,
     Buffer.from([0x95,0,0,0,1,0x61,0x44,0xac,0x94,0,0x66])]));
 }
+const directPcm=Buffer.from(Array.from({length:2205},(_,i)=>0xe0|Math.round(15.5+15.5*Math.sin(i*Math.PI/12))));
+function makeDirectPcmVgm({irregular=false}={}) {
+  const commands=[...write(1,255),...write(9,0),...write(0,3),...write(5,0xcb),...write(4,0xc0|23)];
+  for(let index=0;index<directPcm.length;index++) commands.push(...write(6,directPcm[index]),irregular&&index===12?0x76:0x77);
+  return vgmBytes([...commands,...write(4,0),0x66]);
+}
 function makeWav() {
   const rate=44100,frames=rate*5,channels=2,bytes=Buffer.alloc(44+frames*channels*2);
   bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);
@@ -388,6 +394,44 @@ async function checkEngine(name, engine, origin) {
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-vgm-pcm-390.png`),fullPage:true});
     await page.setViewportSize({width:1180,height:1000});await page.waitForTimeout(120);
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-vgm-pcm-1180.png`),fullPage:true});
+    check('Direct DAC PCM imports uniform writes with exact fractional rate and explicit one-shot boundaries');
+    const beforeDirect=(await read()).preset;
+    await page.locator('#vgmFileInput').setInputFiles({name:'direct-pcm.vgz',mimeType:'application/gzip',buffer:gzipSync(makeDirectPcmVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='direct-pcm.vgz');
+    assert.deepEqual((await read()).preset,beforeDirect,'direct PCM analysis retains the instrument');
+    await page.locator('[data-vgm-filter="pcm"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
+    assert.match(await page.locator('[data-vgm-voice] small').textContent(),/Direct DAC/);
+    assert.match(await page.locator('[data-vgm-voice] small').textContent(),/5,512\.5 Hz/);
+    await page.locator('[data-vgm-voice]').click();state=await wait(s=>s.preset.source==='dda'&&s.preset.dda.sampleRate===5512.5);
+    assert.equal(state.dda.samples,directPcm.length);assert.equal(state.preset.dda.loop,false);
+    assert.equal(state.preset.dda.rootNote,60);assert.equal(state.preset.dda.speed,1);assert.equal(state.preset.volume,23);
+    assert.deepEqual(state.preset.pan,{left:12,right:11});assert.equal(state.preset.envelope.enabled,false);
+    assert.equal(await page.locator('#ddaRate').textContent(),'5512.5');
+    await page.keyboard.down(c4);await wait(s=>s.voices.length===1);await sound();
+    await wait(s=>s.dda.voices.some(v=>v.ended));await silent();
+    await page.keyboard.up(c4);await wait(s=>s.voices.length===0);
+    await page.locator('#ddaLoop').check();await wait(s=>s.preset.dda.loop);
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);await sound();const directOwner=state.voices[0].id;
+    await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.dda.sampleRate===5513.5);assert.equal(state.voices[0].id,directOwner);
+    await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="-1"]').click();await wait(s=>s.preset.dda.sampleRate===5512.5);
+    check('irregular direct writes are omitted without changing held PCM and fractional-rate JSON is portable');
+    await page.locator('#vgmFileInput').setInputFiles({name:'irregular-direct.vgm',mimeType:'application/octet-stream',buffer:makeDirectPcmVgm({irregular:true})});
+    await page.waitForFunction(()=>document.querySelector('#vgmStatus').dataset.error==='true');
+    assert.equal((await read()).voices[0].id,directOwner);assert.equal(await page.locator('#vgmFileName').textContent(),'direct-pcm.vgz');
+    await page.keyboard.up(c4);await wait(s=>s.voices.length===0);await silent();
+    const directDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const directSaved=JSON.parse(await fs.readFile(await(await directDownload).path(),'utf8'));
+    assert.equal(directSaved.dda.sampleRate,5512.5);
+    assert.deepEqual(Buffer.from(directSaved.dda.data,'base64'),Buffer.from(directPcm.map(value=>value&31)));
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
+    await page.locator('#presetFileInput').setInputFiles({name:'direct-pcm.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(directSaved))});
+    await wait(s=>s.preset.source==='dda'&&s.preset.dda.sampleRate===5512.5&&s.dda.samples===directPcm.length);
+    await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+    assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-direct-pcm-390.png`),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});await page.waitForTimeout(120);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-direct-pcm-1180.png`),fullPage:true});
     check('DDA plays six hardware DAC channels, changes speed/pitch live and elides cached PCM');
     await radio('source','dda').click();
     await page.locator('#ddaAudioFileInput').setInputFiles({name:'dac-test.wav',mimeType:'audio/wav',buffer:makeWav()});

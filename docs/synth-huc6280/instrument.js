@@ -10,6 +10,13 @@ const poolFor = preset => preset.source === 'noise' ? [4,5] : hasLfo(preset) ? [
 // Software volume automation is quantized to the real 1.5 dB channel steps.
 // A fixed timeline makes rendering independent of AudioWorklet block sizes.
 const ENVELOPE_QUANTUM = 16;
+// Recover exact sample boundaries after floating-point rate conversion. Keep
+// the tolerance below a quarter output frame, even at very slow playback.
+const ddaBoundary = (position, step, length) => {
+  const nearest = Math.round(position);
+  const tolerance = Math.min(8 * Number.EPSILON * Math.max(1, Math.abs(position), length), step / 4);
+  return Math.abs(position - nearest) <= tolerance ? nearest : position;
+};
 
 /** One physical six-channel PSG, with host keyboard allocation and optional
  * software ADSR. It does not invent extra Noise channels or FM routing. */
@@ -178,7 +185,7 @@ export class Huc6280Instrument {
     if (previous) this._retire(previous);
     const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,
       paired:hasLfo(this.preset) && this.preset.lfo.output.enabled,envelope:{...this.preset.envelope},
-      dda:this.preset.source==='dda',position:0,ended:false};
+      dda:this.preset.source==='dda',position:0,positionCompensation:0,ended:false};
     if (this.preset.source === 'wave'||voice.dda) this._tuneVoice(voice);
     if(voice.dda) this._writeDda(channel,this.ddaSamples[0]);
     this._setVoiceLevel(voice, this._level(voice));
@@ -235,7 +242,7 @@ export class Huc6280Instrument {
     this.synth.writeDda(channel,value);this.ddaValues[channel]=value;
   }
   _endDda(voice) {
-    voice.ended=true;voice.position=this.ddaSamples.length;
+    voice.ended=true;voice.position=this.ddaSamples.length;voice.positionCompensation=0;
     this.synth.keyOff(voice.channel);this._writeDda(voice.channel,16);
     if(voice.released) this._retire(voice);
   }
@@ -250,13 +257,21 @@ export class Huc6280Instrument {
       }
       if(this.frame%ENVELOPE_QUANTUM===0) this._advanceEnvelopes();
       for(const voice of playing) if(this.slots[voice.channel]===voice&&!voice.ended) {
-        this._writeDda(voice.channel,this.ddaSamples[Math.min(this.ddaSamples.length-1,Math.floor(voice.position))]);
+        this._writeDda(voice.channel,this.ddaSamples[Math.min(this.ddaSamples.length-1,Math.floor(ddaBoundary(voice.position,voice.step,this.ddaSamples.length)))]);
       }
       const output=this.core.processFrames(1);left[offset]=output.left[0];right[offset]=output.right[0];this.frame++;
       for(const voice of playing) if(this.slots[voice.channel]===voice&&!voice.ended) {
-        voice.position+=voice.step;
-        if(voice.position>=this.ddaSamples.length) {
-          if(this.preset.dda.loop) voice.position%=this.ddaSamples.length;
+        // Compensated summation prevents a rational step such as 1/6 from
+        // accumulating into a sample one output frame late.
+        const increment=voice.step-voice.positionCompensation, next=voice.position+increment;
+        voice.positionCompensation=(next-voice.position)-increment;
+        const boundary=ddaBoundary(next,voice.step,this.ddaSamples.length);
+        voice.position=boundary;
+        if(Number.isInteger(boundary)) voice.positionCompensation=0;
+        if(boundary>=this.ddaSamples.length) {
+          if(this.preset.dda.loop) {
+            voice.position=boundary%this.ddaSamples.length;
+          }
           else this._endDda(voice);
         }
       }

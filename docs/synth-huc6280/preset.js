@@ -71,7 +71,7 @@ export function readPreset(value) {
     object(value.dda,['name','data','sampleRate','rootNote','loop','speed'],'DDA PCM');
     if(typeof value.dda.name!=='string'||value.dda.name.length>120||/[\u0000-\u001f\u007f\u2028\u2029]/.test(value.dda.name)) throw new TypeError('DDA name must be at most 120 characters without control characters');
     decodeDdaData(value.dda.data);
-    dda={name:value.dda.name,data:value.dda.data,sampleRate:number(value.dda.sampleRate,1,192000,'DDA sample rate',true),
+    dda={name:value.dda.name,data:value.dda.data,sampleRate:number(value.dda.sampleRate,1,192000,'DDA sample rate'),
       rootNote:number(value.dda.rootNote,0,127,'DDA root note',true),loop:boolean(value.dda.loop,'DDA Loop'),speed:number(value.dda.speed,.125,4,'DDA speed')};
   }
   return {format:FORMAT, version:3, name:value.name.trim(), source:value.source, wave:wave(value.wave, 'Main wave'),

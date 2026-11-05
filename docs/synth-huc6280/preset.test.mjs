@@ -53,7 +53,7 @@ test('DDA v3 presets retain five-bit bytes and reject malformed payloads or cont
   preset.dda={name:'voice.wav',data:encodeDdaData(Uint8Array.from([0,15,16,31])),sampleRate:11025,rootNote:60,loop:true,speed:1.5};
   assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
   for(const mutate of [p=>delete p.dda,p=>p.dda.extra=1,p=>p.dda.data='IA==',p=>p.dda.data='not base64',
-    p=>p.dda.sampleRate=0,p=>p.dda.sampleRate=192001,p=>p.dda.sampleRate=11025.5,
+    p=>p.dda.sampleRate=0,p=>p.dda.sampleRate=192001,p=>p.dda.sampleRate=NaN,
     p=>p.dda.rootNote=-1,p=>p.dda.rootNote=128,p=>p.dda.loop=1,p=>p.dda.speed=.124,p=>p.dda.speed=4.01,
     p=>p.dda.speed=NaN,p=>p.dda.name='x'.repeat(121),p=>p.dda.name='bad\nname']) {
     const copy=structuredClone(preset);mutate(copy);assert.throws(()=>readPreset(copy));
@@ -76,10 +76,10 @@ test('waveform helpers quantize exactly 32 five-bit values without aliasing', ()
 
 test('DDA presets retain low recorded stream rates without changing audio-conversion limits', () => {
   const preset=createDefaultPreset();preset.source='dda';
-  for (const rate of [1,7000,44100,192000]) {
+  for (const rate of [1,5512.5,44100/13,7000,44100,192000]) {
     preset.dda.sampleRate=rate;assert.equal(readPreset(preset).dda.sampleRate,rate);
   }
-  for (const rate of [0,192001,7000.5,Infinity]) {
+  for (const rate of [0,192001,NaN,Infinity]) {
     preset.dda.sampleRate=rate;assert.throws(()=>readPreset(preset),/sample rate/);
   }
 });

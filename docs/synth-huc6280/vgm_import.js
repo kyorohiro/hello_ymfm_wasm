@@ -5,6 +5,8 @@ import {parseVgmMetadata} from '../js/vgm_file.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
 import {createDefaultPreset, readPreset} from './preset.js';
 import {extractVgmDacStreams} from './vgm_dac.js';
+import {extractVgmDirectPcm} from './vgm_direct_pcm.js';
+import {MAX_DDA_SAMPLES} from './dda_pcm.js';
 
 export const MAX_VGM_BYTES = 64 * 1024 * 1024;
 const MAX_COMMANDS = 4_000_000, MAX_VOICES = 4096, MAX_OBSERVATIONS = 100_000;
@@ -36,7 +38,7 @@ async function decode(source, signal) {
   return result;
 }
 
-/** Written Wave/Noise/LFO settings and complete DAC-stream PCM for keyboard audition, not song playback.
+/** Written Wave/Noise/LFO settings and supported PCM for keyboard audition, not song playback.
  * Snapshots are taken before positive waits, after all writes at that timestamp.
  * firstTime is in VGM's 44,100-sample timebase; channels are one-based CH1–CH6.
  * Wave RAM is never guessed from reset defaults or an unknown playback index.
@@ -48,7 +50,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   const eof = view.getUint32(4, true);
   if (eof && (eof + 4 < 0x40 || eof + 4 > bytes.length)) throw new Error('Invalid or truncated VGM file size');
   if (eof) {bytes = bytes.subarray(0, eof + 4); view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);}
-  const warnings = new Set(['Static Wave / Noise / LFO settings and complete DAC-stream PCM only: elapsed waveform / modulator phase and later software envelopes / register automation are not replayed. Wave / Noise note pitch is not imported. Recorded LFO periods and PCM rate play at C4. Imported Software Envelope is Off.']);
+  const warnings = new Set(['Static Wave / Noise / LFO settings, complete DAC-stream PCM and uniform bounded Direct DAC PCM only: elapsed waveform / modulator phase and later software envelopes / register automation are not replayed. Wave / Noise note pitch is not imported. Recorded LFO periods and PCM rate play at C4. Imported Software Envelope is Off.']);
   const parser = new Ym2612VGM(bytes, {logger:{warn:message => warnings.add(message)}});
   if (parser.header.dataOffset < 0x40 || parser.header.dataOffset >= bytes.length) throw new Error('Invalid VGM data offset');
   const rawClock = parser.header.huc6280Clock;
@@ -58,7 +60,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
 
   // undefined optional flags mean unrecorded reset assumptions; null means a
   // known unsupported stream made the value indeterminate and must not default.
-  let selected = null, globalBalance, lfoControl, lfoFrequency, time = 0, observations = 0, hasPcmStreams = false;
+  let selected = null, globalBalance, lfoControl, lfoFrequency, time = 0, observations = 0, hasPcmStreams = false, hasDirectPcm = false;
   const channels = Array.from({length:8}, () => ({control:null, balance:null, noise:undefined,
     frequencyLow:null, frequencyHigh:null, wave:Array(32).fill(null), index:null, last:null}));
   const streams = new Map(), voices = [], definitions = new Map();
@@ -86,6 +88,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     } else if (register === 5) channel.balance = value;
     else if (register === 7) channel.noise = value;
     else if (register === 6) {
+      if (selected < 6 && (channel.control & 192) === 192) hasDirectPcm = true;
       if (channel.control === null) {
         channel.wave.fill(null); channel.index = null;
         warn('Wave writes with unknown DDA / channel control are omitted.');
@@ -251,7 +254,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
         else if (channel.noise & 128) kind = 'noise';
       }
       if (kind === 'wave') {
-        if (control & 64) {warn('DDA / PCM intervals are not static wavetable voices; supported DAC streams are listed separately as PCM. Direct register PCM is omitted.'); channel.last = null; continue;}
+        if (control & 64) {warn('DDA / PCM intervals are analyzed separately; incomplete or unsupported regions are omitted.'); channel.last = null; continue;}
         if (index < 2) {
           if (lfoControl === null) {warn('CH1 / CH2 intervals with unknown LFO state are omitted.'); channel.last = null; continue;}
           if (lfoControl === undefined) notes.push('LFO control was not recorded; this audition assumes the reset state, LFO off.');
@@ -309,16 +312,41 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   abort(signal);
-  if (hasPcmStreams) {
-    const pcm = await extractVgmDacStreams(bytes, {signal});
-    for (const message of pcm.warnings) warn(message);
-    voices.push(...pcm.voices);
+  if (hasPcmStreams || hasDirectPcm) {
+    const results=[];
+    if (hasPcmStreams) {
+      const pcm=await extractVgmDacStreams(bytes,{signal});
+      for (const voice of pcm.voices) voice.origin='stream';
+      results.push(pcm);
+    }
+    if (hasDirectPcm) results.push(await extractVgmDirectPcm(bytes,{signal}));
+    const assets=new Map();let totalSamples=0;
+    for (const result of results) {
+      for (const message of result.warnings) warn(message);
+      for (const voice of result.voices) {
+        const p=voice.preset, key=JSON.stringify([p.dda.data,p.dda.sampleRate,p.dda.loop,p.volume,p.pan]);
+        const previous=assets.get(key);
+        if (previous) {
+          previous.occurrences+=voice.occurrences;
+          previous.origins=[...new Set([...previous.origins,voice.origin])];
+          previous.warnings=[...new Set([...previous.warnings,...voice.warnings])];
+          if (voice.firstTime<previous.firstTime) {previous.firstTime=voice.firstTime;previous.channel=voice.channel;}
+        } else {
+          const data=p.dda.data;
+          totalSamples+=data.length/4*3-(data.endsWith('==')?2:data.endsWith('=')?1:0);
+          if (totalSamples>MAX_DDA_SAMPLES) throw new Error('PCM import exceeds 16,777,216 combined DAC samples');
+          voice.origins=[voice.origin];assets.set(key,voice);
+        }
+      }
+    }
+    voices.push(...assets.values());
     if (voices.length > MAX_VOICES) throw new Error('VGM import exceeds 4,096 different voices');
     if (voices.reduce((sum, voice) => sum + voice.occurrences, 0) > MAX_OBSERVATIONS) throw new Error('VGM import exceeds 100,000 voice observations');
     voices.sort((a,b) => a.firstTime-b.firstTime || a.channel-b.channel);
     for (let index=0;index<voices.length;index++) {
       const voice=voices[index];voice.id=index+1;
       voice.preset.name=`${voice.kind==='lfo'?'LFO CH1 + CH2':`${voice.kind==='pcm'?'PCM':voice.kind==='wave'?'Wave':'Noise'} CH${voice.channel}`} · ${voice.id}`;
+      if (voice.kind==='pcm') voice.preset.dda.name=voice.preset.name;
     }
   }
   abort(signal);

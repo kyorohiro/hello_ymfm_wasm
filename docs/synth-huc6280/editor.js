@@ -98,7 +98,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     fields.set(id, {input: group, get, update: refresh});
     return {setDisabled(value) {disabled = value;refresh();}};
   }
-  function number(parent, label, id, min, max, get, set, step = 1) {
+  function number(parent, label, id, min, max, get, set, step = 1, {fractional = false} = {}) {
     const row = make('div', 'huc-field'), title = make('span', '', label);
     title.id = `${id}Label`; row.append(title); parent.append(row);
     const group = make('div', 'huc-stepper'); group.setAttribute('role', 'group');
@@ -120,7 +120,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     }
     group.append(minus, output, plus);
     function refresh() {
-      const value = get(preset); output.textContent = String(value);
+      const value = get(preset), shown = fractional ? value.toLocaleString('en-US', {useGrouping:false, maximumFractionDigits:3}) : String(value);
+      output.textContent = fractional && Number(shown) !== value ? `≈${shown}` : shown;
+      output.title = `${value} · Drag left or right, or use the arrow keys.`;
       output.setAttribute('aria-valuenow', String(value)); output.setAttribute('aria-disabled', String(disabled));
       group.setAttribute('aria-disabled', String(disabled));
       output.tabIndex = disabled ? -1 : 0;
@@ -128,7 +130,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     }
     function adjust(value) {
       if (disabled) return;
-      const next = Math.max(min, Math.min(max, Math.round(value / step) * step));
+      const next = Math.max(min, Math.min(max, fractional ? value : Math.round(value / step) * step));
       if (next !== get(preset)) commit(value => set(value, next));
     }
     listen(group, 'keydown', event => {
@@ -230,7 +232,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const ddaCanvas = make('canvas'); ddaCanvas.id = 'ddaCanvas'; ddaCanvas.width = 900; ddaCanvas.height = 180;
   ddaCanvas.setAttribute('role', 'img'); ddaCanvas.setAttribute('aria-label', 'Five-bit PCM waveform overview, values 0 to 31'); dda.append(ddaCanvas);
   const playback = section(dda, 'Playback · software control'), playbackFields = group(playback);
-  number(playbackFields, 'DAC rate · Hz', 'ddaRate', 1, 192000, value => value.dda.sampleRate, (value, rate) => {value.dda.sampleRate = rate;});
+  number(playbackFields, 'DAC rate · Hz', 'ddaRate', 1, 192000, value => value.dda.sampleRate, (value, rate) => {value.dda.sampleRate = rate;}, 1, {fractional:true});
   number(playbackFields, 'Root MIDI note', 'ddaRootNote', 0, 127, value => value.dda.rootNote, (value, note) => {value.dda.rootNote = note;});
   number(playbackFields, 'Playback speed · %', 'ddaSpeed', 12.5, 400, value => value.dda.speed * 100, (value, percent) => {value.dda.speed = percent / 100;}, 12.5);
   checkbox(playbackFields, 'Loop PCM', 'ddaLoop', value => value.dda.loop, (value, loop) => {value.dda.loop = loop;});

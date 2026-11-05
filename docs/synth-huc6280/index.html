@@ -91,7 +91,7 @@
             <p id="vgmWarnings" class="subtext huc-vgm-warnings" hidden></p>
           </div>
           <p class="subtext">Opening a file keeps the current instrument. Select a sound to load it, then edit its settings or save a preset. Software Envelope is off for imported sounds.</p>
-          <p class="subtext">Imports recorded Wave / Noise settings, complete CH1 + CH2 LFO pairs and supported complete PCM DAC streams. C4 plays the recorded LFO carrier pitch or PCM rate; LFO CH2 keeps its original period. Song timing, elapsed phase and later software envelopes are not replayed. Direct DAC writes, unsupported streams and incomplete settings are omitted with an explanation.</p>
+          <p class="subtext">Imports recorded Wave / Noise settings, complete CH1 + CH2 LFO pairs, supported PCM DAC streams and uniform direct DAC intervals with known boundaries. C4 plays the recorded LFO carrier pitch or PCM rate; LFO CH2 keeps its original period. Direct DAC imports are one-shots; Loop and the original note pitch are not inferred. Song timing, elapsed phase and later software envelopes are not replayed. Irregular or incomplete DAC intervals, unsupported streams and unknown settings are omitted with an explanation.</p>
         </div>
       </details>
 

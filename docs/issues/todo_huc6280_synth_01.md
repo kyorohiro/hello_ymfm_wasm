@@ -158,3 +158,13 @@
 仕様照合: [VGM v1.71 specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)、[libvgm DAC control](https://github.com/ValleyBell/libvgm/blob/master/emu/dac_control.c)、既存の `ym2612vgm.js` と `huc6280audioengine.js`。milliseconds換算はVGM仕様と既存JSへ合わせ、他実装の式を無条件には移植しない。
 
 残る確認は実ゲーム由来VGM／VGZと実聴・長時間試奏。検証中のスピーカー出力はミュートしている。直接DAC write列・圧縮bank・port255・曲の自動制御は今回の対象外で、次の実装候補として残す。
+
+
+## VGM直接DAC write列のPCM読み込み（2026-11-06 開始）
+
+- [ ] 0xb9のregister6へ直接書くDDA値とVGM時刻を追跡し、既知のDDA key-onからkey-off／DDA解除までの明確な区間を抽出する。単なる長いwaitを新しいサンプルの境界と推測しない。
+- [ ] 同時刻writeをまとめ、一定間隔の複数DAC writeと最後の保持時間が明確な区間だけを採用する。間隔変化・不明な終端・可聴設定変更・LFO／Noise干渉・DAC stream競合は理由付きで省略する。
+- [ ] 元の5bit値と再生タイミングを保持する。44,100/time-intervalで非整数になるrateも、丸めて音程を変えない形で既存DDAへ接続する。Loopや元の音階は推測せず、C4を記録速度、Software Envelope Offとする。
+- [ ] DAC stream／直接writeのPCMを既存PCM一覧へ統合し、重複・rate／時間・由来表示・選択後のDDA preview／試奏／JSON保存へ接続する。共有sample／件数上限・yield／Cancel・失敗時の現在音保持を維持する。
+- [ ] 自作VGM／VGZ・実WASMでタイミング復元、同時刻write、停止境界、重複、非整数rate、未知設定・競合・変動間隔・異常入力・上限・中止を検証する。既存Wave／Noise／LFO／DAC streamを回帰確認する。
+- [ ] ソース版／独立配布ZIPをChromium／WebKitで検証し、README・TODO・検証記録を更新する。実ゲーム比較・実聴・長時間試奏・公開は別工程。
