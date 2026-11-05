@@ -276,8 +276,18 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   });
 
   const fds = card('FDS · Wave RAM + frequency modulation'), fdsFields = group(fds);
-  number(fdsFields, 'Volume · 0–32', 'fdsVolume', 0, 32, value => value.fds.volume, (value, volume) => {value.fds.volume = volume;});
+  const fdsFixedVolume = number(fdsFields, 'Fixed volume · 0–32', 'fdsVolume', 0, 32, value => value.fds.volume, (value, volume) => {value.fds.volume = volume;});
   select(fdsFields, 'Master scale', 'fdsMaster', [[0,'100%'],[1,'67%'],[2,'50%'],[3,'40%']], value => value.fds.master, (value, master) => {value.fds.master = Number(master);});
+  const fdsEnvelopeFields = group(section(fds, 'Hardware volume envelope'));
+  checkbox(fdsEnvelopeFields, 'Enable Envelope', 'fdsEnvelopeEnabled', value => value.fds.envelope.enabled, (value, enabled) => {value.fds.envelope.enabled = enabled;});
+  const fdsEnvelopeControls = [
+    select(fdsEnvelopeFields, 'Direction', 'fdsEnvelopeIncrease', [[false,'Decrease'],[true,'Increase']], value => value.fds.envelope.increase, (value, increase) => {value.fds.envelope.increase = increase === 'true';}),
+    number(fdsEnvelopeFields, 'Initial gain · 0–63', 'fdsEnvelopeInitialGain', 0, 63, value => value.fds.envelope.initialGain, (value, initialGain) => {value.fds.envelope.initialGain = initialGain;}),
+    number(fdsEnvelopeFields, 'Period · 0–63', 'fdsEnvelopePeriod', 0, 63, value => value.fds.envelope.period, (value, period) => {value.fds.envelope.period = period;}),
+    number(fdsEnvelopeFields, 'Master period · 0–255', 'fdsEnvelopeMasterSpeed', 0, 255, value => value.fds.envelope.masterSpeed, (value, masterSpeed) => {value.fds.envelope.masterSpeed = masterSpeed;}),
+  ];
+  const fdsEnvelopeHalt = checkbox(fdsEnvelopeFields, 'Pause envelope clock', 'fdsEnvelopeHalt', value => value.fds.envelope.halt, (value, halt) => {value.fds.envelope.halt = halt;});
+  help(fds, 'The FDS hardware raises or lowers gain. Start at 0 for a rise, or 32 for a decay. Gain 33–63 stays at the output limit of 32 until it falls below it. Larger periods are slower; Master period 0 or Pause stops the envelope clock. Envelope settings apply on the next note.');
   const editHeading = make('div','nes-wave-heading'), targets = make('div','nes-wave-actions');
   editHeading.append(make('span','nes-help','Edit one hardware table'),targets); fds.append(editHeading);
   let editTarget = 'wave', brush = 1;
@@ -382,6 +392,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
     noiseFixedVolume.setDisabled(preset.noise.envelope.enabled);noiseEnvelopePeriod.setDisabled(!preset.noise.envelope.enabled);noiseEnvelopeLoop.disabled=!preset.noise.envelope.enabled;
+    fdsFixedVolume.setDisabled(preset.fds.envelope.enabled);for(const control of fdsEnvelopeControls)control.setDisabled(!preset.fds.envelope.enabled);fdsEnvelopeHalt.disabled=!preset.fds.envelope.enabled;
     for(const control of sweepControls)control.setDisabled(!preset.pulse.sweep.enabled);
     for(const control of modulationControls)control.setDisabled(!preset.fds.modulation.enabled);
     for(const button of targetButtons)button.setAttribute('aria-pressed',String(button.dataset.fdsEdit===editTarget));

@@ -55,7 +55,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   const regs = Array(0x80).fill(null), voices = [], definitions = new Map(), triggered = Array(4).fill(false);
   const wave = Array(64).fill(null);
   let modTable = Array(32).fill(null), modIndex = 0, modIndexKnown = true, modRun = [], phaseApproximate = false;
-  let fixedGain = null, fixedDepth = null, time = 0, observations = 0, dmcSnapshotBytes = 0;
+  let fixedGain = null, gainProgressed = false, fixedDepth = null, time = 0, observations = 0, dmcSnapshotBytes = 0;
   const dmc = createDmcCapture({clock, onVoice:(settings, notes) => add('dmc', 5, settings, notes),
     onWarning:message => warnings.add(message), onVoiceWarning:(voice, message) => {
       if (!voice.warnings.includes(message)) voice.warnings.push(message);
@@ -135,12 +135,14 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     if (wave.every(value => value === wave[0])) {warnings.add('Constant FDS Wave RAM produces no pitched waveform and is omitted.'); return;}
     const notes = [];
     if (regs[0x3f] === null) notes.push('FDS I/O enable state was not recorded; this voice assumes it is enabled.');
-    let volume = Math.min(fixedGain ?? 32, 32);
-    if (!(regs[0x20] & 128)) {
-      if (!volume && regs[0x20] & 64) volume = 32;
-      notes.push(`FDS volume Envelope is approximated by fixed volume ${volume}; Envelope timing is not replayed.`);
-    }
-    if (!volume) return;
+    const volume = Math.min(fixedGain ?? 32, 32), envelopeEnabled = !(regs[0x20] & 128), increase = Boolean(regs[0x20] & 64);
+    const initialGain = fixedGain ?? (increase ? 0 : 32);
+    if (envelopeEnabled && fixedGain === null) notes.push(gainProgressed
+      ? `FDS volume Envelope clock had already run; audition restarts from approximate gain ${initialGain} instead of its unknown current gain / timer phase.`
+      : `FDS volume Envelope initial gain was not recorded; audition starts from approximate gain ${initialGain}.`);
+    if (envelopeEnabled && regs[0x2a] === null) notes.push('FDS master Envelope speed was not recorded; imported volume Envelope uses 232.');
+    const envelope = {enabled:envelopeEnabled, increase, period:regs[0x20] & 63,
+      masterSpeed:regs[0x2a] ?? 232, initialGain, halt:Boolean(regs[0x23] & 64)};
     const master = regs[0x29] === null ? 0 : regs[0x29] & 3;
     if (regs[0x29] === null) notes.push('FDS master scale was not recorded; imported voices use 100%.');
     const modulationEnabled = regs[0x27] !== null && !(regs[0x27] & 128);
@@ -165,7 +167,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       // can enable the recorded effect rather than a factory waveform.
       modulation = {enabled:false, table:[...modTable], rate:(regs[0x26] ?? 0) | (((regs[0x27] ?? 0) & 15) << 8), depth:fixedDepth ?? 0, bias:regs[0x25] === null ? 0 : signed7(regs[0x25])};
     } else notes.push('FDS modulation table was not completely recorded while disabled; the imported disabled effect uses a neutral table.');
-    add('fds', 6, {wave:[...wave], volume, master, modulation}, notes);
+    add('fds', 6, {wave:[...wave], volume, master, envelope, modulation}, notes);
   }
   function apply(register, value) {
     if (register < 0x20) {
@@ -203,12 +205,12 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       return;
     }
     const previous = regs[register]; regs[register] = value;
-    if (register === 0x20 && value & 128) fixedGain = value & 63;
+    if (register === 0x20 && value & 128) {fixedGain = value & 63; gainProgressed = false;}
     if (register === 0x24 && value & 128) fixedDepth = value & 63;
     if (register === 0x27 && previous !== null && (previous & 128) !== (value & 128)) modRun = [];
     // A frequency-high write marks the next note/setup. Gate restoration and
     // zero-to-audible software attacks are also useful capture boundaries.
-    if (register === 0x23 || register === 0x29 && !(value & 128)
+    if (register === 0x20 || register === 0x2a || register === 0x23 || register === 0x29 && !(value & 128)
         || !wasAudible && fdsAudible()
         || register === 0x27 && !(value & 128) && (previous === null || previous & 128)) captureFds();
   }
@@ -221,6 +223,14 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   function advance(samples) {
     time += samples;
     dmc.advance(samples);
+    // Keep explicitly seeded gains exact while frozen or at an invariant
+    // endpoint. Without emulating the Envelope divider, any elapsed running
+    // Envelope otherwise makes its current gain / timer phase unknown.
+    if (samples && hasFds && regs[0x20] !== null && !(regs[0x20] & 128)
+        && (regs[0x23] === null || !(regs[0x23] & 64)) && regs[0x2a] !== 0
+        && (fixedGain === null || (regs[0x20] & 64 ? fixedGain < 32 : fixedGain > 0))) {
+      fixedGain = null; gainProgressed = true;
+    }
     // Modulation clocks independently of output gain, wave-write mode and
     // base pitch. With no cycle emulation the write pointer becomes unknown,
     // including during DAC+wait commands and inaudible note setup.

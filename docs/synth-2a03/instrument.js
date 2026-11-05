@@ -46,6 +46,14 @@ export class NesInstrument {
     }
     this.synth.writeRegister(0x400e, (shortMode ? 128 : 0) | period);
   }
+  _fdsVolume(preset, {live = false} = {}) {
+    const {volume, master, envelope} = preset.fds;
+    const constantVolume = Boolean(this.synth._getState().registers[0x80] & 128);
+    // setVolume writes fixed gain, so an active or pending envelope must keep
+    // its mode, seed and timer until a new key. Master scale alone stays live.
+    if (!live || constantVolume && !envelope.enabled) this.synth.fds.setVolume(volume, master);
+    else this.synth.writeRegister(0x4089, master);
+  }
   _apply(previous, next) {
     const changed = (path, value) => !previous || !equal(path(previous), value);
     if (changed(p => p.pulse, next.pulse)) for (let channel = 0; channel < 2; channel++) this._pulseVoice(channel, next, {live: Boolean(this.slots[channel])});
@@ -61,7 +69,7 @@ export class NesInstrument {
     }
     if (changed(p => [p.dmc.rate, p.dmc.loop], [next.dmc.rate, next.dmc.loop])) this.synth.writeRegister(0x4010, (next.dmc.loop ? 64 : 0) | next.dmc.rate);
     if (changed(p => p.fds.wave, next.fds.wave)) this.synth.fds.setWave(next.fds.wave);
-    if (changed(p => [p.fds.volume, p.fds.master], [next.fds.volume, next.fds.master])) this.synth.fds.setVolume(next.fds.volume, next.fds.master);
+    if (changed(p => [p.fds.volume, p.fds.master, p.fds.envelope], [next.fds.volume, next.fds.master, next.fds.envelope])) this._fdsVolume(next, {live:Boolean(this.slots[5])});
     const mod = next.fds.modulation;
     if (changed(p => p.fds.modulation.table, mod.table)) this.synth.fds.setModulation(mod);
     else {
@@ -133,7 +141,20 @@ export class NesInstrument {
       // follows hardware output-unit continuation; it does not reset the APU.
       this.synth.writeRegister(0x4015, this.synth._getState().enabled | 16);
     }
-    else {this._retune(5, tone.period); this.synth.fds.keyOn();}
+    else {
+      // Refresh the high-level keyOn cache while silent. keyOn intentionally
+      // selects fixed gain and stops envelopes; program the authored hardware
+      // envelope only afterwards so the public API cannot overwrite it.
+      this.synth.fds.setVolume(this.preset.fds.volume, this.preset.fds.master);
+      this._retune(5, tone.period); this.synth.fds.keyOn();
+      const envelope = this.preset.fds.envelope;
+      if (envelope.enabled) {
+        this.synth.writeRegister(0x4080, 128 | envelope.initialGain);
+        this.synth.writeRegister(0x408a, envelope.masterSpeed);
+        this.synth.writeRegister(0x4080, (envelope.increase ? 64 : 0) | envelope.period);
+        this.synth.writeRegister(0x4083, (this.synth._getState().registers[0x83] & 15) | (envelope.halt ? 64 : 0));
+      }
+    }
     const voice = {id, midi, channel, order: ++this.sequence};
     this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
     return {channel, stolenId: previous?.id ?? null};

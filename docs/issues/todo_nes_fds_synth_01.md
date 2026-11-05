@@ -11,6 +11,31 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## FDS音量ハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
+
+既存FDS coreの音量Envelopeを、操作・保存・VGM読込へ接続する。変調の深さのEnvelopeは後続とし、共有runtime・DSP／WASMは変更しない。
+
+- [x] preset v4へ`fds.envelope:{enabled,increase,period,masterSpeed,initialGain,halt}`を追加し、旧v1／v2／v3はOffへ厳密移行する。固定volume 0–32は保ち、Envelope初期gain 0–63と出力上限32を区別する。
+- [x] FDSカードへHardware volume envelopeのEnable／Direction／Period／Master period／Initial gain／Pauseを既存形式で追加する。ソフトのgain automationではなく既存FDS coreの機能として説明する。
+- [x] 発音後の固定gain設定に上書きされない順序でEnvelopeを開始する。保持中のEnvelope設定は次noteから適用し、Master scale・Pitch・変調parameter編集でEnvelopeを消したり再開始したりしない。
+- [x] VGMから方向・divider・共通速度・停止・既知初期gainを保持し、音量固定値への近似を減らす。初期gain未記録・経過後の位相・未記録共通速度は近似として明示する。
+- [x] Copy JavaScriptも現在の公開APIで再現する。実WASMで上昇・下降・初期gain 0／63・速度0と停止・速度差・再発音・離鍵・live編集・不正入力を確認する。
+- [x] Chromium／WebKit・独立ZIPで無音の編集、focus、実PCM、v4保存・旧版移行、VGM設定・生成code・既存DMC／Noise／FDSの回帰を検証し、ガイドと記録を更新する。
+
+既定値は`enabled:false,increase:false,period:8,masterSpeed:232,initialGain:32,halt:false`。Envelopeを開始する時だけ初期Gainをseedし、Direction／Period／Master period／Pauseの編集は次noteから反映する。FDSの共通速度はVolume／Mod envelopeに共通だが、今回のMod depthは既存の固定値設定を保つ。
+
+`instrument.js`はFDSの固定gain cacheを更新してから既存`keyOn()`を呼び、その後`$4080`初期gain→`$408a`共通速度→`$4080`Envelope方向・divider→`$4083`のEnvelope停止解除／Pauseの順で設定する。保持中のMaster scaleは`$4089`だけを更新し、固定gain設定でEnvelopeを上書きしない。Pitchは既存の制御bit保持を使う。既存core／runtime／WASMは変更していない。参考：[NESdev FDS audio](https://www.nesdev.org/wiki/FDS_audio)。
+
+preset v4は新しいFDS Envelopeを厳密に検証する。旧v1／v2／v3の対応済み設定は保ち、欠けるEnvelopeだけOffで追加する。新規v4保存物は古いSynthでは読めない。Copy JavaScriptは既存公開APIの`setFrequency()`戻り値と`fds.keyOn()`後に同じraw register設定を出力するため、npm更新を必要としない。VGMは既知のGain 0–63を保ち、発音中の方向・divider・共通速度変更も音色として採取する。Envelopeが既に進んだ場合はGain／timer位相を復元したと扱わず、上昇0／下降32での近似再開始を明示する。共通速度が未記録なら232と警告する。変調Envelopeの固定Depth近似は後続として残した。
+
+検証：`npm run test:2a03-synth`は**116件成功、失敗0**（既存102＋preset 2＋実WASM FDS 7＋VGM 5）。44.1／48 kHzでGain 0からの上昇・63からの下降、divider／共通速度による速度差、速度0／Pauseによる停止、再発音・離鍵・遅いowner解放、Master／Pitch／変調編集での位相維持、次noteへの設定反映、不正入力のatomicity、公開APIの生成codeとVGM設定の発音を確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。無音の編集・control無効状態、実PCM・Gain推移・停止、保持中のMaster／Pitch／変調編集、次noteへの適用、keyboard focus、v4保存・復元、v1／v2／v3移行、VGMの初期Gain 0からの上昇、既存DMC／Noise／FDSの回帰を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定した。FDS Envelopeのmobile画面も確認済み。記録：[ソース版](2a03_synth_fds_envelope_browser_01.json)、[ZIP版](2a03_synth_fds_envelope_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_fds-volume-envelope-20261105_itch.zip`（35 files／3 bundles、1,173,846 bytes、SHA-256 `6884dde181de1eee9777fd92fcee6a428a3024ad631e2e474af5b57fb3aff7ae`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。ガイド・英日AI README・homeの案内も更新した。
+
+試し方：ページ再読込 → FDS → Hardware volume envelopeの`Enable Envelope`をOn → 既定Decrease／Initial gain 32で新しい鍵盤を弾く。IncreaseはInitial gain 0へ下げて再発音すると立ち上がりを聴ける。Master period 0／Pauseはclock停止。Envelope設定は次noteから反映する。手元の実聴、今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## NoiseハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
 
 既存NES APU coreにあるNoise Envelopeを、独立Synthの操作・preset・VGM読込へつなぐ。ソフト側のgain automationやADSRは追加せず、既存の公開register APIで実機のcontrol／triggerを設定する。共有runtime・DSP／WASMは変更しない。
@@ -299,7 +324,9 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] VGM／VGZのNES／FDS音色library抽出と、初期設定からの試奏。既存の音符抽出と音色抽出を区別する（上記2026-11-04の追加作業）。
 - [ ] 実ゲームVGM／VGZの音色を選び、原曲と聴き比べる。静的な初期設定読込と時間変化の違いを確認する。
 - [x] NoiseのハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
-- [ ] FDS／Triangleの追加Envelope／counter制御と、各channelのlength counter編集を段階的に検討する。
+- [x] FDS音量のハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
+- [ ] FDS変調の深さのEnvelopeを段階的に追加する。共通速度・停止の設定は今回のFDS音量Envelopeと共有する。
+- [ ] Triangleの追加counter制御と、各channelのlength counter編集を段階的に検討する。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時

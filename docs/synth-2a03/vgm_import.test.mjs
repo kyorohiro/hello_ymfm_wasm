@@ -48,7 +48,9 @@ test('NES VGM maps five channel definitions and ignores pitch-only differences w
   assert.equal(b.pulse.duty, .25); assert.equal(b.pulse.volume, 10);
   assert.equal(c.source, 'triangle');
   assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true, envelope:{enabled:false, period:11, loop:true}});
-  assert.deepEqual(e.fds, {wave, volume:24, master:1, modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1}});
+  assert.deepEqual(e.fds, {wave, volume:24, master:1,
+    envelope:{enabled:false,increase:false,period:24,masterSpeed:232,initialGain:24,halt:false},
+    modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1}});
   for (const voice of result.voices) assert.deepEqual(readPreset(voice.preset), voice.preset);
   assert.equal(result.timebase, 44100);
 });
@@ -125,8 +127,11 @@ test('FDS zero-gain upward envelopes stay silent until their known envelope cloc
       ...wait, ...resume, 0x66]));
     const voices = fdsVoices(result);
     assert.equal(voices.length, 1); assert.equal(voices[0].firstTime, 1000);
-    assert.equal(voices[0].preset.fds.volume, 32);
-    assert(voices[0].warnings.some(message => /volume Envelope.*fixed volume 32/i.test(message)));
+    assert.equal(voices[0].preset.fds.envelope.initialGain, 0);
+    assert.equal(voices[0].preset.fds.envelope.enabled, true);
+    assert.equal(voices[0].preset.fds.envelope.increase, true);
+    assert.equal(voices[0].preset.fds.envelope.halt, false);
+    assert(!voices[0].warnings.some(message => /volume Envelope.*fixed volume/i.test(message)));
   }
 });
 
@@ -174,13 +179,80 @@ test('FDS modulation write phase after running is explicit, including quiet play
   assert(voice.warnings.some(message => /phase.*counter|counter progress/i.test(message)));
 });
 
-test('FDS timed volume and modulation envelopes use per-voice approximation notes', async () => {
+test('FDS volume Envelope keeps its settings and unknown initial gain while modulation still uses an approximation', async () => {
   const result = await extractVgmInstruments(vgm([...fdsTables, ...w(0x20, 0x40), ...w(0x24, 0x40),
     ...w(0x25, 0), ...w(0x26, 0x80), ...w(0x27, 1), ...fdsNote, 0x66]));
   const [voice] = fdsVoices(result);
   assert.equal(voice.preset.fds.volume, 32); assert.equal(voice.preset.fds.modulation.depth, 32);
-  assert(voice.warnings.some(message => /volume Envelope.*fixed volume/i.test(message)));
+  assert.deepEqual(voice.preset.fds.envelope,{enabled:true,increase:true,period:0,masterSpeed:232,initialGain:0,halt:false});
+  assert(voice.warnings.some(message => /volume Envelope initial gain.*not recorded/i.test(message)));
+  assert(voice.warnings.some(message => /master Envelope speed.*not recorded/i.test(message)));
+  assert(!voice.warnings.some(message => /volume Envelope.*fixed volume/i.test(message)));
   assert(voice.warnings.some(message => /modulation Envelope.*fixed depth/i.test(message)));
+});
+
+test('FDS volume Envelope imports direction, divider, master speed, halt and all six initial-gain bits', async () => {
+  const variants = [
+    {gain:63,control:3,speed:12,halt:false},
+    {gain:0,control:0x44,speed:12,halt:false},
+    {gain:0,control:0x44,speed:13,halt:false},
+    {gain:1,control:0x44,speed:13,halt:true},
+    {gain:63,control:3,speed:12,halt:false},
+  ];
+  const commands = variants.flatMap(({gain,control,speed,halt}) => [
+    ...w(0x23,0xc0), ...w(0x20,0x80|gain), ...w(0x20,control), ...w(0x2a,speed),
+    ...w(0x22,0x90), ...w(0x23,halt?0x41:1), ...wait,
+  ]);
+  const result = await extractVgmInstruments(vgm([...fdsTables,...commands,0x66]));
+  const voices = fdsVoices(result);
+  assert.deepEqual(voices.map(voice => [voice.preset.fds.envelope,voice.occurrences]),[
+    [{enabled:true,increase:false,period:3,masterSpeed:12,initialGain:63,halt:false},2],
+    [{enabled:true,increase:true,period:4,masterSpeed:12,initialGain:0,halt:false},1],
+    [{enabled:true,increase:true,period:4,masterSpeed:13,initialGain:0,halt:false},1],
+    [{enabled:true,increase:true,period:4,masterSpeed:13,initialGain:1,halt:true},1],
+  ]);
+  assert.equal(voices[0].preset.fds.volume,32,'the separate fixed-volume control retains its output-scale limit');
+  assert(voices.every(voice => !voice.warnings.some(message => /volume Envelope.*fixed volume|initial gain.*not recorded|master Envelope speed.*not recorded/i.test(message))));
+});
+
+test('audible FDS Envelope control and master-speed changes create distinct captured settings', async () => {
+  const result = await extractVgmInstruments(vgm([...fdsTables,
+    ...w(0x20,0xa0), ...w(0x20,1), ...w(0x2a,4), ...fdsNote,
+    ...w(0x2a,5), ...w(0x20,2), ...w(0x20,0x42), 0x66]));
+  assert.deepEqual(fdsVoices(result).map(voice => voice.preset.fds.envelope),[
+    {enabled:true,increase:false,period:1,masterSpeed:4,initialGain:32,halt:false},
+    {enabled:true,increase:false,period:1,masterSpeed:5,initialGain:32,halt:false},
+    {enabled:true,increase:false,period:2,masterSpeed:5,initialGain:32,halt:false},
+    {enabled:true,increase:true,period:2,masterSpeed:5,initialGain:32,halt:false},
+  ]);
+});
+
+test('frozen FDS volume Envelope preserves its known gain while a running timer makes the restart approximate', async () => {
+  for (const {speed,halt} of [{speed:0,halt:false},{speed:7,halt:true}]) {
+    const result = await extractVgmInstruments(vgm([...fdsTables,
+      ...w(0x20,0x84), ...w(0x20,0x41), ...w(0x2a,speed), ...w(0x22,0x90), ...w(0x23,halt?0x41:1),
+      ...wait, ...w(0x20,0x53), 0x66]));
+    const voices = fdsVoices(result);
+    assert.equal(voices.length,2);
+    assert(voices.every(voice => voice.preset.fds.envelope.initialGain===4));
+    assert(voices.every(voice => voice.preset.fds.envelope.masterSpeed===speed&&voice.preset.fds.envelope.halt===halt));
+    assert(voices.every(voice => !voice.warnings.some(message => /unknown current gain|initial gain.*not recorded/i.test(message))));
+  }
+  const progressed = await extractVgmInstruments(vgm([...fdsTables,
+    ...w(0x20,0x98), ...w(0x20,63), ...w(0x2a,255), ...fdsNote,
+    0x70, ...w(0x23,1), 0x66]));
+  const [initial,later] = fdsVoices(progressed);
+  assert.equal(initial.preset.fds.envelope.initialGain,24);
+  assert.equal(later.preset.fds.envelope.initialGain,32);
+  assert(later.warnings.some(message => /clock had already run.*approximate gain 32.*timer phase/i.test(message)));
+});
+
+test('known silent FDS Envelope endpoints remain omitted until an upward running clock can open them', async () => {
+  for (const {control,speed,high} of [{control:3,speed:7,high:1},{control:0x43,speed:0,high:1},{control:0x43,speed:7,high:0x41}]) {
+    const result = await extractVgmInstruments(vgm([...power,...pulse2,...fdsTables,
+      ...w(0x20,0x80), ...w(0x20,control), ...w(0x2a,speed), ...w(0x22,0x90), ...w(0x23,high), 0x66]));
+    assert.equal(fdsVoices(result).length,0);
+  }
 });
 
 test('unused DMC setup and opaque other-chip blocks cannot fabricate playable NES voices', async () => {
@@ -255,4 +327,28 @@ test('imported Noise Envelope settings reach the real WASM hardware control with
   const pcm = instrument.generateStereo(4096);
   assert(pcm.left.every(Number.isFinite) && pcm.right.every(Number.isFinite));
   assert(pcm.left.some(value => Math.abs(value) > .0001));
+});
+
+test('imported FDS volume Envelopes start from recorded zero or six-bit gain and move through the actual WASM', async t => {
+  const wasmBinary = await readFile(new URL('../generated/nesapu_wasm.wasm', import.meta.url));
+  for (const sampleRate of [44100,48000]) for (const {gain,increase} of [{gain:0,increase:true},{gain:63,increase:false}]) {
+    const {voices:[voice]} = await extractVgmInstruments(vgm([...fdsTables,
+      ...w(0x20,128|gain), ...w(0x20,(increase?64:0)|15), ...w(0x2a,232), ...fdsNote, 0x66]));
+    assert.equal(voice.preset.fds.envelope.initialGain,gain);
+    const core = await NesApuWasm.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate,fds:true});
+    const instrument = new NesInstrument(core); t.after(() => instrument.dispose());
+    instrument.loadPreset(voice.preset); instrument.noteOn(`imported-fds-${gain}`,60);
+    const state = instrument.read();
+    assert.equal(state.registers[0x80],(increase?64:0)|15);
+    assert.equal(state.registers[0x8a],232); assert.equal(state.registers[0x83]&64,0);
+    assert.equal(core.getState().fdsGain,gain,'the raw recorded initial gain reaches the core before Envelope clocking');
+    const pcm = instrument.generateStereo(Math.round(.04*sampleRate));
+    assert(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
+    assert(pcm.left.some(value => Math.abs(value)>.0001),'actual FDS PCM is audible after hardware Envelope steps');
+    const early = core.getState().fdsGain;
+    assert(increase ? early>0&&early<8 : early>32&&early<63);
+    instrument.generateStereo(Math.round(.6*sampleRate));
+    const late = core.getState().fdsGain;
+    assert(increase ? late>early&&late<=32 : late<32&&late<early,'the recorded Envelope direction controls actual gain evolution');
+  }
 });
