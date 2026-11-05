@@ -4,13 +4,17 @@
 
 現在の製品名は **Tetorica 2A03 Synth**（`tetorica-2a03-synth`）、正本は`docs/synth-2a03/`。以下のNES名・旧ZIP名は当時の実装・検証記録として残す。
 
+## 2A03 SynthのTauri版（2026-11-05 実装・GitHub／全CI完了）
+
+ユーザーがcloneした`w/tetorica-2a03-synth-tauri/`に、DMG／SPUと共通のdesktop shellで作成した。詳細と再開は同repositoryの`docs/todo_20261105.md`を参照。元moduleのまま配布し、Web版のPulse／Triangle／Noise／DMC／FDS・drawing／VGM・preset機能を引き継いだ。Python21／JS42／Rust24件、Chromium／WebKit、macOS debug app buildと実window起動に成功。CoreAudioの30秒無音testはunderrun0。[GitHub repository](https://github.com/kyorohiro/tetorica-2a03-synth-tauri)へ初回commit `9dbb6f9`をpush済み。[Actions run](https://github.com/kyorohiro/tetorica-2a03-synth-tauri/actions/runs/42029189303)はbrowser＋macOS ARM／Intel・Windows・Linux x64／ARM64の6 jobsすべて成功し、各installer artifactをupload済み。人の実聴・長時間／background・署名公証は後続とする。
+
 ## リリース記録
 
 - 2026-11-04：ユーザーより **Tetorica 2A03 Synthをリリース済み** と報告。
 - 2026-11-04：ユーザーより **VGM／VGZ音色読込版も動作確認・リリース済み** と報告。
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 2026-11-05：ユーザーより **Web版をリリース済み** と報告。DMCのAuto fit heightと、クリック付近が0／127へ振り切れる補間の修正を含む。
-- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
+- 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換と追加形式は後続TODOとして残す。Tauri版は2026-11-05の上記記録を参照。
 
 ## DMC Auto fitのクリック付近が0／127へ振り切れる（2026-11-05 修正完了・Web版リリース済み）
 
@@ -529,7 +533,7 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] TriangleのLinear／Length CounterをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] Pulse／NoiseのLength Counter編集を追加し、Envelope LoopとLength haltの共有flagをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] パネルを折りたためるようにし、固定Waveform／Spectrumを見ながら音色を操作する（上記2026-11-05）。
-- [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
+- [x] 2A03の製品名・アイコンを使って、Tauri版と各OSの配布artifactを整備する。2026-11-05に実装・5 platform CI成功。署名／公証・binary公開は後続。
 
 ## 再開時
 

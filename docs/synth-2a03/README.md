@@ -7,6 +7,9 @@ Project identifier: `tetorica-2a03-synth`.
 
 [Open the synthesizer](index.html) · [NES / FDS Playground](../playground/index.html?mode=nes)
 
+[Desktop version (Tauri)](https://github.com/kyorohiro/tetorica-2a03-synth-tauri):
+readable source, build instructions and macOS / Windows / Linux CI artifacts.
+
 Play and edit NES Pulse, Triangle, Noise, DMC and FDS. Draw a waveform and modulation
 table, hear how the controls interact, and take the instrument away as a preset
 or JavaScript. The keyboard, two Pitch wheels, output monitor and file workflow
