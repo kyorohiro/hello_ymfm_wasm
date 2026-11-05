@@ -1,17 +1,28 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
+import {decodeDdaData} from './dda_pcm.js';
 
 /** Passive file analysis. Only choosing a sound asks the host to replace its
  * instrument; opening, failing, cancelling or closing a library never does. */
 export function createVgmLibrary({root, onSelect}) {
   const doc = root.ownerDocument, $ = id => root.querySelector(`#${id}`);
   const events = new AbortController(), pageSize = 24;
+  const pcmInfo = new WeakMap();
   let library = null, filter = 'all', page = 0, selected = null;
   let request = 0, selection = 0, pending = null, disposed = false;
   const listen = (node, type, handler) => node.addEventListener(type, handler, {signal:events.signal});
   const status = (message, error = false) => {
     $('vgmStatus').textContent = message;
     $('vgmStatus').dataset.error = String(error);
+  };
+  const pcmDescription = voice => {
+    let description = pcmInfo.get(voice);
+    if (description) return description;
+    const {data, sampleRate, loop} = voice.preset.dda;
+    const seconds = decodeDdaData(data).length / sampleRate;
+    description = `${sampleRate.toLocaleString()} Hz · ${seconds.toFixed(2)} s · ${loop ? 'Loop' : 'One-shot'} · C4 = recorded rate`;
+    pcmInfo.set(voice, description);
+    return description;
   };
 
   function renderWarnings() {
@@ -34,7 +45,7 @@ export function createVgmLibrary({root, onSelect}) {
     for (const button of root.querySelectorAll('[data-vgm-filter]')) {
       const kind = button.dataset.vgmFilter;
       const count = kind === 'all' ? library.voices.length : library.voices.filter(voice => voice.kind === kind).length;
-      button.textContent = `${kind === 'all' ? 'All' : kind === 'lfo' ? 'LFO' : kind[0].toUpperCase() + kind.slice(1)} (${count})`;
+      button.textContent = `${kind === 'all' ? 'All' : ['lfo','pcm'].includes(kind) ? kind.toUpperCase() : kind[0].toUpperCase() + kind.slice(1)} (${count})`;
       button.setAttribute('aria-pressed', String(filter === kind));
       button.disabled = count === 0;
     }
@@ -46,7 +57,8 @@ export function createVgmLibrary({root, onSelect}) {
       const name = doc.createElement('span'); name.textContent = voice.preset.name;
       const detail = doc.createElement('small');
       const channel = voice.kind === 'lfo' ? 'CH1 + CH2 · C4 = recorded pitch' : `CH${voice.channel}`;
-      detail.textContent = `${channel} · ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
+      const pcm = voice.kind === 'pcm' ? ` · ${pcmDescription(voice)}` : '';
+      detail.textContent = `${channel}${pcm} · first at ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
       button.append(name, detail);
       button.addEventListener('click', async () => {
         button.blur();
@@ -56,7 +68,10 @@ export function createVgmLibrary({root, onSelect}) {
           await onSelect(voice.preset);
           if (disposed || token !== selection || source !== library) return;
           selected = voice.id; render();
-          status(`${voice.preset.name} loaded · ${voice.kind === 'lfo' ? 'C4 plays the recorded carrier pitch; CH2 period stays fixed.' : 'Play the keyboard.'} Software Envelope is off for imported sounds.`);
+          const playing = voice.kind === 'lfo' ? 'C4 plays the recorded carrier pitch; CH2 period stays fixed.'
+            : voice.kind === 'pcm' ? `DDA PCM · ${pcmDescription(voice)}. Play the keyboard; other keys change the software playback speed.`
+              : 'Play the keyboard.';
+          status(`${voice.preset.name} loaded · ${playing} Software Envelope is off for imported sounds.`);
         } catch (error) {
           if (!disposed && token === selection && source === library) status(`Could not load sound: ${error.message}`, true);
         }

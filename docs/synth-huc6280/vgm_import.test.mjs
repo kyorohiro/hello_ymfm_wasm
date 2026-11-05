@@ -7,6 +7,7 @@ import factory from '../generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {Huc6280Instrument} from './instrument.js';
 import {readPreset} from './preset.js';
+import {decodeDdaData} from './dda_pcm.js';
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
 
 const w = (register,value) => [0xb9,register,value];
@@ -25,6 +26,27 @@ function vgm(commands,clock=3579545) {
 }
 const complete = () => vgm([...globals,...upload(),...play(),...wait(),...w(2,200),...wait(),...stop(0),
   ...upload(2,other),...play(2,20,247),...wait(),...stop(2),...noise(),...wait(),...stop(4),0x66]);
+
+test('PCM-only VGM/VGZ and mixed libraries merge chronologically with portable exact-rate presets',async()=>{
+  const data=[0xe0|16,255,0,23,8,16];
+  const pcm=[0x67,0x66,5,data.length,0,0,0,...data,...w(0,0),...w(4,0xdf),...w(5,0xab),
+    0x90,0,0x1b,0,6,0x91,0,5,1,0,0x92,0,0x58,0x1b,0,0,0x95,0,0,0,0,...wait(),0x94,0,...stop(0)];
+  const only=await extractVgmInstruments(vgm([...globals,...pcm,0x66]));
+  assert.equal(only.voices.length,1);const voice=only.voices[0];
+  assert.deepEqual([voice.id,voice.kind,voice.channel,voice.firstTime],[1,'pcm',1,0]);
+  assert.deepEqual([...decodeDdaData(voice.preset.dda.data)],data.map(value=>value&31));
+  assert.equal(voice.preset.dda.sampleRate,7000);assert.equal(voice.preset.dda.rootNote,60);
+  assert.equal(voice.preset.dda.loop,false);assert.equal(voice.preset.envelope.enabled,false);
+  assert.equal(voice.preset.volume,31);assert.deepEqual(voice.preset.pan,{left:10,right:11});
+  assert.deepEqual(only,await extractVgmInstruments(gzipSync(vgm([...globals,...pcm,0x66]))));
+  const mixed=await extractVgmInstruments(vgm([...globals,...upload(2),...play(2),...wait(),...stop(2),...pcm,
+    ...upload(3,other),...play(3),...wait(),0x66]));
+  assert.deepEqual(mixed.voices.map(value=>[value.id,value.kind,value.channel,value.firstTime]),[
+    [1,'wave',3,0],[2,'pcm',1,1000],[3,'wave',4,2000],
+  ]);
+  assert.deepEqual(mixed.voices.map(value=>value.preset.name),['Wave CH3 · 1','PCM CH1 · 2','Wave CH4 · 3']);
+  for(const value of mixed.voices)assert.deepEqual(value.preset,readPreset(value.preset));
+});
 const period = (channel,value) => [...w(0,channel),...w(2,value&255),...w(3,(value&4095)>>8)];
 function lfoSetup({carrierPeriod=700,modulatorPeriod=913,rate=7,depth=2,reset=false,output=true,
   carrierWave=wave,modulatorWave=other,carrierVolume=25,modulatorVolume=19}={}) {

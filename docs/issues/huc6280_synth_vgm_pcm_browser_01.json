@@ -1,0 +1,81 @@
+{
+  "entry": "/synth-huc6280/index.html",
+  "results": [
+    {
+      "engine": "chromium",
+      "ok": true,
+      "checks": [
+        "local assets, lazy audio and selected white icon",
+        "VGM analysis is passive and the import control is discoverable",
+        "WAV conversion is passive, bounded five-bit PCM and needs no audio device",
+        "real AudioWorklet and six physical wave voices",
+        "Master boost, live pitch and two synchronized wheels",
+        "noise uses CH5/CH6, changes clock live and retains musical key input",
+        "one waveform canvas, five-bit drawing and software/hardware labels",
+        "cancelled waveform strokes retain the original data and held note",
+        "hardware LFO reserves CH2 for mono carrier, and live rate retains ownership",
+        "preset save, atomic rejected import, round trip and Playground code",
+        "VGM voice selection, exact wave bytes, editing and preset round trip",
+        "VGM files, failures, VGZ and cancelled analysis retain held sound",
+        "late file reads cannot replace the newer library or current instrument",
+        "Wave/Noise filters, paging and selection preserve performance keys",
+        "VGM LFO pair preserves original periods, waves, rate, depth and CH2 output",
+        "recorded LFO controls update held notes and pair releases to silence",
+        "LFO pair wave editing, preset v2 round trip and v1 migration",
+        "VGM DAC streams import exact five-bit PCM, low recorded rate, Loop and channel mix",
+        "unsupported PCM streams keep the held sound and imported PCM round trips through JSON",
+        "DDA plays six hardware DAC channels, changes speed/pitch live and elides cached PCM",
+        "DDA invalid/cancelled audio retains the current PCM and held owner",
+        "DDA commit stage disables cancellation before a delayed Worklet acknowledgement",
+        "one-shot DDA ends at silence, retains key ownership and round trips PCM in JSON",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "ok": true,
+      "checks": [
+        "local assets, lazy audio and selected white icon",
+        "VGM analysis is passive and the import control is discoverable",
+        "WAV conversion is passive, bounded five-bit PCM and needs no audio device",
+        "real AudioWorklet and six physical wave voices",
+        "Master boost, live pitch and two synchronized wheels",
+        "noise uses CH5/CH6, changes clock live and retains musical key input",
+        "one waveform canvas, five-bit drawing and software/hardware labels",
+        "cancelled waveform strokes retain the original data and held note",
+        "hardware LFO reserves CH2 for mono carrier, and live rate retains ownership",
+        "preset save, atomic rejected import, round trip and Playground code",
+        "VGM voice selection, exact wave bytes, editing and preset round trip",
+        "VGM files, failures, VGZ and cancelled analysis retain held sound",
+        "late file reads cannot replace the newer library or current instrument",
+        "Wave/Noise filters, paging and selection preserve performance keys",
+        "VGM LFO pair preserves original periods, waves, rate, depth and CH2 output",
+        "recorded LFO controls update held notes and pair releases to silence",
+        "LFO pair wave editing, preset v2 round trip and v1 migration",
+        "VGM DAC streams import exact five-bit PCM, low recorded rate, Loop and channel mix",
+        "unsupported PCM streams keep the held sound and imported PCM round trips through JSON",
+        "DDA plays six hardware DAC channels, changes speed/pitch live and elides cached PCM",
+        "DDA invalid/cancelled audio retains the current PCM and held owner",
+        "DDA commit stage disables cancellation before a delayed Worklet acknowledgement",
+        "one-shot DDA ends at silence, retains key ownership and round trips PCM in JSON",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    }
+  ]
+}

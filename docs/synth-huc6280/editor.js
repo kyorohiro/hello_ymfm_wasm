@@ -230,7 +230,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const ddaCanvas = make('canvas'); ddaCanvas.id = 'ddaCanvas'; ddaCanvas.width = 900; ddaCanvas.height = 180;
   ddaCanvas.setAttribute('role', 'img'); ddaCanvas.setAttribute('aria-label', 'Five-bit PCM waveform overview, values 0 to 31'); dda.append(ddaCanvas);
   const playback = section(dda, 'Playback · software control'), playbackFields = group(playback);
-  number(playbackFields, 'DAC rate · Hz', 'ddaRate', 8000, 44100, value => value.dda.sampleRate, (value, rate) => {value.dda.sampleRate = rate;});
+  number(playbackFields, 'DAC rate · Hz', 'ddaRate', 1, 192000, value => value.dda.sampleRate, (value, rate) => {value.dda.sampleRate = rate;});
   number(playbackFields, 'Root MIDI note', 'ddaRootNote', 0, 127, value => value.dda.rootNote, (value, note) => {value.dda.rootNote = note;});
   number(playbackFields, 'Playback speed · %', 'ddaSpeed', 12.5, 400, value => value.dda.speed * 100, (value, percent) => {value.dda.speed = percent / 100;}, 12.5);
   checkbox(playbackFields, 'Loop PCM', 'ddaLoop', value => value.dda.loop, (value, loop) => {value.dda.loop = loop;});
@@ -466,6 +466,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if (disposed) return;
       const next = readPreset(value);
       if (loadController && preset.source === 'dda' && next.source !== 'dda') cancelDdaLoad('Conversion cancelled after changing source. Current PCM kept.');
+      if ((preset.dda.data !== next.dda.data || preset.dda.name !== next.dda.name) && !loadController && !ddaLoadStatus.textContent.startsWith('Applying ')) {
+        setLoadStatus(next.dda.data ? 'PCM ready · play the keyboard, or load audio to replace it.' : 'Load audio to play it through the five-bit DAC.');
+      }
       const previousWave = target === 'main' ? preset.wave : preset.lfo.wave, nextWave = target === 'main' ? next.wave : next.lfo.wave;
       if (stroke && (next.source !== preset.source || nextWave.some((sample, index) => sample !== previousWave[index]))) cancelStroke();
       preset = next; render();

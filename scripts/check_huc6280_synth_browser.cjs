@@ -45,6 +45,15 @@ function makeLfoVgm() {
     ...upload(1,lfoWave,{volume:19,balance:223}),...period(1,913),...write(8,7),...write(9,2),...vgmWait,
     ...write(0,0),...write(4,25),...write(0,1),...write(4,19),0x66]);
 }
+const streamPcm=Buffer.from(Array.from({length:3500},(_,i)=>0xe0|Math.round(15.5+15.5*Math.sin(i*Math.PI/16))));
+function makePcmVgm({missing=false}={}) {
+  const block=Buffer.alloc(7);block.set([0x67,0x66,missing?6:5]);block.writeUInt32LE(streamPcm.length,3);
+  const frequency=Buffer.alloc(6);frequency.set([0x92,0]);frequency.writeUInt32LE(7000,2);
+  const setup=[...write(1,255),...write(9,0),...write(0,2),...write(5,0xbd),...write(4,0xc0|22),
+    0x90,0,0x1b,2,6,0x91,0,5,1,0];
+  return vgmBytes(Buffer.concat([block,streamPcm,Buffer.from(setup),frequency,
+    Buffer.from([0x95,0,0,0,1,0x61,0x44,0xac,0x94,0,0x66])]));
+}
 function makeWav() {
   const rate=44100,frames=rate*5,channels=2,bytes=Buffer.alloc(44+frames*channels*2);
   bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);
@@ -344,6 +353,41 @@ async function checkEngine(name, engine, origin) {
     const legacyV2={...pairedPreset,version:2};delete legacyV2.dda;
     await page.locator('#presetFileInput').setInputFiles({name:'paired-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV2))});
     await wait(s=>JSON.stringify(s.preset)===JSON.stringify(pairedPreset));
+    check('VGM DAC streams import exact five-bit PCM, low recorded rate, Loop and channel mix');
+    await page.locator('#vgmFileInput').setInputFiles({name:'stream-pcm.vgz',mimeType:'application/gzip',buffer:gzipSync(makePcmVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='stream-pcm.vgz');
+    assert.deepEqual((await read()).preset,pairedPreset,'analysis retains the instrument');
+    await page.locator('[data-vgm-filter="pcm"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
+    assert.match(await page.locator('[data-vgm-voice] small').textContent(),/7,000 Hz/);
+    await page.locator('[data-vgm-voice]').click();
+    state=await wait(s=>s.preset.source==='dda'&&s.preset.dda.sampleRate===7000);
+    assert.equal(state.dda.samples,streamPcm.length);assert.equal(state.preset.dda.rootNote,60);
+    assert.equal(state.preset.dda.loop,true);assert.equal(state.preset.dda.speed,1);
+    assert.equal(state.preset.envelope.enabled,false);assert.equal(state.preset.volume,22);
+    assert(!((await page.locator('#ddaLoadStatus').textContent()).includes('dac-test.wav')),'external PCM selection clears stale audio-import status');
+    assert.deepEqual(state.preset.pan,{left:11,right:13});assert(await page.locator('#ddaCanvas').isVisible());
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);await sound();
+    const pcmOwner=state.voices[0].id;
+    await page.locator('[data-vgm-filter="all"]').click();assert.equal((await read()).voices[0].id,pcmOwner);
+    await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.dda.sampleRate===7001);assert.equal(state.voices[0].id,pcmOwner);
+    await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="-1"]').click();await wait(s=>s.preset.dda.sampleRate===7000);
+    check('unsupported PCM streams keep the held sound and imported PCM round trips through JSON');
+    await page.locator('#vgmFileInput').setInputFiles({name:'missing-bank.vgm',mimeType:'application/octet-stream',buffer:makePcmVgm({missing:true})});
+    await page.waitForFunction(()=>document.querySelector('#vgmStatus').dataset.error==='true');
+    assert.equal((await read()).voices[0].id,pcmOwner);assert.equal(await page.locator('#vgmFileName').textContent(),'stream-pcm.vgz');
+    await page.keyboard.up(c4);await wait(s=>s.voices.length===0);await silent();
+    const pcmDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const pcmSaved=JSON.parse(await fs.readFile(await(await pcmDownload).path(),'utf8'));
+    assert.deepEqual(Buffer.from(pcmSaved.dda.data,'base64'),Buffer.from(streamPcm.map(value=>value&31)));
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
+    await page.locator('#presetFileInput').setInputFiles({name:'vgm-pcm.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pcmSaved))});
+    await wait(s=>s.preset.source==='dda'&&s.preset.dda.sampleRate===7000&&s.dda.samples===streamPcm.length);
+    await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+    assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-vgm-pcm-390.png`),fullPage:true});
+    await page.setViewportSize({width:1180,height:1000});await page.waitForTimeout(120);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-vgm-pcm-1180.png`),fullPage:true});
     check('DDA plays six hardware DAC channels, changes speed/pitch live and elides cached PCM');
     await radio('source','dda').click();
     await page.locator('#ddaAudioFileInput').setInputFiles({name:'dac-test.wav',mimeType:'audio/wav',buffer:makeWav()});

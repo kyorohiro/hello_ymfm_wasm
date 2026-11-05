@@ -19,8 +19,8 @@ async function setup(t,rate=48000,samples=codes) {
 const peak=data=>data.reduce((maximum,value)=>Math.max(maximum,Math.abs(value)),0);
 
 test('DDA writes match the actual five-bit DAC at both output rates and retain exact silence after one-shot end',async t=>{
-  for(const rate of [44100,48000]) {
-    const {instrument}=await setup(t,rate);
+  for(const rate of [44100,48000]) for(const dacRate of [7000,11025,192000]) {
+    const {instrument,preset}=await setup(t,rate);preset.dda.sampleRate=dacRate;instrument.loadPreset(preset);
     const raw=await Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:3579545,outputSampleRate:rate});
     t.after(()=>raw.dispose());
     raw.writeHuc6280(1,255);raw.writeHuc6280(0,0);raw.writeHuc6280(5,255);raw.writeHuc6280(4,223);
@@ -31,7 +31,7 @@ test('DDA writes match the actual five-bit DAC at both output rates and retain e
       if(!ended) raw.writeHuc6280(6,codes[Math.floor(position)]);
       const pcm=raw.processFrames(1);expected.left[frame]=pcm.left[0];expected.right[frame]=pcm.right[0];
       if(!ended) {
-        position+=11025/rate;
+        position+=dacRate/rate;
         if(position>=codes.length) {ended=true;raw.writeHuc6280(4,95);raw.writeHuc6280(6,16);}
       }
     }

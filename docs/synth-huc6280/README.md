@@ -19,7 +19,7 @@ and controls that leave the computer keys available for playing.
 
 Use **Load VGM / VGZ…** in the collapsible **Sounds from VGM** section.
 Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
-**Wave** / **Noise** / **LFO** list. Analysis alone keeps the current instrument; only an
+**Wave** / **Noise** / **LFO** / **PCM** list. Analysis alone keeps the current instrument; only an
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
 
@@ -28,6 +28,20 @@ balance. Noise imports retain the CH5 / CH6 clock and channel settings. LFO impo
 capture CH1 and CH2 together: both waveforms and periods, rate, depth, Reset and
 CH2's output state / level / stereo balance. Different note pitches share ordinary
 Wave / Noise entries; LFO period changes remain distinct paired settings.
+PCM imports reconstruct supported complete HuC6280 DAC streams, retaining the
+five-bit data, recorded sample rate, Loop, channel level and stereo balance.
+Their list entries show the rate, duration and Loop state. **C4 plays the recorded
+rate**; other keys change the software playback speed. Selecting a PCM entry opens
+the existing DDA PCM preview and controls, and Save preset includes its PCM data.
+The first implementation accepts uncompressed banks and fixed CH1–CH6 DAC
+destinations, with step / base, explicit or previous lengths, bank-end lengths,
+millisecond lengths, fast block starts, Reverse and Loop. A positive recorded
+interval must include every sample write. An interrupted sequence, changing rate,
+overlapping DAC writes, compressed bank or current-selected-channel destination
+is omitted. The final held DAC value after the stream ends is not replayed;
+the Synth uses its normal one-shot silence / release behavior. Extraction is
+limited to 65,536 bank blocks, 100,000 starts, 4,096 assets and 16,777,216 total
+prepared samples, in addition to the VGM file limits.
 The list shows the original channel, first
 time and occurrences, with 24 entries per page. Imported sounds turn **Software
 Envelope off**, so audition starts from the recorded hardware settings. You can
@@ -41,7 +55,11 @@ settings and explicitly disclosed reset assumptions are used; the song's notes,
 driver envelopes, vibrato and later automation are not replayed. Global balance
 and nonstandard clocks may require approximation, reported in the library.
 
-**DDA / DAC streams and incomplete paired settings are omitted.** LFO requires
+**Direct DAC writes, unsupported DAC streams and incomplete settings are omitted
+with an explanation.** PCM extraction requires known source data, stream settings
+and channel state; it does not infer an entire sample from an interrupted or
+unexplained stream. Song notes and later register automation are not replayed.
+LFO requires
 both written period registers and both complete waveforms, plus the rate and
 control settings. Unknown data is not replaced with a built-in wave. Song-time
 oscillator phases and elapsed LFO counters are not reconstructed.
@@ -85,7 +103,11 @@ depend on the browser's decoder. Loading uses an offline decoder and does not
 open a speaker device. The source is mixed to mono, resampled at the selected
 conversion rate and quantized to integers **0–31**, with **16 as silence**.
 No automatic normalization is applied. Conversion rate is a preparation setting;
-the separate live DAC rate changes how quickly the prepared data is read.
+audio conversion choices remain **8,000–44,100 Hz**. The separate live DAC rate
+changes how quickly the prepared data is read and supports integer rates
+**1–192,000 Hz**, including lower rates recorded in VGM streams. Rates above the
+audio output rate skip intermediate DAC codes rather than increasing the host's
+output sample rate.
 
 **Root note** plays the sample at its prepared rate. Keyboard notes, the Pitch
 wheels and **Speed** change the software reading speed. **Loop** repeats the
@@ -174,15 +196,15 @@ parameters; keyboard allocation, software envelope scheduling and Master belong
 to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
-DDA extraction from VGM DAC streams, CD-ROM² ADPCM / CD-DA, song playback
-and full PC Engine emulation are not included.
+Direct-write PCM extraction, unsupported DAC stream forms, CD-ROM² ADPCM /
+CD-DA, song playback and full PC Engine emulation are not included.
 
 ## API, sources and licenses
 
 - [npm API catalog](../../packages/fm2612/README.md#api-entry-points): musical helpers and low-level APIs.
 - [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
-- [VGM / VGZ extraction](vgm_import.js) and [sound library](vgm_library.js): passive register analysis and explicit sound selection.
+- [VGM / VGZ extraction](vgm_import.js), [DAC stream PCM extraction](vgm_dac.js) and [sound library](vgm_library.js): passive analysis and explicit sound selection.
 - [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
@@ -221,10 +243,13 @@ Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
 Software Envelopeはソフト側の音量制御で、実機のADSRではありません。
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
-VGM／VGZからWave／NoiseとCH1・CH2を組にしたLFO音色を抽出し、試奏・波形編集できます。
+VGM／VGZからWave／Noise、CH1・CH2を組にしたLFO音色、対応する完全なDAC streamのPCMを抽出できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
 両周期・速度・深さ・Reset・CH2の出力を保持します。
 DDA PCMではWAV等をモノラル5bitへ変換し、6声で試奏、Root／Loop／Speedを変更できます。
 DACは実機機能、データ供給・移調・Loop・Envelopeはソフト側の制御です。
 PCM本体はプリセットv3へ保存し、v1／v2も読み込めます。
-VGMのDDA stream抽出とCD-ROM²音源は後続の検討対象です。
+PCM一覧にrate・時間・Loopを表示し、C4で記録時の速度、他の鍵盤で移調して試奏できます。
+音声変換は8,000–44,100Hz、live DAC rateはVGMの低rateも扱える1–192,000Hzです。
+直接DACへの逐次write、未対応stream、不完全な設定は理由付きで省略します。
+CD-ROM²音源と曲の再生は対象外です。

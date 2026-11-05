@@ -4,6 +4,7 @@ import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
 import {parseVgmMetadata} from '../js/vgm_file.js';
 import {HUC6280_CLOCK} from '../js/huc6280synth.js';
 import {createDefaultPreset, readPreset} from './preset.js';
+import {extractVgmDacStreams} from './vgm_dac.js';
 
 export const MAX_VGM_BYTES = 64 * 1024 * 1024;
 const MAX_COMMANDS = 4_000_000, MAX_VOICES = 4096, MAX_OBSERVATIONS = 100_000;
@@ -35,7 +36,7 @@ async function decode(source, signal) {
   return result;
 }
 
-/** Static, written Wave/Noise/LFO settings for keyboard audition, not song playback.
+/** Written Wave/Noise/LFO settings and complete DAC-stream PCM for keyboard audition, not song playback.
  * Snapshots are taken before positive waits, after all writes at that timestamp.
  * firstTime is in VGM's 44,100-sample timebase; channels are one-based CH1–CH6.
  * Wave RAM is never guessed from reset defaults or an unknown playback index.
@@ -47,7 +48,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   const eof = view.getUint32(4, true);
   if (eof && (eof + 4 < 0x40 || eof + 4 > bytes.length)) throw new Error('Invalid or truncated VGM file size');
   if (eof) {bytes = bytes.subarray(0, eof + 4); view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);}
-  const warnings = new Set(['Static Wave / Noise / LFO settings only: elapsed waveform / modulator phase and later software envelopes / register automation are not replayed. Wave / Noise note pitch is not imported. Recorded LFO periods play at C4; other keys transpose CH1 only. Imported Software Envelope is Off.']);
+  const warnings = new Set(['Static Wave / Noise / LFO settings and complete DAC-stream PCM only: elapsed waveform / modulator phase and later software envelopes / register automation are not replayed. Wave / Noise note pitch is not imported. Recorded LFO periods and PCM rate play at C4. Imported Software Envelope is Off.']);
   const parser = new Ym2612VGM(bytes, {logger:{warn:message => warnings.add(message)}});
   if (parser.header.dataOffset < 0x40 || parser.header.dataOffset >= bytes.length) throw new Error('Invalid VGM data offset');
   const rawClock = parser.header.huc6280Clock;
@@ -57,7 +58,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
 
   // undefined optional flags mean unrecorded reset assumptions; null means a
   // known unsupported stream made the value indeterminate and must not default.
-  let selected = null, globalBalance, lfoControl, lfoFrequency, time = 0, observations = 0;
+  let selected = null, globalBalance, lfoControl, lfoFrequency, time = 0, observations = 0, hasPcmStreams = false;
   const channels = Array.from({length:8}, () => ({control:null, balance:null, noise:undefined,
     frequencyLow:null, frequencyHigh:null, wave:Array(32).fill(null), index:null, last:null}));
   const streams = new Map(), voices = [], definitions = new Map();
@@ -144,12 +145,13 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       const chip = bytes[position + 2];
       if ((chip & 127) === 0x1b && (chip & 128)) throw new Error('Second HuC6280 DAC streams are not supported');
       streams.set(id, {huc:chip === 0x1b, port:bytes[position + 3], register:bytes[position + 4], active:false});
+      if (chip === 0x1b) hasPcmStreams = true;
     } else if ((command === 0x93 || command === 0x95) && streams.get(id)?.huc) {
       const stream = streams.get(id);
       // A zero-length explicit count cannot write. Other starts are omitted
       // conservatively until stop/reconfiguration; we do not decompress banks.
       stream.active = !(command === 0x93 && (bytes[position + 6] & 15) === 1 && view.getUint32(position + 7, true) === 0);
-      if (stream.active) warn('HuC6280 DAC streams are not imported. Affected settings are treated as unknown until restored after stream stop / reconfiguration.');
+      if (stream.active) warn('DAC streams are analyzed separately for PCM. Streamed hardware settings are treated as unknown until restored after stream stop / reconfiguration.');
     }
   }
 
@@ -249,7 +251,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
         else if (channel.noise & 128) kind = 'noise';
       }
       if (kind === 'wave') {
-        if (control & 64) {warn('Direct D/A (DDA / PCM) intervals are omitted; they are not static wavetable voices.'); channel.last = null; continue;}
+        if (control & 64) {warn('DDA / PCM intervals are not static wavetable voices; supported DAC streams are listed separately as PCM. Direct register PCM is omitted.'); channel.last = null; continue;}
         if (index < 2) {
           if (lfoControl === null) {warn('CH1 / CH2 intervals with unknown LFO state are omitted.'); channel.last = null; continue;}
           if (lfoControl === undefined) notes.push('LFO control was not recorded; this audition assumes the reset state, LFO off.');
@@ -307,9 +309,22 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
   }
   abort(signal);
+  if (hasPcmStreams) {
+    const pcm = await extractVgmDacStreams(bytes, {signal});
+    for (const message of pcm.warnings) warn(message);
+    voices.push(...pcm.voices);
+    if (voices.length > MAX_VOICES) throw new Error('VGM import exceeds 4,096 different voices');
+    if (voices.reduce((sum, voice) => sum + voice.occurrences, 0) > MAX_OBSERVATIONS) throw new Error('VGM import exceeds 100,000 voice observations');
+    voices.sort((a,b) => a.firstTime-b.firstTime || a.channel-b.channel);
+    for (let index=0;index<voices.length;index++) {
+      const voice=voices[index];voice.id=index+1;
+      voice.preset.name=`${voice.kind==='lfo'?'LFO CH1 + CH2':`${voice.kind==='pcm'?'PCM':voice.kind==='wave'?'Wave':'Noise'} CH${voice.channel}`} · ${voice.id}`;
+    }
+  }
+  abort(signal);
   if (!voices.length) {
     const reasons = [...warnings].filter(message => /omitted|unknown|DAC streams/i.test(message));
-    const error = new Error(`No complete, audible HuC6280 Wave / Noise / LFO voices found in this VGM.${reasons.length ? ' ' + reasons.join(' ') : ''}`);
+    const error = new Error(`No complete, audible HuC6280 Wave / Noise / LFO / PCM voices found in this VGM.${reasons.length ? ' ' + reasons.join(' ') : ''}`);
     error.warnings = [...warnings];
     throw error;
   }

@@ -73,7 +73,7 @@
             <button id="loadVgm" type="button">Load VGM / VGZ…</button>
             <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with HuC6280 sound">
             <button id="cancelVgm" type="button" hidden>Cancel import</button>
-            <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose a PC Engine VGM, then select a Wave, Noise or LFO sound to play.</p>
+            <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose a PC Engine VGM, then select a Wave, Noise, LFO or PCM sound to play.</p>
           </div>
           <div id="vgmLibrary" hidden>
             <div class="huc-vgm-actions"><strong id="vgmFileName"></strong><button id="closeVgm" type="button">Close library</button></div>
@@ -82,6 +82,7 @@
               <button type="button" data-vgm-filter="wave" aria-pressed="false">Wave</button>
               <button type="button" data-vgm-filter="noise" aria-pressed="false">Noise</button>
               <button type="button" data-vgm-filter="lfo" aria-pressed="false">LFO</button>
+              <button type="button" data-vgm-filter="pcm" aria-pressed="false">PCM</button>
             </div>
             <div id="vgmVoices" class="huc-vgm-voices" role="group" aria-label="Extracted HuC6280 sounds"></div>
             <div class="huc-vgm-actions">
@@ -89,8 +90,8 @@
             </div>
             <p id="vgmWarnings" class="subtext huc-vgm-warnings" hidden></p>
           </div>
-          <p class="subtext">Opening a file keeps the current instrument. Select a sound to load it, then edit its wave or save a preset. Software Envelope is off for imported sounds.</p>
-          <p class="subtext">Imports recorded Wave / Noise settings and complete CH1 + CH2 LFO pairs. For LFO pairs, C4 plays the recorded carrier pitch and CH2 keeps its original period. Song timing, elapsed phase and later software envelopes are not replayed. DDA / DAC streams and incomplete settings are omitted with an explanation.</p>
+          <p class="subtext">Opening a file keeps the current instrument. Select a sound to load it, then edit its settings or save a preset. Software Envelope is off for imported sounds.</p>
+          <p class="subtext">Imports recorded Wave / Noise settings, complete CH1 + CH2 LFO pairs and supported complete PCM DAC streams. C4 plays the recorded LFO carrier pitch or PCM rate; LFO CH2 keeps its original period. Song timing, elapsed phase and later software envelopes are not replayed. Direct DAC writes, unsupported streams and incomplete settings are omitted with an explanation.</p>
         </div>
       </details>
 

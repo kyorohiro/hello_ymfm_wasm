@@ -128,3 +128,14 @@
 - `npm run check:runtime-artifacts`: 33 SDK builds／66 outputs／73 mirrorsの一致を確認。README en／ja／AI、英日ホーム、Synthガイドを更新した。共有runtime／WASMは未変更で、gitのstage操作・commit・push・公開は行っていない。
 
 残る確認は手元音声での実聴・長時間試奏。ブラウザー検証中のスピーカー出力はミュートしており、聴感確認を完了扱いにしない。VGM由来のDDA／DAC stream抽出、CD-ROM²、Tauri／Native対応はこの工程に含めていない。
+
+
+## VGM DACストリームPCM読み込み（2026-11-06 開始）
+
+- [ ] VGM仕様と既存playerを照合し、HuC6280向けDAC stream（0x90–0x95）の対象・data block・rate・start/stop・Loopの扱いを確定する。直接DACへ逐次writeする形式は今回の対象外。
+- [ ] 完全な未圧縮data bankと既知のDDA channel設定から、PCM値・再生rate・使用位置を抽出する。step／base・offset／長さ／block指定・reverse等は正しく復元できる範囲のみ対応し、不明・不正・競合・未対応形式は理由を表示する。
+- [ ] 途中で停止／設定変更されたものを完全な音として偽装せず、同じPCM／rate／Loop／level／panをまとめる。入力・展開・sample数・結果数を制限し、長い処理をyieldしてCancelを受け付ける。
+- [ ] プリセットDDAと接続し、元の再生rateを保持する。必要なら低rate用に共通validatorとUIのlive DAC rate範囲を拡張し、音声変換rateの制限は維持する。
+- [ ] Sounds from VGMへPCMフィルターとrate／時間の表示を追加する。選択前・失敗・Cancelは現在の音を保持し、選択後は既存DDA preview／試奏／編集／JSON保存へ接続する。
+- [ ] 自作VGM／VGZでdata bank・start mode・長さ・rate／Loop・省略理由・異常入力・中止・旧Wave／Noise／LFO互換をunit検証する。
+- [ ] ソース版と独立配布ZIPをChromium／WebKitで検証し、可読ソース・README・TODO・検証記録を更新する。実ゲーム比較・実聴・commit／push／公開は別工程。
