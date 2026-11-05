@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica HuC6280 Synth — import PC Engine Wave and Noise sounds from VGM, draw a wavetable, explore hardware LFO and take the code.">
+  <meta name="description" content="Tetorica HuC6280 Synth — explore PC Engine Wave, Noise and LFO, import VGM voices or load audio for five-bit DDA PCM playback.">
   <meta name="theme-color" content="#f3f4f5">
   <meta name="application-name" content="Tetorica HuC6280 Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica HuC6280 Synth">
@@ -28,7 +28,7 @@
           <div class="product-identity">
             <img class="product-icon" src="../tetorica_huc6280_synth.webp" width="112" height="112" alt="" decoding="async">
             <div class="product-copy">
-              <p class="eyebrow">WAVETABLE · NOISE · LFO</p>
+              <p class="eyebrow">WAVETABLE · NOISE · LFO · DDA</p>
               <h1 id="synthTitle">Tetorica <span class="product-name">HuC6280 Synth</span></h1>
               <p class="description">PC Engine · 6-channel wavetable · Draw a wave. Take the code.</p>
             </div>
@@ -132,7 +132,7 @@
         </div>
       </section>
       <footer>
-        <p>One HuC6280: six 32-sample, 5-bit wavetable channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. Envelope, round robin, Pitch bend and waveform drawing are software tools. CD-ROM² audio and song playback are not included.</p>
+        <p>One HuC6280: six 32-sample, 5-bit wavetable / DAC channels. Noise uses CH5 / CH6. Hardware LFO connects CH2 to CH1; enabling it selects one carrier voice. DDA uses the chip’s five-bit DAC with software PCM supply, rate, pitch and Loop. Envelope, round robin and waveform drawing are software tools. CD-ROM² audio and song playback are not included.</p>
         <div><a href="../playground/index.html?mode=huc6280">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/huc6280synth.js">JavaScript source</a></div>
       </footer>
     </article>

@@ -3,6 +3,8 @@ import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createVgmLibrary} from './vgm_library.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
+import {prepareDdaAudio} from './audio_import.js';
+import {MAX_PRESET_BYTES} from './dda_pcm.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
   setInstrument, setFretPosition, setStringWindowIndex, midiToNoteName} from '../synth/synth_keyboard.js';
@@ -26,7 +28,7 @@ const enqueue = action => {
   queue = task.catch(report);
   return task;
 };
-const capacity = () => preset.source === 'noise' ? 2 : preset.lfo.enabled ? 1 : 6;
+const capacity = () => preset.source === 'noise' ? 2 : preset.source === 'wave' && preset.lfo.enabled ? 1 : 6;
 function updateKeys() {
   const keys = new Set([...notes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -45,14 +47,19 @@ function readVoices(state) {
 }
 function updateCapacity() {
   const description = preset.source === 'noise' ? 'Noise · CH5 / CH6 · keys trigger the same noise'
-    : preset.lfo.enabled ? 'Wave + Hardware LFO · CH2 → CH1' : 'Wave · CH1–CH6';
+    : preset.source === 'dda' ? 'DDA PCM · CH1–CH6 · software sample feed'
+      : preset.lfo.enabled ? 'Wave + Hardware LFO · CH2 → CH1' : 'Wave · CH1–CH6';
   const recorded = preset.source === 'wave' && preset.lfo.enabled && preset.lfo.mode === 'recorded';
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held${recorded ? ' · C4 = recorded pitch' : ''}`;
 }
 function updatePresetUi() {
   editor.update(preset);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
-  if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
+  if (!$('codeOutput').hidden) {
+    if (preset.source === 'dda') {$('codeOutput').hidden=true;$('codeOutput').value='';}
+    else $('codeOutput').value = presetToCode(preset);
+  }
+  $('copyCode').textContent = preset.source === 'dda' ? 'Copy DDA preset JS' : 'Copy JavaScript';
   for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
   updateCapacity();
   if (!layout || keyboardSource !== keyboardMode()) renderKeyboard();
@@ -87,7 +94,7 @@ async function ensureAudio() {
         audio = engine;
         visualizer.connect(engine.context, engine.outputNode);
         $('startAudio').textContent = 'Audio ready';
-        status('Audio ready · play the keyboard. Draw a Wave or explore Noise and Hardware LFO.');
+        status('Audio ready · play the keyboard. Explore Wave, Noise, Hardware LFO or DDA PCM.');
         return engine;
       } catch (error) {await engine.dispose(); throw error;}
     })().finally(() => {opening = null; $('startAudio').disabled = false;});
@@ -103,7 +110,7 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   const replacesVoices = load || previous.source !== next.source || previous.lfo.enabled !== next.lfo.enabled
     || previous.lfo.mode !== next.lfo.mode || previous.lfo.output.enabled !== next.lfo.output.enabled
     || previous.envelope.enabled !== next.envelope.enabled || JSON.stringify(previous.wave) !== JSON.stringify(next.wave)
-    || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave);
+    || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave) || previous.dda.data !== next.dda.data;
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -132,7 +139,21 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
     }
   });
 }
-const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report});
+async function loadDdaAudio(file,{sampleRate,signal,onCommit}) {
+  const token=++importSequence, draftRevision=revision;
+  const prepared=await prepareDdaAudio(file,{sampleRate,signal});
+  if (signal?.aborted) throw new DOMException('Audio import cancelled','AbortError');
+  if (disposed||token!==importSequence||draftRevision!==revision) return 'Import discarded · instrument changed. Previous sound kept.';
+  const next=readPreset({...preset, source:'dda', name:prepared.name.slice(0,80),
+    dda:{...prepared,rootNote:preset.dda.rootNote,loop:preset.dda.loop,speed:preset.dda.speed}});
+  // Conversion can be cancelled; committing the validated preset is atomic.
+  // End the UI's cancellable stage before changing its authored instrument.
+  onCommit?.();
+  await applyPreset(next,{load:true,message:`Loaded ${prepared.name} · DDA PCM · play the keyboard.`});
+  return `Loaded ${prepared.name} · 5-bit PCM at ${prepared.sampleRate.toLocaleString()} Hz.`;
+}
+const editor = createEditor({root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);},
+  onError:report,onLoadAudio:loadDdaAudio});
 vgmLibrary = createVgmLibrary({root:$('vgmImport'), onSelect:value => applyPreset(value, {
   load:true, fromVgm:true, message:`${value.name} loaded from VGM · Software Envelope off · play the keyboard.`,
 })});
@@ -150,7 +171,7 @@ const choices = document.createElement('div'); choices.className = 'fretboard-ro
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
 let layout, keyboardSource;
-const keyboardMode = () => `${preset.source}:${preset.lfo.enabled && preset.lfo.mode === 'recorded' ? 'recorded' : 'keyboard'}`;
+const keyboardMode = () => `${preset.source}:${preset.source==='dda' ? Boolean(preset.dda.data) : preset.lfo.enabled && preset.lfo.mode === 'recorded' ? 'recorded' : 'keyboard'}`;
 function renderKeyboard() {
   {
     keyboardSource = keyboardMode();
@@ -180,6 +201,7 @@ function renderKeyboard() {
 }
 function canPlay(midi) {
   const hz = 440*2**((midi-69)/12);
+  if(preset.source==='dda') return midi>=0&&midi<=127&&Boolean(preset.dda.data);
   return midi>=0 && midi<=127 && (preset.source==='noise' || preset.lfo.enabled && preset.lfo.mode==='recorded' || hz >= 3579545 / (32 * 4096));
 }
 function press(source, entry) {
@@ -196,6 +218,7 @@ function press(source, entry) {
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
     status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.'
+      : preset.source==='dda' ? `${midiToNoteName(note.midi)} · DDA PCM · ${notes.size}/6 voices · software playback`
       : `${midiToNoteName(note.midi)}${preset.lfo.enabled && preset.lfo.mode==='recorded' ? ' trigger · C4 = recorded carrier pitch' : ''} · ${notes.size}/${capacity()} voices`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
@@ -278,7 +301,7 @@ function saveFile(name, text) {
 }
 $('savePreset').addEventListener('click',()=>{
   $('savePreset').blur();
-  try{saveFile('huc6280-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Wave, Noise, LFO and Software envelope included.');}catch(error){report(error);}
+  try{saveFile('huc6280-voice.json',JSON.stringify(readPreset(preset),null,2)+'\n');status('Preset saved · Wave, Noise, LFO, DDA PCM and Software envelope included.');}catch(error){report(error);}
 });
 $('loadPreset').addEventListener('click',()=>{$('loadPreset').blur();$('presetFileInput').click();});
 $('presetFileInput').addEventListener('change',async()=>{
@@ -286,7 +309,7 @@ $('presetFileInput').addEventListener('change',async()=>{
   if(!file) return;
   const token=++importSequence, draftRevision=revision;
   try {
-    if(file.size>65536) throw new Error('Preset must be at most 64 KiB');
+    if(file.size>MAX_PRESET_BYTES) throw new Error('Preset must be at most 32 MiB');
     const next=readPreset(JSON.parse(await file.text()));
     if(disposed||token!==importSequence||draftRevision!==revision) return;
     await applyPreset(next,{load:true,message:'Preset loaded · play the keyboard.'});
@@ -297,8 +320,9 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();
   try {
     const code=presetToCode(preset);$('codeOutput').value=code;$('codeOutput').hidden=false;
-    try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground HuC6280 mode.');}
-    catch{status('JavaScript ready below · select and copy it into Playground HuC6280 mode.');}
+    const destination=preset.source==='dda' ? 'DDA preset data and Instrument usage example' : 'paste into Playground HuC6280 mode';
+    try{await navigator.clipboard.writeText(code);status(`JavaScript copied · ${destination}.`);}
+    catch{status(`JavaScript ready below · ${destination}.`);}
   }catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{

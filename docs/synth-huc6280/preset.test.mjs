@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {createDefaultPreset, readPreset, waveShape, presetToCode} from './preset.js';
+import {createDefaultDda, encodeDdaData} from './dda_pcm.js';
 
 test('portable HuC6280 preset owns all waves, routing and software envelope values', () => {
   const source = createDefaultPreset(); source.name = '  Five bit  '; source.source = 'noise';
@@ -15,7 +16,7 @@ test('portable HuC6280 preset owns all waves, routing and software envelope valu
 });
 
 test('malformed full presets reject ambiguous shapes, sparse waves and invalid hardware fields', () => {
-  const edits = [p=>p.extra=1,p=>delete p.envelope,p=>p.format='other',p=>p.version=3,p=>p.source='dda',
+  const edits = [p=>p.extra=1,p=>delete p.envelope,p=>p.format='other',p=>p.version=4,p=>p.source='cdda',
     p=>p.volume=32,p=>p.volume=3.5,p=>p.pan.left=-1,p=>p.pan.right=16,p=>p.noise.frequency=32,
     p=>p.lfo.enabled=1,p=>p.lfo.depth=0,p=>p.lfo.depth=4,p=>p.lfo.frequency=256,p=>p.lfo.rate=4,
     p=>p.wave.pop(),p=>p.wave[2]=32,p=>p.wave[2]=NaN,p=>delete p.wave[3],p=>p.wave.foo=2,
@@ -28,15 +29,39 @@ test('malformed full presets reject ambiguous shapes, sparse waves and invalid h
   for (const edit of edits) {const preset=createDefaultPreset();edit(preset);assert.throws(()=>readPreset(preset));}
 });
 
-test('version one migrates to canonical v2 with the original follow and muted CH2 behavior', () => {
-  const old=createDefaultPreset();old.version=1;
+test('version one migrates to canonical v3 with the original follow and muted CH2 behavior', () => {
+  const old=createDefaultPreset();old.version=1;delete old.dda;
   old.lfo={enabled:true,frequency:13,depth:2,wave:waveShape('saw')};
   const copy=structuredClone(old),migrated=readPreset(old);
-  assert.deepEqual(old,copy);assert.equal(migrated.version,2);
+  assert.deepEqual(old,copy);assert.equal(migrated.version,3);assert.deepEqual(migrated.dda,createDefaultDda());
   assert.deepEqual(migrated.lfo,{...old.lfo,mode:'follow',carrierPeriod:428,modulatorPeriod:428,reset:false,
     output:{enabled:false,volume:0,pan:{left:15,right:15}}});
   assert.deepEqual(readPreset(migrated),migrated);
   old.lfo.mode='follow';assert.throws(()=>readPreset(old),/unexpected or missing/);
+});
+
+test('version two LFO presets migrate without changing the recorded pair',()=>{
+  const old=createDefaultPreset();old.version=2;delete old.dda;
+  Object.assign(old.lfo,{enabled:true,mode:'recorded',carrierPeriod:701,modulatorPeriod:913,reset:true});
+  old.lfo.output={enabled:true,volume:17,pan:{left:6,right:14}};
+  const migrated=readPreset(old);assert.equal(migrated.version,3);assert.deepEqual(migrated.lfo,old.lfo);
+  assert.deepEqual(migrated.dda,createDefaultDda());
+});
+
+test('DDA v3 presets retain five-bit bytes and reject malformed payloads or controls atomically',()=>{
+  const preset=createDefaultPreset();preset.source='dda';
+  preset.dda={name:'voice.wav',data:encodeDdaData(Uint8Array.from([0,15,16,31])),sampleRate:11025,rootNote:60,loop:true,speed:1.5};
+  assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+  for(const mutate of [p=>delete p.dda,p=>p.dda.extra=1,p=>p.dda.data='IA==',p=>p.dda.data='not base64',
+    p=>p.dda.sampleRate=7999,p=>p.dda.sampleRate=44101,p=>p.dda.sampleRate=11025.5,
+    p=>p.dda.rootNote=-1,p=>p.dda.rootNote=128,p=>p.dda.loop=1,p=>p.dda.speed=.124,p=>p.dda.speed=4.01,
+    p=>p.dda.speed=NaN,p=>p.dda.name='x'.repeat(121),p=>p.dda.name='bad\nname']) {
+    const copy=structuredClone(preset);mutate(copy);assert.throws(()=>readPreset(copy));
+  }
+  const code=presetToCode(preset);
+  assert.match(code,/not a one-register Playground audition/);assert.match(code,/Huc6280Instrument/);
+  assert(!code.includes('setInterval('));
+  assert.deepEqual(JSON.parse(JSON.stringify(vm.runInNewContext(`${code}\nddaPreset;`))),preset);
 });
 
 test('waveform helpers quantize exactly 32 five-bit values without aliasing', () => {

@@ -33,7 +33,7 @@
 ## 接続仕様（並行実装用）
 
 - `preset.js`: `createDefaultPreset()`、`readPreset(value)`、`waveShape(name)`、`presetToCode(value)`。
-- 初版プリセット v1: `{format:'tetorica-huc6280-voice',version:1,name,source:'wave'|'noise',wave:[32個の0..31],volume:0..31,pan:{left:0..15,right:0..15},noise:{frequency:0..31},lfo:{enabled:boolean,frequency:0..255,depth:1|2|3,wave:[32個の0..31]},envelope:{enabled:boolean,attack:秒,decay:秒,sustain:0..1,release:秒}}`。現在の正本は下記のv2で、v1は読み込み時に移行する。
+- 初版プリセット v1: `{format:'tetorica-huc6280-voice',version:1,name,source:'wave'|'noise',wave:[32個の0..31],volume:0..31,pan:{left:0..15,right:0..15},noise:{frequency:0..31},lfo:{enabled:boolean,frequency:0..255,depth:1|2|3,wave:[32個の0..31]},envelope:{enabled:boolean,attack:秒,decay:秒,sustain:0..1,release:秒}}`。現在の正本は下記のv3で、v1／v2は読み込み時に移行する。
 - `instrument.js`: `Huc6280Instrument(core)`、`read()`→`{preset,voices:[{id,midi,channel}],capacity,pitch}`、`setPreset`、`loadPreset`、`noteOn`→`{channel,stolenId}`、`noteOff`、`setPitch`、`stop`、`generateStereo`、`dispose`。
 - `audio.js`: `createAudio({volume,onError})`→`{context,outputNode,command,read,setVolume,resume,dispose}`。`processor.js`が実WASMとInstrumentを所有する。
 - `editor.js`: `createEditor({root,onChange,onError})`→`{update(preset),dispose()}`。変更は妥当な完全プリセットを返す。描画はpointer releaseで反映する。
@@ -43,7 +43,8 @@
 
 - [x] VGM／VGZから通常Wave／Noiseを抽出する。LFO／DDA区間と不完全なRAMは、無理に通常Waveへ置き換えず、理由を表示して省略する。
 - [x] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセットv2で、CH1／CH2ペアを取り込む。
-- [ ] DDA／CD-ROM² ADPCM／CD-DAは別の用途として検討する。DDAへ1値を書くだけの操作を「PCM再生」と呼ばない。
+- [x] 音声ファイルからDDA PCMを準備して試奏する（下記v3）。単一DAC値の書込ではなく、出力frameに合わせてPCMを供給する。
+- [ ] VGMのDDA／DAC stream抽出、CD-ROM² ADPCM／CD-DAは別工程として検討する。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
 - [ ] Web版確認後、Tauri／Native版へ進む。
 
@@ -96,4 +97,34 @@
 - 新ZIP: `release/tetorica_huc6280_synth_0.0.3_itch.zip`（46 files、1,102,555 bytes）。SHA-256 `8a41eb04ec53a9f3579656123d87ef3f37c933f33c6312108ac5579f4a26fd2d`。以前のZIPは保持し、今回も元JS／CSS・相対import・元WASM・対応C++・ライセンスを同梱する。
 - `npm run check:runtime-artifacts` と `git diff --check` も成功。共有runtime／WASMは未変更。README en／ja／AI、英日ホーム、Synthガイドも更新した。commit／push／公開は未実行。
 
-次は手元の実ゲーム由来VGMでの試奏と必要な調整。DDA／CD-ROM²は引き続き別の後続候補。
+次は手元の実ゲーム由来VGMでの試奏と必要な調整。DDA PCMの実装記録は次節。VGMのDDA抽出／CD-ROM²は別の後続候補。
+
+## DDA PCM再生（2026-11-06 完了）
+
+- [x] ソースへDDA PCMを追加する。5bit DAC自体は実機機能、PCM供給・rate／移調・Loop・Envelopeはソフトウェア制御と表示する。VGMのDAC stream抽出は別工程。
+- [x] WAV等の音声ファイルをdeviceを起動せずdecodeし、monoへまとめ、選んだrateへresampleして0..31の整数へ量子化する。無音のDAC中心は16。32MiB入力／30分decoded／16,777,216 DAC samplesをソフト側の上限として検証する。
+- [x] プリセットv3に `dda:{name,data:base64,sampleRate:8000..44100,rootNote:0..127,loop:boolean,speed:0.125..4}` を追加する。dataは1byteにつき1個の0..31値、空dataは未読込。v1／v2は空のDDA設定を補って互換を保つ。JSONは32MiBまで。
+- [x] 6つの実チャンネルへラウンドロビンでDDAを書き込む。ホストの出力frameに合わせたsample-and-holdとし、最大1 write/channel/output frame。高い再生速度では中間値をskipし、変更していないDAC値のwriteを省く。chip periodはPCMピッチへ使わない。
+- [x] Root noteで元速度、鍵盤／Pitch／speedで読み出し速度を変える。rate／speed／Loopは保持中にも反映する。非Loopの終端はDAC16＋keyOffで無音にし、保持キー所有権は離鍵まで保つ。離鍵・voice steal・Stop・ソース変更も無音にする。
+- [x] Software EnvelopeはDDAにも適用し、無効時はraw gate、非Loop終端のreleaseは残り時間に合わせて音量を下げる。Loop境界の波形の段差は変更しない。
+- [x] 大きいPCMをノートやつまみの操作ごとにworkletへ再送しない。Audio層とprocessorで既に受理済みのdataを省略して参照し、replyもdataを省略してAudio層で復元する。失敗時は受理済みcacheを変えない。
+- [x] DDAの読み込み・変換中のキャンセル／古い結果を除外し、失敗時は元の音色を保つ。折りたためるPCMカード、名前／rate／時間／波形プレビュー、Root／Loop／speed、変換rateのボタンを用意する。
+- [x] JSONへPCM本体を保存／復元する。Copy JavaScriptはDDAではデータと同期Instrumentへの接続例を出し、通常のPlaygroundへ単一DAC値を書くだけでPCMが再生できるとは表示しない。
+- [x] 実WASMで実DAC writeとのPCM比較、render分割一致、polyphony／steal、rate／Loop／Pitch変更、終端／release／Stop、旧preset移行、bounded入力、data再送抑制を検証する。
+- [x] ソース／独立ZIPをChromium・WebKitで検証し、README・ホーム・TODOを更新する。共有runtime／WASMと既存の変更を維持する。
+
+並行実装の接続: `dda_pcm.js` は定数・base64 encode/decode・量子化/resampleの共通module。`audio_import.js` は `prepareDdaAudio(file,{sampleRate,signal})` → `{name,data,sampleRate,rootNote:60,loop:false,speed:1}`。editorの `createEditor` に `onLoadAudio(file,{sampleRate,signal,onCommit})`（status文字列を返すPromise）を追加し、file chooserとCancelはeditorが所有する。converterは20ms程度ごとにyieldして中止を確認する。audio／processorのdata省略protocolは下記の実装記録に残す。
+
+
+検証結果（2026-11-06）:
+
+- `npm run test:huc6280-synth`: **76件成功**。実WASMの直接DAC writeを比較基準に、render分割一致、6音／steal、保持中のrate／Root／speed／Loop／Pitch変更、終端・離鍵・Stop・source切替を検証した。終端fade中に離鍵してもlevelが再上昇しない回帰検証を含む。
+- deviceなしのWAV decode、mono化・resample・無音16への量子化、上限、異常値・非canonical base64・旧v1／v2移行を検証した。AudioWorklet相当の環境でDOM／Node専用base64 APIに依存せずPCMを読める。
+- 受理済みPCMはdataを省略して再利用する。失敗した変更でcacheを更新せず、同時のpreset変更は各dataを送りFIFOを保つ。replyのdataも省略し、UI側で復元する。通常のnote／つまみ操作で大きなPCMを毎回転送しない。
+- ソース版と別ディレクトリーへ展開した配布ZIPを、Chromium／WebKitの実AudioWorkletで検証した。[ソース記録](huc6280_synth_dda_browser_01.json)・[ZIP記録](huc6280_synth_dda_zip_browser_01.json)。自作5秒stereo WAV→55,125 samples、6音、保持中の変更、1-shot終端、PCMを含む64KiB超のJSON保存／復元、Copy DDA preset JS、390px幅overflow 0を確認した。外部通信・404・page errorは0。desktop／mobile画像も確認した。
+- 読込・変換中のCancel／不正音声／古い結果は現在のPCMと保持音を保つ。変換後のcommit開始時はCancelを閉じてApplying表示へ移る。Worklet応答を意図的に遅延させても、その段階で誤って「キャンセル済み・元の音を保持」と表示しない。
+- ローカルNodeで6音・48kHzの2秒分を約146msでoffline renderできた（realtime factor約0.073）。これはこの環境の参考値で、ブラウザーの長時間安定性や全端末の性能保証ではない。
+- ZIP: `release/tetorica_huc6280_synth_0.0.4_itch.zip`（48 files、1,126,727 bytes）。SHA-256: `d9baec3739b31f4a93a6600c11d5b4b74d274c70d6aff8161b8e8fe034ee80de`。既存ZIPは保持。今回も可読JS／CSS・相対import・元WASM・対応C++・ライセンスを同梱する。
+- `npm run check:runtime-artifacts`: 33 SDK builds／66 outputs／73 mirrorsの一致を確認。README en／ja／AI、英日ホーム、Synthガイドを更新した。共有runtime／WASMは未変更で、gitのstage操作・commit・push・公開は行っていない。
+
+残る確認は手元音声での実聴・長時間試奏。ブラウザー検証中のスピーカー出力はミュートしており、聴感確認を完了扱いにしない。VGM由来のDDA／DAC stream抽出、CD-ROM²、Tauri／Native対応はこの工程に含めていない。

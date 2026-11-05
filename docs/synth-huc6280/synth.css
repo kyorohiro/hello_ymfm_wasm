@@ -43,6 +43,11 @@ input[type="range"] { accent-color:#458eb8; }
 .huc-choice[aria-checked="true"] { color:#fff; background:#b85213; border-color:#9f420c; box-shadow:inset 0 1px #ffffff24; }
 .huc-choice[aria-checked="true"]:hover { background:#c45e1e; }
 .huc-choice-field[data-choice="lfoDepth"],.huc-choice-field[data-choice="lfoMode"] { flex-basis:280px; }
+.huc-choice-field[data-choice="ddaImportRate"] { flex-basis:600px; }
+.huc-dda-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.huc-dda-info { color:var(--muted); font-size:.73rem; line-height:1.7; overflow-wrap:anywhere; margin:14px 0 10px; font-variant-numeric:tabular-nums; }
+#ddaLoadStatus[data-error="true"] { color:#a02f31; }
+#ddaCanvas { display:block; width:100%; height:180px; border:1px solid #5d666d; border-radius:8px; background:#22272b; }
 .huc-stepper { display:grid; grid-template-columns:34px minmax(24px,1fr) 34px; align-items:center; width:100%; min-height:38px; border:2px solid #7d8985; border-radius:999px; background:linear-gradient(#3b4140,#303736); color:#f7f7f4; box-shadow:inset 0 1px #ffffff14; }
 .huc-stepper-button { min-height:32px; padding:0; border:0; border-radius:999px; background:transparent; box-shadow:none; color:inherit; font-size:1.4rem; line-height:1; }
 .huc-stepper-button:hover { border:0; background:#ffffff12; color:#fff; }
@@ -78,8 +83,8 @@ footer div { display:flex; flex-wrap:wrap; align-items:baseline; gap:5px; }
   .huc-card-content { padding:13px 11px; }
   .huc-fields { gap:12px; }
   .huc-field { flex-basis:calc(50% - 6px); }
-  .huc-choice-field[data-choice="lfoDepth"],.huc-choice-field[data-choice="lfoMode"],.huc-check { flex-basis:100%; }
+  .huc-choice-field[data-choice="lfoDepth"],.huc-choice-field[data-choice="lfoMode"],.huc-choice-field[data-choice="ddaImportRate"],.huc-check { flex-basis:100%; }
   .huc-source-bar { gap:9px; }
   .huc-source-bar .huc-field,.huc-source-bar p { flex-basis:100%; }
-  #waveCanvas,#outputCanvas { height:170px; }
+  #waveCanvas,#outputCanvas,#ddaCanvas { height:170px; }
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {createDefaultDda, decodeDdaData} from './dda_pcm.js';
 
 const FORMAT = 'tetorica-huc6280-voice';
 function object(value, keys, label) {
@@ -38,21 +39,22 @@ export function waveShape(name) {
 }
 
 export function createDefaultPreset() {
-  return {format:FORMAT, version:2, name:'Sine', source:'wave', wave:waveShape('sine'), volume:24,
+  return {format:FORMAT, version:3, name:'Sine', source:'wave', wave:waveShape('sine'), volume:24,
     pan:{left:15, right:15}, noise:{frequency:16},
     lfo:{enabled:false, frequency:32, depth:1, wave:waveShape('sine'), mode:'follow',
       carrierPeriod:428, modulatorPeriod:428, reset:false,
       output:{enabled:false, volume:0, pan:{left:15, right:15}}},
-    envelope:{enabled:true, attack:.005, decay:0, sustain:1, release:.025}};
+    envelope:{enabled:true, attack:.005, decay:0, sustain:1, release:.025}, dda:createDefaultDda()};
 }
 
 /** Validate a complete portable preset atomically and detach all nested data.
  * Envelope timing is host software, not a HuC6280 hardware envelope unit. */
 export function readPreset(value) {
-  object(value, ['format','version','name','source','wave','volume','pan','noise','lfo','envelope'], 'HuC6280 preset');
-  if (value.format !== FORMAT || ![1,2].includes(value.version)) throw new TypeError('Unsupported HuC6280 preset format/version');
+  if (!value || ![1,2,3].includes(value.version)) throw new TypeError('Unsupported HuC6280 preset format/version');
+  object(value, ['format','version','name','source','wave','volume','pan','noise','lfo','envelope',...(value.version===3?['dda']:[])], 'HuC6280 preset');
+  if (value.format !== FORMAT) throw new TypeError('Unsupported HuC6280 preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
-  if (!['wave','noise'].includes(value.source)) throw new RangeError('Expected Wave or Noise source');
+  if (!(value.version===3?['wave','noise','dda']:['wave','noise']).includes(value.source)) throw new RangeError('Expected Wave, Noise or DDA source');
   object(value.pan, ['left','right'], 'Pan');
   object(value.noise, ['frequency'], 'Noise');
   const old = value.version === 1;
@@ -64,7 +66,15 @@ export function readPreset(value) {
     object(value.lfo.output.pan, ['left','right'], 'CH2 output pan');
   }
   object(value.envelope, ['enabled','attack','decay','sustain','release'], 'Software envelope');
-  return {format:FORMAT, version:2, name:value.name.trim(), source:value.source, wave:wave(value.wave, 'Main wave'),
+  let dda=createDefaultDda();
+  if(value.version===3) {
+    object(value.dda,['name','data','sampleRate','rootNote','loop','speed'],'DDA PCM');
+    if(typeof value.dda.name!=='string'||value.dda.name.length>120||/[\u0000-\u001f\u007f\u2028\u2029]/.test(value.dda.name)) throw new TypeError('DDA name must be at most 120 characters without control characters');
+    decodeDdaData(value.dda.data);
+    dda={name:value.dda.name,data:value.dda.data,sampleRate:number(value.dda.sampleRate,8000,44100,'DDA sample rate',true),
+      rootNote:number(value.dda.rootNote,0,127,'DDA root note',true),loop:boolean(value.dda.loop,'DDA Loop'),speed:number(value.dda.speed,.125,4,'DDA speed')};
+  }
+  return {format:FORMAT, version:3, name:value.name.trim(), source:value.source, wave:wave(value.wave, 'Main wave'),
     volume:number(value.volume, 0, 31, 'Channel volume', true),
     pan:{left:number(value.pan.left, 0, 15, 'Left balance', true), right:number(value.pan.right, 0, 15, 'Right balance', true)},
     noise:{frequency:number(value.noise.frequency, 0, 31, 'Noise clock', true)},
@@ -81,13 +91,24 @@ export function readPreset(value) {
           right:number(value.lfo.output.pan.right, 0, 15, 'CH2 right balance', true)}}},
     envelope:{enabled:boolean(value.envelope.enabled, 'Envelope enabled'),
       attack:number(value.envelope.attack, 0, 10, 'Attack seconds'), decay:number(value.envelope.decay, 0, 10, 'Decay seconds'),
-      sustain:number(value.envelope.sustain, 0, 1, 'Sustain level'), release:number(value.envelope.release, 0, 10, 'Release seconds')}};
+      sustain:number(value.envelope.sustain, 0, 1, 'Sustain level'), release:number(value.envelope.release, 0, 10, 'Release seconds')},dda};
 }
 
 /** Self-contained setup for the Playground's initialized `pce` chip API.
  * Keyboard allocation and software ADSR belong to the standalone host. */
 export function presetToCode(value) {
   const preset = readPreset(value), channel = preset.source === 'noise' ? 4 : 0;
+  if(preset.source==='dda') return [
+    '// Portable DDA PCM preset data. This is not a one-register Playground audition.',
+    '// A real-time host must feed DAC values on the audio thread; JavaScript timers are not sample accurate.',
+    `const ddaPreset = ${JSON.stringify(preset,null,2)};`,
+    '// With an owned synchronous Huc6280AudioEngine, import Huc6280Instrument from this Synth:',
+    '// const instrument = new Huc6280Instrument(core);',
+    '// instrument.loadPreset(ddaPreset);',
+    `// instrument.noteOn('dda', ${preset.dda.rootNote});`,
+    '// const {left, right} = instrument.generateStereo(128); // Deliver each block at core.sampleRate().',
+    "// instrument.noteOff('dda'); // Or instrument.stop(); instrument.dispose() when finished.",
+  ].join('\n');
   const lfo = preset.source === 'wave' && preset.lfo.enabled;
   const lines = ['// Select Mode: HuC6280 / PC Engine in Playground, then Run.', `// ${preset.name || 'Untitled HuC6280 voice'}`,
     '// Raw hardware audition; keyboard round robin and Software envelope are host features.',

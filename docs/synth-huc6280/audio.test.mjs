@@ -5,9 +5,10 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 
-function fixture({resumeError = false, fetchFailure = false, stalledFetch = false} = {}) {
+function fixture({resumeError = false, fetchFailure = false, stalledFetch = false, presetReplies = false} = {}) {
   let createAudio, context, node, timerId = 0, mode = 'reply';
-  const timers = new Map(), errors = [], events = [];
+  const timers = new Map(), errors = [], events = [], messages = [];
+  let remoteData = '', remotePreset = {dda:{data:''}};
   class Context {
     constructor() {
       context = this; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
@@ -34,11 +35,23 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     constructor() {
       node = this; this.connections = []; this.disposed = 0;
       this.port = {postMessage:message => {
+        messages.push(message);
         if (message.method === 'dispose') { this.disposed++; return; }
         if (mode === 'throw') throw new Error('Cannot clone');
         if (mode === 'drop') return;
-        queueMicrotask(() => this.port.onmessage?.({data:{id:message.id,
-          ...(mode === 'error' ? {error:'Invalid preset', name:'RangeError'} : {value:message.method === 'read' ? {voices:[]} : true})}}));
+        queueMicrotask(() => {
+          if (mode === 'error') {this.port.onmessage?.({data:{id:message.id,error:'Invalid preset',name:'RangeError'}});return;}
+          if (presetReplies) {
+            if (['setPreset','loadPreset'].includes(message.method)) {
+              const next=message.args[0];
+              remoteData=message.ddaDataUnchanged ? remoteData : next.dda.data;
+              remotePreset={...next,dda:{...next.dda,data:remoteData}};
+            }
+            const {data:_data,...dda}=remotePreset.dda;
+            this.port.onmessage?.({data:{id:message.id,value:{preset:remoteData ? {...remotePreset,dda} : remotePreset,voices:[]},
+              ...(remoteData ? {ddaDataOmitted:true} : {})}});
+          } else this.port.onmessage?.({data:{id:message.id,value:message.method === 'read' ? {voices:[]} : true}});
+        });
       }, close(){this.closed = true;}};
       queueMicrotask(() => this.port.onmessage?.({data:{ready:true}}));
     }
@@ -53,7 +66,7 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
     clearTimeout(id) { timers.delete(id); }, provide:value => { createAudio = value; },
   });
   return {create:options => createAudio({onError:error => errors.push(error), ...options}),
-    get context(){return context;}, get node(){return node;}, errors, timers, events,
+    get context(){return context;}, get node(){return node;}, errors, timers, events, messages,
     mode(value){mode = value;}, expire(){const [id, timer] = timers.entries().next().value; assert.equal(timer.ms,15000);timers.delete(id);timer.fn();}};
 }
 
@@ -71,6 +84,36 @@ test('HuC6280 audio is lazy and routes one fixed balance before the user Master 
   assert.deepEqual(await audio.read(),{voices:[]});
   const first = audio.dispose(); assert.equal(audio.dispose(),first); await first;
   assert.equal(f.context.closeCount,1); assert.equal(f.node.disposed,1); assert.equal(f.timers.size,0);
+});
+
+test('PCM is sent once, metadata edits refer to acknowledged data, and replies restore the local preset',async()=>{
+  const f=fixture({presetReplies:true}),audio=await f.create();
+  const data='EBES',first={source:'dda',dda:{data,speed:1}};
+  assert.equal((await audio.command('loadPreset',[first])).preset.dda.data,data);
+  assert.equal(f.messages.at(-1).args[0].dda.data,data);
+  assert.equal((await audio.read()).preset.dda.data,data);
+  await audio.command('setPreset',[{...first,dda:{...first.dda,speed:2}}]);
+  assert.equal(f.messages.at(-1).ddaDataUnchanged,true);
+  assert.equal(Object.hasOwn(f.messages.at(-1).args[0].dda,'data'),false);
+  assert.equal(first.dda.data,data,'transport does not mutate the caller preset');
+  f.mode('error');await assert.rejects(audio.command('loadPreset',[{...first,dda:{data:'bad',speed:1}}]),/Invalid preset/);
+  f.mode('reply');assert.equal((await audio.read()).preset.dda.data,data);
+  await audio.command('setPreset',[first]);assert.equal(f.messages.at(-1).ddaDataUnchanged,true,'failed replacement did not change accepted data');
+  await audio.dispose();
+});
+
+test('concurrent preset mutations carry full PCM so a changed remote reference cannot retarget an edit',async()=>{
+  const f=fixture({presetReplies:true}),audio=await f.create();
+  const a={dda:{data:'EBES',speed:1}},b={dda:{data:'ExQV',speed:1}};
+  await audio.command('loadPreset',[a]);
+  const begin=f.messages.length;
+  const results=await Promise.all([audio.command('loadPreset',[b]),audio.command('setPreset',[a])]);
+  const sent=f.messages.slice(begin);
+  assert.equal(sent.length,2);
+  assert(sent.every(message=>!message.ddaDataUnchanged&&Object.hasOwn(message.args[0].dda,'data')));
+  assert.equal(results[0].preset.dda.data,b.dda.data);assert.equal(results[1].preset.dda.data,a.dda.data);
+  assert.equal((await audio.read()).preset.dda.data,a.dda.data);
+  await audio.dispose();
 });
 
 test('the final Master bus can route to a desktop tap while retaining passive monitors and the same engine', async () => {

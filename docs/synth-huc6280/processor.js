@@ -9,7 +9,7 @@ const COMMANDS = new Set(['read','setPreset','loadPreset','noteOn','noteOff','se
 
 class Huc6280SynthProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
-    super(); this.dead = false; this.instrument = null;
+    super(); this.dead = false; this.instrument = null; this.acceptedDdaData = '';
     this.port.onmessage = ({data}) => this.receive(data);
     this.ready = Huc6280AudioEngine.create({moduleFactory:() => factory({wasmBinary:processorOptions.wasmBinary}),
       clock:HUC6280_CLOCK, outputSampleRate:sampleRate, masterVolume:1}).then(core => {
@@ -21,7 +21,7 @@ class Huc6280SynthProcessor extends AudioWorkletProcessor {
   }
   dispose() {
     if (this.dead) return;
-    this.dead = true; this.instrument?.dispose(); this.instrument = null;
+    this.dead = true; this.instrument?.dispose(); this.instrument = null; this.acceptedDdaData = '';
   }
   fail(error) {
     if (this.dead) return;
@@ -35,8 +35,21 @@ class Huc6280SynthProcessor extends AudioWorkletProcessor {
       try {
         if (!COMMANDS.has(data?.method)) throw new Error('Unknown HuC6280 Synth command');
         if (data.args !== undefined && !Array.isArray(data.args)) throw new TypeError('HuC6280 command arguments must be an array');
-        const value = this.instrument[data.method](...(data.args ?? []));
-        if (data.id !== undefined) this.port.postMessage({id:data.id,value});
+        let args = data.args ?? [];
+        if (data.ddaDataUnchanged !== undefined) {
+          if (data.ddaDataUnchanged !== true || !['setPreset','loadPreset'].includes(data.method) ||
+              !args[0]?.dda || Object.hasOwn(args[0].dda, 'data')) throw new TypeError('Invalid cached DDA data reference');
+          args = [{...args[0], dda:{...args[0].dda, data:this.acceptedDdaData}}, ...args.slice(1)];
+        }
+        let value = this.instrument[data.method](...args);
+        const pcm = value?.preset?.dda?.data;
+        if (typeof pcm === 'string') this.acceptedDdaData = pcm;
+        // Metering, notes and small parameter edits never clone PCM back to UI.
+        if (typeof pcm === 'string' && pcm.length) {
+          const {data:_data, ...dda} = value.preset.dda;
+          value = {...value, preset:{...value.preset, dda}};
+          if (data.id !== undefined) this.port.postMessage({id:data.id,value,ddaDataOmitted:true});
+        } else if (data.id !== undefined) this.port.postMessage({id:data.id,value});
       } catch (error) {
         if (data?.id !== undefined) this.port.postMessage({id:data.id,error:error.message,name:error.name});
       }

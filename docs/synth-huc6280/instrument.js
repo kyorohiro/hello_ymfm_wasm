@@ -2,6 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../js/huc6280synth.js';
 import {createDefaultPreset, readPreset} from './preset.js';
+import {decodeDdaData} from './dda_pcm.js';
 
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const hasLfo = preset => preset.source === 'wave' && preset.lfo.enabled;
@@ -22,6 +23,7 @@ export class Huc6280Instrument {
     this.rate = core.sampleRate(); this.preset = createDefaultPreset();
     this.pitch = 0; this.cursor = 0; this.sequence = 0; this.frame = 0;
     this.voices = new Map(); this.slots = Array(6).fill(null); this.levels = Array(6).fill(null); this.disposed = false;
+    this.ddaSamples=decodeDdaData(this.preset.dda.data); this.ddaValues=Array(6).fill(null);
     this._apply(null, this.preset); this.stop();
   }
   _open() { if (this.disposed) throw new Error('HuC6280 instrument is disposed'); }
@@ -37,6 +39,10 @@ export class Huc6280Instrument {
     this.synth.writeRegister(3, encoded >> 8);
   }
   _tuneVoice(voice, pitch = this.pitch) {
+    if(voice.dda) {
+      voice.step=this.preset.dda.sampleRate*this.preset.dda.speed*2**((voice.midi-this.preset.dda.rootNote+pitch)/12)/this.rate;
+      return;
+    }
     if (hasLfo(this.preset) && this.preset.lfo.mode === 'recorded') {
       const period = Math.max(1, Math.min(4096, Math.round(this.preset.lfo.carrierPeriod * 2 ** ((60 - voice.midi - pitch) / 12))));
       this._setPeriod(voice.channel, period);
@@ -56,10 +62,18 @@ export class Huc6280Instrument {
     return env.sustain;
   }
   _level(voice) {
-    if (!voice.released) return this._heldLevel(voice);
-    const elapsed = (this.frame - voice.releaseFrame) / this.rate;
-    if (voice.envelope.release <= 0 || elapsed >= voice.envelope.release) return 0;
-    return voice.releaseLevel * (1 - elapsed / voice.envelope.release);
+    let level=this._heldLevel(voice);
+    if(voice.released) {
+      const elapsed = (this.frame - voice.releaseFrame) / this.rate;
+      level=voice.envelope.release<=0||elapsed>=voice.envelope.release?0:voice.releaseLevel*(1-elapsed/voice.envelope.release);
+    }
+    // A one-shot has a known end. Reuse the authored software Release to ease
+    // that edge, without modifying the five-bit PCM or crossfading loop data.
+    if(voice.dda&&voice.envelope.enabled&&!this.preset.dda.loop&&voice.envelope.release>0) {
+      const remaining=(this.ddaSamples.length-voice.position)/voice.step/this.rate;
+      level*=Math.max(0,Math.min(1,remaining/voice.envelope.release));
+    }
+    return level;
   }
   _setLevel(channel, level, base = this.preset.volume) {
     const volume = level <= 0 || base === 0 ? 0 : Math.max(0, Math.min(31, base + Math.round(20 * Math.log10(level) / 1.5)));
@@ -71,6 +85,7 @@ export class Huc6280Instrument {
   }
   _retire(voice) {
     this.synth.keyOff(voice.channel);
+    if(voice.dda) this._writeDda(voice.channel,16);
     if (voice.paired) this.synth.keyOff(1);
     if (this.voices.get(voice.id) === voice) this.voices.delete(voice.id);
     if (this.slots[voice.channel] === voice) this.slots[voice.channel] = null;
@@ -78,6 +93,7 @@ export class Huc6280Instrument {
   _advanceEnvelopes() {
     for (const voice of this.slots) {
       if (!voice) continue;
+      if(voice.ended) continue;
       const level = this._level(voice);
       if (voice.released && level <= 0) this._retire(voice);
       else this._setVoiceLevel(voice, level);
@@ -89,6 +105,10 @@ export class Huc6280Instrument {
     if (changed(p => p.wave) || changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.wave)) {
       for (let ch = 0; ch < 6; ch++) this.synth.setWaveform(ch, lfo && ch === 1 ? next.lfo.wave : next.wave);
       this.levels.fill(null);
+    }
+    if(changed(p=>p.source)||changed(p=>p.wave)||changed(p=>p.lfo.enabled)||changed(p=>p.lfo.wave)) for(let channel=0;channel<6;channel++) {
+      this.synth.setDda(channel,next.source==='dda');
+      if(next.source==='dda') this._writeDda(channel,16);
     }
     if (changed(p => p.pan) || changed(p => p.source) || changed(p => p.lfo.enabled)) {
       for (let ch = 0; ch < 6; ch++) this.synth.setPan(ch, next.pan.left, next.pan.right);
@@ -111,25 +131,30 @@ export class Huc6280Instrument {
     const state = this.synth._getState();
     return {preset:readPreset(this.preset), voices:[...this.voices.values()].map(({id,midi,channel}) => ({id,midi,channel})),
       tails:this.slots.filter(voice => voice?.released).map(({id,channel}) => ({id,channel})),
-      capacity:poolFor(this.preset).length, pitch:this.pitch, registers:state.registers, globals:state.globals};
+      capacity:poolFor(this.preset).length, pitch:this.pitch, registers:state.registers, globals:state.globals,
+      dda:{samples:this.ddaSamples.length,sampleRate:this.preset.dda.sampleRate,duration:this.ddaSamples.length/this.preset.dda.sampleRate,
+        voices:this.slots.filter(voice=>voice?.dda).map(({id,channel,position,ended})=>({id,channel,position,ended}))}};
   }
   setPreset(value) {
     this._open();
     const next = readPreset(value), previous = this.preset;
     const clear = previous.source !== next.source || !same(previous.wave, next.wave) || previous.lfo.enabled !== next.lfo.enabled ||
       !same(previous.lfo.wave, next.lfo.wave) || previous.lfo.mode !== next.lfo.mode ||
-      previous.lfo.output.enabled !== next.lfo.output.enabled || previous.envelope.enabled !== next.envelope.enabled;
+      previous.lfo.output.enabled !== next.lfo.output.enabled || previous.envelope.enabled !== next.envelope.enabled || previous.dda.data!==next.dda.data;
     if (clear) this.stop();
     this._apply(previous, next); this.preset = next;
+    if(previous.dda.data!==next.dda.data) this.ddaSamples=decodeDdaData(next.dda.data);
     if (next.source === 'wave' && (!same(previous.lfo.carrierPeriod, next.lfo.carrierPeriod) || !same(previous.lfo.modulatorPeriod, next.lfo.modulatorPeriod))) {
       for (const voice of this.slots) if (voice) this._tuneVoice(voice);
     }
+    if(next.source==='dda') for(const voice of this.slots) if(voice) this._tuneVoice(voice);
     this._advanceEnvelopes();
     return this.read();
   }
   loadPreset(value) {
     this._open(); const next = readPreset(value);
     this.stop(); this._apply(this.preset, next); this.preset = next; this.pitch = 0;
+    this.ddaSamples=decodeDdaData(next.dda.data);
     return this.read();
   }
   noteOn(id, midi) {
@@ -137,6 +162,7 @@ export class Huc6280Instrument {
     if (typeof id !== 'string' || !id.length || id.length > 128) throw new TypeError('Expected a note identity of 1–128 characters');
     if (this.voices.has(id)) throw new Error('Note identity is already active');
     if (!Number.isInteger(midi) || midi < 0 || midi > 127) throw new RangeError('Expected a MIDI note 0–127');
+    if(this.preset.source==='dda'&&!this.ddaSamples.length) throw new Error('Load audio before playing DDA PCM');
     const pool = poolFor(this.preset);
     let channel;
     for (let offset = 0; offset < pool.length; offset++) {
@@ -145,14 +171,17 @@ export class Huc6280Instrument {
     }
     if (channel === undefined) channel = pool.reduce((oldest, candidate) => {
       const a = this.slots[oldest], b = this.slots[candidate];
-      return b.released && !a.released || b.released === a.released && b.order < a.order ? candidate : oldest;
+      const idleA=a.released||a.ended,idleB=b.released||b.ended;
+      return idleB&&!idleA||Boolean(idleA)===Boolean(idleB)&&b.order<a.order?candidate:oldest;
     }, pool[0]);
     const previous = this.slots[channel];
     if (previous) this._retire(previous);
     const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,
-      paired:hasLfo(this.preset) && this.preset.lfo.output.enabled,envelope:{...this.preset.envelope}};
-    if (this.preset.source === 'wave') this._tuneVoice(voice);
-    this._setVoiceLevel(voice, this._heldLevel(voice));
+      paired:hasLfo(this.preset) && this.preset.lfo.output.enabled,envelope:{...this.preset.envelope},
+      dda:this.preset.source==='dda',position:0,ended:false};
+    if (this.preset.source === 'wave'||voice.dda) this._tuneVoice(voice);
+    if(voice.dda) this._writeDda(channel,this.ddaSamples[0]);
+    this._setVoiceLevel(voice, this._level(voice));
     if (voice.paired) this.synth.keyOn(1);
     this.synth.keyOn(channel);
     this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
@@ -162,18 +191,18 @@ export class Huc6280Instrument {
     this._open(); const voice = this.voices.get(id);
     if (!voice || this.slots[voice.channel] !== voice) return false;
     this.voices.delete(id);
-    if (!voice.envelope.enabled || voice.envelope.release <= 0) this._retire(voice);
+    if (voice.ended || !voice.envelope.enabled || voice.envelope.release <= 0) this._retire(voice);
     else {
       voice.releaseLevel = this._heldLevel(voice); voice.releaseFrame = this.frame; voice.released = true;
       if (voice.releaseLevel <= 0) this._retire(voice);
-      else this._setVoiceLevel(voice, voice.releaseLevel);
+      else this._setVoiceLevel(voice, this._level(voice));
     }
     return true;
   }
   setPitch(semitones) {
     this._open();
     if (!Number.isFinite(semitones) || semitones < -24 || semitones > 24) throw new RangeError('Pitch must be between -24 and +24 semitones');
-    if (this.preset.source === 'wave') for (const voice of this.slots) {
+    if (this.preset.source === 'wave'||this.preset.source==='dda') for (const voice of this.slots) {
       if (!voice) continue;
       this._tuneVoice(voice, semitones);
     }
@@ -181,6 +210,7 @@ export class Huc6280Instrument {
   }
   stop() {
     this._open(); this.synth.allNotesOff();
+    if(this.preset.source==='dda') for(let channel=0;channel<6;channel++) this._writeDda(channel,16);
     this.voices.clear(); this.slots.fill(null); this.cursor = 0;
     return this.read();
   }
@@ -188,6 +218,7 @@ export class Huc6280Instrument {
     this._open();
     if (!Number.isInteger(frames) || frames < 0 || frames > 0x1000000) throw new RangeError('Invalid frame count');
     const left = new Float32Array(frames), right = new Float32Array(frames);
+    if(this.preset.source==='dda') return this._generateDda(frames,left,right);
     let offset = 0;
     while (offset < frames) {
       if (this.frame % ENVELOPE_QUANTUM === 0) this._advanceEnvelopes();
@@ -197,6 +228,40 @@ export class Huc6280Instrument {
       this.frame += count; offset += count;
     }
     if (this.frame % ENVELOPE_QUANTUM === 0) this._advanceEnvelopes();
+    return {left,right};
+  }
+  _writeDda(channel,value) {
+    if(this.ddaValues[channel]===value) return;
+    this.synth.writeDda(channel,value);this.ddaValues[channel]=value;
+  }
+  _endDda(voice) {
+    voice.ended=true;voice.position=this.ddaSamples.length;
+    this.synth.keyOff(voice.channel);this._writeDda(voice.channel,16);
+    if(voice.released) this._retire(voice);
+  }
+  _generateDda(frames,left,right) {
+    const playing=[];
+    for(let offset=0;offset<frames;offset++) {
+      playing.length=0;
+      for(const voice of this.slots) if(voice?.dda&&!voice.ended) playing.push(voice);
+      if(!playing.length) {
+        const output=this.core.processFrames(frames-offset);left.set(output.left,offset);right.set(output.right,offset);
+        this.frame+=frames-offset;break;
+      }
+      if(this.frame%ENVELOPE_QUANTUM===0) this._advanceEnvelopes();
+      for(const voice of playing) if(this.slots[voice.channel]===voice&&!voice.ended) {
+        this._writeDda(voice.channel,this.ddaSamples[Math.min(this.ddaSamples.length-1,Math.floor(voice.position))]);
+      }
+      const output=this.core.processFrames(1);left[offset]=output.left[0];right[offset]=output.right[0];this.frame++;
+      for(const voice of playing) if(this.slots[voice.channel]===voice&&!voice.ended) {
+        voice.position+=voice.step;
+        if(voice.position>=this.ddaSamples.length) {
+          if(this.preset.dda.loop) voice.position%=this.ddaSamples.length;
+          else this._endDda(voice);
+        }
+      }
+    }
+    if(this.frame%ENVELOPE_QUANTUM===0) this._advanceEnvelopes();
     return {left,right};
   }
   dispose() {

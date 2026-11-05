@@ -186,7 +186,7 @@ test('LFO mode and CH2 output routing edits stop both voices while v1 playback k
   preset.lfo.enabled=false;instrument.setPreset(preset);instrument.noteOn('plain0',60);instrument.noteOn('plain1',64);
   assert.equal(instrument.read().voices.length,2);assert.equal(instrument.read().registers[1][4]&128,128);
   instrument.noteOff('plain0');assert.equal(instrument.read().registers[1][4]&128,128,'ordinary CH2 keeps its own owner');
-  const old=instrument.read().preset;old.version=1;old.lfo={enabled:true,frequency:32,depth:1,wave:waveShape('sine')};
+  const old=instrument.read().preset;old.version=1;delete old.dda;old.lfo={enabled:true,frequency:32,depth:1,wave:waveShape('sine')};
   instrument.loadPreset(old);instrument.noteOn('legacy',60);instrument.setPitch(2);
   assert.equal(period(instrument.read(),0),period(instrument.read(),1));assert.equal(instrument.read().registers[1][4]&128,0);
 });

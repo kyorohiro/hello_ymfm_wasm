@@ -227,7 +227,7 @@ test('LFO pairs preserve both waves, independent periods, rate, depth, reset and
   assert.deepEqual(preset.lfo,{enabled:true,frequency:7,depth:2,wave:other,mode:'recorded',carrierPeriod:700,modulatorPeriod:913,
     reset:false,output:{enabled:true,volume:19,pan:{left:13,right:15}}});
   assert.equal(preset.envelope.enabled,false);assert.equal(result.voices[1].preset.lfo.carrierPeriod,701);
-  assert.equal(result.voices[2].preset.lfo.reset,true);assert.equal(preset.version,2);
+  assert.equal(result.voices[2].preset.lfo.reset,true);assert.equal(preset.version,3);
   assert(result.warnings.some(message=>message.includes('C4')));
   assert(result.warnings.some(message=>message.includes('phase is not reconstructed')));
 });

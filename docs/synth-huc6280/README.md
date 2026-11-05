@@ -12,7 +12,7 @@ and controls that leave the computer keys available for playing.
 ## Play and edit
 
 1. Select **Enable audio**, then click a key or use the displayed computer keys.
-2. Choose **Wave** or **Noise**. Every key plays the selected source.
+2. Choose **Wave**, **Noise** or **DDA PCM**. Every key plays the selected source.
 3. Draw a waveform, change the controls, then save a preset or copy JavaScript.
 
 ## Sounds from VGM
@@ -54,6 +54,7 @@ key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 | Wave, LFO off | Six, CH1–CH6 | 32 five-bit samples, volume and left / right balance |
 | Wave, LFO on | One CH1 / CH2 pair | CH2's waveform modulates CH1; optional CH2 output has its own level / balance |
 | Noise | Two, CH5 / CH6 | Shared noise-clock code, volume and left / right balance |
+| DDA PCM | Six, CH1–CH6 | Five-bit direct DAC; samples are supplied by software |
 
 Allocation uses available channels in round-robin order and replaces an old
 voice when the pool is full. Releasing a replaced key cannot stop its new owner.
@@ -76,6 +77,41 @@ Numbers use **− / value / +** controls with drag and keyboard adjustment.
 Source and other discrete choices use buttons. Clicking sound controls leaves
 the performance keys available; text fields retain normal text editing.
 Sections can be collapsed while watching the output display.
+
+## DDA PCM audio
+
+Choose **DDA PCM**, then **Load audio…**. WAV is portable; other audio formats
+depend on the browser's decoder. Loading uses an offline decoder and does not
+open a speaker device. The source is mixed to mono, resampled at the selected
+conversion rate and quantized to integers **0–31**, with **16 as silence**.
+No automatic normalization is applied. Conversion rate is a preparation setting;
+the separate live DAC rate changes how quickly the prepared data is read.
+
+**Root note** plays the sample at its prepared rate. Keyboard notes, the Pitch
+wheels and **Speed** change the software reading speed. **Loop** repeats the
+whole sample. Rate / Root / Speed / Loop edits keep held voices and their current
+positions. Enabling Loop after a one-shot has finished applies to the next note.
+One-shot completion silences the DAC but retains held-key ownership until release.
+Stop, release, voice stealing and changing source silence the affected DACs.
+
+The **five-bit DAC is a HuC6280 hardware feature**. Sample feeding, resampling,
+pitch control, looping and Envelope scheduling are **software features**. There
+is no separate sample RAM bank or automatic PCM playback unit in this UI's model.
+Writes are scheduled at output-frame boundaries, at most one DAC update per
+channel per output frame. High playback rates skip intermediate source samples.
+Software Envelope also eases non-looping sample endings; turning it off exposes
+the raw gate. Loop-boundary discontinuities are retained.
+
+The software limits are **32 MiB per input file**, **30 minutes decoded audio**,
+and **16,777,216 prepared DAC samples**. A high conversion rate reaches the sample
+limit sooner. Failures, cancelled imports and late results keep the current PCM.
+PCM is stored in preset JSON as compact base64, one five-bit value per byte.
+Large data is sent to the audio processor only when changed; ordinary notes and
+parameter edits reuse the accepted asset, and replies carry metadata only.
+
+**Copy DDA preset JS** exports the portable data and a synchronous Instrument
+usage example. It is not a single-register Playground audition: continuous DDA
+audio requires timed software writes, supplied here by the AudioWorklet host.
 
 ## Hardware LFO and software Envelope
 
@@ -122,11 +158,13 @@ If the audio engine fails, use **Enable audio** to reconnect.
 
 ## Presets and JavaScript
 
-Save / Load uses the portable `tetorica-huc6280-voice` preset, version 2. Version-1
+Save / Load uses the portable `tetorica-huc6280-voice` preset, version 3. Version-1
 files migrate to Follow keyboard, Reset off and muted CH2, keeping their previous
-behavior. The preset
+behavior. Version-2 files retain their paired LFO settings and gain an empty
+DDA configuration. The preset
 contains the name, selected source, main and LFO waveforms, chip volume / balance,
-noise clock, hardware LFO and Software Envelope. Invalid presets are rejected
+noise clock, hardware LFO, embedded DDA PCM and Software Envelope. Preset JSON
+is limited to 32 MiB. Invalid presets are rejected
 before the current sound changes. Master, keyboard layout, octave and temporary
 Pitch position are performance controls outside the preset.
 
@@ -136,7 +174,7 @@ parameters; keyboard allocation, software envelope scheduling and Master belong
 to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
-Streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
+DDA extraction from VGM DAC streams, CD-ROM² ADPCM / CD-DA, song playback
 and full PC Engine emulation are not included.
 
 ## API, sources and licenses
@@ -145,6 +183,7 @@ and full PC Engine emulation are not included.
 - [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
 - [VGM / VGZ extraction](vgm_import.js) and [sound library](vgm_library.js): passive register analysis and explicit sound selection.
+- [Five-bit PCM preparation](dda_pcm.js) and [offline audio import](audio_import.js): software conversion used by the DDA source.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
 
@@ -184,5 +223,8 @@ Software Envelopeはソフト側の音量制御で、実機のADSRではあり�
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
 VGM／VGZからWave／NoiseとCH1・CH2を組にしたLFO音色を抽出し、試奏・波形編集できます。
 Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
-両周期・速度・深さ・Reset・CH2の出力もプリセットv2へ保存します。v1は従来動作で読み込めます。
-DDAのPCM再生、CD-ROM²音源は後続の検討対象です。
+両周期・速度・深さ・Reset・CH2の出力を保持します。
+DDA PCMではWAV等をモノラル5bitへ変換し、6声で試奏、Root／Loop／Speedを変更できます。
+DACは実機機能、データ供給・移調・Loop・Envelopeはソフト側の制御です。
+PCM本体はプリセットv3へ保存し、v1／v2も読み込めます。
+VGMのDDA stream抽出とCD-ROM²音源は後続の検討対象です。

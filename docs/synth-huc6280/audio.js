@@ -22,6 +22,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   const controller = new AbortController(), pending = new Map();
   let node = null, balance = null, master = null, disposed = false, closing = null;
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
+  let acceptedDdaData = '';
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
   void startupFailure.catch(() => {});
@@ -38,6 +39,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   function dispose() {
     if (closing) return closing;
     disposed = true;
+    acceptedDdaData = '';
     clearTimeout(startupTimer);
     controller.abort();
     context.removeEventListener('statechange', stateChanged);
@@ -98,7 +100,17 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       pending.delete(data.id); clearTimeout(request.timer);
       if (data.error) {
         const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error);
-      } else request.resolve(data.value);
+      } else {
+        let value = data.value;
+        // Only acknowledged presets may become the shared PCM reference.
+        // A failed edit must not change the next command's data reference.
+        if (typeof value?.preset?.dda?.data === 'string') acceptedDdaData = value.preset.dda.data;
+        else if (request.presetData !== undefined) acceptedDdaData = request.presetData;
+        if (data.ddaDataOmitted && value?.preset?.dda) {
+          value = {...value, preset:{...value.preset, dda:{...value.preset.dda, data:acceptedDdaData}}};
+        }
+        request.resolve(value);
+      }
     };
     await boundedStartup(ready);
     assertOpen();
@@ -111,11 +123,21 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       assertOpen();
       if (!COMMANDS.has(method)) throw new Error(`Unknown HuC6280 command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('HuC6280 command arguments must be an array');
+      const changesPreset = method === 'setPreset' || method === 'loadPreset';
+      const presetData = changesPreset && typeof args[0]?.dda?.data === 'string' ? args[0].dda.data : undefined;
+      // Concurrent preset mutations carry their own data, preserving FIFO
+      // semantics when another edit may replace the remote reference first.
+      const ddaDataUnchanged = presetData !== undefined && presetData !== '' && presetData === acceptedDdaData &&
+        ![...pending.values()].some(request => request.changesPreset);
+      if (ddaDataUnchanged) {
+        const {data:_data, ...dda} = args[0].dda;
+        args = [{...args[0], dda}, ...args.slice(1)];
+      }
       const id = ++nextId;
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => fail(new Error(`HuC6280 command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
-        pending.set(id, {resolve, reject, timer});
-        try { node.port.postMessage({id, method, args}); }
+        pending.set(id, {resolve, reject, timer, changesPreset, presetData});
+        try { node.port.postMessage({id, method, args, ...(ddaDataUnchanged ? {ddaDataUnchanged:true} : {})}); }
         catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
       });
     }

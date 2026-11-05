@@ -45,6 +45,14 @@ function makeLfoVgm() {
     ...upload(1,lfoWave,{volume:19,balance:223}),...period(1,913),...write(8,7),...write(9,2),...vgmWait,
     ...write(0,0),...write(4,25),...write(0,1),...write(4,19),0x66]);
 }
+function makeWav() {
+  const rate=44100,frames=rate*5,channels=2,bytes=Buffer.alloc(44+frames*channels*2);
+  bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);
+  bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(channels,22);bytes.writeUInt32LE(rate,24);bytes.writeUInt32LE(rate*channels*2,28);
+  bytes.writeUInt16LE(channels*2,32);bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(bytes.length-44,40);
+  for(let i=0;i<frames;i++) for(let ch=0;ch<channels;ch++) bytes.writeInt16LE(Math.round(Math.sin(i/rate*Math.PI*2*220)*(ch===0?.6:.3)*32767),44+(i*channels+ch)*2);
+  return bytes;
+}
 
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-huc6280/index.html',
   out:'/private/tmp/tetorica-huc6280-synth-browser.json', screenshots:null};
@@ -62,6 +70,7 @@ async function checkEngine(name, engine, origin) {
   const errors = [], failed = [], external = [], checks = [];
   let stage = 'startup';
   try {
+    if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});
     const page = await browser.newPage({acceptDownloads:true,viewport:{width:1180,height:1000}});
     page.setDefaultTimeout(15000);
     page.on('pageerror', error => errors.push(error.message));
@@ -72,7 +81,16 @@ async function checkEngine(name, engine, origin) {
       external.push(url.href); return route.abort();
     });
     await page.addInitScript(() => {
-      const audit = window.audit = {contexts:[],worklets:[],analysers:[],nextId:0};
+      const audit = window.audit = {contexts:[],worklets:[],analysers:[],nextId:0,presetMessages:[]};
+      const post=MessagePort.prototype.postMessage;
+      MessagePort.prototype.postMessage=function(data,...args) {
+        if(['setPreset','loadPreset'].includes(data?.method)) audit.presetMessages.push({method:data.method,
+          dataLength:data.args?.[0]?.dda?.data?.length??0,elided:data.ddaDataUnchanged===true});
+        if(audit.holdDdaCommit&&data?.method==='loadPreset'&&data.args?.[0]?.dda?.name==='slow-commit.wav') {
+          audit.holdDdaCommit=false;audit.releaseDdaCommit=()=>post.call(this,data,...args);return;
+        }
+        return post.call(this,data,...args);
+      };
       const Context = window.AudioContext ?? window.webkitAudioContext;
       const Worklet = window.AudioWorkletNode, connect = AudioNode.prototype.connect;
       window.AudioContext = class extends Context {constructor(...args) {super(...args);audit.contexts.push(this);}};
@@ -130,6 +148,14 @@ async function checkEngine(name, engine, origin) {
     await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+    check('WAV conversion is passive, bounded five-bit PCM and needs no audio device');
+    await radio('source','dda').click();assert(await page.locator('#loadDdaAudio').isVisible());
+    assert.equal(await page.locator('#keyboard .key:not([disabled])').count(),0);
+    await page.locator('#ddaAudioFileInput').setInputFiles({name:'dac-test.wav',mimeType:'audio/wav',buffer:makeWav()});
+    await page.waitForFunction(()=>document.querySelector('#ddaLoadStatus').textContent.includes('Loaded'));
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    assert((await page.locator('#ddaInfo').textContent()).includes('dac-test.wav'));
+    await page.locator('#resetPreset').click();await page.waitForFunction(()=>document.querySelector('#source [data-choice-value="wave"]').getAttribute('aria-checked')==='true');
     check('real AudioWorklet and six physical wave voices');
     await page.locator('#startAudio').click();
     await page.waitForFunction(() => document.querySelector('#startAudio').textContent.includes('ready'));
@@ -171,7 +197,7 @@ async function checkEngine(name, engine, origin) {
     await radio('source','wave').click();await wait(s=>s.preset.source==='wave');
     assert.equal(await page.locator('#levelSection').evaluate(node=>node.open),false,'editing preserves collapsed sections');
     await page.locator('#levelSection > summary').click();
-    assert.equal(await page.locator('#voiceEditor canvas').count(),1);
+    assert.equal(await page.locator('#waveSection canvas').count(),1);
     const before=(await read()).preset.wave;
     const canvas=page.locator('#waveCanvas'),box=await canvas.boundingBox();
     assert(box);await page.mouse.move(box.x+box.width*.2,box.y+box.height*.25);await page.mouse.down();
@@ -278,7 +304,7 @@ async function checkEngine(name, engine, origin) {
     await page.locator('[data-vgm-filter="lfo"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
     await page.locator('[data-vgm-voice]').click();
     state=await wait(s=>s.preset.lfo.enabled&&s.preset.lfo.mode==='recorded');
-    assert.equal(state.preset.version,2);assert.deepEqual(state.preset.wave,vgmWave);assert.deepEqual(state.preset.lfo.wave,lfoWave);
+    assert.equal(state.preset.version,3);assert.deepEqual(state.preset.wave,vgmWave);assert.deepEqual(state.preset.lfo.wave,lfoWave);
     assert.equal(state.preset.lfo.carrierPeriod,700);assert.equal(state.preset.lfo.modulatorPeriod,913);
     assert.equal(state.preset.lfo.frequency,7);assert.equal(state.preset.lfo.depth,2);assert.equal(state.preset.lfo.reset,false);
     assert.deepEqual(state.preset.lfo.output,{enabled:true,volume:19,pan:{left:13,right:15}});
@@ -304,19 +330,91 @@ async function checkEngine(name, engine, origin) {
     check('LFO pair wave editing, preset v2 round trip and v1 migration');
     await page.locator('[data-wave-target="lfo"]').click();await page.locator('[data-wave-shape="triangle"]').click();
     state=await wait(s=>JSON.stringify(s.preset.lfo.wave)!==JSON.stringify(lfoWave));assert.deepEqual(state.preset.wave,vgmWave);
-    assert.equal(await page.locator('#voiceEditor canvas').count(),1);
+    assert.equal(await page.locator('#waveSection canvas').count(),1);
     const pairedPreset=state.preset,pairedSave=page.waitForEvent('download');await page.locator('#savePreset').click();
     assert.deepEqual(JSON.parse(await fs.readFile(await(await pairedSave).path(),'utf8')),pairedPreset);
     await page.locator('#copyCode').click();
     const pairedCode=await page.locator('#codeOutput').inputValue();assert.match(pairedCode,/pce\.writeRegister/);
-    const legacy={...pairedPreset,version:1,lfo:{enabled:true,frequency:7,depth:2,wave:pairedPreset.lfo.wave}};
+    const legacy={...pairedPreset,version:1,lfo:{enabled:true,frequency:7,depth:2,wave:pairedPreset.lfo.wave}};delete legacy.dda;
     await page.locator('#presetFileInput').setInputFiles({name:'legacy-v1.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
-    state=await wait(s=>s.preset.lfo.mode==='follow'&&!s.preset.lfo.output.enabled);assert.equal(state.preset.version,2);
+    state=await wait(s=>s.preset.lfo.mode==='follow'&&!s.preset.lfo.output.enabled);assert.equal(state.preset.version,3);
     await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);
     assert.equal(regPeriod(state,0),regPeriod(state,1));assert.equal(state.registers[1][4]&128,0);
     await page.keyboard.up(c4);await silent();
-    await page.locator('#presetFileInput').setInputFiles({name:'paired-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pairedPreset))});
+    const legacyV2={...pairedPreset,version:2};delete legacyV2.dda;
+    await page.locator('#presetFileInput').setInputFiles({name:'paired-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyV2))});
     await wait(s=>JSON.stringify(s.preset)===JSON.stringify(pairedPreset));
+    check('DDA plays six hardware DAC channels, changes speed/pitch live and elides cached PCM');
+    await radio('source','dda').click();
+    await page.locator('#ddaAudioFileInput').setInputFiles({name:'dac-test.wav',mimeType:'audio/wav',buffer:makeWav()});
+    await page.waitForFunction(()=>document.querySelector('#ddaLoadStatus').textContent.includes('Loaded'));
+    state=await wait(s=>s.preset.source==='dda'&&s.dda.samples>0);
+    assert.equal(state.capacity,6);assert.equal(state.preset.dda.sampleRate,11025);
+    assert.equal(Object.hasOwn(state.preset.dda,'data'),false,'large PCM omitted from processor replies');
+    await page.locator('#ddaLoop').check();await wait(s=>s.preset.dda.loop);
+    const fullTransfers=await page.evaluate(()=>window.audit.presetMessages.filter(m=>m.dataLength>0).length);
+    for(const key of keys.slice(0,6))await page.keyboard.down(key);
+    state=await wait(s=>s.voices.length===6);await sound();
+    const ddaOwners=state.voices.map(v=>v.id);
+    for(const channel of state.voices.map(v=>v.channel))assert.equal(state.registers[channel][4]&192,192);
+    assert.equal(state.globals[9]&3,0,'DDA does not use hardware LFO');
+    await page.locator('[data-stepper-for="ddaSpeed"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.dda.speed===1.125);assert.deepEqual(state.voices.map(v=>v.id),ddaOwners);
+    await page.locator('[data-stepper-for="ddaRootNote"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.dda.rootNote===61);assert.deepEqual(state.voices.map(v=>v.id),ddaOwners);
+    await page.locator('[data-stepper-for="ddaRate"][data-stepper-delta="1"]').click();await wait(s=>s.preset.dda.sampleRate===11026);
+    await page.locator('#pitchBend').evaluate(input=>{input.value='1';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    state=await wait(s=>s.pitch===1);assert.deepEqual(state.voices.map(v=>v.id),ddaOwners);await sound();
+    await page.locator('#pitchBend').dispatchEvent('pointercancel');await wait(s=>s.pitch===0);
+    assert.equal(await page.evaluate(()=>window.audit.presetMessages.filter(m=>m.dataLength>0).length),fullTransfers,'parameter edits do not resend PCM');
+    await page.keyboard.down(keys[6]);await wait(s=>s.voices.length===6&&!s.voices.some(v=>v.id===ddaOwners[0]));
+    await page.keyboard.up(keys[0]);assert.equal((await read()).voices.length,6);
+    for(const key of keys.slice(1))await page.keyboard.up(key);await wait(s=>s.voices.length===0);await silent();
+    check('DDA invalid/cancelled audio retains the current PCM and held owner');
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);const ddaOwner=state.voices[0].id,ddaMeta=state.preset.dda;
+    await page.locator('#ddaAudioFileInput').setInputFiles({name:'broken.wav',mimeType:'audio/wav',buffer:Buffer.from('not a WAV')});
+    await page.waitForFunction(()=>document.querySelector('#ddaLoadStatus').dataset.error==='true');
+    state=await read();assert.equal(state.voices[0].id,ddaOwner);assert.deepEqual(state.preset.dda,ddaMeta);
+    await page.evaluate(()=>{
+      window.audit.audioFileRead=File.prototype.arrayBuffer;
+      File.prototype.arrayBuffer=function(...args) {
+        if(this.name!=='cancel.wav') return window.audit.audioFileRead.apply(this,args);
+        return new Promise((resolve,reject)=>{window.audit.releaseAudio=()=>window.audit.audioFileRead.apply(this,args).then(resolve,reject);});
+      };
+    });
+    await page.locator('#ddaAudioFileInput').setInputFiles({name:'cancel.wav',mimeType:'audio/wav',buffer:makeWav()});
+    await page.waitForFunction(()=>typeof window.audit.releaseAudio==='function');await page.locator('#cancelDdaAudio').click();
+    await page.evaluate(async()=>{await window.audit.releaseAudio();File.prototype.arrayBuffer=window.audit.audioFileRead;});
+    state=await read();assert.equal(state.voices[0].id,ddaOwner);assert.deepEqual(state.preset.dda,ddaMeta);
+    await page.keyboard.up(c4);await silent();
+    check('DDA commit stage disables cancellation before a delayed Worklet acknowledgement');
+    await page.evaluate(()=>{window.audit.holdDdaCommit=true;});
+    await page.locator('#ddaAudioFileInput').setInputFiles({name:'slow-commit.wav',mimeType:'audio/wav',buffer:makeWav()});
+    await page.waitForFunction(()=>typeof window.audit.releaseDdaCommit==='function');
+    assert.match(await page.locator('#ddaLoadStatus').textContent(),/Applying/);
+    assert.equal(await page.locator('#cancelDdaAudio').isVisible(),false);
+    await page.evaluate(()=>window.audit.releaseDdaCommit());
+    await page.waitForFunction(()=>document.querySelector('#ddaLoadStatus').textContent.includes('Loaded slow-commit.wav'));
+    await wait(s=>s.preset.dda.name==='slow-commit.wav');
+    check('one-shot DDA ends at silence, retains key ownership and round trips PCM in JSON');
+    await page.locator('#ddaLoop').uncheck();await wait(s=>!s.preset.dda.loop);
+    await page.locator('#ddaSpeed').focus();await page.keyboard.press('End');await wait(s=>s.preset.dda.speed===4);
+    await page.keyboard.down(c4);await wait(s=>s.voices.length===1);
+    await wait(s=>s.dda.voices.some(v=>v.ended));await silent();
+    state=await read();assert.equal(state.voices.length,1);assert.equal(state.registers[state.voices[0].channel][4]&128,0);
+    await page.keyboard.up(c4);await wait(s=>s.voices.length===0);
+    const ddaDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const ddaSaved=JSON.parse(await fs.readFile(await(await ddaDownload).path(),'utf8'));
+    assert.equal(ddaSaved.version,3);const dac=Buffer.from(ddaSaved.dda.data,'base64');
+    assert(dac.length>0&&dac.every(value=>value<=31));assert(Buffer.byteLength(JSON.stringify(ddaSaved))>65536,'PCM preset exceeds old 64 KiB limit');
+    await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/DDA|dda/);
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
+    await page.locator('#presetFileInput').setInputFiles({name:'dda-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(ddaSaved))});
+    state=await wait(s=>s.preset.source==='dda'&&s.dda.samples===dac.length);assert.equal(state.preset.dda.speed,4);
+    await page.keyboard.down(c4);await wait(s=>s.voices.length===1);await page.locator('#stopAudio').click();
+    await wait(s=>s.voices.length===0);await silent();await page.keyboard.up(c4);
+    if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-dda-1180.png`),fullPage:true});
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#stopAudio').click();await wait(s=>s.voices.length===0);await silent();
     await page.locator('#octaveUp').click();assert.equal((await page.locator('#octaveValue').textContent()).trim(),'+1');
@@ -328,6 +426,8 @@ async function checkEngine(name, engine, origin) {
     await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
     await page.locator('#vgmFileInput').setInputFiles({name:'mobile.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
     await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
+    await page.locator('#presetFileInput').setInputFiles({name:'mobile-dda.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(ddaSaved))});
+    await wait(s=>s.preset.source==='dda'&&s.dda.samples===dac.length);
     assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
     if(config.screenshots) {await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-390.png`),fullPage:true});}
     await page.setViewportSize({width:1180,height:1000});await page.locator('#resetPreset').click();await wait(s=>!s.preset.lfo.enabled);
