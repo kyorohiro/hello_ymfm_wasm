@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
 import {decodeDdaData} from './dda_pcm.js';
-import {mergePcmVolumeVariants} from './vgm_pcm_variants.js';
+import {mergeVgmVolumeVariants} from './vgm_pcm_variants.js';
 
 /** Passive file analysis. Only choosing a sound asks the host to replace its
  * instrument; opening, failing, cancelling or closing a library never does. */
@@ -17,7 +17,7 @@ export function createVgmLibrary({root, onSelect}) {
     $('vgmStatus').dataset.error = String(error);
   };
   const visibleVoices = () => !library ? [] : $('vgmKeepLoudestPcm').checked
-    ? library.loudestPcmVoices ??= mergePcmVolumeVariants(library.voices) : library.voices;
+    ? library.loudestVolumeVoices ??= mergeVgmVolumeVariants(library.voices) : library.voices;
   const pcmDescription = voice => {
     let description = pcmInfo.get(voice);
     if (description) return description;
@@ -68,7 +68,8 @@ export function createVgmLibrary({root, onSelect}) {
       const detail = doc.createElement('small');
       const channel = voice.kind === 'lfo' ? 'CH1 + CH2 · C4 = recorded pitch' : `CH${voice.channel}`;
       const pcm = voice.kind === 'pcm' ? ` · ${pcmDescription(voice)}` : '';
-      detail.textContent = `${channel}${pcm} · first at ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
+      const wave = voice.kind === 'wave' ? ` · level ${voice.preset.volume}/31${voice.volumeVariants>1?` · ${voice.volumeVariants} volume variants grouped`:''}` : '';
+      detail.textContent = `${channel}${pcm}${wave} · first at ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
       button.append(name, detail);
       button.addEventListener('click', async () => {
         button.blur();
@@ -103,7 +104,7 @@ export function createVgmLibrary({root, onSelect}) {
     const available=visibleVoices();
     if (selected!==null&&!available.some(voice=>voice.id===selected)) selected=null;
     render();
-    if (library) status(`${available.length} sounds shown · ${$('vgmKeepLoudestPcm').checked?'loudest PCM volume variants grouped':'all PCM volume variants shown'}. Current instrument kept.`);
+    if (library) status(`${available.length} sounds shown · ${$('vgmKeepLoudestPcm').checked?'loudest Wave / PCM volume variants grouped':'all Wave / PCM volume variants shown'}. Current instrument kept.`);
   });
   listen($('vgmFileInput'), 'cancel', () => {
     $('vgmFileInput').blur();

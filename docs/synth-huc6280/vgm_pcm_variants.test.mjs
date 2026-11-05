@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDefaultPreset,readPreset} from './preset.js';
 import {encodeDdaData} from './dda_pcm.js';
-import {mergePcmVolumeVariants} from './vgm_pcm_variants.js';
+import {mergePcmVolumeVariants,mergeVgmVolumeVariants} from './vgm_pcm_variants.js';
 
 function pcm(id,volume=24,edit=()=>{}) {
   const preset=createDefaultPreset();preset.source='dda';preset.volume=volume;
@@ -16,6 +16,12 @@ function pcm(id,volume=24,edit=()=>{}) {
 function freeze(value) {
   if(value&&typeof value==='object') {for(const child of Object.values(value))freeze(child);Object.freeze(value);}
   return value;
+}
+function wave(id,volume=24,edit=()=>{}) {
+  const preset=createDefaultPreset();preset.volume=volume;preset.envelope.enabled=false;
+  preset.name=`Wave CH${id}`;edit(preset);
+  return {id,kind:'wave',channel:id,firstTime:id*100,occurrences:id,
+    preset:readPreset(preset),warnings:[`wave note ${id}`]};
 }
 
 test('the loudest PCM retains its exact representative while grouping only the library view',()=>{
@@ -65,4 +71,43 @@ test('non-PCM voices and singleton PCM retain identity, and groups keep first en
   for(let index=0;index<nonPcm.length;index++)assert.equal(result[index+1],nonPcm[index]);
   assert.equal(result.at(-1),other);
   assert.deepEqual(mergePcmVolumeVariants([]),[]);
+});
+
+test('Wave channel levels 23 and 24 collapse to 24 without mutating the raw voices',()=>{
+  const quiet=wave(1,23),loud=wave(2,24);
+  const input=freeze([quiet,loud]),before=structuredClone(input);
+  const result=mergeVgmVolumeVariants(input);
+  assert.equal(result.length,1);assert.equal(result[0].id,loud.id);
+  assert.equal(result[0].preset,loud.preset);assert.equal(result[0].preset.volume,24);
+  assert.equal(result[0].channel,loud.channel);assert.equal(result[0].firstTime,loud.firstTime);
+  assert.equal(result[0].occurrences,3);assert.equal(result[0].volumeVariants,2);
+  assert.deepEqual(result[0].warnings,['wave note 1','wave note 2']);
+  assert.deepEqual(input,before);
+  assert.deepEqual(mergePcmVolumeVariants(input),input,'the compatibility export still leaves Wave entries alone');
+});
+
+test('Wave data and pan differences remain distinct, while equal Wave volumes retain the first entry',()=>{
+  const quiet=wave(1,23),loud=wave(2,24),tie=wave(3,24);
+  const changedWave=wave(4,31,p=>{p.wave[2]=(p.wave[2]+1)%32;});
+  const changedLeft=wave(5,31,p=>{p.pan.left=14;});
+  const changedRight=wave(6,31,p=>{p.pan.right=14;});
+  const result=mergeVgmVolumeVariants([quiet,changedWave,changedLeft,changedRight,loud,tie]);
+  assert.equal(result.length,4);assert.equal(result[0].preset,loud.preset);
+  assert.equal(result[0].occurrences,6);assert.equal(result[0].volumeVariants,3);
+  assert.equal(result[1],changedWave);assert.equal(result[2],changedLeft);assert.equal(result[3],changedRight);
+  assert.deepEqual(mergeVgmVolumeVariants(result),result);
+});
+
+test('Wave and PCM group independently and Noise / LFO are preserved',()=>{
+  const quietWave=wave(1,23),loudWave=wave(2,24),quietPcm=pcm(3,5),loudPcm=pcm(4,30);
+  const unchanged=['noise','lfo'].flatMap((kind,index)=>[
+    {...wave(index+5,23),kind},{...wave(index+7,24),kind},
+  ]);
+  const input=[quietWave,quietPcm,...unchanged,loudWave,loudPcm];
+  const result=mergeVgmVolumeVariants(input);
+  assert.equal(result.length,input.length-2);
+  assert.equal(result[0].preset,loudWave.preset);assert.equal(result[1].preset,loudPcm.preset);
+  for(let index=0;index<unchanged.length;index++)assert.equal(result[index+2],unchanged[index]);
+  const sameSettingsDifferentKind={...quietWave,id:99,kind:'pcm'};
+  assert.equal(mergeVgmVolumeVariants([quietWave,sameSettingsDifferentKind]).length,2,'kind is part of the sound identity');
 });

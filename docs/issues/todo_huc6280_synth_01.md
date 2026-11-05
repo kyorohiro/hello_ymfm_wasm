@@ -205,3 +205,21 @@
 - ソース版と独立ZIPをChromium／WebKitで確認した。[ソース記録](huc6280_synth_pcm_volume_browser_01.json)・[ZIP記録](huc6280_synth_pcm_volume_zip_browser_01.json)。自作VGM／VGZのPCM5件＋Wave1件が、volume12／20／27を27へまとめてPCM3件＋Wave1件になること、異なるpan／rateは残ること、Offで全件へ戻ることを確認した。保持音のowner／音色・追加の演奏キー・選択表示・最大音量27のJSON保存・次fileへの設定引継ぎ・390px幅overflow 0も確認した。外部通信・404・page errorは0。desktop／mobile画像も確認した。
 - 配布ZIP: `release/tetorica_huc6280_synth_0.0.7_itch.zip`（51 files、1,158,002 bytes）。SHA-256 `e709aacfa044b211a139fc143ef6cdb59748afa4e70b31595a2856d883ae7a3c`。可読JS／CSS・相対import・対応WASM／C++・ライセンスを維持し、過去ZIPは保持した。
 - Synthガイドを更新し、共有runtime／WASM・抽出ロジック・preset formatは変更していない。こちらからstage／commit／push／公開操作は行っていない。
+
+
+## 音量違いのまとめをWaveにも適用（2026-11-06 完了）
+
+- [x] ユーザー確認済み: WAVはVGM一覧のWaveを指す。既存optionがPCM限定でWaveを保持していたため、Wave／PCMを対象へ変更し、UIのlabel／説明を一致させる。Noise／LFOは現状を維持する。
+- [x] WaveのChannel levelが1だけ異なる場合も、波形・pan等の他設定が同じなら最大volumeを残す。既存PCM動作、元データ・保持音・選択表示・Offでの全件復元を保つ。
+- [x] Wave23／24と異なる波形／panを含む自作VGM、unit、Chromium／WebKitで再現・回帰確認し、配布ZIP／README／TODOを更新する。
+
+
+実装・検証結果（2026-11-06）:
+
+- 原因は既存関数が `kind === pcm` だけを対象としていたこと。ユーザーのWAVはWave音色を指しており、PCM抽出の比較誤差ではなかった。自作VGMでWave23／24は2件、PCM23／24は24の1件になることを再現してから修正した。
+- UIを `Wave / PCM: keep loudest volume variant` へ変更し、`mergeVgmVolumeVariants()` でWave／PCMを扱う。種類も比較キーへ含め、波形・pan等の他設定が違う音はまとめない。Noise／LFOは現状維持。既存 `mergePcmVolumeVariants()` はPCM限定の互換exportとして維持した。
+- Waveの一覧にもlevelと統合件数を表示する。元の抽出結果、保持音、選択済み音、On／Offでの復元と非同期選択の扱いは維持する。最大音量の音を実際にロードするのは、一覧で明示選択した時だけ。
+- `npm run test:huc6280-synth`: **122件成功**。grouping unitは7件で、Waveのlevel23／24→24、同率、異なる波形／pan、metadata／元data不変、種類を跨がないこと、既存PCM限定API互換を確認した。
+- ソース版・独立ZIPのChromium／WebKitを検証した。[ソース記録](huc6280_synth_wave_volume_browser_01.json)・[ZIP記録](huc6280_synth_wave_volume_zip_browser_01.json)。自作VGM／VGZのWave4件を、23／24だけ統合して3件へまとめ、異なる波形／panは保持する。quiet23保持中の切替でowner／音色が変わらず、代表24の選択・JSON保存・Offで全件復元・次fileへのoption引継ぎが通った。既存PCM5→3の検証も維持した。390px幅overflow 0、外部通信・404・page error 0を確認し、desktop／mobile画像も確認した。
+- 配布ZIP: `release/tetorica_huc6280_synth_0.0.8_itch.zip`（51 files、1,158,432 bytes）。SHA-256 `b4653287847003db346a77e6a99986312f98224e36bc3019e510b43d994c0c28`。可読ソース・対応WASM／C++・ライセンスを維持し、過去ZIPは保持した。
+- Synthガイド／AI向けREADMEを更新した。共有runtime／WASM・音源処理・抽出ロジック・preset formatは未変更。こちらからstage／commit／push／公開操作は行っていない。

@@ -23,11 +23,11 @@ Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
 
-**PCM: keep loudest volume variant** optionally groups PCM entries whose data
+**Wave / PCM: keep loudest volume variant** optionally groups Wave or PCM entries whose data
 and all other sound settings match, showing the highest channel-volume version.
 It is off by default and can be toggled after loading; turning it off restores
 every entry. Different pan, rate, Loop or other sound settings remain separate,
-as do Wave / Noise / LFO sounds. The representative retains its own channel,
+as do Noise / LFO sounds. The representative retains its own channel,
 timestamp and preset; uses, origins and warnings are combined. Equal volumes
 keep the first entry. Switching the option keeps the current instrument and
 held notes. If a selected quieter entry becomes hidden, its selection marker
