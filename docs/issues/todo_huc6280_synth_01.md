@@ -41,10 +41,36 @@
 
 ## 後続候補
 
-- [ ] VGM／VGZからの音色抽出（6chの波形・Noise・LFO構成をどう1音色へまとめるか確認）。
+- [x] VGM／VGZから通常Wave／Noiseを抽出する。LFO／DDA区間と不完全なRAMは、無理に通常Waveへ置き換えず、理由を表示して省略する。
+- [ ] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセット設計を検討する。
 - [ ] DDA／CD-ROM² ADPCM／CD-DAは別の用途として検討する。DDAへ1値を書くだけの操作を「PCM再生」と呼ばない。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
 - [ ] Web版確認後、Tauri／Native版へ進む。
+
+## VGM音色読み込み（2026-11-05 完了）
+
+- [x] `vgm_import.js` にDOM／音声deviceなしのWave／Noise抽出を実装する。VGM／VGZ・64MiB上限・キャンセル・長い解析中のyield・不正データ拒否を含む。
+- [x] 波形RAMの書込pointerを追跡する。実機のDDA 1→0でpointerを0に戻し、停止中の32点uploadを復元する。未記録／再生位置不明の値を初期Sineやゼロで補って音色にしない。
+- [x] 同じ時刻の設定writeをまとめ、実際に時間が進む時点の発音中の設定を採取する。周波数だけの変化は同じ音色にまとめ、音量・panは書込済みの値を保持する。global balanceは近似の説明を付ける。
+- [x] NoiseはCH5／CH6からclock・level・panを取得する。LFO区間、DDA／DAC stream、未知の必要設定は理由を表示して省略する。音声の再生・ゲーム側の逐次Envelope等は再現しない。
+- [x] 折りたためる「Sounds from VGM」へLoad VGM / VGZ、Wave／Noiseフィルター、一覧・ページ送り・Cancel／Closeを追加する。
+- [x] ファイルを開くだけでは現在の音色／保持音を変更しない。音色を明示的に選ぶ時だけ反映し、編集したら一覧の選択表示を解除する。失敗／キャンセル／遅れて完了した別ファイルは現在の音を保つ。
+- [x] 選んだ波形は既存の同一canvasで編集し、既存JSON／JavaScript保存に接続する。原音比較のため取り込んだ音色はSoftware EnvelopeをOffにし、その旨を表示する。
+- [x] 自作VGM／VGZで波形復元・未知pointer・Noise／LFO／DDA・重複排除・不正データ・キャンセルをunit検証し、ソースと独立ZIPをChromium／WebKitで検証する。
+- [x] README・ホーム・配布の検証記録を更新する。共有runtime／WASM・プリセットv1は変更しない。
+
+検証結果:
+
+- `npm run test:huc6280-synth`: **38件成功**（抽出の新規15件を含む）。実WASMで、既知の記録設定と取り込んだWaveが同じ鍵盤ピッチでbyte単位の同一PCMになることを確認した。4,000,000 commands／4,096 definitions／100,000 observations、圧縮前後64MiBの上限とキャンセルも検証した。
+- 不明なselector／LFO／carrier controlとDAC streamsを含む場合、影響したRAM・設定を未知として扱い、後のdirect writeで修復されるまで誤った音色を採取しない。完全に未記録の任意flagsは、LFO Off／Noise Off等の仮定を明示する。省略だけになったファイルでもエラーに理由が残る。
+- Chromium／WebKitのソース版が成功。[記録](huc6280_synth_vgm_import_browser_01.json)。未起動の音声を解析だけで開始しないこと、Wave／Noise選択、元波形の32値、選択後の発音・編集・JSON往復、VGZ、失敗／キャンセル／遅い旧File readの排除、24件ページ、390px幅overflow 0を確認した。
+- 独立ZIPを別フォルダーへ展開した両ブラウザー検証も成功。[記録](huc6280_synth_vgm_import_zip_browser_01.json)。外部通信・404・page errorは0。テスト中のスピーカー出力はミュートしている。
+- 新ZIP: `release/tetorica_huc6280_synth_0.0.2_itch.zip`（46 files、1,094,546 bytes）、SHA-256 `66dbdd256e20001552d138d9dea3dbd406404f3c330c064dcbb682e343cb574e`。0.0.1 ZIPは保持した。読める元JSと相対import、元WASM、対応C++・ライセンス・ソースreceiptを同梱する。
+- `npm run check:runtime-artifacts`、`git diff --check`も成功。共有runtime／WASM／プリセットv1は未変更。
+
+実ゲーム由来のVGM比較・実聴・commit／push／公開は未実行。次は手元のVGMで試奏し、必要な対応を整理する。
+
+後続: LFO音色の抽出では元のCH1／CH2のperiod比、LFO rate／depth／reset状態、別のCH2音声の扱いを設計する。現在のSynthの「modulator periodをcarrierへ追従」は、任意の元曲のLFO設定と同一とは限らない。
 
 ## 再開時
 

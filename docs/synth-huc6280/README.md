@@ -15,6 +15,34 @@ and controls that leave the computer keys available for playing.
 2. Choose **Wave** or **Noise**. Every key plays the selected source.
 3. Draw a waveform, change the controls, then save a preset or copy JavaScript.
 
+## Sounds from VGM
+
+Use **Load VGM / VGZ…** in the collapsible **Sounds from VGM** section.
+Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
+**Wave** / **Noise** list. Analysis alone keeps the current instrument; only an
+explicit sound choice loads it. Cancel, failed imports and closing the library
+keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
+
+Wave imports retain the recorded 32 five-bit samples, channel level and stereo
+balance. Noise imports retain the CH5 / CH6 clock and channel settings. Different
+note pitches share a voice entry. The list shows the original channel, first
+time and occurrences, with 24 entries per page. Imported sounds turn **Software
+Envelope off**, so audition starts from the recorded hardware settings. You can
+turn it on afterward, edit the wave on the existing canvas, save a preset or copy
+JavaScript. Editing clears the library's selected-sound marker.
+
+Only fully known Wave RAM is used. The importer follows the write pointer and
+its DDA reset; a write at an unknown playback position cannot be reconstructed
+as an ordinary waveform. Such data is omitted with an explanation. Initial
+settings and explicitly disclosed reset assumptions are used; the song's notes,
+driver envelopes, vibrato and later automation are not replayed. Global balance
+and nonstandard clocks may require approximation, reported in the library.
+
+**LFO voices and DDA / DAC streams are omitted.** The current Synth follows the
+carrier note for its modulator period; arbitrary recorded CH1 / CH2 period
+relationships need a separate import design. LFO settings are not silently
+turned into normal Wave voices. Other ordinary channels can still be extracted.
+
 Opening the page or editing a sound does not start an audio device. Playing a
 key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 
@@ -89,14 +117,15 @@ parameters; keyboard allocation, software envelope scheduling and Master belong
 to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
-VGM / VGZ voice import, streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
-and full PC Engine emulation are not included in this first Synth.
+LFO voice import, streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
+and full PC Engine emulation are not included.
 
 ## API, sources and licenses
 
 - [npm API catalog](../../packages/fm2612/README.md#api-entry-points): musical helpers and low-level APIs.
 - [Huc6280Synth](../../tetorica_src/runtime/huc6280synth.js) and [Huc6280AudioEngine](../../tetorica_src/runtime/huc6280audioengine.js): authoring and synchronous register / PCM access.
 - [Preset format](preset.js), [instrument and allocator](instrument.js), [AudioWorklet](processor.js), [browser audio lifecycle](audio.js) and [editor](editor.js).
+- [VGM / VGZ extraction](vgm_import.js) and [sound library](vgm_library.js): passive register analysis and explicit sound selection.
 - [Native core and adaptation notes](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/README.md): MAME-derived HuC6280 by Charles MacDonald, [BSD-3-Clause license](../../third_party/tetorica-soundchip-native/vendor/mame-huc6280/LICENSE).
 - [Project license](../../LICENSE) and [complete attribution](../attribution.md).
 
@@ -134,4 +163,5 @@ Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
 Software Envelopeはソフト側の音量制御で、実機のADSRではありません。
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
-VGM音色抽出、DDAのPCM再生、CD-ROM²音源は後続の検討対象です。
+VGM／VGZから通常Wave／Noiseを抽出し、一覧から選んで試奏・波形編集できます。
+LFO音色抽出、DDAのPCM再生、CD-ROM²音源は後続の検討対象です。

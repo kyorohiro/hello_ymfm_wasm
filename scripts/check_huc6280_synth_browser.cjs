@@ -5,6 +5,36 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
+const {gzipSync} = require('node:zlib');
+
+// Self-authored register sequences; no commercial game files or recordings.
+const vgmWave = Array.from({length:32},(_,i)=>i<8?31:i<16?3:i<24?20:8);
+const secondWave = Array.from({length:32},(_,i)=>(i%4)*10);
+const write = (register,value) => [0xb9,register,value];
+const vgmWait = [0x61,0xe8,0x03];
+function upload(channel,wave,{volume=24,balance=255}={}) {
+  return [...write(0,channel),...write(4,64),...write(4,0),...wave.flatMap(value=>write(6,value)),
+    ...write(5,balance),...write(2,254),...write(3,0),...write(7,0),...write(4,128|volume)];
+}
+function vgmBytes(commands,clock=3579545) {
+  const bytes=Buffer.alloc(256+commands.length);bytes.write('Vgm ');
+  bytes.writeUInt32LE(bytes.length-4,4);bytes.writeUInt32LE(0x171,8);
+  bytes.writeUInt32LE(0xcc,0x34);bytes.writeUInt32LE(clock,0xa4);bytes.set(commands,256);return bytes;
+}
+function makeVgm() {
+  return vgmBytes([...write(1,255),...write(9,0),...upload(0,vgmWave,{volume:25}),...vgmWait,
+    ...write(2,120),...vgmWait,...write(4,0),...upload(2,secondWave,{volume:20,balance:247}),...vgmWait,
+    ...write(4,0),...write(0,4),...write(5,255),...write(7,144),...write(4,151),...vgmWait,...write(4,0),0x66]);
+}
+function makePagedVgm() {
+  const commands=[...write(1,255),...write(9,0)];
+  for(let i=0;i<29;i++) commands.push(...upload(2,Array.from({length:32},(_,index)=>(index+i)%32)),...vgmWait,...write(4,0));
+  return vgmBytes([...commands,0x66]);
+}
+function makeLongVgm() {
+  const prefix=[...write(1,255),...write(9,0),...upload(0,vgmWave),...vgmWait];
+  return vgmBytes(Buffer.concat([Buffer.from(prefix),Buffer.alloc(500_000,0x70),Buffer.from([0x66])]));
+}
 
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-huc6280/index.html',
   out:'/private/tmp/tetorica-huc6280-synth-browser.json', screenshots:null};
@@ -84,6 +114,12 @@ async function checkEngine(name, engine, origin) {
     assert.match(await page.title(),/Tetorica HuC6280 Synth/);
     assert.equal(await page.evaluate(() => window.audit.contexts.length),0);
     assert(await page.locator('.product-icon').evaluate(img => img.complete&&img.naturalWidth===1254));
+    check('VGM analysis is passive and the import control is discoverable');
+    assert(await page.locator('#loadVgm').isVisible());
+    await page.locator('#vgmFileInput').setInputFiles({name:'original-pce.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
+    await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
     check('real AudioWorklet and six physical wave voices');
     await page.locator('#startAudio').click();
     await page.waitForFunction(() => document.querySelector('#startAudio').textContent.includes('ready'));
@@ -165,6 +201,67 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#presetFileInput').setInputFiles({name:'voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
     state=await wait(s=>s.preset.lfo.enabled);assert.deepEqual(state.preset,saved);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/pce\.setWaveform/);
+    check('VGM voice selection, exact wave bytes, editing and preset round trip');
+    await page.locator('[data-vgm-voice="1"]').click();
+    state=await wait(s=>JSON.stringify(s.preset.wave)===JSON.stringify(vgmWave)&&s.preset.volume===25);
+    assert.equal(state.preset.envelope.enabled,false);assert.equal(state.preset.lfo.enabled,false);
+    assert.equal(state.capacity,6);assert.equal(state.voices.length,0);
+    assert.equal(await page.locator('[data-vgm-voice="1"]').getAttribute('aria-pressed'),'true');
+    await page.keyboard.down(keys[0]);await wait(s=>s.voices.length===1);await sound();await page.keyboard.up(keys[0]);await silent();
+    await page.locator('[data-wave-target="main"]').click();await page.locator('[data-wave-shape="saw"]').click();
+    await wait(s=>JSON.stringify(s.preset.wave)!==JSON.stringify(vgmWave));
+    assert.equal(await page.locator('[data-vgm-voice][aria-pressed="true"]').count(),0);
+    await page.locator('[data-vgm-voice="1"]').click();state=await wait(s=>JSON.stringify(s.preset.wave)===JSON.stringify(vgmWave));
+    const imported=state.preset,saveImport=page.waitForEvent('download');await page.locator('#savePreset').click();
+    assert.deepEqual(JSON.parse(await fs.readFile(await(await saveImport).path(),'utf8')),imported);
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.name==='Sine');
+    await page.locator('#presetFileInput').setInputFiles({name:'imported.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(imported))});
+    await wait(s=>JSON.stringify(s.preset)===JSON.stringify(imported));
+    check('VGM files, failures, VGZ and cancelled analysis retain held sound');
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const importOwner=state.voices[0].id;
+    await page.locator('#vgmFileInput').setInputFiles({name:'wrong-chip.vgm',mimeType:'application/octet-stream',buffer:vgmBytes([0x66],0)});
+    await page.waitForFunction(()=>document.querySelector('#vgmStatus').dataset.error==='true');
+    state=await read();assert.equal(state.voices[0].id,importOwner);assert.deepEqual(state.preset,imported);
+    await page.locator('#vgmFileInput').setInputFiles({name:'compressed.vgz',mimeType:'application/gzip',buffer:gzipSync(makeVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='compressed.vgz');
+    state=await read();assert.equal(state.voices[0].id,importOwner);assert.deepEqual(state.preset,imported);
+    check('late file reads cannot replace the newer library or current instrument');
+    await page.evaluate(()=>{
+      window.audit.originalFileRead=File.prototype.arrayBuffer;
+      File.prototype.arrayBuffer=function(...args) {
+        if(this.name!=='stale.vgm') return window.audit.originalFileRead.apply(this,args);
+        return new Promise((resolve,reject)=>{
+          window.audit.releaseStale=()=>window.audit.originalFileRead.apply(this,args).then(resolve,reject);
+        });
+      };
+    });
+    await page.locator('#vgmFileInput').setInputFiles({name:'stale.vgm',mimeType:'application/octet-stream',buffer:makePagedVgm()});
+    await page.waitForFunction(()=>typeof window.audit.releaseStale==='function');
+    await page.locator('#vgmFileInput').setInputFiles({name:'newer.vgz',mimeType:'application/gzip',buffer:gzipSync(makeVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='newer.vgz');
+    await page.evaluate(async()=>{await window.audit.releaseStale();File.prototype.arrayBuffer=window.audit.originalFileRead;});
+    assert.equal(await page.locator('#vgmFileName').textContent(),'newer.vgz');
+    state=await read();assert.equal(state.voices[0].id,importOwner);assert.deepEqual(state.preset,imported);
+    await page.locator('#vgmFileInput').setInputFiles({name:'long.vgm',mimeType:'application/octet-stream',buffer:makeLongVgm()});
+    await page.locator('#cancelVgm').click();
+    await page.waitForFunction(()=>document.querySelector('#vgmStatus').textContent.includes('cancelled'));
+    await page.waitForTimeout(70);state=await read();assert.equal(state.voices[0].id,importOwner);assert.deepEqual(state.preset,imported);
+    assert.equal(await page.locator('#vgmFileName').textContent(),'newer.vgz');
+    await page.keyboard.up(keys[0]);await silent();
+    check('Wave/Noise filters, paging and selection preserve performance keys');
+    await page.locator('[data-vgm-filter="noise"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
+    await page.locator('[data-vgm-voice]').click();state=await wait(s=>s.preset.source==='noise'&&s.preset.noise.frequency===16);
+    assert.equal(state.preset.volume,23);assert.equal(state.capacity,2);
+    await page.keyboard.down(keys[0]);await wait(s=>s.voices.length===1);await sound();await page.keyboard.up(keys[0]);await silent();
+    await page.locator('#vgmFileInput').setInputFiles({name:'many-waves.vgm',mimeType:'application/octet-stream',buffer:makePagedVgm()});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='many-waves.vgm');
+    assert.equal(await page.locator('[data-vgm-voice]').count(),24);await page.locator('#vgmNext').click();
+    assert.equal(await page.locator('[data-vgm-voice]').count(),5);await page.locator('#vgmPrevious').click();
+    assert.equal(await page.locator('[data-vgm-voice]').count(),24);
+    await page.locator('[data-vgm-voice]').first().click();await wait(s=>s.preset.source==='wave');
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const closedOwner=state.voices[0].id;
+    await page.locator('#closeVgm').click();state=await read();assert.equal(state.voices[0].id,closedOwner);
+    await page.keyboard.up(keys[0]);await silent();
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#stopAudio').click();await wait(s=>s.voices.length===0);await silent();
     await page.locator('#octaveUp').click();assert.equal((await page.locator('#octaveValue').textContent()).trim(),'+1');
@@ -174,6 +271,8 @@ async function checkEngine(name, engine, origin) {
     await page.locator('[data-visual-mode="spectrum"]').click();
     assert.equal(await page.locator('[data-visual-mode="spectrum"]').getAttribute('aria-pressed'),'true');
     await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+    await page.locator('#vgmFileInput').setInputFiles({name:'mobile.vgm',mimeType:'application/octet-stream',buffer:makeVgm()});
+    await page.waitForFunction(()=>document.querySelectorAll('[data-vgm-voice]').length===3);
     assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
     if(config.screenshots) {await fs.mkdir(config.screenshots,{recursive:true});await page.screenshot({path:path.join(config.screenshots,`${name}-390.png`),fullPage:true});}
     await page.setViewportSize({width:1180,height:1000});await page.locator('#resetPreset').click();await wait(s=>!s.preset.lfo.enabled);

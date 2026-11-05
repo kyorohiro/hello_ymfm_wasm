@@ -14,6 +14,17 @@ input[type="range"] { accent-color:#458eb8; }
 .huc-monitor { border-color:#555f67; }
 .visual-mode-controls button[aria-pressed="true"] { background:#854415; border-color:#efaa65; }
 #outputCanvas { display:block; width:100%; height:190px; border-radius:8px; }
+.huc-vgm-import { margin:0 0 20px; }
+.huc-vgm-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:8px 0; min-width:0; }
+.huc-vgm-actions .subtext { margin:0; }
+#vgmFileName { flex:1 1 200px; min-width:0; overflow-wrap:anywhere; font-size:.76rem; }
+#vgmStatus[data-error="true"] { color:#a02f31; }
+.huc-vgm-filters { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+.huc-vgm-filters button { border-radius:999px; }
+.huc-vgm-voices { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr)); gap:7px; }
+.huc-vgm-voices button { display:flex; flex-direction:column; gap:5px; align-items:start; padding:10px 12px; text-align:left; overflow-wrap:anywhere; }
+.huc-vgm-voices small { font-size:.65rem; font-weight:400; }
+.huc-vgm-warnings { overflow-wrap:anywhere; }
 .huc-workspace { padding:8px 0 0; }
 .huc-workspace .section-heading { justify-content:space-between; margin-bottom:10px; }
 #voiceCapacity { color:#9a4315; font-weight:650; }

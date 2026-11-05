@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica HuC6280 Synth — explore PC Engine wavetable, Noise and hardware LFO; draw your own sound and take the code.">
+  <meta name="description" content="Tetorica HuC6280 Synth — import PC Engine Wave and Noise sounds from VGM, draw a wavetable, explore hardware LFO and take the code.">
   <meta name="theme-color" content="#f3f4f5">
   <meta name="application-name" content="Tetorica HuC6280 Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica HuC6280 Synth">
@@ -65,6 +65,33 @@
           </label>
         </div>
       </section>
+
+      <details id="vgmImport" class="huc-card huc-vgm-import" open>
+        <summary>Sounds from VGM</summary>
+        <div class="huc-card-content">
+          <div class="huc-vgm-actions">
+            <button id="loadVgm" type="button">Load VGM / VGZ…</button>
+            <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with HuC6280 sound">
+            <button id="cancelVgm" type="button" hidden>Cancel import</button>
+            <p id="vgmStatus" class="subtext" role="status" aria-live="polite">Choose a PC Engine VGM, then select a Wave or Noise sound to play.</p>
+          </div>
+          <div id="vgmLibrary" hidden>
+            <div class="huc-vgm-actions"><strong id="vgmFileName"></strong><button id="closeVgm" type="button">Close library</button></div>
+            <div class="huc-vgm-filters" role="group" aria-label="Filter VGM sounds">
+              <button type="button" data-vgm-filter="all" aria-pressed="true">All</button>
+              <button type="button" data-vgm-filter="wave" aria-pressed="false">Wave</button>
+              <button type="button" data-vgm-filter="noise" aria-pressed="false">Noise</button>
+            </div>
+            <div id="vgmVoices" class="huc-vgm-voices" role="group" aria-label="Extracted HuC6280 sounds"></div>
+            <div class="huc-vgm-actions">
+              <button id="vgmPrevious" type="button">Previous</button><span id="vgmPage" class="subtext"></span><button id="vgmNext" type="button">Next</button>
+            </div>
+            <p id="vgmWarnings" class="subtext huc-vgm-warnings" hidden></p>
+          </div>
+          <p class="subtext">Opening a file keeps the current instrument. Select a sound to load it, then edit its wave or save a preset. Software Envelope is off for imported sounds.</p>
+          <p class="subtext">Imports recorded Wave / Noise settings, not song playback or later software envelopes. LFO voices, DDA / DAC streams and incomplete Wave RAM are omitted with an explanation.</p>
+        </div>
+      </details>
 
       <section class="instrument-workspace huc-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Wavetable · 6 voices · round robin</p></div>

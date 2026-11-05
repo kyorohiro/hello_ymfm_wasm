@@ -68,7 +68,7 @@ Decisions made during the README reorganization on 2026-10-10:
 | Audio package APIs and module catalog | [packages/fm2612/README.md](packages/fm2612/README.md) |
 | Tetorica DMG Synth, one-APU allocation and portable presets | [Synth guide](docs/synth-dmg/README.md), [implementation TODO](docs/issues/todo_gameboy_synth_01.md) |
 | 2A03 Synth, keyboard allocation, wave / modulation editing and portable presets | [Synth guide](docs/synth-2a03/README.md), [implementation TODO](docs/issues/todo_nes_fds_synth_01.md) |
-| HuC6280 Synth, six-channel wavetable / Noise / LFO and software Envelope | [Synth guide](docs/synth-huc6280/README.md), [implementation TODO](docs/issues/todo_huc6280_synth_01.md) |
+| HuC6280 Synth, six-channel wavetable / Noise / LFO, software Envelope and VGM / VGZ Wave / Noise import | [Synth guide](docs/synth-huc6280/README.md), [implementation TODO](docs/issues/todo_huc6280_synth_01.md) |
 | VGM package examples | [packages/vgm/README.md](packages/vgm/README.md) |
 | Virtual-file and shell APIs | [packages/virtual-files/README.md](packages/virtual-files/README.md) |
 | Design and feature-specific work records | [docs/issues/](docs/issues/) |
