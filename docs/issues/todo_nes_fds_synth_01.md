@@ -11,6 +11,31 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## Triangle Linear／Length Counter（2026-11-05 完了・追加分は未公開）
+
+既存NES coreのTriangle発音gateをUI・保存・VGM読込へつなぐ。旧来のHold keyを既定にし、Hardware countersを選ぶと押したままでもカウンターで波形が止まるようにする。共有runtime・DSP／WASMは変更しない。
+
+- [x] preset v6へ`triangle:{control:true,linearReload:127,lengthIndex:1}`を追加し、旧v1〜v5は従来のHold設定へ厳密移行する。controlは`$4008` bit 7で、Linear reload維持とLength haltを共有する。
+- [x] TriangleカードへHold key／Hardware counters、Linear reload 0〜127、Length table index 0〜31を既存button UIで追加する。length tableと約NTSC時間、先に0になるcounterで止まること、reload 0の無音を示す。
+- [x] gate設定は次noteへ反映する。発音時にcontrol／reloadとauthored length indexを設定し、index 0をfallbackで1に変えない。保持中のPitchはactive length bitsを保ち、timer上位bit変更の実機再読込動作を明示する。
+- [x] VGMからcontrol／reload／length indexを取り込み、pitchは重複判定から除いてcounter設定差を保持する。元の経過counter値／frame位相は再生しないことを説明する。
+- [x] Copy JavaScriptは既存公開APIでcounter設定を発音前に反映する。実WASMでHold・Linear／Length両方の停止・reload 0・再発音・離鍵・遅いowner解放・Pitch／設定変更・不正入力を検証する。
+- [x] Chromium／WebKit・独立ZIPで無音の編集、focus、実PCM／counter、保存・旧版移行、VGM・code出力、既存機能を確認し、ガイド・検証記録を更新する。
+
+既定はcontrol true／reload 127／length index 1で従来の`$4008=0xff`を保つ。Counter modeはcontrol falseで、reloadは約240 Hz、length tableは約120 HzのNTSC目安を表示する。実際の停止時刻はframe位相で前後する。カウンター停止後も保持中のnote ownerを保ち、新しい発音・離鍵・Stopで更新する。
+
+`instrument.js`はidle時と新しい発音で`$4008`を設定し、Triangleのtrigger時は指定Length indexを`$400b`へ渡してから既存`keyOn(2)`で有効化・再書込する。保持中の設定変更は書かず、PitchはactiveなLength bitsを保つ。index 0は有効値として扱い、Pulse向けのfallback 1と分離した。timer上位bitsが変わるPitchは実機の再読込を保つ。共有core／runtime／WASMは変更していない。参考：[NESdev APU Triangle](https://www.nesdev.org/wiki/APU_Triangle)。
+
+preset v6はTriangleの3fieldsを厳密に検証し、旧v1〜v5はHold既定値を追加する。既存Envelope・DMC・FDS clock等の設定は保つ。新しいv6保存物は古いSynthでは読めない。Copy JavaScriptは公開`triangle.setFrequency()`の戻り値を使い、`$4008`・指定Length indexの`$400b`を書いてから`triangle.keyOn()`する。VGMはcounter設定ごとにTriangleを区別し、Pitchだけの差は統合する。元の経過counter値／frame位相は再現せず、鍵盤から記録されたreload設定で開始する。
+
+検証：`npm run test:2a03-synth`は**141件成功、失敗0**（既存128＋preset 2＋実WASM gate 8＋VGM 3）。44.1／48 kHzでHold・reload 0の無音・Linear／Lengthの停止順、全32 Length index、再発音・離鍵・Stop・古いownerの安全性、次note反映、Pitchの同一上位byte／境界変更・active index 0、不正入力のatomicity、VGM→code→公開APIの発音とgateを確認した。停止時のDAC保持を音量0と混同せず、filter後のAC RMSでwaveform停止を測定した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。無音の編集、時間表示、Linear／Lengthでの停止と保持中identity、index 0、reload 0、次note反映、keyboard focus、v6保存・復元、v1〜v5移行、3種類のVGM counter設定とPitch重複統合、既存DMC／Noise／FDSの回帰を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理出力はmuteして測定した。Triangleのmobile表示も確認済み。記録：[ソース版](2a03_synth_triangle_gate_browser_01.json)、[ZIP版](2a03_synth_triangle_gate_zip_browser_01.json)。短いindex 0はブラウザの一瞬の試奏取得に依存せず、register／終了と実WASM単体の時間・発音で検証した。
+
+配布候補：`release/tetorica_2a03_synth_triangle-gate-20261105_itch.zip`（35 files／3 bundles、1,179,736 bytes、SHA-256 `13dee9489678f111cd38bb3a4dc1534f7388f521d71014069a0fe0f1a1a384e0`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。ガイド・英日AI README・homeの案内も更新した。
+
+試し方：ページ再読込 → Triangle → Hardware counters → Linear reload 48／Length index 1 → 新しい鍵盤を押したままにすると約0.2秒で波形が止まる。Hold keyへ戻して新しい鍵盤を弾くと従来の保持になる。設定は次noteから反映する。手元の実聴、今回追加分のcommit／push／公開は未実行。ローカルURLは`http://localhost:8008/synth-2a03/index.html`。
+
 ## FDS変調DepthハードウェアEnvelope（2026-11-05 完了・追加分は未公開）
 
 既存coreのMod gain Envelopeを操作・保存・VGM読込へ接続し、Volume／Depthの共通clockを明示する。共有runtime・DSP／WASMは変更しない。
@@ -352,7 +377,8 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] NoiseのハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] FDS音量のハードウェアEnvelopeをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] FDS変調の深さのEnvelopeを追加し、Volume／Depthの共通clockを分離する（上記2026-11-05）。
-- [ ] Triangleの追加counter制御と、各channelのlength counter編集を段階的に検討する。
+- [x] TriangleのLinear／Length CounterをUI・VGM・presetへ接続する（上記2026-11-05）。
+- [ ] Pulse／NoiseのLength Counter編集を段階的に検討する。Envelope LoopとLength haltの共有flagを正しく扱う。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時

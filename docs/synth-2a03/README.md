@@ -23,7 +23,7 @@ One NTSC NES APU with FDS supplies these voices:
 | Source | Keyboard voices | Controls |
 | --- | --- | --- |
 | Pulse | Two, in round robin | Four Duty settings, fixed volume, hardware Envelope and Sweep |
-| Triangle | One | Fixed hardware waveform with keyboard note and gate |
+| Triangle | One | Fixed hardware waveform, held gate or Linear / Length counters |
 | Noise | One | Fixed volume or hardware Envelope, period code and long / short LFSR sequence |
 | DMC | One | Pre-encoded DPCM sample, 16 Rate settings, Loop and Initial level |
 | FDS | One | 64 six-bit samples, hardware volume / modulation-depth Envelopes, shared Envelope clock, master scale, frequency modulation |
@@ -42,8 +42,8 @@ musical note pitch and both Pitch wheels are disabled for DMC.
 **Octave − / +**, Guitar / Bass / Ukulele and the fret controls change the
 keyboard layout. Keys outside the source's timer range are disabled. The two
 **Pitch** wheels stay synchronized and return to center on release. Bend is a
-software performance control using hardware frequency registers. On NES Pulse,
-crossing the timer's high-byte boundary can restart the hardware Envelope / length counter;
+software performance control using hardware frequency registers. On NES Pulse / Triangle,
+crossing the timer's high-byte boundary reloads the hardware Envelope / counters;
 Pitch is not a promise of continuous, sample-accurate tuning.
 
 ## Edit the sound
@@ -62,9 +62,24 @@ registers. [NESdev's Envelope reference](https://www.nesdev.org/wiki/APU_Envelop
 describes the shared Pulse / Noise hardware. Sweep follows the Pulse hardware
 timer and can mute a voice at its limits.
 
-Triangle uses its fixed waveform and hardware gate. This first version keeps its
-linear / length behavior configured for held keyboard notes. It has no separate
-hardware volume setting.
+Triangle uses its fixed waveform and has no separate hardware volume setting.
+Its **Hardware gate · Linear + Length** controls choose how long it cycles:
+
+- **Hold key**, the default, keeps Linear reload active and halts the Length
+  counter. This is the previous Synth behavior.
+- **Hardware counters** lets both counters run down. The first to reach zero
+  stops the waveform even while the key remains held.
+- **Linear reload 0–127** loads the Linear counter. Zero keeps the channel
+  silent in either mode. Its NTSC estimate uses about 240 ticks per second.
+- **Length table index 0–31** selects a hardware table entry, shown with its
+  tick count and approximate time at 120 ticks per second. A larger index does
+  not necessarily mean a longer note. This control is inactive in Hold mode.
+
+The readout gives both durations and the earlier limit. Exact timing depends on
+frame phase. Settings apply on the next note. Counter expiry keeps the key held
+on screen; release it or play a new key to retrigger. A timer-high Pitch write
+can reload both counters while retaining the held key. On closure the sequencer
+holds its last level and output filters settle. See the [Triangle hardware reference](https://www.nesdev.org/wiki/APU_Triangle).
 
 Noise has its own **Hardware volume envelope** section, with **Enable Envelope**,
 **Period** and **Loop Envelope**. The volume decays from 15 to 0; Loop repeats it
@@ -279,6 +294,10 @@ asynchronous read cannot replace a newer library.
 
 Pulse and Noise keep the recorded Envelope mode, divider Period and Loop flag.
 Each keyboard note starts a fresh hardware envelope using those settings.
+Triangle keeps its recorded control flag, Linear reload and Length index.
+Counter-setting differences remain distinct; pitch-only differences share a
+voice. Keyboard audition restarts those counters; the original elapsed values
+and frame phase are not replayed.
 FDS volume / Depth Envelopes retain their directions, dividers, known initial
 gains and shared clock / pause. Missing gains or timers that already progressed
 are disclosed as approximate restarts. An unrecorded FDS master Envelope speed
@@ -286,7 +305,7 @@ uses 232 with a note. The modulation table's running phase / counter is still
 restarted for keyboard audition, as disclosed with the voice.
 
 This imports initial sound settings for keyboard performance. Original note
-pitch, length / linear counters, song playback and later parameter changes are
+pitch, elapsed counters / frame phase, song playback and later parameter changes are
 not reconstructed. FDS needs complete recorded Wave RAM; missing RAM is not
 filled with a factory waveform. Settings beyond the current editor's controls
 may need a static approximation, which is explained with the selected sound.
@@ -324,12 +343,13 @@ passive analyser. Master ranges from 0 to 380%, with orange above 100%. It is a
 software output gain separate from hardware voice volume.
 
 **Save preset** downloads `2a03-voice.json`. The validated
-`tetorica-nes-fds-voice` version-5 format includes all five sources' settings,
-Noise / FDS volume / FDS Depth Envelopes, the original DPCM bytes, FDS wave and
-modulation table. Version-1 through version-4 presets still load and preserve
-their supported settings; missing Envelope controls start off. Version-4's FDS
+`tetorica-nes-fds-voice` version-6 format includes all five sources' settings,
+Triangle gate / counters, Noise / FDS volume / FDS Depth Envelopes, the original
+DPCM bytes, FDS wave and modulation table. Version-1 through version-5 presets
+still load and preserve their supported settings. Missing Triangle controls use
+Hold key / Linear reload 127 / Length index 1; missing Envelope controls start off. Version-4's FDS
 clock settings move to the shared clock without changing their values.
-Saving creates version 5, which older Synth releases do
+Saving creates version 6, which older Synth releases do
 not read. Master, Octave, keyboard layout and temporary
 Pitch are not saved. **Load preset** validates the whole file before changing the
 instrument. Invalid / oversized files keep the current sound. Loading a valid

@@ -53,7 +53,7 @@ YM2612から始まった次の4つの目標を、多様な音源チップへ広�
 | [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FMオペレーター／エンベロープ編集、鍵盤試奏、VGM音色取込、TFI／VGI編集。 |
 | [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、PCMお絵描き、ADSR、PMON、Noise、SPU Reverb、PSF／VAB音色抽出。 |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMGの1台のAPUでPulse／Wave／Noiseを演奏。ラウンドロビン鍵盤、波形描画、プリセット、JavaScript出力。英語UI。[ガイド](docs/synth-dmg/README.md)。 |
-| [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Pulse／Triangle／Noise／DMC／FDSを鍵盤で試奏。Pulse／Noise／FDSの実機Envelope、DMC目標波形の描画・bit編集・DAC可視化・Undo／Redo、FDS波形・変調table編集、VGM／VGZ音色・サンプル抽出、DPCM書出・プリセット保存・JavaScriptコピー。英語UI。[ガイド](docs/synth-2a03/README.md)。 |
+| [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Pulse／Triangle／Noise／DMC／FDSを鍵盤で試奏。実機EnvelopeとTriangle counter gate、DMC目標波形の描画・bit編集・DAC可視化・Undo／Redo、FDS波形・変調table編集、VGM／VGZ音色・サンプル抽出、DPCM書出・プリセット保存・JavaScriptコピー。英語UI。[ガイド](docs/synth-2a03/README.md)。 |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |

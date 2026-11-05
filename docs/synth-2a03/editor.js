@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm, TRIANGLE_LENGTHS} from './preset.js';
 import {createDmcBitEditor} from './dmc_editor.js';
 
 /** A passive editor. Editing never creates an audio device. */
@@ -200,7 +200,14 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const trianglePreview = make('div','nes-triangle-preview'); trianglePreview.setAttribute('aria-hidden','true');
   trianglePreview.innerHTML = '<svg viewBox="0 0 320 60" preserveAspectRatio="none"><path d="M0 50 L40 10 L80 50 L120 10 L160 50 L200 10 L240 50 L280 10 L320 50"/></svg>';
   triangle.append(trianglePreview);
-  help(triangle, 'One Triangle channel follows your keyboard notes. Its waveform and level are fixed by the hardware; use Master for the output level. This version keeps the hardware gate open while a key is held.');
+  const triangleFields = group(section(triangle, 'Hardware gate · Linear + Length'));
+  select(triangleFields, 'Gate mode', 'triangleControl', [[true,'Hold key'],[false,'Hardware counters']], value => value.triangle.control, (value, control) => {value.triangle.control = control === 'true';});
+  number(triangleFields, 'Linear reload · 0–127', 'triangleLinearReload', 0, 127, value => value.triangle.linearReload, (value, linearReload) => {value.triangle.linearReload = linearReload;});
+  const triangleLengthIndex = number(triangleFields, 'Length table index · 0–31', 'triangleLengthIndex', 0, 31, value => value.triangle.lengthIndex, (value, lengthIndex) => {value.triangle.lengthIndex = lengthIndex;});
+  const triangleReadout = make('p', 'nes-wave-readout'); triangleReadout.id = 'triangleGateReadout'; triangleReadout.setAttribute('aria-live','polite'); triangle.append(triangleReadout);
+  help(triangle, 'Hold key keeps the Linear reload active and halts the Length counter. Hardware counters count down; the first counter to reach 0 stops the waveform. Linear reload 0 keeps the channel silent. Times are approximate NTSC values; frame phase affects the exact stop.');
+  help(triangle, 'Gate settings apply on the next note. A Pitch change that writes the timer high byte reloads the counters. The sequencer holds its last level when the gate closes; output filters then settle. Release or play a new key to restart.');
+  help(triangle, 'One Triangle channel follows your keyboard notes. Its waveform and level are fixed by the hardware; use Master for the output level.');
 
   const noise = card('Noise · hardware LFSR'), noiseFields = group(noise);
   const noiseFixedVolume = number(noiseFields, 'Fixed volume · 0–15', 'noiseVolume', 0, 15, value => value.noise.volume, (value, volume) => {value.noise.volume = volume;});
@@ -400,6 +407,11 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     }
     pulse.hidden=preset.source!=='pulse';triangle.hidden=preset.source!=='triangle';noise.hidden=preset.source!=='noise';dmc.hidden=preset.source!=='dmc';fds.hidden=preset.source!=='fds';
     fixedVolume.setDisabled(preset.pulse.envelope.enabled);envelopePeriod.setDisabled(!preset.pulse.envelope.enabled);envelopeLoop.disabled=!preset.pulse.envelope.enabled;
+    triangleLengthIndex.setDisabled(preset.triangle.control);
+    const triangleLinearMs = preset.triangle.linearReload / 240 * 1000, triangleLengthTicks = TRIANGLE_LENGTHS[preset.triangle.lengthIndex], triangleLengthMs = triangleLengthTicks / 120 * 1000;
+    triangleReadout.textContent = preset.triangle.linearReload === 0 ? 'Linear reload 0 · the waveform stays stopped.'
+      : preset.triangle.control ? `Hold key · Linear reload ${preset.triangle.linearReload} repeats · Length counter halted.`
+      : `Linear ${preset.triangle.linearReload} ticks ≈ ${triangleLinearMs.toFixed(1)} ms · Length index ${preset.triangle.lengthIndex}: ${triangleLengthTicks} ticks ≈ ${triangleLengthMs.toFixed(1)} ms · first counter ends in about ${Math.min(triangleLinearMs,triangleLengthMs).toFixed(1)} ms.`;
     noiseFixedVolume.setDisabled(preset.noise.envelope.enabled);noiseEnvelopePeriod.setDisabled(!preset.noise.envelope.enabled);noiseEnvelopeLoop.disabled=!preset.noise.envelope.enabled;
     fdsFixedVolume.setDisabled(preset.fds.envelope.enabled);for(const control of fdsEnvelopeControls)control.setDisabled(!preset.fds.envelope.enabled);
     const fdsClockEnabled = preset.fds.envelope.enabled || preset.fds.modulation.envelope.enabled;

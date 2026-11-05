@@ -3,6 +3,7 @@
 const FORMAT = 'tetorica-nes-fds-voice';
 const SOURCES = ['pulse', 'triangle', 'noise', 'dmc', 'fds'];
 export const MAX_DPCM_BYTES = 4081;
+export const TRIANGLE_LENGTHS = Object.freeze([10,254,20,2,40,4,80,6,160,8,60,10,14,12,26,14,12,16,24,18,48,20,96,22,192,24,72,26,16,28,32,30]);
 const own = (value, keys, label) => {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       ![null, Object.prototype].includes(Object.getPrototypeOf(value))) throw new TypeError(`${label}: expected an object`);
@@ -60,9 +61,10 @@ export function waveShape(name) {
 
 export function createDefaultPreset() {
   return {
-    format: FORMAT, version: 5, name: 'Pulse', source: 'pulse',
+    format: FORMAT, version: 6, name: 'Pulse', source: 'pulse',
     pulse: {duty: .5, volume: 10, envelope: {enabled: false, period: 8, loop: false},
       sweep: {enabled: false, period: 2, negate: false, shift: 1}},
+    triangle: {control: true, linearReload: 127, lengthIndex: 1},
     noise: {volume: 8, period: 6, shortMode: false, envelope: {enabled: false, period: 8, loop: false}},
     dmc: {data: [], rate: 15, loop: false, level: 64},
     fds: {wave: waveShape('sine'), volume: 24, master: 0,
@@ -80,12 +82,14 @@ export function readPreset(value) {
   const legacyFds = [1, 2, 3].includes(value?.version);
   const legacyFdsClock = value?.version === 4;
   const legacyModulation = [1, 2, 3, 4].includes(value?.version);
-  own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc'])], 'NES + FDS preset');
-  if (value.format !== FORMAT || ![1, 2, 3, 4, 5].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
+  const legacyTriangle = [1, 2, 3, 4, 5].includes(value?.version);
+  own(value, ['format', 'version', 'name', 'source', 'pulse', 'noise', 'fds', ...(legacy ? [] : ['dmc']), ...(legacyTriangle ? [] : ['triangle'])], 'NES + FDS preset');
+  if (value.format !== FORMAT || ![1, 2, 3, 4, 5, 6].includes(value.version)) throw new TypeError('Unsupported NES + FDS preset format/version');
   if (typeof value.name !== 'string' || value.name.length > 80 || /[\u0000-\u001f\u007f\u2028\u2029]/.test(value.name)) throw new TypeError('Instrument name must be at most 80 characters without control characters');
   own(value.pulse, ['duty', 'volume', 'envelope', 'sweep'], 'Pulse');
   own(value.pulse.envelope, ['enabled', 'period', 'loop'], 'Pulse envelope');
   own(value.pulse.sweep, ['enabled', 'period', 'negate', 'shift'], 'Pulse sweep');
+  if (!legacyTriangle) own(value.triangle, ['control', 'linearReload', 'lengthIndex'], 'Triangle');
   own(value.noise, ['volume', 'period', 'shortMode', ...(legacyNoise ? [] : ['envelope'])], 'Noise');
   if (!legacyNoise) own(value.noise.envelope, ['enabled', 'period', 'loop'], 'Noise envelope');
   if (!legacy) own(value.dmc, ['data', 'rate', 'loop', 'level'], 'DMC');
@@ -95,10 +99,14 @@ export function readPreset(value) {
   own(value.fds.modulation, ['enabled', 'table', 'rate', 'depth', 'bias', ...(legacyModulation ? [] : ['envelope'])], 'FDS modulation');
   if (!legacyModulation) own(value.fds.modulation.envelope, ['enabled', 'increase', 'period', 'initialGain'], 'FDS modulation envelope');
   return {
-    format: FORMAT, version: 5, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
+    format: FORMAT, version: 6, name: value.name.trim(), source: choice(value.source, legacy ? SOURCES.filter(source => source !== 'dmc') : SOURCES, 'Sound source'),
     pulse: {duty: choice(value.pulse.duty, [.125, .25, .5, .75], 'Pulse duty'), volume: integer(value.pulse.volume, 0, 15, 'Pulse volume'),
       envelope: {enabled: boolean(value.pulse.envelope.enabled, 'Envelope enabled'), period: integer(value.pulse.envelope.period, 0, 15, 'Envelope period'), loop: boolean(value.pulse.envelope.loop, 'Envelope loop')},
       sweep: {enabled: boolean(value.pulse.sweep.enabled, 'Sweep enabled'), period: integer(value.pulse.sweep.period, 0, 7, 'Sweep period'), negate: boolean(value.pulse.sweep.negate, 'Sweep negate'), shift: integer(value.pulse.sweep.shift, 0, 7, 'Sweep shift')}},
+    triangle: legacyTriangle ? {control:true, linearReload:127, lengthIndex:1} : {
+      control: boolean(value.triangle.control, 'Triangle control'), linearReload: integer(value.triangle.linearReload, 0, 127, 'Triangle linear reload'),
+      lengthIndex: integer(value.triangle.lengthIndex, 0, 31, 'Triangle length index'),
+    },
     noise: {volume: integer(value.noise.volume, 0, 15, 'Noise volume'), period: integer(value.noise.period, 0, 15, 'Noise period'), shortMode: boolean(value.noise.shortMode, 'Noise short mode'),
       envelope: legacyNoise ? {enabled: false, period: 8, loop: false} : {
         enabled: boolean(value.noise.envelope.enabled, 'Noise envelope enabled'), period: integer(value.noise.envelope.period, 0, 15, 'Noise envelope period'), loop: boolean(value.noise.envelope.loop, 'Noise envelope loop'),
@@ -134,7 +142,14 @@ export function presetToCode(value) {
     const voice = {duty, ...(envelope.enabled ? {envelope: {period: envelope.period, loop: envelope.loop}} : {volume}),
       sweep: sweep.enabled ? sweep : {enabled: false, period: 0, negate: true, shift: 0}};
     for (const ch of [0, 1]) lines.push(`nes.pulse.setVoice(${ch}, ${JSON.stringify(voice)});`);
-  } else if (preset.source === 'triangle') lines.push('nes.writeRegister(0x4008, 0xff); // Hold the triangle linear counter.');
+  } else if (preset.source === 'triangle') {
+    const {control, linearReload, lengthIndex} = preset.triangle;
+    lines.push('const trianglePeriod = nes.triangle.setFrequency(440 * 2 ** ((60 - 69) / 12)); // C4.',
+      `nes.writeRegister(0x4008, ${(control ? 128 : 0) | linearReload}); // Linear reload / shared length halt.`,
+      `nes.writeRegister(0x400b, ${lengthIndex << 3} | (trianglePeriod >> 8)); // Authored length-table index, including zero.`,
+      'nes.triangle.keyOn();', '// Release with nes.noteOff(2);');
+    return lines.join('\n');
+  }
   else if (preset.source === 'noise') {
     const {volume, period, shortMode, envelope} = preset.noise;
     lines.push(`nes.noise.setVoice(${JSON.stringify({volume, period, shortMode})});`);

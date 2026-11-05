@@ -61,10 +61,16 @@ export class NesInstrument {
     // must not rewrite its control or reset that divider's current phase.
     if (!live || constantDepth && !envelope.enabled) this.synth.writeRegister(0x4084, 128 | depth);
   }
+  _triangleControl(preset) {
+    const {control, linearReload} = preset.triangle;
+    this.synth.writeRegister(0x4008, (control ? 128 : 0) | linearReload);
+  }
   _apply(previous, next) {
     const changed = (path, value) => !previous || !equal(path(previous), value);
     if (changed(p => p.pulse, next.pulse)) for (let channel = 0; channel < 2; channel++) this._pulseVoice(channel, next, {live: Boolean(this.slots[channel])});
-    if (!previous) this.synth.writeRegister(0x4008, 0xff);
+    // Authored gate settings wait for a fresh attack while a key owns CH3,
+    // including after a hardware counter has already stopped its sequencer.
+    if (changed(p => p.triangle, next.triangle) && !this.slots[2]) this._triangleControl(next);
     if (changed(p => p.noise, next.noise)) this._noiseVoice(next, {live:Boolean(this.slots[3])});
     if (changed(p => p.dmc.data, next.dmc.data) && next.dmc.data.length) {
       // This instrument runs inside the Worklet with a DirectTransport, so
@@ -88,7 +94,7 @@ export class NesInstrument {
       if (changed(p => [p.fds.modulation.rate, p.fds.modulation.enabled], [mod.rate, mod.enabled])) this.synth.writeRegister(0x4087, (mod.enabled ? 0 : 128) | (mod.rate >> 8));
     }
   }
-  _retune(channel, period, {trigger = false} = {}) {
+  _retune(channel, period, {trigger = false, lengthIndex} = {}) {
     if (channel === 5) {
       this.synth.writeRegister(0x4082, period & 255);
       this.synth.writeRegister(0x4083, (this.synth._getState().registers[0x83] & 0xc0) | (period >> 8));
@@ -99,7 +105,10 @@ export class NesInstrument {
     // NES timer-high writes restart the hardware envelope/length. Skip them
     // while the high bits are unchanged. Crossing a timer-byte boundary still
     // has that hardware side effect; the host voice identity stays unchanged.
-    if (trigger || (previous & 7) !== (period >> 8)) this.synth.writeRegister(base + 3, (previous & 0xf8 || 8) | (period >> 8));
+    // Triangle length index 0 is meaningful. Pitch retains the active index,
+    // rather than applying a pending draft or substituting Pulse's default.
+    const length = channel === 2 ? (lengthIndex === undefined ? previous & 0xf8 : lengthIndex << 3) : (previous & 0xf8 || 8);
+    if (trigger || (previous & 7) !== (period >> 8)) this.synth.writeRegister(base + 3, length | (period >> 8));
   }
   read() {
     this._open();
@@ -135,7 +144,8 @@ export class NesInstrument {
       this._pulseVoice(channel, this.preset);
       this._retune(channel, tone.period, {trigger: true}); this.synth.keyOn(channel);
     } else if (source === 'triangle') {
-      this.synth.writeRegister(0x4008, 0xff); this._retune(2, tone.period, {trigger: true}); this.synth.keyOn(2);
+      this._triangleControl(this.preset);
+      this._retune(2, tone.period, {trigger:true, lengthIndex:this.preset.triangle.lengthIndex}); this.synth.keyOn(2);
     } else if (source === 'noise') {this._noiseVoice(this.preset); this.synth.noise.noteOn();}
     else if (source === 'dmc') {
       const {rate, loop, level, data} = this.preset.dmc;

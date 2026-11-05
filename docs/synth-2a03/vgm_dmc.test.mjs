@@ -42,7 +42,7 @@ test('DMC-only VGM and VGZ recover complete encoded bytes and the recorded playb
   assert.equal(voice.channel, 5); assert.equal(voice.firstTime, 0); assert.equal(voice.occurrences, 1);
   assert.match(voice.preset.name, /^DMC\b/);
   assert.deepEqual(voice.preset.dmc, {data:createDemoDpcm(), rate:7, loop:true, level:48});
-  assert.equal(voice.preset.source, 'dmc'); assert.equal(voice.preset.version, 5);
+  assert.equal(voice.preset.source, 'dmc'); assert.equal(voice.preset.version, 6);
   assert.deepEqual(readPreset(JSON.parse(JSON.stringify(voice.preset))), voice.preset);
 });
 

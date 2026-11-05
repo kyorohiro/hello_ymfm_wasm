@@ -3,10 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {gzipSync} from 'node:zlib';
 import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
 import factory from '../generated/nesapu_wasm.js';
 import {NesApuWasm} from '../js/nesapu_wasm.js';
+import {NesApuSynth, NesApuDirectTransport} from '../js/nesapusynth.js';
 import {NesInstrument} from './instrument.js';
-import {readPreset} from './preset.js';
+import {readPreset, presetToCode} from './preset.js';
 import {extractVgmInstruments, MAX_VGM_BYTES} from './vgm_import.js';
 
 const w = (register, value) => [0xb4, register, value];
@@ -48,12 +50,55 @@ test('NES VGM maps five channel definitions and ignores pitch-only differences w
     sweep:{enabled:true, period:0, negate:true, shift:2}});
   assert.equal(b.pulse.duty, .25); assert.equal(b.pulse.volume, 10);
   assert.equal(c.source, 'triangle');
+  assert.deepEqual(c.triangle, {control:true, linearReload:127, lengthIndex:1});
   assert.deepEqual(d.noise, {volume:11, period:6, shortMode:true, envelope:{enabled:false, period:11, loop:true}});
   assert.deepEqual(e.fds, {wave, volume:24, master:1,
     envelope:{enabled:false,increase:false,period:24,initialGain:24},envelopeClock:{masterSpeed:232,halt:false},
     modulation:{enabled:true, table:mod, rate:0x178, depth:16, bias:-1,envelope:{enabled:false,increase:false,period:16,initialGain:16}}});
   for (const voice of result.voices) assert.deepEqual(readPreset(voice.preset), voice.preset);
   assert.equal(result.timebase, 44100);
+});
+
+test('Triangle counter settings distinguish voices while pitch-only changes keep the same definition', async () => {
+  const result = await extractVgmInstruments(vgm([
+    ...w(0x15,4),...w(8,0xb0),...w(0x0a,0x80),...w(0x0b,1),...wait,
+    ...w(0x0a,0x90),...w(0x0b,2),...wait,
+    ...w(8,0x30),...wait,...w(8,0x10),...wait,
+    ...w(0x0b,(7<<3)|2),...wait,...w(8,0x10),...w(0x0b,(7<<3)|3),0x66,
+  ],1789773,false));
+  assert.deepEqual(result.voices.map(voice => [voice.preset.triangle,voice.firstTime,voice.occurrences]),[
+    [{control:true,linearReload:48,lengthIndex:0},0,2],
+    [{control:false,linearReload:48,lengthIndex:0},2000,1],
+    [{control:false,linearReload:16,lengthIndex:0},3000,1],
+    [{control:false,linearReload:16,lengthIndex:7},4000,2],
+  ]);
+  assert(result.voices.every(voice => voice.kind === 'triangle' && voice.channel === 3));
+  for (const voice of result.voices) {
+    assert.deepEqual(readPreset(JSON.parse(JSON.stringify(voice.preset))),voice.preset);
+    assert(voice.warnings.some(message => /elapsed counter state.*frame phase/i.test(message)));
+    assert(!voice.warnings.some(message => /replaced by.*keyboard gate/i.test(message)));
+  }
+});
+
+test('Triangle needs a recorded enabled trigger and nonzero reload; late control writes retain the last length index', async () => {
+  for (const commands of [
+    [...w(0x15,4),...w(0x0a,0x80),...w(0x0b,8)],
+    [...w(0x15,4),...w(8,0xff),...w(0x0a,0x80)],
+    [...w(0x15,4),...w(8,0x80),...w(0x0a,0x80),...w(0x0b,8)],
+    [...w(0x15,0),...triangle],
+    [...w(0x15,4),...w(8,0xff),...w(0x0a,7),...w(0x0b,0)],
+  ]) await assert.rejects(extractVgmInstruments(vgm([...commands,0x66],1789773,false)),/No complete|No .*voices/i);
+  const result = await extractVgmInstruments(vgm([
+    ...w(0x15,4),...w(0x0a,0x80),...w(0x0b,3<<3),...wait,
+    ...w(8,0x80),...wait,...w(8,0x20),...wait,
+    ...w(0x15,0),...w(8,0x21),...w(0x0b,8),...w(0x15,4),...w(8,0x22),...wait,
+    ...w(0x0b,8),0x66,
+  ],1789773,false));
+  assert.deepEqual(result.voices.map(voice => [voice.preset.triangle,voice.firstTime,voice.occurrences]),[
+    [{control:false,linearReload:32,lengthIndex:3},2000,1],
+    [{control:false,linearReload:34,lengthIndex:1},4000,1],
+  ]);
+  assert(result.warnings.some(message => /unknown voice settings/i.test(message)));
 });
 
 test('Pulse and Noise hardware envelopes retain their recorded initial settings', async () => {
@@ -381,6 +426,46 @@ test('every imported source produces finite audible PCM through the actual NES /
     const pcm = instrument.generateStereo(4096);
     assert(pcm.left.every(Number.isFinite) && pcm.right.every(Number.isFinite), voice.preset.name);
     assert(pcm.left.some(value => Math.abs(value) > .0001), voice.preset.name);
+  }
+});
+
+test('imported Triangle counters survive code export and stop or hold the actual WASM sequencer at both host rates', async t => {
+  const wasmBinary = await readFile(new URL('../generated/nesapu_wasm.wasm', import.meta.url));
+  const acRms = values => {
+    assert(values.every(Number.isFinite));
+    const mean=values.reduce((sum,value)=>sum+value,0)/values.length;
+    return Math.sqrt(values.reduce((sum,value)=>sum+(value-mean)**2,0)/values.length);
+  };
+  for(const sampleRate of [44100,48000]) for(const settings of [
+    {control:false,linearReload:24,lengthIndex:1},
+    {control:false,linearReload:127,lengthIndex:0},
+    {control:true,linearReload:24,lengthIndex:0},
+  ]) {
+    const {voices:[voice]}=await extractVgmInstruments(vgm([
+      ...w(0x15,4),...w(8,(settings.control?128:0)|settings.linearReload),
+      ...w(0x0a,0x80),...w(0x0b,(settings.lengthIndex<<3)|1),0x66,
+    ],1789773,false));
+    assert.deepEqual(voice.preset.triangle,settings);
+    const core=await NesApuWasm.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate,fds:true});
+    t.after(()=>core.dispose());
+    const nes=new NesApuSynth({transport:new NesApuDirectTransport(core),fds:true});
+    vm.runInNewContext(presetToCode(JSON.parse(JSON.stringify(voice.preset))),{nes});
+    assert.equal(core.getState().registers[8],(settings.control?128:0)|settings.linearReload);
+    assert.equal(core.getState().registers[0x0b]>>3,settings.lengthIndex,'length-table index zero is preserved by the public trigger API');
+    const first=acRms(core.generateStereo(Math.round(sampleRate*.04)).left);
+    assert(first>.0001,'the imported voice begins with an audible Triangle wave');
+    core.generateStereo(Math.round(sampleRate*.5));
+    const tail=acRms(core.generateStereo(Math.round(sampleRate*.05)).left),state=core.getState();
+    if(settings.control) {
+      assert(tail>first*.25,'control / length-halt mode keeps the Triangle running');
+      assert(state.lengths[2]>0);
+    } else {
+      assert(tail<first*.02,'expired hardware counters stop cycling; a retained DAC level is not mistaken for a waveform');
+      if(settings.lengthIndex===0)assert.equal(state.lengths[2],0);
+      else assert(state.lengths[2]>0,'the linear counter can gate Triangle before the long length counter expires');
+    }
+    nes.noteOff(2);core.generateStereo(Math.round(sampleRate*.2));
+    assert(acRms(core.generateStereo(Math.round(sampleRate*.05)).left)<first*.02);
   }
 });
 

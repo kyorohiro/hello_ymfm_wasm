@@ -45,7 +45,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   const eof = view.getUint32(4, true);
   if (eof && (eof + 4 < 0x40 || eof + 4 > bytes.length)) throw new Error('Invalid or truncated VGM file size');
   if (eof) {bytes = bytes.subarray(0, eof + 4); view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);}
-  const warnings = new Set(['Initial settings only: original note pitch, length / linear counters and later register changes are not replayed.']);
+  const warnings = new Set(['Initial settings only: original note pitch, elapsed counters / frame phase and later register changes are not replayed.']);
   const parser = new Ym2612VGM(bytes, {logger:{warn:message => warnings.add(message)}});
   if (parser.header.dataOffset < 0x40 || parser.header.dataOffset >= bytes.length) throw new Error('Invalid VGM data offset');
   const rawClock = parser.header.nesApuClock, clock = rawClock & 0x3fffffff, hasFds = Boolean(rawClock & 0x80000000);
@@ -65,8 +65,8 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   function add(kind, channel, settings, notes = []) {
     if (++observations > MAX_OBSERVATIONS) throw new Error('VGM import exceeds 100,000 voice observations');
     const preset = createDefaultPreset(); preset.source = kind;
-    if (kind !== 'triangle') preset[kind] = settings;
-    const key = JSON.stringify([kind, channel, kind === 'triangle' ? null : preset[kind]]);
+    preset[kind] = settings;
+    const key = JSON.stringify([kind, channel, preset[kind]]);
     const existing = definitions.get(key);
     for (const note of notes) warnings.add(note);
     if (existing) {
@@ -109,8 +109,8 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       }, notes);
     } else if (channel === 2) {
       if (!(control & 127)) return;
-      notes.push('Triangle length / linear-counter timing is replaced by the Synth keyboard gate.');
-      add('triangle', 3, null, notes);
+      notes.push('Triangle counters restart from the recorded reload settings on each keyboard note; original elapsed counter state / frame phase is not replayed.');
+      add('triangle', 3, {control:Boolean(control & 128), linearReload:control & 127, lengthIndex:regs[0x0b] >> 3}, notes);
     } else {
       const usesEnvelope = !(control & 16), parameter = control & 15;
       if (!usesEnvelope && !parameter) return;
@@ -175,14 +175,15 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     if (register < 0x20) {
       const channel = [0,4,8,12].includes(register) ? register / 4 : -1;
       const wasAudible = channel >= 0 && apuAudible(channel);
-      regs[register] = value;
+      const previous = regs[register]; regs[register] = value;
       dmc.write(register, value);
       if (register === 0x15) for (let ch = 0; ch < 4; ch++) if (!(value & (1 << ch))) triggered[ch] = false;
       if ([3, 7, 0x0b, 0x0f].includes(register)) {
         const ch = (register - 3) / 4;
         triggered[ch] = regs[0x15] === null || Boolean(regs[0x15] & (1 << ch));
         captureApu(register);
-      } else if (channel >= 0 && !wasAudible && apuAudible(channel)) captureApu(channel * 4 + 3);
+      } else if (channel === 2 && previous !== value) captureApu(0x0b);
+      else if (channel >= 0 && !wasAudible && apuAudible(channel)) captureApu(channel * 4 + 3);
       return;
     }
     if (!hasFds) throw new Error('FDS writes require the FDS header flag');
