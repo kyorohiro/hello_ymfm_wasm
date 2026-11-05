@@ -44,7 +44,8 @@
 - [x] VGM／VGZから通常Wave／Noiseを抽出する。LFO／DDA区間と不完全なRAMは、無理に通常Waveへ置き換えず、理由を表示して省略する。
 - [x] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセットv2で、CH1／CH2ペアを取り込む。
 - [x] 音声ファイルからDDA PCMを準備して試奏する（下記v3）。単一DAC値の書込ではなく、出力frameに合わせてPCMを供給する。
-- [ ] VGMのDDA／DAC stream抽出、CD-ROM² ADPCM／CD-DAは別工程として検討する。
+- [x] VGMの固定チャンネルDAC streamからPCMを抽出する（下記）。
+- [ ] 直接DACへ逐次書き込むPCM、圧縮bank、CD-ROM² ADPCM／CD-DAは別工程として検討する。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
 - [ ] Web版確認後、Tauri／Native版へ進む。
 
@@ -130,12 +131,30 @@
 残る確認は手元音声での実聴・長時間試奏。ブラウザー検証中のスピーカー出力はミュートしており、聴感確認を完了扱いにしない。VGM由来のDDA／DAC stream抽出、CD-ROM²、Tauri／Native対応はこの工程に含めていない。
 
 
-## VGM DACストリームPCM読み込み（2026-11-06 開始）
+## VGM DACストリームPCM読み込み（2026-11-06 完了）
 
-- [ ] VGM仕様と既存playerを照合し、HuC6280向けDAC stream（0x90–0x95）の対象・data block・rate・start/stop・Loopの扱いを確定する。直接DACへ逐次writeする形式は今回の対象外。
-- [ ] 完全な未圧縮data bankと既知のDDA channel設定から、PCM値・再生rate・使用位置を抽出する。step／base・offset／長さ／block指定・reverse等は正しく復元できる範囲のみ対応し、不明・不正・競合・未対応形式は理由を表示する。
-- [ ] 途中で停止／設定変更されたものを完全な音として偽装せず、同じPCM／rate／Loop／level／panをまとめる。入力・展開・sample数・結果数を制限し、長い処理をyieldしてCancelを受け付ける。
-- [ ] プリセットDDAと接続し、元の再生rateを保持する。必要なら低rate用に共通validatorとUIのlive DAC rate範囲を拡張し、音声変換rateの制限は維持する。
-- [ ] Sounds from VGMへPCMフィルターとrate／時間の表示を追加する。選択前・失敗・Cancelは現在の音を保持し、選択後は既存DDA preview／試奏／編集／JSON保存へ接続する。
-- [ ] 自作VGM／VGZでdata bank・start mode・長さ・rate／Loop・省略理由・異常入力・中止・旧Wave／Noise／LFO互換をunit検証する。
-- [ ] ソース版と独立配布ZIPをChromium／WebKitで検証し、可読ソース・README・TODO・検証記録を更新する。実ゲーム比較・実聴・commit／push／公開は別工程。
+- [x] VGM仕様と既存playerを照合し、HuC6280向けDAC stream（0x90–0x95）の対象・data block・rate・start/stop・Loopの扱いを確定する。直接DACへ逐次writeする形式は今回の対象外。
+- [x] 完全な未圧縮data bankと既知のDDA channel設定から、PCM値・再生rate・使用位置を抽出する。step／base・offset／長さ／block指定・reverse等は正しく復元できる範囲のみ対応し、不明・不正・競合・未対応形式は理由を表示する。
+- [x] 途中で停止／設定変更されたものを完全な音として偽装せず、同じPCM／rate／Loop／level／panをまとめる。入力・展開・sample数・結果数を制限し、長い処理をyieldしてCancelを受け付ける。
+- [x] プリセットDDAと接続し、元の再生rateを保持する。必要なら低rate用に共通validatorとUIのlive DAC rate範囲を拡張し、音声変換rateの制限は維持する。
+- [x] Sounds from VGMへPCMフィルターとrate／時間の表示を追加する。選択前・失敗・Cancelは現在の音を保持し、選択後は既存DDA preview／試奏／編集／JSON保存へ接続する。
+- [x] 自作VGM／VGZでdata bank・start mode・長さ・rate／Loop・省略理由・異常入力・中止・旧Wave／Noise／LFO互換をunit検証する。
+- [x] ソース版と独立配布ZIPをChromium／WebKitで検証し、可読ソース・README・TODO・検証記録を更新する。実ゲーム比較・実聴・commit／push／公開は別工程。
+
+
+実装・検証結果（2026-11-06）:
+
+- `vgm_dac.js` に独立した受動解析passを追加し、既存のWave／Noise／LFO結果へ時刻・channel順で統合する。VGM／VGZを開くだけでは現在の音やdevice状態を変えない。PCMを選んだ時だけDDAへ反映する。
+- 固定CH1–CH6・register6・完全な未圧縮bankを対象にする。step／base、前回offset／count、明示count／milliseconds／bank末尾、fast block ID、Reverse／Loopに対応。dataは実機と同じ `value & 31` で保持し、C4／root60・speed1で元のrateを再生する。level／panを保存し、Software EnvelopeはOff。global balanceの正規化は既存の取り込み方針と同じ説明を付ける。
+- 正のwaitを経て最後のN番目のDAC writeまで観測できたsequenceのみ採用する。途中停止・再設定・rate変更・同じDACへの競合writeは、その時点までに完全なsequenceを観測できていなければ省略する。最後のDAC値が曲中で保持される時間は復元せず、Synth側の通常one-shot／releaseで無音にする。
+- current-selected-channel（port255）、非標準destination、圧縮bank、未記録設定、LFO／Noiseによる干渉、不正範囲は理由を表示する。未対応streamを勝手に終了扱いにせず、別streamへの影響を不明状態として追跡する。圧縮blockを飛ばして後続bank offset／block IDを詰め直すことはしない。
+- 64MiB入力／展開、4,000,000 commands、100,000 starts、65,536 bank blocks、4,096 assets、合計16,777,216 DAC samplesの上限を確認した。chunk先頭は二分探索し、大量の空block・小さいasset群・長いPCM変換の途中でもyieldしてCancelを処理する。
+- v3のlive DAC rate範囲を整数1–192,000 Hzへ拡張した。WAV等の変換rateは8,000–44,100 Hzのまま。旧v1／v2と既存v3の保存値はそのまま読める。PCMフィルター、rate／時間／Loop／C4の一覧、DDA preview／live編集／JSON保存へ接続した。VGM／JSONでPCMを変えた時は古い音声ファイルのLoaded表示も更新する。
+- `npm run test:huc6280-synth`: **97件成功**。抽出19件を含む。自作VGM／VGZ、24通りのflat-byte比較基準、block跨ぎ・empty block・step／base／reverse・全対応start mode、停止境界・競合・圧縮後の未知状態・中止・各上限を検証した。7,000 Hzの抽出PCMをC4で試奏した結果が、実WASMへ直接DACを書き込む比較基準とbyte単位で一致する。
+- ソース版・別フォルダーへ展開した独立ZIPの両方をChromium／WebKitで確認した。[ソース記録](huc6280_synth_vgm_pcm_browser_01.json)・[ZIP記録](huc6280_synth_vgm_pcm_zip_browser_01.json)。7,000 Hz／3,500 samples／Loop／level22／pan11,13の復元、試奏、保持中rate変更、JSONのPCM値一致、未対応file時の保持音、390px幅overflow 0を確認した。既存Wave／Noise／LFO／音声変換も通り、外部通信・404・page errorは0。desktop／mobile画像も確認した。
+- 配布ZIP: `release/tetorica_huc6280_synth_0.0.5_itch.zip`（49 files、1,141,717 bytes）。SHA-256 `fb052afe8cfb317ecaa41ef827e86de18d23452dd8e647f0ad53c8d33cedf6c3`。元JS／CSS・相対import・元WASM・対応C++・ライセンスを維持し、過去ZIPは保持した。
+- `npm run check:runtime-artifacts` で33 SDK builds／66 outputs／73 mirrorsの一致を確認した。README en／ja／AI、英日ホーム、Synthガイドを更新。共有runtime／WASMは未変更。こちらからcommit／push／公開操作は行っていない。
+
+仕様照合: [VGM v1.71 specification](https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/vgmspec171.txt)、[libvgm DAC control](https://github.com/ValleyBell/libvgm/blob/master/emu/dac_control.c)、既存の `ym2612vgm.js` と `huc6280audioengine.js`。milliseconds換算はVGM仕様と既存JSへ合わせ、他実装の式を無条件には移植しない。
+
+残る確認は実ゲーム由来VGM／VGZと実聴・長時間試奏。検証中のスピーカー出力はミュートしている。直接DAC write列・圧縮bank・port255・曲の自動制御は今回の対象外で、次の実装候補として残す。
