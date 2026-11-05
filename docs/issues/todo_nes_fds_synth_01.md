@@ -11,6 +11,31 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## DMC Undo／Redo（2026-11-05 完了・追加分は未公開）
+
+マウス描画の次の作業として、DMCのbit編集・確定した描画を1操作ずつ戻し、やり直せるようにする。PCM音声変換と範囲編集は今回追加しない。
+
+- [x] 長さ・件数を制限した独立copyの履歴を作り、no-op／キャンセルを履歴に入れず、新しい編集でRedo側を破棄する。
+- [x] Undo／Redo buttonをDMC Editorへ追加し、bit編集1回・stroke確定1回を単位にする。目標線と未確定strokeは復元データと混同しない。
+- [x] Undo／Redoでも既存のDMC data更新・停止・試奏・保存経路を使い、Rate／Loop／Initial levelは現在値を保つ。
+- [x] ファイル・Demo・VGM音色・presetの読込やResetでは履歴を区切り、別sampleを誤って復元しない。
+- [x] Ctrl／Cmd+Z、Shift+Ctrl／Cmd+Z等をDMC Editor内で扱い、名前・textarea・他source・演奏入力やbrowser shortcutを奪わない。
+- [x] 単体テスト、実WASM、Chromium／WebKit、独立ZIPで分岐・上限・Focus・キャンセル・読込境界を検証し、ガイドと結果を記録する。
+
+履歴はセッション中のDMC bytesだけを対象にし、preset schema・共有DSP／runtime／WASMは変更しない。
+
+`dmc_history.js`は最大64編集・全snapshot合計256 KiBの論理byte数で制限し、上限時は古い履歴を破棄する。baseline・Undo／Redo返却値は独立copyとし、無効な入力は履歴変更前に拒否する。新しい編集でRedo branchを捨て、同じbytesの編集では維持する。
+
+`dmc_editor.js`のUndo／Redoは未確定strokeと緑の目標線を消し、現在のRate／Loop／Initial levelで復号・適用する。通常のsource切替とparameter変更では履歴を保つ。file／Demoと`load:true`のVGM／preset／Resetには明示的にresetを伝え、同一bytesの再読込でも新しいbaselineへ区切る。履歴はpreset・JavaScriptには保存しない。pointer操作はblurして演奏へ戻す。Ctrl／Cmd+Z、Shift+Ctrl／Cmd+Z、Ctrl+YはEditor内にfocusがあり、実行可能な時だけ処理する。buttonがkeyboard操作でdisabledになった時もfocusはEditor内へ残す。
+
+検証：`npm run test:2a03-synth`は**93件成功、失敗0**（既存85件＋履歴8件）。分岐、no-op、所有権、invalid時のatomicity、件数・byte上限、空dataを確認し、既存の実WASM検証も成功した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。音声deviceを作らない編集、bit／stroke単位のUndo／Redo、preview・cancel除外、parameter保持、source切替、shortcutの範囲、held owner停止と次の発音、Undo後の保存、同一file／Demo／VGM／preset読込とResetによる履歴切替を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして実PCMを測定した。desktopのUndo状態とmobile画面も確認済み。記録：[ソース版](2a03_synth_dmc_undo_browser_01.json)、[ZIP版](2a03_synth_dmc_undo_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_dmc-undo-20261105_itch.zip`（35 files／3 bundles、1,167,384 bytes、SHA-256 `91382149acf6354c0a3b082c3d1716891b6df6dc65c292bc37a64b3b6f137d08`）。元WASM／native source・license・source ZIPを同梱し、browser receiptの45 inputsは現在のworkspaceと一致した。
+
+試し方：`http://localhost:8008/synth-2a03/index.html`を再読込 → DMC → Demo sample → グラフ描画・release → Undo／Redo → 新しい鍵盤で比較。今回追加分のcommit／push／公開は未実行。
+
 ## DMCマウス描画（2026-11-05 完了・追加分は未公開）
 
 ユーザー指定：FDSのようにマウスで波形を描きたい。描いた高さを目標に、DMCの各bitを±2／境界保持に従って選び、目標線と実際に復号したDAC波形を同時に見せる。

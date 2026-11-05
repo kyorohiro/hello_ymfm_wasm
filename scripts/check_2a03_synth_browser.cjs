@@ -208,6 +208,21 @@ async function runEngine(name, engine, origin) {
       await page.click('#stopAudio'); await waitState(state => state.voices.length === 0);
     };
     const dmcBit = (byte,bit) => page.locator(`#dmcBitEditor button[data-dmc-byte="${byte}"][data-dmc-bit="${bit}"]`);
+    const dmcHistory = () => page.locator('#dmcBitEditor').evaluate(node => ({
+      undo:Number(node.dataset.undoCount),redo:Number(node.dataset.redoCount),
+    }));
+    const assertDmcHistory = async (undo,redo) => {
+      assert.deepEqual(await dmcHistory(),{undo,redo},'DMC history records committed data edits only');
+      assert.equal(await page.isDisabled('#dmcUndo'),undo===0,'Undo availability matches its history');
+      assert.equal(await page.isDisabled('#dmcRedo'),redo===0,'Redo availability matches its history');
+      assert.match(await page.locator('#dmcHistoryStatus').textContent(),new RegExp(`\\b${undo}\\b`));
+      assert.match(await page.locator('#dmcHistoryStatus').textContent(),new RegExp(`\\b${redo}\\b`));
+    };
+    const dmcShortcut = (locator,key,modifiers = {ctrlKey:true}) => locator.evaluate((node,{key,modifiers}) => {
+      node.focus();
+      const event = new KeyboardEvent('keydown',{key,code:`Key${key.toUpperCase()}`,...modifiers,bubbles:true,cancelable:true});
+      node.dispatchEvent(event);return event.defaultPrevented;
+    },{key,modifiers});
     const assertDmcPreview = async preset => {
       const actual=await page.locator('#dmcDacCanvas').evaluate(canvas=>({...canvas.dataset}));
       const expected=expectedDmcPreview(preset.dmc.data,preset.dmc.level,preset.dmc.rate,preset.dmc.loop);
@@ -335,6 +350,51 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input:not([type=range]),select,textarea'))),false);
 
+    check('DMC Undo/Redo is passive, branches only on a changed edit and scopes shortcuts to editor focus');
+    await assertDmcHistory(0,0);
+    for(const [key,modifiers] of [['z',{ctrlKey:true}],['z',{metaKey:true,shiftKey:true}],['y',{ctrlKey:true}]]) {
+      assert.equal(await dmcShortcut(dmcBit(0,0),key,modifiers),false,'unavailable DMC history leaves host shortcuts available');
+    }
+    await dmcBit(0,0).click();await assertDmcHistory(1,0);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'false');
+    await page.click('#dmcUndo');await assertDmcHistory(0,1);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    assert.equal(await page.evaluate(()=>document.activeElement?.closest('#dmcBitEditor')!==null),false,'pointer Undo returns focus to musical keys');
+    await page.click('#dmcRedo');await assertDmcHistory(1,0);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'false');
+    assert.equal(await dmcShortcut(dmcBit(0,0),'z',{metaKey:true}),true);await assertDmcHistory(0,1);
+    await dmcBit(0,0).focus();await page.keyboard.press('1');await assertDmcHistory(0,1);
+    assert.equal(await dmcShortcut(dmcBit(0,0),'z',{ctrlKey:true,shiftKey:true}),true);await assertDmcHistory(1,0);
+    assert.equal(await dmcShortcut(dmcBit(0,0),'z'),true);await assertDmcHistory(0,1);
+    assert.equal(await dmcShortcut(dmcBit(0,0),'y'),true);await assertDmcHistory(1,0);
+    assert.equal(await dmcShortcut(dmcBit(0,0),'z'),true);await assertDmcHistory(0,1);
+    await dmcBit(0,1).click();await assertDmcHistory(1,0);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
+    assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'false','a different bit edit creates a fresh branch');
+    for(const locator of [page.locator('#instrumentName'),page.locator('body')]) {
+      assert.equal(await dmcShortcut(locator,'z'),false,'shortcuts outside the DMC editor remain available to the page');
+      await assertDmcHistory(1,0);
+    }
+    await page.locator('#dmcBitEditor').evaluate(node=>{
+      const input=document.createElement('textarea');input.id='auditDmcTextInput';node.append(input);
+    });
+    assert.equal(await dmcShortcut(page.locator('#auditDmcTextInput'),'z'),false,'native text Undo is not captured inside the editor');
+    await page.locator('#auditDmcTextInput').evaluate(node=>node.remove());await assertDmcHistory(1,0);
+    await number('#dmcRate',14);await number('#dmcLevel',65);await page.check('#dmcLoop');await assertDmcHistory(1,0);
+    await choose('#source','pulse');await choose('#source','dmc');await assertDmcHistory(1,0);
+    await page.click('#dmcUndo');await assertDmcHistory(0,1);
+    await assertDmcPreview({dmc:{data:[...dpcmBytes(32)],level:65,rate:14,loop:true}});
+    assert.equal(await page.locator('#dmcRate').textContent(),'14');assert.equal(await page.locator('#dmcLevel').textContent(),'65');assert.equal(await page.isChecked('#dmcLoop'),true);
+    await page.click('#dmcRedo');await assertDmcHistory(1,0);
+    assert.equal(await page.locator('#dmcRate').textContent(),'14');assert.equal(await page.locator('#dmcLevel').textContent(),'65');assert.equal(await page.isChecked('#dmcLoop'),true);
+    await dmcBit(0,1).click();await assertDmcHistory(2,0);
+    await number('#dmcRate',15);await number('#dmcLevel',64);await page.uncheck('#dmcLoop');
+    await page.setInputFiles('#dpcmFileInput',{name:'self-authored-32.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
+    await page.waitForFunction(()=>document.querySelector('#dmcBitEditor').dataset.undoCount==='0');
+    await assertDmcHistory(0,0);
+    assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'true');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0,'Undo, Redo and all history operations stay passive');
+
     check('DMC bits edit passively in playback order and generated padding stays distinct');
     await page.waitForSelector('#dmcBitEditor');assert.equal(await page.isVisible('#dmcDacCanvas'),true);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
@@ -378,6 +438,7 @@ async function runEngine(name, engine, origin) {
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
 
     check('DMC mouse drawing previews target and bit changes passively, with Escape and padding protection');
+    const beforePassiveHistory=await dmcHistory();
     const beforePassiveDraw=await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL());
     await startDmcDraw(.02,8);await moveDmcDraw(.98,12,5);
     assert.equal(await dmcDrawing(),'true');
@@ -385,11 +446,16 @@ async function runEngine(name, engine, origin) {
     assert.notEqual(await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL()),beforePassiveDraw,'the target and actual draft are visible before release');
     assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'false','the bit grid previews drawn down-steps');
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    await assertDmcHistory(beforePassiveHistory.undo,beforePassiveHistory.redo);
     await page.keyboard.press('Escape');await page.mouse.up();assert.notEqual(await dmcDrawing(),'true');
     assert.equal(await dmcBit(0,1).getAttribute('aria-pressed'),'true','Escape restores original bits');
+    await assertDmcHistory(beforePassiveHistory.undo,beforePassiveHistory.redo);
     await assertDmcPreview({dmc:{data:[...dpcmBytes(32)],level:64,rate:15,loop:false}});
+    await startDmcDraw(1/32,66);await page.mouse.up();
+    assert.notEqual(await dmcDrawing(),'true');await assertDmcHistory(beforePassiveHistory.undo,beforePassiveHistory.redo);
     await page.click('#dmcBitsLast');await startDmcDraw(.2,100);await moveDmcDraw(.8,20);await page.mouse.up();
     assert.notEqual(await dmcDrawing(),'true','generated padding cannot start a drawing');
+    await assertDmcHistory(beforePassiveHistory.undo,beforePassiveHistory.redo);
     assert.equal(await dmcBit(32,0).isDisabled(),true);await dmcFirst();
     await page.setInputFiles('#dpcmFileInput',{name:'mixed-padding.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(2)});
     await page.waitForFunction(()=>/2.*bytes/i.test(document.querySelector('#dpcmStatus').textContent));
@@ -398,6 +464,7 @@ async function runEngine(name, engine, origin) {
     await assertDmcPreview({dmc:{data:[...dpcmBytes(2)],level:64,rate:15,loop:false}});
     await page.setInputFiles('#dpcmFileInput',{name:'self-authored-32.dmc',mimeType:'application/octet-stream',buffer:dpcmBytes(32)});
     await page.waitForFunction(()=>/32.*bytes/i.test(document.querySelector('#dpcmStatus').textContent));
+    await assertDmcHistory(0,0);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
     const passiveDownloadEvent=page.waitForEvent('download');await page.click('#savePreset');
     const passiveDownload=await passiveDownloadEvent,passiveDpcm=JSON.parse(await fs.readFile(await passiveDownload.path(),'utf8'));
@@ -604,7 +671,14 @@ async function runEngine(name, engine, origin) {
     await page.waitForFunction(()=>typeof window.audit.releaseSlowDpcm==='function');
     await page.click('#demoDpcm');state=await waitState(value=>value.preset.dmc.data.length===257);assert.equal(state.voices.length,0);
     const dmcAfterDemo=structuredClone(state.preset);await releaseDpcmRead();assert.deepEqual((await inspect()).preset,dmcAfterDemo);
+    await assertDmcHistory(0,0);
     await page.keyboard.up('a');await stop();await silent();
+
+    check('Demo resets DMC history even when committed edits returned to identical sample bytes');
+    await dmcFirst();await dmcBit(0,0).click();await dmcBit(0,0).click();await assertDmcHistory(2,0);
+    assert.deepEqual((await inspect()).preset.dmc.data,dmcAfterDemo.dmc.data);
+    await page.click('#demoDpcm');await assertDmcHistory(0,0);
+    assert.deepEqual((await inspect()).preset.dmc.data,dmcAfterDemo.dmc.data);
 
     check('DMC one-shot reaches the hardware end and the next key retriggers the configured rate');
     await page.click('#demoDpcm');await waitState(value=>value.preset.dmc.data.length===257);
@@ -685,6 +759,7 @@ async function runEngine(name, engine, origin) {
 
     check('cancelled DMC strokes preserve sample bytes across pointer, parameter and source changes');
     const beforeCancelledDraw=structuredClone((await inspect()).preset);
+    const beforeCancelledHistory=await dmcHistory();
     await startDmcDraw(.05,120);await moveDmcDraw(.95,20);assert.equal(await dmcDrawing(),'true');
     await cancelDmcPointer();assert.deepEqual((await inspect()).preset,beforeCancelledDraw);await assertDmcPreview(beforeCancelledDraw);
     await startDmcDraw(.05,120);await moveDmcDraw(.95,20);
@@ -712,21 +787,55 @@ async function runEngine(name, engine, origin) {
     state=await waitState(value=>value.preset.source==='pulse');assert.notEqual(await dmcDrawing(),'true');await page.mouse.up();
     assert.deepEqual(state.preset.dmc.data,beforeCancelledDraw.dmc.data,'source changes discard the uncommitted stroke');
     await choose('#source','dmc');await waitState(value=>value.preset.source==='dmc');
+    await assertDmcHistory(beforeCancelledHistory.undo,beforeCancelledHistory.redo);
 
     check('DMC mouse target preview commits once on release and the edited sample plays through the real core');
     await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
     const beforeDraw=structuredClone(state),waveBeforeDraw=await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL());
+    const beforeDrawHistory=await dmcHistory();
     await startDmcDraw(.02,120);await moveDmcDraw(.5,104,3);await moveDmcDraw(.98,116,3);
     assert.equal(await dmcDrawing(),'true');assert(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points'))>=30);
     state=await inspect();assert.deepEqual(state.preset,beforeDraw.preset);assert.deepEqual(state.voices,beforeDraw.voices,'held audio is not stopped for an uncommitted drawing');
+    await assertDmcHistory(beforeDrawHistory.undo,beforeDrawHistory.redo);
     assert.notEqual(await page.locator('#dmcDacCanvas').evaluate(node=>node.toDataURL()),waveBeforeDraw);
     await screenshot('dmc-draw-preview');
     await page.mouse.up();state=await waitState(value=>value.voices.length===0&&JSON.stringify(value.preset.dmc.data)!==JSON.stringify(beforeDraw.preset.dmc.data));
     assert.notEqual(await dmcDrawing(),'true');assert.equal(state.preset.dmc.data.length,beforeDraw.preset.dmc.data.length);
     assert.deepEqual(state.preset.dmc.data.slice(4),beforeDraw.preset.dmc.data.slice(4),'the selected four-byte stroke leaves other encoded bits alone');
+    await assertDmcHistory(beforeDrawHistory.undo+1,0);
     await assertDmcPreview(state.preset);
     assert.equal(await page.evaluate(()=>Boolean(document.activeElement?.matches('input,select,textarea'))),false);
     await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
+
+    check('DMC Undo/Redo restores real sample playback, keeps current controls and clears drawing targets');
+    const drawnDmcData=[...(await inspect()).preset.dmc.data];
+    const historyControls={rate:beforeDraw.preset.dmc.rate===15?14:beforeDraw.preset.dmc.rate+1,level:beforeDraw.preset.dmc.level===127?126:beforeDraw.preset.dmc.level+1,loop:!beforeDraw.preset.dmc.loop};
+    await number('#dmcRate',historyControls.rate);await number('#dmcLevel',historyControls.level);
+    await page.locator('#dmcLoop').setChecked(historyControls.loop);await assertDmcHistory(beforeDrawHistory.undo+1,0);
+    await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+    await page.click('#dmcUndo');state=await waitState(value=>value.voices.length===0&&JSON.stringify(value.preset.dmc.data)===JSON.stringify(beforeDraw.preset.dmc.data));
+    await assertDmcHistory(beforeDrawHistory.undo,1);await assertDmcPreview(state.preset);
+    for(const [key,value]of Object.entries(historyControls))assert.equal(state.preset.dmc[key],value,`Undo preserves current ${key}`);
+    assert.equal(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points')),0,'Undo clears the previous green target');
+    assert.notEqual(await dmcDrawing(),'true');
+    assert.equal(await page.evaluate(()=>document.activeElement?.closest('#dmcBitEditor')!==null),false);
+    await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
+    await page.click('#dmcRedo');state=await waitState(value=>value.voices.length===0&&JSON.stringify(value.preset.dmc.data)===JSON.stringify(drawnDmcData));
+    await assertDmcHistory(beforeDrawHistory.undo+1,0);await assertDmcPreview(state.preset);
+    for(const [key,value]of Object.entries(historyControls))assert.equal(state.preset.dmc[key],value,`Redo preserves current ${key}`);
+    assert.equal(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points')),0);
+    await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
+    // Save from an undone state: a portable preset contains current bytes,
+    // not the last committed stroke or the editor's private Redo branch.
+    await startDmcDraw(.05,8);await moveDmcDraw(.95,12);assert.equal(await dmcDrawing(),'true');
+    await assertDmcHistory(beforeDrawHistory.undo+1,0);
+    assert.equal(await dmcShortcut(dmcBit(0,0),'z'),true,'Undo discards the unfinished drawing before restoring committed data');
+    await page.mouse.up();state=await waitState(value=>JSON.stringify(value.preset.dmc.data)===JSON.stringify(beforeDraw.preset.dmc.data));
+    assert.notEqual(await dmcDrawing(),'true');assert.equal(Number(await page.locator('#dmcDacCanvas').getAttribute('data-target-points')),0);
+    await assertDmcHistory(beforeDrawHistory.undo,1);
+    await number('#dmcRate',beforeDraw.preset.dmc.rate);await number('#dmcLevel',beforeDraw.preset.dmc.level);
+    await page.locator('#dmcLoop').setChecked(beforeDraw.preset.dmc.loop);await assertDmcHistory(beforeDrawHistory.undo,1);
+    await screenshot('dmc-undo');
     const editedDmcData=[...(await inspect()).preset.dmc.data];
 
     check('DMC portable v2 presets retain original sample bytes and copied code awaits memory; v1 still migrates');
@@ -734,11 +843,18 @@ async function runEngine(name, engine, origin) {
     const dmcPortable=JSON.parse(await fs.readFile(await dmcSave.path(),'utf8'));
     assert.equal(dmcPortable.version,2);assert.equal(dmcPortable.source,'dmc');assert.equal(dmcPortable.dmc.data.length,257);
     assert.deepEqual(dmcPortable.dmc.data,editedDmcData,'portable presets retain the bit edits');
+    assert.notDeepEqual(dmcPortable.dmc.data,drawnDmcData,'saving after Undo exports restored data rather than Redo data');
     await page.click('#copyCode');const dmcCode=await page.locator('#codeOutput').inputValue();
     assert.match(dmcCode,/await nes\.dmc\.loadSample/);assert.match(dmcCode,/Uint8Array\.from/);assert.match(dmcCode,/nes\.dmc\.play/);assert.match(dmcCode,/nes\.dmc\.stop/);
-    await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');
+    await page.click('#resetPreset');await waitState(value=>value.preset.source==='pulse');await assertDmcHistory(0,0);
     await page.setInputFiles('#presetFileInput',{name:'self-authored-dmc-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(dmcPortable))});
     state=await waitState(value=>value.preset.source==='dmc');assert.deepEqual(state.preset,dmcPortable);
+    await assertDmcHistory(0,0);
+    await dmcBit(0,0).click();await dmcBit(0,0).click();await assertDmcHistory(2,0);
+    assert.deepEqual((await inspect()).preset.dmc.data,dmcPortable.dmc.data);
+    await page.setInputFiles('#presetFileInput',{name:'self-authored-dmc-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(dmcPortable))});
+    await page.waitForFunction(()=>document.querySelector('#dmcBitEditor').dataset.undoCount==='0');await assertDmcHistory(0,0);
+    assert.deepEqual((await inspect()).preset,dmcPortable,'loading identical preset bytes establishes a fresh history baseline');
     await dmcFirst();await assertDmcPreview(state.preset);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),String(Boolean(editedDmcData[0]&1)));
     await page.check('#dmcLoop');await waitState(value=>value.preset.dmc.loop);await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
@@ -847,12 +963,16 @@ async function runEngine(name, engine, origin) {
     await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelectorAll('[data-vgm-voice]').length===7);
     await page.click('[data-vgm-filter="dmc"]');assert.equal(await page.locator('[data-vgm-voice]').count(),2);
     state=await importVoice(0,preset=>preset.source==='dmc'&&preset.dmc.data.length===257);
+    await assertDmcHistory(0,0);
     assert.equal(await page.isVisible('#dmcBitEditor'),true);await dmcFirst();await assertDmcPreview(state.preset);
     assert.equal(await dmcBit(0,0).getAttribute('aria-pressed'),'true');
     await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===(vgmDmcFirst[0]^1));
     await assertDmcPreview(state.preset);
     await dmcBit(0,0).click();state=await waitState(value=>value.preset.dmc.data[0]===vgmDmcFirst[0]);
+    await assertDmcHistory(2,0);
     assert.deepEqual(state.preset.dmc,{data:[...vgmDmcFirst],rate:15,loop:true,level:66});assert.equal(state.capacity,1);
+    await page.locator('[data-vgm-voice]').first().click();await assertDmcHistory(0,0);
+    assert.deepEqual((await inspect()).preset.dmc.data,[...vgmDmcFirst],'selecting the same VGM voice resets history even with identical bytes');
     check('VGM-recovered DPCM uses the same mouse drawing editor');
     const vgmBeforeDraw=structuredClone(state.preset);
     await startDmcDraw(.02,8);await moveDmcDraw(.98,16,4);assert.equal(await dmcDrawing(),'true');
@@ -861,6 +981,7 @@ async function runEngine(name, engine, origin) {
     assert.equal(state.preset.dmc.data.length,257);await assertDmcPreview(state.preset);
     await page.locator('[data-vgm-voice]').first().click();
     state=await waitState(value=>value.preset.dmc.data[0]===vgmDmcFirst[0]&&JSON.stringify(value.preset.dmc.data)===JSON.stringify([...vgmDmcFirst]));
+    await assertDmcHistory(0,0);
     for(const selector of pitchWheels)assert.equal(await page.isDisabled(selector),true);
     state=await importVoice(1,preset=>preset.source==='dmc'&&preset.dmc.data.length===17);
     assert.deepEqual(state.preset.dmc,{data:[...vgmDmcSecond],rate:7,loop:true,level:32});
@@ -970,6 +1091,9 @@ async function runEngine(name, engine, origin) {
       dmcBitEditorPassive:true,dmcBitOrder:true,dmcBitKeyboardEditing:true,dmcBitModifierShortcuts:true,dmcPaddingReadOnly:true,dmcDacPreview:true,dmcLoopPreviewCarry:true,dmcDacOddLimits:true,dmcRatePreviewTime:true,
       dmcBitWindowBounded:true,dmcBitLastByte:true,dmcBitEditStopsNotes:true,dmcEditedPresetRoundTrip:true,dmcVgmBitEditor:true,dmcBitEditorMobile:true,
       dmcDrawPassive:true,dmcDrawPreview:true,dmcDrawReleaseCommit:true,dmcDrawPaddingProtected:true,dmcDrawEscapeCancel:true,dmcDrawPointerCancel:true,dmcDrawPageCancel:true,dmcDrawResizeCancel:true,dmcDrawParameterCancel:true,dmcDrawSourceCancel:true,dmcDrawMaximumLength:true,dmcVgmDrawEditor:true,
+      dmcUndoRedoPassive:true,dmcUndoBit:true,dmcUndoStroke:true,dmcUndoBranch:true,dmcUndoNoopKeepsRedo:true,dmcHistoryPreviewExcluded:true,dmcHistoryCancelExcluded:true,
+      dmcHistoryShortcutsScoped:true,dmcHistoryUnavailableShortcutsPass:true,dmcHistoryPreservesControls:true,dmcHistoryPreservesSourceToggle:true,dmcUndoStopsHeldAudio:true,dmcRedoRealPlayback:true,dmcUndoClearsDraftAndTarget:true,
+      dmcHistoryIdenticalFileReset:true,dmcHistoryIdenticalDemoReset:true,dmcHistoryIdenticalPresetReset:true,dmcHistoryIdenticalVgmReset:true,dmcHistoryResetPreset:true,dmcSaveAfterUndo:true,
       blurRelease:true,contextRecovery:true,finalDestinationMeasurement:true,physicalOutput:'muted',mobileOverflow:overflow,pageErrors:errors,missingAssets:missing,externalRequests:external};
   } catch (error) {
     if (page && config.screenshots) await page.screenshot({path:path.join(config.screenshots,`2a03-${name}-failure.png`),fullPage:true}).catch(() => {});

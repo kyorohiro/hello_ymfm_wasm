@@ -47,8 +47,8 @@ function updateCapacity() {
   const description = {pulse:'Pulse · CH1 / CH2',triangle:'Triangle · CH3',noise:'Noise · CH4 · keys trigger the same noise',dmc:'DMC · CH5 · keys trigger the same sample',fds:'FDS · waveform + modulation'}[preset.source];
   $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
 }
-function updatePresetUi() {
-  editor.update(preset);
+function updatePresetUi({resetDmcHistory = false} = {}) {
+  editor.update(preset, {resetDmcHistory});
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
   for (const [wheel] of pitchWheels) wheel.disabled = ['noise', 'dmc'].includes(preset.source);
@@ -106,7 +106,7 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   preset = next; revision++;
   const editRevision = revision;
   if (load || previous.source !== next.source) setPitchUi(0);
-  updatePresetUi();
+  updatePresetUi({resetDmcHistory:load});
   if (!audio) {status(message ?? 'Instrument updated · enable audio, then play.'); return Promise.resolve();}
   return enqueue(async () => {
     const engine = audio;

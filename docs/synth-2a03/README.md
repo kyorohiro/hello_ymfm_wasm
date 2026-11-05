@@ -133,6 +133,18 @@ length and read-only generated padding. Later decoded levels can shift even
 when later bits are unchanged, because DMC carries its previous DAC value
 forward. Drawings do not import or automatically convert PCM audio files.
 
+**Undo / Redo** restores one changed bit edit or one completed stroke at a time.
+Unchanged edits and cancelled previews do not add a step. A new edit after Undo
+starts a new branch. History keeps up to 64 edits, with a 256 KiB total byte
+budget; older snapshots are discarded when either limit is reached. It is
+temporary UI state, excluded from saved presets and JavaScript.
+
+Undo and Redo keep the current **Rate / Loop / Initial level**, clear the green
+target, and apply the restored bytes through the same stop-and-play workflow.
+Source changes keep this byte history. Loading a DPCM file, Demo sample, VGM
+voice or preset, and Reset instrument, start fresh history even when the bytes
+are identical. Failed or cancelled loads keep the history.
+
 The preview follows the seven-bit DAC rules:
 
 - A **1** requests **+2**. At level 126 or 127, the level holds.
@@ -165,8 +177,11 @@ hear them. Save preset / Load preset and Copy JavaScript include the edited
 bytes; the view mode and page are temporary UI state. With a bit focused,
 **Space / Enter** toggles it, **0 / 1** sets it, arrows move between bits and
 bytes, **Page Up / Down** changes the window and **Home / End** jumps to the
-first / last original bit. Modifier shortcuts are left available. Pointer
-edits return to the performance keyboard. No audio-file PCM-to-DPCM conversion is added.
+first / last original bit. With focus inside DMC Editor, **Ctrl / Cmd + Z**
+undoes and **Shift + Ctrl / Cmd + Z** or **Ctrl + Y** redoes. These shortcuts
+apply only when a history action is available and leave text fields alone.
+Pointer edits return to the performance keyboard; use the Undo / Redo buttons
+after drawing, or Tab into the editor for its shortcuts.
 
 ## FDS waveform and modulation
 

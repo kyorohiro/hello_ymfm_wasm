@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {decodeDpcm} from './dmc_decode.js';
 import {applyDmcTargets} from './dmc_draw.js';
+import {createDmcHistory} from './dmc_history.js';
 
 const PAGE_BYTES = 4;
 const equalBytes = (a, b) => a.length === b.length && a.every((value, index) => value === b[index]);
@@ -12,12 +13,14 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   let dmc = {data:[], level:64, rate:15, loop:false}, decoded = decodeDpcm([]);
   let page = 0, selectedBit = 0, whole = false, disposed = false;
   let stroke = null, lastTargets = null;
+  const history = createDmcHistory();
   const make = (tag, className, text) => {
     const node = doc.createElement(tag); if (className) node.className = className;
     if (text !== undefined) node.textContent = text; return node;
   };
   const listen = (node, type, callback) => {node.addEventListener(type, callback); cleanups.push(() => node.removeEventListener(type, callback));};
   const section = make('section', 'nes-dmc-editor nes-subsection'); section.id = 'dmcBitEditor';
+  section.tabIndex = -1;
   section.setAttribute('aria-labelledby', 'dmcEditorTitle');
   const title = make('h4', '', 'DMC Editor · draw / bits → DAC'); title.id = 'dmcEditorTitle'; section.append(title);
   const explanation = make('p', 'nes-help', 'Playback order: b0 → b7 (LSB first). 1 raises the DAC by 2; 0 lowers it by 2. At a boundary the level holds. Even starts stay even (0–126); odd starts stay odd (1–127). Click a bit to change it.');
@@ -31,6 +34,11 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   }
   const selectedMode = button(modes, 'dmcWaveSelected', 'Selected bytes', () => {cancelDrawing(); whole = false; renderWave();});
   const allMode = button(modes, 'dmcWaveAll', 'All data', () => {cancelDrawing(); whole = true; renderWave();});
+  const undo = button(modes, 'dmcUndo', 'Undo', () => restoreHistory('undo'));
+  const redo = button(modes, 'dmcRedo', 'Redo', () => restoreHistory('redo'));
+  undo.title = 'Undo one bit edit or completed drawing. With editor focus: Ctrl / Cmd + Z.';
+  redo.title = 'Redo an edit. With editor focus: Shift + Ctrl / Cmd + Z, or Ctrl + Y.';
+  const historyStatus = make('output', 'nes-help'); historyStatus.id = 'dmcHistoryStatus'; modes.append(historyStatus);
   const canvas = make('canvas'); canvas.id = 'dmcDacCanvas'; canvas.width = 900; canvas.height = 220;
   canvas.setAttribute('role', 'img'); section.append(canvas);
   canvas.title = 'Draw a target curve. DMC chooses up / down bits within its hardware limits. Release to apply; Escape cancels.';
@@ -47,9 +55,41 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   const last = button(navigation, 'dmcBitsLast', 'Last', () => go(pages() - 1));
   const grid = make('div', 'nes-dmc-bit-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', 'DPCM bits in playback order'); section.append(grid);
   const bitReadout = make('p', 'nes-help nes-dmc-bit-readout'); bitReadout.id = 'dmcBitReadout'; bitReadout.setAttribute('role', 'status'); section.append(bitReadout);
-  const instructions = make('p', 'nes-help', 'With a bit focused: Space / Enter toggles, 0 / 1 sets it, arrows move, Home / End jumps. Pointer edits return to the performance keyboard. Data edits stop held notes; play a new key to hear them.'); section.append(instructions);
+  const instructions = make('p', 'nes-help', 'With a bit focused: Space / Enter toggles, 0 / 1 sets it, arrows move, Home / End jumps. With editor focus: Ctrl / Cmd + Z undoes, Shift + Ctrl / Cmd + Z or Ctrl + Y redoes. Pointer edits return to the performance keyboard. Data edits stop held notes; play a new key to hear them.'); section.append(instructions);
   root.append(section);
 
+  function renderHistory() {
+    const state = history.read(), focused = doc.activeElement;
+    undo.disabled = !state.canUndo; redo.disabled = !state.canRedo;
+    section.dataset.undoCount = String(state.undoCount); section.dataset.redoCount = String(state.redoCount);
+    historyStatus.textContent = `Undo ${state.undoCount} · Redo ${state.redoCount}`;
+    // Keep keyboard users inside the editor if their action disables its button.
+    if ((focused === undo || focused === redo) && focused.disabled) section.focus({preventScroll:true});
+  }
+  function restoreHistory(direction) {
+    if (disposed) return;
+    cancelDrawing();
+    const data = history[direction]();
+    if (!data) return;
+    const previous = dmc;
+    try {
+      lastTargets = null;
+      dmc = {...dmc,data}; decoded = decodeDpcm(data,dmc); render();
+      drawingStatus.textContent = `${direction === 'undo' ? 'Undo' : 'Redo'} applied · current Rate, Loop and Initial level kept. Play a new key to hear it.`;
+      Promise.resolve(onChange([...data])).catch(onError);
+    } catch (error) {
+      history[direction === 'undo' ? 'redo' : 'undo']();
+      dmc = previous; decoded = decodeDpcm(dmc.data,dmc); render(); onError(error);
+    }
+  }
+  listen(section,'keydown',event => {
+    if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) || section.closest('[hidden]')) return;
+    if (event.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+    const key = event.key.toLowerCase();
+    const direction = key === 'z' ? (event.shiftKey ? 'redo' : 'undo') : key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey ? 'redo' : null;
+    if (!direction || !history.read()[direction === 'undo' ? 'canUndo' : 'canRedo']) return;
+    event.preventDefault(); event.stopPropagation(); restoreHistory(direction);
+  });
   function pages() {return Math.max(1, Math.ceil(decoded.hardwareBytes / PAGE_BYTES));}
   function go(value, focusBit = false) {
     cancelDrawing();
@@ -72,7 +112,9 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     const old = dmc;
     try {
       dmc = {...dmc, data}; decoded = decodeDpcm(data, dmc); render();
-      Promise.resolve(onChange([...data])).catch(onError);
+      const result = onChange([...data]);
+      history.push(data); renderHistory();
+      Promise.resolve(result).catch(onError);
     } catch (error) {dmc = old; decoded = decodeDpcm(old.data, old); render(); onError(error);}
   }
   listen(grid, 'keydown', event => {
@@ -194,7 +236,11 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
       const changed = !equalBytes(data,dmc.data);
       dmc = {...dmc,data}; decoded = decodeDpcm(data,dmc); render();
       drawingStatus.textContent = changed ? 'Drawing applied · DMC approximates the green target with up / down bits. Play a new key to hear it.' : 'Drawing kept the same bits · the green target shows the requested levels.';
-      if (changed) Promise.resolve(onChange([...data])).catch(onError);
+      if (changed) {
+        const result = onChange([...data]);
+        history.push(data); renderHistory();
+        Promise.resolve(result).catch(onError);
+      }
     } catch (error) {dmc = previous; lastTargets = null; decoded = decodeDpcm(dmc.data,dmc); render(); onError(error);}
   });
   listen(canvas,'pointercancel',cancelDrawing); listen(canvas,'lostpointercapture',cancelDrawing);
@@ -281,6 +327,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     canvas.width = width; canvas.height = height; draw();
   }
   function render() {
+    renderHistory();
     page = Math.max(0,Math.min(pages() - 1,page));
     const start = page * PAGE_BYTES, end = Math.min(decoded.hardwareBytes,start + PAGE_BYTES);
     selectedBit = Math.max(start * 8,Math.min(Math.max(0,end * 8 - 1),selectedBit));
@@ -294,13 +341,14 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
   else listen(win,'resize',resize);
   render();
   return {
-    update(value) {
+    update(value, {resetHistory = false} = {}) {
       if (disposed) return;
       const dataChanged = !equalBytes(dmc.data,value.data);
-      if (!dataChanged && value.level === dmc.level && value.rate === dmc.rate && value.loop === dmc.loop) return;
+      if (!resetHistory && !dataChanged && value.level === dmc.level && value.rate === dmc.rate && value.loop === dmc.loop) return;
       cancelDrawing(); lastTargets = null; drawingStatus.textContent = drawingHint;
       const nextDecoded = decodeDpcm(value.data,value);
       dmc = {data:[...value.data], level:value.level, rate:value.rate, loop:value.loop}; decoded = nextDecoded;
+      if (dataChanged || resetHistory) history.reset(dmc.data);
       if (dataChanged) {page = 0; selectedBit = 0;}
       render();
     },

@@ -20,13 +20,14 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     cleanups.push(() => element.removeEventListener(type, listener, options));
   };
   const report = error => { if (!disposed) onError(error); };
-  function commit(mutator) {
+  function commit(mutator, {resetDmcHistory = false} = {}) {
     if (disposed) return;
     try {
       const next = readPreset(preset); mutator(next);
       const checked = readPreset(next);
-      cancelDpcmRead(); preset = checked; render();
+      cancelDpcmRead(); preset = checked; render({resetDmcHistory});
       Promise.resolve(onChange(readPreset(preset))).catch(report);
+      return true;
     } catch (error) { render(); report(error); }
   }
   function performanceFocus(input) {
@@ -235,7 +236,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   }
   function installDpcm(data, label) {
     const length = Math.ceil((data.length - 1) / 16) * 16 + 1;
-    commit(value => {value.source = 'dmc'; value.dmc.data = data;});
+    if (!commit(value => {value.source = 'dmc'; value.dmc.data = data;}, {resetDmcHistory:true})) return;
     sampleStatus(`${label} · ${data.length} bytes${length !== data.length ? ` → ${length} hardware bytes` : ''} · play the keyboard.`);
   }
   listen(loadDpcm, 'click', () => {loadDpcm.blur(); dpcmFileInput.click();});
@@ -360,7 +361,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
   const Resize=win.ResizeObserver??globalThis.ResizeObserver;
   if(typeof Resize==='function'){const observer=new Resize(resizeWave);observer.observe(canvas);cleanups.push(()=>observer.disconnect());}
   else listen(win,'resize',resizeWave);
-  function render() {
+  function render({resetDmcHistory = false} = {}) {
     if(disposed)return;
     for(const {input,get,update} of fields.values()){
       if(update){update();continue;}const value=get(preset);
@@ -378,20 +379,20 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     const bytes = preset.dmc.data.length, hardwareBytes = bytes ? Math.ceil((bytes - 1) / 16) * 16 + 1 : 0;
     const bitRate = 1789773 / [428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54][preset.dmc.rate];
     dmcReadout.textContent = `${bytes} bytes${bytes !== hardwareBytes ? ` → ${hardwareBytes} hardware bytes` : ''} · ${(bitRate / 1000).toFixed(2)} kbit/s${bytes ? ` · about ${(hardwareBytes * 8 / bitRate * 1000).toFixed(0)} ms / pass` : ''}`;
-    dmcBits.update(preset.dmc);
+    dmcBits.update(preset.dmc, {resetHistory:resetDmcHistory});
     const high=preset.pulse.duty*80;let path='';for(let index=0;index<4;index++){const x=index*80;path+=`${index?'L':'M'}${x} 10 L${x+high} 10 L${x+high} 36 L${x+80} 36 `;}
     pulsePath.setAttribute('d',path);resizeWave();drawWave(stroke?.samples);
     if(!stroke)waveReadout.textContent=editTarget==='wave'?'64 samples · 6-bit levels · draw, then release to apply':`32 commands · brush ${labels[brush]} · choose a command, then paint`;
   }
   render();
   return {
-    update(value){
+    update(value, {resetDmcHistory = false} = {}){
       if(disposed)return;const next=readPreset(value);
       dmcBits.cancelDrawing();
       if(stroke&&(next.source!==preset.source||JSON.stringify(next.fds)!==JSON.stringify(preset.fds)))cancelStroke();
       cancelDpcmRead();
       if(JSON.stringify(next.dmc.data)!==JSON.stringify(preset.dmc.data)) sampleStatus(next.dmc.data.length ? `Embedded DPCM · ${next.dmc.data.length} bytes · play the keyboard.` : 'No sample loaded. Load DPCM or choose Demo sample, then play the keyboard.');
-      preset=next;render();
+      preset=next;render({resetDmcHistory});
     },
     dispose(){if(disposed)return;cancelDpcmRead();disposed=true;stroke=null;dmcBits.dispose();for(const cleanup of cleanups)cleanup();body.remove();},
   };
