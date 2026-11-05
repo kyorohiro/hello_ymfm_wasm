@@ -5,6 +5,7 @@ import {createVgmLibrary} from './vgm_library.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {createHardwareMonitor} from './hardware_monitor.js';
 import {createStateObserver} from './state_observer.js';
+import {createPanelLayout} from './panel_layout.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
   setInstrument, setFretPosition, setStringWindowIndex, midiToNoteName} from '../synth/synth_keyboard.js';
@@ -20,6 +21,7 @@ let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let clickGuardEnabled = $('clickGuardEnabled').checked;
 let queue = Promise.resolve();
 let vgmLibrary = null;
+let panelLayout = null;
 const notes = new Map(), fret = createFretboardState();
 const pitchWheels = [[$('pitchBend'), $('pitchValue')], [$('keyboardPitchBend'), $('keyboardPitchValue')]];
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
@@ -36,9 +38,10 @@ const hardwareObserver = createStateObserver({
 let observedContext = null;
 function syncHardwareMonitor() {
   const visible = !document.hidden, running = audio?.context.state === 'running';
-  const active = Boolean(!disposed && visible && running && !switchingAudioOutput && preset.source !== 'dmc' && [...notes.values()].some(note => note.started));
+  const panelVisible = $('sourcePanel').open && $('hardwarePanel').open;
+  const active = Boolean(!disposed && visible && running && panelVisible && !switchingAudioOutput && preset.source !== 'dmc' && [...notes.values()].some(note => note.started));
   hardwareObserver.update({engine:audio, active});
-  if (!active) hardwareMonitor.setMode(!audio ? 'waiting' : !visible || !running || switchingAudioOutput ? 'paused' : 'idle');
+  if (!active) hardwareMonitor.setMode(!audio ? 'waiting' : !visible || !running || !panelVisible || switchingAudioOutput ? 'paused' : 'idle');
 }
 function watchHardwareContext(context) {
   observedContext?.removeEventListener('statechange', syncHardwareMonitor);
@@ -59,7 +62,7 @@ function updateKeys() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  visualizer.setRunning(notes.size > 0);
+  visualizer.setRunning(notes.size > 0 && $('monitorPanel').open);
   updateCapacity();
   syncHardwareMonitor();
 }
@@ -160,6 +163,7 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
 }
 const editor = createEditor({
   root: $('voiceEditor'), onChange: value => {void applyPreset(value).catch(report);}, onError: report,
+  onCompareDepth: value => applyPreset(value, {load:true,message:'Slow vibrato comparison ready · release and play a new key. Direction changes apply on the next note.'}),
   onSaveDpcm: data => {
     saveFile('2a03-sample.dmc', Uint8Array.from(data), 'application/octet-stream');
     status(`DPCM download started · ${data.length} bytes. Save preset to keep Rate, Loop and Initial level too.`);
@@ -168,6 +172,10 @@ const editor = createEditor({
 vgmLibrary = createVgmLibrary({root: $('vgmImport'), onSelect: value => applyPreset(value, {
   load: true, fromVgm: true, message: `${value.name} loaded from VGM · play the keyboard.`,
 })});
+panelLayout = createPanelLayout({root:document,
+  onSourceHidden:() => editor.cancelDrawing(),
+  onVisibilityChange() {syncHardwareMonitor();visualizer.setRunning(notes.size > 0 && $('monitorPanel').open);},
+});
 
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
@@ -348,7 +356,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
+  disposed=true;epoch++;notes.clear();panelLayout?.dispose();hardwareObserver.dispose();watchHardwareContext(null);hardwareMonitor.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();vgmLibrary.dispose();void audio?.dispose();audio=null;
 });
 updatePresetUi();setVolume();setPitchUi(0);
 

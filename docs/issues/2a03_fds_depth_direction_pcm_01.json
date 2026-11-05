@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-05",
+  "wasmSha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+  "notes": [
+    "Real WASM observations; physical audio was not played for diagnosis.",
+    "Depth direction changes modulation amount rather than the sign of note pitch.",
+    "The same instrument was retriggered for both direction bits.",
+    "Slow comparison uses the Vibrato table, Rate8, Initial depth16, Depth Period31 and Master232 unpaused; waveform and volume are separate controls.",
+    "The zero-rate and flat examples use a zero starting counter/Bias. A retained nonzero counter can still affect pitch when table advance stops."
+  ],
+  "freshSameInstrument": [
+    {
+      "rate": 44100,
+      "retrigger": [
+        {
+          "increase": true,
+          "initial": 16,
+          "after100": 26,
+          "reg": 72,
+          "counter": -5
+        },
+        {
+          "increase": false,
+          "initial": 16,
+          "after100": 6,
+          "reg": 8,
+          "counter": -10
+        },
+        {
+          "increase": true,
+          "initial": 16,
+          "after100": 26,
+          "reg": 72,
+          "counter": -15
+        },
+        {
+          "increase": false,
+          "initial": 16,
+          "after100": 6,
+          "reg": 8,
+          "counter": -12
+        }
+      ]
+    },
+    {
+      "rate": 48000,
+      "retrigger": [
+        {
+          "increase": true,
+          "initial": 16,
+          "after100": 26,
+          "reg": 72,
+          "counter": -5
+        },
+        {
+          "increase": false,
+          "initial": 16,
+          "after100": 6,
+          "reg": 8,
+          "counter": -10
+        },
+        {
+          "increase": true,
+          "initial": 16,
+          "after100": 26,
+          "reg": 72,
+          "counter": -15
+        },
+        {
+          "increase": false,
+          "initial": 16,
+          "after100": 6,
+          "reg": 8,
+          "counter": -12
+        }
+      ]
+    }
+  ],
+  "slowComparison": [
+    {
+      "sampleRate": 44100,
+      "increase": true,
+      "at800ms": {
+        "at": 0.8,
+        "gain": 32,
+        "counter": -14,
+        "periods": 57,
+        "meanHz": 307.74475954474934,
+        "stdHz": 62.886389252061896,
+        "minimumHz": 154.48797156589708,
+        "maximumHz": 392.4754653310062
+      }
+    },
+    {
+      "sampleRate": 44100,
+      "increase": false,
+      "at800ms": {
+        "at": 0.8,
+        "gain": 0,
+        "counter": -14,
+        "periods": 52,
+        "meanHz": 261.5735346014469,
+        "stdHz": 0.32573702580649744,
+        "minimumHz": 261.0978625540465,
+        "maximumHz": 262.03979743856
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "increase": true,
+      "at800ms": {
+        "at": 0.8,
+        "gain": 32,
+        "counter": -14,
+        "periods": 57,
+        "meanHz": 307.74710987655794,
+        "stdHz": 62.86826531303706,
+        "minimumHz": 154.63927962677,
+        "maximumHz": 391.7438879558136
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "increase": false,
+      "at800ms": {
+        "at": 0.8,
+        "gain": 0,
+        "counter": -14,
+        "periods": 52,
+        "meanHz": 261.5738694275979,
+        "stdHz": 0.4980305791756373,
+        "minimumHz": 260.8838984960329,
+        "maximumHz": 262.25788462953045
+      }
+    }
+  ],
+  "matchingPcmExamples": [
+    {
+      "mode": "flat",
+      "gains": [
+        32,
+        0
+      ],
+      "identicalPcm": true
+    },
+    {
+      "mode": "zeroRate",
+      "gains": [
+        32,
+        0
+      ],
+      "identicalPcm": true
+    },
+    {
+      "mode": "halt",
+      "gains": [
+        16,
+        16
+      ],
+      "identicalPcm": true
+    },
+    {
+      "mode": "masterZero",
+      "gains": [
+        16,
+        16
+      ],
+      "identicalPcm": true
+    }
+  ]
+}

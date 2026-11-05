@@ -15,7 +15,7 @@ export function createHardwareMonitor({root}) {
   const status = make('span', '', 'Enable audio, then play a key.'); status.id = 'hardwareMonitorStatus';
   heading.append(title, status);
   const channels = make('div', 'nes-hardware-channels');
-  const description = make('p', 'nes-help', 'Software display of actual chip values, sampled about 10 times per second. Fast changes can occur between readings. These bars show internal controls, not output loudness.');
+  const description = make('p', 'nes-help', 'Software observation · about 10 updates per second.');
   const note = make('p', 'nes-help'); note.id = 'hardwareMonitorNote';
   root.classList.add('nes-hardware-monitor'); root.setAttribute('aria-labelledby', title.id);
   root.append(heading, channels, note, description);

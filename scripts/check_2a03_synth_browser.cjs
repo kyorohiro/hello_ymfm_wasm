@@ -218,6 +218,12 @@ async function runEngine(name, engine, origin) {
       const value = window.audit.sample(); return value.finite && value.rms > .0001;
     });
     const silent = () => page.waitForFunction(() => window.audit.sample().rms < .000001);
+    const panelSummary = id => page.locator(`#${id} > summary`);
+    const setPanel = async (id, open) => {
+      if (await page.locator(`#${id}`).evaluate(node => node.open) === open) return;
+      await panelSummary(id).click();
+      await page.waitForFunction(({id,open}) => document.getElementById(id).open === open, {id,open});
+    };
     const hardwareMeter = id => page.locator(`[data-hardware-meter="${id}"]`);
     const meterIs = (id,value) => page.waitForFunction(({id,value})=>{
       const meter=document.querySelector(`[data-hardware-meter="${id}"]`);
@@ -398,6 +404,16 @@ async function runEngine(name, engine, origin) {
     const iconResponse=await page.request.get(iconUrl);assert(iconResponse.ok());
     assert.deepEqual(await iconResponse.body(),await fs.readFile(path.join(config.root,'tetorica_2a03_synth.webp')));
     await page.waitForSelector('#pulseDuty');
+    check('panel defaults reduce optional UI without starting audio; all sections remain expandable');
+    for(const id of ['monitorPanel','sourcePanel','keyboardPanel']) assert.equal(await page.locator(`#${id}`).evaluate(node=>node.open),true);
+    for(const id of ['vgmPanel','hardwarePanel','filesPanel','outputOptionsPanel']) assert.equal(await page.locator(`#${id}`).evaluate(node=>node.open),false);
+    assert.equal(await page.isChecked('#keepMonitorVisible'),true);
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
+    if(config.screenshots)await screenshot('panels-default');
+    // Exercise the real disclosure controls, then leave the established
+    // regression matrix expanded. Pinning is tested separately while editing.
+    for(const id of ['vgmPanel','hardwarePanel','filesPanel','outputOptionsPanel']) await setPanel(id,true);
+    await page.uncheck('#keepMonitorVisible');
     assert.equal(await page.locator('.monitor-pitch input[type=range]').count(),2);
     await assertPitchPositions(); await assertPitchUi(0);
     assert.equal(await page.evaluate(()=>window.audit.contexts.length),0);
@@ -476,7 +492,11 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.isChecked('#fdsEnvelopeEnabled'),false);
     assert.equal(await stepButton('#fdsEnvelopeMasterSpeed',1).isDisabled(),false);
     assert.equal(await stepButton('#fdsModDepth',1).isDisabled(),true);
-    await choose('#fdsModEnvelopeIncrease',false);await choose('#fdsModEnvelopeIncrease',true);
+    await choose('#fdsModEnvelopeIncrease',false);
+    assert.equal(await page.locator('#fdsDepthEnvelopePlan').getAttribute('data-warning'),'true','Decrease from initial zero explains its unchanged depth');
+    assert.match(await page.locator('#fdsDepthEnvelopePlan').textContent(),/next note/i);
+    assert.match(await page.locator('#fdsDepthEnvelopePlan').textContent(),/0.*0/);
+    await choose('#fdsModEnvelopeIncrease',true);
     await number('#fdsModEnvelopeInitialGain',63);await number('#fdsModEnvelopeInitialGain',0);
     await page.uncheck('#fdsModEnvelopeEnabled');await page.uncheck('#fdsModEnabled');
     assert.equal(await page.isDisabled('#fdsEnvelopeHalt'),true);
@@ -1015,7 +1035,7 @@ async function runEngine(name, engine, origin) {
     await page.setInputFiles('#dpcmFileInput',{name:'self-authored-dac-hold.dmc',mimeType:'application/octet-stream',buffer:Buffer.from([255])});
     await waitState(value=>value.preset.dmc.data.length===1&&value.preset.dmc.data[0]===255);
     await number('#dmcRate',15);await number('#dmcLevel',127);await page.uncheck('#dmcLoop');
-    const clickFixturePreset=structuredClone((await inspect()).preset),clickReleaseLevels=[];
+    const clickFixturePreset=structuredClone((await waitState(value=>value.preset.dmc.rate===15&&value.preset.dmc.level===127&&!value.preset.dmc.loop)).preset),clickReleaseLevels=[];
     for(const enabled of [false,true]) {
       if(enabled)await page.check('#clickGuardEnabled');else await page.uncheck('#clickGuardEnabled');
       await waitState(value=>value.outputClickGuard.enabled===enabled);
@@ -1652,6 +1672,149 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
     await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitState(value=>value.voices.length===0);await page.keyboard.up('a');
 
+    check('FDS Depth comparison makes fresh Increase / Decrease notes audibly distinct without replacing the waveform or volume');
+    const beforeDepthComparison=structuredClone((await inspect()).preset);
+    await choose('#source','fds');await page.uncheck('#fdsEnvelopeEnabled');await number('#fdsVolume',19);
+    await page.click('[data-fds-edit="wave"]');await page.click('[data-wave-shape="triangle"]');await page.check('#fdsModEnabled');await page.check('#fdsModEnvelopeEnabled');
+    await choose('#fdsModEnvelopeIncrease',false);await number('#fdsModEnvelopeInitialGain',0);
+    state=await waitState(value=>value.preset.source==='fds'&&value.preset.fds.volume===19&&!value.preset.fds.envelope.enabled&&value.preset.fds.modulation.envelope.enabled&&!value.preset.fds.modulation.envelope.increase&&value.preset.fds.modulation.envelope.initialGain===0);
+    const depthComparisonFixture=structuredClone(state.preset);
+    assert.equal(await page.locator('#fdsDepthEnvelopePlan').getAttribute('data-warning'),'true');
+    assert.match(await page.locator('#fdsDepthEnvelopePlan').textContent(),/next note/i);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.fdsSweepGain===0);await sound();
+    const beforeCompareOwner=state.voices[0].id;
+    await page.click('#fdsDepthCompare');
+    state=await waitState(value=>value.voices.length===0&&value.preset.fds.modulation.rate===8&&value.preset.fds.modulation.envelope.initialGain===16&&value.preset.fds.modulation.envelope.period===31&&value.preset.fds.envelopeClock.masterSpeed===232&&!value.preset.fds.envelopeClock.halt);
+    assert.equal(state.preset.name,depthComparisonFixture.name);
+    assert.deepEqual(state.preset.fds.wave,depthComparisonFixture.fds.wave);assert.equal(state.preset.fds.volume,depthComparisonFixture.fds.volume);
+    assert.deepEqual(state.preset.fds.envelope,depthComparisonFixture.fds.envelope,'comparison keeps the authored Volume Envelope');
+    assert.deepEqual(state.preset.fds.modulation.table,vgmModulation);assert.equal(state.preset.fds.modulation.bias,0);
+    assert.equal(state.preset.fds.modulation.enabled,true);assert.equal(state.preset.fds.modulation.envelope.enabled,true);
+    assert.equal(state.preset.fds.modulation.envelope.increase,false,'comparison preserves the selected direction');
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea')),false);
+    assert.equal(await page.locator('#fdsDepthEnvelopePlan').getAttribute('data-warning'),'false');
+    await page.keyboard.up('a');assert.equal((await inspect()).voices.length,0,'releasing the replaced owner does not restart a comparison note');
+    await choose('#fdsModEnvelopeIncrease',true);
+    state=await waitState(value=>value.preset.fds.modulation.envelope.increase);assert.equal(state.preset.fds.modulation.envelope.initialGain,16,'direction selection does not silently change the initial depth');
+    const comparedSettings=structuredClone(state.preset.fds.modulation);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.registers[0x84]===(64|31));
+    assert.notEqual(state.voices[0].id,beforeCompareOwner);await sound();
+    await waitState(value=>value.coreState.fdsSweepGain>16&&value.coreState.fdsSweepGain<32);
+    await waitState(value=>value.coreState.fdsSweepGain===32);await meterIs('fds-depthGain',32);
+    const readDepthComparisonSpectrum=async()=>{
+      const rows=[];for(let frame=0;frame<12;frame++){rows.push(await spectrum());await page.waitForTimeout(30);}
+      return rows[0].map((_,index)=>rows.reduce((sum,row)=>sum+row[index],0)/rows.length);
+    };
+    const increasedDepthSpectrum=await readDepthComparisonSpectrum(),upDepthOwner=(await inspect()).voices[0].id;
+    await choose('#fdsModEnvelopeIncrease',false);
+    state=await waitState(value=>!value.preset.fds.modulation.envelope.increase);
+    assert.equal(state.voices[0].id,upDepthOwner);assert.equal(state.registers[0x84],64|31,'held direction stays applied until a fresh key');
+    assert.equal(state.preset.fds.modulation.envelope.initialGain,16);assert.deepEqual(state.preset.fds.modulation.table,comparedSettings.table);
+    assert.match(await page.locator('#fdsDepthEnvelopePlan').textContent(),/next note/i);
+    await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.registers[0x84]===31);await sound();
+    await waitState(value=>value.coreState.fdsSweepGain>0&&value.coreState.fdsSweepGain<16);
+    await waitState(value=>value.coreState.fdsSweepGain===0);await meterIs('fds-depthGain',0);await page.waitForTimeout(180);
+    const decreasedDepthSpectrum=await readDepthComparisonSpectrum();
+    const depthComparisonSpectrumDifference=compareSpectra(increasedDepthSpectrum,decreasedDepthSpectrum);
+    assert(depthComparisonSpectrumDifference>.005,`fresh opposite Depth directions change the real rendered spectrum: ${depthComparisonSpectrumDifference}`);
+    await page.keyboard.up('a');await stop();
+    if(config.screenshots)await screenshot('fds-depth-comparison');
+    await page.setInputFiles('#presetFileInput',{name:'restore-after-depth-comparison.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeDepthComparison))});
+    await waitState(value=>JSON.stringify(value.preset)===JSON.stringify(beforeDepthComparison));
+
+    await page.setInputFiles('#vgmFileInput',{name:'self-authored-panel-library.vgm',mimeType:'application/octet-stream',buffer:makeInstrumentVgm()});
+    await page.waitForFunction(()=>document.querySelector('#vgmLibrary').dataset.loading==='false'&&document.querySelector('#vgmFileName').textContent==='self-authored-panel-library.vgm'&&document.querySelectorAll('[data-vgm-voice]').length===5);
+    check('collapsing panels preserves held Noise, the VGM library, settings and keyboard performance');
+    await choose('#source','noise');
+    await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1);await sound();
+    const panelPreset=structuredClone(state.preset),panelOwners=structuredClone(state.voices);
+    const panelLibrary=await page.locator('#vgmVoices').innerText();
+    const panelCommands=await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length);
+    for(const id of ['monitorPanel','vgmPanel','hardwarePanel','filesPanel','keyboardPanel','sourcePanel']) {
+      await setPanel(id,false);
+      state=await inspect();assert.deepEqual(state.preset,panelPreset);assert.deepEqual(state.voices,panelOwners);await sound();
+      if(id==='hardwarePanel'||id==='sourcePanel') {
+        await page.waitForFunction(()=>document.querySelector('#hardwareMonitor').dataset.mode==='paused');
+        assert.equal(await page.locator('#hardwareMonitor [aria-valuenow]').count(),0);
+        await page.waitForTimeout(150);const reads=await applicationReads();await page.waitForTimeout(200);
+        assert.equal(await applicationReads(),reads,'hidden chip meters stop polling without stopping the note');
+      }
+      await setPanel(id,true);
+      if(id==='hardwarePanel'||id==='sourcePanel')await page.waitForFunction(()=>document.querySelector('#hardwareMonitor').dataset.mode==='live');
+      assert.equal(await page.locator('#vgmVoices').innerText(),panelLibrary,'folding does not discard an imported library');
+    }
+    assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method!=='read').length),panelCommands,'panel changes never issue sound commands');
+    await panelSummary('vgmPanel').focus();await page.keyboard.press('Space');
+    assert.equal(await page.locator('#vgmPanel').evaluate(node=>node.open),false);
+    await page.keyboard.press('Enter');assert.equal(await page.locator('#vgmPanel').evaluate(node=>node.open),true);
+    await setPanel('vgmPanel',false);
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea,summary')),false,'pointer disclosure returns focus to performance keys');
+    await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==panelOwners[0].id);await sound();
+    const panelReplacement=state.voices[0].id;await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,panelReplacement);
+    await setPanel('noiseEnvelopePanel',false);await setPanel('noiseLengthPanel',false);
+    const panelPeriod=panelPreset.noise.period,editedPeriod=panelPeriod===15?14:panelPeriod+1;
+    await number('#noisePeriod',editedPeriod);await waitState(value=>value.preset.noise.period===editedPeriod);
+    assert.equal(await page.locator('#noiseEnvelopePanel').evaluate(node=>node.open),false);
+    assert.equal(await page.locator('#noiseLengthPanel').evaluate(node=>node.open),false,'parameter edits keep disclosure choices');
+    await number('#noisePeriod',panelPeriod);state=await waitState(value=>value.preset.noise.period===panelPeriod);
+    assert.equal(state.voices[0].id,panelReplacement);assert.deepEqual(state.preset,panelPreset);
+
+    check('pinned Waveform / Spectrum stays visible while Noise controls are edited on desktop');
+    await page.check('#keepMonitorVisible');
+    await page.locator('#noisePeriod').evaluate(node=>node.scrollIntoView({block:'center',behavior:'instant'}));
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const pinned=await page.evaluate(()=>{
+      const panel=document.querySelector('#monitorPanel'),monitor=panel.getBoundingClientRect(),control=document.querySelector('#noisePeriod').getBoundingClientRect();
+      return {position:getComputedStyle(panel).position,top:monitor.top,bottom:monitor.bottom,controlTop:control.top,controlBottom:control.bottom,height:innerHeight};
+    });
+    assert.equal(pinned.position,'sticky');assert(pinned.top>=0&&pinned.bottom<pinned.height,'the pinned monitor stays inside the viewport');
+    assert(pinned.controlTop>=pinned.bottom-1&&pinned.controlBottom<=pinned.height+1,`Noise control and live monitor are visible together: ${JSON.stringify(pinned)}`);
+    await number('#noisePeriod',editedPeriod);state=await waitState(value=>value.preset.noise.period===editedPeriod);assert.equal(state.voices[0].id,panelReplacement);await sound();
+    await screenshot('panels-pinned-noise',{fullPage:false});
+    await page.click('[data-visual-mode="spectrum"]');assert.equal(await page.locator('[data-visual-mode="spectrum"]').getAttribute('aria-pressed'),'true');
+    await page.locator('#noisePeriod').evaluate(node=>node.scrollIntoView({block:'center',behavior:'instant'}));
+    await screenshot('panels-pinned-spectrum',{fullPage:false});
+    await page.uncheck('#keepMonitorVisible');await page.click('[data-visual-mode="waveform"]');
+    await number('#noisePeriod',panelPeriod);await waitState(value=>value.preset.noise.period===panelPeriod);
+    await page.keyboard.up('s');await stop();
+
+    check('closing the source panel cancels only an unfinished DMC drawing and keeps committed bytes and Undo');
+    await choose('#source','dmc');await page.click('#demoDpcm');await waitState(value=>value.preset.dmc.data.length===257);
+    const panelDmcPreset=structuredClone((await inspect()).preset),panelDmcHistory=await dmcHistory();
+    await startDmcDraw(.05,120);await moveDmcDraw(.95,20);assert.equal(await dmcDrawing(),'true');
+    // A source can be hidden by layout or an assistive action while a pointer
+    // owns the canvas. Trigger that lifecycle directly; the pointer itself is
+    // still used to prepare the real uncommitted stroke.
+    await page.locator('#sourcePanel').evaluate(node=>{node.open=false;});
+    await page.waitForFunction(()=>document.querySelector('#dmcDacCanvas').dataset.drawing!=='true');await page.mouse.up();
+    assert.deepEqual((await inspect()).preset,panelDmcPreset);assert.deepEqual(await dmcHistory(),panelDmcHistory);
+    await setPanel('sourcePanel',true);await assertDmcPreview(panelDmcPreset);
+    await choose('#source','fds');const panelFdsPreset=structuredClone((await inspect()).preset);
+    const panelFdsCanvas=page.locator('#fdsCanvas');await panelFdsCanvas.scrollIntoViewIfNeeded();
+    const panelFdsRect=await panelFdsCanvas.boundingBox();assert(panelFdsRect);
+    await page.mouse.move(panelFdsRect.x+panelFdsRect.width*.15,panelFdsRect.y+panelFdsRect.height*.2);await page.mouse.down();
+    await page.mouse.move(panelFdsRect.x+panelFdsRect.width*.8,panelFdsRect.y+panelFdsRect.height*.75,{steps:8});
+    assert.match(await page.locator('#fdsCanvas + .nes-wave-readout').textContent(),/release to apply/i);
+    await page.locator('#sourcePanel').evaluate(node=>{node.open=false;});
+    await page.waitForFunction(()=>document.querySelector('#fdsCanvas + .nes-wave-readout').textContent.includes('cancelled'));
+    await page.mouse.up();assert.deepEqual((await inspect()).preset,panelFdsPreset);
+    await setPanel('sourcePanel',true);
+    await page.setInputFiles('#presetFileInput',{name:'restore-after-panel-probe.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(panelPreset))});
+    await waitState(value=>JSON.stringify(value.preset)===JSON.stringify(panelPreset));
+
+    check('folded panels fit a narrow screen and desktop pinning does not obstruct mobile controls');
+    await page.setViewportSize({width:390,height:844});await page.check('#keepMonitorVisible');
+    assert.notEqual(await page.locator('#monitorPanel').evaluate(node=>getComputedStyle(node).position),'sticky');
+    await setPanel('vgmPanel',false);await setPanel('hardwarePanel',false);await setPanel('filesPanel',false);await setPanel('keyboardPanel',false);await setPanel('outputOptionsPanel',false);
+    await setPanel('sourcePanel',false);assert(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=1);
+    await screenshot('panels-collapsed-mobile');
+    await setPanel('sourcePanel',true);await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();await page.keyboard.up('a');await stop();
+    for(const id of ['vgmPanel','hardwarePanel','filesPanel','keyboardPanel','outputOptionsPanel','noiseEnvelopePanel','noiseLengthPanel'])await setPanel(id,true);
+    await page.uncheck('#keepMonitorVisible');await page.setViewportSize({width:1180,height:940});
+
+    await page.click('#closeVgm');assert.equal(await page.isVisible('#vgmLibrary'),false);
+
     check('desktop/mobile layout and explicit AudioContext recovery');
     await screenshot('desktop');
     await page.setViewportSize({width:390,height:844});
@@ -1683,6 +1846,8 @@ async function runEngine(name, engine, origin) {
       pulseNoiseLengthPassive:true,pulseNoiseLengthTimeEstimates:true,pulseNoiseLengthGate:true,pulseNoiseLengthOwnership:true,pulseNoiseLengthNextTrigger:true,pulseNoiseLengthIndexZero:true,pulseNoiseLengthLoopCoupling:true,pulseNoiseLengthPresetRoundTrip:true,pulseNoiseLengthCodeExport:true,pulseNoiseLengthVgmImport:true,pulseNoiseLengthVgmPitchDedup:true,pulseNoiseLengthMobile:true,
       hardwareMonitorPassive:true,hardwareMonitorBothPulseChannels:true,hardwareMonitorReadOnly:true,hardwareMonitorOwnership:true,hardwareMonitorVolumeDecay:true,hardwareMonitorLoopHalt:true,hardwareMonitorLengthClosure:true,hardwareMonitorTriangleLinear:true,hardwareMonitorNoiseDecay:true,hardwareMonitorActiveVsDraft:true,hardwareMonitorFdsGain:true,hardwareMonitorFdsRawVolumeCap:true,hardwareMonitorDepthSixBit:true,hardwareMonitorIdleStopsReads:true,hardwareMonitorFailureRecovery:true,hardwareMonitorMobile:true,
       softwareClickGuardDefault:true,softwareClickGuardPassive:true,softwareClickGuardStartupLatest:true,softwareClickGuardKeyboardFocus:true,softwareClickGuardFdsLiveAB:true,softwareClickGuardFdsRelease:true,softwareClickGuardDmcRelease:true,softwareClickGuardDmcRawAB:true,softwareClickGuardLateReleaseSafe:true,softwareClickGuardPresetUnchanged:true,softwareClickGuardHardwareUnchanged:true,
+      fdsDepthEndpointHint:true,fdsDepthComparisonSetup:true,fdsDepthComparisonPreservesSoundData:true,fdsDepthComparisonStopsHeldNote:true,fdsDepthComparisonFreshDirections:true,fdsDepthComparisonInitialDepthStable:true,fdsDepthComparisonAppliedVsDraft:true,fdsDepthComparisonActualSpectrum:true,fdsDepthComparisonSpectrumDifference:depthComparisonSpectrumDifference,
+      panelsCompactDefaults:true,panelsNativeKeyboardToggle:true,panelsPointerKeyboardFocus:true,panelsKeepHeldNoise:true,panelsKeepPreset:true,panelsKeepVgmLibrary:true,panelsNoSoundCommands:true,panelsKeepDisclosureOnEdit:true,panelsHiddenMetersStopReads:true,panelsDmcHideCancelsDraft:true,panelsFdsHideCancelsDraft:true,panelsCanvasKeepsUndo:true,panelsPinnedMonitor:true,panelsPinnedSpectrum:true,panelsNoiseAndMonitorTogether:true,panelsMobileNoPin:true,panelsMobileKeyboard:true,
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,

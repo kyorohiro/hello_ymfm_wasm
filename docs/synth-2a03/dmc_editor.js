@@ -216,7 +216,7 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     render();
   }
   listen(canvas,'pointerdown',event => {
-    if (event.button !== 0 || stroke || !dmc.data.length || !canvas.clientWidth || !canvas.clientHeight) return;
+    if (event.button !== 0 || stroke || !dmc.data.length || !canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])')) return;
     resize();
     const point = drawingPoint(event);
     if (point.padding) {drawingStatus.textContent = 'Generated padding is read only. Draw over the original sample bytes.'; return;}
@@ -224,9 +224,13 @@ export function createDmcBitEditor({root, onChange = () => {}, onError = () => {
     stroke = {id:event.pointerId,baseData:[...dmc.data],targets:new Map(),previous:point,preview:[...dmc.data]};
     canvas.setPointerCapture(event.pointerId); previewStroke(event);
   });
-  listen(canvas,'pointermove',event => {if (stroke?.id === event.pointerId) {event.preventDefault(); previewStroke(event);}});
+  listen(canvas,'pointermove',event => {if (stroke?.id === event.pointerId) {
+    if (!canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])')) {cancelDrawing();return;}
+    event.preventDefault(); previewStroke(event);
+  }});
   listen(canvas,'pointerup',event => {
     if (!stroke || stroke.id !== event.pointerId) return;
+    if (!canvas.clientWidth || !canvas.clientHeight || canvas.closest('details:not([open])')) {cancelDrawing();return;}
     previewStroke(event);
     if (!stroke || stroke.id !== event.pointerId) return;
     const data = stroke.preview, targets = targetEntries(stroke.targets), id = stroke.id, previous = dmc;

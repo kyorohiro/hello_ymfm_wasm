@@ -11,6 +11,49 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## FDS Depth Envelopeの方向差が分かりにくい（2026-11-05 調査・比較UI完了／追加分は未公開）
+
+ユーザー報告：Hardware depth envelopeのIncrease／Decreaseが同じに聞こえ、効いているか分からない。直前のpanel整理の未commit変更は保持して調査する。
+
+- [x] 実WASMで既定設定・方向変更・Initial depth・Shared clock・modulation table／Rate／Biasを比較し、現在gainと実PCMを確認する。
+- [x] 保持中の次note反映と発音し直した場合を分け、Depthの増減とpitch方向の違い、停止clockやendpointによる無変化を切り分ける。
+- [x] 不具合があれば修正し、設定依存ならユーザーの音色を勝手に変えずに状態・適用タイミングを明確にする。
+- [x] 実PCMとブラウザーで有効な試し方を検証し、結果と再開手順を記録する。
+
+調査結果：UI→preset→command queue→発音時の`$4084`→実WASMまで方向bitは正常。同じinstrumentを弾き直し、Initial depth 16／Period 8／Master 232では100 ms後にIncrease 26（register 0x48）／Decrease 6（0x08）になった。既定Initial 0のDecreaseは0のまま、32以上のIncreaseも増えない。Rate 256の既定tableは約109 Hzで、Depth変化は音程の上下ではなくFM音色の強弱として出る。既定Envelopeは0→32が約0.30秒と短い。[実PCM記録](2a03_fds_depth_direction_pcm_01.json)。
+
+比較UIを追加：Depth directionの意味を明示し、Next noteの開始→到達値・時間と停止clock／無変化endpointを表示する。Set slow vibrato comparisonはVibrato table／Rate 8／Initial 16／Depth Period 31／Shared clock 232・unpausedを設定し、方向・wave・Volume設定・他sourceを保持する。明示的な設定ボタンで、方向変更時にInitial値は勝手に変えない。保持音を止めてphaseをresetし、新しい鍵盤で比較する。Volume EnvelopeをOffにすると差が分かりやすい。shared clockは両Envelopeへ作用することも表示した。
+
+検証：`npm run test:2a03-synth`は**190件成功、失敗0**（既存186＋helper／実WASM 4）。44.1／48 kHzでInitial 16→32／16→0、約0.53秒、比較前後のdeep ownershipとwave／Volume保存、停止・endpointの説明を確認。ソース版Chromium／WebKitでもfresh keyの実gainとSpectrum差、保持中の適用済みregister／次note設定の区別、比較ボタンの停止・保存値保持まで成功。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。比較ボタンがwave／Volume／方向・その他sourceを保持すること、保持音停止とfresh key、Increase 16→32／Decrease 16→0、保持中のactual registerとnext-note表示の分離を確認した。実出力の正規化Spectrum差も基準を超え、ソース版はChromium約1.28／WebKit約1.16だった。既存panel・Click guard・DMC／FDS／preset・VGM回帰も成功。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定し、表示も確認。記録：[ソース版](2a03_synth_fds_depth_comparison_browser_01.json)、[ZIP版](2a03_synth_fds_depth_comparison_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_fds-depth-comparison-20261105_itch.zip`（35 files、3 bundles、1,206,167 bytes、SHA-256 `653a18bf6a27511879ecd5f4382ee646db904f947fe3bed4782898d553179aa2`）。browser receiptの51 inputsは作業ファイルと一致。既存WASM pair／Nativeソース11 inputs（SDK 0.1.7）・権利通知は保持。preset v7・共有runtime／DSP／WASM・npm packageを変更せず、ガイドと英語AI READMEを更新した。先行panel変更・ユーザーのstage操作は保持し、AIからGit操作はしていない。参考：[FDS envelope仕様](https://www.nesdev.org/wiki/FDS_audio)。
+
+試し方：ページ再読込→FDS→Volume Envelope Off→Hardware depth envelopeのSet slow vibrato comparison→新しい鍵盤を1秒以上保持。Increaseは強い揺れが残り、Decreaseは揺れが消える。Direction変更後もInitial depthは16のまま、離鍵・再発音して比較する。ユーザー個別設定の実聴は未確認。commit／push／公開は今回AIから未実行。
+
+## パネルの折りたたみと表示の整理（2026-11-05 完了・追加分は未公開）
+
+ユーザー要望：Sounds from VGM／Sound sourceなどが大きくなり、Noise等を操作しながらWaveform／Spectrumを見ることが難しい。必要な部分だけを表示できるようにする。
+
+- [x] Sounds from VGM／Sound source／Hardware now／Instrument files／Keyboard／出力補助設定を開閉できるようにし、利用頻度の低い説明・importを初期状態でコンパクトにする。
+- [x] 音色内のEnvelope／Length／Sweep／FDS設定も必要に応じて折りたためるようにする。選択した音源・設定・保存データは保持し、開閉で発音・resetを起こさない。
+- [x] 広い画面ではWaveform／Spectrumを見ながら音色を操作できる配置にし、狭い画面でも表示領域をふさがないようにする。
+- [x] pointer操作後のkeyboard演奏・開閉のkeyboard操作・aria表示を保つ。編集canvasを隠すときは未確定strokeを安全に取り消し、確定済みdata・Undo・VGM libraryを保持する。
+- [x] 実ブラウザーと独立ZIPで演奏中の開閉・観測・保存・focus・390px配置を確認し、ガイドと記録を更新する。
+
+検証：`npm run test:2a03-synth`は**186件成功、失敗0**。ソース版Chromium／WebKitで、演奏中の開閉、設定・owner・VGM保持、未確定DMC／FDS描画の取消、固定Waveform／SpectrumとNoise操作部の同時表示、390 pxの非固定表示まで成功。
+
+実装：native details／summaryを使い、VGM／Hardware now／Instrument files／Output optionsは初期Closed、Sound source／Keyboard／Waveform・Spectrumと音色subsectionはOpenとした。開閉状態はそのページ内でpreset読込・source変更後も保持する。DOMを作り直さず、音色data・held owner・VGM library・Undoを維持する。Sourceを隠すと未確定strokeだけ取消。非表示／閉じた祖先をpointermove／upでも確認して、非同期toggle前に隠れたcanvasへ描画を確定しない。
+
+`Keep visible on desktop`は初期On。幅900 px以上・高さ700 px以上だけcompact monitorをstickyにし、狭い／低い画面では自動解除する。固定高に応じてscroll余白を確保し、実際のWaveform／SpectrumとNoise period操作部の同時表示を確認した。Hardware panel／Source panelが閉じるとstate pollingを止め、monitorを閉じると可視化を休止する。音源自体は止めず、summaryのpointer操作はfocusを戻し、Enter／Spaceはnative操作を保つ。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。初期状態、演奏中の全主要panel開閉、no sound command、物理keyboard・遅いowner解放、library・preset保持、parameter編集後のClosed維持、非表示polling停止／再開、実pointer描画のSource非表示取消とUndo保持、固定Waveform／Spectrum＋Noise操作、390 pxで非固定・overflow 0を確認した。既存DMC／FDS／Click guard／保存・VGM等の回帰も成功。ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定。固定Noise表示とmobile折りたたみ画面も確認済み。記録：[ソース版](2a03_synth_panels_browser_01.json)、[ZIP版](2a03_synth_panels_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_collapsible-panels-20261105_itch.zip`（35 files、3 bundles、1,202,761 bytes、SHA-256 `8d63716ff36c10133501bcb3bdc481bfdc76dc035c442759987bd69a2221b3f0`）。browser receiptの50 inputsは作業ファイルと一致。既存WASM pair／Nativeソース11 inputs（SDK 0.1.7）・権利通知を保持し、preset v7・共有runtime／DSP／WASM・npm packageは変更していない。Synth guideと英語AI READMEを更新した。
+
+試し方：ページを再読込→見出しを押して開閉。NoiseではHardware now・VGM・Envelope／Lengthを閉じ、Keep visible on desktopをOnにしてscrollすると、Noise clock／volumeとWaveform／Spectrumを同時に操作・観察できる。ファイル操作はInstrument files、click guardはOutput optionsを開く。commit／push／公開は今回AIから未実行。
+
 ## FDS／DMCの発音・離鍵クリック（2026-11-05 対策完了・追加分は未公開）
 
 ユーザー報告：FDSとDMCで鍵盤を押す／離す瞬間にクリック状のノイズがある。まず実WASMのattack／release／再発音を測定し、DACの段差、FDSの波形位相・gain、Synth側の停止処理とfilterの過渡応答を区別する。
@@ -440,6 +483,7 @@ FDSの不完全なWave RAMや、有効だが不完全な変調tableは音色と�
 - [x] FDS変調の深さのEnvelopeを追加し、Volume／Depthの共通clockを分離する（上記2026-11-05）。
 - [x] TriangleのLinear／Length CounterをUI・VGM・presetへ接続する（上記2026-11-05）。
 - [x] Pulse／NoiseのLength Counter編集を追加し、Envelope LoopとLength haltの共有flagをUI・VGM・presetへ接続する（上記2026-11-05）。
+- [x] パネルを折りたためるようにし、固定Waveform／Spectrumを見ながら音色を操作する（上記2026-11-05）。
 - [ ] 2A03の製品名・アイコンを使って、Tauri版と配布を整備する。
 
 ## 再開時

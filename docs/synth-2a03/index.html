@@ -46,17 +46,23 @@
             <output id="masterVolumeValue" for="masterVolume">70%</output>
           </label>
         </div>
-        <div class="nes-click-guard">
+        <details id="outputOptionsPanel" class="nes-disclosure nes-output-options" data-panel="outputOptions">
+          <summary><h2>Output options</h2></summary>
+          <div class="nes-click-guard">
           <label for="clickGuardEnabled"><input id="clickGuardEnabled" type="checkbox" checked aria-describedby="clickGuardHelp"> Software click guard · FDS / DMC</label>
           <p id="clickGuardHelp">Software smoothing connects key edges over 5 ms to soften DAC clicks. Held tones and hardware envelopes stay unchanged. Off gives raw output; this setting is not saved in presets.</p>
-        </div>
+          </div>
+        </details>
         <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
       </header>
 
-      <section class="spu-monitor nes-monitor" aria-label="Instrument display">
+      <details id="monitorPanel" class="nes-disclosure nes-monitor-panel" data-panel="monitor" open>
+        <summary><h2>Waveform / Spectrum</h2></summary>
+        <section class="spu-monitor nes-monitor" aria-label="Instrument display">
         <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
           <button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button>
           <button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+          <label class="nes-keep-monitor" for="keepMonitorVisible"><input id="keepMonitorVisible" type="checkbox" checked> Keep visible on desktop</label>
         </div>
         <p id="visualizerDescription">Live output after Master volume.</p>
         <div class="monitor-body">
@@ -69,10 +75,12 @@
             <output id="pitchValue" for="pitchBend">0.00</output>
           </label>
         </div>
-      </section>
+        </section>
+      </details>
 
-      <section id="vgmImport" class="nes-vgm-import" aria-labelledby="vgmHeading">
-        <div class="section-heading"><h2 id="vgmHeading">Sounds from VGM</h2></div>
+      <details id="vgmPanel" class="nes-disclosure nes-vgm-panel" data-panel="vgm">
+        <summary><h2 id="vgmHeading">Sounds from VGM</h2></summary>
+        <section id="vgmImport" class="nes-vgm-import" aria-labelledby="vgmHeading">
         <div class="nes-vgm-actions">
           <button id="loadVgm" type="button">Load VGM / VGZ…</button>
           <input id="vgmFileInput" class="file-input" type="file" accept=".vgm,.vgz,application/gzip,application/octet-stream" aria-label="Choose a VGM or VGZ file with NES or FDS sound">
@@ -100,15 +108,23 @@
           </details>
         </div>
         <p class="subtext">Imports initial sound settings and recorded DMC samples. Later changes, length counters and song playback are not replayed. Incomplete sample RAM and direct DAC PCM cannot be recovered as DPCM. Any approximations are shown with the selected sound.</p>
-      </section>
+        </section>
+      </details>
 
-      <section class="instrument-workspace nes-workspace" aria-label="Instrument editor">
-        <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></div>
-        <section id="hardwareMonitor"></section>
+      <details id="sourcePanel" class="nes-disclosure instrument-workspace nes-workspace" data-panel="source" open>
+        <summary><h2>Sound source</h2><p id="voiceCapacity" role="status">Pulse · 2 voices · round robin</p></summary>
+        <div class="nes-panel-body">
+        <details id="hardwarePanel" class="nes-disclosure nes-hardware-panel" data-panel="hardware">
+          <summary><h3>Hardware now</h3><span>Live chip values</span></summary>
+          <section id="hardwareMonitor"></section>
+        </details>
         <div id="voiceEditor"></div>
-      </section>
+        </div>
+      </details>
 
-      <section class="instrument-toolbar" aria-label="Instrument files">
+      <details id="filesPanel" class="nes-disclosure" data-panel="files">
+        <summary><h2>Instrument files</h2></summary>
+        <section class="instrument-toolbar nes-panel-body" aria-label="Instrument files">
         <label class="instrument-name-control" for="instrumentName">Instrument name <input id="instrumentName" type="text" maxlength="80" value="Pulse" autocomplete="off"></label>
         <div class="preset-actions">
           <button id="loadPreset" type="button">Load preset…</button>
@@ -118,10 +134,12 @@
           <button id="resetPreset" class="quiet-button" type="button">Reset instrument</button>
         </div>
         <textarea id="codeOutput" readonly spellcheck="false" rows="8" aria-label="Generated instrument JavaScript" hidden></textarea>
-      </section>
+        </section>
+      </details>
 
-      <section class="keyboard-section" aria-labelledby="keyboardHeading">
-        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
+      <details id="keyboardPanel" class="nes-disclosure keyboard-section" data-panel="keyboard" open>
+        <summary><h2 id="keyboardHeading">Keyboard</h2><span>Every key plays the selected source.</span></summary>
+        <div class="nes-panel-body">
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
@@ -139,7 +157,8 @@
           </label>
           <div id="keyboard" class="keyboard-mount"></div>
         </div>
-      </section>
+        </div>
+      </details>
       <footer>
         <p>One NTSC NES APU + FDS: two Pulse voices, one Triangle, one Noise, one DMC sample and one FDS voice. Round robin, Pitch bend, waveform drawing and preset files are software performance tools. Song playback and audio-to-DPCM conversion are not included.</p>
         <div><a href="../playground/index.html?mode=nes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/nesapusynth.js">JavaScript source</a></div>

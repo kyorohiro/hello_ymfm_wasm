@@ -46,7 +46,7 @@ software performance control using hardware frequency registers. On NES Pulse / 
 crossing the timer's high-byte boundary reloads the hardware Envelope / counters;
 Pitch is not a promise of continuous, sample-accurate tuning.
 
-**Software click guard · FDS / DMC** defaults to On. Their DAC levels can change
+**Output options → Software click guard · FDS / DMC** defaults to On. Their DAC levels can change
 abruptly at a key edge: the FDS waveform has a positive baseline, and DMC's
 Initial level / explicit release can jump its DAC value. Even a completed DMC
 one-shot can produce a transient when its retained DAC is cleared on release.
@@ -65,8 +65,8 @@ for the page session and is not stored in presets or Copy JavaScript.
 
 ## Observe the chip
 
-**Hardware now**, above the sound editor, displays sampled internal chip values
-while you hold a key:
+Open **Hardware now**, above the sound editor, to display sampled internal chip
+values while you hold a key:
 
 - **Pulse CH1 / CH2** and **Noise** show current volume (0–15) and Length
   remaining (0–254 ticks). A decaying Envelope changes Volume; Loop also halts
@@ -93,6 +93,30 @@ audio suspension or failure stops observation and clears the bars to **—**
 rather than inventing zero values. DMC continues to use its existing DAC
 preview below. Observations do not change presets, drawings, keyboard focus,
 VGM selection or saved files.
+
+## Arrange the workspace
+
+Click a section heading to collapse or expand it. **Sounds from VGM**,
+**Hardware now**, **Instrument files** and **Output options** start collapsed;
+**Sound source**, **Keyboard** and **Waveform / Spectrum** start open. Envelope,
+Length, Sweep and FDS sections can also be folded independently. Their open
+state stays in the current page when you edit, load a preset or switch source.
+It is a layout preference, outside the instrument preset.
+
+**Keep visible on desktop**, in the output display, keeps a compact Waveform /
+Spectrum at the top while you scroll through sound controls. It defaults on
+for wide, tall windows and automatically releases on narrow or short windows.
+Uncheck it to scroll the display normally. Fold the unused Noise sections and
+VGM library to keep the Noise clock / volume controls near the live display.
+
+Folding does not stop a held keyboard note, reset the instrument, discard an
+imported library or change committed waveform data / Undo history. Hiding the
+sound editor cancels only an unfinished drawing. Hardware-state polling pauses
+when its panel is hidden and resumes when opened. Summary headings support
+Tab, Enter and Space; pointer toggles leave performance keys available.
+
+Open **Instrument files** for preset loading / saving and JavaScript export.
+Open **Output options** to compare the software click guard with raw output.
 
 ## Edit the sound
 
@@ -329,6 +353,29 @@ Initial / fixed Depth use the full 0–63 range. Increase raises depths below 32
 it holds an initial value already at or above 32. Decrease can fall from 63 to 0.
 The Depth Envelope has its own **Period 0–63**. Fixed Depth is available with
 the Depth Envelope off.
+
+Increase / Decrease means **more / less modulation**, not pitch up / down.
+The usual Rate 256 advances the Vibrato table at about 109 Hz, so it sounds
+like a change of FM timbre; the default Envelope reaches 32 in about 0.30 s.
+Decrease with Initial depth 0 stays at 0. Increase starting at 32 or above also
+stays at its initial value. **Next note** above the comparison button shows the
+planned range / time and calls out stopped clocks or an unchanged endpoint.
+
+For a clearer comparison, turn **Volume Envelope off**, then choose **Set slow
+vibrato comparison** in the Depth section. It sets a Vibrato modulation table,
+Rate 8 (about 3.4 Hz), Initial depth 16, Depth Period 31 and a running shared
+clock of 232. It keeps your selected direction, waveform, volume controls and
+other source settings. It stops held notes and resets the chip for a new key;
+the shared clock affects both envelopes.
+
+Hold a new key for at least a second. Increase goes **16 → 32** in about 0.53 s
+and leaves strong vibrato; Decrease goes **16 → 0** and leaves a steady tone.
+Switch direction and release / replay to compare, keeping Initial depth 16 in
+both cases. Open **Hardware now** to see the actual Depth gain. These are
+ordinary hardware controls prepared by a software convenience button, not a
+new software LFO. A zero modulation counter can make Depth changes inaudible;
+stopping the table clock alone does not guarantee this, since a retained
+counter / Bias can still shift pitch.
 
 **Shared envelope clock · Volume + Depth** applies to both units:
 

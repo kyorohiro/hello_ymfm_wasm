@@ -2,9 +2,10 @@
 // Copyright (c) 2026 kyorohiro.
 import {createDefaultPreset, readPreset, waveShape, MAX_DPCM_BYTES, createDemoDpcm, LENGTH_TABLE} from './preset.js';
 import {createDmcBitEditor} from './dmc_editor.js';
+import {prepareFdsDepthComparison, describeFdsDepthEnvelope} from './fds_depth_controls.js';
 
 /** A passive editor. Editing never creates an audio device. */
-export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, onError = () => {}}) {
+export function createEditor({root, onChange = () => {}, onCompareDepth = value => onChange(value), onSaveDpcm = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
   let preset = createDefaultPreset(), disposed = false, stroke = null;
@@ -166,19 +167,22 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   function card(title) {
     const element = make('section', 'nes-card'); element.append(make('h3', '', title)); body.append(element); return element;
   }
-  function section(parent, title) {
-    const element = make('div', 'nes-subsection'); element.append(make('h4', '', title)); parent.append(element); return element;
+  function section(parent, title, id) {
+    const element = make('details', 'nes-subsection nes-disclosure'); element.id = id;
+    element.dataset.editorPanel = id; element.open = true;
+    const summary = make('summary'); summary.append(make('h4', '', title)); element.append(summary);
+    const content = make('div', 'nes-disclosure-body'); element.append(content); parent.append(element); return content;
   }
   function group(parent) { const element = make('div', 'nes-fields'); parent.append(element); return element; }
   function help(parent, text) { const element = make('p', 'nes-help', text); parent.append(element); return element; }
   function lengthGate(parent, source) {
-    const controls = group(section(parent, 'Hardware gate · Length counter'));
+    const content = section(parent, 'Hardware gate · Length counter', `${source}LengthPanel`), controls = group(content);
     const halt = value => value[source].envelope.enabled ? value[source].envelope.loop : value[source].lengthHalt;
     const mode = select(controls, 'Gate mode · Envelope Loop controls this when enabled', `${source}LengthHalt`, [[true,'Hold key'],[false,'Hardware counter']], halt, (value, hold) => {value[source].lengthHalt = hold === 'true';});
     const index = number(controls, 'Length table index · 0–31', `${source}LengthIndex`, 0, 31, value => value[source].lengthIndex, (value, lengthIndex) => {value[source].lengthIndex = lengthIndex;});
-    const readout = make('p', 'nes-wave-readout'); readout.id = `${source}LengthReadout`; readout.setAttribute('aria-live','polite'); parent.append(readout);
-    help(parent, 'The NES APU stops this channel when its Length counter reaches 0. Envelope Loop and Length halt share one hardware bit: Loop on holds the counter; Loop off lets it run and either the decay or Length can end the sound.');
-    help(parent, 'Gate settings apply on the next note. The fixed-volume Gate mode is remembered while Envelope is on. Times use about 120 NTSC ticks per second; table order is not duration order. Release or press a new key to retrigger.');
+    const readout = make('p', 'nes-wave-readout'); readout.id = `${source}LengthReadout`; readout.setAttribute('aria-live','polite'); content.append(readout);
+    help(content, 'The NES APU stops this channel when its Length counter reaches 0. Envelope Loop and Length halt share one hardware bit: Loop on holds the counter; Loop off lets it run and either the decay or Length can end the sound.');
+    help(content, 'Gate settings apply on the next note. The fixed-volume Gate mode is remembered while Envelope is on. Times use about 120 NTSC ticks per second; table order is not duration order. Release or press a new key to retrigger.');
     return () => {
       const voice = preset[source], held = halt(preset), ticks = LENGTH_TABLE[voice.lengthIndex];
       mode.setDisabled(voice.envelope.enabled); index.setDisabled(held);
@@ -196,43 +200,43 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const pulsePreview = make('div', 'nes-pulse-preview'); pulsePreview.setAttribute('aria-hidden','true');
   const pulseSvg = doc.createElementNS('http://www.w3.org/2000/svg','svg'), pulsePath = doc.createElementNS('http://www.w3.org/2000/svg','path');
   pulseSvg.setAttribute('viewBox','0 0 320 46'); pulseSvg.setAttribute('preserveAspectRatio','none'); pulseSvg.append(pulsePath); pulsePreview.append(pulseSvg); pulse.append(pulsePreview);
-  const envelopeFields = group(section(pulse, 'Hardware volume envelope'));
+  const pulseEnvelope = section(pulse, 'Hardware volume envelope', 'pulseEnvelopePanel'), envelopeFields = group(pulseEnvelope);
   checkbox(envelopeFields, 'Enable Envelope', 'pulseEnvelopeEnabled', value => value.pulse.envelope.enabled, (value, enabled) => {value.pulse.envelope.enabled = enabled;});
   const envelopePeriod = number(envelopeFields, 'Period · 0–15', 'pulseEnvelopePeriod', 0, 15, value => value.pulse.envelope.period, (value, period) => {value.pulse.envelope.period = period;});
   const envelopeLoop = checkbox(envelopeFields, 'Loop Envelope', 'pulseEnvelopeLoop', value => value.pulse.envelope.loop, (value, loop) => {value.pulse.envelope.loop = loop;});
-  help(pulse, 'Envelope starts at the hardware maximum and decays; looping repeats it. Period 0 is the fastest setting. Fixed volume applies when Envelope is off. Envelope changes take effect on the next note.');
+  help(pulseEnvelope, 'Envelope starts at the hardware maximum and decays; looping repeats it. Period 0 is the fastest setting. Fixed volume applies when Envelope is off. Envelope changes take effect on the next note.');
   const renderPulseLength = lengthGate(pulse, 'pulse');
-  const sweepFields = group(section(pulse, 'Hardware pitch sweep · both Pulse channels'));
+  const pulseSweep = section(pulse, 'Hardware pitch sweep · both Pulse channels', 'pulseSweepPanel'), sweepFields = group(pulseSweep);
   checkbox(sweepFields, 'Enable Sweep', 'sweepEnabled', value => value.pulse.sweep.enabled, (value, enabled) => {value.pulse.sweep.enabled = enabled;});
   const sweepControls = [
     select(sweepFields, 'Direction', 'sweepNegate', [[false,'Pitch down'],[true,'Pitch up']], value => value.pulse.sweep.negate, (value, negate) => {value.pulse.sweep.negate = negate === 'true';}),
     number(sweepFields, 'Period · 0–7', 'sweepPeriod', 0, 7, value => value.pulse.sweep.period, (value, period) => {value.pulse.sweep.period = period;}),
     number(sweepFields, 'Shift · 0 = no change', 'sweepShift', 0, 7, value => value.pulse.sweep.shift, (value, shift) => {value.pulse.sweep.shift = shift;}),
   ];
-  help(pulse, 'Both Pulse channels have Sweep, so round robin keeps two voices. The hardware changes the timer: Pitch up subtracts from it. Sweep edits apply on the next note.');
+  help(pulseSweep, 'Both Pulse channels have Sweep, so round robin keeps two voices. The hardware changes the timer: Pitch up subtracts from it. Sweep edits apply on the next note.');
 
   const triangle = card('Triangle · fixed hardware waveform');
   const trianglePreview = make('div','nes-triangle-preview'); trianglePreview.setAttribute('aria-hidden','true');
   trianglePreview.innerHTML = '<svg viewBox="0 0 320 60" preserveAspectRatio="none"><path d="M0 50 L40 10 L80 50 L120 10 L160 50 L200 10 L240 50 L280 10 L320 50"/></svg>';
   triangle.append(trianglePreview);
-  const triangleFields = group(section(triangle, 'Hardware gate · Linear + Length'));
+  const triangleGate = section(triangle, 'Hardware gate · Linear + Length', 'triangleGatePanel'), triangleFields = group(triangleGate);
   select(triangleFields, 'Gate mode', 'triangleControl', [[true,'Hold key'],[false,'Hardware counters']], value => value.triangle.control, (value, control) => {value.triangle.control = control === 'true';});
   number(triangleFields, 'Linear reload · 0–127', 'triangleLinearReload', 0, 127, value => value.triangle.linearReload, (value, linearReload) => {value.triangle.linearReload = linearReload;});
   const triangleLengthIndex = number(triangleFields, 'Length table index · 0–31', 'triangleLengthIndex', 0, 31, value => value.triangle.lengthIndex, (value, lengthIndex) => {value.triangle.lengthIndex = lengthIndex;});
-  const triangleReadout = make('p', 'nes-wave-readout'); triangleReadout.id = 'triangleGateReadout'; triangleReadout.setAttribute('aria-live','polite'); triangle.append(triangleReadout);
-  help(triangle, 'Hold key keeps the Linear reload active and halts the Length counter. Hardware counters count down; the first counter to reach 0 stops the waveform. Linear reload 0 keeps the channel silent. Times are approximate NTSC values; frame phase affects the exact stop.');
-  help(triangle, 'Gate settings apply on the next note. A Pitch change that writes the timer high byte reloads the counters. The sequencer holds its last level when the gate closes; output filters then settle. Release or play a new key to restart.');
+  const triangleReadout = make('p', 'nes-wave-readout'); triangleReadout.id = 'triangleGateReadout'; triangleReadout.setAttribute('aria-live','polite'); triangleGate.append(triangleReadout);
+  help(triangleGate, 'Hold key keeps the Linear reload active and halts the Length counter. Hardware counters count down; the first counter to reach 0 stops the waveform. Linear reload 0 keeps the channel silent. Times are approximate NTSC values; frame phase affects the exact stop.');
+  help(triangleGate, 'Gate settings apply on the next note. A Pitch change that writes the timer high byte reloads the counters. The sequencer holds its last level when the gate closes; output filters then settle. Release or play a new key to restart.');
   help(triangle, 'One Triangle channel follows your keyboard notes. Its waveform and level are fixed by the hardware; use Master for the output level.');
 
   const noise = card('Noise · hardware LFSR'), noiseFields = group(noise);
   const noiseFixedVolume = number(noiseFields, 'Fixed volume · 0–15', 'noiseVolume', 0, 15, value => value.noise.volume, (value, volume) => {value.noise.volume = volume;});
   number(noiseFields, 'Period code · 0–15', 'noisePeriod', 0, 15, value => value.noise.period, (value, period) => {value.noise.period = period;});
   select(noiseFields, 'LFSR mode', 'noiseShortMode', [[false,'Long sequence'],[true,'Short sequence']], value => value.noise.shortMode, (value, shortMode) => {value.noise.shortMode = shortMode === 'true';});
-  const noiseEnvelopeFields = group(section(noise, 'Hardware volume envelope'));
+  const noiseEnvelope = section(noise, 'Hardware volume envelope', 'noiseEnvelopePanel'), noiseEnvelopeFields = group(noiseEnvelope);
   checkbox(noiseEnvelopeFields, 'Enable Envelope', 'noiseEnvelopeEnabled', value => value.noise.envelope.enabled, (value, enabled) => {value.noise.envelope.enabled = enabled;});
   const noiseEnvelopePeriod = number(noiseEnvelopeFields, 'Period · 0–15', 'noiseEnvelopePeriod', 0, 15, value => value.noise.envelope.period, (value, period) => {value.noise.envelope.period = period;});
   const noiseEnvelopeLoop = checkbox(noiseEnvelopeFields, 'Loop Envelope', 'noiseEnvelopeLoop', value => value.noise.envelope.loop, (value, loop) => {value.noise.envelope.loop = loop;});
-  help(noise, 'The NES APU generates this envelope: volume starts at 15 and decays to 0; Loop repeats the decay. Period 0 is fastest. Fixed volume applies when Envelope is off. Envelope changes apply on the next note.');
+  help(noiseEnvelope, 'The NES APU generates this envelope: volume starts at 15 and decays to 0; Loop repeats the decay. Period 0 is fastest. Fixed volume applies when Envelope is off. Envelope changes apply on the next note.');
   const renderNoiseLength = lengthGate(noise, 'noise');
   help(noise, 'One Noise channel. Every key triggers the same noise; note pitch and the Pitch wheels do not tune it. Period and LFSR mode change its clock and character while it sounds.');
 
@@ -301,18 +305,18 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const fds = card('FDS · Wave RAM + frequency modulation'), fdsFields = group(fds);
   const fdsFixedVolume = number(fdsFields, 'Fixed volume · 0–32', 'fdsVolume', 0, 32, value => value.fds.volume, (value, volume) => {value.fds.volume = volume;});
   select(fdsFields, 'Master scale', 'fdsMaster', [[0,'100%'],[1,'67%'],[2,'50%'],[3,'40%']], value => value.fds.master, (value, master) => {value.fds.master = Number(master);});
-  const fdsEnvelopeFields = group(section(fds, 'Hardware volume envelope'));
+  const fdsEnvelope = section(fds, 'Hardware volume envelope', 'fdsEnvelopePanel'), fdsEnvelopeFields = group(fdsEnvelope);
   checkbox(fdsEnvelopeFields, 'Enable Envelope', 'fdsEnvelopeEnabled', value => value.fds.envelope.enabled, (value, enabled) => {value.fds.envelope.enabled = enabled;});
   const fdsEnvelopeControls = [
     select(fdsEnvelopeFields, 'Direction', 'fdsEnvelopeIncrease', [[false,'Decrease'],[true,'Increase']], value => value.fds.envelope.increase, (value, increase) => {value.fds.envelope.increase = increase === 'true';}),
     number(fdsEnvelopeFields, 'Initial gain · 0–63', 'fdsEnvelopeInitialGain', 0, 63, value => value.fds.envelope.initialGain, (value, initialGain) => {value.fds.envelope.initialGain = initialGain;}),
     number(fdsEnvelopeFields, 'Period · 0–63', 'fdsEnvelopePeriod', 0, 63, value => value.fds.envelope.period, (value, period) => {value.fds.envelope.period = period;}),
   ];
-  help(fds, 'The FDS hardware raises or lowers gain. Start at 0 for a rise, or 32 for a decay. Gain 33–63 stays at the output limit of 32 until it falls below it. Envelope settings apply on the next note.');
-  const fdsClockFields = group(section(fds, 'Shared envelope clock · Volume + Depth'));
+  help(fdsEnvelope, 'The FDS hardware raises or lowers gain. Start at 0 for a rise, or 32 for a decay. Gain 33–63 stays at the output limit of 32 until it falls below it. Envelope settings apply on the next note.');
+  const fdsClock = section(fds, 'Shared envelope clock · Volume + Depth', 'fdsClockPanel'), fdsClockFields = group(fdsClock);
   const fdsEnvelopeMasterSpeed = number(fdsClockFields, 'Master period · 0–255', 'fdsEnvelopeMasterSpeed', 0, 255, value => value.fds.envelopeClock.masterSpeed, (value, masterSpeed) => {value.fds.envelopeClock.masterSpeed = masterSpeed;});
   const fdsEnvelopeHalt = checkbox(fdsClockFields, 'Pause both envelopes', 'fdsEnvelopeHalt', value => value.fds.envelopeClock.halt, (value, halt) => {value.fds.envelopeClock.halt = halt;});
-  help(fds, 'Volume and Depth envelopes share this clock. Larger periods are slower; Master period 0 or Pause stops both. Each envelope has its own Period. Clock changes apply on the next note.');
+  help(fdsClock, 'Volume and Depth envelopes share this clock. Larger periods are slower; Master period 0 or Pause stops both. Each envelope has its own Period. Clock changes apply on the next note.');
   const editHeading = make('div','nes-wave-heading'), targets = make('div','nes-wave-actions');
   editHeading.append(make('span','nes-help','Edit one hardware table'),targets); fds.append(editHeading);
   let editTarget = 'wave', brush = 1;
@@ -339,21 +343,28 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   const brushButtons = labels.map((label,code)=>action(brushRow,label,{modCode:String(code)},()=>{brush=code;render();}));
   const canvas = make('canvas');canvas.id='fdsCanvas';canvas.width=900;canvas.height=220;canvas.setAttribute('role','img');fds.append(canvas);
   const waveReadout=make('p','nes-wave-readout');fds.append(waveReadout);
-  const modulationFields = group(section(fds,'Hardware frequency modulation'));
+  const fdsModulation = section(fds,'Hardware frequency modulation', 'fdsModulationPanel'), modulationFields = group(fdsModulation);
   checkbox(modulationFields,'Enable modulation','fdsModEnabled',value=>value.fds.modulation.enabled,(value,enabled)=>{value.fds.modulation.enabled=enabled;});
   const fdsModRate = number(modulationFields,'Rate · 0–4095','fdsModRate',0,4095,value=>value.fds.modulation.rate,(value,rate)=>{value.fds.modulation.rate=rate;});
   const fdsFixedDepth = number(modulationFields,'Fixed depth · 0–63','fdsModDepth',0,63,value=>value.fds.modulation.depth,(value,depth)=>{value.fds.modulation.depth=depth;});
   const fdsModBias = number(modulationFields,'Bias · −64 to +63','fdsModBias',-64,63,value=>value.fds.modulation.bias,(value,bias)=>{value.fds.modulation.bias=bias;});
   const modulationControls = [fdsModRate,fdsFixedDepth,fdsModBias];
-  help(fds,'Wave stores 64 six-bit samples. Modulation stores 32 commands that change an internal pitch counter; Reset clears that counter. Enable modulation to hear it vary the wave’s playback frequency. Rate controls its speed, Depth its strength and Bias its starting offset.');
-  const fdsDepthEnvelopeFields = group(section(fds, 'Hardware depth envelope'));
+  help(fdsModulation,'Wave stores 64 six-bit samples. Modulation stores 32 commands that change an internal pitch counter; Reset clears that counter. Enable modulation to hear it vary the wave’s playback frequency. Rate controls its speed, Depth its strength and Bias its starting offset.');
+  const fdsDepthEnvelope = section(fds, 'Hardware depth envelope', 'fdsDepthEnvelopePanel'), fdsDepthEnvelopeFields = group(fdsDepthEnvelope);
   const fdsDepthEnvelopeEnabled = checkbox(fdsDepthEnvelopeFields, 'Enable Depth Envelope', 'fdsModEnvelopeEnabled', value => value.fds.modulation.envelope.enabled, (value, enabled) => {value.fds.modulation.envelope.enabled = enabled;});
   const fdsDepthEnvelopeControls = [
-    select(fdsDepthEnvelopeFields, 'Direction', 'fdsModEnvelopeIncrease', [[false,'Decrease'],[true,'Increase']], value => value.fds.modulation.envelope.increase, (value, increase) => {value.fds.modulation.envelope.increase = increase === 'true';}),
+    select(fdsDepthEnvelopeFields, 'Depth direction', 'fdsModEnvelopeIncrease', [[false,'Decrease depth'],[true,'Increase depth']], value => value.fds.modulation.envelope.increase, (value, increase) => {value.fds.modulation.envelope.increase = increase === 'true';}),
     number(fdsDepthEnvelopeFields, 'Initial depth · 0–63', 'fdsModEnvelopeInitialGain', 0, 63, value => value.fds.modulation.envelope.initialGain, (value, initialGain) => {value.fds.modulation.envelope.initialGain = initialGain;}),
     number(fdsDepthEnvelopeFields, 'Period · 0–63', 'fdsModEnvelopePeriod', 0, 63, value => value.fds.modulation.envelope.period, (value, period) => {value.fds.modulation.envelope.period = period;}),
   ];
-  help(fds, 'Enable modulation to hear the Depth Envelope. Increase raises depths below 32; Decrease falls toward 0. Start at 0 for a gradual increase. Fixed depth and Initial depth can reach 63. Volume and Depth use the Shared envelope clock above. Envelope edits apply on the next note.');
+  const depthPlan = make('p', 'nes-wave-readout'); depthPlan.id = 'fdsDepthEnvelopePlan'; depthPlan.setAttribute('role','status'); fdsDepthEnvelope.append(depthPlan);
+  const depthCompareActions = make('div','nes-wave-actions'); fdsDepthEnvelope.append(depthCompareActions);
+  const depthCompare = action(depthCompareActions, 'Set slow vibrato comparison', {}, () => {
+    try {Promise.resolve(onCompareDepth(prepareFdsDepthComparison(preset))).catch(report);} catch (error) {report(error);}
+  });
+  depthCompare.id = 'fdsDepthCompare';
+  help(fdsDepthEnvelope, 'Comparison: Vibrato table / Rate 8 / Initial depth 16 / Period 31 / shared clock 232, running. Keeps waveform and volume settings; stops held notes. The shared clock affects both envelopes.');
+  help(fdsDepthEnvelope, 'Depth is modulation strength, not pitch direction. Compare with Volume Envelope off and a new key; watch Depth in Hardware now. Rate 8 gives slow vibrato; the usual Rate 256 gives fast FM.');
   help(fds,'Wave and modulation-table edits apply on release and stop held notes. Play a new note to hear them. Rate, Bias, Master scale and active fixed volume / depth can change while a note is held. Drawing and shape presets are software tools for editing these hardware tables.');
 
   function drawWave(samples = editTarget==='wave'?preset.fds.wave:preset.fds.modulation.table) {
@@ -379,6 +390,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   }
   function moveStroke(event) {
     if(!stroke||stroke.id!==event.pointerId)return;
+    if(!canvas.clientWidth||!canvas.clientHeight||canvas.closest('details:not([open])')){cancelStroke();return;}
     const next=point(event),previous=stroke.previous,distance=Math.abs(next.index-previous.index);
     for(let step=0;step<=distance;step++){
       const ratio=distance?step/distance:1,index=Math.round(previous.index+(next.index-previous.index)*ratio);
@@ -388,14 +400,15 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     waveReadout.textContent=editTarget==='wave'?`Sample ${next.index} · value ${next.value} / 63 · release to apply`:`Command ${next.index} · ${labels[next.value]} · release to apply`;
   }
   listen(canvas,'pointerdown',event=>{
-    if(event.button!==0||stroke||preset.source!=='fds')return;
+    if(event.button!==0||stroke||preset.source!=='fds'||!canvas.clientWidth||!canvas.clientHeight||canvas.closest('details:not([open])'))return;
     event.preventDefault();doc.activeElement?.blur();canvas.setPointerCapture(event.pointerId);
     stroke={id:event.pointerId,samples:[...(editTarget==='wave'?preset.fds.wave:preset.fds.modulation.table)],previous:point(event)};moveStroke(event);
   });
   listen(canvas,'pointermove',moveStroke);
   listen(canvas,'pointerup',event=>{
     if(!stroke||stroke.id!==event.pointerId)return;
-    moveStroke(event);const samples=stroke.samples;stroke=null;
+    if(!canvas.clientWidth||!canvas.clientHeight||canvas.closest('details:not([open])')){cancelStroke();return;}
+    moveStroke(event);if(!stroke)return;const samples=stroke.samples;stroke=null;
     if(canvas.hasPointerCapture?.(event.pointerId))canvas.releasePointerCapture(event.pointerId);
     commit(value=>{if(editTarget==='wave')value.fds.wave=samples;else value.fds.modulation.table=samples;});
     waveReadout.textContent='Table applied · press a key to hear it';
@@ -438,6 +451,9 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
     fdsFixedDepth.setDisabled(!preset.fds.modulation.enabled || preset.fds.modulation.envelope.enabled);
     fdsDepthEnvelopeEnabled.disabled=!preset.fds.modulation.enabled;
     for(const control of fdsDepthEnvelopeControls)control.setDisabled(!preset.fds.modulation.enabled || !preset.fds.modulation.envelope.enabled);
+    const depthDescription = describeFdsDepthEnvelope(preset);
+    if(depthPlan.textContent!==depthDescription.text)depthPlan.textContent=depthDescription.text;
+    depthPlan.dataset.warning = String(depthDescription.warning);
     for(const button of targetButtons)button.setAttribute('aria-pressed',String(button.dataset.fdsEdit===editTarget));
     for(const button of brushButtons)button.setAttribute('aria-pressed',String(Number(button.dataset.modCode)===brush));
     shapes.hidden=editTarget!=='wave';modShapes.hidden=brushRow.hidden=editTarget!=='modulation';
@@ -454,6 +470,7 @@ export function createEditor({root, onChange = () => {}, onSaveDpcm = () => {}, 
   }
   render();
   return {
+    cancelDrawing() {if (disposed) return; cancelStroke(); dmcBits.cancelDrawing();},
     update(value, {resetDmcHistory = false} = {}){
       if(disposed)return;const next=readPreset(value);
       dmcBits.cancelDrawing();

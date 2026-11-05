@@ -10,6 +10,33 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .engine-badge { background:#474b55; border-color:#7e6667; }
 .engine-badge span { color:#e4c6c4; }
 .nes-monitor { border-color:#6c7263; }
+html { scroll-padding-top:var(--nes-monitor-offset,0px); }
+.nes-disclosure { min-width:0; margin:0 0 14px; border:1px solid var(--line); border-radius:10px; background:#e8e7e0; }
+.nes-disclosure > summary { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px; padding:10px 12px; min-height:38px; cursor:pointer; list-style:none; user-select:none; }
+.nes-disclosure > summary::-webkit-details-marker { display:none; }
+.nes-disclosure > summary::before { content:'›'; display:inline-block; flex:0 0 auto; font-weight:800; transform:rotate(0deg); }
+.nes-disclosure[open] > summary::before { transform:rotate(90deg); }
+.nes-disclosure > summary h2,.nes-disclosure > summary h3,.nes-disclosure > summary h4 { margin:0; font-size:.82rem; color:#703d42; }
+.nes-disclosure > summary p,.nes-disclosure > summary span { margin:0; color:var(--muted); font-size:.67rem; }
+.nes-panel-body { padding:12px; }
+.nes-workspace.nes-disclosure { padding:0; }
+.nes-disclosure > summary #voiceCapacity { flex:1 1 250px; }
+.nes-disclosure .nes-vgm-import { margin:0; border:0; background:transparent; }
+.nes-output-options { margin:10px 0 0; background:transparent; }
+.nes-output-options .nes-click-guard { margin:0; padding:0 12px 10px; }
+.nes-hardware-panel { background:transparent; }
+.nes-hardware-panel .nes-hardware-monitor { margin:0; border:0; border-radius:0 0 9px 9px; }
+.nes-hardware-panel .nes-hardware-heading h3 { display:none; }
+.nes-subsection.nes-disclosure { margin:18px 0 0; padding:10px 0 0; border:0; border-top:1px solid #c7c1c9; border-radius:0; background:transparent; }
+.nes-subsection.nes-disclosure > summary { padding:0; min-height:30px; }
+.nes-subsection.nes-disclosure > summary h4 { font-size:.76rem; }
+.nes-disclosure-body { padding-top:10px; }
+.nes-monitor-panel > .nes-monitor { margin:0; border:0; border-radius:0 0 9px 9px; }
+.nes-monitor-panel.is-pinned { position:sticky; top:8px; z-index:5; box-shadow:0 4px 14px #34393f33; }
+.nes-monitor-panel.is-pinned .monitor-body { min-height:155px; }
+.nes-monitor-panel.is-pinned #outputCanvas { height:150px; }
+.nes-monitor-panel.is-pinned .monitor-pitch input { height:105px; min-height:85px; }
+.nes-keep-monitor { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-left:auto; color:#c7d2d8; font-size:.65rem; }
 .nes-click-guard { margin:10px 0 0; color:var(--muted); font-size:.7rem; }
 .nes-click-guard label { display:flex; align-items:center; gap:7px; }
 .nes-click-guard p { margin:5px 0 0; font-size:.64rem; line-height:1.5; max-width:90ch; }
@@ -81,6 +108,8 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .nes-wave-actions button { min-height:30px; padding:5px 10px; font-size:.73rem; }
 #fdsCanvas { display:block; width:100%; height:190px; border:1px solid #526b7f; border-radius:8px; background:#202831; touch-action:none; cursor:crosshair; }
 .nes-wave-readout { margin:8px 0 12px; color:#64675b; font-size:.68rem; font-variant-numeric:tabular-nums; }
+#fdsDepthEnvelopePlan { padding:8px 10px; border-left:3px solid #70845c; background:#e1e7d9; line-height:1.6; }
+#fdsDepthEnvelopePlan[data-warning="true"] { border-color:#b17b33; background:#eee2cd; color:#70502a; }
 .nes-dmc-editor { min-width:0; margin-bottom:17px; }
 .nes-dmc-editor > .nes-help:first-of-type { margin:0 0 12px; }
 #dmcDacCanvas { display:block; width:100%; height:210px; border:1px solid #526b7f; border-radius:8px; background:#202831; touch-action:none; cursor:crosshair; }
