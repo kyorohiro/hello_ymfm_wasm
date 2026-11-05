@@ -46,6 +46,23 @@ software performance control using hardware frequency registers. On NES Pulse / 
 crossing the timer's high-byte boundary reloads the hardware Envelope / counters;
 Pitch is not a promise of continuous, sample-accurate tuning.
 
+**Software click guard · FDS / DMC** defaults to On. Their DAC levels can change
+abruptly at a key edge: the FDS waveform has a positive baseline, and DMC's
+Initial level / explicit release can jump its DAC value. Even a completed DMC
+one-shot can produce a transient when its retained DAC is cleared on release.
+
+The standalone output connects the last emitted sample to the new sound over
+5 ms at attack / retrigger, and to zero over 5 ms at release. The chip receives
+its commands immediately; its registers, Envelope clocks and note ownership
+are unchanged. After the attack transition, held PCM is passed through exactly.
+Pulse, Triangle and Noise keep their existing output path.
+
+This is software output smoothing, separate from the chip's hardware Envelope.
+Turn it Off to compare the raw Synth output. It softens very short attacks too;
+it does not edit the sample or remove clicks within its data / loop. Some
+low-frequency DAC / filter transients can remain at attack. The setting lasts
+for the page session and is not stored in presets or Copy JavaScript.
+
 ## Observe the chip
 
 **Hardware now**, above the sound editor, displays sampled internal chip values

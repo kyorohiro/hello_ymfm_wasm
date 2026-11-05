@@ -17,6 +17,7 @@ const status = (text, error = false) => {
 const report = error => status(error?.message ?? String(error), true);
 let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
+let clickGuardEnabled = $('clickGuardEnabled').checked;
 let queue = Promise.resolve();
 let vgmLibrary = null;
 const notes = new Map(), fret = createFretboardState();
@@ -101,12 +102,13 @@ async function ensureAudio() {
       const engine = await createAudio({volume: Number($('masterVolume').value), onError: audioFailed});
       try {
         // Source edits remain available while WASM loads. Adopt the latest draft.
-        let applied, appliedPitch;
+        let applied, appliedPitch, appliedClickGuard;
         do {
-          applied = revision; appliedPitch = pitch;
+          applied = revision; appliedPitch = pitch; appliedClickGuard = clickGuardEnabled;
           await engine.command('loadPreset', [readPreset(preset)]);
           await engine.command('setPitch', [appliedPitch]);
-        } while (applied !== revision || appliedPitch !== pitch);
+          await engine.command('setClickGuard', [appliedClickGuard]);
+        } while (applied !== revision || appliedPitch !== pitch || appliedClickGuard !== clickGuardEnabled);
         if (disposed) throw new Error('2A03 Synth is closed');
         engine.setVolume(Number($('masterVolume').value));
         audio = engine;
@@ -289,6 +291,16 @@ function setVolume() {
 }
 $('masterVolume').addEventListener('input',setVolume);
 $('masterVolume').addEventListener('change',()=>$('masterVolume').blur());
+$('clickGuardEnabled').addEventListener('change', () => {
+  clickGuardEnabled = $('clickGuardEnabled').checked;
+  $('clickGuardEnabled').blur();
+  const enabled = clickGuardEnabled;
+  if (audio) void enqueue(async () => {
+    if (!audio) return;
+    await audio.command('setClickGuard', [enabled]);
+    status(enabled ? 'Software click guard on · FDS / DMC key edges softened over 5 ms.' : 'Software click guard off · raw chip output.');
+  });
+});
 for(const button of document.querySelectorAll('[data-visual-mode]')) button.addEventListener('click',()=>{
   const mode=button.dataset.visualMode;visualizer.setMode(mode);
   for(const peer of document.querySelectorAll('[data-visual-mode]')) peer.setAttribute('aria-pressed',String(peer===button));

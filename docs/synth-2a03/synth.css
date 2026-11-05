@@ -10,6 +10,9 @@ button[aria-pressed="true"] { background:#a24b4d; border-color:#873b40; }
 .engine-badge { background:#474b55; border-color:#7e6667; }
 .engine-badge span { color:#e4c6c4; }
 .nes-monitor { border-color:#6c7263; }
+.nes-click-guard { margin:10px 0 0; color:var(--muted); font-size:.7rem; }
+.nes-click-guard label { display:flex; align-items:center; gap:7px; }
+.nes-click-guard p { margin:5px 0 0; font-size:.64rem; line-height:1.5; max-width:90ch; }
 .nes-vgm-import { margin:0 0 20px; padding:14px; border:1px solid var(--line); border-radius:10px; background:#eeece7; }
 .nes-vgm-import .section-heading { margin:0 0 10px; }
 .nes-vgm-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:8px 0; min-width:0; }

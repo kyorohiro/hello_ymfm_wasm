@@ -46,6 +46,10 @@
             <output id="masterVolumeValue" for="masterVolume">70%</output>
           </label>
         </div>
+        <div class="nes-click-guard">
+          <label for="clickGuardEnabled"><input id="clickGuardEnabled" type="checkbox" checked aria-describedby="clickGuardHelp"> Software click guard · FDS / DMC</label>
+          <p id="clickGuardHelp">Software smoothing connects key edges over 5 ms to soften DAC clicks. Held tones and hardware envelopes stay unchanged. Off gives raw output; this setting is not saved in presets.</p>
+        </div>
         <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
       </header>
 

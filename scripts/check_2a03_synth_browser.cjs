@@ -413,6 +413,12 @@ async function runEngine(name, engine, origin) {
     assert.equal(await page.locator('#hardwareMonitor').getAttribute('data-source'),'pulse');
     assert.equal(await page.locator('#hardwareMonitor [aria-valuenow]').count(),0);
     assert.equal(await applicationReads(),0,'passive hardware meters never create or read an audio engine');
+    assert.equal(await page.isChecked('#clickGuardEnabled'),true,'software click suppression defaults on');
+    assert.match(await page.locator('#clickGuardHelp').textContent(),/software/i);
+    assert.match(await page.locator('#clickGuardHelp').textContent(),/5\s*ms/i);
+    await page.uncheck('#clickGuardEnabled');
+    assert.equal(await page.evaluate(()=>window.audit.contexts.length),0,'editing click suppression does not start audio');
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea')),false,'pointer click suppression leaves musical keys available');
 
     check('Pulse and Noise Length controls edit passively and show the shared Envelope Loop bit');
     for(const source of ['pulse','noise']) {
@@ -670,10 +676,13 @@ async function runEngine(name, engine, origin) {
     assert(initialWasmSeen,'initial WASM request reached the delay gate');
     await page.keyboard.down('a'); await page.keyboard.up('a');
     await choose('#source','triangle'); await setMaster(0);
+    await page.check('#clickGuardEnabled');
     releaseInitialWasm();
     await page.waitForFunction(()=>document.querySelector('#audioStatus').textContent.startsWith('Audio ready'));
     let state=await waitState(value=>value.preset.source==='triangle'&&value.preset.pulse.duty===.25);
     assert.equal(state.capacity,1); assert.equal(state.voices.length,0);
+    assert.equal(state.outputClickGuard.enabled,true,'startup adopts the latest software click setting');
+    assert.equal(state.outputClickGuard.phase,'bypass','Triangle keeps its original output path');
     assert.equal(await page.evaluate(()=>window.audit.outgoing.filter(message=>message.method==='noteOn').length),0);
     await page.keyboard.down('a'); await waitState(value=>value.voices.length===1); await silent();
     await setMaster(.7); await sound(); await page.keyboard.up('a'); await waitState(value=>value.voices.length===0);
@@ -926,7 +935,9 @@ async function runEngine(name, engine, origin) {
     await page.keyboard.down('s');state=await waitState(value=>value.voices.length===1&&value.voices[0].id!==dmcOwner);
     const replacementDmc=state.voices[0].id;assert.equal(state.coreState.dmcFrequency,configuredDmcFrequency);assert.equal(state.registers[0x11],65);
     await page.keyboard.up('a');assert.equal((await inspect()).voices[0].id,replacementDmc);await sound();
+    state=await waitState(value=>value.outputClickGuard.phase==='bypass');assert.equal(state.voices[0].id,replacementDmc,'late release of a stolen key does not fade its replacement');
     await page.keyboard.up('s');await waitState(value=>value.voices.length===0);await silent();
+    state=await waitState(value=>value.outputClickGuard.phase==='muted');assert.equal(state.outputClickGuard.enabled,true);
     await page.locator('#dmcRate').focus();await page.keyboard.down('a');await waitState(value=>value.voices.length===1);await sound();
 
     check('invalid or absent DPCM input keeps the current looping sample and held owner');
@@ -998,6 +1009,36 @@ async function runEngine(name, engine, origin) {
     await waitState(value=>value.coreState.dmcRemaining===0);await silent();
     await page.keyboard.up('a');await page.keyboard.down('a');await waitState(value=>value.coreState.dmcRemaining>0);await sound();
     await page.keyboard.up('a');await stop();await silent();
+
+    check('software click suppression keeps DMC hardware state and removes the final-output release transient');
+    const beforeClickFixture=structuredClone((await inspect()).preset);
+    await page.setInputFiles('#dpcmFileInput',{name:'self-authored-dac-hold.dmc',mimeType:'application/octet-stream',buffer:Buffer.from([255])});
+    await waitState(value=>value.preset.dmc.data.length===1&&value.preset.dmc.data[0]===255);
+    await number('#dmcRate',15);await number('#dmcLevel',127);await page.uncheck('#dmcLoop');
+    const clickFixturePreset=structuredClone((await inspect()).preset),clickReleaseLevels=[];
+    for(const enabled of [false,true]) {
+      if(enabled)await page.check('#clickGuardEnabled');else await page.uncheck('#clickGuardEnabled');
+      await waitState(value=>value.outputClickGuard.enabled===enabled);
+      assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea')),false);
+      await page.keyboard.down('a');state=await waitState(value=>value.voices.length===1&&value.coreState.dmcRemaining===0&&value.coreState.dmcOutput===127);
+      assert.deepEqual(state.preset,clickFixturePreset,'the software guard does not change DPCM bytes or playback settings');
+      assert.equal(state.registers[0x11],127);
+      await page.waitForTimeout(200);
+      state=await inspect();assert.equal(state.outputClickGuard.phase,'bypass');
+      await page.keyboard.up('a');await waitState(value=>value.voices.length===0);
+      const level=await page.evaluate(async()=>{await new Promise(resolve=>setTimeout(resolve,120));return window.audit.sample();});
+      assert(level.finite);clickReleaseLevels.push(level);
+      state=await inspect();assert.equal(state.coreState.dmcOutput,0,'both paths perform the same immediate hardware release');
+      assert.deepEqual(state.preset,clickFixturePreset);
+      assert.equal(state.outputClickGuard.phase,enabled?'muted':'bypass');
+    }
+    assert(clickReleaseLevels[0].rms>.0001,'raw DAC release retains a measurable filtered transient');
+    assert(clickReleaseLevels[1].rms<.000001,'the guarded release has settled to zero before the analyser window');
+    const clickSaveEvent=page.waitForEvent('download');await page.click('#savePreset');const clickSaved=JSON.parse(await fs.readFile(await (await clickSaveEvent).path(),'utf8'));
+    assert.deepEqual(clickSaved,clickFixturePreset,'software click suppression stays outside the portable chip preset');
+    await page.setInputFiles('#presetFileInput',{name:'restore-after-click-probe.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeClickFixture))});
+    await waitState(value=>JSON.stringify(value.preset)===JSON.stringify(beforeClickFixture));
+    assert.equal(await page.isChecked('#clickGuardEnabled'),true);await stop();await silent();
 
     check('DMC DAC preview shows loop carry, odd-level limits and Rate-derived time');
     const beforeBitFixtures=structuredClone((await inspect()).preset);
@@ -1250,6 +1291,14 @@ async function runEngine(name, engine, origin) {
     check('FDS hardware modulation changes actual measured output, keeping note ownership');
     await page.keyboard.down('f');state=await waitState(value=>value.voices.length===1);await sound();
     const modOwner=state.voices[0].id;assert.equal(state.preset.fds.modulation.enabled,false);
+    check('software click suppression can be compared on a held FDS voice without changing the chip');
+    await waitState(value=>value.outputClickGuard.phase==='bypass');const beforeFdsGuard=structuredClone(await inspect());
+    await page.uncheck('#clickGuardEnabled');state=await waitState(value=>!value.outputClickGuard.enabled);
+    assert.deepEqual(state.voices,beforeFdsGuard.voices);assert.deepEqual(state.preset,beforeFdsGuard.preset);assert.deepEqual(state.registers,beforeFdsGuard.registers);await sound();
+    await page.check('#clickGuardEnabled');state=await waitState(value=>value.outputClickGuard.enabled&&value.outputClickGuard.phase==='bypass');
+    assert.deepEqual(state.voices,beforeFdsGuard.voices);assert.deepEqual(state.preset,beforeFdsGuard.preset);assert.deepEqual(state.registers,beforeFdsGuard.registers);
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea')),false);await sound();
+    check('FDS hardware modulation changes actual measured output, keeping note ownership');
     await page.waitForTimeout(150);const beforeMod=await averagedSpectrum();
     await page.check('#fdsModEnabled');state=await waitState(value=>value.preset.fds.modulation.enabled);assert.equal(state.voices[0].id,modOwner);
     assert(state.preset.fds.modulation.depth>0&&state.preset.fds.modulation.rate>0);
@@ -1262,8 +1311,9 @@ async function runEngine(name, engine, origin) {
     await choose('#fdsMaster',1);state=await waitState(value=>value.preset.fds.master===1);assert.equal(state.registers[0x89],1);assert.equal(state.voices[0].id,modOwner);
     await choose('#fdsMaster',0);await sound();
     await page.keyboard.up('f');await stop();
+    await waitState(value=>value.outputClickGuard.phase==='muted');await silent();
 
-    check('FDS volume Envelope decays and rises in the real core without a host gain ramp');
+    check('FDS volume Envelope decays and rises in the real core after the short software key edge');
     await page.check('#fdsEnvelopeEnabled');await waitState(value=>value.preset.fds.envelope.enabled);
     assert.equal(await stepButton('#fdsVolume',1).isDisabled(),true);
     assert.equal(await page.evaluate(()=>document.activeElement?.matches('input,select,textarea')),false);
@@ -1632,6 +1682,7 @@ async function runEngine(name, engine, origin) {
       triangleGatePassive:true,triangleGateTimeEstimates:true,triangleLinearGate:true,triangleLengthGate:true,triangleLengthIndexZero:true,triangleReloadZeroSilent:true,triangleGateNextTrigger:true,triangleGateLateRelease:true,triangleGateOwnership:true,triangleGatePresetRoundTrip:true,triangleGateCodeExport:true,triangleGateVgmImport:true,triangleGateVgmPitchDedup:true,triangleGateMobile:true,presetV1ThroughV6Migration:true,
       pulseNoiseLengthPassive:true,pulseNoiseLengthTimeEstimates:true,pulseNoiseLengthGate:true,pulseNoiseLengthOwnership:true,pulseNoiseLengthNextTrigger:true,pulseNoiseLengthIndexZero:true,pulseNoiseLengthLoopCoupling:true,pulseNoiseLengthPresetRoundTrip:true,pulseNoiseLengthCodeExport:true,pulseNoiseLengthVgmImport:true,pulseNoiseLengthVgmPitchDedup:true,pulseNoiseLengthMobile:true,
       hardwareMonitorPassive:true,hardwareMonitorBothPulseChannels:true,hardwareMonitorReadOnly:true,hardwareMonitorOwnership:true,hardwareMonitorVolumeDecay:true,hardwareMonitorLoopHalt:true,hardwareMonitorLengthClosure:true,hardwareMonitorTriangleLinear:true,hardwareMonitorNoiseDecay:true,hardwareMonitorActiveVsDraft:true,hardwareMonitorFdsGain:true,hardwareMonitorFdsRawVolumeCap:true,hardwareMonitorDepthSixBit:true,hardwareMonitorIdleStopsReads:true,hardwareMonitorFailureRecovery:true,hardwareMonitorMobile:true,
+      softwareClickGuardDefault:true,softwareClickGuardPassive:true,softwareClickGuardStartupLatest:true,softwareClickGuardKeyboardFocus:true,softwareClickGuardFdsLiveAB:true,softwareClickGuardFdsRelease:true,softwareClickGuardDmcRelease:true,softwareClickGuardDmcRawAB:true,softwareClickGuardLateReleaseSafe:true,softwareClickGuardPresetUnchanged:true,softwareClickGuardHardwareUnchanged:true,
       fdsWaveDrawing:true,fdsModulationDrawing:true,fdsModulationAudible:true,presetRoundTrip:true,invalidPresetAtomic:true,copyJavaScript:true,
       vgmImportSilent:true,vgmFiveVoices:true,vgmSourceFilters:true,vgmPaging:true,vgmSelectionKeyboard:true,vgmImportedPresetExport:true,
       vgmFileNotesExpandable:true,vgmApproximationVisible:true,vgmFailuresKeepSound:true,vgmCancelKeepsSound:true,vgzImport:true,vgmCloseKeepsSound:true,

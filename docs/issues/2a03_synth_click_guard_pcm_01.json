@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-05",
+  "kind": "standalone-2a03-click-diagnosis",
+  "notes": [
+    "Raw measurements use the existing real WASM NesInstrument, before Master gain and without physical playback.",
+    "DMC note release disables playback then writes DAC level 0; a completed one-shot can therefore click on release.",
+    "FDS restores or clears unipolar waveform gain at a key boundary, producing filtered transients.",
+    "The production software guard bridges the last emitted output to new PCM or to zero over 5ms; raw chip state and held PCM after the attack are unchanged.",
+    "Guard verification is reproducible in click_guard.test.mjs, click_guard_wasm.test.mjs and processor.test.mjs; this diagnostic does not claim human listening validation."
+  ],
+  "wasmSha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+  "rows": [
+    {
+      "sampleRate": 44100,
+      "dmcCompletedDemo": {
+        "initialDac": 64,
+        "preReleaseDac": 64,
+        "preReleaseRemaining": 0,
+        "postReleaseDac": 0,
+        "attackFirstSampleStep": 0.28526830673217773,
+        "releaseFirstSampleStep": -0.2852683058268042,
+        "releaseFirst20msRms": 0.131178635166739
+      },
+      "fdsDefaultSine": {
+        "wave0": 32,
+        "gain": 24,
+        "attackFirstSampleStep": 0.02821621671319008,
+        "attackPeakFirst5ms": 0.19310453534126282,
+        "steadyPeak": 0.11145886033773422,
+        "maximumReleaseSampleStepAcross64Phases": 0.05542035028338432
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "dmcCompletedDemo": {
+        "initialDac": 64,
+        "preReleaseDac": 64,
+        "preReleaseRemaining": 0,
+        "postReleaseDac": 0,
+        "attackFirstSampleStep": 0.2853013575077057,
+        "releaseFirstSampleStep": -0.2853013503175106,
+        "releaseFirst20msRms": 0.12888664276151365
+      },
+      "fdsDefaultSine": {
+        "wave0": 32,
+        "gain": 24,
+        "attackFirstSampleStep": 0.026220781728625298,
+        "attackPeakFirst5ms": 0.1927960067987442,
+        "steadyPeak": 0.11150185763835907,
+        "maximumReleaseSampleStepAcross64Phases": 0.051467228680849075
+      }
+    }
+  ]
+}

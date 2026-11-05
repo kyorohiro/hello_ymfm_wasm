@@ -11,6 +11,29 @@
 - 2026-11-04：ユーザーより **DMC読込・デモ改善版も動作確認・リリース済み** と報告。
 - 下記の「公開は未実行」などは各作業・検証時点の履歴で、現在の公開状態を示さない。VGM音色読込、DMC／DPCM読込とデモ改善、今回のVGM DMC抽出は下記を参照。音声からのDPCM変換、追加形式、Tauri版は後続TODOとして残す。
 
+## FDS／DMCの発音・離鍵クリック（2026-11-05 対策完了・追加分は未公開）
+
+ユーザー報告：FDSとDMCで鍵盤を押す／離す瞬間にクリック状のノイズがある。まず実WASMのattack／release／再発音を測定し、DACの段差、FDSの波形位相・gain、Synth側の停止処理とfilterの過渡応答を区別する。
+
+- [x] 44.1／48 kHzでFDS既定波形・Envelope、DMC demo・代表level／loopの発音・離鍵・連打を再現し、段差・過渡応答を比較する。
+- [x] 実機由来の挙動とアプリが追加する不連続を切り分け、音色・既存Envelope・owner／再発音・Stopを保つ対処を選ぶ。
+- [x] ソフト側のクリック抑制を追加する場合は明示し、共有core／WASMやVGM再生へ不用意に広げない。
+- [x] 実PCM・実Worklet・Chromium／WebKit・独立ZIPで検証し、結果と必要な注意・試聴手順を記録する。
+
+原因：FDSはunipolar波形のgain／位相を発音・停止時に切り替えるため、filterを経由しても過渡音が出る。DMCは初期DAC値の設定とSynthの離鍵時`$4011=0`で大きな段差が出る。48 kHz・demo・Initial level 64では発音／離鍵の最初の段差が約±0.2853で、サンプル終了後の保持音が無音でも離鍵だけで再現した。FDS既定Sineはattack peak約0.193（定常約0.111）、離鍵位相64通りで最大段差約0.0515だった。44.1 kHzでも再現した。[実PCMの診断記録](2a03_synth_click_guard_pcm_01.json)。参考：[NESdev DMC DAC](https://www.nesdev.org/wiki/APU_DMC)、[FDS gain／halt](https://www.nesdev.org/wiki/FDS_audio)。
+
+対策：独立SynthのWorkletに5 msの`OutputClickGuard`を追加した。成功したFDS／DMC attack／再発音は直前の出力から新PCMへ、正しい離鍵・Stop・音色置換は直前の出力から0へsmoothstepで接続し、その後のraw off-filter tailはmuteする。core commandは遅延せず、register・Envelope clock・ownerは従来どおり。attackの5 ms後はraw PCMとbyte一致。古いownerの`noteOff(false)`や不正commandはguardを変えない。Pulse／Triangle／Noiseは既存経路を保つ。
+
+画面上部に**Software click guard · FDS / DMC**（既定On）を追加し、Offでraw出力と比較できる。session内の出力補助設定でpreset v7／Copy JavaScriptへは含めず、起動待ち中の最新値も採用する。Hardware nowは引き続きraw chip stateを表示する。first／last 5 msのattackは柔らかくなり、音声データ内・loop境界の不連続を編集する機能ではない。発音時の低周波DAC／filter過渡音が完全に消えるとはしていない。
+
+検証：`npm run test:2a03-synth`は**186件成功、失敗0**（既存171＋guard helper 7＋実WASM 6＋processor 2）。44.1／48 kHz・実128-frame chunkでFDS sine／square／saw・実機Volume／Depth Envelope、DMC level 0／64／65／127・Loop／終了後one-shot、連打・途中離鍵・再発音、block境界、古いowner・不正入力、core／定常PCM不変を確認。実WorkletでもFDS／DMCを起動・発音・離鍵して5 ms後のmuteを確認した。
+
+ソース版・独立ZIPは双方**Chromium／WebKitで成功**。初期On／無音編集／focus／起動中の最新値、FDS保持中のOff／Onでowner・preset・register不変、DMCの終了後離鍵の最終PCM A/B、遅い離鍵、保存形式、既存Hardware now／DMC編集／VGM／Pitch等を確認した。390 pxでoverflow 0、ページエラー／欠落asset／外部requestは0。物理音声はmuteして測定し、UI表示も確認。記録：[ソース版](2a03_synth_click_guard_browser_01.json)、[ZIP版](2a03_synth_click_guard_zip_browser_01.json)。
+
+配布候補：`release/tetorica_2a03_synth_click-guard-20261105_itch.zip`（35 files、3 bundles、1,197,849 bytes、SHA-256 `5f78233a7ef59e067b6ee9b7c56a3a53eea271a648a3c77272827c91f4b298fa`）。browser receiptの49 inputsは作業ファイルと一致。既存WASM pair／Nativeソース11 inputs（SDK 0.1.7）・権利通知は保持し、共有runtime／DSP／WASM・npm packageは変更していない。Synthガイド・英語AI READMEも更新。
+
+再確認：ページを再読込し、画面上部のSoftware click guardをOnのままFDS／DMCを発音・離鍵して実聴する。Offで従来の段差と比較できる。人の実聴評価、commit／push／公開は今回AIから未実行。
+
 ## Envelope／Counterの現在値表示（2026-11-05 完了・追加分は未公開）
 
 NES APU／FDSの実際の内部状態を読み取り、選択した音源の小さなバーで観察できるようにする。ソフト側の表示機能で、音源の制御・音質・preset schema・共有runtime／DSP／WASMは変更しない。
