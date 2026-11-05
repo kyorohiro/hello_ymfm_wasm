@@ -45,7 +45,8 @@
 - [x] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセットv2で、CH1／CH2ペアを取り込む。
 - [x] 音声ファイルからDDA PCMを準備して試奏する（下記v3）。単一DAC値の書込ではなく、出力frameに合わせてPCMを供給する。
 - [x] VGMの固定チャンネルDAC streamからPCMを抽出する（下記）。
-- [ ] 直接DACへ逐次書き込むPCM、圧縮bank、CD-ROM² ADPCM／CD-DAは別工程として検討する。
+- [x] 一定間隔で境界が明確な直接DAC write列のPCMを抽出する（下記）。
+- [ ] 間隔が変わる直接DAC列、圧縮bank、CD-ROM² ADPCM／CD-DAは別工程として検討する。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
 - [ ] Web版確認後、Tauri／Native版へ進む。
 
@@ -160,11 +161,27 @@
 残る確認は実ゲーム由来VGM／VGZと実聴・長時間試奏。検証中のスピーカー出力はミュートしている。直接DAC write列・圧縮bank・port255・曲の自動制御は今回の対象外で、次の実装候補として残す。
 
 
-## VGM直接DAC write列のPCM読み込み（2026-11-06 開始）
+## VGM直接DAC write列のPCM読み込み（2026-11-06 完了）
 
-- [ ] 0xb9のregister6へ直接書くDDA値とVGM時刻を追跡し、既知のDDA key-onからkey-off／DDA解除までの明確な区間を抽出する。単なる長いwaitを新しいサンプルの境界と推測しない。
-- [ ] 同時刻writeをまとめ、一定間隔の複数DAC writeと最後の保持時間が明確な区間だけを採用する。間隔変化・不明な終端・可聴設定変更・LFO／Noise干渉・DAC stream競合は理由付きで省略する。
-- [ ] 元の5bit値と再生タイミングを保持する。44,100/time-intervalで非整数になるrateも、丸めて音程を変えない形で既存DDAへ接続する。Loopや元の音階は推測せず、C4を記録速度、Software Envelope Offとする。
-- [ ] DAC stream／直接writeのPCMを既存PCM一覧へ統合し、重複・rate／時間・由来表示・選択後のDDA preview／試奏／JSON保存へ接続する。共有sample／件数上限・yield／Cancel・失敗時の現在音保持を維持する。
-- [ ] 自作VGM／VGZ・実WASMでタイミング復元、同時刻write、停止境界、重複、非整数rate、未知設定・競合・変動間隔・異常入力・上限・中止を検証する。既存Wave／Noise／LFO／DAC streamを回帰確認する。
-- [ ] ソース版／独立配布ZIPをChromium／WebKitで検証し、README・TODO・検証記録を更新する。実ゲーム比較・実聴・長時間試奏・公開は別工程。
+- [x] 0xb9のregister6へ直接書くDDA値とVGM時刻を追跡し、既知のDDA key-onからkey-off／DDA解除までの明確な区間を抽出する。単なる長いwaitを新しいサンプルの境界と推測しない。
+- [x] 同時刻writeをまとめ、一定間隔の複数DAC writeと最後の保持時間が明確な区間だけを採用する。間隔変化・不明な終端・可聴設定変更・LFO／Noise干渉・DAC stream競合は理由付きで省略する。
+- [x] 元の5bit値と再生タイミングを保持する。44,100/time-intervalで非整数になるrateも、丸めて音程を変えない形で既存DDAへ接続する。Loopや元の音階は推測せず、C4を記録速度、Software Envelope Offとする。
+- [x] DAC stream／直接writeのPCMを既存PCM一覧へ統合し、重複・rate／時間・由来表示・選択後のDDA preview／試奏／JSON保存へ接続する。共有sample／件数上限・yield／Cancel・失敗時の現在音保持を維持する。
+- [x] 自作VGM／VGZ・実WASMでタイミング復元、同時刻write、停止境界、重複、非整数rate、未知設定・競合・変動間隔・異常入力・上限・中止を検証する。既存Wave／Noise／LFO／DAC streamを回帰確認する。
+- [x] ソース版／独立配布ZIPをChromium／WebKitで検証し、README・TODO・検証記録を更新する。実ゲーム比較・実聴・長時間試奏・公開は別工程。
+
+
+実装・検証結果（2026-11-06）:
+
+- `vgm_direct_pcm.js` に受動解析passを追加した。直接記録されたDDA有効化と同時刻に最初のDAC writeがあり、3点以上の正の時間を持つ値が一定間隔で続き、最後の値から同じ1周期後にkey-off／DDA解除される区間を採用する。値は `& 31` で保持する。
+- 同時刻のwriteは実際の命令順で処理し、時間が進む時の最後の可聴DAC値を使う。終端と同時刻の0時間DAC writeは追加しない。DDA解除後のWave RAM writeも混ぜない。長いwaitで区間を勝手に分割せず、未知の開始／終端・EOF・変動間隔・mix変更・LFO／Noise・DAC stream干渉は理由付きで省略する。
+- `sampleRate=44100/spacing` を有限の小数のままv3へ保存する。live rateは1–192,000 Hz、音声ファイル変換は従来の整数8,000–44,100 Hzのまま。表示だけ丸めたrateには≈を付け、内部値やJSONを書き換えない。rateの＋／−とドラッグも小数部分を保つ。
+- PCM一覧へDirect DAC／DAC streamの由来を表示する。同じdata／rate／Loop／volume／panは由来を両方保持し、使用回数を合計し、最も早い時刻と対応するchannelで統合する。DDA preview・6音試奏・Pitch／rate／Loop編集・JSON保存へ接続した。直接DACのLoopや元の音階は推測せず、root60／speed1／Loop Off／Software Envelope Offで取り込む。
+- region100,000、4,096 assets、4,000,000 commands、合計16,777,216 DAC samplesの上限を維持した。DAC streamと直接writeを合わせたPCM件数・使用回数・sample数も検証する。解析／encodeはyieldしてCancelを受け付け、失敗時は現在の音と既存一覧を保持する。
+- 検証中に、既存DDA再生が `position += step` の累積誤差でサンプル境界を1フレーム遅らせる問題を確認した。加算誤差の補償と、出力frameの1/4未満に制限した整数境界補正で修正した。Loop、終端、保持中rate／Pitch変更とrender分割の独立性を保つ。
+- `npm run test:huc6280-synth`: **115件成功**。直接抽出14件、DDA engine10件を含む。直接writeの同時刻順序・開始／終端・非整数rate・未知状態・競合・異常入力・件数上限・中止を確認した。6／8 tickの直接PCMと、6／7／8／13 tick・44.1／48kHz・Loop／one-shot・5,000 frame・17 frame分割、192kHz高速度、保持中rate／Pitch変更を実WASMへの時刻ベース直接writeと比較した。旧DAC streamの比較基準も累積加算ではなくframe時刻から求める形へ直した。
+- ソース版と独立展開した配布ZIPの両方をChromium／WebKitで検証した。[ソース記録](huc6280_synth_direct_pcm_browser_01.json)・[ZIP記録](huc6280_synth_direct_pcm_zip_browser_01.json)。2,205 samples／5,512.5 Hz／0.4秒／level23／pan12,11、one-shot終端、保持中rate＋1／−1、JSONのPCM値と小数rateの完全一致、変動間隔file失敗時の保持音、390px幅overflow 0を確認した。既存Wave／Noise／LFO／DAC stream／WAV変換も成功。外部通信・404・page errorは0。desktop／mobile画像も確認した。
+- 配布ZIP: `release/tetorica_huc6280_synth_0.0.6_itch.zip`（50 files、1,154,455 bytes）。SHA-256: `3b989f6833ab2afe7bab97b166e35f012bf3549c1bae67232ffe2740fdb48efa`。可読JS／CSS・相対import・元WASM・対応C++・ライセンスを同梱し、過去ZIPは保持した。
+- `npm run check:runtime-artifacts` で33 SDK builds／66 outputs／73 mirrorsの一致を確認した。README en／ja／AI、英日ホーム、Synthガイドを更新した。共有runtime／WASMは未変更。こちらからstage／commit／push／公開操作は行っていない。
+
+残る確認は実ゲーム由来VGM／VGZの試奏・実聴・長時間確認。ブラウザー検証中のスピーカー出力はミュートしている。変動間隔／不明な境界の直接DAC列、圧縮bank、port255のDAC stream、曲の自動制御、CD-ROM²は今回の対象外。
