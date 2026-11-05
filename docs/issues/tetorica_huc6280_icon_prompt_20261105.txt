@@ -1,0 +1,17 @@
+Tetorica HuC6280 Synth icon
+Generated: 2026-11-05
+Tool: built-in image_gen (reference-based generation)
+Assets: docs/tetorica_huc6280_synth.png (original), docs/tetorica_huc6280_synth.webp (quality 95)
+References: docs/tetorica_2a03_synth.webp, docs/tetorica_dmg_synth.webp
+
+Final prompt:
+Use case: stylized-concept.
+Asset type: finished square application icon for "Tetorica HuC6280 Synth", a PC Engine six-channel wavetable synthesizer.
+Input images: Image 1 (Tetorica 2A03 Synth) and Image 2 (Tetorica DMG Synth) are STYLE AND SERIES COMPOSITION REFERENCES ONLY. Generate a new sibling icon, not a collage, and do not keep their chip names.
+Primary request: a premium tactile vintage electronic instrument badge in the same Tetorica family: rounded-square charcoal-black frame, warm ivory face, embossed dimensional typography, orange accent stripes, black inset oscilloscope window, bottom black integrated-circuit plaque with metallic pins.
+Composition: front-on, symmetrical, fills almost the whole square with a narrow warm off-white corner background. Same visual hierarchy and polished sculpted product-render quality as references, no perspective tilt.
+Typography, exact text only: at top metallic italic "Tetorica"; central identity has a small clearly readable "HuC" above a very large bold burnt-orange "6280"; under it spaced black "SYNTH"; bottom chip plaque "6-VOICE WAVETABLE". Spell HuC with this exact capitalization. No other words.
+Waveform display: wide dark charcoal inset screen with a subtle grid, luminous amber/orange periodic wavetable trace made of clearly defined small horizontal stair steps with vertical risers (a quantized curved waveform, not a smooth sine and not just a square wave). Include exactly six small orange channel indicator lights in a tidy row inside the display below the trace.
+Color palette: warm ivory, charcoal black, rich orange and amber, brushed silver highlights. Orange should identify this chip family, clearly distinct from the burgundy 2A03 and magenta DMG references.
+Materials/light: subtle molded plastic grain, shallow relief lettering, black textured chip plaque, clean metal pins, softly lit from upper left, realistic gentle contact shadows, crisp readable edges.
+Constraints: one finished icon only, no surrounding mockup, no watermark, no actual console or manufacturer logos, no characters, no extra labels, no duplicate text. Keep the large 6280 highly readable at thumbnail size. Opaque background.

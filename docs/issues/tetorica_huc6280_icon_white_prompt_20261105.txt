@@ -1,0 +1,13 @@
+Tetorica HuC6280 Synth icon: neutral white revision
+Generated: 2026-11-05
+Tool: built-in image_gen (edit)
+Assets: docs/tetorica_huc6280_synth_white.png (original generated output), docs/tetorica_huc6280_synth_white.webp (quality 95)
+Selected icon: docs/tetorica_huc6280_synth.webp (1254 x 1254, ImageMagick, quality 95, metadata stripped)
+Edit target: docs/tetorica_huc6280_synth.png (ivory version retained)
+
+Final prompt:
+Use case: precise-object-edit.
+Asset type: revised Tetorica HuC6280 Synth application icon.
+Input image: the provided image is the EDIT TARGET.
+Change only the warm ivory/cream molded plastic face and warm cream corner background into a clean bright NEUTRAL WHITE, with soft neutral light-gray shadows. The enclosure should feel like fresh white late-1980s PC Engine hardware plastic, with no yellow, beige, ivory, or aged tint. Use neutral white-balanced lighting so the white surface visibly reads white.
+Preserve everything else: exact square composition, outer rounded charcoal-black frame, sculpted texture, metallic details, all orange accent stripes and large orange 6280, amber stepped waveform, exactly six amber indicator lights, black chip plaque, metal pins and screws. Preserve the exact lettering and positions: "Tetorica", "HuC", "6280", "SYNTH", "6-VOICE WAVETABLE". Preserve layout, relative sizes, and raised 3D letter shapes. Do not redesign, add, remove, or rearrange objects. Keep the image opaque. Produce one finished square icon.
