@@ -34,7 +34,7 @@ export function createVgmLibrary({root, onSelect}) {
     for (const button of root.querySelectorAll('[data-vgm-filter]')) {
       const kind = button.dataset.vgmFilter;
       const count = kind === 'all' ? library.voices.length : library.voices.filter(voice => voice.kind === kind).length;
-      button.textContent = `${kind === 'all' ? 'All' : kind[0].toUpperCase() + kind.slice(1)} (${count})`;
+      button.textContent = `${kind === 'all' ? 'All' : kind === 'lfo' ? 'LFO' : kind[0].toUpperCase() + kind.slice(1)} (${count})`;
       button.setAttribute('aria-pressed', String(filter === kind));
       button.disabled = count === 0;
     }
@@ -45,7 +45,8 @@ export function createVgmLibrary({root, onSelect}) {
       button.setAttribute('aria-pressed', String(voice.id === selected));
       const name = doc.createElement('span'); name.textContent = voice.preset.name;
       const detail = doc.createElement('small');
-      detail.textContent = `CH${voice.channel} · ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
+      const channel = voice.kind === 'lfo' ? 'CH1 + CH2 · C4 = recorded pitch' : `CH${voice.channel}`;
+      detail.textContent = `${channel} · ${(voice.firstTime / 44100).toFixed(2)} s · ${voice.occurrences} ${voice.occurrences === 1 ? 'use' : 'uses'}`;
       button.append(name, detail);
       button.addEventListener('click', async () => {
         button.blur();
@@ -55,7 +56,7 @@ export function createVgmLibrary({root, onSelect}) {
           await onSelect(voice.preset);
           if (disposed || token !== selection || source !== library) return;
           selected = voice.id; render();
-          status(`${voice.preset.name} loaded · play the keyboard. Software Envelope is off for imported sounds.`);
+          status(`${voice.preset.name} loaded · ${voice.kind === 'lfo' ? 'C4 plays the recorded carrier pitch; CH2 period stays fixed.' : 'Play the keyboard.'} Software Envelope is off for imported sounds.`);
         } catch (error) {
           if (!disposed && token === selection && source === library) status(`Could not load sound: ${error.message}`, true);
         }

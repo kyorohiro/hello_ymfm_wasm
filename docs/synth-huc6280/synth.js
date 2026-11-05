@@ -46,7 +46,8 @@ function readVoices(state) {
 function updateCapacity() {
   const description = preset.source === 'noise' ? 'Noise · CH5 / CH6 · keys trigger the same noise'
     : preset.lfo.enabled ? 'Wave + Hardware LFO · CH2 → CH1' : 'Wave · CH1–CH6';
-  $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held`;
+  const recorded = preset.source === 'wave' && preset.lfo.enabled && preset.lfo.mode === 'recorded';
+  $('voiceCapacity').textContent = `${description} · ${capacity()} ${capacity() === 1 ? 'voice' : 'voices'} · round robin · ${notes.size} held${recorded ? ' · C4 = recorded pitch' : ''}`;
 }
 function updatePresetUi() {
   editor.update(preset);
@@ -54,7 +55,7 @@ function updatePresetUi() {
   if (!$('codeOutput').hidden) $('codeOutput').value = presetToCode(preset);
   for (const [wheel] of pitchWheels) wheel.disabled = preset.source === 'noise';
   updateCapacity();
-  if (!layout || keyboardSource !== preset.source) renderKeyboard();
+  if (!layout || keyboardSource !== keyboardMode()) renderKeyboard();
   else updateKeys();
 }
 function audioFailed(error) {
@@ -100,6 +101,7 @@ function applyPreset(value, {load = false, message, fromVgm = false} = {}) {
   if (!fromVgm) vgmLibrary?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.lfo.enabled !== next.lfo.enabled
+    || previous.lfo.mode !== next.lfo.mode || previous.lfo.output.enabled !== next.lfo.output.enabled
     || previous.envelope.enabled !== next.envelope.enabled || JSON.stringify(previous.wave) !== JSON.stringify(next.wave)
     || JSON.stringify(previous.lfo.wave) !== JSON.stringify(next.lfo.wave);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
@@ -148,9 +150,10 @@ const choices = document.createElement('div'); choices.className = 'fretboard-ro
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
 let layout, keyboardSource;
+const keyboardMode = () => `${preset.source}:${preset.lfo.enabled && preset.lfo.mode === 'recorded' ? 'recorded' : 'keyboard'}`;
 function renderKeyboard() {
   {
-    keyboardSource = preset.source;
+    keyboardSource = keyboardMode();
     layout = createFretboardLayout({state:fret});
     renderFretboardControls({instrumentRoot:tools.instrument,positionRoot:tools.position,fretDisplayRoot:tools.fret,
       stringDisplayRoot:tools.strings,stringWindowRoot:tools.window,state:fret,
@@ -177,7 +180,7 @@ function renderKeyboard() {
 }
 function canPlay(midi) {
   const hz = 440*2**((midi-69)/12);
-  return midi>=0 && midi<=127 && (preset.source==='noise' || hz >= 3579545 / (32 * 4096));
+  return midi>=0 && midi<=127 && (preset.source==='noise' || preset.lfo.enabled && preset.lfo.mode==='recorded' || hz >= 3579545 / (32 * 4096));
 }
 function press(source, entry) {
   if (switchingAudioOutput||notes.has(source)||!canPlay(entry.midi)) return;
@@ -192,7 +195,8 @@ function press(source, entry) {
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
-    status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.' : `${midiToNoteName(note.midi)} · ${notes.size}/${capacity()} voices`);
+    status(preset.source==='noise' ? 'Noise triggered · pitch is set by Noise clock controls.'
+      : `${midiToNoteName(note.midi)}${preset.lfo.enabled && preset.lfo.mode==='recorded' ? ' trigger · C4 = recorded carrier pitch' : ''} · ${notes.size}/${capacity()} voices`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
 function release(source) {

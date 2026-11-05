@@ -25,6 +25,14 @@ function vgm(commands,clock=3579545) {
 }
 const complete = () => vgm([...globals,...upload(),...play(),...wait(),...w(2,200),...wait(),...stop(0),
   ...upload(2,other),...play(2,20,247),...wait(),...stop(2),...noise(),...wait(),...stop(4),0x66]);
+const period = (channel,value) => [...w(0,channel),...w(2,value&255),...w(3,(value&4095)>>8)];
+function lfoSetup({carrierPeriod=700,modulatorPeriod=913,rate=7,depth=2,reset=false,output=true,
+  carrierWave=wave,modulatorWave=other,carrierVolume=25,modulatorVolume=19}={}) {
+  return [...globals,...upload(0,carrierWave),...upload(1,modulatorWave),
+    ...period(1,modulatorPeriod),...w(5,0xdf),...w(4,(output?128:0)|modulatorVolume),
+    ...period(0,carrierPeriod),...w(5,247),...w(4,128|carrierVolume),
+    ...(rate===null?[]:w(8,rate)),...w(9,depth|(reset?128:0))];
+}
 
 test('positive intervals recover exact Wave / Noise settings and ignore pitch-only duplication',async()=>{
   const result=await extractVgmInstruments(complete());
@@ -71,7 +79,7 @@ test('DDA transitions reset the index, DDA data retains Wave RAM, and enabled Wa
   assert(result.warnings.some(message=>message.includes('DDA / PCM')));
 });
 
-test('Noise has priority over DDA, while LFO carrier/modulator intervals and unknown modulation indices are omitted',async()=>{
+test('Noise has priority over DDA, while incomplete LFO pairs and unknown modulation indices are omitted',async()=>{
   const result=await extractVgmInstruments(vgm([...globals,...upload(0),...upload(1,other),...play(0),...w(9,1),...wait(),
     ...w(9,0),...w(0,1),...w(6,8),...play(1),...wait(),...stop(0),...stop(1),
     ...noise(4,17),...w(4,0xd7),...wait(),...stop(4),...noise(5,3),...wait(),0x66]));
@@ -205,4 +213,95 @@ test('imported Wave renders byte-identical PCM to the recorded setup at the chos
   instrument.loadPreset(voices[0].preset);instrument.noteOn('imported',60);
   assert.deepEqual(instrument.generateStereo(4096),raw.processFrames(4096));
   instrument.stop();assert(instrument.generateStereo(128).left.every(value=>value===0));
+});
+
+test('LFO pairs preserve both waves, independent periods, rate, depth, reset and audible CH2 output',async()=>{
+  const setup=lfoSetup(),result=await extractVgmInstruments(vgm([...setup,...wait(),...wait(),
+    ...period(0,701),...wait(),...w(9,130),...wait(),0x66]));
+  assert.deepEqual(result.voices.map(voice=>[voice.kind,voice.channel,voice.firstTime,voice.occurrences]),[
+    ['lfo',1,0,1],['lfo',1,2000,1],['lfo',1,3000,1],
+  ]);
+  const preset=result.voices[0].preset;
+  assert.equal(preset.source,'wave');assert.equal(preset.volume,25);assert.deepEqual(preset.pan,{left:15,right:7});
+  assert.deepEqual(preset.wave,wave);
+  assert.deepEqual(preset.lfo,{enabled:true,frequency:7,depth:2,wave:other,mode:'recorded',carrierPeriod:700,modulatorPeriod:913,
+    reset:false,output:{enabled:true,volume:19,pan:{left:13,right:15}}});
+  assert.equal(preset.envelope.enabled,false);assert.equal(result.voices[1].preset.lfo.carrierPeriod,701);
+  assert.equal(result.voices[2].preset.lfo.reset,true);assert.equal(preset.version,2);
+  assert(result.warnings.some(message=>message.includes('C4')));
+  assert(result.warnings.some(message=>message.includes('phase is not reconstructed')));
+});
+
+test('LFO can retain a constant modulator table, silent carrier or raw zero periods without guessing output metadata',async()=>{
+  const fixed=await extractVgmInstruments(vgm([...lfoSetup({carrierPeriod:4096,modulatorPeriod:4096,rate:0,reset:true,
+    modulatorWave:Array(32).fill(18),output:false}),...wait(),0x66]));
+  assert.equal(fixed.voices.length,1);const preset=fixed.voices[0].preset;
+  assert.equal(preset.lfo.carrierPeriod,4096);assert.equal(preset.lfo.modulatorPeriod,4096);
+  assert.equal(preset.lfo.frequency,0);assert.equal(preset.lfo.reset,true);assert.deepEqual(preset.lfo.wave,Array(32).fill(18));
+  assert.equal(preset.lfo.output.enabled,false);
+  const modulatorOnly=await extractVgmInstruments(vgm([...lfoSetup({carrierVolume:0}),...wait(),0x66]));
+  assert.equal(modulatorOnly.voices[0].preset.volume,0);assert.equal(modulatorOnly.voices[0].preset.lfo.output.enabled,true);
+  const constantCarrier=await extractVgmInstruments(vgm([...lfoSetup({carrierWave:Array(32).fill(16)}),...wait(),0x66]));
+  assert.equal(constantCarrier.voices[0].kind,'lfo');
+  const noOutputPan=await extractVgmInstruments(vgm([...globals,...upload(0),...upload(1,other),...period(1,913),
+    ...period(0,700),...w(5,255),...w(4,153),...w(8,7),...w(9,2),...wait(),0x66]));
+  assert.deepEqual(noOutputPan.voices[0].preset.lfo.output,{enabled:false,volume:0,pan:{left:15,right:15}});
+  assert(noOutputPan.warnings.some(message=>message.includes('CH2 balance was not recorded')));
+});
+
+test('incomplete LFO waves, periods, rate, output mode and balance are omitted with concrete reasons',async()=>{
+  const cases=[
+    [lfoSetup({rate:null}),/rate register/],
+    [[...globals,...upload(0),...upload(1,other),...play(0),...w(8,7),...w(9,2)],/period bytes/],
+    [lfoSetup({modulatorWave:other.slice(0,31)}),/CH1 \/ CH2 Wave RAM/],
+    [[...lfoSetup(),...w(0,1),...w(4,0xd3)],/audible CH2 DDA/],
+    [[...lfoSetup(),...w(0,0),...w(4,0xd9)],/carrier DDA/],
+    [[...globals,...upload(0),...upload(1,other),...period(1,913),...w(4,147),
+      ...period(0,700),...w(5,255),...w(4,153),...w(8,7),...w(9,2)],/unknown audible CH2 balance/],
+  ];
+  for(const [commands,reason]of cases)await assert.rejects(extractVgmInstruments(vgm([...commands,...wait(),0x66])),reason);
+  const ordinary=await extractVgmInstruments(vgm([...lfoSetup({rate:null}),...upload(2),...play(2),...wait(),0x66]));
+  assert.deepEqual(ordinary.voices.map(voice=>[voice.kind,voice.channel]),[['wave',3]]);
+});
+
+test('DAC stream changes to LFO period bytes and rate invalidate metadata until each affected write is restored',async()=>{
+  for(const [channel,register]of [[0,2],[0,3],[1,2],[1,3],[0,8]]) {
+    const start=[0x90,0,0x1b,channel,register,0x93,0,0,0,0,0,1,1,0,0,0],stopStream=[0x94,255];
+    const restore=register===8?w(8,7):[...w(0,channel),...w(register,register===2?(channel===0?700:913)&255:(channel===0?700:913)>>8)];
+    const result=await extractVgmInstruments(vgm([...lfoSetup(),...wait(),...start,...wait(),...stopStream,...wait(),
+      ...restore,...wait(),0x66]));
+    assert.equal(result.voices.length,1);assert.equal(result.voices[0].occurrences,2);
+    assert(result.warnings.some(message=>/rate register|period bytes/.test(message)),`register ${register} becomes unknown`);
+  }
+  for(const register of [2,3]) {
+    const result=await extractVgmInstruments(vgm([...lfoSetup(),...wait(),
+      0x90,0,0x1b,255,0,0x93,0,0,0,0,0,1,1,0,0,0,...wait(),0x94,255,
+      ...w(register,0),...w(0,0),...wait(),...period(0,700),...wait(),...period(1,913),...wait(),0x66]));
+    assert.equal(result.voices.length,1);assert.equal(result.voices[0].occurrences,2,'both possibly affected channels must be restored');
+    assert(result.warnings.some(message=>message.includes('known channel selection')));
+  }
+});
+
+test('global attenuation cannot disguise unsupported CH2 DDA output or an entirely constant audible pair',async()=>{
+  await assert.rejects(extractVgmInstruments(vgm([...lfoSetup({modulatorVolume:1}),...w(1,0xdd),
+    ...w(0,1),...w(4,0xc1),...wait(),0x66])),/audible CH2 DDA/);
+  for(const options of [{carrierVolume:0,modulatorWave:Array(32).fill(16)},
+    {carrierVolume:0,reset:true},{carrierWave:Array(32).fill(16),output:false}]) {
+    await assert.rejects(extractVgmInstruments(vgm([...lfoSetup(options),...wait(),0x66])),/Constant LFO pair/);
+  }
+});
+
+test('recorded LFO pairs render the initialized original hardware setup through real WASM',async t=>{
+  const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));
+  const create=()=>Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:3579545,outputSampleRate:48000});
+  for(const options of [{},{reset:true},{rate:0,carrierPeriod:4096,modulatorPeriod:4096,output:false}]) {
+    const commands=lfoSetup(options),{voices}=await extractVgmInstruments(vgm([...commands,...wait(),0x66]));
+    const raw=await create(),core=await create(),instrument=new Huc6280Instrument(core);
+    t.after(()=>{raw.dispose();instrument.dispose();});
+    for(let offset=0;offset<commands.length;offset+=3)raw.writeHuc6280(commands[offset+1],commands[offset+2]);
+    instrument.loadPreset(voices[0].preset);instrument.noteOn('original',60);
+    assert.deepEqual(instrument.generateStereo(4096),raw.processFrames(4096),JSON.stringify(options));
+    instrument.noteOff('original');assert(instrument.generateStereo(128).left.every(value=>value===0));
+    assert.equal(instrument.read().registers[1][4]&128,0,'paired CH2 output stops on release');
+  }
 });

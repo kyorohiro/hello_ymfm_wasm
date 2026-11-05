@@ -215,7 +215,25 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     number(lfoFields, 'Rate divider code', 'lfoFrequency', 0, 255, value => value.lfo.frequency, (value, frequency) => {value.lfo.frequency = frequency;}),
     select(lfoFields, 'Depth · period offset', 'lfoDepth', [[1, '1 · ×1'], [2, '2 · ×4'], [3, '3 · ×16']], value => value.lfo.depth, (value, depth) => {value.lfo.depth = Number(depth);}),
   ];
-  help(lfoCard.content, 'This is the chip’s fixed CH2 → CH1 frequency modulation. Enabling it selects one carrier voice on CH1 and stops held notes. CH2 supplies the LFO wave and is muted in the audible mix. Choose “LFO wave” above to draw it. The rate is a hardware divider code, not Hz: higher codes slow the modulation, and note pitch also affects its speed. Noise does not use LFO.');
+  const tuning = section(lfoCard.content, 'Carrier & modulator periods'), tuningFields = group(tuning);
+  lfoControls.push(select(tuningFields, 'Period mode', 'lfoMode', [['follow', 'Follow keyboard'], ['recorded', 'Recorded periods']],
+    value => value.lfo.mode, (value, mode) => {value.lfo.mode = mode;}));
+  const periodControls = [
+    number(tuningFields, 'CH1 period at C4', 'lfoCarrierPeriod', 1, 4096, value => value.lfo.carrierPeriod, (value, period) => {value.lfo.carrierPeriod = period;}),
+    number(tuningFields, 'CH2 fixed period', 'lfoModulatorPeriod', 1, 4096, value => value.lfo.modulatorPeriod, (value, period) => {value.lfo.modulatorPeriod = period;}),
+  ];
+  const lfoReset = checkbox(tuningFields, 'Hold LFO reset', 'lfoReset', value => value.lfo.reset, (value, reset) => {value.lfo.reset = reset;});
+  const periodHint = help(tuning, ''); periodHint.id = 'lfoPeriodHint';
+  const output = section(lfoCard.content, 'CH2 audio output'), outputFields = group(output);
+  const lfoOutputEnabled = checkbox(outputFields, 'Enable CH2 output', 'lfoOutputEnabled', value => value.lfo.output.enabled,
+    (value, enabled) => {value.lfo.output.enabled = enabled;});
+  const outputControls = [
+    number(outputFields, 'CH2 level · 0–31', 'lfoOutputVolume', 0, 31, value => value.lfo.output.volume, (value, volume) => {value.lfo.output.volume = volume;}),
+    number(outputFields, 'CH2 left · 0–15', 'lfoOutputLeft', 0, 15, value => value.lfo.output.pan.left, (value, left) => {value.lfo.output.pan.left = left;}),
+    number(outputFields, 'CH2 right · 0–15', 'lfoOutputRight', 0, 15, value => value.lfo.output.pan.right, (value, right) => {value.lfo.output.pan.right = right;}),
+  ];
+  help(output, 'CH2 always supplies the modulation wave while LFO is enabled. Its audio output is optional: enable it and choose a level above 0 to hear it. Imported pairs retain the recorded CH2 output, level and balance. Both channels stop with their single keyboard voice.');
+  help(lfoCard.content, 'This is the chip’s fixed CH2 → CH1 frequency modulation. Enabling it selects one keyboard voice using the CH1 / CH2 pair and stops held notes. Choose “LFO wave” above to draw CH2 on the same canvas. The rate is a hardware divider code, not Hz: higher nonzero codes slow the modulation. Hold LFO reset controls the hardware reset line. Noise does not use LFO.');
 
   const envelopeCard = card('Envelope · software control', 'envelopeSection'), envFields = group(envelopeCard.content);
   checkbox(envFields, 'Enable Software envelope', 'envelopeEnabled', value => value.envelope.enabled, (value, enabled) => {value.envelope.enabled = enabled;});
@@ -312,11 +330,19 @@ export function createEditor({root, onChange = () => {}, onError = () => {}}) {
     waveCard.element.hidden = isNoise; noiseCard.element.hidden = !isNoise;
     lfoEnabled.disabled = isNoise;
     for (const control of lfoControls) control.setDisabled(isNoise || !preset.lfo.enabled);
+    for (const control of periodControls) control.setDisabled(isNoise || !preset.lfo.enabled || preset.lfo.mode !== 'recorded');
+    lfoReset.disabled = isNoise || !preset.lfo.enabled;
+    lfoOutputEnabled.disabled = isNoise || !preset.lfo.enabled;
+    for (const control of outputControls) control.setDisabled(isNoise || !preset.lfo.enabled || !preset.lfo.output.enabled);
+    periodHint.textContent = preset.lfo.mode === 'recorded'
+      ? 'Recorded periods: C4 plays the original CH1 period. Other keys and Pitch transpose CH1; CH2 keeps its fixed period. A displayed period of 4096 is stored as register value 0. Elapsed waveform phase and song automation are not restored.'
+      : 'Follow keyboard: keys play their normal notes and CH2 follows CH1’s period, so note pitch also changes modulation speed. Choose Recorded periods to keep CH2 independent and make C4 the recorded carrier pitch.';
     for (const control of envelopeControls) control.setDisabled(!preset.envelope.enabled);
     for (const button of targetButtons) button.setAttribute('aria-pressed', String(button.dataset.waveTarget === target));
     canvas.setAttribute('aria-label', `Editable HuC6280 ${target === 'main' ? 'main' : 'LFO CH2'} waveform, 32 samples from 0 to 31`);
     sourceHint.textContent = isNoise ? 'CH5 + CH6 · two noise voices. Keys trigger; they do not change pitch.'
-      : preset.lfo.enabled ? 'CH1 · one carrier with Hardware LFO from muted CH2.' : 'CH1–CH6 · six wavetable voices in round robin.';
+      : preset.lfo.enabled ? preset.lfo.mode === 'recorded' ? 'CH1 + CH2 pair · one voice. C4 plays the recorded carrier pitch; CH2 period stays fixed.'
+        : 'CH1 + CH2 pair · one voice. CH2 period follows the keyboard.' : 'CH1–CH6 · six wavetable voices in round robin.';
     resizeWave(); drawWave(stroke?.samples);
     if (!stroke) waveReadout.textContent = `${target === 'main' ? 'Main wave' : 'LFO wave · CH2'} · 32 samples · 5-bit levels · draw, then release to apply`;
   }

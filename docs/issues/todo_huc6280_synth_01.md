@@ -33,7 +33,7 @@
 ## 接続仕様（並行実装用）
 
 - `preset.js`: `createDefaultPreset()`、`readPreset(value)`、`waveShape(name)`、`presetToCode(value)`。
-- プリセット v1: `{format:'tetorica-huc6280-voice',version:1,name,source:'wave'|'noise',wave:[32個の0..31],volume:0..31,pan:{left:0..15,right:0..15},noise:{frequency:0..31},lfo:{enabled:boolean,frequency:0..255,depth:1|2|3,wave:[32個の0..31]},envelope:{enabled:boolean,attack:秒,decay:秒,sustain:0..1,release:秒}}`。
+- 初版プリセット v1: `{format:'tetorica-huc6280-voice',version:1,name,source:'wave'|'noise',wave:[32個の0..31],volume:0..31,pan:{left:0..15,right:0..15},noise:{frequency:0..31},lfo:{enabled:boolean,frequency:0..255,depth:1|2|3,wave:[32個の0..31]},envelope:{enabled:boolean,attack:秒,decay:秒,sustain:0..1,release:秒}}`。現在の正本は下記のv2で、v1は読み込み時に移行する。
 - `instrument.js`: `Huc6280Instrument(core)`、`read()`→`{preset,voices:[{id,midi,channel}],capacity,pitch}`、`setPreset`、`loadPreset`、`noteOn`→`{channel,stolenId}`、`noteOff`、`setPitch`、`stop`、`generateStereo`、`dispose`。
 - `audio.js`: `createAudio({volume,onError})`→`{context,outputNode,command,read,setVolume,resume,dispose}`。`processor.js`が実WASMとInstrumentを所有する。
 - `editor.js`: `createEditor({root,onChange,onError})`→`{update(preset),dispose()}`。変更は妥当な完全プリセットを返す。描画はpointer releaseで反映する。
@@ -42,7 +42,7 @@
 ## 後続候補
 
 - [x] VGM／VGZから通常Wave／Noiseを抽出する。LFO／DDA区間と不完全なRAMは、無理に通常Waveへ置き換えず、理由を表示して省略する。
-- [ ] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセット設計を検討する。
+- [x] LFO音色抽出。carrierとmodulatorの独立periodを保つプリセットv2で、CH1／CH2ペアを取り込む。
 - [ ] DDA／CD-ROM² ADPCM／CD-DAは別の用途として検討する。DDAへ1値を書くだけの操作を「PCM再生」と呼ばない。
 - [ ] 必要ならSoftware morphや外部ソフトウェアFXを追加する。SPUのハードウェアReverbと混同しない。
 - [ ] Web版確認後、Tauri／Native版へ進む。
@@ -75,3 +75,25 @@
 ## 再開時
 
 まず `git status --short` とこのTODOを確認する。各モジュールの実装・検証結果を下に記録し、未実行の実聴・公開を完了扱いにしない。
+
+## VGM LFO音色読み込み（2026-11-05 開始、2026-11-06 完了）
+
+- [x] プリセットv2へ拡張し、v1は旧動作のまま移行する。LFOに `mode:'follow'|'recorded'`、`carrierPeriod:1..4096`、`modulatorPeriod:1..4096`、`reset:boolean`、`output:{enabled:boolean,volume:0..31,pan:{left:0..15,right:0..15}}` を追加する。
+- [x] Followは従来どおりCH2のperiodを鍵盤へ追従させる。RecordedはC4で記録時のCH1 periodを再生し、他の鍵盤／PitchはCH1だけを半音単位で移調する。CH2 periodは記録値を保持する。画面にこの基準を明示する。
+- [x] LFO有効時のCH1波形とCH2変調波形、両period、rate／depth／reset、CH2の音量・pan・有効状態をセットで抽出する。period registerの0は4096へ正規化する。未知の必須設定・DDAの直接音声・不完全なRAMを推測で埋めない。
+- [x] 元のCH2出力が有効なら保存・再生する。単音の所有権はCH1／CH2ペアで管理し、離鍵・release・voice steal・StopでCH2が鳴り残らないようにする。
+- [x] 一覧へLFOフィルターと説明を追加する。Main／LFOは既存の同じcanvas、period等はステッパー／ボタンで編集し、プリセット／JavaScript出力へ接続する。
+- [x] 原記録の経過位相やゲーム側の自動制御は再現しないことを明示する。既知の初期状態に対する実WASM比較、reset bit、0／4096、未知データ、v1互換、保持中の変更、両音声の停止を検証する。
+- [x] ソース／独立ZIPをChromium・WebKitで検証し、README／ホーム／TODOを更新する。共有runtime／WASMは変更しない。
+
+検証結果（2026-11-06）:
+
+- `npm run test:huc6280-synth`: **51件成功**。core／preset 18件、抽出21件を含む。既知の初期状態からのraw register再生・コピーしたJavaScript・paired instrumentが実WASMでbyte単位の同一PCMになることを確認した。Reset保持、period4096、CH1 level0＋可聴CH2、独立pan／level、period変更、ADSR release／steal／Stop、旧v1のFollow動作も検証した。
+- 不明な両periodの各byte／rate8は補わず、DAC streamの影響も未知として扱う。通常のWave／Noiseと異なり、LFOは元のperiod変更も別の設定として一覧化する。定数modulator tableは有効な固定offsetとして保存する。
+- 取り込み時にglobal balanceをfullへ正規化する既存方針に合わせ、元のglobal減衰で一時的に無音のCH2 DDAも、試奏時に鳴り得るなら除外する。実際に振動する成分がないDCだけの組も理由付きで除外する。
+- Chromium／WebKitのソース版が成功。[記録](huc6280_synth_vgm_lfo_browser_01.json)。LFOフィルター、両RAM値・period700／913・rate7・depth2・CH2 output、C4原周期、Pitch時のCH2固定、保持中period／level／Reset、離鍵後の両keyOff、同じcanvasでの編集、v2保存／復元・v1移行、390px幅overflow 0を確認した。
+- 独立ZIPを別ディレクトリーへ展開した両ブラウザー検証も成功。[記録](huc6280_synth_vgm_lfo_zip_browser_01.json)。外部通信・404・page errorは0。検証中のスピーカー出力はミュートした。経過phase・counter・ゲーム側の自動制御の復元や実聴を完了扱いにしない。
+- 新ZIP: `release/tetorica_huc6280_synth_0.0.3_itch.zip`（46 files、1,102,555 bytes）。SHA-256 `8a41eb04ec53a9f3579656123d87ef3f37c933f33c6312108ac5579f4a26fd2d`。以前のZIPは保持し、今回も元JS／CSS・相対import・元WASM・対応C++・ライセンスを同梱する。
+- `npm run check:runtime-artifacts` と `git diff --check` も成功。共有runtime／WASMは未変更。README en／ja／AI、英日ホーム、Synthガイドも更新した。commit／push／公開は未実行。
+
+次は手元の実ゲーム由来VGMでの試奏と必要な調整。DDA／CD-ROM²は引き続き別の後続候補。

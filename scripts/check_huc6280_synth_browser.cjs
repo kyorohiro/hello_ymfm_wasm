@@ -10,6 +10,7 @@ const {gzipSync} = require('node:zlib');
 // Self-authored register sequences; no commercial game files or recordings.
 const vgmWave = Array.from({length:32},(_,i)=>i<8?31:i<16?3:i<24?20:8);
 const secondWave = Array.from({length:32},(_,i)=>(i%4)*10);
+const lfoWave = Array.from({length:32},(_,i)=>(i*7)%32);
 const write = (register,value) => [0xb9,register,value];
 const vgmWait = [0x61,0xe8,0x03];
 function upload(channel,wave,{volume=24,balance=255}={}) {
@@ -34,6 +35,15 @@ function makePagedVgm() {
 function makeLongVgm() {
   const prefix=[...write(1,255),...write(9,0),...upload(0,vgmWave),...vgmWait];
   return vgmBytes(Buffer.concat([Buffer.from(prefix),Buffer.alloc(500_000,0x70),Buffer.from([0x66])]));
+}
+function period(channel,value) {
+  const raw=value===4096?0:value;
+  return [...write(0,channel),...write(2,raw&255),...write(3,raw>>8)];
+}
+function makeLfoVgm() {
+  return vgmBytes([...write(1,255),...write(9,0),...upload(0,vgmWave,{volume:25,balance:253}),...period(0,700),
+    ...upload(1,lfoWave,{volume:19,balance:223}),...period(1,913),...write(8,7),...write(9,2),...vgmWait,
+    ...write(0,0),...write(4,25),...write(0,1),...write(4,19),0x66]);
 }
 
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-huc6280/index.html',
@@ -262,6 +272,51 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const closedOwner=state.voices[0].id;
     await page.locator('#closeVgm').click();state=await read();assert.equal(state.voices[0].id,closedOwner);
     await page.keyboard.up(keys[0]);await silent();
+    check('VGM LFO pair preserves original periods, waves, rate, depth and CH2 output');
+    await page.locator('#vgmFileInput').setInputFiles({name:'paired-lfo.vgz',mimeType:'application/gzip',buffer:gzipSync(makeLfoVgm())});
+    await page.waitForFunction(()=>document.querySelector('#vgmFileName').textContent==='paired-lfo.vgz');
+    await page.locator('[data-vgm-filter="lfo"]').click();assert.equal(await page.locator('[data-vgm-voice]').count(),1);
+    await page.locator('[data-vgm-voice]').click();
+    state=await wait(s=>s.preset.lfo.enabled&&s.preset.lfo.mode==='recorded');
+    assert.equal(state.preset.version,2);assert.deepEqual(state.preset.wave,vgmWave);assert.deepEqual(state.preset.lfo.wave,lfoWave);
+    assert.equal(state.preset.lfo.carrierPeriod,700);assert.equal(state.preset.lfo.modulatorPeriod,913);
+    assert.equal(state.preset.lfo.frequency,7);assert.equal(state.preset.lfo.depth,2);assert.equal(state.preset.lfo.reset,false);
+    assert.deepEqual(state.preset.lfo.output,{enabled:true,volume:19,pan:{left:13,right:15}});
+    const c4=await page.locator('#keyboard .key').evaluateAll(nodes=>nodes.find(node=>node.querySelector('span')?.textContent==='C4')?.dataset.key);
+    assert(c4,'keyboard exposes the C4 original-pitch trigger');
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);await sound();
+    const lfoNote=state.voices[0].id;
+    const regPeriod=(s,ch)=>(s.registers[ch][2]|((s.registers[ch][3]&15)<<8))||4096;
+    assert.equal(regPeriod(state,0),700);assert.equal(regPeriod(state,1),913);assert(state.registers[1][4]&128);
+    await page.locator('#pitchBend').evaluate(input=>{input.value='1';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    state=await wait(s=>s.pitch===1);assert.equal(regPeriod(state,0),Math.round(700/2**(1/12)));assert.equal(regPeriod(state,1),913);
+    assert.equal(state.voices[0].id,lfoNote);
+    await page.locator('#pitchBend').dispatchEvent('pointercancel');await wait(s=>s.pitch===0);
+    check('recorded LFO controls update held notes and pair releases to silence');
+    await page.locator('[data-stepper-for="lfoModulatorPeriod"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.lfo.modulatorPeriod===914);assert.equal(regPeriod(state,1),914);assert.equal(state.voices[0].id,lfoNote);
+    await page.locator('[data-stepper-for="lfoOutputVolume"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.lfo.output.volume===20);assert.equal(state.registers[1][4]&31,20);
+    await page.locator('#lfoReset').check();state=await wait(s=>s.preset.lfo.reset);assert(state.globals[9]&128);assert.equal(state.voices[0].id,lfoNote);
+    await page.locator('#lfoReset').uncheck();await wait(s=>!s.preset.lfo.reset);
+    await page.keyboard.up(c4);await wait(s=>s.voices.length===0);await silent();
+    state=await read();assert.equal(state.registers[0][4]&128,0);assert.equal(state.registers[1][4]&128,0);
+    check('LFO pair wave editing, preset v2 round trip and v1 migration');
+    await page.locator('[data-wave-target="lfo"]').click();await page.locator('[data-wave-shape="triangle"]').click();
+    state=await wait(s=>JSON.stringify(s.preset.lfo.wave)!==JSON.stringify(lfoWave));assert.deepEqual(state.preset.wave,vgmWave);
+    assert.equal(await page.locator('#voiceEditor canvas').count(),1);
+    const pairedPreset=state.preset,pairedSave=page.waitForEvent('download');await page.locator('#savePreset').click();
+    assert.deepEqual(JSON.parse(await fs.readFile(await(await pairedSave).path(),'utf8')),pairedPreset);
+    await page.locator('#copyCode').click();
+    const pairedCode=await page.locator('#codeOutput').inputValue();assert.match(pairedCode,/pce\.writeRegister/);
+    const legacy={...pairedPreset,version:1,lfo:{enabled:true,frequency:7,depth:2,wave:pairedPreset.lfo.wave}};
+    await page.locator('#presetFileInput').setInputFiles({name:'legacy-v1.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
+    state=await wait(s=>s.preset.lfo.mode==='follow'&&!s.preset.lfo.output.enabled);assert.equal(state.preset.version,2);
+    await page.keyboard.down(c4);state=await wait(s=>s.voices.length===1);
+    assert.equal(regPeriod(state,0),regPeriod(state,1));assert.equal(state.registers[1][4]&128,0);
+    await page.keyboard.up(c4);await silent();
+    await page.locator('#presetFileInput').setInputFiles({name:'paired-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pairedPreset))});
+    await wait(s=>JSON.stringify(s.preset)===JSON.stringify(pairedPreset));
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#stopAudio').click();await wait(s=>s.voices.length===0);await silent();
     await page.locator('#octaveUp').click();assert.equal((await page.locator('#octaveValue').textContent()).trim(),'+1');

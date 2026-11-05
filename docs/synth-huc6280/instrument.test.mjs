@@ -2,11 +2,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
 import factory from '../generated/huc6280_wasm.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
-import {HUC6280_CLOCK} from '../js/huc6280synth.js';
+import {Huc6280Synth, Huc6280DirectTransport, HUC6280_CLOCK} from '../js/huc6280synth.js';
 import {Huc6280Instrument} from './instrument.js';
-import {waveShape} from './preset.js';
+import {waveShape, presetToCode} from './preset.js';
 
 const wasmBinary=await readFile(new URL('../generated/huc6280_wasm.wasm',import.meta.url));
 async function setup(t,rate=48000) {
@@ -18,7 +19,14 @@ async function setup(t,rate=48000) {
 }
 const peak=data=>data.reduce((value,sample)=>Math.max(value,Math.abs(sample)),0);
 const audible=pcm=>{assert(pcm.left.every(Number.isFinite));assert(peak(pcm.left)>.001);};
+const period=(state,channel)=>(state.registers[channel][2]|state.registers[channel][3]<<8)||4096;
 function noEnvelope(instrument) {const preset=instrument.read().preset;preset.envelope.enabled=false;instrument.loadPreset(preset);return preset;}
+function recordedPreset(instrument,{reset=false,mainVolume=24}={}) {
+  const preset=instrument.read().preset;preset.envelope.enabled=false;preset.volume=mainVolume;
+  Object.assign(preset.lfo,{enabled:true,mode:'recorded',carrierPeriod:700,modulatorPeriod:913,frequency:7,depth:2,reset,
+    output:{enabled:true,volume:19,pan:{left:13,right:15}}});
+  return preset;
+}
 
 test('real WASM six-voice round robin steals oldest owner and ignores late releases',async t=>{
   const {instrument}=await setup(t);noEnvelope(instrument);
@@ -104,4 +112,95 @@ test('software envelope uses a fixed render timeline across arbitrary chunk size
   assert.equal(a.instrument.read().voices[0].id,'id','retiring an earlier tail cannot remove new ID ownership');
   const exported=a.instrument.read().preset;exported.wave[0]=31;assert.notEqual(a.instrument.read().preset.wave[0],31);
   a.instrument.dispose();assert.throws(()=>a.instrument.read(),/disposed/);assert.equal(a.core.handle,0);
+});
+
+test('recorded LFO pairs render exact raw-register PCM at C4, including held reset and independent CH2 output',async t=>{
+  for(const reset of [false,true]) for(const mainVolume of [24,0]) {
+    const {instrument}=await setup(t),preset=recordedPreset(instrument,{reset,mainVolume});
+    const raw=await Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:HUC6280_CLOCK,outputSampleRate:48000});
+    t.after(()=>raw.dispose());
+    const write=(register,value)=>raw.writeHuc6280(register,value);
+    write(1,255);
+    for(const [channel,wave,level,pan,step] of [[0,preset.wave,preset.volume,preset.pan,700],
+      [1,preset.lfo.wave,19,preset.lfo.output.pan,913]]) {
+      write(0,channel);write(4,64);write(4,0);
+      for(const sample of wave)write(6,sample);
+      write(5,pan.left<<4|pan.right);write(2,step&255);write(3,step>>8);write(4,level);
+    }
+    write(8,7);write(9,2|(reset?128:0));
+    write(0,1);write(4,147);write(0,0);write(4,128|mainVolume);
+    instrument.loadPreset(preset);instrument.noteOn('recorded',60);
+    const actual=instrument.generateStereo(4096),expected=raw.processFrames(4096);
+    assert.deepEqual(actual,expected);
+    if (reset && mainVolume === 0) assert.equal(peak(actual.left),0,'reset holds the centered first modulator sample');
+    else audible(actual);
+    const state=instrument.read();assert.equal(period(state,0),700);assert.equal(period(state,1),913);
+    assert.equal(state.registers[1][4],147);assert.equal(state.globals[9],2|(reset?128:0));
+    instrument.noteOff('recorded');assert.equal(peak(instrument.generateStereo(128).left),0);
+    assert.equal(instrument.read().registers[1][4]&128,0);
+  }
+});
+
+test('recorded periods transpose only the carrier, update live and encode 4096 as register zero',async t=>{
+  const {instrument}=await setup(t),preset=recordedPreset(instrument);
+  instrument.loadPreset(preset);instrument.noteOn('owner',60);
+  const owner=instrument.read().voices;
+  instrument.setPitch(12);let state=instrument.read();assert.equal(period(state,0),350);assert.equal(period(state,1),913);
+  instrument.setPitch(0);preset.lfo.carrierPeriod=800;preset.lfo.modulatorPeriod=4096;
+  preset.lfo.frequency=9;preset.lfo.depth=3;preset.lfo.reset=true;
+  preset.lfo.output.volume=14;preset.lfo.output.pan={left:0,right:15};instrument.setPreset(preset);
+  state=instrument.read();assert.deepEqual(state.voices,owner);
+  assert.equal(period(state,0),800);assert.deepEqual(state.registers[1].slice(2,4),[0,0]);
+  assert.equal(state.globals[8],9);assert.equal(state.globals[9],131);
+  assert.equal(state.registers[1][4],142);assert.equal(state.registers[1][5],15);
+  preset.lfo.carrierPeriod=4096;instrument.setPreset(preset);
+  assert.deepEqual(instrument.read().registers[0].slice(2,4),[0,0]);
+  instrument.setPitch(-24);assert.equal(period(instrument.read(),0),4096);
+  instrument.stop();instrument.noteOn('octave',72);
+  assert.equal(period(instrument.read(),0),4096,'negative two-octave bend is retained');
+  instrument.setPitch(0);assert.equal(period(instrument.read(),0),2048);assert.equal(period(instrument.read(),1),4096);
+});
+
+test('paired CH2 owner follows stealing and software release without a stuck modulator or obsolete release',async t=>{
+  const {instrument}=await setup(t),preset=recordedPreset(instrument,{mainVolume:0});
+  preset.envelope={enabled:true,attack:0,decay:0,sustain:1,release:.04};instrument.loadPreset(preset);
+  instrument.noteOn('old',60);audible(instrument.generateStereo(1024));
+  assert.deepEqual(instrument.noteOn('new',64),{channel:0,stolenId:'old'});
+  assert.equal(instrument.noteOff('old'),false);assert.equal(instrument.read().registers[1][4]&128,128);
+  instrument.noteOff('new');assert.equal(instrument.read().voices.length,0);assert.equal(instrument.read().tails.length,1);
+  audible(instrument.generateStereo(256));instrument.generateStereo(2048);
+  assert.equal(instrument.read().tails.length,0);assert.equal(instrument.read().registers[1][4]&128,0);
+  assert.equal(peak(instrument.generateStereo(128).left),0);
+  instrument.noteOn('stop',60);instrument.stop();assert.equal(instrument.read().registers[1][4]&128,0);
+  assert.equal(peak(instrument.generateStereo(128).left),0);
+});
+
+test('LFO mode and CH2 output routing edits stop both voices while v1 playback keeps the old follow behavior',async t=>{
+  const {instrument}=await setup(t),preset=recordedPreset(instrument);
+  instrument.loadPreset(preset);instrument.noteOn('recorded',60);
+  preset.lfo.mode='follow';instrument.setPreset(preset);assert.equal(instrument.read().voices.length,0);
+  assert.equal(instrument.read().registers[1][4]&128,0);
+  instrument.noteOn('follow',69);assert.equal(period(instrument.read(),0),period(instrument.read(),1));
+  preset.lfo.output.enabled=false;instrument.setPreset(preset);assert.equal(instrument.read().voices.length,0);
+  instrument.noteOn('muted',60);assert.equal(instrument.read().registers[1][4]&128,0);
+  preset.lfo.enabled=false;instrument.setPreset(preset);instrument.noteOn('plain0',60);instrument.noteOn('plain1',64);
+  assert.equal(instrument.read().voices.length,2);assert.equal(instrument.read().registers[1][4]&128,128);
+  instrument.noteOff('plain0');assert.equal(instrument.read().registers[1][4]&128,128,'ordinary CH2 keeps its own owner');
+  const old=instrument.read().preset;old.version=1;old.lfo={enabled:true,frequency:32,depth:1,wave:waveShape('sine')};
+  instrument.loadPreset(old);instrument.noteOn('legacy',60);instrument.setPitch(2);
+  assert.equal(period(instrument.read(),0),period(instrument.read(),1));assert.equal(instrument.read().registers[1][4]&128,0);
+});
+
+test('copied recorded LFO JavaScript reproduces the paired instrument PCM through the actual chip API',async t=>{
+  for(const reset of [false,true]) {
+    const {instrument}=await setup(t),preset=recordedPreset(instrument,{reset});
+    preset.wave=waveShape('triangle');preset.lfo.wave=waveShape('square');preset.lfo.carrierPeriod=4096;
+    instrument.loadPreset(preset);instrument.noteOn('copy-reference',60);
+    const core=await Huc6280AudioEngine.create({moduleFactory:()=>factory({wasmBinary}),clock:HUC6280_CLOCK,outputSampleRate:48000});
+    const pce=new Huc6280Synth({transport:new Huc6280DirectTransport(core)});pce.initialize();
+    t.after(()=>{pce.dispose();core.dispose();});
+    const code=presetToCode(preset);vm.runInNewContext(code,{pce});
+    assert.deepEqual(core.processFrames(4096),instrument.generateStereo(4096));
+    pce.keyOff(0);pce.keyOff(1);assert.equal(peak(core.processFrames(128).left),0);
+  }
 });

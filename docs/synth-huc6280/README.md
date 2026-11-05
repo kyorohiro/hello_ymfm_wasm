@@ -19,13 +19,16 @@ and controls that leave the computer keys available for playing.
 
 Use **Load VGM / VGZ…** in the collapsible **Sounds from VGM** section.
 Choose a PC Engine VGM or gzip-compressed VGZ, then choose a sound from the
-**Wave** / **Noise** list. Analysis alone keeps the current instrument; only an
+**Wave** / **Noise** / **LFO** list. Analysis alone keeps the current instrument; only an
 explicit sound choice loads it. Cancel, failed imports and closing the library
 keep the current sound. Files and expanded VGZ data are limited to 64 MiB.
 
 Wave imports retain the recorded 32 five-bit samples, channel level and stereo
-balance. Noise imports retain the CH5 / CH6 clock and channel settings. Different
-note pitches share a voice entry. The list shows the original channel, first
+balance. Noise imports retain the CH5 / CH6 clock and channel settings. LFO imports
+capture CH1 and CH2 together: both waveforms and periods, rate, depth, Reset and
+CH2's output state / level / stereo balance. Different note pitches share ordinary
+Wave / Noise entries; LFO period changes remain distinct paired settings.
+The list shows the original channel, first
 time and occurrences, with 24 entries per page. Imported sounds turn **Software
 Envelope off**, so audition starts from the recorded hardware settings. You can
 turn it on afterward, edit the wave on the existing canvas, save a preset or copy
@@ -38,10 +41,10 @@ settings and explicitly disclosed reset assumptions are used; the song's notes,
 driver envelopes, vibrato and later automation are not replayed. Global balance
 and nonstandard clocks may require approximation, reported in the library.
 
-**LFO voices and DDA / DAC streams are omitted.** The current Synth follows the
-carrier note for its modulator period; arbitrary recorded CH1 / CH2 period
-relationships need a separate import design. LFO settings are not silently
-turned into normal Wave voices. Other ordinary channels can still be extracted.
+**DDA / DAC streams and incomplete paired settings are omitted.** LFO requires
+both written period registers and both complete waveforms, plus the rate and
+control settings. Unknown data is not replaced with a built-in wave. Song-time
+oscillator phases and elapsed LFO counters are not reconstructed.
 
 Opening the page or editing a sound does not start an audio device. Playing a
 key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
@@ -49,7 +52,7 @@ key can also initialize audio. One HuC6280 PSG renderer supplies these channels:
 | Source | Keyboard voices | Hardware controls |
 | --- | --- | --- |
 | Wave, LFO off | Six, CH1–CH6 | 32 five-bit samples, volume and left / right balance |
-| Wave, LFO on | One, CH1 | CH2's waveform modulates CH1; CH2 is muted as an audio source |
+| Wave, LFO on | One CH1 / CH2 pair | CH2's waveform modulates CH1; optional CH2 output has its own level / balance |
 | Noise | Two, CH5 / CH6 | Shared noise-clock code, volume and left / right balance |
 
 Allocation uses available channels in round-robin order and replaces an old
@@ -78,9 +81,23 @@ Sections can be collapsed while watching the output display.
 
 Hardware LFO uses the PSG's fixed **CH2 → CH1** path. It is not arbitrary FM
 routing. Enabling it selects a single carrier on CH1, with the LFO waveform
-on CH2 muted from direct output. Frequency is the 0–255 register code and Depth
-selects one of the hardware modulation ranges. The carrier note also affects
-the modulator's timing, so changing notes can change the modulation character.
+on CH2. Frequency is the 0–255 register code and Depth selects one of the hardware
+modulation ranges. Reset holds the hardware reset bit. **CH2 output** preserves
+an audible modulator's own level and stereo balance; it is off by default.
+CH1 and CH2 share one keyboard owner and stop together.
+
+Two period modes are available:
+
+- **Follow keyboard** keeps the previous behavior: CH1 plays the keyboard note,
+  and CH2's period follows it. Old version-1 presets use this mode.
+- **Recorded periods** keeps independent periods. **C4 plays the recorded CH1
+  period**, other keys / Pitch transpose CH1 relative to that reference, and
+  CH2 keeps its recorded period. This mode is selected for imported LFO sounds.
+
+Periods are shown as 1–4096, with 4096 encoded as zero in the chip registers.
+Extreme transpositions reach the hardware period endpoints. You can edit the
+periods, rate, depth and CH2 mix while a note is held; changing mode or routing
+stops held notes. Main and LFO waves still share the same drawing canvas.
 
 **Software Envelope** is a host feature. The HuC6280 PSG does not have SPU-style
 hardware ADSR or reverb. Attack, Decay, Sustain and Release schedule channel
@@ -105,7 +122,9 @@ If the audio engine fails, use **Enable audio** to reconnect.
 
 ## Presets and JavaScript
 
-Save / Load uses the portable `tetorica-huc6280-voice` preset, version 1. It
+Save / Load uses the portable `tetorica-huc6280-voice` preset, version 2. Version-1
+files migrate to Follow keyboard, Reset off and muted CH2, keeping their previous
+behavior. The preset
 contains the name, selected source, main and LFO waveforms, chip volume / balance,
 noise clock, hardware LFO and Software Envelope. Invalid presets are rejected
 before the current sound changes. Master, keyboard layout, octave and temporary
@@ -117,7 +136,7 @@ parameters; keyboard allocation, software envelope scheduling and Master belong
 to the host and are not reproduced by that chip-only audition. The generated
 code stays visible for manual copying when the clipboard is unavailable.
 
-LFO voice import, streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
+Streamed DDA PCM, CD-ROM² ADPCM / CD-DA, song playback
 and full PC Engine emulation are not included.
 
 ## API, sources and licenses
@@ -163,5 +182,7 @@ Main／LFOを切り替えて1つのcanvasで描きます。
 Hardware LFOはCH2→CH1の専用配線で、有効時はCH1の単音へ切り替わります。
 Software Envelopeはソフト側の音量制御で、実機のADSRではありません。
 プリセット保存・読込とPlayground向けJavaScript出力に対応します。
-VGM／VGZから通常Wave／Noiseを抽出し、一覧から選んで試奏・波形編集できます。
-LFO音色抽出、DDAのPCM再生、CD-ROM²音源は後続の検討対象です。
+VGM／VGZからWave／NoiseとCH1・CH2を組にしたLFO音色を抽出し、試奏・波形編集できます。
+Recorded periodsではC4が記録時のCH1周期、他の鍵盤はCH1だけを移調し、CH2は固定です。
+両周期・速度・深さ・Reset・CH2の出力もプリセットv2へ保存します。v1は従来動作で読み込めます。
+DDAのPCM再生、CD-ROM²音源は後続の検討対象です。

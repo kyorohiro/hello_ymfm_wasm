@@ -59,7 +59,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、PCMお絵描き、ADSR、PMON、Noise、SPU Reverb、PSF／VAB音色抽出。 |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMGの1台のAPUでPulse／Wave／Noiseを演奏。ラウンドロビン鍵盤、波形描画、プリセット、JavaScript出力。英語UI。[ガイド](docs/synth-dmg/README.md)。 |
 | [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Pulse／Triangle／Noise／DMC／FDSを鍵盤で試奏。実機EnvelopeとPulse／Triangle／Noiseのcounter gate・内部状態表示、DMC目標波形の描画・bit編集・DAC可視化・Undo／Redo、FDS波形・変調table編集、VGM／VGZ音色・サンプル抽出、DPCM書出・プリセット保存・JavaScriptコピー。英語UI。[ガイド](docs/synth-2a03/README.md)。 |
-| [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの6ch波形メモリーPSG、2声Noise、CH2→CH1の実機LFO、波形描画、ソフトウェアADSR、VGM／VGZのWave／Noise音色抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
+| [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの6ch波形メモリーPSG、2声Noise、CH2→CH1の実機LFO、波形描画、ソフトウェアADSR、VGM／VGZのWave／Noise／LFOペア音色抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |

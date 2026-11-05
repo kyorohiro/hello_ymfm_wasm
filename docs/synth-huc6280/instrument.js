@@ -30,6 +30,23 @@ export class Huc6280Instrument {
     // Notes outside the 12-bit period range reach the hardware endpoint.
     return Math.max(HUC6280_CLOCK / (32 * 4096), Math.min(HUC6280_CLOCK / 32, hz));
   }
+  _setPeriod(channel, period) {
+    const encoded = period & 4095;
+    this.synth.writeRegister(0, channel);
+    this.synth.writeRegister(2, encoded & 255);
+    this.synth.writeRegister(3, encoded >> 8);
+  }
+  _tuneVoice(voice, pitch = this.pitch) {
+    if (hasLfo(this.preset) && this.preset.lfo.mode === 'recorded') {
+      const period = Math.max(1, Math.min(4096, Math.round(this.preset.lfo.carrierPeriod * 2 ** ((60 - voice.midi - pitch) / 12))));
+      this._setPeriod(voice.channel, period);
+      this._setPeriod(1, this.preset.lfo.modulatorPeriod);
+    } else {
+      const hz = this._frequency(voice.midi, pitch);
+      this.synth.setFrequency(voice.channel, hz);
+      if (hasLfo(this.preset)) this.synth.setFrequency(1, hz);
+    }
+  }
   _heldLevel(voice, frame = this.frame) {
     const env = voice.envelope;
     if (!env.enabled) return 1;
@@ -44,12 +61,17 @@ export class Huc6280Instrument {
     if (voice.envelope.release <= 0 || elapsed >= voice.envelope.release) return 0;
     return voice.releaseLevel * (1 - elapsed / voice.envelope.release);
   }
-  _setLevel(channel, level) {
-    const volume = level <= 0 ? 0 : Math.max(0, Math.min(31, this.preset.volume + Math.round(20 * Math.log10(level) / 1.5)));
+  _setLevel(channel, level, base = this.preset.volume) {
+    const volume = level <= 0 || base === 0 ? 0 : Math.max(0, Math.min(31, base + Math.round(20 * Math.log10(level) / 1.5)));
     if (this.levels[channel] !== volume) { this.synth.setVolume(channel, volume); this.levels[channel] = volume; }
+  }
+  _setVoiceLevel(voice, level) {
+    this._setLevel(voice.channel, level);
+    if (voice.paired) this._setLevel(1, level, this.preset.lfo.output.volume);
   }
   _retire(voice) {
     this.synth.keyOff(voice.channel);
+    if (voice.paired) this.synth.keyOff(1);
     if (this.voices.get(voice.id) === voice) this.voices.delete(voice.id);
     if (this.slots[voice.channel] === voice) this.slots[voice.channel] = null;
   }
@@ -58,7 +80,7 @@ export class Huc6280Instrument {
       if (!voice) continue;
       const level = this._level(voice);
       if (voice.released && level <= 0) this._retire(voice);
-      else this._setLevel(voice.channel, level);
+      else this._setVoiceLevel(voice, level);
     }
   }
   _apply(previous, next) {
@@ -68,14 +90,21 @@ export class Huc6280Instrument {
       for (let ch = 0; ch < 6; ch++) this.synth.setWaveform(ch, lfo && ch === 1 ? next.lfo.wave : next.wave);
       this.levels.fill(null);
     }
-    if (changed(p => p.pan)) for (let ch = 0; ch < 6; ch++) this.synth.setPan(ch, next.pan.left, next.pan.right);
+    if (changed(p => p.pan) || changed(p => p.source) || changed(p => p.lfo.enabled)) {
+      for (let ch = 0; ch < 6; ch++) this.synth.setPan(ch, next.pan.left, next.pan.right);
+    }
     if (changed(p => p.source) || changed(p => p.noise.frequency)) for (const ch of [4,5]) {
       this.synth.setNoise(ch, {enabled:next.source === 'noise', frequency:next.noise.frequency});
     }
-    if (changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.frequency) || changed(p => p.lfo.depth)) {
-      this.synth.setLfo({frequency:next.lfo.frequency, depth:lfo ? next.lfo.depth : 0});
+    if (changed(p => p.source) || changed(p => p.lfo.enabled) || changed(p => p.lfo.frequency) || changed(p => p.lfo.depth) || changed(p => p.lfo.reset)) {
+      this.synth.setLfo({frequency:next.lfo.frequency, depth:lfo ? next.lfo.depth : 0, reset:lfo && next.lfo.reset});
     }
-    if (lfo) { this.synth.setVolume(1, 0); this.synth.keyOff(1); this.levels[1] = 0; }
+    if (lfo) {
+      this.synth.setPan(1, next.lfo.output.pan.left, next.lfo.output.pan.right);
+      if (!this.slots[0]?.paired || !next.lfo.output.enabled) {
+        this.synth.setVolume(1, next.lfo.output.volume); this.synth.keyOff(1); this.levels[1] = next.lfo.output.volume;
+      }
+    }
   }
   read() {
     this._open();
@@ -88,9 +117,14 @@ export class Huc6280Instrument {
     this._open();
     const next = readPreset(value), previous = this.preset;
     const clear = previous.source !== next.source || !same(previous.wave, next.wave) || previous.lfo.enabled !== next.lfo.enabled ||
-      !same(previous.lfo.wave, next.lfo.wave) || previous.envelope.enabled !== next.envelope.enabled;
+      !same(previous.lfo.wave, next.lfo.wave) || previous.lfo.mode !== next.lfo.mode ||
+      previous.lfo.output.enabled !== next.lfo.output.enabled || previous.envelope.enabled !== next.envelope.enabled;
     if (clear) this.stop();
-    this._apply(previous, next); this.preset = next; this._advanceEnvelopes();
+    this._apply(previous, next); this.preset = next;
+    if (next.source === 'wave' && (!same(previous.lfo.carrierPeriod, next.lfo.carrierPeriod) || !same(previous.lfo.modulatorPeriod, next.lfo.modulatorPeriod))) {
+      for (const voice of this.slots) if (voice) this._tuneVoice(voice);
+    }
+    this._advanceEnvelopes();
     return this.read();
   }
   loadPreset(value) {
@@ -115,12 +149,12 @@ export class Huc6280Instrument {
     }, pool[0]);
     const previous = this.slots[channel];
     if (previous) this._retire(previous);
-    const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,envelope:{...this.preset.envelope}};
-    if (this.preset.source === 'wave') {
-      const hz = this._frequency(midi); this.synth.setFrequency(channel, hz);
-      if (hasLfo(this.preset)) this.synth.setFrequency(1, hz);
-    }
-    this._setLevel(channel, this._heldLevel(voice)); this.synth.keyOn(channel);
+    const voice = {id,midi,channel,order:++this.sequence,startFrame:this.frame,released:false,
+      paired:hasLfo(this.preset) && this.preset.lfo.output.enabled,envelope:{...this.preset.envelope}};
+    if (this.preset.source === 'wave') this._tuneVoice(voice);
+    this._setVoiceLevel(voice, this._heldLevel(voice));
+    if (voice.paired) this.synth.keyOn(1);
+    this.synth.keyOn(channel);
     this.slots[channel] = voice; this.voices.set(id, voice); this.cursor = (pool.indexOf(channel) + 1) % pool.length;
     return {channel, stolenId:previous?.released ? null : previous?.id ?? null};
   }
@@ -132,7 +166,7 @@ export class Huc6280Instrument {
     else {
       voice.releaseLevel = this._heldLevel(voice); voice.releaseFrame = this.frame; voice.released = true;
       if (voice.releaseLevel <= 0) this._retire(voice);
-      else this._setLevel(voice.channel, voice.releaseLevel);
+      else this._setVoiceLevel(voice, voice.releaseLevel);
     }
     return true;
   }
@@ -141,8 +175,7 @@ export class Huc6280Instrument {
     if (!Number.isFinite(semitones) || semitones < -24 || semitones > 24) throw new RangeError('Pitch must be between -24 and +24 semitones');
     if (this.preset.source === 'wave') for (const voice of this.slots) {
       if (!voice) continue;
-      const hz = this._frequency(voice.midi, semitones); this.synth.setFrequency(voice.channel, hz);
-      if (hasLfo(this.preset)) this.synth.setFrequency(1, hz);
+      this._tuneVoice(voice, semitones);
     }
     this.pitch = semitones; return this.read();
   }

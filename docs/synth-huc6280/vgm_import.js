@@ -35,7 +35,7 @@ async function decode(source, signal) {
   return result;
 }
 
-/** Static, written Wave/Noise settings for keyboard audition, not song playback.
+/** Static, written Wave/Noise/LFO settings for keyboard audition, not song playback.
  * Snapshots are taken before positive waits, after all writes at that timestamp.
  * firstTime is in VGM's 44,100-sample timebase; channels are one-based CH1–CH6.
  * Wave RAM is never guessed from reset defaults or an unknown playback index.
@@ -47,7 +47,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   const eof = view.getUint32(4, true);
   if (eof && (eof + 4 < 0x40 || eof + 4 > bytes.length)) throw new Error('Invalid or truncated VGM file size');
   if (eof) {bytes = bytes.subarray(0, eof + 4); view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);}
-  const warnings = new Set(['Static Wave / Noise settings only: original note pitch, waveform phase and later software envelopes / register automation are not replayed. Imported Software Envelope is Off.']);
+  const warnings = new Set(['Static Wave / Noise / LFO settings only: elapsed waveform / modulator phase and later software envelopes / register automation are not replayed. Wave / Noise note pitch is not imported. Recorded LFO periods play at C4; other keys transpose CH1 only. Imported Software Envelope is Off.']);
   const parser = new Ym2612VGM(bytes, {logger:{warn:message => warnings.add(message)}});
   if (parser.header.dataOffset < 0x40 || parser.header.dataOffset >= bytes.length) throw new Error('Invalid VGM data offset');
   const rawClock = parser.header.huc6280Clock;
@@ -57,9 +57,9 @@ export async function extractVgmInstruments(source, {signal} = {}) {
 
   // undefined optional flags mean unrecorded reset assumptions; null means a
   // known unsupported stream made the value indeterminate and must not default.
-  let selected = null, globalBalance, lfoControl, time = 0, observations = 0;
+  let selected = null, globalBalance, lfoControl, lfoFrequency, time = 0, observations = 0;
   const channels = Array.from({length:8}, () => ({control:null, balance:null, noise:undefined,
-    wave:Array(32).fill(null), index:null, last:null}));
+    frequencyLow:null, frequencyHigh:null, wave:Array(32).fill(null), index:null, last:null}));
   const streams = new Map(), voices = [], definitions = new Map();
   const warn = message => warnings.add(message);
   const clearLast = () => {for (const channel of channels) channel.last = null;};
@@ -68,7 +68,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     register &= 15;
     if (register === 0) {selected = value & 7; return;}
     if (register === 1) {globalBalance = value; return;}
-    if (register === 8) return; // LFO speed alone is not a regular Wave timbre.
+    if (register === 8) {lfoFrequency = value; return;}
     if (register === 9) {lfoControl = value; return;}
     if (selected === null) {
       warn('HuC6280 writes without a known channel selection make the affected settings unknown.');
@@ -76,7 +76,9 @@ export async function extractVgmInstruments(source, {signal} = {}) {
       return;
     }
     const channel = channels[selected];
-    if (register === 4) {
+    if (register === 2) channel.frequencyLow = value;
+    else if (register === 3) channel.frequencyHigh = value & 15;
+    else if (register === 4) {
       if (channel.control !== null && (channel.control & 64) && !(value & 64)) channel.index = 0;
       if (!(value & 128) || channel.control === null || !(channel.control & 128)) channel.last = null;
       channel.control = value;
@@ -99,9 +101,10 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   }
 
   function invalidateAll() {
-    selected = null; globalBalance = null; lfoControl = null;
+    selected = null; globalBalance = null; lfoControl = null; lfoFrequency = null;
     for (const channel of channels) {
       channel.control = channel.balance = channel.noise = channel.index = channel.last = null;
+      channel.frequencyLow = channel.frequencyHigh = null;
       channel.wave.fill(null);
     }
   }
@@ -114,12 +117,14 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     const register = stream.register & 15;
     if (register === 0) {selected = null; return;}
     if (register === 1) {globalBalance = null; clearLast(); return;}
-    if (register === 8) return;
+    if (register === 8) {lfoFrequency = null; channels[0].last = null; return;}
     if (register === 9) {lfoControl = null; channels[0].last = channels[1].last = null; return;}
     const target = stream.port === 255 ? selected : stream.port & 7;
     const affected = target === null ? channels : [channels[target]];
     for (const channel of affected) {
-      if (register === 4) {channel.control = channel.index = channel.last = null;}
+      if (register === 2) channel.frequencyLow = null;
+      else if (register === 3) channel.frequencyHigh = null;
+      else if (register === 4) {channel.control = channel.index = channel.last = null;}
       else if (register === 5) channel.balance = channel.last = null;
       else if (register === 7) channel.noise = channel.last = null;
       else if (register === 6 && (channel.control === null || !(channel.control & 64))) {
@@ -148,16 +153,92 @@ export async function extractVgmInstruments(source, {signal} = {}) {
     }
   }
 
+  function balanceNotes() {
+    const notes = [];
+    if (globalBalance === undefined) notes.push('Global balance was not recorded; this audition assumes full global balance.');
+    else if (globalBalance !== 255) notes.push('Recorded global balance is not applied; this audition retains channel level / balance and uses full global balance.');
+    return notes;
+  }
+  function audible(channel, balance) {
+    if (channel.control === null || !(channel.control & 128) || channel.balance === null) return false;
+    const attenuation = shift => 31 - SCALE[balance >> shift & 15] + 31 - (channel.control & 31) + 31 - SCALE[channel.balance >> shift & 15];
+    return attenuation(4) < 31 || attenuation(0) < 31;
+  }
+  function record(kind, index, key, notes, configure) {
+    const channel = channels[index];
+    for (const note of notes) warn(note);
+    if (key === channel.last) {
+      const existing = definitions.get(key);
+      existing.warnings = [...new Set([...existing.warnings, ...notes])];
+      return;
+    }
+    channel.last = key;
+    if (++observations > MAX_OBSERVATIONS) throw new Error('VGM import exceeds 100,000 voice observations');
+    const existing = definitions.get(key);
+    if (existing) {existing.occurrences++; existing.warnings = [...new Set([...existing.warnings, ...notes])]; return;}
+    if (voices.length >= MAX_VOICES) throw new Error('VGM import exceeds 4,096 different voices');
+    const preset = createDefaultPreset(); preset.envelope.enabled = false; configure(preset);
+    const id = voices.length + 1;
+    preset.name = `${kind === 'lfo' ? 'LFO CH1 + CH2' : `${kind === 'wave' ? 'Wave' : 'Noise'} CH${index + 1}`} · ${id}`;
+    const voice = {id,kind,channel:index + 1,firstTime:time,occurrences:1,preset:readPreset(preset),warnings:notes};
+    definitions.set(key, voice); voices.push(voice);
+  }
+  function snapshotLfo() {
+    const carrier = channels[0], modulator = channels[1];
+    const omit = message => {warn(message); carrier.last = null;};
+    if (carrier.control === null || !(carrier.control & 128)) {carrier.last = null; return;}
+    if (carrier.control & 64) {omit('Hardware LFO carrier DDA / PCM intervals are omitted; a static CH1 wavetable is required.'); return;}
+    if (globalBalance === null) {omit('LFO intervals with global balance changed by an unsupported stream are omitted.'); return;}
+    if (carrier.balance === null || modulator.control === null) {omit('Hardware LFO pairs with unknown channel balance / modulator control are omitted.'); return;}
+    if (lfoFrequency === undefined || lfoFrequency === null) {omit('Hardware LFO pairs with an unrecorded or unknown rate register are omitted.'); return;}
+    if ([carrier, modulator].some(channel => channel.frequencyLow === null || channel.frequencyHigh === null)) {
+      omit('Hardware LFO pairs with unrecorded or unknown carrier / modulator period bytes are omitted.'); return;
+    }
+    if ([carrier, modulator].some(channel => channel.wave.some(value => value === null))) {
+      omit('Hardware LFO pairs with incomplete or unknown CH1 / CH2 Wave RAM are omitted; all 32 samples of each wave are required.'); return;
+    }
+    const outputEnabled = Boolean(modulator.control & 128), outputVolume = modulator.control & 31;
+    if (outputEnabled && outputVolume > 0 && modulator.balance === null) {omit('Hardware LFO pairs with unknown audible CH2 balance are omitted.'); return;}
+    const balance = globalBalance ?? 255;
+    const carrierAudible = audible(carrier, balance), modulatorAudible = audible(modulator, balance);
+    // Global attenuation is not stored in this preset. Even a DDA output muted
+    // by the recorded global balance could become audible at audition gain.
+    if (audible(modulator, 255) && (modulator.control & 64)) {omit('Hardware LFO pairs with audible CH2 DDA / PCM output are omitted; that direct DAC output is not a wavetable.'); return;}
+    if (!carrierAudible && !modulatorAudible) {carrier.last = null; return;}
+    // A constant modulation table is valid: it adds a fixed period offset.
+    // Constant carrier data can also accompany an audible varying CH2 output.
+    const carrierOscillates = carrierAudible && carrier.wave.some(value => value !== carrier.wave[0]);
+    const modulatorOscillates = modulatorAudible && !(lfoControl & 128) && modulator.wave.some(value => value !== modulator.wave[0]);
+    if (!carrierOscillates && !modulatorOscillates) {
+      omit('Constant LFO pair output intervals are omitted because they contain no oscillating waveform.'); return;
+    }
+    const period = channel => (channel.frequencyHigh << 8 | channel.frequencyLow) || 4096;
+    const pan = {left:carrier.balance >> 4, right:carrier.balance & 15};
+    const outputPan = modulator.balance === null ? {left:15, right:15}
+      : {left:modulator.balance >> 4, right:modulator.balance & 15};
+    const settings = {enabled:true, frequency:lfoFrequency, depth:lfoControl & 3, wave:[...modulator.wave],
+      mode:'recorded', carrierPeriod:period(carrier), modulatorPeriod:period(modulator), reset:Boolean(lfoControl & 128),
+      output:{enabled:outputEnabled, volume:outputVolume, pan:outputPan}};
+    const notes = balanceNotes();
+    notes.push('Recorded LFO periods are preserved at C4. Other keys / Pitch transpose CH1; CH2 keeps its recorded period. Elapsed waveform / LFO phase is not reconstructed.');
+    if (modulator.balance === null) notes.push('CH2 balance was not recorded; the inaudible / disabled CH2 output stores full balance.');
+    const key = JSON.stringify(['lfo', carrier.control & 31, pan, carrier.wave, settings]);
+    record('lfo', 0, key, notes, preset => {
+      preset.source = 'wave'; preset.wave = [...carrier.wave]; preset.volume = carrier.control & 31; preset.pan = pan; preset.lfo = settings;
+    });
+  }
+
   function snapshot() {
     for (const stream of streams.values()) if (stream.active) streamWrite(stream);
+    const hasLfo = Boolean(lfoControl & 3);
+    if (hasLfo) snapshotLfo();
     for (let index = 0; index < 6; index++) {
       const channel = channels[index], control = channel.control;
+      if (index < 2 && hasLfo) {if (index === 1) channel.last = null; continue;}
       if (control === null || !(control & 128)) {channel.last = null; continue;}
       if (channel.balance === null) {warn('Audible HuC6280 intervals with unknown channel balance are omitted.'); channel.last = null; continue;}
       if (globalBalance === null) {warn('Intervals with global balance changed by an unsupported stream are omitted.'); channel.last = null; continue;}
-      const notes = [], balance = globalBalance ?? 255;
-      if (globalBalance === undefined) notes.push('Global balance was not recorded; this audition assumes full global balance.');
-      else if (globalBalance !== 255) notes.push('Recorded global balance is not applied; this audition retains channel level / balance and uses full global balance.');
+      const notes = balanceNotes(), balance = globalBalance ?? 255;
       const volume = control & 31, pan = {left:channel.balance >> 4, right:channel.balance & 15};
       const attenuation = shift => 31 - SCALE[balance >> shift & 15] + 31 - volume + 31 - SCALE[channel.balance >> shift & 15];
       if (attenuation(4) >= 31 && attenuation(0) >= 31) {channel.last = null; continue;}
@@ -172,31 +253,16 @@ export async function extractVgmInstruments(source, {signal} = {}) {
         if (index < 2) {
           if (lfoControl === null) {warn('CH1 / CH2 intervals with unknown LFO state are omitted.'); channel.last = null; continue;}
           if (lfoControl === undefined) notes.push('LFO control was not recorded; this audition assumes the reset state, LFO off.');
-          else if (lfoControl & 3) {warn('Hardware LFO CH1 / CH2 intervals are omitted; their independent carrier / modulator periods are not imported.'); channel.last = null; continue;}
         }
         if (channel.wave.some(value => value === null)) {warn('Incomplete or unknown HuC6280 Wave RAM is omitted; all 32 samples must be recorded at known write positions.'); channel.last = null; continue;}
         if (channel.wave.every(value => value === channel.wave[0])) {warn('Constant Wave RAM intervals are omitted because they contain no oscillating waveform.'); channel.last = null; continue;}
       }
       const key = JSON.stringify([kind,index,volume,pan,kind === 'wave' ? channel.wave : channel.noise & 31]);
-      for (const note of notes) warn(note);
-      if (key === channel.last) {
-        const existing = definitions.get(key);
-        existing.warnings = [...new Set([...existing.warnings, ...notes])];
-        continue;
-      }
-      channel.last = key;
-      if (++observations > MAX_OBSERVATIONS) throw new Error('VGM import exceeds 100,000 voice observations');
-      const existing = definitions.get(key);
-      if (existing) {existing.occurrences++; existing.warnings = [...new Set([...existing.warnings, ...notes])]; continue;}
-      if (voices.length >= MAX_VOICES) throw new Error('VGM import exceeds 4,096 different voices');
-      const preset = createDefaultPreset(); preset.source = kind; preset.volume = volume; preset.pan = pan;
-      preset.envelope.enabled = false;
-      if (kind === 'wave') preset.wave = [...channel.wave];
-      else preset.noise.frequency = channel.noise & 31;
-      const id = voices.length + 1;
-      preset.name = `${kind === 'wave' ? 'Wave' : 'Noise'} CH${index + 1} · ${id}`;
-      const voice = {id,kind,channel:index + 1,firstTime:time,occurrences:1,preset:readPreset(preset),warnings:notes};
-      definitions.set(key, voice); voices.push(voice);
+      record(kind, index, key, notes, preset => {
+        preset.source = kind; preset.volume = volume; preset.pan = pan;
+        if (kind === 'wave') preset.wave = [...channel.wave];
+        else preset.noise.frequency = channel.noise & 31;
+      });
     }
   }
   function advance(samples) {
@@ -243,7 +309,7 @@ export async function extractVgmInstruments(source, {signal} = {}) {
   abort(signal);
   if (!voices.length) {
     const reasons = [...warnings].filter(message => /omitted|unknown|DAC streams/i.test(message));
-    const error = new Error(`No complete, audible HuC6280 Wave / Noise voices found in this VGM.${reasons.length ? ' ' + reasons.join(' ') : ''}`);
+    const error = new Error(`No complete, audible HuC6280 Wave / Noise / LFO voices found in this VGM.${reasons.length ? ' ' + reasons.join(' ') : ''}`);
     error.warnings = [...warnings];
     throw error;
   }
