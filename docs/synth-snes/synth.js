@@ -102,7 +102,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
   if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
-  const replacesVoices = load || previous.source !== next.source ||
+  const replacesVoices = load || previous.source !== next.source || previous.echo.enabled !== next.echo.enabled ||
     (next.source==='wave' ? JSON.stringify(previous.wave)!==JSON.stringify(next.wave) :
       previous.brr.data!==next.brr.data || previous.brr.loopStartSamples!==next.brr.loopStartSamples);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
@@ -122,8 +122,8 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
       readVoices(state);
       visualizer.wake();
       if (revision === editRevision) status(message ?? (replacesVoices
-        ? 'Sample updated · previous notes stopped. Play the keyboard.'
-        : 'Instrument updated · hardware volume, envelope and tuning apply live.'));
+        ? 'Sample or Echo layout updated · previous notes and tails stopped. Play the keyboard.'
+        : 'Instrument updated · hardware volume, envelope, tuning and Echo settings apply live.'));
     } catch (error) {
       if (audio === engine && revision === editRevision) {
         preset = (await engine.read()).preset;

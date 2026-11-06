@@ -200,12 +200,22 @@ spcCore.load(new Uint8Array());
 spcCore.nativeFrames.toFixed();
 const snesCore = await SnesDspCore.create({moduleFactory:spcFactory});
 const offlineSnes = new SnesSynth({core:snesCore});
+const offlineEcho=offlineSnes.setEcho({enabled:true,delay:4,feedback:-32,fir:[127,0,0,0,0,0,0,0]});
+const offlineEchoIsAny:0 extends (1 & typeof offlineEcho)?true:false=false;
+offlineEcho.reserved.valueOf();offlineSnes.getState().directoryAddress.toFixed();
+void offlineEchoIsAny;
 offlineSnes.renderInto(new Float32Array(128), new Float32Array(128));
 // @ts-expect-error Explicit factory/asset initialization is required.
 await SpcCore.create();
 // @ts-expect-error PCM output is Float32.
 spcCore.renderInto(new Int16Array(128), new Int16Array(128));
 const snes = createSnesClient(new MessageChannel().port1);
+const echoRequest:Promise<import('tetorica-fm2612/snessynth.js').SnesEchoState>=snes.setEcho({enabled:true,volumeLeft:32,volumeRight:-32});
+(await echoRequest).fir[0].toFixed();(await snes.getEcho()).byteLength.toFixed();
+// @ts-expect-error Audio-thread Echo observations are asynchronous.
+const synchronousEcho:import('tetorica-fm2612/snessynth.js').SnesEchoState=snes.getEcho();
+// @ts-expect-error Feedback is numeric, not an enum name.
+await snes.setEcho({feedback:'high'});
 const brr = new Uint8Array([3,0,0,0,0,0,0,0,0]);
 const snesSample = await snes.loadBRR(brr, {rootNote:'C4', loopStartSamples:0});
 snes.setPreset(0, {sample:snesSample, volumeLeft:90});

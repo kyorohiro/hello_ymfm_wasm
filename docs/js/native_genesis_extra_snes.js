@@ -16,7 +16,8 @@ export const EXTRA_SNES_ADMISSION_ERRORS=Object.freeze([EXTRA_SNES_MEMORY_HELD_E
 const abort=()=>new DOMException('Native additional SNES operation was cancelled','AbortError');
 const emptyTimeline=()=>({loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false});
 const clone=value=>structuredClone(value);
-function copyShadow(target,source){target.registers.set(source.registers);const a=target.synth,b=source.synth;a.samples=clone(b.samples);a.sampleBytes=b.sampleBytes.slice();a.channels=clone(b.channels);a.nextAddress=b.nextAddress;a.koff=b.koff;a.pendingKon=b.pendingKon;a.konFrame=b.konFrame;a.core.nativeFrames=b.core.nativeFrames;a.timeline=null;}
+function copyEcho(target,source){target.echo=clone(source.echo);target.echoReserved=source.echoReserved;target.echoConfigured=source.echoConfigured;target.directoryAddress=source.directoryAddress;}
+function copyShadow(target,source){target.registers.set(source.registers);const a=target.synth,b=source.synth;a.samples=clone(b.samples);a.sampleBytes=b.sampleBytes.slice();a.channels=clone(b.channels);a.nextAddress=b.nextAddress;a.koff=b.koff;a.pendingKon=b.pendingKon;a.konFrame=b.konFrame;a.core.nativeFrames=b.core.nativeFrames;a.timeline=null;copyEcho(a,b);}
 
 export function createNativeGenesisExtraSnesEndpoint(synth){
   const context=createNativeVoiceContext(synth,{backend:'extra-snes',statusCommand:'native_genesis_extra_snes_status',label:'additional SNES'}),{capture,current}=context;
@@ -43,10 +44,11 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
     if(!Number.isSafeInteger(data.revision)||data.revision<0)throw new Error('Native additional SNES returned an invalid revision');
     if(data.revision<appliedRevision)return data;
     appliedRevision=data.revision;applied.registers.set(data.registers);applied.synth.core.nativeFrames=data.nativeFrames;applied.synth.koff=data.registers[0x5c];applied.synth.pendingKon=0;applied.synth.konFrame=-1;
-    applied.synth.samples=clone(projected.synth.samples);applied.synth.sampleBytes=projected.synth.sampleBytes.slice();applied.synth.nextAddress=projected.synth.nextAddress;applied.synth.timeline=data.timeline.loaded?{...data.timeline}:null;
+    if(![...authors.values()].some(item=>item.method==='setEcho')){applied.synth.samples=clone(projected.synth.samples);applied.synth.sampleBytes=projected.synth.sampleBytes.slice();applied.synth.nextAddress=projected.synth.nextAddress;}
+    applied.synth.timeline=data.timeline.loaded?{...data.timeline}:null;
     inspector.sampleRate=data.sampleRate??synth.clock.sampleRate;inspector.gates=data.enabled;
     const pending=new Set(data.pendingCommands??[]),completed=[...authors.values()].filter(item=>item.accepted&&!pending.has(item.id)).sort((a,b)=>a.frame-b.frame||a.order-b.order);
-    for(const item of completed){if(item.method==='reset')assigned.fill(false);else if(['setPreset','setChannel'].includes(item.method)&&item.args[1].sample!==undefined&&!data.held?.includes(item.args[0]))assigned[item.args[0]]=true;else if(item.method==='writeDsp'&&(item.args[0]&15)===4&&!data.held?.includes(item.args[0]>>4))assigned[item.args[0]>>4]=true;authors.delete(item.id);}
+    for(const item of completed){if(item.method==='reset')assigned.fill(false);else if(item.method==='setEcho'&&item.echoState){const state=item.echoState;copyEcho(applied.synth,state);applied.synth.samples=clone(state.samples);applied.synth.sampleBytes=state.sampleBytes.slice();applied.synth.nextAddress=state.nextAddress;}else if(['setPreset','setChannel'].includes(item.method)&&item.args[1].sample!==undefined&&!data.held?.includes(item.args[0]))assigned[item.args[0]]=true;else if(item.method==='writeDsp'&&(item.args[0]&15)===4&&!data.held?.includes(item.args[0]>>4))assigned[item.args[0]>>4]=true;authors.delete(item.id);}
     for(let ch=0;ch<8;ch++){const sample=assigned[ch]?data.registers[ch*16+4]:null;applied.synth.channels[ch].sample=sample;inspector.assignedSamples.set(ch,sample);applied.synth.channels[ch]=inspector.voice(ch);}
     if(data.held&&!editing)for(const ch of leases.keys())if(!data.held.includes(ch)){leases.delete(ch);inspector.auditions.delete(ch);}
     if(!preparing){timeline=data.timeline.loaded?{...data.timeline}:null;applied.synth.timeline=timeline;}
@@ -98,6 +100,22 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
       applied.synth.samples=clone(staged.synth.samples);applied.synth.sampleBytes=staged.synth.sampleBytes.slice();applied.synth.nextAddress=staged.synth.nextAddress;notify({samples:clone(staged.synth.samples),nextAddress:staged.synth.nextAddress});return sample;
     }).finally(()=>operations.delete(op));resourceSerial=result.catch(()=>{});return result;
   }
+  function setEcho(options={},timing={}){
+    const op=operation(timing);let saved;try{saved=clone(options);}catch(error){operations.delete(op);return Promise.reject(error);}const version=resourceVersion;
+    const result=resourceSerial.then(async()=>{
+      op.check();if(version!==resourceVersion)throw abort();instrumentOnly();
+      const staged=createNativeSnesShadow();copyShadow(staged,projected);
+      const commands=nativeSnesOperations(staged,'setEcho',[saved]),relocated=staged.synth.echoReserved!==projected.synth.echoReserved;
+      if(relocated&&leases.size)throw new Error(EXTRA_SNES_STATE_HELD_ERROR);
+      let messages=relocated?[{method:'reset-state',dsp:Array.from(staged.registers),uploads:commands.filter(v=>v.method==='load-memory').map(({address,data})=>({address,data}))}]:commands;
+      messages[messages.length-1]=identified(messages.at(-1));
+      const id=remember('setEcho',[saved],messages,{...timing,time:undefined},op),item=authors.get(id);
+      item.echoState={echo:clone(staged.synth.echo),echoReserved:staged.synth.echoReserved,echoConfigured:staged.synth.echoConfigured,directoryAddress:staged.synth.directoryAddress,samples:clone(staged.synth.samples),sampleBytes:staged.synth.sampleBytes.slice(),nextAddress:staged.synth.nextAddress};
+      copyShadow(projected,staged);
+      try{await admit(messages,{...timing,time:undefined},op);item.accepted=true;await observed(op,{after:messages.at(-1).id});op.check();if(version!==resourceVersion)throw abort();notify();return projected.synth.getEcho();}
+      catch(error){authors.delete(id);rebuild();throw error;}
+    }).finally(()=>operations.delete(op));resourceSerial=result.catch(()=>{});return result;
+  }
   async function prepareTimeline(trace,timing={}){
     const op=operation(timing);let data;try{data=prepareSpcTimeline(trace);if(leases.size)throw new Error(EXTRA_SNES_STATE_HELD_ERROR);}catch(error){operations.delete(op);throw error;}
     const previous=timeline,version=++resourceVersion;cancelPlayback();preparing=true;
@@ -127,6 +145,7 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
     if(method==='readDsp')return data.registers[args[0]];
     if(method==='getTimelineState')return {...data.timeline};
     if(method==='getPreset')return applied.synth.getPreset(args[0]);
+    if(method==='getEcho'){instrumentOnly();return applied.synth.getEcho();}
     if(method==='snapshot')return {ram:Uint8Array.from(data.ram),dsp:Uint8Array.from(data.registers),nativeFrames:data.nativeFrames};
     return applied.synth.getState();
   }
@@ -135,7 +154,7 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
     _allocateMainOwner:()=>context.identity(),_withMainOwner(group,callback){const previous=mainGroup;mainGroup=group;try{return callback();}finally{mainGroup=previous;}},
     _cancelMainOwner(group){cancel(op=>op.group===group);send([identified({method:'cancel-main-owner',targetGroup:group})],{},undefined);},
     async _stopVoices(){const op=operation();cancelPlayback();try{await admit([identified({method:'stop-voices'})],{},op);}finally{operations.delete(op);}},
-    loadBRR,prepareTimeline,playTimeline,stopTimeline,
+    loadBRR,setEcho,getEcho:()=>readControl('getEcho'),prepareTimeline,playTimeline,stopTimeline,
     getTimelineState:()=>readControl('getTimelineState'),readDsp:register=>readControl('readDsp',[register]),
     getState:()=>readControl('getState'),getPreset:ch=>readControl('getPreset',[ch]),snapshot:()=>readControl('snapshot'),dispose(){},
   };
@@ -144,11 +163,12 @@ export function createNativeGenesisExtraSnesEndpoint(synth){
     const {method,args=[]}=message;let result;
     if(method==='dispose')return message.id===undefined?undefined:{id:message.id,value:true};
     if(method==='loadBRR')result=loadBRR(args[0],args[1],timing);
+    else if(method==='setEcho')result=setEcho(args[0],timing);
     else if(method==='prepareTimeline')result=prepareTimeline(args[0],timing);
     else if(method==='playTimeline')result=playTimeline(timing);
     else if(method==='stopTimeline')result=stopTimeline(timing);
     else if(method==='stopVoices'){cancelPlayback();const op=operation(timing);result=admit([identified({method:'stop-voices'})],timing,op).finally(()=>operations.delete(op));}
-    else if(['getTimelineState','readDsp','getState','getPreset','snapshot'].includes(method))result=readControl(method,args,timing);
+    else if(['getTimelineState','getEcho','readDsp','getState','getPreset','snapshot'].includes(method))result=readControl(method,args,timing);
     else result=controls(method,clone(args),timing);
     // Every resource/read can wait for a callback. Release the bridge FIFO so
     // Stop/dispose/owner cancellation can reach Native while its reply is pending.

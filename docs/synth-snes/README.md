@@ -1,12 +1,12 @@
 # Tetorica S-DSP Synth
 
-Product identifier: `tetorica-sdsp-synth`. This is the initial SNES Synth.
+Product identifier: `tetorica-sdsp-synth`. A standalone SNES S-DSP instrument.
 
 [Open the Synth](index.html) · [SNES Playground](../playground/index.html?mode=snes)
 
 Play eight physical SNES S-DSP voices, choose a voice from an SPC snapshot,
-draw a waveform, load BRR or audio, and
-learn the hardware ADSR / GAIN envelope. The UI follows Tetorica SPU / DMG /
+draw a waveform, load BRR or audio, and explore hardware ADSR / GAIN and
+Echo / FIR. The UI follows Tetorica SPU / DMG /
 2A03 / HuC6280 Synths: output monitor, compact keyboard, Octave, two Pitch wheels,
 collapsible sections and controls that leave the computer keys available.
 
@@ -15,13 +15,15 @@ collapsible sections and controls that leave the computer keys available.
 1. Select **Enable audio**, or press a displayed computer key.
 2. Use **Drawn wave** to draw a 128-point cycle, load audio / raw BRR, or choose
    **Sounds from SPC → Load SPC…** and select a voice candidate.
-3. Adjust the hardware envelope, save a preset or copy JavaScript for Playground.
+3. Adjust the hardware envelope or enable **S-DSP Echo** and edit its controls.
+4. Save a preset or copy JavaScript for Playground.
 
 Editing or loading a sample does not open an audio device. Allocation uses the
 eight hardware voices in round-robin order, stealing an old voice when needed.
 A replaced key's later release cannot stop its new owner. Key-off uses the
-S-DSP's hardware release. **Stop all sound** silences the DSP and clears held
-notes while keeping the instrument. Leaving the window also stops held notes.
+S-DSP's hardware release. **Stop all sound** clears held notes and Echo tails
+while keeping the instrument and its Echo settings. Leaving the window also
+stops held notes.
 
 ## One waveform canvas
 
@@ -32,9 +34,10 @@ software. The declared cycle frequency is 32,000 / 128 Hz at hardware
 `PITCH=4096`; keyboard notes use the hardware PITCH register to transpose it.
 
 When a BRR sample is selected, this canvas displays its decoded waveform as a
-preview. Use Wave to author a cycle. Sample replacement and loop edits stop held
-notes and reuse the sample RAM; repeated edits do not fill an append-only bank.
-Volume, envelope, Root / base PITCH and Pitch-wheel changes apply to held voices.
+preview. Use Wave to author a cycle. Sample replacement, loop edits and Echo
+On / Off rebuild the bank, stopping held notes and old Echo tails. Repeated
+edits reuse sample RAM. Volume, envelope, Root / base PITCH, Pitch wheels and
+Echo parameters other than Enable apply to held voices.
 
 BRR compression is lossy. The S-DSP core then performs Gaussian interpolation,
 hardware envelopes and mixing; the output monitor shows the resulting audio.
@@ -62,7 +65,9 @@ Adjust Root note to retune; BRR itself contains no original musical root.
 This is a snapshot instrument import. It does not execute the SPC700 driver,
 play the song, restore its current envelope / BRR decoder history, or recover
 later instrument changes. A new key-on starts a new hardware envelope. Original
-master volume / Echo / FIR are not imported. PMON voices can load their base
+master volume / Echo / FIR are not imported: SPC candidate presets start with
+Echo off. Enable the manual Echo controls after selecting a candidate if
+desired. PMON voices can load their base
 BRR with an explicit warning that pitch modulation is omitted. Captured voice
 volumes are preserved without normalization; high polyphonic levels can clip
 the DSP mixer. Use Voice level to adjust them before the final Master bus.
@@ -85,11 +90,18 @@ module Worker for BRR encoding. Other formats depend on the browser's decoder;
 WAV is the portable choice.
 
 The software input cap is 32 MiB and decoded duration is capped at 30 minutes.
-The smaller **sample-RAM limit** still applies: the initial Synth reserves
-1,024 bytes for its directory and accepts at most **64,512 BRR bytes**, or
-**114,688 decoded frames**. At 32 kHz that is about 3.58 seconds; at 8 kHz it is
-about 14.34 seconds. Longer input is rejected with an explanation, not silently
-trimmed. Choose a shorter clip or lower conversion rate.
+The smaller **sample-RAM limit** still applies. The Synth reserves 1,024 bytes
+for its directory and, while Echo is enabled, another 30 KiB for Echo:
+
+| Echo | Maximum BRR bytes | Maximum decoded frames | Duration at 32 / 8 kHz |
+| --- | ---: | ---: | --- |
+| Off | 64,512 | 114,688 | About 3.58 / 14.34 seconds |
+| On | 33,786 | 60,064 | About 1.88 / 7.51 seconds |
+
+The current limit appears next to the conversion controls. Longer input is
+rejected with an explanation and no trimming. Enabling Echo on a sample that
+does not fit keeps the current sample with Echo off. Choose a shorter clip or
+lower conversion rate to use Echo.
 
 **Load BRR…** accepts complete raw 9-byte BRR blocks, ending at their END block.
 Headers or trailing bytes are not accepted as sample data. BRR stores neither
@@ -108,6 +120,36 @@ on does not repair a discontinuous seam.
 Invalid files, cancelled preparation and late results keep the current sound.
 Once a validated sample starts applying, the UI closes the cancellable stage
 and shows **Applying…** until the audio processor has accepted it.
+
+## Hardware Echo and FIR
+
+Open **S-DSP Echo** and turn on **Enable Echo**. This uses the S-DSP core's
+shared hardware Echo path for all eight voices, with separate dry output:
+
+| Control | Meaning |
+| --- | --- |
+| Delay | Hardware code 0–15. Codes 1–15 select 16–240 ms in 16 ms steps. |
+| Feedback | Signed register value −128–127 returned to the Echo buffer. |
+| Return left / right | Signed −128–127 levels for the delayed signal. |
+| Send all notes | Add voices to Echo; turning Send off lets existing tails decay. |
+| FIR · Echo tone | Eight signed −128–127 hardware coefficients for the Echo signal and feedback. |
+
+Delay code 0 uses a four-byte buffer, one stereo frame at 32,000 Hz
+(0.03125 ms); it is not a zero-length buffer. The DSP adopts a changed length
+at a buffer boundary. Delay, Feedback, Return, Send and FIR changes apply while
+playing. Negative Return or Feedback values can invert polarity. Large
+coefficients or feedback can distort or sustain the Echo.
+
+**FIR · Echo tone** starts folded. It shapes the Echo path, including feedback,
+and leaves the dry voice unfiltered. **Identity FIR** sets the coefficients to
+`[127, 0, 0, 0, 0, 0, 0, 0]`. This is an integer hardware filter, not a
+cutoff / resonance control or a software effect.
+
+The Synth rebuilds the sample bank on Echo On / Off, sample / loop replacement
+and Stop, clearing held voices and previous Echo tails. Echo settings stay in
+place on Stop. The 30 KiB reservation accommodates every Delay code, so live
+Delay changes do not move the buffer over BRR data. The original SPC's Echo
+settings are not imported automatically.
 
 ## Hardware ADSR and GAIN
 
@@ -134,18 +176,28 @@ bus control from 0 to 380%; above 100% its bar turns orange.
 
 ## Save, reuse and scope
 
-The portable `tetorica-sdsp-voice` preset v1 includes waveform data, raw BRR,
-explicit tuning, loop start, stereo volume and envelope settings. JSON files
-are capped at 256 KiB. **Copy JavaScript** exports setup code for Playground's
-SNES mode using the existing `snes` API and BRR encoder.
+The portable `tetorica-sdsp-voice` preset v2 includes waveform data, raw BRR,
+explicit tuning, loop start, stereo volume, envelope and Echo / FIR settings.
+Existing v1 presets are migrated with Echo off. JSON files are capped at 256 KiB.
+**Copy JavaScript** exports setup code for Playground's SNES mode, awaiting
+`snes.setEcho(...)` before `snes.loadBRR(...)` so RAM is reserved before upload.
+
+The repository runtime exposes `SnesSynth.setEcho()` / `getEcho()` and async
+Main / Worker / Native client methods. Its first Echo enable reserves
+`$0000–$77ff`, moves the directory to `$7800–$7bff`, and places BRR from `$7c00`.
+An existing bank must fit before relocation starts. Disabling Echo through the
+shared API keeps that reservation for the instance; use a fresh Synth to free
+it. The standalone app does this rebuild on both Echo On and Off. Returned FIR
+arrays are detached from settings, and validation rejects capacity or parameter
+errors before modifying the existing instrument.
 
 The hardware features in this version are eight voices, BRR decoding, Gaussian
-interpolation, PITCH, signed volumes and ADSR / GAIN. Drawing, audio conversion,
-sample management and keyboard allocation are software authoring tools.
+interpolation, PITCH, signed volumes, ADSR / GAIN and shared Echo / FIR.
+Drawing, audio conversion, sample management and keyboard allocation are
+software authoring tools.
 
-Echo / FIR, Noise and pitch modulation are later stages. No SPC700 driver or
-song playback is included in this Synth. Echo is disabled in this version;
-the future Echo implementation must reserve its RAM before samples are loaded.
+Noise, pitch modulation and automatic import of the SPC's Echo settings remain
+later stages. No SPC700 driver or song playback is included in this Synth.
 
 ## Source and verification
 
@@ -159,7 +211,7 @@ the future Echo implementation must reserve its RAM before samples are loaded.
 ```sh
 npm run test:snes-synth
 npm run test:snes-synth:browser
-sh scripts/package_itch_snes_synth.sh 0.0.1
+sh scripts/package_itch_snes_synth.sh dev
 ```
 
 Packaging copies the original readable JavaScript / CSS modules, comments and
@@ -170,7 +222,8 @@ with the Synth. See the included licenses for each component.
 
 ## 日本語
 
-SNESの8つの実voiceを使い、BRR音色、hardware ADSR／GAINを触る初版です。
+SNESの8つの実voiceを使い、BRR音色、hardware ADSR／GAIN、共有Echo／FIRを
+操作するSynthです。
 128点波形を描くか、WAV等・raw BRRを読み込み、同じcanvasで波形を確認できます。
 BRRに元音階やrateは入っていないため、Root noteとbase PITCHで明示します。
 GAINの減衰モードは初期Envelopeを自動で増やさず、新しい発音では無音になる
@@ -183,4 +236,20 @@ ADSR／GAINを取り込み、保存時点のPITCHをC4の再生基準として�
 一覧は折りたためます。不正ファイルやCancel、古い読み込み結果では今の音色を保ちます。
 SPCの曲再生やdriverの時間変化は再現せず、Noise・PITCH0・不正Loop等は理由を
 表示して選択不可にします。PMON／Echoを省略する候補には説明を表示します。
-Echo／FIR、Noise／ピッチ変調の音作りは後続です。
+SPC候補はEcho Offで読み込み、元SPCのEcho設定はまだ自動取り込みしません。
+
+**S-DSP Echo → Enable Echo** で、8声共通の実S-DSP Echoを有効にできます。
+Delay、Feedback、左右Return、Sendを操作でき、FIR詳細は折りたたんであります。
+Delayはcode1〜15が16ms刻みの最大240ms、code0は4byte・32kHzのstereo
+1frame（0.03125ms）のbufferです。Feedback・Returnと8つのFIR係数は
+−128〜127のsigned値で、FIRはEcho経路とfeedbackの音色を変えます。
+dry音にはかかりません。Echo On／Off、sample／Loop変更、Stopではbankを
+再構成して保持音と古い残響を消し、それ以外のEcho調整は演奏中へ反映します。
+Stop後もEcho設定は保ちます。
+
+Echo Onでは30KiBを予約するため、BRR上限は33,786byte／60,064framesです。
+Offでは64,512byte／114,688framesです。容量不足では現在音を保って拒否し、
+勝手に切り詰めません。プリセットv2はEcho／FIRを含めて保存し、従来の
+v1形式はEcho Offとして読み込めます。JavaScript出力ではBRR読込前に
+`await snes.setEcho(...)` を実行します。Noise／ピッチ変調の音作りと、
+元SPCのEcho設定取り込みは後続です。

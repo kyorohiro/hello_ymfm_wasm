@@ -15,7 +15,7 @@ export function createNativeSnesShadow(){
   return {synth,registers,collect(method,args=[]){const commands=[];capture=commands;try{synth[method](...args);}finally{capture=null;}return commands;}};
 }
 export function nativeSnesOperations(target,method,args,{partial=false}={}){
-  if(!controls.has(method)&&method!=='loadBRR')throw new Error(`Unsupported Native SNES operation: ${method}`);
+  if(!controls.has(method)&&!['loadBRR','setEcho'].includes(method))throw new Error(`Unsupported Native SNES operation: ${method}`);
   let messages=target.collect(method,args);
   if(partial&&['setPreset','setChannel'].includes(method)){
     const offsets=new Set();for(const key of Object.keys(args[1]))for(const offset of ({volumeLeft:[0],volumeRight:[1],pitch:[2,3],sample:[4],adsr1:[5],adsr2:[6],gain:[7]})[key]??[])offsets.add(offset);
@@ -44,9 +44,11 @@ export function createNativeGenesisSnes(owner){
   projected.synth.getTimelineState=()=>timeline?{...timeline}:{loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false};
   const client={id:'snes',sampleRate:48000,nativeSampleRate:32000,
     _getState:()=>projected.synth.getState(),
-    _adoptState(state){if(!state)return;projected.synth.samples=structuredClone(state.samples??[]);projected.synth.channels=structuredClone(state.channels??projected.synth.channels);projected.synth.nextAddress=state.nextAddress??0x400;if(state.timeline){timeline={...state.timeline};projected.synth.timeline={...timeline};}},
+    _adoptState(state){if(!state)return;projected.synth.samples=structuredClone(state.samples??[]);projected.synth.channels=structuredClone(state.channels??projected.synth.channels);projected.synth.nextAddress=state.nextAddress??0x400;if(state.echo){const {reserved,startAddress,byteLength,...echo}=structuredClone(state.echo);projected.synth.echo=echo;projected.synth.echoReserved=reserved;projected.synth.echoConfigured=true;projected.synth.directoryAddress=state.directoryAddress??(reserved?0x7800:0);}if(state.timeline){timeline={...state.timeline};projected.synth.timeline={...timeline};}},
     _stopVoices:()=>dispatch({method:'stopVoices'}),dispose(){},
     async loadBRR(input,options){const token=capture();instrumentOnly();const messages=operations(projected,'loadBRR',[input,options]);const sample={...projected.synth.samples.at(-1)};send(messages);await owner.flush();current(token);return sample;},
+    async setEcho(options={}){const token=capture();instrumentOnly();if(options?.enabled===true&&!projected.synth.echoReserved&&held.size)throw new Error('Release the manually held SNES voices before reserving Echo RAM');const messages=operations(projected,'setEcho',[structuredClone(options)]);send(messages);await owner.flush();current(token);return projected.synth.getEcho();},
+    async getEcho(){instrumentOnly();await read();return applied.synth.getEcho();},
     async readDsp(register){if(!Number.isInteger(register)||register<0||register>127)throw new RangeError('DSP register must be0..127');return (await snapshot()).registers[register];},
     async getState(){await read();return applied.synth.getState();},
     async getPreset(channel){instrumentOnly();projected.synth.getPreset(channel);await read();return applied.synth.getPreset(channel);},
@@ -62,7 +64,8 @@ export function createNativeGenesisSnes(owner){
   function adopt(data,{adoptClient=false}={}){
     if(!Array.isArray(data?.registers)||data.registers.length!==128||data.registers.some(v=>!Number.isInteger(v)||v<0||v>255)||!Number.isSafeInteger(data.nativeFrames)||data.nativeFrames<0||!Number.isInteger(data.enabled)||data.enabled<0||data.enabled>255)throw new Error('Native SNES returned an invalid snapshot');
     applied.registers.set(data.registers);applied.synth.core.nativeFrames=data.nativeFrames;
-    applied.synth.samples=structuredClone(projected.synth.samples);applied.synth.nextAddress=projected.synth.nextAddress;
+    applied.synth.samples=structuredClone(projected.synth.samples);applied.synth.sampleBytes=projected.synth.sampleBytes.slice();applied.synth.nextAddress=projected.synth.nextAddress;
+    applied.synth.echo=structuredClone(projected.synth.echo);applied.synth.echoReserved=projected.synth.echoReserved;applied.synth.echoConfigured=projected.synth.echoConfigured;applied.synth.directoryAddress=projected.synth.directoryAddress;
     applied.synth.timeline=data.timeline?.loaded?{...data.timeline}:null;
     applied.synth.getTimelineState=()=>data.timeline;
     inspector.sampleRate=owner.clock.sampleRate;client.sampleRate=owner.clock.sampleRate;inspector.gates=data.enabled;
@@ -105,9 +108,10 @@ export function createNativeGenesisSnes(owner){
     if(method==='dispose')return id===undefined?undefined:{id,value};
     if(method==='playTimeline')return {deferred:playTimeline(timing).then(value=>({id,value}),error=>({id,error:String(error.message??error),name:error.name}))};
     if(method==='loadBRR')value=await client.loadBRR(...args);
+    else if(method==='setEcho')value=await client.setEcho(...args);
     else if(method==='prepareTimeline')value=await prepareTimeline(...args);
     else if(method==='stopTimeline')value=await stopTimeline(timing);
-    else if(['getTimelineState','readDsp','getState','getPreset','snapshot'].includes(method))value=await client[method](...args);
+    else if(['getTimelineState','getEcho','readDsp','getState','getPreset','snapshot'].includes(method))value=await client[method](...args);
     else if(method==='stopVoices'){timelineRevision++;cancelCompletion();send([{method:'stop-voices'}],timing);}
     else {if(method!=='reset')instrumentOnly();send(operations(projected,method,args),timing);if(method==='reset'){timelineRevision++;cancelCompletion();timeline=null;projected.synth.timeline=null;}}
     await owner.flush();current(token);return id===undefined?undefined:{id,value};

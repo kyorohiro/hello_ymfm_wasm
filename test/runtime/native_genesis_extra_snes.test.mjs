@@ -90,6 +90,28 @@ test('Native additional SNES validates and copies uploads atomically without con
   installWorkers(t);const f=fixture(t);await f.runtime.playSource(`context.a=await createSoundChip('snes',{id:'a'});`);const a=f.runtime.context.a,backing=new Uint8Array(64);backing.set(wave(),10);const pending=a.loadBRR(backing.subarray(10,19),{rootNote:69,loopStartSamples:0});backing.fill(0);const one=await pending;assert.deepEqual((await a.snapshot()).ram.slice(one.startAddress,one.startAddress+9),wave());
   await assert.rejects(a.loadBRR(new Uint8Array(9),{rootNote:60}),/END/);f.reject(EXTRA_SNES_MEMORY_HELD_ERROR);await assert.rejects(a.loadBRR(wave(),{rootNote:60,loopStartSamples:0}),/manually held/);assert.equal((await a.getState()).samples.length,1);const two=await a.loadBRR(wave(),{rootNote:60,loopStartSamples:0});assert.equal(two.id,1);assert.equal(two.startAddress,1033);assert.equal(f.synth.state,'ready');assert.deepEqual(f.errors,[]);
 });
+test('Native additional Echo uses a reset-state resource only for first reservation and preserves independent banks',async t=>{
+  installWorkers(t);const f=fixture(t);await f.synth.start();const one=await f.synth.createExtraSnes({id:'a'}),two=await f.synth.createExtraSnes({id:'b'}),a=one.client,b=two.client;
+  const sample=await a.loadBRR(wave(),{rootNote:60,loopStartSamples:0});await b.loadBRR(wave(),{rootNote:60,loopStartSamples:0});a.setPreset(0,{sample,gain:100});a.noteOn(0,60);await f.synth.flush();
+  await a.setEcho({enabled:true,delay:15,feedback:-20,volumeRight:-32});const state=await a.getState();
+  assert.equal(state.echo.reserved,true);assert.equal(state.directoryAddress,0x7800);assert.equal(state.samples[0].startAddress,0x7c00);assert.equal((await b.getState()).directoryAddress,0);
+  const snapshot=await a.snapshot();assert.deepEqual([...snapshot.ram.slice(0x7800,0x7804)],[0,124,0,124]);assert.deepEqual(snapshot.ram.slice(0x7c00,0x7c09),wave());
+  const resets=f.commands().filter(c=>c.message?.method==='reset-state').length;a.noteOn(0,60);await f.synth.flush();await a.setEcho({delay:2,fir:[96,32,0,0,0,0,0,0]});
+  assert.equal(f.commands().filter(c=>c.message?.method==='reset-state').length,resets);assert.equal((await one.endpoint.read()).channels[0].active,true);assert.equal((await a.getEcho()).fir[1],32);
+  const before=a._getState();await assert.rejects(a.setEcho({fir:undefined}),/FIR/);assert.deepEqual(a._getState().echo,before.echo);
+  await a.setEcho({enabled:false});assert.equal((await a.getState()).directoryAddress,0x7800);assert.equal((await a.getEcho()).reserved,true);assert.deepEqual(f.errors,[]);
+});
+test('Native additional first Echo reservation rejects held state and failed admission without losing the dry bank',async t=>{
+  installWorkers(t);const f=fixture(t);await f.synth.start();const d=await f.synth.createExtraSnes({id:'a'}),a=d.client,sample=await a.loadBRR(wave(),{rootNote:60,loopStartSamples:0});a.setPreset(0,{sample});await f.synth.flush();
+  await d.endpoint.invoke('auditionOn',[0,60,'held']);await assert.rejects(a.setEcho({enabled:true}),/manually held/);assert.equal(a._getState().echo.reserved,false);
+  await d.endpoint.invoke('auditionOff',[0,'held']);f.reject(EXTRA_SNES_STATE_HELD_ERROR);await assert.rejects(a.setEcho({enabled:true}),/manually held/);
+  assert.equal(a._getState().directoryAddress,0);assert.equal(a._getState().samples[0].startAddress,0x400);assert.deepEqual((await a.snapshot()).ram.slice(0x400,0x409),wave());
+  await a.setEcho({enabled:true});assert.equal((await a.getEcho()).reserved,true);assert.deepEqual(f.errors,[]);
+});
+for(const execution of ['main','worker'])test(`Native additional SNES ${execution} Echo resource RPC keeps uploads in the reserved bank`,{timeout:15000},async t=>{
+  installWorkers(t);const f=fixture(t);await f.runtime.playSource(`const a=await useSoundChip('snes');await a.setEcho({enabled:true,delay:4});const sample=await a.loadBRR(new Uint8Array([131,18,52,86,118,84,50,16,239]),{rootNote:60,loopStartSamples:0});if(sample.startAddress!==31744)throw new Error('wrong Echo bank');const echo=await a.getEcho();if(!echo.reserved)throw new Error('lost Echo reservation');a.setPreset(0,{sample});a.noteOn(0,60);log('echo-ready');`,{execution});
+  await until(()=>f.logs.includes('echo-ready'));assert.equal([...f.rack.values()][0].registers[0x5d],0x78);assert.deepEqual(f.errors,[]);
+});
 test('Native additional SNES sample reset restores authored BRR after exclusive timeline replacement',async t=>{
   installWorkers(t);const f=fixture(t);await f.runtime.playSource(`context.a=await createSoundChip('snes',{id:'a'});`);const a=f.runtime.context.a,one=await a.loadBRR(wave(),{rootNote:69,loopStartSamples:0});a.setPreset(0,{sample:one,pitch:5000});await f.synth.flush();const prepared=await a.prepareTimeline(trace());assert.equal(prepared.loaded,true);assert.throws(()=>a.setPitch(0,1000),/exclusive/);assert.equal((await a.snapshot()).ram[1024],0);a.reset();await a.getState();assert.equal((await a.snapshot()).ram[1024],wave()[0]);assert.equal((await a.getState()).samples[0].id,0);a.setPreset(0,{sample:one});a.noteOn(0,69);await f.synth.flush();assert.equal((await a.getTimelineState()).loaded,false);assert.deepEqual(f.errors,[]);
 });

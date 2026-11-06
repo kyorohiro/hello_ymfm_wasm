@@ -3,13 +3,14 @@
 import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {decodeBase64} from './sample.js';
-import {createDefaultPreset,readPreset,envelopeRegisters} from './preset.js';
+import {createDefaultPreset,readPreset,envelopeRegisters,echoOptions,ECHO_BRR_MAX_BYTES} from './preset.js';
 
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const noteHz=midi=>440*2**((midi-69)/12);
 
 /** Host keyboard allocation over eight physical S-DSP voices, native 32 kHz.
- * Core ownership transfers to this object. Echo/PMON/Noise stay disabled.
+ * Core ownership transfers to this object. Echo uses reserved hardware RAM;
+ * PMON and Noise stay disabled.
  */
 export class SnesInstrument {
   constructor(core) {
@@ -20,7 +21,7 @@ export class SnesInstrument {
     this._replace(this.preset);
   }
   _open(){if(this.disposed)throw new Error('S-DSP instrument is disposed');}
-  _sampleKey(p) {return p.source==='wave'?JSON.stringify(['wave',p.wave]):JSON.stringify(['brr',p.brr.data,p.brr.loopStartSamples]);}
+  _sampleKey(p) {return p.source==='wave'?JSON.stringify(['wave',p.echo.enabled,p.wave]):JSON.stringify(['brr',p.echo.enabled,p.brr.data,p.brr.loopStartSamples]);}
   _prepare(p) {
     if(p.source==='wave')return {bytes:encodeBrr(Float32Array.from(p.wave),{loopStartSamples:0}).brr,options:{baseFrequencyHz:250,loopStartSamples:0}};
     const bytes=decodeBase64(p.brr.data);
@@ -30,6 +31,7 @@ export class SnesInstrument {
     // Recreate only the bank bookkeeping; the owned DSP stays in place. This
     // returns all RAM after every authored sample edit instead of appending.
     this.synth=new SnesSynth({core:this.core});
+    this.synth.setEcho(echoOptions(p.echo));
     this.sample=prepared.bytes.length?this.synth.loadBRR(prepared.bytes,prepared.options):null;
     this.voices.clear();this.slots.fill(null);this.cursor=0;this.generation++;
     this.preset=p;this._applyChannels();
@@ -40,6 +42,7 @@ export class SnesInstrument {
   }
   _applyChannels() {
     const env=envelopeRegisters(this.preset);
+    this.synth.setEcho(echoOptions(this.preset.echo));
     if(this.sample&&this.preset.source==='brr') {
       const tuning={rootNote:this.preset.brr.rootNote,rootFrequencyHz:noteHz(this.preset.brr.rootNote),basePitch:this.preset.brr.basePitch};
       Object.assign(this.sample,tuning);Object.assign(this.synth.samples[this.sample.id],tuning);
@@ -58,6 +61,10 @@ export class SnesInstrument {
     return {preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel})=>({id,midi,channel})),
       tails:this.slots.filter(voice=>voice?.released).map(({id,channel})=>({id,channel})),capacity:8,pitch:this.pitch,generation:this.generation,
       nativeFrames:this.core.nativeFrames,sample:this.sample?{...this.sample}:null,
+      echo:this.synth.getEcho(),memory:{directoryAddress:this.core.readDsp(0x5d)<<8,maxSampleBytes:this.preset.echo.enabled?ECHO_BRR_MAX_BYTES:64512},
+      echoRegisters:{flg:this.core.readDsp(0x6c),esa:this.core.readDsp(0x6d),edl:this.core.readDsp(0x7d),efb:this.core.readDsp(0x0d),
+        eon:this.core.readDsp(0x4d),volumeLeft:this.core.readDsp(0x2c),volumeRight:this.core.readDsp(0x3c),
+        fir:Array.from({length:8},(_,index)=>this.core.readDsp(0x0f+index*16))},
       registers:Array.from({length:8},(_,channel)=>Array.from({length:10},(_,register)=>this.core.readDsp((channel<<4)+register)))};
   }
   setPreset(value) {

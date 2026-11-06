@@ -75,7 +75,8 @@
 ## 後続
 
 - [x] SPC snapshotからBRR／voice設定候補を選んで取り込む。詳細は下記。元の音階やdriver更新を完全復元したとは扱わない。
-- [ ] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
+- [x] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
+- [ ] SPCから元のEcho／FIR設定を取り込む選択肢を追加する。手動Echoとの切り替え、候補voiceのEON、曲全体で共有する設定であることを明示する。
 - [ ] Noise／pitch modulationを公開し、共有noise clock・隣接voice routing・同時発音枠への影響を示す。
 - [ ] Web確認後にTauri版・Native活用例へ進む。
 - [ ] C64 SID Synthはフィルター中心の別題材として検討する。
@@ -103,3 +104,31 @@
 - Synthガイド・英日ホーム・README en／ja／AIを更新した。既存SNES CIのunit wildcard／browser／独立ZIP検証で今回の機能も実行する。共有runtime／WASM・npm APIは未変更。commit／push／公開は行っていない。実ゲームSPCでの試聴・長時間動作は未確認。
 
 次の候補はEcho／FIR（RAM予約を先に整備）、続いてNoise／PMON。実ゲームSPCでの人の試聴をAI検証と区別して残す。
+
+## Echo／FIR・作業手順（2026-11-06）
+
+- [x] 正確な既存S-DSPのEcho回路を使い、共有SnesSynthへsetEcho／getEchoとメモリ予約を追加する。Echoは底部$0000..$77ff（最大EDL15の30KiB）、directoryは$7800..$7bff、BRRは$7c00以降へ配置し、初期ESA・Delay変更の内部遅延でもsampleを壊さない。Offの従来layout／64,512-byte BRR上限は維持し、Echo使用時は33,786-byte上限を検証する。
+- [x] 高水準API・型定義・Main／Worker／Nativeの接続を揃える。入力不正・容量不足はRAM／音を変更する前に拒否し、reset／Stop／bank再配置でも予約とEcho設定の整合性を保つ。
+- [x] Synth preset v2へEcho Enable／Delay0..15／signed Feedback・左右Return／Send／8つのsigned FIR係数を保存し、既存v1はEcho Offとして読み込む。音色・Loop・Echo On/Offは安全にbankを再構成して保持音と残響を止める。その他のEcho調整は保持音へ反映する。
+- [x] Echoの基本操作を独立した折りたたみpanelへ追加し、FIR詳細は更に折りたたむ。Delayは16ms単位とcode0の特殊動作、FIRはEcho経路の音色調整であることを示す。選択UIは演奏キーを奪わない。SPCから元Echo設定を読む作業は今回は追加しない。
+- [x] 素の実coreとの一致、遅延後のEcho・FIR／左右極性の変化、live設定／Stop、長いsample・容量境界・反復操作でのRAM非破壊、preset移行と保存／JS再利用をテストする。Chromium／WebKitと独立ZIPでも音と操作を確認する。
+- [x] runtime mirror／配布source／型／CIの整合性、README en／ja／AI・Synthガイド・検証記録を更新し、配布ZIPを作成する。
+
+
+Echo実装・検証完了（2026-11-06）:
+
+- 共有`SnesSynth.setEcho`／`getEcho`を追加した。直接Synthは同期、Main／logic Worker／Native clientはPromise resource RPC。初回Enableでbankを再配置し、capacityをnative書き込み前に検証する。Off／resetでは共有APIの予約を保ち、Synth UIは新bankへの再構成でOff時の大きいsample容量を取り戻す。サンプルIDは維持し、移動後addressはgetStateで確認する。
+- Preset v2は`echo:{enabled,delay,feedback,volumeLeft,volumeRight,send,fir[8]}`を保存し、正確な旧v1はEcho Offとして読み込む。共有APIのEchoは`sendMask`へ変換する。JS出力は`await snes.setEcho(...)`をBRR uploadより先に出す。原音色のSPC Echo設定は自動で取り込まない。
+- `S-DSP Echo`は折りたたみ、FIR詳細は初期閉じ。Enable／Send、Delay／Feedback／左右Return、8係数とIdentityを操作する。On/Off・sample／Loop変更・Stopはheld notes／Echo tailsを止める。残りの設定は所有権とDSP位相を保ってlive反映する。FIRがEchoだけに作用し、code0は4bytes／1stereo frame、1..15は16ms単位であることを表示した。
+- `npm run test:snes-synth`: **58件成功**。新しい実WASMテストで遅延Echo、FIR zeroでwetだけ除去、feedback反復、signed Return、raw DSPとbyte一致／17frame分割一致、live編集、Stopと反復On/Off／最大EDLでのBRR・directory非破壊、容量超過の原音保持、v1移行を確認した。
+- 共有API関連6suiteは**72件成功**。実WASMとMain／Worker／Native JS接続、初回予約・resource RPC・拒否・Stopを確認した。Native primaryは実WASM経由fixture、extra Nativeは既存JS/RPC fixtureであり、実Native C++アプリで新規起動確認したとは扱わない。`node scripts/check_playground_mode_types.mjs`成功。実行コマンド: `node --test test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/playground_snes.test.mjs test/runtime/playground_snes_worklet.test.mjs test/runtime/native_genesis_snes.test.mjs test/runtime/native_genesis_extra_snes.test.mjs`。
+- [ソースbrowser記録](snes_synth_echo_browser_01.json)・[独立ZIP記録](snes_synth_echo_zip_browser_01.json): Chromium／WebKit各13チェック成功。実Echo尾音、live Delay／FIR／signed Return、Send、preset v1/v2／JS出力、容量不足時のcheckbox・保持音維持と、既存SPC／描画／8声／Master／Pitch／focus／390px幅を確認。外部通信／404／page errorは0。speakerはmuteしている。WebKit mobile画像も目視した。
+- ZIP `release/tetorica_sdsp_synth_0.0.3_itch.zip`: 62 files、908,758 bytes、SHA-256 `22d8a738cc60d620c0538d3ac37f1b04c3ff52df7a743adf3c0d13388c5030e2`。元の可読JS／CSS、採用icon、WASM、対応LGPL C++／再ビルド手順／source receiptを含む。
+- 共有runtimeは公式syncでdocs/jsへ反映した。`npm run check:runtime-artifacts`: 33 SDK builds／66 outputs／73 mirrors一致。`node --test scripts/runtime_staging_paths.test.mjs`: 3件成功。SNES CIへ共有Echo API・型・installed npm型チェックを、itch-web CIへ実Echoテストを追加した。README en／ja／AI・英日ホーム・Synthガイドを更新した。
+
+- `node scripts/check_fm2612_types.mjs`成功。配布runtime345module・JSDoc宣言396件を生成し、実際のinstalled packageをNodeNext／Bundler／browserで検証した。direct Echo APIの同期戻り値、clientのPromise、非any型、不正Enable／FIR／null／任意RAM addressの型拒否を追加して確認した。npm公開は行っていない。
+- 共有source変更に伴う音量校正は、既存の153-capture historical baselineを保持したままPS1／WonderSwan／SCSP各48+8、POKEY96+8+8+8の実captureを更新した。両browser／44.1k・48k／Main・Worker／primary・extraを確認し、既存の厳密なsource freshness validatorを維持した。SCSPは新しい48+8のpolicy verificationも実施した。[校正receipt](sdsp_echo_mixer_calibration_01.json)に旧report backup／実行command／hash／coverage／gainとdiagnosticを記録した。
+- 校正・generator関連7fileの339件実行では旧SCSP verification reportだけが不一致となったため、公式runnerで再測定して更新し、該当test fileを再実行して10/10成功とした。残り338件は先の実行で成功している。test／validatorを弱める変更はしていない。`generate_playground_mixer_defaults.mjs --check`と`generate_soundchip_mixer_presets.mjs --check`はいずれも成功。
+- 通信断の確認を受け、全変更、source／ZIP両browser記録、SCSP verification成功、ZIP実体とSHA-256の残存を再確認した。`git diff --check`正常。commit／push／GitHub・itch・npm公開は行っていない。人の実聴・実Native C++ hostでの新規動作確認・長時間運転は未実施。
+
+次は手元でのEcho／FIRの試聴。実装候補はSPC保存時点のEcho設定取り込み、続いてNoise／PMON。

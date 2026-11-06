@@ -29,6 +29,16 @@ test('SNES failed upload remains retryable and processor failure rejects pending
   await pending.catch(()=>{});await new Promise(resolve=>setImmediate(resolve));
   assert.throws(()=>p.client.keyOff(0),/disposed/);
 });
+test('SNES Echo RPC waits for safe bank relocation and retains capacity/state through later uploads',async t=>{
+  const p=rpc();t.after(()=>p.close());
+  const sample=await p.client.loadBRR(brr,{rootNote:60,loopStartSamples:0});p.client.setPreset(0,{sample,gain:100});
+  const options={enabled:true,delay:15,fir:[127,0,0,0,0,0,0,0]},pending=p.client.setEcho(options);options.fir.fill(0);
+  const echo=await pending;assert.equal(echo.enabled,true);assert.equal(echo.reserved,true);assert.equal(echo.fir[0],127);
+  const state=await p.client.getState();assert.equal(state.directoryAddress,0x7800);assert.equal(state.maxSampleBytes,33786);assert.equal(state.samples[0].id,0);assert.equal(state.samples[0].startAddress,0x7c00);
+  const second=await p.client.loadBRR(brr,{rootNote:60,loopStartSamples:0});assert.equal(second.startAddress,0x7c09);
+  await p.client.setEcho({feedback:-32,enabled:false});assert.equal((await p.client.getEcho()).feedback,-32);assert.equal(p.client._getState().echo.reserved,true);
+  await assert.rejects(p.client.setEcho({fir:null}),/FIR/);assert.equal((await p.client.getEcho()).fir[0],127);
+});
 test('SNES owner retirement uses KOFF for fixed voices and cannot release a newer owner',()=>{
   let frame=0;const commands=[],port={postMessage(){}};
   const p=createProcessorPerformance({chip:'snes',nowFrame:()=>frame,rate:1000,apply:command=>commands.push(command)});
@@ -58,6 +68,8 @@ test('Worker SNES BRR/read resources are immediate while note and preset share p
   proxy.postMessage({method:'setPreset',args:[0,{sample:0}]});proxy.postMessage({method:'noteOn',args:[0,'C4']});proxy.postMessage({method:'snapshot',args:[],id:2});
   assert.equal(posts[0].method,'loadBRR');assert.equal(posts[0].performance,undefined);
   assert.equal(posts[1].performance.time,2.5);assert.equal(posts[2].performance.time,2.5);assert.equal(posts[3].method,'snapshot');
+  for(const method of ['setEcho','getEcho'])proxy.postMessage({method,args:method==='setEcho'?[{enabled:true}]:[],id:10});
+  for(const message of posts.slice(4)){assert.equal(message.performance,undefined);assert(['setEcho','getEcho'].includes(message.method));}
 });
 
 import {createSnesAudio} from '../../tetorica_src/runtime/playground_snes_audio.js';

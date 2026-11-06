@@ -2,6 +2,15 @@
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 
 async function checkSnesModeTypes() {
+  const echo=await snes.setEcho({enabled:true,delay:4,feedback:-32,volumeLeft:32,volumeRight:32,sendMask:255,fir:[127,0,0,0,0,0,0,0]});
+  echo.fir[0].toFixed();echo.byteLength.toFixed();const echoStart:0=echo.startAddress;
+  (await snes.getEcho()).reserved.valueOf();(await snes.getState()).maxSampleBytes.toFixed();
+  // @ts-expect-error Echo requires a boolean enable flag.
+  await snes.setEcho({enabled:1});
+  // @ts-expect-error FIR coefficients use an ordinary number array.
+  await snes.setEcho({fir:new Int8Array(8)});
+  // @ts-expect-error Echo configuration does not expose raw buffer addresses.
+  await snes.setEcho({startAddress:0});
   const encoded = encodeBrr(new Float32Array(32), {loopStartSamples:0});
   pg.encodeBrr(new Float32Array(16)).metrics.snrDb?.toFixed();
   await snes.loadBRR(encoded.brr, {baseFrequencyHz:250, loopStartSamples:encoded.loopStartSamples!});

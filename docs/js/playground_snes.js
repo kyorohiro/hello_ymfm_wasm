@@ -18,12 +18,19 @@ export function createSnesClient(port,initial={},lifecycle={}) {
   const client={
     _getState(){return {...validation.getState(),...(initial.native?{stateRevision}:{})};},
     _stopVoices(){return request('stopVoices');},
-    _adoptState(state){if(!state)return;if(initial.native&&(state.stateRevision??0)<stateRevision)return false;stateRevision=state.stateRevision??stateRevision;validation.samples=structuredClone(state.samples??[]);validation.channels=structuredClone(state.channels??validation.channels);validation.nextAddress=state.nextAddress??0x400;if(initial.native&&!pendingPreparations)timelinePrepared=state.timeline?.loaded===true;},
+    _adoptState(state){if(!state)return;if(initial.native&&(state.stateRevision??0)<stateRevision)return false;stateRevision=state.stateRevision??stateRevision;validation.samples=structuredClone(state.samples??[]);validation.channels=structuredClone(state.channels??validation.channels);validation.nextAddress=state.nextAddress??0x400;if(state.echo){const {reserved,startAddress,byteLength,...echo}=structuredClone(state.echo);validation.echo=echo;validation.echoReserved=reserved;validation.echoConfigured=true;validation.directoryAddress=state.directoryAddress??(reserved?0x7800:0);}if(initial.native&&!pendingPreparations)timelinePrepared=state.timeline?.loaded===true;},
     _applyAuthorEdit(edit){if(edit.samples){for(const sample of edit.samples)validation.samples[sample.id]=structuredClone(sample);validation.nextAddress=edit.nextAddress;}if(edit.preset)Object.assign(validation.channels[edit.channel],structuredClone(edit.preset));},
     sampleRate:initial.sampleRate??48000,nativeSampleRate:32000,
     /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./snessynth.js?v=spc-song-js-1').SnesBRROptions} options
      * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesSample>} */
     async loadBRR(input,options){assertOpen();instrumentOnly();const prepared=prepareSnesBRR(input,options);const data=prepared.brr,validationBytes=data.slice(),savedOptions=structuredClone(options);const sample=await request('loadBRR',[data,savedOptions],[data.buffer]);assertOpen();if(initial.native){validation.samples[sample.id]=structuredClone(sample);validation.sampleBytes[sample.id]=validationBytes;validation.nextAddress=Math.max(validation.nextAddress,sample.startAddress+sample.byteLength);}else validation.loadBRR(validationBytes,savedOptions);return sample;},
+    /** Real shared Echo/FIR. First enable relocates sample RAM and releases voices.
+     * @param {Partial<import('./snessynth.js?v=spc-song-js-1').SnesEchoOptions>} [options]
+     * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesEchoState>} */
+    async setEcho(options={}){assertOpen();instrumentOnly();const saved=structuredClone(options);const value=await request('setEcho',[saved]);assertOpen();validation.setEcho(saved);return value;},
+    /** Authored settings and RAM reservation, not raw timeline registers.
+     * @returns {Promise<import('./snessynth.js?v=spc-song-js-1').SnesEchoState>} */
+    getEcho(){assertOpen();instrumentOnly();return request('getEcho');},
     /** Resource upload; clocks are 1,024,000 Hz, not native PCM frames.
      * @param {import('./spc.js?v=spc-events-1').SpcTimeline} trace */
     async prepareTimeline(trace){
@@ -62,7 +69,7 @@ export function createSnesClient(port,initial={},lifecycle={}) {
   if(initial.native){
     const check=context=>{if(disposed||lifecycle.isStopped?.(context))throw new Error('SNES disposed or Run stopped');};
     const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
-    for(const method of ['loadBRR','prepareTimeline','playTimeline','stopTimeline','getTimelineState','readDsp','getState','getPreset','snapshot']){const original=client[method].bind(client);client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};}
+    for(const method of ['loadBRR','setEcho','getEcho','prepareTimeline','playTimeline','stopTimeline','getTimelineState','readDsp','getState','getPreset','snapshot']){const original=client[method].bind(client);client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};}
   }
   if(initial.state)client._adoptState(initial.state);
   return client;

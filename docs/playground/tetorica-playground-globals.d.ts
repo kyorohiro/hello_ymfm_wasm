@@ -1835,6 +1835,25 @@ interface PlaygroundSnesState {
   /** Fixed internal DSP sample rate, 32,000 Hz. */
   sampleRate:number;
   samples:PlaygroundSnesSample[]; channels:PlaygroundSnesChannelState[]; nextAddress:number;
+  /** Directory byte address and aggregate BRR budget after safe Echo reservation. */
+  directoryAddress:number; maxSampleBytes:number;
+  /** Authored Echo configuration, not a decoded raw timeline snapshot. */
+  echo:PlaygroundSnesEchoState;
+}
+interface PlaygroundSnesEchoOptions {
+  enabled:boolean;
+  /** Hardware EDL 0..15: 16ms steps; 0 uses a four-byte ring. */
+  delay:number;
+  /** Signed hardware coefficient / returns, -128..127. */
+  feedback:number; volumeLeft:number; volumeRight:number;
+  /** Bitmask of the eight physical voices sent to the shared Echo path. */
+  sendMask:number;
+  /** Exactly eight signed hardware FIR coefficients (-128..127), Echo only. */
+  fir:number[];
+}
+interface PlaygroundSnesEchoState extends PlaygroundSnesEchoOptions {
+  /** First enable reserves 30KiB until a fresh instance is created. */
+  reserved:boolean; startAddress:0; byteLength:number;
 }
 /** Recorded original DSP execution, including RAM/BRR changes. Independent of
  * BPM. Four words per event: effective DSP clock, kind (0 DSP / 1 RAM), address,
@@ -1866,6 +1885,15 @@ interface PlaygroundSnes {
   readonly sampleRate:number;
   readonly nativeSampleRate:32000;
   loadBRR(bytes:ArrayBuffer | ArrayBufferView, options:PlaygroundSnesBrrOptions):Promise<PlaygroundSnesSample>;
+  /** Real S-DSP Echo/FIR. First enable validates the 33,786-byte BRR limit,
+   * reserves 30KiB and relocates the directory/sample bank, stopping voices.
+   * Sample IDs survive; refresh addresses from getState(). Later edits are live.
+   * Disabling keeps this reservation; a fresh instance reclaims it. Await this
+   * resource operation before uploading BRR. Echo starts disabled.
+   */
+  setEcho(options?:Partial<PlaygroundSnesEchoOptions>):Promise<PlaygroundSnesEchoState>;
+  /** Authored settings; not available in raw timeline mode. */
+  getEcho():Promise<PlaygroundSnesEchoState>;
   /** Upload original RAM/DSP state and timed writes, without playback. This
    * replaces the authored instrument state; use reset() before BRR/note editing.
    */

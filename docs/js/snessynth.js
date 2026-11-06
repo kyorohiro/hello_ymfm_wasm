@@ -6,6 +6,9 @@ import {decodeBrr} from './snes_brr.js?v=spc-pitch-comments-1';
 import {noteToHz} from './soundchip_pitch.js';
 export const SNES_CHANNEL_COUNT = 8;
 export const SNES_SAMPLE_RATE = 32000;
+export const SNES_ECHO_RESERVED_BYTES = 0x7800;
+export const SNES_ECHO_MAX_SAMPLE_BYTES = 33786;
+const defaultEcho=()=>({enabled:false,delay:4,feedback:32,volumeLeft:32,volumeRight:32,sendMask:255,fir:[127,0,0,0,0,0,0,0]});
 const integer=(v,min,max,name)=>{if(!Number.isInteger(v)||v<min||v>max)throw new RangeError(`${name} must be an integer from ${min} to ${max}`);return v;};
 const channel=v=>integer(v,0,7,'channel');
 const positive=(v,name)=>{if(!Number.isFinite(v)||v<=0)throw new RangeError(`${name} must be positive finite Hz`);return v;};
@@ -42,10 +45,17 @@ export function prepareSnesBRR(input, options = {}) {
  * volumeLeft?:number,volumeRight?:number,pitch?:number}} SnesPreset
  */
 /** @typedef {{sample:number|null,adsr1:number,adsr2:number,gain:number,volumeLeft:number,volumeRight:number,pitch:number}} SnesVoiceState */
-/** @typedef {{sampleRate:number,samples:SnesSample[],channels:SnesVoiceState[],nextAddress:number}} SnesState */
+/** @typedef {{enabled:boolean,delay:number,feedback:number,volumeLeft:number,volumeRight:number,sendMask:number,fir:number[]}} SnesEchoOptions */
+/** @typedef {SnesEchoOptions & {reserved:boolean,startAddress:number,byteLength:number}} SnesEchoState */
+/** @typedef {{sampleRate:number,samples:SnesSample[],channels:SnesVoiceState[],nextAddress:number,directoryAddress:number,maxSampleBytes:number,echo:SnesEchoState}} SnesState */
 /** Authored instruments over SnesDspCore. RAM $0000..$03ff is the 256-entry
  * sample directory; BRR uploads grow from $0400. No compaction/voice allocator.
- * Echo writes are disabled. Raw DSP edits may overwrite directory/echo settings
+ * Echo is off initially. Enabling it reserves $0000..$77ff, moves the directory
+ * to $7800 and BRR to $7c00. This first enable resets voices after validating
+ * capacity. The reservation survives disabling/reset; create a fresh instance
+ * to reclaim it. Sample IDs remain valid; refresh addresses from getState()
+ * after first enable. Live Echo edits never relocate RAM. Raw DSP edits may overwrite
+ * directory/echo settings
  * and must respect these RAM reservations. reset retains/reuploads samples.
  */
 export class SnesSynth {
@@ -53,6 +63,7 @@ export class SnesSynth {
   constructor({core}) {
     if(!core||typeof core.writeDsp!=='function'||typeof core.loadRam!=='function')throw new TypeError('SnesSynth requires SnesDspCore');
     this.core=core;this.sampleRate=SNES_SAMPLE_RATE;this.channelCount=SNES_CHANNEL_COUNT;/** @type {SnesSample[]} */ this.samples=[];this.sampleBytes=[];this.nextAddress=0x400;this.pendingKon=0;this.koff=255;
+    this.echo=defaultEcho();this.echoReserved=false;this.echoConfigured=false;this.directoryAddress=0;
     this.reset();
   }
   /** DSP reset keeps sample uploads and their IDs; active voices are released. */
@@ -63,14 +74,56 @@ export class SnesSynth {
     this.channels=Array.from({length:8},()=>({sample:null,adsr1:0,adsr2:0,gain:127,volumeLeft:100,volumeRight:100,pitch:0x1000}));
     this.core.writeDsp(0x6c,0x20);this.core.writeDsp(0x0c,127);this.core.writeDsp(0x1c,127);this.core.writeDsp(0x2c,0);this.core.writeDsp(0x3c,0);
     this.core.writeDsp(0x2d,0);this.core.writeDsp(0x3d,0);this.core.writeDsp(0x4d,0);this.core.writeDsp(0x0d,0);
-    this.core.writeDsp(0x5d,0);this.core.writeDsp(0x5c,255);this.core.writeDsp(0x4c,0);
+    this.core.writeDsp(0x5d,this.directoryAddress>>8);this.core.writeDsp(0x5c,255);this.core.writeDsp(0x4c,0);
     for(let ch=0;ch<8;ch++)this._writeChannel(ch,this.channels[ch]);
-    for(let i=0;i<this.samples.length;i++){this.core.loadRam(this.sampleBytes[i],this.samples[i].startAddress);this._directory(this.samples[i]);}
+    for(let i=0;i<this.samples.length;i++){if(this.sampleBytes[i])this.core.loadRam(this.sampleBytes[i],this.samples[i].startAddress);this._directory(this.samples[i]);}
+    if(this.echoConfigured)this._writeEcho();
   }
   _directory(sample) {
     const {startAddress:start,loopAddress:loop}=sample;
-    this.core.loadRam(new Uint8Array([start&255,start>>8,loop&255,loop>>8]),sample.id*4);
+    this.core.loadRam(new Uint8Array([start&255,start>>8,loop&255,loop>>8]),this.directoryAddress+sample.id*4);
   }
+  _writeEcho() {
+    const e=this.echo,write=(r,v)=>this.core.writeDsp(r,v&255);
+    // ESA stays zero. The initial native cached ESA and every old EDL offset
+    // therefore point into reserved RAM, including the first enabled frame.
+    write(0x6d,0);write(0x7d,e.delay);write(0x0d,e.feedback);
+    for(let i=0;i<8;i++)write(0x0f+i*16,e.fir[i]);
+    write(0x4d,e.enabled?e.sendMask:0);write(0x2c,e.enabled?e.volumeLeft:0);write(0x3c,e.enabled?e.volumeRight:0);
+    const flags=typeof this.core.readDsp==='function'?this.core.readDsp(0x6c):0x20;
+    write(0x6c,e.enabled?flags&~0x20:flags|0x20);
+  }
+  /** Configure the real shared S-DSP Echo/FIR path. Delay codes are 16ms;
+   * code 0 uses the hardware four-byte ring. Signed coefficients/volumes are
+   * register values. FIR affects Echo only. First enable relocates the bank and
+   * stops voices; all validation, including capacity, precedes native writes.
+   * Await the async Main/Worker/Native client version before uploading BRR.
+   * @param {Partial<SnesEchoOptions>} [options] @returns {SnesEchoState} */
+  setEcho(options={}) {
+    this._instrumentOnly();
+    if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(key=>!Object.hasOwn(this.echo,key)))throw new TypeError('Unknown SNES Echo option');
+    const fir=Object.hasOwn(options,'fir')?options.fir:this.echo.fir;
+    if(!Array.isArray(fir)||fir.length!==8)throw new TypeError('Echo FIR requires eight signed coefficients');
+    const next={...this.echo,...options,fir:fir.slice()};
+    if(typeof next.enabled!=='boolean')throw new TypeError('Echo enabled must be boolean');
+    integer(next.delay,0,15,'Echo delay');integer(next.feedback,-128,127,'Echo feedback');
+    integer(next.volumeLeft,-128,127,'Echo left volume');integer(next.volumeRight,-128,127,'Echo right volume');integer(next.sendMask,0,255,'Echo sendMask');
+    for(const coefficient of next.fir)integer(coefficient,-128,127,'Echo FIR coefficient');
+    if(next.enabled&&!this.echoReserved){
+      const size=this.samples.reduce((sum,sample)=>sum+sample.byteLength,0);
+      if(size>SNES_ECHO_MAX_SAMPLE_BYTES)throw new RangeError('SNES Echo reserves 30 KiB; BRR exceeds the 33,786-byte sample budget');
+      const channels=this.channels.map(value=>({...value}));
+      this.echo=next;this.echoReserved=true;this.echoConfigured=true;this.directoryAddress=0x7800;
+      let address=0x7c00;
+      for(const sample of this.samples){sample.startAddress=address;sample.loopAddress=address+(sample.loopStartSamples??0)/16*9;address+=sample.byteLength;}
+      this.nextAddress=address;this.reset();
+      for(let ch=0;ch<8;ch++){this.channels[ch]=channels[ch];this._writeChannel(ch,channels[ch]);}
+    }else {this.echo=next;this.echoConfigured=true;this._writeEcho();}
+    return this.getEcho();
+  }
+  /** Authored Echo settings and safe RAM reservation, not a raw timeline dump.
+   * @returns {SnesEchoState} */
+  getEcho(){this._instrumentOnly();return {...this.echo,fir:this.echo.fir.slice(),reserved:this.echoReserved,startAddress:0,byteLength:this.echoReserved?SNES_ECHO_RESERVED_BYTES:0};}
   /** Upload complete raw BRR. Looped samples require explicit loopStartSamples;
    * tune with exactly one rootNote (note name/MIDI) or baseFrequencyHz.
    * basePitch is the raw DSP PITCH that plays this declared root (default4096).
@@ -139,7 +192,7 @@ export class SnesSynth {
   /** @returns {{ram:Uint8Array,dsp:Uint8Array,nativeFrames:number}} */
   snapshot(){return this.core.snapshot();}
   /** @returns {SnesState} */
-  getState(){return {sampleRate:SNES_SAMPLE_RATE,samples:this.samples.map(s=>({...s})),channels:this.channels.map(p=>({...p})),nextAddress:this.nextAddress,...(this.timeline?{timeline:this.getTimelineState()}: {})};}
+  getState(){return {sampleRate:SNES_SAMPLE_RATE,samples:this.samples.map(s=>({...s})),channels:this.channels.map(p=>({...p})),nextAddress:this.nextAddress,directoryAddress:this.directoryAddress,maxSampleBytes:this.echoReserved?SNES_ECHO_MAX_SAMPLE_BYTES:64512,echo:{...this.echo,fir:this.echo.fir.slice(),reserved:this.echoReserved,startAddress:0,byteLength:this.echoReserved?SNES_ECHO_RESERVED_BYTES:0},...(this.timeline?{timeline:this.getTimelineState()}: {})};}
   _instrumentOnly(){if(this.timeline)throw new Error('SNES timeline mode is exclusive; reset() before editing instruments');}
   /** Prepare captured initial RAM/DSP plus editable 1,024,000-Hz DSP/RAM events.
    * Playback remains paused until playTimeline(). No SPC700 driver is executed.

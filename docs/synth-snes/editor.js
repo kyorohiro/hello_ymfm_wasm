@@ -213,7 +213,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const conversionRate = select(conversionFields, 'Convert audio at · Hz', 'conversionRate',
     [[8000, '8,000'], [16000, '16,000'], [32000, '32,000']], () => importRate,
     (_value, rate) => {importRate = Number(rate);}, {local:true});
-  help(sampleCard.content, 'Audio is mixed to mono, resampled and encoded as lossy BRR without normalization. The S-DSP has 64 KiB of shared RAM; this instrument reserves its directory and accepts up to 64,512 BRR bytes. Longer audio is rejected without trimming it.');
+  const sampleBudget = help(sampleCard.content, ''); sampleBudget.id = 'sampleBudget';
   const sampleInfo = make('p', 'sdsp-sample-info'); sampleInfo.id = 'sampleInfo'; sampleCard.content.append(sampleInfo);
   const shapeActions = make('div', 'sdsp-wave-actions'); sampleCard.content.append(shapeActions);
   for (const [name, label] of [['sine','Sine'],['triangle','Triangle'],['saw','Saw'],['square','Square']]) {
@@ -239,6 +239,38 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     () => Math.max(0, decodedSample().pcm.length - 16),
     value => value.brr.loopStartSamples ?? 0, (value, frame) => {value.brr.loopStartSamples = frame;}, 16);
   help(tuning, 'BRR contains no original sample rate, musical root or loop address. Root / PITCH are your declared tuning. PITCH 4096 reads 32,000 source frames per second. Loop start uses decoded sample frames in blocks of 16; raw BRR loops initially use frame 0 unless you set another position.');
+
+  const echoCard = card('S-DSP Echo', 'echoSection');
+  const echoSwitches = group(echoCard.content); echoSwitches.classList.add('sdsp-echo-switches');
+  checkbox(echoSwitches, 'Enable Echo', 'echoEnabled', value => value.echo.enabled,
+    (value, enabled) => {value.echo.enabled = enabled;});
+  checkbox(echoSwitches, 'Send all notes', 'echoSend', value => value.echo.send,
+    (value, enabled) => {value.echo.send = enabled;});
+  const echoFields = group(echoCard.content); echoFields.classList.add('sdsp-echo-controls');
+  number(echoFields, 'Delay · code 0–15', 'echoDelay', 0, 15, value => value.echo.delay,
+    (value, delay) => {value.echo.delay = delay;});
+  number(echoFields, 'Feedback · −128 to 127', 'echoFeedback', -128, 127, value => value.echo.feedback,
+    (value, feedback) => {value.echo.feedback = feedback;});
+  number(echoFields, 'Return left · −128 to 127', 'echoVolumeLeft', -128, 127, value => value.echo.volumeLeft,
+    (value, volume) => {value.echo.volumeLeft = volume;});
+  number(echoFields, 'Return right · −128 to 127', 'echoVolumeRight', -128, 127, value => value.echo.volumeRight,
+    (value, volume) => {value.echo.volumeRight = volume;});
+  const echoDelayInfo = help(echoCard.content, ''); echoDelayInfo.id = 'echoDelayInfo';
+  const echoHint = help(echoCard.content, ''); echoHint.id = 'echoHint';
+  help(echoCard.content, 'One hardware Echo circuit is shared by all eight voices. On / Off stops held notes and clears the previous Echo tail. Delay, Feedback, Return and FIR changes apply while playing. Signed Return or Feedback values can invert polarity.');
+  const firDetails = make('details', 'sdsp-fir-details'); firDetails.id = 'firSection';
+  firDetails.append(make('summary', '', 'FIR · Echo tone'));
+  const firContent = make('div', 'sdsp-fir-content'); firDetails.append(firContent); echoCard.content.append(firDetails);
+  const firFields = group(firContent); firFields.classList.add('sdsp-fir-fields');
+  for (let index = 0; index < 8; index++) {
+    number(firFields, `Tap ${index} · −128 to 127`, 'echoFir' + index, -128, 127,
+      value => value.echo.fir[index], (value, coefficient) => {value.echo.fir[index] = coefficient;});
+  }
+  const resetFir = make('button', '', 'Identity FIR'); resetFir.id = 'resetEchoFir'; resetFir.type = 'button';
+  const firActions = make('div', 'sdsp-file-actions'); firActions.append(resetFir); firContent.append(firActions);
+  listen(resetFir, 'pointerdown', event => {if (event.button === 0) {event.preventDefault();doc.activeElement?.blur();}});
+  listen(resetFir, 'click', () => {resetFir.blur();commit(value => {value.echo.fir = [127,0,0,0,0,0,0,0];});});
+  help(firContent, 'These eight signed hardware coefficients shape only the Echo signal, including its feedback. They do not filter the dry voice. Identity FIR uses 127 followed by seven zeros. Large coefficients or feedback can distort or sustain the Echo.');
 
   const envelopeCard = card('Envelope · S-DSP hardware', 'envelopeSection'), envelopeFields = group(envelopeCard.content);
   select(envelopeFields, 'Envelope mode', 'envelopeMode', [['adsr','ADSR'],['gain','GAIN']], value => value.envelope.mode, (value, mode) => {value.envelope.mode = mode;});
@@ -402,6 +434,12 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if(field.input.type==='checkbox')field.input.checked=field.get(preset);
     }
     const isWave=preset.source==='wave',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
+    const maxBrrBytes=preset.echo.enabled?33786:64512,maxFrames=maxBrrBytes/9*16;
+    sampleBudget.textContent='Audio is mixed to mono, resampled and encoded as lossy BRR without normalization. Current sample limit: '+maxBrrBytes.toLocaleString('en-US')+' BRR bytes / '+maxFrames.toLocaleString('en-US')+' decoded frames (about '+(maxFrames/importRate).toFixed(2)+' s at '+importRate.toLocaleString('en-US')+' Hz). '+(preset.echo.enabled?'Echo reserves 30 KiB of the shared 64 KiB RAM. ':'Echo is off. ')+'Longer audio is rejected without trimming it.';
+    echoDelayInfo.textContent=preset.echo.delay===0?'Delay code 0 uses a 4-byte buffer: one stereo frame at 32,000 Hz (0.03125 ms), not a zero-length delay.'
+      :'Delay '+preset.echo.delay+' × 16 ms = '+(preset.echo.delay*16)+' ms. The hardware adopts a changed length at its buffer boundary.';
+    echoHint.textContent=preset.echo.enabled?'Echo is enabled. Send adds new notes to Echo; Return controls the delayed signal. The sample limit is 33,786 BRR bytes.'
+      :'Echo is off. You can prepare its settings here, then enable it to hear the result. Enabling Echo reduces the sample limit to 33,786 BRR bytes; a sample that does not fit is kept with Echo off.';
     sourceHint.textContent=isWave?'One 128-point cycle, encoded as a BRR loop and played by eight physical S-DSP voices.':'One BRR sample shared by eight physical S-DSP voices. Root / PITCH declare its tuning.';
     shapeActions.hidden=!isWave;drawingHint.hidden=!isWave;tuning.hidden=isWave;
     canvas.dataset.editable=String(isWave);

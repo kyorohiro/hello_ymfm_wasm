@@ -41,7 +41,7 @@ jobs:
       - name: Test Run ZIP preparation, UI bundling, archives and Game Boy conversion
         run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs test/runtime/playground_sample_gameboy_preview.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
       - name: Test PCM to BRR with the native and WASM S-DSP
-        run: node --test test/runtime/snes_brr.test.mjs test/runtime/snes_brr_encoder.test.mjs test/runtime/snessynth.test.mjs test/runtime/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
+        run: node --test test/runtime/snes_brr.test.mjs test/runtime/snes_brr_encoder.test.mjs test/runtime/snessynth.test.mjs test/runtime/snes_echo.test.mjs test/runtime/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
       - name: Test PCM to ADPCM-A with native and WASM YM2610 variants
         run: node --test test/runtime/adpcm_a_sample.test.mjs test/runtime/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
       - name: Test experimental PS1 SPU with actual native and WASM cores

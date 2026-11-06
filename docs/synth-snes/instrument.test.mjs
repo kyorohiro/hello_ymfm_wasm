@@ -8,7 +8,7 @@ import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {encodeBase64} from './sample.js';
 import {SnesInstrument} from './instrument.js';
-import {createDefaultPreset,envelopeRegisters,waveShape} from './preset.js';
+import {createDefaultPreset,envelopeRegisters,waveShape,ECHO_BRR_MAX_BYTES} from './preset.js';
 
 const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
 const create=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
@@ -114,4 +114,83 @@ test('decreasing GAIN acts on existing hardware envelope without synthetic key-o
   p.envelope.gainMode='exponential-decrease';p.envelope.gainRate=31;instrument.setPreset(p);
   const envBefore=instrument.read().registers[0][8];render(instrument,512);const envAfter=instrument.read().registers[0][8];
   assert(envAfter<envBefore);assert.equal(instrument.read().voices[0].id,'fresh');
+});
+
+function pulsePreset(echo={}) {
+  const p=createDefaultPreset();p.source='brr';p.envelope.mode='gain';p.envelope.gainLevel=127;p.volume={left:32,right:32};
+  const pcm=Float32Array.from({length:32},(_,i)=>i<8?.8:0),encoded=encodeBrr(pcm);
+  p.brr={name:'Self-authored pulse',data:encodeBase64(encoded.brr),rootNote:60,basePitch:4096,loopStartSamples:null};
+  p.echo={...p.echo,enabled:true,delay:1,feedback:0,volumeLeft:64,volumeRight:64,...echo};
+  return p;
+}
+
+test('hardware Echo arrives after the dry pulse; FIR, feedback and signed returns alter the delayed signal',async t=>{
+  const wet=await setup(t),dry=await setup(t),mutedFir=await setup(t),feedback=await setup(t),opposed=await setup(t);
+  for(const [entry,options]of[[wet,{}],[dry,{enabled:false}],[mutedFir,{fir:Array(8).fill(0)}],[feedback,{feedback:64}],[opposed,{volumeRight:-64}]]) {
+    entry.instrument.loadPreset(pulsePreset(options));entry.instrument.noteOn('pulse',60);
+  }
+  const w=render(wet.instrument,2048),d=render(dry.instrument,2048),f=render(mutedFir.instrument,2048),repeat=render(feedback.instrument,2048),negative=render(opposed.instrument,2048);
+  assert(peak(d.left.slice(0,128))>.01,'the authored one-shot has a dry transient');
+  assert.equal(peak(d.left.slice(128)),0,'the dry one-shot ends before the delayed return');
+  assert.equal(peak(w.left.slice(128,500)),0,'there is no artificial immediate wet path');
+  assert(peak(w.left.slice(512,640))>.005,'EDL1 produces a delayed hardware return');
+  assert.equal(peak(w.left.slice(1024,1152)),0,'zero feedback does not produce another echo');
+  assert(peak(repeat.left.slice(1024,1152))>.001,'feedback feeds the delay again');
+  assert.equal(peak(f.left.slice(128)),0,'zero FIR coefficients remove the wet signal');
+  assert(peak(negative.right.slice(512,640))>.005);
+  for(let i=512;i<640;i++)assert(Math.abs(negative.left[i]+negative.right[i])<=2/32768,'signed right return inverts delayed polarity');
+});
+
+test('Echo native rendering equals manual DSP setup and is invariant under small render partitions',async t=>{
+  const a=await setup(t),b=await setup(t),rawCore=await create(),raw=new SnesSynth({core:rawCore});t.after(()=>raw.dispose());
+  const p=pulsePreset({feedback:-37,volumeLeft:61,volumeRight:-43,fir:[90,16,-8,4,0,0,0,0]});
+  a.instrument.loadPreset(p);b.instrument.loadPreset(p);
+  const bytes=Uint8Array.from(Buffer.from(p.brr.data,'base64'));
+  rawCore.loadRam(bytes,0x7c00);rawCore.loadRam(Uint8Array.of(0,0x7c,0,0x7c),0x7800);
+  const env=envelopeRegisters(p);
+  for(let channel=0;channel<8;channel++)raw.setPreset(channel,{...env,volumeLeft:32,volumeRight:32,pitch:4096});
+  for(const [register,value]of[[0x5d,0x78],[0x6d,0],[0x7d,1],[0x0d,219],[0x2c,61],[0x3c,213],[0x4d,255],
+    ...p.echo.fir.map((value,index)=>[0x0f+index*16,value&255]),[0x6c,0],[0x5c,254],[0x4c,1]])rawCore.writeDsp(register,value);
+  a.instrument.noteOn('pulse',60);b.instrument.noteOn('pulse',60);
+  const expected=render(a.instrument,4096),oracle=render(raw,4096),split={left:new Float32Array(4096),right:new Float32Array(4096)};
+  assert.deepEqual(expected,oracle,'the standalone effect is the existing accurate DSP path');
+  for(let offset=0;offset<4096;offset+=17)b.instrument.renderInto(split.left,split.right,Math.min(17,4096-offset),offset);
+  assert.deepEqual(split,expected);assert.deepEqual(b.instrument.read(),a.instrument.read());
+});
+
+test('Echo parameter edits preserve held owners, hardware phase and bank bytes; On/Off resets the bank and tails',async t=>{
+  const {instrument,core}=await setup(t),p=createDefaultPreset();p.echo.enabled=true;instrument.loadPreset(p);
+  instrument.noteOn('held',60);render(instrument,2048);const before=instrument.read(),ram=core.snapshot().ram;
+  p.echo={...p.echo,delay:15,feedback:-64,volumeLeft:-55,volumeRight:44,send:false,fir:[100,-16,8,0,0,0,0,0]};
+  instrument.setPreset(p);const edited=instrument.read();
+  assert.deepEqual(edited.voices,before.voices);assert.equal(edited.generation,before.generation);assert.equal(edited.nativeFrames,2048);
+  assert.deepEqual(core.snapshot().ram,ram,'live effect edits do not clear or relocate RAM');
+  assert.deepEqual(edited.echoRegisters,{flg:0,esa:0,edl:15,efb:192,eon:0,volumeLeft:201,volumeRight:44,fir:[100,240,8,0,0,0,0,0]});
+  assert.equal(edited.echo.sendMask,0);assert.deepEqual(edited.memory,{directoryAddress:0x7800,maxSampleBytes:ECHO_BRR_MAX_BYTES});
+  p.echo.enabled=false;instrument.setPreset(p);const off=instrument.read();
+  assert.equal(off.voices.length,0);assert(off.generation>before.generation);assert.equal(off.nativeFrames,0);
+  assert.deepEqual(off.memory,{directoryAddress:0,maxSampleBytes:64512});assert.equal(off.echoRegisters.flg&0x20,0x20);
+  assert.equal(peak(render(instrument,4096).left),0,'turning Echo off clears held sound and old returns');
+  p.echo.enabled=true;instrument.setPreset(p);instrument.noteOn('again',60);render(instrument,2048);const generation=instrument.generation;
+  instrument.stop();assert(instrument.generation>generation);assert.equal(instrument.read().voices.length,0);
+  assert.equal(peak(render(instrument,4096).left),0,'Stop removes hardware echo tails while keeping the effect settings');
+  assert.equal(instrument.read().preset.echo.enabled,true);
+});
+
+test('Echo capacity failures preserve current RAM and held notes; repeated EDL15 layouts never overwrite BRR or directory',async t=>{
+  const {instrument,core}=await setup(t),large=createDefaultPreset(),bytes=new Uint8Array(ECHO_BRR_MAX_BYTES+9);bytes[bytes.length-9]=1;
+  large.source='brr';large.brr={...large.brr,name:'Over Echo budget',data:encodeBase64(bytes)};
+  instrument.loadPreset(large);instrument.noteOn('held',60);render(instrument,256);
+  const before=instrument.read(),ram=core.snapshot().ram;large.echo.enabled=true;
+  assert.throws(()=>instrument.setPreset(large),/33,786/);assert.deepEqual(instrument.read(),before);assert.deepEqual(core.snapshot().ram,ram);
+  const p=createDefaultPreset(),encoded=encodeBrr(Float32Array.from(p.wave),{loopStartSamples:0}).brr;
+  for(let iteration=0;iteration<12;iteration++) {
+    p.echo.enabled=iteration%2===0;p.echo.delay=15;p.echo.feedback=40;
+    instrument.loadPreset(p);instrument.noteOn(`pass-${iteration}`,60);render(instrument,24000);
+    const state=instrument.read(),memory=core.snapshot().ram,start=p.echo.enabled?0x7c00:0x400,directory=p.echo.enabled?0x7800:0;
+    assert.equal(state.sample.startAddress,start);assert.equal(instrument.synth.samples.length,1);
+    assert.deepEqual(memory.slice(start,start+encoded.length),encoded);
+    assert.deepEqual(Array.from(memory.slice(directory,directory+4)),[start&255,start>>8,start&255,start>>8]);
+    assert.equal(core.readDsp(0x5d)<<8,directory);
+  }
 });

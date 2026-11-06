@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-06",
+  "timezone": "Asia/Tokyo",
+  "purpose": "Refresh actual served-source calibration evidence after the S-DSP Echo API changed the shared performance transport.",
+  "historical": {
+    "path": "docs/issues/playground_chip_levels_01.json",
+    "bytes": 248714,
+    "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234",
+    "after": {
+      "bytes": 248714,
+      "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "preserved": true,
+    "rows": 153
+  },
+  "reports": [
+    {
+      "kind": "ps1",
+      "path": "docs/issues/ps1_state_restore_chip_levels_01.json",
+      "before": {
+        "bytes": 545534,
+        "sha256": "42de79a096c96e405c945c8127e02a4feb0435db323fcf34e9143c17751ff4cc",
+        "backup": "release/sdsp-echo-calibration-prior-9JezDc/ps1.json"
+      },
+      "after": {
+        "bytes": 545549,
+        "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+      },
+      "runner": "node scripts/calibrate_ps1_levels.cjs --out /private/tmp/sdsp-echo-calibration/ps1.json",
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "sampleRates": [
+        44100,
+        48000
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "roles": [
+        "primary",
+        "extra"
+      ],
+      "frequencies": [
+        220,
+        440,
+        880
+      ],
+      "captures": {
+        "rows": 48,
+        "fmAnchors": 8,
+        "psgAnchors": 0,
+        "dualCombinations": 0
+      },
+      "passed": true,
+      "completeCoverage": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "pcmContinuous": true,
+      "clockAnomalies": 0,
+      "unchangedTarget": true,
+      "gains": [
+        {
+          "role": "primary",
+          "before": 0.129331,
+          "after": 0.129331
+        },
+        {
+          "role": "extra",
+          "before": 0.129331,
+          "after": 0.129331
+        }
+      ],
+      "changedSources": [
+        {
+          "path": "js/playground_performance_sender.js",
+          "before": {
+            "bytes": 9286,
+            "sha256": "2ae6bb9e8496bc4080be51abc832986f976e36abc85084b157a765454ea45af9"
+          },
+          "after": {
+            "bytes": 9308,
+            "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+          }
+        },
+        {
+          "path": "js/playground_snes.js",
+          "before": {
+            "bytes": 8235,
+            "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+          },
+          "after": {
+            "bytes": 9197,
+            "sha256": "d6392d9825e00d4f0c43d32e88eb773e2c90b799a4418076f01c435c6afe3862"
+          }
+        },
+        {
+          "path": "js/snessynth.js",
+          "before": {
+            "bytes": 12872,
+            "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+          },
+          "after": {
+            "bytes": 17342,
+            "sha256": "e8f99531b950c5e870ba556cb90bc42bfb6f45b020d11cb852c1d23e0f307cd5"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "wonderswan",
+      "path": "docs/issues/wonderswan_state_restore_chip_levels_01.json",
+      "before": {
+        "bytes": 490071,
+        "sha256": "00fb24ffad513bcec92c9010b768290f1114b426d4829483b7ac20429e9a7b8b",
+        "backup": "release/sdsp-echo-calibration-prior-9JezDc/wonderswan.json"
+      },
+      "after": {
+        "bytes": 490078,
+        "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+      },
+      "runner": "node scripts/calibrate_wonderswan_levels.cjs --out /private/tmp/sdsp-echo-calibration/wonderswan.json",
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "sampleRates": [
+        44100,
+        48000
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "roles": [
+        "primary",
+        "extra"
+      ],
+      "frequencies": [
+        220,
+        440,
+        880
+      ],
+      "captures": {
+        "rows": 48,
+        "fmAnchors": 8,
+        "psgAnchors": 0,
+        "dualCombinations": 0
+      },
+      "passed": true,
+      "completeCoverage": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "pcmContinuous": true,
+      "clockAnomalies": 0,
+      "unchangedTarget": true,
+      "gains": [
+        {
+          "role": "primary",
+          "before": 1.172528,
+          "after": 1.172528
+        },
+        {
+          "role": "extra",
+          "before": 1.172528,
+          "after": 1.172528
+        }
+      ],
+      "changedSources": [
+        {
+          "path": "js/playground_performance_sender.js",
+          "before": {
+            "bytes": 9286,
+            "sha256": "2ae6bb9e8496bc4080be51abc832986f976e36abc85084b157a765454ea45af9"
+          },
+          "after": {
+            "bytes": 9308,
+            "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+          }
+        },
+        {
+          "path": "js/playground_snes.js",
+          "before": {
+            "bytes": 8235,
+            "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+          },
+          "after": {
+            "bytes": 9197,
+            "sha256": "d6392d9825e00d4f0c43d32e88eb773e2c90b799a4418076f01c435c6afe3862"
+          }
+        },
+        {
+          "path": "js/snessynth.js",
+          "before": {
+            "bytes": 12872,
+            "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+          },
+          "after": {
+            "bytes": 17342,
+            "sha256": "e8f99531b950c5e870ba556cb90bc42bfb6f45b020d11cb852c1d23e0f307cd5"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "pokey",
+      "path": "docs/issues/pokey_state_restore_chip_levels_01.json",
+      "before": {
+        "bytes": 1045663,
+        "sha256": "122b013999c159867f3f08f95ef19497e9aa32c00b1a3ad95e27df213c92c9c3",
+        "backup": "release/sdsp-echo-calibration-prior-9JezDc/pokey.json"
+      },
+      "after": {
+        "bytes": 1045843,
+        "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+      },
+      "runner": "node scripts/calibrate_pokey_levels.cjs --out /private/tmp/sdsp-echo-calibration/pokey.json",
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "sampleRates": [
+        44100,
+        48000
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "roles": [
+        "primary",
+        "dual-first",
+        "dual-second",
+        "extra"
+      ],
+      "frequencies": [
+        220,
+        440,
+        880
+      ],
+      "captures": {
+        "rows": 96,
+        "fmAnchors": 8,
+        "psgAnchors": 8,
+        "dualCombinations": 8
+      },
+      "passed": true,
+      "completeCoverage": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "pcmContinuous": true,
+      "clockAnomalies": 1,
+      "unchangedTarget": true,
+      "gains": [
+        {
+          "role": "primary",
+          "before": 0.413029,
+          "after": 0.413047
+        },
+        {
+          "role": "dual-first",
+          "before": 0.413028,
+          "after": 0.413051
+        },
+        {
+          "role": "dual-second",
+          "before": 0.413028,
+          "after": 0.413051
+        },
+        {
+          "role": "extra",
+          "before": 0.413029,
+          "after": 0.41305
+        }
+      ],
+      "changedSources": [
+        {
+          "path": "js/playground_performance_sender.js",
+          "before": {
+            "bytes": 9286,
+            "sha256": "2ae6bb9e8496bc4080be51abc832986f976e36abc85084b157a765454ea45af9"
+          },
+          "after": {
+            "bytes": 9308,
+            "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+          }
+        },
+        {
+          "path": "js/playground_snes.js",
+          "before": {
+            "bytes": 8235,
+            "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+          },
+          "after": {
+            "bytes": 9197,
+            "sha256": "d6392d9825e00d4f0c43d32e88eb773e2c90b799a4418076f01c435c6afe3862"
+          }
+        },
+        {
+          "path": "js/snessynth.js",
+          "before": {
+            "bytes": 12872,
+            "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+          },
+          "after": {
+            "bytes": 17342,
+            "sha256": "e8f99531b950c5e870ba556cb90bc42bfb6f45b020d11cb852c1d23e0f307cd5"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "scsp",
+      "path": "docs/issues/scsp_state_restore_chip_levels_01.json",
+      "before": {
+        "bytes": 623899,
+        "sha256": "be5d22e1bc175e3d548829d16e4e58ae1d0bbd2d430312e9daca3f314477188a",
+        "backup": "release/sdsp-echo-calibration-prior-9JezDc/scsp.json"
+      },
+      "after": {
+        "bytes": 623903,
+        "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+      },
+      "runner": "node scripts/calibrate_scsp_levels.cjs --out /private/tmp/sdsp-echo-calibration/scsp.json",
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "sampleRates": [
+        44100,
+        48000
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "roles": [
+        "primary",
+        "extra"
+      ],
+      "frequencies": [
+        220,
+        440,
+        880
+      ],
+      "captures": {
+        "rows": 48,
+        "fmAnchors": 8,
+        "psgAnchors": 0,
+        "dualCombinations": 0
+      },
+      "passed": true,
+      "completeCoverage": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "pcmContinuous": true,
+      "clockAnomalies": 0,
+      "unchangedTarget": true,
+      "gains": [
+        {
+          "role": "primary",
+          "before": 0.128826,
+          "after": 0.128825
+        },
+        {
+          "role": "extra",
+          "before": 0.128826,
+          "after": 0.128825
+        }
+      ],
+      "changedSources": [
+        {
+          "path": "js/playground_performance_sender.js",
+          "before": {
+            "bytes": 9286,
+            "sha256": "2ae6bb9e8496bc4080be51abc832986f976e36abc85084b157a765454ea45af9"
+          },
+          "after": {
+            "bytes": 9308,
+            "sha256": "b1378d9591ba6fdafff5b4eb2c3f7632f76d7c46bdf90977fe8939827a13583a"
+          }
+        },
+        {
+          "path": "js/playground_snes.js",
+          "before": {
+            "bytes": 8235,
+            "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+          },
+          "after": {
+            "bytes": 9197,
+            "sha256": "d6392d9825e00d4f0c43d32e88eb773e2c90b799a4418076f01c435c6afe3862"
+          }
+        },
+        {
+          "path": "js/snessynth.js",
+          "before": {
+            "bytes": 12872,
+            "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+          },
+          "after": {
+            "bytes": 17342,
+            "sha256": "e8f99531b950c5e870ba556cb90bc42bfb6f45b020d11cb852c1d23e0f307cd5"
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "path": "docs/playground/playground_mixer_defaults.js",
+      "before": {
+        "bytes": 13242,
+        "sha256": "75ee7ab2739406d1a6a33d3528af239b594fb5e49eb5501560980c64b60325f4"
+      },
+      "after": {
+        "bytes": 13222,
+        "sha256": "4dd897986a2592eb6db40400fad3509d36ada2a9ca922ac200fe21d6d86b8da4"
+      }
+    },
+    {
+      "path": "tetorica_src/runtime/soundchip_mixer_presets.js",
+      "before": {
+        "bytes": 3277,
+        "sha256": "b60ec27d4f8f10d52b2c5db3218908855d3b786fe147c8e282ea583fc4ba4740"
+      },
+      "after": {
+        "bytes": 3276,
+        "sha256": "c5e3330fe214f1e2b5beecc08f0f5bbacf62396c0b2cb869b088d07b3cf79420"
+      }
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "before": {
+        "bytes": 3296,
+        "sha256": "6929c8e5f4c1efaeb31f42c8b600323b90785a3cac8160b8114ec7b5cc513a96"
+      },
+      "after": {
+        "bytes": 3276,
+        "sha256": "c5e3330fe214f1e2b5beecc08f0f5bbacf62396c0b2cb869b088d07b3cf79420"
+      }
+    }
+  ],
+  "validations": [
+    "All four existing strict calibration source validators passed before canonical report replacement.",
+    "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+    "node scripts/generate_soundchip_mixer_presets.mjs --check"
+  ],
+  "notes": [
+    "Measurements were performed by the official browser runners with all default coverage; no row or amplitude was copied from a previous report.",
+    "The pinned historical baseline, validators and source-freshness rules were not changed. No hash exception was added.",
+    "Previous current reports and generated outputs are retained in the listed release backup directory; original older calibration reports remain unchanged.",
+    "Generated source policy values are the measured reports rounded by the existing official generators.",
+    "No listening, publication, commit or push was performed by this calibration task."
+  ],
+  "policyVerification": {
+    "kind": "scsp",
+    "path": "docs/issues/scsp_state_restore_chip_levels_verify_01.json",
+    "before": {
+      "bytes": 635262,
+      "sha256": "5fb44f942573fce0aef55bc76b9fc0fad5305f33495dd7267441efbb319f7f28",
+      "backup": "release/sdsp-echo-calibration-prior-9JezDc/scsp-verify.json"
+    },
+    "after": {
+      "bytes": 635212,
+      "sha256": "901954172c11c49407d7912f0dcff026a535ebd9a06b776f8166bf316e61122d"
+    },
+    "runner": "node scripts/calibrate_scsp_levels.cjs --verify --baseline docs/issues/scsp_state_restore_chip_levels_01.json --out /private/tmp/sdsp-echo-calibration/scsp-verify.json",
+    "passed": true,
+    "completeCoverage": true,
+    "rows": 48,
+    "fmAnchors": 8,
+    "pcmContinuous": true,
+    "clockAnomalies": 0,
+    "exactCurrentProvenance": true,
+    "exactCurrentCalibration": true
+  },
+  "regressions": {
+    "initial": {
+      "command": "node --test scripts/ps1_mixer_calibration.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/pokey_mixer_calibration.test.mjs scripts/scsp_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs scripts/itch_web_calibration_baselines.test.mjs",
+      "tests": 339,
+      "passed": 338,
+      "failed": 1,
+      "failure": "The old SCSP policy verification still referenced the previous runtime hashes/calibration."
+    },
+    "resolution": {
+      "action": "Reran the official complete SCSP policy verification against the newly measured baseline, validated exact provenance/calibration, then installed that report.",
+      "command": "node --test scripts/scsp_mixer_calibration.test.mjs",
+      "tests": 10,
+      "passed": 10,
+      "failed": 0
+    },
+    "finalChecks": [
+      "Both official generator --check commands passed again.",
+      "git diff --check passed."
+    ],
+    "testsAndValidatorsChanged": false
+  }
+}

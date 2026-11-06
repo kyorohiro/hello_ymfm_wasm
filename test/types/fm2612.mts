@@ -25,6 +25,27 @@ import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonders
 import {WonderSwanWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
 import {Ps1Spu} from 'tetorica-fm2612/ps1_spu.js';
 import ps1Factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+import {SnesSynth,SNES_ECHO_RESERVED_BYTES,SNES_ECHO_MAX_SAMPLE_BYTES} from 'tetorica-fm2612/snessynth.js';
+import type {SnesEchoOptions,SnesEchoState} from 'tetorica-fm2612/snessynth.js';
+import type {SnesDspCore} from 'tetorica-fm2612/spc.js';
+declare const echoCore:SnesDspCore;
+const sdsp=new SnesSynth({core:echoCore});
+const echoOptions:Partial<SnesEchoOptions>={enabled:true,delay:4,feedback:-32,volumeLeft:32,volumeRight:-32,sendMask:255,fir:[127,0,0,0,0,0,0,0]};
+const directEcho:SnesEchoState=sdsp.setEcho(echoOptions);
+const echoIsAny:0 extends (1 & ReturnType<SnesSynth['getEcho']>)?true:false=false;
+const echoBudget:number=sdsp.getState().maxSampleBytes;
+directEcho.reserved.valueOf();sdsp.getEcho().fir[0].toFixed();SNES_ECHO_RESERVED_BYTES.toFixed();SNES_ECHO_MAX_SAMPLE_BYTES.toFixed();
+void [echoIsAny,echoBudget];
+// @ts-expect-error Echo flags are boolean, not register integers.
+sdsp.setEcho({enabled:1});
+// @ts-expect-error FIR is an ordinary signed coefficient array.
+sdsp.setEcho({fir:new Int8Array(8)});
+// @ts-expect-error Explicit null is not an omitted FIR setting.
+sdsp.setEcho({fir:null});
+// @ts-expect-error The safe Echo API does not accept arbitrary RAM addresses.
+sdsp.setEcho({startAddress:0});
+// @ts-expect-error The direct offline Synth returns its state synchronously.
+const directEchoPromise:Promise<SnesEchoState>=sdsp.getEcho();
 const experimentalSpu=await Ps1Spu.create({moduleFactory:ps1Factory,moduleOptions:{wasmBinary:new Uint8Array()}});
 const experimentalSpuPcm:{left:Float32Array;right:Float32Array}=experimentalSpu.generateStereo(128);
 experimentalSpu.write(0x180,0x3fff);experimentalSpu.reset({clearRam:false});experimentalSpu.dispose();

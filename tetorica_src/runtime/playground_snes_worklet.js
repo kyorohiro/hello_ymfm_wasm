@@ -5,8 +5,8 @@ import {SpcResampler} from './spc_resampler.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {SnesVoiceInspector} from './playground_snes_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
-const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
-const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','readDsp','getState','getPreset','snapshot']);
+const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setEcho','getEcho','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
+const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','setEcho','getEcho','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {
     super();this.synth=null;this.dead=false;this.remote=null;this.timelineCompletion=null;
@@ -20,8 +20,8 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
       },validate:({method,args=[]})=>{
         if(!METHODS.has(method))throw new Error('Unknown SNES method');
         if(['prepareTimeline','playTimeline','stopTimeline','getTimelineState'].includes(method))return;
-        if(method==='dispose'||['getState','snapshot','readDsp','getPreset'].includes(method))return;
-        if(method!=='loadBRR')this.validation[method](...args);
+        if(method==='dispose'||['getState','getEcho','snapshot','readDsp','getPreset'].includes(method))return;
+        if(!['loadBRR','setEcho'].includes(method))this.validation[method](...args);
       }});
     this.port.onmessage=({data})=>{
       if(data?.primaryWorker){
@@ -65,7 +65,7 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
     if(this.synth.timeline){this.synth.stopTimeline();this.resampler.reset(this.synth.core.nativeFrames);return;}
     // KOFF leaves a hardware release tail. Stop resets DSP execution, then
     // restores applied RAM/register settings without retriggering any channel.
-    const {ram,dsp}=this.synth.snapshot();this.synth.core.reset();this.synth.core.loadRam(ram);
+    const {ram,dsp}=this.synth.snapshot();if(this.synth.echoReserved)ram.fill(0,0,0x7800);this.synth.core.reset();this.synth.core.loadRam(ram);
     for(let register=0;register<128;register++)if(![0x4c,0x5c].includes(register)&&(register&15)!==8&&(register&15)!==9)this.synth.core.writeDsp(register,dsp[register]);
     this.synth.pendingKon=0;this.synth.koff=255;this.synth.konFrame=-1;this.inspector.gates=0;this.synth.core.writeDsp(0x4c,0);this.synth.core.writeDsp(0x5c,255);this.resampler.reset(this.synth.core.nativeFrames);
   }
@@ -77,7 +77,9 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
       if(['prepareTimeline','playTimeline','stopTimeline','reset'].includes(method)){
         this.synth.stopTimeline();this.finishTimeline('SNES timeline stopped or replaced');
       }
+      const beforeReserved=this.synth.echoReserved;
       const value=this.synth[method](...args);
+      if(method==='setEcho'&&beforeReserved!==this.synth.echoReserved){this.inspector.resetAuditions();this.resampler.reset();}
       if(method==='stopTimeline'&&this.synth.timeline)this.resampler.reset(this.synth.core.nativeFrames);
       if(method==='prepareTimeline'){
         this.performance.clear();this.resampler=this.timelineResampler;this.resampler.reset();
@@ -88,6 +90,7 @@ export class SnesInstrumentProcessor extends AudioWorkletProcessor {
         return;
       }
       if(method==='loadBRR')this.validation.loadBRR(...args);
+      else if(method==='setEcho')this.validation.setEcho(...args);
       else if(!queued&&!RESOURCE_METHODS.has(method))this.validation[method](...args);
       if(method==='reset'){this.resampler=this.instrumentResampler;this.resampler.reset();}
       if(id!==undefined)port.postMessage({id,value});

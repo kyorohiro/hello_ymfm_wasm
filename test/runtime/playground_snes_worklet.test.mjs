@@ -51,6 +51,19 @@ test('SNES Keyboard requires authored BRR, reads applied DSP without advancing, 
   inspector.invoke('auditionOn',[0,72,'new']);assert.equal(inspector.invoke('auditionOff',[0,'old']),false);assert.equal(inspector.read().channels[0].active,true);assert(peak(p.render(1024).left)>.01);assert(inspector.read().channels[0].pitch>preset.pitch,'MIDI uses declared BRR tuning');
   inspector.invoke('auditionOff',[0,'new']);p.render(2048);assert.equal(peak(p.render(128).left),0);assert.equal(inspector.read().channels[0].gain,100);assert.equal(inspector.read().channels[0].sample,0);
 });
+test('Main/Worker Echo RPC matches direct native DSP and Stop clears reserved Echo RAM while retaining its bank',async t=>{
+  const p=await setup(48000);t.after(()=>p.close());const core=await SnesDspCore.create({moduleFactory:p.factory,moduleOptions:{wasmBinary:p.wasmBinary}});t.after(()=>core.dispose());
+  const direct=new SnesSynth({core}),options={enabled:true,delay:2,feedback:48,volumeLeft:48,volumeRight:-32,sendMask:1,fir:[96,32,0,0,0,0,0,0]};
+  const actual=await p.client.setEcho(options);assert.equal(actual.reserved,true);direct.setEcho(options);
+  const sample=await p.client.loadBRR(brr,{rootNote:60,loopStartSamples:0}),other=direct.loadBRR(brr,{rootNote:60,loopStartSamples:0});
+  assert.equal(sample.startAddress,0x7c00);p.client.setPreset(0,{sample,gain:100,volumeLeft:24,volumeRight:24});direct.setPreset(0,{sample:other,gain:100,volumeLeft:24,volumeRight:24});
+  p.client.noteOn(0,60);direct.noteOn(0,60);await p.client.getState();const resampler=new SpcResampler(direct,48000,{sourceFrames:1});
+  for(const count of [128,17,1024,4096]){const a=p.render(count),left=new Float32Array(count),right=new Float32Array(count);resampler.render(left,right);assert.deepEqual(a.left,left);assert.deepEqual(a.right,right);}
+  const frame=p.processor.synth.core.nativeFrames;await p.client.setEcho({delay:15,feedback:-20});assert.equal(p.processor.synth.core.nativeFrames,frame);assert.equal((await p.client.getEcho()).feedback,-20);
+  assert((await p.client.snapshot()).ram.slice(0,0x7800).some(value=>value!==0));await p.client._stopVoices();
+  assert.equal(peak(p.render(8192).left),0);const state=await p.client.getState();assert.equal(state.echo.enabled,true);assert.equal(state.samples[0].startAddress,0x7c00);
+  p.client.noteOn(0,60);await p.client.getState();assert(peak(p.render(1024).left)>.001);
+});
 
 test('SNES manual channel survives Main/Worker preset, KOFF/KON masks and allNotesOff while another channel advances',async t=>{
   const p=await setup();t.after(()=>p.close());const processor=p.processor,inspector=processor.inspector,sample=await p.client.loadBRR(brr,{rootNote:69,loopStartSamples:0}),port={postMessage(){}};

@@ -66,6 +66,18 @@ test('Native SNES uploads real BRR/directory, generates DSP writes and physical 
   assert.equal((await snes.getPreset(0)).sample,0);assert.equal(await snes.readDsp(0),110);
   synth.mixer.set('snes',{muted:true});await synth.flush();assert.equal(f.commands().at(-1).message.volume,0);assert.deepEqual(f.errors,[]);
 });
+test('Native primary Echo RPC relocates real RAM atomically and keeps live signed DSP controls',async t=>{
+  const f=await fixture(t),snes=f.synth.snes,sample=await snes.loadBRR(wave(),{rootNote:60,loopStartSamples:0});
+  snes.setPreset(0,{sample,gain:100,volumeLeft:24,volumeRight:24});snes.noteOn(0,60);await f.synth.flush();
+  const echo=await snes.setEcho({enabled:true,delay:2,feedback:40,volumeLeft:48,volumeRight:-32});assert.equal(echo.reserved,true);
+  const state=await snes.getState();assert.equal(state.directoryAddress,0x7800);assert.equal(state.maxSampleBytes,33786);assert.equal(state.samples[0].startAddress,0x7c00);
+  let snapshot=await snes.snapshot();assert.deepEqual(snapshot.ram.slice(0x7c00,0x7c09),wave());assert.deepEqual([...snapshot.ram.slice(0x7800,0x7804)],[0,124,0,124]);
+  assert.equal(snapshot.dsp[0x5c],255);snes.noteOn(0,60);await f.synth.flush();
+  const left=new Float32Array(4096),right=new Float32Array(4096);f.core.renderInto(left,right);assert(left.some(value=>Math.abs(value)>.001));
+  await snes.setEcho({feedback:-20,fir:[96,32,0,0,0,0,0,0]});assert.equal((await snes.getEcho()).feedback,-20);
+  snapshot=await snes.snapshot();assert.equal(snapshot.dsp[0x0d],236);assert.equal(snapshot.dsp[0x1f],32);assert.deepEqual(snapshot.ram.slice(0x7c00,0x7c09),wave());
+  const count=f.commands().length;await assert.rejects(snes.setEcho({fir:null}),/FIR/);assert.equal(f.commands().length,count);assert.deepEqual(f.errors,[]);
+});
 test('SNES applied reads, per-voice Keyboard leases and Stop retain samples without replacing future state',async t=>{
   const f=await fixture(t),snes=f.synth.snes,inspector=f.synth.chipInspector,sample=await snes.loadBRR(wave(),{rootNote:69,loopStartSamples:0});
   snes.setPreset(0,{sample});snes.setPreset(1,{sample});await f.synth.flush();
