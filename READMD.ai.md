@@ -2,18 +2,19 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-06 (English handoff; readable distributions, source organization, and the initial standalone SID lab). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground and standalone SID Synth). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
 The user authorized an implementation-first order. Start with
 [`docs/issues/todo_sid_01.md`](docs/issues/todo_sid_01.md) and the linked core
 selection / Playground integration notes. The standalone 6581 register lab is
-at `docs/playground/sid-lab/index.html`. The next milestone adds regular **C64**
+at `docs/playground/sid-lab/index.html`. Regular **C64**
 mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
-instances, typed note / voice / shared-filter helpers and a read-only SID tab.
-See [the guide](docs/sid.md). It is not a complete Synth, `.sid` song player,
-newly published npm release or Native SDK API.
+instances, typed note / voice / shared-filter helpers and a read-only SID tab
+are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
+at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). These changes
+do not implement `.sid` song playback or publish a new npm release / Native SDK.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
 the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
 and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
@@ -29,7 +30,7 @@ with its separate receipt, while the fixed SDK remains unchanged.
 6581 filter / combined waves remain approximations; no 8580 model is provided.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
 External sidplayfp reference playback, timed register capture, Native SDK / audio
-integration and the keyboard Synth are subsequent TODO stages. The creation
+integration are subsequent TODO stages. The Playground creation
 clock is fixed (PAL default, optional NTSC); only model '6581' is supported.
 Filter mode 'off' disables filter outputs; dry playback requires routing:0.
 SID Mixer gain is explicit unmeasured unity, preserving every measured gain.
@@ -38,6 +39,21 @@ routing additions and reconstructs the pre-SID bytes for legacy calibration
 freshness checks. It never changes measurement reports or permits arbitrary
 future renderer/gain edits. Do not regenerate that receipt without reviewing
 the complete change and rerunning the focused rejection tests.
+
+`docs/synth-sid/` uses the unchanged core / SidSynth, fixed PAL 985248 Hz and
+strict `tetorica-sid-voice` v1 presets. Normal allocation uses three physical
+voices; Sync / Ring switches to one carrier (voice 1) and silent oscillator
+source (voice 3), with software ratio and Pitch. Live edits preserve ownership;
+topology / TEST changes, preset load and Stop clear held notes, tails and Pitch.
+Hardware ADSR / rapid Gate quirks remain unmodified. The shared filter is
+register based; selecting its mode enables it, disabling it routes carriers
+dry. Master is separate software gain 0..3.8. Audio creation is lazy and startup
+cancel / fatal retry retire old engines. Preset JSON, code export, two Pitch
+wheels, focus handling, passive post-Master visualization and readable source
+distribution follow the other Synths. Use `npm run test:sid-synth`,
+`npm run test:sid-synth:browser`, and `sh scripts/package_itch_sid_synth.sh dev`.
+The independent ZIP includes original browser modules / CSS, matching native
+sources, licenses, rebuild instructions and hash-checked source inputs.
 This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
 ## Check these first

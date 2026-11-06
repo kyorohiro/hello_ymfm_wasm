@@ -45,16 +45,31 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 4. Synth／配布
 
-- [ ] 既存FM2612／SPU／DMG等と同じ操作感で、3声の割当、wave／Pulse幅、ADSR、shared filter、Sync／Ringを操作する。
-- [ ] shared filterと実voice間の依存、hardware機能とsoftware割当・modulationを区別する。
-- [ ] preset保存／復元、可読JavaScript出力、keyboard focus、2箇所Pitch、Master380%、waveform／spectrumへ接続する。
-- [ ] readable source付きWeb ZIP、README en／ja／AI、home、Native例を更新する。名称・iconは後で決める。
+### 独立Synthの今回の作業（2026-11-06）
+
+ユーザーの「進めて」により、通常Playgroundの検証済みSidCore／SidSynthを使う独立Synthを開始する。
+仮称 **Tetorica SID Synth**、product id `tetorica-sid-synth`、入口 `docs/synth-sid/index.html`。
+初版は6581近似・PAL985,248Hz、Native SDK／既存校正値を変えず、共有runtime／WASMも再利用する。
+名称専用iconは今回新規生成せず、既存シリーズと整合する明るい筐体色とcompact controlsで作る。
+
+- [x] strict v1 portable preset（wave／Pulse幅／hardware ADSR／TEST／Sync・Ring／software modulator ratio／shared filter・chip volume）と可読Playground JavaScript出力を実装する。
+- [x] 通常は実3voiceをround-robinで割当。steal後の古い離鍵を無効化し、hardware release中のvoiceも保持する。Sync／Ring時はsilent voice3→carrier voice1の1pairへ切り替え、最大1音にする。
+- [x] Pulse幅／ADSR／filter／resonance／chip volume／ratio／Pitchは保持音へ反映する。pair topology変更・preset load・Stopは所有権と尾音を安全に破棄する。発音・pitch範囲エラーは現在音を保持して拒否する。
+- [x] AudioWorkletで実coreをrenderし、lazy audio・startup中Stop・障害時の無音化／retry・FIFOのpreset反映を整備する。既存の最終Master0..380%と100%超orange、Waveform／Spectrumを使う。
+- [x] 既存Synthのcompact keyboard／Octave、2箇所Pitch、stepper／slider、演奏を妨げないfocus、折りたたみ、save/load presetとCopy JavaScriptへ接続する。hardware機能とsoftware割当／ratioを明示する。
+- [x] unit／実WASM／Chromium・WebKit／独立ZIPで3音・pair・live編集・保存復元・出力・keyboard・startup取消を検証する。可読JS／CSS・対応source／license／再ビルド手順を同梱しREADME・CI・再開記録を更新する。
+
+- [x] 既存FM2612／SPU／DMG等と同じ操作感で、3声の割当、wave／Pulse幅、ADSR、shared filter、Sync／Ringを操作する。
+- [x] shared filterと実voice間の依存、hardware機能とsoftware割当・modulationを区別する。
+- [x] preset保存／復元、可読JavaScript出力、keyboard focus、2箇所Pitch、Master380%、waveform／spectrumへ接続する。
+- [x] readable source付きWeb ZIP、README en／ja／AI、home、既存Native例・再ビルド手順への入口を用意する。
+- [ ] 人が実聴し、和音／Pulse幅／ADSR／filter／Sync／Ringを確認する。専用iconと正式名称は別途決める。
 - [ ] Webの実聴後にTauri版を検討する。
 
 ## 再開メモ
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
-通常Playground modeは下記第2段階で対応した。package-root raw chip factory／Native出力／Synth／SID曲再生は後続。
+通常Playground modeは下記第2段階、独立Synthは第3段階で対応した。package-root raw chip factory／Native出力／SID曲再生は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
 
@@ -132,8 +147,43 @@ TODOを作成してから調査を開始した。第1段階のcore／Native・WA
 - [ガイド](../sid.md)、README en／ja／AI、source kit、配布チェック、SID CI workflowを更新した。
   GitHub上のCI実行／commit／push／npm公開／tag作成は今回行っていない。
 
-次は人がC64 modeの3例とfilterを試聴する。実装候補は **SID Synthの鍵盤／3声の割当／shared filter UI**。
+第2段階終了時の候補だった **SID Synthの鍵盤／3声の割当／shared filter UI** は下記第3段階で対応した。
+人がC64 modeの3例とfilterを試聴する作業は残る。
 外部sidplayfpや実機との比較、PSID／RSID program実行／register trace、Native SDK／出力は独立した後続として残る。
+
+## 第3段階: 独立SID Synth（2026-11-07）
+
+- 仮称 **Tetorica SID Synth** を `docs/synth-sid/index.html` に追加。
+  固定PAL985,248Hz・6581近似の既存SidCore／SidSynthを再利用し、共有runtime／WASM／既存校正値を変更していない。
+  固定SDK33 buildsを保持し、runtime artifacts全体の68 outputs／75 mirrors、両Mixer policyのcheckも成功した。
+- 通常は3実voiceのround robin。未使用／envelope0、古いrelease tail、古いheldの順に割り当て、stale noteOffを拒否する。
+  Sync／Ring時はsilent voice3→carrier voice1の1pair・最大1音。ratio／Pitch／鍵盤割当はsoftwareと画面で区別する。
+  RingはTriangleのみ。sourceのGateはOFF、filter routing対象外・voice3offで、位相によるhardware couplingを使う。
+- wave／Pulse幅／ADSR／filter／resonance／chip volume／ratio／Pitchのlive編集はheld所有権と位相を保持。
+  範囲外のnote／ratio／Pitchはrelease中のvoiceも含め事前検証し原音を保持する。
+  Sync／Ring／TEST変更・preset load・Stopはheld／tailをflushしPitch0へ戻す。
+  実SIDのrapid Gate／ADSR255のwrap・freeze挙動はraw coreと一致させ、software envelopeの補正を追加していない。
+- 最初の鍵盤／Enable時だけaudioを作る。startup中の離鍵・Stop、fatal後の無音化と明示retry、FIFO ACKを検証した。
+  coalesceされたload／topologyのreset義務をlatestへ継承し、古いStop ACK／連続invalid Pitch／未ACK draftでheld keyを失う競合も修正した。
+- compact keyboard／Octave、2箇所Pitch、stepper／slider、演奏を妨げないfocus、折りたたみ、post-Master Waveform／Spectrumを接続。
+  Masterは0..380%、100%超はorange。filter modeの選択で自動Enableし、OFF時はdryへrouteする。
+  strict v1 JSONは最大64KiB、cancel／invalidは既存presetを保持。Copy JavaScriptは同じC64 APIで試奏できる。
+- `npm run test:sid-synth`: **42件成功**。実WASM44.1／48／96kHzで独立した手書きregister列とのPCM完全一致、
+  Copy JavaScriptの実行・PCM一致、割当／尾音／配線／live編集／atomic reject／startup取消／UI競合を確認した。
+  最終CSS変更後にも配布テスト2件を再実行し成功。
+- [Source browser](sid_synth_browser_01.json)／[実ZIP browser](sid_synth_zip_browser_01.json)は、
+  **Chromium／WebKit各11項目、計44チェック成功**。実PCMのfilter変化、380%とMaster比率、rapid load／topology、
+  error復帰、390pxの横overflow0、閉じたpanelの高さを確認した。page／console／HTTP error・外部通信は0。
+  speakerは最終gain0で無音化し、人の実聴は行っていない。Stop後の実PCMはRMS／peak0。
+- [配布記録](sid_synth_package_01.json): `release/tetorica_sid_synth_0.0.1_itch.zip`、
+  **57 files／234,160 bytes**、SHA-256 `93b905423e26d7b33b8e5c8a1713a94ca05e1e35077b109643b354000779d501`。
+  可読JS／CSS14 modules、26個の元browser入力とhash receipt、元WASM、13個のNative build入力、原本／license／再ビルド手順を同梱。
+  独立した2回のpackagingでZIP byte一致、全元入力と最終sourceのhash一致、CRC、local import／WASMのclosureを確認した。
+- README en／ja／AI、両home、feature status、Synth guide、配布手順と `.github/workflows/sid-synth.yml` を更新。
+  GitHub上のActions実行・commit／push・tag・公開は行っていない。
+
+次は人が `/synth-sid/index.html` で3声、Pulse幅、ADSR、filterのCutoff／Resonance、TriangleのRingとSyncを実聴する。
+名称／専用iconを決め、Webの実聴後にTauriを検討する。SID曲／音色抽出、外部reference／実機比較、Native出力は別TODOとして残る。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

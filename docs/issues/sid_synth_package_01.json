@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "product": "Tetorica SID Synth",
+  "productId": "tetorica-sid-synth",
+  "version": "0.0.1",
+  "date": "2026-11-07",
+  "artifact": {
+    "path": "release/tetorica_sid_synth_0.0.1_itch.zip",
+    "bytes": 234160,
+    "sha256": "93b905423e26d7b33b8e5c8a1713a94ca05e1e35077b109643b354000779d501",
+    "files": 57,
+    "crcVerified": true
+  },
+  "browserInputs": {
+    "receipt": "sources/sid-synth-browser.json",
+    "archive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 87709,
+      "sha256": "7f084938963cad03c614d9581553124a998dd1fca04c30849e7e7b33d0fa9553"
+    },
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "modules": 14,
+    "inputs": 26
+  },
+  "native": {
+    "receipt": "generated/sid/sid-build.json",
+    "inputFiles": 13,
+    "wasm": {
+      "bytes": 14502,
+      "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+    },
+    "sourceGuide": "sources/SID.md"
+  },
+  "verification": {
+    "unit": {
+      "command": "npm run test:sid-synth",
+      "passed": 42,
+      "failed": 0
+    },
+    "finalPackageTests": {
+      "command": "node --test scripts/package_itch_sid_synth.test.mjs",
+      "passed": 2,
+      "failed": 0
+    },
+    "browser": {
+      "status": "passed",
+      "sourceReport": "docs/issues/sid_synth_browser_01.json",
+      "zipReport": "docs/issues/sid_synth_zip_browser_01.json",
+      "zipEntry": "/index.html",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "checkerSha256": "2fc6ebdc46e379633728d044a8e925bf7328227ff2e548b649bf1e76109b67ae",
+      "runs": [
+        {
+          "report": "docs/issues/sid_synth_browser_01.json",
+          "engines": [
+            {
+              "engine": "chromium",
+              "version": "153.0.8010.12",
+              "checks": 11
+            },
+            {
+              "engine": "webkit",
+              "version": "26.6",
+              "checks": 11
+            }
+          ]
+        },
+        {
+          "report": "docs/issues/sid_synth_zip_browser_01.json",
+          "engines": [
+            {
+              "engine": "chromium",
+              "version": "153.0.8010.12",
+              "checks": 11
+            },
+            {
+              "engine": "webkit",
+              "version": "26.6",
+              "checks": 11
+            }
+          ]
+        }
+      ],
+      "checksTotal": 44
+    },
+    "runtimeArtifacts": {
+      "sdkBuilds": 33,
+      "outputs": 68,
+      "mirrors": 75,
+      "passed": true
+    },
+    "playgroundMixerPolicyCheck": true,
+    "soundChipMixerPolicyCheck": true,
+    "archiveInputsMatchFinalSource": true
+  },
+  "scope": {
+    "model": "6581 approximation",
+    "clockHz": 985248,
+    "nativeAudioOutput": false,
+    "sidSongPlayback": false,
+    "sourceModulesUnminified": true
+  },
+  "publication": {
+    "published": false,
+    "commitCreated": false,
+    "tagCreated": false
+  },
+  "remaining": [
+    "Human listening and real SID reference comparison",
+    "Choose final name and dedicated icon",
+    "Consider Tauri after web listening"
+  ]
+}

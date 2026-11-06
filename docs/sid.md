@@ -9,9 +9,13 @@ their Gate / ADSR / oscillator settings, shared filter and written register
 shadow. Opening the tab alone does not create an audio device. The tab is
 read-only at this stage; edit the code to change the sound.
 
-The standalone [SID Register Lab](playground/sid-lab/index.html) remains available
-for slider-based filter / waveform experiments. A keyboard Synth and `.sid`
-song player are separate later stages, tracked in [the TODO](issues/todo_sid_01.md).
+For keyboard playing, open [Tetorica SID Synth](synth-sid/index.html): three-voice
+allocation, hardware ADSR, Pulse width and shared filter, with a one-note Sync /
+Ring pair, portable presets and readable JavaScript export. See its
+[guide](synth-sid/README.md). The standalone
+[SID Register Lab](playground/sid-lab/index.html) remains available for register
+experiments. A `.sid` song player is a separate later stage, tracked in
+[the TODO](issues/todo_sid_01.md).
 
 ## Musical and register controls
 

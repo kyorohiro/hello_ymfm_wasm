@@ -1,0 +1,77 @@
+@import url('../synth-spu/synth.css');
+
+/* A folded card keeps its summary height beside an open grid neighbour. */
+.sid-card:not([open]) { align-self:start; }
+
+:root { --bg:#d7cdb5; --panel:#ebe3d0; --ink:#3d352b; --muted:#746857; --accent:#167f82; --accent-dark:#13696c; --line:#bdb097; background:var(--bg); }
+body { background:linear-gradient(145deg,#f3edde,var(--bg) 75%); }
+main { max-width:1160px; padding-top:18px; }
+.masthead { margin-bottom:16px; }
+.synth-shell { padding:23px; border-color:#a39880; background:linear-gradient(145deg,#faf5e7,var(--panel) 42%,#dcd1b9); box-shadow:inset 0 1px #fffc,inset 0 0 0 5px #e2d8c2,0 15px 40px #5e4a2826; }
+.synth-heading { padding-bottom:12px; }
+h1 { font-size:clamp(1.9rem,4vw,2.7rem); } h1>.product-name { color:#574635; }
+.description { margin-top:7px; } .eyebrow { margin-bottom:7px; color:#837057; }
+.engine-badge { color:#f3eada; background:#5b4b3c; border-color:#7c6851; font-size:1.1rem; }
+.engine-badge span { color:#d8c5a6; }
+.primary { background:linear-gradient(#239d9c,#14777a); border-color:#136d70; }
+.primary:hover { background:#19898b; border-color:#0f6265; }
+button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
+.audio-toolbar { margin-top:16px; }
+#masterVolume[data-boosted="true"] { accent-color:#e18430; }
+#masterVolumeValue[data-boosted="true"] { color:#a75216; font-weight:800; }
+.audio-status { margin-top:9px; color:#5d6f65; }
+.audio-status[data-error="true"] { color:#a1392c; }
+.sid-monitor { margin-bottom:16px; border-color:#81745f; background:#273330; }
+.sid-monitor>p { color:#b7c9c0; margin:6px 0 9px; font-size:.7rem; }
+.sid-monitor .visual-mode-controls button[aria-pressed="true"] { background:#285b51; border-color:#7fb5a8; }
+.monitor-body { min-height:165px; }
+#outputCanvas { width:100%; height:165px; display:block; }
+.monitor-pitch { flex-basis:51px; border-color:#4f6b63; background:#172d29; }
+.monitor-pitch input { height:112px; min-height:90px; accent-color:#64b7ac; }
+.sid-workspace>.section-heading { margin:0 0 10px; justify-content:space-between; }
+#patchStatus { font-size:.7rem; color:var(--muted); margin:0; }
+#patchStatus[data-busy="true"] { color:#a26222; }
+.sid-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.sid-card { min-width:0; border:1px solid var(--line); border-radius:9px; background:#f7f1e3b8; }
+.sid-card>summary { cursor:pointer; padding:12px 14px; font-size:.83rem; font-weight:800; color:#5a4a37; }
+.sid-card-content { min-width:0; padding:2px 14px 14px; }
+.sid-wide { grid-column:1/-1; }
+.sid-fields { display:flex; flex-wrap:wrap; align-items:end; gap:12px 14px; }
+.sid-field { display:flex; min-width:0; max-width:100%; flex:1 1 125px; flex-direction:column; gap:6px; font-size:.72rem; color:var(--muted); }
+.sid-field>span { line-height:1.35; }
+.sid-choice-field { flex-basis:100%; }
+.sid-choice-group { display:flex; flex-wrap:wrap; gap:5px; }
+.sid-choice-group button { flex:1 1 auto; min-width:0; padding:6px 10px; min-height:33px; font-size:.72rem; border-radius:999px; }
+.sid-choice-group button[aria-checked="true"] { background:#167f82; border-color:#126b6e; color:#f6fbf5; }
+.sid-check { flex-direction:row; align-items:center; flex-basis:100%; min-height:28px; color:#4f5d4a; font-weight:700; }
+.sid-slider { flex-basis:calc(50% - 8px); }
+.sid-slider input { width:100%; margin:0; min-height:23px; }
+.param-control { display:grid; grid-template-columns:30px minmax(25px,1fr) 30px; align-items:center; width:100%; min-height:36px; border:2px solid #7c8e7e; border-radius:999px; background:linear-gradient(#42483d,#32392f); color:#f6f0da; box-shadow:inset 0 1px #fff2; }
+.param-button,.param-value { background:transparent; border:0; border-radius:999px; box-shadow:none; color:inherit; padding:0; min-height:30px; line-height:1; }
+.param-button { font-size:1.35rem; }.param-value { font-size:.96rem; font-weight:850; cursor:ew-resize; touch-action:none; }
+.param-control button:hover { color:#fff; border:0; background:#fff1; }.param-control button:active { background:#fff2; }
+.param-value.is-dragging { color:#ffd194; }
+.sid-field[data-disabled="true"] { opacity:.5; }
+.sid-help { font-size:.7rem; color:var(--muted); line-height:1.55; margin:10px 0 0; }
+.sid-help[data-warning="true"] { color:#9a5724; }
+.sid-advanced { padding-top:10px; }.sid-advanced>summary { font-size:.7rem; color:var(--muted); cursor:pointer; margin-bottom:8px; }
+.sid-capacity { font-size:.71rem; font-weight:750; color:#276f67; margin:10px 2px 12px; overflow-wrap:anywhere; }
+.preset-tools { margin:12px 0; }.preset-actions { align-items:center; gap:9px; }
+.preset-actions .sid-help { flex-basis:100%; margin:0; }
+.instrument-name-control { flex:1 1 210px; }.instrument-name-control input { min-width:80px; width:150px; flex:1; border-color:var(--line); background:#fffaf0; }
+#codeOutput { flex:1 0 100%; width:100%; min-width:0; max-height:260px; padding:12px; border:1px solid #758076; border-radius:7px; background:#202b28; color:#d5eadc; font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; }
+.keyboard-section { margin-top:16px; }.keyboard-section>.section-heading { margin-bottom:8px; }.keyboard-toolbar p { margin:0; }
+.keyboard-mount { flex:1 1 0; min-width:0; }.performance-keyboard { margin-top:8px; }
+.keyboard-mount .active,.keyboard-mount .is-active,.keyboard-mount [aria-pressed="true"] { background:linear-gradient(#abd6bf,#7fb4a1); border-color:#438974; color:#1f493c; box-shadow:inset 0 -2px #589a83; }
+.keyboard-section .toolbar-button.is-selected { background:#167f82; border-color:#268487; }
+footer { line-height:1.6; margin-top:18px; }footer p { flex:1 1 600px; }footer div { display:flex; flex-wrap:wrap; gap:5px; }
+@media(max-width:640px) {
+  main { padding:12px 8px 20px; }.synth-shell { padding:15px 11px; }.masthead { margin:0 4px 12px; }
+  .title-row { gap:10px; }.engine-badge { padding:9px 10px; font-size:.9rem; }.engine-badge span { font-size:.43rem; }
+  .sid-editor { grid-template-columns:minmax(0,1fr); gap:10px; }.sid-wide { grid-column:auto; }
+  .sid-card>summary { padding:10px 11px; }.sid-card-content { padding:2px 11px 12px; }.sid-fields { gap:10px; }
+  .sid-field { flex-basis:calc(50% - 5px); }.sid-choice-field,.sid-check { flex-basis:100%; }
+  .sid-slider { flex-basis:100%; }.audio-toolbar { gap:12px; }.master-control { width:100%; justify-content:flex-end; }
+  .monitor-body { min-height:150px; }#outputCanvas { height:150px; }.monitor-pitch input { min-height:85px; height:95px; }
+  .keyboard-section>.section-heading { align-items:start; }.keyboard-section>.section-heading p { font-size:.64rem; }
+}

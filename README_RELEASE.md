@@ -36,7 +36,7 @@ npm run check:runtime-artifacts
 
 ## SynthとTauriへ渡すソース
 
-DMG／2A03／HuC6280／SPU／SCSPの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
+DMG／2A03／HuC6280／SPU／SCSP／SIDの配布は、`docs/`のJavaScript／CSSを元のファイル分割・
 コメント・識別子のままコピーします。`copy_readable_modules.mjs`は依存関係の
 調査だけにesbuildを使い、bundleやminifyされた出力を配布しません。
 `synth-*/`、`js/`、共有UIのファイルを直接編集して試せます。
@@ -48,7 +48,13 @@ sh scripts/package_itch_2a03_synth.sh VERSION
 sh scripts/package_itch_huc6280_synth.sh VERSION
 sh scripts/package_itch_spu_synth.sh VERSION
 sh scripts/package_itch_scsp_synth.sh VERSION
+sh scripts/package_itch_sid_synth.sh VERSION
 ```
+
+SIDの配布は別receipt付きの6581 WASMとmatching source kitを使い、固定SDK snapshotは変更しません。
+`npm run test:sid-synth`と`npm run test:sid-synth:browser`で確認できます。
+SID SynthのZIPは`release/tetorica_sid_synth_VERSION_itch.zip`へ生成され、同名ZIPは上書きしません。
+展開したZIPも、`node scripts/check_sid_synth_browser.cjs --root 展開先 --entry /index.html`で検証できます。
 
 Tauriリポジトリでは、新しいZIPを`npm run import:release -- /path/to/ZIP`で取り込み、
 `dist/`と`release.lock.json`を一緒にcommitします。配布元の元ソースZIPとreceiptも保持します。

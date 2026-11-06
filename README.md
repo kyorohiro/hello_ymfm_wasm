@@ -3,7 +3,7 @@
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
 Tetorica is a toolkit for learning, playing and embedding many retro sound chips:
-Yamaha FM, Sega PSG, Game Boy / NES APUs, SNES S-DSP, PlayStation SPU, Saturn SCSP and more.
+Yamaha FM, Sega PSG, Game Boy / NES APUs, SNES S-DSP, PlayStation SPU, Saturn SCSP, C64 SID and more.
 [Try the chips immediately in the browser Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html), with no installation.
 
 For your own apps and games, the **[`tetorica-fm2612` npm package](https://www.npmjs.com/package/tetorica-fm2612)**
@@ -62,7 +62,8 @@ loaders are accompanied by their corresponding sources and rebuild instructions.
 | [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engine wavetable PSG, Noise, paired LFO, waveform drawing, five-bit DDA PCM audio, software ADSR, VGM / VGZ Wave / Noise / LFO / DAC-stream and direct-DAC PCM import and portable presets / JavaScript. English UI; [guide](docs/synth-huc6280/README.md). |
 | [S-DSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-snes/index.html) | SNES eight-voice BRR / hardware Noise, ADSR / GAIN and shared Echo / FIR. Four-note hardware PMON uses a drawn Wave or BRR modulator with independent tuning / envelope on one shared canvas. Import SPC voices, optional isolated PMON pairs and Echo; load WAV / raw BRR into either sample target. Save both samples in portable v5 presets (strict v1–v4 migration) or copy JavaScript using existing APIs. [Guide](docs/synth-snes/README.md). |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | Experimental Saturn PCM instruments, waveform drawing / import, envelopes and LFO. |
-| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | Experimental 6581: three voices, ADSR, Sync / Ring and shared filter through readable Main / Worker code, with an applied-state SID tab. [Guide](docs/sid.md) · [standalone filter lab](docs/playground/sid-lab/README.md). SID song playback and a keyboard Synth are later stages. |
+| [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | Experimental C64 6581: three-voice keyboard, Pulse width, hardware ADSR, shared filter and one-note Sync / Ring pair. Save portable presets or copy readable JavaScript. [Guide](docs/synth-sid/README.md). |
+| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | Experimental 6581: three voices, ADSR, Sync / Ring and shared filter through readable Main / Worker code, with an applied-state SID tab. [Guide](docs/sid.md) · [standalone filter lab](docs/playground/sid-lab/README.md). SID song playback is a later stage. |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | Playback, chip/channel inspection, supported sample / FM voice extraction and reference transcriptions. |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | A separate macOS MIDI live-coding app; [source and releases](https://github.com/kyorohiro/tetorica-midi-playground). |
 | [YM2612 introduction](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html) | Learn FM synthesis and the chip through JavaScript. |
@@ -88,6 +89,7 @@ These are representative systems, not a guarantee that every game's music or ins
 | Super Famicom / SNES | SPC song playback, BRR instruments, experimental note analysis / editable JavaScript. |
 | PlayStation 1 | SPU instruments and static VAB extraction from PSF1 / MiniPSF sets; **not PSF song playback**. |
 | Sega Saturn | Experimental SCSP instruments / register APIs; **no SSF song playback or 68000 execution**. |
+| Commodore 64 | Experimental 6581 SID instruments, shared filter and Main / Worker Playground APIs; **no PSID / RSID song playback or 8580 model**. |
 | Atari 8-bit, WonderSwan | POKEY and WonderSwan sound cores; see the Analyzer table for file / analysis limits. |
 
 | Input | Supported workflow |
@@ -112,7 +114,7 @@ Playback support, instrument editing and note transcription are separate capabil
 | Yamaha OPLL / OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
 | PSG / wavetable / console | AY-3-8910 / YM2149, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649 / K052539, POKEY, WonderSwan |
 | PCM / ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295, MSM5205 |
-| Standalone instruments / players | [PS1 SPU](docs/ps1_spu.md), [Saturn SCSP](docs/scsp.md), SNES S-DSP / SPC700, MSFA DX7 |
+| Standalone instruments / players | [PS1 SPU](docs/ps1_spu.md), [Saturn SCSP](docs/scsp.md), SNES S-DSP / SPC700, MSFA DX7, [experimental SID 6581](docs/sid.md) |
 
 The package-root `createSoundChip()`, Playground's `createSoundChip()` / `useSoundChip()`,
 standalone classes and high-level Synth APIs have different entry points and coverage.

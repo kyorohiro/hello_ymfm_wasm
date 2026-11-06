@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tetorica SID Synth: explore three 6581 voices, pulse width, ADSR and the shared SID filter. Play, edit and take the readable code.">
+  <meta name="theme-color" content="#e5dbc4">
+  <meta name="application-name" content="Tetorica SID Synth">
+  <meta name="apple-mobile-web-app-title" content="Tetorica SID Synth">
+  <title>Tetorica SID Synth</title>
+  <link rel="icon" href="../playground-favicon.ico">
+  <link rel="stylesheet" href="./synth.css">
+</head>
+<body>
+<main>
+  <header class="masthead">
+    <a class="laboratory-link" href="../index.html">Tetorica <span>Sound Laboratory</span></a>
+    <nav aria-label="Sound Laboratory"><a href="../synth/index.html">FM2612 Synth</a><a href="../synth-spu/index.html">SPU Synth</a><a href="../playground/index.html?mode=c64">Playground</a></nav>
+  </header>
+  <article class="synth-shell" aria-labelledby="synthTitle" data-product-id="tetorica-sid-synth">
+    <header class="synth-heading">
+      <div class="title-row">
+        <div class="product-copy"><p class="eyebrow">THREE VOICES · ONE SHARED FILTER</p><h1 id="synthTitle">Tetorica <span class="product-name">SID Synth</span></h1><p class="description">Play the 6581. Shape the filter. Take the code.</p></div>
+        <span class="engine-badge">6581 <span>PAL · APPROXIMATION</span></span>
+      </div>
+      <div class="audio-toolbar">
+        <div class="transport-actions"><button id="startAudio" class="primary" type="button">Enable audio</button><button id="stopAudio" type="button">Stop all sound</button></div>
+        <label class="master-control" for="masterVolume"><span>Master</span><input id="masterVolume" type="range" min="0" max="3.8" step="0.01" value="0.7" aria-label="Master volume, 0 to 380 percent"><output id="masterVolumeValue" for="masterVolume">70%</output></label>
+      </div>
+      <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
+    </header>
+
+    <section class="spu-monitor sid-monitor" aria-label="Live output monitor">
+      <div class="visual-mode-controls" role="group" aria-label="Audio visualization"><button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button><button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div>
+      <p>Live output after Master volume.</p>
+      <div class="monitor-body"><div class="monitor-plot"><canvas id="outputCanvas" width="900" height="180" role="img" aria-label="Live SID audio visualization"></canvas></div>
+        <label class="monitor-pitch" for="pitchBend" title="Software pitch bend, ±2 semitones. Release to return to center."><span>Pitch</span><input id="pitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Display pitch bend, minus two to plus two semitones"><output id="pitchValue" for="pitchBend">+0.00</output></label>
+      </div>
+    </section>
+
+    <section class="sid-workspace" aria-labelledby="voiceHeading">
+      <div class="section-heading"><h2 id="voiceHeading">Your sound</h2><p id="patchStatus" role="status">Ready · edits apply automatically.</p></div>
+      <div id="voiceEditor" class="sid-editor"></div>
+      <p id="voiceCapacity" class="sid-capacity">3 voices · round robin · 0 held</p>
+    </section>
+
+    <details id="presetTools" class="sid-card preset-tools"><summary>Preset · save, load and JavaScript</summary>
+      <div class="sid-card-content preset-actions">
+        <label class="instrument-name-control" for="instrumentName">Name <input id="instrumentName" type="text" maxlength="80" value="Saw" autocomplete="off"></label>
+        <button id="savePreset" type="button">Save preset…</button><button id="loadPreset" type="button">Load preset…</button><button id="resetPreset" type="button">Reset</button><button id="copyCode" type="button">Copy JavaScript</button>
+        <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a SID voice preset">
+        <textarea id="codeOutput" readonly hidden spellcheck="false" aria-label="Readable SID voice JavaScript"></textarea>
+        <p class="sid-help">Portable SID voice JSON, up to 64 KiB. Loading resets held notes and Pitch. JavaScript opens the same sound in Playground C64 mode.</p>
+      </div>
+    </details>
+
+    <section class="keyboard-section" aria-labelledby="keyboardHeading">
+      <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays this sound. No keyboard split.</p></div>
+      <div class="keyboard-toolbar"><div class="octave-control" role="group" aria-label="Keyboard octave"><button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button><span>Octave <output id="octaveValue">+0</output></span><button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button></div><p class="keyboard-hint">When full, the oldest held note is replaced.</p></div>
+      <div id="keyboardFretboard"></div>
+      <div class="performance-keyboard"><label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center."><span>Pitch</span><input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones"><output id="keyboardPitchValue" for="keyboardPitchBend">+0.00</output></label><div id="keyboard" class="keyboard-mount"></div></div>
+    </section>
+    <footer><p>CPU-free 6581 approximation · PAL 985,248 Hz · chips/m6581 core. Waveforms, ADSR, Sync, Ring and the shared filter are SID controls. Round robin, note mapping, Pitch and modulator ratio are software performance tools. The core includes a software DC blocker. No 8580, PSID/RSID song playback or Native output.</p><div><a href="../playground/index.html?mode=c64">Open Playground</a> · <a href="../sid.md">SID guide</a> · <a href="./synth.js">Application source</a> · <a href="../js/sidsynth.js">SID API source</a></div></footer>
+  </article>
+  <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
+</main>
+<script type="module" src="./synth.js"></script>
+</body>
+</html>

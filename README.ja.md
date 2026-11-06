@@ -3,7 +3,7 @@
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
 Tetoricaは、多数のレトロ音源チップを学び、演奏し、自分のアプリへ組み込むためのツールキットです。
-Yamaha FM、Sega PSG、ゲームボーイ／NES APU、SNES S-DSP、PlayStation SPU、Saturn SCSPなどに対応しています。
+Yamaha FM、Sega PSG、ゲームボーイ／NES APU、SNES S-DSP、PlayStation SPU、Saturn SCSP、C64 SIDなどに対応しています。
 [ブラウザーのPlaygroundですぐに試せます](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html)。インストールは不要です。
 
 自作アプリやゲームには、**[npmパッケージ`tetorica-fm2612`](https://www.npmjs.com/package/tetorica-fm2612)**を使えます。
@@ -62,7 +62,8 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの波形メモリーPSG、Noise、LFOペア、波形描画、音声の5bit DDA PCM再生、ソフトウェアADSR、VGM／VGZのWave／Noise／LFO／DACストリーム・直接DAC PCM抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
 | [S-DSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-snes/index.html) | SNESの8声BRR／hardware Noise、ADSR／GAIN、共有Echo／FIRを操作。最大4音のhardware PMONはWave／BRR変調音源と独立tuning／Envelopeに対応し、同じcanvasで編集・previewできます。SPC音色と任意の単純PMON pair／Echo取り込み、両sample対象へのWAV／raw BRR読込、両音源を含むv5保存（strict v1〜v4移行）・既存APIのJavaScript出力に対応。[ガイド](docs/synth-snes/README.md)。 |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
-| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。SID曲再生と鍵盤Synthは後続です。 |
+| [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | 実験的なC64 6581の3声鍵盤、Pulse幅、hardware ADSR、共有filter、1音のSync／Ringペア。portable preset保存・可読JavaScript出力に対応。[ガイド](docs/synth-sid/README.md)。 |
+| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。SID曲再生は後続です。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
 | [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |
@@ -88,6 +89,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
 | PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
+| Commodore 64 | 実験的な6581 SID音色、共有filter、Main／WorkerのPlayground API。**PSID／RSID曲再生・8580モデルは未対応**です。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
 | 入力 | 対応する使い方 |
@@ -112,7 +114,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | Yamaha OPLL／OPL | YM2413、YM3526、YM3812、Y8950、YMF262、YMF278B |
 | PSG・波形メモリー・ゲーム機音源 | AY-3-8910／YM2149、Sega PSG、Game Boy APU、NES APU＋FDS、HuC6280、K051649／K052539、POKEY、WonderSwan |
 | PCM／ADPCM | RF5C164、Sega PCM、OKIM6258、OKIM6295、MSM5205 |
-| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7 |
+| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7、[実験的なSID 6581](docs/sid.md) |
 
 npmルートの`createSoundChip()`、Playgroundの`createSoundChip()`／`useSoundChip()`、
 独立したクラス、高水準Synth APIは、入口と対応範囲が異なります。

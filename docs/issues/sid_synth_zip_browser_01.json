@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "entry": "/index.html",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "lazy local UI and first keyboard press/release during delayed WASM loading",
+        "three-voice round robin, fourth-note steal and harmless stale key release",
+        "hardware release continues after Gate off; Stop flushes the tail without discarding the patch",
+        "held waveform, pulse width and hardware sustain edits alter actual PCM and retain the owner",
+        "shared LP/BP/HP/Notch, live cutoff/resonance and chip volume reach held real output",
+        "Sync/Ring reserve one carrier with silent unrouted voice 3; ratio and both Pitch wheels act live",
+        "portable preset save, cancel/invalid retention, load reset and readable executable Playground JavaScript",
+        "rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels",
+        "post-Master gain ratios, 380% orange boost, octave/focus and preserved collapsed sections",
+        "render failure is visible; Stop cancels a delayed retry and explicit Enable recovers the same preset",
+        "one post-Master Waveform/Spectrum canvas, readable source and 390px layout"
+      ],
+      "measurements": {
+        "waveforms": {
+          "triangle": {
+            "rms": 0.020085606262505044,
+            "peak": 0.03465459495782852
+          },
+          "saw": {
+            "rms": 0.01993033983986869,
+            "peak": 0.03695273399353027
+          },
+          "pulse": {
+            "rms": 0.034719551230906406,
+            "peak": 0.03818259388208389
+          },
+          "noise": {
+            "rms": 0.0191040860589891,
+            "peak": 0.04030253738164902
+          }
+        },
+        "pulseSpectrumDifference": 0.6531702987615287,
+        "filters": {
+          "lowpass": {
+            "cutoffSpectrumDifference": 0.11106188074320802,
+            "resonanceSpectrumDifference": 0.06902214940407769
+          },
+          "bandpass": {
+            "cutoffSpectrumDifference": 0.9795138776621553,
+            "resonanceSpectrumDifference": 0.5903869452570173
+          },
+          "highpass": {
+            "cutoffSpectrumDifference": 0.9519142785217519,
+            "resonanceSpectrumDifference": 0.6291118279647908
+          }
+        },
+        "ringRatioSpectrumDifference": 0.9999713628703334,
+        "copiedCode": {
+          "lines": 17,
+          "peak": 0.1025453507900238,
+          "finite": true,
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            21,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            16,
+            0,
+            111,
+            116,
+            30,
+            0,
+            8,
+            16,
+            0,
+            0,
+            4,
+            87,
+            241,
+            216,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "coalescedOwnerReset": true,
+        "masterRatio": 1.9999980767885972
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 3,
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "running",
+          "destinationConnections": 1
+        }
+      ],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "lazy local UI and first keyboard press/release during delayed WASM loading",
+        "three-voice round robin, fourth-note steal and harmless stale key release",
+        "hardware release continues after Gate off; Stop flushes the tail without discarding the patch",
+        "held waveform, pulse width and hardware sustain edits alter actual PCM and retain the owner",
+        "shared LP/BP/HP/Notch, live cutoff/resonance and chip volume reach held real output",
+        "Sync/Ring reserve one carrier with silent unrouted voice 3; ratio and both Pitch wheels act live",
+        "portable preset save, cancel/invalid retention, load reset and readable executable Playground JavaScript",
+        "rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels",
+        "post-Master gain ratios, 380% orange boost, octave/focus and preserved collapsed sections",
+        "render failure is visible; Stop cancels a delayed retry and explicit Enable recovers the same preset",
+        "one post-Master Waveform/Spectrum canvas, readable source and 390px layout"
+      ],
+      "measurements": {
+        "waveforms": {
+          "triangle": {
+            "rms": 0.02008297379660066,
+            "peak": 0.034654561430215836
+          },
+          "saw": {
+            "rms": 0.019943810356856648,
+            "peak": 0.03695273399353027
+          },
+          "pulse": {
+            "rms": 0.03472358127281299,
+            "peak": 0.03818259388208389
+          },
+          "noise": {
+            "rms": 0.018968193445774002,
+            "peak": 0.03919393941760063
+          }
+        },
+        "pulseSpectrumDifference": 0.6531413420941182,
+        "filters": {
+          "lowpass": {
+            "cutoffSpectrumDifference": 0.11123227231521247,
+            "resonanceSpectrumDifference": 0.06889473673415572
+          },
+          "bandpass": {
+            "cutoffSpectrumDifference": 0.979527239919932,
+            "resonanceSpectrumDifference": 0.5902093149553705
+          },
+          "highpass": {
+            "cutoffSpectrumDifference": 0.9508235851327584,
+            "resonanceSpectrumDifference": 0.6329992643939858
+          }
+        },
+        "ringRatioSpectrumDifference": 0.9999625491596835,
+        "copiedCode": {
+          "lines": 17,
+          "peak": 0.1025453507900238,
+          "finite": true,
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            21,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            16,
+            0,
+            111,
+            116,
+            30,
+            0,
+            8,
+            16,
+            0,
+            0,
+            4,
+            87,
+            241,
+            216,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "coalescedOwnerReset": true,
+        "masterRatio": 1.9998398001561246
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 3,
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "running",
+          "destinationConnections": 1
+        }
+      ],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    }
+  ],
+  "checkerSha256": "2fc6ebdc46e379633728d044a8e925bf7328227ff2e548b649bf1e76109b67ae"
+}
