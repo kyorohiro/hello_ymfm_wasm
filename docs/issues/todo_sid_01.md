@@ -65,7 +65,7 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] readable source付きWeb ZIP、README en／ja／AI、home、既存Native例・再ビルド手順への入口を用意する。
 - [ ] 人が実聴し、和音／Pulse幅／ADSR／filter／Sync／Ringを確認する。
 - [x] 専用iconを作成する（2026-11-07追記）。[1254px WebP](../tetorica_sid_synth.webp)・[元PNG](../tetorica_sid_synth.png)・[生成プロンプト](tetorica_sid_icon_prompt_20261107.txt)。既存シリーズと同じ寸法、C64のbeige／brownとfilter波形を使った。
-- [ ] 選択済みiconを採用する（2026-11-07、ユーザー「これでお願い」）。Synth header／favicon／Apple touch icon、home en／ja、配布ZIPとsource receiptへ同じWebPを反映する。既存音声コードを保持し、source／実ZIPのdesktop／390px表示とlocal画像読込を確認する。
+- [x] 選択済みiconを採用する（2026-11-07、ユーザー「これでお願い」）。Synth header／favicon／Apple touch icon、home en／ja、配布ZIPとsource receiptへ同じWebPを反映した。既存音声コードを保持し、source／実ZIPのdesktop／390px表示とlocal画像読込を確認した。
 - [ ] Webの実聴後にTauri版を検討する。
 
 ## 再開メモ
@@ -187,6 +187,20 @@ TODOを作成してから調査を開始した。第1段階のcore／Native・WA
 次は人が `/synth-sid/index.html` で3声、Pulse幅、ADSR、filterのCutoff／Resonance、TriangleのRingとSyncを実聴する。
 名称案はTetorica SID Synth、専用iconは上記で作成した。Webの実聴後にTauriを検討する。
 SID曲／音色抽出、外部reference／実機比較、Native出力は別TODOとして残る。
+
+### 選択iconの採用（2026-11-07）
+
+- ユーザーが選択したbeige／brownの1254px WebPをheader、favicon／Apple touch、英日homeへ適用。
+  desktop112px／mobile72pxで表示し、音声JS／WASMは変更していない。
+- 配布は同じWebPをlocal同梱し、root／nested entry両方のhref／srcを調整。
+  元WebPと生成プロンプトをsource archive／hash receiptへ含め、PNG原本はrepositoryへ保持する。
+- 配布テスト2件成功。[Source](sid_synth_icon_browser_01.json)と[実ZIP](sid_synth_icon_zip_browser_01.json)は
+  Chromium／WebKit各12項目、**計48チェック成功**。画像3参照のSHA・1254角、homeの参照、1180px／390pxの横overflow0、
+  従来の演奏／filter／preset／停止も確認した。page／console／HTTP error・外部通信0、speakerはmute。
+- [配布記録](sid_synth_icon_package_01.json): `release/tetorica_sid_synth_0.0.1-icon_itch.zip`、
+  **57 files／1,301,238 bytes**、SHA-256 `a7001d835a0893c6c9aea4f86373bf2bb867fb502fcc148b7461f9a1716260a0`。
+  WebPは元とbyte一致、27個のbrowser入力も最終sourceのhashと一致する。旧0.0.1のZIP／検証記録はその時点のsnapshotとして保持した。
+  CIの監視対象にもicon／生成記録／両homeを追加した。commit／push／公開は行っていない。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

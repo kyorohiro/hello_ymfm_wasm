@@ -49,11 +49,45 @@
       "failed": 0
     },
     "browser": {
-      "status": "pending",
+      "status": "passed",
       "sourceReport": "docs/issues/sid_synth_icon_browser_01.json",
       "zipReport": "docs/issues/sid_synth_icon_zip_browser_01.json",
       "physicalOutputMuted": true,
-      "listeningPerformed": false
+      "listeningPerformed": false,
+      "checkerSha256": "0dc7a56d669a4cc9b53078788c9a0222075d77339d07bfa8565950a9c50fb37f",
+      "runs": [
+        {
+          "report": "docs/issues/sid_synth_icon_browser_01.json",
+          "engines": [
+            {
+              "engine": "chromium",
+              "version": "153.0.8010.12",
+              "checks": 12
+            },
+            {
+              "engine": "webkit",
+              "version": "26.6",
+              "checks": 12
+            }
+          ]
+        },
+        {
+          "report": "docs/issues/sid_synth_icon_zip_browser_01.json",
+          "engines": [
+            {
+              "engine": "chromium",
+              "version": "153.0.8010.12",
+              "checks": 12
+            },
+            {
+              "engine": "webkit",
+              "version": "26.6",
+              "checks": 12
+            }
+          ]
+        }
+      ],
+      "checksTotal": 48
     }
   },
   "publication": {
