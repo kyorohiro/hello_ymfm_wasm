@@ -78,7 +78,7 @@
 - [x] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
 - [x] SPCから元のEcho／FIR設定を取り込む選択肢を追加する。手動Echoとの切り替え、候補voiceのEON、曲全体で共有する設定であることを明示する。
 - [x] Hardware Noiseを公開し、共有noise clock・各voiceのEnvelope・音階に追従しないことを示す。SPC Noise候補の取り込みも対応する。
-- [ ] Pitch modulationを公開し、隣接voice routing・同時発音枠への影響を示す。
+- [x] 手動Pitch modulationを公開し、隣接voice routing・同時発音枠への影響を示す。元SPCの隣接pair取り込みは後続とする。
 - [ ] Web確認後にTauri版・Native活用例へ進む。
 - [ ] C64 SID Synthはフィルター中心の別題材として検討する。
 
@@ -178,3 +178,28 @@ Hardware Noise・検証結果（2026-11-06）:
 - README en／ja／AI・英日ホーム・Synthガイドを更新した。共有runtime／WASM／npm API・校正値は未変更で、npm更新は不要。commit／push／公開は未実施。実ゲームSPCの試聴・長時間動作は人の確認待ち。
 
 次の実装候補はPMON。Noise clockを保持音へ反映し、ADSR／GAIN・Echoとの組み合わせを手元で試聴する確認は別途残す。
+
+## Hardware PMON・作業手順（2026-11-06）
+
+- [x] preset v4に`pmon:{enabled,ratio,wave,envelope}`を保存する。初期Off、ratio1（範囲0.125〜8）、128点Sine、変調側Direct GAIN64。厳密な旧v1〜v3をPMON Offとして移行する。変調波形の72-byte BRRもRAM予算に含め、容量超過時は原音を保持して拒否する。
+- [x] 実S-DSPのPMONを既存writeDsp APIで制御する。固定隣接pair 0→1／2→3／4→5／6→7、変調側signed LR0、carrier側のみEcho送信。2声1組の最大4音ラウンドロビンで発音／離鍵／steal／stale releaseを処理する。Noise sourceではPMONを休止し8voiceへ戻す。
+- [x] 変調音程比とEnvelope／GAINは保持音へlive反映する。Pitch wheelは両voiceを移調する。On/Off・変調波形・sample・Echo layout変更はbankを安全に再構成して保持音と残響を止める。PITCH上限による変調側clampを明示する。
+- [x] Sound source内、Echoの後へ折りたたみ式Pitch Modulation panelを追加する。On/Off・音程比・変調側ADSR／GAINを既存button／stepper UIで操作する。編集対象Carrier／Modulatorを切り替え、既存canvas1枚で128点変調波形を描く。Noise時の休止、4音枠、hardware変調とsoftware編集／割り当ての区別を示す。
+- [x] 保存／復元・可読JavaScript出力・容量表示・keyboard所有権・SPC由来音色からの手動PMONへ接続する。SPCの元隣接voiceを自動復元したとは扱わず、現在の取り込み警告を維持する。共有runtime／WASM／npm APIは変更しない。
+- [x] 自作fixtureと実WASMで隣接変調・変調側無音・GAIN／音程比のlive変化・4音steal／安全な離鍵・Echo共存・容量境界／原音保持・旧形式移行・JS出力を確認し、Chromium／WebKitと独立ZIPでも検証する。
+- [x] README en／ja／AI・英日ホーム・Synthガイド・TODOと検証記録を更新し、可読source入り配布ZIPを作成する。実聴・実ゲームSPC・長時間運転は人の確認として残す。
+
+- [ ] 後続: SPCからPMONの変調元／対象voiceをセットで取り込む。隣接chain・元PITCH比・別sample・Noise変調元・再生中Envelopeの制約を先に整理する。
+
+Hardware PMON・検証結果（2026-11-06）:
+
+- `Pitch Modulation → Enable Pitch Modulation`を追加した。実S-DSPの直前voice出力で次のvoiceを変調し、固定4pairで最大4音を発音する。変調側は左右音量0、Echoもcarrierのみへ送り、変調音自体をmixしない。On/Off・source・active wave・Echo layout変更では両voiceの所有権と残響を安全に破棄する。Noise中はPMONを休止し、設定を記憶したまま8voiceを使う。
+- Ratioは鍵盤音の周波数（Pitch込み）を0.125〜8倍して128点変調loopのPITCHを設定するsoftware操作。BRRの元fundamentalは推測しない。独立ADSR／GAINが実機側で変調の強さを変え、Ratio／Envelope／Pitch変更は保持音のphase・RAM・所有権を保つ。実PITCHは1〜16,383へclampする。
+- 既存canvas1枚のCarrier／Modulator切り替えを追加した。対象切り替えは音を変えず、形状ボタン・描画は選択したwaveだけを編集する。BRR carrierはpreviewのみ。Escape・対象変更・Sample折りたたみ・非表示・resize・外部preset更新は描きかけを破棄する。PMONはEchoの後の初期折りたたみpanelで、hardware処理とsoftware authoringを説明する。
+- v4はPMON On/Off・Ratio・128点wave・独立Envelopeを保存し、旧v1〜v3をPMON Offとして移行する。変調BRRの72byteを事前に予約するため、carrier上限はdry64,440byte、Echo有効33,714byte。容量不足では原音・保持voice・現在設定を保って拒否する。可読JavaScriptは既存APIで隣接pairを設定する。
+- `npm run test:snes-synth`: **87件成功**。追加13件でnested検証・旧形式移行・両RAM境界・4音stealとstale release・変調側無音・live Ratio／独立ADSRとGAIN・Noise休止／復帰を確認した。実WASMの手動DSP設定と分割render・生成JavaScriptのstereo PCM一致も確認した。
+- [ソース記録](snes_synth_pmon_browser_01.json)・[独立ZIP記録](snes_synth_pmon_zip_browser_01.json): Chromium／WebKit各22チェック成功。空BRR＋PMONの発音拒否／lazy audio維持、4pair発音と安全なsteal、live Ratio／GAIN／Pitch、carrierのみEcho、同一canvas描画とEscape／対象切り替え／折りたたみ時の破棄、Noise復帰、v4保存とv1〜v3移行、不正ratio／容量超過時の原音保持を確認した。既存SPC／BRR／Echo／keyboard／Master／focusも通過。外部通信／404／page errorは0、390px横overflow0。1180px／390px画像を確認した。speakerはmuteしており、人による実聴は未実施。
+- 配布ZIP `release/tetorica_sdsp_synth_0.0.6_itch.zip`: 62 files、934,582 bytes、SHA-256 `87331b8b0c334c2aac27005cf53e002ba715f7b1c6f3389f4ee2269aa9c90adc`。可読JS／CSS、採用icon、WASM、対応LGPL C++・再ビルド手順・source receiptを維持する。実ゲーム素材は同梱しない。
+- README en／ja／AI・英日ホーム・Synthガイド・検証harnessを更新した。共有runtime／WASM／npm API・校正値は未変更で、npm更新は不要。commit／push／公開は未実施。実ゲームSPCの試聴・長時間動作は人の確認待ち。元SPCのPMON pair自動取り込みは未実装で、現在は取り込んだbase BRRへ手動でPMONを設定する。
+
+次は手元でPMONの音色・Ratio・変調側GAINを試聴する。後続の実装候補はSPC隣接pairの取り込み、その後Web確認済み版をTauriへ持ち込む。

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {createDefaultPreset, readPreset, waveShape, envelopeRegisters} from './preset.js';
+import {createDefaultPreset, readPreset, waveShape, envelopeRegisters,
+  modulatorEnvelopeRegisters, pmonActive, sampleBudget, presetBankKey} from './preset.js';
 import {decodeBase64, encodeBase64} from './sample.js';
 import {decodeBrr} from '../js/snes_brr.js';
 
@@ -10,7 +11,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   onLoadBrr = async () => {throw new Error('BRR loading is not connected');}}) {
   const doc = root.ownerDocument, win = doc.defaultView ?? globalThis;
   const cleanups = [], fields = new Map(), pointerControls = new WeakSet();
-  let preset = createDefaultPreset(), disposed = false, stroke = null;
+  let preset = createDefaultPreset(), disposed = false, stroke = null, waveTarget = 'carrier';
   let importRate = 16000, loadRequest = 0, loadController = null, committingImport = false;
   let previewData = null, preview = null, previewBins = null;
   const make = (tag, className, text) => {
@@ -30,7 +31,8 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       cancelLoad('Conversion cancelled after editing the instrument. Current sample kept.');
       const next = readPreset(preset); mutator(next);
       const checked = readPreset(next);
-      if (checked.source !== preset.source) cancelStroke();
+      if (checked.source !== preset.source || checked.pmon.enabled !== preset.pmon.enabled ||
+        presetBankKey(checked) !== presetBankKey(preset)) cancelStroke();
       preset = checked; render();
       Promise.resolve(onChange(readPreset(preset))).catch(report);
     } catch (error) { render(); report(error); }
@@ -222,13 +224,19 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   const conversionRate = select(conversionFields, 'Convert audio at · Hz', 'conversionRate',
     [[8000, '8,000'], [16000, '16,000'], [32000, '32,000']], () => importRate,
     (_value, rate) => {importRate = Number(rate);}, {local:true});
-  const sampleBudget = help(sampleCard.content, ''); sampleBudget.id = 'sampleBudget';
+  const sampleBudgetInfo = help(sampleCard.content, ''); sampleBudgetInfo.id = 'sampleBudget';
+  const targetFields = group(sampleCard.content); targetFields.classList.add('sdsp-wave-target');
+  select(targetFields, 'Edit / preview · one shared canvas', 'waveTarget', [['carrier','Carrier'],['modulator','Modulator']],
+    () => pmonActive(preset) ? waveTarget : 'carrier', (_value, target) => {cancelStroke();waveTarget = target;}, {local:true});
   const sampleInfo = make('p', 'sdsp-sample-info'); sampleInfo.id = 'sampleInfo'; sampleCard.content.append(sampleInfo);
   const shapeActions = make('div', 'sdsp-wave-actions'); sampleCard.content.append(shapeActions);
   for (const [name, label] of [['sine','Sine'],['triangle','Triangle'],['saw','Saw'],['square','Square']]) {
     const button = make('button', '', label); button.type = 'button'; button.dataset.waveShape = name; shapeActions.append(button);
     listen(button, 'pointerdown', event => {if (event.button === 0) {event.preventDefault();doc.activeElement?.blur();}});
-    listen(button, 'click', () => {cancelStroke();commit(value => {value.wave = waveShape(name);});});
+    listen(button, 'click', () => {
+      const target = editableTarget();if (!target) return;
+      cancelStroke();commit(value => {if (target === 'modulator') value.pmon.wave = waveShape(name);else value.wave = waveShape(name);});
+    });
   }
   const canvas = make('canvas'); canvas.id = 'waveCanvas'; canvas.width = 900; canvas.height = 210; canvas.setAttribute('role', 'img');
   sampleCard.content.append(canvas);
@@ -280,6 +288,37 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   listen(resetFir, 'pointerdown', event => {if (event.button === 0) {event.preventDefault();doc.activeElement?.blur();}});
   listen(resetFir, 'click', () => {resetFir.blur();commit(value => {value.echo.fir = [127,0,0,0,0,0,0,0];});});
   help(firContent, 'These eight signed hardware coefficients shape only the Echo signal, including its feedback. They do not filter the dry voice. Identity FIR uses 127 followed by seven zeros. Large coefficients or feedback can distort or sustain the Echo.');
+
+  const pmonCard = card('Pitch Modulation · S-DSP hardware', 'pmonSection'); pmonCard.element.open = false;
+  const pmonSwitches = group(pmonCard.content); pmonSwitches.classList.add('sdsp-pmon-switches');
+  const pmonEnabled = checkbox(pmonSwitches, 'Enable Pitch Modulation', 'pmonEnabled', value => value.pmon.enabled,
+    (value, enabled) => {value.pmon.enabled = enabled;});
+  const pmonRatio = number(pmonSwitches, 'Modulator ratio · × key note', 'pmonRatio', .125, 8,
+    value => value.pmon.ratio, (value, ratio) => {value.pmon.ratio = ratio;}, .125, {fractional:true});
+  const pmonHint = help(pmonCard.content, ''); pmonHint.id = 'pmonHint';
+  help(pmonCard.content, 'Hardware PMON uses adjacent pairs: CH1 → CH2, CH3 → CH4, CH5 → CH6 and CH7 → CH8, for four keyboard notes. The modulator has no stereo output; only its carrier is sent to Echo. Its hardware envelope / GAIN controls modulation depth.');
+  help(pmonCard.content, 'Draw the modulator in the Sample section using the same canvas as the carrier. Wave drawing, frequency ratio and pair allocation are software controls for the hardware. Ratio multiplies the keyboard-note frequency, including Pitch; a BRR sample’s original fundamental is not inferred. Each voice’s PITCH register is clamped to 1–16,383, which can limit the nominal ratio. On / Off, waveform, source, sample or Echo-enable changes stop held notes and Echo tails. Ratio and modulator envelope changes apply while playing.');
+  const pmonEnvelopeFields = group(pmonCard.content); pmonEnvelopeFields.classList.add('sdsp-pmon-envelope');
+  const pmonEnvelopeMode = select(pmonEnvelopeFields, 'Modulator envelope', 'pmonEnvelopeMode', [['adsr','ADSR'],['gain','GAIN']],
+    value => value.pmon.envelope.mode, (value, mode) => {value.pmon.envelope.mode = mode;});
+  const pmonAdsrFields = group(pmonCard.content);
+  const pmonAdsrControls = [
+    number(pmonAdsrFields, 'Attack · code 0–15', 'pmonAttack', 0, 15, value => value.pmon.envelope.attack, (value, code) => {value.pmon.envelope.attack = code;}),
+    number(pmonAdsrFields, 'Decay · code 0–7', 'pmonDecay', 0, 7, value => value.pmon.envelope.decay, (value, code) => {value.pmon.envelope.decay = code;}),
+    number(pmonAdsrFields, 'Sustain level · code 0–7', 'pmonSustainLevel', 0, 7, value => value.pmon.envelope.sustainLevel, (value, code) => {value.pmon.envelope.sustainLevel = code;}),
+    number(pmonAdsrFields, 'Sustain rate · code 0–31', 'pmonSustainRate', 0, 31, value => value.pmon.envelope.sustainRate, (value, code) => {value.pmon.envelope.sustainRate = code;}),
+  ];
+  const pmonGainFields = group(pmonCard.content);
+  const pmonGainMode = select(pmonGainFields, 'Modulator GAIN shape', 'pmonGainMode', [
+    ['direct','Direct level'],['linear-decrease','Linear decrease'],['exponential-decrease','Exponential decrease'],
+    ['linear-increase','Linear increase'],['bent-increase','Bent increase'],
+  ], value => value.pmon.envelope.gainMode, (value, mode) => {value.pmon.envelope.gainMode = mode;});
+  const pmonGainLevel = number(pmonGainFields, 'Depth · Direct GAIN 0–127', 'pmonGainLevel', 0, 127,
+    value => value.pmon.envelope.gainLevel, (value, level) => {value.pmon.envelope.gainLevel = level;});
+  const pmonGainRate = number(pmonGainFields, 'GAIN rate · code 0–31', 'pmonGainRate', 0, 31,
+    value => value.pmon.envelope.gainRate, (value, rate) => {value.pmon.envelope.gainRate = rate;});
+  const pmonGainHint = help(pmonCard.content, ''); pmonGainHint.id = 'pmonGainHint';
+  const pmonRegisterInfo = help(pmonCard.content, ''); pmonRegisterInfo.id = 'pmonEnvelopeRegisters';
 
   const envelopeCard = card('Envelope · S-DSP hardware', 'envelopeSection'), envelopeFields = group(envelopeCard.content);
   select(envelopeFields, 'Envelope mode', 'envelopeMode', [['adsr','ADSR'],['gain','GAIN']], value => value.envelope.mode, (value, mode) => {value.envelope.mode = mode;});
@@ -344,8 +383,21 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     }
     return preview;
   }
+  function editableTarget() {
+    if (pmonActive(preset) && waveTarget === 'modulator') return 'modulator';
+    return preset.source === 'wave' ? 'carrier' : null;
+  }
+  function targetWave(target = editableTarget()) {return target === 'modulator' ? preset.pmon.wave : preset.wave;}
+  function canvasVisible() {
+    if (!canvas.isConnected || !canvas.clientWidth || !canvas.clientHeight) return false;
+    for (let element = canvas; element; element = element.parentElement) {
+      if (element.hidden || element.tagName === 'DETAILS' && !element.open) return false;
+    }
+    return true;
+  }
   function drawWave(samples = stroke?.samples) {
-    if (disposed || preset.source === 'noise' || !canvas.clientWidth || !canvas.clientHeight) return;
+    if (disposed || preset.source === 'noise' || !canvasVisible()) return;
+    const target = editableTarget();
     const width = canvas.width, height = canvas.height, left = 28, right = width - 15, top = 16, bottom = height - 28;
     const y = value => top + (1 - value) / 2 * (bottom - top), context = canvas.getContext('2d');if (!context) return;
     context.fillStyle = '#242829';context.fillRect(0,0,width,height);
@@ -354,9 +406,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       context.beginPath();context.moveTo(left,y(value));context.lineTo(right,y(value));context.stroke();
       if (value === -1 || value === 0 || value === 1) context.fillText(String(value),3,y(value)+4);
     }
-    context.strokeStyle = '#8fd6a1';context.lineWidth = 1.6;context.beginPath();
-    if (preset.source === 'wave') {
-      const values = samples ?? preset.wave;
+    context.strokeStyle = target === 'modulator' ? '#92bfe2' : '#8fd6a1';context.lineWidth = 1.6;context.beginPath();
+    if (target) {
+      const values = samples ?? targetWave(target);
       for (let index=0;index<values.length;index++) {
         const x = left + (right-left) * index / (values.length-1);
         if (!index) context.moveTo(x,y(values[index]));else context.lineTo(x,y(values[index]));
@@ -389,7 +441,8 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if (!pcm.length) {context.moveTo(left,y(0));context.lineTo(right,y(0));}
     }
     context.stroke();context.fillStyle = '#d7dddd';
-    context.fillText(preset.source==='wave' ? '128-POINT PCM · draw, then release to prepare BRR' : 'DECODED BRR · before DSP interpolation and envelope',left,height-8);
+    context.fillText(target ? (target === 'modulator' ? 'MODULATOR' : 'CARRIER') + ' · 128-POINT PCM · release to prepare BRR'
+      : 'CARRIER · DECODED BRR · before DSP interpolation and envelope',left,height-8);
   }
   function point(event) {
     const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left)/rect.width*canvas.width,y=(event.clientY-rect.top)/rect.height*canvas.height;
@@ -398,6 +451,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   }
   function moveStroke(event) {
     if (!stroke || event.pointerId!==stroke.id) return;
+    if (!canvasVisible() || editableTarget() !== stroke.target) {cancelStroke();return;}
     const next=point(event),previous=stroke.previous,distance=Math.abs(next.index-previous.index);
     for(let step=0;step<=distance;step++){
       const fraction=distance?step/distance:1,index=Math.round(previous.index+(next.index-previous.index)*fraction);
@@ -407,16 +461,18 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     waveReadout.textContent='Sample '+next.index+' · '+next.value.toFixed(3)+' · release to apply';
   }
   listen(canvas,'pointerdown',event=>{
-    if(event.button!==0||stroke||preset.source!=='wave')return;
+    const target=editableTarget();
+    if(event.button!==0||stroke||!target||!canvasVisible())return;
     event.preventDefault();doc.activeElement?.blur();canvas.setPointerCapture(event.pointerId);
-    stroke={id:event.pointerId,samples:preset.wave.slice(),previous:point(event)};moveStroke(event);
+    stroke={id:event.pointerId,target,samples:targetWave(target).slice(),previous:point(event)};moveStroke(event);
   });
   listen(canvas,'pointermove',moveStroke);
   listen(canvas,'pointerup',event=>{
     if(!stroke||stroke.id!==event.pointerId)return;
-    moveStroke(event);const values=stroke.samples;stroke=null;
+    moveStroke(event);if(!stroke)return;
+    const values=stroke.samples,target=stroke.target;stroke=null;
     if(canvas.hasPointerCapture?.(event.pointerId))canvas.releasePointerCapture(event.pointerId);
-    commit(value=>{value.wave=values;});
+    commit(value=>{if(target==='modulator')value.pmon.wave=values;else value.wave=values;});
   });
   function cancelStroke(event) {
     if(!stroke||event?.pointerId!==undefined&&event.pointerId!==stroke.id)return;
@@ -425,17 +481,20 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     drawWave();waveReadout.textContent='Drawing cancelled · previous wave kept';
   }
   listen(canvas,'pointercancel',cancelStroke);listen(canvas,'lostpointercapture',cancelStroke);listen(win,'blur',cancelStroke);
+  listen(sampleCard.element,'toggle',()=>{if(!canvasVisible())cancelStroke();});
   listen(win,'keydown',event=>{if(event.key==='Escape'&&stroke){event.preventDefault();event.stopPropagation();cancelStroke();}});
   function resizeWave() {
-    if(disposed||!canvas.clientWidth||!canvas.clientHeight)return;
+    if(disposed)return;
+    if(!canvasVisible()){cancelStroke();return;}
     const width=Math.max(240,Math.round(canvas.clientWidth)),height=Math.max(150,Math.round(canvas.clientHeight));
-    if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+    if(canvas.width!==width||canvas.height!==height){cancelStroke();canvas.width=width;canvas.height=height;}
     drawWave();
   }
   const Resize = win.ResizeObserver ?? globalThis.ResizeObserver;
   if(typeof Resize==='function'){
     const observer=new Resize(resizeWave);observer.observe(canvas);cleanups.push(()=>observer.disconnect());
-  }else listen(win,'resize',resizeWave);
+  }
+  listen(win,'resize',()=>{cancelStroke();resizeWave();});
   function render() {
     if(disposed)return;
     for(const field of fields.values()){
@@ -443,23 +502,29 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if(field.input.type==='checkbox')field.input.checked=field.get(preset);
     }
     const isWave=preset.source==='wave',isBrr=preset.source==='brr',isNoise=preset.source==='noise',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
+    const activePmon=pmonActive(preset),target=editableTarget(),isModulator=target==='modulator';
     noiseCard.element.hidden=!isNoise;sampleCard.element.hidden=isNoise;
     noiseHint.textContent=preset.noise.clock===0
       ?'Clock 0 holds the generator’s current value instead of advancing it. This can be a steady DC level; choose a nonzero clock for a changing noise texture.'
       :'Clock '+preset.noise.clock+' controls the shared generator’s texture. It is a hardware rate code, not a musical note or a separate pitch for each key.';
-    const maxBrrBytes=preset.echo.enabled?33786:64512,maxFrames=maxBrrBytes/9*16;
-    sampleBudget.textContent='Audio is mixed to mono, resampled and encoded as lossy BRR without normalization. Current sample limit: '+maxBrrBytes.toLocaleString('en-US')+' BRR bytes / '+maxFrames.toLocaleString('en-US')+' decoded frames (about '+(maxFrames/importRate).toFixed(2)+' s at '+importRate.toLocaleString('en-US')+' Hz). '+(preset.echo.enabled?'Echo reserves 30 KiB of the shared 64 KiB RAM. ':'Echo is off. ')+'Longer audio is rejected without trimming it.';
+    const maxBrrBytes=sampleBudget(preset),maxFrames=maxBrrBytes/9*16;
+    const echoMaxBytes=sampleBudget({...preset,echo:{...preset.echo,enabled:true}}).toLocaleString('en-US');
+    sampleBudgetInfo.textContent='Audio is mixed to mono, resampled and encoded as lossy BRR without normalization. Current carrier sample limit: '+maxBrrBytes.toLocaleString('en-US')+' BRR bytes / '+maxFrames.toLocaleString('en-US')+' decoded frames (about '+(maxFrames/importRate).toFixed(2)+' s at '+importRate.toLocaleString('en-US')+' Hz). '+(preset.echo.enabled?'Echo reserves 30 KiB of the shared 64 KiB RAM. ':'Echo is off. ')+(activePmon?'PMON reserves 72 BRR bytes for the modulator wave. ':'')+'Longer audio is rejected without trimming it.';
     echoDelayInfo.textContent=preset.echo.delay===0?'Delay code 0 uses a 4-byte buffer: one stereo frame at 32,000 Hz (0.03125 ms), not a zero-length delay.'
       :'Delay '+preset.echo.delay+' × 16 ms = '+(preset.echo.delay*16)+' ms. The hardware adopts a changed length at its buffer boundary.';
     echoHint.textContent=isNoise
       ?(preset.echo.enabled?'Echo is enabled. Send adds the newly played Noise envelopes to Echo; Return controls the delayed signal.':'Echo is off. Enable it to add the shared hardware Echo / FIR path to Noise.')
-      :preset.echo.enabled?'Echo is enabled. Send adds new notes to Echo; Return controls the delayed signal. The sample limit is 33,786 BRR bytes.'
-        :'Echo is off. You can prepare its settings here, then enable it to hear the result. Enabling Echo reduces the sample limit to 33,786 BRR bytes; a sample that does not fit is kept with Echo off.';
+      :preset.echo.enabled?'Echo is enabled. Send adds new carrier notes to Echo; Return controls the delayed signal. The carrier sample limit is '+echoMaxBytes+' BRR bytes.'
+        :'Echo is off. You can prepare its settings here, then enable it to hear the result. Enabling Echo reduces the carrier sample limit to '+echoMaxBytes+' BRR bytes; a sample that does not fit is kept with Echo off.';
     sourceHint.textContent=isNoise?'One hardware Noise generator shared by eight voice envelopes. Noise clock changes its texture; keys do not tune it.'
-      :isWave?'One 128-point cycle, encoded as a BRR loop and played by eight physical S-DSP voices.':'One BRR sample shared by eight physical S-DSP voices. Root / PITCH declare its tuning.';
-    shapeActions.hidden=!isWave;drawingHint.hidden=!isWave;tuning.hidden=!isBrr;
-    canvas.dataset.editable=String(isWave);
-    canvas.setAttribute('aria-label',isNoise?'Waveform editor inactive for hardware Noise':isWave?'Editable 128-point waveform, normalized minus one to plus one':'Decoded BRR waveform overview');
+      :(isWave?'One 128-point cycle, encoded as a BRR loop.':'One BRR carrier sample; Root / PITCH declare its tuning.')+(activePmon?' PMON uses four modulator → carrier pairs for four keyboard notes.':' Eight physical S-DSP voices play the keyboard.');
+    targetFields.hidden=!activePmon;
+    shapeActions.hidden=!target;drawingHint.hidden=!target;tuning.hidden=!isBrr||isModulator;
+    drawingHint.textContent=isModulator
+      ?'Draw the modulator’s 128-point cycle here. Shape buttons change this selected wave. Releasing a stroke prepares its BRR loop and stops held notes / Echo tails. Audio / BRR file loads replace the carrier, not this modulator. Switch to Carrier to preview or edit its wave.'
+      :'Draw the carrier’s 128-point cycle here. Releasing a stroke or choosing a shape prepares a new BRR loop and stops held notes / Echo tails. Drawing / encoding are software tools; the output monitor shows the hardware result after BRR decoding, interpolation and modulation.';
+    canvas.dataset.editable=String(Boolean(target));canvas.dataset.waveTarget=isModulator?'modulator':'carrier';
+    canvas.setAttribute('aria-label',isNoise?'Waveform editor inactive for hardware Noise':target?'Editable 128-point '+target+' waveform, normalized minus one to plus one':'Decoded BRR carrier waveform overview');
     loopBrr.disabled=!isBrr||!hasBrr;loopStart.setDisabled(!isBrr||!hasBrr||preset.brr.loopStartSamples===null);
     for(const control of adsrControls)control.setDisabled(isGain);
     gainMode.setDisabled(!isGain);gainLevel.setDisabled(!isGain||preset.envelope.gainMode!=='direct');
@@ -471,9 +536,28 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       :'Increase shapes grow from a new voice’s zero envelope. Rate code 0 holds the current envelope.';
     const registers=envelopeRegisters(preset),hex=value=>'0x'+value.toString(16).padStart(2,'0');
     registerInfo.textContent='DSP registers · ADSR1 '+hex(registers.adsr1)+' · ADSR2 '+hex(registers.adsr2)+' · GAIN '+hex(registers.gain);
-    if(isWave){
-      sampleInfo.textContent='128 authored PCM points · one loop · BRR encoding is lossy · 32,000 Hz native DSP.';
-      if(!stroke)waveReadout.textContent='Drawn wave · 128 points · release a stroke to apply';
+    pmonEnabled.disabled=isNoise;pmonRatio.setDisabled(!activePmon);pmonEnvelopeMode.setDisabled(!activePmon);
+    const modGain=preset.pmon.envelope.mode==='gain',modDirect=preset.pmon.envelope.gainMode==='direct';
+    for(const control of pmonAdsrControls)control.setDisabled(!activePmon||modGain);
+    pmonGainMode.setDisabled(!activePmon||!modGain);pmonGainLevel.setDisabled(!activePmon||!modGain||!modDirect);
+    pmonGainRate.setDisabled(!activePmon||!modGain||modDirect);
+    pmonHint.textContent=isNoise
+      ?'PMON is paused for a Noise carrier. Its authored '+(preset.pmon.enabled?'On':'Off')+' setting and modulator are remembered; switch to Drawn wave or BRR to use it.'
+      :activePmon?'On · four notes, one adjacent modulator → carrier pair per key. Change Ratio or modulator depth / envelope while holding a key; draw its wave using the shared canvas above.'
+        :'Off · eight unmodulated notes. Enable to use four hardware PMON pairs; this stops held notes and Echo tails.';
+    pmonGainHint.textContent=!activePmon?'Modulator envelope controls become active when PMON is enabled for a Wave or BRR carrier.'
+      :!modGain?'Modulator ADSR changes the modulation depth over time. Sustain rate 0 holds the sustain level.'
+        :modDirect?'Direct GAIN sets modulation depth immediately; level 0 removes modulation without turning PMON off.'
+          :preset.pmon.envelope.gainMode.endsWith('decrease')?'Decrease reduces the current modulator envelope. A fresh key-on starts at zero; first use Direct or ADSR, then switch while holding a key to hear its depth decrease.'
+            :'Increase grows modulation depth from zero. Rate code 0 holds the current envelope.';
+    const modRegisters=modulatorEnvelopeRegisters(preset);
+    pmonRegisterInfo.textContent='Modulator register settings · ADSR1 '+hex(modRegisters.adsr1)+' · ADSR2 '+hex(modRegisters.adsr2)+' · GAIN '+hex(modRegisters.gain);
+    if(isModulator){
+      sampleInfo.textContent='Modulator · 128 authored PCM points · one BRR loop · silent stereo gain · hardware envelope controls depth.';
+      if(!stroke)waveReadout.textContent='Modulator · 128 points · release a stroke to apply';
+    }else if(isWave){
+      sampleInfo.textContent='Carrier · 128 authored PCM points · one loop · BRR encoding is lossy · 32,000 Hz native DSP.';
+      if(!stroke)waveReadout.textContent='Carrier · 128 points · release a stroke to apply';
     }else if(isNoise){
       sampleInfo.textContent='Hardware Noise · one shared clock · eight independent voice envelopes.';
       waveReadout.textContent='Noise is displayed in the live output monitor.';
@@ -490,9 +574,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     update(value) {
       if(disposed)return;
       const next=readPreset(value);
-      if(loadController&&(next.source!==preset.source||next.brr.data!==preset.brr.data||next.wave.some((sample,index)=>sample!==preset.wave[index])))
+      if(loadController&&(presetBankKey(next)!==presetBankKey(preset)||next.pmon.enabled!==preset.pmon.enabled))
         cancelLoad('Import cancelled after changing the instrument. Current sample kept.');
-      if(stroke&&(next.source!==preset.source||next.wave.some((sample,index)=>sample!==preset.wave[index])))cancelStroke();
+      cancelStroke();
       if((next.brr.data!==preset.brr.data||next.brr.name!==preset.brr.name)&&!loadController&&!committingImport)
         setLoadStatus(next.brr.data?'Sample ready · play the keyboard, or load another file.':'Load audio or raw BRR to prepare a sample.');
       preset=next;render();

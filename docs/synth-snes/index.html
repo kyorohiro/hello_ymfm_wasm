@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices, explore BRR, hardware Noise, ADSR / GAIN and shared Echo / FIR with eight playable voices.">
+  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices, explore BRR, hardware Noise, Pitch Modulation, ADSR / GAIN and shared Echo / FIR.">
   <meta name="theme-color" content="#dfe2e2">
   <meta name="application-name" content="Tetorica S-DSP Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica S-DSP Synth">
@@ -28,7 +28,7 @@
           <div class="product-identity">
             <img class="product-icon" src="../tetorica_sdsp_synth.webp" width="112" height="112" alt="" decoding="async">
             <div class="product-copy">
-              <p class="eyebrow">BRR · NOISE · ADSR / GAIN · ECHO / FIR</p>
+              <p class="eyebrow">BRR · NOISE · ECHO / FIR · PMON</p>
               <h1 id="synthTitle">Tetorica <span class="product-name">S-DSP Synth</span></h1>
               <p class="description">SNES · 8-voice sample sound · Draw a wave. Take the code.</p>
             </div>
@@ -106,7 +106,7 @@
         </div>
       </section>
       <footer>
-        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN and shared Echo / FIR. Noise uses one shared clock; keys gate each voice's envelope, without musical pitch. SPC import reads saved voice settings for audition. Wave drawing, audio conversion, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Pitch modulation is not included in this version.</p>
+        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN, shared Echo / FIR and adjacent-voice Pitch Modulation. PMON uses two voices per note for four playable notes; the modulator's Envelope / GAIN controls its strength. Noise uses one shared clock, without musical pitch. SPC import reads saved voice settings for audition; original PMON pairs are not imported. Wave drawing, audio conversion, ratio settings, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory and 72 BRR bytes for an active PMON modulator.</p>
         <div><a href="../playground/index.html?mode=snes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/snessynth.js">JavaScript source</a></div>
       </footer>
     </article>

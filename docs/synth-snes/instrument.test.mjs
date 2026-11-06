@@ -8,7 +8,7 @@ import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {encodeBase64} from './sample.js';
 import {SnesInstrument} from './instrument.js';
-import {createDefaultPreset,readPreset,envelopeRegisters,waveShape,presetToCode,createNoiseCarrier,ECHO_BRR_MAX_BYTES} from './preset.js';
+import {createDefaultPreset,readPreset,envelopeRegisters,modulatorEnvelopeRegisters,waveShape,presetToCode,createNoiseCarrier,sampleBudget,ECHO_BRR_MAX_BYTES} from './preset.js';
 
 const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
 const create=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
@@ -279,4 +279,147 @@ test('Noise JSON and exported existing low-level API reproduce native stereo PCM
     {encodeBrr(){throw new Error('Noise export must use the silent fetch loop, not encode an authored wave');}});
   assert.deepEqual(render(raw,12000),render(instrument,12000));
   assert.equal(raw.readDsp(0x3d),1);assert.equal(raw.readDsp(0x6c)&31,25);assert.equal(raw.readDsp(0x6c)&32,0);
+});
+
+function pmonPreset(echo={}) {
+  const p=createDefaultPreset();p.pmon.enabled=true;p.envelope.mode='gain';p.envelope.gainLevel=127;
+  p.echo={...p.echo,...echo};return p;
+}
+const pitchAt=(frequency,base=250)=>Math.max(1,Math.min(0x3fff,Math.round(4096*frequency/base)));
+const frequencyAt=midi=>440*2**((midi-69)/12);
+
+test('PMON allocates four adjacent pairs, steals and releases both physical voices under one owner',async t=>{
+  const {instrument,core}=await setup(t);instrument.loadPreset(pmonPreset());
+  for(let index=0;index<4;index++)assert.deepEqual(instrument.noteOn(`n${index}`,60+index),{channel:1+index*2,stolenId:null});
+  const paired=instrument.read();assert.equal(paired.capacity,4);assert.deepEqual(paired.pmonRegisters,{mask:0xaa});
+  assert.deepEqual(paired.voices.map(v=>[v.modulatorChannel,v.channel]),[[0,1],[2,3],[4,5],[6,7]]);
+  assert.equal(core.readDsp(0x4c),255);assert.equal(core.readDsp(0x5c),0);
+  render(instrument,512);assert.deepEqual(instrument.noteOn('new',72),{channel:1,stolenId:'n0'});
+  assert.equal(instrument.noteOff('n0'),false);assert.equal(instrument.read().voices.length,4);
+  instrument.noteOff('n2');assert.equal(core.readDsp(0x5c)&0x30,0x30);
+  assert.deepEqual(instrument.noteOn('reused',64),{channel:5,stolenId:null},'a released pair is preferred over a held pair');
+  assert.equal(instrument.noteOff('n2'),false);assert.equal(core.readDsp(0x5c)&0x30,0);
+  for(const id of ['new','n1','n3','reused'])instrument.noteOff(id);
+  assert.equal(core.readDsp(0x5c),255);assert.equal(instrument.read().voices.length,0);
+  render(instrument,1024);assert.equal(instrument.read().tails.length,0);
+  assert(instrument.read().registers.every(reg=>reg[8]===0));assert.equal(peak(render(instrument,128).left),0);
+});
+
+test('paired BRR PMON equals manual S-DSP stereo setup with Echo and arbitrary render partitions',async t=>{
+  const a=await setup(t),b=await setup(t),rawCore=await create(),raw=new SnesSynth({core:rawCore});t.after(()=>raw.dispose());
+  const p=pmonPreset({enabled:true,delay:2,feedback:-37,volumeLeft:55,volumeRight:-40,fir:[100,20,-10,5,0,0,0,0]});
+  const carrierBytes=encodeBrr(Float32Array.from(waveShape('triangle')),{loopStartSamples:0}).brr;
+  p.source='brr';p.brr={name:'Authored triangle',data:encodeBase64(carrierBytes),rootNote:57,basePitch:2048,loopStartSamples:0};
+  p.volume={left:20,right:-16};p.pmon.ratio=1.5;p.pmon.wave=waveShape('saw');p.pmon.envelope.gainLevel=87;
+  a.instrument.loadPreset(p);b.instrument.loadPreset(p);a.instrument.setPitch(-2);b.instrument.setPitch(-2);
+  const {send,...echo}=p.echo;raw.setEcho({...echo,sendMask:send?0xaa:0});
+  const carrier=raw.loadBRR(carrierBytes,{rootNote:57,basePitch:2048,loopStartSamples:0});
+  const modulator=raw.loadBRR(encodeBrr(Float32Array.from(p.pmon.wave),{loopStartSamples:0}).brr,{baseFrequencyHz:250,loopStartSamples:0});
+  const mainEnv=envelopeRegisters(p),modEnv=modulatorEnvelopeRegisters(p),notes=[48,55,60,67];
+  for(let pair=0;pair<4;pair++) {
+    const midi=notes[pair],mod=pair*2,ch=mod+1;
+    raw.setPreset(mod,{sample:modulator,...modEnv,volumeLeft:0,volumeRight:0,pitch:pitchAt(frequencyAt(midi-2)*1.5)});
+    raw.setPreset(ch,{sample:carrier,...mainEnv,volumeLeft:20,volumeRight:-16,pitch:Math.max(1,Math.min(0x3fff,Math.round(2048*2**((midi-2-57)/12))))});
+    raw.keyOn(mod);raw.keyOn(ch);a.instrument.noteOn(`n${pair}`,midi);b.instrument.noteOn(`n${pair}`,midi);
+  }
+  raw.writeDsp(0x2d,0xaa);raw.writeDsp(0x3d,0);
+  const actual=render(a.instrument,12000),expected=render(raw,12000),partitioned={left:new Float32Array(12000),right:new Float32Array(12000)};
+  assert.deepEqual(actual,expected);assert(actual.left.every(Number.isFinite));assert(peak(actual.left)>.05);
+  for(let offset=0;offset<12000;offset+=17)b.instrument.renderInto(partitioned.left,partitioned.right,Math.min(17,12000-offset),offset);
+  assert.deepEqual(partitioned,actual);assert.deepEqual(b.instrument.read(),a.instrument.read());
+  assert.equal(a.instrument.read().echo.sendMask,0xaa);assert.equal(raw.readDsp(0x4d),0xaa);
+});
+
+test('zero-volume modulators still change carrier pitch while contributing neither dry audio nor Echo',async t=>{
+  const modulated=await setup(t),flat=await setup(t),silent=await setup(t);
+  const p=pmonPreset({enabled:true,delay:1,feedback:64,volumeLeft:64,volumeRight:64});
+  modulated.instrument.loadPreset(p);p.pmon.envelope.gainLevel=0;flat.instrument.loadPreset(p);
+  p.pmon.envelope.gainLevel=100;p.volume={left:0,right:0};silent.instrument.loadPreset(p);
+  for(const entry of [modulated,flat,silent])entry.instrument.noteOn('test',60);
+  const output=render(modulated.instrument,4096),baseline=render(flat.instrument,4096);
+  assert.notDeepEqual(output,baseline,'modulator GAIN changes the pre-volume PMON signal');
+  assert.equal(peak(render(silent.instrument,8192).left),0);assert.equal(peak(render(silent.instrument,512).right),0);
+  const state=modulated.instrument.read();
+  for(const channel of [0,2,4,6])assert.deepEqual(state.registers[channel].slice(0,2),[0,0]);
+  assert(state.registers[0][8]>0);assert.notEqual(modulated.core.readDsp(9),0,'OUTX remains active before the zero L/R volumes');
+  const mute=modulated.instrument.read().preset;mute.echo.send=false;modulated.instrument.setPreset(mute);assert.equal(modulated.core.readDsp(0x4d),0);
+});
+
+test('PMON ratio, envelope and Pitch edits preserve modulator phase, owners, generations and RAM',async t=>{
+  const a=await setup(t),reference=await setup(t),p=pmonPreset();
+  for(const entry of [a,reference]){entry.instrument.loadPreset(p);entry.instrument.noteOn('held',60);}
+  assert.deepEqual(render(a.instrument,777),render(reference.instrument,777));
+  const before=a.instrument.read(),memory=a.core.snapshot().ram;
+  p.pmon.ratio=2.5;p.pmon.envelope.gainLevel=33;a.instrument.setPreset(p);
+  reference.instrument.synth.setPitch(0,pitchAt(frequencyAt(60)*2.5));
+  reference.instrument.synth.setPreset(0,modulatorEnvelopeRegisters(p));
+  const edited=a.instrument.read();assert.deepEqual(edited.voices,before.voices);assert.equal(edited.generation,before.generation);
+  assert.equal(edited.nativeFrames,777);assert.deepEqual(a.core.snapshot().ram,memory);assert.equal(edited.registers[0][8],before.registers[0][8]);
+  assert.deepEqual(render(a.instrument,4096),render(reference.instrument,4096),'live changes keep the existing oscillator and envelope state');
+  a.instrument.setPitch(3.25);reference.instrument.synth.setPitch(0,pitchAt(frequencyAt(63.25)*2.5));reference.instrument.synth.setPitch(1,pitchAt(frequencyAt(63.25)));
+  assert.deepEqual(render(a.instrument,4096),render(reference.instrument,4096));
+  const tuned=a.instrument.read();assert.equal(tuned.registers[0][2]|tuned.registers[0][3]<<8,pitchAt(frequencyAt(63.25)*2.5));
+  assert.equal(tuned.registers[1][2]|tuned.registers[1][3]<<8,pitchAt(frequencyAt(63.25)));assert.equal(tuned.generation,before.generation);
+});
+
+test('modulator ADSR and GAIN run independently from the audible carrier envelope',async t=>{
+  const {instrument}=await setup(t),p=pmonPreset();
+  p.pmon.envelope={...p.pmon.envelope,mode:'adsr',attack:8,decay:0,sustainLevel:7,sustainRate:0};
+  instrument.loadPreset(p);instrument.noteOn('held',60);render(instrument,256);
+  const initial=instrument.read();assert(initial.registers[0][8]>0&&initial.registers[0][8]<127);assert.equal(initial.registers[1][8],127);
+  render(instrument,6000);assert(instrument.read().registers[0][8]>initial.registers[0][8]);
+  p.pmon.envelope.mode='gain';p.pmon.envelope.gainMode='linear-decrease';p.pmon.envelope.gainRate=31;
+  instrument.setPreset(p);render(instrument,512);assert.equal(instrument.read().registers[0][8],0);assert.equal(instrument.read().registers[1][8],127);
+  p.pmon.envelope.gainMode='linear-increase';instrument.setPreset(p);render(instrument,512);assert.equal(instrument.read().registers[0][8],127);
+  p.pmon.envelope.gainMode='exponential-decrease';instrument.setPreset(p);render(instrument,512);assert(instrument.read().registers[0][8]<127);
+  assert.deepEqual(instrument.read().voices,initial.voices);assert.equal(instrument.generation,initial.generation);
+});
+
+test('Noise remembers inactive PMON drafts without resets and restores paired allocation on returning to Wave',async t=>{
+  const {instrument}=await setup(t),p=noisePreset();p.pmon.enabled=true;instrument.loadPreset(p);instrument.noteOn('noise',60);render(instrument,512);
+  const noise=instrument.read();assert.equal(noise.capacity,8);assert.deepEqual(noise.pmon,{enabled:true,active:false,ratio:1});
+  assert.deepEqual(noise.pmonRegisters,{mask:0});assert.equal(noise.modulatorSample,null);assert.equal(instrument.synth.samples.length,1);
+  p.pmon.ratio=4;p.pmon.wave=waveShape('square');p.pmon.envelope.gainLevel=20;instrument.setPreset(p);
+  assert.deepEqual(instrument.read().voices,noise.voices);assert.equal(instrument.generation,noise.generation);assert.equal(instrument.read().nativeFrames,512);
+  p.source='wave';instrument.setPreset(p);let state=instrument.read();
+  assert(state.generation>noise.generation);assert.equal(state.voices.length,0);assert.equal(state.capacity,4);assert.equal(state.pmonRegisters.mask,0xaa);
+  assert.equal(state.pmon.ratio,4);assert.equal(instrument.synth.samples.length,2);
+  instrument.noteOn('wave',60);render(instrument,512);const paired=instrument.read();
+  p.pmon.wave=waveShape('triangle');instrument.setPreset(p);state=instrument.read();assert(state.generation>paired.generation);assert.equal(state.voices.length,0);
+  p.pmon.enabled=false;instrument.setPreset(p);state=instrument.read();assert.equal(state.capacity,8);assert.equal(state.pmonRegisters.mask,0);assert.equal(state.modulatorSample,null);
+  instrument.noteOn('plain',60);render(instrument,512);const plain=instrument.read();p.pmon.wave=waveShape('saw');instrument.setPreset(p);
+  assert.equal(instrument.generation,plain.generation);assert.deepEqual(instrument.read().voices,plain.voices);
+});
+
+test('PMON reserves exact BRR RAM in both layouts and rejects invalid edits before touching owners or DSP',async t=>{
+  const {instrument,core}=await setup(t),p=pmonPreset();p.source='brr';
+  for(const echo of [false,true]) {
+    p.echo.enabled=echo;p.echo.delay=15;const budget=sampleBudget(p),bytes=new Uint8Array(budget);bytes[bytes.length-9]=3;
+    p.brr={name:'Boundary loop',data:encodeBase64(bytes),rootNote:60,basePitch:4096,loopStartSamples:0};
+    instrument.loadPreset(p);instrument.noteOn('held',60);render(instrument,12000);
+    const state=instrument.read(),memory=core.snapshot().ram,start=echo?0x7c00:0x400,modulator=encodeBrr(Float32Array.from(p.pmon.wave),{loopStartSamples:0}).brr;
+    assert.equal(state.memory.maxSampleBytes,budget);assert.equal(state.sample.startAddress,start);assert.equal(state.modulatorSample.startAddress,start+budget);
+    assert.equal(state.modulatorSample.byteLength,72);assert.equal(instrument.synth.nextAddress,start+budget+72);assert(instrument.synth.nextAddress<=65536);
+    assert.deepEqual(memory.slice(start,start+budget),bytes);assert.deepEqual(memory.slice(start+budget,start+budget+72),modulator);
+    const directory=echo?0x7800:0;assert.deepEqual(memory.slice(directory,directory+8),Uint8Array.of(start&255,start>>8,start&255,start>>8,(start+budget)&255,(start+budget)>>8,(start+budget)&255,(start+budget)>>8));
+    for(const mutate of [invalid=>{invalid.pmon.ratio=0;},invalid=>{invalid.pmon.ratio=NaN;},invalid=>{invalid.pmon.wave.pop();},invalid=>{invalid.pmon.envelope.attack=16;},invalid=>{invalid.brr.data=encodeBase64(new Uint8Array(budget+9));}]) {
+      const invalid=structuredClone(p);mutate(invalid);assert.throws(()=>instrument.setPreset(invalid));assert.deepEqual(instrument.read(),state);assert.deepEqual(core.snapshot().ram,memory);
+    }
+  }
+  const full=createDefaultPreset(),large=new Uint8Array(64512);large[large.length-9]=3;
+  full.source='brr';full.brr={name:'Full dry bank',data:encodeBase64(large),rootNote:60,basePitch:4096,loopStartSamples:0};
+  instrument.loadPreset(full);instrument.noteOn('full',60);render(instrument,256);const before=instrument.read(),ram=core.snapshot().ram;
+  full.pmon.enabled=true;assert.throws(()=>instrument.setPreset(full),/72/);assert.deepEqual(instrument.read(),before);assert.deepEqual(core.snapshot().ram,ram);
+});
+
+test('PMON JSON and copied JavaScript use the existing hardware API and reproduce the native pair PCM',async t=>{
+  const {instrument}=await setup(t),rawCore=await create(),raw=new SnesSynth({core:rawCore});t.after(()=>raw.dispose());
+  const p=pmonPreset({enabled:true,delay:1,feedback:-30,volumeLeft:60,volumeRight:-24,fir:[100,20,-10,5,0,0,0,0]});
+  p.pmon.ratio=2.25;p.pmon.wave=waveShape('triangle');p.pmon.envelope.gainLevel=77;p.volume={left:24,right:-20};
+  const restored=readPreset(JSON.parse(JSON.stringify(p)));assert.deepEqual(restored,p);instrument.loadPreset(restored);instrument.noteOn('pair',60);
+  const code=presetToCode(restored),AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  await new AsyncFunction('useSoundChip','pg',code)(async mode=>{assert.equal(mode,'snes');return raw;},{encodeBrr});
+  assert.deepEqual(render(raw,12000),render(instrument,12000));assert.equal(raw.readDsp(0x2d),2);assert.equal(raw.readDsp(0x4d),2);
+  const generation=instrument.generation;instrument.stop();assert(instrument.generation>generation);assert.equal(instrument.read().voices.length,0);
+  assert.equal(peak(render(instrument,4096).left),0);assert.equal(instrument.read().pmonRegisters.mask,0xaa);
 });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
-import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
+import {createDefaultPreset, readPreset, presetToCode, pmonActive, presetBankKey} from './preset.js';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
 import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js';
 import {createSpcBrowser} from './spc_browser.js';
@@ -28,7 +28,7 @@ const enqueue = action => {
   queue = task.catch(report);
   return task;
 };
-const capacity = () => 8;
+const capacity = () => pmonActive(preset) ? 4 : 8;
 function updateKeys() {
   const keys = new Set([...notes.values()].map(note => note.key));
   for (const button of $('keyboard').querySelectorAll('.key')) {
@@ -48,7 +48,9 @@ function readVoices(state) {
 function updateCapacity() {
   $('voiceCapacity').textContent = preset.source==='noise'
     ? `Hardware Noise · shared clock ${preset.noise.clock} · 8 voice envelopes · ${notes.size} held`
-    : `${preset.source==='wave'?'128-point wave → BRR':'BRR sample'} · 8 hardware voices · round robin · ${notes.size} held`;
+    : pmonActive(preset)
+      ? `Hardware PMON · 2 voices per note · 4 notes · round robin · ${notes.size} held`
+      : `${preset.source==='wave'?'128-point wave → BRR':'BRR sample'} · 8 hardware voices · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
   editor.update(preset);
@@ -64,7 +66,9 @@ function updatePresetUi() {
     : 'Every key plays the selected source. No keyboard split.';
   $('keyboardHint').textContent=preset.source==='noise'
     ? 'One shared Noise generator; each key has its own envelope. Noise clock changes its texture.'
-    : 'When full, the oldest note is replaced.';
+    : pmonActive(preset)
+      ? 'PMON uses two adjacent hardware voices per note. Four notes; when full, the oldest pair is replaced.'
+      : 'When full, the oldest note is replaced.';
   updateCapacity();
   if (!layout || keyboardSource !== keyboardMode()) renderKeyboard();
   else updateKeys();
@@ -111,9 +115,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
   if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
-  const replacesVoices = load || previous.source !== next.source || previous.echo.enabled !== next.echo.enabled ||
-    (next.source==='wave' ? JSON.stringify(previous.wave)!==JSON.stringify(next.wave) :
-      next.source==='brr'&&(previous.brr.data!==next.brr.data || previous.brr.loopStartSamples!==next.brr.loopStartSamples));
+  const replacesVoices = load || presetBankKey(previous) !== presetBankKey(next);
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -131,8 +133,8 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
       readVoices(state);
       visualizer.wake();
       if (revision === editRevision) status(message ?? (replacesVoices
-        ? 'Sample or Echo layout updated · previous notes and tails stopped. Play the keyboard.'
-        : 'Instrument updated · hardware volume, envelope, tuning, Noise clock and Echo settings apply live.'));
+        ? 'Sample, PMON or Echo layout updated · previous notes and tails stopped. Play the keyboard.'
+        : 'Instrument updated · hardware volume, envelopes, tuning, PMON ratio, Noise clock and Echo settings apply live.'));
     } catch (error) {
       if (audio === engine && revision === editRevision) {
         preset = (await engine.read()).preset;
@@ -246,7 +248,7 @@ function press(source, entry) {
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
     const label=preset.source==='noise'?`Noise clock ${preset.noise.clock}`:midiToNoteName(note.midi);
-    status(`${label} · ${notes.size}/8 voices · hardware ${preset.envelope.mode==='adsr'?'ADSR':'GAIN'}`);
+    status(`${label} · ${notes.size}/${capacity()} ${pmonActive(preset)?'notes · hardware PMON':'voices'} · hardware ${preset.envelope.mode==='adsr'?'ADSR':'GAIN'}`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
 function release(source) {

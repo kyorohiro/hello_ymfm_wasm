@@ -2,13 +2,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {createDefaultPreset,createDefaultEcho,createDefaultNoise,readPreset,waveShape,envelopeRegisters,presetToCode,echoOptions,ECHO_BRR_MAX_BYTES} from './preset.js';
+import {createDefaultPreset,createDefaultEcho,createDefaultNoise,createDefaultPmon,readPreset,waveShape,envelopeRegisters,modulatorEnvelopeRegisters,presetToCode,echoOptions,ECHO_BRR_MAX_BYTES,PMON_MODULATOR_BYTES,pmonActive,sampleBudget,presetBankKey} from './preset.js';
 import {encodeBase64} from './sample.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 
 test('default preset is portable, detached and leaves eight-voice hardware headroom',()=>{
   const preset=createDefaultPreset(),copy=readPreset(JSON.parse(JSON.stringify(preset)));
-  assert.deepEqual(copy,preset);assert.equal(copy.format,'tetorica-sdsp-voice');assert.equal(copy.version,3);
+  assert.deepEqual(copy,preset);assert.equal(copy.format,'tetorica-sdsp-voice');assert.equal(copy.version,4);
   assert.deepEqual(copy.volume,{left:16,right:16});assert.equal(copy.wave.length,128);
   copy.wave[0]=.3;copy.volume.left=127;copy.envelope.attack=0;copy.echo.fir[0]=0;
   assert.equal(preset.wave[0],0);assert.equal(preset.volume.left,16);assert.equal(preset.envelope.attack,15);
@@ -26,7 +26,7 @@ test('ADSR and all five GAIN modes map to exact register bit fields',()=>{
 
 test('strict preset validation rejects unknown fields, invalid floats and malformed BRR atomically',()=>{
   const p=createDefaultPreset();
-  const mutations=[x=>x.extra=1,x=>x.version=4,x=>x.source='other',x=>x.name='bad\nname',x=>x.wave.pop(),
+  const mutations=[x=>x.extra=1,x=>x.version=5,x=>x.source='other',x=>x.name='bad\nname',x=>x.wave.pop(),
     x=>delete x.wave[1],x=>x.wave[0]=NaN,x=>x.wave[0]=1.01,x=>x.volume.left=128,x=>x.volume.right=-129,
     x=>x.volume.left=1.5,x=>x.envelope.extra=true,x=>x.envelope.mode='software',x=>x.envelope.attack=16,
     x=>x.envelope.decay=8,x=>x.envelope.sustainLevel=8,x=>x.envelope.sustainRate=32,x=>x.envelope.gainMode='unknown',
@@ -72,13 +72,17 @@ test('copied JavaScript uses the initialized SNES API and explicit raw BRR tunin
   }
 });
 
-test('legacy v1 and v2 imports normalize to v3 with Noise defaults while preserving their voice and Echo',()=>{
-  const old=createDefaultPreset();delete old.echo;delete old.noise;old.version=1;
+test('legacy v1 through v3 imports normalize to v4 with PMON off while preserving voice, Noise and Echo',()=>{
+  const old=createDefaultPreset();delete old.echo;delete old.noise;delete old.pmon;old.version=1;
   const migrated=readPreset(JSON.parse(JSON.stringify(old)));
-  assert.equal(migrated.version,3);assert.deepEqual(migrated.echo,createDefaultEcho());assert.deepEqual(migrated.noise,createDefaultNoise());
-  const {echo:oldEcho,noise:oldNoise,...migratedVoice}=migrated;assert.deepEqual({...migratedVoice,version:1},old);
+  assert.equal(migrated.version,4);assert.deepEqual(migrated.echo,createDefaultEcho());assert.deepEqual(migrated.noise,createDefaultNoise());assert.deepEqual(migrated.pmon,createDefaultPmon());
+  const {echo:oldEcho,noise:oldNoise,pmon:oldPmon,...migratedVoice}=migrated;assert.deepEqual({...migratedVoice,version:1},old);
   const p=createDefaultPreset();p.echo={enabled:true,delay:0,feedback:-128,volumeLeft:127,volumeRight:-128,send:false,fir:[-128,127,-1,0,1,2,3,4]};
-  const v2={...structuredClone(p),version:2};delete v2.noise;assert.deepEqual(readPreset(v2),p);
+  const v2={...structuredClone(p),version:2};delete v2.noise;delete v2.pmon;assert.deepEqual(readPreset(v2),p);
+  const v3={...structuredClone(p),version:3};delete v3.pmon;assert.deepEqual(readPreset(v3),p);
+  const noiseV3={...structuredClone(v3),source:'noise',noise:{clock:7}};const migratedNoise=readPreset(noiseV3);
+  assert.equal(migratedNoise.source,'noise');assert.equal(migratedNoise.noise.clock,7);assert.equal(migratedNoise.pmon.enabled,false);
+  assert.throws(()=>readPreset({...v3,pmon:createDefaultPmon()}),/unexpected/);
   const copy=readPreset(p);assert.deepEqual(copy,p);copy.echo.fir[0]=5;assert.equal(p.echo.fir[0],-128);
   assert.deepEqual(echoOptions(p.echo),{enabled:true,delay:0,feedback:-128,volumeLeft:127,volumeRight:-128,fir:[-128,127,-1,0,1,2,3,4],sendMask:0});
   assert.throws(()=>readPreset({...old,echo:createDefaultEcho()}),/unexpected/);
@@ -102,7 +106,7 @@ test('Echo sample capacity is checked on the selected BRR source without trimmin
   const extra=makeBrr(ECHO_BRR_MAX_BYTES+9);extra.echo.enabled=true;assert.throws(()=>readPreset(extra),/33,786/);
   extra.echo.enabled=false;assert.deepEqual(readPreset(extra),extra);
   extra.echo.enabled=true;extra.source='wave';assert.deepEqual(readPreset(extra),extra,'inactive BRR draft does not consume the drawn wave bank');
-  const legacy=makeBrr(64512);legacy.version=1;delete legacy.echo;delete legacy.noise;
+  const legacy=makeBrr(64512);legacy.version=1;delete legacy.echo;delete legacy.noise;delete legacy.pmon;
   const loaded=readPreset(legacy);assert.equal(loaded.echo.enabled,false);assert.equal(loaded.brr.data.length,legacy.brr.data.length);
 });
 
@@ -116,6 +120,83 @@ test('v3 Noise clocks are bounded and independent of inactive BRR tuning or Echo
   for(const clock of [-1,32,.5,NaN,Infinity,'31',null]) assert.throws(()=>readPreset({...preset,noise:{clock}}));
   for(const noise of [null,{},[],{clock:1,extra:true}]) assert.throws(()=>readPreset({...preset,noise}));
   const missing=structuredClone(preset);delete missing.noise;assert.throws(()=>readPreset(missing),/missing/);
-  const old={...structuredClone(preset),version:2};delete old.noise;
+  const old={...structuredClone(preset),version:2};delete old.noise;delete old.pmon;
   assert.throws(()=>readPreset(old),/v3 Noise/,'old formats cannot silently invent a new source mode');
+});
+
+test('PMON defaults and nested data are portable, detached and share exact hardware envelope mapping',()=>{
+  const p=createDefaultPreset(),copy=readPreset(p);
+  assert.deepEqual(p.pmon,createDefaultPmon());assert.equal(pmonActive(p),false);
+  assert.deepEqual(modulatorEnvelopeRegisters(p),{adsr1:47,adsr2:224,gain:64});
+  p.pmon.enabled=true;p.pmon.ratio=.125;p.pmon.envelope.mode='adsr';
+  assert.equal(pmonActive(p),true);assert.equal(modulatorEnvelopeRegisters(p).adsr1,175);
+  for(const [gainMode,gain]of[['direct',64],['linear-decrease',144],['exponential-decrease',176],['linear-increase',208],['bent-increase',240]]) {
+    p.pmon.envelope.gainMode=gainMode;assert.equal(modulatorEnvelopeRegisters(p).gain,gain);
+  }
+  copy.pmon.wave[0]=1;copy.pmon.envelope.gainLevel=0;
+  assert.equal(p.pmon.wave[0],0);assert.equal(p.pmon.envelope.gainLevel,64);
+  p.pmon.ratio=8;assert.equal(readPreset(p).pmon.ratio,8);
+});
+
+test('PMON rejects missing, unknown, sparse and invalid nested data before acceptance',()=>{
+  const p=createDefaultPreset();
+  const changes=[x=>delete x.pmon,x=>x.pmon=null,x=>x.pmon.extra=true,x=>x.pmon.enabled=1,
+    x=>x.pmon.ratio=.124,x=>x.pmon.ratio=8.001,x=>x.pmon.ratio=NaN,x=>x.pmon.ratio=Infinity,x=>x.pmon.ratio='1',
+    x=>x.pmon.wave.pop(),x=>delete x.pmon.wave[1],x=>x.pmon.wave[0]=NaN,x=>x.pmon.wave[0]=1.1,
+    x=>x.pmon.wave.extra=1,x=>x.pmon.wave=new Float32Array(128),x=>x.pmon.envelope.extra=0,
+    x=>x.pmon.envelope.gainLevel=128,x=>x.pmon.envelope.gainRate=-1,x=>x.pmon.envelope.mode='other',
+    x=>x.pmon.envelope.attack=16,x=>x.pmon.envelope.decay=8,x=>x.pmon.envelope.sustainLevel=8,
+    x=>x.pmon.envelope.sustainRate=32,x=>x.pmon.envelope.gainMode='other'];
+  for(const change of changes){const draft=structuredClone(p);change(draft);assert.throws(()=>readPreset(draft));}
+  assert.deepEqual(p,createDefaultPreset());
+});
+
+test('PMON carrier budgets include its complete 72-byte modulator before any dry or Echo bank adoption',()=>{
+  const make=bytes=>{const p=createDefaultPreset(),data=new Uint8Array(bytes);data[bytes-9]=1;
+    p.source='brr';p.brr.data=encodeBase64(data);p.pmon.enabled=true;return p;};
+  assert.equal(PMON_MODULATOR_BYTES,encodeBrr(Float32Array.from(waveShape('sine')),{loopStartSamples:0}).brr.length);
+  for(const [echo,budget]of[[false,64440],[true,33714]]) {
+    const p=make(budget);p.echo.enabled=echo;assert.equal(sampleBudget(p),budget);assert.deepEqual(readPreset(p),p);
+    const extra=make(budget+9);extra.echo.enabled=echo;assert.throws(()=>readPreset(extra),/PMON reserves 72/);
+    extra.pmon.enabled=false;assert.deepEqual(readPreset(extra),extra);
+    extra.pmon.enabled=true;extra.source='wave';assert.deepEqual(readPreset(extra),extra,'inactive BRR does not consume carrier RAM');
+  }
+  const noise=make(64512);noise.source='noise';noise.echo.enabled=true;
+  assert.equal(pmonActive(noise),false);assert.equal(sampleBudget(noise),33786);assert.deepEqual(readPreset(noise),noise);
+});
+
+test('bank keys distinguish active PMON layout and waves while preserving live or inactive edits',()=>{
+  const p=createDefaultPreset(),before=presetBankKey(p);
+  p.pmon.ratio=2;p.pmon.wave[0]=.5;p.pmon.envelope.gainLevel=30;
+  assert.equal(presetBankKey(p),before,'disabled PMON drafts do not replace the bank');
+  p.pmon.enabled=true;const active=presetBankKey(p);assert.notEqual(active,before);
+  p.pmon.ratio=3;p.pmon.envelope.attack=5;p.envelope.decay=4;p.volume.left=30;p.brr.rootNote=40;
+  assert.equal(presetBankKey(p),active,'ratio, envelopes, level and tuning are live');
+  p.pmon.wave[0]=.25;assert.notEqual(presetBankKey(p),active);
+  p.source='noise';const noise=presetBankKey(p);p.pmon.enabled=false;p.pmon.wave[0]=1;
+  assert.equal(presetBankKey(p),noise);
+  p.echo.enabled=true;assert.notEqual(presetBankKey(p),noise);
+});
+
+test('PMON JavaScript explicitly pairs silent modulator0 with carrier1 and preserves authored wave, ratio and Echo routing',async()=>{
+  for(const source of ['wave','brr','noise']) {
+    const p=createDefaultPreset();p.source=source;p.pmon.enabled=true;p.pmon.ratio=1.375;p.pmon.wave=waveShape('triangle');
+    p.echo.enabled=true;
+    if(source==='brr')p.brr={...p.brr,data:encodeBase64(Uint8Array.of(1,0,0,0,0,0,0,0,0)),rootNote:57,basePitch:2048};
+    let nextSample=0;const calls=[],snes=Object.fromEntries(['allNotesOff','setEcho','loadBRR','writeDsp','readDsp','setPreset','noteOn','noteOff','keyOn'].map(method=>[method,(...args)=>{
+      calls.push([method,...args]);return method==='loadBRR'?{id:nextSample++}:method==='readDsp'?0:undefined;
+    }]));
+    await vm.runInContext(`(async()=>{${presetToCode(p)}\n})()`,vm.createContext({useSoundChip:async()=>snes,pg:{encodeBrr},Float32Array,Uint8Array}));
+    const active=source!=='noise';assert.deepEqual(calls.find(c=>c[0]==='writeDsp'&&c[1]===0x2d),['writeDsp',0x2d,active?2:0]);
+    assert.equal(calls.find(c=>c[0]==='setEcho')[1].sendMask,active?2:255);
+    assert.equal(calls.filter(c=>c[0]==='loadBRR').length,active?2:1);
+    if(active) {
+      const assignments=calls.filter(c=>c[0]==='setPreset'),mod=assignments[0],carrier=assignments[1];
+      assert.equal(mod[1],0);assert.equal(mod[2].sample.id,1);assert.equal(mod[2].volumeLeft,0);assert.equal(mod[2].volumeRight,0);assert.equal(mod[2].gain,64);
+      assert.equal(mod[2].pitch,Math.round(4096*440*2**((60-69)/12)*1.375/250));
+      assert.equal(carrier[1],1);assert.equal(carrier[2].sample.id,0);assert.equal(carrier[2].volumeLeft,16);
+      assert.deepEqual(calls.at(-2),['keyOn',0]);assert.deepEqual(calls.at(-1),['noteOn',1,'C4']);
+      assert.deepEqual(Array.from(calls.filter(c=>c[0]==='loadBRR')[1][1]),Array.from(encodeBrr(Float32Array.from(p.pmon.wave),{loopStartSamples:0}).brr));
+    }else assert.deepEqual(calls.at(-1),['noteOn',0,'C4']);
+  }
 });

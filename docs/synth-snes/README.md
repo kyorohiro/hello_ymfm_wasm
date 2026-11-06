@@ -6,7 +6,7 @@ Product identifier: `tetorica-sdsp-synth`. A standalone SNES S-DSP instrument.
 
 Play eight physical SNES S-DSP voices, choose a BRR or Noise voice from an SPC
 snapshot, draw a waveform, load BRR or audio, and explore hardware Noise,
-ADSR / GAIN and Echo / FIR. The UI follows Tetorica SPU / DMG /
+pitch modulation (PMON), ADSR / GAIN and Echo / FIR. The UI follows Tetorica SPU / DMG /
 2A03 / HuC6280 Synths: output monitor, compact keyboard, Octave, two Pitch wheels,
 collapsible sections and controls that leave the computer keys available.
 
@@ -15,11 +15,13 @@ collapsible sections and controls that leave the computer keys available.
 1. Select **Enable audio**, or press a displayed computer key.
 2. Use **Drawn wave** to draw a 128-point cycle, load audio / raw BRR, select
    **Noise**, or choose **Sounds from SPC → Load SPC…** and select a voice candidate.
-3. Adjust the hardware envelope or enable **S-DSP Echo** and edit its controls.
+3. Adjust the hardware envelope, enable **S-DSP Echo**, or enable **Pitch Modulation**
+   for a Wave / BRR source and edit its modulator.
 4. Save a preset or copy JavaScript for Playground.
 
 Editing or loading a sample does not open an audio device. Allocation uses the
 eight hardware voices in round-robin order, stealing an old voice when needed.
+PMON uses two adjacent hardware voices per note, for four playable notes.
 A replaced key's later release cannot stop its new owner. Key-off uses the
 S-DSP's hardware release. **Stop all sound** clears held notes and Echo tails
 while keeping the instrument and its Echo settings. Leaving the window also
@@ -34,7 +36,11 @@ software. The declared cycle frequency is 32,000 / 128 Hz at hardware
 `PITCH=4096`; keyboard notes use the hardware PITCH register to transpose it.
 
 When a BRR sample is selected, this canvas displays its decoded waveform as a
-preview. Use Wave to author a cycle. Sample replacement, loop edits and Echo
+preview. Use Wave to author a cycle. With PMON enabled, choose **Carrier** or
+**Modulator** as the edit target on this same canvas. The carrier remains the
+selected drawn Wave or decoded BRR preview; the modulator has its own editable
+128-point wave and shape buttons. Switching the edit target changes no sound.
+Sample replacement, loop edits, active modulator-wave edits and Echo / PMON
 On / Off rebuild the bank, stopping held notes and old Echo tails. Repeated
 edits reuse sample RAM. Volume, envelope, Root / base PITCH, Pitch wheels and
 Echo parameters other than Enable apply to held voices.
@@ -57,7 +63,41 @@ the Noise texture. Keys trigger envelopes, while note names, Octave and the
 Pitch wheels do not tune Noise; Octave and Pitch controls are disabled in
 this mode. Sample loading, drawing, loop and BRR tuning controls are hidden.
 The output monitor displays the actual DSP output rather than a generated
-waveform preview.
+waveform preview. PMON settings are remembered but paused in Noise mode;
+Noise retains eight independently gated voice envelopes.
+
+## Hardware Pitch Modulation
+
+Open **Pitch Modulation** after the Echo panel and turn on **Enable Pitch Modulation**
+for a Wave or BRR source. The real S-DSP uses the previous voice's envelope-scaled output to
+modulate the next voice's PITCH. This Synth assigns fixed pairs **0 → 1,
+2 → 3, 4 → 5 and 6 → 7**, giving four notes in round-robin order. Each key
+starts and releases both voices together; a stolen pair keeps the same safe
+ownership rules as an ordinary voice.
+
+The modulator's left/right volumes are zero, so it supplies modulation without
+adding its own sound to the mix. Only the carrier sends audio to Echo. Adjust
+the modulator's independent hardware **ADSR / GAIN** to shape modulation depth;
+Direct GAIN provides a steady level, while the other modes change it over time.
+A decreasing GAIN envelope starting at zero can produce no modulation until
+it has first been raised with ADSR or Direct GAIN.
+
+**Modulator ratio · × key note** selects the modulator's musical frequency relative to the keyboard
+note, from **0.125 to 8**. It is a software tuning control that writes hardware
+PITCH registers; the carrier's BRR Root / base PITCH remain its own declared
+reference. Ratio and both envelopes apply to held notes, and Pitch wheels
+transpose both voices. The modulator PITCH is clamped to **1–16,383** at the
+hardware limit, so extreme notes or ratios can stop preserving the requested ratio.
+For imported BRR, Ratio follows the declared keyboard-note frequency; it does
+not measure or recover the sample's original fundamental.
+
+Choose **Modulator** on the existing sample canvas to draw its 128-point cycle
+or choose Sine, Triangle, Saw or Square. BRR encoding and keyboard pair allocation
+are software authoring tools; PMON and both envelopes run in the actual S-DSP.
+Changing the active wave or PMON On / Off rebuilds the bank and stops held
+notes and Echo tails. Ratio, Envelope / GAIN and Pitch edits retain their owners.
+Noise temporarily pauses PMON because Noise output is not tuned by sample PITCH;
+returning to Wave / BRR restores the remembered setting.
 
 ## Sounds from SPC
 
@@ -105,7 +145,9 @@ keeps the captured parameters. A frozen buffer or past Echo tail is not restored
 A voice originally excluded from Echo imports with Send off; zero Return values
 also remain zero. These cases are explained in the list. The shared Echo starts
 with an empty buffer, not the song's prior mixed audio. PMON voices can load their base
-BRR with an explicit warning that pitch modulation is omitted. Captured voice
+BRR with an explicit warning that its original pitch modulation is omitted.
+You can enable manual PMON after loading it. Importing the original adjacent
+modulator / carrier pair remains a separate task. Captured voice
 volumes are preserved without normalization; high polyphonic levels can clip
 the DSP mixer. Use Voice level to adjust them before the final Master bus.
 
@@ -143,6 +185,13 @@ The current limit appears next to the conversion controls. Longer input is
 rejected with an explanation and no trimming. Enabling Echo on a sample that
 does not fit keeps the current sample with Echo off. Choose a shorter clip or
 lower conversion rate to use Echo.
+
+Active PMON reserves **72 BRR bytes** for its separate modulator wave. The
+carrier limit becomes **64,440 bytes with Echo off** or **33,714 with Echo on**.
+The capacity display and conversion hint use this reduced budget. Enabling
+PMON on a carrier that does not fit keeps the current instrument and setting;
+the sample is never trimmed. Inactive PMON drafts and Noise do not reserve
+the modulator sample.
 
 **Load BRR…** accepts complete raw 9-byte BRR blocks, ending at their END block.
 Headers or trailing bytes are not accepted as sample data. BRR stores neither
@@ -218,16 +267,19 @@ bus control from 0 to 380%; above 100% its bar turns orange.
 
 ## Save, reuse and scope
 
-The portable `tetorica-sdsp-voice` preset v3 includes the selected Wave / BRR /
+The portable `tetorica-sdsp-voice` preset v4 includes the selected Wave / BRR /
 Noise source, shared Noise clock, waveform data, raw BRR, explicit sample
-tuning, loop start, stereo volume, envelope and Echo / FIR settings. Existing
-v1 / v2 presets migrate to v3 without changing their sound source; v1 adds
-Echo off and both formats add the default Noise clock 31. JSON files are capped
+tuning, loop start, stereo volume, envelope, Echo / FIR and PMON's enable flag,
+ratio, modulator wave and independent envelope. Existing v1 / v2 / v3 presets
+migrate to v4 with PMON off and without changing their sound source; v1 adds
+Echo off and v1 / v2 add the default Noise clock 31. JSON files are capped
 at 256 KiB.
 **Copy JavaScript** exports setup code for Playground's SNES mode, awaiting
 `snes.setEcho(...)` before `snes.loadBRR(...)` so RAM is reserved before upload.
 Noise setup uses the existing raw `snes.writeDsp(...)` API for NON and the
-shared FLG clock bits. This feature requires no shared-runtime or npm update.
+shared FLG clock bits. PMON setup uploads both BRR samples, configures one
+adjacent pair with a silent modulator, and uses the existing raw `writeDsp`
+API for PMON routing. These features require no shared-runtime, WASM or npm update.
 
 The repository runtime exposes `SnesSynth.setEcho()` / `getEcho()` and async
 Main / Worker / Native client methods. Its first Echo enable reserves
@@ -239,12 +291,12 @@ arrays are detached from settings, and validation rejects capacity or parameter
 errors before modifying the existing instrument.
 
 The hardware features in this version are eight voices, BRR decoding, Gaussian
-interpolation, sample PITCH, shared Noise, signed volumes, ADSR / GAIN and
+interpolation, sample PITCH, shared Noise, adjacent-voice PMON, signed volumes, ADSR / GAIN and
 shared Echo / FIR.
 Drawing, audio conversion, sample management and keyboard allocation are
 software authoring tools.
 
-Pitch modulation remains a later stage. No SPC700 driver or song
+Original SPC PMON pair import remains a later stage. No SPC700 driver or song
 playback is included in this Synth.
 
 ## Source and verification
@@ -270,7 +322,7 @@ with the Synth. See the included licenses for each component.
 
 ## 日本語
 
-SNESの8つの実voiceを使い、BRR音色、hardware Noise、ADSR／GAIN、共有Echo／FIRを
+SNESの8つの実voiceを使い、BRR音色、hardware Noise・PMON、ADSR／GAIN、共有Echo／FIRを
 操作するSynthです。
 128点波形を描くか、WAV等・raw BRRを読み込み、同じcanvasで波形を確認できます。
 BRRに元音階やrateは入っていないため、Root noteとbase PITCHで明示します。
@@ -286,6 +338,8 @@ SPCの曲再生やdriverの時間変化は再現せず、BRRのPITCH0・不正Lo
 表示して選択不可にします。Noise候補は共有clock・左右音量・ADSR／GAINを取り込み、
 PITCH0や不正なSRCN／BRRでも選択できます。Noiseの内部LFSR状態は復元せず、
 本Synth側のgeneratorで試奏します。PMON／Echoを省略する候補には説明を表示します。
+元のPMON隣接pairの自動取り込みは後続です。BRRを読み込んだ後に、手動で
+PMONを有効にして新しい変調音色を作れます。
 **Import Echo / FIR settings** は初期Offです。Onにしてから候補を選ぶと、
 元のDelay・signed Feedback・左右Return・8つのFIR係数も取り込みます。
 選択CHのEcho送信の有無をSend all notesへ対応させ、チェック変更だけでは今の音を
@@ -299,6 +353,25 @@ clock0は無音指定ではなく、generatorの現在値を保持するためDC
 各voiceのADSR／GAIN・左右音量とEcho／FIRは操作できますが、鍵盤はEnvelopeの
 発音に使い、音階・Octave・PitchではNoiseを調律しません。Octave／Pitchは無効に
 なり、sample読込・描画・Loop・tuningは隠れます。monitorは実DSP出力を表示します。
+PMONの設定は保持して休止し、Noiseでは8つのvoice Envelopeを使います。
+
+**Pitch Modulation → Enable Pitch Modulation** はWave／BRR向けの実機ピッチ変調です。
+直前のvoiceのEnvelope適用後出力で次のvoiceのPITCHを変調します。
+0→1／2→3／4→5／6→7を2声1組として割り当て、最大4音のラウンドロビンで
+発音・離鍵します。変調側は左右音量0で直接鳴らさず、carrierだけをEchoへ送ります。
+変調側の独立したhardware ADSR／GAINで変調の強さと時間変化を作れます。
+初期値はDirect GAIN64です。減衰GAINはゼロから増やさないため、まずADSR／Directで
+立ち上げてから切り替えると変化を確認できます。
+
+音程比Ratioは0.125〜8で、softwareが鍵盤の周波数から変調側のhardware PITCHを
+設定します。Ratio・両Envelope／GAINは保持音へ反映し、Pitch wheelは両voiceを
+一緒に移調します。変調側PITCHは1〜16,383へclampするため、高低音や大きな比では
+指定したRatioを保てない場合があります。BRRの元の基音は推測せず、Ratioは宣言した
+鍵盤音の周波数を基準にします。Sampleの**Carrier／Modulator**で編集対象を
+切り替え、同じcanvas1枚で変調側の128点波形を描くか、shapeを選びます。
+対象切り替えだけでは音を変えません。波形編集・PMON On／Off・sample／Echo layoutの
+変更では保持音と残響を止めます。変調自体はhardware、波形のBRR化と鍵盤のpair割り当ては
+softwareの機能です。NoiseからWave／BRRへ戻すと、保持したPMON設定へ戻ります。
 
 **S-DSP Echo → Enable Echo** で、8声共通の実S-DSP Echoを有効にできます。
 Delay、Feedback、左右Return、Sendを操作でき、FIR詳細は折りたたんであります。
@@ -311,9 +384,12 @@ Stop後もEcho設定は保ちます。
 
 Echo Onでは30KiBを予約するため、BRR上限は33,786byte／60,064framesです。
 Offでは64,512byte／114,688framesです。容量不足では現在音を保って拒否し、
-勝手に切り詰めません。プリセットv3はsource・Noise clock・Echo／FIRも保存します。
-従来のv1／v2形式は元のsourceを保って移行し、v1はEcho Off、両形式のNoise clockは
-31を初期値にします。JavaScript出力ではBRR読込前に `await snes.setEcho(...)` を
-実行し、Noiseは既存の `snes.writeDsp(...)` でNON／FLGを設定します。
+勝手に切り詰めません。PMON有効時は変調波形の72byteも必要になり、carrierの上限は
+Echo Offで64,440byte、Onで33,714byteです。容量不足ならPMONも原音を保って拒否します。
+プリセットv4はsource・Noise clock・Echo／FIRに加え、PMONのOn／Off・Ratio・変調波形・
+独立Envelopeも保存します。従来のv1〜v3形式は元のsourceを保ち、PMON Offで移行します。
+v1はEcho Off、v1／v2のNoise clockは31を初期値にします。
+JavaScript出力ではBRR読込前に `await snes.setEcho(...)` を実行し、
+既存の `snes.writeDsp(...)` でNoiseのNON／FLGやPMON隣接routingを設定します。
 共有runtime／npmの更新は不要です。SPCから取り込んだEcho設定も、このpanelで
-編集・保存できます。ピッチ変調は今後の対応です。
+編集・保存できます。SPCから元のPMON pairを取り込む作業は後続です。
