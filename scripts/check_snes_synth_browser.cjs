@@ -41,6 +41,22 @@ function makeSpc(title='<img src=x onerror=alert(1)>') {
   return bytes;
 }
 
+function makeEchoSpc(title='Captured Echo snapshot',{writeDisabled=false,zeroReturn=false,large=false}={}) {
+  const bytes=makeSpc(title),ram=bytes.subarray(0x100,0x10100),dsp=bytes.subarray(0x10100,0x10180);
+  dsp[0x6c]=writeDisabled?0x20:0;dsp[0x6d]=0x90;dsp[0x7d]=0xa3;
+  // Avoid exact wet cancellation in the audit analyser's mono downmix.
+  dsp[0x0d]=(-40)&255;dsp[0x2c]=zeroReturn?0:48;dsp[0x3c]=zeroReturn?0:(-24)&255;dsp[0x4d]=1;
+  [100,20,-10,5,0,0,0,0].forEach((value,index)=>{dsp[0x0f+index*16]=value&255;});
+  if(large) {
+    // One complete block beyond the Echo budget, still valid as a dry sample.
+    const brr=Buffer.alloc(33795),cycle=ram.subarray(0x3000,0x3012);
+    for(let at=0;at<brr.length;at+=9) {cycle.copy(brr,at,(at/9%2)*9,(at/9%2+1)*9);brr[at]=0xc0;}
+    brr[brr.length-9]|=3;brr.copy(ram,0x1000);
+    dsp[0x5d]=2;ram.writeUInt16LE(0x1000,0x200+3*4);ram.writeUInt16LE(0x1000,0x202+3*4);
+  }
+  return bytes;
+}
+
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-snes/index.html',
   out:'/private/tmp/tetorica-sdsp-synth-browser.json', screenshots:null};
 for (let i = 2; i < process.argv.length; i++) {
@@ -134,6 +150,7 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.evaluate(()=>audit.contexts.length),0);
     assert.equal(await page.locator('#voiceEditor canvas').count(),1);
     check('SPC file opening is passive, bounded to snapshot candidates and safe metadata text');
+    assert.equal(await page.locator('#spcIncludeEcho').isChecked(),false);
     await page.locator('#spcFileInput').setInputFiles({name:'self-authored.spc',mimeType:'application/octet-stream',buffer:makeSpc()});
     await page.waitForFunction(()=>document.querySelectorAll('#spcCandidates [data-spc-voice]').length===8);
     assert.equal(await page.evaluate(()=>audit.contexts.length),0);
@@ -349,7 +366,7 @@ async function checkEngine(name, engine, origin) {
     state=await read();assert.deepEqual(state.preset,spcPreset);assert.equal(state.voices[0].id,spcOwner);
     await page.keyboard.up(rootKey);await silent();
     check('SPC selection commit closes cancellation and portable preset restores the imported voice');
-    await page.evaluate(()=>{audit.holdSpcCommit=true;});await page.locator('#spcCandidate0').click();
+    await page.evaluate(()=>{audit.holdSpcCommit=true;delete audit.releaseSpcCommit;});await page.locator('#spcCandidate0').click();
     await page.waitForFunction(()=>typeof audit.releaseSpcCommit==='function');
     assert.match(await page.locator('#spcImportStatus').textContent(),/Applying/);
     assert(!await page.locator('#cancelSpcImport').isVisible()||await page.locator('#cancelSpcImport').isDisabled());
@@ -369,6 +386,87 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.locator('#spcCandidates [aria-pressed="true"]').count(),0,'Loading JSON does not select a snapshot candidate');
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/loopStartSamples.*16/);
     await page.locator('#spcCandidate1').click();await wait(s=>s.preset.brr.basePitch===2048);
+    check('SPC Echo option is passive, imports signed settings and voice send, and survives preset / code export');
+    await page.locator('#spcFileInput').setInputFiles({name:'captured-echo.spc',mimeType:'application/octet-stream',buffer:makeEchoSpc()});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Captured Echo snapshot'));
+    assert.equal(await page.locator('#spcIncludeEcho').isChecked(),false);
+    await page.locator('#spcCandidate0').click();state=await wait(s=>s.preset.brr.basePitch===4096&&!s.preset.echo.enabled);
+    await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);await sound();
+    const dryEchoPreset=state.preset,dryEchoOwner=state.voices[0].id,dryEchoGeneration=state.generation;
+    await page.locator('#spcIncludeEcho').check();
+    state=await read();assert.deepEqual(state.preset,dryEchoPreset);assert.equal(state.voices[0].id,dryEchoOwner);assert.equal(state.generation,dryEchoGeneration);
+    assert.equal(await page.locator('#spcCandidates [aria-pressed="true"]').count(),0,'changing import mode does not claim that Echo was loaded');
+    assert.doesNotMatch(await page.locator('#spcCandidate0Info').textContent(),/Echo.*not reproduced|dry voice only/i);
+    await page.keyboard.down(keys[1]);await wait(s=>s.voices.length===2);await page.keyboard.up(keys[1]);await wait(s=>s.voices.length===1);
+    await page.locator('#spcIncludeEcho').uncheck();
+    assert.equal(await page.locator('#spcCandidate0').getAttribute('aria-pressed'),'true','returning to the loaded mode restores its row highlight');
+    await page.locator('#spcIncludeEcho').check();
+    await page.evaluate(()=>{audit.holdSpcCommit=true;delete audit.releaseSpcCommit;});await page.locator('#spcCandidate0').click();
+    await page.waitForFunction(()=>typeof audit.releaseSpcCommit==='function'&&document.querySelector('#spcImportStatus').textContent.includes('Applying'));
+    assert.equal(await page.locator('#spcIncludeEcho').isDisabled(),true);
+    assert.equal(await page.locator('#cancelSpcImport').isVisible(),false);
+    await page.evaluate(()=>audit.releaseSpcCommit());
+    state=await wait(s=>s.preset.echo.enabled&&s.preset.echo.feedback===-40);
+    await page.waitForFunction(()=>!document.querySelector('#spcIncludeEcho').disabled);
+    assert.equal(state.voices.length,0);await page.keyboard.up(rootKey);
+    const capturedEcho={enabled:true,delay:3,feedback:-40,volumeLeft:48,volumeRight:-24,send:true,fir:[100,20,-10,5,0,0,0,0]};
+    assert.deepEqual(state.preset.echo,capturedEcho);assert.equal(state.memory.directoryAddress,0x7800);
+    assert.equal(state.echoRegisters.esa,0,'the captured ESA is not copied over the Synth RAM reservation');
+    assert.equal(state.echoRegisters.edl,3);assert.equal(state.echoRegisters.efb,216);
+    assert.equal(state.echoRegisters.volumeLeft,48);assert.equal(state.echoRegisters.volumeRight,232);
+    assert.equal(state.echoRegisters.eon,255,'selected physical EON bit maps to Send all notes for round robin');
+    assert.deepEqual(state.echoRegisters.fir,[100,20,246,5,0,0,0,0]);
+    await page.keyboard.down(rootKey);await wait(s=>s.voices.length===1);await sound();await page.waitForTimeout(120);
+    await page.keyboard.up(rootKey);await wait(s=>s.voices.length===0);await page.waitForTimeout(120);
+    assert((await page.evaluate(()=>audit.sample())).rms>.00001,'imported Echo produces a tail after KOFF');
+    const importedEchoDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const importedEchoSaved=JSON.parse(await fs.readFile(await(await importedEchoDownload).path(),'utf8'));
+    assert.deepEqual(importedEchoSaved.echo,capturedEcho);
+    await page.locator('#copyCode').click();const importedEchoCode=await page.locator('#codeOutput').inputValue();
+    assert.match(importedEchoCode,/"feedback":-40/);assert.match(importedEchoCode,/"sendMask":255/);
+    assert(importedEchoCode.indexOf('setEcho')<importedEchoCode.indexOf('loadBRR'));
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
+    await page.locator('#presetFileInput').setInputFiles({name:'imported-spc-echo.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(importedEchoSaved))});
+    state=await wait(s=>s.preset.source==='brr'&&s.preset.echo.enabled&&s.preset.echo.feedback===-40);
+    assert.deepEqual(state.preset.echo,capturedEcho);
+    await page.locator('#spcCandidate1').click();state=await wait(s=>s.preset.brr.basePitch===2048&&s.preset.echo.enabled&&!s.preset.echo.send);
+    assert.equal(state.echoRegisters.eon,0);assert.equal(state.echoRegisters.volumeLeft,48);
+    assert.match(await page.locator('#spcCandidate1Info').textContent(),/send|EON/i);
+    await page.keyboard.down(rootKey);await wait(s=>s.voices.length===1);await sound();await page.keyboard.up(rootKey);await silent();
+    check('captured Echo write-disable and zero returns preserve settings without inventing an enable heuristic');
+    await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);
+    const beforeDisabledEcho=state.preset,disabledEchoOwner=state.voices[0].id;
+    await page.locator('#spcFileInput').setInputFiles({name:'writes-disabled.spc',mimeType:'application/octet-stream',buffer:makeEchoSpc('Writes disabled',{writeDisabled:true})});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Writes disabled'));
+    state=await read();assert.deepEqual(state.preset,beforeDisabledEcho);assert.equal(state.voices[0].id,disabledEchoOwner);
+    await page.locator('#spcCandidate0').click();state=await wait(s=>!s.preset.echo.enabled&&s.preset.echo.feedback===-40&&s.preset.brr.basePitch===4096);
+    await page.keyboard.up(rootKey);assert.deepEqual(state.preset.echo,{...capturedEcho,enabled:false});
+    assert.equal(state.echoRegisters.flg&32,32);assert.equal(state.echoRegisters.eon,0);
+    assert.match(await page.locator('#spcCandidate0Info').textContent(),/disabled|off/i);
+    await page.locator('#spcFileInput').setInputFiles({name:'zero-return.spc',mimeType:'application/octet-stream',buffer:makeEchoSpc('Zero Return snapshot',{zeroReturn:true})});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Zero Return snapshot'));
+    await page.locator('#spcCandidate0').click();state=await wait(s=>s.preset.echo.enabled&&s.preset.echo.volumeLeft===0&&s.preset.echo.volumeRight===0);
+    assert.equal(state.echoRegisters.eon,255);assert.equal(state.echoRegisters.flg&32,0);
+    check('SPC Echo capacity selection keeps the current voice and permits the same large BRR in dry mode');
+    await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);await sound();
+    const beforeLargeSpc=state.preset,largeSpcOwner=state.voices[0].id,largeSpcGeneration=state.generation;
+    await page.locator('#spcFileInput').setInputFiles({name:'large-dry.spc',mimeType:'application/octet-stream',buffer:makeEchoSpc('Large dry-only sample',{large:true})});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Large dry-only sample'));
+    assert.equal(await page.locator('#spcCandidate0').isDisabled(),true);
+    assert.match(await page.locator('#spcCandidate0Info').textContent(),/33.?786|Echo.*RAM|budget/i);
+    state=await read();assert.deepEqual(state.preset,beforeLargeSpc);assert.equal(state.voices[0].id,largeSpcOwner);assert.equal(state.generation,largeSpcGeneration);
+    await page.locator('#spcIncludeEcho').uncheck();assert.equal(await page.locator('#spcCandidate0').isEnabled(),true);
+    state=await read();assert.deepEqual(state.preset,beforeLargeSpc);assert.equal(state.voices[0].id,largeSpcOwner);
+    assert.equal(await page.locator('#spcCandidates [data-spc-voice]').count(),8);
+    await page.locator('#spcCandidate0').click();state=await wait(s=>!s.preset.echo.enabled&&s.sample.byteLength===33795);
+    await page.keyboard.up(rootKey);await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);await page.waitForTimeout(120);await sound();
+    const loadedLargeOwner=state.voices[0].id,loadedLargePreset=state.preset;
+    await page.locator('#spcIncludeEcho').check();assert.equal(await page.locator('#spcCandidate0').isDisabled(),true);
+    state=await read();assert.deepEqual(state.preset,loadedLargePreset);assert.equal(state.voices[0].id,loadedLargeOwner);
+    await page.locator('#spcIncludeEcho').uncheck();await page.keyboard.up(rootKey);await silent();
+    await page.locator('#spcFileInput').setInputFiles({name:'spc-echo-complete.spc',mimeType:'application/octet-stream',buffer:makeSpc('SPC Echo checks complete')});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('SPC Echo checks complete'));
+    await page.locator('#spcCandidate1').click();await wait(s=>s.preset.brr.basePitch===2048&&!s.preset.echo.enabled);
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#octaveUp').click();assert.equal((await page.locator('#octaveValue').textContent()).trim(),'+1');
     await page.locator('#loopBrr').focus();await page.keyboard.down(keys[1]);await wait(s=>s.voices.length===1);await page.keyboard.up(keys[1]);await silent();

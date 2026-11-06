@@ -76,7 +76,7 @@
 
 - [x] SPC snapshotからBRR／voice設定候補を選んで取り込む。詳細は下記。元の音階やdriver更新を完全復元したとは扱わない。
 - [x] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
-- [ ] SPCから元のEcho／FIR設定を取り込む選択肢を追加する。手動Echoとの切り替え、候補voiceのEON、曲全体で共有する設定であることを明示する。
+- [x] SPCから元のEcho／FIR設定を取り込む選択肢を追加する。手動Echoとの切り替え、候補voiceのEON、曲全体で共有する設定であることを明示する。
 - [ ] Noise／pitch modulationを公開し、共有noise clock・隣接voice routing・同時発音枠への影響を示す。
 - [ ] Web確認後にTauri版・Native活用例へ進む。
 - [ ] C64 SID Synthはフィルター中心の別題材として検討する。
@@ -132,3 +132,26 @@ Echo実装・検証完了（2026-11-06）:
 - 通信断の確認を受け、全変更、source／ZIP両browser記録、SCSP verification成功、ZIP実体とSHA-256の残存を再確認した。`git diff --check`正常。commit／push／GitHub・itch・npm公開は行っていない。人の実聴・実Native C++ hostでの新規動作確認・長時間運転は未実施。
 
 次は手元でのEcho／FIRの試聴。実装候補はSPC保存時点のEcho設定取り込み、続いてNoise／PMON。
+
+## SPC Echo／FIR設定取り込み・手順（2026-11-06）
+
+- [x] SPCのEDL／signed EFB・左右EVOL／8つのsigned FIR／EON／FLG書き込み制御を読み取り、元の共有Echo設定を候補とともに保持する。Echo RAMの内容・過去の残響・曲全体のmixは復元しない。
+- [x] 各voiceに従来の音色だけのpresetとEcho付きpresetを準備する。選択voiceのEONをSynthのSend all notesへ対応させる。元のEcho書き込みが無効ならEcho Offで設定値を保存し、その理由を示す。
+- [x] Sounds from SPCへ「Import Echo / FIR settings」を追加する（初期Off）。変更は次の候補選択に適用し、チェック操作やファイルを開くだけでは現在の音を変えない。適用前後の選択表示を正しく保つ。
+- [x] Echo使用時の容量不足は候補に理由を表示して選択不可にする。音色だけへ戻せば選べるようにし、現在の音・保持中voice・候補一覧を変更しない。適用中の選択肢変更やCancel／古い結果も安全に処理する。
+- [x] 自作SPCでsigned値／EDL下位bits／FIR／voice別EON／書き込み無効／容量境界・拒否をテストし、実WASM register・保存再読込・コード出力へ接続する。
+- [x] Chromium／WebKitと独立ZIPで選択option、現在音保持、Echo実出力、preset往復、keyboard focus、mobile幅を確認する。
+- [x] ガイド・README en／ja／AI・英日ホーム・TODO・検証記録を更新し、可読source入りZIPを作成する。共有runtime／WASMは変更しない。
+
+
+SPC Echo取り込み・検証結果（2026-11-06）:
+
+- `parseSpcVoices`は従来のdry候補を維持し、共有Echo情報と各voiceの`echoVariant:{preset,reason,warnings}`を追加する。EDLは下位4bits、EFB／EVOL／8FIRはsignedとして読む。選択voiceのEONをpreset.echo.sendへ対応させ、元の8bitmaskをラウンドロビンへ直接適用しない。
+- FLGのEcho書き込み無効時はEcho Offで値を保持する。EON OffやReturn0はそれぞれSend／Returnの設定として残し、enabled判定や容量回避に使わない。元のESAはmetadataだけに残し、実際のbufferは既存の安全な予約領域に新しく用意する。過去のEcho RAM／残響／他voiceのmixは読み込まない。
+- Sounds from SPCの`Import Echo / FIR settings`は初期Off。ファイルを開く・optionを変えるだけでは現在preset／保持音を変えず、次の候補選択で適用する。選択表示はvoiceとmodeの組で管理し、Applying中はoptionを固定する。Echo容量不足の候補だけをそのmodeで無効化し、dryへ戻せば同じ音色を選べる。共通のbuffer説明は一覧上部へまとめ、voice別の理由・警告を保持した。
+- `npm run test:snes-synth`: **63件成功**。追加5件でsigned値・EDL上位無視・voice別EON・書き込み無効・zero Return／Send区別・33,786-byte境界と次block拒否・大きいdry sample維持・所有権を確認した。実WASMのregister、空buffer、離鍵後Echo、JSON復元、JavaScript実行のstereo PCM byte一致も確認した。
+- [ソース記録](snes_synth_spc_echo_browser_01.json)・[独立ZIP記録](snes_synth_spc_echo_zip_browser_01.json): Chromium／WebKit各16チェック成功。passive option／保持音と選択表示、signed Echo実反映・尾音、ACK中のoption固定、JSON／コード出力、書き込み無効／zero Return、33,795-byte sampleのdry／Echo差と原音保持、既存SPC／Echo／keyboard／Master／Pitch／focus／390px幅を確認した。外部通信／404／page errorは0。mobile画像も確認。speakerはmuteしている。
+- 配布ZIP `release/tetorica_sdsp_synth_0.0.4_itch.zip`: 62 files、914,316 bytes、SHA-256 `0c39d36fa1e62fe739dd0dd5a6e41e1a33d58824c4b8b5a66f42daf8ad6adda0`。元の可読JS／CSS、採用icon、WASM、対応LGPL C++／再ビルド手順／source receiptを維持する。
+- README en／ja／AI・英日ホーム・Synthガイドを更新した。既存SNES CIのunit wildcard／同じbrowser harness／ZIP検証で今回の機能も実行する。変更はSynthと説明・検証のみで、共有runtime／WASM／npm API・校正値は変更していない。commit／push／公開は未実施。実ゲームSPCの人による試聴・長時間運転は未確認。
+
+次の実装候補はNoise、続いてPMON。実ゲームSPCでEcho有無を比較して試聴する確認は別途残す。

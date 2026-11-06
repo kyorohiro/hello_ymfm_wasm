@@ -3,11 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {parseSpcVoices, MAX_SPC_BYTES} from './spc_import.js';
-import {readPreset, envelopeRegisters} from './preset.js';
+import {readPreset, envelopeRegisters, presetToCode, ECHO_BRR_MAX_BYTES} from './preset.js';
 import {decodeBase64, MAX_BRR_BYTES} from './sample.js';
 import {SnesInstrument} from './instrument.js';
 import {SnesDspCore} from '../js/spc.js';
 import factory from '../generated/spc_wasm.js';
+import {SnesSynth} from '../js/snessynth.js';
 
 // Entirely self-authored SPC snapshots: no game program or Nintendo IPL ROM.
 const RAM = 0x100, DSP = 0x10100;
@@ -32,6 +33,12 @@ function image() {
   return sample(data,0);
 }
 const ready = result => result.candidates.filter(candidate => candidate.preset);
+function echoRegisters(data, {flags=0, delay=2, feedback=32, left=48, right=-32, sendMask=1,
+  fir=[127,0,0,0,0,0,0,0], address=0x40} = {}) {
+  for (const [offset,value] of [[0x6c,flags],[0x7d,delay],[0x0d,feedback],[0x2c,left],[0x3c,right],[0x4d,sendMask],[0x6d,address]]) data[DSP+offset]=value&255;
+  fir.forEach((value,index)=>{data[DSP+0x0f+16*index]=value&255;});
+  return data;
+}
 
 test('only eight physical records are offered, retaining inactive voices and distinct settings on the same BRR', () => {
   const source = image();
@@ -167,4 +174,118 @@ test('a selected preset uses the captured hardware PITCH and envelope in the act
   assert(right.every(Number.isFinite));assert(left.some((value,index)=>value!==right[index]));
   instrument.noteOn('octave',72);row=instrument.read().registers[1];assert.equal(row[2]|row[3]<<8,6144);
   const loaded=instrument.read().preset;assert.deepEqual(loaded,readPreset(JSON.parse(JSON.stringify(candidate.preset))));
+});
+
+test('SPC Echo captures signed shared registers, EDL hardware bits and each selected voice send without changing the dry variant', () => {
+  const fir=[-128,-1,0,1,64,126,127,-64];
+  const data=echoRegisters(image(),{delay:0xa7,feedback:-128,left:-1,right:127,sendMask:0x81,fir,address:0xbc});
+  const before=data.slice(),result=parseSpcVoices(data);
+  assert.deepEqual(result.echo,{enabled:true,delay:7,feedback:-128,volumeLeft:-1,volumeRight:127,
+    fir,sendMask:0x81,sourceAddress:0xbc00});
+  const [a,b]=result.candidates;
+  assert(a.echoVariant.preset);assert.equal(a.echoVariant.reason,null);
+  assert.deepEqual(a.echoVariant.preset.echo,{enabled:true,delay:7,feedback:-128,volumeLeft:-1,volumeRight:127,send:true,fir});
+  assert.equal(b.echoVariant.preset.echo.send,false);assert.equal(result.candidates[7].echoVariant.preset.echo.send,true);
+  assert.equal(a.preset.echo.enabled,false);assert.equal(a.preset.echo.feedback,32);
+  assert.equal(a.preset.brr.data,a.echoVariant.preset.brr.data);
+  assert(a.warnings.some(warning=>warning.includes('Echo / FIR is not reproduced')));
+  assert(!a.echoVariant.warnings.some(warning=>warning.includes('Echo / FIR is not reproduced')));
+  assert(a.echoVariant.warnings.some(warning=>warning.includes('empty buffer')));
+  assert(b.echoVariant.warnings.some(warning=>warning.includes('Send all notes is imported Off')));
+  // Metadata and both modes own their arrays; editing any one cannot retarget another row.
+  result.echo.fir[0]=12;a.echoVariant.preset.echo.fir[0]=99;
+  assert.equal(result.candidates[7].echoVariant.preset.echo.fir[0],-128);
+  assert.equal(a.preset.echo.fir[0],127);
+  a.echoVariant.preset.volume.left=70;assert.equal(a.preset.volume.left,16);
+  assert.deepEqual(data,before);
+  data.fill(0);assert.deepEqual(decodeBase64(a.echoVariant.preset.brr.data),BRR);
+});
+
+test('Echo write-disable, zero Return and voice EON are separate saved settings, not an enable heuristic', () => {
+  const data=echoRegisters(image(),{flags:0x20,delay:0xf0,feedback:-16,left:-64,right:31,sendMask:1,
+    fir:[64,32,16,8,4,2,1,-1]});
+  const disabled=parseSpcVoices(data);
+  assert.equal(disabled.echo.enabled,false);assert.equal(disabled.echo.delay,0);
+  const echo=disabled.candidates[0].echoVariant;
+  assert(echo.preset);assert.equal(echo.preset.echo.enabled,false);assert.equal(echo.preset.echo.send,true);
+  assert.equal(echo.preset.echo.feedback,-16);assert.equal(echo.preset.echo.volumeLeft,-64);
+  assert.deepEqual(echo.preset.echo.fir,[64,32,16,8,4,2,1,-1]);
+  assert(echo.warnings.some(warning=>warning.includes('writes are disabled')));
+  assert(echo.warnings.some(warning=>warning.includes('Frozen-buffer audio is not restored')));
+  echoRegisters(data,{flags:0,left:0,right:0,sendMask:0});
+  const silent=parseSpcVoices(data).candidates[0].echoVariant;
+  assert(silent.preset.echo.enabled);assert.equal(silent.preset.echo.send,false);
+  assert.equal(silent.preset.echo.volumeLeft,0);assert.equal(silent.preset.echo.volumeRight,0);
+  assert(silent.warnings.some(warning=>warning.includes('Return values are zero')));
+  assert(silent.warnings.some(warning=>warning.includes('Send all notes is imported Off')));
+});
+
+test('Echo budget rejects only its variant, with exact boundary support and large dry samples retained', () => {
+  for (const size of [ECHO_BRR_MAX_BYTES,ECHO_BRR_MAX_BYTES+9,MAX_BRR_BYTES]) {
+    const data=echoRegisters(image()),bytes=new Uint8Array(size);bytes[size-9]=1;
+    sample(data,0,1024,bytes,1024);
+    const candidate=parseSpcVoices(data).candidates[0];
+    assert(candidate.preset);assert.equal(decodeBase64(candidate.preset.brr.data).length,size);
+    if(size===ECHO_BRR_MAX_BYTES) {
+      assert(candidate.echoVariant.preset);assert.equal(candidate.echoVariant.reason,null);
+    } else {
+      assert.equal(candidate.echoVariant.preset,null);assert.match(candidate.echoVariant.reason,/33,786/);
+      assert.equal(candidate.reason,null);assert.equal(candidate.preset.echo.enabled,false);
+    }
+    data[DSP+0x6c]=0x20;
+    const disabled=parseSpcVoices(data).candidates[0].echoVariant;
+    assert(disabled.preset,'retaining disabled parameters does not reserve Echo RAM');
+    assert.equal(disabled.preset.echo.enabled,false);assert.equal(decodeBase64(disabled.preset.brr.data).length,size);
+  }
+});
+
+test('unavailable voices keep their original reason in both variants while PMON stays explicitly omitted', () => {
+  const data=echoRegisters(image(),{sendMask:255});
+  data[DSP+0x3d]=1;voice(data,1,{pitch:0});sample(data,1,0x2400,BRR,0x2401);voice(data,2,{sourceNumber:1});
+  data[DSP+0x2d]=8;
+  const result=parseSpcVoices(data);
+  for(const index of [0,1,2]) {
+    const candidate=result.candidates[index];
+    assert.equal(candidate.preset,null);assert.equal(candidate.echoVariant.preset,null);
+    assert.equal(candidate.echoVariant.reason,candidate.reason);
+  }
+  const pmon=result.candidates[3];assert(pmon.echoVariant.preset);
+  assert(pmon.echoVariant.warnings.some(warning=>warning.includes('PMON is not reproduced')));
+  assert(pmon.echoVariant.warnings.some(warning=>warning.includes('empty buffer')));
+});
+
+test('Echo-imported preset renders the captured parameters in real S-DSP, starts empty and survives JSON / executable JS export', async t => {
+  const data=echoRegisters(image(),{delay:2,feedback:40,left:48,right:-32,fir:[80,16,-8,4,0,0,0,0]});
+  voice(data,0,{pitch:3072,left:24,right:16,adsr1:0x8f,adsr2:0xe0,gain:96});
+  sample(data,0,0x2000,BRR,0x2009);
+  data.fill(0x66,RAM+0x4000,RAM+0x4100); // Captured Echo contents deliberately differ from a fresh buffer.
+  const candidate=parseSpcVoices(data).candidates[0],preset=candidate.echoVariant.preset;
+  assert(preset);assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+  const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
+  const createCore=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
+  const core=await createCore(),instrument=new SnesInstrument(core);t.after(()=>instrument.dispose());
+  instrument.loadPreset(preset);
+  const state=instrument.read();assert.deepEqual(state.echoRegisters,{flg:0,esa:0,edl:2,efb:40,eon:255,
+    volumeLeft:48,volumeRight:224,fir:[80,16,248,4,0,0,0,0]});
+  assert.equal(state.memory.directoryAddress,0x7800);assert.equal(state.sample.startAddress,0x7c00);
+  assert.equal(state.preset.brr.loopStartSamples,16);
+  assert(core.snapshot().ram.subarray(0,0x7800).every(value=>value===0),'past Echo RAM is not restored');
+  instrument.noteOn('captured-echo',60);
+  const left=new Float32Array(2048),right=new Float32Array(2048);instrument.renderInto(left,right);
+  assert(left.every(Number.isFinite));assert(left.some(value=>Math.abs(value)>.001));
+  assert(right.every(Number.isFinite));
+
+  const exportedCore=await createCore(),exported=new SnesSynth({core:exportedCore});t.after(()=>exported.dispose());
+  const code=presetToCode(preset);
+  assert(code.indexOf('setEcho')<code.indexOf('loadBRR'));
+  const run=Object.getPrototypeOf(async function(){}).constructor('useSoundChip',code);
+  await run(async kind=>{assert.equal(kind,'snes');return exported;});
+  const codeLeft=new Float32Array(2048),codeRight=new Float32Array(2048);exported.renderInto(codeLeft,codeRight);
+  assert.deepEqual(codeLeft,left);assert.deepEqual(codeRight,right,'exported code uses the actual same Echo / BRR path');
+
+  instrument.noteOff('captured-echo');
+  const tail=new Float32Array(4096),tailRight=new Float32Array(4096);instrument.renderInto(tail,tailRight);
+  assert(tail.slice(512,3072).some(value=>Math.abs(value)>.00001),'captured Echo continues after dry KOFF release');
+  instrument.loadPreset(candidate.preset);instrument.noteOn('dry',60);instrument.renderInto(left,right);instrument.noteOff('dry');instrument.renderInto(tail,tailRight);
+  assert(tail.slice(512).every(value=>value===0),'dry variant does not pick up imported Echo settings');
 });

@@ -46,8 +46,10 @@ hardware envelopes and mixing; the output monitor shows the resulting audio.
 
 1. Open **Sounds from SPC → Load SPC…** and choose an `.spc` file (up to 16 MiB).
 2. Opening it only lists candidates; the current instrument stays in place.
-3. Select **CH1 · SRCN …** or another available row, then play the keyboard.
-4. Edit the imported sample, tuning and envelope with the existing controls.
+3. Leave **Import Echo / FIR settings** off for the voice alone, or check it to
+   include the snapshot's shared Echo settings. This only affects the next selection.
+4. Select **CH1 · SRCN …** or another available row, then play the keyboard.
+5. Edit the imported sample, tuning, envelope and Echo with the existing controls.
    **Save preset…** embeds the BRR and settings; the original SPC is no longer
    required to load that preset. **Copy JavaScript** also includes its BRR.
 
@@ -65,9 +67,18 @@ Adjust Root note to retune; BRR itself contains no original musical root.
 This is a snapshot instrument import. It does not execute the SPC700 driver,
 play the song, restore its current envelope / BRR decoder history, or recover
 later instrument changes. A new key-on starts a new hardware envelope. Original
-master volume / Echo / FIR are not imported: SPC candidate presets start with
-Echo off. Enable the manual Echo controls after selecting a candidate if
-desired. PMON voices can load their base
+master volume and the old Echo buffer are not imported. With the option off,
+candidate presets start with Echo off. With it on, Delay, signed Feedback,
+left/right Return and all eight signed FIR coefficients are imported. The
+selected voice's original Echo-send flag becomes **Send all notes**, so its
+behavior remains consistent across the Synth's round-robin voices. The original
+eight-bit channel mask is not applied to unrelated keyboard notes.
+
+If the snapshot disables Echo RAM writes, the preset starts with Echo off but
+keeps the captured parameters. A frozen buffer or past Echo tail is not restored.
+A voice originally excluded from Echo imports with Send off; zero Return values
+also remain zero. These cases are explained in the list. The shared Echo starts
+with an empty buffer, not the song's prior mixed audio. PMON voices can load their base
 BRR with an explicit warning that pitch modulation is omitted. Captured voice
 volumes are preserved without normalization; high polyphonic levels can clip
 the DSP mixer. Use Voice level to adjust them before the final Master bus.
@@ -79,6 +90,10 @@ how to audition them. Invalid files, Cancel and superseded reads keep the
 current instrument and previous candidate list. Once selection starts applying,
 cancellation ends and **Applying…** remains until the processor acknowledges it.
 Editing or replacing the instrument outside SPC selection clears its row highlight.
+Changing the import option does not alter the current sound. A row is highlighted
+only for its loaded import mode. If an Echo-enabled candidate exceeds the
+33,786-byte sample limit, it is unavailable in that mode with a reason. Turn
+the option off to select its voice alone; no Echo setting is silently discarded.
 
 ## Load audio or raw BRR
 
@@ -148,8 +163,9 @@ cutoff / resonance control or a software effect.
 The Synth rebuilds the sample bank on Echo On / Off, sample / loop replacement
 and Stop, clearing held voices and previous Echo tails. Echo settings stay in
 place on Stop. The 30 KiB reservation accommodates every Delay code, so live
-Delay changes do not move the buffer over BRR data. The original SPC's Echo
-settings are not imported automatically.
+Delay changes do not move the buffer over BRR data. Original SPC Echo settings
+are imported only when **Import Echo / FIR settings** is checked before selecting
+a candidate; they remain editable in this panel.
 
 ## Hardware ADSR and GAIN
 
@@ -196,8 +212,8 @@ interpolation, PITCH, signed volumes, ADSR / GAIN and shared Echo / FIR.
 Drawing, audio conversion, sample management and keyboard allocation are
 software authoring tools.
 
-Noise, pitch modulation and automatic import of the SPC's Echo settings remain
-later stages. No SPC700 driver or song playback is included in this Synth.
+Noise and pitch modulation remain later stages. No SPC700 driver or song
+playback is included in this Synth.
 
 ## Source and verification
 
@@ -236,7 +252,12 @@ ADSR／GAINを取り込み、保存時点のPITCHをC4の再生基準として�
 一覧は折りたためます。不正ファイルやCancel、古い読み込み結果では今の音色を保ちます。
 SPCの曲再生やdriverの時間変化は再現せず、Noise・PITCH0・不正Loop等は理由を
 表示して選択不可にします。PMON／Echoを省略する候補には説明を表示します。
-SPC候補はEcho Offで読み込み、元SPCのEcho設定はまだ自動取り込みしません。
+**Import Echo / FIR settings** は初期Offです。Onにしてから候補を選ぶと、
+元のDelay・signed Feedback・左右Return・8つのFIR係数も取り込みます。
+選択CHのEcho送信の有無をSend all notesへ対応させ、チェック変更だけでは今の音を
+変えません。元のEcho書き込みが無効ならEcho Offで設定値を保持します。
+過去のEcho buffer・残響・曲全体のmixは復元せず、新しい発音からEchoを鳴らします。
+Echo有効時の容量を超える候補は理由付きで選択不可になり、Offへ戻すと音色だけを選べます。
 
 **S-DSP Echo → Enable Echo** で、8声共通の実S-DSP Echoを有効にできます。
 Delay、Feedback、左右Return、Sendを操作でき、FIR詳細は折りたたんであります。
@@ -252,4 +273,4 @@ Offでは64,512byte／114,688framesです。容量不足では現在音を保っ
 勝手に切り詰めません。プリセットv2はEcho／FIRを含めて保存し、従来の
 v1形式はEcho Offとして読み込めます。JavaScript出力ではBRR読込前に
 `await snes.setEcho(...)` を実行します。Noise／ピッチ変調の音作りと、
-元SPCのEcho設定取り込みは後続です。
+SPCから取り込んだEcho設定も、このpanelで編集・保存できます。

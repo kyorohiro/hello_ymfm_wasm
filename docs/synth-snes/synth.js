@@ -154,18 +154,21 @@ async function openSpc(file,{signal}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
   return parseSpcVoices(data,{name:file.name});
 }
-async function selectSpc(candidate,{signal,onCommit}={}) {
+async function selectSpc(candidate,{includeEcho=false,signal,onCommit}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
-  if(!candidate?.preset) throw new Error(candidate?.reason??'This SPC voice is unavailable');
-  const next=readPreset(candidate.preset);
+  if(typeof includeEcho!=='boolean') throw new TypeError('SPC Echo import option must be boolean');
+  const variant=includeEcho?candidate?.echoVariant:candidate;
+  if(!variant?.preset) throw new Error(variant?.reason??'This SPC voice is unavailable');
+  const next=readPreset(variant.preset);
+  const echoLabel=includeEcho?(next.echo.enabled?'Echo / FIR imported':'Echo / FIR settings imported · Echo Off'):'dry voice';
   // Invalidate older audio / preset file reads before this explicit adoption.
   const token=++importSequence;
   onCommit?.();
-  const applying=applyPreset(next,{load:true,fromSpc:true,message:`Loaded SPC CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber}. Play the keyboard.`});
+  const applying=applyPreset(next,{load:true,fromSpc:true,message:`Loaded SPC CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber} · ${echoLabel}. Play the keyboard.`});
   const adoptedRevision=revision;
   await applying;
   if(disposed||signal?.aborted||token!==importSequence||adoptedRevision!==revision) throw spcCancelled();
-  return `Loaded CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber}. Snapshot PITCH is declared at C4; adjust Root note to retune.`;
+  return `Loaded CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber} · ${echoLabel}. Snapshot PITCH is declared at C4; adjust Root note to retune.`;
 }
 spcBrowser=createSpcBrowser({root:$('spcBrowser'),onOpen:openSpc,onSelect:selectSpc,onError:report});
 
