@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices, explore BRR, hardware Noise, Pitch Modulation, ADSR / GAIN and shared Echo / FIR.">
+  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices and PMON pairs, explore BRR, hardware Noise, Pitch Modulation, ADSR / GAIN and shared Echo / FIR.">
   <meta name="theme-color" content="#dfe2e2">
   <meta name="application-name" content="Tetorica S-DSP Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica S-DSP Synth">
@@ -106,7 +106,7 @@
         </div>
       </section>
       <footer>
-        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN, shared Echo / FIR and adjacent-voice Pitch Modulation. PMON uses two voices per note for four playable notes; the modulator's Envelope / GAIN controls its strength. Noise uses one shared clock, without musical pitch. SPC import reads saved voice settings for audition; original PMON pairs are not imported. Wave drawing, audio conversion, ratio settings, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory and 72 BRR bytes for an active PMON modulator.</p>
+        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN, shared Echo / FIR and adjacent-voice Pitch Modulation. PMON uses two voices per note for four playable notes; the modulator's Envelope / GAIN controls its strength. Noise uses one shared clock, without musical pitch. SPC import reads saved voice settings and optional isolated PMON pairs for audition. Song playback, elapsed envelopes and longer modulation chains are not restored. Wave drawing, audio conversion, ratio settings, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Active PMON counts both samples; its drawn modulator uses 72 BRR bytes, while an imported BRR uses its full size.</p>
         <div><a href="../playground/index.html?mode=snes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/snessynth.js">JavaScript source</a></div>
       </footer>
     </article>

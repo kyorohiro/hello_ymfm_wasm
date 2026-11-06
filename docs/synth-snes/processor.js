@@ -7,7 +7,7 @@ import {SnesInstrument} from './instrument.js';
 const COMMANDS=new Set(['read','setPreset','loadPreset','noteOn','noteOff','setPitch','stop']);
 class SdspSynthProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {
-    super();this.dead=false;this.instrument=null;this.acceptedBrrData='';
+    super();this.dead=false;this.instrument=null;this.acceptedBrrData='';this.acceptedModBrrData='';
     this.port.onmessage=({data})=>this.receive(data);
     this.ready=SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary:processorOptions.wasmBinary}}).then(core=>{
       if(this.dead){core.dispose();return;}
@@ -18,7 +18,7 @@ class SdspSynthProcessor extends AudioWorkletProcessor {
       this.port.postMessage({ready:true,nativeSampleRate:32000});
     }).catch(error=>this.fail(error));
   }
-  dispose(){if(this.dead)return;this.dead=true;this.instrument?.dispose();this.instrument=null;this.resampler=null;this.acceptedBrrData='';}
+  dispose(){if(this.dead)return;this.dead=true;this.instrument?.dispose();this.instrument=null;this.resampler=null;this.acceptedBrrData='';this.acceptedModBrrData='';}
   fail(error){if(this.dead)return;this.dispose();this.port.postMessage({fatal:true,error:error?.message??String(error)});}
   receive(data){
     if(data?.method==='dispose'){this.dispose();return;}
@@ -33,16 +33,28 @@ class SdspSynthProcessor extends AudioWorkletProcessor {
           if(data.brrDataUnchanged!==true||!['setPreset','loadPreset'].includes(data.method)||!args[0]?.brr||Object.hasOwn(args[0].brr,'data'))throw new TypeError('Invalid cached BRR reference');
           args=[{...args[0],brr:{...args[0].brr,data:this.acceptedBrrData}},...args.slice(1)];
         }
+        if(data.modBrrDataUnchanged!==undefined){
+          if(data.modBrrDataUnchanged!==true||!['setPreset','loadPreset'].includes(data.method)||!args[0]?.pmon?.brr||Object.hasOwn(args[0].pmon.brr,'data'))throw new TypeError('Invalid cached modulator BRR reference');
+          args=[{...args[0],pmon:{...args[0].pmon,brr:{...args[0].pmon.brr,data:this.acceptedModBrrData}}},...args.slice(1)];
+        }
         const before=this.instrument.generation;
         let value=this.instrument[data.method](...args);
         if(before!==this.instrument.generation)this.resampler.reset();
-        const bytes=value?.preset?.brr?.data;
+        const bytes=value?.preset?.brr?.data,modBytes=value?.preset?.pmon?.brr?.data;
         if(typeof bytes==='string')this.acceptedBrrData=bytes;
+        if(typeof modBytes==='string')this.acceptedModBrrData=modBytes;
+        const flags={};
         if(typeof bytes==='string'&&bytes.length){
           const {data:_data,...brr}=value.preset.brr;
           value={...value,preset:{...value.preset,brr}};
-          if(data.id!==undefined)this.port.postMessage({id:data.id,value,brrDataOmitted:true});
-        }else if(data.id!==undefined)this.port.postMessage({id:data.id,value});
+          flags.brrDataOmitted=true;
+        }
+        if(typeof modBytes==='string'&&modBytes.length){
+          const {data:_data,...brr}=value.preset.pmon.brr;
+          value={...value,preset:{...value.preset,pmon:{...value.preset.pmon,brr}}};
+          flags.modBrrDataOmitted=true;
+        }
+        if(data.id!==undefined)this.port.postMessage({id:data.id,value,...flags});
       }catch(error){if(data?.id!==undefined)this.port.postMessage({id:data.id,error:error.message,name:error.name});}
     }).catch(error=>this.fail(error));
   }

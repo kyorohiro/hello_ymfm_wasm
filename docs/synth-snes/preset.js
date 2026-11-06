@@ -32,17 +32,19 @@ export function createDefaultEcho() {
 export function createDefaultNoise() {return {clock:31};}
 const defaultEnvelope=()=>({mode:'adsr',attack:15,decay:2,sustainLevel:7,sustainRate:0,
   gainMode:'direct',gainLevel:96,gainRate:16});
+const defaultBrr=()=>({name:'',data:'',rootNote:60,basePitch:4096,loopStartSamples:null});
 export function createDefaultPmon() {
-  return {enabled:false,ratio:1,wave:waveShape('sine'),envelope:{...defaultEnvelope(),mode:'gain',gainLevel:64}};
+  return {enabled:false,source:'wave',ratio:1,wave:waveShape('sine'),brr:defaultBrr(),envelope:{...defaultEnvelope(),mode:'gain',gainLevel:64}};
 }
 export const pmonActive=p=>p.source!=='noise'&&p.pmon.enabled;
-export const sampleBudget=p=>(p.echo.enabled?ECHO_BRR_MAX_BYTES:64512)-(pmonActive(p)?PMON_MODULATOR_BYTES:0);
+export const pmonSampleBytes=p=>!pmonActive(p)?0:p.pmon.source==='brr'?decodeBase64(p.pmon.brr.data).length:PMON_MODULATOR_BYTES;
+export const sampleBudget=p=>(p.echo.enabled?ECHO_BRR_MAX_BYTES:64512)-pmonSampleBytes(p);
 /** Only changes that replace the physical RAM bank or voice allocation. */
 export function presetBankKey(p) {
   const active=pmonActive(p);
   return JSON.stringify([p.source,p.echo.enabled,active,
     p.source==='wave'?p.wave:p.source==='brr'?[p.brr.data,p.brr.loopStartSamples]:null,
-    active?p.pmon.wave:null]);
+    active?[p.pmon.source,p.pmon.source==='brr'?[p.pmon.brr.data,p.pmon.brr.loopStartSamples]:p.pmon.wave]:null]);
 }
 /** A valid silent DSP fetch loop; the hardware NON route supplies the sound. */
 export function createNoiseCarrier() {return Uint8Array.of(3,0,0,0,0,0,0,0,0);}
@@ -75,8 +77,8 @@ export function waveShape(shape) {
 }
 
 export function createDefaultPreset() {
-  return {format:FORMAT,version:4,name:'Sine',source:'wave',wave:waveShape('sine'),
-    brr:{name:'',data:'',rootNote:60,basePitch:4096,loopStartSamples:null},
+  return {format:FORMAT,version:5,name:'Sine',source:'wave',wave:waveShape('sine'),
+    brr:defaultBrr(),
     volume:{left:16,right:16},
     envelope:defaultEnvelope(),echo:createDefaultEcho(),noise:createDefaultNoise(),pmon:createDefaultPmon()};
 }
@@ -93,32 +95,13 @@ function readEnvelope(value,label='Hardware envelope') {
     sustainLevel:number(value.sustainLevel,0,7,'Sustain level'),sustainRate:number(value.sustainRate,0,31,'Sustain rate'),
     gainMode:value.gainMode,gainLevel:number(value.gainLevel,0,127,'Direct GAIN level'),gainRate:number(value.gainRate,0,31,'GAIN rate')};
 }
-function readPmon(value) {
-  object(value,['enabled','ratio','wave','envelope'],'S-DSP PMON');
-  return {enabled:boolean(value.enabled,'Enable PMON'),ratio:number(value.ratio,.125,8,'PMON ratio',false),
-    wave:readWave(value.wave,'PMON wave'),envelope:readEnvelope(value.envelope,'PMON envelope')};
-}
-
-/** Validate and detach the portable instrument before touching RAM or voices. */
-export function readPreset(value) {
-  object(value,['format','version','name','source','wave','brr','volume','envelope',...([2,3,4].includes(value?.version)?['echo']:[]),...([3,4].includes(value?.version)?['noise']:[]),...(value?.version===4?['pmon']:[])],'S-DSP preset');
-  if(value.format!==FORMAT||![1,2,3,4].includes(value.version)) throw new TypeError('Unsupported S-DSP preset format/version');
-  const echo=value.version===1?createDefaultEcho():readEcho(value.echo);
-  const noise=value.version>=3?readNoise(value.noise):createDefaultNoise();
-  const pmon=value.version===4?readPmon(value.pmon):createDefaultPmon();
-  if(!['wave','brr','noise'].includes(value.source)||value.source==='noise'&&value.version<3) throw new RangeError('Expected Wave, BRR or v3 Noise source');
-  const wave=readWave(value.wave);
-  object(value.brr,['name','data','rootNote','basePitch','loopStartSamples'],'BRR sample');
-  const brr={name:name(value.brr.name,120,'Sample name'),data:value.brr.data,
-    rootNote:number(value.brr.rootNote,0,127,'Root note'),basePitch:number(value.brr.basePitch,1,16383,'Base PITCH'),
-    loopStartSamples:value.brr.loopStartSamples===null?null:number(value.brr.loopStartSamples,0,114672,'Loop sample')};
+function readBrr(value,label='BRR sample') {
+  object(value,['name','data','rootNote','basePitch','loopStartSamples'],label);
+  const brr={name:name(value.name,120,`${label} name`),data:value.data,
+    rootNote:number(value.rootNote,0,127,`${label} root note`),basePitch:number(value.basePitch,1,16383,`${label} base PITCH`),
+    loopStartSamples:value.loopStartSamples===null?null:number(value.loopStartSamples,0,114672,`${label} loop sample`)};
   if(brr.loopStartSamples!==null&&brr.loopStartSamples%16) throw new RangeError('BRR loop must begin at a 16-sample boundary');
   const bytes=decodeBase64(brr.data);
-  const budget=sampleBudget({source:value.source,pmon,echo});
-  if(value.source==='brr'&&bytes.length>budget) {
-    if(!pmon.enabled&&echo.enabled)throw new RangeError('Echo reserves 30 KiB of RAM: this instrument allows at most 33,786 BRR bytes with Echo enabled. Use a shorter sample or keep Echo off.');
-    throw new RangeError(`PMON reserves 72 BRR bytes for its modulator${echo.enabled?' and Echo reserves 30 KiB':''}: the carrier sample allows at most ${budget.toLocaleString('en-US')} BRR bytes. Use a shorter sample or disable PMON.`);
-  }
   if(!bytes.length) {
     if(brr.loopStartSamples!==null) throw new RangeError('An unloaded BRR sample has no loop position');
   } else {
@@ -129,9 +112,34 @@ export function readPreset(value) {
       if(checkedBrr.size>2) checkedBrr.delete(checkedBrr.keys().next().value);
     }
   }
+  return brr;
+}
+function readPmon(value,version) {
+  object(value,['enabled','ratio','wave','envelope',...(version===5?['source','brr']:[])],'S-DSP PMON');
+  const source=version===5?value.source:'wave';
+  if(!['wave','brr'].includes(source))throw new RangeError('PMON source: expected Wave or BRR');
+  return {enabled:boolean(value.enabled,'Enable PMON'),source,ratio:number(value.ratio,.125,8,'PMON ratio',false),
+    wave:readWave(value.wave,'PMON wave'),brr:version===5?readBrr(value.brr,'PMON BRR sample'):defaultBrr(),envelope:readEnvelope(value.envelope,'PMON envelope')};
+}
+
+/** Validate and detach the portable instrument before touching RAM or voices. */
+export function readPreset(value) {
+  object(value,['format','version','name','source','wave','brr','volume','envelope',...([2,3,4,5].includes(value?.version)?['echo']:[]),...([3,4,5].includes(value?.version)?['noise']:[]),...([4,5].includes(value?.version)?['pmon']:[])],'S-DSP preset');
+  if(value.format!==FORMAT||![1,2,3,4,5].includes(value.version)) throw new TypeError('Unsupported S-DSP preset format/version');
+  const echo=value.version===1?createDefaultEcho():readEcho(value.echo);
+  const noise=value.version>=3?readNoise(value.noise):createDefaultNoise();
+  const pmon=value.version>=4?readPmon(value.pmon,value.version):createDefaultPmon();
+  if(!['wave','brr','noise'].includes(value.source)||value.source==='noise'&&value.version<3) throw new RangeError('Expected Wave, BRR or v3 Noise source');
+  const wave=readWave(value.wave),brr=readBrr(value.brr);
+  const layout={source:value.source,pmon,echo},budget=sampleBudget(layout);
+  const carrierBytes=value.source==='brr'?decodeBase64(brr.data).length:value.source==='wave'?72:9;
+  if(carrierBytes>budget) {
+    if(!pmonActive(layout)&&echo.enabled)throw new RangeError('Echo reserves 30 KiB of RAM: this instrument allows at most 33,786 BRR bytes with Echo enabled. Use a shorter sample or keep Echo off.');
+    throw new RangeError(`PMON reserves ${pmonSampleBytes(layout).toLocaleString('en-US')} BRR bytes for its modulator${echo.enabled?' and Echo reserves 30 KiB':''}: the carrier sample allows at most ${Math.max(0,budget).toLocaleString('en-US')} BRR bytes. Use a shorter sample or disable PMON.`);
+  }
   object(value.volume,['left','right'],'Voice volume');
   const envelope=readEnvelope(value.envelope);
-  return {format:FORMAT,version:4,name:name(value.name,80,'Instrument name'),source:value.source,wave,brr,
+  return {format:FORMAT,version:5,name:name(value.name,80,'Instrument name'),source:value.source,wave,brr,
     volume:{left:number(value.volume.left,-128,127,'Left voice volume'),right:number(value.volume.right,-128,127,'Right voice volume')},
     envelope,echo,noise,pmon};
 }
@@ -152,6 +160,7 @@ function registers(e) {
 export function presetToCode(value) {
   const p=readPreset(value),env=envelopeRegisters(p),active=pmonActive(p);
   if(p.source==='brr'&&!p.brr.data)throw new Error('Load a BRR or audio sample before copying a BRR audition');
+  if(active&&p.pmon.source==='brr'&&!p.pmon.brr.data)throw new Error('Load a PMON modulator BRR sample before copying a PMON audition');
   const lines=['// Select SNES in Playground. Run in a fresh context for a fresh BRR bank.',
     `// ${p.name||'Untitled S-DSP voice'}`,"const snes = await useSoundChip('snes');",'snes.allNotesOff();',
     `await snes.setEcho(${JSON.stringify({...echoOptions(p.echo),...(active?{sendMask:p.echo.send?2:0}:{})})}); // Reserve Echo RAM before loading BRR.`];
@@ -168,11 +177,15 @@ export function presetToCode(value) {
   if(p.source==='noise') lines.push('const noiseFlags = await snes.readDsp(0x6c);',
     `snes.writeDsp(0x6c, (noiseFlags & 0xe0) | ${p.noise.clock}); // Preserve Echo, mute and reset flags.`);
   if(active) {
-    const mod=modulatorEnvelopeRegisters(p),pitch=Math.max(1,Math.min(16383,Math.round(4096*(440*2**((60-69)/12))*p.pmon.ratio/250)));
-    lines.push('// PMON is hardware adjacent-voice modulation. Wave encoding, ratio and pair allocation are software authoring.',
-      `const modPcm = Float32Array.from(${JSON.stringify(p.pmon.wave)});`,
+    const mod=modulatorEnvelopeRegisters(p),base=p.pmon.source==='brr'?p.pmon.brr.basePitch*2**((60-p.pmon.brr.rootNote)/12):4096*(440*2**((60-69)/12))/250;
+    const pitch=Math.max(1,Math.min(16383,Math.round(base*p.pmon.ratio)));
+    lines.push('// PMON is hardware adjacent-voice modulation. Wave encoding, ratio and pair allocation are software authoring.');
+    if(p.pmon.source==='wave')lines.push(`const modPcm = Float32Array.from(${JSON.stringify(p.pmon.wave)});`,
       'const modBrr = pg.encodeBrr(modPcm, {loopStartSamples:0});',
-      'const modSample = await snes.loadBRR(modBrr.brr, {baseFrequencyHz:250, loopStartSamples:0});',
+      'const modSample = await snes.loadBRR(modBrr.brr, {baseFrequencyHz:250, loopStartSamples:0});');
+    else lines.push(`const modBrr = Uint8Array.from(${JSON.stringify(Array.from(decodeBase64(p.pmon.brr.data)))});`,
+      `const modSample = await snes.loadBRR(modBrr, ${JSON.stringify({rootNote:p.pmon.brr.rootNote,basePitch:p.pmon.brr.basePitch,...(p.pmon.brr.loopStartSamples===null?{}:{loopStartSamples:p.pmon.brr.loopStartSamples})})});`);
+    lines.push(
       `snes.setPreset(0, {sample:modSample, adsr1:${mod.adsr1}, adsr2:${mod.adsr2}, gain:${mod.gain}, volumeLeft:0, volumeRight:0, pitch:${pitch}});`,
       `snes.setPreset(1, {sample, adsr1:${env.adsr1}, adsr2:${env.adsr2}, gain:${env.gain}, volumeLeft:${p.volume.left}, volumeRight:${p.volume.right}});`,
       'snes.keyOn(0);',"snes.noteOn(1, 'C4');",

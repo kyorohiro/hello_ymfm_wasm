@@ -56,7 +56,7 @@ function updatePresetUi() {
   editor.update(preset);
   if (document.activeElement !== $('instrumentName')) $('instrumentName').value = preset.name;
   if (!$('codeOutput').hidden) {
-    if (preset.source === 'brr') {$('codeOutput').hidden=true;$('codeOutput').value='';}
+    if (preset.source === 'brr' || pmonActive(preset) && preset.pmon.source === 'brr') {$('codeOutput').hidden=true;$('codeOutput').value='';}
     else $('codeOutput').value = presetToCode(preset);
   }
   $('copyCode').textContent = 'Copy JavaScript';
@@ -145,15 +145,20 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   });
 }
 async function loadSample(file,options,isBrr) {
+  const target=options.target??'carrier';
+  if(!['carrier','modulator'].includes(target))throw new TypeError('Unknown sample target');
+  const tuning=target==='modulator'?preset.pmon.brr:preset.brr;
   const token=++importSequence, draftRevision=revision;
-  const prepared=isBrr ? await prepareBrrFile(file,{...options,rootNote:preset.brr.rootNote,basePitch:preset.brr.basePitch})
+  const prepared=isBrr ? await prepareBrrFile(file,{...options,rootNote:tuning.rootNote,basePitch:tuning.basePitch})
     : await prepareAudio(file,options);
   if(options.signal?.aborted) throw new DOMException('Sample import cancelled','AbortError');
   if(disposed||token!==importSequence||draftRevision!==revision) return 'Import discarded · instrument changed. Previous sound kept.';
-  const next=readPreset({...preset,source:'brr',name:prepared.name.slice(0,80),brr:prepared});
+  const next=readPreset(target==='modulator'
+    ? {...preset,pmon:{...preset.pmon,source:'brr',brr:prepared}}
+    : {...preset,source:'brr',name:prepared.name.slice(0,80),brr:prepared});
   options.onCommit?.();
-  await applyPreset(next,{load:true,message:`Loaded ${prepared.name} · BRR sample · play the keyboard.`});
-  return `Loaded ${prepared.name}. Root note and base PITCH declare tuning; BRR does not store them.`;
+  await applyPreset(next,{load:true,message:`Loaded ${prepared.name} · ${target} BRR sample · play the keyboard.`});
+  return `Loaded ${prepared.name} into ${target}. Root note and base PITCH declare tuning; BRR does not store them.`;
 }
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>{void applyPreset(value).catch(report);},onError:report,
   onLoadAudio:(file,options)=>loadSample(file,options,false),onLoadBrr:(file,options)=>loadSample(file,options,true)});
@@ -165,13 +170,16 @@ async function openSpc(file,{signal}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
   return parseSpcVoices(data,{name:file.name});
 }
-async function selectSpc(candidate,{includeEcho=false,signal,onCommit}={}) {
+async function selectSpc(candidate,{includeEcho=false,includePmon=false,signal,onCommit}={}) {
   if(disposed||signal?.aborted) throw spcCancelled();
   if(typeof includeEcho!=='boolean') throw new TypeError('SPC Echo import option must be boolean');
-  const variant=includeEcho?candidate?.echoVariant:candidate;
+  if(typeof includePmon!=='boolean') throw new TypeError('SPC PMON import option must be boolean');
+  const pair=includePmon&&candidate?.voice.pitchModulation&&!candidate?.voice.noise;
+  const variant=pair?(includeEcho?candidate?.pmonEchoVariant:candidate?.pmonVariant):(includeEcho?candidate?.echoVariant:candidate);
   if(!variant?.preset) throw new Error(variant?.reason??'This SPC voice is unavailable');
   const next=readPreset(variant.preset);
-  const sourceLabel=next.source==='noise'?`Noise clock ${next.noise.clock}`:`SRCN ${candidate.voice.sourceNumber}`;
+  const sourceLabel=pair?`PMON CH${candidate.pmonPair.modulatorVoice.index+1} → CH${candidate.voice.index+1}`
+    :next.source==='noise'?`Noise clock ${next.noise.clock}`:`SRCN ${candidate.voice.sourceNumber}`;
   const echoLabel=includeEcho?(next.echo.enabled?'Echo / FIR imported':'Echo / FIR settings imported · Echo Off'):'dry voice';
   // Invalidate older audio / preset file reads before this explicit adoption.
   const token=++importSequence;
@@ -180,7 +188,8 @@ async function selectSpc(candidate,{includeEcho=false,signal,onCommit}={}) {
   const adoptedRevision=revision;
   await applying;
   if(disposed||signal?.aborted||token!==importSequence||adoptedRevision!==revision) throw spcCancelled();
-  const tuningHint=next.source==='noise'?'Keys trigger envelopes; Noise clock controls the shared generator.'
+  const tuningHint=pair?'Both captured PITCH values are declared at C4. The modulator is muted in the mix; its hardware envelope drives PMON.'
+    :next.source==='noise'?'Keys trigger envelopes; Noise clock controls the shared generator.'
     :'Snapshot PITCH is declared at C4; adjust Root note to retune.';
   return `Loaded CH${candidate.voice.index+1} · ${sourceLabel} · ${echoLabel}. ${tuningHint}`;
 }
@@ -199,7 +208,7 @@ const choices = document.createElement('div'); choices.className = 'fretboard-ro
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
 let layout, keyboardSource;
-const keyboardMode = () => preset.source==='noise'?'noise':`${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}`;
+const keyboardMode = () => preset.source==='noise'?'noise':`${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}:${pmonActive(preset)}:${preset.pmon.source}:${Boolean(preset.pmon.brr.data)}`;
 function renderKeyboard() {
   {
     keyboardSource = keyboardMode();
@@ -230,6 +239,7 @@ function renderKeyboard() {
 function canPlay(midi) {
   if(!Number.isInteger(midi)||midi<0||midi>127||preset.source==='brr'&&!preset.brr.data) return false;
   if(preset.source==='noise') return true;
+  if(pmonActive(preset)&&preset.pmon.source==='brr'&&!preset.pmon.brr.data)return false;
   const raw=preset.source==='wave' ? 4096*(440*2**((midi-69)/12))/(32000/128)
     : preset.brr.basePitch*2**((midi-preset.brr.rootNote)/12);
   return Math.round(raw)>=1&&Math.round(raw)<=16383;

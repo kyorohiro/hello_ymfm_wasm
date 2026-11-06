@@ -423,3 +423,84 @@ test('PMON JSON and copied JavaScript use the existing hardware API and reproduc
   const generation=instrument.generation;instrument.stop();assert(instrument.generation>generation);assert.equal(instrument.read().voices.length,0);
   assert.equal(peak(render(instrument,4096).left),0);assert.equal(instrument.read().pmonRegisters.mask,0xaa);
 });
+
+function brrPmonPreset(echo={}) {
+  const p=pmonPreset(echo),encode=shape=>encodeBase64(encodeBrr(Float32Array.from(waveShape(shape)),{loopStartSamples:0}).brr);
+  p.source='brr';p.brr={name:'Carrier loop',data:encode('triangle'),rootNote:60,basePitch:3072,loopStartSamples:0};
+  p.pmon.source='brr';p.pmon.brr={name:'Modulator loop',data:encode('saw'),rootNote:60,basePitch:1234,loopStartSamples:16};
+  return p;
+}
+
+test('captured BRR carrier / modulator PITCH and Echo match manual DSP setup and exported native PCM',async t=>{
+  const {instrument}=await setup(t),manualCore=await create(),manual=new SnesSynth({core:manualCore}),exportCore=await create(),exported=new SnesSynth({core:exportCore});
+  t.after(()=>manual.dispose());t.after(()=>exported.dispose());
+  const p=brrPmonPreset({enabled:true,delay:2,feedback:-40,volumeLeft:52,volumeRight:-37,fir:[100,20,-10,5,0,0,0,0]});
+  p.pmon.envelope.gainLevel=89;p.volume={left:25,right:-19};instrument.loadPreset(p);instrument.noteOn('capture',60);
+  const {send,...echo}=p.echo;manual.setEcho({...echo,sendMask:send?0xaa:0});
+  const sample=manual.loadBRR(Buffer.from(p.brr.data,'base64'),{rootNote:60,basePitch:3072,loopStartSamples:0});
+  const modSample=manual.loadBRR(Buffer.from(p.pmon.brr.data,'base64'),{rootNote:60,basePitch:1234,loopStartSamples:16});
+  for(let ch=0;ch<8;ch++)manual.setPreset(ch,ch%2===0
+    ?{sample:modSample,...modulatorEnvelopeRegisters(p),volumeLeft:0,volumeRight:0,pitch:ch===0?1234:4096}
+    :{sample,...envelopeRegisters(p),volumeLeft:25,volumeRight:-19,pitch:ch===1?3072:4096});
+  manual.writeDsp(0x2d,0xaa);manual.keyOn(0);manual.keyOn(1);
+  const code=presetToCode(readPreset(JSON.parse(JSON.stringify(p)))),AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  await new AsyncFunction('useSoundChip','pg',code)(async()=>exported,{encodeBrr(){throw Error('Imported BRR assets must not be re-encoded');}});
+  const state=instrument.read();assert.equal(state.registers[0][2]|state.registers[0][3]<<8,1234);assert.equal(state.registers[1][2]|state.registers[1][3]<<8,3072);
+  assert.equal(state.modulatorSample.loopStartSamples,16);assert.equal(state.modulatorSample.basePitch,1234);
+  const pcm=render(instrument,12000);assert(pcm.left.every(Number.isFinite));assert(peak(pcm.left)>.01);
+  assert.deepEqual(render(manual,12000),pcm);assert.deepEqual(render(exported,12000),pcm);
+});
+
+test('BRR modulator root, base PITCH and ratio tune held pairs without resetting native phase or RAM',async t=>{
+  const a=await setup(t),reference=await setup(t),p=brrPmonPreset();
+  for(const entry of [a,reference]){entry.instrument.loadPreset(p);entry.instrument.noteOn('held',60);}
+  assert.deepEqual(render(a.instrument,777),render(reference.instrument,777));const before=a.instrument.read(),ram=a.core.snapshot().ram;
+  p.pmon.brr.rootNote=48;p.pmon.brr.basePitch=1700;p.pmon.ratio=1.5;a.instrument.setPreset(p);reference.instrument.synth.setPitch(0,5100);
+  const edited=a.instrument.read();assert.equal(edited.generation,before.generation);assert.equal(edited.nativeFrames,before.nativeFrames);assert.deepEqual(edited.voices,before.voices);assert.deepEqual(a.core.snapshot().ram,ram);
+  assert.equal(edited.modulatorSample.rootNote,48);assert.equal(edited.modulatorSample.basePitch,1700);assert.equal(a.instrument.synth.samples[edited.modulatorSample.id].basePitch,1700);
+  assert.deepEqual(render(a.instrument,4096),render(reference.instrument,4096));
+  a.instrument.setPitch(-3);const modPitch=Math.round(1700*2**((57-48)/12)*1.5),mainPitch=Math.round(3072*2**(-3/12));
+  reference.instrument.synth.setPitch(0,modPitch);reference.instrument.synth.setPitch(1,mainPitch);
+  assert.deepEqual(render(a.instrument,4096),render(reference.instrument,4096));
+  const last=a.instrument.read();assert.equal(last.registers[0][2]|last.registers[0][3]<<8,modPitch);assert.equal(last.registers[1][2]|last.registers[1][3]<<8,mainPitch);
+});
+
+test('empty modulator BRR is a silent editable draft and missing samples reject notes before DSP mutation',async t=>{
+  const {instrument,core}=await setup(t),p=pmonPreset();p.pmon.source='brr';instrument.loadPreset(p);
+  const state=instrument.read(),ram=core.snapshot().ram;assert.equal(state.modulatorSample,null);assert.equal(instrument.synth.samples.length,1);
+  assert.throws(()=>instrument.noteOn('empty',60),/modulator BRR/);assert.deepEqual(instrument.read(),state);assert.deepEqual(core.snapshot().ram,ram);
+  assert.equal(peak(render(instrument,512).left),0);assert.throws(()=>presetToCode(p),/modulator BRR/);
+  p.source='noise';instrument.setPreset(p);instrument.noteOn('noise',60);assert(peak(render(instrument,512).left)>.01);assert.equal(instrument.read().modulatorSample,null);
+  p.source='wave';p.pmon.enabled=false;instrument.setPreset(p);instrument.noteOn('wave',60);assert(peak(render(instrument,512).left)>.01);
+  const bytes=encodeBrr(Float32Array.from(waveShape('square')),{loopStartSamples:0}).brr;
+  p.pmon.enabled=true;p.pmon.brr={name:'Ready',data:encodeBase64(bytes),rootNote:60,basePitch:4096,loopStartSamples:0};
+  instrument.setPreset(p);instrument.noteOn('pair',60);assert(peak(render(instrument,512).left)>.01);assert.equal(instrument.read().capacity,4);
+});
+
+test('BRR modulator bank edits replace pairs while inactive waves and source drafts preserve held owners',async t=>{
+  const {instrument}=await setup(t),p=brrPmonPreset();instrument.loadPreset(p);instrument.noteOn('held',60);render(instrument,256);
+  const before=instrument.read();p.pmon.wave=waveShape('square');p.pmon.brr.name='Renamed';instrument.setPreset(p);
+  assert.equal(instrument.generation,before.generation);assert.deepEqual(instrument.read().voices,before.voices);
+  p.pmon.brr.loopStartSamples=0;instrument.setPreset(p);assert(instrument.generation>before.generation);assert.equal(instrument.read().voices.length,0);
+  instrument.noteOn('new',60);render(instrument,256);const looped=instrument.generation;p.pmon.source='wave';instrument.setPreset(p);
+  assert(instrument.generation>looped);assert.equal(instrument.read().modulatorSample.byteLength,72);assert.equal(instrument.read().voices.length,0);
+  p.source='noise';instrument.setPreset(p);instrument.noteOn('noise',60);render(instrument,256);const noise=instrument.read();
+  p.pmon.source='brr';p.pmon.brr.data='';p.pmon.brr.loopStartSamples=null;instrument.setPreset(p);
+  assert.equal(instrument.generation,noise.generation);assert.deepEqual(instrument.read().voices,noise.voices);
+});
+
+test('variable BRR modulator banks fill dry / Echo RAM safely and over-budget pairs fail atomically',async t=>{
+  const {instrument,core}=await setup(t),p=pmonPreset();p.pmon.source='brr';
+  for(const [echo,total,start,directory]of[[false,64512,0x400,0],[true,33786,0x7c00,0x7800]]) {
+    p.echo.enabled=echo;p.echo.delay=15;const bytes=new Uint8Array(total-72);bytes[bytes.length-9]=3;
+    p.pmon.brr={name:'RAM boundary modulator',data:encodeBase64(bytes),rootNote:60,basePitch:1234,loopStartSamples:0};
+    instrument.loadPreset(p);instrument.noteOn('held',60);render(instrument,12000);const state=instrument.read(),ram=core.snapshot().ram;
+    const carrier=encodeBrr(Float32Array.from(p.wave),{loopStartSamples:0}).brr;
+    assert.equal(state.memory.maxSampleBytes,72);assert.equal(state.sample.startAddress,start);assert.equal(state.modulatorSample.startAddress,start+72);
+    assert.equal(instrument.synth.nextAddress,start+total);assert.deepEqual(ram.slice(start,start+72),carrier);assert.deepEqual(ram.slice(start+72,start+total),bytes);
+    assert.deepEqual(ram.slice(directory+4,directory+8),Uint8Array.of((start+72)&255,(start+72)>>8,(start+72)&255,(start+72)>>8));
+    const tooLarge=new Uint8Array(total-63);tooLarge[tooLarge.length-9]=3;const invalid=structuredClone(p);invalid.pmon.brr.data=encodeBase64(tooLarge);
+    assert.throws(()=>instrument.setPreset(invalid),/PMON reserves/);assert.deepEqual(instrument.read(),state);assert.deepEqual(core.snapshot().ram,ram);
+    invalid.pmon.brr.data=p.pmon.brr.data;invalid.pmon.brr.basePitch=0;assert.throws(()=>instrument.setPreset(invalid));assert.deepEqual(instrument.read(),state);assert.deepEqual(core.snapshot().ram,ram);
+  }
+});

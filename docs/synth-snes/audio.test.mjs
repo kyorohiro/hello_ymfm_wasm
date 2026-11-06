@@ -8,7 +8,7 @@ const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 function fixture({resumeError = false, fetchFailure = false, stalledFetch = false, presetReplies = false} = {}) {
   let createAudio, context, node, timerId = 0, mode = 'reply';
   const timers = new Map(), errors = [], events = [], messages = [];
-  let remoteData = '', remotePreset = {brr:{data:''}};
+  let remoteData = '', remoteModData = '', remotePreset = {brr:{data:''}};
   class Context {
     constructor() {
       context = this; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
@@ -46,10 +46,16 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
               const next=message.args[0];
               remoteData=message.brrDataUnchanged ? remoteData : next.brr.data;
               remotePreset={...next,brr:{...next.brr,data:remoteData}};
+              if(next.pmon?.brr){
+                remoteModData=message.modBrrDataUnchanged?remoteModData:next.pmon.brr.data;
+                remotePreset.pmon={...next.pmon,brr:{...next.pmon.brr,data:remoteModData}};
+              }
             }
             const {data:_data,...brr}=remotePreset.brr;
-            this.port.onmessage?.({data:{id:message.id,value:{preset:remoteData ? {...remotePreset,brr} : remotePreset,voices:[]},
-              ...(remoteData ? {brrDataOmitted:true} : {})}});
+            let shown=remoteData?{...remotePreset,brr}:remotePreset;
+            if(remoteModData&&remotePreset.pmon?.brr){const {data:_modData,...modBrr}=remotePreset.pmon.brr;shown={...shown,pmon:{...shown.pmon,brr:modBrr}};}
+            this.port.onmessage?.({data:{id:message.id,value:{preset:shown,voices:[]},
+              ...(remoteData ? {brrDataOmitted:true} : {}),...(remoteModData&&remotePreset.pmon?.brr?{modBrrDataOmitted:true}:{})}});
           } else this.port.onmessage?.({data:{id:message.id,value:message.method === 'read' ? {voices:[]} : true}});
         });
       }, close(){this.closed = true;}};
@@ -113,6 +119,33 @@ test('concurrent preset mutations carry full PCM so a changed remote reference c
   assert(sent.every(message=>!message.brrDataUnchanged&&Object.hasOwn(message.args[0].brr,'data')));
   assert.equal(results[0].preset.brr.data,b.brr.data);assert.equal(results[1].preset.brr.data,a.brr.data);
   assert.equal((await audio.read()).preset.brr.data,a.brr.data);
+  await audio.dispose();
+});
+
+test('carrier and modulator BRR caches are independent, restore replies and survive failed or concurrent replacement',async()=>{
+  const f=fixture({presetReplies:true}),audio=await f.create();
+  const first={brr:{data:'EBES',root:60},pmon:{source:'brr',brr:{data:'ExQV',root:60}}};
+  const loaded=await audio.command('loadPreset',[first]);
+  assert.equal(loaded.preset.brr.data,first.brr.data);assert.equal(loaded.preset.pmon.brr.data,first.pmon.brr.data);
+  await audio.command('setPreset',[{...first,pmon:{...first.pmon,brr:{...first.pmon.brr,root:61}}}]);
+  let sent=f.messages.at(-1);assert(sent.brrDataUnchanged&&sent.modBrrDataUnchanged);
+  assert.equal(Object.hasOwn(sent.args[0].brr,'data'),false);assert.equal(Object.hasOwn(sent.args[0].pmon.brr,'data'),false);
+  assert.equal(first.pmon.brr.data,'ExQV','the caller owns its full preset');
+  const replacement={...first,pmon:{...first.pmon,brr:{data:'FhcY',root:60}}};
+  f.mode('error');await assert.rejects(audio.command('loadPreset',[replacement]),/Invalid preset/);f.mode('reply');
+  let read=await audio.read();assert.equal(read.preset.pmon.brr.data,first.pmon.brr.data);
+  await audio.command('setPreset',[first]);assert.equal(f.messages.at(-1).modBrrDataUnchanged,true);
+  await audio.command('setPreset',[replacement]);sent=f.messages.at(-1);
+  assert.equal(sent.brrDataUnchanged,true);assert.equal(sent.modBrrDataUnchanged,undefined);
+  const begin=f.messages.length;
+  const results=await Promise.all([audio.command('loadPreset',[first]),audio.command('setPreset',[replacement])]);
+  const concurrent=f.messages.slice(begin);assert.equal(concurrent.length,2);
+  assert.equal(concurrent[1].brrDataUnchanged,undefined);assert.equal(concurrent[1].modBrrDataUnchanged,undefined);
+  assert.equal(concurrent[1].args[0].pmon.brr.data,replacement.pmon.brr.data);
+  assert.equal(results[0].preset.pmon.brr.data,first.pmon.brr.data);assert.equal(results[1].preset.pmon.brr.data,replacement.pmon.brr.data);
+  read=await audio.read();assert.equal(read.preset.pmon.brr.data,replacement.pmon.brr.data);
+  await audio.command('loadPreset',[{brr:{data:''},pmon:{source:'wave',brr:{data:''}}}]);
+  read=await audio.read();assert.equal(read.preset.brr.data,'');assert.equal(read.preset.pmon.brr.data,'');
   await audio.dispose();
 });
 

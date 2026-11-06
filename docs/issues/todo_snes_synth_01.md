@@ -189,7 +189,7 @@ Hardware Noise・検証結果（2026-11-06）:
 - [x] 自作fixtureと実WASMで隣接変調・変調側無音・GAIN／音程比のlive変化・4音steal／安全な離鍵・Echo共存・容量境界／原音保持・旧形式移行・JS出力を確認し、Chromium／WebKitと独立ZIPでも検証する。
 - [x] README en／ja／AI・英日ホーム・Synthガイド・TODOと検証記録を更新し、可読source入り配布ZIPを作成する。実聴・実ゲームSPC・長時間運転は人の確認として残す。
 
-- [ ] 後続: SPCからPMONの変調元／対象voiceをセットで取り込む。隣接chain・元PITCH比・別sample・Noise変調元・再生中Envelopeの制約を先に整理する。
+- [x] SPCからPMONの変調元／対象voiceをセットで取り込む。単純な隣接BRR pairに対応し、両PITCH／別sample／Envelopeを保持する。Noise変調元とchainは後続へ分け、経過Envelopeは復元しないと説明する。
 
 Hardware PMON・検証結果（2026-11-06）:
 
@@ -203,3 +203,29 @@ Hardware PMON・検証結果（2026-11-06）:
 - README en／ja／AI・英日ホーム・Synthガイド・検証harnessを更新した。共有runtime／WASM／npm API・校正値は未変更で、npm更新は不要。commit／push／公開は未実施。実ゲームSPCの試聴・長時間動作は人の確認待ち。元SPCのPMON pair自動取り込みは未実装で、現在は取り込んだbase BRRへ手動でPMONを設定する。
 
 次は手元でPMONの音色・Ratio・変調側GAINを試聴する。後続の実装候補はSPC隣接pairの取り込み、その後Web確認済み版をTauriへ持ち込む。
+
+## SPC PMONペア・作業手順（2026-11-06）
+
+- [x] preset v5で変調側に`source:'wave'|'brr'`と独立BRRデータ／Root／base PITCH／Loopを追加し、v1〜v4を移行する。双方のBRR合計でRAM容量を事前検証し、失敗時は現在音を保持する。
+- [x] 実S-DSPの既存4pairへ変調BRRを接続し、保存PITCHを双方のC4基準として再生する。Ratio1で元PITCH、Ratio・Pitchは保持音へ反映する。変調側LR0／carrierのみEchoを維持し、元の変調側mix・現在Envelope／decoder phaseを再現したとは扱わない。
+- [x] SPCの単純な隣接2声PMONを抽出し、元BRR／Loop／PITCH／独立Envelopeを双方とも保存する。Noise変調元、PITCH0、不正sample／loop、複数声chain、容量超過は理由付きでpair選択不可にする。既存のbase voice候補は保持する。
+- [x] Sounds from SPCへ初期Offの`Import PMON pairs`を追加する。Echo optionとの4通りを準備し、option変更だけでは音を変えず、明示的な候補選択で取り込む。ACK中の操作固定・Cancel／失敗／古いreadの原音保持を維持する。
+- [x] 同一canvasのModulator対象で変調BRRをpreviewし、Wave／BRR切り替え・file読込・Root／PITCH／Loop操作へ接続する。Ratioの基準がWaveでは鍵盤周波数、BRRでは宣言した基準PITCHであることを説明する。両サンプルの転送／返信cacheも整備する。
+- [x] 可読JavaScript／JSONへ両BRRを含め、実WASM・単体テスト・Chromium／WebKit・独立ZIPで保存復元／live編集／同時発音／容量境界／失敗時原音保持を確認する。共有runtime／WASM／npm APIは変更しない。
+- [x] README en／ja／AI・英日ホーム・Synthガイド・TODO・検証記録を更新し、元source入り配布ZIPを作る。実ゲーム素材は含めず、実聴・長時間確認を人の作業として残す。
+
+- [ ] 後続: PMON chainとNoise変調元の取り込み。元の変調側dry／Echo出力も含める演奏再構成は別途検討する。
+
+SPC PMONペア・検証結果（2026-11-06）:
+
+- `Import PMON pairs`を初期Offで追加し、記録されたPMON carrierだけを直前のBRR modulatorとセットで選べるようにした。元の8voice候補とbase／Echoのみの読み込みは維持する。Echo optionとの4variantを用意し、option変更は現在音・所有権を変えず、明示的選択でcommitする。選択表示は両optionを区別し、ACK中は両操作を固定する。
+- 両方の完全なBRR・解決済みLoop・PITCH・独立ADSR／GAINを保存する。Root C4／Ratio1で両保存PITCHを再現し、元fundamentalや音階比は推測しない。変調側のsigned LRはmetadataとして残し、Synthのdry／Echo mixでは無音にする。carrierのみEchoへ送り、現在ENVX／decoder history／元master mix／曲再生は復元しない。
+- 単純な隣接2声pairが対象。Noise変調元、PITCH0、不正／未解決sample・Loop、incoming／outgoing chain、合計容量超過はpair modeだけを理由付きで選択不可にする。同一SRCNでも2つのuploadとして容量を数え、無断でdedup／短縮／baseへfallbackしない。
+- preset v5は変調側source Wave／BRRと独立Root／base PITCH／Loopを持つ。strict v1〜v4は互換移行し、v4の手動Wave PMONを保持する。Root／PITCH／Ratio／Envelopeはlive、source／sample／Loop変更は安全にbankを再構成する。Waveは72byte、BRRは完全なdata長で合計し、dry64,512／Echo有効33,786byteの範囲を守る。
+- 同じcanvasのModulatorを選ぶとBRRをread-only previewできる。Load audio／Load BRRは選択中の側へ読み込み、carrierを勝手に置き換えない。読込先・bankの変更は古いfile結果を破棄する。空modulator BRRでは鍵盤／コード出力を拒否し、通常編集では双方の受理済みデータを個別に省略転送・返信復元する。拒否・並行更新ではcacheを混同しない。
+- `npm run test:snes-synth`: **104件成功**。追加17件でv5移行と入力検証・可変RAM境界・変調BRRのlive tuning／原音保持・2asset cacheのACK／エラー／並行更新・SPC pair scopeと両PITCH／Envelope／Echoを確認した。実WASMで手動DSP設定・JSON・生成JavaScriptのstereo PCM一致も確認した。
+- [ソース記録](snes_synth_spc_pmon_browser_01.json)・[独立ZIP記録](snes_synth_spc_pmon_zip_browser_01.json): Chromium／WebKit各25チェック成功。passive options／両option ACK固定／captured register／保存復元／modulator preview・tuning／2asset省略／BRRとaudioの読込先／対象切替Cancel／空modulator／unsupported pairのbase候補維持／合計Echo容量拒否／v4移行を確認した。既存SPC／BRR／Noise／Echo／PMON／keyboard／Master／focusも成功。外部通信／404／page errorは0、390px横overflow0。1180px／390px画像を確認した。speakerはmuteしており、人による実聴は未実施。
+- 配布ZIP `release/tetorica_sdsp_synth_0.0.7_itch.zip`: 62 files、947,712 bytes、SHA-256 `3a600c50ded29dc98e9bc923b3a722ee06435beb6e4861f2075b89f4ef4c726c`。可読JS／CSS・採用icon・WASM・対応LGPL C++／再ビルド手順／source receiptを維持し、実ゲーム素材は含めない。
+- README en／ja／AI・英日ホーム・Synthガイドを更新した。共有runtime／WASM／npm API・校正値は未変更で、npm更新は不要。commit／push／公開は未実施。実ゲームSPCでの試聴・長時間確認は人の作業として残す。
+
+次は手元のSPCで単純なPMON pairを試聴し、Web版を一区切りにしてTauri版へ進める。chain／Noise変調元は独立した追加機能として後続へ残す。

@@ -3,8 +3,8 @@
 
 /** Passive SPC sound browser. Opening a snapshot never selects or plays a sound.
  * onOpen(file, {signal}) returns the batch prepared by parseSpcVoices.
- * onSelect(candidate, {includeEcho, signal, onCommit}) adopts one validated
- * dry / Echo variant. Changing import mode never adopts a sound. Call
+ * onSelect(candidate, {includeEcho, includePmon, signal, onCommit}) adopts one
+ * validated voice / pair, dry / Echo variant. Changing import mode never adopts a sound. Call
  * onCommit immediately before adoption; cancellation ends at that boundary.
  * Reject a stale selection with AbortError so its row is not marked selected.
  */
@@ -25,7 +25,11 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   };
   const text = value => String(value ?? '').slice(0, 1024);
   const hex = value => Number.isInteger(value) ? '$' + value.toString(16).toUpperCase().padStart(4, '0') : '—';
-  const voiceLabel = candidate => `CH${candidate.voice.index + 1} · ${candidate.voice.noise ? 'Noise' : 'SRCN ' + candidate.voice.sourceNumber}`;
+  const usesPair = (candidate, enabled = includePmon.checked) => enabled && candidate?.voice.pitchModulation && !candidate.voice.noise;
+  const voiceLabel = (candidate, pairMode = includePmon.checked) => usesPair(candidate, pairMode)
+    ? `CH${candidate.voice.index} → CH${candidate.voice.index + 1} · PMON`
+    : `CH${candidate.voice.index + 1} · ${candidate.voice.noise ? 'Noise' : 'SRCN ' + candidate.voice.sourceNumber}`;
+  const modeKey = (echo = includeEcho.checked, pmon = includePmon.checked) => `${Number(echo)}:${Number(pmon)}`;
   const abortError = () => new DOMException('SPC operation cancelled', 'AbortError');
   const section = make('details', 'sdsp-card sdsp-spc-browser');
   section.id = 'spcSection'; section.open = true;
@@ -42,7 +46,11 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   const echoOption = make('label', 'sdsp-spc-echo-option');
   const includeEcho = make('input'); includeEcho.id = 'spcIncludeEcho'; includeEcho.type = 'checkbox';
   echoOption.append(includeEcho, make('span', '', 'Import Echo / FIR settings')); content.append(echoOption);
+  const pmonOption = make('label', 'sdsp-spc-echo-option');
+  const includePmon = make('input'); includePmon.id = 'spcIncludePmon'; includePmon.type = 'checkbox';
+  pmonOption.append(includePmon, make('span', '', 'Import PMON pairs')); content.append(pmonOption);
   const echoInfo = make('p', 'sdsp-help sdsp-spc-echo-info'); echoInfo.id = 'spcEchoInfo'; content.append(echoInfo);
+  const pmonInfo = make('p', 'sdsp-help'); pmonInfo.id = 'spcPmonInfo'; content.append(pmonInfo);
   const status = make('p', 'sdsp-help', 'Load an SPC snapshot to inspect its eight voice settings.');
   status.id = 'spcImportStatus'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); content.append(status);
   const metadata = make('p', 'sdsp-spc-metadata'); metadata.id = 'spcMetadata'; metadata.hidden = true; content.append(metadata);
@@ -56,10 +64,13 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
     status.textContent = message; status.dataset.error = String(error);
   }
   const current = op => !disposed && operation === op && op.token === sequence && !op.controller.signal.aborted;
-  const variant = (candidate, mode = includeEcho.checked) => mode
-    ? candidate?.echoVariant ?? {preset:null, reason:'Echo settings are unavailable. Open the SPC file again.', warnings:[]}
-    : candidate;
+  const variant = (candidate, echo = includeEcho.checked, pmon = includePmon.checked) => usesPair(candidate, pmon)
+    ? candidate?.[echo ? 'pmonEchoVariant' : 'pmonVariant'] ?? {preset:null, reason:'PMON pair settings are unavailable. Open the SPC file again.', warnings:[]}
+    : echo ? candidate?.echoVariant ?? {preset:null, reason:'Echo settings are unavailable. Open the SPC file again.', warnings:[]} : candidate;
   function showEchoInfo() {
+    pmonInfo.textContent = includePmon.checked
+      ? 'Next selection imports a recorded PMON carrier with its preceding modulator. Other voices keep their ordinary settings. Both BRR PITCH references are declared at C4; original fundamentals, playback phases and song automation are not recovered. Changing this option keeps the current instrument.'
+      : 'PMON pairs are off. Recorded PMON carriers load their base voice only. Enable this option before selecting a carrier to import its preceding modulator too; changing the option does not change the current sound.';
     const next = includeEcho.checked ? 'Next selection imports captured Echo / FIR settings.' : 'Next selection loads the voice only, with Echo Off.';
     const echo = batch?.echo;
     if (!echo) {echoInfo.textContent = next + ' Changing this option keeps the current instrument. Past Echo audio and tails are not restored.'; return;}
@@ -69,19 +80,20 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   }
   function availabilityStatus() {
     const available = batch.candidates.filter(candidate => variant(candidate)?.preset).length;
-    return available ? `${available} of ${batch.candidates.length} voice candidates available${includeEcho.checked ? ' with captured Echo settings' : ''}. Current instrument kept. Select a sound to load it.`
+    return available ? `${available} of ${batch.candidates.length} voice candidates available${includeEcho.checked ? ' with captured Echo settings' : ''}${includePmon.checked ? ' / recorded PMON pairs where present' : ''}. Current instrument kept. Select a sound to load it.`
       : 'No playable voice candidates in this import mode. Current instrument kept. See the reasons below.';
   }
   function refresh() {
     const applying = operation?.committing === true;
     load.disabled = applying;
     includeEcho.disabled = applying;
+    includePmon.disabled = applying;
     cancel.hidden = !operation || applying;
     section.setAttribute('aria-busy', String(Boolean(operation)));
     showEchoInfo();
     for (const button of list.querySelectorAll('[data-spc-voice]')) {
       const candidate = batch?.candidates.find(item => item.voice.index === Number(button.dataset.spcVoice));
-      const selected = candidate?.id === selectedId && includeEcho.checked === selectedMode;
+      const selected = candidate?.id === selectedId && modeKey() === selectedMode;
       button.disabled = applying || !variant(candidate)?.preset;
       button.setAttribute('aria-pressed', String(selected));
       button.closest('.sdsp-spc-candidate')?.classList.toggle('is-selected', selected);
@@ -118,11 +130,20 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
       details.id = `spcCandidate${voice.index}Info`; button.setAttribute('aria-describedby', details.id);
       const state = voice.active ? 'Activity detected' : 'Inactive snapshot';
       const pitch = voice.noise ? 'Noise clock ' + (batch.noiseClock ?? candidate.preset?.noise?.clock ?? '—') : 'PITCH ' + voice.pitch;
-      details.append(make('p', 'sdsp-spc-voice', `${state} · ${pitch} · L/R ${voice.volumeLeft}/${voice.volumeRight} · ${voice.envelopeMode === 'adsr' ? 'ADSR' : 'GAIN'}${includeEcho.checked ? ' · Echo send ' + (voice.echo ? 'On' : 'Off') : ''}`));
+      details.append(make('p', 'sdsp-spc-voice', `${state} · ${usesPair(candidate) ? 'Carrier SRCN ' + voice.sourceNumber + ' · ' : ''}${pitch} · L/R ${voice.volumeLeft}/${voice.volumeRight} · ${voice.envelopeMode === 'adsr' ? 'ADSR' : 'GAIN'}${includeEcho.checked ? ' · Echo send ' + (voice.echo ? 'On' : 'Off') : ''}`));
       if (sample) {
         const unresolved = [choice?.reason, ...(choice?.warnings ?? [])].some(message => /loop target/i.test(message ?? ''));
         const loop = sample.loopStartSamples === null ? (unresolved ? 'Loop unresolved' : 'One-shot') : 'Loop frame ' + sample.loopStartSamples;
         details.append(make('p', '', `${sample.bytes.toLocaleString('en-US')} BRR bytes · ${sample.frames.toLocaleString('en-US')} frames · ${loop} · Start ${hex(sample.startAddress)}`));
+      }
+      if (usesPair(candidate) && candidate.pmonPair) {
+        const mod = candidate.pmonPair.modulatorVoice, modSample = candidate.pmonPair.sample;
+        details.append(make('p', 'sdsp-spc-pair', `Modulator CH${mod.index + 1} · SRCN ${mod.sourceNumber} · PITCH ${mod.pitch} · ${mod.envelopeMode === 'adsr' ? 'ADSR' : 'GAIN'} · silent stereo output`));
+        if (modSample) {
+          const unresolved = [choice?.reason, ...(choice?.warnings ?? [])].some(message => /modulator.*loop|loop.*modulator/i.test(message ?? ''));
+          const loop = modSample.loopStartSamples === null ? (unresolved ? 'Loop unresolved' : 'One-shot') : 'Loop frame ' + modSample.loopStartSamples;
+          details.append(make('p', '', `Modulator ${modSample.bytes.toLocaleString('en-US')} BRR bytes · ${modSample.frames.toLocaleString('en-US')} frames · ${loop} · Start ${hex(modSample.startAddress)}`));
+        }
       }
       if (choice?.reason) details.append(make('p', 'sdsp-spc-unavailable', 'Unavailable: ' + text(choice.reason)));
       for (const warning of choice?.warnings ?? []) {
@@ -158,20 +179,20 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
     }
   }
   async function selectCandidate(candidate) {
-    const mode = includeEcho.checked;
-    if (disposed || operation?.committing || !variant(candidate, mode)?.preset) return;
+    const mode = includeEcho.checked, pairMode = includePmon.checked;
+    if (disposed || operation?.committing || !variant(candidate, mode, pairMode)?.preset) return;
     const op = startOperation('select');
-    op.includeEcho = mode;
-    setStatus(`Preparing ${voiceLabel(candidate)}…`);
+    op.includeEcho = mode; op.includePmon = pairMode;
+    setStatus(`Preparing ${voiceLabel(candidate, pairMode)}…`);
     try {
-      const message = await onSelect(candidate, {includeEcho:mode, signal:op.controller.signal, onCommit() {
+      const message = await onSelect(candidate, {includeEcho:mode, includePmon:pairMode, signal:op.controller.signal, onCommit() {
         if (!current(op)) throw abortError();
         op.committing = true; refresh();
-        setStatus(`Applying ${voiceLabel(candidate)}…`);
+        setStatus(`Applying ${voiceLabel(candidate, pairMode)}…`);
       }});
       if (!current(op)) return;
-      selectedId = candidate.id; selectedMode = mode; refresh();
-      setStatus(typeof message === 'string' ? message : `Loaded ${voiceLabel(candidate)}. Play the keyboard, edit it or save a preset.`);
+      selectedId = candidate.id; selectedMode = modeKey(mode, pairMode); refresh();
+      setStatus(typeof message === 'string' ? message : `Loaded ${voiceLabel(candidate, pairMode)}. Play the keyboard, edit it or save a preset.`);
     } catch (error) {
       if (!current(op)) return;
       if (error?.name === 'AbortError') setStatus('SPC sound selection cancelled. Current instrument kept.');
@@ -183,16 +204,17 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
       if (operation === op) {operation = null; refresh();}
     }
   }
-  listen(includeEcho, 'change', () => {
-    includeEcho.blur();
+  function changeMode() {
+    includeEcho.blur();includePmon.blur();
     if (disposed) return;
-    if (operation?.committing) {includeEcho.checked = operation.includeEcho; refresh(); return;}
+    if (operation?.committing) {includeEcho.checked = operation.includeEcho;includePmon.checked = operation.includePmon; refresh(); return;}
     if (operation?.kind === 'select') cancelOperation();
     if (batch) showBatch(); else refresh();
     setStatus(operation?.kind === 'open'
       ? `Reading ${operation.fileName}… Import mode changed for the next selection. Current instrument kept.`
       : batch ? availabilityStatus() : 'Import mode changed. Current instrument kept. Load an SPC, then select a sound.');
-  });
+  }
+  listen(includeEcho, 'change', changeMode);listen(includePmon, 'change', changeMode);
   listen(load, 'click', () => {load.blur(); if (!disposed && !operation?.committing) input.click();});
   listen(input, 'cancel', () => {
     input.blur();

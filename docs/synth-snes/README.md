@@ -38,9 +38,12 @@ software. The declared cycle frequency is 32,000 / 128 Hz at hardware
 When a BRR sample is selected, this canvas displays its decoded waveform as a
 preview. Use Wave to author a cycle. With PMON enabled, choose **Carrier** or
 **Modulator** as the edit target on this same canvas. The carrier remains the
-selected drawn Wave or decoded BRR preview; the modulator has its own editable
-128-point wave and shape buttons. Switching the edit target changes no sound.
-Sample replacement, loop edits, active modulator-wave edits and Echo / PMON
+selected drawn Wave or decoded BRR preview. **Modulator source** selects its own
+editable 128-point Wave or a BRR sample. A modulator BRR appears as a read-only
+decoded preview with its own Root / base PITCH and loop controls. **Load audio…**
+and **Load BRR…** replace the selected Carrier / Modulator target; the file action
+and conversion hint name that target. Switching targets alone changes no sound.
+Sample replacement, loop edits, active modulator-source / wave edits and Echo / PMON
 On / Off rebuild the bank, stopping held notes and old Echo tails. Repeated
 edits reuse sample RAM. Volume, envelope, Root / base PITCH, Pitch wheels and
 Echo parameters other than Enable apply to held voices.
@@ -82,17 +85,21 @@ Direct GAIN provides a steady level, while the other modes change it over time.
 A decreasing GAIN envelope starting at zero can produce no modulation until
 it has first been raised with ADSR or Direct GAIN.
 
-**Modulator ratio · × key note** selects the modulator's musical frequency relative to the keyboard
-note, from **0.125 to 8**. It is a software tuning control that writes hardware
-PITCH registers; the carrier's BRR Root / base PITCH remain its own declared
-reference. Ratio and both envelopes apply to held notes, and Pitch wheels
+**Ratio**, from **0.125 to 8**, is a software tuning control that writes hardware
+PITCH registers. For a drawn modulator Wave it multiplies the keyboard-note
+frequency, including Pitch. For a BRR modulator it multiplies the playback speed
+declared by that sample's Root / base PITCH after keyboard transposition. It
+does not infer either BRR sample's original fundamental. Carrier and modulator
+BRR samples keep independent references. Ratio, either sample's Root / base PITCH
+and both envelopes apply to held notes, and Pitch wheels
 transpose both voices. The modulator PITCH is clamped to **1–16,383** at the
 hardware limit, so extreme notes or ratios can stop preserving the requested ratio.
-For imported BRR, Ratio follows the declared keyboard-note frequency; it does
-not measure or recover the sample's original fundamental.
-
-Choose **Modulator** on the existing sample canvas to draw its 128-point cycle
-or choose Sine, Triangle, Saw or Square. BRR encoding and keyboard pair allocation
+Choose **Modulator** on the existing sample canvas, then **Modulator source →
+Drawn wave** to draw a cycle or choose Sine, Triangle, Saw or Square. Choose
+**BRR sample** to preview a loaded modulator and edit its separate tuning / loop;
+audio and BRR loads target whichever sample is selected. An empty BRR modulator
+is a valid draft, but keys and JavaScript audition require a loaded sample.
+BRR encoding and keyboard pair allocation
 are software authoring tools; PMON and both envelopes run in the actual S-DSP.
 Changing the active wave or PMON On / Off rebuilds the bank and stops held
 notes and Echo tails. Ratio, Envelope / GAIN and Pitch edits retain their owners.
@@ -104,9 +111,10 @@ returning to Wave / BRR restores the remembered setting.
 1. Open **Sounds from SPC → Load SPC…** and choose an `.spc` file (up to 16 MiB).
 2. Opening it only lists candidates; the current instrument stays in place.
 3. Leave **Import Echo / FIR settings** off for the voice alone, or check it to
-   include the snapshot's shared Echo settings. This only affects the next selection.
-4. Select **CH1 · SRCN …**, **CH1 · Noise** or another available row, then play
-   the keyboard.
+   include the snapshot's shared Echo settings. **Import PMON pairs** also starts
+   off; enable it to select a recorded BRR carrier with its preceding modulator.
+   Both options affect only the next selection.
+4. Select a voice or available **CH… → CH… · PMON** row, then play the keyboard.
 5. Edit the imported sample or Noise clock, envelope and Echo with the existing
    controls. **Save preset…** embeds its source data and settings; the original
    SPC is no longer required to load that preset. **Copy JavaScript** also
@@ -145,9 +153,9 @@ keeps the captured parameters. A frozen buffer or past Echo tail is not restored
 A voice originally excluded from Echo imports with Send off; zero Return values
 also remain zero. These cases are explained in the list. The shared Echo starts
 with an empty buffer, not the song's prior mixed audio. PMON voices can load their base
-BRR with an explicit warning that its original pitch modulation is omitted.
-You can enable manual PMON after loading it. Importing the original adjacent
-modulator / carrier pair remains a separate task. Captured voice
+BRR with an explicit warning that its original pitch modulation is omitted
+when **Import PMON pairs** is off. This base-voice mode remains available even
+when the recorded pair cannot be imported. Captured voice
 volumes are preserved without normalization; high polyphonic levels can clip
 the DSP mixer. Use Voice level to adjust them before the final Master bus.
 
@@ -158,10 +166,30 @@ how to audition them. Invalid files, Cancel and superseded reads keep the
 current instrument and previous candidate list. Once selection starts applying,
 cancellation ends and **Applying…** remains until the processor acknowledges it.
 Editing or replacing the instrument outside SPC selection clears its row highlight.
-Changing the import option does not alter the current sound. A row is highlighted
-only for its loaded import mode. If an Echo-enabled candidate exceeds the
+Changing either import option does not alter the current sound. Both options
+are locked while **Applying…** waits for acknowledgement. A row is highlighted
+only for its loaded Echo / PMON mode. If an Echo-enabled candidate exceeds the
 33,786-byte sample limit, it is unavailable in that mode with a reason. Turn
 the option off to select its voice alone; no Echo setting is silently discarded.
+
+**Import PMON pairs** (`#spcIncludePmon`) applies only to rows whose recorded
+PMON bit is set and whose carrier is not Noise; ordinary BRR and Noise rows
+keep their usual variants. Supported pairs are isolated adjacent BRR voices.
+Noise modulators, incoming / outgoing PMON chains, zero BRR PITCH, invalid
+sample / loop data and combined RAM overflow leave that pair unavailable with
+a reason. No unsupported pair silently falls back to its base voice while
+the option is on; turn the option off to choose the base-voice variant.
+
+Pair import embeds both BRR samples and their resolved loops, independent
+envelopes and captured PITCH values. Both samples declare Root **C4**, with
+**Ratio 1**, so C4 writes each captured PITCH. These are playback references,
+not recovered original notes or a measured fundamental-frequency ratio.
+Captured signed modulator L/R volumes remain inspection metadata; audition
+sets its L/R to zero and omits its Echo send. Only the carrier contributes dry
+audio and feeds Echo. Both envelopes restart on key-on; elapsed ENVX, decoder
+phase / history, the original master mix, SPC700 updates and song playback are
+not restored. Direct GAIN 0 or a fresh decreasing GAIN may therefore start
+without modulation; the list explains these cases.
 
 ## Load audio or raw BRR
 
@@ -186,12 +214,15 @@ rejected with an explanation and no trimming. Enabling Echo on a sample that
 does not fit keeps the current sample with Echo off. Choose a shorter clip or
 lower conversion rate to use Echo.
 
-Active PMON reserves **72 BRR bytes** for its separate modulator wave. The
-carrier limit becomes **64,440 bytes with Echo off** or **33,714 with Echo on**.
-The capacity display and conversion hint use this reduced budget. Enabling
-PMON on a carrier that does not fit keeps the current instrument and setting;
-the sample is never trimmed. Inactive PMON drafts and Noise do not reserve
-the modulator sample.
+Active PMON shares this budget between the **complete carrier and modulator**
+uploads. A drawn Wave consumes **72 BRR bytes**; a BRR source consumes its own
+byte length. With a Wave modulator, the carrier limits remain **64,440 bytes
+dry** / **33,714 with Echo**. A BRR modulator makes that reservation variable.
+The samples are counted separately even if their bytes or SRCN are identical;
+there is no deduplication. The capacity display and selected-target conversion
+hint show the available budget. Over-budget edits keep the current instrument;
+samples are never trimmed. Inactive sample drafts, paused PMON in Noise mode
+and disabled PMON do not reserve a modulator upload.
 
 **Load BRR…** accepts complete raw 9-byte BRR blocks, ending at their END block.
 Headers or trailing bytes are not accepted as sample data. BRR stores neither
@@ -267,11 +298,13 @@ bus control from 0 to 380%; above 100% its bar turns orange.
 
 ## Save, reuse and scope
 
-The portable `tetorica-sdsp-voice` preset v4 includes the selected Wave / BRR /
+The portable `tetorica-sdsp-voice` preset v5 includes the selected Wave / BRR /
 Noise source, shared Noise clock, waveform data, raw BRR, explicit sample
 tuning, loop start, stereo volume, envelope, Echo / FIR and PMON's enable flag,
-ratio, modulator wave and independent envelope. Existing v1 / v2 / v3 presets
-migrate to v4 with PMON off and without changing their sound source; v1 adds
+ratio, modulator source, Wave and embedded BRR / tuning / loop, plus its
+independent envelope. Both sample assets are saved, so the original SPC or audio
+file is not required. Strict v1–v4 inputs migrate to v5: v4 keeps its authored
+Wave PMON, while v1–v3 add PMON off without changing their sound source; v1 adds
 Echo off and v1 / v2 add the default Noise clock 31. JSON files are capped
 at 256 KiB.
 **Copy JavaScript** exports setup code for Playground's SNES mode, awaiting
@@ -296,7 +329,7 @@ shared Echo / FIR.
 Drawing, audio conversion, sample management and keyboard allocation are
 software authoring tools.
 
-Original SPC PMON pair import remains a later stage. No SPC700 driver or song
+SPC pair import supports isolated adjacent BRR pairs. No SPC700 driver or song
 playback is included in this Synth.
 
 ## Source and verification
@@ -338,12 +371,20 @@ SPCの曲再生やdriverの時間変化は再現せず、BRRのPITCH0・不正Lo
 表示して選択不可にします。Noise候補は共有clock・左右音量・ADSR／GAINを取り込み、
 PITCH0や不正なSRCN／BRRでも選択できます。Noiseの内部LFSR状態は復元せず、
 本Synth側のgeneratorで試奏します。PMON／Echoを省略する候補には説明を表示します。
-元のPMON隣接pairの自動取り込みは後続です。BRRを読み込んだ後に、手動で
-PMONを有効にして新しい変調音色を作れます。
+**Import PMON pairs**（`#spcIncludePmon`）は初期Offです。OnにしてPMON記録のある
+BRR carrierを選ぶと、直前のBRR modulatorも取り込みます。通常のBRR／Noise行には
+影響しません。両BRRはRoot C4・Ratio1で、それぞれの捕捉PITCHをC4で再現します。
+両sample・Loop・独立Envelopeを保持しますが、元音階や基音の比を推測したものではありません。
+modulatorの捕捉左右音量は確認用metadataとして残し、試奏では左右0にして直接鳴らさず、
+carrierだけをEchoへ送ります。単純な隣接2声pairが対象で、Noise modulator、PMON chain、
+BRR PITCH0、不正sample／Loop、合計容量超過は理由付きで選択不可になります。
+Onのままbase音色へ自動退避せず、Offへ戻せば従来のbase音色候補を選べます。
+両Envelopeはkey-onで再開し、経過ENVX・decoder位相／履歴・master mix・driver・曲は復元しません。
 **Import Echo / FIR settings** は初期Offです。Onにしてから候補を選ぶと、
 元のDelay・signed Feedback・左右Return・8つのFIR係数も取り込みます。
 選択CHのEcho送信の有無をSend all notesへ対応させ、チェック変更だけでは今の音を
-変えません。元のEcho書き込みが無効ならEcho Offで設定値を保持します。
+変えません。両チェックは次の選択だけに使い、Applying中はprocessorのACKまで固定します。
+選択表示もEcho／PMONの組み合わせを区別します。元のEcho書き込みが無効ならEcho Offで設定値を保持します。
 過去のEcho buffer・残響・曲全体のmixは復元せず、新しい発音からEchoを鳴らします。
 Echo有効時の容量を超える候補は理由付きで選択不可になり、Offへ戻すと音色だけを選べます。
 
@@ -363,13 +404,16 @@ PMONの設定は保持して休止し、Noiseでは8つのvoice Envelopeを使�
 初期値はDirect GAIN64です。減衰GAINはゼロから増やさないため、まずADSR／Directで
 立ち上げてから切り替えると変化を確認できます。
 
-音程比Ratioは0.125〜8で、softwareが鍵盤の周波数から変調側のhardware PITCHを
-設定します。Ratio・両Envelope／GAINは保持音へ反映し、Pitch wheelは両voiceを
+Ratioは0.125〜8で、Wave modulatorではPitchを含む鍵盤周波数を倍にし、BRR modulatorでは
+独自のRoot／base PITCHから鍵盤移調した再生速度を倍にします。両BRRの元の基音は推測しません。
+Ratio・両BRRのRoot／base PITCH・両Envelope／GAINは保持音へ反映し、Pitch wheelは両voiceを
 一緒に移調します。変調側PITCHは1〜16,383へclampするため、高低音や大きな比では
-指定したRatioを保てない場合があります。BRRの元の基音は推測せず、Ratioは宣言した
-鍵盤音の周波数を基準にします。Sampleの**Carrier／Modulator**で編集対象を
-切り替え、同じcanvas1枚で変調側の128点波形を描くか、shapeを選びます。
-対象切り替えだけでは音を変えません。波形編集・PMON On／Off・sample／Echo layoutの
+指定したRatioを保てない場合があります。Sampleの**Carrier／Modulator**で対象を
+切り替え、同じcanvas1枚を使います。**Modulator source → Drawn wave**は128点波形を
+描くかshapeを選び、**BRR sample**は復号波形の読取専用previewと専用tuning／Loopを表示します。
+**Load audio…／Load BRR…**は選択中の対象を置き換え、ボタンと説明にも対象を表示します。
+空のmodulator BRRはdraftとして保存できますが、読み込むまでは発音・JavaScript試奏はできません。
+対象切り替えだけでは音を変えません。波形／source編集・PMON On／Off・sample／Echo layoutの
 変更では保持音と残響を止めます。変調自体はhardware、波形のBRR化と鍵盤のpair割り当ては
 softwareの機能です。NoiseからWave／BRRへ戻すと、保持したPMON設定へ戻ります。
 
@@ -384,12 +428,16 @@ Stop後もEcho設定は保ちます。
 
 Echo Onでは30KiBを予約するため、BRR上限は33,786byte／60,064framesです。
 Offでは64,512byte／114,688framesです。容量不足では現在音を保って拒否し、
-勝手に切り詰めません。PMON有効時は変調波形の72byteも必要になり、carrierの上限は
-Echo Offで64,440byte、Onで33,714byteです。容量不足ならPMONも原音を保って拒否します。
-プリセットv4はsource・Noise clock・Echo／FIRに加え、PMONのOn／Off・Ratio・変調波形・
-独立Envelopeも保存します。従来のv1〜v3形式は元のsourceを保ち、PMON Offで移行します。
+勝手に切り詰めません。PMON有効時はcarrier＋modulator両sampleの完全なbyte数を合計します。
+Waveは各72byte、BRRは各data長です。変調側がWaveならcarrierの上限は
+Echo Offで64,440byte、Onで33,714byteですが、変調側BRRの予約量は可変です。
+同じSRCN／同じbytesでも2回分を数え、重複排除はしません。読込対象に応じた残容量を表示し、
+容量不足では原音を保って拒否します。無効／Noiseで休止中のPMONや非選択sampleはRAMを使いません。
+プリセットv5はsource・Noise clock・Echo／FIRに加え、PMONのOn／Off・Ratio・Wave／BRR source・
+両sample・個別tuning／Loop・独立Envelopeも保存します。元SPC／音声ファイルは不要です。
+strictな従来v1〜v4形式を移行し、v4のWave PMONは保持、v1〜v3は元sourceを保ってPMON Offにします。
 v1はEcho Off、v1／v2のNoise clockは31を初期値にします。
 JavaScript出力ではBRR読込前に `await snes.setEcho(...)` を実行し、
 既存の `snes.writeDsp(...)` でNoiseのNON／FLGやPMON隣接routingを設定します。
-共有runtime／npmの更新は不要です。SPCから取り込んだEcho設定も、このpanelで
-編集・保存できます。SPCから元のPMON pairを取り込む作業は後続です。
+既存APIだけを使い、共有runtime／WASM／npmの更新は不要です。SPCから取り込んだ
+pairやEcho設定も、このpanelで編集・保存できます。

@@ -65,6 +65,24 @@ function makeNoiseSpc() {
   return bytes;
 }
 
+function makePmonSpc({chain=false,noise=false,zeroPitch=false,badLoop=false,large=false}={}) {
+  const bytes=makeEchoSpc('Captured PMON pair'),ram=bytes.subarray(0x100,0x10100),dsp=bytes.subarray(0x10100,0x10180);
+  dsp[0x2d]=chain?6:2;dsp[0x3d]=noise?1:0;dsp[0x4d]=3;
+  const mod=Buffer.from([0xc0,0x77,0x66,0x44,0x22,0x0e,0xcc,0xaa,0x99,0xc3,0x99,0xaa,0xcc,0xee,0x02,0x44,0x66,0x77]);
+  const carrier=Buffer.from([0xb0,0x17,0x35,0x53,0x71,0x0f,0xdb,0x97,0x53,0xb3,0x31,0x75,0x79,0xbd,0xff,0xdb,0x97,0x53]);
+  const write=(srcn,start,cycle,length)=>{
+    for(let at=0;at<length;at+=9){cycle.copy(ram,start+at,(at/9%2)*9,(at/9%2+1)*9);ram[start+at]&=0xfc;}
+    ram[start+length-9]|=3;ram.writeUInt16LE(start,0x2000+srcn*4);ram.writeUInt16LE(start+9,0x2002+srcn*4);
+  };
+  if(large){write(3,0x2800,mod,16893);write(5,0x8000,carrier,16902);}
+  else{write(3,0x3000,mod,18);write(5,0x3100,carrier,18);}
+  if(badLoop)ram.writeUInt16LE(0x4000,0x2002+3*4);
+  dsp[0]=20;dsp[1]=(-12)&255;dsp[2]=0;dsp[3]=zeroPitch?0:8;dsp[4]=3;dsp[5]=0;dsp[6]=0;dsp[7]=96;
+  dsp[0x10]=16;dsp[0x11]=24;dsp[0x12]=0;dsp[0x13]=12;dsp[0x14]=5;dsp[0x15]=0x8f;dsp[0x16]=0xe0;dsp[0x17]=80;
+  dsp[0x18]=64;dsp[0x19]=16;
+  return bytes;
+}
+
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-snes/index.html',
   out:'/private/tmp/tetorica-sdsp-synth-browser.json', screenshots:null};
 for (let i = 2; i < process.argv.length; i++) {
@@ -96,7 +114,8 @@ async function checkEngine(name, engine, origin) {
       const post=MessagePort.prototype.postMessage;
       MessagePort.prototype.postMessage=function(data,...args) {
         if(['setPreset','loadPreset'].includes(data?.method)) audit.presetMessages.push({method:data.method,
-          dataLength:data.args?.[0]?.brr?.data?.length??0,elided:data.brrDataUnchanged===true});
+          dataLength:data.args?.[0]?.brr?.data?.length??0,elided:data.brrDataUnchanged===true,
+          modDataLength:data.args?.[0]?.pmon?.brr?.data?.length??0,modElided:data.modBrrDataUnchanged===true});
         if(audit.holdDdaCommit&&data?.method==='loadPreset'&&data.args?.[0]?.brr?.name==='slow-commit.wav') {
           audit.holdDdaCommit=false;audit.releaseDdaCommit=()=>post.call(this,data,...args);return;
         }
@@ -159,6 +178,7 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.locator('#voiceEditor canvas').count(),1);
     check('SPC file opening is passive, bounded to snapshot candidates and safe metadata text');
     assert.equal(await page.locator('#spcIncludeEcho').isChecked(),false);
+    assert.equal(await page.locator('#spcIncludePmon').isChecked(),false);
     await page.locator('#spcFileInput').setInputFiles({name:'self-authored.spc',mimeType:'application/octet-stream',buffer:makeSpc()});
     await page.waitForFunction(()=>document.querySelectorAll('#spcCandidates [data-spc-voice]').length===8);
     assert.equal(await page.evaluate(()=>audit.contexts.length),0);
@@ -242,14 +262,14 @@ async function checkEngine(name, engine, origin) {
     await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.00001,'Echo remains after the dry hardware KOFF release');
     const echoDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
     const echoSaved=JSON.parse(await fs.readFile(await(await echoDownload).path(),'utf8'));
-    assert.equal(echoSaved.version,4);assert.equal(echoSaved.echo.enabled,true);assert.equal(echoSaved.echo.volumeRight,-128);
+    assert.equal(echoSaved.version,5);assert.equal(echoSaved.echo.enabled,true);assert.equal(echoSaved.echo.volumeRight,-128);
     await page.locator('#copyCode').click();const echoCode=await page.locator('#codeOutput').inputValue();
     assert(echoCode.indexOf('setEcho')>=0&&echoCode.indexOf('setEcho')<echoCode.indexOf('loadBRR'),'reserve Echo before uploading BRR');
     await page.locator('#echoEnabled').uncheck();state=await wait(s=>!s.preset.echo.enabled);await silent();
     assert.equal(state.memory.directoryAddress,0);assert.equal(state.memory.maxSampleBytes,64512);
     const legacy={...echoSaved,version:1};delete legacy.echo;delete legacy.noise;delete legacy.pmon;
     await page.locator('#presetFileInput').setInputFiles({name:'legacy-v1.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
-    state=await wait(s=>s.preset.version===4&&!s.preset.echo.enabled&&s.preset.echo.feedback===32);
+    state=await wait(s=>s.preset.version===5&&!s.preset.echo.enabled&&s.preset.echo.feedback===32);
     assert.equal(state.preset.pmon.enabled,false);
     const legacyEcho={...echoSaved,version:2};delete legacyEcho.noise;delete legacyEcho.pmon;
     await page.locator('#presetFileInput').setInputFiles({name:'echo-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyEcho))});
@@ -287,7 +307,7 @@ async function checkEngine(name, engine, origin) {
     await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.000001,'Noise is sent through the real Echo path');
     const noiseDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
     const noiseSaved=JSON.parse(await fs.readFile(await(await noiseDownload).path(),'utf8'));
-    assert.equal(noiseSaved.version,4);assert.equal(noiseSaved.source,'noise');assert.equal(noiseSaved.noise.clock,30);
+    assert.equal(noiseSaved.version,5);assert.equal(noiseSaved.source,'noise');assert.equal(noiseSaved.noise.clock,30);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/writeDsp\(0x3d,\s*1\)/);
     await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&s.noiseRegisters.non===0);await silent();
     await page.locator('#presetFileInput').setInputFiles({name:'noise-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(noiseSaved))});
@@ -374,10 +394,10 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await page.locator('#pmonEnabled').isDisabled(),true);assert.match(await page.locator('#pmonHint').textContent(),/Noise/i);
     await page.keyboard.up(keys[0]);await radio('source','wave').click();state=await wait(s=>s.pmon.active&&s.capacity===4);
     assert.equal(state.pmonRegisters.mask,0xaa);assert.equal(await page.locator('#pmonEnabled').isEnabled(),true);
-    check('PMON portable v4, legacy v3 and invalid / over-budget edits retain the right routing and previous sound');
+    check('PMON portable preset, legacy v3 and invalid / over-budget edits retain the right routing and previous sound');
     const pmonDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
     const pmonSaved=JSON.parse(await fs.readFile(await(await pmonDownload).path(),'utf8'));
-    assert.equal(pmonSaved.version,4);assert.equal(pmonSaved.pmon.enabled,true);assert.equal(pmonSaved.pmon.envelope.gainLevel,63);
+    assert.equal(pmonSaved.version,5);assert.equal(pmonSaved.pmon.enabled,true);assert.equal(pmonSaved.pmon.envelope.gainLevel,63);
     await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/writeDsp\(0x2d,\s*(2|0x0?2)\)/);
     if(config.screenshots){
       await page.screenshot({path:path.join(config.screenshots,`${name}-pmon-1180.png`),fullPage:true});
@@ -396,7 +416,7 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.up(keys[0]);
     const legacyNoise={...noiseSaved,version:3};delete legacyNoise.pmon;
     await page.locator('#presetFileInput').setInputFiles({name:'legacy-noise-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyNoise))});
-    state=await wait(s=>s.preset.source==='noise'&&s.preset.version===4);assert.equal(state.preset.pmon.enabled,false);assert.equal(state.capacity,8);
+    state=await wait(s=>s.preset.source==='noise'&&s.preset.version===5);assert.equal(state.preset.pmon.enabled,false);assert.equal(state.capacity,8);
     const capacityBrr=Buffer.alloc(33723);for(let at=0;at<capacityBrr.length;at+=9){rawBrr.copy(capacityBrr,at,0,9);capacityBrr[at]=0xc0;}
     capacityBrr[capacityBrr.length-9]|=3;
     const largeWithoutPmon={...pmonSaved,source:'brr',pmon:{...pmonSaved.pmon,enabled:false},
@@ -408,6 +428,114 @@ async function checkEngine(name, engine, origin) {
     state=await read();assert.equal(state.voices[0].id,budgetOwner);assert.equal(state.generation,budgetGeneration);assert.equal(state.preset.pmon.enabled,false);
     assert.equal(await page.locator('#pmonEnabled').isChecked(),false);await page.keyboard.up(keys[0]);
     await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&!s.pmon.active);await silent();
+    check('SPC PMON options are passive, pair adoption locks both options and captured BRR PITCH / envelopes survive Echo and saving');
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const beforePairOwner=state.voices[0].id,beforePairGeneration=state.generation;
+    await page.locator('#spcFileInput').setInputFiles({name:'captured-pair.spc',mimeType:'application/octet-stream',buffer:makePmonSpc()});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('captured-pair.spc'));
+    await page.locator('#spcIncludePmon').check();state=await read();
+    assert.equal(state.voices[0].id,beforePairOwner);assert.equal(state.generation,beforePairGeneration);
+    assert.match(await page.locator('#spcCandidate1').textContent(),/CH1.*CH2/);
+    assert.match(await page.locator('#spcCandidate1Info').textContent(),/Modulator.*PITCH 2048/);
+    await page.evaluate(()=>{audit.holdSpcCommit=true;});await page.locator('#spcCandidate1').click();
+    await page.waitForFunction(()=>typeof audit.releaseSpcCommit==='function');
+    for(const id of ['spcIncludePmon','spcIncludeEcho'])assert.equal(await page.locator('#'+id).isDisabled(),true);
+    assert.match(await page.locator('#spcImportStatus').textContent(),/Applying/);
+    await page.evaluate(()=>{audit.releaseSpcCommit();delete audit.releaseSpcCommit;});
+    state=await wait(s=>s.preset.pmon.source==='brr'&&s.pmon.active&&!s.preset.echo.enabled);
+    assert.equal(state.sample.byteLength,18);assert.equal(state.modulatorSample.byteLength,18);assert.equal(state.preset.pmon.ratio,1);
+    assert.equal(state.preset.brr.basePitch,3072);assert.equal(state.preset.pmon.brr.basePitch,2048);
+    assert.equal(state.preset.brr.loopStartSamples,16);assert.equal(state.preset.pmon.brr.loopStartSamples,16);
+    await page.keyboard.up(keys[0]);
+    const pairRootKey=await page.locator('#keyboard .key:not([disabled])').evaluateAll(nodes=>nodes.find(node=>/(?:^|\s)C4(?:\s|$)/.test(node.textContent))?.dataset.key);assert(pairRootKey);
+    await page.keyboard.down(pairRootKey);state=await wait(s=>s.voices.length===1);await sound();
+    assert.equal(state.registers[0][2]|state.registers[0][3]<<8,2048);assert.equal(state.registers[1][2]|state.registers[1][3]<<8,3072);
+    assert.deepEqual(state.registers[0].slice(0,2),[0,0]);assert.equal(state.registers[0][7],96);
+    const dryPairOwner=state.voices[0].id,dryPairGeneration=state.generation;
+    await page.locator('#spcIncludeEcho').check();state=await read();assert.equal(state.voices[0].id,dryPairOwner);assert.equal(state.generation,dryPairGeneration);
+    assert.equal(await page.locator('#spcCandidate1').getAttribute('aria-pressed'),'false');
+    await page.locator('#spcCandidate1').click();state=await wait(s=>s.pmon.active&&s.preset.echo.enabled&&s.preset.echo.feedback===-40);
+    assert.equal(state.echoRegisters.eon,0xaa);await page.keyboard.up(pairRootKey);await page.keyboard.down(pairRootKey);await wait(s=>s.voices.length===1);await sound();
+    const pairDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const pairSaved=JSON.parse(await fs.readFile(await(await pairDownload).path(),'utf8'));
+    assert.equal(pairSaved.version,5);assert.equal(Buffer.from(pairSaved.brr.data,'base64').length,18);assert.equal(Buffer.from(pairSaved.pmon.brr.data,'base64').length,18);
+    await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/const modBrr = Uint8Array|const modBytes = Uint8Array/);
+    state=await read();const wetPairOwner=state.voices[0].id;
+    await page.locator('#spcIncludePmon').uncheck();assert.equal(await page.locator('#spcCandidate1').getAttribute('aria-pressed'),'false');
+    assert.equal((await read()).voices[0].id,wetPairOwner);
+    await page.locator('#spcIncludePmon').check();assert.equal(await page.locator('#spcCandidate1').getAttribute('aria-pressed'),'true');
+    check('BRR modulator preview / tuning use one canvas, metadata elides both assets and file imports keep the carrier');
+    if(await page.locator('#pmonSection').getAttribute('open')===null)await page.locator('#pmonSection > summary').click();
+    await radio('waveTarget','modulator').click();assert.equal(await page.locator('#waveCanvas').getAttribute('data-editable'),'false');
+    assert.equal(await page.locator('#voiceEditor canvas').count(),1);assert.equal(await radio('pmonSource','brr').getAttribute('aria-checked'),'true');
+    const pairEditGeneration=(await read()).generation,assetTransfers=await page.evaluate(()=>audit.presetMessages.filter(x=>x.dataLength||x.modDataLength).length);
+    await page.locator('[data-stepper-for="pmonBasePitch"][data-stepper-delta="1"]').click();
+    state=await wait(s=>s.preset.pmon.brr.basePitch===2049);assert.equal(state.voices[0].id,wetPairOwner);assert.equal(state.generation,pairEditGeneration);
+    assert.equal(state.registers[0][2]|state.registers[0][3]<<8,2049);assert.equal(state.registers[1][2]|state.registers[1][3]<<8,3072);
+    await page.locator('[data-stepper-for="pmonRatio"][data-stepper-delta="1"]').click();await wait(s=>s.preset.pmon.ratio===1.125);
+    assert.equal(await page.evaluate(()=>audit.presetMessages.filter(x=>x.dataLength||x.modDataLength).length),assetTransfers);
+    assert(await page.evaluate(()=>audit.presetMessages.some(x=>x.elided&&x.modElided)));
+    await page.evaluate(()=>{audit.readModFile=File.prototype.arrayBuffer;File.prototype.arrayBuffer=function(...args){if(this.name!=='cancel-mod.brr')return audit.readModFile.apply(this,args);return new Promise((resolve,reject)=>{audit.releaseModFile=()=>audit.readModFile.apply(this,args).then(resolve,reject);});};});
+    await page.locator('#brrFileInput').setInputFiles({name:'cancel-mod.brr',mimeType:'application/octet-stream',buffer:rawBrr});
+    await page.waitForFunction(()=>typeof audit.releaseModFile==='function');await radio('waveTarget','carrier').click();
+    await page.evaluate(async()=>{await audit.releaseModFile();File.prototype.arrayBuffer=audit.readModFile;});
+    state=await read();assert.equal(state.voices[0].id,wetPairOwner);assert.equal(state.generation,pairEditGeneration);
+    await radio('waveTarget','modulator').click();
+    await page.locator('#brrFileInput').setInputFiles({name:'replacement-mod.brr',mimeType:'application/octet-stream',buffer:rawBrr});
+    await page.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('Loaded replacement-mod.brr'));
+    state=await wait(s=>s.preset.pmon.brr.name==='replacement-mod.brr');assert.equal(state.voices.length,0);assert.equal(state.preset.brr.name,pairSaved.brr.name);
+    const modLoadDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const modLoaded=JSON.parse(await fs.readFile(await(await modLoadDownload).path(),'utf8'));
+    assert.equal(modLoaded.brr.data,pairSaved.brr.data);assert.equal(modLoaded.pmon.brr.data,rawBrr.toString('base64'));
+    await page.keyboard.up(pairRootKey);
+    await radio('conversionRate','8000').click();
+    await page.locator('#audioFileInput').setInputFiles({name:'modulator-audio.wav',mimeType:'audio/wav',buffer:makeWav()});
+    await page.waitForFunction(()=>document.querySelector('#importStatus').textContent.includes('Loaded modulator-audio.wav'));
+    state=await wait(s=>s.preset.pmon.brr.name==='modulator-audio.wav');assert.equal(state.preset.brr.name,pairSaved.brr.name);assert(state.modulatorSample.byteLength>18);
+    await page.locator('#presetFileInput').setInputFiles({name:'restored-pair-v5.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pairSaved))});
+    state=await wait(s=>s.modulatorSample?.byteLength===18&&s.preset.pmon.brr.basePitch===2048);
+    const emptyMod={...pairSaved,pmon:{...pairSaved.pmon,brr:{...pairSaved.pmon.brr,data:'',loopStartSamples:null}}};
+    await page.locator('#presetFileInput').setInputFiles({name:'empty-modulator.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(emptyMod))});
+    await wait(s=>s.modulatorSample===null&&s.pmon.active);assert.equal(await page.locator('#keyboard .key:not([disabled])').count(),0);
+    await page.locator('#copyCode').click();assert.match(await page.locator('#audioStatus').textContent(),/modulator BRR/i);
+    await page.locator('#presetFileInput').setInputFiles({name:'restored-pair-v5.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pairSaved))});
+    await wait(s=>s.modulatorSample?.byteLength===18);await page.keyboard.down(pairRootKey);state=await wait(s=>s.voices.length===1);await sound();
+    if(config.screenshots){
+      await page.screenshot({path:path.join(config.screenshots,`${name}-spc-pmon-1180.png`),fullPage:true});
+      await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+      assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+      await page.screenshot({path:path.join(config.screenshots,`${name}-spc-pmon-390.png`),fullPage:true});
+      await page.setViewportSize({width:1180,height:1000});
+    }
+    check('unsupported SPC pairs and combined Echo budgets keep the held instrument and allow explicit base fallback');
+    const retainedPairOwner=state.voices[0].id,retainedPairGeneration=state.generation;
+    for(const [label,options,reason]of[['chain',{chain:true},/chain/i],['noise',{noise:true},/Noise/i],['zero',{zeroPitch:true},/PITCH.*0|0.*PITCH/i],['loop',{badLoop:true},/loop/i]]){
+      const filename=`unsupported-${label}.spc`;
+      await page.locator('#spcFileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:makePmonSpc(options)});
+      await page.waitForFunction(filename=>document.querySelector('#spcMetadata').textContent.includes(filename),filename);
+      assert.equal(await page.locator('#spcCandidate1').isDisabled(),true);assert.match(await page.locator('#spcCandidate1Info').textContent(),reason);
+      state=await read();assert.equal(state.voices[0].id,retainedPairOwner);assert.equal(state.generation,retainedPairGeneration);
+      await page.locator('#spcIncludePmon').uncheck();assert.equal(await page.locator('#spcCandidate1').isEnabled(),true);await page.locator('#spcIncludePmon').check();
+    }
+    await page.locator('#spcFileInput').setInputFiles({name:'large-pair.spc',mimeType:'application/octet-stream',buffer:makePmonSpc({large:true})});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('large-pair.spc'));
+    assert.equal(await page.locator('#spcCandidate1').isDisabled(),true);assert.match(await page.locator('#spcCandidate1Info').textContent(),/RAM|budget|33.?786/i);
+    await page.locator('#spcIncludePmon').uncheck();assert.equal(await page.locator('#spcCandidate1').isEnabled(),true);
+    await page.locator('#spcIncludePmon').check();await page.locator('#spcIncludeEcho').uncheck();assert.equal(await page.locator('#spcCandidate1').isEnabled(),true);
+    state=await read();assert.equal(state.voices[0].id,retainedPairOwner);assert.equal(state.generation,retainedPairGeneration);
+    await page.locator('#spcCandidate1').click();state=await wait(s=>s.sample?.byteLength===16902&&s.modulatorSample?.byteLength===16893&&!s.preset.echo.enabled);
+    await page.keyboard.up(pairRootKey);await page.keyboard.down(pairRootKey);state=await wait(s=>s.voices.length===1);const largePairOwner=state.voices[0].id,largePairGeneration=state.generation;
+    await page.locator('#echoEnabled').click();await page.waitForFunction(()=>document.querySelector('#audioStatus').dataset.error==='true');
+    state=await read();assert.equal(state.voices[0].id,largePairOwner);assert.equal(state.generation,largePairGeneration);assert.equal(state.preset.echo.enabled,false);
+    assert.equal(await page.locator('#echoEnabled').isChecked(),false);await page.keyboard.up(pairRootKey);
+    const legacyPmon={...pmonSaved,version:4,pmon:{...pmonSaved.pmon}};delete legacyPmon.pmon.source;delete legacyPmon.pmon.brr;
+    await page.locator('#presetFileInput').setInputFiles({name:'legacy-wave-pmon-v4.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyPmon))});
+    state=await wait(s=>s.preset.version===5&&s.preset.pmon.source==='wave'&&s.pmon.active&&s.modulatorSample?.byteLength===72);
+    assert.equal(state.preset.pmon.ratio,pmonSaved.pmon.ratio);assert.deepEqual(state.preset.pmon.wave,pmonSaved.pmon.wave);
+    await page.locator('#spcIncludePmon').uncheck();await page.locator('#spcIncludeEcho').uncheck();
+    await page.locator('#spcFileInput').setInputFiles({name:'self-authored.spc',mimeType:'application/octet-stream',buffer:makeSpc()});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('self-authored.spc'));
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&!s.pmon.active);await silent();
+    await radio('conversionRate','16000').click();
     check('wave drawing applies on release; cancelled strokes preserve held sound');
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const drawOwner=state.voices[0].id;
     await page.locator('#waveCanvas').scrollIntoViewIfNeeded();

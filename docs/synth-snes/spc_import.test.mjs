@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {parseSpcVoices, MAX_SPC_BYTES} from './spc_import.js';
-import {readPreset, envelopeRegisters, presetToCode, ECHO_BRR_MAX_BYTES} from './preset.js';
+import {readPreset, envelopeRegisters, modulatorEnvelopeRegisters, presetToCode, ECHO_BRR_MAX_BYTES} from './preset.js';
 import {decodeBase64, MAX_BRR_BYTES} from './sample.js';
 import {SnesInstrument} from './instrument.js';
 import {SnesDspCore} from '../js/spc.js';
@@ -39,6 +39,170 @@ function echoRegisters(data, {flags=0, delay=2, feedback=32, left=48, right=-32,
   fir.forEach((value,index)=>{data[DSP+0x0f+16*index]=value&255;});
   return data;
 }
+function pmonImage() {
+  const data=echoRegisters(image(),{sendMask:3,feedback:24,left:40,right:-20,fir:[96,16,-8,4,0,0,0,0]});
+  sample(data,1,0x2400,BRR,0x2409);
+  voice(data,0,{sourceNumber:1,pitch:2048,left:-128,right:127,adsr1:0,adsr2:0,gain:64,envx:100});
+  voice(data,1,{sourceNumber:0,pitch:3072,left:24,right:16,adsr1:0x9f,adsr2:0xe0,gain:0x4f,envx:80});
+  data[DSP+0x2d]=2;
+  return data;
+}
+
+test('optional SPC PMON preserves the adjacent BRR pair, both captured PITCH values and independent envelopes', () => {
+  const data=pmonImage(),before=data.slice(),result=parseSpcVoices(data),candidate=result.candidates[1];
+  const dry=candidate.pmonVariant,wet=candidate.pmonEchoVariant;
+  assert(dry.preset);assert(wet.preset);assert.equal(dry.reason,null);assert.equal(wet.reason,null);
+  assert.equal(candidate.preset.pmon.enabled,false);assert.equal(candidate.echoVariant.preset.pmon.enabled,false);
+  assert(candidate.warnings.some(warning=>warning.includes('PMON is not reproduced')));
+  assert(!dry.warnings.some(warning=>warning.includes('PMON is not reproduced')));
+  assert.equal(dry.preset.source,'brr');assert.equal(dry.preset.brr.basePitch,3072);assert.equal(dry.preset.brr.rootNote,60);
+  assert.equal(dry.preset.pmon.enabled,true);assert.equal(dry.preset.pmon.source,'brr');assert.equal(dry.preset.pmon.ratio,1);
+  assert.deepEqual(dry.preset.pmon.brr,{name:result.candidates[0].preset.brr.name,data:result.candidates[0].preset.brr.data,
+    rootNote:60,basePitch:2048,loopStartSamples:16});
+  assert.deepEqual(envelopeRegisters(dry.preset),{adsr1:0x9f,adsr2:0xe0,gain:0x4f});
+  assert.deepEqual(modulatorEnvelopeRegisters(dry.preset),{adsr1:0,adsr2:0,gain:64});
+  assert.deepEqual(dry.preset.volume,{left:24,right:16});assert.equal(dry.preset.echo.enabled,false);
+  assert.deepEqual(wet.preset.echo,{enabled:true,delay:2,feedback:24,volumeLeft:40,volumeRight:-20,send:true,fir:[96,16,-8,4,0,0,0,0]});
+  assert.deepEqual(candidate.pmonPair.modulatorVoice,result.candidates[0].voice);
+  assert.deepEqual(candidate.pmonPair.sample,result.candidates[0].sample);
+  assert(dry.warnings.some(warning=>warning.includes('C4')));assert(dry.warnings.some(warning=>warning.includes('not inferred')));
+  assert(dry.warnings.some(warning=>warning.includes('L/R zero')&&warning.includes('Echo send is omitted')));
+  assert(dry.warnings.some(warning=>warning.includes('Current ENVX')&&warning.includes('BRR decoder history')));
+  assert.deepEqual(data,before);
+  result.candidates[0].voice.pitch=1;result.candidates[0].sample.bytes=1;result.candidates[0].preset.envelope.gainLevel=1;
+  candidate.pmonPair.modulatorVoice.volumeLeft=0;dry.preset.pmon.brr.basePitch=3;dry.preset.pmon.envelope.gainLevel=2;
+  assert.equal(wet.preset.pmon.brr.basePitch,2048);assert.equal(wet.preset.pmon.envelope.gainLevel,64);
+  assert.equal(candidate.pmonPair.modulatorVoice.pitch,2048);assert.equal(candidate.pmonPair.sample.bytes,18);
+  assert.equal(result.candidates[0].voice.volumeLeft,-128);data.fill(0);
+  assert.deepEqual(decodeBase64(wet.preset.pmon.brr.data),BRR,'pair data no longer depends on the SPC file');
+});
+
+test('SPC PMON pair scope rejects missing input, Noise modulators, invalid tuning / BRR and longer chains explicitly', () => {
+  const cases=[
+    [data=>{data[DSP+0x2d]=0;},/no recorded PMON input/],
+    [data=>{data[DSP+0x3d]=1;},/Noise modulator/],
+    [data=>voice(data,0,{sourceNumber:1,pitch:0}),/Modulator CH1:.*PITCH is 0/],
+    [data=>sample(data,1,0x3000,new Uint8Array(9),0x3000),/Modulator CH1:.*END/],
+    [data=>sample(data,1,0x2400,BRR,0x2401),/Modulator CH1:.*Loop target/],
+    [data=>{data[DSP+0x2d]=6;},/Outgoing PMON chain/],
+  ];
+  for(const [alter,reason] of cases) {
+    const data=pmonImage();alter(data);const candidate=parseSpcVoices(data).candidates[1];
+    assert(candidate.preset);assert(candidate.echoVariant.preset,'ordinary fallback remains usable');
+    for(const variant of [candidate.pmonVariant,candidate.pmonEchoVariant]) {assert.equal(variant.preset,null);assert.match(variant.reason,reason);}
+  }
+  const incoming=pmonImage();incoming[DSP+0x2d]=6;
+  assert.match(parseSpcVoices(incoming).candidates[2].pmonVariant.reason,/Incoming PMON chain/);
+  const outgoingNoise=pmonImage();outgoingNoise[DSP+0x2d]=6;outgoingNoise[DSP+0x3d]=4;
+  assert(parseSpcVoices(outgoingNoise).candidates[1].pmonVariant.preset,'PMON cannot tune the next Noise voice, so no outgoing BRR chain exists');
+  const noiseCarrier=pmonImage();noiseCarrier[DSP+0x3d]=2;
+  assert.match(parseSpcVoices(noiseCarrier).candidates[1].pmonVariant.reason,/Noise is not tuned by PMON/);
+  const bitZero=pmonImage();bitZero[DSP+0x2d]=3;
+  const result=parseSpcVoices(bitZero);assert.equal(result.candidates[0].voice.pitchModulation,false);
+  assert(result.candidates[1].pmonVariant.preset,'PMON bit zero does not create an incoming chain');
+  assert.match(result.candidates[0].pmonVariant.reason,/no recorded PMON input/);assert.equal(result.candidates[0].pmonPair,null);
+});
+
+test('invalid PMON carriers retain their original reason in all variants, and modulator silence has its own warning', () => {
+  for(const alter of [data=>voice(data,1,{pitch:0}),data=>sample(data,0,0x2000,BRR,0x2001)]) {
+    const data=pmonImage();alter(data);const candidate=parseSpcVoices(data).candidates[1];assert.equal(candidate.preset,null);
+    for(const variant of [candidate.echoVariant,candidate.pmonVariant,candidate.pmonEchoVariant]) {
+      assert.equal(variant.preset,null);assert.equal(variant.reason,candidate.reason);
+    }
+  }
+  for(const [gain,warning] of [[0,/Modulator Direct GAIN is zero/],[0x94,/Modulator decreasing GAIN/],[0xa4,/Modulator decreasing GAIN/],
+    [0xc0,/Modulator increasing GAIN rate 0/],[0xe0,/Modulator increasing GAIN rate 0/]]) {
+    const data=pmonImage();voice(data,0,{sourceNumber:1,adsr1:0,gain});
+    const candidate=parseSpcVoices(data).candidates[1];assert(candidate.pmonVariant.preset);
+    assert(candidate.pmonVariant.warnings.some(message=>warning.test(message)));
+    assert(!candidate.warnings.some(message=>warning.test(message)),'modulator warnings do not leak into the unmodulated fallback');
+  }
+});
+
+test('SPC PMON combined BRR budget accepts exact dry / Echo boundaries and never deduplicates shared SRCN', () => {
+  for(const budget of [MAX_BRR_BYTES,ECHO_BRR_MAX_BYTES]) {
+    for(const extra of [0,9]) {
+      const data=echoRegisters(image()),carrier=new Uint8Array(budget-9+extra);carrier[carrier.length-9]=1;
+      sample(data,0,1024,carrier,1024);sample(data,1,768,Uint8Array.of(3,0,0,0,0,0,0,0,0),768);
+      voice(data,0,{sourceNumber:1});voice(data,1,{sourceNumber:0});data[DSP+0x2d]=2;
+      const candidate=parseSpcVoices(data).candidates[1],variant=budget===MAX_BRR_BYTES?candidate.pmonVariant:candidate.pmonEchoVariant;
+      assert(candidate.preset);assert.equal(candidate.pmonPair.sample.bytes,9);
+      if(!extra){assert(variant.preset);assert.equal(variant.reason,null);}
+      else {assert.equal(variant.preset,null);assert.match(variant.reason,new RegExp(budget.toLocaleString('en-US')));assert.match(variant.reason,/combined/);}
+      if(budget===ECHO_BRR_MAX_BYTES) {
+        assert(candidate.pmonVariant.preset,'Echo failure does not disable the dry pair');
+        data[DSP+0x6c]=0x20;
+        const disabled=parseSpcVoices(data).candidates[1].pmonEchoVariant;
+        assert(disabled.preset,'captured Echo Off does not reserve wet RAM');assert.equal(disabled.preset.echo.enabled,false);
+      }
+    }
+    for(const extra of [0,9]) {
+      const size=budget/2+extra,data=echoRegisters(image()),bytes=new Uint8Array(size);bytes[size-9]=1;
+      sample(data,0,1024,bytes,1024);data[DSP+0x2d]=2;
+      const candidate=parseSpcVoices(data).candidates[1],variant=budget===MAX_BRR_BYTES?candidate.pmonVariant:candidate.pmonEchoVariant;
+      assert.equal(candidate.sample.sourceNumber,candidate.pmonPair.sample.sourceNumber);
+      if(!extra)assert(variant.preset,'two copies exactly fill the available sample budget');
+      else {assert.equal(variant.preset,null);assert.match(variant.reason,/counted separately even when SRCN is shared/);}
+    }
+  }
+});
+
+test('SPC PMON Echo imports only the carrier send and respects write-disable without reserving wet RAM', () => {
+  const data=pmonImage();data[DSP+0x4d]=1;
+  let candidate=parseSpcVoices(data).candidates[1];
+  assert.equal(candidate.pmonEchoVariant.preset.echo.send,false);assert.equal(candidate.pmonEchoVariant.preset.echo.enabled,true);
+  assert(candidate.pmonEchoVariant.warnings.some(warning=>warning.includes('CH2 was not sent')));
+  assert(candidate.pmonEchoVariant.warnings.some(warning=>warning.includes('modulator')&&warning.includes('Echo send is omitted')));
+  data[DSP+0x4d]=2;data[DSP+0x6c]=0x20;candidate=parseSpcVoices(data).candidates[1];
+  assert.equal(candidate.pmonEchoVariant.preset.echo.send,true);assert.equal(candidate.pmonEchoVariant.preset.echo.enabled,false);
+  assert.equal(candidate.pmonEchoVariant.preset.echo.feedback,24);
+  assert(candidate.pmonEchoVariant.warnings.some(warning=>warning.includes('writes are disabled')));
+  assert(candidate.pmonEchoVariant.warnings.some(warning=>warning.includes('Frozen-buffer audio is not restored')));
+});
+
+test('imported PMON BRR pairs match a manual two-voice hardware reference and survive JSON / executable JavaScript in stereo', async t => {
+  const candidate=parseSpcVoices(pmonImage()).candidates[1];
+  const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
+  const createCore=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
+  const makeInstrument=async preset=>{const instrument=new SnesInstrument(await createCore());t.after(()=>instrument.dispose());instrument.loadPreset(preset);return instrument;};
+  const makeSynth=async()=>{const synth=new SnesSynth({core:await createCore()});t.after(()=>synth.dispose());return synth;};
+  const options=brr=>({rootNote:brr.rootNote,basePitch:brr.basePitch,...(brr.loopStartSamples===null?{}:{loopStartSamples:brr.loopStartSamples})});
+  const render=engine=>{const left=new Float32Array(4096),right=new Float32Array(4096);engine.renderInto(left,right);return {left,right};};
+  for(const variant of [candidate.pmonVariant,candidate.pmonEchoVariant]) {
+    const preset=variant.preset;assert(preset);assert.equal(preset.version,5);
+    const instrument=await makeInstrument(preset),state=instrument.read();
+    assert.equal(state.sample.byteLength,18);assert.equal(state.modulatorSample.byteLength,18);
+    assert.equal(state.registers[0][8],0,'captured modulator ENVX does not preload the envelope');
+    assert.equal(state.registers[1][8],0,'captured carrier ENVX does not preload the envelope');
+    instrument.noteOn('pair',60);
+    const active=instrument.read();assert.equal(active.capacity,4);assert.equal(active.pmonRegisters.mask,0xaa);
+    assert.deepEqual(active.voices.map(value=>[value.channel,value.modulatorChannel]),[[1,0]]);
+    assert.deepEqual(active.registers[0].slice(0,4),[0,0,0,8]);assert.deepEqual(active.registers[1].slice(0,4),[24,16,0,12]);
+    assert.deepEqual(active.registers[0].slice(5,8),[0,0,64]);assert.deepEqual(active.registers[1].slice(5,8),[0x9f,0xe0,0x4f]);
+    assert.equal(active.echoRegisters.eon,preset.echo.enabled&&preset.echo.send?0xaa:0);
+    const actual=render(instrument);assert(actual.left.every(Number.isFinite));assert(actual.left.some(value=>Math.abs(value)>.001));
+    assert(actual.left.some((value,index)=>value!==actual.right[index]),'signed return / voice levels retain stereo output');
+    const manual=await makeSynth(),{send,...echo}=preset.echo;
+    manual.setEcho({...echo,sendMask:send?2:0});
+    const carrier=manual.loadBRR(decodeBase64(preset.brr.data),options(preset.brr));
+    const modulator=manual.loadBRR(decodeBase64(preset.pmon.brr.data),options(preset.pmon.brr));
+    manual.writeDsp(0x3d,0);manual.writeDsp(0x2d,2);
+    manual.setPreset(0,{sample:modulator,...modulatorEnvelopeRegisters(preset),volumeLeft:0,volumeRight:0,pitch:2048});
+    manual.setPreset(1,{sample:carrier,...envelopeRegisters(preset),volumeLeft:24,volumeRight:16,pitch:3072});
+    manual.keyOn(0);manual.keyOn(1);
+    assert.deepEqual(render(manual),actual,'imported pair reproduces the same raw DSP path as a manual BRR modulator / carrier setup');
+    const restoredPreset=readPreset(JSON.parse(JSON.stringify(preset)));assert.deepEqual(restoredPreset,preset);
+    const restored=await makeInstrument(restoredPreset);restored.noteOn('restored-pair',60);
+    assert.deepEqual(render(restored),actual,'portable JSON owns both BRRs and envelopes without the source SPC');
+    const exported=await makeSynth(),code=presetToCode(preset);
+    assert(code.indexOf('setEcho')<code.indexOf('loadBRR'));assert.match(code,/writeDsp\(0x2d,\s*2\)/);
+    const run=Object.getPrototypeOf(async function(){}).constructor('useSoundChip',code);
+    await run(async chip=>{assert.equal(chip,'snes');return exported;});
+    assert.deepEqual(render(exported),actual,'generated executable JavaScript matches the instrument in stereo');
+    const unmodulated=await makeInstrument({...preset,pmon:{...preset.pmon,enabled:false}});unmodulated.noteOn('plain',60);
+    assert.notDeepEqual(render(unmodulated),actual,'the imported modulator produces an audible hardware PMON effect');
+  }
+});
 
 test('only eight physical records are offered, retaining inactive voices and distinct settings on the same BRR', () => {
   const source = image();

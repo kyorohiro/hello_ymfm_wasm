@@ -22,7 +22,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   const controller = new AbortController(), pending = new Map();
   let node = null, balance = null, master = null, disposed = false, closing = null;
   let fatalError = null, nextId = 0, startupTimer = null, rejectStartup, readyResolve;
-  let acceptedBrrData = '';
+  let acceptedBrrData = '', acceptedModBrrData = '';
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   // A fatal error can also occur after startup has returned to the UI.
   void startupFailure.catch(() => {});
@@ -39,7 +39,7 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
   function dispose() {
     if (closing) return closing;
     disposed = true;
-    acceptedBrrData = '';
+    acceptedBrrData = ''; acceptedModBrrData = '';
     clearTimeout(startupTimer);
     controller.abort();
     context.removeEventListener('statechange', stateChanged);
@@ -106,8 +106,14 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
         // A failed edit must not change the next command's data reference.
         if (typeof value?.preset?.brr?.data === 'string') acceptedBrrData = value.preset.brr.data;
         else if (request.presetData !== undefined) acceptedBrrData = request.presetData;
+        if (typeof value?.preset?.pmon?.brr?.data === 'string') acceptedModBrrData = value.preset.pmon.brr.data;
+        else if (request.modulatorData !== undefined) acceptedModBrrData = request.modulatorData;
         if (data.brrDataOmitted && value?.preset?.brr) {
           value = {...value, preset:{...value.preset, brr:{...value.preset.brr, data:acceptedBrrData}}};
+        }
+        if (data.modBrrDataOmitted && value?.preset?.pmon?.brr) {
+          value = {...value, preset:{...value.preset, pmon:{...value.preset.pmon,
+            brr:{...value.preset.pmon.brr, data:acceptedModBrrData}}}};
         }
         request.resolve(value);
       }
@@ -125,19 +131,26 @@ export async function createAudio({volume = .7, onError = () => {}} = {}) {
       if (!Array.isArray(args)) throw new TypeError('S-DSP command arguments must be an array');
       const changesPreset = method === 'setPreset' || method === 'loadPreset';
       const presetData = changesPreset && typeof args[0]?.brr?.data === 'string' ? args[0].brr.data : undefined;
+      const modulatorData = changesPreset && typeof args[0]?.pmon?.brr?.data === 'string' ? args[0].pmon.brr.data : undefined;
       // Concurrent preset mutations carry their own data, preserving FIFO
       // semantics when another edit may replace the remote reference first.
-      const brrDataUnchanged = presetData !== undefined && presetData !== '' && presetData === acceptedBrrData &&
-        ![...pending.values()].some(request => request.changesPreset);
+      const canReference = ![...pending.values()].some(request => request.changesPreset);
+      const brrDataUnchanged = presetData !== undefined && presetData !== '' && presetData === acceptedBrrData && canReference;
+      const modBrrDataUnchanged = modulatorData !== undefined && modulatorData !== '' && modulatorData === acceptedModBrrData && canReference;
       if (brrDataUnchanged) {
         const {data:_data, ...brr} = args[0].brr;
         args = [{...args[0], brr}, ...args.slice(1)];
       }
+      if (modBrrDataUnchanged) {
+        const {data:_data, ...brr} = args[0].pmon.brr;
+        args = [{...args[0], pmon:{...args[0].pmon, brr}}, ...args.slice(1)];
+      }
       const id = ++nextId;
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => fail(new Error(`S-DSP command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
-        pending.set(id, {resolve, reject, timer, changesPreset, presetData});
-        try { node.port.postMessage({id, method, args, ...(brrDataUnchanged ? {brrDataUnchanged:true} : {})}); }
+        pending.set(id, {resolve, reject, timer, changesPreset, presetData, modulatorData});
+        try { node.port.postMessage({id, method, args, ...(brrDataUnchanged ? {brrDataUnchanged:true} : {}),
+          ...(modBrrDataUnchanged ? {modBrrDataUnchanged:true} : {})}); }
         catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
       });
     }

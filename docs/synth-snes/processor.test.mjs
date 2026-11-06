@@ -62,3 +62,26 @@ test('processor initialization, fatal rendering and early disposal always produc
   assert(output[0].every(side=>side.every(value=>value===0)));assert.equal(live.replies.filter(reply=>reply.fatal).length,1);
   assert.equal(live.cores[0].disposed,true);assert.equal(live.processor.process([],output),false);
 });
+
+test('both BRR assets are elided independently and invalid references or rejected replacements preserve both caches',async()=>{
+  const f=setup();await f.processor.ready;
+  const first={brr:{data:'AA=='},pmon:{source:'brr',brr:{data:'AQ=='}}};
+  let reply=await f.command('loadPreset',[first]);
+  assert(reply.brrDataOmitted&&reply.modBrrDataOmitted);assert.equal(Object.hasOwn(reply.value.preset.pmon.brr,'data'),false);
+  reply=await f.command('setPreset',[{brr:{},pmon:{source:'brr',brr:{root:61}}}],{brrDataUnchanged:true,modBrrDataUnchanged:true});
+  assert.equal(reply.error,undefined);assert.equal(f.processor.instrument.preset.brr.data,'AA==');
+  assert.equal(f.processor.instrument.preset.pmon.brr.data,'AQ==');
+  reply=await f.command('setPreset',[{brr:{data:'Ag=='},pmon:{brr:{data:'Aw=='}},bad:true}]);
+  assert.match(reply.error,/invalid/);assert.equal(f.processor.acceptedBrrData,'AA==');assert.equal(f.processor.acceptedModBrrData,'AQ==');
+  for(const [method,args,extra]of[
+    ['read',[],{modBrrDataUnchanged:true}],
+    ['setPreset',[{brr:{data:'AA=='},pmon:{brr:{data:'AQ=='}}}],{modBrrDataUnchanged:true}],
+    ['setPreset',[{brr:{data:'AA=='},pmon:{brr:{}}}],{modBrrDataUnchanged:false}],
+    ['setPreset',[{brr:{data:'AA=='}}],{modBrrDataUnchanged:true}],
+  ]){reply=await f.command(method,args,extra);assert.match(reply.error,/cached modulator BRR/);}
+  assert.equal(f.processor.acceptedModBrrData,'AQ==');
+  reply=await f.command('setPreset',[{brr:{},pmon:{brr:{data:'Ag=='}}}],{brrDataUnchanged:true});
+  assert.equal(reply.error,undefined);assert.equal(f.processor.acceptedBrrData,'AA==');assert.equal(f.processor.acceptedModBrrData,'Ag==');
+  await f.command('loadPreset',[{brr:{data:''},pmon:{source:'wave',brr:{data:''}}}]);
+  assert.equal(f.processor.acceptedBrrData,'');assert.equal(f.processor.acceptedModBrrData,'');f.processor.dispose();
+});

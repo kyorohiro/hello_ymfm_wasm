@@ -31,7 +31,11 @@ export class SnesInstrument {
     if(p.source==='noise')carrier={bytes:createNoiseCarrier(),options:{rootNote:60,basePitch:4096,loopStartSamples:0}};
     else if(p.source==='wave')carrier={bytes:encodeBrr(Float32Array.from(p.wave),{loopStartSamples:0}).brr,options:{baseFrequencyHz:250,loopStartSamples:0}};
     else carrier={bytes:decodeBase64(p.brr.data),options:{rootNote:p.brr.rootNote,basePitch:p.brr.basePitch,...(p.brr.loopStartSamples===null?{}:{loopStartSamples:p.brr.loopStartSamples})}};
-    return {...carrier,modulator:pmonActive(p)?{bytes:encodeBrr(Float32Array.from(p.pmon.wave),{loopStartSamples:0}).brr,options:{baseFrequencyHz:250,loopStartSamples:0}}:null};
+    let modulator=null;
+    if(pmonActive(p))modulator=p.pmon.source==='brr'
+      ?{bytes:decodeBase64(p.pmon.brr.data),options:{rootNote:p.pmon.brr.rootNote,basePitch:p.pmon.brr.basePitch,...(p.pmon.brr.loopStartSamples===null?{}:{loopStartSamples:p.pmon.brr.loopStartSamples})}}
+      :{bytes:encodeBrr(Float32Array.from(p.pmon.wave),{loopStartSamples:0}).brr,options:{baseFrequencyHz:250,loopStartSamples:0}};
+    return {...carrier,modulator};
   }
   _replace(p,prepared=this._prepare(p)) {
     // Recreate only the bank bookkeeping; the owned DSP stays in place. This
@@ -39,7 +43,7 @@ export class SnesInstrument {
     this.synth=new SnesSynth({core:this.core});
     this.synth.setEcho(this._echoOptions(p));
     this.sample=prepared.bytes.length?this.synth.loadBRR(prepared.bytes,prepared.options):null;
-    this.modulatorSample=prepared.modulator?this.synth.loadBRR(prepared.modulator.bytes,prepared.modulator.options):null;
+    this.modulatorSample=prepared.modulator?.bytes.length?this.synth.loadBRR(prepared.modulator.bytes,prepared.modulator.options):null;
     this.voices.clear();this.slots.fill(null);this.cursor=0;this.generation++;
     this.preset=p;if(p.source==='noise')this.pitch=0;this._applyChannels();
   }
@@ -48,13 +52,20 @@ export class SnesInstrument {
     const value=p.source==='wave'?4096*noteHz(midi+pitch)/250:p.brr.basePitch*2**((midi+pitch-p.brr.rootNote)/12);
     return clampPitch(value);
   }
-  _modulatorPitch(midi,p=this.preset,pitch=this.pitch) {return clampPitch(4096*noteHz(midi+pitch)*p.pmon.ratio/250);}
+  _modulatorPitch(midi,p=this.preset,pitch=this.pitch) {
+    const base=p.pmon.source==='brr'?p.pmon.brr.basePitch*2**((midi+pitch-p.pmon.brr.rootNote)/12):4096*noteHz(midi+pitch)/250;
+    return clampPitch(base*p.pmon.ratio);
+  }
   _applyChannels() {
     const active=pmonActive(this.preset),env=envelopeRegisters(this.preset),modulatorEnv=active?modulatorEnvelopeRegisters(this.preset):null;
     this.synth.setEcho(this._echoOptions(this.preset));
     if(this.sample&&this.preset.source==='brr') {
       const tuning={rootNote:this.preset.brr.rootNote,rootFrequencyHz:noteHz(this.preset.brr.rootNote),basePitch:this.preset.brr.basePitch};
       Object.assign(this.sample,tuning);Object.assign(this.synth.samples[this.sample.id],tuning);
+    }
+    if(this.modulatorSample&&this.preset.pmon.source==='brr') {
+      const brr=this.preset.pmon.brr,tuning={rootNote:brr.rootNote,rootFrequencyHz:noteHz(brr.rootNote),basePitch:brr.basePitch};
+      Object.assign(this.modulatorSample,tuning);Object.assign(this.synth.samples[this.modulatorSample.id],tuning);
     }
     for(let channel=0;channel<8;channel++) {
       const modulator=active&&channel%2===0,voice=this.slots[modulator?channel+1:channel],sample=modulator?this.modulatorSample:this.sample;
@@ -104,6 +115,7 @@ export class SnesInstrument {
     if(this.voices.has(id))throw new Error('Note identity is already active');
     if(!Number.isInteger(midi)||midi<0||midi>127)throw new RangeError('Expected a MIDI note 0–127');
     if(!this.sample)throw new Error('Load a BRR or audio sample before playing');
+    if(pmonActive(this.preset)&&!this.modulatorSample)throw new Error('Load a PMON modulator BRR sample before playing');
     this._prune();const channels=this._channels();let channel;
     for(let offset=0;offset<channels.length;offset++) {const candidate=channels[(this.cursor+offset)%channels.length];if(this.slots[candidate]===null){channel=candidate;break;}}
     if(channel===undefined)channel=channels.reduce((oldest,candidate)=>{
