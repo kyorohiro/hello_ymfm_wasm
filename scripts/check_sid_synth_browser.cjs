@@ -18,6 +18,7 @@ for (let i = 2; i < process.argv.length; ++i) {
 const mime = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm',
   '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.ico': 'image/x-icon'};
 const report = {schemaVersion: 1, entry: config.entry, passed: false, physicalOutputMuted: true, listeningPerformed: false, results: []};
+const adoptedIconSha256 = '91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b';
 const frequency = (midi, pitch = 0, ratio = 1) => Math.round(440 * 2 ** ((midi + pitch - 69) / 12) * ratio * 16777216 / 985248);
 const registerFrequency = (state, channel) => state.registers[channel * 7] | state.registers[channel * 7 + 1] << 8;
 const difference = (a, b) => { let distance = 0, total = 0; for (let i = 0; i < a.length; ++i) { distance += Math.abs(a[i] - b[i]); total += a[i] + b[i]; } return total ? distance / total : 0; };
@@ -102,6 +103,54 @@ async function checkEngine(name, engine, origin) {
     const stopped = async () => { await page.locator('#stopAudio').click(); await wait(state => state.voices.length === 0 && state.pitch === 0); await silent(); };
     const ready = () => page.waitForFunction(() => document.querySelector('#startAudio').textContent.includes('ready'));
     await page.goto(origin + config.entry); await page.waitForFunction(() => document.querySelector('[data-choice-for="waveform"]'));
+
+    check('adopted 1254px header icon, favicon and Apple touch icon load from the same local asset');
+    measurements.icons = await page.evaluate(async () => {
+      const targets = [
+        ['header', document.querySelector('.product-identity > img.product-icon'), 'src'],
+        ['favicon', document.querySelector('link[rel="icon"]'), 'href'],
+        ['appleTouch', document.querySelector('link[rel="apple-touch-icon"]'), 'href'],
+      ];
+      return Promise.all(targets.map(async ([role, element, attribute]) => {
+        if (!element) throw new Error(`Missing ${role} icon`);
+        const reference = element.getAttribute(attribute), url = new URL(reference, location.href);
+        if (url.origin !== location.origin) throw new Error(`Non-local ${role} icon: ${url.href}`);
+        const response = await fetch(url.href);
+        if (!response.ok) throw new Error(`${role} icon HTTP ${response.status}`);
+        const bytes = await response.arrayBuffer(), digest = await crypto.subtle.digest('SHA-256', bytes);
+        const image = role === 'header' ? element : new Image();
+        if (role !== 'header') image.src = url.href;
+        await image.decode();
+        return {role, reference, path: url.pathname, width: image.naturalWidth, height: image.naturalHeight,
+          bytes: bytes.byteLength, sha256: Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')};
+      }));
+    });
+    assert.equal(new Set(measurements.icons.map(icon => icon.path)).size, 1, 'all icon uses resolve to the adopted asset');
+    for (const icon of measurements.icons) {
+      assert.match(icon.path, /\/tetorica_sid_synth\.webp$/);
+      assert.equal(icon.width, 1254); assert.equal(icon.height, 1254); assert.equal(icon.sha256, adoptedIconSha256);
+    }
+    // The standalone ZIP intentionally contains the synth, not the laboratory
+    // homes. Parse source homes without navigating or loading unrelated assets.
+    if (report.homepagesAvailable) {
+      measurements.homepages = await page.evaluate(async () => Promise.all(['/index.html', '/index-ja.html'].map(async homepage => {
+        const pageUrl = new URL(homepage, location.origin), response = await fetch(pageUrl.href);
+        if (!response.ok) throw new Error(`Homepage HTTP ${response.status}: ${homepage}`);
+        const document = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const card = document.querySelector('a.card-with-icon[href="./synth-sid/index.html"]'), image = card?.querySelector('img.card-icon');
+        if (!image) throw new Error(`Missing SID card icon: ${homepage}`);
+        const href = new URL(card.getAttribute('href'), pageUrl), src = new URL(image.getAttribute('src'), pageUrl);
+        if (href.origin !== location.origin || src.origin !== location.origin) throw new Error(`Non-local SID card: ${homepage}`);
+        const icon = await fetch(src.href); if (!icon.ok) throw new Error(`Homepage SID icon HTTP ${icon.status}`);
+        const bytes = await icon.arrayBuffer(), digest = await crypto.subtle.digest('SHA-256', bytes);
+        return {page: homepage, title: card.querySelector('strong')?.textContent, href: href.pathname, src: src.pathname,
+          sha256: Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')};
+      })));
+      for (const homepage of measurements.homepages) {
+        assert.equal(homepage.href, '/synth-sid/index.html'); assert.equal(homepage.src, '/tetorica_sid_synth.webp');
+        assert.equal(homepage.sha256, adoptedIconSha256); assert.match(homepage.title, /Tetorica SID Synth/);
+      }
+    }
 
     check('lazy local UI and first keyboard press/release during delayed WASM loading');
     assert.match(await page.title(), /Tetorica SID Synth/); assert.equal(await page.evaluate(() => __sidSynthAudit.contexts.length), 0);
@@ -256,7 +305,7 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#startAudio').click(); await ready(); state = await read(); assert.deepEqual(state.preset, beforeFailure); assert.equal(state.voices.length, 0);
     await page.keyboard.down(keys[0]); await wait(value => value.voices.length === 1); await sound(); await page.keyboard.up(keys[0]); await stopped();
 
-    check('one post-Master Waveform/Spectrum canvas, readable source and 390px layout');
+    check('one post-Master Waveform/Spectrum canvas, readable source and 1180px/390px icon header layout');
     await page.locator('[data-visual-mode="spectrum"]').click(); assert.equal(await page.locator('[data-visual-mode="spectrum"]').getAttribute('aria-pressed'), 'true');
     assert.equal(await page.locator('#outputCanvas').count(), 1);
     const readable = await page.evaluate(async () => {
@@ -265,10 +314,26 @@ async function checkEngine(name, engine, origin) {
       const response = await fetch(application.src); if (!response.ok) throw new Error(`Application source HTTP ${response.status}`);
       return (await response.text()).split('\n').length;
     }); assert(readable > 20);
-    if (config.screenshots) await page.screenshot({path: path.join(config.screenshots, `${name}-1180.png`), fullPage: true});
-    await page.setViewportSize({width: 390, height: 844}); await page.waitForTimeout(120);
-    assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - innerWidth)), 0);
-    if (config.screenshots) await page.screenshot({path: path.join(config.screenshots, `${name}-390.png`), fullPage: true});
+    measurements.layouts = [];
+    for (const width of [1180, 390]) {
+      await page.setViewportSize({width, height: width === 390 ? 844 : 1000}); await page.waitForTimeout(120);
+      const layout = await page.evaluate(() => {
+        const bounds = selector => {
+          const {x, y, width, height, right, bottom} = document.querySelector(selector).getBoundingClientRect();
+          return {x, y, width, height, right, bottom};
+        };
+        return {viewport: innerWidth, overflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
+          icon: bounds('.product-icon'), copy: bounds('.product-copy'), title: bounds('#synthTitle'),
+          badge: bounds('.engine-badge'), closedFilterHeight: document.querySelector('#filterCard').getBoundingClientRect().height};
+      });
+      assert.equal(layout.overflow, 0, `${width}px horizontal overflow`);
+      assert.equal(layout.icon.width, width === 390 ? 72 : 112); assert.equal(layout.icon.height, layout.icon.width);
+      assert(layout.copy.x >= layout.icon.right, `${width}px icon must not overlap the title`);
+      for (const key of ['icon', 'copy', 'title', 'badge']) assert(layout[key].x >= 0 && layout[key].right <= width + 1, `${width}px ${key} fits the header`);
+      assert(layout.closedFilterHeight < 80, 'closed filter stays a compact summary');
+      measurements.layouts.push(layout);
+      if (config.screenshots) await page.screenshot({path: path.join(config.screenshots, `${name}-${width}.png`), fullPage: true});
+    }
     assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []); assert.deepEqual(failed, []); assert.deepEqual(external, []);
     const outputBranches = await page.evaluate(() => __sidSynthAudit.contexts.map(context => ({state: context.state, destinationConnections: __sidSynthAudit.sinks.filter(sink => sink.context === context).length})));
     assert(outputBranches.every(context => context.destinationConnections <= 1), 'no meter creates a second physical output path');
@@ -286,6 +351,7 @@ async function checkEngine(name, engine, origin) {
 (async () => {
   if (config.screenshots) await fs.mkdir(config.screenshots, {recursive: true});
   report.checkerSha256 = createHash('sha256').update(await fs.readFile(__filename)).digest('hex');
+  report.homepagesAvailable = await fs.access(path.join(config.root, 'index-ja.html')).then(() => true, () => false);
   const server = http.createServer(async (request, response) => {
     try {
       const file = path.resolve(config.root, '.' + decodeURIComponent(new URL(request.url, 'http://localhost').pathname)); assert(file.startsWith(config.root + path.sep));

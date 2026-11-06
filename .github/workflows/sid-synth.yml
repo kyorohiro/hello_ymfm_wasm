@@ -5,6 +5,10 @@ on:
   push:
     paths:
       - 'docs/synth-sid/**'
+      - 'docs/tetorica_sid_synth.*'
+      - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
+      - 'docs/index.html'
+      - 'docs/index-ja.html'
       - 'docs/js/sid*'
       - 'docs/generated/sid/**'
       - 'docs/sources/sid/**'
@@ -25,6 +29,10 @@ on:
   pull_request:
     paths:
       - 'docs/synth-sid/**'
+      - 'docs/tetorica_sid_synth.*'
+      - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
+      - 'docs/index.html'
+      - 'docs/index-ja.html'
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/sources/sid/**'

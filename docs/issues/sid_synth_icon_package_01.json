@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "product": "Tetorica SID Synth",
+  "version": "0.0.1-icon",
+  "date": "2026-11-07",
+  "scope": "Adopt the user-selected icon in the header, favicon / Apple touch icon, both home cards and standalone ZIP. Audio JavaScript / WASM unchanged.",
+  "artifact": {
+    "path": "release/tetorica_sid_synth_0.0.1-icon_itch.zip",
+    "bytes": 1301238,
+    "sha256": "a7001d835a0893c6c9aea4f86373bf2bb867fb502fcc148b7461f9a1716260a0",
+    "files": 57,
+    "crcVerified": true
+  },
+  "icon": {
+    "source": "docs/tetorica_sid_synth.webp",
+    "originalPng": "docs/tetorica_sid_synth.png",
+    "prompt": "docs/issues/tetorica_sid_icon_prompt_20261107.txt",
+    "width": 1254,
+    "height": 1254,
+    "bytes": 544322,
+    "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b",
+    "archivePath": "tetorica_sid_synth.webp",
+    "archiveBytesMatch": true
+  },
+  "browserInputs": {
+    "receipt": "sources/sid-synth-browser.json",
+    "archive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 621961,
+      "sha256": "a30d5f7f3cf49d0f2d3c9b2040848104b2e3cf8bc6f21e15f7c5f51dae38b455"
+    },
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "modules": 14,
+    "inputs": 27,
+    "matchFinalSource": true
+  },
+  "verification": {
+    "packageTests": {
+      "command": "node --test scripts/package_itch_sid_synth.test.mjs",
+      "passed": 2,
+      "failed": 0
+    },
+    "browser": {
+      "status": "pending",
+      "sourceReport": "docs/issues/sid_synth_icon_browser_01.json",
+      "zipReport": "docs/issues/sid_synth_icon_zip_browser_01.json",
+      "physicalOutputMuted": true,
+      "listeningPerformed": false
+    }
+  },
+  "publication": {
+    "published": false,
+    "commitCreated": false,
+    "tagCreated": false
+  }
+}

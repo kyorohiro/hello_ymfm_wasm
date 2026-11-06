@@ -63,7 +63,9 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] shared filterと実voice間の依存、hardware機能とsoftware割当・modulationを区別する。
 - [x] preset保存／復元、可読JavaScript出力、keyboard focus、2箇所Pitch、Master380%、waveform／spectrumへ接続する。
 - [x] readable source付きWeb ZIP、README en／ja／AI、home、既存Native例・再ビルド手順への入口を用意する。
-- [ ] 人が実聴し、和音／Pulse幅／ADSR／filter／Sync／Ringを確認する。専用iconと正式名称は別途決める。
+- [ ] 人が実聴し、和音／Pulse幅／ADSR／filter／Sync／Ringを確認する。
+- [x] 専用iconを作成する（2026-11-07追記）。[1254px WebP](../tetorica_sid_synth.webp)・[元PNG](../tetorica_sid_synth.png)・[生成プロンプト](tetorica_sid_icon_prompt_20261107.txt)。既存シリーズと同じ寸法、C64のbeige／brownとfilter波形を使った。
+- [ ] 選択済みiconを採用する（2026-11-07、ユーザー「これでお願い」）。Synth header／favicon／Apple touch icon、home en／ja、配布ZIPとsource receiptへ同じWebPを反映する。既存音声コードを保持し、source／実ZIPのdesktop／390px表示とlocal画像読込を確認する。
 - [ ] Webの実聴後にTauri版を検討する。
 
 ## 再開メモ
@@ -183,7 +185,8 @@ TODOを作成してから調査を開始した。第1段階のcore／Native・WA
   GitHub上のActions実行・commit／push・tag・公開は行っていない。
 
 次は人が `/synth-sid/index.html` で3声、Pulse幅、ADSR、filterのCutoff／Resonance、TriangleのRingとSyncを実聴する。
-名称／専用iconを決め、Webの実聴後にTauriを検討する。SID曲／音色抽出、外部reference／実機比較、Native出力は別TODOとして残る。
+名称案はTetorica SID Synth、専用iconは上記で作成した。Webの実聴後にTauriを検討する。
+SID曲／音色抽出、外部reference／実機比較、Native出力は別TODOとして残る。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

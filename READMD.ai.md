@@ -54,6 +54,10 @@ distribution follow the other Synths. Use `npm run test:sid-synth`,
 `npm run test:sid-synth:browser`, and `sh scripts/package_itch_sid_synth.sh dev`.
 The independent ZIP includes original browser modules / CSS, matching native
 sources, licenses, rebuild instructions and hash-checked source inputs.
+The user selected the beige / brown SID icon on 2026-11-07:
+`docs/tetorica_sid_synth.webp` (1254 square), with the original PNG and prompt
+receipt beside the other Synth assets. Header, favicon / Apple touch icon and
+both home pages use that selected image; the standalone ZIP keeps it local.
 This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
 ## Check these first

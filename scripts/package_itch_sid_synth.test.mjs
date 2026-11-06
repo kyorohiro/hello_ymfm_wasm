@@ -38,6 +38,15 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(!JSON.stringify(info.receipt).includes('/Users/'));
   assert.equal(info.receipt.product, 'Tetorica SID Synth');
   assert.equal(info.receipt.productId, 'tetorica-sid-synth');
+  const icon = await readFile(new URL('../docs/tetorica_sid_synth.webp', import.meta.url));
+  assert.deepEqual(await readFile(join(a.stage, 'tetorica_sid_synth.webp')), icon);
+  for (const path of ['docs/tetorica_sid_synth.webp', 'docs/issues/tetorica_sid_icon_prompt_20261107.txt']) {
+    const input = info.receipt.originalInputs.find(input => input.path === path);
+    assert(input, `Missing icon provenance: ${path}`);
+    const bytes = await readFile(new URL('../' + path, import.meta.url));
+    assert.equal(input.bytes, bytes.length); assert.equal(input.sha256, sha(bytes));
+  }
+  assert(!info.names.includes('playground-favicon.ico'));
   assert.deepEqual(await readFile(join(a.stage, 'generated/sid/sid.wasm')), await readFile(new URL('../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url)));
   const native = JSON.parse(await readFile(join(a.stage, 'generated/sid/sid-build.json')));
   for (const [path, input] of Object.entries(native.inputs)) {
@@ -63,7 +72,22 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for (const entry of ['index.html', 'synth-sid/index.html']) {
     const html = await readFile(join(a.stage, entry), 'utf8');
     assert.match(html, /<title>Tetorica SID Synth<\/title>/);
-    assert.match(html, /rel="icon" href="(?:\.\.\/|\.\/)playground-favicon\.ico"/);
+    const iconPath = entry === 'index.html' ? './tetorica_sid_synth.webp' : '../tetorica_sid_synth.webp';
+    const iconLinks = [...html.matchAll(/<link\b[^>]*rel="(?:icon|apple-touch-icon)"[^>]*>/g)];
+    assert.equal(iconLinks.length, 2, `${entry}: favicon and apple-touch icon`);
+    for (const [tag] of iconLinks) assert.equal(/\bhref="([^"]+)"/.exec(tag)?.[1], iconPath);
+    const images = [...html.matchAll(/<img\b[^>]*>/g)];
+    assert(images.length > 0, `${entry}: product image`);
+    for (const [tag] of images) assert.equal(/\bsrc="([^"]+)"/.exec(tag)?.[1], iconPath);
+    assert.doesNotMatch(html, /playground-favicon\.ico/);
+    // Every displayed image, script and linked asset must work without a network request.
+    for (const [tag] of html.matchAll(/<(?:img|script|link)\b[^>]*>/g)) {
+      for (const [, value] of tag.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
+        const url = new URL(value, new URL(entry, 'https://zip.invalid/'));
+        assert.equal(url.origin, 'https://zip.invalid', `${entry}: remote asset ${value}`);
+        assert(info.names.includes(decodeURIComponent(url.pathname.slice(1))), `${entry}: ${value}`);
+      }
+    }
     for (const match of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       const url = new URL(match[1], new URL(entry, 'https://zip.invalid/'));
       if (url.origin === 'https://zip.invalid') assert(info.names.includes(url.pathname.slice(1)), `${entry}: ${match[1]}`);

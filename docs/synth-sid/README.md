@@ -4,6 +4,12 @@ Product identifier: `tetorica-sid-synth`.
 
 [Open the synthesizer](index.html) · [C64 Playground](../playground/index.html?mode=c64)
 
+The selected beige / brown icon is [1254px WebP](../tetorica_sid_synth.webp),
+with an [original PNG](../tetorica_sid_synth.png) and
+[generation prompt](../issues/tetorica_sid_icon_prompt_20261107.txt).
+The header, browser icon and Tetorica home use the same artwork; the standalone
+ZIP includes its local WebP.
+
 Play three SID voices from the keyboard and explore the chip's shared filter.
 The browser UI follows Tetorica's FM2612 / SPU / DMG Synths: compact keyboard,
 Octave, two synchronized Pitch controls, Master up to 380%, Waveform / Spectrum,

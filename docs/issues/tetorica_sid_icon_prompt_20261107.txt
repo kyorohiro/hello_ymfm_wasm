@@ -1,0 +1,27 @@
+Tetorica SID Synth icon — 2026-11-07 (Asia/Tokyo)
+
+Generation: built-in image_gen tool (not CLI/API fallback).
+Original generated image: /Users/kyorohiro/.codex/generated_images/01a18757-ee91-7d21-ada2-32cda284e18f/exec-3eb64771-c899-4155-bbd9-fde8fece92b5.png
+Workspace PNG: docs/tetorica_sid_synth.png
+Workspace WebP: docs/tetorica_sid_synth.webp
+Dimensions: 1254 × 1254, opaque sRGB; matches the other Synth icons.
+Conversion: cwebp -q 95 -metadata none docs/tetorica_sid_synth.png -o docs/tetorica_sid_synth.webp
+The PNG is an unchanged copy of the built-in output. Only WebP encoding was performed.
+
+Final generation prompt:
+
+Use case: logo-brand.
+Asset type: square app icon for Tetorica SID Synth, part of an existing retro sound-chip synthesizer icon series.
+Primary request: create a beautifully crafted, readable, embossed 3D hardware badge for a C64 SID synthesizer. It must feel like a small vintage synthesizer built into the warm beige breadbin-style plastic of an early 1980s home computer.
+Style: front-facing, centered, nearly orthographic macro product illustration; tactile molded plastic, fine grain, inset panels, raised lettering, soft realistic shadows. Match a premium retro hardware app-icon series rather than a flat vector logo. Square composition.
+Palette: warm beige and oatmeal enclosure, ivory raised brand lettering, dark chocolate-brown main lettering and inset chip panel, restrained teal and green glowing oscilloscope details. The outer frame is thick rounded BEIGE plastic, never a black outer frame. A clean very light warm gray background outside the rounded enclosure.
+Layout, from top to bottom:
+1. Raised, clearly spelled brand text "Tetorica" across the top.
+2. Very large bold dark chocolate-brown text "SID", the dominant visual element, taking most of the upper-middle width.
+3. Clearly readable spaced text "SYNTH" just below SID.
+4. A wide recessed dark CRT-style oscilloscope window. Show one bright green/teal signal that starts angular like a saw/pulse wave and becomes smoothly rounded toward the right, suggesting a low-pass filter. Faint grid, subtle glass reflection. Exactly three small glowing indicator lights below the waveform represent the three voices.
+5. At the bottom, a broad dark chocolate-brown integrated-circuit plaque with silver pins above and below. Large embossed ivory text "6581", and beneath it small clear text "3-VOICE FILTER".
+Use warm brown keyboard-key-like details sparingly around the lower panel to evoke the C64. Keep the image uncluttered and all main letters legible at icon scale. Soft studio lighting from the upper left, crisp sculpted edges.
+Exact text only: "Tetorica", "SID", "SYNTH", "6581", "3-VOICE FILTER".
+Constraints: one single finished square icon, no mockup sheet, no alternate variants, no captions outside the icon, no watermark, no official Commodore logo, no extra brand names. Do not add musical-note symbols, people, hands, cables or a full computer. No purple or magenta enclosure. Opaque background.
+

@@ -51,26 +51,27 @@ export async function packageSidSynth({version = 'dev', releaseDir = join(root, 
   const inputs = new Set(browser.inputs), bundles = browser.entries;
   const home = 'https://kyorohiro.github.io/hello_ymfm_wasm/';
   let html = await readFile(join(root, 'docs/synth-sid/index.html'), 'utf8');
-  html = html.replace(/href="(\.\.\/[^"#]+)"/g, (_match, path) => {
-    if (path === '../playground-favicon.ico') return `href="${path}"`;
-    if (path === '../js/sidsynth.js') return 'href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_src/runtime/sidsynth.js"';
-    return `href="${new URL(path, home + 'synth-sid/').href}"`;
+  html = html.replace(/\b(href|src)="(\.\.\/[^"#]+)"/g, (_match, attribute, path) => {
+    if (path === '../tetorica_sid_synth.webp') return `${attribute}="${path}"`;
+    if (attribute === 'href' && path === '../js/sidsynth.js') return 'href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_src/runtime/sidsynth.js"';
+    return `${attribute}="${new URL(path, home + 'synth-sid/').href}"`;
   });
   await writeFile(join(stage, 'synth-sid/index.html'), html);
   await writeFile(join(stage, 'index.html'), html
-    .replaceAll('../playground-favicon.ico', './playground-favicon.ico')
+    .replace(/\b(href|src)="\.\.\/tetorica_sid_synth\.webp"/g, '$1="./tetorica_sid_synth.webp"')
     .replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g, '$1="./synth-sid/$2"'));
   await copyRuntimeArtifacts({root, destination:join(stage, 'generated'), ids:['sid'], includeMetadata:false});
   await copySidSources(stage);
   await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
-  await copyFile(join(root, 'docs/playground-favicon.ico'), join(stage, 'playground-favicon.ico'));
+  await copyFile(join(root, 'docs/tetorica_sid_synth.webp'), join(stage, 'tetorica_sid_synth.webp'));
   const guide = (await readFile(join(root, 'docs/synth-sid/README.md'), 'utf8')).replace(/\]\(([^)]+)\)/g, (match, target) => {
     if (/^(?:https?:|#)/.test(target) || target === 'index.html') return match;
     return `](${new URL(target, 'https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/synth-sid/').href})`;
   });
   await writeFile(join(stage, 'synth-sid/README.md'), guide);
   await writeFile(join(stage, 'README.md'), guide + '\n## Included sources\n\nSee [SID native sources and rebuilding](sources/SID.md), [browser build inputs](sources/sid-synth-browser-inputs.zip) and their [hash receipt](sources/sid-synth-browser.json). Runtime JavaScript and CSS retain their authored module layout and comments.\n');
-  for (const path of ['docs/synth-sid/index.html', 'docs/synth-sid/README.md', 'docs/playground-favicon.ico',
+  for (const path of ['docs/synth-sid/index.html', 'docs/synth-sid/README.md', 'docs/tetorica_sid_synth.webp',
+    'docs/issues/tetorica_sid_icon_prompt_20261107.txt',
     'LICENSE', 'package.json', 'package-lock.json', 'scripts/package_itch_sid_synth.mjs',
     'scripts/package_itch_sid_synth.sh', 'scripts/copy_sid_sources.mjs', 'scripts/copy_readable_modules.mjs',
     'scripts/runtime_artifacts.mjs', 'scripts/sid_artifacts.mjs']) inputs.add(path);
