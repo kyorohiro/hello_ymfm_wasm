@@ -39,6 +39,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(info.names.length,a.files);assert(!JSON.stringify(info.receipt).includes('/Users/'));
   assert.equal(info.receipt.product,'Tetorica S-DSP Synth');assert.equal(info.receipt.productId,'tetorica-sdsp-synth');
   assert.match(a.archive,/tetorica_sdsp_synth_test_itch\.zip$/);
+  assert.deepEqual(await readFile(join(a.stage,'tetorica_sdsp_synth.webp')),await readFile(new URL('docs/tetorica_sdsp_synth.webp',root)));
+  assert(info.receipt.originalInputs.some(input=>input.path==='docs/tetorica_sdsp_synth.webp'));
   assert.equal(info.receipt.builder.name,'source-copy');assert.equal(info.receipt.builder.minify,false);assert.equal(info.receipt.builder.bundle,false);
   assert.equal(info.receipt.builder.dependencyAnalyzer.name,'esbuild');
   assert(info.receipt.modules.length>info.receipt.bundles.length);
@@ -90,6 +92,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for(const entry of ['index.html','synth-snes/index.html']) {
     const html=await readFile(join(a.stage,entry),'utf8');assert.match(html,/<title>Tetorica S-DSP Synth<\/title>/);
     assert.match(html,/<meta name="application-name" content="Tetorica S-DSP Synth">/);
+    assert.match(html,/<link rel="icon"[^>]+href="(?:\.\/|\.\.\/)tetorica_sdsp_synth\.webp"/);
     for(const match of html.matchAll(/(?:src|href)="([^"]+)"/g)) {
       const url=new URL(match[1],new URL(entry,'https://zip.invalid/'));
       if(url.origin==='https://zip.invalid')assert(info.names.includes(url.pathname.slice(1)),`${entry}: ${match[1]}`);

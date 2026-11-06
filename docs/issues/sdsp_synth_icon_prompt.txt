@@ -1,0 +1,43 @@
+Tetorica S-DSP Synth icon
+Date: 2026-11-06 (Asia/Tokyo)
+Mode: built-in image_gen (not CLI).
+Final asset: docs/tetorica_sdsp_synth.webp (1254 x 1254).
+Current revision: 2, pale off-white outer frame, 267,544 bytes.
+Adopted by user on 2026-11-06: Revision 2, white/light-gray outer frame;
+active asset docs/tetorica_sdsp_synth.webp; dark-frame sibling comparison only.
+Historical dark-frame revision: docs/tetorica_sdsp_synth_dark_frame.webp
+(1254 x 1254, 352,896 bytes).
+Intent: original Japanese Super Famicom-inspired neutral gray with red, blue,
+yellow and green accents, matching the tactile Tetorica icon series.
+No claim is made about the historical origin of these colors or Google's palette.
+Generated PNG preserved at the image tool's original location.
+Converted to WebP with ImageMagick, quality 90.
+
+Final generation prompt:
+Use case: logo-brand.
+Asset type: a finished square app icon for "Tetorica S-DSP Synth", part of a coherent retro sound-chip synthesizer icon series.
+Create one polished 3D embossed hardware badge, front-facing, perfectly square, filling the image with comfortable outer margins. The icon should feel like a real small vintage audio instrument: a thick rounded graphite rubber/plastic outer rim, a light cool gray finely textured plastic/metal faceplate inspired by the original Japanese 1990s Super Famicom, subtle realistic bevels, clean studio lighting, precise high-quality materials. Its defining palette is LIGHT NEUTRAL GRAY plus small vivid RED, BLUE, YELLOW, and GREEN accents; no purple or lavender theme, no cream/yellowed body.
+Typography, exact and legible: at the top large raised italic silver text "Tetorica"; in the center very large bold raised charcoal text "S-DSP"; directly beneath it smaller widely tracked charcoal text "SYNTH"; at the bottom on a dark inset chip-shaped plaque with subtle silver pins, raised silver italic text "8-VOICE BRR". Render all letters exactly.
+Between the SYNTH line and bottom plaque, include a recessed dark oscilloscope display with a soft elegant sampled audio waveform, fine dim grid, and exactly eight small glowing voice indicators arranged evenly along its bottom. Use the four accent colors in a tasteful balanced way: small physical circular colored controls or lights, and waveform accents. Keep S-DSP dominant; gray body dominant. Familiar family resemblance to a tactile retro chip badge with screw heads, horizontal decorative stripes around the top branding, an inset wave monitor, and bottom chip plaque. Strong silhouette and clarity at thumbnail size; sophisticated restrained visual hierarchy, not a busy poster.
+Square 1:1 composition. Opaque light gray surrounding background. No Nintendo, Super Famicom, Google, or third-party logo or text. No controller, console product photograph, extra label, watermark, mockup frame, or text beyond the four specified lines.
+
+Revision 2: white outer frame
+Date: 2026-11-06 (Asia/Tokyo)
+Mode: built-in image_gen edit (not CLI).
+Scope: only the outer rounded frame; Synth UI remains unchanged.
+Previous revision backup: docs/tetorica_sdsp_synth_dark_frame.webp.
+Final asset target: docs/tetorica_sdsp_synth.webp (1254 x 1254).
+Status: complete. The built-in image_gen edit output was visually inspected:
+the outer rim is pale off-white and lighter than the inner gray faceplate;
+the exact labels, four colors, waveform, eight voice LEDs and bottom dark plaque
+are preserved. Saved as 1254 x 1254 WebP, ImageMagick quality 90, 267,544 bytes.
+The original dark-frame image is preserved at the backup path, 352,896 bytes.
+No code or UI behavior was changed. At edit-time, the existing ZIPs still
+contained the previous dark-frame revision; no white-frame ZIP rebuild or
+test rerun had been performed at that point.
+Adoption build target: release/sdsp-adopted/tetorica_sdsp_synth_0.0.1_itch.zip.
+The adopted ZIP is prepared and verified separately; this prompt record does
+not claim that the adoption build or its validation has already passed.
+
+Final edit prompt (verbatim):
+Use case: precise-object-edit. Edit the supplied Tetorica S-DSP Synth icon. Change ONLY the thick outermost rounded charcoal/black perimeter frame into a pale cool off-white / very light gray molded plastic frame, clearly LIGHTER than the inner gray faceplate, evoking the original Japanese Super Famicom housing. Keep its rounded silhouette, subtle realistic fine texture, bevels, and soft highlights. Do not leave a dark thick rim or black band along the exterior; use only a fine gray seam or soft natural contact shadow where needed. Keep EVERYTHING else identical: all four exact text lines Tetorica, S-DSP, SYNTH, 8-VOICE BRR; their shapes, positions, materials and colors; central gray faceplate; screws; red/blue/yellow/green buttons and stripes; dark oscilloscope display; waveform; exactly eight voice LEDs; dark bottom chip plaque; composition, crop, surrounding background and lighting. The visual change must be the outer frame becoming white/light gray. Opaque square image, no added text or objects.

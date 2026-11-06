@@ -19,9 +19,38 @@
 - [x] 自作fixture／実WASMでunit・Chromium／WebKit・独立ZIPを検証する。可読JS／CSS、対応C++・再ビルド手順・LGPL等のlicenseを含め、README・ホーム・検証記録を更新する。
 
 
-実装・検証結果（2026-11-06）:
+## アイコン・配色（2026-11-06）
 
-- `docs/synth-snes/index.html` に初版を実装した。仮称Tetorica S-DSP Synth、product id `tetorica-sdsp-synth`。既存keyboard／2箇所Pitch／Master380%／出力monitorを再利用し、紫・グレーのUIと同一canvasの128点描画／decoded BRR previewを用意した。icon画像はまだ指定されておらず、テキストとS-DSP badgeで表示する。
+- [x] 日本版Super Famicomを参考に、明るいグレー＋赤・青・黄・緑のTetorica S-DSP Synthアイコンを生成し、既存シリーズと同じ1254×1254 WebPで保存する。生成promptも残す。
+- [x] 仮の紫系UIをグレー＋4色へ合わせ、header／favicon／英日ホームへアイコンを追加する。Master boostのorangeとキーボード操作を維持する。
+- [x] ZIP内にもアイコンと生成promptを含め、HTMLの相対参照がofflineで解決することを確認する。
+- [x] 配布チェックとChromium／WebKitでdesktop／mobileの見た目・操作を確認する。
+
+初回の黒い外枠画像は1254×1254、352,896 bytesで、現在は `docs/tetorica_sdsp_synth_dark_frame.webp` に保持している。built-in image_genで生成し、ImageMagick quality90で変換した。[生成prompt](sdsp_synth_icon_prompt.txt)を保存した。グレーのpanel、blueの主操作、greenの描画trace、4色のbadge stripへ合わせた。現在参照する画像は、下記Revision 2の白い外枠版へ更新した。
+
+`node --test scripts/package_itch_snes_synth.test.mjs` は2件成功。生成したZIPを別フォルダーへ展開してChromium／WebKitで8声・音声import・描画・保存・Master boost・2箇所Pitch・focus・390px幅overflow0等を再確認し、外部通信／404／page errorは0。[今回のZIP記録](snes_synth_icon_browser_01.json)。1180px／390pxのWebKit画像も確認した。
+
+今回のアイコン付きZIPは `release/sdsp-icon-preview/tetorica_sdsp_synth_0.0.1_itch.zip`（60 files、1,047,733 bytes、SHA-256 `4fdb138e995d83d2948d7b45a90f697c583cb01ed904fce168523d06ba6191eb`）。下記の初回ZIPは比較用に保持し、上書きしていない。画像をoffline同梱し、元画像／生成promptはbrowser source archiveにも収録する。公開は未実施。
+
+## アイコン外枠の白色化・Revision 2（2026-11-06）
+
+- [x] アイコンの太い外周フレームだけを、中央のfaceplateより明るいcool off-white／薄いグレーへ変更する。文字・中央panel・波形・8 voice LED・赤青黄緑・構図を保持する。正確な編集promptを上記の生成記録へ追記する。
+- [x] 元の黒い外枠版を `docs/tetorica_sdsp_synth_dark_frame.webp` へ保持し、編集画像を目視確認して1254×1254 WebPの `docs/tetorica_sdsp_synth.webp` へ保存する。実画像と保存結果を確認してから完了にする。
+
+白い外枠版は `docs/tetorica_sdsp_synth.webp`（1254×1254、267,544 bytes）。built-in image_genの編集出力を目視確認し、中央panelより明るい外周、正確な文字・赤青黄緑・波形・8 voice LED・下部のdark plaqueの維持を確認した。ImageMagick quality90で保存し、元の黒い外枠版（1254×1254、352,896 bytes）も上記backupへ保持した。
+
+今回の変更対象はアイコン外枠のみで、Synth UI・音源・操作は変更していない。既存の参照先が白い外枠画像を使う。上記のアイコン付きZIPとbrowser記録は初回の黒い外枠版の検証結果として保持し、新しい画像の確認結果とは区別する。既存ZIPは変更せず、白い外枠版を含むZIPの再作成とテスト再実行は行っていない。`git diff --check` は正常。
+
+## アイコン正式採用（2026-11-06）
+
+- [x] ユーザーがRevision 2（白い外枠）を採用。`docs/tetorica_sdsp_synth.webp` を正式な参照先とし、黒い外枠版は比較用としてのみ保持する。header／favicon／英日ホームは採用版を参照する。
+- [x] 採用版画像を含むZIPを `release/sdsp-adopted/tetorica_sdsp_synth_0.0.1_itch.zip` へ作成し、画像・source receipt・HTML相対参照を確認する。
+
+採用版ZIPは60 files、877,883 bytes、SHA-256 `0f7182321643dbc36ea14fa9786564355149f35f6f4a2b70d947ade7ff9cc56a`。実ZIPのCRC、白い外枠WebPの元ファイルとのbyte一致、root／nested HTMLのfavicon・touch icon・headerの相対参照、source archiveの全入力hashと採用promptを確認した。黒い外枠画像は同梱しない。既存の初回／黒い外枠preview ZIPは比較用に保持する。画像のみの変更のため音源／browserの全面再テストは繰り返していない。公開は未実施。
+
+## 初版の実装・検証結果（2026-11-06）
+
+- `docs/synth-snes/index.html` に初版を実装した。仮称Tetorica S-DSP Synth、product id `tetorica-sdsp-synth`。既存keyboard／2箇所Pitch／Master380%／出力monitorを再利用し、同一canvasの128点描画／decoded BRR previewを用意した。初期の仮配色は、その後に上記のグレー＋4色アイコンとUIへ更新した。
 - 既存accurate SnesDspCore／SnesSynthとSpcResamplerを使い、実S-DSPの8voiceを割り当てる。初期LR16で8音のheadroomを確保した。held ownerとhardware releaseのtailを分け、古い離鍵・steal・同時KON/KOFF・Stopを検証した。サンプル置換は1bankへ再uploadし、反復編集でRAMを使い尽くさない。generation変更でresamplerをresetし、古いbufferを残さない。
 - Hardware ADSRのコードと5種のGAINをpacked registerへ反映する。新しい発音でdecrease GAINがゼロから増えない実機挙動を補正せず、説明を表示した。volume／Envelope／tuning／Pitchの変更は保持中のowner・phaseを保つ。
 - AudioはOfflineAudioContextでdecode、mono化・8k／16k／32k resample、最終monoだけを[-1,1]へclampしてBRRへ変換する。gain normalizeや入力channel別clippingはしない。browserは可読module Workerでencodeし、Cancelでterminateする。raw BRRにroot／rate／loop addressがないことを表示し、raw Loopの初期0は明示的な編集値として扱う。

@@ -89,13 +89,14 @@ export async function packageSnesSynth({version='dev',releaseDir=join(root,'rele
   const browser=await copyReadableModules({root,stage,
     entries:['docs/synth-snes/synth.js','docs/synth-snes/processor.js','docs/synth-snes/synth.css'],
     factories:['docs/generated/spc_wasm.js']});
-  const inputs=new Set(browser.inputs),home='https://kyorohiro.github.io/hello_ymfm_wasm/';
+  const inputs=new Set(browser.inputs),home='https://kyorohiro.github.io/hello_ymfm_wasm/',icon='tetorica_sdsp_synth.webp';
   let html=await readFile(join(root,'docs/synth-snes/index.html'),'utf8');
-  html=html.replace(/href="(\.\.\/[^"#]+)"/g,(_match,path)=>path==='../js/snessynth.js'
+  html=html.replace(/href="(\.\.\/[^"#]+)"/g,(_match,path)=>path==='../'+icon?`href="${path}"`:path==='../js/snessynth.js'
     ?'href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/tetorica_src/runtime/snessynth.js"'
     :`href="${new URL(path,home+'synth-snes/').href}"`);
   await writeFile(join(stage,'synth-snes/index.html'),html);
-  await writeFile(join(stage,'index.html'),html.replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g,'$1="./synth-snes/$2"'));
+  await writeFile(join(stage,'index.html'),html.replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g,'$1="./synth-snes/$2"').replaceAll('../'+icon,'./'+icon));
+  await copyFile(join(root,'docs',icon),join(stage,icon));
   await copyRuntimeArtifacts({root,destination:join(stage,'generated'),ids:['spc'],includeMetadata:false});
   await copySpcSources(stage);
   const sourceCheck=await nativeReceipt(stage);
@@ -106,7 +107,7 @@ export async function packageSnesSynth({version='dev',releaseDir=join(root,'rele
   });
   await writeFile(join(stage,'synth-snes/README.md'),guide);
   await writeFile(join(stage,'README.md'),guide+'\n## Included sources\n\nSee [SNES SPC native sources and rebuilding](sources/SNES-SPC.md), [native byte receipt](sources/SNES-SPC.json), [browser build inputs](sources/sdsp-synth-browser-inputs.zip) and their [hash receipt](sources/sdsp-synth-browser.json).\n');
-  for(const path of ['docs/synth-snes/index.html','docs/synth-snes/README.md','LICENSE','package.json','package-lock.json',
+  for(const path of ['docs/synth-snes/index.html','docs/synth-snes/README.md','docs/'+icon,'docs/issues/sdsp_synth_icon_prompt.txt','LICENSE','package.json','package-lock.json',
     'scripts/package_itch_snes_synth.mjs','scripts/package_itch_snes_synth.sh','scripts/copy_spc_sources.mjs',
     'scripts/copy_readable_modules.mjs','scripts/runtime_artifacts.mjs','scripts/wasm_sdk_inventory.mjs',
     'tetorica_src/runtime/generated/spc_wasm.js'])inputs.add(path);

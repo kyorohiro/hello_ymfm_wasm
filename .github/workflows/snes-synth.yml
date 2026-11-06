@@ -6,6 +6,7 @@ on:
     paths:
       - 'docs/synth-snes/**'
       - 'docs/tetorica_sdsp_synth.webp'
+      - 'docs/issues/sdsp_synth_icon_prompt.txt'
       - 'docs/js/spc*'
       - 'docs/js/snes*'
       - 'docs/js/wav.js'
@@ -35,6 +36,7 @@ on:
     paths:
       - 'docs/synth-snes/**'
       - 'docs/tetorica_sdsp_synth.webp'
+      - 'docs/issues/sdsp_synth_icon_prompt.txt'
       - 'docs/js/**'
       - 'docs/generated/**'
       - 'docs/licenses/snes-spc/**'

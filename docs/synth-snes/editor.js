@@ -307,13 +307,13 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     if (disposed || !canvas.clientWidth || !canvas.clientHeight) return;
     const width = canvas.width, height = canvas.height, left = 28, right = width - 15, top = 16, bottom = height - 28;
     const y = value => top + (1 - value) / 2 * (bottom - top), context = canvas.getContext('2d');if (!context) return;
-    context.fillStyle = '#24252d';context.fillRect(0,0,width,height);
-    context.strokeStyle = '#454650';context.lineWidth = 1;context.fillStyle = '#d7d7df';context.font = '11px sans-serif';
+    context.fillStyle = '#242829';context.fillRect(0,0,width,height);
+    context.strokeStyle = '#414849';context.lineWidth = 1;context.fillStyle = '#d7dddd';context.font = '11px sans-serif';
     for (const value of [-1,-.5,0,.5,1]) {
       context.beginPath();context.moveTo(left,y(value));context.lineTo(right,y(value));context.stroke();
       if (value === -1 || value === 0 || value === 1) context.fillText(String(value),3,y(value)+4);
     }
-    context.strokeStyle = '#c5b0ff';context.lineWidth = 1.6;context.beginPath();
+    context.strokeStyle = '#8fd6a1';context.lineWidth = 1.6;context.beginPath();
     if (preset.source === 'wave') {
       const values = samples ?? preset.wave;
       for (let index=0;index<values.length;index++) {
@@ -338,7 +338,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       }
       if (!pcm.length) {context.moveTo(left,y(0));context.lineTo(right,y(0));}
     }
-    context.stroke();context.fillStyle = '#d7d7df';
+    context.stroke();context.fillStyle = '#d7dddd';
     context.fillText(preset.source==='wave' ? '128-POINT PCM · draw, then release to prepare BRR' : 'DECODED BRR · before DSP interpolation and envelope',left,height-8);
   }
   function point(event) {
