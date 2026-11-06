@@ -6,6 +6,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import {loadWasmSdkInventory, verifyWasmBuildDirectory} from './wasm_sdk_inventory.mjs';
+import {checkSidBuild, SID_BUILD_INPUTS} from './sid_artifacts.mjs';
 
 const DEFAULT_ROOT = fileURLToPath(new URL('../', import.meta.url));
 const CATALOG = 'runtime-artifacts.json';
@@ -43,6 +44,11 @@ export async function getRuntimeArtifactManifest({root = DEFAULT_ROOT} = {}) {
     sourceFiles: artifact.sourcePaths.map(name => `third_party/tetorica-soundchip-native/${name}`),
     licenseFiles: artifact.licenseFiles.map(name => `third_party/tetorica-soundchip-native/${name}`),
   }));
+  artifacts.push({
+    id: 'sid', kind: 'application-instrument', format: 'standalone-wasm',
+    files: ['sid/sid.wasm', 'sid/sid-build.json'].map(name => file(name, [`docs/generated/${name}`])),
+    sourceFiles: [...SID_BUILD_INPUTS], licenseFiles: ['LICENSE', 'third_party/chips-m6581/LICENSE'],
+  });
   artifacts.push({
     id: 'native_audio_effect', kind: 'application-effect', format: 'standalone-wasm',
     files: [file('effects/gain.wasm', [
@@ -175,6 +181,9 @@ async function validatedBytes(manifest, {importExisting = false} = {}) {
       `Runtime output changed during validation: ${output.path}`);
   }
   const effect = await verifyEffect(bytes.get('effects/gain.wasm'));
+  const sidReceipt = await checkSidBuild({root: manifest.root, directory: path.join(directory, 'sid')});
+  requireValue(sidReceipt.output.sha256 === sha256(bytes.get('sid/sid.wasm'))
+    && serialize(sidReceipt).equals(bytes.get('sid/sid-build.json')), 'SID output changed during runtime validation');
   await verifySpuReceipt(manifest, bytes.get('ps1_spu_build.json'), bytes);
   bytes.set(CATALOG, serialize(generatedCatalog(manifest, bytes)));
   return {bytes, sdk, effect};

@@ -11,6 +11,10 @@ on:
       - 'tetorica_src/runtime/generated/sid/**'
       - 'third_party/chips-m6581/**'
       - 'package*.json'
+      - 'docs/playground/**'
+      - 'tetorica_src/runtime/playground_*'
+      - 'tetorica_src/runtime/native_runtime_synth.js'
+      - 'tetorica_src/runtime/tetorica_synth.js'
       - '.github/workflows/sid-lab.yml'
   pull_request:
     paths:
@@ -21,6 +25,10 @@ on:
       - 'tetorica_src/runtime/generated/sid/**'
       - 'third_party/chips-m6581/**'
       - 'package*.json'
+      - 'docs/playground/**'
+      - 'tetorica_src/runtime/playground_*'
+      - 'tetorica_src/runtime/native_runtime_synth.js'
+      - 'tetorica_src/runtime/tetorica_synth.js'
       - '.github/workflows/sid-lab.yml'
 
 permissions:
@@ -49,6 +57,17 @@ jobs:
           node scripts/package_sid_lab.mjs
           python3 -m zipfile -e release/sid-lab-preview.zip release/sid-lab-extracted
           node scripts/check_sid_lab_browser.cjs --root release/sid-lab-extracted --out release/sid-package-browser.json
+      - name: Validate C64 Playground APIs and types
+        run: |
+          node --test test/runtime/sidsynth.test.mjs test/runtime/playground_sid.test.mjs test/runtime/playground_sid_audio.test.mjs test/runtime/playground_sid_performance.test.mjs test/runtime/playground_sid_worker.test.mjs
+          node scripts/check_playground_mode_types.mjs
+          npm run check:runtime-artifacts
+          node scripts/check_playground_sid_browser.cjs --out release/sid-playground-source.json
+      - name: Package and play the C64 mode independently
+        run: |
+          sh scripts/package_itch_playground.sh sid-ci
+          python3 -m zipfile -e release/hello_ymfm_wasm_sid-ci_itch_playground_for_run.zip release/sid-playground-extracted
+          node scripts/check_playground_sid_browser.cjs --root release/sid-playground-extracted --out release/sid-playground-zip.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -58,4 +77,7 @@ jobs:
             release/sid-source-browser.json
             release/sid-package-browser.json
             release/sid-lab-preview.zip
+            release/sid-playground-source.json
+            release/sid-playground-zip.json
+            release/hello_ymfm_wasm_sid-ci_itch_playground_for_run.zip
           if-no-files-found: ignore

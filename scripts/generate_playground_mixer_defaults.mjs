@@ -187,6 +187,11 @@ export function buildPlaygroundMixerPolicy(report,ps1Report=undefined,wonderswan
     profile.factoryModes.scsp={version:1,entries:[{id:'scsp',name:'scsp',settings:{volume:scsp.primaryVolume}}]};
     profile.calibration.extensions={...profile.calibration.extensions,scsp:scsp.metadata};
   }
+  // The new 6581 route starts at explicit unity until it is measured. No
+  // historical calibration or other chip's listening gain is changed.
+  profile.factoryDefaults.kinds.push({name:'sid',volume:1});
+  profile.factoryModes.c64={version:1,entries:[{id:'sid',name:'sid',settings:{volume:1}}]};
+  profile.calibration.unmeasuredKinds.push('sid');
   return profile;
 }
 

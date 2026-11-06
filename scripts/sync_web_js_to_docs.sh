@@ -102,6 +102,13 @@ playground_wonderswan_audio.js
 playground_wonderswan_worklet.js
 playground_wonderswan_inspector.js
 pokey.js
+sid.js
+sid_test_instrument.js
+sidsynth.js
+playground_sid.js
+playground_sid_audio.js
+playground_sid_worklet.js
+playground_sid_inspector.js
 pokeysynth.js
 pokeyaudioengine.js
 pokey_timeline.js

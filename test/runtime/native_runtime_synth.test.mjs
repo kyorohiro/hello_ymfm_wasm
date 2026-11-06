@@ -79,7 +79,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','ps1','scsp','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','ps1','scsp','sid','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -129,6 +129,32 @@ test('native Stop retains X68000 OPM patch and OKIM6258 sample metadata, and bor
   const borrowed = borrowNativeApi(synth.adpcm,'okim6258');
   assert.equal(borrowed.dispose,undefined); assert.equal(borrowed.transport,undefined); assert.equal(borrowed._getState,undefined); assert.equal(borrowed.id,'okim6258');
   borrowed.play(); await until(() => nodes[1].messages.filter(data => data.method === 'play').length >= 2);
+});
+
+test('SID primary Stop clears Gates while retaining patches, shared filter and fixed creation clock',async t=>{
+  const {synth,nodes}=harness(t,'sid',{clock:1022727});await synth.start();
+  synth.sid.setVoice(2,{waveform:'pulse',pulseWidth:1234,attack:3,decay:7,sustain:9,release:11,sync:true,ring:true});
+  synth.sid.setFilter({mode:'lowpass',cutoff:1357,resonance:9,routing:5,volume:11});
+  synth.sid.noteOn(2,'A4');const before=synth.sid._getState();
+  const stopped=synth.stopAllNative();assert.equal(synth.sid._getState().registers[18]&1,0);
+  await stopped;await until(()=>nodes[0].messages.some(message=>message.method==='stopVoices'&&message.id!==undefined));
+  const expected={...before,registers:before.registers.map((value,index)=>[4,11,18].includes(index)?value&254:value)};
+  assert.deepEqual(synth.sid._getState().registers,expected.registers);
+  assert.equal(synth.sid.clock,1022727);assert.equal(synth.sid,synth.primaryApis.sid);
+  assert.equal(nodes[0].options.processorOptions.clock,1022727);
+  assert.equal(nodes[0].options.processorOptions.model,'6581');
+  synth.sid.noteOn(2,'C5');assert.equal(synth.sid._getState().registers[18]&1,1);
+});
+
+test('SID Worker handoff adopts the register snapshot without resetting or replaying the primary',async t=>{
+  const {synth}=harness(t,'sid');await synth.start();synth.sid.noteOn(1,'E4');
+  const state=synth.sid._getState(),channel=new MessageChannel(),writes=[];
+  channel.port1.onmessage=event=>writes.push(event.data);channel.port1.start();
+  const worker=createNativePrimaryClient('sid',channel.port2,{clock:state.clock,state});
+  t.after(()=>{worker.dispose();channel.port1.close();});
+  await immediate();assert.deepEqual(writes,[]);assert.deepEqual(worker._getState(),state);
+  const borrowed=borrowNativeApi(worker,'sid');assert.equal(borrowed.id,'sid');assert.equal(borrowed.dispose,undefined);assert.equal(borrowed.transport,undefined);assert.equal(borrowed._getState,undefined);
+  assert.throws(()=>createNativePrimaryClient('sid',channel.port2,{native:true}),/SID requires Web Audio/);
 });
 
 test('PCE state handoff preserves initialized waveform, volume and clock without replaying writes', async t => {
@@ -183,7 +209,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','ps1','scsp','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','ps1','scsp','sid','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');

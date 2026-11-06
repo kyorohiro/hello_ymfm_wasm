@@ -2,11 +2,13 @@
  * Measurement reports retain every original raw source hash. A separately pinned
  * receipt allows only the version values at six exact UI resource imports to
  * change. Named, complete reviewed UI/Git/Shell revisions are also pinned below.
- * None authorizes a future change to a DSP, path, import body or other source.
+ * A separately pinned SID-only routing revision restores exact pre-SID bytes
+ * before these older layers. None authorizes a future DSP or source edit.
  */
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const digest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
@@ -262,6 +264,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const preSid=restoreMixerCalibrationSidRevision(path,bytes),sidRevision=preSid!==bytes;bytes=preSid;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return sidRevision?'sid-playground-routing':'raw';
   if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';
   const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
   if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';

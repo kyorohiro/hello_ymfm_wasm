@@ -3,6 +3,8 @@ import {readFileSync,readdirSync,existsSync} from 'node:fs';
 import {resolve,dirname,relative} from 'node:path';
 const root=resolve(process.argv[2]);let count=0;const errors=[];
 function check(file,spec){if(!spec.startsWith('.'))return;const target=resolve(dirname(file),spec.split(/[?#]/)[0]);count++;if(!existsSync(target)||relative(root,target).startsWith('..'))errors.push(`${relative(root,file)}: ${spec}`);}
-function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','samples'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
+// Matching source kits retain build-time paths and are validated separately;
+// they are not runnable browser modules until their rebuild recipe is followed.
+function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','samples','sources'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
 walk(root);
 if(errors.length){console.error(errors.join('\n'));process.exit(1);}console.log(`PASS: ${count} local Synth module/asset references`);

@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'scsp' | 'ps1' | 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'c64' | 'scsp' | 'ps1' | 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -683,6 +683,7 @@ type PlaygroundSelectedFm = {
   ym2608: YM2608FMApi;
   ym2610: YM2610FMApi;
   ym2610b: YM2610BFMApi;
+  c64: never;
   pokey: never;
   'pokey-dual': never;
   wonderswan: never;
@@ -706,6 +707,8 @@ type PlaygroundSelectedFm = {
   'msx-audio': never;
 }[TetoricaSelectedChip];
 declare const fm: PlaygroundSelectedFm;
+/** Primary CPU-free SID 6581 approximation; Web Audio prototype. */
+declare const sid: PlaygroundPrimarySid;
 /** The primary Game Boy APU, initialized and shared by this mode. */
 declare const gameboy: PlaygroundPrimaryGameboy;
 /** Primary NES APU with FDS enabled. */
@@ -1248,7 +1251,8 @@ type PlaygroundAPIBase = {
 type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | 'vgiToPreset'
   | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
   | 'setDacLookahead' | 'getDacLookahead';
-type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'pokey' ? {pokey:PlaygroundPrimaryPokey}
+type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'c64' ? {sid:PlaygroundPrimarySid}
+  : TetoricaSelectedChip extends 'pokey' ? {pokey:PlaygroundPrimaryPokey}
   : TetoricaSelectedChip extends 'pokey-dual' ? {pokey:PlaygroundPrimaryPokey;pokey2:PlaygroundPrimaryPokey}
   : TetoricaSelectedChip extends 'wonderswan' ? {ws:PlaygroundPrimaryWonderSwan}
   : TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
@@ -2078,6 +2082,7 @@ interface PlaygroundSpc {
   dispose():void;
 }
 type PlaygroundSoundChipMap = {
+  sid: TetoricaSelectedChip extends 'c64' ? PlaygroundPrimarySid : PlaygroundSid;
   pokey: TetoricaSelectedChip extends 'pokey'|'pokey-dual' ? PlaygroundPrimaryPokey : PlaygroundPokey;
   ym2612: TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? YM2612FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? YM2203FMApi : PlaygroundCreatedYm2203;
@@ -2107,7 +2112,7 @@ type PlaygroundSoundChipMap = {
   ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio'|'atari-st' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc' | 'ps1' | 'scsp'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'sid' | 'dx7' | 'snes' | 'spc' | 'ps1' | 'scsp'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Borrow the mode's primary instrument when names match; otherwise reuse an
@@ -2746,3 +2751,85 @@ interface PlaygroundScsp {
 type PlaygroundPrimaryScsp=Omit<PlaygroundScsp,'dispose'>;
 declare const scsp: PlaygroundPrimaryScsp;
 declare function createSoundChip(name:'scsp',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundScsp>;
+
+/** SID physical voice indices; three oscillators share one chip-wide filter. */
+type PlaygroundSidChannel = 0 | 1 | 2;
+type PlaygroundSidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
+type PlaygroundSidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'highpass' | 'notch';
+interface PlaygroundSidVoiceOptions {
+  waveform?:PlaygroundSidWaveform;
+  /** Pulse duty code, 0..4095. */
+  pulseWidth?:number;
+  /** Hardware ADSR codes, each 0..15. */
+  attack?:number; decay?:number; sustain?:number; release?:number;
+  /** Sync/ring use the preceding oscillator in the cyclic 3→1→2→3 chain. */
+  sync?:boolean; ring?:boolean; test?:boolean;
+}
+interface PlaygroundSidFilterOptions {
+  mode?:PlaygroundSidFilterMode;
+  /** Hardware cutoff code 0..2047; the 6581 response is an approximation. */
+  cutoff?:number;
+  /** Resonance code 0..15. */
+  resonance?:number;
+  /** Bit 0..2 route voices 1..3 into the shared filter; 0..7. */
+  routing?:number;
+  /** Hardware master volume code, 0..15. */
+  volume?:number;
+  /** Remove voice 3 from the unfiltered output; its oscillator still runs. */
+  voice3off?:boolean;
+}
+interface PlaygroundSidVoiceState {
+  readonly frequency:number;
+  readonly frequencyRegister:number;
+  readonly waveform:PlaygroundSidWaveform|'off'|'combined';
+  readonly waveformBits:number;
+  readonly waveforms:readonly PlaygroundSidWaveform[];
+  readonly pulseWidth:number;
+  readonly attack:number; readonly decay:number; readonly sustain:number; readonly release:number;
+  readonly sync:boolean; readonly ring:boolean; readonly test:boolean; readonly gate:boolean;
+  readonly envelope?:number;
+}
+interface PlaygroundSidState {
+  readonly clock:number;
+  readonly model:'6581';
+  readonly initialized:boolean;
+  /** Authored write-side register shadow; most SID hardware read addresses differ. */
+  readonly registers:readonly number[];
+  readonly channels:readonly PlaygroundSidVoiceState[];
+  readonly filter:Required<Readonly<Omit<PlaygroundSidFilterOptions,'mode'>>> & {readonly mode:PlaygroundSidFilterMode|'combined';readonly modeBits:number};
+}
+interface PlaygroundSid {
+  readonly chip:'sid';
+  readonly channels:3;
+  readonly id:string;
+  readonly clock:number;
+  readonly model:'6581';
+  /** Reset the SID and authored state. initialize() establishes the silent defaults. */
+  reset():void;
+  /** Silent saw voices, ADSR 2/6/12/5; filter off and hardware volume 8. */
+  initialize():void;
+  /** Raw SID register write, address 0..31 and value 0..255. */
+  writeRegister(register:number,value:number):void;
+  /** Applied hardware read-side value, not the authored write shadow. */
+  readRegister(register:number):Promise<number>;
+  /** Change only the supplied hardware voice fields. */
+  setVoice(channel:PlaygroundSidChannel,options:PlaygroundSidVoiceOptions):void;
+  setFilter(options:PlaygroundSidFilterOptions):void;
+  /** Tune the 16-bit oscillator at this instance's creation clock. */
+  setFrequency(channel:PlaygroundSidChannel,hz:number):number;
+  setNote(channel:PlaygroundSidChannel,note:string|number):number;
+  keyOn(channel:PlaygroundSidChannel):void;
+  keyOff(channel:PlaygroundSidChannel):void;
+  noteOn(channel:PlaygroundSidChannel,note:string|number):void;
+  noteOff(channel:PlaygroundSidChannel):void;
+  allNotesOff():void;
+  /** Applied state snapshot; does not replace the control-side authored state. */
+  getState():Promise<PlaygroundSidState>;
+  /** Only this instance's creation clock is accepted; create another chip to change it. */
+  setClock(clock:number):Promise<boolean>;
+  dispose():void;
+}
+type PlaygroundPrimarySid = Omit<PlaygroundSid,'dispose'>;
+/** Browser-only CPU-free SID 6581 approximation. No C64 CPU or .sid song player.
+ * Clock is fixed at creation (900000..1100000 Hz); only model '6581' is available. */
+declare function createSoundChip(name:'sid',options?:PlaygroundCreateSoundChipOptions & {clock?:number;model?:'6581'}):Promise<PlaygroundSid>;

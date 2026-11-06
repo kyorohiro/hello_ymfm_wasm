@@ -26,6 +26,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
     ['neogeo-b','ym2610b',8000000,false],
     ['wonderswan','wonderswan',3072000,false],
+    ['c64','sid',985248,false],
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['scsp','scsp',undefined,false],['ps1','ps1',undefined,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],['pc-engine-cd','huc6280',3579545,false],
@@ -41,6 +42,13 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'sid') {
+      assert.equal(mode.fmChannels,0);assert.deepEqual(mode.chipTabs,['sid']);
+      assert.equal(mode.declarationChip,'c64');assert.equal(mode.legacyDraftKey,'c64');
+      assertWorkletUrl(options.workletUrl,'sid');assert.equal(options.clock,985248);
+      assert.equal(options.model,'6581');assert.equal(options.wasmUrl,'https://example.com/app/generated/sid/sid.wasm');
+      continue;
+    }
     if (mode.chip === 'scsp') {
       assert.equal(mode.fmChannels,0);assert.deepEqual(mode.chipTabs,['scsp']);
       assertWorkletUrl(options.workletUrl,'scsp');
@@ -181,7 +189,7 @@ test('every visible mode and the legacy Nuked mode have their own starter catalo
 });
 
 test('mode voice editors load the new processors after a cached website upgrade', () => {
-  for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
+  for (const [id, filename] of [['c64','playground_sid_worklet.js'],['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
     assert.match(url.searchParams.get('v')??'', /^[\w.-]+$/, `${id} cannot reuse its cached shared control transport`);
@@ -194,6 +202,8 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?chip=ym2608').id, 'pc98');
   assert.equal(resolvePlaygroundMode('?chip=ym2610').id, 'neogeo');
   assert.equal(resolvePlaygroundMode('?chip=ym2610b').chip, 'ym2610b');
+  assert.equal(resolvePlaygroundMode('?mode=c64').chip,'sid');
+  assert.equal(resolvePlaygroundMode('?chip=sid').id,'c64');
   assert.equal(resolvePlaygroundMode('?mode=gameboy').chip, 'gameboy');
   assert.equal(resolvePlaygroundMode('?mode=dx7').chip, 'dx7');
   assert.equal(resolvePlaygroundMode('?chip=dx7').id, 'dx7');

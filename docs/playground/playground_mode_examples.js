@@ -26,6 +26,7 @@ const definitions = {
   neogeo: opnbExamples,
   'neogeo-b': ['/examples/neogeo/neogeo-opnb-sections.js', '/examples/neogeo/neogeo-b-six-channel.js', '/examples/neogeo/neogeo-sampler.js', '/examples/neogeo/neogeo-adpcm-a-drums.js'],
   wonderswan: ['/examples/wonderswan/ws-four-voices.js','/examples/wonderswan/ws-stereo.js','/examples/wonderswan/ws-noise-sweep.js'],
+  c64: ['/examples/c64/sid-melody.js','/examples/c64/sid-triad.js','/examples/c64/sid-filter-sweep.js'],
   gameboy: ['/examples/gameboy/gameboy-mode-pulse.js', '/examples/gameboy/gameboy-mode-wave.js', '/examples/gameboy/gameboy-sampler.js'],
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
   scsp: ['/examples/scsp/scsp-stereo-pcm.js','/examples/scsp/scsp-two-slot-fm.js'],

@@ -1,0 +1,666 @@
+{
+  "schemaVersion": 1,
+  "scope": "sid-playground-routing-only",
+  "baseCommit": "fa0d4521a75694cc8e950424d7aeb83f1724b25e",
+  "review": "SID-only register routing, explicit chip names, mode/tab/type/completion and self-authored examples. Existing chip DSP, measured PCM, target and source/listening gains are unchanged.",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "js/native_runtime_synth.js": {
+      "before": {
+        "bytes": 20339,
+        "sha256": "96498941513763f0f0d2779bad34a31661d24483f75e4d5e6a13dd9e5620c5e7"
+      },
+      "after": {
+        "bytes": 21066,
+        "sha256": "1cde1fe3986887edc8e3b931c9f09f1f3d9f8914ba6fdb59387f5ae5884923ad"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 247,
+          "afterBytes": 154,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2710,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3047,
+          "afterBytes": 151,
+          "beforeText": "wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number"
+        },
+        {
+          "afterOffset": 5825,
+          "afterBytes": 40,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6432,
+          "afterBytes": 76,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9829,
+          "afterBytes": 5,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 11144,
+          "afterBytes": 37,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 13222,
+          "afterBytes": 361,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 19439,
+          "afterBytes": 119,
+          "beforeText": "wonderswan'){\n      const observer=({data})=>{if(!['opl-state','opll-state','ay-state','pokey"
+        }
+      ]
+    },
+    "js/playground_chip_clock.js": {
+      "before": {
+        "bytes": 5232,
+        "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+      },
+      "after": {
+        "bytes": 5244,
+        "sha256": "3802e15503424667324c4f6e067d5cae3ff4ad1b2adf81d780e8a47aa922ca2d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 350,
+          "afterBytes": 12,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58374,
+        "sha256": "6d32d2626189a0e0850729b41041cb2401d7b1ab5e592202ae7a74ea4866fdb7"
+      },
+      "after": {
+        "bytes": 58584,
+        "sha256": "4c398f80c7a2a9e02725649863f95b35459013c3bc209dc32e663ecb3db9352d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 13600,
+          "afterBytes": 198,
+          "beforeText": "const supportsNativeExtra=name=>"
+        },
+        {
+          "afterOffset": 16013,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 38911,
+          "afterBytes": 29,
+          "beforeText": "name==='scsp'"
+        },
+        {
+          "afterOffset": 40800,
+          "afterBytes": 29,
+          "beforeText": "name==='scsp'"
+        },
+        {
+          "afterOffset": 42013,
+          "afterBytes": 6,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/playground_native_primary.js": {
+      "before": {
+        "bytes": 7262,
+        "sha256": "c0251d509e68e618570d4c5c1dce176a2b70186502fc88d46f637c712a14022c"
+      },
+      "after": {
+        "bytes": 7522,
+        "sha256": "1e91fc7e593426c3f2eb2399e7710f034afbfe2d65a8342a4b8f09f174f5a72b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 75,
+          "afterBytes": 71,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3863,
+          "afterBytes": 182,
+          "beforeText": "const client = "
+        },
+        {
+          "afterOffset": 5484,
+          "afterBytes": 16,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6009,
+          "afterBytes": 6,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/playground_performance_processor.js": {
+      "before": {
+        "bytes": 29824,
+        "sha256": "c743a3c4dd263fcd79543799de8862eb6dab056250b446665717c08e66051453"
+      },
+      "after": {
+        "bytes": 30650,
+        "sha256": "c947942492ea11e4c8ddbb4f100a0d16fad3a19eab417ba9a4d9a447a6acc243"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2595,
+          "afterBytes": 288,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7551,
+          "afterBytes": 14,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 8667,
+          "afterBytes": 21,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 12481,
+          "afterBytes": 470,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 17073,
+          "afterBytes": 183,
+          "beforeText": "].includes(chipName())&&command.method==='allNotesOff'){\n      for(let channel=0;channel<(chipName()==='scsp'?32:chipName()==='ps1'?24:chipName()==='snes'?8"
+        },
+        {
+          "afterOffset": 26971,
+          "afterBytes": 6,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/playground_runtime.js": {
+      "before": {
+        "bytes": 157264,
+        "sha256": "6c66d0636c2b6997108a2dbb916d209d5019d5e5c71f76b0e1d1408ba368b914"
+      },
+      "after": {
+        "bytes": 159452,
+        "sha256": "b0002430cdb79c6894c13de1eb1e3dad771fa9f6d4c37930e5552352ce9fb16e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 4240,
+          "afterBytes": 83,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6918,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7516,
+          "afterBytes": 21,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9733,
+          "afterBytes": 27,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 9934,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 11836,
+          "afterBytes": 198,
+          "beforeText": "const supportsNativeExtra=name=>"
+        },
+        {
+          "afterOffset": 12698,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 24747,
+          "afterBytes": 24,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 32299,
+          "afterBytes": 1346,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 48181,
+          "afterBytes": 39,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 49921,
+          "afterBytes": 14,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 50538,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 56783,
+          "afterBytes": 141,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 58183,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 59412,
+          "afterBytes": 137,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 65443,
+          "afterBytes": 120,
+          "beforeText": "wonderswan')){\n      const observer=({data})=>{if(!['opl-state','opll-state','ay-state','pokey"
+        },
+        {
+          "afterOffset": 93885,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 123895,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 126021,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 126958,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 128482,
+          "afterBytes": 93,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 129499,
+          "afterBytes": 35,
+          "beforeText": "name==='wonderswan'"
+        }
+      ]
+    },
+    "js/playground_soundchip_options.js": {
+      "before": {
+        "bytes": 1218,
+        "sha256": "b27539a9d38951f474e425b0d27f002fee103d40906f44b02e5c9055df1c8f7c"
+      },
+      "after": {
+        "bytes": 1594,
+        "sha256": "c1ba3fdd8ec3a8f1288c08f213ece1d3136c0400ec8e649237df66a70361479b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 479,
+          "afterBytes": 31,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 810,
+          "afterBytes": 24,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1208,
+          "afterBytes": 321,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/playground_soundchips.js": {
+      "before": {
+        "bytes": 2716,
+        "sha256": "98cb004b2bde19042a9cb97b0343017419b0da56c024144c75a45597e1d5083e"
+      },
+      "after": {
+        "bytes": 2723,
+        "sha256": "3dd5b8c176cdd6577ddf35ac059a5d2a04832a9551512b8e92acaf11d9d52ced"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1221,
+          "afterBytes": 7,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/tetorica_synth.js": {
+      "before": {
+        "bytes": 3171,
+        "sha256": "b093604a004fe0455c01f4aef432f6b70aa06164d7bc2109918b56bc2feb3667"
+      },
+      "after": {
+        "bytes": 3185,
+        "sha256": "1875cb088b15403bdfe54f1a8b5e844d94b3074f4da0a6704a86de50a3940322"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 916,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2768,
+          "afterBytes": 7,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/index.html": {
+      "before": {
+        "bytes": 132011,
+        "sha256": "84f33f59859ad3a357221abe8098f004f734a5f1bc6aeb3e868bd102f4a941b1"
+      },
+      "after": {
+        "bytes": 132885,
+        "sha256": "4235828b1be9fa33cf29cd07f1898730242fff66745aa5aba9f6ce3cb4b9c3ce"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 72026,
+          "afterBytes": 143,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 91529,
+          "afterBytes": 563,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 106170,
+          "afterBytes": 40,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 129168,
+          "afterBytes": 128,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground.js": {
+      "before": {
+        "bytes": 124833,
+        "sha256": "c3c9bd14ccbee347b2c5a57ab64c92f2d72a646a7ac0f2793c1a70d2b29da382"
+      },
+      "after": {
+        "bytes": 124872,
+        "sha256": "1ad6188b0c7c80e56977c489181ebfded6ab1431ca6f84d0bf5e37f70a50aaf0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 67880,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 69198,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 78662,
+          "afterBytes": 21,
+          "beforeText": "]:['pokey"
+        },
+        {
+          "afterOffset": 79029,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 79155,
+          "afterBytes": 7,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_chip_tabs.js": {
+      "before": {
+        "bytes": 41104,
+        "sha256": "8de5b576302a7739cb2855b7b8322691bf20f274dce0916dcdd1c9c5f86b2dbd"
+      },
+      "after": {
+        "bytes": 41382,
+        "sha256": "71a7a5935cf8613d35ead60079a0bbae15997c877568174d76cee97bae6fe0bc"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 0,
+          "afterBytes": 97,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3137,
+          "afterBytes": 229,
+          "beforeText": "egapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym2413', 'ay8910', ...OPL_KINDS];\nconst nativePanels = {"
+        },
+        {
+          "afterOffset": 15149,
+          "afterBytes": 140,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_declarations.js": {
+      "before": {
+        "bytes": 2923,
+        "sha256": "3587ba9d47cfb001c0fe2aa7e55d4322040f94fc3919f7da707331d1897bfebe"
+      },
+      "after": {
+        "bytes": 2945,
+        "sha256": "7701ce32ef1139309f457f6d98964a11ba6153ed0eb58f9a36af4066689d3255"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 381,
+          "afterBytes": 6,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2291,
+          "afterBytes": 12,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 2778,
+          "afterBytes": 4,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_example_order.js": {
+      "before": {
+        "bytes": 308,
+        "sha256": "d2c561fe35b3b0f9eee626dd678ee78ff0c35a73ffef5cf601efad62c8652395"
+      },
+      "after": {
+        "bytes": 315,
+        "sha256": "0764d46c06697fef7f111b69b9f6d3f4a0ad9c8c96218929cffdab79af4b1209"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 228,
+          "afterBytes": 7,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_examples.js": {
+      "before": {
+        "bytes": 214933,
+        "sha256": "c7cca826d9781f40b634cd4646a6eace64742a8309835b57b1446b587d559847"
+      },
+      "after": {
+        "bytes": 217972,
+        "sha256": "1b0cd18d6709a21ecbd40b03916286608cda724a64a94516bd6d24797e0ca05d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 9527,
+          "afterBytes": 565,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 155688,
+          "afterBytes": 2349,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 212250,
+          "afterBytes": 125,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_mode.js": {
+      "before": {
+        "bytes": 12596,
+        "sha256": "b47a7ac5d63ade7cd92f66f5684206a79858b59eee29fdbbf083e7145bca2924"
+      },
+      "after": {
+        "bytes": 13127,
+        "sha256": "99bd78b407eddd4486dc1913e704501db6b16867b68908b2153c989fa1f4a453"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1156,
+          "afterBytes": 247,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6765,
+          "afterBytes": 10,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 7895,
+          "afterBytes": 274,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_monaco_completion.js": {
+      "before": {
+        "bytes": 45035,
+        "sha256": "54f00e3d970438b526b6396ca9b71a90d02205f05b5eac7856aa0439819be906"
+      },
+      "after": {
+        "bytes": 45047,
+        "sha256": "5c743830a085756a1325f225fe9b6d6109c4d0b4fa8b898f9f9cf9be966133ea"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 7501,
+          "afterBytes": 12,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_monaco_definitions.js": {
+      "before": {
+        "bytes": 16724,
+        "sha256": "36e0f7781e2f550a1592ef1e9bc07211f28ea798d98f906160900a4c0d9c69d1"
+      },
+      "after": {
+        "bytes": 17113,
+        "sha256": "c5337196c8820544aab589cd565022e2eb67d1deb6adb57a220b08c5772ac3c7"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 734,
+          "afterBytes": 389,
+          "beforeText": ""
+        }
+      ]
+    },
+    "playground/playground_ui.js": {
+      "before": {
+        "bytes": 8406,
+        "sha256": "fc8fe0a663a62d19a95c031239e90806fa5630e75555b57844e6092cef2fbf56"
+      },
+      "after": {
+        "bytes": 8426,
+        "sha256": "9ce1c731a64751f14c209b656aaed300b1fe330f23d4b529c6f50100b920bfe2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2842,
+          "afterBytes": 7,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 3377,
+          "afterBytes": 150,
+          "beforeText": "dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);\n  const auditionTabNames = new Set([...chipTabNames].filter(name => !["
+        }
+      ]
+    },
+    "playground/playground_workbench.js": {
+      "before": {
+        "bytes": 7419,
+        "sha256": "8581b149325ac33eca6d2596d58f4c710fb2c8b13ea318caa5bcdafcb5724f8a"
+      },
+      "after": {
+        "bytes": 7430,
+        "sha256": "a20b713fa5c065750a323d1e671f146e857ff6fbb68b8d7306bf7d9f6f988354"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 3236,
+          "afterBytes": 11,
+          "beforeText": ""
+        }
+      ]
+    }
+  }
+}

@@ -8,20 +8,23 @@ import {isDeepStrictEqual} from 'node:util';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const canonical = join(root, 'tetorica_src/runtime/generated/sid');
 const digest = bytes => ({bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')});
-const runtime = ['sid.js', 'sid_test_instrument.js'];
-const sourcePaths = [
+export const SID_RUNTIME_MODULES = Object.freeze(['sid.js', 'sid_test_instrument.js', 'sidsynth.js', 'sidsynth.d.ts', 'playground_sid.d.ts', 'playground_sid_inspector.d.ts',
+  'playground_sid.js', 'playground_sid_audio.js', 'playground_sid_worklet.js', 'playground_sid_inspector.js']);
+const runtimeSources = [...SID_RUNTIME_MODULES, 'soundchip_pitch.js', 'playground_chip_clock.js',
+  'playground_audio_endpoint.js', 'playground_performance_processor.js', 'playground_performance_queue.js'];
+export const SID_BUILD_INPUTS = Object.freeze([
   'LICENSE', 'third_party/chips-m6581/LICENSE', 'third_party/chips-m6581/README.md',
   'third_party/chips-m6581/PATCHES.md', 'third_party/chips-m6581/upstream/m6581.h',
   'third_party/chips-m6581/m6581.h', 'tetorica_src/wasm/sid_core.h', 'tetorica_src/wasm/sid_wasm.cpp',
   'scripts/build_sid_wasm.sh', 'scripts/prepare_sid_core.py', 'scripts/sid_artifacts.mjs',
   'test/helpers/sid_reference.cpp', 'scripts/check_sid_native.mjs',
-];
+]);
 const upstream = {revision: '9e88298ce56319953ac7a43213a1120359f7a3a6',
   headerSha256: 'a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf',
   licenseSha256: '0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634'};
 const sourceReadme = `# Tetorica SID source kit\n\nExperimental 6581, zlib chip core with a BSD-3-Clause host.\n\nOriginal pinned header, marked adaptation, license, Native host and WASM bridge\nare included with their original relative paths. See\n[component README](third_party/chips-m6581/README.md) and\n[patches](third_party/chips-m6581/PATCHES.md). No C64 ROM or game data is included.\n\nWith Node.js, Python 3 and Emscripten installed, from this directory:\n\n\x60\x60\x60sh\npython3 scripts/prepare_sid_core.py --check\nsh scripts/build_sid_wasm.sh /tmp/tetorica-sid-rebuild\n\x60\x60\x60\n\nThe explicit directory build records matching input hashes without modifying\npublic copies. Browser API source is in tetorica_src/runtime/. This prototype\nis separate from the fixed tetorica-soundchip-native SDK and its catalog.\n`;
-async function inputs() {
-  const files = Object.fromEntries(await Promise.all(sourcePaths.map(async name => [name, digest(await readFile(join(root, name)))])));
+async function inputs(repositoryRoot = root) {
+  const files = Object.fromEntries(await Promise.all(SID_BUILD_INPUTS.map(async name => [name, digest(await readFile(join(repositoryRoot, name)))])));
   if (files['third_party/chips-m6581/upstream/m6581.h'].sha256 !== upstream.headerSha256
     || files['third_party/chips-m6581/LICENSE'].sha256 !== upstream.licenseSha256) throw new Error('SID pristine upstream hash differs');
   return files;
@@ -34,17 +37,17 @@ export async function recordSidBuild(directory) {
   await writeFile(join(directory, 'sid-build.json'), JSON.stringify(receipt, null, 2) + '\n');
   return receipt;
 }
-export async function checkSidBuild() {
-  const receipt = JSON.parse(await readFile(join(canonical, 'sid-build.json'), 'utf8'));
+export async function checkSidBuild({root: repositoryRoot = root, directory = join(repositoryRoot, 'tetorica_src/runtime/generated/sid')} = {}) {
+  const receipt = JSON.parse(await readFile(join(directory, 'sid-build.json'), 'utf8'));
   if (!isDeepStrictEqual(receipt, {schemaVersion: 1, component: 'sid-lab', model: '6581', fixedSdkArtifact: false,
-    upstream, inputs: await inputs(), output: digest(await readFile(join(canonical, 'sid.wasm')))})) throw new Error('SID source / WASM receipt differs; rebuild with sh scripts/build_sid_wasm.sh');
+    upstream, inputs: await inputs(repositoryRoot), output: digest(await readFile(join(directory, 'sid.wasm')))})) throw new Error('SID source / WASM receipt differs; rebuild with sh scripts/build_sid_wasm.sh');
   return receipt;
 }
 async function copies() {
   return [
-    ...runtime.map(name => [`tetorica_src/runtime/${name}`, `docs/js/${name}`]),
+    ...SID_RUNTIME_MODULES.map(name => [`tetorica_src/runtime/${name}`, `docs/js/${name}`]),
     ...['sid.wasm', 'sid-build.json'].map(name => [`tetorica_src/runtime/generated/sid/${name}`, `docs/generated/sid/${name}`]),
-    ...[...sourcePaths, ...runtime.map(name => `tetorica_src/runtime/${name}`)]
+    ...[...SID_BUILD_INPUTS, ...runtimeSources.map(name => `tetorica_src/runtime/${name}`)]
       .map(name => [name, `docs/sources/sid/${name}`]),
   ];
 }

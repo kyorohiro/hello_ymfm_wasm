@@ -3,6 +3,7 @@
  * the historical target to make an incomplete measurement acceptable.
  */
 import {createHash} from 'node:crypto';
+import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
 import {readFile} from 'node:fs/promises';
 import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -172,6 +173,7 @@ export async function validateWonderSwanMixerCalibrationSources({reportPath,wsRe
   let uiReceipt,measuredReportSha256,uiRevision,starterRevision;
   for(const [path,record]of Object.entries(wsReport.sources)){
     let bytes=await readFile(resolve(root,'docs',path));
+    if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)bytes=restoreMixerCalibrationSidRevision(path,bytes);
     if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&path===MIXER_CALIBRATION_PS1_STARTER_PATH){
       starterRevision??=await readMixerCalibrationPs1StarterReceipt(root);
       measuredReportSha256??=sha(await readFile(resolve(root,'docs/issues/wonderswan_chip_levels_01.json')));

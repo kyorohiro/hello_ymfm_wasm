@@ -25,6 +25,7 @@ import {encodePs1Adpcm} from '../../tetorica_src/runtime/ps1_adpcm_encoder.js';
 import {ps1VoiceCode} from '../../docs/playground/playground_ps1_voice_panel.js';
 import {WonderSwanSynth} from '../../tetorica_src/runtime/wonderswansynth.js';
 import {PokeySynth} from '../../tetorica_src/runtime/pokeysynth.js';
+import {createSidClient} from '../../tetorica_src/runtime/playground_sid.js';
 import {createRf5c164Client, createRf5c164Control} from '../../tetorica_src/runtime/playground_rf5c164.js';
 
 function deferred() {
@@ -141,6 +142,22 @@ function independentOpnFixture(){
       dispose(){entry.disposed=true;events.push(['dispose',entry.id]);}};
   };
   return {events,devices,factory};
+}
+function sidRuntimeFixture(){
+  const devices=[];
+  const factory=async(_context,_destination,options={})=>{
+    const registers=new Uint8Array(32),commands=[],entry={registers,commands,disposed:false};devices.push(entry);
+    const port={start(){},close(){},postMessage(command){
+      commands.push(command);
+      if(command.method==='reset')registers.fill(0);
+      else if(command.method==='writeRegister')registers[command.args[0]]=command.args[1];
+      else if(command.method==='forceKeyOff')registers[command.args[0]*7+4]&=254;
+      else if(command.method==='stopVoices')for(let ch=0;ch<3;ch++)registers[ch*7+4]&=254;
+      if(command.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:command.id,value:command.method==='readRegister'?registers[command.args[0]]:true}}));
+    }};
+    return Object.assign(entry,{port,clock:options.clock??985248,model:'6581',node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){entry.disposed=true;}});
+  };
+  return {factory,devices};
 }
 function independentRfFixture(gate){
   const events=[],devices=[];
@@ -2069,4 +2086,60 @@ test('Main PS1 primary exposes spu and pg.spu, borrows useSoundChip and releases
   const {runtime,megaDrive}=setup(t,{chip:'ps1',fmChannels:0,psg:false,dac:false});const synth=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=synth.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample});
   const port={start(){},close(){},postMessage({method,args=[],id}){if(method==='dispose')return;const value=synth[method](...args);if(id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id,value}}));}},client=createPs1Client(port,{state:synth.getState()});t.after(()=>client.dispose());megaDrive.fm=null;megaDrive.spu=client;megaDrive.primaryEndpoints=[{name:'ps1',globalName:'spu',client}];megaDrive.stopAllNative=()=>client._stopVoices();
   await runtime.playSource(`if(spu!==pg.spu||await useSoundChip('ps1')!==spu)throw Error('Wrong sharedSPU');if(typeof fm!=='undefined'||typeof play!=='undefined')throw Error('UnexpectedOPN');const prepared=await livePrepare('spu',({spu})=>spu);if(prepared!==spu)throw Error('MissingpreparedSPU');liveLoop('old',async()=>{spu.noteOn(23,60);await sleep(60);});context.stopOld=()=>stopLoop('old');`);await until(()=>synth.gates[23]);runtime.context.stopOld();assert.equal(synth.gates[23],false);await runtime.stop();assert.equal(synth.samples.length,1);assert.equal(synth.channels[23].sample,0);
+});
+
+test('Main SID exposes one primary in globals/pg/livePrepare and cancels raw CTRL owners independently',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'sid',fmChannels:0,psg:false,dac:false});
+  const f=sidRuntimeFixture(),endpoint=await f.factory(),client=createSidClient(endpoint.port,endpoint);client.initialize();
+  t.after(()=>client.dispose());megaDrive.fm=null;megaDrive.sid=client;megaDrive.primaryEndpoints=[{...endpoint,name:'sid',globalName:'sid',client}];megaDrive.stopAllNative=()=>client._stopVoices();
+  await runtime.playSource(`
+    if(sid!==pg.sid||await useSoundChip('sid')!==sid)throw Error('Wrong primarySID');
+    if(typeof fm!=='undefined'||typeof play!=='undefined'||typeof sid.dispose!=='undefined')throw Error('Unexpected primary API');
+    if(await livePrepare('sid',({sid})=>sid)!==sid)throw Error('Missing preparedSID');
+    sid.setFilter({mode:'lowpass',cutoff:1234,resonance:9,routing:7,volume:8});
+    liveLoop('old',async()=>{try{sid.noteOn(0,'C4');sid.writeRegister(11,0x87);await sleep(60);}finally{sid.reset();context.retiredReset=true;}});
+    liveLoop('new',async()=>{sid.setVoice(0,{waveform:'pulse'});sid.noteOn(0,'E4');await sleep(60);});
+    context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');
+  `);
+  await until(()=>endpoint.registers[4]===0x41&&endpoint.registers[11]===0x87);
+  const filter=endpoint.registers.slice(21,25);runtime.context.stopOld();
+  for(let step=0;step<30&&!runtime.context.retiredReset;step++)await new Promise(resolve=>setTimeout(resolve,2));
+  assert.equal(runtime.context.retiredReset,true);assert.equal(endpoint.registers[4],0x41,'new owner survives an older loop and its finally block');
+  assert.equal(endpoint.registers[11],0x86,'raw CTRL release preserves waveform/sync/ring');
+  assert.deepEqual(endpoint.registers.slice(21,25),filter,'voice retirement keeps the shared filter');
+  runtime.context.stopNew();assert.equal(endpoint.registers[4],0x40);
+  const entries=runtime.chipInspector.list();assert(entries.some(entry=>entry.kind==='sid'&&entry.id==='sid'));
+});
+
+for(const allocation of ['createSoundChip','useSoundChip'])test(`Main SID ${allocation} uses the real register client and retires each extra voice owner`,async t=>{
+  const f=sidRuntimeFixture(),createRuntime=await runtimeWithOpnAudio(f.factory,'createSidAudio');
+  const {runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  const options=allocation==='createSoundChip'?",{id:'sid:lead',clock:1022727,model:'6581'}":'';
+  await runtime.playSource(`
+    const extra=await ${allocation}('sid'${options});
+    extra.setVoice(0,{waveform:'triangle'});extra.setFilter({mode:'highpass',cutoff:456,resonance:4,volume:9});
+    context.clock=extra.clock;
+    liveLoop('old',async()=>{try{extra.noteOn(0,'C4');extra.writeRegister(11,0x23);await sleep(60);}finally{extra.reset();context.retiredReset=true;}});
+    liveLoop('new',async()=>{extra.noteOn(0,'E4');await sleep(60);});
+    context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');
+  `);
+  assert.equal(f.devices.length,1);const endpoint=f.devices[0];
+  assert.equal(endpoint.client.chip,'sid');assert.equal(runtime.context.clock,allocation==='createSoundChip'?1022727:985248);
+  assert.equal(endpoint.registers[11],0x23);assert.equal(endpoint.registers[4],0x11);
+  runtime.context.stopOld();
+  for(let step=0;step<30&&!runtime.context.retiredReset;step++)await new Promise(resolve=>setTimeout(resolve,2));
+  assert.equal(runtime.context.retiredReset,true);assert.equal(endpoint.registers[11],0x22);assert.equal(endpoint.registers[4],0x11);
+  runtime.context.stopNew();assert.equal(endpoint.registers[4],0x10);
+  assert.equal(endpoint.registers[24],0x49);assert(endpoint.commands.some(command=>command.method==='writeRegister'&&command.channel===1));
+  assert(endpoint.commands.filter(command=>command.method==='writeRegister'&&command.args[0]>=21).every(command=>!Object.hasOwn(command,'channel')));
+  assert(runtime.chipInspector.list().some(entry=>entry.kind==='sid'&&entry.id===(allocation==='createSoundChip'?'sid:lead':'sid:shared')));
+  await runtime.finalize();assert.equal(endpoint.disposed,true);
+});
+
+test('SID Native output rejects before allocating or falling back to another sound chip',async t=>{
+  let allocations=0;const createRuntime=await runtimeWithOpnAudio(async()=>{allocations++;throw Error('Unexpected fallback');},'createSidAudio');
+  const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,backend:'native-genesis',dynamicSoundChips:false,dynamicSoundChipKinds:['sid']},{},createRuntime);megaDrive.createFXApi=()=>({});
+  for(const operation of ['createSoundChip','useSoundChip'])await assert.rejects(runtime.playSource(`await ${operation}('sid');`),/SID requires Web Audio/);
+  assert.equal(allocations,0);
+  assert.throws(()=>createPlaygroundRuntime({megaDrive:{capabilities:{chip:'sid',backend:'native-genesis'}}}),/SID requires Web Audio/);
 });

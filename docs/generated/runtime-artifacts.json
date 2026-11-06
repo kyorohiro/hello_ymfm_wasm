@@ -1681,6 +1681,50 @@
       ]
     },
     {
+      "id": "sid",
+      "kind": "application-instrument",
+      "format": "standalone-wasm",
+      "files": [
+        {
+          "path": "sid/sid.wasm",
+          "canonical": "tetorica_src/runtime/generated/sid/sid.wasm",
+          "mirrors": [
+            "docs/generated/sid/sid.wasm"
+          ],
+          "size": 14502,
+          "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+        },
+        {
+          "path": "sid/sid-build.json",
+          "canonical": "tetorica_src/runtime/generated/sid/sid-build.json",
+          "mirrors": [
+            "docs/generated/sid/sid-build.json"
+          ],
+          "size": 2438,
+          "sha256": "d5840562a2a3a7cefebb066759a157debfe23964064ead5a7b1f88f25c52903c"
+        }
+      ],
+      "sourceFiles": [
+        "LICENSE",
+        "third_party/chips-m6581/LICENSE",
+        "third_party/chips-m6581/README.md",
+        "third_party/chips-m6581/PATCHES.md",
+        "third_party/chips-m6581/upstream/m6581.h",
+        "third_party/chips-m6581/m6581.h",
+        "tetorica_src/wasm/sid_core.h",
+        "tetorica_src/wasm/sid_wasm.cpp",
+        "scripts/build_sid_wasm.sh",
+        "scripts/prepare_sid_core.py",
+        "scripts/sid_artifacts.mjs",
+        "test/helpers/sid_reference.cpp",
+        "scripts/check_sid_native.mjs"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "third_party/chips-m6581/LICENSE"
+      ]
+    },
+    {
       "id": "native_audio_effect",
       "kind": "application-effect",
       "format": "standalone-wasm",

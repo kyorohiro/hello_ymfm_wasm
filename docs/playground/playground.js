@@ -1805,7 +1805,7 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
+    ...Object.fromEntries(['sid', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
       [`${name}Tab`, document.getElementById(`${name}Tab`)],
       [`${name}Panel`, document.getElementById(`${name}Panel`)],
     ])),
@@ -1825,7 +1825,7 @@ const ui =
       audioMonitor.setVisible(showAudio);
       if (extraFmEditor) extraFmEditor.setVisible(primary === 'operator');
       else operatorTab?.setVisible(primary === "operator");
-      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
+      chipTabs?.setVisible(['sid', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
       cdrom2AudioPanels?.setVisible(['msm5205','cdda'].includes(primary)?primary:null);
       mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary === 'operator' && extraFmEditor?.isExtraSelected() ? 'extra-fm' : primary);
@@ -2027,11 +2027,11 @@ mixerPanel = createPlaygroundMixer({
   },
   onError: error => setStatus(`Mixer: ${error.message}`),
 });
-additionalChipTabAvailability=createPlaygroundAdditionalChipTabAvailability({getInspector:()=>runtime.chipInspector,kinds:useNativeGenesis?['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','wonderswan','pokey','dx7','pwm']:['pokey'],primaryKinds:selectedMode.chipTabs,onAvailability:(kind,available)=>ui.setChipTabAvailable(kind,available)});
+additionalChipTabAvailability=createPlaygroundAdditionalChipTabAvailability({getInspector:()=>runtime.chipInspector,kinds:useNativeGenesis?['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','wonderswan','pokey','dx7','pwm','sid']:['pokey','sid'],primaryKinds:selectedMode.chipTabs,onAvailability:(kind,available)=>ui.setChipTabAvailable(kind,available)});
 chipTabs = createPlaygroundChipTabs({
-  eventDrivenAdditionalKinds:useNativeGenesis?['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','wonderswan','pokey','dx7','pwm']:[],
+  eventDrivenAdditionalKinds:useNativeGenesis?['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','wonderswan','pokey','dx7','pwm','sid']:[],
   voiceApiNames:selectedMode.chip==='pokey'?{pokey:'pokey','pokey:2':'pokey2'}:{},
-  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => [name, document.getElementById(`${name}Panel`)])),
+  roots: Object.fromEntries(['sid', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => [name, document.getElementById(`${name}Panel`)])),
   getInspector: () => runtime.chipInspector,
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),

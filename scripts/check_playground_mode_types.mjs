@@ -4,19 +4,20 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {selectPlaygroundDeclarations} from '../docs/playground/playground_declarations.js';
+import {MODE_STARTERS} from '../docs/playground/playground_mode_examples.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
     ...['ym2612', 'mega-cd', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
-    ...['scsp','ps1','pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio','atari-st'].map(chip => `playground-mode-${chip}.ts`),
+    ...['c64','scsp','ps1','pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio','atari-st'].map(chip => `playground-mode-${chip}.ts`),
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts', 'playground-cdda.ts',
     'playground-mode-mega-cd-cdda.ts',
   ];
   for (const fixture of fixtures) {
     let fixturePath = join(root, 'test/types', fixture);
-    const nativeChip = /^playground-mode-(scsp|ps1|pokey|pokey-dual|wonderswan|gameboy|nes|snes|x68000|huc6280|pc-engine-cd|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx|msx-audio|atari-st)\.ts$/.exec(fixture)?.[1];
+    const nativeChip = /^playground-mode-(c64|scsp|ps1|pokey|pokey-dual|wonderswan|gameboy|nes|snes|x68000|huc6280|pc-engine-cd|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx|msx-audio|atari-st)\.ts$/.exec(fixture)?.[1];
     const selectedChip = nativeChip ?? (fixture === 'playground-mode-mega-cd-cdda.ts' ? 'mega-cd' : null);
     if (selectedChip) {
       const globals = join(scratch, 'tetorica-playground-globals.d.ts');
@@ -36,7 +37,23 @@ try {
     }, files: [fixturePath]}));
     execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', config], {stdio: 'inherit'});
   }
-  console.log('PASS: Playground mode declarations, selected channels/capabilities, independent chips, and existing time/tone/clock types.');
+  // Match Monaco's checkJs diagnostics for the new C64 starter and editable
+  // examples, including the physical-channel union in iteration callbacks.
+  const sidGlobals = join(scratch,'sid-globals.d.ts');
+  await writeFile(sidGlobals,selectPlaygroundDeclarations(
+    await readFile(join(root,'docs/playground/tetorica-playground-globals.d.ts'),'utf8'),'c64'));
+  for (const source of [`defaults/${MODE_STARTERS.c64.index}`,...MODE_STARTERS.c64.examples.map(path=>path.slice(1))]) {
+    const example = join(scratch,'sid-example.js');
+    await writeFile(example,await readFile(join(root,'docs/playground',source),'utf8'));
+    const config = join(scratch,'tsconfig.json');
+    await writeFile(config,JSON.stringify({compilerOptions:{
+      allowJs:true,checkJs:true,strict:true,noEmit:true,skipLibCheck:false,
+      target:'ES2022',module:'ESNext',moduleResolution:'Bundler',moduleDetection:'force',
+      lib:['ES2022','DOM'],types:[],
+    },files:[sidGlobals,join(root,'docs/playground/tetorica-playground-c64.d.ts'),example]}));
+    execFileSync(process.execPath,[join(root,'node_modules/typescript/bin/tsc'),'-p',config],{stdio:'inherit'});
+  }
+  console.log('PASS: Playground mode declarations, selected channels/capabilities, independent chips, time/tone/clock types, and C64 examples with checkJs.');
 } finally {
   await rm(scratch, {recursive: true, force: true});
 }

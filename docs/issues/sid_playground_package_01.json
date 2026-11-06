@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "mode": "c64",
+  "chip": "sid",
+  "packages": [
+    {
+      "path": "release/hello_ymfm_wasm_sid-playground-01_itch_playground.zip",
+      "bytes": 37290807,
+      "sha256": "f1748d74229d02c476ecbc733a370a2cb47ea199e391facc2a1ea3820f09d48f",
+      "entries": 1320,
+      "files": 1171
+    },
+    {
+      "path": "release/hello_ymfm_wasm_sid-playground-01_itch_playground_for_run.zip",
+      "bytes": 37736383,
+      "sha256": "f69cf3da6b4ec02fec10537f2608d70c250528d704426101440d3374fbd54e7f",
+      "entries": 993,
+      "files": 993
+    }
+  ],
+  "readableRuntime": true,
+  "sdkBuildCount": 33,
+  "sourceComponent": "application-local chips/m6581 with separate checked receipt",
+  "browserSourceReport": "docs/issues/sid_playground_browser_01.json",
+  "browserZipReport": "docs/issues/sid_playground_zip_browser_01.json",
+  "limits": {
+    "itchEntries": 1000
+  },
+  "notes": "Browser ZIP keeps SID runtime JS readable. Duplicate SID source-kit scripts remain byte-exact inside the complete corresponding-source.zip."
+}

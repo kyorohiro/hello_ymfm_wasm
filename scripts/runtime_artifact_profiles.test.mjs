@@ -6,6 +6,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {getRuntimeArtifactManifest, listRuntimeArtifactFiles} from './runtime_artifacts.mjs';
 import {copyRuntimeArtifactProfile, runtimeArtifactProfiles} from './runtime_artifact_profiles.mjs';
+import {SID_BUILD_INPUTS} from './sid_artifacts.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 async function temporary(t) {
@@ -25,8 +26,8 @@ test('full profile includes every runtime; application subsets retain their prev
     assert.equal(new Set(selected).size, selected.length);
     assert(selected.every(id => available.includes(id)));
   }
-  assert.equal(runtimeArtifactProfiles.full.length, 34);
-  assert.equal(runtimeArtifactProfiles.playground.length, 28);
+  assert.equal(runtimeArtifactProfiles.full.length, 35);
+  assert.equal(runtimeArtifactProfiles.playground.length, 29);
   assert.equal(runtimeArtifactProfiles.analyzer.length, 26);
   assert.equal(runtimeArtifactProfiles.synth.length, 9);
   for (const id of ['cdda', 'msm5205', 'ps1_spu', 'scsp', 'dx7'])
@@ -72,7 +73,9 @@ for (const profile of ['playground', 'analyzer', 'synth']) {
       && !['dx7', 'native_audio_effect'].includes(artifact.id)).flatMap(artifact => artifact.files.map(file => file.path));
     if (selected.has('ps1_spu')) expected.push('ps1_spu_build.json');
     if (profile === 'playground') expected.push('build-info.json');
-    assert.deepEqual((await readdir(join(stage, 'generated'))).sort(), expected.sort());
+    const actual = await readdir(join(stage, 'generated'), {recursive: true, withFileTypes: true});
+    assert.deepEqual(actual.filter(entry => entry.isFile()).map(entry =>
+      join(entry.parentPath, entry.name).slice(join(stage, 'generated').length + 1)).sort(), expected.sort());
     for (const name of expected)
       assert.deepEqual(await readFile(join(stage, 'generated', name)), await readFile(join(root, 'tetorica_src/runtime/generated', name)));
     assert.deepEqual(await readFile(join(stage, 'js/native_audio_effect.wasm')),
@@ -98,6 +101,10 @@ test('packaging rejects stale public mirrors or missing canonical outputs withou
   await mkdir(join(checkout, 'third_party'), {recursive: true});
   await cp(join(root, 'third_party/tetorica-soundchip-native'), join(checkout, 'third_party/tetorica-soundchip-native'), {recursive: true});
   await cp(join(root, 'third_party/soundchip-sdk.json'), join(checkout, 'third_party/soundchip-sdk.json'));
+  for (const name of SID_BUILD_INPUTS) {
+    await mkdir(dirname(join(checkout, name)), {recursive: true});
+    await cp(join(root, name), join(checkout, name));
+  }
   await cp(join(root, 'tetorica_src/runtime/generated'), join(checkout, 'tetorica_src/runtime/generated'), {recursive: true});
   for (const file of await listRuntimeArtifactFiles({root, ids: runtimeArtifactProfiles.synth})) {
     for (const mirror of file.mirrors) {

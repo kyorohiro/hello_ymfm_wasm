@@ -8,8 +8,8 @@ import {checkRuntimeArtifacts, listRuntimeArtifactFiles} from './runtime_artifac
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 const ids = value => Object.freeze(value.split(' '));
 export const runtimeArtifactProfiles = Object.freeze({
-  full: ids('ay8910 gameboy_apu huc6280 wonderswan pokey k051649 nesapu pwm32x nuked_opn2 okim6258 rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288 cdda msm5205 ps1_spu scsp dx7 native_audio_effect'),
-  playground: ids('nesapu pwm32x ay8910 ym2413 ym3526 ym3812 y8950 ymf262 ps1_spu scsp spc ym2151 gameboy_apu huc6280 pokey wonderswan okim6258 rf5c164 ym2612 nuked_opn2 segapsg ym2203 ym2608 ym2610b cdda msm5205 dx7 native_audio_effect'),
+  full: ids('sid ay8910 gameboy_apu huc6280 wonderswan pokey k051649 nesapu pwm32x nuked_opn2 okim6258 rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288 cdda msm5205 ps1_spu scsp dx7 native_audio_effect'),
+  playground: ids('sid nesapu pwm32x ay8910 ym2413 ym3526 ym3812 y8950 ymf262 ps1_spu scsp spc ym2151 gameboy_apu huc6280 pokey wonderswan okim6258 rf5c164 ym2612 nuked_opn2 segapsg ym2203 ym2608 ym2610b cdda msm5205 dx7 native_audio_effect'),
   analyzer: ids('nesapu pwm32x spc huc6280 wonderswan pokey okim6258 ym2610b ay8910 k051649 segapcm gameboy_apu y8950 ymf278b ym3526 ym3812 ymf262 ym2151 ym2413 ym2203 ym2608 ym2612 nuked_opn2 segapsg rf5c164 native_audio_effect'),
   synth: ids('ym2612 nuked_opn2 segapsg nesapu pwm32x ym2203 ym2608 rf5c164 native_audio_effect'),
   // Remaining CLI assets are discovered from static imports by build_cli.mjs.

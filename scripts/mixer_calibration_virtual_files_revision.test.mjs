@@ -40,8 +40,12 @@ test('the exact reviewed Git and Shell revisions preserve all four historical me
       assert.equal(assertMixerCalibrationSourceFreshness({path,bytes,record,report}),'ui-virtual-files',path);
     }
     await assert.rejects(validate({reportPath:new URL('docs/issues/playground_chip_levels_01.json',root),[parameter]:report}),
-      /source changed; remeasure: (?:docs\/js|web)\/scspsynth\.js/,
+      /source changed; remeasure:/,
       'The reviewed Git/Shell revision does not authorize a later semantic SCSP edit');
+    const scspPath='js/scspsynth.js',scspBytes=await read('docs/'+scspPath);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({path:scspPath,bytes:scspBytes,record:report.sources[scspPath],report}),
+      /source changed; remeasure: docs\/js\/scspsynth\.js/,
+      'Check SCSP itself independently of which other stale source the validator finds first');
     assert.equal(JSON.stringify(report),original,'Validation must retain every captured result and original source hash');
   }
   for(const [path,expected]of Object.entries(immutable))assert.equal(sha(await read(path)),expected,'Validation must not rewrite '+path);

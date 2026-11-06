@@ -33,6 +33,9 @@ await writeFile(join(stage,'generated/ps1_spu_wasm.d.ts'),
 // SCSP has an explicit local PCM contract rather than the broad inferred JS
 // structural types. Keep it when copying the complete runtime payload.
 for(const name of ['scsp.d.ts','scspsynth.d.ts','scsp_sample.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
+// SID keeps creation-fixed clocks and asynchronous client readback. Explicit
+// contracts retain these properties, which dynamic JS assignment cannot infer.
+for(const name of ['sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
 await writeFile(join(stage,'generated/scsp_wasm.d.ts'),
   "import type {WasmModuleFactory} from '../soundchip.js';\n"+
   'declare const moduleFactory: WasmModuleFactory;\nexport default moduleFactory;\n');

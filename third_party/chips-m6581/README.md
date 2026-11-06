@@ -17,6 +17,19 @@ This is a **6581 approximation**, not an 8580 model or full C64/SID music player
 The filter is simplified; exact analog chip variation is outside this version.
 See `docs/issues/sid_core_selection_01.md` for alternative cores and comparison.
 
+The normal browser Playground provides **C64 (SID 6581)** mode (`?mode=c64`)
+through `sid`, `createSoundChip('sid')` and `useSoundChip('sid')`, in Main and
+Worker execution. `SidSynth` adds musical note, voice and shared-filter helpers;
+its explicit TypeScript contracts accompany the readable JavaScript. The
+Playground factory and package-root raw chip factory have different coverage:
+this SID is not a new package-root factory or fixed SDK entry. Native audio
+output and `.sid` song playback remain subsequent work.
+
+SID filter mode `off` clears filter output bits. Voices routed into that filter
+are then silent; use `routing: 0` for dry output, or e.g.
+`{mode:'lowpass', routing:7}` for a shared filtered signal. This follows the
+register routing rather than hiding it behind an automatic bypass.
+
 Build from the repository root with an installed Emscripten SDK:
 
 ```sh

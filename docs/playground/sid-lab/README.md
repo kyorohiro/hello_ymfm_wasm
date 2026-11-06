@@ -1,7 +1,9 @@
 # SID register lab
 
-The first C64 milestone is a small **6581 register / filter experiment**, before
-adding a regular Playground mode or a complete Synth. It uses the real compiled
+This first C64 milestone is a small **6581 register / filter experiment**. The
+regular [C64 Playground mode](../index.html?mode=c64) now provides code-driven
+Main / Worker playback and a SID state tab; a complete Synth is a later stage.
+This lab uses the real compiled
 chip core in an AudioWorklet, not Web Audio oscillators or a Biquad substitute.
 
 ## 試し方
@@ -29,8 +31,9 @@ CutoffはHzではなく、実レジスターの11-bit codeです。
 The chip is **MOS 6581 only**, using a simplified filter model from
 [floooh/chips](https://github.com/floooh/chips). This is an initial, permissively
 licensed implementation; it is not a calibrated model of analog chip variation.
-There is no 8580 selector, `.sid` song playback, VGM import, regular Playground
-Run / Worker / Native backend integration, keyboard allocation or preset UI yet.
+There is no 8580 selector, `.sid` song playback, VGM import, Native backend,
+keyboard allocation or preset UI yet. This lab remains independent of regular
+Playground Run / Worker sessions.
 Those stages are tracked in [the TODO](../../issues/todo_sid_01.md).
 
 Waveform, pulse width, ADSR, Sync / Ring, filter routing, cutoff, resonance and

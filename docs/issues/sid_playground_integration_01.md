@@ -1,5 +1,15 @@
 # C64 SID: Playground integration map
 
+## 第2段階完了（2026-11-06）
+
+通常 `?mode=c64`、chip/global `sid` をMain／Workerへ接続した。
+`SidSynth`、create/use、型とsource補完、read-only 3voice／filter tab、可読source付き配布まで対応。
+現在の操作と制約は [SID guide](../sid.md)、検証記録と残作業は [TODO](todo_sid_01.md)を参照する。
+SDK snapshotは変更せず、SID専用receiptをapplication instrumentとして通常artifact profileへ登録した。
+Native audio、keyboard audition／Synth、`.sid` song playbackは後続。
+
+以下は実装前の調査マップとして保持する。
+
 ## 再開時の前提（2026-11-06）
 
 全体TODOは [todo_sid_01.md](todo_sid_01.md)。初回は `chips/m6581`（zlib license）を使う

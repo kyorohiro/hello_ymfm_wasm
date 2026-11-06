@@ -18,8 +18,21 @@
 
 ## 2. Playground／公開API
 
-- [ ] JS API・型・Main／Worker／AudioWorklet、音声の開始／停止／再発音を既存構成へ接続する。
-- [ ] Playground mode／サンプル／voice・filter表示／補完からの実装参照を用意する。
+### 通常mode接続の今回の作業（2026-11-06）
+
+ユーザーの「進めて」により、第1段階の独立ラボから通常Playgroundへの接続を開始する。
+正本のSID core／WASMを再利用し、固定SDK snapshotへ直接追加しない。
+mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creation時のclockは固定。
+
+- [x] `SidSynth` のvoice／filter／note helperと、Main／logic Workerから直接使うclient、AudioWorklet endpointを実装する。予約時刻・Loop所有権・Stop／再Runを既存performance queueへ接続する。
+- [x] `createSoundChip('sid')`／`useSoundChip('sid')`、SID primary／追加instance、Clock／model optionsの検証を揃える。未対応Native audio backendでは明示的に拒否する。
+- [x] C64 mode、自作コード例、3voice／shared filterの状態表示、モード別型と補完からのsource参照を追加する。
+- [x] SID専用receiptで通常Playground ZIPとmatching sourceを検証・同梱し、既存SDKの認証は維持する。可読コードを保持する。
+- [x] Main／Worker、追加instance、予約された発音／離鍵、Stop／再Run、非対応option拒否、source／独立ZIPのChromium／WebKit、型・配布を検証し記録する。
+- [x] README en／ja／AI、接続マップ、再開TODO、CIを今回の実装範囲へ更新する。npm公開、SID曲再生、Synthは後続。
+
+- [x] JS API・型・Main／Worker／AudioWorklet、音声の開始／停止／再発音を既存構成へ接続する。
+- [x] Playground mode／サンプル／voice・filter表示／補完からの実装参照を用意する。
 - [x] 独立ラボのbuild、checked WASM／JS配布、対応source kit、license、offline ZIP、CI workflowを追加する。通常Playgroundのartifact profile／SDKへの登録は後続。
 - [x] 独立ラボの実WASMを使ってChromium／WebKitで発音・停止・parameter変更・エラーを検証する。通常modeのMain／Workerは後続。
 
@@ -41,7 +54,7 @@
 ## 再開メモ
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
-通常Playground mode、公開npm API、Synth、SID曲再生はまだ追加していない。
+通常Playground modeは下記第2段階で対応した。package-root raw chip factory／Native出力／Synth／SID曲再生は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
 
@@ -82,9 +95,45 @@ TODOを作成してから調査を開始した。第1段階のcore／Native・WA
   実ブラウザーで再生したpreview ZIPとの違いはTODOのsnapshot2件のみで、全実行asset・元sourceはbyte一致。
   ZIP CRCと原本・Native／WASM source・再ビルド手順の同梱も確認した。
 
-次は通常Playground modeへの接続。[接続マップ](sid_playground_integration_01.md)に沿って、
-Main／Worker／型／補完・配布を揃える。人の実聴、外部sidplayfpや実機との比較は未実施。
-commit／push／npm公開／tag作成は行っていない。
+上記は第1段階の記録。通常Playgroundへの接続は下記で完了した。
+
+## 第2段階: 通常Playground（2026-11-06）
+
+- `playground/index.html?mode=c64` に **C64 (SID 6581)** を追加。global `sid`、primary／追加instance、
+  `createSoundChip('sid')`／`useSoundChip('sid')`をMain／Workerで使える。default melodyとtriad／filter sweepの3例を用意した。
+- `SidSynth`とport clientで3つの実voiceのwave／Pulse幅／ADSR／Sync／Ring／TEST、音階／周波数、shared filter／routing／chip volumeを操作する。
+  初期routing0・filter mode off・chip volume8でdry発音。mode offはfilter出力bits0なので、routing7のままでは無音になるhardware semanticsをガイドに明記した。
+- SIDタブは3voice、shared filter、written shadowのread-only表示。表示やgetStateはbusをclockしない。
+  SID向けのkeyboard audition／tabからの編集は後続。既存のkeyboard対象へ未対応SIDを出さない。
+- 予約されたCTRL Gateをvoiceごとに所有し、古いloopの離鍵が新しいownerを切らない。async readRegister／getState後もcaller contextを復元する。
+  keyOff／allNotesOffはhardware release、Transport Stopはqueue／envelope／DC尾音をflushして適用patchを保持する。
+- modelは6581のみ、creation時clock900,000..1,100,000Hz、出力8..96kHzを検証。異なるclockへのsetClockとNative出力は明示拒否する。
+- SID runtime unit **35件成功**（既存Core12を含む）。担当AのMain／Worker／既存音源のfocused回帰は14files・**691件成功**。
+  mode／例／source navigation／panelの関連テストと、全mode型・default／3例のcheckJsも成功。
+- `npm run build:fm2612` と実tarballの隔離offline install検証成功。403宣言のstrict check、28 WASMのロード／既存音源PCM、
+  NodeNext／Bundler／Node ambient無しのbrowser型を確認。SIDの明示型3本を同梱し、raw SDK factoryへSIDを誤追加していないことも型で確認した。npm公開はしていない。
+- [Source browser](sid_playground_browser_01.json)と[展開ZIP browser](sid_playground_zip_browser_01.json)で、
+  Chromium／WebKit × Main／Workerの**各4構成・各7項目成功**。初期化中Stop、3例、再Run、RPC、cache／追加SID、
+  live LP／BP／HPの実PCM変化、同名LoopのApply／古いfinally、SID表示と390pxでFiles非侵食を確認した。
+  speakerはgain0。既存MonacoのCDN通信はeditorDependenciesへ分離記録し、想定外の外部通信・page／console error・404は0。
+- [配布記録](sid_playground_package_01.json): `release/hello_ymfm_wasm_sid-playground-01_itch_playground_for_run.zip` は
+  **993 entries**でitch.ioの1000件上限内。対応sourceを展開したdownload版も作成した。SIDの実行JSは可読のまま保持し、
+  重複するSID source-kit scripts／typesは完全なcorresponding-source.zipへ収録する。guideに取り出し方を表示した。
+  `prepare_itch_playground_run`7件とruntime artifact／builder／staging29件の検証が成功。
+- 固定SDKは33 buildsのまま。SIDは別receipt付きapplication instrumentとして通常catalog／full・Playground profileへ追加し、
+  **68 outputs／75 mirrors**を検証する。matching Native／WASM source、原本・license・型と再ビルド手順を同梱した。
+- 既存測定JSON／target／他音源gainは変更せず、SIDはunityを明示しunmeasuredKindsへ登録した。
+  [SID追加だけのsource receipt](sid_playground_source_revision_01.json)と別pinの復元helperで、既存校正時のsource hashを厳密に維持する。
+  20pathsの完全なbefore／after hashと80逆差分を検証し、1byteの将来変更・gain／DSP／WASMの許可外変更を拒否する。
+  このreceiptは実機精度やSID音量を測定した証拠ではない。
+- 校正／source／legacyの24 test filesは`--test-concurrency=1`で**534件成功**。
+  実ファイルを一時変更する拒否テストも含むため、browser／配布検証とは別枠で直列実行した。
+  検証前後の336ファイルのhashを比較し変更0、receipt／両policy generatorのcheck成功を確認した。
+- [ガイド](../sid.md)、README en／ja／AI、source kit、配布チェック、SID CI workflowを更新した。
+  GitHub上のCI実行／commit／push／npm公開／tag作成は今回行っていない。
+
+次は人がC64 modeの3例とfilterを試聴する。実装候補は **SID Synthの鍵盤／3声の割当／shared filter UI**。
+外部sidplayfpや実機との比較、PSID／RSID program実行／register trace、Native SDK／出力は独立した後続として残る。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

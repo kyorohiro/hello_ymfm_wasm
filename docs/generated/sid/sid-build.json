@@ -18,8 +18,8 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-m6581/README.md": {
-      "bytes": 1502,
-      "sha256": "55ee7e5c348cf843ee8f007e1938701a127340ba3d611661393b0e4591224d52"
+      "bytes": 2306,
+      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
     },
     "third_party/chips-m6581/PATCHES.md": {
       "bytes": 2239,
@@ -50,8 +50,8 @@
       "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
     },
     "scripts/sid_artifacts.mjs": {
-      "bytes": 5064,
-      "sha256": "68d00e009c1d55a5994e137dc22ec6c5ad8c5e5c028c50f89477233123192264"
+      "bytes": 5710,
+      "sha256": "aed183c1a49413490a30308ac15fd4dc607f0e19c3de94ceeea7492437c4f897"
     },
     "test/helpers/sid_reference.cpp": {
       "bytes": 10666,

@@ -45,14 +45,21 @@ test('browser stage keeps complete source ZIP and original runtime/licenses/rece
   'sources/native/chip/README.md':'# Native chip\n','sources/native/chip/NOTICE.md':'Original native notice\n',
   'sources/native/chip/LICENSE':'Original chip license\n','sources/NOTICE.md':'Root source notice\n','sources/Chip.json':'{"sourceHash":"original"}\n',
   'sources/native/chip/core.c':'int core(void){return 1;}\n','sources/native/chip/core.h':'int core(void);\n','sources/scripts/build.sh':'#!/bin/sh\ncc native/chip/core.c\n',
+  'js/sid.js':'export const readableSid=true;\n',
+  'sources/sid/README.md':'# SID source kit\nBuild from this directory after extraction.\n',
+  'sources/sid/tetorica_src/runtime/sid.js':'export const readableSid=true;\n',
+  'sources/sid/tetorica_src/runtime/sidsynth.d.ts':'export declare class SidSynth {}\n',
+  'sources/sid/scripts/prepare_sid_core.py':'# Original preparation script\n',
+  'sources/sid/scripts/sid_artifacts.mjs':'// Original source receipt verifier\n',
  };
  try{
   for(const[name,value]of Object.entries(payload)){await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);}
-  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,3);assert.equal(result.sourceArchive.files,9);
-  for(const name of ['index.html','LICENSE','js/app.js','generated/audio.wasm','licenses/chip/NOTICE.md','sources/NOTICE.md','sources/native/chip/NOTICE.md','sources/native/chip/LICENSE','sources/Chip.json'])assert.deepEqual(await readFile(join(run,name)),await readFile(join(full,name)),name);
+  const result=await prepareItchPlaygroundRun(full,run);assert(result.passed&&result.fullStageUnchanged);assert.equal(result.removedCompilationFiles.length,7);assert.equal(result.sourceArchive.files,14);
+  for(const name of ['index.html','LICENSE','js/app.js','js/sid.js','generated/audio.wasm','licenses/chip/NOTICE.md','sources/NOTICE.md','sources/native/chip/NOTICE.md','sources/native/chip/LICENSE','sources/Chip.json'])assert.deepEqual(await readFile(join(run,name)),await readFile(join(full,name)),name);
   for(const name of result.removedCompilationFiles)await assert.rejects(access(join(run,name)),{code:'ENOENT'});
   const guide=await readFile(join(run,'sources/Chip.md'),'utf8');assert(guide.endsWith(payload['sources/Chip.md']));assert.match(guide,/\]\(corresponding-source\.zip\)/);
   const nested=await readFile(join(run,'sources/native/chip/README.md'),'utf8');assert(nested.endsWith(payload['sources/native/chip/README.md']));assert.match(nested,/\]\(\.\.\/\.\.\/corresponding-source\.zip\)/);
+  const sidGuide=await readFile(join(run,'sources/sid/README.md'),'utf8');assert(sidGuide.endsWith(payload['sources/sid/README.md']));assert.match(sidGuide,/\]\(\.\.\/corresponding-source\.zip\)/);
   const restored=join(scratch,'restored');
   execFileSync(process.env.PYTHON||'python3',['-c','import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:z.extractall(sys.argv[2])',join(run,'sources/corresponding-source.zip'),restored]);
   for(const[name,value]of Object.entries(payload)){assert.deepEqual(await readFile(join(full,name)),Buffer.from(value),'Full stage unchanged '+name);if(name.startsWith('sources/'))assert.deepEqual(await readFile(join(restored,name.slice(8))),Buffer.from(value),'Complete original archive '+name);}

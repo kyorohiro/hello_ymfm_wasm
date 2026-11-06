@@ -1,4 +1,5 @@
 import {createPokeyClient} from './playground_pokey.js';
+import {createSidClient} from './playground_sid.js';
 import {createAy8910Client} from './playground_ay8910.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createNesClient} from './playground_nes.js';
@@ -60,7 +61,8 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}, lifecycle = {}) {
-  const client = name==='pokey'?createPokeyClient(port,options,lifecycle):name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
+  if(name==='sid'&&options.native)throw new Error('SID requires Web Audio; Native output is not supported yet.');
+  const client = name==='sid'?createSidClient(port,options,lifecycle):name==='pokey'?createPokeyClient(port,options,lifecycle):name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
     : name === 'nes' ? createNesClient(port, options,lifecycle)
     : name === 'gameboy' ? createGameboyClient(port,options,lifecycle)
     : name === 'scsp' ? createScspClient(port,options,lifecycle)
@@ -76,7 +78,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
   if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state && name!=='nes') client._adoptState?.(options.state);
-  else if (name === 'wonderswan' || name === 'huc6280' || name==='pokey' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
+  else if (name === 'wonderswan' || name === 'huc6280' || name==='pokey' || name==='sid' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 
@@ -85,7 +87,7 @@ export function createNativeWorkerApis(connections, performance, observe, lifecy
   const raw = new Map(), apis = {};
   for (const connection of connections) {
     const port = performance.port(connection.port, 'independent');
-    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','y8950','ps1','scsp'].includes(connection.name)?lifecycle:{});
+    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','sid','y8950','ps1','scsp'].includes(connection.name)?lifecycle:{});
     raw.set(connection.globalName, client);
     let queued = false;
     const changed = () => {

@@ -8,9 +8,12 @@ Updated: 2026-11-06 (English handoff; readable distributions, source organizatio
 
 The user authorized an implementation-first order. Start with
 [`docs/issues/todo_sid_01.md`](docs/issues/todo_sid_01.md) and the linked core
-selection / Playground integration notes. The first milestone is a standalone
-6581 register lab at `docs/playground/sid-lab/index.html`, not a regular mode,
-complete Synth, `.sid` song player, or newly published npm / Native SDK API.
+selection / Playground integration notes. The standalone 6581 register lab is
+at `docs/playground/sid-lab/index.html`. The next milestone adds regular **C64**
+mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
+instances, typed note / voice / shared-filter helpers and a read-only SID tab.
+See [the guide](docs/sid.md). It is not a complete Synth, `.sid` song player,
+newly published npm release or Native SDK API.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
 the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
 and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
@@ -19,11 +22,22 @@ Do not modify the authenticated SDK snapshot to add this prototype.
 Use `npm run build:sid`, `npm run test:sid`, `npm run test:sid:native`, and
 `npm run test:sid:browser`. `scripts/sid_artifacts.mjs --check` verifies this
 prototype's separate receipt, upstream hashes, modules, WASM and matching source
-kit. `node scripts/package_sid_lab.mjs` creates a readable standalone package.
+kit. The full runtime artifact catalog includes SID as an application instrument
+with its separate receipt, while the fixed SDK remains unchanged.
+`node scripts/package_sid_lab.mjs` creates a readable standalone lab package;
+`sh scripts/package_itch_playground.sh` also ships the regular C64 mode.
 6581 filter / combined waves remain approximations; no 8580 model is provided.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
-External sidplayfp reference playback, timed register capture and regular
-Main / Worker / type / SDK integration are subsequent TODO stages.
+External sidplayfp reference playback, timed register capture, Native SDK / audio
+integration and the keyboard Synth are subsequent TODO stages. The creation
+clock is fixed (PAL default, optional NTSC); only model '6581' is supported.
+Filter mode 'off' disables filter outputs; dry playback requires routing:0.
+SID Mixer gain is explicit unmeasured unity, preserving every measured gain.
+`scripts/mixer_calibration_sid_revision.mjs` authenticates exact reviewed SID
+routing additions and reconstructs the pre-SID bytes for legacy calibration
+freshness checks. It never changes measurement reports or permits arbitrary
+future renderer/gain edits. Do not regenerate that receipt without reviewing
+the complete change and rerunning the focused rejection tests.
 This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
 ## Check these first

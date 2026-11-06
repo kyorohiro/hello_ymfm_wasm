@@ -1,0 +1,1319 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "checker": "scripts/check_playground_sid_browser.cjs",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "results": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "execution": "main",
+      "passed": true,
+      "checks": [
+        "lazy SID mode, read-only panel and Files separation",
+        "Stop during the first delayed WASM start cannot leave a stale note",
+        "three default editable examples produce actual PCM and Stop/re-Run",
+        "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+        "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+        "same-name loop Apply cannot let its retired Gate-off cut the new note",
+        "independent additional SID instance, cache stability and final Stop silence"
+      ],
+      "captures": [
+        {
+          "check": "Stop during the first delayed WASM start cannot leave a stale note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.05193337798118591,
+              "rms": 0.02850500163696381,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-melody.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.1989770531654358,
+              "rms": 0.07003936919457636,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-triad.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.15696537494659424,
+              "rms": 0.053837095768589256,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-filter-sweep.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.051925837993621826,
+              "rms": 0.02858618373905406,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.10232643783092499,
+              "rms": 0.049442486760708663,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.20391397178173065,
+              "rms": 0.061642333249221956,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.08762002736330032,
+              "rms": 0.01901401240183604,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.12169691175222397,
+              "rms": 0.01814241119376175,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "filterDifference": {
+            "lowBand": 0.8659442941772134,
+            "bandHigh": 0.42999415855337025
+          },
+          "modes": {
+            "lowpass": {
+              "rms": 0.06201970842588828,
+              "peak": 0.20391397178173065
+            },
+            "bandpass": {
+              "rms": 0.018920555672498687,
+              "peak": 0.08717380464076996
+            },
+            "highpass": {
+              "rms": 0.017936823442373635,
+              "peak": 0.12639464437961578
+            }
+          }
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06528431922197342,
+              "rms": 0.03599768813255175,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06177770346403122,
+              "rms": 0.035917507677032674,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06334526091814041,
+              "rms": 0.03594489288936859,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "editorDependencies": [
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf"
+      ],
+      "layoutNotifications": []
+    },
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "execution": "worker",
+      "passed": true,
+      "checks": [
+        "lazy SID mode, read-only panel and Files separation",
+        "Stop during the first delayed WASM start cannot leave a stale note",
+        "three default editable examples produce actual PCM and Stop/re-Run",
+        "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+        "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+        "same-name loop Apply cannot let its retired Gate-off cut the new note",
+        "independent additional SID instance, cache stability and final Stop silence"
+      ],
+      "captures": [
+        {
+          "check": "Stop during the first delayed WASM start cannot leave a stale note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.05192367359995842,
+              "rms": 0.028602769791148952,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-melody.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.1978083997964859,
+              "rms": 0.06791302680520561,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-triad.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.1914048194885254,
+              "rms": 0.04794675002588551,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-filter-sweep.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.0519380159676075,
+              "rms": 0.02869344841748487,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.1023292988538742,
+              "rms": 0.04958962699365217,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.18545566499233246,
+              "rms": 0.06207329989606802,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.13770350813865662,
+              "rms": 0.018635038385760097,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.1149807944893837,
+              "rms": 0.01863086261006788,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "filterDifference": {
+            "lowBand": 0.8712655537616626,
+            "bandHigh": 0.4106306517268895
+          },
+          "modes": {
+            "lowpass": {
+              "rms": 0.06190980868821804,
+              "peak": 0.18545566499233246
+            },
+            "bandpass": {
+              "rms": 0.01895164225280797,
+              "peak": 0.15641005337238312
+            },
+            "highpass": {
+              "rms": 0.018488154470843482,
+              "peak": 0.11165027320384979
+            }
+          }
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06376989930868149,
+              "rms": 0.03593937459346816,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.061778049916028976,
+              "rms": 0.03596858603098099,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06362002342939377,
+              "rms": 0.035948019475795685,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "editorDependencies": [
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf"
+      ],
+      "layoutNotifications": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "execution": "main",
+      "passed": true,
+      "checks": [
+        "lazy SID mode, read-only panel and Files separation",
+        "Stop during the first delayed WASM start cannot leave a stale note",
+        "three default editable examples produce actual PCM and Stop/re-Run",
+        "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+        "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+        "same-name loop Apply cannot let its retired Gate-off cut the new note",
+        "independent additional SID instance, cache stability and final Stop silence"
+      ],
+      "captures": [
+        {
+          "check": "Stop during the first delayed WASM start cannot leave a stale note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.051915302872657776,
+              "rms": 0.02869871586301568,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-melody.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.20245371758937836,
+              "rms": 0.07113743238855696,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-triad.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.13643823564052582,
+              "rms": 0.05016291330065234,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-filter-sweep.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.05191899091005325,
+              "rms": 0.02856017656626341,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.10232573002576828,
+              "rms": 0.04937934636892808,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.20464441180229187,
+              "rms": 0.062045117867140634,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.09003832191228867,
+              "rms": 0.019022806019434447,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.18408140540122986,
+              "rms": 0.01830251261529612,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "filterDifference": {
+            "lowBand": 0.8648347455636992,
+            "bandHigh": 0.42784202068790395
+          },
+          "modes": {
+            "lowpass": {
+              "rms": 0.06201970842588828,
+              "peak": 0.20391397178173065
+            },
+            "bandpass": {
+              "rms": 0.01899965793185913,
+              "peak": 0.09964589029550552
+            },
+            "highpass": {
+              "rms": 0.018142411229551857,
+              "peak": 0.12169685959815979
+            }
+          }
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.0657142698764801,
+              "rms": 0.035961423522060554,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06177537143230438,
+              "rms": 0.035966913364770224,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06416836380958557,
+              "rms": 0.035943967284519304,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "editorDependencies": [
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf"
+      ],
+      "layoutNotifications": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "execution": "worker",
+      "passed": true,
+      "checks": [
+        "lazy SID mode, read-only panel and Files separation",
+        "Stop during the first delayed WASM start cannot leave a stale note",
+        "three default editable examples produce actual PCM and Stop/re-Run",
+        "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+        "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+        "same-name loop Apply cannot let its retired Gate-off cut the new note",
+        "independent additional SID instance, cache stability and final Stop silence"
+      ],
+      "captures": [
+        {
+          "check": "Stop during the first delayed WASM start cannot leave a stale note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.051922690123319626,
+              "rms": 0.028692925884429992,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-melody.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.19768571853637695,
+              "rms": 0.07067747606287317,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-triad.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.19934555888175964,
+              "rms": 0.049747139265493304,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "example": "sid-filter-sweep.js",
+          "passed": true
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.051937706768512726,
+              "rms": 0.02868750179793057,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "three default editable examples produce actual PCM and Stop/re-Run",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.10232324153184891,
+              "rms": 0.04967260612347108,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "primary use cache, helper/raw register edits and async read/getState resume the calling loop",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.16032525897026062,
+              "rms": 0.059306491225114416,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.10352068394422531,
+              "rms": 0.018508091277986822,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.13197855651378632,
+              "rms": 0.018594121996025614,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "filterDifference": {
+            "lowBand": 0.8704773922232032,
+            "bandHigh": 0.41860025470374884
+          },
+          "modes": {
+            "lowpass": {
+              "rms": 0.05902506741740784,
+              "peak": 0.16032525897026062
+            },
+            "bandpass": {
+              "rms": 0.018625143706948722,
+              "peak": 0.13777126371860504
+            },
+            "highpass": {
+              "rms": 0.018361033850891308,
+              "peak": 0.13197855651378632
+            }
+          }
+        },
+        {
+          "check": "software loop automation changes live LP/BP/HP hardware state and actual spectrum",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06310942769050598,
+              "rms": 0.035877235551192724,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06177549064159393,
+              "rms": 0.03592813787461211,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "same-name loop Apply cannot let its retired Gate-off cut the new note",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": true,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0.06334526091814041,
+              "rms": 0.0359435135523646,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        },
+        {
+          "check": "independent additional SID instance, cache stability and final Stop silence",
+          "sounding": false,
+          "output": [
+            {
+              "sampleRate": 48000,
+              "peak": 0,
+              "rms": 0,
+              "finite": true,
+              "muted": true
+            }
+          ]
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "editorDependencies": [
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/editor/editor.main.css",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/typescript/typescript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/basic-languages/javascript/javascript.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonMode.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/worker/workerMain.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/typescript/tsWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/language/json/jsonWorker.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/base/browser/ui/codicons/codicon/codicon.ttf"
+      ],
+      "layoutNotifications": []
+    }
+  ],
+  "rootLayout": "flat-playground",
+  "checkerSha256": "cd78fb3b6de96a2b41b3079c299e8e39be04e9878a4b63869520e7cdfc1b8db7"
+}

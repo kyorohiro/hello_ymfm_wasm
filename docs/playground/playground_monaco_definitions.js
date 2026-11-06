@@ -9,6 +9,9 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
+  if (symbol === 'sid') return {file:'playground_sid.js',symbol:'createSidClient'};
+  if (/^Playground(?:Primary)?Sid$/.test(owner) && ['readRegister','getState','setClock'].includes(symbol)) return {file:'playground_sid.js',symbol:'createSidRegisterClient'};
+  if (/^Playground(?:Primary)?Sid/.test(owner)) return {file:'sidsynth.js',symbol:/^Playground/.test(symbol)?'SidSynth':symbol};
   if (symbol === 'opl') return {file:'playground_opl.js',symbol:'createOplClient'};
   if (symbol === 'encodeBrr') return {file:'snes_brr_encoder.js',symbol};
   if (symbol === 'encodeAdpcmA') return {file:'adpcm_a_sample.js',symbol};

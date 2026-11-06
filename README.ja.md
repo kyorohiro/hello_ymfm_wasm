@@ -62,7 +62,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの波形メモリーPSG、Noise、LFOペア、波形描画、音声の5bit DDA PCM再生、ソフトウェアADSR、VGM／VGZのWave／Noise／LFO／DACストリーム・直接DAC PCM抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
 | [S-DSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-snes/index.html) | SNESの8声BRR／hardware Noise、ADSR／GAIN、共有Echo／FIRを操作。最大4音のhardware PMONはWave／BRR変調音源と独立tuning／Envelopeに対応し、同じcanvasで編集・previewできます。SPC音色と任意の単純PMON pair／Echo取り込み、両sample対象へのWAV／raw BRR読込、両音源を含むv5保存（strict v1〜v4移行）・既存APIのJavaScript出力に対応。[ガイド](docs/synth-snes/README.md)。 |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
-| [SID register lab](docs/playground/sid-lab/index.html) | C64の6581を試す実験ページ。波形、ADSR、3声の試奏、Sync／Ring、共有LP／BP／HPフィルター。通常Playground／Synthへ統合する前の検証用で、SID曲再生は後続です。[ガイド](docs/playground/sid-lab/README.md)。 |
+| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。SID曲再生と鍵盤Synthは後続です。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
 | [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |

@@ -3,6 +3,7 @@
  * the historical target to make an incomplete measurement acceptable.
  */
 import {createHash} from 'node:crypto';
+import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
 import {readFile} from 'node:fs/promises';
 import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -188,7 +189,8 @@ export async function validateScspMixerCalibrationSources({reportPath,scspReport
   }
   for(const [path,record]of Object.entries(scspReport.sources)){
     const absolute=resolve(root,'docs',path);if(!absolute.startsWith(resolve(root,'docs')+sep))fail('served path escapes docs');
-    const current=await readFile(absolute);
+    let current=await readFile(absolute);
+    if(current.length!==record.bytes||sha(current)!==record.sha256)current=restoreMixerCalibrationSidRevision(path,current);
     if(isMixerCalibrationVirtualFilesRevision(path,current,record))continue;
     const bytes=current.length===record.bytes&&sha(current)===record.sha256?current:restoreMixerCalibrationKeyboardOctaveRevision(path,restoreMixerCalibrationScspPolicyCacheRevision(path,current));if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served source changed; remeasure: '+path);
   }

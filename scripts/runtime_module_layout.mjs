@@ -32,6 +32,8 @@ export function publicRuntimeModule(source, name) {
 
 /** Adapt the three dynamic factories for a flat npm ZIP or nested js/ ZIP. */
 export function packagedRuntimeModule(source, name, {nested = false} = {}) {
+  if (!nested && ['sid.js', 'playground_sid_audio.js'].includes(name))
+    source = source.replaceAll('../generated/sid/', './generated/sid/');
   if (name === 'nesapu.js') source = source.replace('../../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   const factory = generatedFactories.get(name);
   if (factory) {

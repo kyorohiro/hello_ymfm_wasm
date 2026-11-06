@@ -62,6 +62,9 @@ test('listening policy covers PSG and wavetable primaries and extras while retai
   expected.factoryDefaults.kinds.push({name:'ps1',volume:1});
   expected.factoryModes.ps1={version:1,entries:[{id:'ps1',name:'ps1',settings:{volume:1}}]};
   expected.calibration.unmeasuredKinds=['wonderswan','pokey','ps1'];
+  expected.factoryDefaults.kinds.push({name:'sid',volume:1});
+  expected.factoryModes.c64={version:1,entries:[{id:'sid',name:'sid',settings:{volume:1}}]};
+  expected.calibration.unmeasuredKinds.push('sid');
   assert.deepEqual(policy,expected);
   assert.deepEqual(report,before);
 });
@@ -291,7 +294,7 @@ test('a separately validated PS1 extension preserves all historical captures, ga
   assert.deepEqual({historical,ps1Report},before);
   assert.equal(policy.factoryDefaults.kinds.find(entry=>entry.name==='ps1').volume,ps1.extraVolume);
   assert.equal(entry(policy,'ps1','ps1').settings.volume,ps1.primaryVolume);
-  assert.deepEqual(policy.calibration.unmeasuredKinds,['wonderswan','pokey']);
+  assert.deepEqual(policy.calibration.unmeasuredKinds,['wonderswan','pokey','sid']);
   assert.deepEqual(policy.calibration.extensions,{ps1:ps1.metadata});
   assert.equal(policy.calibration.measuredExtraRoutes,22);
   assert.equal(policy.calibration.measuredPrimaryRoutes,28);
@@ -302,7 +305,7 @@ test('a separately validated PS1 extension preserves all historical captures, ga
   const omitted=buildPlaygroundMixerPolicy(historical);
   assert.equal(entry(omitted,'ps1','ps1').settings.volume,1);
   assert.equal(omitted.factoryDefaults.kinds.find(entry=>entry.name==='ps1').volume,1);
-  assert.deepEqual(omitted.calibration.unmeasuredKinds,['wonderswan','pokey','ps1']);
+  assert.deepEqual(omitted.calibration.unmeasuredKinds,['wonderswan','pokey','ps1','sid']);
   assert.equal(Object.hasOwn(omitted.calibration,'extensions'),false);
 });
 
@@ -334,7 +337,7 @@ const scspReportPath=fileURLToPath(new URL('../docs/issues/scsp_state_restore_ch
     for(const [id,volume]of ids){pokeyMixer.register(id,'pokey',()=>{});assert.equal(pokeyMixer.get(id).volume,volume);}
   }
   assert.deepEqual(calibration.extensions.pokey,pokey.metadata);
-  assert.deepEqual(calibration.unmeasuredKinds,[]);
+  assert.deepEqual(calibration.unmeasuredKinds,['sid']);
   assert.equal(await readFile(reportPath,'utf8'),historicalText,'checking leaves the historical baseline unchanged');
   assert.equal(await readFile(ps1ReportPath,'utf8'),ps1Text,'checking leaves the independent measurement unchanged');
   assert.equal(await readFile(wonderswanReportPath,'utf8'),wonderswanText,'checking leaves the WonderSwan measurement unchanged');
@@ -397,13 +400,13 @@ test('WonderSwan is an independent measured extension that preserves PS1 and all
   assert.equal(entry(policy,'wonderswan','wonderswan').settings.volume,ws.primaryVolume);
   assert.deepEqual(policy.calibration.extensions.ps1,legacy.calibration.extensions.ps1);
   assert.deepEqual(policy.calibration.extensions.wonderswan,ws.metadata);
-  assert.deepEqual(policy.calibration.unmeasuredKinds,['pokey']);
+  assert.deepEqual(policy.calibration.unmeasuredKinds,['pokey','sid']);
   assert.deepEqual(policy.factoryDefaults.kinds.filter(entry=>entry.name!=='wonderswan'),legacy.factoryDefaults.kinds.filter(entry=>entry.name!=='wonderswan'));
   assert.deepEqual(Object.fromEntries(Object.entries(policy.factoryModes).filter(([name])=>name!=='wonderswan')),Object.fromEntries(Object.entries(legacy.factoryModes).filter(([name])=>name!=='wonderswan')));
   assert.deepEqual(policy.factoryEngines,legacy.factoryEngines);
   assert.equal(policy.calibration.targetAmplitude,legacy.calibration.targetAmplitude);
   const standalone=buildPlaygroundMixerPolicy(historical,undefined,wsReport);
-  assert.deepEqual(standalone.calibration.unmeasuredKinds,['pokey','ps1']);
+  assert.deepEqual(standalone.calibration.unmeasuredKinds,['pokey','ps1','sid']);
   assert.deepEqual(Object.keys(standalone.calibration.extensions),['wonderswan']);
   assert.equal(entry(standalone,'ps1','ps1').settings.volume,1,'omitting PS1 remains independent');
   assert.deepEqual({historical,wsReport,ps1Report},before,'neither measurement is mutated');
@@ -467,7 +470,7 @@ test('POKEY extends only its four measured routes while PS1, WonderSwan and hist
   assert.equal(entry(policy,'pokey-dual','pokey').settings.volume,pokey.dualFirstVolume);
   assert.equal(entry(policy,'pokey-dual','pokey:2').settings.volume,pokey.dualSecondVolume);
   assert.deepEqual(policy.calibration.extensions,{...legacy.calibration.extensions,pokey:pokey.metadata});
-  assert.deepEqual(policy.calibration.unmeasuredKinds,[]);
+  assert.deepEqual(policy.calibration.unmeasuredKinds,['sid']);
   assert.deepEqual(policy.factoryDefaults.kinds.filter(record=>record.name!=='pokey'),legacy.factoryDefaults.kinds.filter(record=>record.name!=='pokey'));
   for(const [mode,settings]of Object.entries(legacy.factoryModes))if(!['pokey','pokey-dual'].includes(mode))assert.deepEqual(policy.factoryModes[mode],settings,mode);
   assert.deepEqual(policy.factoryEngines,legacy.factoryEngines);
@@ -475,7 +478,7 @@ test('POKEY extends only its four measured routes while PS1, WonderSwan and hist
   assert.equal(policy.calibration.measuredExtraRoutes,22);assert.equal(policy.calibration.measuredPrimaryRoutes,28);
   assert.equal(buildPlaygroundMixerDefaults(historical).factoryDefaults.kinds.length,22);
   const independent=buildPlaygroundMixerPolicy(historical,undefined,undefined,pokeyReport);
-  assert.deepEqual(independent.calibration.unmeasuredKinds,['wonderswan','ps1']);
+  assert.deepEqual(independent.calibration.unmeasuredKinds,['wonderswan','ps1','sid']);
   assert.deepEqual(Object.keys(independent.calibration.extensions),['pokey']);
   assert.equal(entry(independent,'ps1','ps1').settings.volume,1);assert.equal(entry(independent,'wonderswan','wonderswan').settings.volume,1);
   assert.deepEqual({historical,ps1Report,wsReport,pokeyReport},before,'independent measurements remain unchanged');

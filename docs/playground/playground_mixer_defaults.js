@@ -22,7 +22,9 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "measuredExtraRoutes": 22,
   "measuredEngineRoutes": 1,
   "measuredPrimaryRoutes": 28,
-  "unmeasuredKinds": [],
+  "unmeasuredKinds": [
+    "sid"
+  ],
   "extensions": {
     "ps1": {
       "version": 1,
@@ -214,6 +216,10 @@ const factoryDefaults = freeze({
     {
       "name": "scsp",
       "volume": 0.128825
+    },
+    {
+      "name": "sid",
+      "volume": 1
     }
   ]
 });
@@ -684,6 +690,18 @@ const factoryModes = freeze({
         "name": "scsp",
         "settings": {
           "volume": 0.128825
+        }
+      }
+    ]
+  },
+  "c64": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "sid",
+        "name": "sid",
+        "settings": {
+          "volume": 1
         }
       }
     ]

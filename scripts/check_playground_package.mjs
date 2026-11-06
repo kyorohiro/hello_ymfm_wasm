@@ -3,8 +3,19 @@ import {readFileSync,readdirSync,existsSync} from 'node:fs';
 import {resolve,dirname,relative} from 'node:path';
 const root=resolve(process.argv[2]);let count=0;const errors=[];
 function check(file,spec){if(!spec.startsWith('.'))return;const target=resolve(dirname(file),spec.split(/[?#]/)[0]);count++;if(!existsSync(target)||relative(root,target).startsWith('..'))errors.push(`${relative(root,file)}: ${spec}`);}
-function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','defaults','samples'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
+// Corresponding source kits retain their original build-time paths. Validate
+// the runnable distribution here; kit hashes/build closure are checked by the
+// component copiers and their independent rebuild tests.
+function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','defaults','samples','sources'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
 walk(root);
+for(const file of ['tetorica-playground-c64.d.ts','defaults/c64/index.js','playground_sid_voice_panel.js',
+  'examples/c64/sid-triad.js','examples/c64/sid-filter-sweep.js',
+  'js/sid.js','js/sidsynth.js','js/playground_sid.js','js/playground_sid_audio.js',
+  'js/playground_sid_worklet.js','js/playground_sid_inspector.js',
+  'generated/sid/sid.wasm','generated/sid/sid-build.json','licenses/chips-m6581/LICENSE',
+  'sources/SID.md','sources/sid/third_party/chips-m6581/upstream/m6581.h',
+  'sources/sid/tetorica_src/wasm/sid_core.h','sources/sid/scripts/build_sid_wasm.sh',
+])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of [
   ...['pokey','pokey-dual'].flatMap(mode=>[`tetorica-playground-${mode}.d.ts`,`defaults/${mode}/index.js`]),
   'js/pokey.js','js/pokeysynth.js','js/pokeyaudioengine.js','js/playground_pokey.js',

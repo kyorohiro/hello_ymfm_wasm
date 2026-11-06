@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {getRuntimeArtifactManifest, listRuntimeArtifactFiles, checkRuntimeArtifacts,
   syncRuntimeArtifacts, copyRuntimeArtifacts} from '../scripts/runtime_artifacts.mjs';
 import {parseRuntimeArtifactArguments} from '../scripts/sync_runtime_artifacts.mjs';
+import {SID_BUILD_INPUTS} from '../scripts/sid_artifacts.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = await getRuntimeArtifactManifest({root});
@@ -22,7 +23,11 @@ async function fixture(t, {initialized = false} = {}) {
   await cp(path.join(root, 'third_party/tetorica-soundchip-native'),
     path.join(result.root, 'third_party/tetorica-soundchip-native'), {recursive: true});
   await copyFile(path.join(root, 'third_party/soundchip-sdk.json'), path.join(result.root, 'third_party/soundchip-sdk.json'));
-  for (const name of [...outputNames, 'build-info.json', 'ps1_spu_build.json']) {
+  for (const name of SID_BUILD_INPUTS) {
+    await mkdir(path.dirname(path.join(result.root, name)), {recursive: true});
+    await copyFile(path.join(root, name), path.join(result.root, name));
+  }
+  for (const name of [...outputNames, 'sid/sid.wasm', 'sid/sid-build.json', 'build-info.json', 'ps1_spu_build.json']) {
     await mkdir(path.dirname(deployed(result, name)), {recursive: true});
     await copyFile(path.join(root, 'docs/generated', name), deployed(result, name));
   }
@@ -36,9 +41,9 @@ async function fixture(t, {initialized = false} = {}) {
   return result;
 }
 
-test('one immutable inventory covers 33 SDK builds, NativeFX, metadata and license references', async () => {
-  assert.equal(source.artifacts.length, 34);
-  assert.equal(source.artifacts.flatMap(artifact => artifact.files).length, 66);
+test('one immutable inventory covers 33 SDK builds, NativeFX, application SID and license references', async () => {
+  assert.equal(source.artifacts.length, 35);
+  assert.equal(source.artifacts.flatMap(artifact => artifact.files).length, 68);
   assert(source.artifacts.every(artifact => artifact.licenseFiles.length > 0));
   const dx7 = source.artifacts.find(artifact => artifact.id === 'dx7');
   assert.deepEqual(dx7.files[0].mirrors,
@@ -61,10 +66,10 @@ test('explicit bootstrap validates old outputs then creates the complete canonic
   const result = await syncRuntimeArtifacts({...local, importExisting: true});
   assert.equal(result.imported, true);
   const checked = await checkRuntimeArtifacts(local);
-  assert.equal(checked.sdkBuildCount, 33); assert.equal(checked.outputCount, 66);
+  assert.equal(checked.sdkBuildCount, 33); assert.equal(checked.outputCount, 68);
   for (const name of outputNames) assert.deepEqual(await readFile(canonical(local, name)), await readFile(deployed(local, name)));
   const catalog = JSON.parse(await readFile(canonical(local, 'runtime-artifacts.json')));
-  assert.equal(catalog.artifacts.length, 34); assert.equal(catalog.sdk.manifestSha256, source.inventory.pin.manifestSha256);
+  assert.equal(catalog.artifacts.length, 35); assert.equal(catalog.sdk.manifestSha256, source.inventory.pin.manifestSha256);
   assert(catalog.artifacts.every(artifact => artifact.files.every(file => /^[a-f0-9]{64}$/.test(file.sha256))));
   assert.deepEqual((await syncRuntimeArtifacts(local)).changed, []);
 });

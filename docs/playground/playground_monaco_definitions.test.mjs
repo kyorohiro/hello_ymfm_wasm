@@ -150,3 +150,20 @@ test('MSX AY definitions navigate to their own Synth and primary client',async (
   const line = lines.findIndex(text => text.startsWith('declare const ay:')); assert(line >= 0);
   assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf('ay:') + 1}),{file:'playground_ay8910.js',symbol:'createAy8910Client'});
 });
+
+test('SID definitions navigate to hardware authoring or ordered asynchronous client methods', async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8');
+  const lines = declarations.split('\n'), start = lines.findIndex(line => /^interface PlaygroundSid \{/.test(line));
+  assert(start >= 0);
+  const synth = await readFile(new URL('../../tetorica_src/runtime/sidsynth.js',import.meta.url),'utf8');
+  const client = await readFile(new URL('../../tetorica_src/runtime/playground_sid.js',import.meta.url),'utf8');
+  for (const symbol of ['initialize','reset','writeRegister','setVoice','setFilter','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','getState','readRegister','setClock']) {
+    const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start,symbol);
+    const ordered = ['getState','readRegister','setClock'].includes(symbol), target = ordered ? 'createSidRegisterClient' : symbol;
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:ordered?'playground_sid.js':'sidsynth.js',symbol:target});
+    const source = ordered ? client : synth, point = sourcePosition(source,target);
+    assert.match(source.split('\n')[point.lineNumber - 1],new RegExp(`\\b${target}\\(`));
+  }
+  const line = lines.findIndex(text => text.startsWith('declare const sid:')); assert(line >= 0);
+  assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf('sid:') + 1}),{file:'playground_sid.js',symbol:'createSidClient'});
+});

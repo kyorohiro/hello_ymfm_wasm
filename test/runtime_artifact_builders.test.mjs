@@ -10,7 +10,9 @@ import {tmpdir} from 'node:os';
 
 const root = resolve(import.meta.dirname, '..');
 const wrappers = (await readdir(join(root, 'scripts')))
-  .filter(name => /^build_.*_wasm\.sh$/.test(name) && name !== 'build_opn_variant_wasm.sh');
+  // SID is an application-local standalone build with its own checked source
+  // closure, not a wrapper around the authenticated SDK dispatcher.
+  .filter(name => /^build_.*_wasm\.sh$/.test(name) && !['build_opn_variant_wasm.sh', 'build_sid_wasm.sh'].includes(name));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const nativeEffectSources = ['sample', 'noise', 'gain', 'reverb', 'compressor', 'noise_gate', 'eq', 'graph', 'extra_fx']
   .map(name => 'tetorica_src/native/audio_effect/' + name + '.c');

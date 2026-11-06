@@ -56,6 +56,7 @@ playground_huc6280_voice_panel.js
 playground_cdrom2_audio_panels.js
 playground_wonderswan_voice_panel.js
 playground_pokey_voice_panel.js
+playground_sid_voice_panel.js
 playground_dx7_voice_panel.js
 playground_opl_voice_panel.js
 playground_y8950_adpcm_panel.js
@@ -128,6 +129,7 @@ tetorica-playground-huc6280.d.ts
 tetorica-playground-pc-engine-cd.d.ts
 tetorica-playground-wonderswan.d.ts
 tetorica-playground-pokey.d.ts
+tetorica-playground-c64.d.ts
 tetorica-playground-pokey-dual.d.ts
 tetorica-playground-ym3526.d.ts
 tetorica-playground-ym3812.d.ts
@@ -289,6 +291,15 @@ playground_huc6280_worklet.js
 huc6280synth.js
 huc6280audioengine.js
 pokey.js
+sid.js
+sidsynth.js
+sidsynth.d.ts
+playground_sid.d.ts
+playground_sid_inspector.d.ts
+playground_sid.js
+playground_sid_audio.js
+playground_sid_worklet.js
+playground_sid_inspector.js
 pokeysynth.js
 pokeyaudioengine.js
 pokey_timeline.js
@@ -519,6 +530,7 @@ rm -f "${ZIP_PATH}"
 mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2" "${STAGE_DIR}/vgm_analyzer"
 node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_msm5205_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_sid_sources.mjs" "${STAGE_DIR}"
 cp "${ROOT_DIR}/docs/vgm_analyzer/spc_brr_candidates.js" "${STAGE_DIR}/vgm_analyzer/spc_brr_candidates.js"
 
 for file in ${PLAYGROUND_FILES}; do
@@ -637,6 +649,8 @@ Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 Atari POKEY sound: BSD-labeled libvgm/MAME POKEY adaptation, BSD-3-Clause. See licenses/libvgm-pokey/ and sources/POKEY.md.
 CD-DA PCM: original Tetorica C11 implementation, BSD-3-Clause, distributed by the fixed sound-chip SDK. See licenses/tetorica-cdda/ and sources/CDDA.md for copyright, complete source and standalone rebuilding.
 MSM5205 PCM and PC Engine ADPCM RAM helper: BSD-3-Clause, adapted from the existing libvgm-based JavaScript renderer and distributed by the fixed sound-chip SDK. See licenses/tetorica-msm5205/ and sources/MSM5205.md for copyright, complete source and standalone rebuilding.
+
+C64 SID: experimental 6581 approximation from chips/m6581 under zlib. Tetorica host and helpers are BSD-3-Clause. See licenses/chips-m6581/ and sources/SID.md for pinned original source, marked patches and the independent WASM rebuild recipe. This application-local component is separate from the fixed SDK; it does not include C64 ROMs or SID song data.
 WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.

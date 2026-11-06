@@ -13,6 +13,7 @@ const definitions = [
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
   {id:'wonderswan', label:'WonderSwan', chip:'wonderswan', engine:'wavetable', fmChannels:0, clock:3072000, chipTabs:['wonderswan'], details:'4 channels · 32 × 4-bit waveforms · Stereo · Noise / Sweep / PCM'},
+  {id:'c64', label:'C64 (SID 6581)', chip:'sid', declarationChip:'c64', engine:'sid', fmChannels:0, clock:985248, legacyDraftKey:'c64', chipTabs:['sid'], details:'SID 6581 approximation · 3 voices + shared filter · PAL · Web Audio prototype'},
   {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, chipTabs:['gameboy']},
   {id:'nes', label:'NES + FDS', chip:'nes', engine:'apu', fmChannels:0, chipTabs:['nes']},
   {id:'scsp', label:'Saturn (SCSP)', chip:'scsp', engine:'scsp', fmChannels:0, chipTabs:['scsp'], details:'SCSP · 44,100 Hz · 32 PCM slots · 512 KiB RAM · Experimental · Web Audio'},
@@ -74,7 +75,7 @@ export function resolvePlaygroundMode(search = '') {
   const chip = (params.get('chip') || 'ym2612').toLowerCase();
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
     ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy',
-    scsp:'scsp',ps1:'ps1',wonderswan:'wonderswan',pokey:'pokey',nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
+    sid:'c64',scsp:'scsp',ps1:'ps1',wonderswan:'wonderswan',pokey:'pokey',nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
     ym3812:'ym3812',ym3526:'ym3526',y8950:'msx-audio',ymf262:'ymf262',msx:'msx','msx-audio':'msx-audio'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
@@ -98,6 +99,10 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
+  if (mode.chip === 'sid') return {chip:'sid', clock:mode.clock, model:'6581',
+    workletUrl:new URL('./playground_sid_worklet.js?v=ps1-deferred-release-1',base).href,
+    wasmUrl:new URL('sid/sid.wasm',generated).href,
+    segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'scsp') return {chip:'scsp',
     workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-fm-1',base).href,
     wasmUrl:new URL('scsp_wasm.wasm',generated).href,

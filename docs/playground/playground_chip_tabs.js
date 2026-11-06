@@ -1,3 +1,4 @@
+import {createPlaygroundSidVoicePanel} from './playground_sid_voice_panel.js?v=sid-prototype-1';
 import {createPlaygroundScspVoicePanel} from './playground_scsp_voice_panel.js?v=scsp-fm-1';
 import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-deferred-release-1';
 import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-pcm-timeline-1';
@@ -40,8 +41,8 @@ export function pwmRoutingControl(control, side, route) {
 
 const AUDIO_FILE = /\.(?:wav|wave|aif|aiff|mp3|ogg|flac|m4a|aac|webm)$/i;
 const OPL_KINDS = ['ym3812', 'ym3526', 'y8950', 'ymf262'];
-const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym2413', 'ay8910', ...OPL_KINDS];
-const nativePanels = {scsp:createPlaygroundScspVoicePanel,ps1:createPlaygroundPs1VoicePanel,pokey:createPlaygroundPokeyVoicePanel,wonderswan:createPlaygroundWonderSwanVoicePanel,gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,snes:createPlaygroundSnesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel,okim6258:createPlaygroundOki6258VoicePanel,huc6280:createPlaygroundHuc6280VoicePanel,dx7:createPlaygroundDx7VoicePanel,ym2413:createPlaygroundYm2413VoicePanel,ay8910:createPlaygroundAy8910VoicePanel};
+const KINDS = ['sid', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'scsp', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym2413', 'ay8910', ...OPL_KINDS];
+const nativePanels = {sid:createPlaygroundSidVoicePanel,scsp:createPlaygroundScspVoicePanel,ps1:createPlaygroundPs1VoicePanel,pokey:createPlaygroundPokeyVoicePanel,wonderswan:createPlaygroundWonderSwanVoicePanel,gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,snes:createPlaygroundSnesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel,okim6258:createPlaygroundOki6258VoicePanel,huc6280:createPlaygroundHuc6280VoicePanel,dx7:createPlaygroundDx7VoicePanel,ym2413:createPlaygroundYm2413VoicePanel,ay8910:createPlaygroundAy8910VoicePanel};
 for (const kind of OPL_KINDS) nativePanels[kind] = options => createPlaygroundOplVoicePanel({...options,kind});
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
@@ -225,7 +226,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
         editor.voicePanel.setVisible(visible === editor.kind);
       }
       editor.voicePanel.setConnected(true); editor.voicePanel.update(snapshot);
-      editor.note.textContent = 'Readback shows applied chip settings. Hold a preview button or connect the selected channel to Keyboard to audition the current sound.';
+      editor.note.textContent = editor.kind === 'sid' ? 'Read-only SID inspector. Edit sid in Code; register bytes are the authored write shadow, not hardware readback.' : 'Readback shows applied chip settings. Hold a preview button or connect the selected channel to Keyboard to audition the current sound.';
     };
   }
 
