@@ -1,0 +1,152 @@
+{
+  "entry": "/playground/sid-lab/index.html",
+  "speakersMuted": true,
+  "results": [
+    {
+      "engine": "chromium",
+      "ok": true,
+      "checks": [
+        "lazy independent 6581 lab, one canvas, button / slider controls and no select",
+        "first Play is bounded while loading; Stop cancels a pending start without a stale note",
+        "real WASM tone, live four waveforms and pulse width register / PCM changes",
+        "Gate release follows hardware envelope, triad uses three voices and Stop removes output",
+        "shared LP / BP / HP filter cutoff and resonance change held real PCM, with Notch routing",
+        "Sync / Ring reserve silent Voice 3, block triad and retain carrier-only shared-filter routing",
+        "PAL / NTSC clock changes stop sound and re-create a tuned core without another AudioContext",
+        "processor failure is visible, silences output and permits an explicit clean retry",
+        "one waveform / spectrum canvas remains usable at 1180px and 390px without overflow"
+      ],
+      "measurements": {
+        "waveforms": {
+          "triangle": {
+            "rms": 0.032322353567632016,
+            "peak": 0.055692922323942184
+          },
+          "saw": {
+            "rms": 0.0322443125255247,
+            "peak": 0.05898860841989517
+          },
+          "pulse": {
+            "rms": 0.04845106297427605,
+            "peak": 0.08751238137483597
+          },
+          "noise": {
+            "rms": 0.03114946846320441,
+            "peak": 0.060915954411029816
+          }
+        },
+        "pulseWidthSpectrumDifference": 0.653307382349652,
+        "filters": {
+          "lowpass": {
+            "lowCutoffRms": 0.04221600590176839,
+            "highCutoffRms": 0.04068978456299184,
+            "cutoffSpectrumDifference": 0.18006686915679712,
+            "resonanceSpectrumDifference": 0.07654296275304534
+          },
+          "bandpass": {
+            "lowCutoffRms": 0.036275835226571754,
+            "highCutoffRms": 0.00994210025543565,
+            "cutoffSpectrumDifference": 0.987576664538386,
+            "resonanceSpectrumDifference": 0.5966858792569193
+          },
+          "highpass": {
+            "lowCutoffRms": 0.03711332240139143,
+            "highCutoffRms": 0.009459857603062467,
+            "cutoffSpectrumDifference": 0.9652036487149008,
+            "resonanceSpectrumDifference": 0.6396555373547483
+          }
+        },
+        "modulation": {
+          "syncSpectrumDifference": 0.9985370249008146,
+          "ringSpectrumDifference": 0.999960443648264,
+          "voice3MutedBy3Off": true,
+          "filteredVoiceMask": 1
+        },
+        "recoveredError": "SID AudioWorklet failed"
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 1,
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "ok": true,
+      "checks": [
+        "lazy independent 6581 lab, one canvas, button / slider controls and no select",
+        "first Play is bounded while loading; Stop cancels a pending start without a stale note",
+        "real WASM tone, live four waveforms and pulse width register / PCM changes",
+        "Gate release follows hardware envelope, triad uses three voices and Stop removes output",
+        "shared LP / BP / HP filter cutoff and resonance change held real PCM, with Notch routing",
+        "Sync / Ring reserve silent Voice 3, block triad and retain carrier-only shared-filter routing",
+        "PAL / NTSC clock changes stop sound and re-create a tuned core without another AudioContext",
+        "processor failure is visible, silences output and permits an explicit clean retry",
+        "one waveform / spectrum canvas remains usable at 1180px and 390px without overflow"
+      ],
+      "measurements": {
+        "waveforms": {
+          "triangle": {
+            "rms": 0.03231819924984656,
+            "peak": 0.055692922323942184
+          },
+          "saw": {
+            "rms": 0.03205588329934624,
+            "peak": 0.05898861214518547
+          },
+          "pulse": {
+            "rms": 0.04833975534273942,
+            "peak": 0.08750541508197784
+          },
+          "noise": {
+            "rms": 0.031398495631177394,
+            "peak": 0.060915954411029816
+          }
+        },
+        "pulseWidthSpectrumDifference": 0.6533715668889053,
+        "filters": {
+          "lowpass": {
+            "lowCutoffRms": 0.042314272434637035,
+            "highCutoffRms": 0.04044162586829209,
+            "cutoffSpectrumDifference": 0.18007415138713714,
+            "resonanceSpectrumDifference": 0.07641825589163909
+          },
+          "bandpass": {
+            "lowCutoffRms": 0.03612522271610285,
+            "highCutoffRms": 0.009935657282339137,
+            "cutoffSpectrumDifference": 0.9875004670802032,
+            "resonanceSpectrumDifference": 0.5974205210908229
+          },
+          "highpass": {
+            "lowCutoffRms": 0.037095500316819026,
+            "highCutoffRms": 0.009473636078643792,
+            "cutoffSpectrumDifference": 0.9656034580875995,
+            "resonanceSpectrumDifference": 0.6388707433676531
+          }
+        },
+        "modulation": {
+          "syncSpectrumDifference": 0.9985368177649601,
+          "ringSpectrumDifference": 0.9999603927616637,
+          "voice3MutedBy3Off": true,
+          "filteredVoiceMask": 1
+        },
+        "recoveredError": "SID AudioWorklet failed"
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 1,
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    }
+  ]
+}

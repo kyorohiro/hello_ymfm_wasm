@@ -2,7 +2,28 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-05 (English handoff; readable, editable Synth distributions and Tauri source workflows; Tetorica's own implementations are consolidated under `tetorica_src/`). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-06 (English handoff; readable distributions, source organization, and the initial standalone SID lab). This is an entry point for AI agents investigating the repository and resuming work.
+
+## C64 SID work in progress
+
+The user authorized an implementation-first order. Start with
+[`docs/issues/todo_sid_01.md`](docs/issues/todo_sid_01.md) and the linked core
+selection / Playground integration notes. The first milestone is a standalone
+6581 register lab at `docs/playground/sid-lab/index.html`, not a regular mode,
+complete Synth, `.sid` song player, or newly published npm / Native SDK API.
+The original zlib-licensed chips/m6581 header is pinned and retained alongside
+the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
+and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
+Do not modify the authenticated SDK snapshot to add this prototype.
+
+Use `npm run build:sid`, `npm run test:sid`, `npm run test:sid:native`, and
+`npm run test:sid:browser`. `scripts/sid_artifacts.mjs --check` verifies this
+prototype's separate receipt, upstream hashes, modules, WASM and matching source
+kit. `node scripts/package_sid_lab.mjs` creates a readable standalone package.
+6581 filter / combined waves remain approximations; no 8580 model is provided.
+Native / WASM equality verifies port consistency, not real-hardware fidelity.
+External sidplayfp reference playback, timed register capture and regular
+Main / Worker / type / SDK integration are subsequent TODO stages.
 This document records design decisions and work status. Before resuming, check the latest user request, the actual source and the Git state. Verification results recorded for a particular date do not guarantee the behavior of the latest published release.
 
 ## Check these first

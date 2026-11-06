@@ -1,0 +1,61 @@
+name: SID register lab
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/*sid*'
+      - 'docs/playground/sid-lab/**'
+      - 'docs/sources/sid/**'
+      - 'docs/generated/sid/**'
+      - 'tetorica_src/runtime/generated/sid/**'
+      - 'third_party/chips-m6581/**'
+      - 'package*.json'
+      - '.github/workflows/sid-lab.yml'
+  pull_request:
+    paths:
+      - '**/*sid*'
+      - 'docs/playground/sid-lab/**'
+      - 'docs/sources/sid/**'
+      - 'docs/generated/sid/**'
+      - 'tetorica_src/runtime/generated/sid/**'
+      - 'third_party/chips-m6581/**'
+      - 'package*.json'
+      - '.github/workflows/sid-lab.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify source provenance and real WASM
+        run: |
+          python3 scripts/prepare_sid_core.py --check
+          npm run test:sid
+          node scripts/check_sid_native.mjs --work-dir release/sid-validation
+      - name: Play the source lab and the independent source package
+        run: |
+          node scripts/check_sid_lab_browser.cjs --out release/sid-source-browser.json
+          node scripts/package_sid_lab.mjs
+          python3 -m zipfile -e release/sid-lab-preview.zip release/sid-lab-extracted
+          node scripts/check_sid_lab_browser.cjs --root release/sid-lab-extracted --out release/sid-package-browser.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sid-lab-validation
+          path: |
+            release/sid-validation/
+            release/sid-source-browser.json
+            release/sid-package-browser.json
+            release/sid-lab-preview.zip
+          if-no-files-found: ignore

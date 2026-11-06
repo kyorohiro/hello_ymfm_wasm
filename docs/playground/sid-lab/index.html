@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A small C64 SID register and shared-filter lab using the chips/m6581 6581 approximation.">
+  <meta name="theme-color" content="#eaf2f1">
+  <title>SID Register Lab · Tetorica</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main>
+    <nav class="topbar" aria-label="Laboratory navigation">
+      <a class="brand" href="../../index.html">Tetorica <span>Sound Laboratory</span></a>
+      <a href="../index.html">Playground</a>
+    </nav>
+    <article class="lab-shell" aria-labelledby="labTitle">
+      <header class="lab-header">
+        <div>
+          <p class="eyebrow">C64 · 3 VOICES · SHARED FILTER</p>
+          <h1 id="labTitle">SID <span>Register Lab</span></h1>
+          <p class="intro">Try the waveforms, envelopes and filter. Follow the sound into the code.</p>
+        </div>
+        <span class="model-badge">6581 <small>REGISTER LAB</small></span>
+      </header>
+
+      <p class="scope-note"><strong>chips/m6581 · 6581 approximation.</strong> This independent lab does not play <code>.sid</code> songs or emulate the 8580.</p>
+
+      <section id="transportPanel" class="transport-panel" aria-label="Test sound" aria-busy="false">
+        <div class="transport-actions">
+          <button id="playTone" class="primary" type="button" aria-pressed="false">Play 220 Hz</button>
+          <button id="playChord" type="button" aria-pressed="false">Play triad</button>
+          <button id="releaseGate" type="button" disabled>Release gate</button>
+          <button id="stopAudio" class="stop-button" type="button" disabled>Stop</button>
+        </div>
+        <label class="master-control" for="master"><span>Output level</span><input id="master" type="range" min="0" max="100" step="1" value="60"><output id="masterValue" for="master">60%</output></label>
+        <p id="status" class="status" role="status" aria-live="polite" data-state="idle">Choose a sound to start audio. Controls do not open an audio device.</p>
+      </section>
+
+      <section class="monitor" aria-label="Live SID output">
+        <div class="monitor-toolbar">
+          <div class="monitor-modes" role="group" aria-label="Display mode">
+            <button id="showWaveform" type="button" data-view="waveform" aria-pressed="true">Waveform</button>
+            <button id="showSpectrum" type="button" data-view="spectrum" aria-pressed="false">Spectrum</button>
+          </div>
+          <output id="levelReadout" aria-label="Output RMS level">— dBFS</output>
+        </div>
+        <canvas id="outputCanvas" width="1000" height="240" role="img" aria-label="Live SID output waveform"></canvas>
+        <p class="monitor-caption"><span id="monitorCaption">Output after software level control.</span><span id="audioInfo">Audio idle</span></p>
+      </section>
+
+      <div class="panel-grid">
+        <section class="panel" aria-labelledby="oscillatorHeading">
+          <div class="panel-heading"><h2 id="oscillatorHeading">Wave &amp; envelope</h2><span id="gateState" class="state-label">Gate off</span></div>
+          <div class="choice-group" role="group" aria-label="SID waveform">
+            <button type="button" data-waveform="triangle" aria-pressed="false">Triangle</button>
+            <button type="button" data-waveform="saw" aria-pressed="true">Saw</button>
+            <button type="button" data-waveform="pulse" aria-pressed="false">Pulse</button>
+            <button type="button" data-waveform="noise" aria-pressed="false">Noise</button>
+          </div>
+          <div id="pulseWidthField" class="range-field"></div>
+          <div class="envelope-fields" id="envelopeFields"></div>
+          <p class="help">ADSR values are four-bit hardware codes. Release gate lets the envelope decay; Stop resets the sound immediately.</p>
+        </section>
+
+        <section class="panel filter-panel" aria-labelledby="filterHeading">
+          <div class="panel-heading"><h2 id="filterHeading">Shared SID filter</h2><span class="state-label">HARDWARE</span></div>
+          <div class="choice-group filter-choices" role="group" aria-label="Filter mode">
+            <button type="button" data-filter-mode="off" aria-pressed="true">Off</button>
+            <button type="button" data-filter-mode="lowpass" aria-pressed="false">LP</button>
+            <button type="button" data-filter-mode="bandpass" aria-pressed="false">BP</button>
+            <button type="button" data-filter-mode="highpass" aria-pressed="false">HP</button>
+            <button type="button" data-filter-mode="notch" aria-pressed="false">Notch</button>
+          </div>
+          <div id="cutoffField" class="range-field"></div>
+          <div id="resonanceField" class="range-field"></div>
+          <p id="filterHint" class="help">Off sends the dry voices. Choose a mode, then move Cutoff while the sound is held.</p>
+          <p class="help small-help">LP keeps lower frequencies; BP keeps a band; HP keeps higher frequencies. Notch combines LP + HP. One filter is shared by the playing voices.</p>
+        </section>
+      </div>
+
+      <section class="panel modulation-panel" aria-labelledby="modulationHeading">
+        <div class="panel-heading"><h2 id="modulationHeading">Voice 3 → Voice 1</h2><span class="state-label">SYNC / RING</span></div>
+        <div class="modulation-controls">
+          <div class="choice-group" role="group" aria-label="Oscillator modulation">
+            <button id="sync" type="button" aria-pressed="false">Sync</button>
+            <button id="ring" type="button" aria-pressed="false">Ring</button>
+          </div>
+          <div id="modulatorHzField" class="range-field"></div>
+        </div>
+        <p id="modulationHint" class="help">Sync resets Voice 1's oscillator from Voice 3. Ring affects Triangle. The modulator is silent; using it reserves Voice 3 and disables the triad.</p>
+      </section>
+
+      <footer>
+        <div class="clock-control"><span>SID clock</span><div class="choice-group" role="group" aria-label="SID clock"><button type="button" data-clock-hz="985248" aria-pressed="true">PAL · 985,248 Hz</button><button type="button" data-clock-hz="1022727" aria-pressed="false">NTSC · 1,022,727 Hz</button></div></div>
+        <p class="help">Changing the clock stops the test; play again to use it. Wave, ADSR, pulse width, filter, Sync and Ring control SID registers. Test tones, the triad, output level and this display are lab software.</p>
+        <div class="source-links"><a href="./README.md">Lab guide</a><a href="./lab.js">Lab source</a><a href="../../js/sid.js">SID register API</a><a href="../index.html">Back to Playground</a></div>
+      </footer>
+    </article>
+    <noscript>Enable JavaScript to use the SID register lab.</noscript>
+  </main>
+  <script type="module" src="./lab.js"></script>
+</body>
+</html>

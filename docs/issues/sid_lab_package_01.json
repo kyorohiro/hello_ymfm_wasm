@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "package": "release/sid-lab-0.0.1.zip",
+  "bytes": 75422,
+  "sha256": "9d2934aed0f20550e49fdb351392ac484ddac63d818438014bde78266a8ad925",
+  "wasm": {
+    "bytes": 14502,
+    "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+  },
+  "sourceKitRebuild": {
+    "source": "Extracted source kit from release/sid-lab-preview.zip",
+    "outputSha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025",
+    "matchesCanonical": true
+  },
+  "limits": "Standalone 6581 approximation. No .sid song player, 8580, regular Playground mode or human listening verification.",
+  "files": 31,
+  "browser": {
+    "source": "docs/issues/sid_lab_browser_01.json",
+    "independentZip": "docs/issues/sid_lab_zip_browser_01.json",
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "checksPerEngine": 9,
+    "speakersMuted": true,
+    "testedZip": "release/sid-lab-preview.zip",
+    "finalZipDifference": [
+      "sources/sid/TODO.md",
+      "issues/todo_sid_01.md"
+    ],
+    "allExecutableAndSourceAssetsIdentical": true
+  }
+}
