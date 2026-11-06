@@ -4,17 +4,17 @@ Product identifier: `tetorica-sdsp-synth`. A standalone SNES S-DSP instrument.
 
 [Open the Synth](index.html) · [SNES Playground](../playground/index.html?mode=snes)
 
-Play eight physical SNES S-DSP voices, choose a voice from an SPC snapshot,
-draw a waveform, load BRR or audio, and explore hardware ADSR / GAIN and
-Echo / FIR. The UI follows Tetorica SPU / DMG /
+Play eight physical SNES S-DSP voices, choose a BRR or Noise voice from an SPC
+snapshot, draw a waveform, load BRR or audio, and explore hardware Noise,
+ADSR / GAIN and Echo / FIR. The UI follows Tetorica SPU / DMG /
 2A03 / HuC6280 Synths: output monitor, compact keyboard, Octave, two Pitch wheels,
 collapsible sections and controls that leave the computer keys available.
 
 ## Play
 
 1. Select **Enable audio**, or press a displayed computer key.
-2. Use **Drawn wave** to draw a 128-point cycle, load audio / raw BRR, or choose
-   **Sounds from SPC → Load SPC…** and select a voice candidate.
+2. Use **Drawn wave** to draw a 128-point cycle, load audio / raw BRR, select
+   **Noise**, or choose **Sounds from SPC → Load SPC…** and select a voice candidate.
 3. Adjust the hardware envelope or enable **S-DSP Echo** and edit its controls.
 4. Save a preset or copy JavaScript for Playground.
 
@@ -42,27 +42,53 @@ Echo parameters other than Enable apply to held voices.
 BRR compression is lossy. The S-DSP core then performs Gaussian interpolation,
 hardware envelopes and mixing; the output monitor shows the resulting audio.
 
+## Hardware Noise
+
+Choose **Sound source → Noise** to use the S-DSP's hardware Noise generator.
+**S-DSP Noise → Noise clock** selects a hardware rate code from 0 to 31;
+changes apply while holding a key. All eight voices share one generator and
+one clock, with separate signed voice volumes and ADSR / GAIN envelopes.
+Multiple keys add voice envelopes to the same Noise signal, not independently
+tuned noise sources. Echo / FIR remains available for Noise.
+
+Clock 0 holds the generator's current value instead of advancing it; it is
+not a mute setting and can produce a steady DC level. Nonzero codes change
+the Noise texture. Keys trigger envelopes, while note names, Octave and the
+Pitch wheels do not tune Noise; Octave and Pitch controls are disabled in
+this mode. Sample loading, drawing, loop and BRR tuning controls are hidden.
+The output monitor displays the actual DSP output rather than a generated
+waveform preview.
+
 ## Sounds from SPC
 
 1. Open **Sounds from SPC → Load SPC…** and choose an `.spc` file (up to 16 MiB).
 2. Opening it only lists candidates; the current instrument stays in place.
 3. Leave **Import Echo / FIR settings** off for the voice alone, or check it to
    include the snapshot's shared Echo settings. This only affects the next selection.
-4. Select **CH1 · SRCN …** or another available row, then play the keyboard.
-5. Edit the imported sample, tuning, envelope and Echo with the existing controls.
-   **Save preset…** embeds the BRR and settings; the original SPC is no longer
-   required to load that preset. **Copy JavaScript** also includes its BRR.
+4. Select **CH1 · SRCN …**, **CH1 · Noise** or another available row, then play
+   the keyboard.
+5. Edit the imported sample or Noise clock, envelope and Echo with the existing
+   controls. **Save preset…** embeds its source data and settings; the original
+   SPC is no longer required to load that preset. **Copy JavaScript** also
+   exports the selected source.
 
 The list contains the snapshot's eight physical voice records, including
 inactive ones. Different voices using the same SRCN remain separate because
 their PITCH, signed left/right volume or envelope may differ. Activity is only
-an ENVX / OUTX hint. The importer examines these SRCNs, not every directory slot.
+an ENVX / OUTX hint. The importer examines BRR voices' SRCNs, not every directory slot.
 Collapse **Sounds from SPC** to keep the waveform or spectrum in view while editing.
 
-Import preserves the BRR bytes, resolved block-aligned loop, signed voice
-volumes and ADSR / GAIN register settings. The **captured PITCH is declared at
-C4** for audition. C4 is a playback reference, not a recovered original note.
+BRR import preserves the sample bytes, resolved block-aligned loop, signed voice
+volumes and ADSR / GAIN register settings. The **captured BRR PITCH is declared
+at C4** for audition. C4 is a playback reference, not a recovered original note.
 Adjust Root note to retune; BRR itself contains no original musical root.
+
+Noise voices import their captured shared clock, signed volumes and ADSR / GAIN,
+including voices with PITCH 0 or invalid SRCN / BRR data: those sample settings
+do not determine the Noise signal. Their rows show **Noise clock**, not musical
+tuning. Audition uses this Synth's Noise generator state; the captured LFSR
+state is not restored. A captured clock 0 therefore holds its current value,
+which can be DC.
 
 This is a snapshot instrument import. It does not execute the SPC700 driver,
 play the song, restore its current envelope / BRR decoder history, or recover
@@ -83,8 +109,8 @@ BRR with an explicit warning that pitch modulation is omitted. Captured voice
 volumes are preserved without normalization; high polyphonic levels can clip
 the DSP mixer. Use Voice level to adjust them before the final Master bus.
 
-Noise voices, zero PITCH, unresolved / unaligned loop targets and incomplete
-or oversized BRR samples stay visible with an unavailable reason. Zero voice
+For BRR voices, zero PITCH, unresolved / unaligned loop targets and incomplete
+or oversized samples stay visible with an unavailable reason. Zero voice
 volume and decreasing GAIN may be silent on a new key-on; their rows explain
 how to audition them. Invalid files, Cancel and superseded reads keep the
 current instrument and previous candidate list. Once selection starts applying,
@@ -192,11 +218,16 @@ bus control from 0 to 380%; above 100% its bar turns orange.
 
 ## Save, reuse and scope
 
-The portable `tetorica-sdsp-voice` preset v2 includes waveform data, raw BRR,
-explicit tuning, loop start, stereo volume, envelope and Echo / FIR settings.
-Existing v1 presets are migrated with Echo off. JSON files are capped at 256 KiB.
+The portable `tetorica-sdsp-voice` preset v3 includes the selected Wave / BRR /
+Noise source, shared Noise clock, waveform data, raw BRR, explicit sample
+tuning, loop start, stereo volume, envelope and Echo / FIR settings. Existing
+v1 / v2 presets migrate to v3 without changing their sound source; v1 adds
+Echo off and both formats add the default Noise clock 31. JSON files are capped
+at 256 KiB.
 **Copy JavaScript** exports setup code for Playground's SNES mode, awaiting
 `snes.setEcho(...)` before `snes.loadBRR(...)` so RAM is reserved before upload.
+Noise setup uses the existing raw `snes.writeDsp(...)` API for NON and the
+shared FLG clock bits. This feature requires no shared-runtime or npm update.
 
 The repository runtime exposes `SnesSynth.setEcho()` / `getEcho()` and async
 Main / Worker / Native client methods. Its first Echo enable reserves
@@ -208,11 +239,12 @@ arrays are detached from settings, and validation rejects capacity or parameter
 errors before modifying the existing instrument.
 
 The hardware features in this version are eight voices, BRR decoding, Gaussian
-interpolation, PITCH, signed volumes, ADSR / GAIN and shared Echo / FIR.
+interpolation, sample PITCH, shared Noise, signed volumes, ADSR / GAIN and
+shared Echo / FIR.
 Drawing, audio conversion, sample management and keyboard allocation are
 software authoring tools.
 
-Noise and pitch modulation remain later stages. No SPC700 driver or song
+Pitch modulation remains a later stage. No SPC700 driver or song
 playback is included in this Synth.
 
 ## Source and verification
@@ -238,7 +270,7 @@ with the Synth. See the included licenses for each component.
 
 ## 日本語
 
-SNESの8つの実voiceを使い、BRR音色、hardware ADSR／GAIN、共有Echo／FIRを
+SNESの8つの実voiceを使い、BRR音色、hardware Noise、ADSR／GAIN、共有Echo／FIRを
 操作するSynthです。
 128点波形を描くか、WAV等・raw BRRを読み込み、同じcanvasで波形を確認できます。
 BRRに元音階やrateは入っていないため、Root noteとbase PITCHで明示します。
@@ -247,17 +279,26 @@ GAINの減衰モードは初期Envelopeを自動で増やさず、新しい発�
 **Sounds from SPC → Load SPC…** でSPCを開き、CH1〜CH8の候補から音色を
 選択できます。開くだけでは現在の音色を変えません。選択後は既存の鍵盤で試奏し、
 編集・プリセット保存・JavaScript出力ができます。BRR、解決済みLoop、左右音量、
-ADSR／GAINを取り込み、保存時点のPITCHをC4の再生基準として宣言します。
+ADSR／GAINを取り込み、BRRは保存時点のPITCHをC4の再生基準として宣言します。
 元の音階を推測したものではないため、必要ならRoot noteを調整してください。
 一覧は折りたためます。不正ファイルやCancel、古い読み込み結果では今の音色を保ちます。
-SPCの曲再生やdriverの時間変化は再現せず、Noise・PITCH0・不正Loop等は理由を
-表示して選択不可にします。PMON／Echoを省略する候補には説明を表示します。
+SPCの曲再生やdriverの時間変化は再現せず、BRRのPITCH0・不正Loop等は理由を
+表示して選択不可にします。Noise候補は共有clock・左右音量・ADSR／GAINを取り込み、
+PITCH0や不正なSRCN／BRRでも選択できます。Noiseの内部LFSR状態は復元せず、
+本Synth側のgeneratorで試奏します。PMON／Echoを省略する候補には説明を表示します。
 **Import Echo / FIR settings** は初期Offです。Onにしてから候補を選ぶと、
 元のDelay・signed Feedback・左右Return・8つのFIR係数も取り込みます。
 選択CHのEcho送信の有無をSend all notesへ対応させ、チェック変更だけでは今の音を
 変えません。元のEcho書き込みが無効ならEcho Offで設定値を保持します。
 過去のEcho buffer・残響・曲全体のmixは復元せず、新しい発音からEchoを鳴らします。
 Echo有効時の容量を超える候補は理由付きで選択不可になり、Offへ戻すと音色だけを選べます。
+
+**Sound source → Noise** では、8声で1つの実機Noise generatorを共有します。
+**Noise clock** は0〜31のhardware codeで、保持音にも即時反映します。
+clock0は無音指定ではなく、generatorの現在値を保持するためDCになる場合があります。
+各voiceのADSR／GAIN・左右音量とEcho／FIRは操作できますが、鍵盤はEnvelopeの
+発音に使い、音階・Octave・PitchではNoiseを調律しません。Octave／Pitchは無効に
+なり、sample読込・描画・Loop・tuningは隠れます。monitorは実DSP出力を表示します。
 
 **S-DSP Echo → Enable Echo** で、8声共通の実S-DSP Echoを有効にできます。
 Delay、Feedback、左右Return、Sendを操作でき、FIR詳細は折りたたんであります。
@@ -270,7 +311,9 @@ Stop後もEcho設定は保ちます。
 
 Echo Onでは30KiBを予約するため、BRR上限は33,786byte／60,064framesです。
 Offでは64,512byte／114,688framesです。容量不足では現在音を保って拒否し、
-勝手に切り詰めません。プリセットv2はEcho／FIRを含めて保存し、従来の
-v1形式はEcho Offとして読み込めます。JavaScript出力ではBRR読込前に
-`await snes.setEcho(...)` を実行します。Noise／ピッチ変調の音作りと、
-SPCから取り込んだEcho設定も、このpanelで編集・保存できます。
+勝手に切り詰めません。プリセットv3はsource・Noise clock・Echo／FIRも保存します。
+従来のv1／v2形式は元のsourceを保って移行し、v1はEcho Off、両形式のNoise clockは
+31を初期値にします。JavaScript出力ではBRR読込前に `await snes.setEcho(...)` を
+実行し、Noiseは既存の `snes.writeDsp(...)` でNON／FLGを設定します。
+共有runtime／npmの更新は不要です。SPCから取り込んだEcho設定も、このpanelで
+編集・保存できます。ピッチ変調は今後の対応です。

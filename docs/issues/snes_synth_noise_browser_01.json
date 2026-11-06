@@ -1,0 +1,71 @@
+{
+  "entry": "/synth-snes/index.html",
+  "results": [
+    {
+      "engine": "chromium",
+      "ok": true,
+      "checks": [
+        "lazy audio, one canvas and passive raw BRR preparation",
+        "SPC file opening is passive, bounded to snapshot candidates and safe metadata text",
+        "real S-DSP with eight round-robin voices and safe stale release",
+        "Master boost, synchronized Pitch, live level and hardware ADSR / five GAIN modes",
+        "real hardware Echo, live FIR / Delay / signed Return, tail and legacy preset migration",
+        "shared hardware Noise gates envelopes, changes clock live and ignores musical pitch",
+        "Noise shares ADSR / Echo / FIR and round-trips a portable v3 preset without rewriting samples",
+        "wave drawing applies on release; cancelled strokes preserve held sound",
+        "WAV converts to bounded BRR; live tuning preserves owner and cached sample",
+        "bad samples and cancelled preparation retain current BRR and held owner",
+        "sample adoption closes Cancel before a delayed processor acknowledgement",
+        "SPC selection adopts BRR, resolved loop, packed ADSR / GAIN, signed levels and declared C4 tuning",
+        "invalid, cancelled and superseded SPC file opens retain the instrument, held owner and previous candidates",
+        "SPC selection commit closes cancellation and portable preset restores the imported voice",
+        "SPC Echo option is passive, imports signed settings and voice send, and survives preset / code export",
+        "captured Echo write-disable and zero returns preserve settings without inventing an enable heuristic",
+        "SPC Echo capacity selection keeps the current voice and permits the same large BRR in dry mode",
+        "SPC Noise ignores invalid BRR / PITCH, imports its clock and optional Echo, and saves without the source file",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "ok": true,
+      "checks": [
+        "lazy audio, one canvas and passive raw BRR preparation",
+        "SPC file opening is passive, bounded to snapshot candidates and safe metadata text",
+        "real S-DSP with eight round-robin voices and safe stale release",
+        "Master boost, synchronized Pitch, live level and hardware ADSR / five GAIN modes",
+        "real hardware Echo, live FIR / Delay / signed Return, tail and legacy preset migration",
+        "shared hardware Noise gates envelopes, changes clock live and ignores musical pitch",
+        "Noise shares ADSR / Echo / FIR and round-trips a portable v3 preset without rewriting samples",
+        "wave drawing applies on release; cancelled strokes preserve held sound",
+        "WAV converts to bounded BRR; live tuning preserves owner and cached sample",
+        "bad samples and cancelled preparation retain current BRR and held owner",
+        "sample adoption closes Cancel before a delayed processor acknowledgement",
+        "SPC selection adopts BRR, resolved loop, packed ADSR / GAIN, signed levels and declared C4 tuning",
+        "invalid, cancelled and superseded SPC file opens retain the instrument, held owner and previous candidates",
+        "SPC selection commit closes cancellation and portable preset restores the imported voice",
+        "SPC Echo option is passive, imports signed settings and voice send, and survives preset / code export",
+        "captured Echo write-disable and zero returns preserve settings without inventing an enable heuristic",
+        "SPC Echo capacity selection keeps the current voice and permits the same large BRR in dry mode",
+        "SPC Noise ignores invalid BRR / PITCH, imports its clock and optional Echo, and saves without the source file",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    }
+  ]
+}

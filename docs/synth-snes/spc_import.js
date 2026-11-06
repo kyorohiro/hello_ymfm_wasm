@@ -13,16 +13,17 @@ const signed = value => value << 24 >> 24;
 const DRY_ECHO_WARNING = 'Echo / FIR is not reproduced. This loads the dry voice only.';
 
 /** Inspect the eight physical voice records captured in an SPC snapshot.
- * Selecting a returned preset declares C4 as a playback reference at that
- * voice's captured PITCH; this does not infer the instrument's original note.
+ * Selecting a BRR preset declares C4 as a playback reference at that voice's
+ * captured PITCH; this does not infer the instrument's original note. Noise
+ * presets use the captured shared clock, independent of PITCH or SRCN data.
  * The current envelope value/history, BRR decoder history, SPC700 driver
  * updates, master mix and PMON are not restored. A new key-on starts a
- * fresh hardware envelope. Noise voices cannot become BRR instruments.
+ * fresh hardware envelope. Internal Noise LFSR state is not restored.
  * The default preset is dry. echoVariant offers captured Echo/FIR parameters
  * with a fresh empty buffer; saved Echo RAM and past tails are not restored.
  *
  * Inactive records are retained: nonzero ENVX/OUTX is only an activity hint.
- * Only their explicit SRCNs are examined, at most eight distinct samples;
+ * Only BRR voices' explicit SRCNs are examined, at most eight distinct samples;
  * unused directory slots are not scanned. All returned data is detached from
  * input bytes. Invalid individual voices remain visible with a reason.
  * @param {ArrayBuffer|ArrayBufferView} input
@@ -34,48 +35,55 @@ export function parseSpcVoices(input, {name = 'SPC snapshot'} = {}) {
     throw new RangeError('SPC exceeds the 16 MiB file limit');
   }
   const image = parseSpcFile(input), voices = readSnesVoices(image);
-  const dsp = image.dsp;
+  const dsp = image.dsp, noiseClock = dsp[0x6c] & 31;
   const echo = {enabled:!(dsp[0x6c] & 0x20), delay:dsp[0x7d] & 15,
     feedback:signed(dsp[0x0d]), volumeLeft:signed(dsp[0x2c]), volumeRight:signed(dsp[0x3c]),
     fir:Array.from({length:8}, (_, index) => signed(dsp[0x0f + index * 16])),
     sendMask:dsp[0x4d], sourceAddress:dsp[0x6d] << 8};
   const displayName = clean(name, 160) || 'SPC snapshot';
   const metadata = Object.fromEntries(['title', 'game', 'artist'].map(key => [key, clean(image.metadata[key], 256)]));
-  const extracted = extractBrrSamples(image, {sourceNumbers:voices.map(voice => voice.sourceNumber),
-    maxBlocks:MAX_BLOCKS, maxTotalBlocks:MAX_BLOCKS * 8});
+  const sourceNumbers = voices.filter(voice => !voice.noise).map(voice => voice.sourceNumber);
+  const extracted = sourceNumbers.length ? extractBrrSamples(image, {sourceNumbers,
+    maxBlocks:MAX_BLOCKS, maxTotalBlocks:MAX_BLOCKS * 8})
+    : {directory:dsp[0x5d], samples:[], rejected:[], warnings:[]};
   const samples = new Map(extracted.samples.map(sample => [sample.sourceNumber, sample]));
   const rejected = new Map(extracted.rejected.map(sample => [sample.sourceNumber, sample.reason]));
   const encoded = new Map();
   const candidates = voices.map(voice => {
-    const source = samples.get(voice.sourceNumber), warnings = [...(source?.warnings ?? [])];
-    if (voice.pitchModulation) warnings.push('PMON is not reproduced. This loads the unmodulated BRR voice at its captured base PITCH.');
+    const source = voice.noise ? null : samples.get(voice.sourceNumber), warnings = [...(source?.warnings ?? [])];
+    if (voice.pitchModulation) warnings.push(voice.noise
+      ? 'Recorded PMON is not imported; it does not tune hardware Noise.'
+      : 'PMON is not reproduced. This loads the unmodulated BRR voice at its captured base PITCH.');
+    if (voice.noise && !noiseClock) warnings.push('Noise clock 0 holds the current generator value instead of advancing it; a fresh instrument starts from the hardware reset state.');
     if (voice.echo) warnings.push(DRY_ECHO_WARNING);
     if (!voice.volumeLeft && !voice.volumeRight) warnings.push('Both captured voice volumes are zero; increase Voice level to hear this instrument.');
     if (voice.envelopeMode === 'gain' && ['linear-decrease', 'exponential-decrease'].includes(voice.gainMode)) {
       warnings.push('Decreasing GAIN can be silent after a new key-on: the captured ENVX is not restored. Start with ADSR or Direct GAIN to audition it.');
     }
-    let reason = voice.noise ? 'Noise voice: this Synth cannot import the shared noise generator as a BRR instrument.'
-      : voice.pitch === 0 ? 'Captured PITCH is 0; a playable tuning reference cannot be recovered.' : null;
-    if (!reason && !source) {
+    let reason = !voice.noise && voice.pitch === 0 ? 'Captured PITCH is 0; a playable tuning reference cannot be recovered.' : null;
+    if (!voice.noise && !reason && !source) {
       reason = rejected.get(voice.sourceNumber)?.includes('END')
         ? 'No BRR END within 64,512 bytes: the sample is incomplete or exceeds this Synth’s sample RAM budget.'
         : rejected.get(voice.sourceNumber) ?? 'No extractable BRR sample for this SRCN.';
     }
-    if (!reason && source.loop && !source.loopResolved) reason = 'Loop target is outside the extracted sample or is not aligned to a 9-byte BRR block.';
+    if (!voice.noise && !reason && source.loop && !source.loopResolved) reason = 'Loop target is outside the extracted sample or is not aligned to a 9-byte BRR block.';
     let preset = null;
     if (!reason) {
-      if (!encoded.has(voice.sourceNumber)) encoded.set(voice.sourceNumber, encodeBase64(source.brr));
-      const label = `${metadata.title || displayName} · V${voice.index + 1} SRCN ${voice.sourceNumber}`;
+      const label = `${metadata.title || displayName} · V${voice.index + 1} ${voice.noise ? 'Noise' : 'SRCN ' + voice.sourceNumber}`;
       const next = createDefaultPreset();
-      next.name = clean(label, 80); next.source = 'brr';
-      next.brr = {name:clean(label, 120), data:encoded.get(voice.sourceNumber), rootNote:60,
-        basePitch:voice.pitch, loopStartSamples:source.loop ? source.loopStartSamples : null};
+      next.name = clean(label, 80); next.source = voice.noise ? 'noise' : 'brr';
+      if (voice.noise) next.noise = {clock:noiseClock};
+      else {
+        if (!encoded.has(voice.sourceNumber)) encoded.set(voice.sourceNumber, encodeBase64(source.brr));
+        next.brr = {name:clean(label, 120), data:encoded.get(voice.sourceNumber), rootNote:60,
+          basePitch:voice.pitch, loopStartSamples:source.loop ? source.loopStartSamples : null};
+      }
       next.volume = {left:voice.volumeLeft, right:voice.volumeRight};
       next.envelope = {mode:voice.envelopeMode, attack:voice.attack, decay:voice.decay,
         sustainLevel:voice.sustainLevel, sustainRate:voice.sustainRate, gainMode:voice.gainMode,
         gainLevel:voice.gain & 127, gainRate:voice.gain & 31};
       // Use the same strict path as authored / JSON presets before offering a
-      // candidate. Do not repair an unresolved loop or invent a nonzero pitch.
+      // candidate. Noise never depends on the captured BRR or musical pitch.
       try {preset = readPreset(next);} catch (error) {reason = error.message;}
     }
     const echoWarnings = warnings.filter(warning => warning !== DRY_ECHO_WARNING);
@@ -96,9 +104,10 @@ export function parseSpcVoices(input, {name = 'SPC snapshot'} = {}) {
       frames:source.pcm.length, loopStartSamples:source.loopStartSamples} : null,
       preset, reason, warnings, echoVariant:{preset:echoPreset, reason:echoReason, warnings:echoWarnings}};
   });
-  return {name:displayName, metadata, directory:extracted.directory, echo, candidates,
+  return {name:displayName, metadata, directory:extracted.directory, noiseClock, echo, candidates,
     warnings:[...image.warnings, ...extracted.warnings,
       'Import is dry by default. Import Echo / FIR settings offers captured shared parameters with each voice’s own send setting; saved Echo buffer contents are not copied.',
       'Snapshot only: ENVX / OUTX activity is a hint. Current envelope and decoder history, song playback and later SPC700 driver updates are not restored.',
-      'Root C4 is a declared audition reference at the captured PITCH, not the original musical note. Voice volumes and envelope registers are preserved; the original master mix is not imported.']};
+      'For BRR, Root C4 is a declared audition reference at the captured PITCH, not the original musical note. Noise uses its shared clock instead. Voice volumes and envelope registers are preserved; the original master mix is not imported.',
+      ...(voices.some(voice => voice.noise) ? ['Noise uses one shared hardware generator for all voices. Its internal LFSR state is not restored; clock 0 holds its current value instead of advancing.'] : [])]};
 }

@@ -8,7 +8,7 @@ import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {encodeBase64} from './sample.js';
 import {SnesInstrument} from './instrument.js';
-import {createDefaultPreset,envelopeRegisters,waveShape,ECHO_BRR_MAX_BYTES} from './preset.js';
+import {createDefaultPreset,readPreset,envelopeRegisters,waveShape,presetToCode,createNoiseCarrier,ECHO_BRR_MAX_BYTES} from './preset.js';
 
 const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
 const create=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
@@ -193,4 +193,90 @@ test('Echo capacity failures preserve current RAM and held notes; repeated EDL15
     assert.deepEqual(Array.from(memory.slice(directory,directory+4)),[start&255,start>>8,start&255,start>>8]);
     assert.equal(core.readDsp(0x5d)<<8,directory);
   }
+});
+
+function noisePreset(echo={}) {
+  const p=createDefaultPreset();p.source='noise';p.envelope.mode='gain';p.envelope.gainLevel=127;
+  p.echo={...p.echo,...echo};return p;
+}
+
+test('hardware Noise ignores musical MIDI and Pitch while using a valid silent fetch loop',async t=>{
+  const a=await setup(t),b=await setup(t),p=noisePreset();
+  a.instrument.loadPreset(p);b.instrument.loadPreset(p);
+  a.instrument.noteOn('same',12);b.instrument.noteOn('same',108);
+  a.instrument.setPitch(12);b.instrument.setPitch(-12);
+  const state=a.instrument.read();assert.equal(state.pitch,0);assert.equal(state.noise.enabled,true);
+  assert.deepEqual(state.noiseRegisters,{non:255,flg:63,clock:31});
+  assert.equal(state.registers[0][2]|state.registers[0][3]<<8,4096);
+  assert.equal(state.sample.byteLength,9);assert.equal(state.sample.frames,16);assert.equal(state.sample.loop,true);
+  assert.deepEqual(a.core.snapshot().ram.slice(state.sample.startAddress,state.sample.startAddress+9),createNoiseCarrier());
+  const first=render(a.instrument,8192),other=render(b.instrument,8192);
+  assert.deepEqual(first,other,'different notes and wheels do not tune the shared LFSR');
+  assert(first.left.every(Number.isFinite));assert(peak(first.left)>.01);
+  assert(new Set(first.left.slice(128)).size>100,'the hardware noise generator advances rather than playing the silent carrier');
+});
+
+test('Noise clock changes preserve LFSR, envelope, owner and RAM; clock zero holds the current value',async t=>{
+  const a=await setup(t),b=await setup(t),p=noisePreset();a.instrument.loadPreset(p);b.instrument.loadPreset(p);
+  a.instrument.noteOn('held',60);b.instrument.noteOn('held',60);
+  assert.deepEqual(render(a.instrument,2048),render(b.instrument,2048));
+  const before=a.instrument.read(),ram=a.core.snapshot().ram;
+  p.noise.clock=10;a.instrument.setPreset(p);b.core.writeDsp(0x6c,(b.core.readDsp(0x6c)&0xe0)|10);
+  const state=a.instrument.read();assert.equal(state.generation,before.generation);assert.equal(state.nativeFrames,before.nativeFrames);
+  assert.deepEqual(state.voices,before.voices);assert.equal(state.registers[0][8],before.registers[0][8]);assert.deepEqual(a.core.snapshot().ram,ram);
+  assert.deepEqual(render(a.instrument,4096),render(b.instrument,4096),'live change matches a raw clock edit without resetting LFSR history');
+  p.noise.clock=0;a.instrument.setPreset(p);const held=render(a.instrument,512).left.slice(32);
+  assert(held.every(value=>value===held[0]),'clock zero holds a noise value; it is not a synthetic mute');
+  const previous=a.instrument.read(),memory=a.core.snapshot().ram;p.noise.clock=32;
+  assert.throws(()=>a.instrument.setPreset(p),/Noise clock/);assert.deepEqual(a.instrument.read(),previous);assert.deepEqual(a.core.snapshot().ram,memory);
+  assert.throws(()=>a.instrument.setPitch(Infinity),/Pitch/);assert.deepEqual(a.instrument.read(),previous);
+});
+
+test('Noise uses hardware ADSR and live increasing / decreasing GAIN without a sample envelope',async t=>{
+  const {instrument}=await setup(t),p=noisePreset();
+  p.envelope={...p.envelope,mode:'adsr',attack:8,decay:0,sustainLevel:7,sustainRate:0};
+  instrument.loadPreset(p);instrument.noteOn('envelope',60);render(instrument,256);
+  const attack=instrument.read();assert(attack.registers[0][8]>0&&attack.registers[0][8]<127);
+  render(instrument,6000);assert(instrument.read().registers[0][8]>attack.registers[0][8]);
+  p.envelope.mode='gain';p.envelope.gainMode='linear-decrease';p.envelope.gainRate=31;
+  const generation=instrument.generation;instrument.setPreset(p);render(instrument,512);
+  assert.equal(instrument.read().registers[0][8],0);assert.equal(peak(render(instrument,128).left),0);
+  p.envelope.gainMode='linear-increase';instrument.setPreset(p);render(instrument,512);
+  const raised=instrument.read();assert.equal(raised.registers[0][8],127);assert(peak(render(instrument,128).left)>.01);
+  p.envelope.gainMode='exponential-decrease';instrument.setPreset(p);render(instrument,512);
+  assert(instrument.read().registers[0][8]<raised.registers[0][8]);
+  assert.deepEqual(instrument.read().voices,attack.voices);assert.equal(instrument.generation,generation);
+});
+
+test('Noise envelopes, steal, Echo and Stop share the real DSP without damaging either bank layout',async t=>{
+  const {instrument,core}=await setup(t),p=noisePreset({enabled:true,delay:15,feedback:48,volumeLeft:48,volumeRight:40});
+  const inactive=new Uint8Array(64512);inactive[inactive.length-9]=1;p.brr.data=encodeBase64(inactive);
+  instrument.loadPreset(p);for(let index=0;index<8;index++)instrument.noteOn('n'+index,12+index*12);
+  render(instrument,2048);assert.deepEqual(instrument.noteOn('new',120),{channel:0,stolenId:'n0'});assert.equal(instrument.noteOff('n0'),false);
+  p.noise.clock=24;p.echo.feedback=-48;p.echo.fir=[100,20,-10,5,0,0,0,0];
+  const before=instrument.read();instrument.setPreset(p);const live=instrument.read();
+  assert.deepEqual(live.voices,before.voices);assert.equal(live.generation,before.generation);assert.equal(live.echoRegisters.flg&32,0);assert.equal(live.echoRegisters.flg&31,24);
+  const output=render(instrument,24000);assert(output.left.every(Number.isFinite));assert(peak(output.left)>.05);
+  const state=instrument.read(),memory=core.snapshot().ram,start=state.sample.startAddress;
+  assert.equal(start,0x7c00);assert.deepEqual(memory.slice(start,start+9),createNoiseCarrier());
+  assert.deepEqual(Array.from(memory.slice(0x7800,0x7804)),[0,0x7c,0,0x7c]);
+  for(let index=1;index<8;index++)instrument.noteOff('n'+index);instrument.noteOff('new');
+  const tail=render(instrument,12000);assert(peak(tail.left.slice(1024))>.001,'Noise can feed hardware Echo beyond KOFF');
+  instrument.stop();assert.equal(peak(render(instrument,4096).left),0);assert.equal(instrument.read().preset.noise.clock,24);
+  instrument.loadPreset(createDefaultPreset());assert.equal(instrument.read().noiseRegisters.non,0);assert.equal(instrument.read().noiseRegisters.clock,0);
+  instrument.noteOn('wave',60);assert(peak(render(instrument,2048).left)>.01);
+});
+
+test('Noise JSON and exported existing low-level API reproduce native stereo PCM exactly',async t=>{
+  const {instrument}=await setup(t),rawCore=await create(),raw=new SnesSynth({core:rawCore});t.after(()=>raw.dispose());
+  const p=noisePreset({enabled:true,delay:2,feedback:-40,volumeLeft:48,volumeRight:-24,fir:[100,20,-10,5,0,0,0,0]});
+  p.noise.clock=25;p.volume={left:24,right:-16};
+  const restored=readPreset(JSON.parse(JSON.stringify(p)));assert.deepEqual(restored,p);
+  instrument.loadPreset(restored);instrument.noteOn('noise',100);
+  const code=presetToCode(restored),AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  assert(code.includes('writeDsp(0x3d, 1)'));assert(code.includes('noiseFlags & 0xe0'));
+  await new AsyncFunction('useSoundChip','pg',code)(async mode=>{assert.equal(mode,'snes');return raw;},
+    {encodeBrr(){throw new Error('Noise export must use the silent fetch loop, not encode an authored wave');}});
+  assert.deepEqual(render(raw,12000),render(instrument,12000));
+  assert.equal(raw.readDsp(0x3d),1);assert.equal(raw.readDsp(0x6c)&31,25);assert.equal(raw.readDsp(0x6c)&32,0);
 });

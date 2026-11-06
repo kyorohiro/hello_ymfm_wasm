@@ -28,6 +28,13 @@ function boolean(value,label) {
 export function createDefaultEcho() {
   return {enabled:false,delay:4,feedback:32,volumeLeft:32,volumeRight:32,send:true,fir:[127,0,0,0,0,0,0,0]};
 }
+export function createDefaultNoise() {return {clock:31};}
+/** A valid silent DSP fetch loop; the hardware NON route supplies the sound. */
+export function createNoiseCarrier() {return Uint8Array.of(3,0,0,0,0,0,0,0,0);}
+function readNoise(value) {
+  object(value,['clock'],'S-DSP Noise');
+  return {clock:number(value.clock,0,31,'Noise clock')};
+}
 function readEcho(value) {
   object(value,['enabled','delay','feedback','volumeLeft','volumeRight','send','fir'],'S-DSP Echo');
   if(!Array.isArray(value.fir)||value.fir.length!==8||Reflect.ownKeys(value.fir).length!==9) throw new RangeError('Echo FIR requires exactly eight signed coefficients');
@@ -53,19 +60,20 @@ export function waveShape(shape) {
 }
 
 export function createDefaultPreset() {
-  return {format:FORMAT,version:2,name:'Sine',source:'wave',wave:waveShape('sine'),
+  return {format:FORMAT,version:3,name:'Sine',source:'wave',wave:waveShape('sine'),
     brr:{name:'',data:'',rootNote:60,basePitch:4096,loopStartSamples:null},
     volume:{left:16,right:16},
     envelope:{mode:'adsr',attack:15,decay:2,sustainLevel:7,sustainRate:0,
-      gainMode:'direct',gainLevel:96,gainRate:16},echo:createDefaultEcho()};
+      gainMode:'direct',gainLevel:96,gainRate:16},echo:createDefaultEcho(),noise:createDefaultNoise()};
 }
 
 /** Validate and detach the portable instrument before touching RAM or voices. */
 export function readPreset(value) {
-  object(value,['format','version','name','source','wave','brr','volume','envelope',...(value?.version===2?['echo']:[])],'S-DSP preset');
-  if(value.format!==FORMAT||![1,2].includes(value.version)) throw new TypeError('Unsupported S-DSP preset format/version');
+  object(value,['format','version','name','source','wave','brr','volume','envelope',...([2,3].includes(value?.version)?['echo']:[]),...(value?.version===3?['noise']:[])],'S-DSP preset');
+  if(value.format!==FORMAT||![1,2,3].includes(value.version)) throw new TypeError('Unsupported S-DSP preset format/version');
   const echo=value.version===1?createDefaultEcho():readEcho(value.echo);
-  if(!['wave','brr'].includes(value.source)) throw new RangeError('Expected Wave or BRR source');
+  const noise=value.version===3?readNoise(value.noise):createDefaultNoise();
+  if(!['wave','brr','noise'].includes(value.source)||value.source==='noise'&&value.version!==3) throw new RangeError('Expected Wave, BRR or v3 Noise source');
   if(!Array.isArray(value.wave)||value.wave.length!==128||Reflect.ownKeys(value.wave).length!==129) throw new RangeError('Wave requires exactly 128 normalized samples');
   const wave=Array.from(value.wave,sample=>number(sample,-1,1,'Wave sample',false));
   object(value.brr,['name','data','rootNote','basePitch','loopStartSamples'],'BRR sample');
@@ -90,11 +98,11 @@ export function readPreset(value) {
   const envelope=value.envelope;
   if(!['adsr','gain'].includes(envelope.mode)) throw new RangeError('Envelope mode: expected ADSR or GAIN');
   if(!GAIN_MODES.includes(envelope.gainMode)) throw new RangeError('Unknown GAIN mode');
-  return {format:FORMAT,version:2,name:name(value.name,80,'Instrument name'),source:value.source,wave,brr,
+  return {format:FORMAT,version:3,name:name(value.name,80,'Instrument name'),source:value.source,wave,brr,
     volume:{left:number(value.volume.left,-128,127,'Left voice volume'),right:number(value.volume.right,-128,127,'Right voice volume')},
     envelope:{mode:envelope.mode,attack:number(envelope.attack,0,15,'Attack'),decay:number(envelope.decay,0,7,'Decay'),
       sustainLevel:number(envelope.sustainLevel,0,7,'Sustain level'),sustainRate:number(envelope.sustainRate,0,31,'Sustain rate'),
-      gainMode:envelope.gainMode,gainLevel:number(envelope.gainLevel,0,127,'Direct GAIN level'),gainRate:number(envelope.gainRate,0,31,'GAIN rate')},echo};
+      gainMode:envelope.gainMode,gainLevel:number(envelope.gainLevel,0,127,'Direct GAIN level'),gainRate:number(envelope.gainRate,0,31,'GAIN rate')},echo,noise};
 }
 
 /** Hardware register codes. KOFF uses the chip's fixed release in every mode. */
@@ -114,8 +122,14 @@ export function presetToCode(value) {
   if(p.source==='wave') lines.push(`const pcm = Float32Array.from(${JSON.stringify(p.wave)});`,
     'const encoded = pg.encodeBrr(pcm, {loopStartSamples:0});',
     'const sample = await snes.loadBRR(encoded.brr, {baseFrequencyHz:32000 / 128, loopStartSamples:0});');
+  else if(p.source==='noise') lines.push('// Noise uses one shared hardware generator; note names only trigger its envelope.',
+    `const brr = Uint8Array.from(${JSON.stringify(Array.from(createNoiseCarrier()))});`,
+    'const sample = await snes.loadBRR(brr, {rootNote:60, basePitch:4096, loopStartSamples:0});');
   else lines.push(`const brr = Uint8Array.from(${JSON.stringify(Array.from(decodeBase64(p.brr.data)))});`,
     `const sample = await snes.loadBRR(brr, ${JSON.stringify({rootNote:p.brr.rootNote,basePitch:p.brr.basePitch,...(p.brr.loopStartSamples===null?{}:{loopStartSamples:p.brr.loopStartSamples})})});`);
+  lines.push(`snes.writeDsp(0x3d, ${p.source==='noise'?1:0}); // NON: only the audition voice uses Noise.`);
+  if(p.source==='noise') lines.push('const noiseFlags = await snes.readDsp(0x6c);',
+    `snes.writeDsp(0x6c, (noiseFlags & 0xe0) | ${p.noise.clock}); // Preserve Echo, mute and reset flags.`);
   lines.push(`snes.setPreset(0, {sample, adsr1:${env.adsr1}, adsr2:${env.adsr2}, gain:${env.gain}, volumeLeft:${p.volume.left}, volumeRight:${p.volume.right}});`,
     "snes.noteOn(0, 'C4');",'// snes.noteOff(0); // Fixed hardware KOFF release; no authored release-time knob.');
   return lines.join('\n');

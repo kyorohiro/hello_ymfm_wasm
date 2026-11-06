@@ -57,6 +57,14 @@ function makeEchoSpc(title='Captured Echo snapshot',{writeDisabled=false,zeroRet
   return bytes;
 }
 
+function makeNoiseSpc() {
+  const bytes=makeEchoSpc('Noise with captured Echo'),dsp=bytes.subarray(0x10100,0x10180),voice=2<<4;
+  dsp[0x6c]=(dsp[0x6c]&0xe0)|29;
+  dsp[voice+2]=0;dsp[voice+3]=0;dsp[voice+4]=255; // Noise ignores PITCH and an unusable SRCN.
+  dsp[0x4d]|=1<<2;
+  return bytes;
+}
+
 const config = {root:path.resolve(__dirname, '../docs'), entry:'/synth-snes/index.html',
   out:'/private/tmp/tetorica-sdsp-synth-browser.json', screenshots:null};
 for (let i = 2; i < process.argv.length; i++) {
@@ -158,8 +166,8 @@ async function checkEngine(name, engine, origin) {
     assert.equal(await radio('source','wave').getAttribute('aria-checked'),'true');
     assert.match(await page.locator('#spcMetadata').textContent(),/<img src=x onerror=alert\(1\)>/);
     assert.equal(await page.locator('#spcMetadata img').count(),0);
-    for(const index of [0,1,5,6,7])assert.equal(await page.locator(`#spcCandidate${index}`).isEnabled(),true);
-    for(const index of [2,3,4])assert.equal(await page.locator(`#spcCandidate${index}`).isDisabled(),true);
+    for(const index of [0,1,2,5,6,7])assert.equal(await page.locator(`#spcCandidate${index}`).isEnabled(),true);
+    for(const index of [3,4])assert.equal(await page.locator(`#spcCandidate${index}`).isDisabled(),true);
     assert.match(await page.locator('#spcCandidates').textContent(),/Noise/i);
     assert.match(await page.locator('#spcCandidates').textContent(),/PITCH/);
     assert.match(await page.locator('#spcCandidates').textContent(),/PMON|modulation/i);
@@ -202,7 +210,7 @@ async function checkEngine(name, engine, origin) {
     }
     await page.keyboard.up(keys[1]);await wait(s=>s.voices.length===0);await silent();
     await page.locator('#resetPreset').click();await wait(s=>s.preset.envelope.mode==='adsr');
-    check('real hardware Echo, live FIR / Delay / signed Return, tail, portable v2 and v1 migration');
+    check('real hardware Echo, live FIR / Delay / signed Return, tail and legacy preset migration');
     assert.equal(await page.locator('#firSection').getAttribute('open'),null);
     await page.locator('#echoEnabled').check();
     state=await wait(s=>s.preset.echo.enabled&&s.echoRegisters.eon===255);
@@ -228,17 +236,61 @@ async function checkEngine(name, engine, origin) {
     await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.00001,'Echo remains after the dry hardware KOFF release');
     const echoDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
     const echoSaved=JSON.parse(await fs.readFile(await(await echoDownload).path(),'utf8'));
-    assert.equal(echoSaved.version,2);assert.equal(echoSaved.echo.enabled,true);assert.equal(echoSaved.echo.volumeRight,-128);
+    assert.equal(echoSaved.version,3);assert.equal(echoSaved.echo.enabled,true);assert.equal(echoSaved.echo.volumeRight,-128);
     await page.locator('#copyCode').click();const echoCode=await page.locator('#codeOutput').inputValue();
     assert(echoCode.indexOf('setEcho')>=0&&echoCode.indexOf('setEcho')<echoCode.indexOf('loadBRR'),'reserve Echo before uploading BRR');
     await page.locator('#echoEnabled').uncheck();state=await wait(s=>!s.preset.echo.enabled);await silent();
     assert.equal(state.memory.directoryAddress,0);assert.equal(state.memory.maxSampleBytes,64512);
-    const legacy={...echoSaved,version:1};delete legacy.echo;
+    const legacy={...echoSaved,version:1};delete legacy.echo;delete legacy.noise;
     await page.locator('#presetFileInput').setInputFiles({name:'legacy-v1.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
-    state=await wait(s=>s.preset.version===2&&!s.preset.echo.enabled);assert.equal(state.preset.echo.feedback,32);
-    await page.locator('#presetFileInput').setInputFiles({name:'echo-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(echoSaved))});
+    state=await wait(s=>s.preset.version===3&&!s.preset.echo.enabled);assert.equal(state.preset.echo.feedback,32);
+    const legacyEcho={...echoSaved,version:2};delete legacyEcho.noise;
+    await page.locator('#presetFileInput').setInputFiles({name:'echo-v2.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacyEcho))});
     state=await wait(s=>s.preset.echo.enabled&&s.preset.echo.delay===5);assert.equal(state.echoRegisters.volumeRight,128);
     await page.locator('#resetPreset').click();await wait(s=>!s.preset.echo.enabled&&s.preset.name==='Sine');
+    check('shared hardware Noise gates envelopes, changes clock live and ignores musical pitch');
+    await radio('source','noise').click();state=await wait(s=>s.preset.source==='noise'&&s.noiseRegisters.non===255);
+    assert.equal(state.noiseRegisters.clock,31);assert.equal(state.sample.byteLength,9);
+    assert.equal(await page.locator('#noiseSection').isVisible(),true);assert.equal(await page.locator('#sampleSection').isVisible(),false);
+    for(const id of ['pitchBend','keyboardPitchBend','octaveDown','octaveUp'])assert.equal(await page.locator('#'+id).isDisabled(),true);
+    assert.match(await page.locator('#keyboardHint').textContent(),/shared Noise/);
+    for(const key of [keys[0],keys[8]])await page.keyboard.down(key);
+    state=await wait(s=>s.voices.length===2);await sound();
+    const noiseOwners=state.voices.map(v=>v.id),noiseGeneration=state.generation;
+    for(const voice of state.voices)assert.equal(state.registers[voice.channel][2]|state.registers[voice.channel][3]<<8,4096);
+    await page.locator('[data-stepper-for="noiseClock"][data-stepper-delta="-1"]').click();
+    state=await wait(s=>s.noiseRegisters.clock===30);assert.deepEqual(state.voices.map(v=>v.id),noiseOwners);assert.equal(state.generation,noiseGeneration);
+    await page.locator('#noiseClock').press('Home');state=await wait(s=>s.noiseRegisters.clock===0);
+    assert.deepEqual(state.voices.map(v=>v.id),noiseOwners);assert.match(await page.locator('#noiseHint').textContent(),/hold/i);
+    await page.locator('#noiseClock').press('End');await wait(s=>s.noiseRegisters.clock===31);
+    await page.locator('#pitchBend').evaluate(n=>{n.value='2';n.dispatchEvent(new Event('input',{bubbles:true}));});
+    state=await read();assert.equal(state.pitch,0);assert.equal(await page.locator('#pitchBend').inputValue(),'0');
+    assert.deepEqual(state.voices.map(v=>v.id),noiseOwners);assert.equal(state.generation,noiseGeneration);
+    for(const key of [keys[0],keys[8]])await page.keyboard.up(key);await wait(s=>s.voices.length===0);await silent();
+    check('Noise shares ADSR / Echo / FIR and round-trips a portable v3 preset without rewriting samples');
+    await page.locator('#echoEnabled').check();state=await wait(s=>s.preset.echo.enabled&&s.noiseRegisters.non===255);
+    assert.equal(state.noiseRegisters.clock,31);assert.equal(state.noiseRegisters.flg&32,0);assert.equal(state.memory.directoryAddress,0x7800);
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);await sound();
+    const noiseEchoOwner=state.voices[0].id,noiseEchoGeneration=state.generation;
+    await page.locator('[data-stepper-for="echoFeedback"][data-stepper-delta="1"]').click();await wait(s=>s.preset.echo.feedback===33);
+    await page.locator('[data-stepper-for="noiseClock"][data-stepper-delta="-1"]').click();
+    state=await wait(s=>s.noiseRegisters.clock===30);assert.equal(state.noiseRegisters.flg&32,0);
+    assert.equal(state.voices[0].id,noiseEchoOwner);assert.equal(state.generation,noiseEchoGeneration);
+    await page.waitForTimeout(120);await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);
+    await page.waitForTimeout(120);assert((await page.evaluate(()=>audit.sample())).rms>.000001,'Noise is sent through the real Echo path');
+    const noiseDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const noiseSaved=JSON.parse(await fs.readFile(await(await noiseDownload).path(),'utf8'));
+    assert.equal(noiseSaved.version,3);assert.equal(noiseSaved.source,'noise');assert.equal(noiseSaved.noise.clock,30);
+    await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/writeDsp\(0x3d,\s*1\)/);
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&s.noiseRegisters.non===0);await silent();
+    await page.locator('#presetFileInput').setInputFiles({name:'noise-v3.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(noiseSaved))});
+    state=await wait(s=>s.preset.source==='noise'&&s.preset.noise.clock===30&&s.preset.echo.enabled);
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const restoredNoiseOwner=state.voices[0].id;
+    await page.locator('#presetFileInput').setInputFiles({name:'bad-noise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...noiseSaved,noise:{clock:32}}))});
+    await page.waitForFunction(()=>document.querySelector('#audioStatus').dataset.error==='true');
+    state=await read();assert.equal(state.voices[0].id,restoredNoiseOwner);assert.equal(state.preset.noise.clock,30);
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&s.noiseRegisters.non===0);
+    await page.keyboard.up(keys[0]);await silent();assert.equal(await page.locator('#pitchBend').isEnabled(),true);
     check('wave drawing applies on release; cancelled strokes preserve held sound');
     await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);const drawOwner=state.voices[0].id;
     await page.locator('#waveCanvas').scrollIntoViewIfNeeded();
@@ -464,6 +516,37 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#spcIncludeEcho').check();assert.equal(await page.locator('#spcCandidate0').isDisabled(),true);
     state=await read();assert.deepEqual(state.preset,loadedLargePreset);assert.equal(state.voices[0].id,loadedLargeOwner);
     await page.locator('#spcIncludeEcho').uncheck();await page.keyboard.up(rootKey);await silent();
+    check('SPC Noise ignores invalid BRR / PITCH, imports its clock and optional Echo, and saves without the source file');
+    await page.locator('#spcFileInput').setInputFiles({name:'noise-source.spc',mimeType:'application/octet-stream',buffer:makeNoiseSpc()});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Noise with captured Echo'));
+    assert.equal(await page.locator('#spcCandidate2').isEnabled(),true);assert.match(await page.locator('#spcCandidate2').textContent(),/Noise/);
+    assert.match(await page.locator('#spcCandidate2Info').textContent(),/29/);assert.doesNotMatch(await page.locator('#spcCandidate2Info').textContent(),/PITCH/);
+    await page.locator('#spcCandidate2').click();state=await wait(s=>s.preset.source==='noise'&&s.preset.noise.clock===29&&!s.preset.echo.enabled);
+    assert.equal(state.sample.byteLength,9);assert.equal(state.noiseRegisters.non,255);assert.equal(state.noiseRegisters.clock,29);
+    assert.equal(await page.locator('#noiseSection').isVisible(),true);assert.equal(await page.locator('#sampleSection').isVisible(),false);
+    await page.keyboard.down(keys[0]);state=await wait(s=>s.voices.length===1);await sound();
+    const spcNoiseOwner=state.voices[0].id,spcNoiseGeneration=state.generation;
+    await page.locator('#spcIncludeEcho').check();state=await read();
+    assert.equal(state.voices[0].id,spcNoiseOwner);assert.equal(state.generation,spcNoiseGeneration);assert.equal(state.preset.echo.enabled,false);
+    await page.locator('#spcCandidate2').click();state=await wait(s=>s.preset.source==='noise'&&s.preset.echo.enabled&&s.echoRegisters.eon===255);
+    assert.equal(state.noiseRegisters.clock,29);assert.equal(state.noiseRegisters.flg&32,0);assert.equal(state.preset.echo.send,true);
+    await page.keyboard.up(keys[0]);await page.keyboard.down(keys[0]);await wait(s=>s.voices.length===1);await sound();
+    if(config.screenshots){
+      await page.screenshot({path:path.join(config.screenshots,`${name}-noise-1180.png`),fullPage:true});
+      await page.setViewportSize({width:390,height:844});await page.waitForTimeout(120);
+      assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+      await page.screenshot({path:path.join(config.screenshots,`${name}-noise-390.png`),fullPage:true});
+      await page.setViewportSize({width:1180,height:1000});
+    }
+    await page.keyboard.up(keys[0]);await wait(s=>s.voices.length===0);
+    const spcNoiseDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const spcNoiseSaved=JSON.parse(await fs.readFile(await(await spcNoiseDownload).path(),'utf8'));
+    assert.equal(spcNoiseSaved.source,'noise');assert.equal(spcNoiseSaved.noise.clock,29);assert.equal(spcNoiseSaved.echo.feedback,-40);
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave');
+    await page.locator('#presetFileInput').setInputFiles({name:'spc-noise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(spcNoiseSaved))});
+    state=await wait(s=>s.preset.source==='noise'&&s.preset.noise.clock===29&&s.preset.echo.enabled);
+    assert.equal(state.noiseRegisters.non,255);assert.equal(state.echoRegisters.eon,255);
+    await page.locator('#spcIncludeEcho').uncheck();
     await page.locator('#spcFileInput').setInputFiles({name:'spc-echo-complete.spc',mimeType:'application/octet-stream',buffer:makeSpc('SPC Echo checks complete')});
     await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('SPC Echo checks complete'));
     await page.locator('#spcCandidate1').click();await wait(s=>s.preset.brr.basePitch===2048&&!s.preset.echo.enabled);

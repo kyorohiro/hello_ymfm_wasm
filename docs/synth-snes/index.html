@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices, explore BRR, hardware ADSR / GAIN and shared Echo / FIR with eight playable voices.">
+  <meta name="description" content="Tetorica S-DSP Synth — import SPC voices, explore BRR, hardware Noise, ADSR / GAIN and shared Echo / FIR with eight playable voices.">
   <meta name="theme-color" content="#dfe2e2">
   <meta name="application-name" content="Tetorica S-DSP Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica S-DSP Synth">
@@ -28,7 +28,7 @@
           <div class="product-identity">
             <img class="product-icon" src="../tetorica_sdsp_synth.webp" width="112" height="112" alt="" decoding="async">
             <div class="product-copy">
-              <p class="eyebrow">BRR · ADSR · GAIN · ECHO / FIR</p>
+              <p class="eyebrow">BRR · NOISE · ADSR / GAIN · ECHO / FIR</p>
               <h1 id="synthTitle">Tetorica <span class="product-name">S-DSP Synth</span></h1>
               <p class="description">SNES · 8-voice sample sound · Draw a wave. Take the code.</p>
             </div>
@@ -86,14 +86,14 @@
       </section>
 
       <section class="keyboard-section" aria-labelledby="keyboardHeading">
-        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p>Every key plays the selected source. No keyboard split.</p></div>
+        <div class="section-heading"><h2 id="keyboardHeading">Keyboard</h2><p id="keyboardSourceHint">Every key plays the selected source. No keyboard split.</p></div>
         <div class="keyboard-toolbar">
           <div class="octave-control" role="group" aria-label="Keyboard octave">
             <button id="octaveDown" type="button" aria-label="Lower keyboard by one octave">−</button>
             <span>Octave <output id="octaveValue">4</output></span>
             <button id="octaveUp" type="button" aria-label="Raise keyboard by one octave">+</button>
           </div>
-          <p class="keyboard-hint">When full, the oldest note is replaced.</p>
+          <p id="keyboardHint" class="keyboard-hint">When full, the oldest note is replaced.</p>
         </div>
         <div id="keyboardFretboard"></div>
         <div class="performance-keyboard">
@@ -106,7 +106,7 @@
         </div>
       </section>
       <footer>
-        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware ADSR / GAIN and shared Echo / FIR. SPC import reads saved voice settings for audition. Wave drawing, audio conversion, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Noise and pitch modulation are not included in this version.</p>
+        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation, hardware Noise, ADSR / GAIN and shared Echo / FIR. Noise uses one shared clock; keys gate each voice's envelope, without musical pitch. SPC import reads saved voice settings for audition. Wave drawing, audio conversion, keyboard allocation and Pitch wheels are authoring tools. The 64 KiB RAM is shared: Echo reserves 30 KiB, plus 1 KiB for the directory. Pitch modulation is not included in this version.</p>
         <div><a href="../playground/index.html?mode=snes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/snessynth.js">JavaScript source</a></div>
       </footer>
     </article>

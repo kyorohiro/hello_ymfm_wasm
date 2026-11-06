@@ -98,11 +98,12 @@ test('16-bit RAM wrap is reconstructed without moving the original loop boundary
   assert(candidate.warnings.some(warning=>warning.includes('wraps')));
 });
 
-test('Noise and zero PITCH stay unavailable; PMON and Echo explicitly load a dry unmodulated voice', () => {
+test('Noise is available at its shared clock; zero BRR PITCH stays unavailable and PMON / Echo omissions are explicit', () => {
   const data=image();data[DSP + 0x3d] = 1;data[DSP + 0x2d] = 5;data[DSP + 0x4d] = 4;
   voice(data,1,{pitch:0});voice(data,3,{left:0,right:0});
   const result=parseSpcVoices(data);
-  assert.equal(result.candidates[0].preset,null);assert.match(result.candidates[0].reason,/Noise voice/);
+  assert.equal(result.candidates[0].preset.source,'noise');assert.equal(result.candidates[0].preset.noise.clock,0);
+  assert.equal(result.candidates[0].sample,null);assert.equal(result.candidates[0].reason,null);
   assert.equal(result.candidates[1].preset,null);assert.match(result.candidates[1].reason,/PITCH is 0/);
   assert(result.candidates[2].preset);assert(result.candidates[2].warnings.some(warning=>warning.includes('PMON is not reproduced')));
   assert(result.candidates[2].warnings.some(warning=>warning.includes('Echo / FIR is not reproduced')));
@@ -244,7 +245,8 @@ test('unavailable voices keep their original reason in both variants while PMON 
   data[DSP+0x3d]=1;voice(data,1,{pitch:0});sample(data,1,0x2400,BRR,0x2401);voice(data,2,{sourceNumber:1});
   data[DSP+0x2d]=8;
   const result=parseSpcVoices(data);
-  for(const index of [0,1,2]) {
+  assert.equal(result.candidates[0].preset.source,'noise');assert(result.candidates[0].echoVariant.preset);
+  for(const index of [1,2]) {
     const candidate=result.candidates[index];
     assert.equal(candidate.preset,null);assert.equal(candidate.echoVariant.preset,null);
     assert.equal(candidate.echoVariant.reason,candidate.reason);
@@ -252,6 +254,108 @@ test('unavailable voices keep their original reason in both variants while PMON 
   const pmon=result.candidates[3];assert(pmon.echoVariant.preset);
   assert(pmon.echoVariant.warnings.some(warning=>warning.includes('PMON is not reproduced')));
   assert(pmon.echoVariant.warnings.some(warning=>warning.includes('empty buffer')));
+});
+
+test('SPC Noise ignores invalid SRCN, missing END, bad loop pointers and captured PITCH while preserving voice controls', () => {
+  const data=image();sample(data,255,0x2400,new Uint8Array(9),0x2401);
+  voice(data,0,{sourceNumber:255,pitch:0,left:-40,right:32,adsr1:0x35,adsr2:0x73,gain:0xa7,envx:32});
+  voice(data,1,{sourceNumber:255,pitch:16383,left:24,right:-16,adsr1:0x9b,adsr2:0x81,gain:0x4f});
+  data[DSP+0x3d]=3;data[DSP+0x6c]=0x20|31;
+  const original=data.slice(),result=parseSpcVoices(data,{name:'Noise source.spc'}),[a,b]=result.candidates;
+  assert.equal(result.noiseClock,31);assert.equal(result.candidates.length,8);
+  for(const candidate of [a,b]) {
+    assert.equal(candidate.reason,null);assert.equal(candidate.sample,null);assert.equal(candidate.preset.source,'noise');
+    assert.equal(candidate.preset.noise.clock,31);assert.equal(candidate.preset.brr.data,'');
+    assert.equal(candidate.preset.brr.basePitch,4096);assert.equal(candidate.preset.brr.loopStartSamples,null);
+    assert.match(candidate.preset.name,/Noise$/);assert(!candidate.preset.name.includes('SRCN'));
+    assert(candidate.echoVariant.preset);assert.equal(candidate.echoVariant.preset.source,'noise');
+    assert.equal(candidate.echoVariant.preset.noise.clock,31);
+  }
+  assert.equal(a.voice.pitch,0);assert.equal(b.voice.pitch,16383);assert.equal(a.voice.sourceNumber,255);
+  assert.deepEqual(a.preset.volume,{left:-40,right:32});assert.deepEqual(envelopeRegisters(a.preset),{adsr1:0x35,adsr2:0x73,gain:0xa7});
+  assert.deepEqual(b.preset.volume,{left:24,right:-16});assert.deepEqual(envelopeRegisters(b.preset),{adsr1:0x9b,adsr2:0x81,gain:0x4f});
+  assert(result.candidates[2].preset.source==='brr','unrelated melodic source is still extracted');
+  assert(!a.warnings.some(warning=>/BRR END|Loop target/.test(warning)));
+  assert(result.warnings.some(warning=>warning.includes('LFSR state is not restored')));
+  assert.deepEqual(data,original);
+});
+
+test('all-Noise snapshots need no BRR extraction, retain inactive voices and own independent clock / Echo data', () => {
+  const data=image();data.fill(0,RAM,RAM+65536);data[DSP+0x5d]=255;data[DSP+0x3d]=255;data[DSP+0x6c]=0x20|17;
+  for(let index=0;index<8;index++) voice(data,index,{sourceNumber:255,pitch:0});
+  const before=data.slice(),result=parseSpcVoices(data);
+  assert.equal(result.directory,255);assert.equal(result.noiseClock,17);assert.equal(ready(result).length,8);
+  assert(result.candidates.every(candidate=>candidate.sample===null&&candidate.reason===null&&candidate.preset.source==='noise'));
+  assert(result.candidates.every(candidate=>candidate.voice.active===false));
+  assert(!result.warnings.some(warning=>/No voice has nonzero|BRR END|budget/.test(warning)));
+  const [a,b]=result.candidates;a.preset.noise.clock=3;a.echoVariant.preset.noise.clock=7;a.preset.echo.fir[0]=20;
+  assert.equal(b.preset.noise.clock,17);assert.equal(b.echoVariant.preset.noise.clock,17);
+  assert.equal(b.preset.echo.fir[0],127);assert.equal(result.noiseClock,17);
+  assert.deepEqual(data,before);data.fill(0);assert.equal(b.preset.noise.clock,17);
+});
+
+test('SPC Noise clock zero, PMON and optional Echo retain separate hardware meanings', () => {
+  const data=echoRegisters(image(),{flags:0,delay:3,feedback:-20,left:30,right:-15,sendMask:2,fir:[100,20,-10,5,0,0,0,0]});
+  data[DSP+0x3d]=2;data[DSP+0x2d]=2;voice(data,1,{sourceNumber:255,pitch:0});
+  const result=parseSpcVoices(data),noise=result.candidates[1];
+  assert.equal(result.noiseClock,0);assert.equal(noise.preset.source,'noise');assert.equal(noise.preset.noise.clock,0);
+  assert.equal(noise.preset.echo.enabled,false);assert.equal(noise.sample,null);
+  assert(noise.warnings.some(warning=>warning.includes('clock 0 holds')));
+  assert(noise.warnings.some(warning=>warning.includes('PMON is not imported')));
+  assert(noise.warnings.some(warning=>warning.includes('does not tune hardware Noise')));
+  assert(noise.echoVariant.preset.echo.enabled);assert(noise.echoVariant.preset.echo.send);
+  assert.equal(noise.echoVariant.preset.echo.delay,3);assert.equal(noise.echoVariant.preset.echo.feedback,-20);
+  assert.deepEqual(noise.echoVariant.preset.echo.fir,[100,20,-10,5,0,0,0,0]);
+  data[DSP+0x6c]=0xe5;
+  const disabled=parseSpcVoices(data).candidates[1].echoVariant.preset;
+  assert.equal(disabled.noise.clock,5,'upper flag bits do not become Noise clock bits');
+  assert.equal(disabled.echo.enabled,false);assert.equal(disabled.echo.feedback,-20);
+});
+
+test('SPC Noise renders real shared hardware Noise independently of captured musical PITCH and retains clock zero', async t => {
+  const data=image();data[DSP+0x3d]=1;data[DSP+0x6c]=0x20|31;
+  voice(data,0,{sourceNumber:255,pitch:0,adsr1:0,adsr2:0,gain:96,left:20,right:16});
+  const preset=parseSpcVoices(data).candidates[0].preset;assert(preset);
+  const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
+  const create=async()=>{const core=await SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});const instrument=new SnesInstrument(core);t.after(()=>instrument.dispose());instrument.loadPreset(preset);return {core,instrument};};
+  const a=await create(),b=await create();
+  assert.equal(a.instrument.read().noiseRegisters.non,255);assert.equal(a.instrument.read().noiseRegisters.clock,31);
+  assert.equal(a.instrument.read().sample.byteLength,9,'Noise uses the safe internal carrier rather than the invalid SRCN');
+  a.instrument.noteOn('low',36);b.instrument.noteOn('high',96);b.instrument.setPitch(2);
+  const al=new Float32Array(2048),ar=new Float32Array(2048),bl=new Float32Array(2048),br=new Float32Array(2048);
+  a.instrument.renderInto(al,ar);b.instrument.renderInto(bl,br);
+  assert.deepEqual(al,bl);assert.deepEqual(ar,br,'note / Pitch are not Noise tuning controls');
+  assert(al.every(Number.isFinite));assert(al.some(value=>Math.abs(value)>.001));
+  assert(new Set(al.slice(512)).size>100,'clock 31 advances the hardware Noise sequence');
+  const owner=a.instrument.read().voices[0].id,generation=a.instrument.generation,frames=a.core.nativeFrames;
+  a.instrument.setPreset({...preset,noise:{clock:0}});
+  assert.equal(a.instrument.read().voices[0].id,owner);assert.equal(a.instrument.generation,generation);assert.equal(a.core.nativeFrames,frames);
+  a.instrument.renderInto(al,ar);assert(al.slice(128).every(value=>value===al[128]),'clock zero holds the current shared generator value');
+});
+
+test('SPC Noise with captured Echo survives JSON and executable code with the same stereo PCM and tail', async t => {
+  const data=echoRegisters(image(),{flags:31,delay:2,feedback:40,left:48,right:-20,sendMask:1,fir:[90,16,-8,4,0,0,0,0]});
+  data[DSP+0x3d]=1;voice(data,0,{sourceNumber:255,pitch:0,adsr1:0,adsr2:0,gain:96,left:24,right:16});
+  const candidate=parseSpcVoices(data).candidates[0],preset=candidate.echoVariant.preset;
+  assert(preset);assert.equal(preset.source,'noise');assert.equal(preset.noise.clock,31);
+  assert.deepEqual(readPreset(JSON.parse(JSON.stringify(preset))),preset);
+  const wasmBinary=await readFile(new URL('../generated/spc_wasm.wasm',import.meta.url));
+  const createCore=()=>SnesDspCore.create({moduleFactory:factory,moduleOptions:{wasmBinary}});
+  const core=await createCore(),instrument=new SnesInstrument(core);t.after(()=>instrument.dispose());instrument.loadPreset(preset);
+  assert.equal(instrument.read().noiseRegisters.flg,31);assert.equal(instrument.read().echoRegisters.eon,255);
+  assert.equal(instrument.read().sample.byteLength,9);assert.equal(instrument.read().memory.directoryAddress,0x7800);
+  instrument.noteOn('noise',60);
+  const left=new Float32Array(2048),right=new Float32Array(2048);instrument.renderInto(left,right);
+  const exportedCore=await createCore(),exported=new SnesSynth({core:exportedCore});t.after(()=>exported.dispose());
+  const code=presetToCode(preset);assert.match(code,/writeDsp/);
+  const run=Object.getPrototypeOf(async function(){}).constructor('useSoundChip',code);
+  await run(async kind=>{assert.equal(kind,'snes');return exported;});
+  const codeLeft=new Float32Array(2048),codeRight=new Float32Array(2048);exported.renderInto(codeLeft,codeRight);
+  assert.deepEqual(codeLeft,left);assert.deepEqual(codeRight,right);
+  instrument.noteOff('noise');const tail=new Float32Array(4096),tailRight=new Float32Array(4096);instrument.renderInto(tail,tailRight);
+  assert(tail.slice(512,3072).some(value=>Math.abs(value)>.00001),'Noise is routed through the actual shared Echo path');
+  instrument.loadPreset(candidate.preset);instrument.noteOn('dry-noise',60);instrument.renderInto(left,right);instrument.noteOff('dry-noise');instrument.renderInto(tail,tailRight);
+  assert(tail.slice(512).every(value=>value===0),'dry import leaves no prior Echo tail');
 });
 
 test('Echo-imported preset renders the captured parameters in real S-DSP, starts empty and survives JSON / executable JS export', async t => {

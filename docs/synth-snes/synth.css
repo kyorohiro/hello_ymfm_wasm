@@ -17,6 +17,8 @@ input[type="range"] { accent-color:#458eb8; }
 .visual-mode-controls button[aria-pressed="true"] { background:#295d86; border-color:#8db9da; }
 #outputCanvas { display:block; width:100%; height:190px; border-radius:8px; }
 .sdsp-workspace { padding:8px 0 0; }
+.sdsp-noise-fields { align-items:center; }
+#noiseSection > summary { color:#246c42; }
 .sdsp-workspace .section-heading { justify-content:space-between; margin-bottom:10px; }
 #voiceCapacity { color:var(--accent-dark); font-weight:650; }
 .sdsp-editor { min-width:0; }

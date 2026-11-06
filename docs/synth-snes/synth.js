@@ -46,7 +46,9 @@ function readVoices(state) {
   updateCapacity();
 }
 function updateCapacity() {
-  $('voiceCapacity').textContent = `${preset.source==='wave'?'128-point wave → BRR':'BRR sample'} · 8 hardware voices · round robin · ${notes.size} held`;
+  $('voiceCapacity').textContent = preset.source==='noise'
+    ? `Hardware Noise · shared clock ${preset.noise.clock} · 8 voice envelopes · ${notes.size} held`
+    : `${preset.source==='wave'?'128-point wave → BRR':'BRR sample'} · 8 hardware voices · round robin · ${notes.size} held`;
 }
 function updatePresetUi() {
   editor.update(preset);
@@ -56,6 +58,13 @@ function updatePresetUi() {
     else $('codeOutput').value = presetToCode(preset);
   }
   $('copyCode').textContent = 'Copy JavaScript';
+  setPitchUi(pitch);
+  $('keyboardSourceHint').textContent=preset.source==='noise'
+    ? 'Keys trigger Noise envelopes. Note names do not tune the sound.'
+    : 'Every key plays the selected source. No keyboard split.';
+  $('keyboardHint').textContent=preset.source==='noise'
+    ? 'One shared Noise generator; each key has its own envelope. Noise clock changes its texture.'
+    : 'When full, the oldest note is replaced.';
   updateCapacity();
   if (!layout || keyboardSource !== keyboardMode()) renderKeyboard();
   else updateKeys();
@@ -104,7 +113,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source || previous.echo.enabled !== next.echo.enabled ||
     (next.source==='wave' ? JSON.stringify(previous.wave)!==JSON.stringify(next.wave) :
-      previous.brr.data!==next.brr.data || previous.brr.loopStartSamples!==next.brr.loopStartSamples);
+      next.source==='brr'&&(previous.brr.data!==next.brr.data || previous.brr.loopStartSamples!==next.brr.loopStartSamples));
   if (replacesVoices) {epoch++;notes.clear();updateKeys();}
   preset = next; revision++;
   const editRevision = revision;
@@ -123,7 +132,7 @@ function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
       visualizer.wake();
       if (revision === editRevision) status(message ?? (replacesVoices
         ? 'Sample or Echo layout updated · previous notes and tails stopped. Play the keyboard.'
-        : 'Instrument updated · hardware volume, envelope, tuning and Echo settings apply live.'));
+        : 'Instrument updated · hardware volume, envelope, tuning, Noise clock and Echo settings apply live.'));
     } catch (error) {
       if (audio === engine && revision === editRevision) {
         preset = (await engine.read()).preset;
@@ -160,15 +169,18 @@ async function selectSpc(candidate,{includeEcho=false,signal,onCommit}={}) {
   const variant=includeEcho?candidate?.echoVariant:candidate;
   if(!variant?.preset) throw new Error(variant?.reason??'This SPC voice is unavailable');
   const next=readPreset(variant.preset);
+  const sourceLabel=next.source==='noise'?`Noise clock ${next.noise.clock}`:`SRCN ${candidate.voice.sourceNumber}`;
   const echoLabel=includeEcho?(next.echo.enabled?'Echo / FIR imported':'Echo / FIR settings imported · Echo Off'):'dry voice';
   // Invalidate older audio / preset file reads before this explicit adoption.
   const token=++importSequence;
   onCommit?.();
-  const applying=applyPreset(next,{load:true,fromSpc:true,message:`Loaded SPC CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber} · ${echoLabel}. Play the keyboard.`});
+  const applying=applyPreset(next,{load:true,fromSpc:true,message:`Loaded SPC CH${candidate.voice.index+1} · ${sourceLabel} · ${echoLabel}. Play the keyboard.`});
   const adoptedRevision=revision;
   await applying;
   if(disposed||signal?.aborted||token!==importSequence||adoptedRevision!==revision) throw spcCancelled();
-  return `Loaded CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber} · ${echoLabel}. Snapshot PITCH is declared at C4; adjust Root note to retune.`;
+  const tuningHint=next.source==='noise'?'Keys trigger envelopes; Noise clock controls the shared generator.'
+    :'Snapshot PITCH is declared at C4; adjust Root note to retune.';
+  return `Loaded CH${candidate.voice.index+1} · ${sourceLabel} · ${echoLabel}. ${tuningHint}`;
 }
 spcBrowser=createSpcBrowser({root:$('spcBrowser'),onOpen:openSpc,onSelect:selectSpc,onError:report});
 
@@ -185,7 +197,7 @@ const choices = document.createElement('div'); choices.className = 'fretboard-ro
 for (const name of ['instrument','position','window']) choices.append(tools[name]);
 toolbar.append(summary,choices); $('keyboardFretboard').append(toolbar);
 let layout, keyboardSource;
-const keyboardMode = () => `${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}`;
+const keyboardMode = () => preset.source==='noise'?'noise':`${preset.source}:${Boolean(preset.brr.data)}:${preset.brr.rootNote}:${preset.brr.basePitch}`;
 function renderKeyboard() {
   {
     keyboardSource = keyboardMode();
@@ -209,12 +221,13 @@ function renderKeyboard() {
       button.addEventListener('keyup',event=>{if(event.key===' '||event.key==='Enter') {event.preventDefault();release(`button:${entry.key}`);}});
     }
   }
-  $('octaveValue').textContent = `${octave>0?'+':''}${octave}`;
-  $('octaveDown').disabled = octave<=-2; $('octaveUp').disabled = octave>=2;
+  $('octaveValue').textContent = preset.source==='noise'?'—':`${octave>0?'+':''}${octave}`;
+  $('octaveDown').disabled = preset.source==='noise'||octave<=-2; $('octaveUp').disabled = preset.source==='noise'||octave>=2;
   updateKeys();
 }
 function canPlay(midi) {
-  if(midi<0||midi>127||preset.source==='brr'&&!preset.brr.data) return false;
+  if(!Number.isInteger(midi)||midi<0||midi>127||preset.source==='brr'&&!preset.brr.data) return false;
+  if(preset.source==='noise') return true;
   const raw=preset.source==='wave' ? 4096*(440*2**((midi-69)/12))/(32000/128)
     : preset.brr.basePitch*2**((midi-preset.brr.rootNote)/12);
   return Math.round(raw)>=1&&Math.round(raw)<=16383;
@@ -232,7 +245,8 @@ function press(source, entry) {
     if (audio!==engine||note.epoch!==epoch) return;
     if (result.stolenId) for (const [key,old] of notes) if (old.id===result.stolenId) notes.delete(key);
     readVoices(await engine.read());
-    status(`${midiToNoteName(note.midi)} · ${notes.size}/8 voices · hardware ${preset.envelope.mode==='adsr'?'ADSR':'GAIN'}`);
+    const label=preset.source==='noise'?`Noise clock ${preset.noise.clock}`:midiToNoteName(note.midi);
+    status(`${label} · ${notes.size}/8 voices · hardware ${preset.envelope.mode==='adsr'?'ADSR':'GAIN'}`);
   }).catch(error=>{if(notes.get(source)===note) notes.delete(source);updateKeys();report(error);});
 }
 function release(source) {
@@ -250,6 +264,7 @@ function stopNotes(message) {
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();void enqueue(ensureAudio).catch(report);});
 $('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();stopNotes('Stopped · instrument retained. Play to resume.');});
 for(const [id,delta] of [['octaveDown',-1],['octaveUp',1]]) $(id).addEventListener('click',()=>{
+  if(preset.source==='noise') return;
   $(id).blur();stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();
 });
 function editing(target) {
@@ -266,13 +281,17 @@ window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLo
 window.addEventListener('blur',()=>{stopNotes();setPitch(0);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden) {stopNotes();setPitch(0);}});
 function setPitchUi(value) {
-  pitch=value;
+  const noise=preset.source==='noise';
+  pitch=noise?0:value;
   for (const [wheel, output] of pitchWheels) {
-    wheel.value=String(value);
-    output.textContent=`${value>=0?'+':''}${value.toFixed(2)}`;
+    wheel.value=String(pitch);wheel.disabled=noise;
+    output.textContent=noise?'—':`${pitch>=0?'+':''}${pitch.toFixed(2)}`;
+    wheel.closest('label').title=noise?'Noise uses the shared Noise clock; Pitch does not tune it.'
+      :'Software pitch bend, ±2 semitones. Release to return to center.';
   }
 }
 function setPitch(value) {
+  if(preset.source==='noise'){setPitchUi(0);return;}
   const previous=pitch;setPitchUi(value);
   if(audio) void enqueue(async()=>{
     try{await audio?.command('setPitch',[value]);visualizer.wake();}

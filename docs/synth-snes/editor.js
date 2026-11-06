@@ -29,7 +29,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     try {
       cancelLoad('Conversion cancelled after editing the instrument. Current sample kept.');
       const next = readPreset(preset); mutator(next);
-      preset = readPreset(next); render();
+      const checked = readPreset(next);
+      if (checked.source !== preset.source) cancelStroke();
+      preset = checked; render();
       Promise.resolve(onChange(readPreset(preset))).catch(report);
     } catch (error) { render(); report(error); }
   }
@@ -188,7 +190,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   function help(parent, text) { const element = make('p', 'sdsp-help', text); parent.append(element); return element; }
   const body = make('div', 'sdsp-editor'); root.append(body);
   const sourceBar = make('div', 'sdsp-source-bar'); body.append(sourceBar);
-  select(sourceBar, 'Sound source', 'source', [['wave', 'Drawn wave'], ['brr', 'BRR sample']],
+  select(sourceBar, 'Sound source', 'source', [['wave', 'Drawn wave'], ['brr', 'BRR sample'], ['noise', 'Noise']],
     value => value.source, (value, source) => {value.source = source;});
   const sourceHint = make('p'); sourceBar.append(sourceHint);
 
@@ -196,6 +198,13 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
   number(levels, 'Left · −128 to 127', 'volumeLeft', -128, 127, value => value.volume.left, (value, left) => {value.volume.left = left;});
   number(levels, 'Right · −128 to 127', 'volumeRight', -128, 127, value => value.volume.right, (value, right) => {value.volume.right = right;});
   help(levelCard.content, 'Signed S-DSP gains: a negative value inverts that output. The initial level leaves headroom for eight notes. Master controls the final output separately.');
+
+  const noiseCard = card('S-DSP Noise', 'noiseSection'); noiseCard.element.hidden = true;
+  const noiseFields = group(noiseCard.content); noiseFields.classList.add('sdsp-noise-fields');
+  number(noiseFields, 'Noise clock · code 0–31', 'noiseClock', 0, 31,
+    value => value.noise.clock, (value, clock) => {value.noise.clock = clock;});
+  const noiseHint = help(noiseCard.content, ''); noiseHint.id = 'noiseHint';
+  help(noiseCard.content, 'One hardware Noise generator is shared by all eight voice envelopes. Keys trigger ADSR / GAIN; note names, Octave and Pitch do not tune Noise. Change Noise clock while holding a key to change its texture.');
 
   const sampleCard = card('Sample · software preparation / BRR playback', 'sampleSection');
   const actions = make('div', 'sdsp-file-actions'); sampleCard.content.append(actions);
@@ -236,7 +245,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     value.brr.data = encodeBase64(data); value.brr.loopStartSamples = enabled ? 0 : null;
   });
   const loopStart = number(tuningFields, 'Loop start · sample frame', 'loopStartSamples', 0,
-    () => Math.max(0, decodedSample().pcm.length - 16),
+    () => preset.source === 'noise' ? 0 : Math.max(0, decodedSample().pcm.length - 16),
     value => value.brr.loopStartSamples ?? 0, (value, frame) => {value.brr.loopStartSamples = frame;}, 16);
   help(tuning, 'BRR contains no original sample rate, musical root or loop address. Root / PITCH are your declared tuning. PITCH 4096 reads 32,000 source frames per second. Loop start uses decoded sample frames in blocks of 16; raw BRR loops initially use frame 0 unless you set another position.');
 
@@ -336,7 +345,7 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     return preview;
   }
   function drawWave(samples = stroke?.samples) {
-    if (disposed || !canvas.clientWidth || !canvas.clientHeight) return;
+    if (disposed || preset.source === 'noise' || !canvas.clientWidth || !canvas.clientHeight) return;
     const width = canvas.width, height = canvas.height, left = 28, right = width - 15, top = 16, bottom = height - 28;
     const y = value => top + (1 - value) / 2 * (bottom - top), context = canvas.getContext('2d');if (!context) return;
     context.fillStyle = '#242829';context.fillRect(0,0,width,height);
@@ -433,18 +442,25 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       if(field.update){field.update();continue;}
       if(field.input.type==='checkbox')field.input.checked=field.get(preset);
     }
-    const isWave=preset.source==='wave',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
+    const isWave=preset.source==='wave',isBrr=preset.source==='brr',isNoise=preset.source==='noise',hasBrr=Boolean(preset.brr.data),isGain=preset.envelope.mode==='gain';
+    noiseCard.element.hidden=!isNoise;sampleCard.element.hidden=isNoise;
+    noiseHint.textContent=preset.noise.clock===0
+      ?'Clock 0 holds the generator’s current value instead of advancing it. This can be a steady DC level; choose a nonzero clock for a changing noise texture.'
+      :'Clock '+preset.noise.clock+' controls the shared generator’s texture. It is a hardware rate code, not a musical note or a separate pitch for each key.';
     const maxBrrBytes=preset.echo.enabled?33786:64512,maxFrames=maxBrrBytes/9*16;
     sampleBudget.textContent='Audio is mixed to mono, resampled and encoded as lossy BRR without normalization. Current sample limit: '+maxBrrBytes.toLocaleString('en-US')+' BRR bytes / '+maxFrames.toLocaleString('en-US')+' decoded frames (about '+(maxFrames/importRate).toFixed(2)+' s at '+importRate.toLocaleString('en-US')+' Hz). '+(preset.echo.enabled?'Echo reserves 30 KiB of the shared 64 KiB RAM. ':'Echo is off. ')+'Longer audio is rejected without trimming it.';
     echoDelayInfo.textContent=preset.echo.delay===0?'Delay code 0 uses a 4-byte buffer: one stereo frame at 32,000 Hz (0.03125 ms), not a zero-length delay.'
       :'Delay '+preset.echo.delay+' × 16 ms = '+(preset.echo.delay*16)+' ms. The hardware adopts a changed length at its buffer boundary.';
-    echoHint.textContent=preset.echo.enabled?'Echo is enabled. Send adds new notes to Echo; Return controls the delayed signal. The sample limit is 33,786 BRR bytes.'
-      :'Echo is off. You can prepare its settings here, then enable it to hear the result. Enabling Echo reduces the sample limit to 33,786 BRR bytes; a sample that does not fit is kept with Echo off.';
-    sourceHint.textContent=isWave?'One 128-point cycle, encoded as a BRR loop and played by eight physical S-DSP voices.':'One BRR sample shared by eight physical S-DSP voices. Root / PITCH declare its tuning.';
-    shapeActions.hidden=!isWave;drawingHint.hidden=!isWave;tuning.hidden=isWave;
+    echoHint.textContent=isNoise
+      ?(preset.echo.enabled?'Echo is enabled. Send adds the newly played Noise envelopes to Echo; Return controls the delayed signal.':'Echo is off. Enable it to add the shared hardware Echo / FIR path to Noise.')
+      :preset.echo.enabled?'Echo is enabled. Send adds new notes to Echo; Return controls the delayed signal. The sample limit is 33,786 BRR bytes.'
+        :'Echo is off. You can prepare its settings here, then enable it to hear the result. Enabling Echo reduces the sample limit to 33,786 BRR bytes; a sample that does not fit is kept with Echo off.';
+    sourceHint.textContent=isNoise?'One hardware Noise generator shared by eight voice envelopes. Noise clock changes its texture; keys do not tune it.'
+      :isWave?'One 128-point cycle, encoded as a BRR loop and played by eight physical S-DSP voices.':'One BRR sample shared by eight physical S-DSP voices. Root / PITCH declare its tuning.';
+    shapeActions.hidden=!isWave;drawingHint.hidden=!isWave;tuning.hidden=!isBrr;
     canvas.dataset.editable=String(isWave);
-    canvas.setAttribute('aria-label',isWave?'Editable 128-point waveform, normalized minus one to plus one':'Decoded BRR waveform overview');
-    loopBrr.disabled=!hasBrr;loopStart.setDisabled(!hasBrr||preset.brr.loopStartSamples===null);
+    canvas.setAttribute('aria-label',isNoise?'Waveform editor inactive for hardware Noise':isWave?'Editable 128-point waveform, normalized minus one to plus one':'Decoded BRR waveform overview');
+    loopBrr.disabled=!isBrr||!hasBrr;loopStart.setDisabled(!isBrr||!hasBrr||preset.brr.loopStartSamples===null);
     for(const control of adsrControls)control.setDisabled(isGain);
     gainMode.setDisabled(!isGain);gainLevel.setDisabled(!isGain||preset.envelope.gainMode!=='direct');
     gainRate.setDisabled(!isGain||preset.envelope.gainMode==='direct');
@@ -458,6 +474,9 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
     if(isWave){
       sampleInfo.textContent='128 authored PCM points · one loop · BRR encoding is lossy · 32,000 Hz native DSP.';
       if(!stroke)waveReadout.textContent='Drawn wave · 128 points · release a stroke to apply';
+    }else if(isNoise){
+      sampleInfo.textContent='Hardware Noise · one shared clock · eight independent voice envelopes.';
+      waveReadout.textContent='Noise is displayed in the live output monitor.';
     }else{
       const decoded=decodedSample(),frames=decoded.pcm.length,rate=32000*preset.brr.basePitch/4096;
       sampleInfo.textContent=frames?(preset.brr.name||'BRR sample')+' · '+frames.toLocaleString('en-US')+' decoded frames · '+(decodeBase64(preset.brr.data).length).toLocaleString('en-US')+' BRR bytes · '+(frames/rate).toFixed(3)+' s at Root'

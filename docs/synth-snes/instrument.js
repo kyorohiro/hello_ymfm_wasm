@@ -3,14 +3,14 @@
 import {SnesSynth} from '../js/snessynth.js';
 import {encodeBrr} from '../js/snes_brr_encoder.js';
 import {decodeBase64} from './sample.js';
-import {createDefaultPreset,readPreset,envelopeRegisters,echoOptions,ECHO_BRR_MAX_BYTES} from './preset.js';
+import {createDefaultPreset,readPreset,envelopeRegisters,echoOptions,createNoiseCarrier,ECHO_BRR_MAX_BYTES} from './preset.js';
 
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const noteHz=midi=>440*2**((midi-69)/12);
 
 /** Host keyboard allocation over eight physical S-DSP voices, native 32 kHz.
  * Core ownership transfers to this object. Echo uses reserved hardware RAM;
- * PMON and Noise stay disabled.
+ * Noise uses the shared hardware generator; PMON stays disabled.
  */
 export class SnesInstrument {
   constructor(core) {
@@ -21,8 +21,12 @@ export class SnesInstrument {
     this._replace(this.preset);
   }
   _open(){if(this.disposed)throw new Error('S-DSP instrument is disposed');}
-  _sampleKey(p) {return p.source==='wave'?JSON.stringify(['wave',p.echo.enabled,p.wave]):JSON.stringify(['brr',p.echo.enabled,p.brr.data,p.brr.loopStartSamples]);}
+  _sampleKey(p) {
+    if(p.source==='noise')return JSON.stringify(['noise',p.echo.enabled]);
+    return p.source==='wave'?JSON.stringify(['wave',p.echo.enabled,p.wave]):JSON.stringify(['brr',p.echo.enabled,p.brr.data,p.brr.loopStartSamples]);
+  }
   _prepare(p) {
+    if(p.source==='noise')return {bytes:createNoiseCarrier(),options:{rootNote:60,basePitch:4096,loopStartSamples:0}};
     if(p.source==='wave')return {bytes:encodeBrr(Float32Array.from(p.wave),{loopStartSamples:0}).brr,options:{baseFrequencyHz:250,loopStartSamples:0}};
     const bytes=decodeBase64(p.brr.data);
     return {bytes,options:{rootNote:p.brr.rootNote,basePitch:p.brr.basePitch,...(p.brr.loopStartSamples===null?{}:{loopStartSamples:p.brr.loopStartSamples})}};
@@ -34,9 +38,10 @@ export class SnesInstrument {
     this.synth.setEcho(echoOptions(p.echo));
     this.sample=prepared.bytes.length?this.synth.loadBRR(prepared.bytes,prepared.options):null;
     this.voices.clear();this.slots.fill(null);this.cursor=0;this.generation++;
-    this.preset=p;this._applyChannels();
+    this.preset=p;if(p.source==='noise')this.pitch=0;this._applyChannels();
   }
   _pitch(midi,p=this.preset,pitch=this.pitch) {
+    if(p.source==='noise')return 4096;
     const value=p.source==='wave'?4096*noteHz(midi+pitch)/250:p.brr.basePitch*2**((midi+pitch-p.brr.rootNote)/12);
     return Math.max(1,Math.min(0x3fff,Math.round(value)));
   }
@@ -52,6 +57,9 @@ export class SnesInstrument {
         volumeLeft:this.preset.volume.left,volumeRight:this.preset.volume.right,
         pitch:this.slots[channel]?this._pitch(this.slots[channel].midi):0x1000});
     }
+    const noise=this.preset.source==='noise';
+    this.synth.writeDsp(0x3d,noise?255:0);
+    this.synth.writeDsp(0x6c,(this.synth.readDsp(0x6c)&0xe0)|(noise?this.preset.noise.clock:0));
   }
   _prune() {
     for(let channel=0;channel<8;channel++)if(this.slots[channel]?.released&&this.core.readDsp((channel<<4)+8)===0) this.slots[channel]=null;
@@ -61,6 +69,8 @@ export class SnesInstrument {
     return {preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel})=>({id,midi,channel})),
       tails:this.slots.filter(voice=>voice?.released).map(({id,channel})=>({id,channel})),capacity:8,pitch:this.pitch,generation:this.generation,
       nativeFrames:this.core.nativeFrames,sample:this.sample?{...this.sample}:null,
+      noise:{enabled:this.preset.source==='noise',clock:this.preset.noise.clock,shared:true},
+      noiseRegisters:{non:this.core.readDsp(0x3d),flg:this.core.readDsp(0x6c),clock:this.core.readDsp(0x6c)&31},
       echo:this.synth.getEcho(),memory:{directoryAddress:this.core.readDsp(0x5d)<<8,maxSampleBytes:this.preset.echo.enabled?ECHO_BRR_MAX_BYTES:64512},
       echoRegisters:{flg:this.core.readDsp(0x6c),esa:this.core.readDsp(0x6d),edl:this.core.readDsp(0x7d),efb:this.core.readDsp(0x0d),
         eon:this.core.readDsp(0x4d),volumeLeft:this.core.readDsp(0x2c),volumeRight:this.core.readDsp(0x3c),
@@ -104,6 +114,7 @@ export class SnesInstrument {
   }
   setPitch(semitones) {
     this._open();if(!Number.isFinite(semitones)||semitones < -24||semitones>24)throw new RangeError('Pitch must be between -24 and +24 semitones');
+    if(this.preset.source==='noise'){this.pitch=0;return this.read();}
     for(const voice of this.slots)if(voice)this.synth.setPitch(voice.channel,this._pitch(voice.midi,this.preset,semitones));
     this.pitch=semitones;return this.read();
   }

@@ -77,7 +77,8 @@
 - [x] SPC snapshotからBRR／voice設定候補を選んで取り込む。詳細は下記。元の音階やdriver更新を完全復元したとは扱わない。
 - [x] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
 - [x] SPCから元のEcho／FIR設定を取り込む選択肢を追加する。手動Echoとの切り替え、候補voiceのEON、曲全体で共有する設定であることを明示する。
-- [ ] Noise／pitch modulationを公開し、共有noise clock・隣接voice routing・同時発音枠への影響を示す。
+- [x] Hardware Noiseを公開し、共有noise clock・各voiceのEnvelope・音階に追従しないことを示す。SPC Noise候補の取り込みも対応する。
+- [ ] Pitch modulationを公開し、隣接voice routing・同時発音枠への影響を示す。
 - [ ] Web確認後にTauri版・Native活用例へ進む。
 - [ ] C64 SID Synthはフィルター中心の別題材として検討する。
 
@@ -155,3 +156,25 @@ SPC Echo取り込み・検証結果（2026-11-06）:
 - README en／ja／AI・英日ホーム・Synthガイドを更新した。既存SNES CIのunit wildcard／同じbrowser harness／ZIP検証で今回の機能も実行する。変更はSynthと説明・検証のみで、共有runtime／WASM／npm API・校正値は変更していない。commit／push／公開は未実施。実ゲームSPCの人による試聴・長時間運転は未確認。
 
 次の実装候補はNoise、続いてPMON。実ゲームSPCでEcho有無を比較して試聴する確認は別途残す。
+
+## Hardware Noise・作業手順（2026-11-06）
+
+- [x] preset v3に`source:'noise'`と`noise:{clock:0..31}`を追加し、v1／v2を既存音色のまま読み込む。初期clock31。Noiseは実S-DSPのNON／FLG下位bitsを既存writeDsp APIで制御し、共有runtime／WASM／公開APIは変更しない。
+- [x] Noise再生に安全な最小silent BRR loopを内部で用い、ADSR／GAIN・左右音量・Echo／FIRと8voiceの発音／離鍵・stealを接続する。Clock変更は保持音とLFSR状態を保ってlive反映する。Noiseにnote pitch／Pitch wheelを適用しない。
+- [x] SourceへNoise、専用Noise clock操作と共有generatorの説明を追加する。Noise中はSample編集・Root／PITCHを隠し、Pitch／Octaveは無効化する。clock0は現在値を保持する特殊動作と明示する。
+- [x] SPCのNoise候補を有効化し、保存時のFLG clock／ADSR／GAIN／左右音量と任意Echoを取り込む。NoiseではPITCH0や無効SRCN／BRR／Loopを拒否理由にせず、元のLFSR内部状態は復元しない。
+- [x] preset保存／復元と可読JavaScript出力へ接続する。コードは既存のsetEcho／loadBRR／writeDspを使い、NONとFLGのNoise clockだけを正しく設定してEcho bitsを保つ。
+- [x] 自作fixtureと実WASMで音出力・異なる鍵盤の同じNoise・Clockのlive反映・Echoとの共存・RAM非破壊・旧preset移行・SPC Noise取り込みをテストし、Chromium／WebKitと独立ZIPでも確認する。
+- [x] README en／ja／AI・英日ホーム・Synthガイド・TODO・検証記録を更新し、可読source入りZIPを作成する。実ゲーム素材は同梱しない。
+
+Hardware Noise・検証結果（2026-11-06）:
+
+- `Sound source → Noise`と専用Clock操作を追加した。8voiceは同じhardware generatorを共有し、鍵盤は各voiceのADSR／GAINを発音する。Clockは押鍵中も反映し、音階・Pitch／Octaveは適用しない。Clock0はgeneratorの現在値を保持し、無音指定ではない。Sample panelを隠し、monitorには実出力を表示する。
+- 最小9-byte silent BRR loopを内部carrierとして使う。Clock変更ではRAM／voice所有権／Envelope／LFSRをリセットせず、NONとFLG下位5bitsを制御する。Echo上位bitsを保持し、Wave／BRRへ戻るとNONを解除する。Source／Echo On/Offの切り替えやStopは従来どおりbankを再構成し、保持音と残響を止める。
+- SPC Noise候補は保存clock・signed LR・ADSR／GAIN・任意Echoを読み込み、PITCH0・無効SRCN／BRR／Loopでも選択できる。NoiseだけのsnapshotでBRR抽出を行わない。元LFSR内部状態・Envelopeの経過・曲再生は復元しない。v3 JSONとJavaScript出力へ接続し、旧v1／v2は元sourceを保って移行する。
+- `npm run test:snes-synth`: **74件成功**。実WASMのNoise出力・Pitch非依存・Clock0／live変更・ADSR／複数GAIN・8声steal／stale release・Echo／FIR・RAM非破壊・invalid入力時の原音保持・旧形式移行・SPC取り込みを確認した。出力JavaScriptを実行し、JSON復元とともにstereo PCMの一致を確認した。
+- [ソース記録](snes_synth_noise_browser_01.json)・[独立ZIP記録](snes_synth_noise_zip_browser_01.json): Chromium／WebKit各19チェック成功。Noise UI／押鍵中Clock変更／Pitch無効化／Echo尾音／preset保存復元／不正clock拒否／SPC Noise取り込みと既存BRR・SPC・Echo・描画・keyboard・Master・focusを確認した。外部通信／404／page errorは0。1180px／390pxで表示し、横overflow0を確認した。speakerはmuteしており、人による実聴とは区別する。
+- 配布ZIP `release/tetorica_sdsp_synth_0.0.5_itch.zip`: 62 files、921,479 bytes、SHA-256 `9f2806b1961edbbb8a70201150348a81f0342b0e40a3d8e5af8df371f91c009c`。元の可読JS／CSS、採用icon、WASM、対応LGPL C++／再ビルド手順／source receiptを維持する。実ゲーム素材は同梱しない。
+- README en／ja／AI・英日ホーム・Synthガイドを更新した。共有runtime／WASM／npm API・校正値は未変更で、npm更新は不要。commit／push／公開は未実施。実ゲームSPCの試聴・長時間動作は人の確認待ち。
+
+次の実装候補はPMON。Noise clockを保持音へ反映し、ADSR／GAIN・Echoとの組み合わせを手元で試聴する確認は別途残す。

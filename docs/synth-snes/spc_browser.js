@@ -25,6 +25,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   };
   const text = value => String(value ?? '').slice(0, 1024);
   const hex = value => Number.isInteger(value) ? '$' + value.toString(16).toUpperCase().padStart(4, '0') : '—';
+  const voiceLabel = candidate => `CH${candidate.voice.index + 1} · ${candidate.voice.noise ? 'Noise' : 'SRCN ' + candidate.voice.sourceNumber}`;
   const abortError = () => new DOMException('SPC operation cancelled', 'AbortError');
   const section = make('details', 'sdsp-card sdsp-spc-browser');
   section.id = 'spcSection'; section.open = true;
@@ -47,7 +48,7 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
   const metadata = make('p', 'sdsp-spc-metadata'); metadata.id = 'spcMetadata'; metadata.hidden = true; content.append(metadata);
   const warnings = make('ul', 'sdsp-spc-warnings'); warnings.id = 'spcWarnings'; warnings.hidden = true; content.append(warnings);
   const list = make('div', 'sdsp-spc-candidates'); list.id = 'spcCandidates'; content.append(list);
-  content.append(make('p', 'sdsp-help', 'Snapshot voice settings only: no song playback, SPC700 driver updates, or restoration of the current envelope phase. C4 is a declared audition reference at the captured PITCH, not the original musical root. Activity is only an ENVX / OUTX snapshot heuristic; inactive voices may still contain usable samples.'));
+  content.append(make('p', 'sdsp-help', 'Snapshot voice settings only: no song playback, SPC700 driver updates, or restoration of the current envelope phase. For BRR voices, C4 is a declared audition reference at the captured PITCH, not the original musical root. Noise uses the shared clock instead of musical pitch. Activity is only an ENVX / OUTX snapshot heuristic; inactive voices may still contain usable settings.'));
   root.append(section);
 
   function setStatus(message, error = false) {
@@ -110,13 +111,14 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
     for (const candidate of batch.candidates) {
       const voice = candidate.voice, sample = candidate.sample, choice = variant(candidate);
       const row = make('div', 'sdsp-spc-candidate'); row.dataset.candidateId = candidate.id;
-      const button = make('button', 'sdsp-spc-select', `CH${voice.index + 1} · SRCN ${voice.sourceNumber}`);
+      const button = make('button', 'sdsp-spc-select', voiceLabel(candidate));
       button.type = 'button'; button.id = 'spcCandidate' + voice.index; button.dataset.spcVoice = String(voice.index);
       button.disabled = !choice?.preset; button.setAttribute('aria-pressed', 'false');
       const details = make('div', 'sdsp-spc-candidate-copy');
       details.id = `spcCandidate${voice.index}Info`; button.setAttribute('aria-describedby', details.id);
       const state = voice.active ? 'Activity detected' : 'Inactive snapshot';
-      details.append(make('p', 'sdsp-spc-voice', `${state} · PITCH ${voice.pitch} · L/R ${voice.volumeLeft}/${voice.volumeRight} · ${voice.envelopeMode === 'adsr' ? 'ADSR' : 'GAIN'}${includeEcho.checked ? ' · Echo send ' + (voice.echo ? 'On' : 'Off') : ''}`));
+      const pitch = voice.noise ? 'Noise clock ' + (batch.noiseClock ?? candidate.preset?.noise?.clock ?? '—') : 'PITCH ' + voice.pitch;
+      details.append(make('p', 'sdsp-spc-voice', `${state} · ${pitch} · L/R ${voice.volumeLeft}/${voice.volumeRight} · ${voice.envelopeMode === 'adsr' ? 'ADSR' : 'GAIN'}${includeEcho.checked ? ' · Echo send ' + (voice.echo ? 'On' : 'Off') : ''}`));
       if (sample) {
         const unresolved = [choice?.reason, ...(choice?.warnings ?? [])].some(message => /loop target/i.test(message ?? ''));
         const loop = sample.loopStartSamples === null ? (unresolved ? 'Loop unresolved' : 'One-shot') : 'Loop frame ' + sample.loopStartSamples;
@@ -160,16 +162,16 @@ export function createSpcBrowser({root, onOpen, onSelect, onError = () => {}}) {
     if (disposed || operation?.committing || !variant(candidate, mode)?.preset) return;
     const op = startOperation('select');
     op.includeEcho = mode;
-    setStatus(`Preparing CH${candidate.voice.index + 1} · SRCN ${candidate.voice.sourceNumber}…`);
+    setStatus(`Preparing ${voiceLabel(candidate)}…`);
     try {
       const message = await onSelect(candidate, {includeEcho:mode, signal:op.controller.signal, onCommit() {
         if (!current(op)) throw abortError();
         op.committing = true; refresh();
-        setStatus(`Applying CH${candidate.voice.index + 1} · SRCN ${candidate.voice.sourceNumber}…`);
+        setStatus(`Applying ${voiceLabel(candidate)}…`);
       }});
       if (!current(op)) return;
       selectedId = candidate.id; selectedMode = mode; refresh();
-      setStatus(typeof message === 'string' ? message : `Loaded CH${candidate.voice.index + 1} · SRCN ${candidate.voice.sourceNumber}. Play the keyboard, edit it or save a preset.`);
+      setStatus(typeof message === 'string' ? message : `Loaded ${voiceLabel(candidate)}. Play the keyboard, edit it or save a preset.`);
     } catch (error) {
       if (!current(op)) return;
       if (error?.name === 'AbortError') setStatus('SPC sound selection cancelled. Current instrument kept.');
