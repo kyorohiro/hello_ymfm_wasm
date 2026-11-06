@@ -1,0 +1,49 @@
+{
+  "entry": "/synth-snes/index.html",
+  "results": [
+    {
+      "engine": "chromium",
+      "ok": true,
+      "checks": [
+        "lazy audio, one canvas and passive raw BRR preparation",
+        "real S-DSP with eight round-robin voices and safe stale release",
+        "Master boost, synchronized Pitch, live level and hardware ADSR / five GAIN modes",
+        "wave drawing applies on release; cancelled strokes preserve held sound",
+        "WAV converts to bounded BRR; live tuning preserves owner and cached sample",
+        "bad samples and cancelled preparation retain current BRR and held owner",
+        "sample adoption closes Cancel before a delayed processor acknowledgement",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "ok": true,
+      "checks": [
+        "lazy audio, one canvas and passive raw BRR preparation",
+        "real S-DSP with eight round-robin voices and safe stale release",
+        "Master boost, synchronized Pitch, live level and hardware ADSR / five GAIN modes",
+        "wave drawing applies on release; cancelled strokes preserve held sound",
+        "WAV converts to bounded BRR; live tuning preserves owner and cached sample",
+        "bad samples and cancelled preparation retain current BRR and held owner",
+        "sample adoption closes Cancel before a delayed processor acknowledgement",
+        "Stop, octave, focused controls, spectrum and narrow layout"
+      ],
+      "errors": [],
+      "failed": [],
+      "external": [],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true
+      }
+    }
+  ]
+}

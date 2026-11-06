@@ -1,0 +1,85 @@
+name: SNES S-DSP Synth
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/synth-snes/**'
+      - 'docs/tetorica_sdsp_synth.webp'
+      - 'docs/js/spc*'
+      - 'docs/js/snes*'
+      - 'docs/js/wav.js'
+      - 'docs/js/soundchip_pitch.js'
+      - 'docs/generated/spc*'
+      - 'docs/licenses/snes-spc/**'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/spc*'
+      - 'tetorica_src/runtime/snes*'
+      - 'tetorica_src/runtime/wav.js'
+      - 'tetorica_src/runtime/soundchip_pitch.js'
+      - 'tetorica_src/runtime/generated/**'
+      - 'scripts/*snes*'
+      - 'scripts/*spc*'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'scripts/runtime_artifacts.mjs'
+      - 'scripts/wasm_sdk_inventory.mjs'
+      - 'third_party/soundchip-sdk.json'
+      - 'third_party/tetorica-soundchip-native/**'
+      - 'third_party/snes-spc/**'
+      - 'package*.json'
+      - 'LICENSE'
+      - '.github/workflows/snes-synth.yml'
+  pull_request:
+    paths:
+      - 'docs/synth-snes/**'
+      - 'docs/tetorica_sdsp_synth.webp'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/licenses/snes-spc/**'
+      - 'docs/synth/synth_keyboard.js'
+      - 'docs/synth-spu/synth.css'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/**'
+      - 'scripts/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - 'LICENSE'
+      - '.github/workflows/snes-synth.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Test the standalone SNES S-DSP Synth
+        run: |
+          npm run test:snes-synth
+          node scripts/check_snes_synth_browser.cjs --out release/snes-synth-source-browser.json --screenshots release/snes-synth-source-images
+      - name: Package and play the independent ZIP
+        run: |
+          sh scripts/package_itch_snes_synth.sh ci
+          python3 -m zipfile -e release/tetorica_sdsp_synth_ci_itch.zip release/snes-synth-browser
+          node scripts/check_snes_synth_browser.cjs --root release/snes-synth-browser --entry /index.html --out release/snes-synth-browser.json --screenshots release/snes-synth-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snes-sdsp-synth-check
+          path: |
+            release/tetorica_sdsp_synth_ci_itch.zip
+            release/snes-synth-source-browser.json
+            release/snes-synth-source-images/
+            release/snes-synth-browser.json
+            release/snes-synth-images/
+          if-no-files-found: ignore

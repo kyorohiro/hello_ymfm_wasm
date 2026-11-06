@@ -72,6 +72,9 @@
     "pack:2a03-synth": "sh scripts/package_itch_2a03_synth.sh",
     "test:huc6280-synth": "node --test docs/synth-huc6280/*.test.mjs scripts/package_itch_huc6280_synth.test.mjs",
     "test:huc6280-synth:browser": "node scripts/check_huc6280_synth_browser.cjs",
-    "pack:huc6280-synth": "sh scripts/package_itch_huc6280_synth.sh"
+    "pack:huc6280-synth": "sh scripts/package_itch_huc6280_synth.sh",
+    "test:snes-synth": "node --test docs/synth-snes/*.test.mjs scripts/package_itch_snes_synth.test.mjs",
+    "test:snes-synth:browser": "node scripts/check_snes_synth_browser.cjs",
+    "pack:snes-synth": "sh scripts/package_itch_snes_synth.sh"
   }
 }
