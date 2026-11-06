@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica S-DSP Synth — explore SNES BRR samples, hardware ADSR and GAIN with eight playable voices.">
+  <meta name="description" content="Tetorica S-DSP Synth — import SPC voice snapshots, explore BRR samples, hardware ADSR and GAIN with eight playable voices.">
   <meta name="theme-color" content="#dfe2e2">
   <meta name="application-name" content="Tetorica S-DSP Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica S-DSP Synth">
@@ -66,6 +66,8 @@
         </div>
       </section>
 
+      <div id="spcBrowser"></div>
+
       <section class="instrument-workspace sdsp-workspace" aria-label="Instrument editor">
         <div class="section-heading"><h2>Sound source</h2><p id="voiceCapacity" role="status">BRR · 8 hardware voices · round robin</p></div>
         <div id="voiceEditor"></div>
@@ -104,7 +106,7 @@
         </div>
       </section>
       <footer>
-        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation and hardware ADSR / GAIN. Wave drawing, audio conversion, keyboard allocation and Pitch wheels are authoring tools. Sample RAM is limited to 64 KiB with 1 KiB reserved for the directory. Echo, Noise, pitch modulation and SPC song playback are not included in this first version.</p>
+        <p>One SNES S-DSP: eight hardware voices, BRR samples, Gaussian interpolation and hardware ADSR / GAIN. SPC import reads saved voice settings for audition, not song playback. Wave drawing, audio conversion, keyboard allocation and Pitch wheels are authoring tools. Sample RAM is limited to 64 KiB with 1 KiB reserved for the directory. Echo, Noise and pitch modulation are not included in this version.</p>
         <div><a href="../playground/index.html?mode=snes">Open Playground</a> · <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/packages/fm2612/README.md#api-entry-points">API guide</a> · <a href="../js/snessynth.js">JavaScript source</a></div>
       </footer>
     </article>

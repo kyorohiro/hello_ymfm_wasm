@@ -4,7 +4,8 @@ Product identifier: `tetorica-sdsp-synth`. This is the initial SNES Synth.
 
 [Open the Synth](index.html) · [SNES Playground](../playground/index.html?mode=snes)
 
-Play eight physical SNES S-DSP voices, draw a waveform, load BRR or audio, and
+Play eight physical SNES S-DSP voices, choose a voice from an SPC snapshot,
+draw a waveform, load BRR or audio, and
 learn the hardware ADSR / GAIN envelope. The UI follows Tetorica SPU / DMG /
 2A03 / HuC6280 Synths: output monitor, compact keyboard, Octave, two Pitch wheels,
 collapsible sections and controls that leave the computer keys available.
@@ -12,7 +13,8 @@ collapsible sections and controls that leave the computer keys available.
 ## Play
 
 1. Select **Enable audio**, or press a displayed computer key.
-2. Use **Wave** to draw a 128-point cycle, or load an audio file / raw BRR sample.
+2. Use **Drawn wave** to draw a 128-point cycle, load audio / raw BRR, or choose
+   **Sounds from SPC → Load SPC…** and select a voice candidate.
 3. Adjust the hardware envelope, save a preset or copy JavaScript for Playground.
 
 Editing or loading a sample does not open an audio device. Allocation uses the
@@ -36,6 +38,42 @@ Volume, envelope, Root / base PITCH and Pitch-wheel changes apply to held voices
 
 BRR compression is lossy. The S-DSP core then performs Gaussian interpolation,
 hardware envelopes and mixing; the output monitor shows the resulting audio.
+
+## Sounds from SPC
+
+1. Open **Sounds from SPC → Load SPC…** and choose an `.spc` file (up to 16 MiB).
+2. Opening it only lists candidates; the current instrument stays in place.
+3. Select **CH1 · SRCN …** or another available row, then play the keyboard.
+4. Edit the imported sample, tuning and envelope with the existing controls.
+   **Save preset…** embeds the BRR and settings; the original SPC is no longer
+   required to load that preset. **Copy JavaScript** also includes its BRR.
+
+The list contains the snapshot's eight physical voice records, including
+inactive ones. Different voices using the same SRCN remain separate because
+their PITCH, signed left/right volume or envelope may differ. Activity is only
+an ENVX / OUTX hint. The importer examines these SRCNs, not every directory slot.
+Collapse **Sounds from SPC** to keep the waveform or spectrum in view while editing.
+
+Import preserves the BRR bytes, resolved block-aligned loop, signed voice
+volumes and ADSR / GAIN register settings. The **captured PITCH is declared at
+C4** for audition. C4 is a playback reference, not a recovered original note.
+Adjust Root note to retune; BRR itself contains no original musical root.
+
+This is a snapshot instrument import. It does not execute the SPC700 driver,
+play the song, restore its current envelope / BRR decoder history, or recover
+later instrument changes. A new key-on starts a new hardware envelope. Original
+master volume / Echo / FIR are not imported. PMON voices can load their base
+BRR with an explicit warning that pitch modulation is omitted. Captured voice
+volumes are preserved without normalization; high polyphonic levels can clip
+the DSP mixer. Use Voice level to adjust them before the final Master bus.
+
+Noise voices, zero PITCH, unresolved / unaligned loop targets and incomplete
+or oversized BRR samples stay visible with an unavailable reason. Zero voice
+volume and decreasing GAIN may be silent on a new key-on; their rows explain
+how to audition them. Invalid files, Cancel and superseded reads keep the
+current instrument and previous candidate list. Once selection starts applying,
+cancellation ends and **Applying…** remains until the processor acknowledges it.
+Editing or replacing the instrument outside SPC selection clears its row highlight.
 
 ## Load audio or raw BRR
 
@@ -105,14 +143,15 @@ The hardware features in this version are eight voices, BRR decoding, Gaussian
 interpolation, PITCH, signed volumes and ADSR / GAIN. Drawing, audio conversion,
 sample management and keyboard allocation are software authoring tools.
 
-SPC sound import, Echo / FIR, Noise and pitch modulation are later stages. No
-SPC700 driver or song playback is included. Echo is disabled in this version;
+Echo / FIR, Noise and pitch modulation are later stages. No SPC700 driver or
+song playback is included in this Synth. Echo is disabled in this version;
 the future Echo implementation must reserve its RAM before samples are loaded.
 
 ## Source and verification
 
 - [preset.js](preset.js), [instrument.js](instrument.js): validation and owned hardware voices.
 - [sample.js](sample.js), [audio_import.js](audio_import.js): bounded sample preparation.
+- [spc_import.js](spc_import.js), [spc_browser.js](spc_browser.js): passive SPC snapshot extraction and explicit voice selection.
 - [editor.js](editor.js), [synth.js](synth.js): UI and performance controls.
 - [audio.js](audio.js), [processor.js](processor.js): single-context AudioWorklet host.
 - [Implementation TODO](../issues/todo_snes_synth_01.md).
@@ -136,4 +175,12 @@ SNESの8つの実voiceを使い、BRR音色、hardware ADSR／GAINを触る初�
 BRRに元音階やrateは入っていないため、Root noteとbase PITCHで明示します。
 GAINの減衰モードは初期Envelopeを自動で増やさず、新しい発音では無音になる
 場合があります。まずADSR／Directで鳴らしてから切り替えると変化を確認できます。
-SPC音色読み込み、Echo／FIR、Noise／ピッチ変調は後続です。
+**Sounds from SPC → Load SPC…** でSPCを開き、CH1〜CH8の候補から音色を
+選択できます。開くだけでは現在の音色を変えません。選択後は既存の鍵盤で試奏し、
+編集・プリセット保存・JavaScript出力ができます。BRR、解決済みLoop、左右音量、
+ADSR／GAINを取り込み、保存時点のPITCHをC4の再生基準として宣言します。
+元の音階を推測したものではないため、必要ならRoot noteを調整してください。
+一覧は折りたためます。不正ファイルやCancel、古い読み込み結果では今の音色を保ちます。
+SPCの曲再生やdriverの時間変化は再現せず、Noise・PITCH0・不正Loop等は理由を
+表示して選択不可にします。PMON／Echoを省略する候補には説明を表示します。
+Echo／FIR、Noise／ピッチ変調の音作りは後続です。

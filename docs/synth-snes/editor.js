@@ -322,19 +322,28 @@ export function createEditor({root, onChange = () => {}, onError = () => {},
       }
     } else {
       const pcm = decodedSample().pcm, bins = Math.min(2048,Math.max(1,Math.floor(right-left)),pcm.length);
-      if (!previewBins || previewBins.count !== bins) {
-        const low=new Float32Array(bins),high=new Float32Array(bins);
-        for(let bin=0;bin<bins;bin++) {
-          const start=Math.floor(bin*pcm.length/bins),end=Math.floor((bin+1)*pcm.length/bins);let minimum=1,maximum=-1;
-          for(let index=start;index<end;index++){minimum=Math.min(minimum,pcm[index]);maximum=Math.max(maximum,pcm[index]);}
-          low[bin]=minimum;high[bin]=maximum;
+      if (pcm.length && pcm.length <= right-left) {
+        // Short SPC waves need a connected trace; isolated min/max bins would
+        // otherwise shrink to sparse one-pixel dashes between sample points.
+        for (let index=0;index<pcm.length;index++) {
+          const x=left+(right-left)*index/Math.max(1,pcm.length-1);
+          if (!index) context.moveTo(x,y(pcm[index]));else context.lineTo(x,y(pcm[index]));
         }
-        previewBins={count:bins,low,high};
-      }
-      for (let bin=0;bin<bins;bin++) {
-        const low=previewBins.low[bin],high=previewBins.high[bin],x=left+(right-left)*(bin+.5)/bins;
-        context.moveTo(x,y(low));context.lineTo(x,y(high));
-        if(low===high){context.moveTo(x-.5,y(low));context.lineTo(x+.5,y(high));}
+      } else if (pcm.length) {
+        if (!previewBins || previewBins.count !== bins) {
+          const low=new Float32Array(bins),high=new Float32Array(bins);
+          for(let bin=0;bin<bins;bin++) {
+            const start=Math.floor(bin*pcm.length/bins),end=Math.floor((bin+1)*pcm.length/bins);let minimum=1,maximum=-1;
+            for(let index=start;index<end;index++){minimum=Math.min(minimum,pcm[index]);maximum=Math.max(maximum,pcm[index]);}
+            low[bin]=minimum;high[bin]=maximum;
+          }
+          previewBins={count:bins,low,high};
+        }
+        for (let bin=0;bin<bins;bin++) {
+          const low=previewBins.low[bin],high=previewBins.high[bin],x=left+(right-left)*(bin+.5)/bins;
+          context.moveTo(x,y(low));context.lineTo(x,y(high));
+          if(low===high){context.moveTo(x-.5,y(low));context.lineTo(x+.5,y(high));}
+        }
       }
       if (!pcm.length) {context.moveTo(left,y(0));context.lineTo(right,y(0));}
     }

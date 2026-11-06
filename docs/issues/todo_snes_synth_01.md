@@ -74,10 +74,32 @@
 
 ## 後続
 
-- [ ] SPC snapshotからBRR／voice設定候補を選んで取り込む。元の音階やdriver更新を完全復元したとは扱わない。
+- [x] SPC snapshotからBRR／voice設定候補を選んで取り込む。詳細は下記。元の音階やdriver更新を完全復元したとは扱わない。
 - [ ] Echo RAMを安全に予約し、Echo／FIRの高水準API・型・Main／Worker／Native・UIを順に整備する。FIRはEcho経路の音色整形で、cutoff／resonance型フィルターと同一視しない。
 - [ ] Noise／pitch modulationを公開し、共有noise clock・隣接voice routing・同時発音枠への影響を示す。
 - [ ] Web確認後にTauri版・Native活用例へ進む。
 - [ ] C64 SID Synthはフィルター中心の別題材として検討する。
 
 実聴・実ゲーム由来素材・長時間運転・commit／push／公開は、それぞれ検証結果と区別して記録する。
+
+## SPC音色読み込み・作業手順（2026-11-06）
+
+- [x] 既存parseSpcFile／readSnesVoices／extractBrrSamplesを再利用し、snapshotの8voiceから候補を準備する。SPC700／曲再生は起動しない。snapshotのactive表示はENVX／OUTXによる目安と明示する。
+- [x] SRCN・BRR・解決済みLoop・PITCH・signed LR・ADSR／GAINをportable presetへ変換する。Root C4は再生基準として宣言し、元の音階を推測したとは扱わない。Noiseは非対応、PMON／Echoやdriverによる時間変化の再現範囲を説明する。
+- [x] 折りたたみ可能なSounds from SPCを追加し、ファイルを開くだけでは現在音を変更しない。一覧の音を明示的に選んで試奏・既存editorで編集・保存／再読込できるようにする。選択操作が演奏キーを奪わない。
+- [x] bounded file read／抽出、失敗・Cancel・遅い結果の破棄を接続し、現在の音と候補一覧を不意に上書きしない。未解決Loop・不正BRR・容量超過・PITCH0等の候補は理由を表示する。
+- [x] 自作SPC fixtureでcodec／preset変換・実S-DSP registerと音・保持音・保存復元を確認し、Chromium／WebKit・独立ZIPで検証する。実ゲーム素材を同梱しない。
+- [x] Synthガイド・英日ホーム・README en／ja／AI・検証記録・配布source／CIを更新する。
+
+
+実装・検証結果:
+
+- `spc_import.js` は既存parser／BRR抽出を使い、同一SRCNでも異なる音量・PITCH・Envelopeを保って8voice候補を返す。inactiveも保持する。BRRは同じbyte、Loopは解決済み16-frame境界、signed LRとADSR1／ADSR2／GAINは元のregister値を保つ。Root60を宣言し、保存PITCHを基準とする。Noise／PITCH0／未解決Loop／不完全・容量超過sampleは理由付きで選択不可、PMON／Echoやdecreasing GAINの再現範囲も表示する。
+- `spc_browser.js` とSynthの接続で、折りたたみ可能なSounds from SPC、Load SPC、metadata、8候補、選択後の編集・保存・コード出力を追加した。開くだけでは音を変えずdeviceも起動しない。16MiBを読む前に確認し、エラー／Cancel／古い結果で現在音と候補一覧を保つ。選択確定後はCancelを閉じApplyingをACKまで表示する。他の編集・Reset・JSON読込ではSPC行の選択表示を解除する。
+- 短いBRRのpreviewが点列になっていたため、表示幅より短いdecoded波形は接続した線で表示するように修正した。長いsampleのmin/max表示は維持する。32-frame fixtureで描画領域の70%以上の列にtraceがある回帰チェックを加えた。
+- `npm run test:snes-synth`: **51件成功**（SPCの10件を追加）。自作SPCで全GAIN、実WASMのsigned LR／PITCH／Envelopeと音出力、loop解決・16-bit wrap、64,512-byte境界、invalid／oversize／所有権を確認した。
+- [ソースbrowser記録](snes_synth_spc_browser_01.json)と[最終ZIP browser記録](snes_synth_spc_zip_browser_01.json): Chromium／WebKit各12チェック成功。SPCを開くだけの状態保持、候補選択後の実DSP／音、metadata text安全性、16MiB超のread前拒否、不正file／Cancel／古いread、遅延ACK／JSON復元／選択解除、既存8声・Master380%・Pitch・focus・390px overflow0を確認。最終ZIPでは短いBRRのtraceも確認した。外部通信／404／page errorは0。1180px／390px画像を目視した。speakerはmuteしている。
+- 配布ZIP: `release/tetorica_sdsp_synth_0.0.2_itch.zip`（62 files、896,709 bytes、SHA-256 `ee285ba14b3cdeee5cf8943380b589717631568ec841479178fa09fb36207af1`）。採用した白い外枠icon、可読modules／元source receipt、元WASM、完全なLGPL native core・再ビルド手順を含む。今回の2moduleもdependency closureに含める配布検証を追加した。実ゲームのSPC／素材は同梱しない。
+- Synthガイド・英日ホーム・README en／ja／AIを更新した。既存SNES CIのunit wildcard／browser／独立ZIP検証で今回の機能も実行する。共有runtime／WASM・npm APIは未変更。commit／push／公開は行っていない。実ゲームSPCでの試聴・長時間動作は未確認。
+
+次の候補はEcho／FIR（RAM予約を先に整備）、続いてNoise／PMON。実ゲームSPCでの人の試聴をAI検証と区別して残す。

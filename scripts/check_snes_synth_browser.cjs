@@ -5,7 +5,6 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const {gzipSync} = require('node:zlib');
 
 function makeWav() {
   const rate=44100,frames=rate*5,channels=2,bytes=Buffer.alloc(44+frames*channels*2);
@@ -13,6 +12,32 @@ function makeWav() {
   bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(channels,22);bytes.writeUInt32LE(rate,24);bytes.writeUInt32LE(rate*channels*2,28);
   bytes.writeUInt16LE(channels*2,32);bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(bytes.length-44,40);
   for(let i=0;i<frames;i++) for(let ch=0;ch<channels;ch++) bytes.writeInt16LE(Math.round(Math.sin(i/rate*Math.PI*2*220)*(ch===0?.6:.3)*32767),44+(i*channels+ch)*2);
+  return bytes;
+}
+
+// Self-authored RAM / DSP snapshot, with no IPL ROM or game material.
+function makeSpc(title='<img src=x onerror=alert(1)>') {
+  const bytes=Buffer.alloc(0x10200),ram=bytes.subarray(0x100,0x10100),dsp=bytes.subarray(0x10100,0x10180);
+  bytes.write('SNES-SPC700 Sound File Data v0.30',0,'ascii');
+  bytes[0x21]=bytes[0x22]=0x1a;bytes[0x23]=0x1a;bytes[0x24]=30;
+  bytes.write(title,0x2e,32,'ascii');bytes.write('Tetorica browser fixture',0x4e,32,'ascii');
+  dsp[0x5d]=0x20;
+  const brr=Buffer.from([0xc0,0x77,0x66,0x44,0x22,0x0e,0xcc,0xaa,0x99,0xc3,0x99,0xaa,0xcc,0xee,0x02,0x44,0x66,0x77]);
+  brr.copy(ram,0x3000);brr.copy(ram,0x3040);
+  for(const [srcn,start,loop]of[[3,0x3000,0x3009],[5,0x3000,0x3009],[6,0x3040,0x4000]]) {
+    ram.writeUInt16LE(start,0x2000+srcn*4);ram.writeUInt16LE(loop,0x2002+srcn*4);
+  }
+  const voice=(index,{srcn=3,pitch=4096,left=16,right=24,adsr1=0x8f,adsr2=0xe0,gain=80,active=true}={})=>{
+    const base=index<<4;dsp[base]=left&255;dsp[base+1]=right&255;
+    dsp[base+2]=pitch&255;dsp[base+3]=pitch>>8;dsp[base+4]=srcn;
+    dsp[base+5]=adsr1;dsp[base+6]=adsr2;dsp[base+7]=gain;
+    dsp[base+8]=active?0x40:0;dsp[base+9]=active?0x10:0;
+  };
+  voice(0);voice(1,{pitch:2048,left:-20,right:18,adsr1:0x21,adsr2:0xa5,gain:96,active:false});
+  voice(2,{srcn:5});dsp[0x3d]=1<<2;
+  voice(3,{pitch:0});voice(4,{srcn:6});
+  voice(5,{adsr1:0,adsr2:0,gain:0xc8});voice(6);voice(7);
+  dsp[0x2d]=dsp[0x4d]=1<<6;
   return bytes;
 }
 
@@ -51,6 +76,9 @@ async function checkEngine(name, engine, origin) {
         if(audit.holdDdaCommit&&data?.method==='loadPreset'&&data.args?.[0]?.brr?.name==='slow-commit.wav') {
           audit.holdDdaCommit=false;audit.releaseDdaCommit=()=>post.call(this,data,...args);return;
         }
+        if(audit.holdSpcCommit&&data?.method==='loadPreset') {
+          audit.holdSpcCommit=false;audit.releaseSpcCommit=()=>post.call(this,data,...args);return;
+        }
         return post.call(this,data,...args);
       };
       const Context = window.AudioContext ?? window.webkitAudioContext;
@@ -70,7 +98,7 @@ async function checkEngine(name, engine, origin) {
       window.AudioWorkletNode = class extends Worklet {constructor(...args) {super(...args);audit.worklets.push(this);}};
       audit.read = () => new Promise((resolve,reject) => {
         const node = audit.worklets.at(-1), id = --audit.nextId;
-        if (!node) return reject(new Error('No HuC6280 worklet'));
+        if (!node) return reject(new Error('No S-DSP worklet'));
         const timer = setTimeout(() => {node.port.removeEventListener('message',receive);reject(new Error('Audit read timeout'));},5000);
         function receive({data}) {
           if (data.id !== id) return;
@@ -105,6 +133,21 @@ async function checkEngine(name, engine, origin) {
     assert.match(await page.title(),/Tetorica S-DSP Synth/);
     assert.equal(await page.evaluate(()=>audit.contexts.length),0);
     assert.equal(await page.locator('#voiceEditor canvas').count(),1);
+    check('SPC file opening is passive, bounded to snapshot candidates and safe metadata text');
+    await page.locator('#spcFileInput').setInputFiles({name:'self-authored.spc',mimeType:'application/octet-stream',buffer:makeSpc()});
+    await page.waitForFunction(()=>document.querySelectorAll('#spcCandidates [data-spc-voice]').length===8);
+    assert.equal(await page.evaluate(()=>audit.contexts.length),0);
+    assert.equal(await page.locator('#instrumentName').inputValue(),'Sine');
+    assert.equal(await radio('source','wave').getAttribute('aria-checked'),'true');
+    assert.match(await page.locator('#spcMetadata').textContent(),/<img src=x onerror=alert\(1\)>/);
+    assert.equal(await page.locator('#spcMetadata img').count(),0);
+    for(const index of [0,1,5,6,7])assert.equal(await page.locator(`#spcCandidate${index}`).isEnabled(),true);
+    for(const index of [2,3,4])assert.equal(await page.locator(`#spcCandidate${index}`).isDisabled(),true);
+    assert.match(await page.locator('#spcCandidates').textContent(),/Noise/i);
+    assert.match(await page.locator('#spcCandidates').textContent(),/PITCH/);
+    assert.match(await page.locator('#spcCandidates').textContent(),/PMON|modulation/i);
+    assert.match(await page.locator('#spcCandidates').textContent(),/Echo/i);
+    assert.match(await page.locator('#spcSection').textContent(),/ENVX.*OUTX|OUTX.*ENVX/);
     await radio('source','brr').click();assert.equal(await page.locator('#keyboard .key:not([disabled])').count(),0);
     const rawBrr=Buffer.from([0xc0,0x77,0x66,0x44,0x22,0x0e,0xcc,0xaa,0x99,0xc3,0x99,0xaa,0xcc,0xee,0x02,0x44,0x66,0x77]);
     await page.locator('#brrFileInput').setInputFiles({name:'self-authored.brr',mimeType:'application/octet-stream',buffer:rawBrr});
@@ -198,6 +241,92 @@ async function checkEngine(name, engine, origin) {
     await wait(s=>s.preset.source==='brr'&&s.preset.brr.name==='slow-commit.wav');
     await page.keyboard.down(keys[0]);await wait(s=>s.voices.length===1);await sound();await page.locator('#stopAudio').click();
     await wait(s=>s.voices.length===0);await silent();await page.keyboard.up(keys[0]);
+    check('SPC selection adopts BRR, resolved loop, packed ADSR / GAIN, signed levels and declared C4 tuning');
+    await page.locator('#spcCandidate0').click();
+    state=await wait(s=>s.preset.source==='brr'&&s.preset.brr.basePitch===4096&&s.preset.brr.loopStartSamples===16);
+    assert.equal(state.preset.brr.rootNote,60);assert.equal(state.sample.frames,32);
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const shortBrrCoverage=await page.locator('#waveCanvas').evaluate(canvas=>{
+      const {width,height}=canvas,pixels=canvas.getContext('2d').getImageData(0,0,width,height).data;
+      const left=28,right=width-15,top=16,bottom=height-28;let traced=0;
+      for(let x=left;x<=right;x++)for(let y=top;y<=bottom;y++) {
+        const offset=(y*width+x)*4,r=pixels[offset],g=pixels[offset+1],b=pixels[offset+2];
+        if(g>100&&g>r+25&&g>b+15){traced++;break;}
+      }
+      return traced/(right-left+1);
+    });
+    assert(shortBrrCoverage>.7,`32-frame BRR preview should draw a continuous green waveform, covered ${(shortBrrCoverage*100).toFixed(1)}% of plot columns`);
+    for(const registers of state.registers)assert.deepEqual([registers[0],registers[1],registers[5],registers[6],registers[7]],[16,24,0x8f,0xe0,80]);
+    const rootKey=await page.locator('#keyboard .key:not([disabled])').evaluateAll(nodes=>nodes.find(node=>/(?:^|\s)C4(?:\s|$)/.test(node.textContent))?.dataset.key);
+    assert(rootKey,'current keyboard exposes declared root C4');
+    await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);await sound();
+    let rootRegisters=state.registers[state.voices[0].channel];assert.equal(rootRegisters[2]|rootRegisters[3]<<8,4096);
+    await page.keyboard.up(rootKey);await silent();
+    await page.locator('#spcCandidate1').click();
+    state=await wait(s=>s.preset.brr.basePitch===2048&&s.preset.volume.left===-20);
+    assert.equal(state.preset.envelope.mode,'gain');assert.equal(state.preset.envelope.gainMode,'direct');
+    assert.equal(state.preset.envelope.gainLevel,96);assert.equal(state.preset.brr.loopStartSamples,16);
+    for(const registers of state.registers)assert.deepEqual([registers[0],registers[1],registers[5],registers[6],registers[7]],[236,18,0x21,0xa5,96]);
+    await page.keyboard.down(rootKey);state=await wait(s=>s.voices.length===1);await sound();
+    rootRegisters=state.registers[state.voices[0].channel];assert.equal(rootRegisters[2]|rootRegisters[3]<<8,2048);
+    const spcOwner=state.voices[0].id,spcPreset=state.preset;
+    check('invalid, cancelled and superseded SPC file opens retain the instrument, held owner and previous candidates');
+    await page.locator('#spcFileInput').setInputFiles({name:'invalid.spc',mimeType:'application/octet-stream',buffer:Buffer.from('not an SPC')});
+    await page.waitForFunction(()=>document.querySelector('#spcImportStatus').dataset.error==='true');
+    state=await read();assert.deepEqual(state.preset,spcPreset);assert.equal(state.voices[0].id,spcOwner);
+    assert.equal(await page.locator('#spcCandidates [data-spc-voice]').count(),8);
+    await page.evaluate(()=>{
+      audit.oversizedSpcReads=0;audit.beforeSpcCapRead=File.prototype.arrayBuffer;
+      File.prototype.arrayBuffer=function(...args){if(this.name==='oversized.spc')audit.oversizedSpcReads++;return audit.beforeSpcCapRead.apply(this,args);};
+    });
+    await page.locator('#spcFileInput').setInputFiles({name:'oversized.spc',mimeType:'application/octet-stream',buffer:Buffer.alloc(16*1024*1024+1)});
+    await page.waitForFunction(()=>/16 MiB/.test(document.querySelector('#spcImportStatus').textContent));
+    assert.equal(await page.evaluate(()=>audit.oversizedSpcReads),0);
+    await page.evaluate(()=>{File.prototype.arrayBuffer=audit.beforeSpcCapRead;});
+    state=await read();assert.deepEqual(state.preset,spcPreset);assert.equal(state.voices[0].id,spcOwner);
+    await page.evaluate(()=>{
+      audit.spcReadFile=File.prototype.arrayBuffer;
+      File.prototype.arrayBuffer=function(...args){
+        if(!['cancel.spc','late.spc'].includes(this.name))return audit.spcReadFile.apply(this,args);
+        return new Promise((resolve,reject)=>{audit[this.name==='cancel.spc'?'releaseSpcFile':'releaseLateSpcFile']=()=>audit.spcReadFile.apply(this,args).then(resolve,reject);});
+      };
+    });
+    await page.locator('#spcFileInput').setInputFiles({name:'cancel.spc',mimeType:'application/octet-stream',buffer:makeSpc('Cancelled snapshot')});
+    await page.waitForFunction(()=>typeof audit.releaseSpcFile==='function');await page.locator('#cancelSpcImport').click();
+    await page.evaluate(()=>audit.releaseSpcFile());
+    state=await read();assert.deepEqual(state.preset,spcPreset);assert.equal(state.voices[0].id,spcOwner);
+    assert.equal(await page.locator('#spcCandidates [data-spc-voice]').count(),8);
+    assert.doesNotMatch(await page.locator('#spcMetadata').textContent(),/Cancelled snapshot/);
+    await page.locator('#spcFileInput').setInputFiles({name:'late.spc',mimeType:'application/octet-stream',buffer:makeSpc('Late snapshot')});
+    await page.waitForFunction(()=>typeof audit.releaseLateSpcFile==='function');
+    await page.locator('#spcFileInput').setInputFiles({name:'replacement.spc',mimeType:'application/octet-stream',buffer:makeSpc('Replacement snapshot')});
+    await page.waitForFunction(()=>document.querySelector('#spcMetadata').textContent.includes('Replacement snapshot'));
+    await page.evaluate(async()=>{await audit.releaseLateSpcFile();File.prototype.arrayBuffer=audit.spcReadFile;});
+    assert.match(await page.locator('#spcMetadata').textContent(),/Replacement snapshot/);
+    assert.doesNotMatch(await page.locator('#spcMetadata').textContent(),/Late snapshot/);
+    state=await read();assert.deepEqual(state.preset,spcPreset);assert.equal(state.voices[0].id,spcOwner);
+    await page.keyboard.up(rootKey);await silent();
+    check('SPC selection commit closes cancellation and portable preset restores the imported voice');
+    await page.evaluate(()=>{audit.holdSpcCommit=true;});await page.locator('#spcCandidate0').click();
+    await page.waitForFunction(()=>typeof audit.releaseSpcCommit==='function');
+    assert.match(await page.locator('#spcImportStatus').textContent(),/Applying/);
+    assert(!await page.locator('#cancelSpcImport').isVisible()||await page.locator('#cancelSpcImport').isDisabled());
+    await page.evaluate(()=>audit.releaseSpcCommit());
+    await wait(s=>s.preset.brr.basePitch===4096&&s.preset.volume.left===16);
+    await page.waitForFunction(()=>!document.querySelector('#spcCandidate0').disabled);
+    const spcDownload=page.waitForEvent('download');await page.locator('#savePreset').click();
+    const spcSaved=JSON.parse(await fs.readFile(await(await spcDownload).path(),'utf8'));
+    assert.equal(spcSaved.brr.loopStartSamples,16);assert.equal(spcSaved.brr.basePitch,4096);assert.equal(spcSaved.brr.rootNote,60);
+    assert.deepEqual(Buffer.from(spcSaved.brr.data,'base64'),rawBrr);
+    assert.equal(await page.locator('#spcCandidate0').getAttribute('aria-pressed'),'true');
+    await page.locator('#resetPreset').click();await wait(s=>s.preset.source==='wave'&&s.preset.name==='Sine');
+    assert.equal(await page.locator('#spcCandidates [aria-pressed="true"]').count(),0,'Reset clears the previous SPC selection highlight');
+    await page.locator('#presetFileInput').setInputFiles({name:'saved-spc-voice.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(spcSaved))});
+    state=await wait(s=>s.preset.source==='brr'&&s.preset.brr.loopStartSamples===16&&s.preset.brr.basePitch===4096);
+    assert.equal(state.preset.envelope.mode,'adsr');
+    assert.equal(await page.locator('#spcCandidates [aria-pressed="true"]').count(),0,'Loading JSON does not select a snapshot candidate');
+    await page.locator('#copyCode').click();assert.match(await page.locator('#codeOutput').inputValue(),/loopStartSamples.*16/);
+    await page.locator('#spcCandidate1').click();await wait(s=>s.preset.brr.basePitch===2048);
     check('Stop, octave, focused controls, spectrum and narrow layout');
     await page.locator('#octaveUp').click();assert.equal((await page.locator('#octaveValue').textContent()).trim(),'+1');
     await page.locator('#loopBrr').focus();await page.keyboard.down(keys[1]);await wait(s=>s.voices.length===1);await page.keyboard.up(keys[1]);await silent();

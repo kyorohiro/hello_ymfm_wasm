@@ -63,7 +63,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   }
   assert(assets>=2,'audio references retain the local WASM and processor assets');
   for(const entry of info.receipt.bundles)assert.deepEqual(entry,info.receipt.modules.find(module=>module.path===entry.path));
-  for(const name of ['preset.js','instrument.js','sample.js','audio_import.js','editor.js'])assert(info.receipt.modules.some(module=>module.path==='synth-snes/'+name));
+  for(const name of ['preset.js','instrument.js','sample.js','audio_import.js','editor.js','spc_import.js','spc_browser.js'])assert(info.receipt.modules.some(module=>module.path==='synth-snes/'+name));
   for(const name of ['snessynth.js','spc.js','spc_resampler.js','snes_brr.js','snes_brr_encoder.js'])assert(info.receipt.modules.some(module=>module.path==='js/'+name));
   const main=await readFile(join(a.stage,'synth-snes/synth.js'),'utf8');assert(main.split('\n').length>100);
   assert.match(main,/import \{createAudio\} from '\.\/audio\.js'/);

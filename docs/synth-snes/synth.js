@@ -3,6 +3,8 @@ import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createDefaultPreset, readPreset, presetToCode} from './preset.js';
 import {prepareAudio,prepareBrrFile} from './audio_import.js';
+import {parseSpcVoices,MAX_SPC_BYTES} from './spc_import.js';
+import {createSpcBrowser} from './spc_browser.js';
 const MAX_PRESET_BYTES=256*1024;
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState, createFretboardLayout, renderFretboardControls, buildKeyboard,
@@ -14,7 +16,7 @@ const status = (text, error = false) => {
   $('audioStatus').dataset.error = String(error);
 };
 const report = error => status(error?.message ?? String(error), true);
-let audio = null, opening = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
+let audio = null, opening = null, spcBrowser = null, disposed = false, epoch = 0, sequence = 0, importSequence = 0, switchingAudioOutput = false;
 let preset = createDefaultPreset(), revision = 0, octave = 0, pitch = 0;
 let queue = Promise.resolve();
 const notes = new Map(), fret = createFretboardState();
@@ -96,8 +98,9 @@ async function ensureAudio() {
   await engine.resume();
   return engine;
 }
-function applyPreset(value, {load = false, message} = {}) {
+function applyPreset(value, {load = false, message, fromSpc = false} = {}) {
   const next = readPreset(value);
+  if(!fromSpc) spcBrowser?.clearSelection();
   const previous = preset;
   const replacesVoices = load || previous.source !== next.source ||
     (next.source==='wave' ? JSON.stringify(previous.wave)!==JSON.stringify(next.wave) :
@@ -143,6 +146,28 @@ async function loadSample(file,options,isBrr) {
 }
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>{void applyPreset(value).catch(report);},onError:report,
   onLoadAudio:(file,options)=>loadSample(file,options,false),onLoadBrr:(file,options)=>loadSample(file,options,true)});
+const spcCancelled = () => new DOMException('SPC import cancelled','AbortError');
+async function openSpc(file,{signal}={}) {
+  if(disposed||signal?.aborted) throw spcCancelled();
+  if(!Number.isSafeInteger(file?.size)||file.size<0||file.size>MAX_SPC_BYTES) throw new RangeError('SPC must be at most 16 MiB');
+  const data=await file.arrayBuffer();
+  if(disposed||signal?.aborted) throw spcCancelled();
+  return parseSpcVoices(data,{name:file.name});
+}
+async function selectSpc(candidate,{signal,onCommit}={}) {
+  if(disposed||signal?.aborted) throw spcCancelled();
+  if(!candidate?.preset) throw new Error(candidate?.reason??'This SPC voice is unavailable');
+  const next=readPreset(candidate.preset);
+  // Invalidate older audio / preset file reads before this explicit adoption.
+  const token=++importSequence;
+  onCommit?.();
+  const applying=applyPreset(next,{load:true,fromSpc:true,message:`Loaded SPC CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber}. Play the keyboard.`});
+  const adoptedRevision=revision;
+  await applying;
+  if(disposed||signal?.aborted||token!==importSequence||adoptedRevision!==revision) throw spcCancelled();
+  return `Loaded CH${candidate.voice.index+1} · SRCN ${candidate.voice.sourceNumber}. Snapshot PITCH is declared at C4; adjust Root note to retune.`;
+}
+spcBrowser=createSpcBrowser({root:$('spcBrowser'),onOpen:openSpc,onSelect:selectSpc,onError:report});
 
 const keyboard = document.createElement('div'); keyboard.className = 'keyboard';
 $('keyboard').append(keyboard);
@@ -312,7 +337,7 @@ $('copyCode').addEventListener('click',async()=>{
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){stopNotes();return;}
-  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();void audio?.dispose();audio=null;
+  disposed=true;epoch++;notes.clear();monitorResize.disconnect();visualizer.dispose();editor.dispose();spcBrowser.dispose();void audio?.dispose();audio=null;
 });
 updatePresetUi();setVolume();setPitchUi(0);
 
