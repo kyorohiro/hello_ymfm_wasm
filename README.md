@@ -89,7 +89,7 @@ These are representative systems, not a guarantee that every game's music or ins
 | Super Famicom / SNES | SPC song playback, BRR instruments, experimental note analysis / editable JavaScript. |
 | PlayStation 1 | SPU instruments and static VAB extraction from PSF1 / MiniPSF sets; **not PSF song playback**. |
 | Sega Saturn | Experimental SCSP instruments / register APIs; **no SSF song playback or 68000 execution**. |
-| Commodore 64 | Experimental 6581 SID instruments, shared filter and Main / Worker Playground APIs; **no PSID / RSID song playback or 8580 model**. |
+| Commodore 64 | Experimental 6581 SID instruments, shared filter and Main / Worker Playground APIs. A bounded PAL/6581 PSID v2 [reference CLI](docs/sid-reference.md) records CPU-timed writes and comparison WAVs. **Browser SID song playback, RSID and the 8580 model remain unsupported**. |
 | Atari 8-bit, WonderSwan | POKEY and WonderSwan sound cores; see the Analyzer table for file / analysis limits. |
 
 | Input | Supported workflow |

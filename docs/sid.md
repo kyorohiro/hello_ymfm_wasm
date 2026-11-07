@@ -14,8 +14,10 @@ allocation, hardware ADSR, Pulse width and shared filter, with a one-note Sync /
 Ring pair, portable presets and readable JavaScript export. See its
 [guide](synth-sid/README.md). The standalone
 [SID Register Lab](playground/sid-lab/index.html) remains available for register
-experiments. A `.sid` song player is a separate later stage, tracked in
-[the TODO](issues/todo_sid_01.md).
+experiments. An offline [PSID reference comparison CLI](sid-reference.md) now
+executes a bounded PAL/6581 subset, captures cycle-timed writes and writes
+reference/Tetorica WAVs. A browser `.sid` song player is a separate later stage,
+tracked in [the TODO](issues/todo_sid_01.md).
 
 ## Musical and register controls
 

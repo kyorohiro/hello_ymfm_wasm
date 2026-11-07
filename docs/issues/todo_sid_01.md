@@ -38,9 +38,22 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
-- [ ] sidplayfp等を用いた外部再生／WAV比較手順を用意する。6581／8580、PAL／NTSCを合わせる。
-- [ ] PSID／RSIDのprogram実行を扱う既存engineとlicense・ROM依存を調査する。
-- [ ] SID再生またはtimed register trace取得を試作する。既存VGM Player／Analyzerへの統合先は、この結果で決める。
+### 参照再生／比較CLIの今回の作業（2026-11-07）
+
+ユーザーの「進めて」により、SID曲を基準にした検証を開始する。
+最初は単一SID・PAL／6581の自作PSIDを対象に、既存C64再生engineを外部の検証toolとして使う。
+本体のBSD／zlib runtime・Synth・WASM・SDK／校正値は変更せず、engineのlicenseと依存・ROM条件を記録する。
+
+- [x] 参照engineの固定revision、license、build依存、PSID／RSIDとROM条件、cycle付きSID write取得方法を調査する。
+- [x] 著作物を含まない自作PSID fixtureを用意し、実C64 program実行によるSID write列を検証する。
+- [x] clock／model／sample rate／engine revision／入力hash／cycle順を持つbounded trace形式を定義し、無効・巨大・非対応入力を明示拒否する。
+- [x] 外部engineでの参照再生／trace取得と、同じwrite列を既存Tetorica SIDへ流す比較CLIを実装する。WAVと測定JSONを保存する。
+- [x] timing／render分割／再現性、wave／ADSR／filter変化、自作programの期待write列、エラー経路を自動確認する。参照engineとの差は実機一致・PCM完全一致とは扱わない。
+- [x] 再現可能なbuild／実行手順、license境界、対応範囲、CIと再開メモを更新する。実ゲームSID、人の実聴、RSID／ブラウザー統合／音色取り込みは後続に分ける。
+
+- [x] sidplayfp等を用いた外部再生／WAV比較手順を用意する。初版はPAL／6581を明示して揃え、NTSC／8580は拒否する。
+- [x] PSID／RSIDのprogram実行を扱う既存engineとlicense・ROM依存を調査する。
+- [x] SID再生またはtimed register trace取得を試作する。初版は外部比較CLIとし、既存VGM Player／Analyzer／browserへの統合は後続とする。
 - [ ] 後続: voiceの設定と時間変化を試奏用に取り込む。snapshotだけで元のinstrumentを完全復元したとは表示しない。
 
 ## 4. Synth／配布
@@ -71,7 +84,8 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 ## 再開メモ
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
-通常Playground modeは下記第2段階、独立Synthは第3段階で対応した。package-root raw chip factory／Native出力／SID曲再生は後続。
+通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階で対応した。
+package-root raw chip factory／Native出力／browserのSID曲再生／RSIDは後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
 
@@ -201,6 +215,49 @@ SID曲／音色抽出、外部reference／実機比較、Native出力は別TODO�
   **57 files／1,301,238 bytes**、SHA-256 `a7001d835a0893c6c9aea4f86373bf2bb867fb502fcc148b7461f9a1716260a0`。
   WebPは元とbyte一致、27個のbrowser入力も最終sourceのhashと一致する。旧0.0.1のZIP／検証記録はその時点のsnapshotとして保持した。
   CIの監視対象にもicon／生成記録／両homeを追加した。commit／push／公開は行っていない。
+
+## 第4段階: 外部PSID参照／比較CLI（2026-11-07）
+
+- [手順・対応範囲](../sid-reference.md)。`npm run sid:reference -- --fixture melody-filter --seconds 2`
+  で自作PSIDを実C64 programとして実行し、PHI2 cycle付きのSID write、参照／Tetorica／DC前のfloat WAVと比較JSONを保存する。
+  `npm run sid:reference -- ./my-tune.sid --subtune 1 --seconds 10 --offline` も使える（先に参照toolをbuildする）。
+  毎回uniqueなdirectoryを作り、入力・既存の測定・WAVを上書きせず、deviceは開かない。
+- 外部toolはGPL-2.0-or-laterのlibsidplayfp **3.1.2**（`b1e8f1deedf41d343123319237c0d008d72cbea7`）と
+  libresidfp **1.2.3**（`32c8525418a643eaed8dfafa3d7039e250050cfa`）。official release archiveのSHAを固定する。
+  [license／再ビルド](../../third_party/sid-reference/README.md)・GPL通知・元archive・marked patchのbefore/after hashを保持。
+  参照専用GPL adapterを別processにし、browser／npmのentry closureや既存SDKへ追加していない。
+- 元libresidfpのfilter table初期化が並列に共有dither stateを更新して微小な実行差を出すことを確認し、
+  参照toolだけに **serial-table-init** patchを適用。初期tableの順序だけを固定し、DSP式／gain／sampling式は変えていない。
+  engineを`1.2.3+serial-table-init`と識別する。36回の4profile／3rate／chunk・repeat検証でPCM／write列が一致し、
+  patch前後のCPU write列も同じだった。両hostの初期register／volumeは0に揃え、上流から要求されたreset volume15は別metadataで保持する。
+- 初版は **PSID v2・単一SID・明示PAL／6581・全VBI・relocation0・RAM$0800..$CFFFのexplicit init/play**。
+  ROM dump／ゲーム音楽を同梱せず、upstream KERNAL stubで動く自作programを使う。
+  parserのv3/v4 metadata対応と実行subsetを区別し、RSID・CIA速度・IRQ play0・NTSC／8580・追加SID等は理由付きで拒否する。
+  実ゲームdriverのROM独立性や完全再現をheaderだけで保証していない。
+- `tetorica-sid-trace` v1は32MiB／最大100万write、clock985248Hz、cycle0からtick後commit、終端exclusive。
+  同cycle重複・逆順・範囲外・coercion・非JSON metadata等を拒否し、RO／reservedを含むreg0..31や同値writeも省略しない。
+  読込はfdを固定して上限+1byteまでに抑え、file成長でも無制限にreadしない。compact保存と読込の上限を一致させた。
+- 新Native replayerは既存patched m6581を直接tickし、write中のsampleを含め全部回収する。
+  既存12Hz DC後／rawを分け、render()でwrite時刻をsample境界に丸める処理をしない。
+  実WASMと44.1／48／96kHzでPCM・register・ENV・phaseが一致し、chunk1／17／128／4096／8192でも同一。
+- 参照clock985248.611111／sampling float985248.625とTetorica整数985248を別記する。
+  参照の2段RESAMPLEの1/1024周期量子化により、48kHz指定でも実効約48010.4765Hzとなるframe差を保存する。
+  CPU eventの終端overshootと、SID自身を指定cycleでclampする処理も区別した。
+  元PCMのgain／DC／位相／長さを補正せず、共通index範囲のRMSE・correlation・level／bandを診断値として出す。
+  waveform・filter等の差は別model間の測定結果であり、実機一致の合否には使わない。
+- `npm run test:sid-reference`: **29件成功**。PSID／trace異常系、元bytecode、実WASM、time／chunk／DC、
+  float WAVの非clip保存、compiler／flags／OS／archのcache改変拒否、bounded読込を確認した。
+- [統合結果](sid_reference_comparison_01.json): **6ケース＋完全repeat＋init0の2load形式** が成功。
+  toneを44.1／48／96kHz、pulse／noise／melody-filterを48kHzで実行し、各init36write＋play順が期待値と一致した。
+  既知A4のpitchも確認。player event chunk4096→1／render chunk4096→1でtraceと両backendのPCMが完全一致。
+  initAddress0がeffective loadへ解決されることを、embedded／explicit loadの実CPU実行・PCM一致で確認した。
+- `.github/workflows/sid-reference.yml`、README en／ja／AI、SID guide／feature statusを更新。
+  固定SDK33 builds／全68 outputs／75 mirrorsと、両Mixer policy checkも成功。runtime／WASM／校正値は変更していない。
+  GitHub上のCI実行・commit／push・npm／Web公開は行っていない。
+
+再開時はまず上記コマンドと比較用WAVを使う。次は実ゲームの対応subset PSIDでdriver依存と実聴を確認する。
+その結果をもとにbrowserでの曲再生／状態表示、時変parameterを含む音色取り込みを設計する。
+CLIの比較結果をSynth音色の完全復元や実機精度と呼ばない。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

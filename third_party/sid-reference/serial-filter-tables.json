@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "libresidfp-1.2.3-serial-table-init",
+  "upstreamRevision": "32c8525418a643eaed8dfafa3d7039e250050cfa",
+  "scope": "Only call the existing filter table initializers in a stable serial order; no DSP equations, gain or sampling changes.",
+  "files": [
+    {
+      "path": "src/FilterModelConfig6581.cpp",
+      "before": {
+        "bytes": 8313,
+        "sha256": "39bff76d15d957288118aeb4729b788e37a2bd9f70dcde2d8b22eee287229bea"
+      },
+      "after": {
+        "bytes": 8090,
+        "sha256": "fa7c536b42f01cb479b5f7b9f86ea64485a470020cd666f43abc32601acff4e0"
+      },
+      "tables": [
+        "Summer",
+        "Mixer",
+        "Gain",
+        "Resonance",
+        "VcrVg",
+        "VcrIds"
+      ]
+    },
+    {
+      "path": "src/FilterModelConfig8580.cpp",
+      "before": {
+        "bytes": 5759,
+        "sha256": "5c5540068ebbdadc3c6685b7b4ef727ba228b5445000d6f6f3483cee49df3e6f"
+      },
+      "after": {
+        "bytes": 5616,
+        "sha256": "af9fc3eecb33c234b3780f9861f6133c966eaba3fc7044962b88e8c4c49ec09a"
+      },
+      "tables": [
+        "Summer",
+        "Mixer",
+        "Gain",
+        "Resonance"
+      ]
+    }
+  ],
+  "diff": {
+    "path": "third_party/sid-reference/serial-filter-tables.patch",
+    "bytes": 1814,
+    "sha256": "11f6e44daf492882850424de00f865eeafbb3df917d0466b98c39dcbe021ead8"
+  }
+}

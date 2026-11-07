@@ -1,0 +1,63 @@
+name: SID reference comparison
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tetorica_src/cli/sid_*.mjs'
+      - 'scripts/*sid_reference*'
+      - 'test/sid_*.test.mjs'
+      - 'test/helpers/sid_*reference.cpp'
+      - 'test/helpers/sid_trace_render.cpp'
+      - 'test/fixtures/sid-reference/**'
+      - 'third_party/sid-reference/**'
+      - 'third_party/chips-m6581/**'
+      - 'tetorica_src/wasm/sid_core.h'
+      - 'tetorica_src/runtime/sid.js'
+      - 'tetorica_src/runtime/generated/sid/**'
+      - 'package*.json'
+      - '.github/workflows/sid-reference.yml'
+  pull_request:
+    paths:
+      - 'tetorica_src/cli/sid_*.mjs'
+      - 'scripts/*sid_reference*'
+      - 'test/sid_*.test.mjs'
+      - 'test/helpers/sid_*reference.cpp'
+      - 'test/helpers/sid_trace_render.cpp'
+      - 'test/fixtures/sid-reference/**'
+      - 'third_party/sid-reference/**'
+      - 'third_party/chips-m6581/**'
+      - 'tetorica_src/wasm/sid_core.h'
+      - 'tetorica_src/runtime/sid.js'
+      - 'tetorica_src/runtime/generated/sid/**'
+      - 'package*.json'
+      - '.github/workflows/sid-reference.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Bounded PSID, trace and comparison tests (no download)
+        run: npm run test:sid-reference
+      - name: Build pinned external GPL reference and compare authored programs
+        run: node scripts/check_sid_reference.mjs --work-dir release/sid-reference-validation
+      - name: Verify application artifacts remain authenticated
+        run: npm run check:runtime-artifacts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sid-reference-comparison
+          path: |
+            release/sid-reference-validation/
+            build/sid-reference/sid-reference-build.json
+          if-no-files-found: ignore

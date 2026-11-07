@@ -14,7 +14,7 @@ mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
 instances, typed note / voice / shared-filter helpers and a read-only SID tab
 are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
 at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). These changes
-do not implement `.sid` song playback or publish a new npm release / Native SDK.
+do not implement browser `.sid` song playback or publish a new npm release / Native SDK.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
 the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
 and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
@@ -29,8 +29,18 @@ with its separate receipt, while the fixed SDK remains unchanged.
 `sh scripts/package_itch_playground.sh` also ships the regular C64 mode.
 6581 filter / combined waves remain approximations; no 8580 model is provided.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
-External sidplayfp reference playback, timed register capture, Native SDK / audio
-integration are subsequent TODO stages. The Playground creation
+An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
+PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a
+separate GPL validation executable. It preserves PHI2 writes, original PCM/WAV,
+clock/sampling/DC differences and source hashes. Original self-authored fixtures
+provide expected CPU writes. A marked reference-only serial table-initialization
+patch makes repeat PCM deterministic; the application core is unchanged.
+Use `npm run test:sid-reference`, `npm run check:sid-reference`, or
+`npm run sid:reference -- --fixture melody-filter --seconds 2`.
+ROM dumps, game data, browser integration, instrument import and real-hardware
+fidelity are outside this milestone. The new Node CLI is repository tooling,
+outside the published CLI/runtime entry-point closures. Native SDK / audio
+integration remains subsequent work. The Playground creation
 clock is fixed (PAL default, optional NTSC); only model '6581' is supported.
 Filter mode 'off' disables filter outputs; dry playback requires routing:0.
 SID Mixer gain is explicit unmeasured unity, preserving every measured gain.

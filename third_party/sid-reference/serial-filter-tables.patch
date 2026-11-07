@@ -1,0 +1,70 @@
+--- a/src/FilterModelConfig6581.cpp
++++ b/src/FilterModelConfig6581.cpp
+@@ -275,27 +275,14 @@
+         }
+     };
+ 
+-#ifdef HAVE_JTHREADS
+-    using sidThread = std::jthread;
+-#else
+-    using sidThread = std::thread;
+-#endif
+-
+-    sidThread thdSummer(filterSummer);
+-    sidThread thdMixer(filterMixer);
+-    sidThread thdGain(filterGain);
+-    sidThread thdResonance(filterResonance);
+-    sidThread thdVcrVg(filterVcrVg);
+-    sidThread thdVcrIds(filterVcrIds);
+-
+-#ifndef HAVE_JTHREADS
+-    thdSummer.join();
+-    thdMixer.join();
+-    thdGain.join();
+-    thdResonance.join();
+-    thdVcrVg.join();
+-    thdVcrIds.join();
+-#endif
++    // Tetorica external reference only: stable table initialization avoids
++    // sharing Randomnoise.index across worker threads. DSP loops are unchanged.
++    filterSummer();
++    filterMixer();
++    filterGain();
++    filterResonance();
++    filterVcrVg();
++    filterVcrIds();
+ }
+ 
+ uint16_t* FilterModelConfig6581::getDAC(double adjustment) const
+--- a/src/FilterModelConfig8580.cpp
++++ b/src/FilterModelConfig8580.cpp
+@@ -193,23 +193,12 @@
+         buildResonanceTable(opampModel, resGain);
+     };
+ 
+-#ifdef HAVE_JTHREADS
+-    using sidThread = std::jthread;
+-#else
+-    using sidThread = std::thread;
+-#endif
+-
+-    sidThread thdSummer(filterSummer);
+-    sidThread thdMixer(filterMixer);
+-    sidThread thdGain(filterGain);
+-    sidThread thdResonance(filterResonance);
+-
+-#ifndef HAVE_JTHREADS
+-    thdSummer.join();
+-    thdMixer.join();
+-    thdGain.join();
+-    thdResonance.join();
+-#endif
++    // Tetorica external reference only: stable table initialization avoids
++    // sharing Randomnoise.index across worker threads. DSP loops are unchanged.
++    filterSummer();
++    filterMixer();
++    filterGain();
++    filterResonance();
+ }
+ 
+ } // namespace reSIDfp

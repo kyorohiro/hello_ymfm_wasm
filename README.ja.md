@@ -89,7 +89,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
 | PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
-| Commodore 64 | 実験的な6581 SID音色、共有filter、Main／WorkerのPlayground API。**PSID／RSID曲再生・8580モデルは未対応**です。 |
+| Commodore 64 | 実験的な6581 SID音色、共有filter、Main／WorkerのPlayground API。限定したPAL／6581 PSID v2の[参照CLI](docs/sid-reference.md)で、CPU時刻付きwriteと比較用WAVを取得できます。**ブラウザーのSID曲再生・RSID・8580モデルは未対応**です。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
 | 入力 | 対応する使い方 |

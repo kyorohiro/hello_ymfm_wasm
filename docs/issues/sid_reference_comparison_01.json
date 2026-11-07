@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "deviceOpened": false,
+  "listeningPerformed": false,
+  "hardwareFidelityVerified": false,
+  "scope": "Self-authored PAL/6581 single-SID PSID v2, external C64 execution and cycle-timed replay in the unchanged Tetorica chip. No real game or ROM dump.",
+  "exactChecks": [
+    "authored init/play writes",
+    "strict PHI2 write order",
+    "exclusive end and Tetorica frame clock",
+    "same-backend repeat and buffering invariance"
+  ],
+  "diagnosticOnly": [
+    "different engine PCM, gain/DC/filter models",
+    "nominal versus effective reference sample rate",
+    "waveform and frequency-band differences"
+  ],
+  "cases": [
+    {
+      "fixture": "tone",
+      "sampleRate": 44100,
+      "directory": "release/sid-reference-validation/comparison-Ugau0u",
+      "comparison": "release/sid-reference-validation/comparison-Ugau0u/comparison.json",
+      "writes": 163,
+      "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "a83051984a452c6329b702fad173214bd0f20c8baadd5e88c91fea326edfd53f",
+      "tetoricaPcmSha256": "34db14f4a7b687370e1c6879481716e1ab67911f19431073e6a2f66aa5ea2638",
+      "rawChipPcmSha256": "bc6f4bdcd1607b7ab488b74d59d22e3d1529a8c67e08f873852eb7d163cdc1e5",
+      "referenceFrames": 44110,
+      "tetoricaFrames": 44100,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 44100,
+          "referenceExtraFrames": 10,
+          "actualExtraFrames": 0,
+          "rmse": 0.1041801335944434,
+          "maximumDifference": 0.393218994140625,
+          "centeredCorrelation": 0.29125611512300137,
+          "rmsRatioActualToReference": 0.2432589433993406
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 44100,
+          "referenceExtraFrames": 10,
+          "actualExtraFrames": 0,
+          "rmse": 0.10488819812152965,
+          "maximumDifference": 0.393218994140625,
+          "centeredCorrelation": 0.7008807346265965,
+          "rmsRatioActualToReference": 0.48097575029985984
+        }
+      }
+    },
+    {
+      "fixture": "tone",
+      "sampleRate": 48000,
+      "directory": "release/sid-reference-validation/comparison-iJJ9pU",
+      "comparison": "release/sid-reference-validation/comparison-iJJ9pU/comparison.json",
+      "writes": 163,
+      "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "9bece8b536fe8b141ade55facbc8c484d6ace5f35ae69fb2ecae1173d4522df5",
+      "tetoricaPcmSha256": "43d41127415c135ecae5f7114106eebe9dd1339e227e1f5175b7558972021fbd",
+      "rawChipPcmSha256": "529543773be7b363cc777c9bb75e9354125b99fd16740d94b356993cb432f9dd",
+      "referenceFrames": 48011,
+      "tetoricaFrames": 48000,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.1037925771607036,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.30548519276544767,
+          "rmsRatioActualToReference": 0.24324919290115002
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.10473818609372866,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.7055228642389255,
+          "rmsRatioActualToReference": 0.4809796231145808
+        }
+      }
+    },
+    {
+      "fixture": "tone",
+      "sampleRate": 96000,
+      "directory": "release/sid-reference-validation/comparison-UeVhC9",
+      "comparison": "release/sid-reference-validation/comparison-UeVhC9/comparison.json",
+      "writes": 163,
+      "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "b117e111dd5f2dca0e4dd29359e8c03cd6feb065775366b3e78b17f87cd33537",
+      "tetoricaPcmSha256": "beff96f7c097cef825aaff0bd7ffedbf9d788047dc62405882f04356791bb2d2",
+      "rawChipPcmSha256": "21eb60571484d59e9b527f81c16f27211b134ed35dc178799836e18ebf1ce6eb",
+      "referenceFrames": 96046,
+      "tetoricaFrames": 96000,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 96000,
+          "referenceExtraFrames": 46,
+          "actualExtraFrames": 0,
+          "rmse": 0.1071276234568951,
+          "maximumDifference": 0.387451171875,
+          "centeredCorrelation": 0.18289736715004215,
+          "rmsRatioActualToReference": 0.24308691142708067
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 96000,
+          "referenceExtraFrames": 46,
+          "actualExtraFrames": 0,
+          "rmse": 0.10814129826405765,
+          "maximumDifference": 0.387451171875,
+          "centeredCorrelation": 0.6021003975432064,
+          "rmsRatioActualToReference": 0.4808035840117554
+        }
+      }
+    },
+    {
+      "fixture": "pulse",
+      "sampleRate": 48000,
+      "directory": "release/sid-reference-validation/comparison-MiqJam",
+      "comparison": "release/sid-reference-validation/comparison-MiqJam/comparison.json",
+      "writes": 247,
+      "writesSha256": "c01e021f20d2fee8bfe9a7dea73a1c0c5301a8416fd47a2a3e26630e13e79125",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "a410fa9fda351c0c1becdab02206d15e84fbb76e5c8d5eaf98067e131bdd0948",
+      "tetoricaPcmSha256": "b03460e8cf69cf65289b81e654eacaf60bebcd6acf01a8a7a9733b306ae3ab6b",
+      "rawChipPcmSha256": "c1498fd3b778b3d49a355882cdf7ee9bcd0a23a5b0c804be21031a90635c879f",
+      "referenceFrames": 48011,
+      "tetoricaFrames": 48000,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.11397358047440959,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.20576002831090648,
+          "rmsRatioActualToReference": 0.28256027566200376
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.10942821412229566,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.5693151896849785,
+          "rmsRatioActualToReference": 0.49557672708050526
+        }
+      }
+    },
+    {
+      "fixture": "noise",
+      "sampleRate": 48000,
+      "directory": "release/sid-reference-validation/comparison-hmu1wo",
+      "comparison": "release/sid-reference-validation/comparison-hmu1wo/comparison.json",
+      "writes": 163,
+      "writesSha256": "5608a6508f4d6773b7a6768dde6f948096e6a0a1fab158e006c9f2dd6caf189c",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "1bc0498c25e2aba02ece0f6a421e5cc3891c1ba54065fb62cc64e1b2fbb74581",
+      "tetoricaPcmSha256": "bc7026eae211b1fd12d74b3c21cdf12b20e5f7c409fdf68502cdf741b6e3a921",
+      "rawChipPcmSha256": "64aa0f887325ed5878c3f135e288917c06473c5855d2b2f9cfa67bae064f5cb0",
+      "referenceFrames": 48011,
+      "tetoricaFrames": 48000,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.10674045604569601,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.1282863242357735,
+          "rmsRatioActualToReference": 0.20894773857854032
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.10415585402756122,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.544023635364894,
+          "rmsRatioActualToReference": 0.3917325834788972
+        }
+      }
+    },
+    {
+      "fixture": "melody-filter",
+      "sampleRate": 48000,
+      "directory": "release/sid-reference-validation/comparison-gMNcFa",
+      "comparison": "release/sid-reference-validation/comparison-gMNcFa/comparison.json",
+      "writes": 289,
+      "writesSha256": "4411836802c04bd15e5b3e4e67b2b35dc9d27a0281f71c64144f3c99a8f0b7f6",
+      "fixtureChecks": {
+        "initialDriverWrites": 1,
+        "completePlayCalls": 42,
+        "partialFinalPlay": false
+      },
+      "referencePcmSha256": "eb3d9dbe56d99914f6ef8461fcabd8de6b99c46c2b0a7017a476261213faaefe",
+      "tetoricaPcmSha256": "0782905b9d44946649b2cbc5895d21da85e2af3040c13eee75adbd477f8a3a31",
+      "rawChipPcmSha256": "b3a328dd1dee7c73e580740186c4386c97e4551c56077f11698a28151c29574f",
+      "referenceFrames": 48011,
+      "tetoricaFrames": 48000,
+      "comparisons": {
+        "production": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.0989743930021173,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": 0.10045757825896538,
+          "rmsRatioActualToReference": 0.2306886029161541
+        },
+        "rawChip": {
+          "diagnosticOnly": true,
+          "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+          "commonFrames": 48000,
+          "referenceExtraFrames": 11,
+          "actualExtraFrames": 0,
+          "rmse": 0.1033315593820798,
+          "maximumDifference": 0.391510009765625,
+          "centeredCorrelation": -0.2737132977666308,
+          "rmsRatioActualToReference": 0.4255348831944281
+        }
+      }
+    }
+  ],
+  "repeat": {
+    "fixture": "melody-filter",
+    "firstEventChunk": 4096,
+    "repeatedEventChunk": 1,
+    "firstRenderChunk": 4096,
+    "repeatedRenderChunk": 1,
+    "directory": "release/sid-reference-validation/comparison-6zx1DV",
+    "writesExact": true,
+    "referencePcmExact": true,
+    "tetoricaPcmExact": true,
+    "rawChipPcmExact": true
+  },
+  "initAddressZero": [
+    {
+      "embeddedLoadAddress": true,
+      "directory": "release/sid-reference-validation/comparison-AkSQnC",
+      "writesExact": true,
+      "pcmExact": true
+    },
+    {
+      "embeddedLoadAddress": false,
+      "directory": "release/sid-reference-validation/comparison-eDRIZ2",
+      "writesExact": true,
+      "pcmExact": true
+    }
+  ],
+  "reference": {
+    "referencePins": {
+      "libsidplayfp": {
+        "name": "libsidplayfp",
+        "version": "3.1.2",
+        "revision": "b1e8f1deedf41d343123319237c0d008d72cbea7",
+        "url": "https://github.com/libsidplayfp/libsidplayfp/releases/download/v3.1.2/libsidplayfp-3.1.2.tar.gz",
+        "sha256": "6d16c20e523ac4d3e385531dafe247a830b59bcb4eb73a557f15cf4e7ae6da84",
+        "license": "GPL-2.0-or-later"
+      },
+      "libresidfp": {
+        "name": "libresidfp",
+        "version": "1.2.3",
+        "revision": "32c8525418a643eaed8dfafa3d7039e250050cfa",
+        "url": "https://github.com/libsidplayfp/libresidfp/releases/download/v1.2.3/libresidfp-1.2.3.tar.gz",
+        "sha256": "e9b53a984ca708c3e8d9139eb6aad6141f73ffc22d70a020f7966803f4e2f76d",
+        "license": "GPL-2.0-or-later"
+      }
+    },
+    "referenceManifestSha256": "c994aed1299fc6ea9c3b3840418a0744b0e294a5db420ef7a4b8cd5bd16e3784",
+    "tetoricaRenderer": {
+      "inputs": [
+        {
+          "path": "test/helpers/sid_trace_render.cpp",
+          "sha256": "c2d18ededc135cbe2d4bc9d836eacdfdc99fd5eb63fdd6e3602e03e6851b500f"
+        },
+        {
+          "path": "tetorica_src/wasm/sid_core.h",
+          "sha256": "e25105c0966a3decf0b78e50f45680d501f8e3f961bf1539a346605b293beecc"
+        },
+        {
+          "path": "third_party/chips-m6581/m6581.h",
+          "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+        }
+      ],
+      "build": {
+        "compiler": "c++",
+        "compilerVersion": "Apple clang version 17.0.0 (clang-1700.4.4.1)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+        "flags": [
+          "-std=c++17",
+          "-O2",
+          "-ffp-contract=off"
+        ],
+        "platform": "darwin",
+        "arch": "arm64"
+      },
+      "binarySha256": "ed2204d1c165c929bd36b402dae7a5b6f7dc37d4431920b2aae8526f02cf9775"
+    }
+  },
+  "referenceTiming": {
+    "clockHz": 985248,
+    "durationCycles": 985248,
+    "sampleRate": 48000,
+    "requestedSeconds": 1,
+    "cyclePhase": "phi2",
+    "writeTiming": "tick-then-commit",
+    "referenceEngine": {
+      "name": "libsidplayfp",
+      "version": "3.1.2",
+      "revision": "b1e8f1deedf41d343123319237c0d008d72cbea7",
+      "sidEngine": "libresidfp",
+      "sidVersion": "1.2.3+serial-table-init",
+      "sidOriginalVersion": "1.2.3",
+      "sidRevision": "32c8525418a643eaed8dfafa3d7039e250050cfa",
+      "referencePatch": "libresidfp-1.2.3-serial-table-init",
+      "referencePatchSha256": "2ee576ae0030e5b9fc007d4d2fc62eeb1a8982be56e6756efd7aa58bc69e074c",
+      "license": "GPL-2.0-or-later",
+      "c64ClockHz": 985248.6111111111,
+      "samplingClockHz": 985248.625,
+      "sampling": "RESAMPLE",
+      "resamplerPeriodScale": 1024,
+      "resamplerPeriods": [
+        8334,
+        2582
+      ],
+      "effectiveSampleRateHz": 48010.47653792654,
+      "powerOnDelay": 0,
+      "roms": "upstream-kernal-stub-only",
+      "hostInitialRegisters": "all-zero"
+    },
+    "referenceCapture": {
+      "warmupCycles": 167833,
+      "engineEndCycle": 986495,
+      "endCycle": 985248,
+      "referenceResetVolume": 0,
+      "requestedResetVolume": 15,
+      "sampleCount": 48011,
+      "pcmFormat": "f32le-mono",
+      "normalization": "int16/32768",
+      "readsAreReferenceDependent": true
+    },
+    "retainedSidReads": 0
+  },
+  "sources": [
+    {
+      "path": "scripts/check_sid_reference.mjs",
+      "bytes": 6981,
+      "sha256": "369e965a8e872aa3f4a9db274713bd806580913749d64af6f870436f26d21169"
+    },
+    {
+      "path": "scripts/prepare_sid_reference.mjs",
+      "bytes": 9651,
+      "sha256": "1c630ac1ff54e01247487e1d87ea39e8ca86d7fed4fd940a28ac399df6746087"
+    },
+    {
+      "path": "tetorica_src/cli/sid_reference.mjs",
+      "bytes": 14920,
+      "sha256": "084c845d0d0838761eb585e8ff7d9ca2f8d6ae0e2324c7dc99ec3263c321bfdb"
+    },
+    {
+      "path": "tetorica_src/cli/sid_reference_metrics.mjs",
+      "bytes": 6135,
+      "sha256": "d2d5ed1cce73b9fbdbba5d347813688e277f7e68437519f8b283e83090ca378b"
+    },
+    {
+      "path": "tetorica_src/cli/sid_psid.mjs",
+      "bytes": 6489,
+      "sha256": "c2640a04e749b715534b9001a3381401802dda6ad9a2baaa1177a7d52539c56c"
+    },
+    {
+      "path": "tetorica_src/cli/sid_trace.mjs",
+      "bytes": 9020,
+      "sha256": "160ced6731eacc71b3b1e24734e77760c4b9fdd4db5646f2cdcfe0fce73df12b"
+    },
+    {
+      "path": "test/fixtures/sid-reference/fixture.mjs",
+      "bytes": 5578,
+      "sha256": "17781a8a2c40041a5879a6623d20a81764331234a53a79480a65cb63bb3a21db"
+    },
+    {
+      "path": "test/helpers/sid_player_reference.cpp",
+      "bytes": 15616,
+      "sha256": "276bc592fbb1befd65466e13f820d660b68833e3524f9d5f4cd5ee44ef4f79b5"
+    },
+    {
+      "path": "test/helpers/sid_trace_render.cpp",
+      "bytes": 7968,
+      "sha256": "c2d18ededc135cbe2d4bc9d836eacdfdc99fd5eb63fdd6e3602e03e6851b500f"
+    },
+    {
+      "path": "third_party/sid-reference/serial-filter-tables.patch",
+      "bytes": 1814,
+      "sha256": "11f6e44daf492882850424de00f865eeafbb3df917d0466b98c39dcbe021ead8"
+    },
+    {
+      "path": "third_party/sid-reference/serial-filter-tables.json",
+      "bytes": 1359,
+      "sha256": "2ee576ae0030e5b9fc007d4d2fc62eeb1a8982be56e6756efd7aa58bc69e074c"
+    },
+    {
+      "path": "third_party/sid-reference/COPYING.libsidplayfp",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "third_party/sid-reference/COPYING.libresidfp",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "tetorica_src/wasm/sid_core.h",
+      "bytes": 2770,
+      "sha256": "e25105c0966a3decf0b78e50f45680d501f8e3f961bf1539a346605b293beecc"
+    },
+    {
+      "path": "third_party/chips-m6581/m6581.h",
+      "bytes": 27313,
+      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+    },
+    {
+      "path": "tetorica_src/runtime/sid.js",
+      "bytes": 4846,
+      "sha256": "62225755b0b01471b85313be7992a464f8b501e5ad81a6c86c1ce425c941d870"
+    },
+    {
+      "path": "tetorica_src/runtime/generated/sid/sid.wasm",
+      "bytes": 14502,
+      "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+    }
+  ]
+}
