@@ -125,9 +125,9 @@ SYS. Both PSID and RSID browser validators accept
 unknown/either clock/model flags only after explicit PAL/6581 selection through
 the initially unchecked playback-target setting. Declared hints and original
 header bytes remain intact; selected target metadata is separate. Known
-NTSC/8580/multi-SID are rejected even with that setting enabled. Dedicated 8580
-model candidates are under investigation; do not add a 6581 preview override or
-describe current playback as 8580 emulation. Real-ROM/BASIC
+NTSC/8580/multi-SID are rejected even with that setting enabled. An isolated
+8580 research prototype is described below; it has not been adopted. Do not add
+a 6581 preview override or describe current Player playback as 8580 emulation. Real-ROM/BASIC
 compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
 an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
@@ -149,8 +149,70 @@ kit. The full runtime artifact catalog includes SID as an application instrument
 with its separate receipt, while the fixed SDK remains unchanged.
 `node scripts/package_sid_lab.mjs` creates a readable standalone lab package;
 `sh scripts/package_itch_playground.sh` also ships the regular C64 mode.
-6581 filter / combined waves remain approximations; no 8580 model is provided.
+6581 filter / combined waves remain approximations; production APIs provide no 8580 model.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
+
+The separately authorized 8580 research/prototype milestone is complete, with
+production adoption deferred. Read [the fixed-source/license selection](docs/issues/sid8580_core_selection_01.md)
+and [prototype result](docs/issues/sid8580_probe_result_01.md) before continuing.
+The candidate is sidera 1.1.1's dependency-free MIT library, revision
+15041709d26c2bc36667ba27f729332c9f523696, crate SHA-256
+b043512b891bdb03ad21b0205723dabb88ada23e3043c21f6a7f88b26defba35.
+Original source stays in third_party/sidera/upstream; the adapted copy adds only
+the marked cycle-access API. Its original clock()/clock_with_voices() output and
+OSC/ENV reads remain exact for 376,200 samples across six rate/model settings.
+The optional Cargo player and its dependencies are not compiled or represented
+as license-audited. Required license closures ruled out perfect6581's noncommercial
+netlist and MAME's GPL engine/tables as permissive production alternatives.
+
+The standalone probe uses completed chip-cycle boundaries: reads/writes do not
+advance time; c N advances exactly N cycles. At 44.1/48/96 kHz and both models,
+14 self-authored fixtures produced 84 exact Native/WASM PCM/read/chunk matches
+([verification](docs/issues/sid8580_probe_verification_01.json)). Chromium and
+WebKit each matched 28 Native cases at 48 kHz, 56 browser matches total
+([report](docs/issues/sid8580_probe_browser_01.json)). Those are plain WASM runs,
+without AudioContext, AudioWorklet, physical output, C64 CPU, firmware or music.
+Core-only throughput on Apple M2 was roughly 70x real time in these bounded
+batch measurements; this is not end-to-end Player capacity or dropout evidence.
+
+Twenty-eight comparisons use a NEW separate GPL libresidfp raw-bus oracle,
+not a relaxed strict PSID CLI. They are diagnostics, not accuracy acceptance.
+Candidate write-only reads are [0,0,0], versus [165,165,165] for the 8580
+reference: bus latch/decay/read-side effects and POT are absent. Candidate reset
+starts oscillator/envelope at zero, while the reference retains 0x555555/0xAA;
+this affects raw PCM and early read comparisons. Filter resonance, analogue
+offsets, external RC, scaling and sample-start/fixed-point sampling also differ.
+Do not infer a gain correction from raw RMS or call port equality hardware fidelity.
+The external GPL binary remains a separate local validation executable and is
+excluded from the MIT/BSD candidate and source kit. Its protocol is
+SID8PROBE 1 RATE MODEL, with no implicit clocks for read/write; DECIMATE reports
+its actual frames/divisor/effective rate rather than claiming nominal frame identity.
+
+[Independent source-kit rebuild](docs/issues/sid8580_probe_sourcekit_01.json)
+checked 53 inputs and reproduced Native/WASM/receipt bytes exactly. Final WASM
+is 1,390,542 bytes, SHA-256 96abb0664a7aa7f3df7b1a63fa8f9b8e576a492936ce4175db1fd7019b4610bd;
+all 84/28/56 final reports identify this same WASM. The readable archive
+release/tetorica_sid8580_probe_20261107_sources.1.zip contains 71 files/541,950 bytes,
+SHA-256 244d0aa1f07ea70728bca200f94d0a89e1b61b488ea49af79ca09738c557bd8d.
+It includes matching sources/licenses, WASM and the installed Rust 1.91.1 standard
+library's unmodified copyright/license notices, including COPYRIGHT-library.html.
+Notice hashes/provenance live separately under third_party/sidera/toolchain-notices;
+the 53 application build inputs and Native/WASM/rebuild hashes remain unchanged.
+These standard-library notices do not imply optional Cargo player crates were built.
+Native binaries, GPL SID reference code/binary, firmware and music are excluded. Rebuild with
+sh scripts/build_sid8580_probe.sh; verify with node scripts/check_sid8580_probe.mjs
+and node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe.
+The unchanged original sample APIs were rechecked with the CI compile commands.
+
+Before production integration, implement/verify the missing bus behavior,
+match or explicitly control reset/pipeline/sampling conditions for meaningful
+reference-quality checks, and run self-authored closed-loop 6502 fixtures that
+feed each core's own SID reads back into that core's CPU branches. Then evaluate
+8580 real files, C64/Worklet scheduling, listening and stability while preserving
+the existing 6581 path. Production Player/Synth/SDK and known-8580 rejection are
+unchanged. A new research CI workflow exists, but no GitHub Actions run, push,
+commit, tag or release was performed for this prototype.
+
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a
 separate GPL validation executable. It preserves PHI2 writes, original PCM/WAV,

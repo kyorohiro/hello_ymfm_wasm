@@ -1,0 +1,962 @@
+{
+  "format": "tetorica-sid8580-probe-browser",
+  "version": 1,
+  "wasm": {
+    "bytes": 1390542,
+    "sha256": "96abb0664a7aa7f3df7b1a63fa8f9b8e576a492936ce4175db1fd7019b4610bd"
+  },
+  "passed": true,
+  "physicalAudioOpened": false,
+  "workletTested": false,
+  "checker": {
+    "bytes": 5273,
+    "sha256": "2dacf2d6152171b9e1070f213939de717fe98de64df499be8bbd242716146441"
+  },
+  "nativeReport": {
+    "bytes": 140422,
+    "sha256": "d9795ec158862e645515155998dd70a56562bbb29fe056c104633a1d0ee28bea"
+  },
+  "interpretation": "Standalone WASM throughput and integer PCM/read parity, not full C64 or real-time audio scheduling.",
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "cases": [
+        {
+          "model": 6581,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "44428dac9c2d86dbdbc7b94895c9ea8bfdb06d0160ba47192b9e44834eb7c78d"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "ad9a51f68682a72a9dbe9f20ad788962fbb739189389f34940962f667c165045"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "c1a6dc3f28d3442ca629fd6bde5867061f7b5865966df9bf528f9be53e80c22e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "92f1e31e3a301bd33ce241ff7d6bd476de8750363f1697978cc29cabb096a30e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2a98fbf85e26bc468c890c934c655adc1ba5ad206fb79bf4fa77de8afdc4ec38"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9f9aea523460513ac37497d4f4f40e21bd39dcaf18cb3e39d69b53d3da4fa0c0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "a8483a6a036e87a3fdcff66e66eb8a921eb8628e66b75d0ac56c6f8f3af67456"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "8aaafc1662e5a16ae9babb4deb7489c569e5c41342b4883adaafa3547ba76f4e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        }
+      ],
+      "benchmarks": [
+        {
+          "model": 6581,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 45.599999997764826,
+          "realtimeMultiple": 70.33014183468921
+        },
+        {
+          "model": 8580,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 45,
+          "realtimeMultiple": 71.2678770556584
+        }
+      ],
+      "memoryBytes": 1179648,
+      "instantiateMs": 12.600000001490116,
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "cases": [
+        {
+          "model": 6581,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+          }
+        },
+        {
+          "model": 6581,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "44428dac9c2d86dbdbc7b94895c9ea8bfdb06d0160ba47192b9e44834eb7c78d"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "ad9a51f68682a72a9dbe9f20ad788962fbb739189389f34940962f667c165045"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "c1a6dc3f28d3442ca629fd6bde5867061f7b5865966df9bf528f9be53e80c22e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "92f1e31e3a301bd33ce241ff7d6bd476de8750363f1697978cc29cabb096a30e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2a98fbf85e26bc468c890c934c655adc1ba5ad206fb79bf4fa77de8afdc4ec38"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9f9aea523460513ac37497d4f4f40e21bd39dcaf18cb3e39d69b53d3da4fa0c0"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "a8483a6a036e87a3fdcff66e66eb8a921eb8628e66b75d0ac56c6f8f3af67456"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "8aaafc1662e5a16ae9babb4deb7489c569e5c41342b4883adaafa3547ba76f4e"
+          }
+        },
+        {
+          "model": 8580,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        }
+      ],
+      "benchmarks": [
+        {
+          "model": 6581,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 48,
+          "realtimeMultiple": 66.81363473967976
+        },
+        {
+          "model": 8580,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 47,
+          "realtimeMultiple": 68.23520143626868
+        }
+      ],
+      "memoryBytes": 1179648,
+      "instantiateMs": 15,
+      "errors": []
+    }
+  ]
+}

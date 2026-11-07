@@ -1,0 +1,136 @@
+{
+  "format": "tetorica-third-party-source",
+  "version": 1,
+  "component": "sidera",
+  "crateVersion": "1.1.1",
+  "revision": "15041709d26c2bc36667ba27f729332c9f523696",
+  "repository": "https://codeberg.org/sbechet/sidera",
+  "archive": {
+    "url": "https://crates.io/api/v1/crates/sidera/1.1.1/download",
+    "bytes": 65676,
+    "sha256": "b043512b891bdb03ad21b0205723dabb88ada23e3043c21f6a7f88b26defba35"
+  },
+  "license": "MIT",
+  "compiledRoot": "adapted/src/lib.rs",
+  "optionalPlayerBuilt": false,
+  "files": {
+    ".cargo_vcs_info.json": {
+      "bytes": 94,
+      "sha256": "4e547473ff03990b7d6b2fece426e3b4e56baff4cc3a6323cf751ce445c6d4d8"
+    },
+    ".gitignore": {
+      "bytes": 8,
+      "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d"
+    },
+    "Cargo.lock": {
+      "bytes": 25543,
+      "sha256": "ecec7919601412406b44a2e7615278b4a35fe0194b50dc8783f7488eefc61e9b"
+    },
+    "Cargo.toml": {
+      "bytes": 1846,
+      "sha256": "6f596633e56a0a25603014de6dafaa204c081734b9a57a3143e99f6a55db6443"
+    },
+    "Cargo.toml.orig": {
+      "bytes": 1037,
+      "sha256": "98015f5b2e7198e314245cd41eda7dca43392a8d0a3c49b63ec5d65da6cc6b8d"
+    },
+    "LICENSE": {
+      "bytes": 1075,
+      "sha256": "4516b79c625d728704f7e189e676e528077fdb0388a2c819c9d583e214fef9b6"
+    },
+    "README.md": {
+      "bytes": 13156,
+      "sha256": "35ae0865b06b12d43a02df962d5cb2afb762c6e3ab472052b17bf805a4c6ddd7"
+    },
+    "SID_ANALOG_SPEC.md": {
+      "bytes": 26732,
+      "sha256": "0a90da2eb550761c60b3b40d4afca21d236a8daa68fe07ef1af80311bad4cca3"
+    },
+    "examples/bench.rs": {
+      "bytes": 1964,
+      "sha256": "3d6f27fc2b3d0651af84e735d3b05a2d43c480770311d7b0facf58644d6686c2"
+    },
+    "examples/render.rs": {
+      "bytes": 3188,
+      "sha256": "c4731c1000b95526f98b0244de45eff9d80d9fb53c40a8a0f588b40c7b553a8a"
+    },
+    "src/bin/sidplay/bus.rs": {
+      "bytes": 2238,
+      "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+    },
+    "src/bin/sidplay/diag.rs": {
+      "bytes": 2402,
+      "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+    },
+    "src/bin/sidplay/main.rs": {
+      "bytes": 5629,
+      "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+    },
+    "src/bin/sidplay/output.rs": {
+      "bytes": 4341,
+      "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+    },
+    "src/bin/sidplay/player.rs": {
+      "bytes": 10189,
+      "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+    },
+    "src/bin/sidplay/psid.rs": {
+      "bytes": 4262,
+      "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+    },
+    "src/envelope.rs": {
+      "bytes": 5403,
+      "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+    },
+    "src/extfilt.rs": {
+      "bytes": 1946,
+      "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+    },
+    "src/filter.rs": {
+      "bytes": 7711,
+      "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+    },
+    "src/high.rs": {
+      "bytes": 18128,
+      "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+    },
+    "src/lib.rs": {
+      "bytes": 4153,
+      "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+    },
+    "src/noise.rs": {
+      "bytes": 2128,
+      "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+    },
+    "src/oscillator.rs": {
+      "bytes": 2582,
+      "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+    },
+    "src/registers.rs": {
+      "bytes": 2759,
+      "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+    },
+    "src/sid.rs": {
+      "bytes": 13227,
+      "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
+    },
+    "src/voice.rs": {
+      "bytes": 8899,
+      "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+    },
+    "tests/golden.rs": {
+      "bytes": 8170,
+      "sha256": "1c560531f4dcbbb5d8c47a6705786cb832210c42aaf724274ae1fca543b54bae"
+    },
+    "tests/integration.rs": {
+      "bytes": 29431,
+      "sha256": "6ea83bee56a03887fc7246a578ec6ea641a64b6468b546553c8761d71c61e8da"
+    }
+  },
+  "registryVerification": {
+    "index": "https://index.crates.io/si/de/sidera",
+    "version": "1.1.1",
+    "checksum": "b043512b891bdb03ad21b0205723dabb88ada23e3043c21f6a7f88b26defba35",
+    "yanked": false
+  }
+}

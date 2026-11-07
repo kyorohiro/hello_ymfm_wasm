@@ -1,0 +1,33 @@
+[package]
+name = "sidera"
+version = "1.1.1"
+edition = "2021"
+rust-version = "1.60"
+authors = ["Sébastien Béchet <sebastien.bechet@free.fr>"]
+description = "A no_std, integer-only, cycle-accurate SID (MOS 6581/8580) emulator for the Commodore 64"
+license = "MIT"
+readme = "README.md"
+repository = "https://codeberg.org/sbechet/sidera"
+keywords = ["sid", "c64", "commodore", "audio", "no-std"]
+categories = ["emulators", "multimedia::audio", "no-std::no-alloc"]
+
+[features]
+default = []
+# CLI SID player (`sidplay` binary). Pulls a 6502 core + audio/CLI deps; off by
+# default so the core lib stays no_std and dependency-free.
+player = ["dep:mos6502", "dep:clap", "dep:cpal", "dep:hound"]
+
+[[bin]]
+name = "sidplay"
+required-features = ["player"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[dependencies]
+clap = { version = "4.6.1", features = ["derive"], optional = true }
+cpal = { version = "0.18.1", optional = true }
+hound = { version = "3.5.1", optional = true }
+mos6502 = { version = "0.10.1", optional = true }

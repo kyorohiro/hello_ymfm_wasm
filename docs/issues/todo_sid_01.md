@@ -128,16 +128,27 @@ PSIDは選択したsubtuneのspeed bitでVBI／CIAを分け、CIAはC64 machine�
 
 ### 専用8580 modelの調査と次の段階（2026-11-07）
 
-CIA再生を先に仕上げ、次は6581／8580を明示的に選択できる音源を検討する。以下は一次資料の調査結果で、採用・音質・ブラウザー性能の検証完了を意味しない。
+今回の着手（2026-11-07、ユーザー承認）: 専用8580 modelの候補調査と小さなNative／WASM試作を行う。現在の6581音源・SID Player・Synth・校正済みSDKと既存監査結果は比較基準として保持する。候補の実装・license・cycle単位read／write接続を確認してから試作を選び、既存Playerの8580 guardは採用検証前に外さない。
 
-- [perfect6581](https://github.com/libsidplayfp/perfect6581) はMITだが、READMEはdigital partsのみと明記し、現treeは6581 netlistを持つ。analog filter／PCM出力を備えた8580音源としてそのまま採用しない。
-- [sidera](https://docs.rs/sidera/latest/sidera/) はMITの6581／8580候補。integer／no_stdのfilter・DC modelを持つが、公開 `clock()` は出力sample単位。C64 CPUとのcycle単位read／writeにはadapterまたは公開APIの追加が必要。combined wave／cutoff curveは近似で、実機完全一致とは扱わない。
-- [MAMEのMOS6581／8580](https://github.com/mamedev/mame/blob/master/src/devices/sound/mos6581.cpp) はBSD wrapperを持つ候補。SID本体・tables・依存closureのlicense、単独buildとcycle接続は未監査。
+- [x] 候補の一次source・固定revision・必要な依存licenseを確認し、採用／保留理由を[比較メモ](sid8580_core_selection_01.md)へ残す。optional playerまで監査済みとはしない。
+- [x] sidera 1.1.1の依存なしlibraryを独立したNative／WASM試作へ接続し、clock・write・read・reset・renderの条件を明示する。本番採用は保留。
+- [x] 自作14fixtureでOSC3／ENV3／bus、wave／TEST／Sync／Ring／ADSR、filter／resonance／volumeを測定し、84ケースのNative／WASM・chunk一致とStop／resetを確認する。bus未実装を観測結果として残す。
+- [x] 6581との差、外部参照28ケースの診断、実機再現精度を区別し、単体コアの処理速度・memoryとブラウザー56一致を記録する。C64／AudioWorklet／実聴は未検証。
+- [x] matching source／license／再build手順と再開記録を残す。53inputsの独立再buildでNative／WASM／receipt一致、可読source ZIPを確認した。Player採用はbus等の課題により保留し、UI・実曲・ブラウザー実時間音声は完了扱いにしない。
+
+CIA／C64 VBI対応後、独立試作の移植一致と外部差分を確認した。[結果](sid8580_probe_result_01.md)は本番採用や8580対応完了を意味しない。以下のlicense判断は必要な依存ファイルを含む固定版の調査で更新した。
+
+- [perfect6581](https://github.com/libsidplayfp/perfect6581) はsimulation側MITに対し、必須netlistはCC BY-NC-SA 3.0。digital-onlyでanalog filter／mixed PCMもないため配布コアに採用しない。netlist内には8580分岐もあり、6581専用との以前の推測は訂正した。
+- [sidera 1.1.1](https://crates.io/crates/sidera/1.1.1) の固定libraryはMIT／外部crateなし。sample単位APIを保持したまま内部1cycle処理を公開する最小patchで試作した。8580のoffset／filter分岐は存在するが、bus／POT read、combined wave、cutoff／resonance等の近似が残る。
+- [MAMEのMOS6581／8580](https://github.com/mamedev/mame/blob/master/src/devices/sound/mos6581.cpp) は現行BSD wrapperの音源本体がGPL reSIDfp。旧BSD engineも必要な波形表がGPLで閉じる。BSD表示だけを理由にpermissive音源として採用しない。固定revisionと必要ファイルは比較メモへ記録した。
 - [libresidfp](https://github.com/libsidplayfp/libresidfp) は両model・cycle単位read／write／renderを持ち、既存の外部参照toolでも使う。ただしGPL-2.0-or-laterであり、採用時は配布物と対応source／licenseを別途設計する。別WASMにするだけで条件を回避できるとは扱わない。
 - 現行zlib m6581へ線形cutoffだけを追加して8580対応とはしない。DAC／DC、combined waves、bus／pipelineなどを含むmodel差を検証する。
 
-- [ ] permissive候補のrevision／全license／依存sourceを固定し、cycle単位adapterの小さなNative試作で比較する。
-- [ ] OSC3／ENV3／bus read、wave／TEST／Sync／Ring／ADSR、filter／resonance／D418を自作fixtureと外部参照で確認する。既存6581の結果を保持する。
+- [x] permissive候補のrevision／必要なlicense／library sourceを固定し、cycle単位adapterの小さなNative／WASM試作で比較する。元sample APIは376,200samples・6設定で完全一致した。
+- [ ] 採用前: write-only bus latch／保持・decay／read後のbus更新を扱う。試作`[0,0,0]`と8580参照`[165,165,165]`の差を解消・検証し、POT等の残る非対応も明示する。
+- [ ] 採用前: reset初期accumulator／envelope、read pipeline、sampling開始位相・RC／scaleを揃えた外部比較を行う。Native／WASM一致やraw RMS比を実機精度・gain補償の根拠にしない。
+- [ ] 採用前: 自作6502が各core自身のOSC3／ENV3／bus readをCPU分岐へ返すclosed-loop fixtureを検証する。writes-only replayで代用しない。
+- [ ] 採用前: 8580 filter／resonance／DAC・D418／combined waveの品質と残る近似を確認する。今回の28ケースは参照との差を記録した診断で、音質合格ではない。
 - [ ] 既知8580曲、PSID CIA／VBI、RSIDで実行・音声を確認する。実機と参照engineの近似も区別する。
 - [ ] Chromium／WebKitのCPU負荷・memory・音切れを計測して採用を決める。未計測の性能や安定性を保証しない。
 - [ ] 採用後にModel UI／parser／Main・Worklet／Native ABIへ接続し、原宣言と実行modelを別表示する。可読source／license／build receipt／ZIPを揃える。
@@ -637,6 +648,16 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
 - [source kit単独再build](sid_c64_vbi_sourcekit_01.json)は29 inputsのみからWASM116,131bytes・receiptがbyte一致。WASM SHA `d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c`。
 - [配布記録](sid_c64_vbi_package_01.json): `release/tetorica_sid_player_0.0.7-c64-vbi-preview_itch.zip`、80files／10 readable modules／1,573,534bytes、SHA `730c1c4d596506e96fba6cca40cbcc73c20d097f57a38c300697a9c6887ed895`。68 original inputs、43 native inputs、matching sources／license、ZIP・nested ZIPのCRCと実展開byte一致を確認した。
 - 固定SDK33 builds／68 outputs／75 mirrorsと両Mixer checkは成功。既存SID Synth／PlaygroundのDSP・gainを保持した。known8580／NTSCは未対応、実ROM／BASIC・実聴／長時間・D418 digi・音色importは後続。commit／push／tag／公開はしていない。
+
+## 第13段階: 専用8580コアの調査・独立試作（2026-11-07）
+
+- [候補・license比較](sid8580_core_selection_01.md)と[結果](sid8580_probe_result_01.md)を記録した。sidera 1.1.1のMIT／依存なしlibraryを固定し、元APIを保持する最小cycle-access patchだけを追加した。本番Player／Synth／SDKは変更せず、既知8580の拒否は維持した。
+- [Native／WASM](sid8580_probe_verification_01.json)は14fixture×3rates×2modelsの**84ケース**でPCM／read／chunk完全一致。[元API](sid8580_legacy_api_01.json)は6設定・**376,200samples**完全一致。外部GPL参照**28ケース**は診断のみで、実機精度や採用合格の判定ではない。
+- [Chromium／WebKit](sid8580_probe_browser_01.json)は各28、**計56ケース**で最終WASMとNativeのPCM／read一致。単体コアのM2 batch測定は実時間の約70倍前後で、C64／AudioWorklet／音切れ・実聴を検証した結果ではない。
+- write-only busは試作`[0,0,0]`に対し8580参照`[165,165,165]`。reset初期値・pipeline・resonance／RC／scale／sampling差も残る。上の採用前TODOへbus実装、条件を揃えた品質比較、各coreのreadをCPUへ返すclosed-loop fixtureを明示した。
+- [独立source kit再build](sid8580_probe_sourcekit_01.json)は**53inputs**からNative／WASM／receiptがbyte一致。WASM1,390,542bytes、SHA `96abb0664a7aa7f3df7b1a63fa8f9b8e576a492936ce4175db1fd7019b4610bd`。
+- 最終`release/tetorica_sid8580_probe_20261107_sources.1.zip`は71files／541,950bytes、SHA `244d0aa1f07ea70728bca200f94d0a89e1b61b488ea49af79ca09738c557bd8d`。source／license／WASMと、installed Rust1.91.1標準ライブラリーの無変更copyright／license notices・provenanceを含む。追加noticeは`third_party/sidera/toolchain-notices/`に分け、53app inputs／Native・WASM再build一致は不変。optional Cargo playerはbuildしておらず、Native binary／GPL SID参照／ROM／音楽も含めない。
+- 新CI workflowのNative／WASM・元API・receipt手順をローカルで確認した。GitHub Actions実行、commit／push／tag／公開はしていない。既存runtime33builds／68outputs／75mirrorsとPlayer／native receiptのcheckは成功。実8580曲・Player接続・本番ブラウザー音声は後続。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

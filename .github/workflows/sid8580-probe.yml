@@ -1,0 +1,50 @@
+name: SID8580 isolated probe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'third_party/sidera/**'
+      - 'tetorica_src/wasm/sid8580-probe/**'
+      - 'scripts/*sid8580_probe*'
+      - 'test/helpers/sid8580_probe_fixtures.mjs'
+      - 'test/helpers/sid8580_legacy_parity.rs'
+      - 'tetorica_src/cli/sid_reference_metrics.mjs'
+      - '.github/workflows/sid8580-probe.yml'
+  pull_request:
+    paths:
+      - 'third_party/sidera/**'
+      - 'tetorica_src/wasm/sid8580-probe/**'
+      - 'scripts/*sid8580_probe*'
+      - 'test/helpers/sid8580_probe_fixtures.mjs'
+      - 'test/helpers/sid8580_legacy_parity.rs'
+      - 'tetorica_src/cli/sid_reference_metrics.mjs'
+      - '.github/workflows/sid8580-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-wasm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: '1.91.1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Rust and WASM target
+        run: rustup toolchain install 1.91.1 --profile minimal --target wasm32-unknown-unknown
+      - name: Build isolated Native and WASM candidate
+        run: sh scripts/build_sid8580_probe.sh
+      - name: Check cycle, read, PCM, ownership and split-render parity
+        run: node scripts/check_sid8580_probe.mjs --out build/sid8580-probe/verification.json
+      - name: Preserve the upstream sample-clock API
+        run: |
+          rustc --edition=2021 -C opt-level=3 -C panic=abort --crate-name sidera_upstream --crate-type rlib third_party/sidera/upstream/src/lib.rs -o build/sid8580-probe/libsidera_upstream.rlib
+          rustc --edition=2021 -C opt-level=3 -C panic=abort test/helpers/sid8580_legacy_parity.rs --extern sidera=build/sid8580-probe/libsidera.rlib --extern sidera_upstream=build/sid8580-probe/libsidera_upstream.rlib -o build/sid8580-probe/legacy-parity
+          build/sid8580-probe/legacy-parity
+      - name: Check matching artifact receipts
+        run: node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe

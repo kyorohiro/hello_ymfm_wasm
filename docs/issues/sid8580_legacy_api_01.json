@@ -1,0 +1,277 @@
+{
+  "format": "tetorica-sid8580-legacy-api-parity",
+  "version": 1,
+  "passed": true,
+  "candidate": {
+    "crate": "sidera",
+    "version": "1.1.1",
+    "revision": "15041709d26c2bc36667ba27f729332c9f523696",
+    "crateArchiveSha256": "b043512b891bdb03ad21b0205723dabb88ada23e3043c21f6a7f88b26defba35"
+  },
+  "compiler": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+  "harness": {
+    "path": "test/helpers/sid8580_legacy_parity.rs",
+    "bytes": 1920,
+    "sha256": "4a4578853a5e0315c56508748ea2a56aae5ef85eebfe5fe0f8ac11f8912f1c33"
+  },
+  "upstream": {
+    "files": 16,
+    "sha256": "7206f01ebfc248bb84428a4f4ae98be3f599f3f8e8c67111f59abf5e64933c44",
+    "inputs": [
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/bus.rs",
+        "bytes": 2238,
+        "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/diag.rs",
+        "bytes": 2402,
+        "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/main.rs",
+        "bytes": 5629,
+        "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/output.rs",
+        "bytes": 4341,
+        "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/player.rs",
+        "bytes": 10189,
+        "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/bin/sidplay/psid.rs",
+        "bytes": 4262,
+        "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/envelope.rs",
+        "bytes": 5403,
+        "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/extfilt.rs",
+        "bytes": 1946,
+        "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/filter.rs",
+        "bytes": 7711,
+        "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/high.rs",
+        "bytes": 18128,
+        "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/lib.rs",
+        "bytes": 4153,
+        "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/noise.rs",
+        "bytes": 2128,
+        "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/oscillator.rs",
+        "bytes": 2582,
+        "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/registers.rs",
+        "bytes": 2759,
+        "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/sid.rs",
+        "bytes": 13227,
+        "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
+      },
+      {
+        "path": "third_party/sidera/upstream/src/voice.rs",
+        "bytes": 8899,
+        "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+      }
+    ]
+  },
+  "adapted": {
+    "files": 16,
+    "sha256": "2f97682c5200788b92aff0c53a005d040e11c13136ef479d64435206b607a69c",
+    "inputs": [
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/bus.rs",
+        "bytes": 2238,
+        "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/diag.rs",
+        "bytes": 2402,
+        "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/main.rs",
+        "bytes": 5629,
+        "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/output.rs",
+        "bytes": 4341,
+        "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/player.rs",
+        "bytes": 10189,
+        "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/bin/sidplay/psid.rs",
+        "bytes": 4262,
+        "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/envelope.rs",
+        "bytes": 5403,
+        "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/extfilt.rs",
+        "bytes": 1946,
+        "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/filter.rs",
+        "bytes": 7711,
+        "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/high.rs",
+        "bytes": 18128,
+        "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/lib.rs",
+        "bytes": 4153,
+        "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/noise.rs",
+        "bytes": 2128,
+        "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/oscillator.rs",
+        "bytes": 2582,
+        "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/registers.rs",
+        "bytes": 2759,
+        "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/sid.rs",
+        "bytes": 13819,
+        "sha256": "79c3921ecb801c7e4e856c3b50f7081a4f7bce997c19f01671295b249f71d2dc"
+      },
+      {
+        "path": "third_party/sidera/adapted/src/voice.rs",
+        "bytes": 8899,
+        "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+      }
+    ]
+  },
+  "commands": [
+    [
+      "rustc",
+      "--crate-name",
+      "sidera",
+      "--crate-type",
+      "rlib",
+      "--edition=2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "panic=abort",
+      "third_party/sidera/adapted/src/lib.rs",
+      "-o",
+      "/private/tmp/libsidera-probe-host.rlib"
+    ],
+    [
+      "rustc",
+      "--crate-name",
+      "sidera_upstream",
+      "--crate-type",
+      "rlib",
+      "--edition=2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "panic=abort",
+      "third_party/sidera/upstream/src/lib.rs",
+      "-o",
+      "/private/tmp/libsidera-probe-upstream.rlib"
+    ],
+    [
+      "rustc",
+      "--crate-name",
+      "original_clock_parity",
+      "--edition=2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "panic=abort",
+      "test/helpers/sid8580_legacy_parity.rs",
+      "--extern",
+      "sidera=/private/tmp/libsidera-probe-host.rlib",
+      "--extern",
+      "sidera_upstream=/private/tmp/libsidera-probe-upstream.rlib",
+      "-o",
+      "/private/tmp/sid8580-legacy-parity"
+    ]
+  ],
+  "run": [
+    "/private/tmp/sid8580-legacy-parity"
+  ],
+  "stdout": "Original clock/clock_with_voices exact parity: 376200 samples, 6 rate/model combinations",
+  "exitCode": 0,
+  "samples": 376200,
+  "configurations": [
+    {
+      "sampleRate": 44100,
+      "model": 6581
+    },
+    {
+      "sampleRate": 44100,
+      "model": 8580
+    },
+    {
+      "sampleRate": 48000,
+      "model": 6581
+    },
+    {
+      "sampleRate": 48000,
+      "model": 8580
+    },
+    {
+      "sampleRate": 96000,
+      "model": 6581
+    },
+    {
+      "sampleRate": 96000,
+      "model": 8580
+    }
+  ],
+  "checks": {
+    "clockExact": true,
+    "clockWithVoicesExact": true,
+    "osc3Env3ReadsExact": true,
+    "dynamicRegistersAndReset": true
+  },
+  "scope": "Original public audio-rate APIs only; no cycle adapter calls, CPU, player, firmware, music or hardware-fidelity claim."
+}

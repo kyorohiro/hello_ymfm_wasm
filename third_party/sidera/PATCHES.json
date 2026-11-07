@@ -1,0 +1,18 @@
+{
+  "format": "tetorica-sidera-marked-adaptation",
+  "version": 1,
+  "upstreamVersion": "1.1.1",
+  "description": "Add tick_cycle to expose one existing internal chip cycle and current i16 output; original sample-clock method and DSP equations remain unchanged. Do not mix the two scheduling APIs on one instance.",
+  "files": {
+    "src/sid.rs": {
+      "before": {
+        "bytes": 13227,
+        "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
+      },
+      "after": {
+        "bytes": 13819,
+        "sha256": "79c3921ecb801c7e4e856c3b50f7081a4f7bce997c19f01671295b249f71d2dc"
+      }
+    }
+  }
+}
