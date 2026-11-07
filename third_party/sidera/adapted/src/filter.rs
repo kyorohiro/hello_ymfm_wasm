@@ -16,6 +16,14 @@ const W0_K: i64 = 6_588_397;
 /// Cutoff stability ceiling for the 1-cycle integrator update (16 kHz).
 const FC_CEIL_HZ: i64 = 16_000;
 
+// Tetorica research-only 8580 damping calibration. Independently fitted from
+// black-box reference responses, not copied from reference implementation code:
+// Q(r) = (1024 / 1448) * exp(0.08571821144447545 * r), round(1024 / Q(r)).
+// RES=0 retains the original integer coefficient. Disabled by default.
+const RESEARCH_8580_Q1024: [i64; 16] = [
+    1448, 1329, 1220, 1120, 1028, 943, 866, 795, 729, 669, 614, 564, 518, 475, 436, 400,
+];
+
 #[derive(Clone, Copy)]
 pub struct Filter {
     // Filter state (integrator outputs).
@@ -43,6 +51,7 @@ pub struct Filter {
     q1024: i64,
     mixer_dc: i32,
     is_6581: bool,
+    research_8580_resonance_calibration: bool,
 }
 
 impl Filter {
@@ -63,10 +72,11 @@ impl Filter {
             q1024: 1_448,
             mixer_dc: -453,
             is_6581: true,
+            research_8580_resonance_calibration: false,
         }
     }
 
-    /// Select the chip model (recomputes the cutoff coefficient and DC offset).
+    /// Select the chip model (recomputes cutoff, resonance and DC offset).
     pub fn set_model(&mut self, is_6581: bool) {
         self.is_6581 = is_6581;
         self.mixer_dc = if is_6581 {
@@ -75,6 +85,18 @@ impl Filter {
             0
         };
         self.set_w0();
+        self.set_q();
+    }
+
+    /// Tetorica research option: change only 8580 resonance damping.
+    /// Does not reset integrators, clock the chip or alter cutoff/routing.
+    pub fn set_8580_resonance_calibration(&mut self, enabled: bool) {
+        self.research_8580_resonance_calibration = enabled;
+        self.set_q();
+    }
+
+    pub fn resonance_calibration_8580(&self) -> bool {
+        self.research_8580_resonance_calibration
     }
 
     /// Advance the filter by one chip cycle.
@@ -197,6 +219,10 @@ impl Filter {
     /// `q1024 = 1024 / Q`, `Q = 0.707 + res/15` (range ≈ [0.707, 1.707]).
     #[inline(always)]
     fn set_q(&mut self) {
+        if !self.is_6581 && self.research_8580_resonance_calibration {
+            self.q1024 = RESEARCH_8580_Q1024[self.res as usize];
+            return;
+        }
         let q_milli = 707 + (1000 * self.res as i64) / 15;
         self.q1024 = 1_024_000 / q_milli;
     }

@@ -1,0 +1,64 @@
+{
+  "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid8580-quality-source-kit-20261107",
+  "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid8580_quality_20261107_sources.zip",
+  "files": 105,
+  "bytes": 1059166,
+  "sha256": "8356799fd4b2f8313d570687e089f04615cbfd32366f731bcb3aaab681741b62",
+  "compiledInputs": 62,
+  "verification": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "independent-build",
+        "passed": true
+      },
+      {
+        "name": "analytical-metrics",
+        "passed": true
+      },
+      {
+        "name": "chip-parity",
+        "passed": true
+      },
+      {
+        "name": "bounded-bus",
+        "passed": true
+      },
+      {
+        "name": "real-cpu",
+        "passed": true
+      },
+      {
+        "name": "calibration-policy",
+        "passed": true
+      },
+      {
+        "name": "controlled-candidate-quality",
+        "passed": true
+      },
+      {
+        "name": "original-library",
+        "passed": true
+      },
+      {
+        "name": "original-api-harness",
+        "passed": true
+      },
+      {
+        "name": "original-api-parity",
+        "passed": true
+      },
+      {
+        "name": "matching-receipt",
+        "passed": true
+      }
+    ],
+    "sameCompilerProfile": true,
+    "allOutputsByteIdentical": true,
+    "receiptByteIdentical": true,
+    "referenceUsed": false,
+    "parentSourceFallback": false
+  },
+  "zipCrcPassed": true,
+  "archiveFilesByteIdentical": true
+}

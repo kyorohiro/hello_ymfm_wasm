@@ -1,0 +1,817 @@
+{
+  "format": "tetorica-sid8580-quality-capture-reference",
+  "version": 1,
+  "passed": true,
+  "generatedAt": "2026-11-07T09:51:33.721Z",
+  "oracle": {
+    "path": "build/sid-reference/sid8580-quality-reference",
+    "bytes": 126680,
+    "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+  },
+  "manifest": {
+    "path": "build/sid-reference/sid8580-quality-reference-build.json",
+    "bytes": 4041,
+    "sha256": "93dac23478eaca1c725094b443535e46544ab22643db84d58113c6c0a9a33ce6"
+  },
+  "sources": [
+    {
+      "path": "test/helpers/sid8580_quality_reference.cpp",
+      "bytes": 11038,
+      "sha256": "4ce7f06b698b59d338fa506dc87d66b97d848bf9368de67629c4f7156ef6c12e"
+    },
+    {
+      "path": "scripts/prepare_sid8580_quality_reference.mjs",
+      "bytes": 5066,
+      "sha256": "77f211c6854e40547a08ff418dd53b0c05b5cdf1208dfde82b188dc083fb9176"
+    }
+  ],
+  "scope": "Self-authored register commands only. Native publicAPI reference sampler/capture proof, not fidelity, musical correctness or production adoption.",
+  "publicApi": {
+    "clockHz": 985248,
+    "samplingMethod": "DECIMATE",
+    "referenceRate": 985248,
+    "perCycleOutputCount": 1,
+    "checkedOnEveryExecutedCycle": true,
+    "privateGettersUsed": false,
+    "silentClockUsed": false,
+    "hostPhase": "phase+=targetRate; emit iff phase>=clockHz, then subtractclockHz; preserved throughskip"
+  },
+  "replay": {
+    "setupCommands": [
+      "w 5 0",
+      "w 6 0",
+      "w 4 24",
+      "w 12 0",
+      "w 13 0",
+      "w 11 24",
+      "w 19 0",
+      "w 20 0",
+      "w 18 24",
+      "skip 100000",
+      "r 27",
+      "r 28",
+      "w 20 240",
+      "w 18 25",
+      "skip 100000",
+      "r 27",
+      "r 28",
+      "w 24 15",
+      "w 14 37",
+      "w 15 20",
+      "w 18 17",
+      "skip 100000"
+    ],
+    "continuousCapture": [
+      "c 200000"
+    ],
+    "unevenCapture": [
+      "skip 991",
+      "c 10003",
+      "skip 37",
+      "c 20051",
+      "skip 9",
+      "c 100"
+    ],
+    "header": "SID8QUALITY 1 RATE MODEL"
+  },
+  "checks": {
+    "matchedWarmup6Configurations": true,
+    "oneReferenceSamplePerCompletedTick": true,
+    "exactGlobalHostFrameCounts": true,
+    "skipPreservesOscillatorAndSamplerState": true,
+    "unevenCaptureByteExactAgainstContinuousStream": true,
+    "firstAndLastSampleTicksExact": true,
+    "stopFreezesAndResetRestartsEpoch": true,
+    "invalidInputRejectedBeforePcm": true
+  },
+  "cases": [
+    {
+      "rate": 44100,
+      "model": 6581,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "8d16513295384c6e4a1057972b1d8b4c0f9e554a231fb4e0a2359794570684ec"
+      },
+      "cycles": 500000,
+      "capturedFrames": 8952,
+      "discardedFrames": 13428,
+      "allSampleFrames": 22380,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 44100,
+        "hostClock": 985248,
+        "phase": 149760,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 13428,
+          "endFrame": 22380,
+          "captureOffset": 0,
+          "frames": 8952,
+          "firstSampleCycle": 300021,
+          "lastSampleCycle": 499997
+        }
+      ],
+      "pcm": {
+        "bytes": 17904,
+        "sha256": "d5f0153d22a886ea5b34f7a421f6a30f8f399b968977037817c5d5945dfeba00",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "35a3c30cd675e39b0301fd9f46b0b3001f682ab0e5975b50556b0f4bc6892775"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 13472,
+            "endFrame": 13920,
+            "captureOffset": 0,
+            "frames": 448,
+            "firstSampleCycle": 301004,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 13921,
+            "endFrame": 14819,
+            "captureOffset": 448,
+            "frames": 898,
+            "firstSampleCycle": 311035,
+            "lastSampleCycle": 331075
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 14819,
+            "endFrame": 14824,
+            "captureOffset": 1346,
+            "frames": 5,
+            "firstSampleCycle": 331097,
+            "lastSampleCycle": 331187
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 2702,
+          "sha256": "f4693aa9f401524d8c989ad0b3530d80e3833409dd091eaabd2b9d33f8116768",
+          "stored": false
+        }
+      }
+    },
+    {
+      "rate": 44100,
+      "model": 8580,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "42394f194520bf96985573bab9ed24e033a093fea10fc2145b769d470391d39a"
+      },
+      "cycles": 500000,
+      "capturedFrames": 8952,
+      "discardedFrames": 13428,
+      "allSampleFrames": 22380,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 44100,
+        "hostClock": 985248,
+        "phase": 149760,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 13428,
+          "endFrame": 22380,
+          "captureOffset": 0,
+          "frames": 8952,
+          "firstSampleCycle": 300021,
+          "lastSampleCycle": 499997
+        }
+      ],
+      "pcm": {
+        "bytes": 17904,
+        "sha256": "9ccdfce2a61197c4cf2e7a4cd15b4f8283a29b70d391b924143a2091ad079f39",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "8ce52ba8b7b88104f164936c3e01fc099591e619779b016c5cfd541a3bc78ef5"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 13472,
+            "endFrame": 13920,
+            "captureOffset": 0,
+            "frames": 448,
+            "firstSampleCycle": 301004,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 13921,
+            "endFrame": 14819,
+            "captureOffset": 448,
+            "frames": 898,
+            "firstSampleCycle": 311035,
+            "lastSampleCycle": 331075
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 14819,
+            "endFrame": 14824,
+            "captureOffset": 1346,
+            "frames": 5,
+            "firstSampleCycle": 331097,
+            "lastSampleCycle": 331187
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 2702,
+          "sha256": "9dcf1c8306ec705c2333511076e9114f028854c68d51747a06f2f2947e5bceb0",
+          "stored": false
+        }
+      }
+    },
+    {
+      "rate": 48000,
+      "model": 6581,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "a9d160c401c5dacff02a846e36906a687d87a1d687aff74f0fe2b26514adf925"
+      },
+      "cycles": 500000,
+      "capturedFrames": 9744,
+      "discardedFrames": 14615,
+      "allSampleFrames": 24359,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 48000,
+        "hostClock": 985248,
+        "phase": 343968,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 14615,
+          "endFrame": 24359,
+          "captureOffset": 0,
+          "frames": 9744,
+          "firstSampleCycle": 300009,
+          "lastSampleCycle": 499993
+        }
+      ],
+      "pcm": {
+        "bytes": 19488,
+        "sha256": "7cb6026d08fc648dc0618cba753860ee9c45edf719c4dab32e110f6073933115",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "6868611860a4a9faf7364efbd5fe2801439c5e7f9841bae8f292f5c0a665c325"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 14663,
+            "endFrame": 15151,
+            "captureOffset": 0,
+            "frames": 488,
+            "firstSampleCycle": 300994,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 15153,
+            "endFrame": 16129,
+            "captureOffset": 488,
+            "frames": 976,
+            "firstSampleCycle": 311052,
+            "lastSampleCycle": 331064
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 16130,
+            "endFrame": 16135,
+            "captureOffset": 1464,
+            "frames": 5,
+            "firstSampleCycle": 331105,
+            "lastSampleCycle": 331188
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 2938,
+          "sha256": "793ec82faa79a37a4fa1ab5ce3cc71c26c7990ae9f6298fe5827e4b120000b24",
+          "stored": false
+        }
+      }
+    },
+    {
+      "rate": 48000,
+      "model": 8580,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "b0efc167652fa80ca46cc13e1fadfc677d4625d963871501c759a7b0f62038e6"
+      },
+      "cycles": 500000,
+      "capturedFrames": 9744,
+      "discardedFrames": 14615,
+      "allSampleFrames": 24359,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 48000,
+        "hostClock": 985248,
+        "phase": 343968,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 14615,
+          "endFrame": 24359,
+          "captureOffset": 0,
+          "frames": 9744,
+          "firstSampleCycle": 300009,
+          "lastSampleCycle": 499993
+        }
+      ],
+      "pcm": {
+        "bytes": 19488,
+        "sha256": "e52b1214645dde4e06ecca2ad39e32e8515d1ab366d81e42b91ac23ba5616e68",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "6e566d1e8b9a329cf6b8f9c068304b3d806cac5ba8170ad91bda867846a8d7f8"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 14663,
+            "endFrame": 15151,
+            "captureOffset": 0,
+            "frames": 488,
+            "firstSampleCycle": 300994,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 15153,
+            "endFrame": 16129,
+            "captureOffset": 488,
+            "frames": 976,
+            "firstSampleCycle": 311052,
+            "lastSampleCycle": 331064
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 16130,
+            "endFrame": 16135,
+            "captureOffset": 1464,
+            "frames": 5,
+            "firstSampleCycle": 331105,
+            "lastSampleCycle": 331188
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 2938,
+          "sha256": "72a53a9bbc72898ea214bfcfef981dbf6582339765270feccbc117cd5b40db39",
+          "stored": false
+        }
+      }
+    },
+    {
+      "rate": 96000,
+      "model": 6581,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "95b607b8c073261cb041cbc6a64da24b20654b4dbd46a66314ea690fc8cd1080"
+      },
+      "cycles": 500000,
+      "capturedFrames": 19487,
+      "discardedFrames": 29231,
+      "allSampleFrames": 48718,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 96000,
+        "hostClock": 985248,
+        "phase": 687936,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 29231,
+          "endFrame": 48718,
+          "captureOffset": 0,
+          "frames": 19487,
+          "firstSampleCycle": 300009,
+          "lastSampleCycle": 499993
+        }
+      ],
+      "pcm": {
+        "bytes": 38974,
+        "sha256": "89a677df2aa5b300969fc3196c53405560c5aa71ac5fd22de866740af4a51f22",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "98da297c65aa3f27dc0b07a9ec4f06f43725549e3f4ad45a08477ad451db8216"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 29327,
+            "endFrame": 30302,
+            "captureOffset": 0,
+            "frames": 975,
+            "firstSampleCycle": 300994,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 30306,
+            "endFrame": 32259,
+            "captureOffset": 975,
+            "frames": 1953,
+            "firstSampleCycle": 311041,
+            "lastSampleCycle": 331075
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 32260,
+            "endFrame": 32270,
+            "captureOffset": 2928,
+            "frames": 10,
+            "firstSampleCycle": 331095,
+            "lastSampleCycle": 331188
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 5876,
+          "sha256": "69a72c9f8cb8865ffaa43ad3adc21e86d8587c970829e00fa0f754cd94f04023",
+          "stored": false
+        }
+      }
+    },
+    {
+      "rate": 96000,
+      "model": 8580,
+      "protocol": {
+        "bytes": 202,
+        "sha256": "21005babcc84d5357ae312f8f07525afde56134c17206a3bad6d21791f8c5590"
+      },
+      "cycles": 500000,
+      "capturedFrames": 19487,
+      "discardedFrames": 29231,
+      "allSampleFrames": 48718,
+      "actualReads": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "readEvents": [
+        {
+          "cycle": 100000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 100000,
+          "register": 28,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 27,
+          "value": 0
+        },
+        {
+          "cycle": 200000,
+          "register": 28,
+          "value": 255
+        }
+      ],
+      "sampler": {
+        "referenceMethod": "DECIMATE",
+        "referenceRate": 985248,
+        "referenceSamples": 500000,
+        "targetRate": 96000,
+        "hostClock": 985248,
+        "phase": 687936,
+        "initialPhase": 0,
+        "rule": "phase+=targetRate; emit iff phase>=clock; phase-=clock",
+        "tickBoundary": "completed ticks",
+        "automaticWarmupOrCorrection": false
+      },
+      "captureRanges": [
+        {
+          "startCycle": 300000,
+          "endCycle": 500000,
+          "startFrame": 29231,
+          "endFrame": 48718,
+          "captureOffset": 0,
+          "frames": 19487,
+          "firstSampleCycle": 300009,
+          "lastSampleCycle": 499993
+        }
+      ],
+      "pcm": {
+        "bytes": 38974,
+        "sha256": "4d7c8e15e3c5799d66b57bbf53ed401300bd450f4e5b08e51fb63e53fa6d4637",
+        "stored": false
+      },
+      "unevenSkipCapture": {
+        "protocol": {
+          "bytes": 239,
+          "sha256": "1fe26682d00d8941969356dae971fb1c6e0e112cfb88942dbb6162108fd30fc2"
+        },
+        "captureRanges": [
+          {
+            "startCycle": 300991,
+            "endCycle": 310994,
+            "startFrame": 29327,
+            "endFrame": 30302,
+            "captureOffset": 0,
+            "frames": 975,
+            "firstSampleCycle": 300994,
+            "lastSampleCycle": 310990
+          },
+          {
+            "startCycle": 311031,
+            "endCycle": 331082,
+            "startFrame": 30306,
+            "endFrame": 32259,
+            "captureOffset": 975,
+            "frames": 1953,
+            "firstSampleCycle": 311041,
+            "lastSampleCycle": 331075
+          },
+          {
+            "startCycle": 331091,
+            "endCycle": 331191,
+            "startFrame": 32260,
+            "endFrame": 32270,
+            "captureOffset": 2928,
+            "frames": 10,
+            "firstSampleCycle": 331095,
+            "lastSampleCycle": 331188
+          }
+        ],
+        "slicesByteExact": true,
+        "pcm": {
+          "bytes": 5876,
+          "sha256": "33e8df63d4dd0fb547b120affea1ccf8c077e2ada9d64802c5db3d1fbb96d05a",
+          "stored": false
+        }
+      }
+    }
+  ],
+  "stopReset": {
+    "cycles": 2000,
+    "epochCycles": 1000,
+    "capturedFrames": 96,
+    "allSampleFrames": 96,
+    "requestedCycles": 4000
+  },
+  "rejected": [
+    {
+      "tail": "bad",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "w 32 0",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "r 32",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "c -1",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "skip 59114881",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "reset extra",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "tail": "c 18446744073709551616",
+      "exitCode": 1,
+      "pcmBytes": 0
+    },
+    {
+      "description": "One-MiB bound exceeded by300000 read commands",
+      "exitCode": 1,
+      "pcmBytes": 0
+    }
+  ],
+  "noPcmOrMusicOrFirmwareStored": true
+}

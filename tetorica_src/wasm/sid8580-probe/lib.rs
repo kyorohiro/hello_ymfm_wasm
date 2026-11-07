@@ -12,6 +12,7 @@ pub const READ_ERROR: u32 = 256;
 // Reference-emulator black-box boundaries, not measured hardware constants.
 pub const BUS_TTL_6581: u32 = 7424;
 pub const BUS_TTL_8580: u32 = 663552;
+pub const CALIBRATION_PROFILE: &str = "8580-resonance-logfit-v1";
 
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -211,6 +212,15 @@ impl Probe {
     pub fn stopped(&self) -> bool {
         self.stopped
     }
+    /// Research configuration only: does not clock/reset or drive the bus.
+    /// It is preserved by Reset/Stop and is inert on the 6581 model.
+    pub fn set_8580_calibration(&mut self, enabled: bool) {
+        self.sid.set_8580_resonance_calibration(enabled);
+        self.error = Error::None;
+    }
+    pub fn calibration(&self) -> bool {
+        self.sid.resonance_calibration_8580()
+    }
     pub fn error(&self) -> Error {
         self.error
     }
@@ -370,6 +380,22 @@ pub extern "C" fn sid8p_model(handle: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn sid8p_stopped(handle: u32) -> u32 {
     with_probe(handle, |probe| u32::from(probe.stopped())).unwrap_or(1)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_set_8580_calibration(handle: u32, enabled: u32) -> u32 {
+    with_probe(handle, |probe| {
+        if enabled > 1 {
+            probe.error = Error::InvalidArgument;
+            return 0;
+        }
+        probe.set_8580_calibration(enabled != 0);
+        1
+    })
+    .unwrap_or(0)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_calibration(handle: u32) -> u32 {
+    with_probe(handle, |probe| u32::from(probe.calibration())).unwrap_or(0)
 }
 #[no_mangle]
 pub extern "C" fn sid8p_written(handle: u32, register: u32) -> u32 {

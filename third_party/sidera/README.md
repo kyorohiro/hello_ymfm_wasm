@@ -12,8 +12,8 @@ The browser player's 8580 rejection remains in place.
 
 The original library's public `Sid::clock()` produces one audio sample and
 advances several chip cycles. The marked copy under `adapted/` adds access to
-one existing internal chip-cycle update and its current output. It preserves
-the original `clock()` API and DSP equations. [PATCHES.json](PATCHES.json)
+one existing internal chip-cycle update and its current output. Its default
+preserves the original `clock()` API and DSP equations. [PATCHES.json](PATCHES.json)
 records the exact changed-file hashes. The BSD wrapper samples those ticks
 with an integer phase accumulator, producing `floor(cycles * rate / 985248)`
 frames per reset epoch. Register reads and writes do not invent extra clocks.
@@ -57,3 +57,33 @@ feature or third-party Cargo dependency is compiled. In particular, `cpal`,
 are retained as original sources but are outside the build closure. No GPL
 reference engine is linked into this candidate. No game/ROM/recorded PCM is
 included.
+
+An explicitly selected research profile, `8580-resonance-logfit-v1`, changes
+only the 8580 filter damping coefficient. It is **off by default**, has no
+effect on 6581, and is not selected by the CPU probe or any product. Its
+coefficients were derived from black-box transfer measurements, not copied
+from the reference implementation. The data, fit equation and limitations are
+recorded in [8580-resonance-calibration.json](8580-resonance-calibration.json).
+This is a software-reference fit, not a calibration against physical hardware.
+Cutoff, input gain, external RC, oscillators, ADSR and noise are unchanged.
+`Sid::set_8580_resonance_calibration()` and the probe C ABI enable it per instance;
+Stop/reset retain that explicit setting. Invalid C ABI values are rejected
+without advancing audio or replacing the current setting.
+
+The additional Native `sid8580-quality` executable accepts the versioned
+`SID8QUALITY` text protocol. It clocks both captured and discarded intervals,
+retains the integer sampler phase, and reports the exact global sample ranges
+and register-read times. Pass `--8580-calibration` to opt into the profile.
+The controlled checker uses the existing probe WASM for the same operations:
+
+```sh
+node --test test/sid8580_quality_metrics.test.mjs
+node scripts/check_sid8580_quality.mjs --validation
+node scripts/check_sid8580_quality.mjs --validation --calibrated-8580
+```
+
+The optional GPL oracle runs as a separate process at chip-rate sampling,
+followed by the same public integer sample selection. It is never linked
+or packaged with this candidate. The checker does not align, scale or modify
+PCM to force a match. Each filtered transfer is divided by its own engine's
+matching dry capture; peak gain and bandwidth-derived Q are reported separately.

@@ -1,0 +1,637 @@
+{
+  "format": "tetorica-sid8580-controlled-quality-analysis",
+  "version": 1,
+  "date": "2026-11-07",
+  "productionAdopted": false,
+  "hardwareFidelityProven": false,
+  "method": "Analysis of frozen black-box measurements only; no reference-engine implementation inspected or copied for this calibration.",
+  "baseline": {
+    "path": "docs/issues/sid8580_quality_comparison_01.json",
+    "bytes": 1183149,
+    "sha256": "f5192f7f447ef40bf0b2f75847b3ad70f7e80ffca44287f70307d498b4b76ea5",
+    "wasm": {
+      "bytes": 1391574,
+      "sha256": "2b82f306f1c9460ef4558d7faf73cf1eb49b7de2eead09d8c5e38c858429667d"
+    },
+    "referenceExecutable": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+      "bytes": 126680,
+      "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+    },
+    "measurementInputs": {
+      "scripts/check_sid8580_quality.mjs": {
+        "bytes": 9043,
+        "sha256": "bd0c8b32c3e6d54f435485e269d69ac8957c4cabb48f5a45e5154a2f518b9a38"
+      },
+      "scripts/sid8580_quality_metrics.mjs": {
+        "bytes": 3064,
+        "sha256": "382b73742ef3fd872cecf30b16e794a871c7614c88c7120a067abe94164e4d68"
+      },
+      "test/helpers/sid8580_quality_fixtures.mjs": {
+        "bytes": 3604,
+        "sha256": "5a36b633a3011785c08e928ccd148c7d3febc0d518c82899ef709bbbc6d133b9"
+      }
+    },
+    "cases": 228,
+    "transfers": 165,
+    "checks": {
+      "nativeWasmAndChunkCases": 228,
+      "matchedObservableSetup": true,
+      "commonExactSampleTicks": true,
+      "allGlobalFramesAccounted": true,
+      "noPcmGainOrPhaseCorrection": true,
+      "transferCases": 165,
+      "validCandidateTransferCases": 165,
+      "validReferenceTransferCases": 165
+    }
+  },
+  "findings": {
+    "resonance": "At RES15 the original candidate apparentQ is1.7059 versus reference2.4996 atFC128, and1.7000 versus2.4921 atFC256. The repeated difference supports an isolated damping experiment independent of raw gain.",
+    "cutoff": "Candidate discrete BP peaks near800/1600Hz versus reference900/1800Hz are a separate difference. A reciprocalQ-only profile does not claim to calibrate cutoff.",
+    "initialization": "All stored observable setup reads matched under the common chip-tick grid. This does not establish all hidden noise state, pipeline or analogue state equality.",
+    "gain": "At48k, pure8580 triangle/saw/pulse fundamental ratios cluster around1.469 whereas combined-wave ratio is2.032. Do not use a global gain fit to absorb waveform/filter differences.",
+    "levelDependence": "Available sustain4/15 pairs are only three frequencies atRES0/15. They are not full high-level Q curves. Candidate transfer changes by about−4.5% to+7.8% offpeak atRES0; the reference changes by less than0.8% there. Near800Hz atRES15 both change by roughly1%."
+  },
+  "proposedOptInDampingFit": {
+    "scope": "Experimental8580-only damping profile OFF by default. Preserve original upstream API/defaultProbe and all6581/Player/SDK results. No cutoff, RC, noise, read-pipeline or gain modification is implied.",
+    "anchor": {
+      "reciprocalQ1024": 1448,
+      "Q": 0.7071823204419889,
+      "reason": "Preserve the existing zero-resonance damping exactly instead of fitting a broad, coarsely sampled RES0 peak."
+    },
+    "trainingSelection": "Only FC128, sustain4, 48kHz, reference BP apparentQ atRES4/8/12/15. FC256 and future intermediateRES/two-level curves are excluded.",
+    "model": "Q(res)=Q0*exp(slope*res); slope=sum(res*ln(Q_reference/Q0))/sum(res^2)",
+    "slopeNaturalLogPerRegisterStep": 0.08571821144447545,
+    "rounding": "reciprocalQ1024=res0 preserved1448; otherwise nearest integer to1024/Q(res). These are independently derived fit coefficients, not copied reference tables.",
+    "reciprocalQ1024": [
+      1448,
+      1329,
+      1220,
+      1120,
+      1028,
+      943,
+      866,
+      795,
+      729,
+      669,
+      614,
+      564,
+      518,
+      475,
+      436,
+      400
+    ],
+    "rows": [
+      {
+        "res": 0,
+        "predictedQ": 0.7071823204419889,
+        "reciprocalQ1024": 1448,
+        "quantizedQ": 0.7071823204419889
+      },
+      {
+        "res": 1,
+        "predictedQ": 0.7704746265585372,
+        "reciprocalQ1024": 1329,
+        "quantizedQ": 0.7705041384499624
+      },
+      {
+        "res": 2,
+        "predictedQ": 0.8394315482879972,
+        "reciprocalQ1024": 1220,
+        "quantizedQ": 0.839344262295082
+      },
+      {
+        "res": 3,
+        "predictedQ": 0.9145600646300431,
+        "reciprocalQ1024": 1120,
+        "quantizedQ": 0.9142857142857143
+      },
+      {
+        "res": 4,
+        "predictedQ": 0.9964125288380808,
+        "reciprocalQ1024": 1028,
+        "quantizedQ": 0.9961089494163424
+      },
+      {
+        "res": 5,
+        "predictedQ": 1.085590729382133,
+        "reciprocalQ1024": 943,
+        "quantizedQ": 1.085896076352068
+      },
+      {
+        "res": 6,
+        "predictedQ": 1.1827503143649665,
+        "reciprocalQ1024": 866,
+        "quantizedQ": 1.1824480369515011
+      },
+      {
+        "res": 7,
+        "predictedQ": 1.288605611920262,
+        "reciprocalQ1024": 795,
+        "quantizedQ": 1.2880503144654087
+      },
+      {
+        "res": 8,
+        "predictedQ": 1.4039348820329325,
+        "reciprocalQ1024": 729,
+        "quantizedQ": 1.4046639231824416
+      },
+      {
+        "res": 9,
+        "predictedQ": 1.5295860383935607,
+        "reciprocalQ1024": 669,
+        "quantizedQ": 1.5306427503736921
+      },
+      {
+        "res": 10,
+        "predictedQ": 1.6664828823546722,
+        "reciprocalQ1024": 614,
+        "quantizedQ": 1.6677524429967427
+      },
+      {
+        "res": 11,
+        "predictedQ": 1.8156318948215808,
+        "reciprocalQ1024": 564,
+        "quantizedQ": 1.8156028368794326
+      },
+      {
+        "res": 12,
+        "predictedQ": 1.9781296360125566,
+        "reciprocalQ1024": 518,
+        "quantizedQ": 1.9768339768339769
+      },
+      {
+        "res": 13,
+        "predictedQ": 2.1551708074921727,
+        "reciprocalQ1024": 475,
+        "quantizedQ": 2.1557894736842105
+      },
+      {
+        "res": 14,
+        "predictedQ": 2.3480570357508053,
+        "reciprocalQ1024": 436,
+        "quantizedQ": 2.3486238532110093
+      },
+      {
+        "res": 15,
+        "predictedQ": 2.558206441908147,
+        "reciprocalQ1024": 400,
+        "quantizedQ": 2.56
+      }
+    ],
+    "training": [
+      {
+        "datasetBandPassIndex": 1,
+        "fc": 128,
+        "res": 4,
+        "referenceQ": 1.0208724355802221,
+        "predictedQ": 0.9964125288380808,
+        "relativeResidual": -0.023959807209643413,
+        "referencePeakHz": 900.0248222351074,
+        "referenceLow3dBHz": 547.693539607735,
+        "referenceHigh3dBHz": 1429.3167384196122
+      },
+      {
+        "datasetBandPassIndex": 2,
+        "fc": 128,
+        "res": 8,
+        "referenceQ": 1.437932454323089,
+        "predictedQ": 1.4039348820329325,
+        "relativeResidual": -0.023643372251557437,
+        "referencePeakHz": 900.0248222351074,
+        "referenceLow3dBHz": 626.4946214202357,
+        "referenceHigh3dBHz": 1252.4105464202016
+      },
+      {
+        "datasetBandPassIndex": 3,
+        "fc": 128,
+        "res": 12,
+        "referenceQ": 1.9878855133095452,
+        "predictedQ": 1.9781296360125566,
+        "relativeResidual": -0.0049076655731277175,
+        "referencePeakHz": 900.0248222351074,
+        "referenceLow3dBHz": 686.7771514799406,
+        "referenceHigh3dBHz": 1139.5320089448933
+      },
+      {
+        "datasetBandPassIndex": 4,
+        "fc": 128,
+        "res": 15,
+        "referenceQ": 2.4996288890217686,
+        "predictedQ": 2.558206441908147,
+        "relativeResidual": 0.02343449987462054,
+        "referencePeakHz": 900.0248222351074,
+        "referenceLow3dBHz": 724.2818410050113,
+        "referenceHigh3dBHz": 1084.3452192880702
+      }
+    ],
+    "trainingMaximumAbsoluteRelativeResidual": 0.023959807209643413,
+    "leaveOneOut": [
+      {
+        "res": 4,
+        "slopeWithoutThisPoint": 0.08549417899847725,
+        "predictedQ": 0.9955200138582012,
+        "relativeResidual": -0.024834074109966187
+      },
+      {
+        "res": 8,
+        "slopeWithoutThisPoint": 0.08522101950624927,
+        "predictedQ": 1.3983617721605806,
+        "relativeResidual": -0.02751915226862056
+      },
+      {
+        "res": 12,
+        "slopeWithoutThisPoint": 0.08552464760014426,
+        "predictedQ": 1.9735402356046994,
+        "relativeResidual": -0.007216350040683661
+      },
+      {
+        "res": 15,
+        "slopeWithoutThisPoint": 0.08726938072061516,
+        "predictedQ": 2.6184274914019516,
+        "relativeResidual": 0.04752649599384129
+      }
+    ],
+    "approximateAnchorNote": "Using roundedQ0=.707 gives slope.08574060784499854 and the same16 rounded integers. Exact reciprocal anchor is used here.",
+    "parameterPredictionOnly": true,
+    "actualProfileValidationPending": true
+  },
+  "independentEarlyHoldout": [
+    {
+      "datasetBandPassIndex": 5,
+      "fc": 256,
+      "res": 0,
+      "candidateOriginalQ": 0.7112992433322533,
+      "referenceQ": 0.7272797223126711,
+      "parameterPredictedQ": 0.7071823204419889,
+      "relativeParameterResidual": -0.02763366178665705,
+      "meaning": "This row was excluded from training. Predicted parameter is not yet an actual calibrated-core render result."
+    },
+    {
+      "datasetBandPassIndex": 6,
+      "fc": 256,
+      "res": 15,
+      "candidateOriginalQ": 1.6999908782214042,
+      "referenceQ": 2.4921028872346334,
+      "parameterPredictedQ": 2.558206441908147,
+      "relativeParameterResidual": 0.026525210902053065,
+      "meaning": "This row was excluded from training. Predicted parameter is not yet an actual calibrated-core render result."
+    }
+  ],
+  "baselineWaveObservations": [
+    {
+      "datasetCaseIndex": 33,
+      "model": 6581,
+      "wave": "wave-triangle",
+      "finalOsc3": {
+        "candidate": 3,
+        "reference": 3
+      },
+      "fundamentalAmplitudeRatio": 1.0798031831930526,
+      "acRmsRatio": 1.0781881902818633
+    },
+    {
+      "datasetCaseIndex": 34,
+      "model": 6581,
+      "wave": "wave-saw",
+      "finalOsc3": {
+        "candidate": 254,
+        "reference": 254
+      },
+      "fundamentalAmplitudeRatio": 1.0832628307363743,
+      "acRmsRatio": 1.0797399995740207
+    },
+    {
+      "datasetCaseIndex": 35,
+      "model": 6581,
+      "wave": "wave-pulse",
+      "finalOsc3": {
+        "candidate": 255,
+        "reference": 255
+      },
+      "fundamentalAmplitudeRatio": 1.0697857959763308,
+      "acRmsRatio": 1.0704993212642517
+    },
+    {
+      "datasetCaseIndex": 36,
+      "model": 6581,
+      "wave": "wave-noise",
+      "finalOsc3": {
+        "candidate": 231,
+        "reference": 231
+      },
+      "fundamentalAmplitudeRatio": 1.124252362040067,
+      "acRmsRatio": 1.074871104391517,
+      "note": "Noise is not a stable tone; the fitted fundamental ratio is not an audio-quality metric."
+    },
+    {
+      "datasetCaseIndex": 37,
+      "model": 6581,
+      "wave": "wave-combined",
+      "finalOsc3": {
+        "candidate": 28,
+        "reference": 0
+      },
+      "fundamentalAmplitudeRatio": null,
+      "acRmsRatio": null
+    },
+    {
+      "datasetCaseIndex": 38,
+      "model": 8580,
+      "wave": "wave-triangle",
+      "finalOsc3": {
+        "candidate": 3,
+        "reference": 4
+      },
+      "fundamentalAmplitudeRatio": 1.4695645345318489,
+      "acRmsRatio": 1.4623373610056791
+    },
+    {
+      "datasetCaseIndex": 39,
+      "model": 8580,
+      "wave": "wave-saw",
+      "finalOsc3": {
+        "candidate": 254,
+        "reference": 253
+      },
+      "fundamentalAmplitudeRatio": 1.4695419971985835,
+      "acRmsRatio": 1.4625138992723687
+    },
+    {
+      "datasetCaseIndex": 40,
+      "model": 8580,
+      "wave": "wave-pulse",
+      "finalOsc3": {
+        "candidate": 255,
+        "reference": 255
+      },
+      "fundamentalAmplitudeRatio": 1.4692803367453982,
+      "acRmsRatio": 1.4671133974145363
+    },
+    {
+      "datasetCaseIndex": 41,
+      "model": 8580,
+      "wave": "wave-noise",
+      "finalOsc3": {
+        "candidate": 231,
+        "reference": 16
+      },
+      "fundamentalAmplitudeRatio": 1.4860925970373788,
+      "acRmsRatio": 1.4560946113335547,
+      "note": "Noise is not a stable tone; the fitted fundamental ratio is not an audio-quality metric."
+    },
+    {
+      "datasetCaseIndex": 42,
+      "model": 8580,
+      "wave": "wave-combined",
+      "finalOsc3": {
+        "candidate": 248,
+        "reference": 248
+      },
+      "fundamentalAmplitudeRatio": 2.031547072725402,
+      "acRmsRatio": 1.6432766006551813
+    }
+  ],
+  "baselineEnvelopeObservations": [
+    {
+      "datasetCaseIndex": 222,
+      "name": "attack-0",
+      "model": 6581,
+      "observations": 60,
+      "maximumObservedEnvDifference": 1,
+      "mismatches": [
+        {
+          "cycle": 102000,
+          "candidate": 222,
+          "reference": 221
+        }
+      ],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    },
+    {
+      "datasetCaseIndex": 223,
+      "name": "attack-4",
+      "model": 6581,
+      "observations": 60,
+      "maximumObservedEnvDifference": 0,
+      "mismatches": [],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    },
+    {
+      "datasetCaseIndex": 224,
+      "name": "attack-8",
+      "model": 6581,
+      "observations": 60,
+      "maximumObservedEnvDifference": 1,
+      "mismatches": [
+        {
+          "cycle": 198000,
+          "candidate": 250,
+          "reference": 249
+        }
+      ],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    },
+    {
+      "datasetCaseIndex": 225,
+      "name": "attack-0",
+      "model": 8580,
+      "observations": 60,
+      "maximumObservedEnvDifference": 1,
+      "mismatches": [
+        {
+          "cycle": 102000,
+          "candidate": 222,
+          "reference": 221
+        }
+      ],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    },
+    {
+      "datasetCaseIndex": 226,
+      "name": "attack-4",
+      "model": 8580,
+      "observations": 60,
+      "maximumObservedEnvDifference": 0,
+      "mismatches": [],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    },
+    {
+      "datasetCaseIndex": 227,
+      "name": "attack-8",
+      "model": 8580,
+      "observations": 60,
+      "maximumObservedEnvDifference": 1,
+      "mismatches": [
+        {
+          "cycle": 198000,
+          "candidate": 250,
+          "reference": 249
+        }
+      ],
+      "finalEnv": {
+        "candidate": 255,
+        "reference": 255
+      }
+    }
+  ],
+  "baselineLevelObservations": [
+    {
+      "highLevelDatasetTransferIndex": 159,
+      "lowLevelDatasetTransferIndex": 2,
+      "fc": 128,
+      "res": 0,
+      "hz": 399.97840690612793,
+      "candidateHighOverLowTransfer": 0.9545755777276085,
+      "referenceHighOverLowTransfer": 0.9924359534100033
+    },
+    {
+      "highLevelDatasetTransferIndex": 160,
+      "lowLevelDatasetTransferIndex": 6,
+      "fc": 128,
+      "res": 0,
+      "hz": 800.0155391693115,
+      "candidateHighOverLowTransfer": 0.9988758831239446,
+      "referenceHighOverLowTransfer": 0.9921549643931953
+    },
+    {
+      "highLevelDatasetTransferIndex": 161,
+      "lowLevelDatasetTransferIndex": 11,
+      "fc": 128,
+      "res": 0,
+      "hz": 1599.9723529815674,
+      "candidateHighOverLowTransfer": 1.0776047466936223,
+      "referenceHighOverLowTransfer": 1.000669505016551
+    },
+    {
+      "highLevelDatasetTransferIndex": 162,
+      "lowLevelDatasetTransferIndex": 70,
+      "fc": 128,
+      "res": 15,
+      "hz": 399.97840690612793,
+      "candidateHighOverLowTransfer": 0.9937904211608363,
+      "referenceHighOverLowTransfer": 0.9731136742771915
+    },
+    {
+      "highLevelDatasetTransferIndex": 163,
+      "lowLevelDatasetTransferIndex": 74,
+      "fc": 128,
+      "res": 15,
+      "hz": 800.0155391693115,
+      "candidateHighOverLowTransfer": 1.0014575343378944,
+      "referenceHighOverLowTransfer": 0.9905084594368917
+    },
+    {
+      "highLevelDatasetTransferIndex": 164,
+      "lowLevelDatasetTransferIndex": 79,
+      "fc": 128,
+      "res": 15,
+      "hz": 1599.9723529815674,
+      "candidateHighOverLowTransfer": 0.9767447427871548,
+      "referenceHighOverLowTransfer": 1.001048512652398
+    }
+  ],
+  "uncertainty": {
+    "q": "Discrete BP peak plus log-frequency -3dB interpolation is an approximate apparentQ. Grid spacing around reference peaks is100Hz atFC128 and200Hz atFC256, not a statistical confidence interval.",
+    "lowRes": "Candidate RES0 FC128 broad peak occurs at700Hz on the grid but neighboring800Hz is close; gain/level/rounding and coarse sampling limit center-frequency inference. This motivated preserving RES0.",
+    "calibration": "A fitted targetQ does not prove the discrete candidate filter realizes that same apparentQ. The opted-in render must be measured again.",
+    "dryStabilityMaximumRelativeHalfWindowAmplitudeChange": 0.006084679676477139,
+    "minimumFilteredAmplitudeLsb": 0.5194250717411163,
+    "quantizationSensitiveTransfers": [
+      {
+        "datasetTransferIndex": 122,
+        "name": "mode16-fc512-r0-f10000",
+        "minimumFilteredAmplitudeLsb": 3.4742178882228907
+      },
+      {
+        "datasetTransferIndex": 123,
+        "name": "mode16-fc512-r0-f14000",
+        "minimumFilteredAmplitudeLsb": 1.2575580823308237
+      },
+      {
+        "datasetTransferIndex": 127,
+        "name": "mode16-fc512-r15-f10000",
+        "minimumFilteredAmplitudeLsb": 3.8892682359595505
+      },
+      {
+        "datasetTransferIndex": 128,
+        "name": "mode16-fc512-r15-f14000",
+        "minimumFilteredAmplitudeLsb": 1.3923944455129875
+      },
+      {
+        "datasetTransferIndex": 129,
+        "name": "mode64-fc512-r0-f600",
+        "minimumFilteredAmplitudeLsb": 3.781461788635769
+      },
+      {
+        "datasetTransferIndex": 134,
+        "name": "mode64-fc512-r15-f600",
+        "minimumFilteredAmplitudeLsb": 3.4289227500251442
+      },
+      {
+        "datasetTransferIndex": 149,
+        "name": "mode64-fc1536-r0-f600",
+        "minimumFilteredAmplitudeLsb": 0.6982415763075123
+      },
+      {
+        "datasetTransferIndex": 150,
+        "name": "mode64-fc1536-r0-f2400",
+        "minimumFilteredAmplitudeLsb": 7.6082384046570475
+      },
+      {
+        "datasetTransferIndex": 154,
+        "name": "mode64-fc1536-r15-f600",
+        "minimumFilteredAmplitudeLsb": 0.5194250717411163
+      },
+      {
+        "datasetTransferIndex": 155,
+        "name": "mode64-fc1536-r15-f2400",
+        "minimumFilteredAmplitudeLsb": 6.671037415524414
+      }
+    ],
+    "quantizationNote": "All165 pass the recorded dry/clipping guards, but10 filtered tails are below8 PCM16 LSB in one engine. Their small ratios merit extra resolution caution; not all transfer points are equally precise.",
+    "waveformNote": "8580 final noise OSC3 differs231/16 despite matched TEST/TRI OSC andENV checks. Hidden noise-reset state or pipeline is not aligned by observing triangle0 underTEST. No additional noise experiment or correction is claimed here.",
+    "adsrNote": "Three attack settings sampled every2000cycles do not validate all ADSR delay/retrigger/pipeline behavior. Attack4 agrees at all60points; attack0/8 each show one1LSB read difference per model.",
+    "reference": "The oracle is a pinned emulator, not physical SID silicon. Unchanged RC, DAC nonlinearities, combined waves and output pipeline remain."
+  },
+  "validationPlan": {
+    "untrainedResonance": [
+      2,
+      6,
+      10,
+      14
+    ],
+    "heldOutFc": [
+      256
+    ],
+    "sustainLevels": [
+      4,
+      15
+    ],
+    "frequencyDesign": "At minimum FC256 RES2/6/10/14 with both levels. Add dense neighborhoods around each observed BP peak and both -3dB crossings, e.g25–50Hz steps near crossings. Report missing-crossing asnull, not an inventedQ.",
+    "comparisons": [
+      "Measure original and opted-in candidate against unchanged reference for the same row; compare apparentQ and entire valid magnitude curves.",
+      "Keep phase/cutoff residuals separate. Do not accept a Q-only improvement as a cutoff correction.",
+      "Check nearpeak clipping, dry and filtered window stability and quantization floor; label nonlinear level dependence.",
+      "Require profile OFF bit-identical to previous default84PCM andCPU/bus regression;6581 must stay unchanged under every allowed setting.",
+      "Check profile ON Native/WASM/chunk parity andexplicit invalid-profile rejection, Stop/reset/instance independence.",
+      "Do not widen Player8580 guard or claim hardware/audio-quality acceptance from this fit."
+    ],
+    "expectedDecision": "Use held-out evidence to retain, revise or reject the explicitly experimental damping profile. No pass tolerance or hardware fidelity has been inferred from fitting4 points."
+  }
+}

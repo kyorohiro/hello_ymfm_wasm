@@ -67,11 +67,13 @@ impl Sid {
         }
     }
 
-    /// Reset to power-on state, preserving sample rate, clock and chip model.
+    /// Reset to power-on state, preserving sample rate, clock, chip model and
+    /// the explicitly selected Tetorica research resonance configuration.
     pub fn reset(&mut self) {
         let sr = self.sample_rate;
         let clk = self.chip_clock;
         let is_6581 = self.voices[0].is_6581;
+        let calibration = self.filter.resonance_calibration_8580();
         *self = Self::new(sr);
         self.chip_clock = clk;
         self.set_model(if is_6581 {
@@ -79,6 +81,7 @@ impl Sid {
         } else {
             ChipModel::Mos8580
         });
+        self.filter.set_8580_resonance_calibration(calibration);
     }
 
     /// Select the chip model (default [`ChipModel::Mos6581`]).
@@ -88,6 +91,16 @@ impl Sid {
             v.is_6581 = is_6581;
         }
         self.filter.set_model(is_6581);
+    }
+
+    /// Tetorica research-only option, disabled by default. Enabling it affects
+    /// only the 8580 resonance coefficient; 6581 behavior is unchanged.
+    pub fn set_8580_resonance_calibration(&mut self, enabled: bool) {
+        self.filter.set_8580_resonance_calibration(enabled);
+    }
+
+    pub fn resonance_calibration_8580(&self) -> bool {
+        self.filter.resonance_calibration_8580()
     }
 
     /// Set the SID master clock (e.g. [`PAL_CLOCK`] or [`NTSC_CLOCK`]).

@@ -10,8 +10,9 @@ import {probeRoot,digest,probeReceipt} from './sid8580_probe_artifacts.mjs';
 import {sid8580ProbeFixtures,PROBE_CLOCK} from '../test/helpers/sid8580_probe_fixtures.mjs';
 import {sid8580BusFixtures} from '../test/helpers/sid8580_bus_fixtures.mjs';
 import {sid8580CpuFixtures} from '../test/helpers/sid8580_cpu_fixtures.mjs';
+import {sid8580QualityValidationFixtures} from '../test/helpers/sid8580_quality_fixtures.mjs';
 const args=process.argv.slice(2),options={};
-for(let i=0;i<args.length;i++){assert(['--work-dir','--out','--native-report','--bus-report','--cpu-report'].includes(args[i])&&args[i+1]);options[args[i]]=resolve(args[++i]);}
+for(let i=0;i<args.length;i++){assert(['--work-dir','--out','--native-report','--bus-report','--cpu-report','--quality-report'].includes(args[i])&&args[i+1]);options[args[i]]=resolve(args[++i]);}
 const work=options['--work-dir']??resolve(probeRoot,'build/sid8580-probe');
 const receipt=await probeReceipt(work,{check:true}),wasm=await readFile(resolve(work,'sid8580-probe.wasm'));
 assert(options['--native-report'],'--native-report is required to check actual PCM identity');
@@ -19,14 +20,17 @@ const native=JSON.parse(await readFile(options['--native-report']));assert(nativ
 assert.deepEqual(native.wasm,receipt.outputs['sid8580-probe.wasm']);
 const bus=options['--bus-report']?JSON.parse(await readFile(options['--bus-report'])):null;
 const cpu=options['--cpu-report']?JSON.parse(await readFile(options['--cpu-report'])):null;
+const quality=options['--quality-report']?JSON.parse(await readFile(options['--quality-report'])):null;
 if(bus){assert(bus.passed);assert.deepEqual(bus.wasm,receipt.outputs['sid8580-probe.wasm']);}
 if(cpu){assert(cpu.passed);assert.deepEqual(cpu.wasm,receipt.outputs['sid8580-cpu.wasm']);}
+if(quality){assert(quality.passed);assert.deepEqual(quality.wasm,receipt.outputs['sid8580-probe.wasm']);assert.equal(quality.calibration,'8580-resonance-logfit-v1');assert(quality.dataset.startsWith('held-out'));}
 const cpuBytes=cpu?await readFile(resolve(work,'sid8580-cpu.wasm')):null;
-const fixtures=sid8580ProbeFixtures(),report={format:'tetorica-sid8580-probe-browser',version:2,
+const fixtures=sid8580ProbeFixtures(),report={format:'tetorica-sid8580-probe-browser',version:3,
   wasm:digest(wasm),passed:false,physicalAudioOpened:false,workletTested:false,
   checker:digest(await readFile(resolve(probeRoot,'scripts/check_sid8580_probe_browser.mjs'))),
   nativeReport:digest(await readFile(options['--native-report'])),
   cpuWasm:cpu?.wasm??null,
+  qualityReport:quality?digest(await readFile(options['--quality-report'])):null,
   interpretation:'Standalone WASM throughput and integer PCM/read parity, not full C64 or real-time audio scheduling.',results:[]};
 const server=createServer((req,res)=>{
   if(req.url==='/probe.wasm'){res.writeHead(200,{'Content-Type':'application/wasm'});res.end(wasm);}
@@ -106,9 +110,50 @@ try{
         for(const c of cpuResult.cases){const expected=cpu.cases.find(n=>n.id===c.id&&n.model===c.model&&n.rate===c.rate);assert(expected);
           for(const [k,v] of Object.entries(c))assert.deepEqual(v,expected[k],`${engine} CPU ${c.id} ${k}`);}
       }
+      let qualityResult=null;
+      if(quality){
+        const all=sid8580QualityValidationFixtures(),chosen=[];
+        for(const sustain of [4,15])chosen.push(all.filter(f=>f.kind==='dry'&&f.sustain===sustain).sort((a,b)=>Math.abs(a.actualHz-1800)-Math.abs(b.actualHz-1800))[0]);
+        for(const b of quality.bandPass)chosen.push(all.filter(f=>f.kind==='transfer'&&f.fc===b.fc&&f.res===b.res&&f.sustain===b.sustain)
+          .sort((a,c)=>Math.abs(a.actualHz-(b.fc===128?850:1800))-Math.abs(c.actualHz-(b.fc===128?850:1800)))[0]);
+        assert(chosen.every(Boolean));
+        qualityResult=await page.evaluate(async({scenes,clock})=>{
+          const {instance}=await WebAssembly.instantiateStreaming(fetch('/probe.wasm'),{}),a=instance.exports;
+          const count=(h,n)=>(a[`sid8p_${n}_lo`](h)>>>0)+(a[`sid8p_${n}_hi`](h)>>>0)*2**32;
+          const hash=async b=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b))).map(x=>x.toString(16).padStart(2,'0')).join('');
+          const cases=[];
+          for(const f of scenes){
+            const h=a.sid8p_create(f.rate,1);if(!h||a.sid8p_calibration(h)!==0)throw Error('quality default');
+            try{
+              if(a.sid8p_set_8580_calibration(h,1)!==1||a.sid8p_calibration(h)!==1)throw Error('quality opt-in');
+              const chunks=[],reads=[],readEvents=[],captureRanges=[];let length=0,captured=0;
+              for(const c of f.commands){
+                if(c[0]==='w'){if(a.sid8p_write(h,c[1],c[2])!==1)throw Error('quality write');}
+                else if(c[0]==='r'){const value=a.sid8p_read(h,c[1]);if(value>255)throw Error('quality read');reads.push(value);readEvents.push({cycle:count(h,'cycles'),register:c[1],value});}
+                else{
+                  const startCycle=count(h,'cycles'),startFrame=count(h,'frames');
+                  for(let left=c[1];left>0;){const n=Math.min(left,997),frames=a.sid8p_run(h,n)>>>0;if(frames>4096)throw Error('quality render');
+                    if(c[0]==='c'){const b=new Uint8Array(a.memory.buffer,a.sid8p_output(h),frames*2).slice();chunks.push(b);length+=b.length;}left-=n;}
+                  const endCycle=count(h,'cycles'),endFrame=count(h,'frames'),frames=endFrame-startFrame;
+                  if(c[0]==='c'){captureRanges.push({startCycle,endCycle,startFrame,endFrame,captureOffset:captured,frames,
+                    firstSampleCycle:frames?Math.ceil((startFrame+1)*clock/f.rate):null,lastSampleCycle:frames?Math.ceil(endFrame*clock/f.rate):null});captured+=frames;}
+                }
+              }
+              const b=new Uint8Array(length);let at=0;for(const c of chunks){b.set(c,at);at+=c.length;}
+              cases.push({name:f.name,reads,readEvents,captureRanges,cycles:count(h,'cycles'),frames:captured,generatedFrames:count(h,'frames'),pcm:{bytes:b.length,sha256:await hash(b)}});
+              a.sid8p_stop(h);if(a.sid8p_calibration(h)!==1)throw Error('Stop lost profile');
+              a.sid8p_reset(h);if(a.sid8p_calibration(h)!==1)throw Error('Reset lost profile');
+            }finally{a.sid8p_destroy(h);}
+          }
+          return {profile:'8580-resonance-logfit-v1',cases,resetStopPreserveProfile:true};
+        },{scenes:chosen,clock:PROBE_CLOCK});
+        for(const c of qualityResult.cases){const expected=quality.cases.find(n=>n.name===c.name);assert(expected);
+          for(const k of ['reads','readEvents','pcm'])assert.deepEqual(c[k],expected.candidate[k],`${engine} quality ${c.name} ${k}`);
+          for(const k of ['captureRanges','cycles','frames','generatedFrames'])assert.deepEqual(c[k],expected[k],`${engine} quality ${c.name} ${k}`);}
+      }
       assert.equal(errors.length,0,errors.join('\n'));
-      report.results.push({engine,version:browser.version(),passed:true,...result,cpu:cpuResult,errors});
-      console.log(`${engine}: ${result.cases.length} chip/bus + ${cpuResult?.cases.length??0} real-CPU Native/WASM matches`);
+      report.results.push({engine,version:browser.version(),passed:true,...result,cpu:cpuResult,quality:qualityResult,errors});
+      console.log(`${engine}: ${result.cases.length} chip/bus + ${cpuResult?.cases.length??0} real-CPU + ${qualityResult?.cases.length??0} controlled-quality Native/WASM matches`);
     }finally{await browser.close();}
   }
   report.passed=true;

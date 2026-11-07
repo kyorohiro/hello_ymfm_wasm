@@ -1,0 +1,952 @@
+{
+  "format": "tetorica-sid8580-quality-holdout-analysis",
+  "version": 1,
+  "date": "2026-11-07",
+  "productionAdopted": false,
+  "hardwareFidelityProven": false,
+  "inputs": [
+    {
+      "path": "docs/issues/sid8580_quality_validation_before_01.json",
+      "bytes": 1170252,
+      "sha256": "1b0e534602d62f5284db460a3f621a593c15314946ee694732c5eafe46b6dfe1",
+      "calibration": "upstream",
+      "wasm": {
+        "bytes": 1392873,
+        "sha256": "ca7c478e2dbc57f0a0203f908d625037aeaa92f39b23d7541db4d4be4d873c77"
+      },
+      "referenceExecutable": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+        "bytes": 126680,
+        "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+      },
+      "measurementInputs": {
+        "scripts/check_sid8580_quality.mjs": {
+          "bytes": 11344,
+          "sha256": "db43b0b331c0ed067a4fedba751e00780d36b8986689609a12e882416315217a"
+        },
+        "scripts/sid8580_quality_metrics.mjs": {
+          "bytes": 3866,
+          "sha256": "fe9329f9adaa4bc8211759b94fd6ab54b358a584dffa58e0b187831b853d6663"
+        },
+        "test/helpers/sid8580_quality_fixtures.mjs": {
+          "bytes": 4375,
+          "sha256": "5519cc1e01ca225394f08d113bfe76180d15b856067aeceba60bdd3de9142285"
+        }
+      }
+    },
+    {
+      "path": "docs/issues/sid8580_quality_validation_after_01.json",
+      "bytes": 1169998,
+      "sha256": "9edfbe662de4500a1e1c8dca5d24216ab0a9411bdcf27c18d9696cdc0fa44a83",
+      "calibration": "8580-resonance-logfit-v1",
+      "wasm": {
+        "bytes": 1392873,
+        "sha256": "ca7c478e2dbc57f0a0203f908d625037aeaa92f39b23d7541db4d4be4d873c77"
+      },
+      "referenceExecutable": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+        "bytes": 126680,
+        "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+      },
+      "measurementInputs": {
+        "scripts/check_sid8580_quality.mjs": {
+          "bytes": 11344,
+          "sha256": "db43b0b331c0ed067a4fedba751e00780d36b8986689609a12e882416315217a"
+        },
+        "scripts/sid8580_quality_metrics.mjs": {
+          "bytes": 3866,
+          "sha256": "fe9329f9adaa4bc8211759b94fd6ab54b358a584dffa58e0b187831b853d6663"
+        },
+        "test/helpers/sid8580_quality_fixtures.mjs": {
+          "bytes": 4375,
+          "sha256": "5519cc1e01ca225394f08d113bfe76180d15b856067aeceba60bdd3de9142285"
+        }
+      }
+    }
+  ],
+  "calibration": {
+    "path": "third_party/sidera/8580-resonance-calibration.json",
+    "bytes": 2431,
+    "sha256": "8c8e835be3d14a1c5ce063439436bc76de5b6f9035be399535085a9d8a67ddf5"
+  },
+  "comparisonIntegrity": {
+    "sameCaseConditions": true,
+    "referenceCaseObjectsIdentical": 260,
+    "sameReferenceBinary": true,
+    "sameMeasurementSources": true,
+    "dryCandidateCasesBitIdentical": 61,
+    "sameWasmBinaryWithExplicitOptInOnly": true,
+    "calibrationCoefficientsMatchOriginalTrainingAnalysis": true,
+    "noRetuningFromHeldOutData": true
+  },
+  "classification": {
+    "trueHeldOut": "FC256 RES2/6/10/14 at sustain4 and15; these configurations were excluded from the coefficient fit.",
+    "replication": "FC128 RES15 at denser50Hz grid; the configuration was used for fitting, so this is a replication/resolution check, not independent configuration validation."
+  },
+  "summary": {
+    "trueHeldOutQCurves": 8,
+    "heldOutCurvesWithImprovedAbsoluteQError": 7,
+    "beforeHeldOutMeanAbsoluteRelativeQError": 0.1342989973083618,
+    "afterHeldOutMeanAbsoluteRelativeQError": 0.03103798641110625,
+    "trueHeldOutTransfer": {
+      "points": 176,
+      "beforeMeanAbsoluteDb": 1.4373509786841956,
+      "afterMeanAbsoluteDb": 1.1256934074645377,
+      "beforeRmsDb": 1.7453704017952862,
+      "afterRmsDb": 1.2848146128696707,
+      "beforeMaximumAbsoluteDb": 4.023697659625626,
+      "afterMaximumAbsoluteDb": 2.467438841928754,
+      "improvedPoints": 109,
+      "worsenedPoints": 67,
+      "effectivelyEqualPoints": 0
+    },
+    "denseTrainingSettingTransfer": {
+      "points": 23,
+      "beforeMeanAbsoluteDb": 2.115517591815272,
+      "afterMeanAbsoluteDb": 1.6725392047816954,
+      "beforeRmsDb": 2.44767471809674,
+      "afterRmsDb": 1.733285885009421,
+      "beforeMaximumAbsoluteDb": 4.132569775283338,
+      "afterMaximumAbsoluteDb": 2.511214633027121,
+      "improvedPoints": 15,
+      "worsenedPoints": 8,
+      "effectivelyEqualPoints": 0
+    },
+    "matchedObservableInitialization": true,
+    "commonSampleTicks": true,
+    "nativeWasmAndChunkCasesEach": 260
+  },
+  "bandPassCurves": [
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 2,
+      "sustain": 4,
+      "beforeBandPassIndex": 0,
+      "afterBandPassIndex": 0,
+      "referenceQ": 0.8439306997945231,
+      "beforeQ": 0.8977425768286685,
+      "afterQ": 0.896092939401739,
+      "beforeRelativeQError": 0.06376338370822077,
+      "afterRelativeQError": 0.061808676494309545,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1750.015640258789,
+        "before": 1699.9816360473633,
+        "after": 1699.9816360473633
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1022.8001793042621,
+        "high": 3096.4486917767626
+      },
+      "beforeCrossings": {
+        "low": 873.7848497725704,
+        "high": 2767.4029981427348
+      },
+      "afterCrossings": {
+        "low": 872.6605321692889,
+        "high": 2769.764684314854
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 6,
+      "sustain": 4,
+      "beforeBandPassIndex": 1,
+      "afterBandPassIndex": 1,
+      "referenceQ": 1.2093435917669635,
+      "beforeQ": 1.1122744110438494,
+      "afterQ": 1.1879123553381996,
+      "beforeRelativeQError": -0.08026600660386929,
+      "afterRelativeQError": -0.017721379246282587,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1799.9909191131592,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1175.9597904101468,
+        "high": 2664.363029462503
+      },
+      "beforeCrossings": {
+        "low": 1004.0917907892127,
+        "high": 2442.5608745830423
+      },
+      "afterCrossings": {
+        "low": 1024.8029023902473,
+        "high": 2371.680343130439
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 10,
+      "sustain": 4,
+      "beforeBandPassIndex": 2,
+      "afterBandPassIndex": 2,
+      "referenceQ": 1.660073134429357,
+      "beforeQ": 1.3882359689565822,
+      "afterQ": 1.7173756009534158,
+      "beforeRelativeQError": -0.16375011427807817,
+      "afterRelativeQError": 0.034518037389814404,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1750.015640258789,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1321.7024150619357,
+        "high": 2375.8822604940765
+      },
+      "beforeCrossings": {
+        "low": 1098.5146640284074,
+        "high": 2251.0365614289835
+      },
+      "afterCrossings": {
+        "low": 1179.6098597254204,
+        "high": 2111.247849745384
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "beforeBandPassIndex": 3,
+      "afterBandPassIndex": 3,
+      "referenceQ": 2.3282632552215277,
+      "beforeQ": 1.70068130901597,
+      "afterQ": 2.423921598061091,
+      "beforeRelativeQError": -0.2695493925775352,
+      "afterRelativeQError": 0.04108570739371209,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1750.015640258789,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1430.3709888642259,
+        "high": 2182.0109231947104
+      },
+      "beforeCrossings": {
+        "low": 1176.3449489888167,
+        "high": 2117.1281189451715
+      },
+      "afterCrossings": {
+        "low": 1280.6762805129242,
+        "high": 1940.7522310970498
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 2,
+      "sustain": 15,
+      "beforeBandPassIndex": 4,
+      "afterBandPassIndex": 4,
+      "referenceQ": 0.852185064985607,
+      "beforeQ": 0.8486462492698539,
+      "afterQ": 0.8480796211577987,
+      "beforeRelativeQError": -0.004152637568006323,
+      "afterRelativeQError": -0.004817549610397931,
+      "absoluteQErrorImproved": false,
+      "discretePeakHz": {
+        "reference": 1799.9909191131592,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1019.5697100337186,
+        "high": 3131.776310537284
+      },
+      "beforeCrossings": {
+        "low": 901.681844595643,
+        "high": 2787.004915731736
+      },
+      "afterCrossings": {
+        "low": 901.1371959433499,
+        "high": 2787.7199094830107
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 6,
+      "sustain": 15,
+      "beforeBandPassIndex": 5,
+      "afterBandPassIndex": 5,
+      "referenceQ": 1.196518498303206,
+      "beforeQ": 1.1124905573455672,
+      "afterQ": 1.1901452888339104,
+      "beforeRelativeQError": -0.0702270304026219,
+      "afterRelativeQError": -0.005326461294441809,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1799.9909191131592,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1176.49077339878,
+        "high": 2680.8477237223588
+      },
+      "beforeCrossings": {
+        "low": 1016.2208073846382,
+        "high": 2454.4104103590175
+      },
+      "afterCrossings": {
+        "low": 1044.5949034860018,
+        "high": 2388.9453521183705
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 10,
+      "sustain": 15,
+      "beforeBandPassIndex": 6,
+      "afterBandPassIndex": 6,
+      "referenceQ": 1.6420406603703699,
+      "beforeQ": 1.3930879713639055,
+      "afterQ": 1.6964828544328132,
+      "beforeRelativeQError": -0.1516117688281312,
+      "afterRelativeQError": 0.0331552046038639,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1750.015640258789,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1316.1392645796384,
+        "high": 2381.895845701122
+      },
+      "beforeCrossings": {
+        "low": 1104.987243031775,
+        "high": 2253.4950084208563
+      },
+      "afterCrossings": {
+        "low": 1172.0263861857634,
+        "high": 2115.137805673989
+      }
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "beforeBandPassIndex": 7,
+      "afterBandPassIndex": 7,
+      "referenceQ": 2.2869622103485066,
+      "beforeQ": 1.6670316030789945,
+      "afterQ": 2.4010150174560465,
+      "beforeRelativeQError": -0.27107164450043175,
+      "afterRelativeQError": 0.049870875256027736,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 1750.015640258789,
+        "before": 1599.9723529815674,
+        "after": 1599.9723529815674
+      },
+      "frequencyPoints": 22,
+      "referenceCrossings": {
+        "low": 1420.3013257709595,
+        "high": 2185.515386737934
+      },
+      "beforeCrossings": {
+        "low": 1167.232076743616,
+        "high": 2127.005334806889
+      },
+      "afterCrossings": {
+        "low": 1277.0661644410598,
+        "high": 1943.4394862859144
+      }
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "model": 8580,
+      "rate": 48000,
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "beforeBandPassIndex": 8,
+      "afterBandPassIndex": 8,
+      "referenceQ": 2.5791823242608998,
+      "beforeQ": 1.7797793254327112,
+      "afterQ": 2.5065941643154144,
+      "beforeRelativeQError": -0.3099443538010709,
+      "afterRelativeQError": -0.028143865310602423,
+      "absoluteQErrorImproved": true,
+      "discretePeakHz": {
+        "reference": 900.0248222351074,
+        "before": 800.0155391693115,
+        "after": 800.0155391693115
+      },
+      "frequencyPoints": 23,
+      "referenceCrossings": {
+        "low": 725.2941667184598,
+        "high": 1074.2515916236657
+      },
+      "beforeCrossings": {
+        "low": 611.6036420228893,
+        "high": 1061.1063009970892
+      },
+      "afterCrossings": {
+        "low": 659.4850040098838,
+        "high": 978.6493707664014
+      }
+    }
+  ],
+  "transferByCurve": [
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 2,
+      "sustain": 4,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 0.6708032326728781,
+      "afterMeanAbsoluteDb": 0.6745911423390744,
+      "beforeRmsDb": 0.7853104759401848,
+      "afterRmsDb": 0.7899940589279684,
+      "beforeMaximumAbsoluteDb": 1.5995544247413007,
+      "afterMaximumAbsoluteDb": 1.6348616479052958,
+      "improvedPoints": 7,
+      "worsenedPoints": 15,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 6,
+      "sustain": 4,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 1.0388671166918333,
+      "afterMeanAbsoluteDb": 0.8859590191492255,
+      "beforeRmsDb": 1.1172469879739992,
+      "afterRmsDb": 0.9889063864874252,
+      "beforeMaximumAbsoluteDb": 1.4886396242381117,
+      "afterMaximumAbsoluteDb": 1.5571497907168999,
+      "improvedPoints": 15,
+      "worsenedPoints": 7,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 10,
+      "sustain": 4,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 1.7303238322921592,
+      "afterMeanAbsoluteDb": 1.284081871542993,
+      "beforeRmsDb": 1.8729655890920522,
+      "afterRmsDb": 1.3636784372158837,
+      "beforeMaximumAbsoluteDb": 2.6015108968714347,
+      "afterMaximumAbsoluteDb": 1.7629318185981586,
+      "improvedPoints": 17,
+      "worsenedPoints": 5,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 2.416878603759177,
+      "afterMeanAbsoluteDb": 1.7354757127398714,
+      "beforeRmsDb": 2.714189050446427,
+      "afterRmsDb": 1.820242188790146,
+      "beforeMaximumAbsoluteDb": 4.023697659625626,
+      "afterMaximumAbsoluteDb": 2.436405024783074,
+      "improvedPoints": 16,
+      "worsenedPoints": 6,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 2,
+      "sustain": 15,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 0.6107465668518078,
+      "afterMeanAbsoluteDb": 0.6119340061427737,
+      "beforeRmsDb": 0.7150281719776457,
+      "afterRmsDb": 0.7160246053646653,
+      "beforeMaximumAbsoluteDb": 1.3485549033035091,
+      "afterMaximumAbsoluteDb": 1.3512071618794117,
+      "improvedPoints": 7,
+      "worsenedPoints": 15,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 6,
+      "sustain": 15,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 1.0003325811391128,
+      "afterMeanAbsoluteDb": 0.8813441421210322,
+      "beforeRmsDb": 1.0757587377963673,
+      "afterRmsDb": 0.9872393292177908,
+      "beforeMaximumAbsoluteDb": 1.3998648757623982,
+      "afterMaximumAbsoluteDb": 1.5518867603167308,
+      "improvedPoints": 15,
+      "worsenedPoints": 7,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 10,
+      "sustain": 15,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 1.6807550621778922,
+      "afterMeanAbsoluteDb": 1.2604845269785332,
+      "beforeRmsDb": 1.8032520001769723,
+      "afterRmsDb": 1.3525692717271627,
+      "beforeMaximumAbsoluteDb": 2.432392145006011,
+      "afterMaximumAbsoluteDb": 1.8786630581013335,
+      "improvedPoints": 16,
+      "worsenedPoints": 6,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "classification": "true-held-out-configuration",
+      "points": 22,
+      "beforeMeanAbsoluteDb": 2.350100833888704,
+      "afterMeanAbsoluteDb": 1.6716768387027978,
+      "beforeRmsDb": 2.590468512769562,
+      "afterRmsDb": 1.7647338019454304,
+      "beforeMaximumAbsoluteDb": 3.7214515584338628,
+      "afterMaximumAbsoluteDb": 2.467438841928754,
+      "improvedPoints": 16,
+      "worsenedPoints": 6,
+      "effectivelyEqualPoints": 0
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "classification": "dense-training-setting-replication",
+      "points": 23,
+      "beforeMeanAbsoluteDb": 2.115517591815272,
+      "afterMeanAbsoluteDb": 1.6725392047816954,
+      "beforeRmsDb": 2.44767471809674,
+      "afterRmsDb": 1.733285885009421,
+      "beforeMaximumAbsoluteDb": 4.132569775283338,
+      "afterMaximumAbsoluteDb": 2.511214633027121,
+      "improvedPoints": 15,
+      "worsenedPoints": 8,
+      "effectivelyEqualPoints": 0
+    }
+  ],
+  "worstWorsenedPoints": [
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r14-f1400",
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "hz": 1400.0125122070312,
+      "harmonic": 1,
+      "beforeTransferIndex": 70,
+      "afterTransferIndex": 70,
+      "beforeErrorDb": -0.05320709934721057,
+      "afterErrorDb": 2.436405024783074,
+      "absoluteDbErrorChange": 2.3831979254358635,
+      "beforeMagnitude": 1.5657967866413562,
+      "afterMagnitude": 2.085527897581064,
+      "referenceMagnitude": 1.5754178157907148
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r14-f1400",
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "hz": 1400.0125122070312,
+      "harmonic": 1,
+      "beforeTransferIndex": 158,
+      "afterTransferIndex": 158,
+      "beforeErrorDb": -0.1403503545167746,
+      "afterErrorDb": 2.4486898938485395,
+      "absoluteDbErrorChange": 2.3083395393317647,
+      "beforeMagnitude": 1.5472945568754926,
+      "afterMagnitude": 2.0846109283680976,
+      "referenceMagnitude": 1.5724994980567177
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f700",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 700.0062561035156,
+      "harmonic": 1,
+      "beforeTransferIndex": 182,
+      "afterTransferIndex": 182,
+      "beforeErrorDb": -0.46640445998049596,
+      "afterErrorDb": 2.511214633027121,
+      "absoluteDbErrorChange": 2.044810173046625,
+      "beforeMagnitude": 1.5516251583965726,
+      "afterMagnitude": 2.1860886397089483,
+      "referenceMagnitude": 1.637219979110936
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r14-f1300",
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "hz": 1300.0032291412354,
+      "harmonic": 1,
+      "beforeTransferIndex": 69,
+      "afterTransferIndex": 69,
+      "beforeErrorDb": 0.41194099311260846,
+      "afterErrorDb": 2.429562457703895,
+      "absoluteDbErrorChange": 2.0176214645912864,
+      "beforeMagnitude": 1.3849008206165807,
+      "afterMagnitude": 1.747027518338456,
+      "referenceMagnitude": 1.3207530520627424
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f650",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 649.9722518920898,
+      "harmonic": 1,
+      "beforeTransferIndex": 181,
+      "afterTransferIndex": 181,
+      "beforeErrorDb": 0.17243437018192576,
+      "afterErrorDb": 2.1610294006832267,
+      "absoluteDbErrorChange": 1.988595030501301,
+      "beforeMagnitude": 1.3827830142931001,
+      "afterMagnitude": 1.7385363987048654,
+      "referenceMagnitude": 1.355602364390778
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r14-f1300",
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "hz": 1300.0032291412354,
+      "harmonic": 1,
+      "beforeTransferIndex": 157,
+      "afterTransferIndex": 157,
+      "beforeErrorDb": 0.4900871255499098,
+      "afterErrorDb": 2.467438841928754,
+      "absoluteDbErrorChange": 1.977351716378844,
+      "beforeMagnitude": 1.3974688779123083,
+      "afterMagnitude": 1.7547276948609791,
+      "referenceMagnitude": 1.320802214808045
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r10-f1400",
+      "fc": 256,
+      "res": 10,
+      "sustain": 4,
+      "hz": 1400.0125122070312,
+      "harmonic": 1,
+      "beforeTransferIndex": 48,
+      "afterTransferIndex": 48,
+      "beforeErrorDb": 0.00300038201303173,
+      "afterErrorDb": 1.6208105321904585,
+      "absoluteDbErrorChange": 1.6178101501774267,
+      "beforeMagnitude": 1.3174704763888074,
+      "afterMagnitude": 1.587199066052795,
+      "referenceMagnitude": 1.317015458856668
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f600",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 599.9969730377197,
+      "harmonic": 1,
+      "beforeTransferIndex": 180,
+      "afterTransferIndex": 180,
+      "beforeErrorDb": 0.2764458165383469,
+      "afterErrorDb": 1.8362749587746334,
+      "absoluteDbErrorChange": 1.5598291422362864,
+      "beforeMagnitude": 1.1663463695760632,
+      "afterMagnitude": 1.395786517609169,
+      "referenceMagnitude": 1.1298095751550774
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r10-f1400",
+      "fc": 256,
+      "res": 10,
+      "sustain": 15,
+      "hz": 1400.0125122070312,
+      "harmonic": 1,
+      "beforeTransferIndex": 136,
+      "afterTransferIndex": 136,
+      "beforeErrorDb": 0.10848461165357978,
+      "afterErrorDb": 1.6076806062286864,
+      "absoluteDbErrorChange": 1.4991959945751065,
+      "beforeMagnitude": 1.3222435736647056,
+      "afterMagnitude": 1.571343975042224,
+      "referenceMagnitude": 1.3058317816648606
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r10-f1300",
+      "fc": 256,
+      "res": 10,
+      "sustain": 15,
+      "hz": 1300.0032291412354,
+      "harmonic": 1,
+      "beforeTransferIndex": 135,
+      "afterTransferIndex": 135,
+      "beforeErrorDb": 0.563627948306499,
+      "afterErrorDb": 1.8279909908999283,
+      "absoluteDbErrorChange": 1.2643630425934294,
+      "beforeMagnitude": 1.224429966081742,
+      "afterMagnitude": 1.4162897167740462,
+      "referenceMagnitude": 1.1474996251619105
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r10-f1300",
+      "fc": 256,
+      "res": 10,
+      "sustain": 4,
+      "hz": 1300.0032291412354,
+      "harmonic": 1,
+      "beforeTransferIndex": 47,
+      "afterTransferIndex": 47,
+      "beforeErrorDb": 0.5084727774411825,
+      "afterErrorDb": 1.713995985968089,
+      "absoluteDbErrorChange": 1.2055232085269068,
+      "beforeMagnitude": 1.225750149418826,
+      "afterMagnitude": 1.408244667132185,
+      "referenceMagnitude": 1.156054519774371
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r14-f1100",
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "hz": 1099.9846630096436,
+      "harmonic": 1,
+      "beforeTransferIndex": 68,
+      "afterTransferIndex": 68,
+      "beforeErrorDb": 1.0141351568471695,
+      "afterErrorDb": 2.1659852221978935,
+      "absoluteDbErrorChange": 1.151850065350724,
+      "beforeMagnitude": 1.0450554761221191,
+      "afterMagnitude": 1.193251114250294,
+      "referenceMagnitude": 0.9298921628190979
+    }
+  ],
+  "strongestImprovedPoints": [
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f850",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 849.9908180236816,
+      "harmonic": 1,
+      "beforeTransferIndex": 185,
+      "afterTransferIndex": 185,
+      "beforeErrorDb": -3.4818767690185624,
+      "afterErrorDb": -0.0828481742443553,
+      "absoluteDbErrorChange": -3.399028594774207,
+      "beforeMagnitude": 1.6835048898880347,
+      "afterMagnitude": 2.4898077355591925,
+      "referenceMagnitude": 2.5136697606352754
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r14-f1700",
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "hz": 1699.9816360473633,
+      "harmonic": 1,
+      "beforeTransferIndex": 73,
+      "afterTransferIndex": 73,
+      "beforeErrorDb": -3.113385442449805,
+      "afterErrorDb": -0.1992111848000611,
+      "absoluteDbErrorChange": -2.914174257649744,
+      "beforeMagnitude": 1.6199673549422315,
+      "afterMagnitude": 2.2657655839293027,
+      "referenceMagnitude": 2.3183314937138637
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r14-f1700",
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "hz": 1699.9816360473633,
+      "harmonic": 1,
+      "beforeTransferIndex": 161,
+      "afterTransferIndex": 161,
+      "beforeErrorDb": -2.955170634371888,
+      "afterErrorDb": -0.047765232172548064,
+      "absoluteDbErrorChange": -2.9074054021993403,
+      "beforeMagnitude": 1.6210580048934213,
+      "afterMagnitude": 2.2655248239201016,
+      "referenceMagnitude": 2.278017661374008
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f900",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 900.0248222351074,
+      "harmonic": 1,
+      "beforeTransferIndex": 186,
+      "afterTransferIndex": 186,
+      "beforeErrorDb": -4.040321433327541,
+      "afterErrorDb": -1.2134899973382962,
+      "absoluteDbErrorChange": -2.826831435989244,
+      "beforeMagnitude": 1.6008797717624648,
+      "afterMagnitude": 2.216666147362134,
+      "referenceMagnitude": 2.549029072151486
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r14-f1750",
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "hz": 1750.015640258789,
+      "harmonic": 1,
+      "beforeTransferIndex": 162,
+      "afterTransferIndex": 162,
+      "beforeErrorDb": -3.3020786152348496,
+      "afterErrorDb": -0.5966794041478375,
+      "absoluteDbErrorChange": -2.705399211087012,
+      "beforeMagnitude": 1.5765321951384144,
+      "afterMagnitude": 2.152646932695867,
+      "referenceMagnitude": 2.3057211052962265
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s4-fc256-r14-f1750",
+      "fc": 256,
+      "res": 14,
+      "sustain": 4,
+      "hz": 1750.015640258789,
+      "harmonic": 1,
+      "beforeTransferIndex": 74,
+      "afterTransferIndex": 74,
+      "beforeErrorDb": -3.4475092170176436,
+      "afterErrorDb": -0.7684691158463053,
+      "absoluteDbErrorChange": -2.6790401011713385,
+      "beforeMagnitude": 1.5827923768664802,
+      "afterMagnitude": 2.1546461365799385,
+      "referenceMagnitude": 2.353961799597288
+    },
+    {
+      "classification": "true-held-out-configuration",
+      "name": "heldout-s15-fc256-r14-f1800",
+      "fc": 256,
+      "res": 14,
+      "sustain": 15,
+      "hz": 1799.9909191131592,
+      "harmonic": 1,
+      "beforeTransferIndex": 163,
+      "afterTransferIndex": 163,
+      "beforeErrorDb": -3.531193198445639,
+      "afterErrorDb": -1.0552685318486634,
+      "absoluteDbErrorChange": -2.475924666596976,
+      "beforeMagnitude": 1.528753146799334,
+      "afterMagnitude": 2.032982299189945,
+      "referenceMagnitude": 2.295604270140212
+    },
+    {
+      "classification": "dense-training-setting-replication",
+      "name": "dense-fc128-r15-f950",
+      "fc": 128,
+      "res": 15,
+      "sustain": 4,
+      "hz": 950.0001010894775,
+      "harmonic": 1,
+      "beforeTransferIndex": 187,
+      "afterTransferIndex": 187,
+      "beforeErrorDb": -4.132569775283338,
+      "afterErrorDb": -1.6568421804393194,
+      "absoluteDbErrorChange": -2.4757275948440185,
+      "beforeMagnitude": 1.4917246017138448,
+      "afterMagnitude": 1.9836956088873898,
+      "referenceMagnitude": 2.400585292407656
+    }
+  ],
+  "limits": [
+    "ApparentQ uses a finite frequency grid and crossing interpolation; these are not hardware confidence intervals.",
+    "The profile changes damping only. Cutoff/peak location, raw gain, motherboard RC, wave/noise/ADSR and pipeline are separate issues.",
+    "Whole-curve error can worsen at some frequencies even when Q improves; mean/max errors and worse points are preserved.",
+    "New holdout measurements are BP at48k, two input sustain levels. They do not validate LP/HP, every clock/rate or all input levels.",
+    "Reference is an emulator. No physical SID, music, ROM, live AudioWorklet or perceptual quality acceptance is claimed.",
+    "Profile remains opt-in and OFF by default. Existing default/regression checks are separate evidence."
+  ],
+  "recommendation": {
+    "decision": "Retain as an explicitly opt-in research damping profile, OFF by default. Do not adopt as production8580 Player or general hardware-fidelity calibration.",
+    "reason": "Untrained settings show substantially smaller apparentQ errors and aggregate magnitude-curve errors at both tested sustain levels, while original dry response is bit-identical.",
+    "quantifiedBenefit": "Mean absolute relativeQ error across8 true held-out curves fell13.43% to3.10%;7 curves improved. Pointwise mean absolute error over176 held-out frequencies fell1.437dB to1.126dB, and maximum absolute error4.024dB to2.467dB.",
+    "counterexamples": "67 of176 held-out frequency points worsened. RES2/sustain15 Q error changed0.415% to0.482%, a very small worsening. Near1400Hz atRES14/sustain4, absolute error rose0.053dB to2.436dB. Do not claim a universal improvement.",
+    "replication": "DenseFC128 RES15 Q changed1.780 to2.507 versus reference2.579. This is training-setting replication on a denser grid, not a ninth independent holdout.",
+    "nextPriority": "Measure and address cutoff/center-frequency mismatch separately. Peaks remain near1600Hz in the candidate and1750–1800Hz in the reference atFC256. Use a broader FC matrix and denser fundamental/harmonic measurements with separate training/holdout before proposing a cutoff profile.",
+    "remainingScope": "No global gain or RC fit, no waveform/noise/ADSR/pipeline correction, no LP/HP held-out validation, no live Worklet/listening/game verification, and no change to the production8580 guard."
+  }
+}

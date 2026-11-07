@@ -1,8 +1,8 @@
 {
   "format": "tetorica-sidera-marked-adaptation",
-  "version": 1,
+  "version": 2,
   "upstreamVersion": "1.1.1",
-  "description": "Add tick_cycle to expose one existing internal chip cycle and current i16 output; original sample-clock method and DSP equations remain unchanged. Do not mix the two scheduling APIs on one instance.",
+  "description": "Expose one existing chip cycle; add explicitly opt-in8580-only measured damping configuration, disabled by default. Original source and defaultAPI/DSP behavior remain intact.",
   "files": {
     "src/sid.rs": {
       "before": {
@@ -10,8 +10,18 @@
         "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
       },
       "after": {
-        "bytes": 13819,
-        "sha256": "79c3921ecb801c7e4e856c3b50f7081a4f7bce997c19f01671295b249f71d2dc"
+        "bytes": 14429,
+        "sha256": "de6a0aadace7c0f1f8426e9cf895b17d4d8bb1d3e0ba657fd821e3af3cb974f0"
+      }
+    },
+    "src/filter.rs": {
+      "before": {
+        "bytes": 7711,
+        "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+      },
+      "after": {
+        "bytes": 8854,
+        "sha256": "b8fb6ee49c6ae6995abd20d6362b0c0e7f69df83fe55fef71026a31b3272011b"
       }
     }
   }

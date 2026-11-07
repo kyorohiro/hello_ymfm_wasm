@@ -40,6 +40,9 @@ SID8_HEADER
   "$SID8_ROOT/tetorica_src/wasm/sid8580-probe/cpu_native.rs" \
   --extern "sidera=$SID8_OUT/libsidera.rlib" -C "link-arg=$SID8_OUT/cpu_bridge.o" -o "$SID8_OUT/sid8580-cpu"
 "$SID8_RUSTC" --edition=2021 -C opt-level=3 -C panic=abort -C codegen-units=1 --remap-path-prefix "$SID8_ROOT=tetorica" \
+  "$SID8_ROOT/tetorica_src/wasm/sid8580-probe/quality_native.rs" \
+  --extern "sidera=$SID8_OUT/libsidera.rlib" -o "$SID8_OUT/sid8580-quality"
+"$SID8_RUSTC" --edition=2021 -C opt-level=3 -C panic=abort -C codegen-units=1 --remap-path-prefix "$SID8_ROOT=tetorica" \
   --target wasm32-unknown-unknown --crate-name sid8580_cpu --crate-type cdylib \
   "$SID8_ROOT/tetorica_src/wasm/sid8580-probe/cpu.rs" \
   --extern "sidera=$SID8_OUT/libsidera-wasm.rlib" -C "link-arg=$SID8_OUT/cpu_bridge_wasm.o" -o "$SID8_OUT/sid8580-cpu.wasm"

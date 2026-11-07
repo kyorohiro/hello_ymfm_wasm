@@ -43,9 +43,11 @@ export async function probeSourceRecords() {
   }
   const files = ['LICENSE', 'third_party/sidera/LICENSE', 'third_party/sidera/SOURCES.json',
     'third_party/sidera/PATCHES.json', 'third_party/sidera/README.md',
+    'third_party/sidera/8580-resonance-calibration.json',
     'tetorica_src/wasm/sid8580-probe/lib.rs', 'tetorica_src/wasm/sid8580-probe/native.rs',
     'tetorica_src/wasm/sid8580-probe/cpu_bridge.c', 'tetorica_src/wasm/sid8580-probe/cpu.rs',
     'tetorica_src/wasm/sid8580-probe/cpu_native.rs',
+    'tetorica_src/wasm/sid8580-probe/quality.rs', 'tetorica_src/wasm/sid8580-probe/quality_native.rs',
     'third_party/chips-m6502/upstream/m6502.h', 'third_party/chips-m6502/LICENSE', 'third_party/chips-m6502/README.md',
     'scripts/build_sid8580_probe.sh', 'scripts/sid8580_probe_artifacts.mjs'];
   for (const name of files) records[name] = digest(await readFile(resolve(probeRoot, name)));
@@ -66,7 +68,7 @@ export async function probeReceipt(workDir, {check = false} = {}) {
   const inputs = await probeSourceRecords();
   const compiler = execFileSync(process.env.RUSTC || 'rustc',['--version','--verbose'],{encoding:'utf8'}).trim();
   const outputs = {};
-  for (const name of ['sid8580-probe.wasm', 'sid8580-probe','sid8580-cpu.wasm','sid8580-cpu']) outputs[name] = digest(await readFile(resolve(workDir,name)));
+  for (const name of ['sid8580-probe.wasm', 'sid8580-probe','sid8580-cpu.wasm','sid8580-cpu','sid8580-quality']) outputs[name] = digest(await readFile(resolve(workDir,name)));
   const cCompilers={};
   for(const [name,command] of [['native',process.env.CC||'clang'],['wasm',probeWasmCCompiler()]])
     cCompilers[name]={command,version:execFileSync(command,['--version'],{encoding:'utf8'}).trim()};

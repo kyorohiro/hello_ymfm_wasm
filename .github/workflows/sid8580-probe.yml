@@ -10,11 +10,17 @@ on:
       - 'scripts/*sid8580_probe*'
       - 'scripts/check_sid8580_bus.mjs'
       - 'scripts/check_sid8580_cpu.mjs'
+      - 'scripts/*sid8580_quality*'
+      - 'scripts/check_sid8580_calibration.mjs'
+      - 'scripts/package_sid8580_sourcekit.mjs'
       - 'test/helpers/sid8580_probe_fixtures.mjs'
       - 'test/helpers/sid8580_bus_fixtures.mjs'
       - 'test/helpers/sid8580_cpu_fixtures.mjs'
       - 'test/helpers/sid8580_legacy_parity.rs'
+      - 'test/helpers/sid8580_quality_fixtures.mjs'
+      - 'test/sid8580_quality_metrics.test.mjs'
       - 'tetorica_src/cli/sid_reference_metrics.mjs'
+      - 'docs/issues/sid8580_probe_verification_01.json'
       - '.github/workflows/sid8580-probe.yml'
   pull_request:
     paths:
@@ -24,11 +30,17 @@ on:
       - 'scripts/*sid8580_probe*'
       - 'scripts/check_sid8580_bus.mjs'
       - 'scripts/check_sid8580_cpu.mjs'
+      - 'scripts/*sid8580_quality*'
+      - 'scripts/check_sid8580_calibration.mjs'
+      - 'scripts/package_sid8580_sourcekit.mjs'
       - 'test/helpers/sid8580_probe_fixtures.mjs'
       - 'test/helpers/sid8580_bus_fixtures.mjs'
       - 'test/helpers/sid8580_cpu_fixtures.mjs'
       - 'test/helpers/sid8580_legacy_parity.rs'
+      - 'test/helpers/sid8580_quality_fixtures.mjs'
+      - 'test/sid8580_quality_metrics.test.mjs'
       - 'tetorica_src/cli/sid_reference_metrics.mjs'
+      - 'docs/issues/sid8580_probe_verification_01.json'
       - '.github/workflows/sid8580-probe.yml'
 
 permissions:
@@ -55,6 +67,12 @@ jobs:
         run: node scripts/check_sid8580_bus.mjs --out build/sid8580-probe/bus-verification.json
       - name: Check real CPU reads, branches, writes and faults
         run: node scripts/check_sid8580_cpu.mjs --out build/sid8580-probe/cpu-verification.json
+      - name: Check analytical quality metrics
+        run: node --test test/sid8580_quality_metrics.test.mjs
+      - name: Check controlled candidate captures without a GPL oracle
+        run: node scripts/check_sid8580_quality.mjs --out build/sid8580-probe/quality-verification.json
+      - name: Check opt-in calibration and unchanged defaults
+        run: node scripts/check_sid8580_calibration.mjs --out build/sid8580-probe/calibration-policy.json
       - name: Preserve the upstream sample-clock API
         run: |
           rustc --edition=2021 -C opt-level=3 -C panic=abort --crate-name sidera_upstream --crate-type rlib third_party/sidera/upstream/src/lib.rs -o build/sid8580-probe/libsidera_upstream.rlib
@@ -62,3 +80,5 @@ jobs:
           build/sid8580-probe/legacy-parity
       - name: Check matching artifact receipts
         run: node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe
+      - name: Check readable source-kit closure
+        run: node scripts/package_sid8580_sourcekit.mjs --plan

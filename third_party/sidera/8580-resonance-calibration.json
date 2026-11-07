@@ -1,0 +1,71 @@
+{
+  "format": "tetorica-sid8580-experimental-damping-calibration",
+  "version": 1,
+  "profile": "8580-resonance-logfit-v1",
+  "defaultEnabled": false,
+  "model": "8580 only; original6581 and upstream/default APIs unchanged",
+  "hardwareCalibration": false,
+  "derivation": "Black-box output measurements only; no reference-engine implementation or tables copied",
+  "analysis": {
+    "path": "docs/issues/sid8580_quality_analysis_01.json",
+    "bytes": 20995,
+    "sha256": "6903dfc558c4e7694b4b7bb6ae7fbe56015d8bf305324db7c79c155d4a5b7ef9"
+  },
+  "trainingBaseline": {
+    "path": "docs/issues/sid8580_quality_comparison_01.json",
+    "bytes": 1183149,
+    "sha256": "f5192f7f447ef40bf0b2f75847b3ad70f7e80ffca44287f70307d498b4b76ea5",
+    "wasm": {
+      "bytes": 1391574,
+      "sha256": "2b82f306f1c9460ef4558d7faf73cf1eb49b7de2eead09d8c5e38c858429667d"
+    },
+    "referenceExecutable": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+      "bytes": 126680,
+      "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+    },
+    "cases": 228,
+    "transfers": 165,
+    "checks": {
+      "nativeWasmAndChunkCases": 228,
+      "matchedObservableSetup": true,
+      "commonExactSampleTicks": true,
+      "allGlobalFramesAccounted": true,
+      "noPcmGainOrPhaseCorrection": true,
+      "transferCases": 165,
+      "validCandidateTransferCases": 165,
+      "validReferenceTransferCases": 165
+    }
+  },
+  "anchor": {
+    "reciprocalQ1024": 1448,
+    "Q": 0.7071823204419889,
+    "reason": "Preserve the existing zero-resonance damping exactly instead of fitting a broad, coarsely sampled RES0 peak."
+  },
+  "trainingSelection": "Only FC128, sustain4, 48kHz, reference BP apparentQ atRES4/8/12/15. FC256 and future intermediateRES/two-level curves are excluded.",
+  "modelFormula": "Q(res)=Q0*exp(slope*res); slope=sum(res*ln(Q_reference/Q0))/sum(res^2)",
+  "slopeNaturalLogPerRegisterStep": 0.08571821144447545,
+  "reciprocalQ1024": [
+    1448,
+    1329,
+    1220,
+    1120,
+    1028,
+    943,
+    866,
+    795,
+    729,
+    669,
+    614,
+    564,
+    518,
+    475,
+    436,
+    400
+  ],
+  "limitations": [
+    "Fixed-reference approximation; not measured hardware or a universal SID curve.",
+    "Cutoff, RC, noise, DAC, read pipeline and sampling remain unchanged.",
+    "Held-out conditions must be tested before accepting the profile."
+  ]
+}

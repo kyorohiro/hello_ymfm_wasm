@@ -255,12 +255,64 @@ WASM backend can use Emscripten's LLVM compiler binary; the freestanding object
 does not introduce an Emscripten runtime dependency. All phase-13 _01 reports
 and their historical archive remain unchanged.
 
-Before production integration, match or explicitly control reset/pipeline/RC/
-sampling conditions for meaningful reference-quality checks, then evaluate
-8580 real files, C64/Worklet scheduling, listening and stability while preserving
-the existing 6581 path. Production Player/Synth/SDK and known-8580 rejection remain
-unchanged. The research CI now has nine steps; no GitHub Actions run, push,
-commit, tag or release was performed for this follow-up.
+Phase 15 adds [controlled quality comparison](docs/issues/sid8580_quality_result_01.md)
+with [explicit conditions](docs/issues/sid8580_quality_method_01.md): TEST/Gate and
+observable OSC/ENV warmup, public chip-rate reference output, a common integer
+sampler retained through skip, exact sample-tick harmonic/DC fitting and each
+engine's own filtered/dry amplitude ratio. Raw PCM is never phase/gain/DC fitted.
+The [seven analytical metric tests](test/sid8580_quality_metrics.test.mjs) pass;
+[six capture/reference configurations](docs/issues/sid8580_quality_capture_reference_01.json)
+verify warmup, split windows, tick/frame accounting and rejection before output.
+This controls observable state and sample grid, not every hidden/noise/pipeline
+or motherboard-RC condition.
+
+The initial [228-case/165-transfer characterization](docs/issues/sid8580_quality_comparison_01.json)
+led to an experimental 8580-only damping profile, 8580-resonance-logfit-v1,
+OFF by default. Only FC128/sustain4/48kHz reference apparent Q at RES4/8/12/15
+trained an exponential Q curve with the existing RES0 reciprocal coefficient
+1448 preserved. The integers are independently fitted, not copied oracle tables.
+The opt-in quality CLI flag is --8580-calibration; the controlled checker uses
+--calibrated-8580. Cutoff, RC, global gain, wave/noise/ADSR and pipeline are unchanged.
+
+[Before](docs/issues/sid8580_quality_validation_before_01.json) and
+[after](docs/issues/sid8580_quality_validation_after_01.json) each cover 260 cases.
+[Independent holdout analysis](docs/issues/sid8580_quality_validation_analysis_01.json)
+separates eight true FC256 curves (RES2/6/10/14 at sustain4/15): mean absolute
+relative Q error fell 13.43% to 3.10%, seven of eight improved. Across 176 held-out
+frequency points, mean absolute error fell 1.437 to 1.126dB and maximum error
+4.024 to 2.467dB, but 67 points worsened (109 improved). One low-RES curve worsened
+slightly; near 1400Hz/RES14/sustain4 absolute error rose .053 to 2.436dB. Do not
+claim universal improvement. The denser FC128/RES15 result is training-setting
+replication, not a ninth independent holdout. All 260 reference objects and 61
+candidate dry objects stayed exact across the before/after runs.
+
+[Calibration policy](docs/issues/sid8580_calibration_policy_01.json) confirms six
+default/invalid/reset/Stop configurations, 42 unchanged 6581 scenes, three effective
+8580 controls and six independent-instance cases. Default 84 PCM, bus66, CPU36,
+controlled228 and the original 376,200 sample API comparison remain unchanged.
+[Current browsers](docs/issues/sid8580_probe_browser_03.json) each match 50 chip/bus,
+12 CPU and 11 controlled-quality cases: 146 matches total, without AudioWorklet
+or full-C64/listening acceptance.
+
+[The latest independent kit](docs/issues/sid8580_probe_sourcekit_03.json) rebuilds
+all five outputs/receipt from 62 compiled inputs byte-identically and passes
+eleven build/test commands, including the 228 candidate-only quality scenes and
+seven math tests, without GPL reference or parent-source fallback. Archive
+release/tetorica_sid8580_quality_20261107_sources.zip has 105 files/1,059,166 bytes,
+SHA-256 8356799fd4b2f8313d570687e089f04615cbfd32366f731bcb3aaab681741b62.
+It contains readable sources/tests/checkers, two WASMs and license/Rust notices;
+Native binaries, GPL SID oracle, ROM/music/PCM are excluded. Large training-case
+metadata is represented by pinned SHA/provenance; compact analyses are included.
+Use node scripts/package_sid8580_sourcekit.mjs --plan for a read-only closure
+check, or --version NEXT --verify for a new exclusive stage/archive and rebuild.
+CI has thirteen steps; no GitHub Actions run, push, commit, tag or release occurred.
+
+Keep this profile opt-in/OFF. Next investigate cutoff/center frequency separately:
+FC256 peaks remain around 1600Hz in the candidate versus 1750–1800Hz in the
+reference. Use a wider FC matrix and separate training/holdout, not global gain
+or resonance compensation. Hidden state/pipeline/RC, DAC/combined waves, held-out
+LP/HP/rates, real 8580 files, C64/Worklet scheduling and listening remain subsequent
+work. Production Player/Synth/SDK and the known-8580 rejection are unchanged.
 
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a
