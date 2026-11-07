@@ -25,6 +25,15 @@ function instrument() {
   const Context = window.AudioContext ?? window.webkitAudioContext, Worklet = window.AudioWorkletNode;
   const connect = AudioNode.prototype.connect, post = MessagePort.prototype.postMessage;
   const readFile = File.prototype.arrayBuffer;
+  const schedule = window.setTimeout;
+  window.setTimeout = function(callback, delay, ...args) {
+    if (audit.holdNextPreflightYield && delay === 0 && typeof callback === 'function') {
+      audit.holdNextPreflightYield = false;
+      audit.releasePreflightYield = () => {audit.releasePreflightYield = null; return schedule.call(window, callback, 0, ...args);};
+      return 0x70000000;
+    }
+    return schedule.call(window, callback, delay, ...args);
+  };
   File.prototype.arrayBuffer = function(...args) {
     if (this.name !== audit.holdFileName) return readFile.call(this, ...args);
     audit.holdFileName = null; const bytes = readFile.call(this, ...args);
@@ -124,6 +133,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
 
     check('local readable player loads without audio; selecting a demo preflights its real CPU and metadata');
     assert.match(await page.title(), /SID Player/); assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0);
+    assert.equal(await page.locator('#vbiBackend').inputValue(), 'c64', 'new UI defaults to the C64 machine');
     assert.equal(await page.locator('#play').isDisabled(), true);
     await loadDemo('melody-filter'); assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0);
     assert.match(await page.locator('#author').textContent(), /Tetorica/); assert.equal(await page.locator('#subtune option').count(), 1);
@@ -143,6 +153,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     measurements.demos = {};
     for (const profile of ['tone', 'pulse', 'noise', 'melody-filter']) {
       await loadDemo(profile); await play(); const first = await read(), measured = await sample();
+      assert.equal(first.backend, 'c64'); assert.equal(first.timing, 'vbi');
       assert.equal(await page.locator('#voices tr').count(), 3); assert(first.cycles > first.initCycles && first.playCalls > 0);
       const cutoffs = new Set(); const widths = new Set();
       for (let i = 0; i < 4; ++i) {
@@ -152,9 +163,15 @@ async function checkBrowser(name, engine, origin, fixtures) {
       if (profile === 'melody-filter') assert(cutoffs.size > 1, 'C64 play routine changes shared filter registers');
       if (profile === 'pulse') assert(widths.size > 1, 'C64 play routine changes pulse width');
       measurements.demos[profile] = {rms: measured.rms, peak: measured.peak, cycles: first.cycles,
-        playCalls: first.playCalls, distinctCutoffs: cutoffs.size, distinctPulseWidths: widths.size};
+        backend: first.backend, playCalls: first.playCalls, distinctCutoffs: cutoffs.size, distinctPulseWidths: widths.size};
       await stop(); assert.equal((await page.locator('#elapsed').textContent()).trim(), '0:00');
     }
+    // Retain the direct-runner regression checks below as an explicit manual
+    // comparison. They must not silently follow the UI's new machine default.
+    if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
+    await page.locator('#vbiBackend').selectOption({value: 'direct'});
+    await page.locator('#rsidSettings > summary').click();
+    await loadDemo('melody-filter');
 
     check('unknown PSID targets preserve the old sound until explicit PAL/6581 choices reach real playback');
     await play(); const previousPsidTitle = await page.locator('#title').textContent();
@@ -372,6 +389,59 @@ async function checkBrowser(name, engine, origin, fixtures) {
     measurements.vbiEnvironment = {palFrequency: fixtures.palFrequency, bankInit: fixtures.bankInit, bankPlay: fixtures.bankPlay,
       indexedStoreSucceeded: true, namedCandidateErrorsKeptOldSound: true};
 
+    check('C64 VBI streams a long init, stops and restarts pending audio, and keeps accepted backend settings');
+    await page.locator('#vbiBackend').selectOption({value: 'c64'}); await page.locator('#rsidEnvironment').selectOption({value: 'minimal'});
+    await loadFile(fixtures.machineVbiLong, 'machine-vbi-long-init.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('machine-vbi-long-init.sid'));
+    await ready(); await silent(); await page.locator('#play').click();
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'playing');
+    let machineState = await waitState(value => value.backend === 'c64' && value.initPending && value.positionFrames > 0);
+    assert.equal(machineState.playCalls, 0); assert.equal(machineState.initCycleLimit, 2000000); await sound();
+    await stop(); await play(); machineState = await waitState(value => value.initReturned && !value.initPending && value.playCalls > 0);
+    assert.equal(machineState.backend, 'c64'); assert(machineState.initCycles > 100000);
+    await page.locator('#vbiBackend').selectOption({value: 'direct'});
+    await page.locator('#subtune').selectOption({value: '2'}); await ready(); await silent(); await play(); machineState = await read();
+    assert.equal(machineState.backend, 'c64'); assert.equal(machineState.subtune, 2);
+    assert.equal(machineState.registers[0] | machineState.registers[1] << 8, fixtures.machineFrequencies[1]);
+    assert.equal(await page.locator('#vbiBackend').inputValue(), 'direct', 'an unapplied backend draft must not replace the accepted machine');
+    await page.locator('#vbiBackend').selectOption({value: 'c64'}); await page.locator('#rsidEnvironment').selectOption({value: 'rom'});
+    await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'pending-machine-vbi-roms.bin';});
+    await page.locator('#romChars').setInputFiles({name: 'pending-machine-vbi-roms.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(4096)});
+    await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
+    const beforeMachineRom = await page.locator('#fileInfo').textContent();
+    await loadFile(fixtures.two, 'machine-vbi-rom-pending.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /finish reading/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), beforeMachineRom); assert.equal((await read()).backend, 'c64'); await sound();
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), true);
+    await page.locator('#vbiBackend').selectOption({value: 'direct'}); assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), false);
+    await page.locator('#applyRsidEnvironment').click();
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('machine-vbi-rom-pending.sid'));
+    await ready(); await silent(); await play(); assert.equal((await read()).backend, 'direct');
+    await page.evaluate(() => __sidPlayerAudit.releaseFile());
+    await page.waitForFunction(() => document.querySelector('#romCharsInfo').textContent.includes('pending-machine-vbi-roms.bin'));
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'});
+    measurements.machineVbi = {pendingAudioStoppedAndRestarted: true, initCycles: machineState.initCycles, acceptedBackendKept: true, explicitDirectRetry: true};
+
+    check('pending machine-VBI candidate cancellation and delayed init faults preserve the accepted tune');
+    const acceptedBeforePending = await page.locator('#fileInfo').textContent();
+    await page.locator('#vbiBackend').selectOption({value: 'c64'});
+    await page.evaluate(() => {__sidPlayerAudit.holdNextPreflightYield = true;});
+    await loadFile(fixtures.machineVbiLong, 'cancel-machine-pending.sid');
+    await page.waitForFunction(() => typeof __sidPlayerAudit.releasePreflightYield === 'function');
+    assert.equal(await page.locator('#status').getAttribute('data-state'), 'loading');
+    assert.equal(await page.locator('#fileInfo').textContent(), acceptedBeforePending); assert.equal((await read()).backend, 'direct'); await sound();
+    await page.locator('#stop').click(); await page.evaluate(() => __sidPlayerAudit.releasePreflightYield());
+    await ready(); await silent(); assert.equal(await page.locator('#fileInfo').textContent(), acceptedBeforePending);
+    await play(); assert.equal((await read()).backend, 'direct');
+    for (const [filename, bytes, reason] of [['pending-vbi-rom-fault.sid', fixtures.machineVbiLateRom, 'ROM'],
+      ['pending-vbi-jam.sid', fixtures.machineVbiLateJam, 'JAM'], ['pending-vbi-deadline.sid', fixtures.machineVbiTimeout, '2000000']]) {
+      await loadFile(bytes, filename);
+      await page.waitForFunction(({filename, reason}) => {const status = document.querySelector('#status'); return status.dataset.state === 'error' && status.textContent.includes(filename) && status.textContent.includes(reason);}, {filename, reason});
+      assert.equal(await page.locator('#fileInfo').textContent(), acceptedBeforePending); assert.equal((await read()).backend, 'direct'); await sound();
+    }
+    await page.locator('#vbiBackend').selectOption({value: 'direct'});
+    measurements.machineVbi.pendingCandidateCancelled = true; measurements.machineVbi.delayedFaultsKeptOldSound = true;
+
     check('local RSID demo executes continuous CIA interrupts and drives real SID pulse width');
     if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
     await page.locator('#rsidEnvironment').selectOption({value: 'minimal'}); await page.locator('#assumeRsid').uncheck();
@@ -524,6 +594,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const {createPsidCiaFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/psid_cia_fixtures.mjs')));
   const {createRsidFixture, createRsidBasicFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_fixtures.mjs')));
   const {createRsidTestRoms} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_test_roms.mjs')));
+  const {createPsidVbiMachineFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/psid_vbi_machine_fixtures.mjs')));
   const unknown = createRsidFixture().bytes.slice(), ntsc = createRsidFixture().bytes.slice(), basic = createRsidBasicFixture();
   new DataView(unknown.buffer).setUint16(118, 0); new DataView(ntsc.buffer).setUint16(118, 0x18);
   const psidChoices = [0, 0x3c, 0x18, 0x24].map(flags => {const bytes = createSidPlayerTestFixture(); new DataView(bytes.buffer).setUint16(118, flags); return bytes;});
@@ -536,6 +607,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const noDriver = createPsidCiaFixture({driverRange: [255, 0]}).bytes;
   const overlap = relocated.slice(), invalidSentinel = noDriver.slice(); overlap[120] = 0x10; invalidSentinel[121] = 1;
   const pal = createSidPlayerPalFixture(), bank = createSidPlayerBankEnvironmentFixture({playAddress: 0xc000});
+  const machineLong = createPsidVbiMachineFixture({delayBlocks: 6});
   new DataView(ciaRomFixture.bytes.buffer).setUint16(16, 2);
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
     playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
@@ -545,6 +617,10 @@ async function checkBrowser(name, engine, origin, fixtures) {
     palEnvironment: pal.bytes, palFrequency: pal.palFrequency, bankEnvironment: bank.bytes, bankInit: bank.initBank, bankPlay: bank.playBank,
     indexedStore: createSidPlayerIndexedStoreFixture().bytes, realVicRead: createSidPlayerIndexedStoreFixture({realIoRead: true}).bytes,
     jam: createSidPlayerJamFixture().bytes, playImmediate: createSidPlayerTestFixture('play-loop'),
+    machineVbiLong: machineLong.bytes, machineFrequencies: machineLong.frequencies,
+    machineVbiLateRom: createPsidVbiMachineFixture({delayBlocks: 6, fault: 'late-rom'}).bytes,
+    machineVbiLateJam: createPsidVbiMachineFixture({delayBlocks: 6, fault: 'late-jam'}).bytes,
+    machineVbiTimeout: createPsidVbiMachineFixture({fault: 'init-loop'}).bytes,
     rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
     rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
     rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};

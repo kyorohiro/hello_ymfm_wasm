@@ -53,12 +53,13 @@ export class SidPlayerCore {
   }
   /** Validate and initialize a candidate. A failed load keeps the old player's
    * CPU, SID, samples and selected subtune intact. Loading never renders a device.
-   * @param {ArrayBuffer|ArrayBufferView} bytes @param {{subtune?:number,clock?:'pal',model?:'6581'}} [options]
+   * @param {ArrayBuffer|ArrayBufferView} bytes @param {{subtune?:number,clock?:'pal',model?:'6581',vbiBackend?:'direct'|'c64'}} [options]
    */
-  load(bytes, {subtune, clock, model} = {}) {
+  load(bytes, {subtune, clock, model, vbiBackend = 'direct'} = {}) {
     this.assertOpen();
-    const parsed = validateBrowserPsid(bytes, {subtune, clock, model}), api = this.exports;
+    const parsed = validateBrowserPsid(bytes, {subtune, clock, model, vbiBackend}), api = this.exports;
     if (parsed.timing !== 'vbi') throw new Error('This PSID subtune uses CIA timing; load it through the C64 machine player');
+    if (parsed.playbackBackend !== 'direct') throw new Error('C64 VBI playback uses the C64 machine player');
     const candidate = api.sidp_create(this.sampleRate);
     if (!candidate) throw new Error('SID player allocation failed');
     try {
@@ -96,7 +97,7 @@ export class SidPlayerCore {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidp_state(handle) : 0;
     return {
-      loaded: !!handle, playing: state === 1, state, format: 'PSID', timing: 'vbi', model: '6581', clockHz: SID_PLAYER_CLOCK,
+      loaded: !!handle, playing: state === 1, state, format: 'PSID', timing: 'vbi', backend: 'direct', model: '6581', clockHz: SID_PLAYER_CLOCK,
       declaredClock: this.declaredClock, declaredModel: this.declaredModel,
       targetSelection: this.targetSelection ? {...this.targetSelection} : null,
       relocation: this.relocation ? {...this.relocation} : null,

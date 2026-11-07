@@ -15,24 +15,29 @@ instances, typed note / voice / shared-filter helpers and a read-only SID tab
 are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
 at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). A separate
 browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
-v2 subtune's speed bit: VBI uses the bounded init/play host; CIA uses actual
-CIA1 interrupts in the continuous C64 machine. RSID v2 uses that machine for its
+v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64
+machine; CIA uses CIA1 interrupts. Direct VBI is an explicit legacy option.
+RSID v2 uses that machine for its
 own interrupt or continuous code. All target PAL / one 6581. Local files,
 original demos, subtunes, Play / Stop and live voice/filter state are implemented.
 The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
-substitute host-periodic VBI calls. Player integration passed 83 player tests,
-29 reference tests and 116 source/ZIP Chromium/WebKit checks on 2026-11-07;
-see the current TODO and linked evidence for the checked scope. Accepted CIA
-ROM settings survive intermediate VBI subtunes until explicitly reapplied.
+substitute host-periodic VBI calls. Current integration passed 93 player tests,
+10 corpus-tool tests, 29 reference tests and 124 source/actual-ZIP
+Chromium/WebKit checks on 2026-11-07. See [the current result](docs/issues/sid_c64_vbi_result_01.md)
+and [package proof](docs/issues/sid_c64_vbi_package_01.json) for the checked scope.
+Accepted machine ROM settings survive intermediate Direct VBI subtunes until
+explicitly reapplied.
 Relocation metadata describes free player-driver RAM, not a new tune load
-address. VBI accepts structurally valid ranges and FF/0 without adding a RAM
-driver page. CIA keeps the legacy layout for 0/0; otherwise it packs the
-original host driver into the first declared page in 04..9F or C0..CF. CIA
-rejects FF/0 or a range with no usable page. Do not require the entire declared
+address. Direct VBI accepts structurally valid ranges and FF/0 without adding a
+RAM driver page. C64 VBI and CIA need safe driver RAM; CIA keeps its legacy
+layout for 0/0. Explicit ranges use the first available page in 04..9F or C0..CF.
+Machine modes reject FF/0 or a range with no usable page, suggesting Direct VBI
+for a VBI tune rather than silently falling back or overwriting RAM.
+Do not require the entire declared
 window to avoid ROM, and do not rewrite the header or payload. The browser
-validator's driverPage is null for VBI, 0 for legacy CIA, or the chosen page;
+validator's driverPage is null for Direct VBI, 0 for legacy CIA, or the chosen page;
 the native C64 API reports driverAddress. The relocation path is covered by the
-latest totals above; see phase 9 of the TODO and the sid_psid_relocation reports.
+latest totals above; see phases 9 and 12 of the TODO and the linked reports.
 The prior clean-file CIA PCM/trace/state stayed exact in nine cases, alongside
 the existing twelve-case RSID baseline. The new native source kit reproduces
 the packaged WASM byte for byte. VBI still owns its reserved caller and stack.
@@ -45,14 +50,15 @@ unconsumed wrong-page VIC read from indexed STA (9D/99 post-IR phase3, 91 phase4
 whose corrected address is SID. Mirrored 1E/1F collision reads remain unsupported
 because they clear state; only side-effect-free reads qualify. Actual VIC/CIA/ROM
 accesses remain unsupported in this backend; do not broaden this to blanket I/O
-reads. These changes passed the latest totals above, twelve unchanged VBI
+reads. These legacy-host changes passed the historical phase-10 totals (83 player,
+29 reference and 116 browser checks), twelve unchanged VBI
 PCM/trace/state baselines and isolated source-kit rebuilds. Zyx.sid now renders
 ten seconds and stops cleanly without changing its input bytes; see phase 10
 and the sid_zyx_vbi_verification / sid_vbi_environment reports. The original
 user timeout at 1EE4 still has no identified input; resolving Zyx's distinct
 dummy-read failure does not resolve that unknown timeout.
 
-The user also requested an audit of the local ww/C64Music corpus. The new
+The user also requested an audit of the local ww/C64Music corpus. Its original
 check:sid-corpus tooling passed eight synthetic-corpus tests and a five-demo
 pilot, including a zero-new-row resume with unchanged checkpoint hash. The full
 default-subtune, two-second/48kHz PAL/6581 minimal-environment run completed all
@@ -67,9 +73,43 @@ or duplicate rows or successful-row measurement anomalies.
 These classifications do not establish that
 all files or subtunes play correctly. Western_Games song1 reproduces 1EE4 and
 returns from a legitimate init at 132,113 cycles in scratch diagnostics, then
-hits a genuine STA DC04. Plan full-machine VBI plus retained-PCM long init;
-do not just raise budgets, rewrite speed or ignore real I/O. The user's original
-timeout input remains unconfirmed.
+hits a genuine STA DC04. The C64 VBI route now handles this without rewriting
+speed or ignoring real I/O; all three Western Games subtunes passed separate
+ten-second checks. The user's original timeout input remains unconfirmed.
+
+The C64 VBI milestone is complete. It initializes VIC raster IRQ below
+256, CIA1 TA running at 4025 with its IRQ masked, and other timers disabled at
+FFFF; play runs from real interrupts and VIC/CIA are acknowledged afterward.
+The 100k-cycle preflight may leave init pending; bounded render chunks retain
+startup PCM until RTS or a 2M-cycle deadline from the driver bootstrap. The UI
+yields while validating pending candidates before adoption; playback reloads a
+fresh machine and streams the initial PCM. Play remains limited to 16k cycles.
+Expansion I/O DE00..DFFF is explicitly unsupported in the new C64 VBI route;
+do not describe this as complete C64 software, cartridge or disk support.
+The shared browser validator keeps vbiBackend:'direct' by default for API
+compatibility, while UI/C64 wrapper explicitly choose c64. CLI reference limits
+and known NTSC/8580 rejection remain unchanged. The old 61,157-file audit is an
+immutable Direct VBI baseline. This was a targeted retry of 3,233 prior VBI
+failures plus 64 controls, not a new whole-corpus run. Of the old failures,
+3,025 completed (3,015 nonzero and ten exact-zero windows); 195 ROM-access cases,
+nine play timeouts, three init deadlines and one expansion-I/O case remained.
+All 64 controls kept their prior status: VBI 24 nonzero/eight silent, CIA eight/eight,
+RSID eight/eight. CIA/RSID RMS and peak were also exact; VBI scheduling changes
+do not require PCM identity. All 3,089 completed windows had 96,000 finite frames,
+zero/stable Stop and, for PSID, a returned init. Extra init-validation frames are
+separate from the first two seconds used for RMS/peak. Full selected-set resume
+reused all 3,297 rows with zero new executions and identical hashes/classifications.
+See [the retry summary](docs/issues/sid_c64_vbi_retry_01.json) and
+[18-check independent comparison](docs/issues/sid_c64_vbi_retry_comparison_01.json).
+Seven separate real-file cases passed ten seconds, including Western Games
+subtunes 1–3 ([evidence](docs/issues/sid_c64_vbi_verification_01.json)).
+The isolated 29-input source kit rebuilt the 116,131-byte C64 WASM and receipt
+byte-identically ([proof](docs/issues/sid_c64_vbi_sourcekit_01.json)); final WASM
+SHA-256 is d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c.
+The readable 0.0.7-c64-vbi-preview ZIP contains 80 files/ten browser modules,
+1,573,534 bytes, SHA-256 730c1c4d596506e96fba6cca40cbcc73c20d097f57a38c300697a9c6887ed895.
+Outer/nested CRC, 68 original inputs, 43 native inputs and all extracted bytes
+were checked. No publication, tag, commit or npm release was performed.
 Commands, status meanings and restart instructions are in [the corpus guide](docs/sid-corpus.md).
 Keep all input manifests and result
 JSONL under release; only compact summaries belong in docs/issues. Checkpoint
@@ -78,9 +118,9 @@ worker sources while that run is active, and do not treat silence, a short
 smoke test or header acceptance as musical or full-song compatibility.
 The C64 backend's default firmware is an independently authored, limited IRQ/NMI
 shim with fail-closed unsupported ROM access. Optional user Character / BASIC /
-KERNAL ROMs apply to PSID CIA and RSID and stay in memory only. PSID VBI remains
-independent of those settings and pending firmware reads. After supplied-ROM
-boot, CIA installs the original RAM init/play caller, while RSID requests RUN or
+KERNAL ROMs apply to C64 PSID VBI, PSID CIA and RSID and stay in memory only.
+Direct VBI remains independent of those settings and pending firmware reads.
+After supplied-ROM boot, PSID installs the original RAM init/play caller, while RSID requests RUN or
 SYS. Both PSID and RSID browser validators accept
 unknown/either clock/model flags only after explicit PAL/6581 selection through
 the initially unchecked playback-target setting. Declared hints and original
@@ -92,7 +132,7 @@ compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
 an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
 and original host/shim compile as C++17. `scripts/sid_rsid_artifacts.mjs --check`
-authenticates the C64 RSID / PSID CIA WASM and matching source kit; `build:sid-rsid`
+authenticates the C64 RSID / PSID VBI/CIA WASM and matching source kit; `build:sid-rsid`
 rebuilds it. The bounded VBI host has its own separate WASM/source receipt; the
 SID Synth/Playground chip core and calibrated SDK remain unchanged. No GPL
 reference player, Commodore ROM or game data is linked or bundled. A valid

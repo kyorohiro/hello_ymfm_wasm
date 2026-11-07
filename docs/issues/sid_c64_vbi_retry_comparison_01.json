@@ -1,0 +1,253 @@
+{
+  "format": "tetorica-c64-vbi-retry-comparison",
+  "version": 1,
+  "generatedAt": "2026-11-07T08:35:02.817Z",
+  "passed": true,
+  "scope": "Read-only comparison of existing checkpoints and scalar measurements; no additional CPU/browser run, listening or PCM handling.",
+  "references": {
+    "baseline": "release/sid-corpus-audit-20261107/results.jsonl",
+    "checkpoint": "release/sid-c64-vbi-retry-20261107/results.jsonl",
+    "manifest": "release/sid-c64-vbi-retry-20261107/results.jsonl.inputs.json",
+    "selection": "release/sid-c64-vbi-retry-20261107/selection.json",
+    "paths": "release/sid-c64-vbi-retry-20261107/paths.json",
+    "summary": "docs/issues/sid_c64_vbi_retry_01.json",
+    "resume": "release/sid-c64-vbi-retry-20261107/resume-summary.json"
+  },
+  "identity": {
+    "baselineSha256": "84b8778bdbd9f2512154d9998ba5c2b90198fc4bf005ee5e5c0f076005ee3325",
+    "checkpointSha256": "5fa642e82f713fad34bbe5c3cf02ded0271881f020b963d7958eba3b86412c79",
+    "fingerprintSha256": "48017fe357bae18fc4128281895bde629d33e037eb607aa04ee660f21ea664b7",
+    "inputManifestSha256": "4ffe0e8bdf9fd82c6c0225fae8017416eea11c604a0c1b53014dc32d07f28a82",
+    "selectedPathsSha256": "db124a8b7a08e651caab637183f0a2ba335657cf37a56524970594050eb1e0fc"
+  },
+  "checks": {
+    "expectedCoverage": true,
+    "finalCompleteLine": true,
+    "contiguousUniqueIndices": true,
+    "uniquePaths": true,
+    "selectedPathsExact": true,
+    "everyInputMatchesBaselineAndManifest": true,
+    "everyRawHeaderMatchesBaseline": true,
+    "immutableBaseline": true,
+    "checkpointIdentity": true,
+    "manifestIdentity": true,
+    "selectedPolicyIdentity": true,
+    "selectionComposition": true,
+    "controlsCompletedWithoutStatusRegression": true,
+    "ciaRsidScalarsExact": true,
+    "successfulMeasurementAndInitConditions": true,
+    "allSummaryStatusesMatch": true,
+    "currentSourceAndWasmSnapshotMatches": true,
+    "resumeProof": true
+  },
+  "coverage": {
+    "baselineCorpusFiles": 61157,
+    "selectedFiles": 3297,
+    "oldFailedVbi": 3233,
+    "controls": 64,
+    "newFullCorpusRun": false,
+    "uniqueIndices": 3297,
+    "missingIndices": 0,
+    "duplicateIndices": 0,
+    "duplicatePaths": 0
+  },
+  "allSelectedStatuses": {
+    "executed_nonzero": 3055,
+    "executed_silent": 34,
+    "needs_rom": 195,
+    "runtime_failed": 12,
+    "unsupported": 1
+  },
+  "oldFailedComparison": {
+    "oldStatuses": {
+      "unsupported": 2884,
+      "needs_rom": 177,
+      "runtime_failed": 172
+    },
+    "newStatuses": {
+      "executed_nonzero": 3015,
+      "needs_rom": 195,
+      "executed_silent": 10,
+      "runtime_failed": 12,
+      "unsupported": 1
+    },
+    "newlyCompleted": 3025,
+    "newlyNonzero": 3015,
+    "newlyExactZeroWindow": 10,
+    "remaining": 208,
+    "transitions": {
+      "unsupported -> executed_nonzero": 2854,
+      "needs_rom -> needs_rom": 175,
+      "unsupported -> executed_silent": 8,
+      "unsupported -> needs_rom": 19,
+      "needs_rom -> executed_nonzero": 2,
+      "runtime_failed -> runtime_failed": 10,
+      "runtime_failed -> executed_nonzero": 159,
+      "runtime_failed -> executed_silent": 2,
+      "runtime_failed -> needs_rom": 1,
+      "unsupported -> runtime_failed": 2,
+      "unsupported -> unsupported": 1
+    },
+    "remainingErrorBuckets": {
+      "needs_rom:load:4:load": 177,
+      "needs_rom:render:4:render": 18,
+      "runtime_failed:render:12:play": 4,
+      "runtime_failed:load:12:play": 5,
+      "runtime_failed:init_validation:11:init": 3,
+      "unsupported:load:3:load": 1
+    }
+  },
+  "controls": {
+    "groups": {
+      "vbi": {
+        "total": 32,
+        "oldStatuses": {
+          "executed_nonzero": 24,
+          "executed_silent": 8
+        },
+        "newStatuses": {
+          "executed_nonzero": 24,
+          "executed_silent": 8
+        },
+        "completed": 32,
+        "statusUnchanged": 32,
+        "exactRmsPeak": null
+      },
+      "cia": {
+        "total": 16,
+        "oldStatuses": {
+          "executed_nonzero": 8,
+          "executed_silent": 8
+        },
+        "newStatuses": {
+          "executed_nonzero": 8,
+          "executed_silent": 8
+        },
+        "completed": 16,
+        "statusUnchanged": 16,
+        "exactRmsPeak": 16
+      },
+      "rsid": {
+        "total": 16,
+        "oldStatuses": {
+          "executed_silent": 8,
+          "executed_nonzero": 8
+        },
+        "newStatuses": {
+          "executed_silent": 8,
+          "executed_nonzero": 8
+        },
+        "completed": 16,
+        "statusUnchanged": 16,
+        "exactRmsPeak": 16
+      }
+    },
+    "vbiRmsPeakIdentityRequired": false,
+    "reason": "Real VIC scheduling differs from the direct VBI reference; VBI completion and prior zero/nonzero status were checked.",
+    "ciaRsidRmsPeakIdentityRequired": true,
+    "problems": []
+  },
+  "measurements": {
+    "executedRows": 3089,
+    "firstWindowFrames": 96000,
+    "sampleRate": 48000,
+    "seconds": 2,
+    "allFiniteAndStopZeroStable": true,
+    "psidRowsWithInitReturnVerified": 3073,
+    "problems": [],
+    "successfulExtraInitValidation": [],
+    "rejectedAfterInitValidation": [
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Simulcra.sid",
+        "status": "runtime_failed",
+        "code": 11,
+        "phase": "init",
+        "firstWindowFrames": 96000,
+        "completedExtraValidationFrames": 0
+      },
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Slanted.sid",
+        "status": "runtime_failed",
+        "code": 11,
+        "phase": "init",
+        "firstWindowFrames": 96000,
+        "completedExtraValidationFrames": 0
+      },
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Square_Two.sid",
+        "status": "runtime_failed",
+        "code": 11,
+        "phase": "init",
+        "firstWindowFrames": 96000,
+        "completedExtraValidationFrames": 0
+      }
+    ],
+    "interpretation": "RMS/peak use only the first two seconds. Later init-validation samples are separate and do not alter that window. A failed extra render may report zero completed extra frames; it is not a successful pending init. Error-core stop rethrows are not treated as measured nonzero output."
+  },
+  "errorPhases": {
+    "vbi-c64:4:load": 177,
+    "vbi-c64:4:render": 18,
+    "vbi-c64:12:play": 9,
+    "vbi-c64:11:init": 3,
+    "vbi-c64:3:load": 1
+  },
+  "westernGames": {
+    "path": "GAMES/S-Z/Western_Games.sid",
+    "input": {
+      "bytes": 22294,
+      "sha256": "0b0148daf96a789267dac2b178d4d6edc3564c8e11a313b54b0e961c25ac6432"
+    },
+    "defaultSubtune": 1,
+    "before": {
+      "status": "runtime_failed",
+      "stage": "load",
+      "error": {
+        "code": 5,
+        "message": "PSID initialization subroutine did not return within 100000 cycles (at $1EE4)",
+        "address": 7908,
+        "phase": "init"
+      }
+    },
+    "after": {
+      "status": "executed_nonzero",
+      "backend": "vbi-c64",
+      "frames": 96000,
+      "initCycles": 139793,
+      "initReturned": true,
+      "initReturnCycle": 139792,
+      "playCalls": 94,
+      "rms": 0.07603160420589465,
+      "peak": 0.383037805557251,
+      "finite": true,
+      "stopZero": true,
+      "stopStable": true
+    }
+  },
+  "resumeProof": {
+    "verified": true,
+    "checks": {
+      "complete": true,
+      "zeroNewExecutions": true,
+      "sameCheckpoint": true,
+      "sameManifest": true,
+      "sameFingerprint": true,
+      "sameStatuses": true
+    },
+    "completed": 3297,
+    "newResults": 0,
+    "discardedTailBytes": 0,
+    "elapsedMs": 39
+  },
+  "mismatches": {
+    "input": [],
+    "headers": [],
+    "selection": [],
+    "sourceOrWasm": []
+  },
+  "limitations": [
+    "Selected prior failures and controls only; this was not a rerun of all 61,157 files under C64 VBI.",
+    "Default header subtune, PAL/6581 explicit unknown/either choices and minimal ROM environment only.",
+    "Finite nonzero or exact-zero PCM is a bounded measurement, not music correctness, whole-song or listening verification.",
+    "Remaining ROM access does not guarantee compatibility if ROMs are supplied."
+  ]
+}

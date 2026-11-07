@@ -7,6 +7,7 @@ import {auditSidCorpus, corpusFingerprint} from '../scripts/check_sid_corpus.mjs
 import {createSidReferenceFixture} from './fixtures/sid-reference/fixture.mjs';
 import {createPsidCiaFixture} from './helpers/psid_cia_fixtures.mjs';
 import {createRsidFixture, createRsidBasicFixture} from './helpers/rsid_fixtures.mjs';
+import {createPsidVbiMachineFixture} from './helpers/psid_vbi_machine_fixtures.mjs';
 
 function tiny(program) {
   const bytes = new Uint8Array(124 + program.length), view = new DataView(bytes.buffer);
@@ -38,7 +39,7 @@ test('all local synthetic files get metadata and the default song uses real isol
   for (const [name, bytes] of originals) await writeFile(join(options.root, name), bytes);
   await symlink(join(options.root, '01-tone.sid'), join(options.root, 'ignored.sid'));
   await symlink(options.root, join(options.root, 'ignored-directory'));
-  const summary = await auditSidCorpus({...options, seconds: .15});
+  const summary = await auditSidCorpus({...options, seconds: .15, vbiBackend: 'direct'});
   assert.equal(summary.complete, true); assert.equal(summary.completed, originals.size);
   assert.deepEqual(summary.statuses, {executed_nonzero: 4, runtime_failed: 2, unsupported: 2, executed_silent: 1, invalid: 1, needs_rom: 1});
   const result = new Map((await rows(options.checkpoint)).slice(1).map(row => [row.path, row]));
@@ -139,7 +140,7 @@ test('per-file watchdog retires its worker and checkpoints the timeout without a
   assert.equal(summary.complete, true); assert.equal(summary.statuses.runtime_failed, 2);
   const results = (await rows(options.checkpoint)).slice(1);
   assert.equal(results[0].error.code, 'WORKER_TIMEOUT'); assert.equal(results[0].error.phase, 'worker');
-  assert.equal(results[1].error.code, 10, 'a replacement worker executes the second valid-header program');
+  assert.equal(results[1].error.code, 6, 'a replacement C64 worker executes the second valid-header program');
 });
 
 test('oversized files have explicit bounded-header identity and corrupted complete checkpoint rows are not repaired', async t => {
@@ -149,4 +150,37 @@ test('oversized files have explicit bounded-header identity and corrupted comple
   assert.equal(result.input.sha256, null); assert.equal(result.input.headerSha256.length, 64); assert.equal(result.input.hashScope, 'bounded-header-only-oversize');
   await appendFile(options.checkpoint, '{broken complete json}\n');
   await assert.rejects(auditSidCorpus({...options, seconds: .1, resume: true}), /Invalid checkpoint JSON/);
+});
+
+test('default C64 VBI validates a long init separately without replacing its first measured PCM window', async t => {
+  const options = await setup(t), fixture = createPsidVbiMachineFixture();
+  await writeFile(join(options.root, 'long-init.sid'), fixture.bytes);
+  const summary = await auditSidCorpus({...options, seconds: .01});
+  assert.equal(summary.complete, true); assert.equal(summary.policy.vbiBackend, 'c64');
+  const result = (await rows(options.checkpoint))[1];
+  assert.equal(result.status, 'executed_nonzero'); assert.equal(result.selection.timing, 'vbi');
+  assert.equal(result.selection.playbackBackend, 'c64'); assert.equal(result.execution.backend, 'vbi-c64');
+  assert.equal(result.execution.frames, 480); assert(result.execution.validationExtraFrames > 0);
+  assert.equal(result.execution.initReturned, true); assert(result.execution.initReturnCycle > 100000);
+  assert.equal(result.execution.initCycleLimit, 2000000); assert.equal(result.execution.stopStable, true);
+  const direct = await auditSidCorpus({...options, checkpoint: join(options.directory, 'direct.jsonl'), seconds: .01, vbiBackend: 'direct'});
+  assert.equal(direct.statuses.unsupported, 1, 'Direct VBI does not acquire real CIA/VIC accesses');
+});
+
+test('targeted path lists restrict inventory, reject traversal/symlinks and invalidate incompatible resumes', async t => {
+  const options = await setup(t), tone = createSidReferenceFixture('tone').bytes;
+  await mkdir(join(options.root, 'nested'));
+  for (const path of ['1.sid', '2.sid', 'nested/3.sid']) await writeFile(join(options.root, path), tone);
+  const pathFile = join(options.directory, 'paths.json'); await writeFile(pathFile, JSON.stringify(['nested/3.sid', '1.sid']));
+  const selected = await auditSidCorpus({...options, paths: pathFile, seconds: .05});
+  assert.equal(selected.inputCount, 2); assert.equal(selected.policy.pathSelection.kind, 'listed-paths');
+  assert.equal(selected.policy.pathSelection.sha256.length, 64);
+  assert.deepEqual((await rows(options.checkpoint)).slice(1).map(row => row.path).sort(), ['1.sid', 'nested/3.sid']);
+  await assert.rejects(auditSidCorpus({...options, paths: ['1.sid'], seconds: .05, resume: true}), /differs/);
+  await assert.rejects(auditSidCorpus({...options, paths: pathFile, seconds: .05, vbiBackend: 'direct', resume: true}), /differs/);
+  await symlink(join(options.root, '1.sid'), join(options.root, 'alias.sid'));
+  await symlink(join(options.root, 'nested'), join(options.root, 'linked'));
+  for (const paths of [['../1.sid'], ['/tmp/input.sid'], ['nested/../1.sid'], ['1.sid', '1.sid'], ['alias.sid'], ['linked/3.sid'], [], ['not-present.sid']])
+    await assert.rejects(auditSidCorpus({...options, paths, seconds: .05, resume: true}), /relative|Duplicate|symlink|nonempty|ENOENT/);
+  assert.deepEqual(await readFile(join(options.root, '1.sid')), Buffer.from(tone));
 });

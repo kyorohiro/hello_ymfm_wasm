@@ -1,4 +1,4 @@
-# Pinned chips C64 devices for the RSID / PSID CIA host
+# Pinned chips C64 devices for the RSID / PSID CIA / VBI host
 
 Upstream: https://github.com/floooh/chips
 
@@ -60,7 +60,7 @@ counter. Sample rate is 8..96 kHz, PAL clock 985,248 Hz, mono output magnitude
 is unchanged. The separate machine WASM does not replace the existing PSID VBI/Synth
 backend, Native SDK, or calibrated assets.
 
-## PSID CIA subroutine driver
+## PSID subroutine drivers
 
 `sidr_load_psid` uses the same continuously clocked C64 hardware for a PSID
 subtune selected as CIA-speed. An independently authored RAM bootstrap at
@@ -104,6 +104,43 @@ ranges; its parser can retain such relocation metadata without moving payload
 or changing its execution backend. This is not support for arbitrary load
 ranges: the current PSID subset still requires payload and init/play entries
 within $0800..$CFFF.
+
+### Continuous C64 VBI entry and streamed initialization
+
+The separate `sidr_load_psid_vbi` entry uses the actual VIC raster interrupt,
+not a host VBI callback or a rewritten CIA-speed header. It sets the raster
+compare to line zero and enables raster IRQ; CIA1 Timer A keeps running at
+latch $4025 with its IRQ masked. Init starts with the CPU interrupt-disable
+flag set. Returning to the RAM caller clears that flag; a raster request
+latched during a long init may therefore cause the first play immediately,
+with subsequent raster events separated by the PAL 19,656-cycle frame. The
+driver acknowledges only VIC's raster flag by writing $01 to $D019, then
+reads CIA1's ICR after play. A/X/Y/bank and the ordinary tune-written device
+configuration are preserved. No timer or raster setting is forced again
+after the tune's initialization.
+
+The load call clocks only the original bounded 100,000-cycle preflight and
+retains that PCM in the same 16,384-frame queue. A longer VBI init remains
+pending and continues during render as samples are drained; the queue never
+grows with initialization duration. Its hard deadline is 2,000,000 machine
+cycles from the PSID bootstrap start, excluding optional firmware boot. A
+genuine nonreturning PSID init fails with code 11; the existing 16,000-cycle
+play bound remains. The new `init_pending` / `init_limit` getters and existing
+`init_returned` / `init_return_cycle` expose this state. For this new entry,
+`init_cycles` reports actual elapsed initialization ticks, updating while
+pending and freezing at return; old CIA/RSID counter semantics are unchanged.
+Main-thread atomic validation must render/drain a separate candidate until
+init returns before adopting it; a fresh audio-thread load then streams the
+original retained initialization PCM rather than dropping that audio.
+
+The VBI raster ACK adds five bytes to the IRQ driver, exactly filling its
+bounded $00..$27 section. The bootstrap still fits the selected single page;
+the same free-page rules and declared-no-space rejection apply. The explicit
+Direct VBI host remains a separate comparison backend. The C64 VBI path
+rejects mapped $DE00..$DFFF expansion I/O (code 3), which this pinned machine
+does not implement, rather than treating a stale bus value as hardware.
+Supported VIC/CIA/color-RAM/SID bus cycles use the real pinned devices.
+Existing CIA and RSID code paths and PCM are preserved.
 
 ## Build
 

@@ -16,7 +16,7 @@ export function classifyCorpusError(error, stage) {
 }
 
 parentPort.on('message', async job => {
-  let core = null, stage = 'create', rendered = 0, squares = 0, peak = 0, finite = true;
+  let core = null, stage = 'create', rendered = 0, squares = 0, peak = 0, finite = true, validationExtraFrames = 0;
   const started = performance.now();
   try {
     const Core = job.backend === 'vbi' ? SidPlayerCore : RsidPlayerCore;
@@ -34,7 +34,24 @@ parentPort.on('message', async job => {
       }
       rendered += length;
     }
-    const state = core.getState();
+    let state = core.getState();
+    // Keep the first requested PCM window unchanged. If a PSID init is still
+    // pending, drain additional bounded output only to validate its return.
+    // These extra samples never enter that window's RMS/peak or frame count.
+    if (job.backend === 'vbi-c64' || job.backend === 'cia') {
+      stage = 'init_validation';
+      const extraLimit = Math.ceil(job.sampleRate * 3);
+      while (!state.initReturned) {
+        if (validationExtraFrames >= extraLimit) {
+          const error = new Error('PSID initialization did not return within the audit validation bound');
+          error.code = 'AUDIT_INIT_UNRETURNED'; throw error;
+        }
+        core.renderInto(scratch);
+        validationExtraFrames += scratch.length;
+        if (!scratch.every(Number.isFinite)) {finite = false; throw new Error('Non-finite SID PCM during initialization validation');}
+        state = core.getState();
+      }
+    }
     stage = 'stop'; core.stop();
     const stopState = core.getState(), stopped = core.render(128), afterStop = core.getState();
     const stopZero = stopped.every(value => value === 0), stopStable = !afterStop.playing && afterStop.cycles === stopState.cycles;
@@ -42,19 +59,20 @@ parentPort.on('message', async job => {
     parentPort.postMessage({id: job.id, status: peak === 0 ? 'executed_silent' : 'executed_nonzero', stage: 'complete',
       execution: {backend: job.backend, subtune: state.subtune, timing: state.timing, frames: rendered,
         finite, rms: Math.sqrt(squares / Math.max(1, rendered)), peak, stopZero, stopStable, stoppedCycles: afterStop.cycles,
-        cycles: state.cycles, initCycles: state.initCycles, initReturned: state.initReturned ?? true,
+        validationExtraFrames, cycles: state.cycles, initCycles: state.initCycles, initReturned: state.initReturned ?? true,
+        initReturnCycle: state.initReturnCycle ?? null, initCycleLimit: state.initCycleLimit ?? null,
         playCalls: state.playCalls, irqCount: state.irqCount ?? 0, nmiCount: state.nmiCount ?? 0,
         driverAddress: state.driverAddress, elapsedMs: Math.round(performance.now() - started)}});
   } catch (error) {
     let stopZero = null;
     if (core) {try {core.stop(); stopZero = core.render(128).every(value => value === 0);} catch {stopZero = false;}}
-    const phase = error.code === 11 ? 'init' : error.code === 12 ? 'play'
+    const phase = error.code === 11 || error.code === 'AUDIT_INIT_UNRETURNED' ? 'init' : error.code === 12 ? 'play'
       : error.code === 5 && /initialization/i.test(error.message ?? '') ? 'init'
       : error.code === 5 && /play subroutine/i.test(error.message ?? '') ? 'play' : stage;
     parentPort.postMessage({id: job.id, status: classifyCorpusError(error, stage), stage,
       error: {code: error.code ?? null, message: String(error.message ?? error), address: error.address ?? null,
         phase},
-      execution: {backend: job.backend, frames: rendered, finite, rms: Math.sqrt(squares / Math.max(1, rendered)), peak,
+      execution: {backend: job.backend, frames: rendered, validationExtraFrames, finite, rms: Math.sqrt(squares / Math.max(1, rendered)), peak,
         stopZero, elapsedMs: Math.round(performance.now() - started)}});
   } finally {core?.dispose();}
 });

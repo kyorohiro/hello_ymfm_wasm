@@ -1,0 +1,437 @@
+{
+  "format": "tetorica-sid-corpus-audit",
+  "version": 1,
+  "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/ww/C64Music",
+  "fingerprint": {
+    "policy": {
+      "version": 2,
+      "seconds": 2,
+      "sampleRate": 48000,
+      "frames": 96000,
+      "timeoutMs": 15000,
+      "vbiBackend": "c64",
+      "pathSelection": {
+        "kind": "listed-paths",
+        "count": 3297,
+        "sha256": "db124a8b7a08e651caab637183f0a2ba335657cf37a56524970594050eb1e0fc"
+      },
+      "psidInitValidation": "first-window PCM retained; pending init drained separately until RTS or native deadline",
+      "subtunes": "header-default-only",
+      "target": {
+        "clock": "pal",
+        "model": "6581",
+        "unknownOrEither": "explicit-choice",
+        "knownNtscOr8580": "reject"
+      },
+      "environment": "minimal",
+      "maxFileBytes": 65660,
+      "fileOrder": "case-sensitive-codepoint-path",
+      "followSymlinks": false,
+      "silence": "exact-zero; not a compatibility verdict",
+      "stopFrames": 128,
+      "workerRetireAfterFiles": 64,
+      "oversizedHash": "size+mtimeNs+bounded-header; no payload read or execution"
+    },
+    "sources": [
+      {
+        "path": "scripts/check_sid_corpus.mjs",
+        "bytes": 26328,
+        "sha256": "cbc8b8cb6dd13a64303f2e773fb81e88d5a1911ae9c2f8adb98a3df9e57e373c"
+      },
+      {
+        "path": "scripts/sid_corpus_worker.mjs",
+        "bytes": 5147,
+        "sha256": "be3ced952a9f8661a48a17bed7b540dc849eb340dc7768345600026f7f9faa5e"
+      },
+      {
+        "path": "docs/sid-player/core.js",
+        "bytes": 7432,
+        "sha256": "5de26ddf095d1d50473e369e2a6c6f132dfe12f454d6308a0138a84c1f90c865"
+      },
+      {
+        "path": "docs/sid-player/rsid_core.js",
+        "bytes": 10462,
+        "sha256": "3af43c1ba3c71951dcdf4f318d80c0b6812355a7e0a0317462f5de43b50e99c5"
+      },
+      {
+        "path": "docs/sid-player/roms.js",
+        "bytes": 1869,
+        "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+      },
+      {
+        "path": "docs/js/sid_psid.js",
+        "bytes": 11445,
+        "sha256": "0e88cc343c295507c18db9a591c9f320f6bc0e47ae87f71ffb9a6853d6de2fff"
+      },
+      {
+        "path": "docs/js/sid_rsid.js",
+        "bytes": 9114,
+        "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+      },
+      {
+        "path": "tetorica_src/runtime/sid_psid.js",
+        "bytes": 11445,
+        "sha256": "0e88cc343c295507c18db9a591c9f320f6bc0e47ae87f71ffb9a6853d6de2fff"
+      },
+      {
+        "path": "tetorica_src/runtime/sid_rsid.js",
+        "bytes": 9114,
+        "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+      },
+      {
+        "path": "docs/generated/sid-player/sid-player-build.json",
+        "bytes": 3357,
+        "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88"
+      },
+      {
+        "path": "docs/generated/sid-rsid/sid-rsid-build.json",
+        "bytes": 6749,
+        "sha256": "c8976d3352b104cb7dc4177dd77f42619cd2e64b17bc1297fe5bba8c085376ff"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 1519,
+        "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+      },
+      {
+        "path": "third_party/chips-m6502/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-m6502/README.md",
+        "bytes": 5077,
+        "sha256": "500ec456790a8c1a1a2236cc08ed576c86af4c59a90dcd09c70d2ea9f627d59c"
+      },
+      {
+        "path": "third_party/chips-m6502/upstream/m6502.h",
+        "bytes": 144215,
+        "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+      },
+      {
+        "path": "third_party/chips-m6581/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-m6581/README.md",
+        "bytes": 2306,
+        "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+      },
+      {
+        "path": "third_party/chips-m6581/PATCHES.md",
+        "bytes": 2239,
+        "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+      },
+      {
+        "path": "third_party/chips-m6581/upstream/m6581.h",
+        "bytes": 26332,
+        "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+      },
+      {
+        "path": "third_party/chips-m6581/m6581.h",
+        "bytes": 27313,
+        "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_player_core.h",
+        "bytes": 13501,
+        "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_player_wasm.cpp",
+        "bytes": 2262,
+        "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+      },
+      {
+        "path": "scripts/build_sid_player_wasm.sh",
+        "bytes": 721,
+        "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+      },
+      {
+        "path": "scripts/sid_player_artifacts.mjs",
+        "bytes": 6146,
+        "sha256": "c1ca5f704d8fad3bbd0612085ee0753c4ec58cd9ad904132898ddd9a35f3b155"
+      },
+      {
+        "path": "scripts/prepare_sid_core.py",
+        "bytes": 3625,
+        "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+      },
+      {
+        "path": "third_party/chips-c64/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-c64/README.md",
+        "bytes": 9970,
+        "sha256": "c07fa8929cce27aef62dd564443c6a151320a328345ee5575202dc3ebc0de8aa"
+      },
+      {
+        "path": "third_party/chips-c64/SOURCES.json",
+        "bytes": 1619,
+        "sha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/chips_common.h",
+        "bytes": 3477,
+        "sha256": "f5992674dc6ddecd88a19b146d2259ba1142e4d2fce9b0620b14c7783965bb7b"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/clk.h",
+        "bytes": 2037,
+        "sha256": "17b8791dbfcbe9d17203ea0b481f7674a8a3558cf4546c3196b6fb6e2736dcd1"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/kbd.h",
+        "bytes": 15708,
+        "sha256": "18f16af06fa483eebb1a7f6fdcac6299ef6b025198f8623e5b1a2de00218c364"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6522.h",
+        "bytes": 28897,
+        "sha256": "85ae4f49779b7e909a41fd979a6eb6afb5738e4a0c24ce1c76a8f4b376f218bd"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6526.h",
+        "bytes": 26154,
+        "sha256": "327a362b9b2235af55c0af712c527bce068633c98f76cdc0c8c4bb35e1d47393"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6569.h",
+        "bytes": 66024,
+        "sha256": "8ba7e2296e34eb486b8cd9f3488814ab1af22c418b2e06a7716e01cbed820d29"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/mem.h",
+        "bytes": 16608,
+        "sha256": "451a9c9c0545bfe724a164f655df2f255e4741bba1d7e0e7e980af865e9fbb49"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c1530.h",
+        "bytes": 8475,
+        "sha256": "fe90f38b06b3b9388ee39c1bb92db02ad120ffe81e528c1e6f97449484d83fbc"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c1541.h",
+        "bytes": 5364,
+        "sha256": "597511b00e9ee8d8c32b529b47eab26a8dbf675d42d314c0235ec9f040ac9890"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c64.h",
+        "bytes": 41974,
+        "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_core.h",
+        "bytes": 25178,
+        "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_wasm.cpp",
+        "bytes": 3751,
+        "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_machine.c",
+        "bytes": 1050,
+        "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_chip.cpp",
+        "bytes": 191,
+        "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+      },
+      {
+        "path": "scripts/build_sid_rsid_wasm.sh",
+        "bytes": 1020,
+        "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
+      },
+      {
+        "path": "scripts/sid_rsid_artifacts.mjs",
+        "bytes": 7593,
+        "sha256": "83aab4cfc0ccda73bac874b488128b071ec23c259bb9888d1c106193538b89ee"
+      }
+    ],
+    "wasm": {
+      "vbi": {
+        "bytes": 74326,
+        "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+      },
+      "c64": {
+        "bytes": 116131,
+        "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+      }
+    },
+    "sha256": "48017fe357bae18fc4128281895bde629d33e037eb607aa04ee660f21ea664b7"
+  },
+  "inputCount": 3297,
+  "completed": 3297,
+  "remaining": 0,
+  "complete": true,
+  "interrupted": false,
+  "resumed": false,
+  "newResults": 3297,
+  "discardedTailBytes": 0,
+  "policy": {
+    "version": 2,
+    "seconds": 2,
+    "sampleRate": 48000,
+    "frames": 96000,
+    "timeoutMs": 15000,
+    "vbiBackend": "c64",
+    "pathSelection": {
+      "kind": "listed-paths",
+      "count": 3297,
+      "sha256": "db124a8b7a08e651caab637183f0a2ba335657cf37a56524970594050eb1e0fc"
+    },
+    "psidInitValidation": "first-window PCM retained; pending init drained separately until RTS or native deadline",
+    "subtunes": "header-default-only",
+    "target": {
+      "clock": "pal",
+      "model": "6581",
+      "unknownOrEither": "explicit-choice",
+      "knownNtscOr8580": "reject"
+    },
+    "environment": "minimal",
+    "maxFileBytes": 65660,
+    "fileOrder": "case-sensitive-codepoint-path",
+    "followSymlinks": false,
+    "silence": "exact-zero; not a compatibility verdict",
+    "stopFrames": 128,
+    "workerRetireAfterFiles": 64,
+    "oversizedHash": "size+mtimeNs+bounded-header; no payload read or execution"
+  },
+  "inputManifest": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid-c64-vbi-retry-20261107/results.jsonl.inputs.json",
+    "sha256": "4ffe0e8bdf9fd82c6c0225fae8017416eea11c604a0c1b53014dc32d07f28a82"
+  },
+  "checkpoint": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid-c64-vbi-retry-20261107/results.jsonl",
+    "bytes": 3205753,
+    "sha256": "5fa642e82f713fad34bbe5c3cf02ded0271881f020b963d7958eba3b86412c79"
+  },
+  "statuses": {
+    "executed_nonzero": 3055,
+    "needs_rom": 195,
+    "executed_silent": 34,
+    "runtime_failed": 12,
+    "unsupported": 1
+  },
+  "backends": {
+    "vbi-c64": 3265,
+    "cia": 16,
+    "rsid": 16
+  },
+  "stages": {
+    "complete": 3089,
+    "load": 183,
+    "render": 22,
+    "init_validation": 3
+  },
+  "statusByBackend": {
+    "vbi-c64:executed_nonzero": 3039,
+    "vbi-c64:needs_rom": 195,
+    "vbi-c64:executed_silent": 18,
+    "vbi-c64:runtime_failed": 12,
+    "cia:executed_nonzero": 8,
+    "cia:executed_silent": 8,
+    "rsid:executed_nonzero": 8,
+    "rsid:executed_silent": 8,
+    "vbi-c64:unsupported": 1
+  },
+  "errorStageCode": {
+    "vbi-c64:needs_rom:load:4": 177,
+    "vbi-c64:needs_rom:render:4": 18,
+    "vbi-c64:runtime_failed:load:12": 5,
+    "vbi-c64:runtime_failed:render:12": 4,
+    "vbi-c64:runtime_failed:init_validation:11": 3,
+    "vbi-c64:unsupported:load:3": 1
+  },
+  "reasons": {
+    "needs_rom: 4: This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set": 195,
+    "runtime_failed: 12: PSID VBI play routine did not return within 16000 machine cycles": 9,
+    "runtime_failed: 11: PSID VBI initialization did not return within 2000000 machine cycles": 3,
+    "unsupported: 3: This PSID accesses unsupported C64 I/O expansion hardware": 1
+  },
+  "examples": {
+    "needs_rom: 4: This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set": [
+      {
+        "path": "DEMOS/A-F/Big_Boing.sid",
+        "subtune": 1,
+        "address": 40960,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/G-L/Ironfist_01.sid",
+        "subtune": 1,
+        "address": 41346,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/M-R/Nameless.sid",
+        "subtune": 1,
+        "address": 65281,
+        "phase": "load"
+      }
+    ],
+    "runtime_failed: 12: PSID VBI play routine did not return within 16000 machine cycles": [
+      {
+        "path": "GAMES/A-F/Blockbusters_1988.sid",
+        "subtune": 1,
+        "address": 22231,
+        "phase": "play"
+      },
+      {
+        "path": "GAMES/A-F/Donkey_Kong.sid",
+        "subtune": 1,
+        "address": 37168,
+        "phase": "play"
+      },
+      {
+        "path": "GAMES/M-R/Phalsberg.sid",
+        "subtune": 1,
+        "address": 49907,
+        "phase": "play"
+      }
+    ],
+    "runtime_failed: 11: PSID VBI initialization did not return within 2000000 machine cycles": [
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Simulcra.sid",
+        "subtune": 1,
+        "address": 4362,
+        "phase": "init"
+      },
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Slanted.sid",
+        "subtune": 1,
+        "address": 4351,
+        "phase": "init"
+      },
+      {
+        "path": "MUSICIANS/J/Julian_Jaymz/Square_Two.sid",
+        "subtune": 1,
+        "address": 4362,
+        "phase": "init"
+      }
+    ],
+    "unsupported: 3: This PSID accesses unsupported C64 I/O expansion hardware": [
+      {
+        "path": "MUSICIANS/P/Prosonix/Lynx/Rawhead_Introtune_2.sid",
+        "subtune": 1,
+        "address": 57005,
+        "phase": "load"
+      }
+    ]
+  },
+  "elapsedMs": 258779,
+  "limitations": [
+    "Default header subtune only; other subtunes are untested.",
+    "Finite PCM and Stop checks do not establish whole-song or real-hardware accuracy.",
+    "Silent output is a measurement, not proof that a tune is broken; D418 digi remains unmodeled.",
+    "Metadata rejection records the first failed rule, not every unsupported feature.",
+    "Observed ROM access does not establish that supplied firmware would make a tune compatible.",
+    "Minimal environment only; no user ROMs were loaded and no game music, ROM or PCM was copied."
+  ]
+}

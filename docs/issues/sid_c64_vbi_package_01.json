@@ -1,0 +1,130 @@
+{
+  "format": "tetorica-c64-vbi-package-check",
+  "version": 1,
+  "passed": true,
+  "packageVersion": "0.0.7-c64-vbi-preview",
+  "archive": "release/tetorica_sid_player_0.0.7-c64-vbi-preview_itch.zip",
+  "extracted": "release/sid-player-0.0.7-c64-vbi-preview-extracted",
+  "files": 80,
+  "browserModules": 10,
+  "archiveRecord": {
+    "bytes": 1573534,
+    "sha256": "730c1c4d596506e96fba6cca40cbcc73c20d097f57a38c300697a9c6887ed895"
+  },
+  "builder": {
+    "name": "source-copy",
+    "minify": false,
+    "bundle": false,
+    "dependencyAnalyzer": {
+      "name": "esbuild",
+      "version": "0.28.2"
+    }
+  },
+  "originalInputs": 68,
+  "sourceArchive": {
+    "path": "sources/sid-player-browser-inputs.zip",
+    "bytes": 754394,
+    "sha256": "b65b912fbec78827a773ad9dbe02f3e4302e28a70b38f6458fe159ad16a02921"
+  },
+  "nativeArtifacts": [
+    {
+      "component": "sid-player",
+      "output": {
+        "bytes": 74326,
+        "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+      },
+      "inputsChecked": 14
+    },
+    {
+      "component": "sid-rsid",
+      "output": {
+        "bytes": 116131,
+        "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+      },
+      "inputsChecked": 29
+    }
+  ],
+  "tests": {
+    "sidPlayer": {
+      "passed": 93,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sidCorpus": {
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sidReference": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "zipValidation": {
+    "outerCrcPassed": true,
+    "nestedSourceCrcPassed": true,
+    "allInputHashesMatched": true,
+    "extractedFilesByteIdentical": true,
+    "readableModulesMatchCurrentSource": true,
+    "nativeSourceKitHashesMatched": true,
+    "userRomAndGameFilesAbsent": true
+  },
+  "compatibilityLimits": {
+    "target": "PAL, one 6581 approximation",
+    "defaultBrowserVbiBackend": "C64 machine VIC/CIA",
+    "legacyDirectVbiAvailable": true,
+    "machineDriverRequiresFreeAlwaysVisiblePage": true,
+    "vbiInitDeadlineCycles": 2000000,
+    "known8580Supported": false,
+    "realC64FirmwareVerified": false
+  },
+  "published": false,
+  "browserChecks": {
+    "passed": true,
+    "total": 124,
+    "reports": [
+      {
+        "path": "docs/issues/sid_c64_vbi_browser_01.json",
+        "sha256": "03a9cbbff9e5ee7c10cd747c291d8165cc347bf4ffcb32412f572228d336d998",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 31
+          },
+          {
+            "engine": "webkit",
+            "checks": 31
+          }
+        ]
+      },
+      {
+        "path": "docs/issues/sid_c64_vbi_zip_browser_01.json",
+        "sha256": "0096c65f8afcc643a3ccdbf39a03cab7b44f0a011264528e6b1a93017d59e0cc",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 31
+          },
+          {
+            "engine": "webkit",
+            "checks": 31
+          }
+        ]
+      }
+    ]
+  },
+  "browserChecker": {
+    "path": "scripts/check_sid_player_browser.cjs",
+    "bytes": 58631,
+    "sha256": "99b1b2d6eb444e0fecf69143e576e84c4563248585fc5a5aa4625db603710b9b"
+  },
+  "supportingEvidence": [
+    "docs/issues/sid_c64_vbi_verification_01.json",
+    "docs/issues/sid_c64_vbi_sourcekit_01.json",
+    "docs/issues/sid_c64_vbi_retry_01.json",
+    "docs/issues/sid_c64_vbi_retry_comparison_01.json"
+  ]
+}

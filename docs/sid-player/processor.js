@@ -7,7 +7,7 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
     super(); this.dead = false; this.core = null; this.playing = false;
     this.port.onmessage = ({data}) => this.receive(data);
-    const Core = processorOptions.backend === 'rsid' || processorOptions.backend === 'psid-cia' ? RsidPlayerCore : SidPlayerCore;
+    const Core = ['rsid', 'psid-cia', 'psid-vbi'].includes(processorOptions.backend) ? RsidPlayerCore : SidPlayerCore;
     this.ready = Core.create({sampleRate, wasmBinary: processorOptions.wasmBinary}).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.core = core; this.port.postMessage({ready: true});

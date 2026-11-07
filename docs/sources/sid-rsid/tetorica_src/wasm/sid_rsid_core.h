@@ -27,10 +27,10 @@ namespace tetorica {
 class SidRsidCore {
 public:
     static constexpr unsigned clockHz = 985248, outputCapacity = 4096, queueCapacity = 16384, traceCapacity = 4096;
-    static constexpr unsigned preflightCycles = 100000, fullBootCycles = 2000000;
+    static constexpr unsigned preflightCycles = 100000, fullBootCycles = 2000000, vbiInitCycleLimit = 2000000;
     enum State : unsigned { Empty = 0, Running = 1, Stopped = 2, Error = 3 };
     enum ErrorCode : unsigned { None = 0, InvalidArguments = 1, InvalidProgramRange = 2,
-        MissingRom = 4, CpuJam = 6, AudioQueueFull = 7, BasicNeedsRoms = 10,
+        UnsupportedIo = 3, MissingRom = 4, CpuJam = 6, AudioQueueFull = 7, BasicNeedsRoms = 10,
         InitTimeout = 11, PlayTimeout = 12, InvalidDriverPage = 13 };
     struct TraceEntry { uint32_t cycleLow, cycleHigh, reg, value; };
     explicit SidRsidCore(unsigned sampleRate) : sampleRate_(sampleRate) {}
@@ -39,13 +39,17 @@ public:
     uint8_t* romInput() { return romInput_.data(); }
     float* output() { return output_.data(); }
     bool load(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned subtune, unsigned basic, unsigned useRoms) {
-        return loadMode(length,loadAddress,initAddress,0,subtune,basic,useRoms,false,0);
+        return loadMode(length,loadAddress,initAddress,0,subtune,basic,useRoms,false,0,false);
     }
     bool loadPsid(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned useRoms, unsigned driverPage = 0) {
-        return loadMode(length,loadAddress,initAddress,playAddress,subtune,0,useRoms,true,driverPage);
+        return loadMode(length,loadAddress,initAddress,playAddress,subtune,0,useRoms,true,driverPage,false);
+    }
+    bool loadPsidVbi(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned useRoms, unsigned driverPage = 0) {
+        return loadMode(length,loadAddress,initAddress,playAddress,subtune,0,useRoms,true,driverPage,true);
     }
 private:
-    bool loadMode(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned basic, unsigned useRoms, bool psid, unsigned driverPage) {
+    bool loadMode(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned basic, unsigned useRoms, bool psid, unsigned driverPage, bool vbi) {
+        psidVbi_ = vbi; // Select diagnostics even for a rejected VBI driver page.
         if (!length || length > input_.size() || subtune > 255 || basic > 1 || useRoms > 1) return fail(InvalidArguments);
         const uint64_t end = uint64_t(loadAddress) + length;
         if (psid ? (loadAddress < 0x0800 || end > 0xd000 || initAddress < loadAddress || initAddress >= end
@@ -64,7 +68,7 @@ private:
         cycles_ = bootCycles_ = initCycles_ = initReturnCycle_ = 0;
         irqCount_ = nmiCount_ = readCount_ = writeCount_ = traceCount_ = droppedTrace_ = 0;
         previousInterrupts_ = 0; initReturned_ = initSeen_ = false;
-        psid_ = psid; driverAddress_ = 0; playAddress_ = playAddress; playCalls_ = 0; playPending_ = playActive_ = false;
+        psid_ = psid; psidVbi_ = vbi; vbiInitStarted_ = false; driverAddress_ = 0; playAddress_ = playAddress; playCalls_ = 0; playPending_ = playActive_ = false;
         useRoms_ = useRoms != 0; basic_ = basic != 0; initAddress_ = initAddress;
         discardAudio_ = useRoms_; clearAudio(); registers_.fill(0);
         if (!useRoms_) prepareShim(initAddress, static_cast<uint8_t>(subtune));
@@ -100,9 +104,11 @@ private:
         }
         if (psid_ && !preparePsidCaller(initAddress,playAddress,static_cast<uint8_t>(subtune),driverPage)) return false;
         const uint64_t start = cycles_;
+        initStartCycle_ = start; vbiInitStarted_ = psidVbi_;
         while (cycles_ - start < preflightCycles && state_ == Running) tick();
-        initCycles_ = static_cast<unsigned>(cycles_ - start);
-        if (psid_ && state_ == Running && !initReturned_) return fail(InitTimeout,initAddress_);
+        if (psidVbi_) initCycles_ = static_cast<unsigned>((initReturned_ ? initReturnCycle_ + 1 : cycles_) - start);
+        else initCycles_ = static_cast<unsigned>(cycles_ - start);
+        if (psid_ && !psidVbi_ && state_ == Running && !initReturned_) return fail(InitTimeout,initAddress_);
         return state_ == Running;
     }
 public:
@@ -131,13 +137,17 @@ public:
         case None: return "";
         case InvalidArguments: return "Invalid SID machine host arguments or render size";
         case InvalidProgramRange: return "Invalid SID RAM range or initialization/play entry";
+        case UnsupportedIo: return "This PSID accesses unsupported C64 I/O expansion hardware";
         case MissingRom: return "This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set";
         case CpuJam: return "SID execution reached a CPU JAM/KIL instruction";
         case AudioQueueFull: return "SID preflight exceeded the bounded audio queue";
         case BasicNeedsRoms: return "RSID BASIC playback requires your character, BASIC and KERNAL ROMs";
-        case InitTimeout: return "PSID initialization did not return within 100000 machine cycles";
-        case PlayTimeout: return "PSID CIA play routine did not return within 16000 machine cycles";
-        case InvalidDriverPage: return "PSID CIA needs one nonoverlapping always-visible RAM page for its driver";
+        case InitTimeout: return psidVbi_ ? "PSID VBI initialization did not return within 2000000 machine cycles"
+            : "PSID initialization did not return within 100000 machine cycles";
+        case PlayTimeout: return psidVbi_ ? "PSID VBI play routine did not return within 16000 machine cycles"
+            : "PSID CIA play routine did not return within 16000 machine cycles";
+        case InvalidDriverPage: return psidVbi_ ? "PSID VBI needs one nonoverlapping always-visible RAM page for its driver"
+            : "PSID CIA needs one nonoverlapping always-visible RAM page for its driver";
         }
         return "RSID host error";
     }
@@ -145,6 +155,8 @@ public:
     uint64_t bootCycles() const { return bootCycles_; }
     unsigned initCycles() const { return initCycles_; }
     bool initReturned() const { return initReturned_; }
+    bool initPending() const { return psidVbi_ && state_ == Running && !initReturned_; }
+    unsigned initLimit() const { return psidVbi_ ? vbiInitCycleLimit : psid_ ? preflightCycles : 0; }
     uint64_t initReturnCycle() const { return initReturnCycle_; }
     unsigned irqCount() const { return irqCount_; }
     unsigned nmiCount() const { return nmiCount_; }
@@ -218,7 +230,9 @@ private:
         playReturnAddress_ = cursor;
         // A play routine may inspect the triggering ICR flags itself. Read to
         // acknowledge only after play, with I/O visible even if it left bank35.
-        put({0xa9,0x37,0x85,0x01,0xad,0x0d,0xdc});
+        put({0xa9,0x37,0x85,0x01});
+        if (psidVbi_) put({0xa9,0x01,0x8d,0x19,0xd0}); // VIC raster flag is write-one-to-clear
+        put({0xad,0x0d,0xdc});
         put({0x68,0x85,0x01,0x68,0xa8,0x68,0xaa,0x68,0x40}); // bank, Y, X, A, RTI
         // A benign NMI handler is also in RAM, so a tune may bank KERNAL out.
         cursor = nmiAddress; limit = callerAddress;
@@ -243,11 +257,12 @@ private:
         };
         put({0x78,0xd8,0xa2,0xff,0x9a});
         sta(1,0x37); sta(0,0x2f); sta(0x02a6,1);
-        sta(0xd01a,0); sta(0xd019,0x0f);
+        if (psidVbi_) { sta(0xd011,0x1b); sta(0xd012,0); }
+        sta(0xd01a,psidVbi_ ? 1 : 0); sta(0xd019,0x0f);
         sta(0xdc0e,0); sta(0xdc0f,0); sta(0xdd0e,0); sta(0xdd0f,0);
         sta(0xdc0d,0x7f); sta(0xdd0d,0x7f); put({0xad,0x0d,0xdc,0xad,0x0d,0xdd});
         for (unsigned address : {0xdc06,0xdc07,0xdd04,0xdd05,0xdd06,0xdd07}) sta(address,0xff);
-        sta(0xdc04,0x25); sta(0xdc05,0x40); sta(0xdc0d,0x81); sta(0xdc0e,0x11);
+        sta(0xdc04,0x25); sta(0xdc05,0x40); sta(0xdc0d,psidVbi_ ? 0 : 0x81); sta(0xdc0e,0x11);
         sta(1,initAddress < 0xa000 ? 0x37 : 0x36);
         put({0x4c,static_cast<uint8_t>(callerAddress),static_cast<uint8_t>(callerAddress >> 8)});
         if (overflow) return fail(InvalidDriverPage,base);
@@ -314,6 +329,7 @@ private:
         if (state_ != Running) return;
         const uint64_t pins = machine_.pins;
         const unsigned address = M6502_GET_ADDR(pins);
+        if (psidVbi_ && machine_.io_mapped && address >= 0xde00 && address <= 0xdfff) { fail(UnsupportedIo,address); return; }
         if (!useRoms_ && (pins & M6502_RW) && !allowedRomRead(address)) { fail(MissingRom,address); return; }
         if (pins & M6502_SYNC) {
             const uint8_t opcode = M6502_GET_DATA(pins);
@@ -323,7 +339,10 @@ private:
             }
             if (address == initAddress_) initSeen_ = true;
             const unsigned returned = useRoms_ && !psid_ ? c64_syscall_return_addr() : idleAddress_;
-            if (!basic_ && initSeen_ && !initReturned_ && address == returned) { initReturned_ = true; initReturnCycle_ = cycles_; }
+            if (!basic_ && initSeen_ && !initReturned_ && address == returned) {
+                initReturned_ = true; initReturnCycle_ = cycles_;
+                if (psidVbi_ && vbiInitStarted_) initCycles_ = static_cast<unsigned>(cycles_ + 1 - initStartCycle_);
+            }
             if (psid_) {
                 if (address == playCallAddress_) playPending_ = true;
                 else if (playPending_ && address == playAddress_) {
@@ -331,6 +350,10 @@ private:
                 }
                 if (playActive_ && address == playReturnAddress_) playActive_ = false;
             }
+        }
+        if (psidVbi_ && vbiInitStarted_ && !initReturned_) {
+            initCycles_ = static_cast<unsigned>(cycles_ + 1 - initStartCycle_);
+            if (initCycles_ >= vbiInitCycleLimit) { fail(InitTimeout,address); return; }
         }
         if (playActive_ && cycles_ - playStartCycle_ >= 16000) { fail(PlayTimeout,address); return; }
         const uint64_t interrupts = pins & (M6502_IRQ | M6502_NMI);
@@ -364,8 +387,8 @@ private:
     unsigned initCycles_ = 0,irqCount_ = 0,nmiCount_ = 0,readCount_ = 0,writeCount_ = 0,playCalls_ = 0;
     unsigned queueRead_ = 0,queueCount_ = 0,traceCount_ = 0,droppedTrace_ = 0;
     bool useRoms_ = false,basic_ = false,discardAudio_ = false,initReturned_ = false,initSeen_ = false;
-    bool psid_ = false,playPending_ = false,playActive_ = false;
-    uint64_t playStartCycle_ = 0;
+    bool psid_ = false,psidVbi_ = false,vbiInitStarted_ = false,playPending_ = false,playActive_ = false;
+    uint64_t playStartCycle_ = 0,initStartCycle_ = 0;
     double previousInput_ = 0,previousOutput_ = 0,dcPole_ = 0;
 };
 }

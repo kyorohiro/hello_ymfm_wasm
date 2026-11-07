@@ -1,0 +1,775 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "entry": "/sid-player/index.html",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "fixtures": "Self-authored PSID/RSID programs and synthetic test firmware only; no game music or Commodore ROM dumps",
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "local readable player loads without audio; selecting a demo preflights its real CPU and metadata",
+        "Stop cancels delayed audio startup and no stale Play becomes audible",
+        "all four local demos produce finite real PCM and program-driven voice/filter changes",
+        "unknown PSID targets preserve the old sound until explicit PAL/6581 choices reach real playback",
+        "cancelling an unknown-PSID subtune does not cache its draft as the Apply target",
+        "PSID VBI ignores pending ROM files, CIA guards them, and known NTSC/8580 remain refused",
+        "mixed PSID songs select real VBI or CIA playback and never autoplay after changing backend",
+        "CIA candidate CPU faults keep the playing machine and Stop cancels a cross-backend subtune transition",
+        "positive relocation preserves raw metadata and runs CIA from its declared free driver page",
+        "VBI accepts FF/0 while unsupported CIA or malformed relocation keeps the old playing song",
+        "file selection exposes two subtunes and passes the selected init A value into actual SID frequency",
+        "Stop cancels a pending subtune preflight and restores the accepted selector and actual tune",
+        "synthetic persisted pagehide stops audio while pageshow leaves the selected tune and controls usable",
+        "cancel, malformed PSID and CPU preflight errors keep the selected and currently playing tune",
+        "Master is post-player, doubles amplitude and supports orange 380 percent",
+        "Stop fences a pending start command, then fresh Play restarts from the selected file",
+        "a bounded runtime CPU fault becomes silent and a valid demo recovers without reloading the page",
+        "PAL and bank setup, indexed SID stores and phase-specific CPU diagnostics work through the real VBI worklet",
+        "C64 VBI streams a long init, stops and restarts pending audio, and keeps accepted backend settings",
+        "pending machine-VBI candidate cancellation and delayed init faults preserve the accepted tune",
+        "local RSID demo executes continuous CIA interrupts and drives real SID pulse width",
+        "RSID raster IRQ, CIA2 NMI under SEI and a reprogrammed CIA timer all render real machine audio",
+        "RSID init can remain in a busy loop while hardware IRQs and audio continue",
+        "numeric RSID CPU/ROM preflight errors preserve the currently playing machine",
+        "unknown RSID hints require explicit PAL/6581 choice; known NTSC cannot be overridden",
+        "BASIC requires explicit in-memory user ROMs and synthetic ROM execution preserves subtune selection",
+        "an aborted RSID subtune candidate never becomes the Apply retry target",
+        "stale ROM reads and unapplied environment settings never replace accepted firmware",
+        "invalid ROM replacement keeps prior firmware and audio; Stop cancels RSID-specific startup",
+        "PSID and RSID backend switching keeps output ownership and never stores supplied ROMs",
+        "one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local"
+      ],
+      "measurements": {
+        "demos": {
+          "tone": {
+            "rms": 0.02011765988156793,
+            "peak": 0.034535448998212814,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "pulse": {
+            "rms": 0.02506303636094916,
+            "peak": 0.06724881380796432,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 3
+          },
+          "noise": {
+            "rms": 0.016510168714205777,
+            "peak": 0.06433387845754623,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "melody-filter": {
+            "rms": 0.016825165578493232,
+            "peak": 0.06292200833559036,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 3,
+            "distinctPulseWidths": 1
+          }
+        },
+        "psidCia": {
+          "timing": "cia",
+          "playCalls": 401,
+          "irqCount": 401,
+          "rms": 0.04292617988141797,
+          "savedRomsAcrossVbi": {
+            "preserved": true,
+            "pendingReplacementIgnored": true,
+            "restartAfterBadReplacement": true
+          }
+        },
+        "relocation": {
+          "declaredStartPage": 32,
+          "declaredLength": 1,
+          "actualDriver": 8192,
+          "audiblePcm": true
+        },
+        "persistedLifecycle": {
+          "syntheticEvents": true,
+          "retainedSubtune": 2,
+          "restarted": true
+        },
+        "masterRatio": 1.9995995476853798,
+        "vbiEnvironment": {
+          "palFrequency": 7493,
+          "bankInit": 7,
+          "bankPlay": 6,
+          "indexedStoreSucceeded": true,
+          "namedCandidateErrorsKeptOldSound": true
+        },
+        "machineVbi": {
+          "pendingAudioStoppedAndRestarted": true,
+          "initCycles": 849132,
+          "acceptedBackendKept": true,
+          "explicitDirectRetry": true,
+          "pendingCandidateCancelled": true,
+          "delayedFaultsKeptOldSound": true
+        },
+        "rsidDemo": {
+          "irqCount": 481,
+          "distinctPulseWidths": 5
+        },
+        "rsidProfiles": {
+          "raster-irq": {
+            "rms": 0.04329174804166107,
+            "peak": 0.04602602869272232,
+            "irqCount": 14,
+            "nmiCount": 0
+          },
+          "cia-nmi": {
+            "rms": 0.04315570534708529,
+            "peak": 0.05037275329232216,
+            "irqCount": 0,
+            "nmiCount": 280
+          },
+          "multispeed": {
+            "rms": 0.043258452256286335,
+            "peak": 0.04792298004031181,
+            "irqCount": 134,
+            "nmiCount": 0
+          }
+        },
+        "romTest": {
+          "syntheticTestRomsOnly": true,
+          "provesRomRamRunAndSongPlumbing": true,
+          "provesBasicInterpreterCompatibility": false,
+          "bootCycles": 2000000
+        },
+        "layouts": [
+          {
+            "width": 1180,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3,
+            "romFilesVisible": true
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3,
+            "romFilesVisible": true
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        }
+      ],
+      "finalSample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "local readable player loads without audio; selecting a demo preflights its real CPU and metadata",
+        "Stop cancels delayed audio startup and no stale Play becomes audible",
+        "all four local demos produce finite real PCM and program-driven voice/filter changes",
+        "unknown PSID targets preserve the old sound until explicit PAL/6581 choices reach real playback",
+        "cancelling an unknown-PSID subtune does not cache its draft as the Apply target",
+        "PSID VBI ignores pending ROM files, CIA guards them, and known NTSC/8580 remain refused",
+        "mixed PSID songs select real VBI or CIA playback and never autoplay after changing backend",
+        "CIA candidate CPU faults keep the playing machine and Stop cancels a cross-backend subtune transition",
+        "positive relocation preserves raw metadata and runs CIA from its declared free driver page",
+        "VBI accepts FF/0 while unsupported CIA or malformed relocation keeps the old playing song",
+        "file selection exposes two subtunes and passes the selected init A value into actual SID frequency",
+        "Stop cancels a pending subtune preflight and restores the accepted selector and actual tune",
+        "synthetic persisted pagehide stops audio while pageshow leaves the selected tune and controls usable",
+        "cancel, malformed PSID and CPU preflight errors keep the selected and currently playing tune",
+        "Master is post-player, doubles amplitude and supports orange 380 percent",
+        "Stop fences a pending start command, then fresh Play restarts from the selected file",
+        "a bounded runtime CPU fault becomes silent and a valid demo recovers without reloading the page",
+        "PAL and bank setup, indexed SID stores and phase-specific CPU diagnostics work through the real VBI worklet",
+        "C64 VBI streams a long init, stops and restarts pending audio, and keeps accepted backend settings",
+        "pending machine-VBI candidate cancellation and delayed init faults preserve the accepted tune",
+        "local RSID demo executes continuous CIA interrupts and drives real SID pulse width",
+        "RSID raster IRQ, CIA2 NMI under SEI and a reprogrammed CIA timer all render real machine audio",
+        "RSID init can remain in a busy loop while hardware IRQs and audio continue",
+        "numeric RSID CPU/ROM preflight errors preserve the currently playing machine",
+        "unknown RSID hints require explicit PAL/6581 choice; known NTSC cannot be overridden",
+        "BASIC requires explicit in-memory user ROMs and synthetic ROM execution preserves subtune selection",
+        "an aborted RSID subtune candidate never becomes the Apply retry target",
+        "stale ROM reads and unapplied environment settings never replace accepted firmware",
+        "invalid ROM replacement keeps prior firmware and audio; Stop cancels RSID-specific startup",
+        "PSID and RSID backend switching keeps output ownership and never stores supplied ROMs",
+        "one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local"
+      ],
+      "measurements": {
+        "demos": {
+          "tone": {
+            "rms": 0.02014275565885107,
+            "peak": 0.03469128906726837,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "pulse": {
+            "rms": 0.02640428903699619,
+            "peak": 0.06724881380796432,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 3
+          },
+          "noise": {
+            "rms": 0.016510168714205777,
+            "peak": 0.06433387845754623,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "melody-filter": {
+            "rms": 0.017469375457671587,
+            "peak": 0.06292200833559036,
+            "cycles": 100000,
+            "backend": "c64",
+            "playCalls": 5,
+            "distinctCutoffs": 3,
+            "distinctPulseWidths": 1
+          }
+        },
+        "psidCia": {
+          "timing": "cia",
+          "playCalls": 415,
+          "irqCount": 415,
+          "rms": 0.042927151746102836,
+          "savedRomsAcrossVbi": {
+            "preserved": true,
+            "pendingReplacementIgnored": true,
+            "restartAfterBadReplacement": true
+          }
+        },
+        "relocation": {
+          "declaredStartPage": 32,
+          "declaredLength": 1,
+          "actualDriver": 8192,
+          "audiblePcm": true
+        },
+        "persistedLifecycle": {
+          "syntheticEvents": true,
+          "retainedSubtune": 2,
+          "restarted": true
+        },
+        "masterRatio": 1.999977036336657,
+        "vbiEnvironment": {
+          "palFrequency": 7493,
+          "bankInit": 7,
+          "bankPlay": 6,
+          "indexedStoreSucceeded": true,
+          "namedCandidateErrorsKeptOldSound": true
+        },
+        "machineVbi": {
+          "pendingAudioStoppedAndRestarted": true,
+          "initCycles": 849132,
+          "acceptedBackendKept": true,
+          "explicitDirectRetry": true,
+          "pendingCandidateCancelled": true,
+          "delayedFaultsKeptOldSound": true
+        },
+        "rsidDemo": {
+          "irqCount": 469,
+          "distinctPulseWidths": 5
+        },
+        "rsidProfiles": {
+          "raster-irq": {
+            "rms": 0.04328905481948496,
+            "peak": 0.045689698308706284,
+            "irqCount": 14,
+            "nmiCount": 0
+          },
+          "cia-nmi": {
+            "rms": 0.043152936586400854,
+            "peak": 0.05050527676939964,
+            "irqCount": 0,
+            "nmiCount": 272
+          },
+          "multispeed": {
+            "rms": 0.043248641508554876,
+            "peak": 0.04787519946694374,
+            "irqCount": 129,
+            "nmiCount": 0
+          }
+        },
+        "romTest": {
+          "syntheticTestRomsOnly": true,
+          "provesRomRamRunAndSongPlumbing": true,
+          "provesBasicInterpreterCompatibility": false,
+          "bootCycles": 2000000
+        },
+        "layouts": [
+          {
+            "width": 1180,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3,
+            "romFilesVisible": true
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3,
+            "romFilesVisible": true
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        }
+      ],
+      "finalSample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    }
+  ],
+  "checkerSha256": "99b1b2d6eb444e0fecf69143e576e84c4563248585fc5a5aa4625db603710b9b"
+}

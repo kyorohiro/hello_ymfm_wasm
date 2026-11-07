@@ -1,0 +1,632 @@
+{
+  "format": "tetorica-relocated-cia-regression-baseline",
+  "version": 1,
+  "wasmSha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e",
+  "seconds": 0.5,
+  "cases": [
+    {
+      "sampleRate": 44100,
+      "options": {
+        "driverRange": [
+          32,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 22050,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "pcmSha256": "e98dc6c7168b73bf9f9feb0bc830cdb100ecce9e1a7d75e6bc0a4dbed2dbe4ca",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 8267,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 8192
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    },
+    {
+      "sampleRate": 44100,
+      "options": {
+        "driverRange": [
+          207,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 22050,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "pcmSha256": "e98dc6c7168b73bf9f9feb0bc830cdb100ecce9e1a7d75e6bc0a4dbed2dbe4ca",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 53067,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 52992
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    },
+    {
+      "sampleRate": 48000,
+      "options": {
+        "driverRange": [
+          32,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 24000,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "pcmSha256": "527d77cbcc59ae70bea198576b4ff2c7f480a1a4871607de44916b5d36e5ab68",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 8267,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 8192
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    },
+    {
+      "sampleRate": 48000,
+      "options": {
+        "driverRange": [
+          207,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 24000,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "pcmSha256": "527d77cbcc59ae70bea198576b4ff2c7f480a1a4871607de44916b5d36e5ab68",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 53067,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 52992
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    },
+    {
+      "sampleRate": 96000,
+      "options": {
+        "driverRange": [
+          32,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 48000,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "pcmSha256": "1a625d8d37057719658a00a3fce4a4e11acf08bb78ae17c4d767d183e4d76570",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 8267,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 8192
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    },
+    {
+      "sampleRate": 96000,
+      "options": {
+        "driverRange": [
+          207,
+          1
+        ],
+        "protectLegacy": true,
+        "variable": true,
+        "bankAfterInit": 53,
+        "bankAfterPlay": 54
+      },
+      "frames": 48000,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "pcmSha256": "1a625d8d37057719658a00a3fce4a4e11acf08bb78ae17c4d767d183e4d76570",
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "playCalls": 243,
+        "readCount": 0,
+        "writeCount": 252,
+        "pc": 53067,
+        "registers": [
+          138,
+          58,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 13833413
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "driverAddress": 52992
+      },
+      "sentinels": [
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ]
+    }
+  ]
+}

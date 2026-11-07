@@ -4,7 +4,7 @@ import {open, readdir, readFile, mkdir, writeFile, lstat, truncate, realpath, un
 import {constants} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
-import {basename, dirname, relative, resolve, sep} from 'node:path';
+import {basename, dirname, relative, resolve, sep, isAbsolute} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {validateBrowserPsid, PSID_MAX_FILE_BYTES} from '../docs/js/sid_psid.js';
 import {validateBrowserRsid} from '../docs/js/sid_rsid.js';
@@ -37,6 +37,35 @@ async function* files(directory) {
     else if (entry.isFile() && /\.sid$/i.test(entry.name)) yield path;
     // Symlinks, including linked directories, are never followed.
   }
+}
+
+async function selectedPaths(directory, selection) {
+  if (selection === undefined) return null;
+  let values = selection;
+  if (typeof selection === 'string') {
+    const file = await open(selection, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile() || stat.size > 16 * 1024 * 1024) throw new Error('Path list must be a regular JSON file at most 16 MiB');
+      values = JSON.parse(await file.readFile('utf8'));
+    } finally {await file.close();}
+  }
+  if (!Array.isArray(values) || !values.length || values.length > 100000) throw new TypeError('paths must be a nonempty JSON array of at most 100000 relative SID paths');
+  const unique = new Set();
+  for (const path of values) {
+    if (typeof path !== 'string' || !path || path.length > 1024 || isAbsolute(path) || /^[A-Za-z]:/.test(path)
+      || path.includes('\\') || path.includes('\0') || !/\.sid$/i.test(path) || path.split('/').some(part => !part || part === '.' || part === '..'))
+      throw new Error('Path list entries must be relative .sid paths without traversal');
+    if (unique.has(path)) throw new Error(`Duplicate path list entry: ${path}`);
+    unique.add(path);
+    let current = directory;
+    for (const part of path.split('/')) {
+      current = resolve(current, part);
+      if ((await lstat(current)).isSymbolicLink()) throw new Error(`Path list must not follow symlinks: ${path}`);
+    }
+    if (!(await lstat(current)).isFile()) throw new Error(`Path list entry is not a regular SID file: ${path}`);
+  }
+  return [...unique].sort();
 }
 
 function header(bytes) {
@@ -157,23 +186,28 @@ async function outputPath(path, corpus) {
  * Silence is measured, not labeled broken. extraSourceFiles is fingerprint-only.
  */
 async function auditSidCorpusUnlocked({root, checkpoint, out, seconds = 2, sampleRate = 48000,
-  workers = 2, timeoutMs = 15000, resume = false, signal, onProgress = () => {}, extraSourceFiles = []} = {}) {
+  workers = 2, timeoutMs = 15000, resume = false, signal, onProgress = () => {}, extraSourceFiles = [], paths, vbiBackend = 'c64'} = {}) {
   if (typeof root !== 'string' || !root || typeof checkpoint !== 'string' || !checkpoint) throw new TypeError('Explicit root and checkpoint paths are required');
   if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 60) throw new RangeError('seconds must be greater than 0 and at most 60');
   integer(sampleRate, 8000, 96000, 'sampleRate'); integer(workers, 1, 16, 'workers'); integer(timeoutMs, 100, 300000, 'timeoutMs');
+  if (!['c64', 'direct'].includes(vbiBackend)) throw new RangeError('vbiBackend must be c64 or direct');
   const requestedRoot = resolve(root), rootStat = await lstat(requestedRoot);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error('Corpus root must be a real directory, not a symlink');
   const directory = await realpath(requestedRoot), destination = await outputPath(checkpoint, directory);
   const manifestPath = `${destination}.inputs.json`, output = out ? await outputPath(out, directory) : null;
   if (output && [destination, manifestPath, `${destination}.lock`].includes(output)) throw new Error('Summary, checkpoint, lock and input manifest must have different paths');
   await outputPath(manifestPath, directory);
-  const policy = {version: 1, seconds, sampleRate, frames: Math.round(seconds * sampleRate), timeoutMs,
+  const listedPaths = await selectedPaths(directory, paths);
+  const policy = {version: 2, seconds, sampleRate, frames: Math.round(seconds * sampleRate), timeoutMs, vbiBackend,
+    pathSelection: listedPaths ? {kind: 'listed-paths', count: listedPaths.length, sha256: digestJson(listedPaths)} : {kind: 'all-sid-files'},
+    psidInitValidation: 'first-window PCM retained; pending init drained separately until RTS or native deadline',
     subtunes: 'header-default-only', target: {clock: 'pal', model: '6581', unknownOrEither: 'explicit-choice', knownNtscOr8580: 'reject'},
     environment: 'minimal', maxFileBytes: PSID_MAX_FILE_BYTES, fileOrder: 'case-sensitive-codepoint-path',
     followSymlinks: false, silence: 'exact-zero; not a compatibility verdict', stopFrames: 128, workerRetireAfterFiles: 64,
     oversizedHash: 'size+mtimeNs+bounded-header; no payload read or execution'};
   const fingerprint = await corpusFingerprint({policy, extraSourceFiles}), inventory = [];
-  for await (const absolute of files(directory)) {
+  const candidates = listedPaths ? listedPaths.map(path => resolve(directory, path)) : files(directory);
+  for await (const absolute of candidates) {
     if (signal?.aborted) throw abortError();
     const entry = await input(absolute);
     inventory.push({index: inventory.length, path: relative(directory, absolute).replaceAll('\\', '/'), absolute,
@@ -234,13 +268,14 @@ async function auditSidCorpusUnlocked({root, checkpoint, out, seconds = 2, sampl
           if (entry.oversized) {const error = new Error(`SID file exceeds ${PSID_MAX_FILE_BYTES} bytes`); error.code = 'SID_LIMIT'; throw error;}
           parsed = entry.header.format === 'RSID'
             ? validateBrowserRsid(entry.bytes, {clock: 'pal', model: '6581', environment: 'minimal'})
-            : validateBrowserPsid(entry.bytes, {clock: 'pal', model: '6581'});
+            : validateBrowserPsid(entry.bytes, {clock: 'pal', model: '6581', vbiBackend});
         } catch (error) {await save(metadataResult(item, error)); continue;}
-        const backend = parsed.format === 'RSID' ? 'rsid' : parsed.timing === 'cia' ? 'cia' : 'vbi';
-        const options = {subtune: parsed.subtune, clock: 'pal', model: '6581', ...(backend === 'vbi' ? {} : {environment: 'minimal'})};
+        const backend = parsed.format === 'RSID' ? 'rsid' : parsed.timing === 'cia' ? 'cia' : parsed.playbackBackend === 'c64' ? 'vbi-c64' : 'vbi';
+        const options = {subtune: parsed.subtune, clock: 'pal', model: '6581', vbiBackend, ...(backend === 'vbi' ? {} : {environment: 'minimal'})};
         const result = await runner.run(slot, {bytes: entry.bytes, backend, options, sampleRate, frames: policy.frames});
         await save({type: 'result', index: item.index, path: item.path, input: item.input, header: item.header,
-          selection: {subtune: parsed.subtune, timing: parsed.timing, clock: parsed.selectedClock, model: parsed.selectedModel, choices: parsed.selection}, ...result});
+          selection: {subtune: parsed.subtune, timing: parsed.timing, playbackBackend: parsed.playbackBackend ?? 'c64',
+            clock: parsed.selectedClock, model: parsed.selectedModel, choices: parsed.selection}, ...result});
       }} catch (error) {controller.abort(); throw error;}
     }));
     const failed = outcomes.find(result => result.status === 'rejected' && result.reason.name !== 'AbortError');
@@ -313,8 +348,8 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
   for (let i = 2; i < process.argv.length; i++) {
     const flag = process.argv[i];
     if (flag === '--resume') {options.resume = true; continue;}
-    if (!['--root', '--checkpoint', '--out', '--seconds', '--sample-rate', '--workers', '--timeout-ms'].includes(flag) || !process.argv[i + 1]) throw new Error('Usage: node scripts/check_sid_corpus.mjs --root LOCAL_C64MUSIC --checkpoint RESULTS.jsonl [--out SUMMARY.json] [--resume] [--seconds 2] [--sample-rate 48000] [--workers 2] [--timeout-ms 15000]');
-    const key = {'--sample-rate': 'sampleRate', '--timeout-ms': 'timeoutMs'}[flag] ?? flag.slice(2);
+    if (!['--root', '--checkpoint', '--out', '--seconds', '--sample-rate', '--workers', '--timeout-ms', '--paths', '--vbi-backend'].includes(flag) || !process.argv[i + 1]) throw new Error('Usage: node scripts/check_sid_corpus.mjs --root LOCAL_C64MUSIC --checkpoint RESULTS.jsonl [--out SUMMARY.json] [--resume] [--paths RELATIVE_PATHS.json] [--vbi-backend c64|direct] [--seconds 2] [--sample-rate 48000] [--workers 2] [--timeout-ms 15000]');
+    const key = {'--sample-rate': 'sampleRate', '--timeout-ms': 'timeoutMs', '--vbi-backend': 'vbiBackend'}[flag] ?? flag.slice(2);
     const value = process.argv[++i]; options[key] = ['seconds', 'sampleRate', 'workers', 'timeoutMs'].includes(key) ? Number(value) : value;
   }
   const controller = new AbortController(); options.signal = controller.signal;

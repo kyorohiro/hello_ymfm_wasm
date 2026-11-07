@@ -34,7 +34,7 @@
     "check:sid-reference": "node scripts/check_sid_reference.mjs",
     "sid:reference": "node tetorica_src/cli/sid_reference.mjs",
     "build:sid-player": "sh scripts/build_sid_player_wasm.sh",
-    "test:sid-player": "node --test test/sid_psid_browser.test.mjs test/sid_player_integration.test.mjs test/sid_player_audio.test.mjs test/sid_player_hvsc_metadata.test.mjs test/sid_player_roms.test.mjs test/sid_rsid.test.mjs test/rsid_player_integration.test.mjs test/psid_cia_player_integration.test.mjs scripts/package_sid_player.test.mjs",
+    "test:sid-player": "node --test test/sid_psid_browser.test.mjs test/sid_player_integration.test.mjs test/sid_player_audio.test.mjs test/sid_player_hvsc_metadata.test.mjs test/sid_player_roms.test.mjs test/sid_rsid.test.mjs test/rsid_player_integration.test.mjs test/psid_cia_player_integration.test.mjs test/psid_vbi_machine_integration.test.mjs scripts/package_sid_player.test.mjs",
     "build:sid-rsid": "sh scripts/build_sid_rsid_wasm.sh",
     "test:sid-player:browser": "node scripts/check_sid_player_browser.cjs",
     "check:sid-corpus": "node scripts/check_sid_corpus.mjs",

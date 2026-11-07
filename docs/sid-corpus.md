@@ -2,7 +2,7 @@
 
 The repository's `check:sid-corpus` tool checks local `.sid` files without opening an audio device. It reads metadata for every file and runs the header's **default subtune only** when the current player accepts it. No songs, firmware or PCM are copied into the report or distribution.
 
-The audit uses the same current WASM backends as [SID Player](sid-player/README.md): bounded PSID VBI, CIA-driven PSID and continuous C64 RSID. The target is explicitly **PAL / 6581**, including unknown/either hints; known NTSC, 8580, multi-SID and other unsupported inputs remain rejected. Only the limited ROM-free environment is used. A ROM-access result does not establish that supplying firmware would make the tune work.
+The audit uses the same current WASM backends as [SID Player](sid-player/README.md): C64-machine PSID VBI/CIA and continuous C64 RSID, with Direct VBI available explicitly. The target is **PAL / 6581**, including unknown/either hints; known NTSC, 8580, multi-SID and other unsupported inputs remain rejected. Only the limited ROM-free environment is used. A ROM-access result does not establish that supplying firmware would make the tune work.
 
 ## Run and resume
 
@@ -11,21 +11,23 @@ From the full repository:
 ```sh
 npm run test:sid-corpus
 node scripts/check_sid_corpus.mjs --root ww/C64Music \
-  --checkpoint release/sid-corpus-audit-20261107/results.jsonl \
-  --out docs/issues/sid_corpus_audit_01.json
+  --checkpoint release/sid-corpus-current/results.jsonl \
+  --out release/sid-corpus-current/summary.json
 ```
 
-Defaults are **2 seconds of output, 48 kHz, two workers and a 15-second wall-time watchdog per executed file**. `--seconds`, `--sample-rate`, `--workers` and `--timeout-ms` can change these settings. The native init/play budgets still apply; the wall-time watchdog is a separate audit guard. Files are scheduled in deterministic path order; parallel jobs are checkpointed as they finish. Symlinks are not followed.
+Defaults are **C64 VBI, 2 seconds of output, 48 kHz, two workers and a 15-second wall-time watchdog per executed file**. `--seconds`, `--sample-rate`, `--workers` and `--timeout-ms` can change these settings. Use `--vbi-backend direct` for the earlier bounded host. The native init/play budgets still apply; the wall-time watchdog is a separate audit guard. Files are scheduled in deterministic path order; parallel jobs are checkpointed as they finish. Symlinks are not followed.
 
 Press Ctrl+C to cancel in-flight work and retain completed rows. Run the same command with `--resume`:
 
 ```sh
 node scripts/check_sid_corpus.mjs --root ww/C64Music \
-  --checkpoint release/sid-corpus-audit-20261107/results.jsonl \
-  --out docs/issues/sid_corpus_audit_01.json --resume
+  --checkpoint release/sid-corpus-current/results.jsonl \
+  --out release/sid-corpus-current/summary.json --resume
 ```
 
 Resume verifies the policy, actual runtime sources, native build receipts, WASM bytes and the entire input manifest before reusing results. Changed inputs or execution conditions require a new checkpoint. Worker count can change. A partial final JSONL row after a crash is discarded; corruption in a completed row is rejected. Only one process may own a checkpoint. A stale PID lock is recovered when its old process no longer exists.
+
+To retry a selected group, `--paths paths.json` accepts a nonempty JSON array of relative `.sid` paths, for example `["GAMES/S-Z/Western_Games.sid"]`. Entries are sorted, must exist beneath the corpus root, and cannot contain traversal, duplicates or symlink components. The selected set is included in the policy fingerprint. Use a new checkpoint when changing the list or backend. This supports a targeted retry without rerunning the whole collection.
 
 Each executed file gets a fresh WASM instance. Worker threads are retired after 64 files and immediately replaced after a watchdog failure. All sibling jobs settle before the checkpoint writer closes. Output paths must remain outside the read-only corpus; aliases to music inputs or other audit outputs are rejected.
 
@@ -34,6 +36,8 @@ Each executed file gets a fresh WASM instance. Worker threads are retired after 
 The checkpoint starts with a source/policy manifest and appends one result per file. `results.jsonl.inputs.json` contains the deterministic input list. Supported-size inputs have a full SHA-256. Oversized files are rejected before reading their payload; their identity explicitly records only file size, modification time and a bounded header hash. Reports never label that hash as a full-file hash.
 
 The compact summary records counts by status, backend, execution stage and error code, with up to three representative paths per reason. Detailed rows retain numeric native error codes, addresses and init/play phase when known. Successful execution rows include finite sample checks, RMS, peak, rendered frames, cycle counters and Stop checks for zero output and a stable stopped CPU.
+
+The measured window starts with the original startup PCM. If PSID init remains pending after that window, bounded additional rendering validates its RTS/native deadline before recording success. `validationExtraFrames` records those samples separately; they do not enter the measured window's frame count, RMS or peak. RSID programs may legitimately remain in an init loop. A C64 VBI row uses backend `vbi-c64`; the explicit legacy route uses `vbi`.
 
 | Status | Meaning |
 | --- | --- |
@@ -46,9 +50,11 @@ The compact summary records counts by status, backend, execution stage and error
 
 Nonzero output is not a musical-quality verdict. Silence can be intentional, an initial pause or an unsupported sound technique such as D418 volume-DAC digi. This audit does not cover other subtunes, whole songs, listening quality or complete real-hardware compatibility. Representative browser tests remain separate from this device-free corpus run.
 
-## Current run · 2026-11-07
+## Direct VBI baseline · 2026-11-07
 
 The eight synthetic-corpus tests passed. They cover real VBI/CIA/RSID output, silence, unsupported targets, ROM requirements, invalid input, CPU failure, checkpoint recovery and invalidation, output protection, stale/concurrent locks, cancellation and replacement after a watchdog timeout.
+
+This completed audit used the earlier default **Direct VBI** policy and its pinned sources/WASM. Its results and manifests are immutable. The current C64 VBI extension requires a new policy/checkpoint and cannot resume or overwrite that historical run. New targeted-retry validation is in progress; no whole-corpus C64 VBI result is claimed here.
 
 A five-file pilot over `docs/sid-player/demos` completed with nonzero output and Stop checks for all five demos. Resuming reused all five results, added zero rows and kept the checkpoint SHA-256 unchanged. Its files are under `release/sid-corpus-pilot-20261107/`.
 

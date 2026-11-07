@@ -6,7 +6,7 @@
   "model": "6581",
   "hardware": "pinned chips/c64 (CPU, two CIAs, VIC, SID)",
   "environment": "continuous-machine-minimal-original-shim-or-user-roms",
-  "initPolicy": "100000-cycle preflight; RSID nonreturning init allowed; PSID CIA init must return",
+  "initPolicy": "100000-cycle preflight; RSID nonreturning init allowed; PSID CIA must return; PSID VBI streams pending init up to 2000000 cycles",
   "bootCycleLimit": 2000000,
   "psidCiaDriver": {
     "timerADefaultLatch": 16421,
@@ -39,6 +39,25 @@
     },
     "preserves": "A/X/Y/bank; tune timer latch/control/mask retained after init"
   },
+  "psidVbiDriver": {
+    "preflightCycles": 100000,
+    "initCycleLimit": 2000000,
+    "streamPendingInit": true,
+    "retainedQueueFrames": 16384,
+    "playCycleLimit": 16000,
+    "timing": "machine-VIC-raster-IRQ",
+    "rasterLine": 0,
+    "frameCycles": 19656,
+    "ciaTimerADefaultLatch": 16421,
+    "ciaTimerARunning": true,
+    "ciaTimerAIrqEnabled": false,
+    "acknowledgement": "VIC-raster-write-one-to-clear-01-then-CIA-ICR-after-play",
+    "packedIrqBytes": 40,
+    "unsupportedMappedIo": [
+      "DE00..DFFF"
+    ],
+    "initCycleOrigin": "PSID bootstrap start after optional firmware boot"
+  },
   "upstreamRevision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
   "pristineSourcesSha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8",
   "build": {
@@ -57,8 +76,8 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-c64/README.md": {
-      "bytes": 7564,
-      "sha256": "3e23f10abe0727edb8846de6d185e62182ff2e0345a2be32ea4410897be529ac"
+      "bytes": 9970,
+      "sha256": "c07fa8929cce27aef62dd564443c6a151320a328345ee5575202dc3ebc0de8aa"
     },
     "third_party/chips-c64/SOURCES.json": {
       "bytes": 1619,
@@ -137,12 +156,12 @@
       "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
     },
     "tetorica_src/wasm/sid_rsid_core.h": {
-      "bytes": 23158,
-      "sha256": "d9e60b1b62c43c34676fb425a732c72ea192f030113fc83d9ecea731b8f7caa3"
+      "bytes": 25178,
+      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
     },
     "tetorica_src/wasm/sid_rsid_wasm.cpp": {
-      "bytes": 3341,
-      "sha256": "63aee43644eb3afd7ea91419c9b7c45f0af4be1c3b7ad83bedf9f1020f3e9510"
+      "bytes": 3751,
+      "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
     },
     "tetorica_src/wasm/sid_rsid_machine.c": {
       "bytes": 1050,
@@ -157,8 +176,8 @@
       "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
     },
     "scripts/sid_rsid_artifacts.mjs": {
-      "bytes": 6815,
-      "sha256": "ed5059178e7e4c203329be7bf7f605efe879e19d29519911cab77c574906bef3"
+      "bytes": 7593,
+      "sha256": "83aab4cfc0ccda73bac874b488128b071ec23c259bb9888d1c106193538b89ee"
     },
     "scripts/prepare_sid_core.py": {
       "bytes": 3625,
@@ -166,7 +185,7 @@
     }
   },
   "output": {
-    "bytes": 113890,
-    "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
+    "bytes": 116131,
+    "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
   }
 }

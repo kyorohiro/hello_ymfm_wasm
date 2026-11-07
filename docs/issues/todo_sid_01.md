@@ -38,6 +38,23 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### VBI曲をC64実行環境へ接続する今回の作業（2026-11-07）
+
+ユーザーが全体監査後の次段階として、VBI曲のC64実行環境対応を承認した。
+Western_Games.sidの132,113-cycle initと実CIA操作を基準にし、元headerのVBI timingを維持する。
+
+一次仕様は[HVSC SID file environment](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt)。VBIはVIC raster比較値`<$100`／IRQ有効、CIA1 timer Aは`$4025`でcounter稼働／IRQ無効、他timerは`$FFFF`で停止。毎回のinit／playでentryに応じたbankを書き、play後にVIC（`$D019`のwrite-one-to-clear）とCIA（ICR read）をackする。programのtimer／raster／mask変更は保持する。
+UIはC64 VBIをdefault、Direct VBIを明示選択とする。共有parserのAPI defaultは従来互換の`direct`、C64 wrapperは`c64`を指定。C64 modeのdriver空きpageなし／`$FF/0`は理由付き拒否としてDirect VBIを案内し、header変更・隠れたfallback・RAM上書きをしない。
+新VBI entryは100k-cycle preflight後もinitをstreamingで継続し、bootstrap開始から2M-cycleで打ち切る。UI候補はchunk間でyieldしRTS後に採用、workletはfresh loadのinit PCMから再生する。play上限16kは維持。新VBI経路だけ、I/O mapped時の未実装`$DE00..$DFFF`を拒否する。既存CIA／RSIDの実行policyを黙って拡張しない。
+前61,157件の監査結果はimmutableなDirect VBI baselineとして保持した。旧VBI失敗3,233件（I/O 2,831・bank53・ROM177・init167・play5）とcontrol64件の計3,297件を、別checkpointで再検証した。旧失敗のうち3,025件が完走し、残りはROM195・play timeout9・init deadline3・expansion1。[結果と範囲](sid_c64_vbi_result_01.md)、[独立比較18項目](sid_c64_vbi_retry_comparison_01.json)は成功。61,157件すべての再実行ではない。
+
+- [x] PSID VBIのVIC／CIA初期状態・IRQ呼出／ack・bank／driver RAM規約を確認し、自作fixtureを用意する。
+- [x] 既存C64 machineへVBI entryを追加し、実VIC raster IRQでplayを呼ぶ。既存CIA／RSID経路の回帰を保つ。
+- [x] 長いinitをbounded streamingで進め、init PCMを保ちながらStop／timeout／候補失敗時の旧音を保持する。
+- [x] Main／Worklet／UI／parserへ接続し、driver空きRAMなし・ROM設定・subtune切替・従来VBI比較の扱いを明示する。
+- [x] Western Gamesと他の実I/O失敗例、自作VIC／CIA・長いinit、既存CIA／RSID、source／実ZIPブラウザーを検証する。
+- [x] 前監査の失敗対象を再検証し、matching sources／再build／可読ZIP・guide／README／CI・再開記録を更新する。
+
 ### ローカルHVSC全体の実行監査（2026-11-07）
 
 ユーザーが`ww/C64Music`配下を一通り動作確認するよう依頼した。Zyx修正後の音は正常になっていそうとの実聴コメントあり。
@@ -56,7 +73,7 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] 全件resumeの追加0件・checkpoint不変、入力manifestとsource／WASM／条件の一致を確認する。
 - [x] 結果行の一意性と測定値を独立確認する。
 - [x] 失敗上位と代表例を整理し、次の修正TODOと再実行手順をまとめる。元$1EE4のfileは未確認と区別する。
-- [ ] 後続: VBI宣言のままC64機械を使う再生経路と、init PCMを保持する長いbounded初期化を検討する。Western_Games song1は$1EE4を再現し、scratchでinit132,113cycles後に実STA$DC04へ到達した。上限増加だけで成功とはせず、speed bitも変更しない。[診断](sid_western_games_diagnosis_01.json)。
+- [x] VBI宣言のままC64機械を使う再生経路と、init PCMを保持する長いbounded初期化に対応する。Western_Games song1の旧$1EE4停止・scratch132,113cycles後の実STA$DC04は[診断](sid_western_games_diagnosis_01.json)へ保持し、実C64経路では全3subtunesを各10秒確認した。speed bitは変更していない。下記第12段階へ記録した。
 
 ### PSID実行診断とZyx.sidの予備読み出し（2026-11-07）
 
@@ -208,6 +225,7 @@ CIA再生を先に仕上げ、次は6581／8580を明示的に選択できる音
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
 通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階、
 限定browser PSID Playerは第5段階、RSIDは第6段階、PSIDのsubtune別CIA再生は第8段階、再配置情報は第9段階で対応した。
+第11段階で61,157件の既定subtune監査、第12段階でC64 VBI・長いinitと対象3,297件の再検証まで完了した。全件のC64再監査や実聴・全曲互換の確認ではない。
 package-root raw chip factory／Native出力／専用8580 model・完全なC64互換は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
@@ -604,6 +622,21 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
   original inputs68件、matching sources／license、ZIPのhash・CRC・実展開一致を検証した。
 - 固定SDK33 builds／68 outputs／75 mirrorsと両Mixer checkは成功、SID Synth／PlaygroundのDSP・gainは不変。
   commit／push／tag／公開はしていない。次は上のローカルHVSC全体監査を進める。
+
+## 第11段階: ローカルSID corpus全体監査（2026-11-07）
+
+- [全体結果](sid_corpus_audit_01.md)と[独立検証](sid_corpus_audit_verification_01.json): 61,157件すべてを分類し、27,547件が既定subtuneの2秒／48kHz実行・有限PCM・Stop検証を完走した。Direct VBIを使った当時のbaselineで、今回のC64経路とは区別する。
+- 全件resumeは追加0件・入力manifest／fingerprint／checkpoint不変。元曲／ROM／PCMはコピー・同梱していない。全subtune・曲全体・実聴の確認は後続。
+
+## 第12段階: C64 VBIと長い初期化（2026-11-07）
+
+- 上の6作業は完了。[結果報告](sid_c64_vbi_result_01.md)に設計、対象限定再検証、残る制限と再開情報をまとめた。UIのdefaultはC64 machine、Direct VBIは明示選択。元header・payload・VBI timingを保ち、driver空きRAMがない場合は理由付き拒否とする。
+- `npm run test:sid-player` **93件**、`npm run test:sid-corpus` **10件**、`npm run test:sid-reference` **29件**が成功。[Source](sid_c64_vbi_browser_01.json)／[実ZIP](sid_c64_vbi_zip_browser_01.json)のChromium／WebKit各31項目、**合計124チェック成功**。Stop／失敗保持・ROM snapshot・subtune・mobile表示を確認した。
+- [実ファイル7ケース](sid_c64_vbi_verification_01.json)を各10秒確認し、すべて有限PCM・nonzero・init復帰・Stop成功。Western Games全3subtunesを含む。synthetic firmwareでの確認を含むが、実Commodore ROM／BASIC互換の検証ではない。元$1EE4のユーザー入力は未確認として区別する。
+- [対象再検証](sid_c64_vbi_retry_01.json)は3,297件完了。旧失敗3,233件のうち3,025件が完走（nonzero3,015／全zero10）。control64件はstatusを維持し、CIA／RSID32件はRMS／peakも完全一致した。全完走3,089件で96,000frames／有限PCM／Stop zero・CPU停止／PSID init復帰を確認した。[独立比較18項目](sid_c64_vbi_retry_comparison_01.json)とresume追加0件・全hash不変も成功。全61,157件の再監査ではない。
+- [source kit単独再build](sid_c64_vbi_sourcekit_01.json)は29 inputsのみからWASM116,131bytes・receiptがbyte一致。WASM SHA `d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c`。
+- [配布記録](sid_c64_vbi_package_01.json): `release/tetorica_sid_player_0.0.7-c64-vbi-preview_itch.zip`、80files／10 readable modules／1,573,534bytes、SHA `730c1c4d596506e96fba6cca40cbcc73c20d097f57a38c300697a9c6887ed895`。68 original inputs、43 native inputs、matching sources／license、ZIP・nested ZIPのCRCと実展開byte一致を確認した。
+- 固定SDK33 builds／68 outputs／75 mirrorsと両Mixer checkは成功。既存SID Synth／PlaygroundのDSP・gainを保持した。known8580／NTSCは未対応、実ROM／BASIC・実聴／長時間・D418 digi・音色importは後続。commit／push／tag／公開はしていない。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

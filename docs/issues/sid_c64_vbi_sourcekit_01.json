@@ -1,0 +1,34 @@
+{
+  "format": "tetorica-c64-vbi-sourcekit-rebuild",
+  "version": 1,
+  "createdAt": "2026-11-07T08:22:52.357Z",
+  "sourceKit": "docs/sources/sid-rsid",
+  "compiler": "Emscripten 6.0.6-git",
+  "buildCommand": "sh scripts/build_sid_rsid_wasm.sh /tmp/tetorica-c64-vbi-rebuild",
+  "isolatedSourceKit": true,
+  "repositorySourceFallback": false,
+  "buildInputsVerified": 29,
+  "wasm": {
+    "bytes": 116131,
+    "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c",
+    "byteIdenticalToPublic": true
+  },
+  "receipt": {
+    "bytes": 6749,
+    "sha256": "c8976d3352b104cb7dc4177dd77f42619cd2e64b17bc1297fe5bba8c085376ff",
+    "byteIdenticalToPublic": true
+  },
+  "policies": {
+    "vbiPreflightCycles": 100000,
+    "vbiInitDeadlineCycles": 2000000,
+    "retainedQueueFrames": 16384,
+    "playDeadlineCycles": 16000,
+    "timing": "VIC raster IRQ; original PSID VBI header preserved"
+  },
+  "notes": [
+    "The final public source kit was copied into an independent temporary directory after artifact verification; no project headers or scripts were resolved from the parent repository.",
+    "The sandbox compiler reached only an external global-cache lock denial; root reran the same source-kit command with approved compiler access.",
+    "All matching source, WASM and receipt bytes were checked after the rebuild.",
+    "No game, original firmware or PCM payload is included."
+  ]
+}

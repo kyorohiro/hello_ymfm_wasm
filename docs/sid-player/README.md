@@ -6,14 +6,14 @@ The player runs a tune's 6502 program and follows its writes to the SID. The thr
 
 ## Supported files
 
-The PSID path chooses its backend from the selected subtune's speed bit:
+PSID uses the selected subtune's original speed bit. VBI defaults to the C64 machine's raster interrupt; CIA uses its timer interrupt. **Direct VBI** keeps the earlier bounded subroutine host as an explicit compatibility option.
 
 - PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags require the visible **Use PAL / 6581** checkbox. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
 - VBI or CIA timing. A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
 - Loaded program RAM `$0800..$CFFF`, with effective init and explicit nonzero play addresses inside that payload. An init header value of zero defaults to the load address.
 - At most **65,660 bytes**, with one-based song selection from `1..songs` (up to 256).
 
-PSID relocation metadata describes free RAM for the **player driver**, not a request to move the tune. `0/0` declares a clean file; `$FF/0` declares no free driver page. The VBI host accepts structurally valid relocation metadata, including `$FF/0`, because its caller does not use a driver page in that range. CIA playback needs one page: for an explicit free range, it selects the first page within `$0400..$9FFF` or `$C000..$CFFF`. A range with no such page, or `$FF/0`, is rejected for CIA. A range may extend across other memory areas if it still contains a usable page. Payload overlap, range overflow and inconsistent sentinel fields are rejected. The header, loaded payload and init/play addresses are preserved. See the [HVSC format specification, fields +78/+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt).
+PSID relocation metadata describes free RAM for the **player driver**, not a request to move the tune. `0/0` declares a clean file; `$FF/0` declares no free driver page. C64 VBI and CIA need safe driver RAM: for an explicit free range, they select the first page within `$0400..$9FFF` or `$C000..$CFFF`. A range may extend across other memory areas if it still contains a usable page. If a VBI tune declares `$FF/0` or no usable page, choose Direct VBI or keep the reasoned rejection; the player does not silently write outside that range. Direct VBI accepts structurally valid relocation metadata without adding a driver page there. Payload overlap, range overflow and inconsistent sentinel fields are rejected. The header, loaded payload and init/play addresses are preserved. See the [HVSC format specification, fields +78/+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt).
 
 The separate RSID path accepts **RSID v2**, one SID and a PAL / 6581 target:
 
@@ -35,11 +35,11 @@ For an unspecified or either-standard/model **PSID or RSID**, open **Playback se
 
 The checkbox starts unchecked. The command-line reference parser still requires explicitly PAL / 6581 files; only the browser validator accepts these explicit target choices.
 
-The environment and firmware controls in the same panel apply to **PSID CIA and RSID**, which use the C64 machine. **PSID VBI** uses its separate host and can load or retry without ROM files, even while draft firmware files are being read. A new CIA or RSID candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
+The **PSID VBI playback** selector defaults to **C64 machine · VIC / CIA** and offers **Direct VBI · limited I/O** explicitly. The environment and firmware controls apply to **C64 VBI, CIA and RSID**. Direct VBI stays independent of ROM settings and pending firmware reads. A new C64 candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
 
 **Built-in IRQ environment** supplies an original, limited BSD IRQ/NMI shim with the C64 devices. It runs without a Commodore ROM dump and can play programs that use the supported environment. Unsupported BASIC, KERNAL or character-ROM reads stop with an explanation. It is not a replacement for all C64 firmware.
 
-**Use my C64 ROMs** accepts three files: Character **4,096 bytes**, BASIC **8,192 bytes** and KERNAL **8,192 bytes**. The browser checks their exact sizes and makes detached copies. Size checks do not identify the firmware or guarantee compatibility. ROM bytes remain in browser memory; they are not saved, uploaded or included in packages. No firmware is downloaded automatically. After booting the supplied machine, PSID CIA installs the original RAM init/play driver; RSID requests BASIC `RUN` or a machine-code `SYS` as appropriate. Firmware bytes themselves are not patched.
+**Use my C64 ROMs** accepts three files: Character **4,096 bytes**, BASIC **8,192 bytes** and KERNAL **8,192 bytes**. The browser checks their exact sizes and makes detached copies. Size checks do not identify the firmware or guarantee compatibility. ROM bytes remain in browser memory; they are not saved, uploaded or included in packages. No firmware is downloaded automatically. After booting the supplied machine, PSID C64 VBI/CIA installs the original RAM init/play driver; RSID requests BASIC `RUN` or a machine-code `SYS` as appropriate. Firmware bytes themselves are not patched.
 
 The user-ROM/BASIC path is experimental. Original synthetic test ROMs exercise its loading and subtune plumbing; compatibility with actual Commodore firmware and general BASIC tunes needs separate confirmation. Use the built-in RSID demo to try the ROM-free environment.
 
@@ -47,7 +47,7 @@ The user-ROM/BASIC path is experimental. Original synthetic test ROMs exercise i
 
 Both PSID backends combine the pinned, cycle-stepped **chips/m6502** CPU with Tetorica's existing **chips/m6581 6581 approximation**. One CPU bus cycle advances one SID tick at 985,248 Hz. SID writes commit after that cycle's audio step; supported SID reads use real emulated readback. `$D400..$D7FF` register mirrors are supported.
 
-The **PSID VBI** host supplies initialized RAM, the PAL identification byte `$02A6=1`, a CPU stack and a host-owned JSR trampoline. Init receives the zero-based subtune in A; X and Y are zero. Play receives A, X and Y zero. Both routines must return normally with RTS. This backend does not emulate CIA timers, VIC raster timing or an interrupt controller. Unsupported memory banking, mapped ROM reads, other I/O and invalid returns fail explicitly.
+The **Direct VBI** host supplies initialized RAM, the PAL identification byte `$02A6=1`, a CPU stack and a host-owned JSR trampoline. Init receives the zero-based subtune in A; X and Y are zero. Play receives A, X and Y zero. Both routines must return normally with RTS. This explicit legacy option does not emulate CIA timers, VIC raster timing or an interrupt controller. Unsupported memory banking, mapped ROM reads, other I/O and invalid returns fail explicitly.
 
 Before **every** init or play call, the host sets the bank from that entry address: `$37` below `$A000`, otherwise `$36` within the supported payload range ending at `$CFFF`. It does not inherit a bank left by the preceding routine. These maps keep SID I/O visible; they do not provide BASIC/KERNAL firmware or permit ROM calls.
 
@@ -55,15 +55,21 @@ Init has a 100,000-cycle limit; each play routine has a 16,000-cycle limit. Thes
 
 An indexed `STA` to a SID register can first issue a discarded read on the preceding VIC mirror page. The VBI host recognizes only that exact CPU microcycle, with a verified corrected SID write address and a side-effect-free VIC register, and keeps its cycle timing. Mirrored collision registers `$1E/$1F` remain unsupported because reading them clears their latches. The exception does not turn a real `LDA` from VIC, CIA or ROM into a successful read, or emulate a VIC.
 
-The **PSID CIA** backend instead clocks the continuous C64 machine, including both CIAs and VIC. An original RAM driver calls init with the zero-based subtune in A, then calls the explicit play routine from CIA1 timer-A interrupts. The initial latch is `$4025` (approximately 60 Hz on PAL), with the timer and its IRQ enabled. The tune can change its latch, control and interrupt mask; there is no host-periodic VBI substitute. Init and play must still return with RTS within their 100,000- and 16,000-machine-cycle bounds. The built-in environment supplies only limited original firmware; optional user-ROM mode boots the supplied firmware before installing the same RAM driver. Neither mode removes the PSID entry and RAM restrictions.
+The **C64 VBI** backend clocks the CPU, both CIAs, VIC, SID and memory banking together. It starts with a VIC raster interrupt below line `$100`, enabled; CIA1 timer A runs with latch `$4025` (approximately 60 Hz), with its IRQ masked. Other timers start disabled at `$FFFF`. The original RAM driver calls init and then play through actual interrupts. It acknowledges VIC and CIA after play, allowing the program to inspect the triggering flags. The tune can change its timers, raster and masks; the host does not rewrite its speed bit to CIA or substitute a fixed periodic callback.
 
-For clean `0/0` files the existing CIA driver layout remains unchanged. For an explicit free range, the original bootstrap, interrupt handlers and caller are packed into the selected page, including their branch targets and vectors. The browser validator returns `driverPage` (`null` for VBI, `0` for the clean-file layout); the C64 API reports the actual `driverAddress`. The VBI caller remains at `$0200..$0203`, outside the driver-page area, and still uses the CPU stack at `$0100..$01FF`. Accepting `$FF/0` does not prove compatibility with a program that overwrites that caller or stack. These host placements do not relocate or patch the music program.
+C64 VBI performs a 100,000-cycle preflight, then continues a pending init through bounded render chunks while retaining the PCM from startup. Init must return before a **2,000,000-machine-cycle deadline measured from the driver bootstrap**, and each play call retains its 16,000-cycle limit. UI candidate validation yields between chunks and adopts the tune only after init returns; playback starts a fresh machine and streams its initial PCM. The longer init is bounded host policy, not a PSID hardware limit.
+
+The **PSID CIA** backend uses CIA1 timer-A interrupts from the same C64 devices, with its IRQ initially enabled and VIC IRQ initially disabled. The tune's timer latch/control/mask changes remain in effect. Its existing 100,000-cycle returning-init and 16,000-cycle play bounds remain separate from the new C64 VBI init policy. User-ROM mode boots the supplied firmware before installing the appropriate original RAM driver. Neither mode removes the PSID entry and RAM restrictions.
+
+For clean `0/0` CIA files the existing driver layout remains unchanged. C64 VBI and explicit free ranges use their selected driver page. The C64 API reports the actual `driverAddress`. Direct VBI keeps its caller at `$0200..$0203` and CPU stack at `$0100..$01FF`; accepting `$FF/0` does not prove compatibility with a program that overwrites that caller or stack. These host placements do not relocate or patch the music program.
 
 The **RSID** host uses the same pinned **chips/c64** system wiring: CPU, both CIA chips, VIC, SID and memory banking advance together. IRQ and NMI reach the emulated CPU, and the program's RTI returns to the interrupted code. It runs the tune's own interrupt or continuous code without a host play-routine call. RSID programs may legitimately stay in an init busy loop, unlike the returning PSID init/play subroutines.
 
 Both RSID environments perform a bounded 100,000-cycle preflight and retain its generated PCM. User-ROM mode first boots for at most 2,000,000 cycles and discards boot audio. Initialization that has not returned after preflight can continue during playback; it is not automatically treated as a failed PSID-style subroutine.
 
 These devices and the SID remain approximations. The upstream C64 implementation has known CIA/VIC and interrupt/DMA limitations, so supported fixtures or individual tunes are not proof of complete C64 timing accuracy. Rendering, audio queues and diagnostic traces are bounded; Stop clears activity and output.
+
+The new C64 VBI path rejects unimplemented expansion I/O at `$DE00..$DFFF` when I/O is mapped. Cartridge devices, disk loading and arbitrary C64 software are not added by routing VBI through the machine. The prior CIA/RSID execution policies remain distinct.
 
 The current 6581 approximation does not reproduce **volume-DAC / D418-only digi sample playback**. A tune can execute correctly and write the volume register while that sampled part remains silent. RSID file support does not imply support for every SID sound technique or every HVSC tune.
 
@@ -75,9 +81,9 @@ The application is distributed as readable source modules and CSS, with their co
 
 - [player.js](player.js): file selection, transport and live display.
 - [audio.js](audio.js) and [processor.js](processor.js): Web Audio lifecycle and AudioWorklet commands.
-- [core.js](core.js): bounded PSID VBI API.
+- [core.js](core.js): explicit Direct VBI API.
 - [rsid_core.js](rsid_core.js) and [roms.js](roms.js): continuous C64 API for RSID and PSID CIA, and in-memory firmware input checks.
-- [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` selects the subtune's VBI/CIA timing, accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header. The reference CLI remains VBI-only.
+- [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` selects the subtune's timing, accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header. Its `vbiBackend` option defaults to `direct` for existing API callers; the UI and C64 wrapper explicitly select `c64`. The reference CLI remains unchanged.
 - [sid_rsid.js](../js/sid_rsid.js): independent RSID parser with the same explicit browser target-selection policy. Neither browser validator overrides a known NTSC or 8580 declaration.
 - [PSID demo sources and license](demos/README.md) and [RSID demo sources and license](demos/rsid/README.md).
 - Separate [PSID VBI native source kit](../sources/sid-player/README.md) and [C64 / CIA / RSID native source kit](../sources/sid-rsid/README.md), with pinned upstream sources, original host/shim, SID patch documentation and licenses.

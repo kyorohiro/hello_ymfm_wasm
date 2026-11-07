@@ -14,7 +14,7 @@ function validateVolume(value) {
  */
 export async function createAudio({volume = .7, backend = 'psid', onError = () => {}, signal} = {}) {
   validateVolume(volume);
-  if (!['psid', 'psid-cia', 'rsid'].includes(backend)) throw new RangeError('Unknown SID playback environment');
+  if (!['psid', 'psid-cia', 'psid-vbi', 'rsid'].includes(backend)) throw new RangeError('Unknown SID playback environment');
   if (signal?.aborted) throw new DOMException('SID player audio startup cancelled', 'AbortError');
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
