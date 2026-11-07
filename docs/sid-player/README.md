@@ -8,7 +8,7 @@ The player runs a tune's 6502 program and follows its writes to the SID. The thr
 
 PSID uses the selected subtune's original speed bit. VBI defaults to the C64 machine's raster interrupt; CIA uses its timer interrupt. **Direct VBI** keeps the earlier bounded subroutine host as an explicit compatibility option.
 
-- PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags require the visible **Use PAL / 6581** checkbox. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
+- PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags use PAL / 6581 by default through the checked **Use PAL / 6581** option. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
 - VBI or CIA timing. A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
 - Loaded program RAM `$0800..$CFFF`, with effective init and explicit nonzero play addresses inside that payload. An init header value of zero defaults to the load address.
 - At most **65,660 bytes**, with one-based song selection from `1..songs` (up to 256).
@@ -20,7 +20,7 @@ The separate RSID path accepts **RSID v2**, one SID and a PAL / 6581 target:
 - The reserved header load address, play address and speed fields must all be zero. RSID runs its own interrupt or continuous program; speed zero does **not** mean a host-scheduled VBI play call.
 - The embedded little-endian load address must be at least `$07E8`. Payload RAM may extend through `$FFFF`, including physical RAM underneath ROM and I/O mappings. A non-BASIC init entry must be inside the payload at `$07E8..$9FFF` or `$C000..$CFFF`; a zero header init defaults to the load address.
 - A BASIC flag requires a zero header init and the user-ROM environment. That zero requests BASIC startup, not a call to address zero.
-- Unspecified or either-standard/model flags require the visible **Use PAL / 6581** checkbox. It starts unchecked. Known NTSC or 8580 declarations are rejected even with the checkbox checked.
+- Unspecified or either-standard/model flags use PAL / 6581 by default through the checked **Use PAL / 6581** option. Known NTSC or 8580 declarations are rejected even with the checkbox checked.
 - The same 65,660-byte file bound and one-based `1..songs` subtune selection apply. This version does not support additional SIDs, newer file versions or external MUS players.
 
 The header's default song is selected on load. A failed file, demo or subtune change keeps the previous selection and sound. **Stop** cancels startup or resets playback; **Play** starts the selected song again from its init routine. Playback needs a browser with Web Audio and AudioWorklet, served over HTTPS or localhost. The output sample rate must be 8..96 kHz.
@@ -31,9 +31,9 @@ Header acceptance does not establish whole-song compatibility. Execution can sti
 
 ## Playback target and optional C64 ROM files
 
-For an unspecified or either-standard/model **PSID or RSID**, open **Playback settings · PAL / 6581 & C64 ROMs**, check **Use PAL / 6581**, then press **Apply / retry SID**. You can retry the file that just failed without reopening it. Its original header and declared clock/model are retained; the selected playback target is shown separately.
+For an unspecified or either-standard/model **PSID or RSID**, **Use PAL / 6581** is on by default, so opening the file selects that playback target automatically. Its original header and declared clock/model are retained; the selected playback target is shown separately.
 
-The checkbox starts unchecked. The command-line reference parser still requires explicitly PAL / 6581 files; only the browser validator accepts these explicit target choices.
+To require an explicit PAL / 6581 declaration, open **Playback settings · PAL / 6581 & C64 ROMs** and uncheck **Use PAL / 6581**. Press **Apply / retry SID** after changing the setting; you can retry a failed file without reopening it. The command-line reference parser and browser validator API defaults are unchanged; the player UI supplies its selected target.
 
 The **PSID VBI playback** selector defaults to **C64 machine · VIC / CIA** and offers **Direct VBI · limited I/O** explicitly. The environment and firmware controls apply to **C64 VBI, CIA and RSID**. Direct VBI stays independent of ROM settings and pending firmware reads. A new C64 candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
 

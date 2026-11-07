@@ -38,6 +38,13 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### PAL／6581補完設定の初期値（2026-11-07）
+
+ユーザー報告: Zombi.sidのmodel未指定エラーと、設定に気付きにくい問題を受け、通常SID Playerの「Use PAL / 6581」を既定Onにする。
+
+- [x] 未指定／eitherのclock・modelへPAL／6581を選ぶcheckboxを既定Onにし、画面説明とREADMEを更新した。元headerの表示と既知NTSC／8580の拒否は維持する。
+- [x] 初期状態から未指定ファイルを読み込めることと、Off時の拒否／再試行を既存ブラウザー検証で確認した。Chromium／WebKitとも成功（`node scripts/check_sid_player_browser.cjs --out /private/tmp/sid-player-default-pal-6581.json`）。共有parserのAPI defaultは変更していない。
+
 ### VBI曲をC64実行環境へ接続する今回の作業（2026-11-07）
 
 ユーザーが全体監査後の次段階として、VBI曲のC64実行環境対応を承認した。

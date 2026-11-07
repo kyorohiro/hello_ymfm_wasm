@@ -41,8 +41,9 @@
     </section>
 
     <details id="rsidSettings" class="scope-card"><summary>Playback settings · PAL / 6581 &amp; C64 ROMs</summary><div class="state-content">
-      <p>Both PSID and RSID use PAL / 6581. If a file leaves its clock or SID model unspecified, choose this target explicitly below, then press Apply / retry SID.</p>
-      <label class="assumption-choice"><input id="assumeRsid" type="checkbox"> Use PAL / 6581 when the file says unknown or either model</label>
+      <p>Both PSID and RSID use PAL / 6581. By default, files with unknown or either clock / model declarations use this target. The original declaration is shown in the tune information.</p>
+      <label class="assumption-choice"><input id="assumeRsid" type="checkbox" checked> Use PAL / 6581 when the file says unknown or either model</label>
+      <p class="help">Uncheck to require an explicit PAL / 6581 declaration. Press Apply / retry SID after changing this setting.</p>
       <p class="help">Files explicitly requiring NTSC, 8580 or multiple SIDs remain unsupported.</p>
       <label class="environment-choice" for="vbiBackend">PSID VBI playback <select id="vbiBackend"><option value="c64">C64 machine · VIC / CIA</option><option value="direct">Direct VBI · limited I/O</option></select></label>
       <p class="help">C64 machine uses hardware raster interrupts and supports longer initialization. Direct VBI is available for comparison and tunes without free driver RAM. Press Apply / retry SID after changing settings.</p>

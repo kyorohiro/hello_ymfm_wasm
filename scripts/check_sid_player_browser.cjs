@@ -134,7 +134,12 @@ async function checkBrowser(name, engine, origin, fixtures) {
     check('local readable player loads without audio; selecting a demo preflights its real CPU and metadata');
     assert.match(await page.title(), /SID Player/); assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0);
     assert.equal(await page.locator('#vbiBackend').inputValue(), 'c64', 'new UI defaults to the C64 machine');
+    assert.equal(await page.locator('#assumeRsid').isChecked(), true, 'unknown/either targets default to PAL / 6581');
     assert.equal(await page.locator('#play').isDisabled(), true);
+    await loadFile(fixtures.psidUnknown, 'default-unknown-target.psid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('default-unknown-target.psid'));
+    await ready(); assert.match(await page.locator('#fileInfo').textContent(), /Header unknown \/ unknown → PAL \/ 6581/);
+    assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0, 'default target preflight does not start audio');
     await loadDemo('melody-filter'); assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0);
     assert.match(await page.locator('#author').textContent(), /Tetorica/); assert.equal(await page.locator('#subtune option').count(), 1);
     const source = await page.evaluate(async () => {
