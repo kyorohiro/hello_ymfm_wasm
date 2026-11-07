@@ -5,18 +5,28 @@ on:
   push:
     paths:
       - 'third_party/sidera/**'
+      - 'third_party/chips-m6502/**'
       - 'tetorica_src/wasm/sid8580-probe/**'
       - 'scripts/*sid8580_probe*'
+      - 'scripts/check_sid8580_bus.mjs'
+      - 'scripts/check_sid8580_cpu.mjs'
       - 'test/helpers/sid8580_probe_fixtures.mjs'
+      - 'test/helpers/sid8580_bus_fixtures.mjs'
+      - 'test/helpers/sid8580_cpu_fixtures.mjs'
       - 'test/helpers/sid8580_legacy_parity.rs'
       - 'tetorica_src/cli/sid_reference_metrics.mjs'
       - '.github/workflows/sid8580-probe.yml'
   pull_request:
     paths:
       - 'third_party/sidera/**'
+      - 'third_party/chips-m6502/**'
       - 'tetorica_src/wasm/sid8580-probe/**'
       - 'scripts/*sid8580_probe*'
+      - 'scripts/check_sid8580_bus.mjs'
+      - 'scripts/check_sid8580_cpu.mjs'
       - 'test/helpers/sid8580_probe_fixtures.mjs'
+      - 'test/helpers/sid8580_bus_fixtures.mjs'
+      - 'test/helpers/sid8580_cpu_fixtures.mjs'
       - 'test/helpers/sid8580_legacy_parity.rs'
       - 'tetorica_src/cli/sid_reference_metrics.mjs'
       - '.github/workflows/sid8580-probe.yml'
@@ -40,7 +50,11 @@ jobs:
       - name: Build isolated Native and WASM candidate
         run: sh scripts/build_sid8580_probe.sh
       - name: Check cycle, read, PCM, ownership and split-render parity
-        run: node scripts/check_sid8580_probe.mjs --out build/sid8580-probe/verification.json
+        run: node scripts/check_sid8580_probe.mjs --baseline docs/issues/sid8580_probe_verification_01.json --out build/sid8580-probe/verification.json
+      - name: Check bounded bus retention and read side effects
+        run: node scripts/check_sid8580_bus.mjs --out build/sid8580-probe/bus-verification.json
+      - name: Check real CPU reads, branches, writes and faults
+        run: node scripts/check_sid8580_cpu.mjs --out build/sid8580-probe/cpu-verification.json
       - name: Preserve the upstream sample-clock API
         run: |
           rustc --edition=2021 -C opt-level=3 -C panic=abort --crate-name sidera_upstream --crate-type rlib third_party/sidera/upstream/src/lib.rs -o build/sid8580-probe/libsidera_upstream.rlib

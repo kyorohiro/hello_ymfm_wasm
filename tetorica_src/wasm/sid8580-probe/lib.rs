@@ -9,6 +9,9 @@ pub const OUTPUT_CAPACITY: usize = 4096;
 pub const MAX_INSTANCES: usize = 16;
 pub const RUN_ERROR: u32 = u32::MAX;
 pub const READ_ERROR: u32 = 256;
+// Reference-emulator black-box boundaries, not measured hardware constants.
+pub const BUS_TTL_6581: u32 = 7424;
+pub const BUS_TTL_8580: u32 = 663552;
 
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18,6 +21,7 @@ pub enum Error {
     InvalidArgument = 2,
     OutputCapacity = 3,
     CounterOverflow = 4,
+    UnsupportedRead = 5,
 }
 
 /// Each tick is one completed PHI2 period. Writes and reads never tick. For a
@@ -33,6 +37,8 @@ pub struct Probe {
     frames: u64,
     stopped: bool,
     error: Error,
+    bus_value: u8,
+    bus_remaining: u32,
     written: [u8; 32],
     output: [i16; OUTPUT_CAPACITY],
     output_len: usize,
@@ -59,6 +65,8 @@ impl Probe {
             frames: 0,
             stopped: false,
             error: Error::None,
+            bus_value: 0,
+            bus_remaining: 0,
             written: [0; 32],
             output: [0; OUTPUT_CAPACITY],
             output_len: 0,
@@ -71,6 +79,7 @@ impl Probe {
         self.frames = 0;
         self.stopped = false;
         self.error = Error::None;
+        self.clear_bus();
         self.written.fill(0);
         self.clear_output();
     }
@@ -78,12 +87,34 @@ impl Probe {
         self.sid.reset();
         self.stopped = true;
         self.error = Error::None;
+        self.clear_bus();
         self.written.fill(0);
         self.clear_output();
     }
     fn clear_output(&mut self) {
         self.output.fill(0);
         self.output_len = 0;
+    }
+    fn clear_bus(&mut self) {
+        self.bus_value = 0;
+        self.bus_remaining = 0;
+    }
+    pub fn bus_ttl_cycles(&self) -> u32 {
+        if self.model == 0 {
+            BUS_TTL_6581
+        } else {
+            BUS_TTL_8580
+        }
+    }
+    fn drive_bus(&mut self, value: u8) {
+        self.bus_value = value;
+        self.bus_remaining = self.bus_ttl_cycles();
+    }
+    fn age_bus(&mut self, cycles: u32) {
+        self.bus_remaining = self.bus_remaining.saturating_sub(cycles);
+        if self.bus_remaining == 0 {
+            self.bus_value = 0;
+        }
     }
     pub fn write(&mut self, register: u32, value: u32) -> bool {
         if register > 31 || value > 255 {
@@ -92,6 +123,8 @@ impl Probe {
         }
         self.sid.write_register(register as u8, value as u8);
         self.written[register as usize] = value as u8;
+        // Even writes to read-only/reserved SID offsets drive the data bus.
+        self.drive_bus(value as u8);
         self.error = Error::None;
         true
     }
@@ -100,13 +133,34 @@ impl Probe {
             self.error = Error::InvalidArgument;
             return Err(self.error);
         }
+        if register == 25 || register == 26 {
+            // No POT converter/input model is available. Reject rather than
+            // silently pretending that an external paddle has a known value.
+            self.error = Error::UnsupportedRead;
+            return Err(self.error);
+        }
         self.error = Error::None;
-        // Upstream only models OSC3/ENV3 reads. Other addresses remain zero;
-        // no POT conversion or floating-bus/decay model is invented here.
-        Ok(self.sid.read_register(register as u8))
+        if register == 27 || register == 28 {
+            let value = self.sid.read_register(register as u8);
+            self.drive_bus(value);
+            return Ok(value);
+        }
+        let value = self.bus_value;
+        if self.bus_remaining > 0 {
+            // Explicit bounded approximation: ordinary reads shorten the
+            // remaining retention interval, without completing a chip cycle.
+            // A nonzero latch always retains one final tick. This deliberately
+            // diverges from the reference's residual-TTL-zero sticky edge:
+            // repeated zero-clock reads cannot make a value immortal here.
+            self.bus_remaining = (self.bus_remaining / 2).max(u32::from(value != 0));
+        }
+        Ok(value)
     }
     pub fn run(&mut self, cycles: u32) -> Result<usize, Error> {
-        self.clear_output();
+        // Only output[..output_len] is valid. In particular the CPU bridge
+        // calls run(1), so clearing all 4096 slots per PHI2 would add 8 KiB of
+        // unrelated memory writes per chip cycle. Reset/Stop still zero-fill.
+        self.output_len = 0;
         let produced = (u64::from(self.phase) + u64::from(cycles) * u64::from(self.rate))
             / u64::from(PAL_CLOCK);
         if produced > OUTPUT_CAPACITY as u64 {
@@ -134,6 +188,9 @@ impl Probe {
                 self.frames += 1;
             }
         }
+        // No register access occurs inside a run; aging once after its ticks
+        // equals per-tick aging, including the CPU bridge's run(1) calls.
+        self.age_bus(cycles);
         Ok(self.output_len)
     }
     pub fn output(&self) -> &[i16] {
@@ -159,6 +216,13 @@ impl Probe {
     }
     pub fn written(&self) -> &[u8; 32] {
         &self.written
+    }
+    /// Inspection only: does not perform a SID bus read or shorten retention.
+    pub fn bus_value(&self) -> u8 {
+        self.bus_value
+    }
+    pub fn bus_remaining(&self) -> u32 {
+        self.bus_remaining
     }
 }
 
@@ -286,6 +350,14 @@ pub extern "C" fn sid8p_output_frames(handle: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn sid8p_error(handle: u32) -> u32 {
     with_probe(handle, |probe| probe.error() as u32).unwrap_or(Error::InvalidHandle as u32)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_bus_value(handle: u32) -> u32 {
+    with_probe(handle, |probe| u32::from(probe.bus_value())).unwrap_or(0)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_bus_remaining(handle: u32) -> u32 {
+    with_probe(handle, |probe| probe.bus_remaining()).unwrap_or(0)
 }
 #[no_mangle]
 pub extern "C" fn sid8p_rate(handle: u32) -> u32 {

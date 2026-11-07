@@ -1,0 +1,5002 @@
+{
+  "format": "tetorica-sid8580-prototype-verification",
+  "version": 2,
+  "candidate": "sidera 1.1.1 + cycle-access patch and independent bounded bus wrapper",
+  "productionAdopted": false,
+  "wasm": {
+    "bytes": 1391574,
+    "sha256": "2b82f306f1c9460ef4558d7faf73cf1eb49b7de2eead09d8c5e38c858429667d"
+  },
+  "compiler": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+  "timing": "w/r do not clock; c advances exact completed chip cycles; integer sample phase starts at zero",
+  "musicOrFirmwareUsed": false,
+  "physicalAudioOpened": false,
+  "listeningPerformed": false,
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2",
+    "node": "v26.12.0"
+  },
+  "cases": [
+    {
+      "name": "phase-envelope",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 10784,
+        "sha256": "34d6ca891018dd39dfb1261757a07d1dff7543b4b0fa011011720bab307fc018"
+      },
+      "measurement": {
+        "frames": 5392,
+        "seconds": 0.12226757369614512,
+        "mean": 0.04862933625807041,
+        "rms": 0.1513861682474928,
+        "acRms": 0.14336303425833913,
+        "peak": 0.607879638671875,
+        "overrange": 0,
+        "nonzero": 5391,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 527.5634765625,
+          "centroidHz": 1292.3876100359653,
+          "bandPowerFractions": {
+            "below200Hz": 0.0007048641729864794,
+            "from200To2000Hz": 0.8507216891118932,
+            "above2000Hz": 0.14857344671512063
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11198,
+        "sha256": "d8c8192f6873659126eff0f34ec17939d677687f1b5d8b21cf9138c4cbb8ff9f"
+      },
+      "measurement": {
+        "frames": 5599,
+        "seconds": 0.12696145124716554,
+        "mean": 0.03913093699070146,
+        "rms": 0.09775241729445107,
+        "acRms": 0.08957848434271619,
+        "peak": 0.485504150390625,
+        "overrange": 0,
+        "nonzero": 4345,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 10.7666015625,
+          "centroidHz": 11.417088361631354,
+          "bandPowerFractions": {
+            "below200Hz": 0.9999542222374995,
+            "from200To2000Hz": 0.000029391582941499434,
+            "above2000Hz": 0.000016386179561905006
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "17cc19fc4c2e35bd9844c33b53f71f62aaa1b3d36c9e40e77254af690ade0f26"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.03231886908219611,
+        "rms": 0.13677200329938047,
+        "acRms": 0.1328987268102054,
+        "peak": 0.593719482421875,
+        "overrange": 0,
+        "nonzero": 8055,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 455.78941028534405,
+          "bandPowerFractions": {
+            "below200Hz": 0.000006133057507717271,
+            "from200To2000Hz": 0.9977632676747333,
+            "above2000Hz": 0.0022305992677594567
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "b0df8c88a6a29381874cf47290ec6efa5811dd11918d0dc6b99a9969bad28aaf"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.0323409693243487,
+        "rms": 0.13605810620314573,
+        "acRms": 0.13215850319501968,
+        "peak": 0.6317138671875,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 1120.993215265719,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009384666990079482,
+            "from200To2000Hz": 0.8858325652185313,
+            "above2000Hz": 0.11415805011448242
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "aef4d9e8973df28a4774847e1c5934e7b388a55b2b69bc9eb4b9fceafffe8b87"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.031991915054093996,
+        "rms": 0.1926408744313326,
+        "acRms": 0.1899658492278022,
+        "peak": 0.631103515625,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 866.4227532647117,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009541981512157915,
+            "from200To2000Hz": 0.9154615628732752,
+            "above2000Hz": 0.0845288951452126
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "97a4de87de74195cd0f3f4e694e9925fa8ed4713024581bc226c339be16054bf"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.03313852516636474,
+        "rms": 0.13409033515542323,
+        "acRms": 0.1299309667934936,
+        "peak": 0.570709228515625,
+        "overrange": 0,
+        "nonzero": 8053,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 53.8330078125,
+          "centroidHz": 1835.4544875458978,
+          "bandPowerFractions": {
+            "below200Hz": 0.16392479603778176,
+            "from200To2000Hz": 0.48727048915067295,
+            "above2000Hz": 0.348804714811543
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "0adfb953c405a484e961d7ec5be41d86dd213f76afc6d144423157605a95afaa"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.023143010674545758,
+        "rms": 0.07102389194783085,
+        "acRms": 0.0671475560563079,
+        "peak": 0.485504150390625,
+        "overrange": 0,
+        "nonzero": 8046,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 4563.483224889003,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000452948370149696,
+            "from200To2000Hz": 0.27693952783206893,
+            "above2000Hz": 0.7230151773309204
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "09437e3352ea71e2bf1c74b1577dd721df1fb21ddb2af01e05e61419e1a5a8ed"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.022923663687682318,
+        "rms": 0.11786949698239466,
+        "acRms": 0.11561887372750514,
+        "peak": 0.495819091796875,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 1120.9958596081892,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009371726095647243,
+            "from200To2000Hz": 0.8858327654323298,
+            "above2000Hz": 0.1141578628415754
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "b8afb08d892ded49f84492e64a7986e1dbe052775007b08f5cbc8eea0540df38"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.022572086489543897,
+        "rms": 0.1156264941069912,
+        "acRms": 0.11340188292520818,
+        "peak": 0.495819091796875,
+        "overrange": 0,
+        "nonzero": 8055,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 355.2978515625,
+          "centroidHz": 1028.0135064223687,
+          "bandPowerFractions": {
+            "below200Hz": 0.08495981571723558,
+            "from200To2000Hz": 0.8118521553394358,
+            "above2000Hz": 0.10318802894332957
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "0e23cce7ba7b841a062affdda9219fc8a228cedcaaf8ef86665f13d4adb54009"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.022901790736330065,
+        "rms": 0.11868156342276254,
+        "acRms": 0.11645094021750341,
+        "peak": 0.47247314453125,
+        "overrange": 0,
+        "nonzero": 8055,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 455.78874217380087,
+          "bandPowerFractions": {
+            "below200Hz": 0.000006212084961372154,
+            "from200To2000Hz": 0.9977633357665109,
+            "above2000Hz": 0.002230452148528766
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "33236346296dccd42508cf29a154a5dadd71102556e677d072a03c5ebc81c614"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.022562941823010413,
+        "rms": 0.11789924612637732,
+        "acRms": 0.11572011879297199,
+        "peak": 0.448577880859375,
+        "overrange": 0,
+        "nonzero": 8054,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 613.6962890625,
+          "centroidHz": 633.6975343847064,
+          "bandPowerFractions": {
+            "below200Hz": 0.043898084154689834,
+            "from200To2000Hz": 0.9211680275170206,
+            "above2000Hz": 0.03493388832828917
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 18262,
+        "sha256": "09a0ecfec4039a1d49196ff77ff87a05e308039b77c22fb58dd9f035de9eb0b2"
+      },
+      "measurement": {
+        "frames": 9131,
+        "seconds": 0.20705215419501133,
+        "mean": -0.039946386788267646,
+        "rms": 0.259404416156681,
+        "acRms": 0.256310236440433,
+        "peak": 0.850372314453125,
+        "overrange": 0,
+        "nonzero": 9130,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.38330078125,
+          "dominantBinHz": 5.38330078125,
+          "centroidHz": 424.10181770594215,
+          "bandPowerFractions": {
+            "below200Hz": 0.6599996979888925,
+            "from200To2000Hz": 0.29948358524816016,
+            "above2000Hz": 0.04051671676294336
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11732,
+        "sha256": "beddf4f4050559539c368f59cf7c37ce4a3ea7ba4d49a9c05588b36452754763"
+      },
+      "measurement": {
+        "frames": 5866,
+        "seconds": 0.133015873015873,
+        "mean": 0.019040877364659693,
+        "rms": 0.20807390831449185,
+        "acRms": 0.20720085982073422,
+        "peak": 0.413330078125,
+        "overrange": 0,
+        "nonzero": 5683,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 118.4326171875,
+          "centroidHz": 298.3806778835512,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119881247691774,
+            "from200To2000Hz": 0.16670902079954017,
+            "above2000Hz": 0.021302854431287512
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 44100,
+      "model": 6581,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 732,
+        "sha256": "37e58b86de0358dccb1639f19b89157fbff05b9828a9ccd1c28c79db69b89772"
+      },
+      "measurement": {
+        "frames": 366,
+        "seconds": 0.008299319727891157,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 172.265625,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 10784,
+        "sha256": "51aeb7d7df6870192fe860ba1304e5d2997f430cf5c8af96e4cf2b63dc87e036"
+      },
+      "measurement": {
+        "frames": 5392,
+        "seconds": 0.12226757369614512,
+        "mean": 0.00006572146090272627,
+        "rms": 0.09572438217724366,
+        "acRms": 0.09572435961605896,
+        "peak": 0.165252685546875,
+        "overrange": 0,
+        "nonzero": 5392,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 527.5634765625,
+          "centroidHz": 1293.2452217852672,
+          "bandPowerFractions": {
+            "below200Hz": 0.000018723192826519373,
+            "from200To2000Hz": 0.8513092873590566,
+            "above2000Hz": 0.14867198944811527
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11198,
+        "sha256": "90d29da768aebd6f47487dccd0d2c1d165ac5be7a38db51cea48542fc27e8a51"
+      },
+      "measurement": {
+        "frames": 5599,
+        "seconds": 0.12696145124716554,
+        "mean": -0.000014209559952111984,
+        "rms": 0.024591420503305594,
+        "acRms": 0.02459141639797929,
+        "peak": 0.15142822265625,
+        "overrange": 0,
+        "nonzero": 3505,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 10.7666015625,
+          "centroidHz": 12.555511060688078,
+          "bandPowerFractions": {
+            "below200Hz": 0.9991456260315824,
+            "from200To2000Hz": 0.0007301166663306809,
+            "above2000Hz": 0.00012425730208512906
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "42a389b14b1f2ab7f654c5de683b771d8a94aa8b9c73c798a8af34cd5bfe862b"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0001854958103335247,
+        "rms": 0.0974474784332623,
+        "acRms": 0.09744730188314846,
+        "peak": 0.167694091796875,
+        "overrange": 0,
+        "nonzero": 8054,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 455.78897861663035,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000064023236584131155,
+            "from200To2000Hz": 0.9977632183885657,
+            "above2000Hz": 0.0022303792877763243
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "79c95ba79d0e69d074df9b21d84287ac46af1e43df23d8b7b206ab13d7167814"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0001635508835611656,
+        "rms": 0.09641787001457808,
+        "acRms": 0.09641773130112821,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 8054,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 1120.991434380519,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009335908140485004,
+            "from200To2000Hz": 0.8858341819684288,
+            "above2000Hz": 0.11415648212343055
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "b5eac161c22f043f7c983cef7eacdefdae377e84396a7f5ad033b34e6afe586d"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0005130521590565261,
+        "rms": 0.1674031764627976,
+        "acRms": 0.16740239026763218,
+        "peak": 0.182220458984375,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 866.4255861504621,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009425991327621278,
+            "from200To2000Hz": 0.9154613049727295,
+            "above2000Hz": 0.08452926903593878
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "05a783a395435eb6a79e688897d64d0b6feed21e91d19ec249c8fba67f0e640a"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": 0.0006336943276944203,
+        "rms": 0.09590033637721532,
+        "acRms": 0.09589824267817475,
+        "peak": 0.185760498046875,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 53.8330078125,
+          "centroidHz": 1835.478866533407,
+          "bandPowerFractions": {
+            "below200Hz": 0.16392015396831872,
+            "from200To2000Hz": 0.48727043720265883,
+            "above2000Hz": 0.34880940882902156
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "3199ab87debe3178a8b67022d3f7e457c322bf3c4c9f28913b0be69b0083d919"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.007647558854376784,
+        "rms": 0.0787506155681086,
+        "acRms": 0.07837840452525728,
+        "peak": 0.29669189453125,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 1875.1046766392815,
+          "bandPowerFractions": {
+            "below200Hz": 0.000028065125651395047,
+            "from200To2000Hz": 0.7640342582337651,
+            "above2000Hz": 0.23593767664058357
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "79c95ba79d0e69d074df9b21d84287ac46af1e43df23d8b7b206ab13d7167814"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0001635508835611656,
+        "rms": 0.09641787001457808,
+        "acRms": 0.09641773130112821,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 8054,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 1120.991434380519,
+          "bandPowerFractions": {
+            "below200Hz": 0.000009335908140485004,
+            "from200To2000Hz": 0.8858341819684288,
+            "above2000Hz": 0.11415648212343055
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "874ecd72ecd8f453c8b12bb0a3dcae787221bf3809d4ddee959093cb7b8f3c87"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0005148856381792298,
+        "rms": 0.09550265003562905,
+        "acRms": 0.09550126206813936,
+        "peak": 0.17999267578125,
+        "overrange": 0,
+        "nonzero": 8056,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 355.2978515625,
+          "centroidHz": 1028.013575251305,
+          "bandPowerFractions": {
+            "below200Hz": 0.08495881448814288,
+            "from200To2000Hz": 0.8118536391123494,
+            "above2000Hz": 0.10318754639950882
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "42a389b14b1f2ab7f654c5de683b771d8a94aa8b9c73c798a8af34cd5bfe862b"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0001854958103335247,
+        "rms": 0.0974474784332623,
+        "acRms": 0.09744730188314846,
+        "peak": 0.167694091796875,
+        "overrange": 0,
+        "nonzero": 8054,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 441.4306640625,
+          "centroidHz": 455.78897861663035,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000064023236584131155,
+            "from200To2000Hz": 0.9977632183885657,
+            "above2000Hz": 0.0022303792877763243
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "11a799f80c8c7901be8a40a871214a96b529be940f9f672a44873ad6e42e0a39"
+      },
+      "measurement": {
+        "frames": 8056,
+        "seconds": 0.18267573696145126,
+        "mean": -0.0005244129108932783,
+        "rms": 0.097012956629825,
+        "acRms": 0.0970115392371402,
+        "peak": 0.17523193359375,
+        "overrange": 0,
+        "nonzero": 8055,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 613.6962890625,
+          "centroidHz": 633.6934253058512,
+          "bandPowerFractions": {
+            "below200Hz": 0.0438992276062333,
+            "from200To2000Hz": 0.921166940757987,
+            "above2000Hz": 0.034933831635780656
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 18262,
+        "sha256": "02ba109e0308ddbe4a05cd7fd66a3097260b14552519a973a7514ecacc19b08e"
+      },
+      "measurement": {
+        "frames": 9131,
+        "seconds": 0.20705215419501133,
+        "mean": -0.00009611148769473497,
+        "rms": 0.1419088260309469,
+        "acRms": 0.14190879348392574,
+        "peak": 0.712310791015625,
+        "overrange": 0,
+        "nonzero": 8590,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.38330078125,
+          "dominantBinHz": 21.533203125,
+          "centroidHz": 992.9593753528542,
+          "bandPowerFractions": {
+            "below200Hz": 0.4329811773542312,
+            "from200To2000Hz": 0.45749678174639374,
+            "above2000Hz": 0.10952204089937131
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11732,
+        "sha256": "ee01323c3b55a0a1d67ef297c56cd82753a9f5e0286e84293f5ccce5d4397868"
+      },
+      "measurement": {
+        "frames": 5866,
+        "seconds": 0.133015873015873,
+        "mean": -0.007767946208819894,
+        "rms": 0.08486224238270537,
+        "acRms": 0.08450597135065614,
+        "peak": 0.168609619140625,
+        "overrange": 0,
+        "nonzero": 5683,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 10.7666015625,
+          "dominantBinHz": 118.4326171875,
+          "centroidHz": 298.3839446020261,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119878877935562,
+            "from200To2000Hz": 0.16670934601032256,
+            "above2000Hz": 0.021302766196121443
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 44100,
+      "model": 8580,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        165
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 732,
+        "sha256": "37e58b86de0358dccb1639f19b89157fbff05b9828a9ccd1c28c79db69b89772"
+      },
+      "measurement": {
+        "frames": 366,
+        "seconds": 0.008299319727891157,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 172.265625,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11738,
+        "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+      },
+      "measurement": {
+        "frames": 5869,
+        "seconds": 0.12227083333333333,
+        "mean": 0.048638800580246846,
+        "rms": 0.15140121964956466,
+        "acRms": 0.1433757175727142,
+        "peak": 0.606536865234375,
+        "overrange": 0,
+        "nonzero": 5867,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1298.7772761948138,
+          "bandPowerFractions": {
+            "below200Hz": 0.00021100769696450158,
+            "from200To2000Hz": 0.8511430791077109,
+            "above2000Hz": 0.14864591319532344
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 12188,
+        "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+      },
+      "measurement": {
+        "frames": 6094,
+        "seconds": 0.12695833333333334,
+        "mean": 0.039134036528309095,
+        "rms": 0.09775649462338451,
+        "acRms": 0.08958157972514648,
+        "peak": 0.48565673828125,
+        "overrange": 0,
+        "nonzero": 4729,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 12.667207538626062,
+          "bandPowerFractions": {
+            "below200Hz": 0.9998383407808881,
+            "from200To2000Hz": 0.00011717344757150423,
+            "above2000Hz": 0.00004448577153689765
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.03232402803688776,
+        "rms": 0.13677189424792413,
+        "acRms": 0.13289735989716212,
+        "peak": 0.594940185546875,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 453.3969298742325,
+          "bandPowerFractions": {
+            "below200Hz": 0.005360860602103986,
+            "from200To2000Hz": 0.9924178853276832,
+            "above2000Hz": 0.0022212540702095615
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.032341989175068066,
+        "rms": 0.13607196866832474,
+        "acRms": 0.13217252510818323,
+        "peak": 0.632293701171875,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1116.8715890221608,
+          "bandPowerFractions": {
+            "below200Hz": 0.005357048940780662,
+            "from200To2000Hz": 0.8813144264726023,
+            "above2000Hz": 0.11332852458662052
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.03196862649585899,
+        "rms": 0.19264805878854432,
+        "acRms": 0.18997705512761978,
+        "peak": 0.6312255859375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 866.6459941059239,
+          "bandPowerFractions": {
+            "below200Hz": 0.001710969072635973,
+            "from200To2000Hz": 0.9140060420257018,
+            "above2000Hz": 0.0842829889016662
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.03314721264851679,
+        "rms": 0.13410155669698734,
+        "acRms": 0.1299403316995509,
+        "peak": 0.571136474609375,
+        "overrange": 0,
+        "nonzero": 8766,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 187.5,
+          "centroidHz": 1811.684000659888,
+          "bandPowerFractions": {
+            "below200Hz": 0.2056867573808601,
+            "from200To2000Hz": 0.4618641138778137,
+            "above2000Hz": 0.3324491287413214
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.02314341550869006,
+        "rms": 0.07102757934020208,
+        "acRms": 0.06715131678173426,
+        "peak": 0.48565673828125,
+        "overrange": 0,
+        "nonzero": 8757,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 2188.2273135305445,
+          "bandPowerFractions": {
+            "below200Hz": 0.5231946327544373,
+            "from200To2000Hz": 0.13256200016783332,
+            "above2000Hz": 0.344243367077733
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.02292491326868799,
+        "rms": 0.11788262688092681,
+        "acRms": 0.1156320114499914,
+        "peak": 0.4964599609375,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1119.7822173446768,
+          "bandPowerFractions": {
+            "below200Hz": 0.002742885217193353,
+            "from200To2000Hz": 0.8836315328475256,
+            "above2000Hz": 0.11362558193528194
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.022571408418282802,
+        "rms": 0.11563080816495232,
+        "acRms": 0.11340641656844234,
+        "peak": 0.4964599609375,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 1032.232510382927,
+          "bandPowerFractions": {
+            "below200Hz": 0.0875575330585831,
+            "from200To2000Hz": 0.8093149976877729,
+            "above2000Hz": 0.10312746925364567
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.02290690340817974,
+        "rms": 0.11868165805788915,
+        "acRms": 0.11645003106748426,
+        "peak": 0.4736328125,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 454.56239633641155,
+          "bandPowerFractions": {
+            "below200Hz": 0.002770563897147862,
+            "from200To2000Hz": 0.9950022337162167,
+            "above2000Hz": 0.0022272023866371036
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.022564239275742318,
+        "rms": 0.1178995398810509,
+        "acRms": 0.11572016509697244,
+        "peak": 0.44775390625,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 655.2899017509376,
+          "bandPowerFractions": {
+            "below200Hz": 0.04517852754008821,
+            "from200To2000Hz": 0.9160883689990341,
+            "above2000Hz": 0.03873310346088
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 19876,
+        "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+      },
+      "measurement": {
+        "frames": 9938,
+        "seconds": 0.20704166666666668,
+        "mean": -0.03999119492022414,
+        "rms": 0.2593987272847613,
+        "acRms": 0.2562974912983087,
+        "peak": 0.850372314453125,
+        "overrange": 0,
+        "nonzero": 9936,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 417.0674657262639,
+          "bandPowerFractions": {
+            "below200Hz": 0.66875065495404,
+            "from200To2000Hz": 0.291885321812013,
+            "above2000Hz": 0.03936402323394819
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 12770,
+        "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+      },
+      "measurement": {
+        "frames": 6385,
+        "seconds": 0.13302083333333334,
+        "mean": 0.01903144519779023,
+        "rms": 0.20808662801169683,
+        "acRms": 0.20721449961564417,
+        "peak": 0.4134521484375,
+        "overrange": 0,
+        "nonzero": 6186,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 299.361475609489,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119933648586036,
+            "from200To2000Hz": 0.1666888835109331,
+            "above2000Hz": 0.021317751630463816
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 48000,
+      "model": 6581,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 798,
+        "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+      },
+      "measurement": {
+        "frames": 399,
+        "seconds": 0.0083125,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 187.5,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 11738,
+        "sha256": "44428dac9c2d86dbdbc7b94895c9ea8bfdb06d0160ba47192b9e44834eb7c78d"
+      },
+      "measurement": {
+        "frames": 5869,
+        "seconds": 0.12227083333333333,
+        "mean": 0.0000746586107886778,
+        "rms": 0.0957443466926408,
+        "acRms": 0.0957443175843477,
+        "peak": 0.16522216796875,
+        "overrange": 0,
+        "nonzero": 5868,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1299.063919510748,
+          "bandPowerFractions": {
+            "below200Hz": 0.000006539189810111592,
+            "from200To2000Hz": 0.8513154783977785,
+            "above2000Hz": 0.1486779824124127
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 12188,
+        "sha256": "ad9a51f68682a72a9dbe9f20ad788962fbb739189389f34940962f667c165045"
+      },
+      "measurement": {
+        "frames": 6094,
+        "seconds": 0.12695833333333334,
+        "mean": -0.000014157071440658844,
+        "rms": 0.024591260814695207,
+        "acRms": 0.024591256739615652,
+        "peak": 0.151458740234375,
+        "overrange": 0,
+        "nonzero": 3815,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 15.453663283638774,
+          "bandPowerFractions": {
+            "below200Hz": 0.9976689908169611,
+            "from200To2000Hz": 0.0020540424813185318,
+            "above2000Hz": 0.00027696670172030243
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.00017977494961832877,
+        "rms": 0.09744791002494504,
+        "acRms": 0.09744774419758147,
+        "peak": 0.167724609375,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 455.80790234282574,
+          "bandPowerFractions": {
+            "below200Hz": 2.5892501119059725e-7,
+            "from200To2000Hz": 0.9977664165215866,
+            "above2000Hz": 0.002233324553404561
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.00016195649825557362,
+        "rms": 0.09642435826501984,
+        "acRms": 0.09642422225205434,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1122.844206369879,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000065918774197959305,
+            "from200To2000Hz": 0.8860550648930852,
+            "above2000Hz": 0.11393834322949169
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "c1a6dc3f28d3442ca629fd6bde5867061f7b5865966df9bf528f9be53e80c22e"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.0005359316867302429,
+        "rms": 0.16742444151999838,
+        "acRms": 0.16742358374945424,
+        "peak": 0.182220458984375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 868.1169094860049,
+          "bandPowerFractions": {
+            "below200Hz": 0.000002712968280455441,
+            "from200To2000Hz": 0.9155703649012578,
+            "above2000Hz": 0.08442692213046606
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "92f1e31e3a301bd33ce241ff7d6bd476de8750363f1697978cc29cabb096a30e"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": 0.0006433783405141693,
+        "rms": 0.09590998978482894,
+        "acRms": 0.09590783182220808,
+        "peak": 0.185760498046875,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 187.5,
+          "centroidHz": 1826.3612185767133,
+          "bandPowerFractions": {
+            "below200Hz": 0.19922811746122585,
+            "from200To2000Hz": 0.46562097569735733,
+            "above2000Hz": 0.33515090684141374
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "2a98fbf85e26bc468c890c934c655adc1ba5ad206fb79bf4fa77de8afdc4ec38"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.007632832935536407,
+        "rms": 0.07875911152271177,
+        "acRms": 0.07838837611039752,
+        "peak": 0.29681396484375,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1878.6782904000322,
+          "bandPowerFractions": {
+            "below200Hz": 0.0006442224545335565,
+            "from200To2000Hz": 0.7640048688700166,
+            "above2000Hz": 0.2353509086754487
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.00016195649825557362,
+        "rms": 0.09642435826501984,
+        "acRms": 0.09642422225205434,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1122.844206369879,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000065918774197959305,
+            "from200To2000Hz": 0.8860550648930852,
+            "above2000Hz": 0.11393834322949169
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "9f9aea523460513ac37497d4f4f40e21bd39dcaf18cb3e39d69b53d3da4fa0c0"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.0005151550940279678,
+        "rms": 0.09550559195493534,
+        "acRms": 0.09550420257712068,
+        "peak": 0.17987060546875,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 1035.2420837343623,
+          "bandPowerFractions": {
+            "below200Hz": 0.08487937160162988,
+            "from200To2000Hz": 0.8116903008227573,
+            "above2000Hz": 0.10343032757561374
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.00017977494961832877,
+        "rms": 0.09744791002494504,
+        "acRms": 0.09744774419758147,
+        "peak": 0.167724609375,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 455.80790234282574,
+          "bandPowerFractions": {
+            "below200Hz": 2.5892501119059725e-7,
+            "from200To2000Hz": 0.9977664165215866,
+            "above2000Hz": 0.002233324553404561
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "a8483a6a036e87a3fdcff66e66eb8a921eb8628e66b75d0ac56c6f8f3af67456"
+      },
+      "measurement": {
+        "frames": 8769,
+        "seconds": 0.1826875,
+        "mean": -0.0005224077605592143,
+        "rms": 0.09701248007551733,
+        "acRms": 0.09701107349439214,
+        "peak": 0.174346923828125,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 656.9299421177168,
+          "bandPowerFractions": {
+            "below200Hz": 0.042763163008514384,
+            "from200To2000Hz": 0.9184060926507703,
+            "above2000Hz": 0.038830744340715796
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 19876,
+        "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+      },
+      "measurement": {
+        "frames": 9938,
+        "seconds": 0.20704166666666668,
+        "mean": -0.000138179712262905,
+        "rms": 0.14198121384171397,
+        "acRms": 0.14198114660170072,
+        "peak": 0.711395263671875,
+        "overrange": 0,
+        "nonzero": 9349,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 128.90625,
+          "centroidHz": 966.7653112969767,
+          "bandPowerFractions": {
+            "below200Hz": 0.44412210678932434,
+            "from200To2000Hz": 0.4511150814837268,
+            "above2000Hz": 0.10476281172695082
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 12770,
+        "sha256": "8aaafc1662e5a16ae9babb4deb7489c569e5c41342b4883adaafa3547ba76f4e"
+      },
+      "measurement": {
+        "frames": 6385,
+        "seconds": 0.13302083333333334,
+        "mean": -0.007764326676597984,
+        "rms": 0.08486749128913779,
+        "acRms": 0.08451157499994273,
+        "peak": 0.168670654296875,
+        "overrange": 0,
+        "nonzero": 6186,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 299.37441155313826,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119929495996642,
+            "from200To2000Hz": 0.1666869629781963,
+            "above2000Hz": 0.021320087422141518
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 48000,
+      "model": 8580,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        165
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 798,
+        "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+      },
+      "measurement": {
+        "frames": 399,
+        "seconds": 0.0083125,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 187.5,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 23476,
+        "sha256": "589e69f5ca339aa258b79b850eeeccdfcbc5fb933fef9039192947dce034d498"
+      },
+      "measurement": {
+        "frames": 11738,
+        "seconds": 0.12227083333333333,
+        "mean": 0.048645934694608324,
+        "rms": 0.1514138138270521,
+        "acRms": 0.14338659649821212,
+        "peak": 0.608551025390625,
+        "overrange": 0,
+        "nonzero": 11735,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1329.047244625009,
+          "bandPowerFractions": {
+            "below200Hz": 0.00020968956329997935,
+            "from200To2000Hz": 0.8509745800236888,
+            "above2000Hz": 0.1488157304130128
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 24378,
+        "sha256": "fc0582dcf2e8dfde37d9c89642bf191e1a4ab8ef9da7adbf00655f75280d78f3"
+      },
+      "measurement": {
+        "frames": 12189,
+        "seconds": 0.12696875,
+        "mean": 0.03914254072976275,
+        "rms": 0.09776939251514156,
+        "acRms": 0.08959193947001418,
+        "peak": 0.48565673828125,
+        "overrange": 0,
+        "nonzero": 9459,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 12.733234933714797,
+          "bandPowerFractions": {
+            "below200Hz": 0.9998381719664187,
+            "from200To2000Hz": 0.00011693917458105788,
+            "above2000Hz": 0.00004488885899851094
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "b632c4a5a051d85751651075ec92fca902addd8fd74bf6b2256e566bfc6b95a3"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.032327899721876246,
+        "rms": 0.13677519085641374,
+        "acRms": 0.1328998108854212,
+        "peak": 0.594940185546875,
+        "overrange": 0,
+        "nonzero": 17538,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 453.405653874624,
+          "bandPowerFractions": {
+            "below200Hz": 0.005365072914346546,
+            "from200To2000Hz": 0.9924135653662965,
+            "above2000Hz": 0.002221361719357041
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "e49173fc76c718192aa857c052949517a38dcbaa6bee1f231af76220e192a4ce"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.03235506415978875,
+        "rms": 0.1360673150604458,
+        "acRms": 0.13216453401338263,
+        "peak": 0.632293701171875,
+        "overrange": 0,
+        "nonzero": 17535,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1139.7626896007714,
+          "bandPowerFractions": {
+            "below200Hz": 0.0053660841235837215,
+            "from200To2000Hz": 0.8812288016950062,
+            "above2000Hz": 0.11340511418141178
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "b4a292537c78a501afb758a38023d5b72b82aebd20c8a1001a7e8f423a7c7c0b"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.03198800232163285,
+        "rms": 0.1926537298178503,
+        "acRms": 0.18997954447834767,
+        "peak": 0.6312255859375,
+        "overrange": 0,
+        "nonzero": 17538,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 882.261997604744,
+          "bandPowerFractions": {
+            "below200Hz": 0.0017151945856726137,
+            "from200To2000Hz": 0.9139200142788113,
+            "above2000Hz": 0.08436479113551908
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "6a46f98cc1b97b47e7042b16b8968d757fbe86a151178eda6f36365cc0c23fc7"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.03314091876779618,
+        "rms": 0.13412475549967862,
+        "acRms": 0.12996587837226703,
+        "peak": 0.571136474609375,
+        "overrange": 0,
+        "nonzero": 17532,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 187.5,
+          "centroidHz": 1860.4651374449443,
+          "bandPowerFractions": {
+            "below200Hz": 0.20555127215816144,
+            "from200To2000Hz": 0.4614789555170513,
+            "above2000Hz": 0.3329697723247872
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "63efffd8a042c9c4d8cf424dc1474a293907598caac75f9e1779f9a703fec3c1"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.02315131722623286,
+        "rms": 0.07103514494989045,
+        "acRms": 0.06715659557141265,
+        "peak": 0.48565673828125,
+        "overrange": 0,
+        "nonzero": 17509,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 2291.4826769801507,
+          "bandPowerFractions": {
+            "below200Hz": 0.5234182854339473,
+            "from200To2000Hz": 0.13217763754526365,
+            "above2000Hz": 0.3444040770207933
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "9342bdb60d4641ccb351a7a1c6d819aae51eae161569d7caea3adeb7b1046c59"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.022935613039921348,
+        "rms": 0.11787613812527317,
+        "acRms": 0.11562327444684946,
+        "peak": 0.4964599609375,
+        "overrange": 0,
+        "nonzero": 17536,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1142.743200143519,
+          "bandPowerFractions": {
+            "below200Hz": 0.0027465915322436797,
+            "from200To2000Hz": 0.8835496098284762,
+            "above2000Hz": 0.11370379863928108
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "d6b72672d14adb3fe70f2825b85856ce75e0b88a15d795bd0326373a2eddc4fa"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.022561293314984784,
+        "rms": 0.11559337605140511,
+        "acRms": 0.11337026343321595,
+        "peak": 0.4964599609375,
+        "overrange": 0,
+        "nonzero": 17536,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 1048.496610177158,
+          "bandPowerFractions": {
+            "below200Hz": 0.08766836035585082,
+            "from200To2000Hz": 0.8094706126979361,
+            "above2000Hz": 0.1028610269462155
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "6c17cc1ff3a2eddcad037f6fd51861079264be5d9de03b3f45cf24cc0c94b20e"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.022908413800346035,
+        "rms": 0.11868260561706137,
+        "acRms": 0.11645069966817308,
+        "peak": 0.4736328125,
+        "overrange": 0,
+        "nonzero": 17537,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 454.57162842454426,
+          "bandPowerFractions": {
+            "below200Hz": 0.0027724237696799326,
+            "from200To2000Hz": 0.9950004344145913,
+            "above2000Hz": 0.002227141815729548
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "709670e07e97a868f180f7da1d9f5fa204f242bba6e661068b9bd28e584db1fb"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.0225717616551604,
+        "rms": 0.11790344766492789,
+        "acRms": 0.11572267948444255,
+        "peak": 0.449310302734375,
+        "overrange": 0,
+        "nonzero": 17537,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 660.4787502430245,
+          "bandPowerFractions": {
+            "below200Hz": 0.04518212604800446,
+            "from200To2000Hz": 0.9161465130122066,
+            "above2000Hz": 0.038671360939784266
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 39754,
+        "sha256": "db5232e4545d6c6a9f8c6b0374cae16a4088bb83141afacfdd1d65da53a6fcf6"
+      },
+      "measurement": {
+        "frames": 19877,
+        "seconds": 0.20705208333333333,
+        "mean": -0.03997024326561478,
+        "rms": 0.25941089073488227,
+        "acRms": 0.2563130700630629,
+        "peak": 0.850372314453125,
+        "overrange": 0,
+        "nonzero": 19870,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 433.11959881630037,
+          "bandPowerFractions": {
+            "below200Hz": 0.6688580488252821,
+            "from200To2000Hz": 0.2915108450929937,
+            "above2000Hz": 0.0396311060817217
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 25542,
+        "sha256": "38561e9d36e04c9897b3af21c3edbb10c608c55c7f7544ae05d3683824e7a1d9"
+      },
+      "measurement": {
+        "frames": 12771,
+        "seconds": 0.13303125,
+        "mean": 0.01904746119748845,
+        "rms": 0.20807027441588535,
+        "acRms": 0.2071966054679275,
+        "peak": 0.4134521484375,
+        "overrange": 0,
+        "nonzero": 12372,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 303.68615643504256,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119747150192266,
+            "from200To2000Hz": 0.16667604852082418,
+            "above2000Hz": 0.021349236459952816
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 96000,
+      "model": 6581,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 1596,
+        "sha256": "bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc"
+      },
+      "measurement": {
+        "frames": 798,
+        "seconds": 0.0083125,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 512,
+          "binWidthHz": 187.5,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 120470,
+      "reads": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        5,
+        4,
+        51,
+        41,
+        64,
+        52,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 23476,
+        "sha256": "0fc97243200fa7bdf28673a842543710c953e0f48a69f505e227ae42ade9e0a0"
+      },
+      "measurement": {
+        "frames": 11738,
+        "seconds": 0.12227083333333333,
+        "mean": 0.00007159333351747529,
+        "rms": 0.09574389317729805,
+        "acRms": 0.09574386641002365,
+        "peak": 0.165252685546875,
+        "overrange": 0,
+        "nonzero": 11736,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1329.3321960593237,
+          "bandPowerFractions": {
+            "below200Hz": 0.000006200458823993395,
+            "from200To2000Hz": 0.8511449841868111,
+            "above2000Hz": 0.14884881535436464
+          }
+        }
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 125096,
+      "reads": [
+        0,
+        255,
+        114,
+        0
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 24378,
+        "sha256": "b2118878757f6905fcf064dd77cad4ecb206f1c5dd31746e20741312774f283b"
+      },
+      "measurement": {
+        "frames": 12189,
+        "seconds": 0.12696875,
+        "mean": -0.000012095366307480105,
+        "rms": 0.02459930176797517,
+        "acRms": 0.02459929879435632,
+        "peak": 0.151458740234375,
+        "overrange": 0,
+        "nonzero": 7630,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 15.843793921688604,
+          "bandPowerFractions": {
+            "below200Hz": 0.9976659987894936,
+            "from200To2000Hz": 0.0020551744765439322,
+            "above2000Hz": 0.0002788267339602404
+          }
+        }
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        200,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "4938ad2d40396f240253c43840a950d41be78136de2825ac752e4e6600ebd280"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.00018260606488856341,
+        "rms": 0.09744657434660027,
+        "acRms": 0.09744640325282693,
+        "peak": 0.167724609375,
+        "overrange": 0,
+        "nonzero": 17534,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 455.8182869128386,
+          "bandPowerFractions": {
+            "below200Hz": 2.466104048142061e-7,
+            "from200To2000Hz": 0.997766488937006,
+            "above2000Hz": 0.0022332644525936292
+          }
+        }
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        100,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "a7157ad30e98231c1c08d44651fe853589eb0bd81d8e269de21c8323f0f50517"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.00015559997454188762,
+        "rms": 0.09641920279570237,
+        "acRms": 0.09641907724307831,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 17533,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1145.8783885630326,
+          "bandPowerFractions": {
+            "below200Hz": 7.650272131837244e-7,
+            "from200To2000Hz": 0.8859819480712037,
+            "above2000Hz": 0.11401728690158465
+          }
+        }
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "dde000d017471c294caa14c1dde5dfd6e68cce131e3a39bc86a60e38d7ddd293"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.0005232203793860118,
+        "rms": 0.1674123815507001,
+        "acRms": 0.1674115639282776,
+        "peak": 0.182220458984375,
+        "overrange": 0,
+        "nonzero": 17538,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 883.7648774979875,
+          "bandPowerFractions": {
+            "below200Hz": 0.0000014339946547058421,
+            "from200To2000Hz": 0.9154888944693941,
+            "above2000Hz": 0.08450967153595579
+          }
+        }
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        230,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "1c6702e2c80190035c8845d8f05dc1cf817cc4d282420325645828fa974bb12b"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": 0.0006302650739643917,
+        "rms": 0.0959337805406444,
+        "acRms": 0.09593171016278748,
+        "peak": 0.185760498046875,
+        "overrange": 0,
+        "nonzero": 17538,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 187.5,
+          "centroidHz": 1875.5890502957188,
+          "bandPowerFractions": {
+            "below200Hz": 0.19907276181013808,
+            "from200To2000Hz": 0.4652426626553377,
+            "above2000Hz": 0.3356845755345218
+          }
+        }
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        0,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "035b17182fd1005e2797763e3c8a5ee201e434e79661ed9e64de7520990cc768"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.007631754083989052,
+        "rms": 0.07877147377194386,
+        "acRms": 0.07840090184306273,
+        "peak": 0.29681396484375,
+        "overrange": 0,
+        "nonzero": 17536,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1927.6055105353857,
+          "bandPowerFractions": {
+            "below200Hz": 0.0006135021576655701,
+            "from200To2000Hz": 0.7638560517813668,
+            "above2000Hz": 0.2355304460609716
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "a7157ad30e98231c1c08d44651fe853589eb0bd81d8e269de21c8323f0f50517"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.00015559997454188762,
+        "rms": 0.09641920279570237,
+        "acRms": 0.09641907724307831,
+        "peak": 0.16754150390625,
+        "overrange": 0,
+        "nonzero": 17533,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1145.8783885630326,
+          "bandPowerFractions": {
+            "below200Hz": 7.650272131837244e-7,
+            "from200To2000Hz": 0.8859819480712037,
+            "above2000Hz": 0.11401728690158465
+          }
+        }
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "ef323de289f39f26d61f3c03ab9eb39a8d0740be60db1d270e0446d090749286"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.0005295925638479659,
+        "rms": 0.09547963062274559,
+        "acRms": 0.09547816187784645,
+        "peak": 0.17999267578125,
+        "overrange": 0,
+        "nonzero": 17536,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 1051.5550903846872,
+          "bandPowerFractions": {
+            "below200Hz": 0.08498336689119619,
+            "from200To2000Hz": 0.81185324927526,
+            "above2000Hz": 0.10316338383353924
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "4938ad2d40396f240253c43840a950d41be78136de2825ac752e4e6600ebd280"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.00018260606488856341,
+        "rms": 0.09744657434660027,
+        "acRms": 0.09744640325282693,
+        "peak": 0.167724609375,
+        "overrange": 0,
+        "nonzero": 17534,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 455.8182869128386,
+          "bandPowerFractions": {
+            "below200Hz": 2.466104048142061e-7,
+            "from200To2000Hz": 0.997766488937006,
+            "above2000Hz": 0.0022332644525936292
+          }
+        }
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 180000,
+      "reads": [
+        83,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "f6d9bf2058bda3346a6e231f152b3e558a89699b3c3f24ad6c3aa81f3b2a77fd"
+      },
+      "measurement": {
+        "frames": 17538,
+        "seconds": 0.1826875,
+        "mean": -0.0005192408092427871,
+        "rms": 0.09701048215533992,
+        "acRms": 0.09700909254803666,
+        "peak": 0.17578125,
+        "overrange": 0,
+        "nonzero": 17535,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 662.1406401429614,
+          "bandPowerFractions": {
+            "below200Hz": 0.04276282946003789,
+            "from200To2000Hz": 0.9184671636794786,
+            "above2000Hz": 0.03877000686048145
+          }
+        }
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 204000,
+      "reads": [
+        28,
+        255
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 39754,
+        "sha256": "9d9835c7efb707c61452891356e42824135130a592cf1d7dd36984aaf4e92df9"
+      },
+      "measurement": {
+        "frames": 19877,
+        "seconds": 0.20705208333333333,
+        "mean": -0.00011788656241746113,
+        "rms": 0.14194894650271944,
+        "acRms": 0.14194889755116208,
+        "peak": 0.712127685546875,
+        "overrange": 0,
+        "nonzero": 18696,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 16384,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 128.90625,
+          "centroidHz": 996.2194654606405,
+          "bandPowerFractions": {
+            "below200Hz": 0.4440612292202684,
+            "from200To2000Hz": 0.45065724597699347,
+            "above2000Hz": 0.10528152480274065
+          }
+        }
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 131072,
+      "reads": [],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 25542,
+        "sha256": "80bec17b55c1814348432c40dfd78482113950f7297b0196337760e519476ae5"
+      },
+      "measurement": {
+        "frames": 12771,
+        "seconds": 0.13303125,
+        "mean": -0.007770897068737276,
+        "rms": 0.08486093925121645,
+        "acRms": 0.08450439142048027,
+        "peak": 0.168670654296875,
+        "overrange": 0,
+        "nonzero": 12372,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 303.7008125111509,
+          "bandPowerFractions": {
+            "below200Hz": 0.8119725302676157,
+            "from200To2000Hz": 0.16667567546703885,
+            "above2000Hz": 0.021351794265343164
+          }
+        }
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 96000,
+      "model": 8580,
+      "cycles": 8193,
+      "reads": [
+        165,
+        165,
+        165
+      ],
+      "exactNativeWasm": true,
+      "exactChunked": true,
+      "pcm": {
+        "bytes": 1596,
+        "sha256": "bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc"
+      },
+      "measurement": {
+        "frames": 798,
+        "seconds": 0.0083125,
+        "mean": 0,
+        "rms": 0,
+        "acRms": 0,
+        "peak": 0,
+        "overrange": 0,
+        "nonzero": 0,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 512,
+          "binWidthHz": 187.5,
+          "dominantBinHz": null,
+          "centroidHz": null,
+          "bandPowerFractions": {
+            "below200Hz": 0,
+            "from200To2000Hz": 0,
+            "above2000Hz": 0
+          }
+        }
+      }
+    }
+  ],
+  "externalReference": [
+    {
+      "name": "phase-envelope",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          5,
+          4,
+          51,
+          41,
+          64,
+          52,
+          255
+        ],
+        "reference": [
+          85,
+          170,
+          86,
+          171,
+          86,
+          171,
+          90,
+          175,
+          136,
+          212,
+          150,
+          222,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 11740,
+        "sha256": "26e6608ec7c2ccb92ec3d6c3d82978844924b74ccd54718bf33416b9a5734abf"
+      },
+      "referenceMeasurement": {
+        "frames": 5870,
+        "seconds": 0.12229166666666667,
+        "mean": 0.05479175886059945,
+        "rms": 0.0995740726771078,
+        "acRms": 0.08314360534922616,
+        "peak": 0.21673583984375,
+        "overrange": 0,
+        "nonzero": 5869,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1288.521613909907,
+          "bandPowerFractions": {
+            "below200Hz": 0.0025397756321686405,
+            "from200To2000Hz": 0.8475326436881898,
+            "above2000Hz": 0.1499275806796405
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 5869,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.1753430932158635,
+        "maximumDifference": 0.59417724609375,
+        "centeredCorrelation": -0.13586442714144537,
+        "rmsRatioActualToReference": 1.5204147197173312
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          0,
+          255,
+          114,
+          0
+        ],
+        "reference": [
+          0,
+          255,
+          114,
+          0
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 12190,
+        "sha256": "54d30844b282536ef082a5ec4460aaf5ae38eb3797536bbf1c149aa67b9ddc6f"
+      },
+      "referenceMeasurement": {
+        "frames": 6095,
+        "seconds": 0.12697916666666667,
+        "mean": -0.021028008277148277,
+        "rms": 0.026842412888044363,
+        "acRms": 0.016683464794473413,
+        "peak": 0.099700927734375,
+        "overrange": 0,
+        "nonzero": 6094,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 122.90794165307994,
+          "bandPowerFractions": {
+            "below200Hz": 0.8999946832491663,
+            "from200To2000Hz": 0.08897527486018712,
+            "above2000Hz": 0.0110300418906466
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 6094,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.11148036301254706,
+        "maximumDifference": 0.580963134765625,
+        "centeredCorrelation": -0.16894292015169154,
+        "rmsRatioActualToReference": 3.6416411836929
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          200,
+          255
+        ],
+        "reference": [
+          141,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "00c1dfbd5a22ab9de32b9df458f569a2082a607554f9e6093fba7b1cedc93dbb"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.04600841909341149,
+        "rms": 0.09652159569594866,
+        "acRms": 0.08485071483621799,
+        "peak": 0.21826171875,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 454.58142552087764,
+          "bandPowerFractions": {
+            "below200Hz": 0.00804208367868777,
+            "from200To2000Hz": 0.9896777939663556,
+            "above2000Hz": 0.002280122354952471
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.1722538038439192,
+        "maximumDifference": 0.588531494140625,
+        "centeredCorrelation": -0.2049257126715544,
+        "rmsRatioActualToReference": 1.4169426070296043
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          100,
+          255
+        ],
+        "reference": [
+          185,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "8ab3178dc1191eee1e193d547d601151c606b8d2f64eb81e607a57ab7d33bbd0"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.045768095775504204,
+        "rms": 0.09551817040666546,
+        "acRms": 0.0838391453136365,
+        "peak": 0.21661376953125,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1109.3529078598312,
+          "bandPowerFractions": {
+            "below200Hz": 0.008271414993849908,
+            "from200To2000Hz": 0.8799548791593232,
+            "above2000Hz": 0.11177370584682324
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.16708342232739812,
+        "maximumDifference": 0.6097412109375,
+        "centeredCorrelation": -0.14607577891245208,
+        "rmsRatioActualToReference": 1.4245513592091994
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          0,
+          255
+        ],
+        "reference": [
+          255,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "8f412dbe397e5b7deca6b449da2a7874bf4a89a8802de1c284b5b676764e6c68"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.04136645535650656,
+        "rms": 0.1506442843654277,
+        "acRms": 0.14485343207259538,
+        "peak": 0.22113037109375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 857.650913283041,
+          "bandPowerFractions": {
+            "below200Hz": 0.0022023857887272756,
+            "from200To2000Hz": 0.9145086879556257,
+            "above2000Hz": 0.08328892625564731
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.2619204087315364,
+        "maximumDifference": 0.706939697265625,
+        "centeredCorrelation": -0.2078539422620468,
+        "rmsRatioActualToReference": 1.2788468921737626
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          230,
+          255
+        ],
+        "reference": [
+          182,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "a289dd822e289612c1b4618ede7e03e0def7041ad7fe62846bcf5f83ea11927d"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.04572545120082668,
+        "rms": 0.09588946495404285,
+        "acRms": 0.08428506748916696,
+        "peak": 0.217376708984375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 23.4375,
+          "centroidHz": 1735.2182018165618,
+          "bandPowerFractions": {
+            "below200Hz": 0.233280913839448,
+            "from200To2000Hz": 0.4442216724064267,
+            "above2000Hz": 0.3224974137541223
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.08879478104363525,
+        "maximumDifference": 0.48583984375,
+        "centeredCorrelation": 0.7424158013199679,
+        "rmsRatioActualToReference": 1.3985815948992077
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          0,
+          255
+        ],
+        "reference": [
+          0,
+          255
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "810f8efeba72868ff40444f22031c878316a88373439b17d637bc88cbce9cd70"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.035665214999643674,
+        "rms": 0.038744977109532994,
+        "acRms": 0.015138219520387056,
+        "peak": 0.0963134765625,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 6.230571406434491,
+          "bandPowerFractions": {
+            "below200Hz": 0.9999937060966058,
+            "from200To2000Hz": 2.4703241055136304e-7,
+            "above2000Hz": 0.000006046870983488864
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.09807743033422926,
+        "maximumDifference": 0.580963134765625,
+        "centeredCorrelation": -0.6994597497099792,
+        "rmsRatioActualToReference": 1.8331201600660898
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "f79754d4b75b5b85666abed8a26d76d2960419818f77a4f5ae3d27408b658b05"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.014375348672899444,
+        "rms": 0.08665470247950456,
+        "acRms": 0.08545400407437923,
+        "peak": 0.16790771484375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 1121.3546223612193,
+          "bandPowerFractions": {
+            "below200Hz": 0.0006759295548755949,
+            "from200To2000Hz": 0.8860699968153903,
+            "above2000Hz": 0.11325407362972972
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.16029607565261736,
+        "maximumDifference": 0.5284423828125,
+        "centeredCorrelation": -0.25036888028571336,
+        "rmsRatioActualToReference": 1.3603509141103036
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "ce0bbf5f9b81917cb2f853a8dc085de8d45231d2fdad8a253fedafcaf4cfb7e7"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.00602295548233502,
+        "rms": 0.08482901729662,
+        "acRms": 0.08461492884100338,
+        "peak": 0.16827392578125,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 1039.811151101752,
+          "bandPowerFractions": {
+            "below200Hz": 0.08398168175429185,
+            "from200To2000Hz": 0.8124005882738419,
+            "above2000Hz": 0.10361772997186726
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.15394252775608758,
+        "maximumDifference": 0.456573486328125,
+        "centeredCorrelation": -0.17730815000032152,
+        "rmsRatioActualToReference": 1.363028301866089
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "a54e95dffaa6f0e708bca829c2a4137dd987ae5df39530f8b239721ff79a9906"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.014622422743550457,
+        "rms": 0.08784220881084442,
+        "acRms": 0.08661661735415954,
+        "peak": 0.168121337890625,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 458.57687826678347,
+          "bandPowerFractions": {
+            "below200Hz": 0.0006502498788301313,
+            "from200To2000Hz": 0.9969643661119039,
+            "above2000Hz": 0.0023853840092679253
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.16564008732488325,
+        "maximumDifference": 0.500762939453125,
+        "centeredCorrelation": -0.3124841768349664,
+        "rmsRatioActualToReference": 1.3510089644918544
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "1e74d5dbab90f95430d2d7345b6d80e168606c7fc73d34d654845b030cc52566"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": 0.014595433651653363,
+        "rms": 0.0877829221487191,
+        "acRms": 0.08656104630541536,
+        "peak": 0.1689453125,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 652.8075345478152,
+          "bandPowerFractions": {
+            "below200Hz": 0.04440063164314135,
+            "from200To2000Hz": 0.9172129152445797,
+            "above2000Hz": 0.03838645311227811
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.15149155594888258,
+        "maximumDifference": 0.499755859375,
+        "centeredCorrelation": -0.09989408274988429,
+        "rmsRatioActualToReference": 1.3430122037551875
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          28,
+          255
+        ],
+        "reference": [
+          113,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 19878,
+        "sha256": "4e0145b6cb3d846e6e925b114d7dd5df0f499c02da11df9d8915217c4c33e04f"
+      },
+      "referenceMeasurement": {
+        "frames": 9939,
+        "seconds": 0.2070625,
+        "mean": -0.2522475510035042,
+        "rms": 0.3969688571942087,
+        "acRms": 0.3065215271311472,
+        "peak": 0.85693359375,
+        "overrange": 0,
+        "nonzero": 9937,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 231.48465671744194,
+          "bandPowerFractions": {
+            "below200Hz": 0.8216349158173681,
+            "from200To2000Hz": 0.15355356616365828,
+            "above2000Hz": 0.024811518018974833
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 9938,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.3644153159526674,
+        "maximumDifference": 1.144073486328125,
+        "centeredCorrelation": 0.4575569849068182,
+        "rmsRatioActualToReference": 0.6534608863868229
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [],
+        "reference": []
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 12772,
+        "sha256": "22861cd7959687f555a42f52cde6b3c109f1bbf030b819807359ca49f1796371"
+      },
+      "referenceMeasurement": {
+        "frames": 6386,
+        "seconds": 0.13304166666666667,
+        "mean": -0.14150638263725093,
+        "rms": 0.21918093161796545,
+        "acRms": 0.1673804781264505,
+        "peak": 0.38739013671875,
+        "overrange": 0,
+        "nonzero": 6385,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 293.53787375171385,
+          "bandPowerFractions": {
+            "below200Hz": 0.8153628595651093,
+            "from200To2000Hz": 0.16393571800704543,
+            "above2000Hz": 0.020701422427843855
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 6385,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.18592477628641765,
+        "maximumDifference": 0.63043212890625,
+        "centeredCorrelation": 0.896239443042446,
+        "rmsRatioActualToReference": 0.9493175677362637
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 48000,
+      "model": 6581,
+      "reads": {
+        "candidate": [
+          165,
+          165,
+          0
+        ],
+        "reference": [
+          165,
+          165,
+          0
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 800,
+        "sha256": "f28151dab919da2239a193aa82a54ef08b2eb98899189ab5a4a8994f5b8d99ae"
+      },
+      "referenceMeasurement": {
+        "frames": 400,
+        "seconds": 0.008333333333333333,
+        "mean": -0.3747104644775391,
+        "rms": 0.3752455862640401,
+        "acRms": 0.020032918451141298,
+        "peak": 0.38739013671875,
+        "overrange": 0,
+        "nonzero": 399,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 187.5,
+          "dominantBinHz": 187.5,
+          "centroidHz": 199.067375474994,
+          "bandPowerFractions": {
+            "below200Hz": 0.9473011000417946,
+            "from200To2000Hz": 0.052638440787245694,
+            "above2000Hz": 0.000060459170959171134
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 399,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.37527301729216556,
+        "maximumDifference": 0.38739013671875,
+        "centeredCorrelation": null,
+        "rmsRatioActualToReference": 0
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          5,
+          4,
+          51,
+          41,
+          64,
+          52,
+          255
+        ],
+        "reference": [
+          85,
+          170,
+          86,
+          171,
+          86,
+          171,
+          90,
+          175,
+          136,
+          212,
+          149,
+          222,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 11740,
+        "sha256": "f7a46a13ea230dde21ad6716406fbcdd4d8b0d713b581f9614e2f44be85127ba"
+      },
+      "referenceMeasurement": {
+        "frames": 5870,
+        "seconds": 0.12229166666666667,
+        "mean": -0.16430494578164928,
+        "rms": 0.18265583851812173,
+        "acRms": 0.07979373494484047,
+        "peak": 0.4129638671875,
+        "overrange": 0,
+        "nonzero": 5869,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 527.34375,
+          "centroidHz": 1234.8860341609936,
+          "bandPowerFractions": {
+            "below200Hz": 0.03800551030385772,
+            "from200To2000Hz": 0.8204995398281384,
+            "above2000Hz": 0.1414949498680086
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 5869,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.21488580529030984,
+        "maximumDifference": 0.45855712890625,
+        "centeredCorrelation": -0.2369496756320983,
+        "rmsRatioActualToReference": 0.5241754710817923
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          0,
+          255,
+          114,
+          0
+        ],
+        "reference": [
+          0,
+          255,
+          114,
+          0
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 12190,
+        "sha256": "6a56768c20bf9b2de06f9f3dc27cf3dab04ad0805012924ea453523afcc48e51"
+      },
+      "referenceMeasurement": {
+        "frames": 6095,
+        "seconds": 0.12697916666666667,
+        "mean": -0.1638310821257819,
+        "rms": 0.17470105791927953,
+        "acRms": 0.060661653188903215,
+        "peak": 0.4656982421875,
+        "overrange": 0,
+        "nonzero": 6094,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 11.71875,
+          "centroidHz": 12.824719770842902,
+          "bandPowerFractions": {
+            "below200Hz": 0.999673737507577,
+            "from200To2000Hz": 0.00027877273755554815,
+            "above2000Hz": 0.000047489754866985535
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 6094,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.17279039706951027,
+        "maximumDifference": 0.460601806640625,
+        "centeredCorrelation": 0.4248766829031626,
+        "rmsRatioActualToReference": 0.14075375118262426
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          200,
+          255
+        ],
+        "reference": [
+          141,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "dd00fbd046c571515df7186c4458f856c491b044076c94120afb26db000496d4"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.1358556175449419,
+        "rms": 0.16082734392427658,
+        "acRms": 0.08607372267550661,
+        "peak": 0.401824951171875,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 405.8388689695495,
+          "bandPowerFractions": {
+            "below200Hz": 0.11116380075376459,
+            "from200To2000Hz": 0.8868542961110315,
+            "above2000Hz": 0.0019819031352047026
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.2008921861585512,
+        "maximumDifference": 0.457916259765625,
+        "centeredCorrelation": -0.3005780294855909,
+        "rmsRatioActualToReference": 0.6058846520591725
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          100,
+          255
+        ],
+        "reference": [
+          185,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "7f9aa03e5055c889dc44f6ad465cbdd69d6e285536967e8bcc0516635a5dce27"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.13606785564357363,
+        "rms": 0.16058574129216469,
+        "acRms": 0.08528375558635803,
+        "peak": 0.413665771484375,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 985.0759261153054,
+          "bandPowerFractions": {
+            "below200Hz": 0.1137800992568214,
+            "from200To2000Hz": 0.7863758805834784,
+            "above2000Hz": 0.09984402015970024
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.19680083191130557,
+        "maximumDifference": 0.472259521484375,
+        "centeredCorrelation": -0.22414721240770105,
+        "rmsRatioActualToReference": 0.6004200520505221
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          0,
+          255
+        ],
+        "reference": [
+          255,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "88577e4b6f84f89bded3f8168cef67727201e17a799b60f993a098979b61c596"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.13675685347553806,
+        "rms": 0.1853777911249553,
+        "acRms": 0.12514986404242623,
+        "peak": 0.465606689453125,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 824.5178632037052,
+          "bandPowerFractions": {
+            "below200Hz": 0.04107833254184888,
+            "from200To2000Hz": 0.8788724038238035,
+            "above2000Hz": 0.08004926363434983
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.26906491924793224,
+        "maximumDifference": 0.540679931640625,
+        "centeredCorrelation": -0.24206143486397466,
+        "rmsRatioActualToReference": 0.9031054948154628
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          230,
+          255
+        ],
+        "reference": [
+          182,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "54ba47b8f26a964a571e6977873c798d103ec54da29d49e0bca9d2f6a8cd7cac"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.13596202889489203,
+        "rms": 0.16039707563465055,
+        "acRms": 0.08509728885770892,
+        "peak": 0.374053955078125,
+        "overrange": 0,
+        "nonzero": 8766,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 1520.9313636967736,
+          "bandPowerFractions": {
+            "below200Hz": 0.3227507307785325,
+            "from200To2000Hz": 0.3963264084595415,
+            "above2000Hz": 0.28092286076192846
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.1531730573852951,
+        "maximumDifference": 0.406158447265625,
+        "centeredCorrelation": 0.7133256494533511,
+        "rmsRatioActualToReference": 0.597920515051926
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          0,
+          255
+        ],
+        "reference": [
+          0,
+          255
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "6523f6dfd091bf9caf655cad1ea1b5983613cd96b09da75f30f8fc6efb8de645"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.18912313846253206,
+        "rms": 0.20879699017199568,
+        "acRms": 0.08847949820702186,
+        "peak": 0.4656982421875,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 1542.0386403375983,
+          "bandPowerFractions": {
+            "below200Hz": 0.3442399762015864,
+            "from200To2000Hz": 0.4136840499952638,
+            "above2000Hz": 0.24207597380315443
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.21324824789001837,
+        "maximumDifference": 0.583038330078125,
+        "centeredCorrelation": 0.1038782394668449,
+        "rmsRatioActualToReference": 0.37718768365563704
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "f54bebf3f90359b696de49122bf7a3784bb160dded6c8ed8dad1d1200d13763c"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.12778386428119656,
+        "rms": 0.15230877754136757,
+        "acRms": 0.08288092510047491,
+        "peak": 0.362457275390625,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 999.3892034703557,
+          "bandPowerFractions": {
+            "below200Hz": 0.10071612827638635,
+            "from200To2000Hz": 0.7979710232366463,
+            "above2000Hz": 0.10131284848696605
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.19022696391416624,
+        "maximumDifference": 0.444793701171875,
+        "centeredCorrelation": -0.23334491333921079,
+        "rmsRatioActualToReference": 0.6330487517968794
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "334d1abec68fd213db83f6bb3ef648bc7eaf2f0d61f9759ebdcc42581c318a8b"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.13416289413260762,
+        "rms": 0.1581507741274443,
+        "acRms": 0.08373759726116232,
+        "peak": 0.3751220703125,
+        "overrange": 0,
+        "nonzero": 8767,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 351.5625,
+          "centroidHz": 905.7056875976986,
+          "bandPowerFractions": {
+            "below200Hz": 0.18819846680564778,
+            "from200To2000Hz": 0.7214377128007801,
+            "above2000Hz": 0.09036382039357464
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.19110527748923822,
+        "maximumDifference": 0.428131103515625,
+        "centeredCorrelation": -0.15781628722113256,
+        "rmsRatioActualToReference": 0.6038629672031021
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "40a086d1b71826d9d31e36dfebd55b17a70d433bf14e87140e0989e803457a4d"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.1275688528063088,
+        "rms": 0.15260788498444613,
+        "acRms": 0.08375771220077738,
+        "peak": 0.3671875,
+        "overrange": 0,
+        "nonzero": 8769,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 439.453125,
+          "centroidHz": 411.58891564205777,
+          "bandPowerFractions": {
+            "below200Hz": 0.09836470327013684,
+            "from200To2000Hz": 0.899623397188404,
+            "above2000Hz": 0.0020118995414599612
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.1945024683299486,
+        "maximumDifference": 0.438232421875,
+        "centeredCorrelation": -0.31177279828168125,
+        "rmsRatioActualToReference": 0.6385173974356976
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          83,
+          255
+        ],
+        "reference": [
+          168,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 17540,
+        "sha256": "3a61cfb13c4ca05c3cb6e5db24f0769cd30842bb2bd0aebca623dc87d615b94a"
+      },
+      "referenceMeasurement": {
+        "frames": 8770,
+        "seconds": 0.18270833333333333,
+        "mean": -0.1275904030185469,
+        "rms": 0.15298177140004843,
+        "acRms": 0.08440445153107422,
+        "peak": 0.38299560546875,
+        "overrange": 0,
+        "nonzero": 8768,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 263.671875,
+          "centroidHz": 586.5899819622252,
+          "bandPowerFractions": {
+            "below200Hz": 0.13800739517568833,
+            "from200To2000Hz": 0.8275841671822116,
+            "above2000Hz": 0.03440843764210038
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 8769,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.18520432426864128,
+        "maximumDifference": 0.4404296875,
+        "centeredCorrelation": -0.09871910367595196,
+        "rmsRatioActualToReference": 0.6341107144656069
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          28,
+          255
+        ],
+        "reference": [
+          113,
+          255
+        ]
+      },
+      "sameReads": false,
+      "referencePcm": {
+        "bytes": 19878,
+        "sha256": "88807b087c6e4aed00bc969ca211f119b13c32c325aa33c5f2141a6f012864d1"
+      },
+      "referenceMeasurement": {
+        "frames": 9939,
+        "seconds": 0.2070625,
+        "mean": -0.09312082634735952,
+        "rms": 0.14685643458660624,
+        "acRms": 0.11355758045976089,
+        "peak": 0.437835693359375,
+        "overrange": 0,
+        "nonzero": 9937,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 8192,
+          "binWidthHz": 5.859375,
+          "dominantBinHz": 5.859375,
+          "centroidHz": 907.3751954752964,
+          "bandPowerFractions": {
+            "below200Hz": 0.5786179672861035,
+            "from200To2000Hz": 0.3105142804668399,
+            "above2000Hz": 0.11086775224705661
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 9938,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.22190570733522513,
+        "maximumDifference": 0.714202880859375,
+        "centeredCorrelation": -0.2338481240401793,
+        "rmsRatioActualToReference": 0.966772824449663
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [],
+        "reference": []
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 12772,
+        "sha256": "e21f846d123efd167f72841a5eab5e7a3ec4036470e4a8dc64a2d7d911690afb"
+      },
+      "referenceMeasurement": {
+        "frames": 6386,
+        "seconds": 0.13304166666666667,
+        "mean": -0.17529826368839063,
+        "rms": 0.2004244160214622,
+        "acRms": 0.09716205681941696,
+        "peak": 0.363677978515625,
+        "overrange": 0,
+        "nonzero": 6385,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 4096,
+          "binWidthHz": 11.71875,
+          "dominantBinHz": 117.1875,
+          "centroidHz": 288.0308065555198,
+          "bandPowerFractions": {
+            "below200Hz": 0.8189821473442604,
+            "from200To2000Hz": 0.16072203359534667,
+            "above2000Hz": 0.020295819060392007
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 6385,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.17293890019106922,
+        "maximumDifference": 0.3807373046875,
+        "centeredCorrelation": 0.8976772411338025,
+        "rmsRatioActualToReference": 0.4234340518175377
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 48000,
+      "model": 8580,
+      "reads": {
+        "candidate": [
+          165,
+          165,
+          165
+        ],
+        "reference": [
+          165,
+          165,
+          165
+        ]
+      },
+      "sameReads": true,
+      "referencePcm": {
+        "bytes": 800,
+        "sha256": "d74bdf98671063b7fb0fa2f50d29351cd7418a1f46f8e64a0f91e167836deffd"
+      },
+      "referenceMeasurement": {
+        "frames": 400,
+        "seconds": 0.008333333333333333,
+        "mean": -0.18533370971679688,
+        "rms": 0.18559878302088348,
+        "acRms": 0.009915861104465656,
+        "peak": 0.191650390625,
+        "overrange": 0,
+        "nonzero": 399,
+        "finite": true,
+        "spectrum": {
+          "window": "last power-of-two frames, mean removed, Hann",
+          "frames": 256,
+          "binWidthHz": 187.5,
+          "dominantBinHz": 187.5,
+          "centroidHz": 205.77126606654357,
+          "bandPowerFractions": {
+            "below200Hz": 0.9470242493182938,
+            "from200To2000Hz": 0.052454189302265815,
+            "above2000Hz": 0.0005215613794403537
+          }
+        }
+      },
+      "comparison": {
+        "diagnosticOnly": true,
+        "alignment": "same output indices; common prefix; no gain, DC or phase correction",
+        "commonFrames": 399,
+        "referenceExtraFrames": 1,
+        "actualExtraFrames": 0,
+        "rmse": 0.18561247233549072,
+        "maximumDifference": 0.191650390625,
+        "centeredCorrelation": null,
+        "rmsRatioActualToReference": 0
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "model": 6581,
+      "rate": 48000,
+      "cycles": 3159744,
+      "frames": 153938,
+      "wasmMs": 44.11920800000007,
+      "wasmRealtimeMultiple": 72.6906627042041,
+      "nativeProcessMs": 43.21437499999956,
+      "nativeRealtimeMultipleIncludingProcessStart": 74.21267732102248
+    },
+    {
+      "model": 8580,
+      "rate": 48000,
+      "cycles": 3159744,
+      "frames": 153938,
+      "wasmMs": 44.44354200000089,
+      "wasmRealtimeMultiple": 72.16019073152549,
+      "nativeProcessMs": 42.90787499999897,
+      "nativeRealtimeMultipleIncludingProcessStart": 74.7427941258966
+    }
+  ],
+  "checks": {
+    "nativeWasmAndReadParity": 84,
+    "exactCycleFrameAccounting": true,
+    "splitRendering": true,
+    "oscillatorMathAndEnvelopeSteps": true,
+    "testAndGateRelease": true,
+    "syncAndRingChangeOutput": true,
+    "modelChangesOutput": true,
+    "invalidInputsDoNotClock": true,
+    "stopResetAndStaleHandles": true,
+    "boundedInstances": true,
+    "nativeValidatesBeforeOutput": true
+  },
+  "verificationInputs": {
+    "scripts/check_sid8580_probe.mjs": {
+      "bytes": 10281,
+      "sha256": "5d973971ae2100c6501d97e85dc1b5b1cf51272352d704efe9bb50b025ed60b1"
+    },
+    "test/helpers/sid8580_probe_fixtures.mjs": {
+      "bytes": 3133,
+      "sha256": "134354d3858891d0ecfeae3803e193bede02eba5c0e906497091f414c0415721"
+    },
+    "tetorica_src/cli/sid_reference_metrics.mjs": {
+      "bytes": 6135,
+      "sha256": "d2d5ed1cce73b9fbdbba5d347813688e277f7e68437519f8b283e83090ca378b"
+    }
+  },
+  "limitations": [
+    "No production player, Synth or SDK integration.",
+    "Bus decay is a model-specific bounded approximation; POT reads are explicitly unsupported.",
+    "Combined waves, analogue filter/offsets and pipeline behavior are approximations.",
+    "Cross-core comparisons are diagnostics, not an assertion of hardware fidelity."
+  ],
+  "buildReceipt": {
+    "bytes": 11449,
+    "sha256": "caad080c299e44fa877823853c475b8292e8068660211be10472af41fba388e5"
+  },
+  "baseline": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/issues/sid8580_probe_verification_01.json",
+    "bytes": 140422,
+    "sha256": "d9795ec158862e645515155998dd70a56562bbb29fe056c104633a1d0ee28bea",
+    "exactPcmCases": 84
+  },
+  "referenceBinary": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-reference",
+    "bytes": 126688,
+    "sha256": "602f7eef58d542007f622a9c04ad1db41d44c75e0789eb990d209a1d7fc54dd0"
+  },
+  "referenceBuildReceipt": {
+    "bytes": 4185,
+    "sha256": "f7e2bd2141668de274f1d0d698325144791d31b1382a7617feb2fb42f4eeb239"
+  },
+  "memory": {
+    "instantiateMs": 3.7620830000000183,
+    "linearBytes": 1310720
+  },
+  "passed": true
+}

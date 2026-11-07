@@ -152,8 +152,9 @@ with its separate receipt, while the fixed SDK remains unchanged.
 6581 filter / combined waves remain approximations; production APIs provide no 8580 model.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
 
-The separately authorized 8580 research/prototype milestone is complete, with
-production adoption deferred. Read [the fixed-source/license selection](docs/issues/sid8580_core_selection_01.md)
+The initial 8580 research/prototype milestone (phase 13) is a historical snapshot;
+the current bounded-bus/real-6502 follow-up is described below. Production
+adoption is still deferred. Read [the fixed-source/license selection](docs/issues/sid8580_core_selection_01.md)
 and [prototype result](docs/issues/sid8580_probe_result_01.md) before continuing.
 The candidate is sidera 1.1.1's dependency-free MIT library, revision
 15041709d26c2bc36667ba27f729332c9f523696, crate SHA-256
@@ -177,8 +178,9 @@ batch measurements; this is not end-to-end Player capacity or dropout evidence.
 
 Twenty-eight comparisons use a NEW separate GPL libresidfp raw-bus oracle,
 not a relaxed strict PSID CLI. They are diagnostics, not accuracy acceptance.
-Candidate write-only reads are [0,0,0], versus [165,165,165] for the 8580
-reference: bus latch/decay/read-side effects and POT are absent. Candidate reset
+In the initial phase-13 snapshot, candidate write-only reads were [0,0,0], versus
+[165,165,165] for the 8580 reference: bus behavior was absent. The current wrapper
+now adds a bounded approximation; POT remains unsupported. Candidate reset
 starts oscillator/envelope at zero, while the reference retains 0x555555/0xAA;
 this affects raw PCM and early read comparisons. Filter resonance, analogue
 offsets, external RC, scaling and sample-start/fixed-point sampling also differ.
@@ -188,10 +190,10 @@ excluded from the MIT/BSD candidate and source kit. Its protocol is
 SID8PROBE 1 RATE MODEL, with no implicit clocks for read/write; DECIMATE reports
 its actual frames/divisor/effective rate rather than claiming nominal frame identity.
 
-[Independent source-kit rebuild](docs/issues/sid8580_probe_sourcekit_01.json)
-checked 53 inputs and reproduced Native/WASM/receipt bytes exactly. Final WASM
+[Initial source-kit rebuild](docs/issues/sid8580_probe_sourcekit_01.json)
+checked 53 inputs and reproduced Native/WASM/receipt bytes exactly. That phase's WASM
 is 1,390,542 bytes, SHA-256 96abb0664a7aa7f3df7b1a63fa8f9b8e576a492936ce4175db1fd7019b4610bd;
-all 84/28/56 final reports identify this same WASM. The readable archive
+the phase-13 _01 reports identify this same WASM. Its historical readable archive
 release/tetorica_sid8580_probe_20261107_sources.1.zip contains 71 files/541,950 bytes,
 SHA-256 244d0aa1f07ea70728bca200f94d0a89e1b61b488ea49af79ca09738c557bd8d.
 It includes matching sources/licenses, WASM and the installed Rust 1.91.1 standard
@@ -204,14 +206,61 @@ sh scripts/build_sid8580_probe.sh; verify with node scripts/check_sid8580_probe.
 and node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe.
 The unchanged original sample APIs were rechecked with the CI compile commands.
 
-Before production integration, implement/verify the missing bus behavior,
-match or explicitly control reset/pipeline/sampling conditions for meaningful
-reference-quality checks, and run self-authored closed-loop 6502 fixtures that
-feed each core's own SID reads back into that core's CPU branches. Then evaluate
+The current follow-up adds an independent wrapper bus model, based on primary
+hardware notes and 362 black-box probes of the external oracle
+([measurements](docs/issues/sid8580_bus_reference_01.json)). No GPL bus implementation
+was copied. The selected lifetimes are 7,424 cycles for 6581 and 663,552 for 8580,
+reference-measured approximations rather than universal hardware constants.
+Writes to all offsets and candidate OSC3/ENV3 reads refresh the latch; write-only
+reads return it and halve remaining life with a minimum of one cycle. Completed
+ticks age it, reset/Stop clear it, and instances stay independent. The minimum-one
+rule deliberately avoids the oracle's observed residual-zero immortal-latch
+anomaly. POT reads fail with error 5 without fabricating an analog value.
+
+[Current probe verification](docs/issues/sid8580_probe_verification_02.json) preserves
+all 84 original PCM cases exactly. [Bus checks](docs/issues/sid8580_bus_verification_01.json)
+add 66 Native/WASM/chunk cases. A separate real pinned chips/m6502 bridge adds
+[36 CPU cases](docs/issues/sid8580_cpu_verification_01.json), for 186 port cases total.
+At cycle 41,219 the same program reads 0 on 6581 or A5 on 8580; its own CPU then
+writes RAM signature 32hex/31hex and SID frequency-low 64/128. Another program
+reads actual OSC/ENV [0,255,177,255], stores them in RAM and writes 177 to the SID.
+No fixed read values are fed to the CPU. POT/JAM/unsupported ROM freeze with
+address/error metadata. The environment is authored RAM, not a full C64 with
+CIA/VIC/banking/firmware. One WASM owns CPU and SID, avoiding JS calls per chip tick.
+[Current Chromium/WebKit](docs/issues/sid8580_probe_browser_02.json) each match
+50 chip/bus and 12 CPU cases: 124 matches total, without AudioContext or Worklet.
+
+[The native run(1) microbenchmark](docs/issues/sid8580_tick_performance_01.json)
+measured a local median 5.09x improvement by clearing only the valid output length
+on each run, while Stop/Reset still zero-fill. Valid PCM hashes remained exact;
+only output[..output_len] is readable after each call. This is not a Player speed
+guarantee. Current CPU+SID bounded batches measured roughly 40x real time in Node;
+full C64/Worklet scheduling and real-time dropout behavior remain untested.
+
+[The new independent source-kit proof](docs/issues/sid8580_probe_sourcekit_02.json)
+checks 59 inputs, including the new C compiler/target/profile, and reproduces
+both Native and both WASM outputs plus the receipt byte for byte. The kit itself
+passes 84+66+36 checks without parent-source fallback or the GPL oracle. Original
+sample APIs were rerun with the CI compile commands: 376,200 samples/six settings
+still match upstream exactly. Current chip/bus WASM is 1,391,574 bytes, SHA-256
+2b82f306f1c9460ef4558d7faf73cf1eb49b7de2eead09d8c5e38c858429667d;
+CPU/SID WASM is 1,473,638 bytes, SHA-256
+38118d68288cdde417a2fab099497ec057432de6c25058b7db467bb26e2dffb2.
+The readable release/tetorica_sid8580_bus_cpu_20261107_sources.zip contains
+86 files/962,936 bytes, SHA-256 dc8cc1b3c358e0fe86b3dcfa0f3d658f540dbdbc3a271f6124bad898b0227835.
+It includes Node checkers, both WASMs, matching sources/licenses, pinned m6502's
+zlib license and installed Rust standard-library notices. It excludes Native
+binaries, GPL SID reference code/binary, ROM and music. Apple Clang without a
+WASM backend can use Emscripten's LLVM compiler binary; the freestanding object
+does not introduce an Emscripten runtime dependency. All phase-13 _01 reports
+and their historical archive remain unchanged.
+
+Before production integration, match or explicitly control reset/pipeline/RC/
+sampling conditions for meaningful reference-quality checks, then evaluate
 8580 real files, C64/Worklet scheduling, listening and stability while preserving
-the existing 6581 path. Production Player/Synth/SDK and known-8580 rejection are
-unchanged. A new research CI workflow exists, but no GitHub Actions run, push,
-commit, tag or release was performed for this prototype.
+the existing 6581 path. Production Player/Synth/SDK and known-8580 rejection remain
+unchanged. The research CI now has nine steps; no GitHub Actions run, push,
+commit, tag or release was performed for this follow-up.
 
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a

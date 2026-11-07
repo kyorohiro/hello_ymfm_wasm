@@ -1,0 +1,72 @@
+{
+  "format": "tetorica-sid8580-sourcekit-verification",
+  "version": 2,
+  "passed": true,
+  "production": false,
+  "sourceKit": "release/sid8580-bus-cpu-source-kit-20261107",
+  "inputsChecked": 59,
+  "independentRebuild": true,
+  "receiptByteIdentical": true,
+  "outputs": {
+    "sid8580-probe.wasm": {
+      "bytes": 1391574,
+      "sha256": "2b82f306f1c9460ef4558d7faf73cf1eb49b7de2eead09d8c5e38c858429667d"
+    },
+    "sid8580-probe": {
+      "bytes": 482976,
+      "sha256": "fd17a8d980db5020833c7a8fbc3cb128058720b32e128a771a26f1fddfcd4ebd"
+    },
+    "sid8580-cpu.wasm": {
+      "bytes": 1473638,
+      "sha256": "38118d68288cdde417a2fab099497ec057432de6c25058b7db467bb26e2dffb2"
+    },
+    "sid8580-cpu": {
+      "bytes": 518632,
+      "sha256": "11f6387155167a3d95942c35ab3470570b2c6d5556c7d9f5aab2965a4280dc9a"
+    }
+  },
+  "sourceArchive": {
+    "path": "release/tetorica_sid8580_bus_cpu_20261107_sources.zip",
+    "files": 86,
+    "bytes": 962936,
+    "sha256": "dc8cc1b3c358e0fe86b3dcfa0f3d658f540dbdbc3a271f6124bad898b0227835"
+  },
+  "isolatedKitChecks": {
+    "chip": {
+      "cases": 84,
+      "passed": true
+    },
+    "bus": {
+      "cases": 66,
+      "passed": true
+    },
+    "cpu": {
+      "cases": 36,
+      "passed": true
+    }
+  },
+  "sourceIncludesPinnedCpu": true,
+  "rustStandardLibraryNoticesIncluded": true,
+  "wasmIncluded": [
+    "sid8580-probe.wasm",
+    "sid8580-cpu.wasm"
+  ],
+  "nativeBinaryIncluded": false,
+  "gplReferenceIncluded": false,
+  "musicOrFirmwareIncluded": false,
+  "zipCrcPassed": true,
+  "archiveFilesByteIdentical": true,
+  "toolchain": {
+    "rust": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+    "cCompilers": {
+      "native": {
+        "command": "clang",
+        "version": "Apple clang version 17.0.0 (clang-1700.4.4.1)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "wasm": {
+        "command": "/opt/homebrew/Cellar/emscripten/6.0.6/libexec/llvm/bin/clang",
+        "version": "clang version 24.0.0git\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /opt/homebrew/Cellar/emscripten/6.0.6/libexec/llvm/bin"
+      }
+    }
+  }
+}

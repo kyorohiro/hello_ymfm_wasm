@@ -66,6 +66,9 @@ fn parse(text: &str) -> Result<(u32, u32, Vec<Command>), String> {
                 if r > 31 {
                     return Err("Read register outside 0..31".into());
                 }
+                if r == 25 || r == 26 {
+                    return Err("POTX/POTY reads are unsupported by this probe".into());
+                }
                 Command::Read(r as u32)
             }
             ["c", cycles] => {
@@ -157,7 +160,7 @@ fn main_run() -> Result<(), String> {
         .map(u8::to_string)
         .collect::<Vec<_>>()
         .join(",");
-    eprintln!("{{\"format\":\"tetorica-sid8580-probe\",\"version\":1,\"sampleRate\":{rate},\"model\":{},\"reads\":[{read_text}],\"cycles\":{total_cycles},\"frames\":{total_frames},\"totalCycles\":{total_cycles},\"totalFrames\":{total_frames},\"epochCycles\":{},\"epochFrames\":{},\"stopped\":{},\"error\":{},\"registers\":[{written}]}}", if model == 0 {6581} else {8580}, chip.cycle_count(), chip.frame_count(), chip.stopped(), chip.error() as u32);
+    eprintln!("{{\"format\":\"tetorica-sid8580-probe\",\"version\":1,\"sampleRate\":{rate},\"model\":{},\"reads\":[{read_text}],\"cycles\":{total_cycles},\"frames\":{total_frames},\"totalCycles\":{total_cycles},\"totalFrames\":{total_frames},\"epochCycles\":{},\"epochFrames\":{},\"stopped\":{},\"error\":{},\"registers\":[{written}],\"busValue\":{},\"busRemaining\":{},\"busTtlCycles\":{},\"busPolicy\":\"bounded-half-life-approximation\",\"potReads\":\"unsupported\"}}", if model == 0 {6581} else {8580}, chip.cycle_count(), chip.frame_count(), chip.stopped(), chip.error() as u32, chip.bus_value(), chip.bus_remaining(), chip.bus_ttl_cycles());
     Ok(())
 }
 fn main() {

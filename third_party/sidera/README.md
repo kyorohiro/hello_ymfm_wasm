@@ -21,11 +21,22 @@ frames per reset epoch. Register reads and writes do not invent extra clocks.
 The library implements selectable 6581/8580 voices, filter and offsets with
 integer approximations. Combined waves and cutoff curves are approximations;
 Native/WASM equality does not establish hardware fidelity. Only OSC3/ENV3
-reads have a hardware-state implementation in this upstream core; its other
-reads return zero. In particular, a SID write-only data-bus latch/decay is
-missing. Do not connect that behavior to a production C64 player as though
-it were verified hardware readback. Read comparisons with a separate external
-reference must remain diagnostic and expose any differences.
+reads have a hardware-state implementation in the upstream core. The separate
+BSD wrapper now models a data-bus latch with reference-measured lifetimes of
+7,424/663,552 completed cycles for 6581/8580. Writes and OSC3/ENV3 reads refresh
+the latch; write-only reads shorten its residual lifetime by half with a minimum
+of one cycle. Completed clocks always expire it. This bounded approximation
+intentionally avoids a reference edge case where a shortened latch can remain
+visible indefinitely. These are software model parameters, not guaranteed
+physical-chip timings. Unsupported POT reads return an explicit error without
+inventing an ADC value. Analogue decay, external POT input and model fidelity
+remain unverified.
+
+The independent CPU probe clocks the unmodified zlib chips/m6502 together with
+this SID in one Native/WASM module. Its original RAM programs branch on actual
+bus/OSC3/ENV3 reads, record RAM signatures and write SID registers. ROM, CIA,
+VIC, 6510 banking and game-file loading are outside this harness. No fixed read
+values or write-trace replay replace CPU execution.
 
 Build the standalone Native executable and WASM, without Cargo or downloads:
 
@@ -36,7 +47,11 @@ node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe
 
 Run these commands from the repository root. Rust with the
 `wasm32-unknown-unknown` target and Node.js are required. The Rust standard
-library/compiler are toolchain dependencies; no optional upstream player
+library/compiler and a C11 clang with a WebAssembly backend are toolchain
+dependencies. The build can reuse the LLVM compiler installed with Emscripten
+when Apple's clang lacks that backend, or use `SID8_WASM_CC` explicitly. The C
+shim is freestanding and links no Emscripten runtime. Standard-library notices
+are retained in `toolchain-notices/`. No optional upstream player
 feature or third-party Cargo dependency is compiled. In particular, `cpal`,
 `clap`, `hound`, `mos6502`, the SID-file player and the crate's tests/examples
 are retained as original sources but are outside the build closure. No GPL

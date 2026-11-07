@@ -1,0 +1,205 @@
+{
+  "format": "tetorica-sid8580-tick-performance",
+  "version": 1,
+  "passed": true,
+  "measuredLocalDate": "2026-11-07",
+  "scope": "Isolated native Probe::run(1) microbenchmark, no player/SDK integration.",
+  "candidate": {
+    "crate": "sidera",
+    "version": "1.1.1",
+    "revision": "15041709d26c2bc36667ba27f729332c9f523696"
+  },
+  "host": {
+    "system": "macOS 15.7.2 (24G325)",
+    "architecture": "aarch64-apple-darwin",
+    "cpu": "Apple M2",
+    "memoryBytes": 25769803776
+  },
+  "compiler": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+  "configuration": {
+    "model": 8580,
+    "sampleRate": 48000,
+    "clockHz": 985248,
+    "repetitionsPerProcess": 5,
+    "cyclesPerRepetition": 1000000,
+    "cyclesPerCall": 1,
+    "framesPerRepetition": 48718,
+    "pcmFnv1a64": "08a7cc772fbcadcb",
+    "checksumEncoding": "FNV-1a64 of every valid mono i16 sample, little-endian bytes",
+    "registerWrites": [
+      [
+        0,
+        69
+      ],
+      [
+        1,
+        35
+      ],
+      [
+        4,
+        33
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        240
+      ],
+      [
+        21,
+        7
+      ],
+      [
+        22,
+        127
+      ],
+      [
+        23,
+        145
+      ],
+      [
+        24,
+        31
+      ]
+    ],
+    "clockProtocol": "Writes do not clock; each run(1) completes exactly one chip cycle and only output[..output_len] is hashed."
+  },
+  "measurementMethod": {
+    "timer": "std::time::Instant",
+    "included": "run(1), black_box barriers and hash of produced samples",
+    "excluded": "Probe construction and initial register writes",
+    "warmup": "No separate warmup; all five repetitions retained. Separate before/after processes.",
+    "isolation": "No CPU affinity, CPU-frequency control or exclusive-host guarantee."
+  },
+  "historicalBaseline": {
+    "status": "Measured before optimization; historical, not rerun by current-only reproduction.",
+    "wrapperSource": {
+      "path": "tetorica_src/wasm/sid8580-probe/lib.rs",
+      "bytes": 12327,
+      "sha256": "5eed9b25de376633441a3debd4f3b92f0152f748c268488172d2b772f59fcd7a",
+      "hashMethod": "Reconstructed from the frozen optimized source by reversing the sole run-start substitution; comments removed with that substitution."
+    },
+    "runStart": "self.clear_output();",
+    "benchmarkBinary": {
+      "bytes": 478696,
+      "sha256": "2afcbc5cd039829e6dd7185e06287e0b9808bf21240b93c2f847e827ea8d54cf"
+    },
+    "milliseconds": [
+      126.233667,
+      94.540708,
+      96.097167,
+      94.505625,
+      93.114416
+    ],
+    "medianMilliseconds": 94.540708
+  },
+  "optimizedMeasurement": {
+    "wrapperSource": {
+      "path": "tetorica_src/wasm/sid8580-probe/lib.rs",
+      "bytes": 12562,
+      "sha256": "c11ff52e36cc91000e7158353ecfdb23c7c9c25bebf176d4716208ed9b0b53f2"
+    },
+    "runStart": "self.output_len = 0;",
+    "benchmarkBinary": {
+      "bytes": 478696,
+      "sha256": "72bde647332c457798600d58245bd74ce2ed929557565ba606bfecc8ea5b8665"
+    },
+    "milliseconds": [
+      33.483875000000005,
+      22.033959,
+      18.569333,
+      16.680084,
+      15.757833999999999
+    ],
+    "medianMilliseconds": 18.569333,
+    "medianSpeedup": 5.091227994026495
+  },
+  "inputs": {
+    "benchmark": {
+      "path": "test/helpers/sid8580_tick_benchmark.rs",
+      "bytes": 1548,
+      "sha256": "39e50abafb64ad04534ca5b70b4a2f7d92fe1adeb3d55debbd85190fba1121df"
+    },
+    "measuredTemporaryHarness": {
+      "bytes": 1199,
+      "sha256": "0fa9fea35be30ed0e098ef523f8910d6f23fcc0f57d8c44fa0e5b0a6608b4cf4"
+    },
+    "adaptedSid": {
+      "path": "third_party/sidera/adapted/src/sid.rs",
+      "bytes": 13819,
+      "sha256": "79c3921ecb801c7e4e856c3b50f7081a4f7bce997c19f01671295b249f71d2dc"
+    },
+    "nativeFrontend": {
+      "path": "tetorica_src/wasm/sid8580-probe/native.rs",
+      "bytes": 6864,
+      "sha256": "77287af31fa78f77a99031daae1e1faa3ad23935709d1780895fcd96e692f39e"
+    }
+  },
+  "currentOnlyReproduction": {
+    "workingDirectory": "repository root",
+    "note": "This compiles the saved helper against the current adapter. It does not restore or modify historical source. The helper adds result assertions outside the timed region; its register/tick/hash operations match the measured temporary helper. New timings depend on host load/toolchain.",
+    "commands": [
+      [
+        "rustc",
+        "--crate-name",
+        "sidera",
+        "--crate-type",
+        "rlib",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "panic=abort",
+        "third_party/sidera/adapted/src/lib.rs",
+        "-o",
+        "/private/tmp/libsidera-tick-benchmark.rlib"
+      ],
+      [
+        "rustc",
+        "--crate-name",
+        "sid8580_tick_benchmark",
+        "--edition=2021",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "panic=abort",
+        "test/helpers/sid8580_tick_benchmark.rs",
+        "--extern",
+        "sidera=/private/tmp/libsidera-tick-benchmark.rlib",
+        "-o",
+        "/private/tmp/sid8580-tick-benchmark"
+      ],
+      [
+        "/private/tmp/sid8580-tick-benchmark"
+      ]
+    ],
+    "savedHarnessSmoke": {
+      "passed": true,
+      "milliseconds": [
+        38.905916,
+        22.709042,
+        18.838875,
+        16.804084,
+        15.829167000000002
+      ],
+      "allCyclesFramesAndPcmHashesMatch": true
+    }
+  },
+  "correctness": {
+    "timedBeforeAndAfterAllFivePcmHashesExact": true,
+    "original84ScenesPcmExact": true,
+    "preOptimizationBus84ScenePcmAndMetadataExact": true,
+    "stopAndResetStillZeroFill": true,
+    "invalidRunStillResetsOutputLengthBeforeValidation": true,
+    "noDspBusCounterOrSamplePhaseChange": true
+  },
+  "limits": [
+    "One model/rate and one authored instrument for the microbenchmark.",
+    "Native throughput only; not a CPU bridge, WASM or AudioWorklet latency benchmark.",
+    "Speedup is a local observation, not a real-time performance guarantee.",
+    "The original84 scenes separately cover both models and44.1/48/96k PCM preservation.",
+    "No music, firmware, physical audio or listening was used."
+  ]
+}
