@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {validateBrowserPsid, PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
 import {SidPlayerCore} from './core.js';
+import {RsidPlayerCore} from './rsid_core.js';
+import {validateBrowserRsid} from '../js/sid_rsid.js';
+import {copyRomSet, readRomFile} from './roms.js';
 import {createAudio} from './audio.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 
 const $ = id => document.getElementById(id);
-const demos = new Set(['tone', 'pulse', 'noise', 'melody-filter']);
+const demos = new Set(['tone', 'pulse', 'noise', 'melody-filter', 'rsid-irq']);
 const visualizer = createSpuOutputVisualizer({canvas: $('outputCanvas')});
 visualizer.setMode('waveform');
 function resizeMonitor() {
@@ -21,6 +24,9 @@ window.addEventListener('resize', resizeMonitor);
 resizeMonitor();
 let selected = null, audio = null, starting = null, loading = null;
 let loadSequence = 0, generation = 0, playing = false, disposed = false, polling = false;
+let sidAttempt = null;
+const roms = {chars: null, basic: null, kernal: null}, romSequence = {chars: 0, basic: 0, kernal: 0};
+const pendingRoms = new Map();
 const voiceCells = [];
 
 for (let voice = 0; voice < 3; voice++) {
@@ -37,6 +43,7 @@ function updateButtons() {
   $('stop').disabled = !loading && !starting && !playing;
   $('subtune').disabled = !selected || selected.parsed.songs < 2 || !!loading || !!starting;
   $('loadDemo').disabled = !!loading;
+  $('applyRsidEnvironment').disabled = !sidAttempt || !!loading || !!starting || (sidAttempt?.format === 'RSID' && $('rsidEnvironment').value === 'rom' && pendingRoms.size > 0);
   $('transport').setAttribute('aria-busy', String(!!loading || !!starting));
   $('play').textContent = starting ? 'Preparing…' : 'Play';
 }
@@ -46,7 +53,10 @@ function showSelection() {
   $('title').textContent = parsed.metadata.name || selected.name;
   $('author').textContent = parsed.metadata.author || 'Author not specified';
   $('released').textContent = parsed.metadata.released;
-  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · PSID v2 · PAL / 6581 · Load ${hex(parsed.loadAddress)} · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)}`;
+  const environment = parsed.format === 'RSID' ? ` · ${selected.loadOptions.environment === 'rom' ? 'Your C64 ROMs' : 'Built-in IRQ environment'}${parsed.basic ? ' · BASIC' : ''}` : '';
+  const assumptions = parsed.clock !== 'pal' || parsed.model !== '6581' ? ` · Header ${parsed.clock} / ${parsed.model} → PAL / 6581` : '';
+  const entry = parsed.format === 'RSID' ? (parsed.basic ? ' · BASIC RUN' : ` · Init ${hex(parsed.initAddress)} · Hardware interrupts`) : ` · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)}`;
+  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · PAL / 6581 · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}`;
   $('subtune').replaceChildren();
   for (let song = 1; song <= parsed.songs; song++) {
     const option = document.createElement('option'); option.value = String(song); option.textContent = `${song} / ${parsed.songs}`;
@@ -72,7 +82,26 @@ function showState(state) {
   $('filterState').textContent = `Filter ${modes.join(' + ') || 'Off'} · Cutoff ${(registers[22] << 3) | (registers[21] & 7)} · Resonance ${registers[23] >> 4} · Routed voices ${route.join(', ') || 'none'} · Volume ${registers[24] & 15}`;
   const seconds = Math.floor((state?.positionFrames ?? 0) / (state?.sampleRate ?? 48000));
   $('elapsed').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-  $('engineInfo').textContent = state ? `${state.sampleRate.toLocaleString()} Hz output · PAL 985,248 Hz · ${state.playCalls.toLocaleString()} play calls · Init ${state.initCycles.toLocaleString()} cycles` : 'Audio idle · PAL 985,248 Hz';
+  $('engineInfo').textContent = !state ? 'Audio idle · PAL 985,248 Hz'
+    : state.format === 'RSID' ? `${state.sampleRate.toLocaleString()} Hz output · C64 PAL · IRQ ${state.irqCount.toLocaleString()} · NMI ${state.nmiCount.toLocaleString()} · ${state.environment === 'rom' ? 'Your ROMs · ROM startup' : `Init ${state.initReturned ? 'returned' : 'not returned'} · Limited IRQ environment`}`
+    : `${state.sampleRate.toLocaleString()} Hz output · PAL 985,248 Hz · ${state.playCalls.toLocaleString()} play calls · Init ${state.initCycles.toLocaleString()} cycles`;
+}
+
+function targetOptions() {
+  return $('assumeRsid').checked ? {clock: 'pal', model: '6581'} : {};
+}
+function rsidOptions(subtune) {
+  const environment = $('rsidEnvironment').value;
+  if (environment === 'rom' && pendingRoms.size) {
+    const error = new Error('Wait for the selected ROM files to finish reading, then press Apply');
+    error.code = 'RSID_ROM_PENDING'; throw error;
+  }
+  return {subtune, environment, ...targetOptions(), ...(environment === 'rom' ? {roms: copyRomSet(roms)} : {})};
+}
+function sidSignature(bytes) {
+  const view = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const signature = String.fromCharCode(...view.subarray(0, 4));
+  return signature === 'PSID' || signature === 'RSID' ? signature : null;
 }
 function retireAudio() {
   generation++;
@@ -105,24 +134,33 @@ function stop() {
  * untouched until this candidate succeeds; failed or superseded loads keep it.
  * The preflight is not proof that a whole tune is ROM independent.
  */
-async function loadSource(getBytes, name, {subtune} = {}) {
+async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions} = {}) {
   cancelLoad();
   const owner = {sequence: loadSequence, controller: new AbortController()}; loading = owner;
   status(`Checking ${name}…`, 'loading'); updateButtons();
-  let candidate;
+  let candidate, attempt = null;
   try {
     const bytes = await getBytes(owner.controller.signal);
     owner.controller.signal.throwIfAborted();
-    const parsed = validateBrowserPsid(bytes, {subtune});
-    candidate = await SidPlayerCore.create({sampleRate: 48000, signal: owner.controller.signal});
-    candidate.load(parsed.originalBytes, {subtune: parsed.subtune});
+    const format = sidSignature(bytes), isRsid = format === 'RSID';
+    if (format) attempt = {format, bytes, name, subtune};
+    const options = acceptedOptions ? {...acceptedOptions, subtune}
+      : isRsid ? rsidOptions(subtune) : {subtune, ...targetOptions()};
+    const parsed = isRsid ? validateBrowserRsid(bytes, options) : validateBrowserPsid(bytes, options);
+    const Core = isRsid ? RsidPlayerCore : SidPlayerCore;
+    candidate = await Core.create({sampleRate: 48000, signal: owner.controller.signal});
+    candidate.load(parsed.originalBytes, {...options, subtune: parsed.subtune});
     candidate.render(12000);
     if (disposed || loading !== owner || owner.sequence !== loadSequence) return;
-    retireAudio(); selected = {bytes: parsed.originalBytes, parsed, name}; showSelection();
+    retireAudio(); selected = {bytes: parsed.originalBytes, parsed, name, loadOptions: {...options, subtune: parsed.subtune}};
+    sidAttempt = {format: parsed.format, bytes: parsed.originalBytes, name, subtune: parsed.subtune};
+    showSelection();
     status(`Ready. Press Play · subtune ${parsed.subtune} / ${parsed.songs}.`, 'ready');
   } catch (error) {
     if (!disposed && loading === owner && error.name !== 'AbortError') {
+      if (attempt) sidAttempt = attempt;
       if (selected) $('subtune').value = String(selected.parsed.subtune);
+      if (attempt && (typeof error.code === 'string' && (error.code === 'PSID_CHOICE_REQUIRED' || error.code.startsWith('RSID_')) || error.message.includes('ROM'))) $('rsidSettings').open = true;
       status(`Load failed: ${error.message}. ${selected ? 'Current file kept.' : 'Try one of the demos.'}`, 'error', true);
     }
   } finally {
@@ -136,11 +174,11 @@ async function play() {
   starting = owner; status('Preparing SID playback…', 'starting'); updateButtons();
   try {
     // createAudio resumes immediately, while this click is still a user gesture.
-    const engine = await createAudio({volume: Number($('master').value), signal: owner.controller.signal, onError: error => audioFailed(error, owner)});
+    const engine = await createAudio({volume: Number($('master').value), backend: tune.parsed.format === 'RSID' ? 'rsid' : 'psid', signal: owner.controller.signal, onError: error => audioFailed(error, owner)});
     owner.engine = engine;
     const current = () => !disposed && starting === owner && generation === owner.generation && selected === tune;
     if (!current()) throw new DOMException('SID start cancelled', 'AbortError');
-    await engine.command('load', [tune.bytes, {subtune: tune.parsed.subtune}]);
+    await engine.command('load', [tune.bytes, tune.loadOptions]);
     if (!current()) throw new DOMException('SID start cancelled', 'AbortError');
     const state = await engine.command('start');
     if (!current()) throw new DOMException('SID start cancelled', 'AbortError');
@@ -174,7 +212,7 @@ $('sidFile').addEventListener('change', () => {
 $('loadDemo').addEventListener('click', () => {
   const demo = $('demo').value; if (!demos.has(demo)) return;
   void loadSource(async signal => {
-    const response = await fetch(new URL(`./demos/${demo}.sid`, import.meta.url), {signal});
+    const response = await fetch(new URL(demo === 'rsid-irq' ? './demos/rsid/irq.sid' : `./demos/${demo}.sid`, import.meta.url), {signal});
     if (!response.ok) throw new Error(`Demo could not load (HTTP ${response.status})`);
     return response.arrayBuffer();
   }, `${demo}.sid`);
@@ -182,8 +220,33 @@ $('loadDemo').addEventListener('click', () => {
 $('subtune').addEventListener('change', () => {
   if (!selected) return;
   const tune = selected, subtune = Number($('subtune').value);
-  void loadSource(async () => tune.bytes, tune.name, {subtune});
+  void loadSource(async () => tune.bytes, tune.name, {subtune, loadOptions: tune.loadOptions});
 });
+$('rsidEnvironment').addEventListener('change', () => {$('romFiles').hidden = $('rsidEnvironment').value !== 'rom'; updateButtons();});
+$('applyRsidEnvironment').addEventListener('click', () => {
+  if (!sidAttempt) return;
+  const attempt = sidAttempt;
+  void loadSource(async () => attempt.bytes, attempt.name, {subtune: attempt.subtune});
+});
+for (const [kind, suffix] of [['chars', 'Chars'], ['basic', 'Basic'], ['kernal', 'Kernal']]) {
+  $('rom' + suffix).addEventListener('change', async () => {
+    const file = $('rom' + suffix).files?.[0]; $('rom' + suffix).value = ''; if (!file) return;
+    const sequence = ++romSequence[kind];
+    pendingRoms.set(kind, sequence); updateButtons();
+    $('romStatus').textContent = `Reading ${file.name}…`;
+    try {
+      const bytes = await readRomFile(file, kind);
+      if (disposed || sequence !== romSequence[kind]) return;
+      roms[kind] = bytes; $('rom' + suffix + 'Info').textContent = `${file.name} · ${bytes.length.toLocaleString()} bytes`;
+      $('romStatus').textContent = 'ROM selected in memory. Open a SID or press Apply / retry SID to use these settings.';
+    } catch (error) {
+      if (!disposed && sequence === romSequence[kind]) $('romStatus').textContent = `${error.message}. Previous ROM kept.`;
+    } finally {
+      if (pendingRoms.get(kind) === sequence) pendingRoms.delete(kind);
+      if (!disposed) updateButtons();
+    }
+  });
+}
 $('play').addEventListener('click', () => {void play();});
 $('stop').addEventListener('click', stop);
 $('master').addEventListener('input', () => {

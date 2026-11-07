@@ -13,11 +13,14 @@ const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 test('the CLI compatibility entry retains every shared parser export',()=>{
   assert.deepEqual(Object.keys(cli),Object.keys(browser));
+  assert.deepEqual(Object.keys(browser).sort(),['PSID_HEADER_BYTES','PSID_MAX_FILE_BYTES','PSID_SPECIFICATION_URL','SidPsidError','parsePsid','validateBrowserPsid'].sort());
   for(const key of Object.keys(browser))assert.equal(cli[key],browser[key],key);
   for(const profile of SID_REFERENCE_FIXTURES){
     const fixture=createSidReferenceFixture(profile),parsed=browser.validateBrowserPsid(fixture.bytes);
     assert.equal(parsed.subtune,1);assert.equal(parsed.version,2);assert.equal(parsed.clockHz,985248);
     assert.equal(parsed.sidCount,1);assert.equal(parsed.model,'6581');assert.equal(parsed.flags,0x14);
+    assert.equal(parsed.selectedClock,'pal');assert.equal(parsed.selectedModel,'6581');
+    assert.deepEqual(parsed.selection,{clock:'header',model:'header'});
     assert.deepEqual(parsed.program,fixture.program);assert.equal(parsed.metadata.name,`Tetorica ${profile}`);
   }
 });
@@ -61,12 +64,74 @@ test('browser program RAM bounds are inclusive at $0800 and exclusive at $D000',
 });
 
 test('browser validation retains strict header, model, IRQ and malformed range failures',()=>{
-  for(const flags of [0x10,0x18,0x1c,0x04,0x24,0x34,0x15,0x16,0x54,0x414])unsupported(modified(view=>view.setUint16(0x76,flags)),/PAL|6581|MUS|PlaySID|additional|reserved/);
+  for(const flags of [0x18,0x24,0x15,0x16,0x54,0x414])unsupported(modified(view=>view.setUint16(0x76,flags)),/NTSC|8580|MUS|PlaySID|additional|reserved/);
   unsupported(modified(view=>view.setUint16(12,0)),/IRQ/);
   assert.throws(()=>browser.validateBrowserPsid(modified(view=>view.setUint16(10,0xffff))),error=>error.code==='PSID_INVALID');
   const magic=modified((_view,bytes)=>bytes.set(new TextEncoder().encode('RSID')));
   unsupported(magic,/RSID/);
   assert.throws(()=>browser.validateBrowserPsid(new Uint8Array(124)),error=>error.code==='PSID_INVALID');
+});
+
+test('browser explicit choices retain raw declarations and original bytes for every clock/model combination',()=>{
+  const clocks=['unknown','pal','ntsc','any'],models=['unknown','6581','8580','any'];
+  for(let clockBits=0;clockBits<4;clockBits++)for(let modelBits=0;modelBits<4;modelBits++){
+    const flags=(clockBits<<2)|(modelBits<<4),bytes=modified(view=>view.setUint16(0x76,flags)),before=bytes.slice();
+    if(clockBits===2||modelBits===2){
+      assert.throws(()=>browser.validateBrowserPsid(bytes,{clock:'pal',model:'6581'}),error=>error.code==='PSID_UNSUPPORTED'&&/NTSC|8580/.test(error.message));
+      assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error.code==='PSID_UNSUPPORTED');
+    }else{
+      const parsed=browser.validateBrowserPsid(bytes,{clock:'pal',model:'6581'});
+      assert.equal(parsed.clock,clocks[clockBits]);assert.equal(parsed.model,models[modelBits]);assert.equal(parsed.flags,flags);
+      assert.equal(parsed.selectedClock,'pal');assert.equal(parsed.selectedModel,'6581');assert.equal(parsed.clockHz,985248);
+      assert.deepEqual(parsed.selection,{clock:clockBits===1?'header':'explicit',model:modelBits===1?'header':'explicit'});
+      assert.deepEqual(parsed.originalBytes,before);assert.deepEqual(parsed.program,before.slice(126));
+      assert.equal(new DataView(parsed.originalBytes.buffer).getUint16(0x76),flags,'metadata does not patch the source header');
+      if(clockBits!==1||modelBits!==1)assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error instanceof browser.SidPsidError&&error.code==='PSID_CHOICE_REQUIRED');
+    }
+    if(clockBits===1&&modelBits===1){
+      const strict=cli.parsePsid(bytes);assert.equal(strict.clock,'pal');assert.equal(strict.model,'6581');assert.equal(strict.clockHz,985248);
+      assert.equal('selection' in strict,false);assert.equal('selectedClock' in strict,false);assert.equal('selectedModel' in strict,false);
+    }else{
+      assert.throws(()=>cli.parsePsid(bytes),error=>error.code==='PSID_UNSUPPORTED');
+      assert.throws(()=>cli.parsePsid(bytes,{clock:'pal',model:'6581'}),error=>error.code==='PSID_UNSUPPORTED','CLI cannot opt out of strict declarations');
+    }
+    assert.deepEqual(bytes,before);
+  }
+});
+
+test('only missing browser hints require corresponding explicit options, with no coercion',()=>{
+  for(const flags of [0x10,0x1c]){
+    const bytes=modified(view=>view.setUint16(0x76,flags));
+    assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error.code==='PSID_CHOICE_REQUIRED'&&/explicitly choose PAL/.test(error.message));
+    assert.equal(browser.validateBrowserPsid(bytes,{clock:'pal'}).selectedClock,'pal');
+  }
+  for(const flags of [0x04,0x34]){
+    const bytes=modified(view=>view.setUint16(0x76,flags));
+    assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error.code==='PSID_CHOICE_REQUIRED'&&/explicitly choose 6581/.test(error.message));
+    assert.equal(browser.validateBrowserPsid(bytes,{model:'6581'}).selectedModel,'6581');
+  }
+  const unknown=modified(view=>{view.setUint16(0x76,0);view.setUint16(14,3);view.setUint16(16,2);});
+  assert.throws(()=>browser.validateBrowserPsid(unknown,{clock:'pal'}),error=>error.code==='PSID_CHOICE_REQUIRED'&&/model/.test(error.message));
+  assert.throws(()=>browser.validateBrowserPsid(unknown,{model:'6581'}),error=>error.code==='PSID_CHOICE_REQUIRED'&&/clock/.test(error.message));
+  assert.equal(browser.validateBrowserPsid(unknown,{clock:'pal',model:'6581'}).subtune,2);
+  assert.equal(browser.validateBrowserPsid(unknown,{clock:'pal',model:'6581',subtune:3}).subtune,3);
+  for(const options of [{clock:'PAL'},{clock:'ntsc'},{clock:null},{clock:true},{model:'MOS6581'},{model:'8580'},{model:null},{model:6581}])assert.throws(()=>browser.validateBrowserPsid(unknown,options),RangeError);
+  for(const subtune of [0,4,null,'2'])assert.throws(()=>browser.validateBrowserPsid(unknown,{clock:'pal',model:'6581',subtune}),RangeError);
+});
+
+test('explicit target choices cannot bypass the existing file, version, speed, relocation, RAM or entry limits',()=>{
+  const options={clock:'pal',model:'6581'};
+  const explicitRejects=(bytes,pattern,code='PSID_UNSUPPORTED')=>assert.throws(()=>browser.validateBrowserPsid(bytes,options),error=>error.code===code&&pattern.test(error.message));
+  for(const version of [3,4])explicitRejects(modified(view=>view.setUint16(0x76,0),{version}),/v2 only/);
+  explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint32(18,1);}),/VBI/);
+  explicitRejects(modified((view,bytes)=>{view.setUint16(0x76,0);bytes[0x78]=0x20;bytes[0x79]=1;}),/relocation/);
+  explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(8,0x0700);view.setUint16(10,0x0700);view.setUint16(12,0x0700);}),/RAM/);
+  explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(12,0);}),/IRQ/);
+  explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(10,0xffff);}),/initAddress/,'PSID_INVALID');
+  for(const flags of [1,2,0x40,0x400])explicitRejects(modified(view=>view.setUint16(0x76,flags)),/MUS|PlaySID|additional|reserved/);
+  const bytes=modified(view=>view.setUint16(0x76,0)),backing=new Uint8Array(browser.PSID_MAX_FILE_BYTES+100);backing.set(bytes,50);
+  assert.deepEqual(browser.validateBrowserPsid(new DataView(backing.buffer,50,bytes.length),options).originalBytes,bytes);
+  assert.throws(()=>browser.validateBrowserPsid(bytes,{...options,maxBytes:bytes.length-1}),error=>error.code==='PSID_LIMIT');
 });
 
 test('browser byte windows, detached output and size policies are bounded before copying',()=>{
@@ -98,6 +163,8 @@ test('the served parser is byte-identical, standalone browser JS with the same b
     assert.deepEqual(mirror.validateBrowserPsid(bytes),browser.validateBrowserPsid(bytes));
     assert.deepEqual(workletSafe.validateBrowserPsid(bytes),browser.validateBrowserPsid(bytes));
   }
+  const unspecified=modified(view=>view.setUint16(0x76,0)),options={clock:'pal',model:'6581'};
+  assert.deepEqual(workletSafe.validateBrowserPsid(unspecified,options),browser.validateBrowserPsid(unspecified,options));
 });
 
 test('pure JavaScript metadata decoding retains every Windows-1252 C1 mapping and full byte fields',()=>{

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "upstream": "https://github.com/floooh/chips",
+  "revision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
+  "license": "zlib",
+  "licenseSha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634",
+  "patches": [],
+  "files": {
+    "chips/chips_common.h": {
+      "bytes": 3477,
+      "sha256": "f5992674dc6ddecd88a19b146d2259ba1142e4d2fce9b0620b14c7783965bb7b"
+    },
+    "chips/clk.h": {
+      "bytes": 2037,
+      "sha256": "17b8791dbfcbe9d17203ea0b481f7674a8a3558cf4546c3196b6fb6e2736dcd1"
+    },
+    "chips/kbd.h": {
+      "bytes": 15708,
+      "sha256": "18f16af06fa483eebb1a7f6fdcac6299ef6b025198f8623e5b1a2de00218c364"
+    },
+    "chips/m6522.h": {
+      "bytes": 28897,
+      "sha256": "85ae4f49779b7e909a41fd979a6eb6afb5738e4a0c24ce1c76a8f4b376f218bd"
+    },
+    "chips/m6526.h": {
+      "bytes": 26154,
+      "sha256": "327a362b9b2235af55c0af712c527bce068633c98f76cdc0c8c4bb35e1d47393"
+    },
+    "chips/m6569.h": {
+      "bytes": 66024,
+      "sha256": "8ba7e2296e34eb486b8cd9f3488814ab1af22c418b2e06a7716e01cbed820d29"
+    },
+    "chips/mem.h": {
+      "bytes": 16608,
+      "sha256": "451a9c9c0545bfe724a164f655df2f255e4741bba1d7e0e7e980af865e9fbb49"
+    },
+    "systems/c1530.h": {
+      "bytes": 8475,
+      "sha256": "fe90f38b06b3b9388ee39c1bb92db02ad120ffe81e528c1e6f97449484d83fbc"
+    },
+    "systems/c1541.h": {
+      "bytes": 5364,
+      "sha256": "597511b00e9ee8d8c32b529b47eab26a8dbf675d42d314c0235ec9f040ac9890"
+    },
+    "systems/c64.h": {
+      "bytes": 41974,
+      "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c"
+    }
+  }
+}

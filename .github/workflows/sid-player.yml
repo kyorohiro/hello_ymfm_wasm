@@ -6,19 +6,31 @@ on:
     paths:
       - 'docs/sid-player/**'
       - 'docs/js/sid_psid.js'
+      - 'docs/js/sid_rsid.js'
       - 'docs/generated/sid-player/**'
+      - 'docs/generated/sid-rsid/**'
       - 'docs/sources/sid-player/**'
+      - 'docs/sources/sid-rsid/**'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/sid_rsid.js'
       - 'tetorica_src/runtime/generated/sid-player/**'
+      - 'tetorica_src/runtime/generated/sid-rsid/**'
       - 'tetorica_src/wasm/sid_player*'
+      - 'tetorica_src/wasm/sid_rsid*'
       - 'third_party/chips-m6502/**'
       - 'third_party/chips-m6581/**'
+      - 'third_party/chips-c64/**'
       - 'scripts/*sid_player*'
+      - 'scripts/*sid_rsid*'
+      - 'scripts/*rsid*'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
+      - 'test/sid_rsid*'
+      - 'test/rsid*'
       - 'test/helpers/sid_player*'
+      - 'test/helpers/rsid*'
       - 'test/fixtures/sid-reference/**'
       - 'package*.json'
       - '.github/workflows/sid-player.yml'
@@ -26,19 +38,31 @@ on:
     paths:
       - 'docs/sid-player/**'
       - 'docs/js/sid_psid.js'
+      - 'docs/js/sid_rsid.js'
       - 'docs/generated/sid-player/**'
+      - 'docs/generated/sid-rsid/**'
       - 'docs/sources/sid-player/**'
+      - 'docs/sources/sid-rsid/**'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/sid_rsid.js'
       - 'tetorica_src/runtime/generated/sid-player/**'
+      - 'tetorica_src/runtime/generated/sid-rsid/**'
       - 'tetorica_src/wasm/sid_player*'
+      - 'tetorica_src/wasm/sid_rsid*'
       - 'third_party/chips-m6502/**'
       - 'third_party/chips-m6581/**'
+      - 'third_party/chips-c64/**'
       - 'scripts/*sid_player*'
+      - 'scripts/*sid_rsid*'
+      - 'scripts/*rsid*'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
+      - 'test/sid_rsid*'
+      - 'test/rsid*'
       - 'test/helpers/sid_player*'
+      - 'test/helpers/rsid*'
       - 'test/fixtures/sid-reference/**'
       - 'package*.json'
       - '.github/workflows/sid-player.yml'
@@ -49,7 +73,7 @@ permissions:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,6 +85,7 @@ jobs:
       - name: Verify bounded player sources and real CPU / PCM
         run: |
           node scripts/sid_player_artifacts.mjs --check
+          node scripts/sid_rsid_artifacts.mjs --check
           npm run test:sid-player
           npm run test:sid-reference
           npm run check:runtime-artifacts

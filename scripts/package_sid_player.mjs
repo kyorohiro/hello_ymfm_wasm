@@ -11,6 +11,7 @@ import {createHash} from 'node:crypto';
 import {version as esbuildVersion} from 'esbuild';
 import {copyReadableModules} from './copy_readable_modules.mjs';
 import {syncSidPlayerArtifacts,SID_PLAYER_BUILD_INPUTS} from './sid_player_artifacts.mjs';
+import {syncSidRsidArtifacts,SID_RSID_BUILD_INPUTS} from './sid_rsid_artifacts.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const record=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -52,11 +53,46 @@ export function validateSidPlayerVersion(version){
   return version;
 }
 
+async function copyNativeKit(stage,component,buildInputs){
+  await mkdir(join(stage,'generated'),{recursive:true});
+  await cp(join(root,'docs/generated',component),join(stage,'generated',component),{recursive:true});
+  assert.deepEqual(await filesIn(join(stage,'generated',component)),[`${component}-build.json`,`${component}.wasm`],'Unexpected files in generated '+component);
+  await mkdir(join(stage,'sources'),{recursive:true});
+  await cp(join(root,'docs/sources',component),join(stage,'sources',component),{recursive:true});
+  assert.deepEqual(await filesIn(join(stage,'sources',component)),[...buildInputs,'README.md'].sort(),'Unexpected files in '+component+' native source kit');
+  const receipt=JSON.parse(await readFile(join(stage,'generated',component,`${component}-build.json`),'utf8'));
+  assert.equal(receipt.component,component);assert.equal(receipt.fixedSdkArtifact,false);
+  assert.deepEqual(record(await readFile(join(stage,'generated',component,`${component}.wasm`))),receipt.output);
+  for(const [path,digest] of Object.entries(receipt.inputs))assert.deepEqual(record(await readFile(join(stage,'sources',component,path))),digest,`Native source hash differs: ${component}: ${path}`);
+  return{path:`generated/${component}/${component}.wasm`,...receipt.output};
+}
+
+async function copyRsidDemo(stage,inputs){
+  const directory='docs/sid-player/demos/rsid',target='sid-player/demos/rsid';
+  const files=['irq.sid','fixture.mjs','LICENSE.txt','README.md','provenance.json'];
+  const provenance=JSON.parse(await readFile(join(root,directory,'provenance.json'),'utf8'));
+  assert.equal(provenance.format,'tetorica-rsid-demo-provenance');assert.equal(provenance.license,'BSD-3-Clause');
+  assert.equal(provenance.containsThirdPartyMusic,false);assert.equal(provenance.containsRomDump,false);
+  assert.equal(provenance.generator.file,'fixture.mjs');
+  const generator=await readFile(join(root,directory,'fixture.mjs'));
+  assert.deepEqual(generator,await readFile(join(root,'test/helpers/rsid_fixtures.mjs')),'RSID demo generator differs from original');
+  assert.deepEqual(record(generator),{bytes:provenance.generator.bytes,sha256:provenance.generator.sha256});
+  assert.equal(provenance.outputs.length,1);assert.equal(provenance.outputs[0].file,'irq.sid');assert.equal(provenance.outputs[0].profile,'cia-irq');
+  await mkdir(join(stage,target),{recursive:true});
+  for(const file of files){
+    const source=`${directory}/${file}`;
+    await copyFile(join(root,source),join(stage,target,file));inputs.add(source);
+  }
+  for(const file of provenance.outputs)assert.deepEqual(record(await readFile(join(stage,target,file.file))),{bytes:file.bytes,sha256:file.sha256},`RSID demo hash differs: ${file.file}`);
+}
+
 /** Make a new standalone ZIP and stage; never merge or overwrite an old build. */
 export async function packageSidPlayer({version='dev',releaseDir=join(root,'release')}={}){
   validateSidPlayerVersion(version);
   await syncSidPlayerArtifacts({check:true});
+  await syncSidRsidArtifacts({check:true});
   assert.deepEqual(await readFile(join(root,'docs/js/sid_psid.js')),await readFile(join(root,'tetorica_src/runtime/sid_psid.js')),'Served PSID parser differs from canonical source');
+  assert.deepEqual(await readFile(join(root,'docs/js/sid_rsid.js')),await readFile(join(root,'tetorica_src/runtime/sid_rsid.js')),'Served RSID parser differs from canonical source');
   releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
   const archive=join(releaseDir,`tetorica_sid_player_${version}_itch.zip`);
   await requireAbsent(archive);
@@ -68,17 +104,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
     assert(!/\.test\.[cm]?js$/.test(module.path),`Test is in runtime closure: ${module.path}`);
     assert(!/(?:from\s*|import\s*\(|require\s*\()\s*['"]node:/.test(text),`Node import in runtime: ${module.path}`);
   }
-  await mkdir(join(stage,'generated'),{recursive:true});
-  await cp(join(root,'docs/generated/sid-player'),join(stage,'generated/sid-player'),{recursive:true});
-  assert.deepEqual(await filesIn(join(stage,'generated/sid-player')),['sid-player-build.json','sid-player.wasm'],'Unexpected files in SID player generated artifacts');
-  await mkdir(join(stage,'sources'),{recursive:true});
-  await cp(join(root,'docs/sources/sid-player'),join(stage,'sources/sid-player'),{recursive:true});
-  const sourceNames=await filesIn(join(stage,'sources/sid-player'));
-  assert.deepEqual(sourceNames,[...SID_PLAYER_BUILD_INPUTS,'README.md'].sort(),'Unexpected files in SID player native source kit');
-  const nativeReceipt=JSON.parse(await readFile(join(stage,'generated/sid-player/sid-player-build.json'),'utf8'));
-  assert.equal(nativeReceipt.component,'sid-player');assert.equal(nativeReceipt.fixedSdkArtifact,false);
-  assert.deepEqual(record(await readFile(join(stage,'generated/sid-player/sid-player.wasm'))),nativeReceipt.output);
-  for(const [path,digest] of Object.entries(nativeReceipt.inputs))assert.deepEqual(record(await readFile(join(stage,'sources/sid-player',path))),digest,`Native source hash differs: ${path}`);
+  const nativeArtifacts=[await copyNativeKit(stage,'sid-player',SID_PLAYER_BUILD_INPUTS),await copyNativeKit(stage,'sid-rsid',SID_RSID_BUILD_INPUTS)];
   const demoFiles=['README.md','LICENSE.txt','fixture.mjs','provenance.json',...demos.map(name=>name+'.sid')];
   const provenance=JSON.parse(await readFile(join(root,'docs/sid-player/demos/provenance.json'),'utf8'));
   assert.equal(provenance.license,'BSD-3-Clause');
@@ -94,6 +120,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
     assert.equal(file.name,file.profile+'.sid','Unexpected demo provenance filename');
     assert.deepEqual(record(await readFile(join(stage,'sid-player/demos',file.name))),{bytes:file.bytes,sha256:file.sha256},`Demo hash differs: ${file.name}`);
   }
+  await copyRsidDemo(stage,inputs);
   for(const source of ['docs/tetorica_sid_synth.webp','LICENSE']){
     await copyFile(join(root,source),join(stage,source.replace(/^docs\//,'')));inputs.add(source);
   }
@@ -113,15 +140,16 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
   });
   await writeFile(join(stage,'sid-player/index.html'),html);
   await writeFile(join(stage,'index.html'),'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=sid-player/index.html"><title>Tetorica SID Player</title><a href="sid-player/index.html">Open Tetorica SID Player</a></html>\n');
-  for(const source of ['docs/sid-player/index.html','docs/sid-player/README.md','tetorica_src/runtime/sid_psid.js',
-    'tetorica_src/cli/sid_psid.mjs','test/fixtures/sid-reference/fixture.mjs','package.json','package-lock.json',
-    'scripts/package_sid_player.mjs','scripts/copy_readable_modules.mjs',...SID_PLAYER_BUILD_INPUTS])inputs.add(source);
+  for(const source of ['docs/sid-player/index.html','docs/sid-player/README.md','tetorica_src/runtime/sid_psid.js','tetorica_src/runtime/sid_rsid.js',
+    'tetorica_src/cli/sid_psid.mjs','test/fixtures/sid-reference/fixture.mjs','test/helpers/rsid_fixtures.mjs','package.json','package-lock.json',
+    'scripts/package_sid_player.mjs','scripts/copy_readable_modules.mjs',...SID_PLAYER_BUILD_INPUTS,...SID_RSID_BUILD_INPUTS])inputs.add(source);
   const names=[...inputs].sort(),sourceArchive='sources/sid-player-browser-inputs.zip';
+  assert(!names.some(name=>/\.(?:bin|rom)$/i.test(name)),'Firmware images must never be package source inputs');
   zip(root,join(stage,sourceArchive),names);
   const receipt={schemaVersion:1,product:'Tetorica SID Player',productId:'tetorica-sid-player',version,
     builder:{name:'source-copy',minify:false,bundle:false,dependencyAnalyzer:{name:'esbuild',version:esbuildVersion}},
     entries:browser.entries,modules:browser.modules,
-    nativeArtifact:{path:'generated/sid-player/sid-player.wasm',...nativeReceipt.output},
+    nativeArtifact:nativeArtifacts[0],nativeArtifacts,
     originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),
     sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))}};
   await writeFile(join(stage,'sources/sid-player-browser.json'),JSON.stringify(receipt,null,2)+'\n');
@@ -133,7 +161,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
     const source=await readFile(join(stage,module.path),'utf8');
     for(const [, ,value] of source.matchAll(/new URL\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g))assert(present.has(localPath(value,module.path)),`Missing runtime URL: ${module.path}: ${value}`);
   }
-  assert(!packageNames.some(name=>/\.test\.[cm]?js$|(?:^|\/)(?:libsidplayfp|libresidfp|C64Music|hvsc)(?:\/|$)/i.test(name)),'Unexpected test, GPL player or music corpus in package');
+  assert(!packageNames.some(name=>/\.(?:bin|rom)$|\.test\.[cm]?js$|(?:^|\/)(?:libsidplayfp|libresidfp|C64Music|hvsc)(?:\/|$)/i.test(name)),'Unexpected ROM image, test, GPL player or music corpus in package');
   const temporary=stage+'.zip';
   try{zip(stage,temporary,packageNames);await copyFile(temporary,archive,constants.COPYFILE_EXCL);await rm(temporary);}
   catch(error){await rm(temporary,{force:true});throw error;}

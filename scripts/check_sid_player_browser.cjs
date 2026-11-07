@@ -18,12 +18,18 @@ for (let index = 2; index < process.argv.length; ++index) {
 const mime = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm',
   '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.md': 'text/plain', '.sid': 'application/octet-stream'};
 const report = {schemaVersion: 1, passed: false, entry: config.entry, physicalOutputMuted: true,
-  listeningPerformed: false, fixtures: 'Newly authored C64 PSID programs only; no game or ROM data', results: []};
+  listeningPerformed: false, fixtures: 'Self-authored PSID/RSID programs and synthetic test firmware only; no game music or Commodore ROM dumps', results: []};
 
 function instrument() {
   const audit = window.__sidPlayerAudit = {contexts: [], worklets: [], sinks: [], messages: [], nextId: 0};
   const Context = window.AudioContext ?? window.webkitAudioContext, Worklet = window.AudioWorkletNode;
   const connect = AudioNode.prototype.connect, post = MessagePort.prototype.postMessage;
+  const readFile = File.prototype.arrayBuffer;
+  File.prototype.arrayBuffer = function(...args) {
+    if (this.name !== audit.holdFileName) return readFile.call(this, ...args);
+    audit.holdFileName = null; const bytes = readFile.call(this, ...args);
+    return new Promise((resolve, reject) => {audit.releaseFile = () => {audit.releaseFile = null; bytes.then(resolve, reject);};});
+  };
   window.AudioContext = class extends Context {constructor(...args) {super(...args); audit.contexts.push(this);}};
   if (window.webkitAudioContext) window.webkitAudioContext = window.AudioContext;
   window.AudioWorkletNode = class extends Worklet {constructor(...args) {super(...args); audit.worklets.push(this);}};
@@ -79,7 +85,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.origin !== origin && !['data:', 'blob:'].includes(url.protocol)) {external.push(url.href); return route.abort();}
-      if (url.origin === origin && /\/sid-player\/sid-player\.wasm$/.test(url.pathname) && holdWasm) {
+      if (url.origin === origin && /\/sid-(?:player|rsid)\/sid-(?:player|rsid)\.wasm$/.test(url.pathname) && holdWasm) {
         holdWasm = false; await new Promise(resolve => {releaseWasm = resolve;}); return route.continue().catch(() => {});
       }
       return route.continue();
@@ -99,20 +105,20 @@ async function checkBrowser(name, engine, origin, fixtures) {
     const play = async () => {
       await page.locator('#play').click();
       await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'playing');
-      // The retained init samples can sound before the first VBI. Wait for an
-      // actual completed play routine before inspecting program progression.
-      await waitState(state => state.playing && state.positionFrames > 0 && state.playCalls > 0); await sound();
+      // Retained init samples can sound before the first PSID VBI. Require an
+      // actual PSID play call or RSID machine SID writes, as appropriate.
+      await waitState(state => state.playing && state.positionFrames > 0 && (state.format === 'RSID' ? state.writeCount > 0 : state.playCalls > 0)); await sound();
     };
     const range = (id, value) => page.locator('#' + id).evaluate((input, value) => {input.value = String(value); input.dispatchEvent(new Event('input', {bubbles: true}));}, value);
     const loadFile = async (bytes, filename) => {
       await page.locator('#sidFile').setInputFiles({name: filename, mimeType: 'application/octet-stream', buffer: Buffer.from(bytes)});
     };
-    const loadDemo = async profile => {
+    const loadDemo = async (profile, title = profile) => {
       const before = await page.locator('#demo').evaluate(select => ({html: select.outerHTML,
         options: Array.from(select.options, option => ({value: option.value, attribute: option.getAttribute('value'), text: option.textContent, disabled: option.disabled}))}));
       assert.equal(typeof profile, 'string'); assert(before.options.some(option => option.value === profile), `Missing demo option ${JSON.stringify({profile, ...before})}`);
       await page.locator('#demo').selectOption({value: profile}); await page.locator('#loadDemo').click();
-      await page.waitForFunction(profile => document.querySelector('#title').textContent.toLowerCase().includes(profile), profile); await ready();
+      await page.waitForFunction(title => document.querySelector('#title').textContent.toLowerCase().includes(title), title); await ready();
     };
     await page.goto(origin + config.entry); await page.waitForSelector('#loadDemo');
 
@@ -148,6 +154,56 @@ async function checkBrowser(name, engine, origin, fixtures) {
       measurements.demos[profile] = {rms: measured.rms, peak: measured.peak, cycles: first.cycles,
         playCalls: first.playCalls, distinctCutoffs: cutoffs.size, distinctPulseWidths: widths.size};
       await stop(); assert.equal((await page.locator('#elapsed').textContent()).trim(), '0:00');
+    }
+
+    check('unknown PSID targets preserve the old sound until explicit PAL/6581 choices reach real playback');
+    await play(); const previousPsidTitle = await page.locator('#title').textContent();
+    if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
+    await page.locator('#rsidEnvironment').selectOption({value: 'rom'}); await page.locator('#assumeRsid').uncheck();
+    await loadFile(fixtures.psidUnknown, 'unknown-target.psid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /choose|unspecified/i.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#title').textContent(), previousPsidTitle); assert.equal((await read()).playing, true); await sound();
+    assert.equal(await page.locator('#rsidSettings').evaluate(details => details.open), true);
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), false, 'PSID retry must not require a missing RSID ROM set');
+    await page.locator('#assumeRsid').check(); await page.locator('#applyRsidEnvironment').click();
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('unknown-target.psid'));
+    await ready(); await silent(); assert.match(await page.locator('#fileInfo').textContent(), /Header unknown \/ unknown/);
+    await play(); let psidState = await read(); assert.equal(psidState.format, 'PSID');
+    assert.equal(psidState.declaredClock, 'unknown'); assert.equal(psidState.declaredModel, 'unknown');
+    assert.deepEqual(psidState.targetSelection, {clock: 'explicit', model: 'explicit'});
+    assert.equal(psidState.registers[0] | psidState.registers[1] << 8, fixtures.frequencies[0]);
+    await page.locator('#assumeRsid').uncheck(); await page.locator('#subtune').selectOption({value: '2'});
+    await ready(); await silent(); await play(); psidState = await read();
+    assert.equal(psidState.subtune, 2); assert.equal(psidState.registers[0] | psidState.registers[1] << 8, fixtures.frequencies[1]);
+    assert.deepEqual(psidState.targetSelection, {clock: 'explicit', model: 'explicit'});
+    assert.equal(await page.locator('#assumeRsid').isChecked(), false, 'accepted options survive an unapplied control change');
+
+    check('cancelling an unknown-PSID subtune does not cache its draft as the Apply target');
+    await stop(); await page.locator('#assumeRsid').check(); holdWasm = true;
+    await page.locator('#subtune').selectOption({value: '1'});
+    for (let i = 0; !releaseWasm && i < 120; ++i) await page.waitForTimeout(25);
+    assert(releaseWasm); await page.locator('#stop').click(); releaseWasm(); releaseWasm = null; await ready(); await silent();
+    assert.equal(await page.locator('#subtune').inputValue(), '2'); await page.locator('#applyRsidEnvironment').click();
+    await ready(); await silent(); await play(); assert.equal((await read()).subtune, 2);
+
+    check('pending or missing RSID ROM files never block PSID Open/Apply and known NTSC/8580 remain refused');
+    await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'pending-psid-choice-chars.bin';});
+    await page.locator('#romChars').setInputFiles({name: 'pending-psid-choice-chars.bin', mimeType: 'application/octet-stream', buffer: Buffer.from(fixtures.roms.chars)});
+    await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), false);
+    await loadFile(fixtures.psidEither, 'either-target.psid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('either-target.psid'));
+    await ready(); await silent(); await play(); assert.equal((await read()).format, 'PSID');
+    assert.equal((await read()).declaredClock, 'any'); assert.equal((await read()).declaredModel, 'any');
+    await page.locator('#applyRsidEnvironment').click(); await ready(); await silent(); await play();
+    assert.match(await page.locator('#fileInfo').textContent(), /Header any \/ any/);
+    await page.evaluate(() => __sidPlayerAudit.releaseFile());
+    await page.waitForFunction(() => document.querySelector('#romCharsInfo').textContent.includes('pending-psid-choice-chars.bin'));
+    const acceptedPsidInfo = await page.locator('#fileInfo').textContent();
+    for (const [bytes, filename, reason] of [[fixtures.psidNtsc, 'ntsc-target.psid', 'NTSC'], [fixtures.psid8580, '8580-target.psid', '8580']]) {
+      await loadFile(bytes, filename);
+      await page.waitForFunction(reason => document.querySelector('#status').dataset.state === 'error' && document.querySelector('#status').textContent.includes(reason), reason);
+      assert.equal(await page.locator('#fileInfo').textContent(), acceptedPsidInfo); assert.equal((await read()).playing, true); await sound();
     }
 
     check('file selection exposes two subtunes and passes the selected init A value into actual SID frequency');
@@ -205,15 +261,129 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error'); await silent();
     await loadDemo('tone'); await play(); await stop();
 
+    check('local RSID demo executes continuous CIA interrupts and drives real SID pulse width');
+    if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'}); await page.locator('#assumeRsid').uncheck();
+    await loadDemo('rsid-irq', 'rsid cia-irq'); await play(); state = await read();
+    assert.equal(state.format, 'RSID'); assert.equal(state.environment, 'minimal'); assert(state.irqCount > 1);
+    const initialIrqs = state.irqCount, pulseWidths = new Set();
+    for (let i = 0; i < 5; ++i) {pulseWidths.add((await read()).registers[2]); await page.waitForTimeout(90);}
+    assert(pulseWidths.size > 1); assert((await read()).irqCount > initialIrqs);
+    measurements.rsidDemo = {irqCount: (await read()).irqCount, distinctPulseWidths: pulseWidths.size}; await stop();
+
+    check('RSID raster IRQ, CIA2 NMI under SEI and a reprogrammed CIA timer all render real machine audio');
+    measurements.rsidProfiles = {};
+    for (const [profile, bytes] of [['raster-irq', fixtures.rsidRaster], ['cia-nmi', fixtures.rsidNmi], ['multispeed', fixtures.rsidMultispeed]]) {
+      await loadFile(bytes, profile + '.rsid');
+      await page.waitForFunction(profile => document.querySelector('#title').textContent.includes(profile), profile); await ready(); await play();
+      const initial = await read(), measured = await sample(), current = await read();
+      assert.equal(current.format, 'RSID'); assert.equal(current.environment, 'minimal');
+      if (profile === 'cia-nmi') {assert(current.nmiCount > initial.nmiCount); assert.equal(current.initReturned, false);}
+      else assert(current.irqCount > initial.irqCount);
+      measurements.rsidProfiles[profile] = {rms: measured.rms, peak: measured.peak, irqCount: current.irqCount, nmiCount: current.nmiCount};
+      await stop();
+    }
+
+    check('RSID init can remain in a busy loop while hardware IRQs and audio continue');
+    await loadFile(fixtures.rsidBusy, 'rsid-busy-loop.sid'); await page.waitForFunction(() => document.querySelector('#title').textContent.includes('busy-loop')); await ready(); await play();
+    state = await read(); assert.equal(state.format, 'RSID'); assert.equal(state.initReturned, false); assert(state.irqCount > 1);
+
+    check('numeric RSID CPU/ROM preflight errors preserve the currently playing machine');
+    const rsidTitle = await page.locator('#title').textContent();
+    await loadFile(fixtures.rsidRomRequired, 'rom-dependent.rsid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /ROM/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#title').textContent(), rsidTitle); assert.equal((await read()).playing, true); await sound();
+
+    check('unknown RSID hints require explicit PAL/6581 choice; known NTSC cannot be overridden');
+    await loadFile(fixtures.rsidUnknown, 'unknown-hints.rsid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /choose|unspecified/i.test(document.querySelector('#status').textContent));
+    assert.equal((await read()).playing, true);
+    await page.locator('#assumeRsid').check(); await page.locator('#applyRsidEnvironment').click();
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('unknown-hints.rsid'));
+    await ready(); await silent(); assert.match(await page.locator('#fileInfo').textContent(), /Header unknown \/ unknown/);
+    await play(); const acceptedTitle = await page.locator('#title').textContent();
+    await loadFile(fixtures.rsidNtsc, 'declared-ntsc.rsid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /NTSC/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#title').textContent(), acceptedTitle); assert.equal((await read()).playing, true); await sound();
+
+    check('BASIC requires explicit in-memory user ROMs and synthetic ROM execution preserves subtune selection');
+    await loadFile(fixtures.rsidBasic, 'original-basic-test.rsid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /BASIC/.test(document.querySelector('#status').textContent));
+    assert.equal((await read()).playing, true);
+    await page.locator('#rsidEnvironment').selectOption({value: 'rom'});
+    for (const [suffix, bytes] of [['Chars', fixtures.roms.chars], ['Basic', fixtures.roms.basic], ['Kernal', fixtures.roms.kernal]]) {
+      const filename = `synthetic-test-${suffix.toLowerCase()}.bin`;
+      await page.locator('#rom' + suffix).setInputFiles({name: filename, mimeType: 'application/octet-stream', buffer: Buffer.from(bytes)});
+      await page.waitForFunction(({suffix, filename}) => document.querySelector('#rom' + suffix + 'Info').textContent.includes(filename), {suffix, filename});
+    }
+    await page.locator('#applyRsidEnvironment').click();
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && /BASIC/.test(document.querySelector('#fileInfo').textContent));
+    await ready(); await silent(); await play(); state = await read();
+    assert.equal(state.environment, 'rom'); assert(state.bootCycles > 0); assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.basicFrequencies[0]);
+    await stop(); await page.locator('#subtune').selectOption({value: '2'}); await ready(); await play(); state = await read();
+    assert.equal(state.subtune, 2); assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.basicFrequencies[1]);
+    measurements.romTest = {syntheticTestRomsOnly: true, provesRomRamRunAndSongPlumbing: true, provesBasicInterpreterCompatibility: false, bootCycles: state.bootCycles};
+
+    check('an aborted RSID subtune candidate never becomes the Apply retry target');
+    await stop(); holdWasm = true; await page.locator('#subtune').selectOption({value: '1'});
+    for (let i = 0; !releaseWasm && i < 120; ++i) await page.waitForTimeout(25);
+    assert(releaseWasm); await page.locator('#stop').click(); releaseWasm(); releaseWasm = null;
+    await ready(); await silent(); assert.equal(await page.locator('#subtune').inputValue(), '2');
+    await page.locator('#applyRsidEnvironment').click(); await ready(); await silent();
+    assert.equal(await page.locator('#subtune').inputValue(), '2'); await play(); assert.equal((await read()).subtune, 2);
+
+    check('stale ROM reads and unapplied environment settings never replace accepted firmware');
+    await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'slow-old-chars.bin';});
+    await page.locator('#romChars').setInputFiles({name: 'slow-old-chars.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(4096, 0x55)});
+    await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), true);
+    const acceptedFileInfo = await page.locator('#fileInfo').textContent();
+    await loadFile(fixtures.rsidBasic, 'candidate-during-rom-read.rsid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /finish reading/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), acceptedFileInfo);
+    assert.equal((await read()).playing, true); assert.equal((await read()).subtune, 2); await sound();
+    await page.locator('#romChars').setInputFiles({name: 'latest-chars.bin', mimeType: 'application/octet-stream', buffer: Buffer.from(fixtures.roms.chars)});
+    await page.waitForFunction(() => document.querySelector('#romCharsInfo').textContent.includes('latest-chars.bin'));
+    await page.waitForFunction(() => !document.querySelector('#applyRsidEnvironment').disabled);
+    await page.evaluate(() => __sidPlayerAudit.releaseFile()); await page.waitForTimeout(100);
+    assert.match(await page.locator('#romCharsInfo').textContent(), /latest-chars\.bin/); assert.equal((await read()).playing, true);
+    await stop(); await page.locator('#rsidEnvironment').selectOption({value: 'minimal'});
+    await play(); state = await read(); assert.equal(state.environment, 'rom'); assert.equal(state.subtune, 2);
+    assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.basicFrequencies[1]);
+    await page.locator('#rsidEnvironment').selectOption({value: 'rom'});
+
+    check('invalid ROM replacement keeps prior firmware and audio; Stop cancels RSID-specific startup');
+    const charsInfo = await page.locator('#romCharsInfo').textContent();
+    await page.locator('#romChars').setInputFiles({name: 'wrong-size.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(4095)});
+    await page.waitForFunction(() => /Previous ROM kept/.test(document.querySelector('#romStatus').textContent));
+    assert.equal(await page.locator('#romCharsInfo').textContent(), charsInfo); assert.equal((await read()).playing, true); await sound(); await stop();
+    const starts = await page.evaluate(() => __sidPlayerAudit.messages.filter(message => message.method === 'start').length);
+    holdWasm = true; await page.locator('#play').click();
+    for (let i = 0; !releaseWasm && i < 120; ++i) await page.waitForTimeout(25);
+    assert(releaseWasm); await page.locator('#stop').click(); releaseWasm(); releaseWasm = null; await ready(); await silent();
+    await page.waitForTimeout(100); assert.equal(await page.evaluate(() => __sidPlayerAudit.messages.filter(message => message.method === 'start').length), starts);
+    await play(); assert.equal((await read()).subtune, 2); await stop();
+
+    check('PSID and RSID backend switching keeps output ownership and never stores supplied ROMs');
+    await loadDemo('tone'); await play(); assert.equal((await read()).format, 'PSID'); await stop();
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'}); await page.locator('#assumeRsid').uncheck();
+    await loadDemo('rsid-irq', 'rsid cia-irq'); await play(); assert.equal((await read()).format, 'RSID'); await stop();
+    assert.deepEqual(await page.evaluate(() => ({local: Object.keys(localStorage), session: Object.keys(sessionStorage)})), {local: [], session: []});
+
     check('one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local');
     assert.equal(await page.locator('#outputCanvas').count(), 1);
     await page.locator('[data-view="spectrum"]').click(); assert.equal(await page.locator('[data-view="spectrum"]').getAttribute('aria-pressed'), 'true');
+    if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
+    await page.locator('#rsidEnvironment').selectOption({value: 'rom'}); // Show all optional inputs; do not change the accepted tune.
+    assert.equal(await page.locator('#romFiles').isVisible(), true);
     measurements.layouts = [];
     for (const width of [1180, 390]) {
       await page.setViewportSize({width, height: width === 390 ? 844 : 1000}); await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(100);
       const layout = await page.evaluate(() => ({width: innerWidth, overflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
-        iconLoaded: document.querySelector('.identity img').naturalWidth, voices: document.querySelectorAll('#voices tr').length}));
+        iconLoaded: document.querySelector('.identity img').naturalWidth, voices: document.querySelectorAll('#voices tr').length,
+        romFilesVisible: !document.querySelector('#romFiles').hidden && document.querySelector('#rsidSettings').open}));
       assert.equal(layout.overflow, 0); assert.equal(layout.iconLoaded, 1254); assert.equal(layout.voices, 3); measurements.layouts.push(layout);
+      assert.equal(layout.romFilesVisible, true);
       if (config.screenshots) await page.screenshot({path: path.join(config.screenshots, `${name}-${width}.png`), fullPage: true});
     }
     assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []); assert.deepEqual(failed, []); assert.deepEqual(external, []);
@@ -239,8 +409,17 @@ async function checkBrowser(name, engine, origin, fixtures) {
   if (config.screenshots) await fs.mkdir(config.screenshots, {recursive: true});
   report.checkerSha256 = createHash('sha256').update(await fs.readFile(__filename)).digest('hex');
   const {createSidPlayerTestFixture, SID_PLAYER_TEST_FREQUENCIES} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/sid_player_fixtures.mjs')));
+  const {createRsidFixture, createRsidBasicFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_fixtures.mjs')));
+  const {createRsidTestRoms} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_test_roms.mjs')));
+  const unknown = createRsidFixture().bytes.slice(), ntsc = createRsidFixture().bytes.slice(), basic = createRsidBasicFixture();
+  new DataView(unknown.buffer).setUint16(118, 0); new DataView(ntsc.buffer).setUint16(118, 0x18);
+  const psidChoices = [0, 0x3c, 0x18, 0x24].map(flags => {const bytes = createSidPlayerTestFixture(); new DataView(bytes.buffer).setUint16(118, flags); return bytes;});
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
-    playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES};
+    playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
+    psidUnknown: psidChoices[0], psidEither: psidChoices[1], psidNtsc: psidChoices[2], psid8580: psidChoices[3],
+    rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
+    rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
+    rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};
   const server = http.createServer(async (request, response) => {
     try {
       const file = path.resolve(config.root, '.' + decodeURIComponent(new URL(request.url, 'http://localhost').pathname));

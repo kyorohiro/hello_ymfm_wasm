@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidPlayerCore} from './core.js';
+import {RsidPlayerCore} from './rsid_core.js';
 
 const COMMANDS = new Set(['load', 'start', 'stop', 'read']);
 class SidPlayerProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
     super(); this.dead = false; this.core = null; this.playing = false;
     this.port.onmessage = ({data}) => this.receive(data);
-    this.ready = SidPlayerCore.create({sampleRate, wasmBinary: processorOptions.wasmBinary}).then(core => {
+    const Core = processorOptions.backend === 'rsid' ? RsidPlayerCore : SidPlayerCore;
+    this.ready = Core.create({sampleRate, wasmBinary: processorOptions.wasmBinary}).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.core = core; this.port.postMessage({ready: true});
     }).catch(error => this.fail(error));

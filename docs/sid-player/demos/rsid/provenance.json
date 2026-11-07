@@ -1,0 +1,20 @@
+{
+  "format": "tetorica-rsid-demo-provenance",
+  "version": 1,
+  "generator": {
+    "file": "fixture.mjs",
+    "bytes": 7299,
+    "sha256": "19e34e374a072a84632aec26a750df490ebec84cd5f1d25ec325f67d7b828c3d"
+  },
+  "outputs": [
+    {
+      "file": "irq.sid",
+      "bytes": 260,
+      "sha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "profile": "cia-irq"
+    }
+  ],
+  "license": "BSD-3-Clause",
+  "containsThirdPartyMusic": false,
+  "containsRomDump": false
+}

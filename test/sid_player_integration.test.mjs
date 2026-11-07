@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {SidCore} from '../tetorica_src/runtime/sid.js';
+import {validateBrowserPsid} from '../docs/js/sid_psid.js';
 import {createSidReferenceFixture, SID_REFERENCE_FIXTURES} from './fixtures/sid-reference/fixture.mjs';
 import {createSidPlayerTestFixture, createSidPlayerBankFixture, SID_PLAYER_TEST_FREQUENCIES} from './helpers/sid_player_fixtures.mjs';
 
@@ -72,6 +73,48 @@ test('subtunes pass one-based selection as init A=subtune-1 and load takes its o
     core.load(bytes, {subtune: 1}); bytes.fill(0);
     assert.deepEqual(render(core, 4800, 128), first, 'mutating caller bytes must not change an already loaded machine');
   } finally { core.dispose(); }
+});
+
+test('explicit PAL/6581 choices reach the actual PSID machine without rewriting unknown/either header flags', async () => {
+  const original = createSidPlayerTestFixture(), reference = await create(48000);
+  try {
+    reference.load(original, {subtune: 2}); const expected = render(reference, 4096, 128);
+    for (const [flags, options, rawClock, rawModel] of [
+      [0, {clock: 'pal', model: '6581'}, 'unknown', 'unknown'],
+      [0x3c, {clock: 'pal', model: '6581'}, 'any', 'any'],
+      [4, {model: '6581'}, 'pal', 'unknown'], [16, {clock: 'pal'}, 'unknown', '6581'],
+    ]) {
+      const core = await create(48000), bytes = original.slice(); new DataView(bytes.buffer).setUint16(118, flags);
+      try {
+        assert.throws(() => core.load(bytes), error => error.code === 'PSID_CHOICE_REQUIRED');
+        const parsed = validateBrowserPsid(bytes, {...options, subtune: 2});
+        assert.equal(parsed.clock, rawClock); assert.equal(parsed.model, rawModel);
+        assert.equal(new DataView(parsed.originalBytes.buffer).getUint16(118), flags);
+        core.load(bytes, {...options, subtune: 2}); const state = core.getState();
+        assert.equal(state.format, 'PSID'); assert.equal(state.subtune, 2);
+        assert.equal(state.declaredClock, rawClock); assert.equal(state.declaredModel, rawModel);
+        const selection = {clock: rawClock === 'pal' ? 'header' : 'explicit', model: rawModel === '6581' ? 'header' : 'explicit'};
+        assert.deepEqual(state.targetSelection, selection);
+        state.targetSelection.clock = 'changed snapshot'; assert.deepEqual(core.getState().targetSelection, selection);
+        assert.equal(state.registers[0] | state.registers[1] << 8, SID_PLAYER_TEST_FREQUENCIES[1]);
+        assert.deepEqual(render(core, 4096, 17), expected);
+        assert.equal(new DataView(bytes.buffer).getUint16(118), flags);
+      } finally {core.dispose();}
+    }
+  } finally {reference.dispose();}
+});
+
+test('PSID choice failures and known unsupported declarations preserve the old machine and queued PCM', async () => {
+  const a = await create(48000), b = await create(48000), bytes = createSidPlayerTestFixture();
+  try {
+    a.load(bytes); b.load(bytes); render(a, 1000, 128); render(b, 1000, 128);
+    for (const [flags, options, code] of [[0, {}, 'PSID_CHOICE_REQUIRED'],
+      [0x18, {clock: 'pal', model: '6581'}, 'PSID_UNSUPPORTED'], [0x24, {clock: 'pal', model: '6581'}, 'PSID_UNSUPPORTED']]) {
+      const candidate = bytes.slice(); new DataView(candidate.buffer).setUint16(118, flags);
+      const before = a.getState(); assert.throws(() => a.load(candidate, options), error => error.code === code);
+      assert.deepEqual(a.getState(), before); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+    }
+  } finally {a.dispose(); b.dispose();}
 });
 
 test('CPU-recorded absolute writes reproduce its PCM through the unchanged standalone SID core', async () => {

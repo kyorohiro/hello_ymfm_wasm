@@ -35,6 +35,7 @@ export class SidPlayerCore {
   constructor(exports, sampleRate) {
     this.exports = exports; this.sampleRate = sampleRate;
     this.handle = 0; this.positionFrames = 0; this.subtune = null;
+    this.declaredClock = this.declaredModel = null; this.targetSelection = null;
   }
   assertOpen() { if (!this.exports) throw new Error('SID player is disposed'); }
   nativeError(handle) {
@@ -52,11 +53,11 @@ export class SidPlayerCore {
   }
   /** Validate and initialize a candidate. A failed load keeps the old player's
    * CPU, SID, samples and selected subtune intact. Loading never renders a device.
-   * @param {ArrayBuffer|ArrayBufferView} bytes @param {{subtune?:number}} [options]
+   * @param {ArrayBuffer|ArrayBufferView} bytes @param {{subtune?:number,clock?:'pal',model?:'6581'}} [options]
    */
-  load(bytes, {subtune} = {}) {
+  load(bytes, {subtune, clock, model} = {}) {
     this.assertOpen();
-    const parsed = validateBrowserPsid(bytes, {subtune}), api = this.exports;
+    const parsed = validateBrowserPsid(bytes, {subtune, clock, model}), api = this.exports;
     const candidate = api.sidp_create(this.sampleRate);
     if (!candidate) throw new Error('SID player allocation failed');
     try {
@@ -65,6 +66,8 @@ export class SidPlayerCore {
     } catch (error) {api.sidp_destroy(candidate); throw error;}
     if (this.handle) api.sidp_destroy(this.handle);
     this.handle = candidate; this.positionFrames = 0; this.subtune = parsed.subtune;
+    this.declaredClock = parsed.clock; this.declaredModel = parsed.model;
+    this.targetSelection = {...parsed.selection};
     return this.getState();
   }
   /** @param {Float32Array} output */
@@ -91,7 +94,9 @@ export class SidPlayerCore {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidp_state(handle) : 0;
     return {
-      loaded: !!handle, playing: state === 1, state, model: '6581', clockHz: SID_PLAYER_CLOCK,
+      loaded: !!handle, playing: state === 1, state, format: 'PSID', model: '6581', clockHz: SID_PLAYER_CLOCK,
+      declaredClock: this.declaredClock, declaredModel: this.declaredModel,
+      targetSelection: this.targetSelection ? {...this.targetSelection} : null,
       frameCycles: SID_PLAYER_FRAME_CYCLES, sampleRate: this.sampleRate, subtune: this.subtune,
       cycles: handle ? api.sidp_cycles(handle) : 0, initCycles: handle ? api.sidp_init_cycles(handle) : 0,
       playCalls: handle ? api.sidp_play_calls(handle) : 0, skippedVbis: handle ? api.sidp_skipped_vbis(handle) : 0,

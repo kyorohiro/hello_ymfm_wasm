@@ -12,8 +12,9 @@ function validateVolume(value) {
  * do not connect their output to destination a second time.
  * @param {{volume?:number,onError?:(error:Error)=>void,signal?:AbortSignal}} [options]
  */
-export async function createAudio({volume = .7, onError = () => {}, signal} = {}) {
+export async function createAudio({volume = .7, backend = 'psid', onError = () => {}, signal} = {}) {
   validateVolume(volume);
+  if (!['psid', 'rsid'].includes(backend)) throw new RangeError('Unknown SID playback environment');
   if (signal?.aborted) throw new DOMException('SID player audio startup cancelled', 'AbortError');
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
@@ -69,7 +70,9 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
     // Resume inside the user gesture, before awaiting either asset load.
     const resumed = context.resume();
     const [wasmBinary] = await boundedStartup(Promise.all([
-      fetch(new URL('../generated/sid-player/sid-player.wasm', import.meta.url), {signal: controller.signal}).then(response => {
+      fetch(backend === 'rsid'
+        ? new URL('../generated/sid-rsid/sid-rsid.wasm', import.meta.url)
+        : new URL('../generated/sid-player/sid-player.wasm', import.meta.url), {signal: controller.signal}).then(response => {
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
@@ -78,7 +81,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
     node = new AudioWorkletNode(context, 'tetorica-sid-player', {
-      numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},
+      numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, backend},
     });
     node.onprocessorerror = () => fail(new Error('SID player audio processor failed. Press Play to restart.'));
     node.port.onmessageerror = () => fail(new Error('SID player audio reply could not be read. Press Play to restart.'));

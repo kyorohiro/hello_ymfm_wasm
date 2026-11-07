@@ -64,7 +64,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
 | [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | 実験的なC64 6581の3声鍵盤、Pulse幅、hardware ADSR、共有filter、1音のSync／Ringペア。portable preset保存・可読JavaScript出力に対応。[ガイド](docs/synth-sid/README.md)。 |
 | [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。 |
-| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | 対応するPSID v2／PAL／6581／VBI曲や自作デモを選び、Playで再生。3声と共有filterの変化を表示します。限定的な6502実行環境で、C64 ROMや完全な実機エミュレーションは含みません。[使い方・制限](docs/sid-player/README.md)。 |
+| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | 対応するPAL／6581のPSID v2・RSID v2を再生し、3声と共有filterを表示。RSIDはCPU・2つのCIA・VIC・割り込みを動かします。限定内蔵IRQ環境または手元のC64 ROMを選択。自作デモ・可読ソースを同梱します。[使い方・制限](docs/sid-player/README.md)。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
 | [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |
@@ -90,7 +90,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
 | PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
-| Commodore 64 | 実験的な6581音色、共有filter、Main／WorkerのPlayground API。別画面の[ブラウザーSID Player](docs/sid-player/README.md)は限定PSID v2／PAL／6581／VBI曲を再生し、[参照CLI](docs/sid-reference.md)はCPU時刻付きwriteと比較WAVを取得します。**ブラウザーのRSID・CIA／IRQ／ROM依存曲・8580モデルは未対応**です。 |
+| Commodore 64 | 実験的な6581音色、共有filter、Main／Worker API。[ブラウザーSID Player](docs/sid-player/README.md)はPSID VBIとC64連続実行のRSID v2を別backendで扱い、[参照CLI](docs/sid-reference.md)は比較WAVを出力します。browserはPAL・単一6581。**8580／NTSC／複数SID・volume-DAC digiは未対応**です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
 | 入力 | 対応する使い方 |

@@ -71,6 +71,14 @@ td[data-on="true"] { color: #346a3e; font-weight: 750; }
 .filter-state { font: .77rem ui-monospace, monospace; padding: 14px 0 5px; line-height: 1.6; }
 .scope-card .state-content > p { font-size: .8rem; line-height: 1.7; margin-bottom: 10px; color: #685e4c; }
 .source-links { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: .78rem; margin-top: 14px; }
+.environment-choice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .8rem; margin: 12px 0; }
+.environment-choice select { max-width: 100%; min-width: 0; font-size: .8rem; }
+.assumption-choice { display: flex; align-items: flex-start; gap: 8px; font-size: .8rem; margin: 12px 0; }
+.assumption-choice input { flex: 0 0 auto; accent-color: #40724c; }
+.rom-file { display: grid; gap: 5px; margin: 13px 0; font-size: .8rem; }
+.rom-file input { max-width: 100%; min-width: 0; font-size: .75rem; }
+.rom-file output { overflow-wrap: anywhere; color: #6c614b; font-size: .75rem; }
+#applyRsidEnvironment { margin-top: 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 600px) {
   main { padding: 12px 10px 30px; }

@@ -64,7 +64,7 @@ loaders are accompanied by their corresponding sources and rebuild instructions.
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | Experimental Saturn PCM instruments, waveform drawing / import, envelopes and LFO. |
 | [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | Experimental C64 6581: three-voice keyboard, Pulse width, hardware ADSR, shared filter and one-note Sync / Ring pair. Save portable presets or copy readable JavaScript. [Guide](docs/synth-sid/README.md). |
 | [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | Experimental 6581: three voices, ADSR, Sync / Ring and shared filter through readable Main / Worker code, with an applied-state SID tab. [Guide](docs/sid.md) · [standalone filter lab](docs/playground/sid-lab/README.md). |
-| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | Open a supported PSID v2 PAL/6581 VBI tune or an original demo, press Play, and watch the three voices / shared filter. Bounded 6502 host; no C64 ROMs or full-machine emulation. [Guide and limits](docs/sid-player/README.md). |
+| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | Play supported PAL/6581 PSID v2 and RSID v2 tunes, with live voices / filter. RSID runs CPU, both CIAs, VIC and interrupts; use the limited built-in IRQ environment or supply your own C64 ROMs. Original demos and readable sources included. [Guide and limits](docs/sid-player/README.md). |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | Playback, chip/channel inspection, supported sample / FM voice extraction and reference transcriptions. |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | A separate macOS MIDI live-coding app; [source and releases](https://github.com/kyorohiro/tetorica-midi-playground). |
 | [YM2612 introduction](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index.html) | Learn FM synthesis and the chip through JavaScript. |
@@ -90,7 +90,7 @@ These are representative systems, not a guarantee that every game's music or ins
 | Super Famicom / SNES | SPC song playback, BRR instruments, experimental note analysis / editable JavaScript. |
 | PlayStation 1 | SPU instruments and static VAB extraction from PSF1 / MiniPSF sets; **not PSF song playback**. |
 | Sega Saturn | Experimental SCSP instruments / register APIs; **no SSF song playback or 68000 execution**. |
-| Commodore 64 | Experimental 6581 instruments, shared filter and Main / Worker Playground APIs. A separate [browser SID Player](docs/sid-player/README.md) runs a bounded PSID v2 PAL/6581 VBI subset; the [reference CLI](docs/sid-reference.md) records CPU-timed writes and comparison WAVs. **RSID, CIA/IRQ/ROM-dependent tunes and the 8580 model remain unsupported by the browser player**. |
+| Commodore 64 | Experimental 6581 instruments, shared filter and Main / Worker APIs. The [browser SID Player](docs/sid-player/README.md) has separate PSID VBI and continuous C64 RSID v2 backends; the [reference CLI](docs/sid-reference.md) writes comparison WAVs. Browser target: PAL, one 6581. **8580 / NTSC / multi-SID and volume-DAC digi output remain unsupported**. ROM-dependent / BASIC startup needs user firmware and further compatibility checks; no C64 ROM is bundled. |
 | Atari 8-bit, WonderSwan | POKEY and WonderSwan sound cores; see the Analyzer table for file / analysis limits. |
 
 | Input | Supported workflow |

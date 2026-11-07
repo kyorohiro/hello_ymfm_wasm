@@ -38,6 +38,28 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### PSIDの不明／両対応clock・model指定を改善する今回の作業（2026-11-07）
+
+ユーザーがPSIDのPAL／6581必須エラーを報告した。RSIDで導入した明示選択をPSIDにも揃える。
+旧CLIの厳密な参照条件と、既知NTSC／8580の非対応は維持する。既存のRSID作業と変更は保持する。
+
+- [ ] PSIDの宣言clock/modelを保ち、browserでは不明／両対応を明示PAL／6581選択で受理する。CLIのparsePsidは従来どおりstrictにする。
+- [ ] 共通の再生設定とApply/retryをPSIDにも接続し、AudioWorkletへ選択を渡す。PSIDにRSID用ROMを要求しない。
+- [ ] 未指定／両対応・既知NTSC／8580・保存済みsubtune・無効候補保持・取消のテストと既存RSID回帰を確認する。
+- [ ] 実ブラウザー／独立ZIP、可読sourceとhash、guide／TODO／CI記録を更新する。
+
+### RSID再生を優先する今回の作業（2026-11-07）
+
+ユーザーがbrowserでPSIDの実再生を確認し、次の作業として **RSID再生を先に対応する** と明示した。
+音色取り込みは後続のまま。先に調査・TODOを残し、既存のbounded PSID playerを保って進める。
+
+- [x] RSIDのfile／boot／timing仕様、CIA・VIC・IRQ／NMI、ROM初期化の条件を一次資料と既存参照engineで調査する。
+- [x] browser用C64実行環境とlicense／ROM取扱いを決める。非対応ROM依存を黙って推測・偽装せず、対応範囲と必要入力を画面で説明する。
+- [x] 自作RSID fixtureと実HVSC候補を用意し、割り込み・周辺機器がSID write／音声を動かすことを検証する。ゲーム／ROMデータを配布しない。
+- [x] 既存画面のOpen SID／Play／StopへRSIDを接続し、subtune・失敗時の旧曲保持・起動取消・無音化を維持する。
+- [x] 新しいcore／WASMの実行上限・render分割・再現性・異常系と、既存PSIDの回帰を確認する。
+- [x] Chromium／WebKit・実ZIP、matching source／license／再build、README en／ja／AI・CI・再開記録を更新する。
+
 ### ブラウザーでSIDファイルを再生する今回の作業（2026-11-07）
 
 ユーザーの「次に進めて」により、コマンド操作なしで `.sid` を選び、再生・停止できる入口を作る。
@@ -67,6 +89,7 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] PSID／RSIDのprogram実行を扱う既存engineとlicense・ROM依存を調査する。
 - [x] SID再生またはtimed register trace取得を試作する。初版は外部比較CLIとし、既存VGM Player／Analyzer／browserへの統合は後続とする。
 - [ ] 後続: voiceの設定と時間変化を試奏用に取り込む。snapshotだけで元のinstrumentを完全復元したとは表示しない。
+- [ ] 後続: SID volume-DAC／D418 digi音声のモデルを検討する。現行m6581はDC wave／mixer offsetを0にしており、Gary等はCPU／SID writeが進んでも無音になる。既存Synth／校正／Native・WASM／source receiptへの影響を分けて検証し、RSID file対応と混同しない。
 
 ## 4. Synth／配布
 
@@ -319,8 +342,58 @@ CLIの比較結果をSynth音色の完全復元や実機精度と呼ばない。
 - README en／ja／AI、両home、SID Synthからのlink、guide、feature statusとSID Player専用CIを更新。
   commit／push／公開・npm更新はしていない。ローカル入口は `http://localhost:8008/sid-player/index.html`。
 
-次は人が対応する実曲を実聴する。その後、演奏中のvoice設定／時間変化から試奏用の音色を取り込む設計へ進む。
-瞬間snapshotを元instrumentの完全復元とは扱わない。非対応RSID／CIA／8580等の拡張は別の段階とする。
+PSID曲の再生はユーザーが実聴して「再生はできてる」と確認した。RSID未対応エラーの説明後、
+次は音色取り込みよりRSID再生を先にする、と明示されたため下記第6段階へ進んだ。
+その後、演奏中のvoice設定／時間変化から試奏用の音色を取り込む設計へ進む。
+瞬間snapshotを元instrumentの完全復元とは扱わない。RSID／CIAは下記で進め、8580等の拡張は別の段階とする。
+
+## 第6段階: RSID再生（2026-11-07）
+
+- 同じSID Playerへ **RSID v2／PAL／単一6581** の入口を追加した。自作 **RSID · CIA interrupt** demoも選べる。
+  `Open SID… → Play` は共通。PSIDは従来のbounded VBI backendを使い続ける。
+- RSIDは固定revision `9e88298ce56319953ac7a43213a1120359f7a3a6` のzlib **chips/c64** とCPU・CIA1/2・VIC・既存adapted SIDを連続clockする。
+  CPUへIRQ／NMIが届き、音楽program自身のhandler／RTIが演奏を進める。hostの周期play呼出で代用しない。
+  upstream C64 headersは無変更のC11、既存SIDとoriginal hostはC++17の別TUでlinkする。
+  SID DSP／既存PSID WASM／Synth／固定SDK／校正値は変更していない。
+- 新しい `sid_rsid.js` は旧PSID parser／CLIと分離。RSIDのreserved load/play/speed、全RAMのload、非ROMのinit、
+  BASICのinit0、byte上限65,660、1-based subtune、relocation、version／clock／modelを検証する。
+  不明・両対応flagはcheckboxでPAL／6581を明示選択した場合だけ受け付け、既知NTSC／8580／複数SIDは拒否する。
+- 既定は独立に書いたBSDの限定boot／IRQ／NMI shim。元C64 ROMやGPL player/stubを使わない。
+  RSID規約のCIA1 timerA／VIC／bankを初期化し、未実装のmapped ROM data／codeはaddress付きで拒否する。
+  initの100,000-cycle preflight後に戻っていなくてもbusy loop／IRQ演奏を継続できる。固定queue16,384frames、出力8..96kHz、chunk4096。
+- 任意のuser ROM modeはCharacter4KiB／BASIC8KiB／KERNAL8KiBをmemoryだけへ読む。
+  exact sizeをread前に検証し、detached copyで候補へ渡す。保存／upload／自動download／配布への収録はしない。
+  2,000,000-cycle boot音声を捨てた後にprogramをphysical RAMへloadし、RUN／SYS、$030Cのsong値を渡す。
+  自作synthetic firmwareでBASIC SYS／RUN／songの経路を検証したが、実Commodore firmware／一般BASIC曲の互換性は未確認。
+- failed candidateは旧曲／ROM snapshot／次のPCMを保持する。ROM read中のApply／新規候補は旧ROMを誤採用しないよう拒否し、
+  古いread完了を最新ROMへ上書きさせない。accepted曲のPlay／subtuneは保存済みROMを使う。
+  Stopしたsubtune候補はApply retry先へ残さず、数値Native error codeも正常な失敗として表示する。
+- [RSID header調査](sid_rsid_hvsc_metadata_01.json): local HVSC Release85のRSID3,924件、うちnonBASIC3,335／BASIC589。
+  明示PAL／6581のnonBASIC候補2,319件。header候補数は再生成功数ではない。
+  [実WASM](sid_rsid_hvsc_playback_01.json)は候補6曲を各2秒、**6件CPU実行・5件nonzero PCM・全Stop0**。
+  GaryはD418-only volume-DAC/digiとみられ、SID writeが進むがPCM0。既存SID modelの未対応として隠さず記録した。
+  music／ROM／PCMは同梱せず、hash／metadata／scalar測定だけを保存する。原曲との実聴一致や長時間再生は別確認。
+- `npm run test:sid-player`: **50件成功**。自作CIA IRQ／VIC raster IRQ／SEI中NMI／one-shot／no-ack／可変timer／busyloop、
+  44.1／48／96kHz×chunk1／128／4096のPCM・trace・CPU state一致、mapped ROM data/code／JAMのaddress、ROM所有権／Stop、
+  synthetic firmware、旧PSID、parser、RPC、ZIPとuser ROM除外を確認した。
+- 新RSID WASMは102,775bytes、SHA-256 `496f32f4bbdf2d788f42124c385da033861852b738147f59b61a338580b91a18`。
+  matching source kitだけから別directoryへrebuildして同一WASMを確認した。独立receiptは `scripts/sid_rsid_artifacts.mjs --check`。
+  [配布記録](sid_rsid_player_package_01.json): `release/tetorica_sid_player_0.0.2-rsid-preview_itch.zip`、80files、10 readable modules。
+  最終ZIPは1,543,175bytes、SHA-256 `55375c33d86e1b324e26c1f5550da420989dc02c964ab00c4b5e25361952d6a6`。
+- [Source browser](sid_rsid_player_browser_01.json)／[実ZIP browser](sid_rsid_player_zip_browser_01.json):
+  **Chromium／WebKit各21項目、計84チェック成功**。旧PSID、RSID CIA/raster/NMI/multispeed、busyloop、
+  数値Native ROM errorで旧曲保持、unknown flagsの明示Apply、synthetic3ROM/BASIC／song、取消候補のretry非採用、
+  遅いROM read・ROM_PENDING・accepted ROM所有権、RSID起動取消、backend切替、storage書込0を確認。
+  1180／390pxでROM controlsを開いてoverflow0、画像も目視確認した。未Applyの設定をaccepted曲へ混ぜない。
+  page／console／HTTP error・外部通信0、最終PCM RMS／peak0。speakerはgain0でmuteし実聴はしていない。
+- 固定SDK33 builds／68 outputs／75 mirrors、既存PSID／SID source receipts、両Mixer policy checkも成功。
+  target amplitude `0.12881777435541153` と既存gainを保持した。旧PSID parser／CLIと両従来WASMはbyte不変。
+- README en／ja／AI、home en／ja、player guide／scope、feature status、CIを更新。
+  commit／push／tag／公開・npm更新はしていない。人はページをreloadして、RSID demoか
+  `ww/C64Music/MUSICIANS/T/Tel_Jeroen/Hard_Rock.sid` 等の対応曲を試す。
+
+次の候補はD418 digiモデル、実ROM／BASIC・長時間／実聴の確認、または音色取り込み。
+RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先順を確認して進める。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

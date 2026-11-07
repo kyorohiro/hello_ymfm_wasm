@@ -17,15 +17,13 @@ const overlaps=(a,b,c,d)=>a<d&&c<b;
 const windows1252C1='\u20ac\u0081\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u008d\u017d\u008f\u0090\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u009d\u017e\u0178';
 function text(bytes,offset){let result='';for(let i=offset;i<offset+32&&bytes[i]!==0;i++){const value=bytes[i];result+=value>=0x80&&value<=0x9f?windows1252C1[value-0x80]:String.fromCharCode(value);}return result;}
 
-/** Parse an explicitly PAL/6581, single-SID PSID v2/v3/v4 for browser and reference tooling.
- * This bounded subset requires an explicit play subroutine inside the payload;
- * IRQ-installed and init-generated playback entry points are not implemented.
- * Speed flags are retained: callers must enforce their supported VBI/CIA mode.
- * Does not execute or prove the safety/ROM independence of the C64 program.
+/** Private common layout parser. Strict target guards retain the CLI's original
+ * validation order; the browser reads raw hints before its explicit selection.
  * @param {ArrayBuffer|ArrayBufferView} input
  * @param {{maxBytes?:number}} [options]
+ * @param {boolean} [strictTarget]
  */
-export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
+function parsePsidStructure(input,{maxBytes=PSID_MAX_FILE_BYTES}={},strictTarget=false){
   if(!Number.isSafeInteger(maxBytes)||maxBytes<PSID_HEADER_BYTES+1||maxBytes>PSID_MAX_FILE_BYTES)throw new RangeError(`PSID maxBytes must be an integer ${PSID_HEADER_BYTES+1}..${PSID_MAX_FILE_BYTES}`);
   const source=input instanceof ArrayBuffer?new Uint8Array(input)
     :ArrayBuffer.isView(input)?new Uint8Array(input.buffer,input.byteOffset,input.byteLength):null;
@@ -48,8 +46,10 @@ export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
   if(flags&0xfc00)unsupported('reserved or v5-only flag bits are set');
   if(flags&0x03c0)unsupported('additional SID model flags are outside the single-SID subset');
   const clockBits=(flags>>>2)&3,modelBits=(flags>>>4)&3;
-  if(clockBits!==1)unsupported('the video standard must explicitly select PAL (not unknown, NTSC or both)');
-  if(modelBits!==1)unsupported('the SID model must explicitly select 6581 (not unknown, 8580 or both)');
+  if(strictTarget){
+    if(clockBits!==1)unsupported('the video standard must explicitly select PAL (not unknown, NTSC or both)');
+    if(modelBits!==1)unsupported('the SID model must explicitly select 6581 (not unknown, 8580 or both)');
+  }
   const secondSidAddress=originalBytes[0x7a],thirdSidAddress=originalBytes[0x7b];
   if(version===2&&(secondSidAddress||thirdSidAddress))invalid('v2 reserved SID address fields must be zero');
   if(version===3&&thirdSidAddress)invalid('v3 reserved third-SID address field must be zero');
@@ -82,7 +82,8 @@ export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
     format:'PSID',version,dataOffset,programOffset,fileSize:originalBytes.length,
     headerLoadAddress,headerInitAddress,loadAddressEmbedded,loadAddress,initAddress,playAddress,
     endAddress,programLength,songs,startSong,speed,flags,
-    clock:'pal',clockHz:985248,model:'6581',sidAddress:0xd400,sidCount:1,
+    clock:['unknown','pal','ntsc','any'][clockBits],clockHz:clockBits===1?985248:null,
+    model:['unknown','6581','8580','any'][modelBits],sidAddress:0xd400,sidCount:1,
     // With PlaySID-specific disabled, bit 31 covers songs 32 through 256.
     songSpeeds:Array.from({length:songs},(_,index)=>(speed>>>Math.min(index,31))&1?'cia':'vbi'),
     relocation:{startPage,pageLength},
@@ -91,21 +92,45 @@ export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
   };
 }
 
+/** Parse an explicitly PAL/6581, single-SID PSID v2/v3/v4 for reference tooling.
+ * This entry remains strict: browser target choices cannot loosen the CLI.
+ * An explicit play subroutine inside the payload is required; IRQ-installed
+ * and init-generated playback entry points are not implemented. Speed flags
+ * are retained, so callers enforce their supported VBI/CIA mode separately.
+ * Does not execute or prove the safety/ROM independence of the C64 program.
+ * @param {ArrayBuffer|ArrayBufferView} input
+ * @param {{maxBytes?:number}} [options]
+ */
+export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
+  const parsed=parsePsidStructure(input,{maxBytes},true);
+  return{...parsed,clock:'pal',clockHz:985248,model:'6581'};
+}
+
 /** Validate the smaller standalone browser-player subset and select a song.
  * This checks the file layout, not the program's instructions or behavior.
  * The bounded CPU runner must independently reject ROM/I/O/IRQ dependencies.
  * Header initAddress 0 follows PSID's effective-load-address fallback.
+ * Unknown/either clock and model hints need corresponding explicit options.
+ * Known NTSC/8580 is rejected even if a PAL/6581 override was supplied. The
+ * returned declaration fields and original header bytes are never rewritten.
  * @param {ArrayBuffer|ArrayBufferView} input
- * @param {{subtune?:number,maxBytes?:number}} [options]
- * @returns {ReturnType<typeof parsePsid> & {subtune:number}}
+ * @param {{subtune?:number,clock?:'pal',model?:'6581',maxBytes?:number}} [options]
+ * @returns {ReturnType<typeof parsePsidStructure> & {subtune:number,selectedClock:'pal',selectedModel:'6581',clockHz:number,selection:{clock:string,model:string}}}
  */
-export function validateBrowserPsid(input,{subtune,maxBytes=PSID_MAX_FILE_BYTES}={}){
-  const parsed=parsePsid(input,{maxBytes});
+export function validateBrowserPsid(input,{subtune,clock,model,maxBytes=PSID_MAX_FILE_BYTES}={}){
+  if(clock!==undefined&&clock!=='pal')throw new RangeError('The browser PSID target clock option must be pal');
+  if(model!==undefined&&model!=='6581')throw new RangeError('The browser PSID target model option must be 6581');
+  const parsed=parsePsidStructure(input,{maxBytes});
   if(parsed.version!==2)unsupported('the browser player supports PSID v2 only');
   if(parsed.speed!==0)unsupported('the browser player supports VBI timing only; all CIA-speed bits must be zero');
   if(parsed.relocation.startPage!==0||parsed.relocation.pageLength!==0)unsupported('the browser player supports unspecified relocation (0/0) only');
   if(parsed.loadAddress<0x0800||parsed.endAddress>0xd000)unsupported('the browser player supports program RAM $0800..$CFFF only');
+  if(parsed.clock==='ntsc')unsupported('this browser engine does not support a tune declared as NTSC');
+  if(parsed.model==='8580')unsupported('this browser engine does not support a tune declared as 8580');
+  if(parsed.clock!=='pal'&&clock!=='pal')throw new SidPsidError('clock is unspecified or supports either standard; explicitly choose PAL to continue','PSID_CHOICE_REQUIRED');
+  if(parsed.model!=='6581'&&model!=='6581')throw new SidPsidError('model is unspecified or supports either SID; explicitly choose 6581 to continue','PSID_CHOICE_REQUIRED');
   const selected=subtune===undefined?parsed.startSong:subtune;
   if(!Number.isInteger(selected)||selected<1||selected>parsed.songs)throw new RangeError(`PSID subtune must be an integer 1..${parsed.songs}`);
-  return {...parsed,subtune:selected};
+  return {...parsed,subtune:selected,selectedClock:'pal',selectedModel:'6581',clockHz:985248,
+    selection:{clock:parsed.clock==='pal'?'header':'explicit',model:parsed.model==='6581'?'header':'explicit'}};
 }

@@ -14,14 +14,22 @@ mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
 instances, typed note / voice / shared-filter helpers and a read-only SID tab
 are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
 at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). A separate
-browser [SID Player](docs/sid-player/index.html) now accepts a bounded PSID v2 /
-PAL / 6581 / single-SID / VBI subset. It has local file and original demo loading,
-subtune selection, Play / Stop and live voice/filter state. Read
-[its guide](docs/sid-player/README.md) before changing the CPU host: it has no
-ROMs, CIA, VIC or IRQ-driver emulation and is not a complete C64. Its separate
-WASM uses pinned zlib chips/m6502 and the existing m6581 approximation; no GPL
-reference player is linked into the browser. File header validation is not proof
-that a driver will run. No new npm release / Native SDK is published.
+browser [SID Player](docs/sid-player/index.html) has separate PSID v2 VBI and
+continuous C64 RSID v2 backends, both PAL / one 6581. Local files, original demos,
+subtunes, Play / Stop and live voice/filter state are implemented. RSID clocks
+CPU, both CIAs, VIC and IRQ/NMI; it does not substitute host-periodic play calls.
+The default firmware is an independently authored, limited IRQ/NMI shim with
+fail-closed unsupported ROM access. Optional user Character / BASIC / KERNAL
+ROMs stay in memory only. Unknown/either clock/model flags require explicit
+PAL/6581 choice; known NTSC/8580/multi-SID are rejected. Real-ROM/BASIC
+compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
+an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
+Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
+and original host/shim compile as C++17. `scripts/sid_rsid_artifacts.mjs --check`
+authenticates the separate RSID WASM and matching source kit; `build:sid-rsid`
+rebuilds it. The old PSID/SID WASM and calibrated SDK remain unchanged. No GPL
+reference player, Commodore ROM or game data is linked or bundled. A valid
+header does not prove driver compatibility. No npm release / Native SDK is published.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
 the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
 and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
