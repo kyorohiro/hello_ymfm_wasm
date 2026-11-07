@@ -1,0 +1,281 @@
+{
+  "format": "tetorica-sid-corpus-audit-verification",
+  "version": 1,
+  "generatedAt": "2026-11-07T07:31:28.165Z",
+  "passed": true,
+  "scope": "Read-only verification of existing audit artifacts, metadata and source/WASM hashes. No additional SID/C64 execution, audio device, listening, or PCM handling.",
+  "meaningOfPassed": "Artifact consistency and stated measurement conditions passed; this does not mean every tune executed or sounded correct.",
+  "references": {
+    "summary": "docs/issues/sid_corpus_audit_01.json",
+    "checkpoint": "release/sid-corpus-audit-20261107/results.jsonl",
+    "manifest": "release/sid-corpus-audit-20261107/results.jsonl.inputs.json",
+    "resume": "release/sid-corpus-audit-20261107/resume-summary.json"
+  },
+  "identity": {
+    "checkpointBytes": 44117106,
+    "checkpointSha256": "84b8778bdbd9f2512154d9998ba5c2b90198fc4bf005ee5e5c0f076005ee3325",
+    "inputManifestSha256": "218b879d7e2c96d286368f5149e20c3e0342f88551456e7c89e3b437b6349cf9",
+    "fingerprintSha256": "a28f055ae6a9f6a6b726cfbeaa8ac066ab3cb9e0b6466da69b6e7903fd131513"
+  },
+  "checks": {
+    "finalNewline": true,
+    "expectedRowCount": true,
+    "uniqueContiguousIndices": true,
+    "uniquePaths": true,
+    "everyRowMatchesManifest": true,
+    "headerScalarShape": true,
+    "selectedDefaultAndTargetPolicy": true,
+    "manifestDigestMatches": true,
+    "checkpointDigestMatchesSummary": true,
+    "fingerprintMatchesSummary": true,
+    "currentSourceBytesMatch": true,
+    "currentWasmBytesMatch": true,
+    "allSummaryCountsMatch": true,
+    "successfulMeasurementConditions": true,
+    "noPostRenderStopFailure": true,
+    "noNonfiniteFailure": true,
+    "errorPhasesConsistent": true,
+    "stableErrorClassifications": true,
+    "resumeProofMatches": true
+  },
+  "countsMatch": {
+    "statuses": true,
+    "backends": true,
+    "stages": true,
+    "statusByBackend": true,
+    "errorStageCode": true,
+    "reasons": true
+  },
+  "coverage": {
+    "inputFiles": 61157,
+    "resultRows": 61157,
+    "uniqueIndices": 61157,
+    "missingIndices": 0,
+    "duplicateIndices": 0,
+    "duplicatePaths": 0,
+    "metadataRejected": 29932,
+    "nativeExecutionsAttempted": 31225,
+    "executedRows": 27547,
+    "failedExecutionRowsExcludedFromStopPassCount": 3678
+  },
+  "statuses": {
+    "executed_nonzero": 26497,
+    "needs_rom": 906,
+    "executed_silent": 1050,
+    "unsupported": 32448,
+    "runtime_failed": 256
+  },
+  "statusByBackend": {
+    "vbi:executed_nonzero": 21474,
+    "not_run:needs_rom": 368,
+    "rsid:executed_silent": 861,
+    "not_run:unsupported": 29564,
+    "cia:executed_nonzero": 3631,
+    "rsid:needs_rom": 339,
+    "vbi:unsupported": 2884,
+    "rsid:executed_nonzero": 1392,
+    "cia:executed_silent": 105,
+    "vbi:needs_rom": 177,
+    "cia:runtime_failed": 78,
+    "vbi:executed_silent": 84,
+    "cia:needs_rom": 22,
+    "vbi:runtime_failed": 172,
+    "rsid:runtime_failed": 6
+  },
+  "measurements": {
+    "framesPerExecutedRow": 96000,
+    "sampleRate": 48000,
+    "seconds": 2,
+    "finiteExecutedRows": 27547,
+    "stopZeroAndStableExecutedRows": 27547,
+    "successfulRowAnomalies": 0,
+    "genuineStopStageFailures": 0,
+    "nonfiniteFailures": 0,
+    "failedRowStopValueIsNotAnUnstoppedAudioMeasurement": true
+  },
+  "scalarStatistics": {
+    "scope": "Raw native float PCM before UI Master gain; no clipping or listening verdict.",
+    "percentiles": "nearest-rank; all executed rows including exact-zero rows",
+    "peak": {
+      "median": 0.36210569739341736,
+      "p95": 0.5707924365997314,
+      "p99": 0.646811306476593,
+      "max": 1.3799067735671997,
+      "above1": 5
+    },
+    "rms": {
+      "median": 0.07199504001407663,
+      "p95": 0.12740132268027268,
+      "p99": 0.15639640042424557,
+      "max": 0.3259285964287276,
+      "above1": 0
+    },
+    "topPeak": [
+      {
+        "path": "MUSICIANS/S/SounDemoN/Music.sid",
+        "input": {
+          "bytes": 3454,
+          "sha256": "76145db34339861b48f1537782d808bcd4e4bf11734205b042e589d398ee1927"
+        },
+        "backend": "vbi",
+        "peak": 1.3799067735671997,
+        "rms": 0.238570192983901
+      },
+      {
+        "path": "MUSICIANS/J/Johnny_Owl/Oberon.sid",
+        "input": {
+          "bytes": 11675,
+          "sha256": "710a794bcb5f522402cb6f09a6bedb9c5b52ec91b8243f2fa0e5ab8132a6cbbb"
+        },
+        "backend": "vbi",
+        "peak": 1.0883198976516724,
+        "rms": 0.1743107298826983
+      },
+      {
+        "path": "MUSICIANS/A/Anakonda/Wonder_Dope.sid",
+        "input": {
+          "bytes": 2364,
+          "sha256": "4865d943f1fc99abbb36685a7fb33769ac9d2129d6b683b30e19271a9c3f462e"
+        },
+        "backend": "vbi",
+        "peak": 1.0504395961761475,
+        "rms": 0.10661644446847503
+      },
+      {
+        "path": "MUSICIANS/V/Voois_Vincent/Intro.sid",
+        "input": {
+          "bytes": 2298,
+          "sha256": "6d3f735fa21f7f4c4ecf460645679493cbc2e99962cfe5dbd1e52c37f1efd79a"
+        },
+        "backend": "vbi",
+        "peak": 1.0404783487319946,
+        "rms": 0.15811435671517352
+      },
+      {
+        "path": "MUSICIANS/B/Brian/Xylophone.sid",
+        "input": {
+          "bytes": 2869,
+          "sha256": "55bb4030521740438c8c345e54910b789a88bd1778522779e2314495f871c5fa"
+        },
+        "backend": "vbi",
+        "peak": 1.0303254127502441,
+        "rms": 0.1470104419768876
+      }
+    ],
+    "topRms": [
+      {
+        "path": "DEMOS/UNKNOWN/Dataapan_Trippar.sid",
+        "input": {
+          "bytes": 5550,
+          "sha256": "c381b08ee62290429525c3b9aa6a0c9e24cc4def4cd6c13e3a8850a403cafcd8"
+        },
+        "backend": "vbi",
+        "peak": 0.6807132363319397,
+        "rms": 0.3259285964287276
+      },
+      {
+        "path": "MUSICIANS/V/Verdict/Horrorbreath.sid",
+        "input": {
+          "bytes": 3792,
+          "sha256": "516406a4902d6f7753712d421df84705f738c8a94f885fb3c864539f68225911"
+        },
+        "backend": "vbi",
+        "peak": 0.8147611618041992,
+        "rms": 0.3124180421337785
+      },
+      {
+        "path": "MUSICIANS/G/Gillies_Ewen/Soundz_of_the_Big_Bad_Fish.sid",
+        "input": {
+          "bytes": 3550,
+          "sha256": "f33707adbe2e13ea865c9eb866872277a2e76ecb7f50336749334b8f5da683f1"
+        },
+        "backend": "vbi",
+        "peak": 0.9127506613731384,
+        "rms": 0.30424357618761083
+      },
+      {
+        "path": "MUSICIANS/K/Koops_Jeroen/MTMTE_skip_side.sid",
+        "input": {
+          "bytes": 2926,
+          "sha256": "6ad02103ffc7d37992e32d96d299afa1e2ebec385bad00993d175877a4315d61"
+        },
+        "backend": "vbi",
+        "peak": 0.9412578344345093,
+        "rms": 0.29370419900024436
+      },
+      {
+        "path": "MUSICIANS/B/Bulldog/Midnight_Remix.sid",
+        "input": {
+          "bytes": 3966,
+          "sha256": "f6f79887d8cd7df5b227dfaddec3ee63311c94df9b1cd7b63661ef19c72e2dd8"
+        },
+        "backend": "vbi",
+        "peak": 0.7952263951301575,
+        "rms": 0.27966606394268007
+      }
+    ]
+  },
+  "runtimeFailurePhases": {
+    "cia:12:play": 22,
+    "cia:11:init": 56,
+    "vbi:5:play": 5,
+    "vbi:5:init": 167,
+    "rsid:6:render": 5,
+    "rsid:6:load": 1
+  },
+  "originalDiagnosticSearch": {
+    "vbiTimeoutAt1EE4": [
+      {
+        "path": "GAMES/S-Z/Western_Games.sid",
+        "input": {
+          "bytes": 22294,
+          "sha256": "0b0148daf96a789267dac2b178d4d6edc3564c8e11a313b54b0e961c25ac6432"
+        },
+        "defaultSubtune": 1,
+        "backend": "vbi",
+        "stage": "load",
+        "error": {
+          "code": 5,
+          "message": "PSID initialization subroutine did not return within 100000 cycles (at $1EE4)",
+          "address": 7908,
+          "phase": "init"
+        }
+      }
+    ],
+    "jamAt1EE3Or1EE4": []
+  },
+  "mismatches": {
+    "inputMismatchCount": 0,
+    "headerShapeMismatches": 0,
+    "selectionMismatches": 0,
+    "phaseMismatches": 0,
+    "classificationMismatches": 0,
+    "sourceMismatches": [],
+    "wasmMismatches": [],
+    "samples": []
+  },
+  "resumeProof": {
+    "verified": true,
+    "checks": {
+      "complete": true,
+      "noNewExecutions": true,
+      "allCompleted": true,
+      "sameCheckpoint": true,
+      "sameManifest": true,
+      "sameFingerprint": true,
+      "sameStatuses": true
+    },
+    "completed": 61157,
+    "newResults": 0,
+    "discardedTailBytes": 0,
+    "resumed": true,
+    "elapsedMs": 100
+  },
+  "limitations": [
+    "Default header subtune only, and only the first two seconds in the current PAL/6581 minimal environment.",
+    "Unknown/either header hints received explicit PAL/6581 choices; known NTSC/8580 declarations were not overridden.",
+    "Header rejection counts only the first failing rule. needs_rom does not establish that supplied ROMs would make playback compatible.",
+    "Silent is an observed exact-zero window, not proof of a broken tune. Nonzero finite PCM does not prove correct music or sound quality.",
+    "Stop pass counts apply only to successfully executed rows; failed-core stop/render rethrows were not treated as measured nonzero output."
+  ]
+}

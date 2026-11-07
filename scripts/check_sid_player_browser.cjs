@@ -349,6 +349,29 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error'); await silent();
     await loadDemo('tone'); await play(); await stop();
 
+    check('PAL and bank setup, indexed SID stores and phase-specific CPU diagnostics work through the real VBI worklet');
+    await loadFile(fixtures.palEnvironment, 'pal-environment.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('pal-environment.sid'));
+    await ready(); await play(); state = await read();
+    assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.palFrequency);
+    await loadFile(fixtures.bankEnvironment, 'bank-environment.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('bank-environment.sid'));
+    await ready(); await play(); state = await read();
+    assert.equal(state.registers[2], fixtures.bankInit); assert.equal(state.registers[3], fixtures.bankPlay);
+    await loadFile(fixtures.indexedStore, 'indexed-sid-block.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('indexed-sid-block.sid'));
+    await ready(); await play(); assert((await read()).playCalls > 0); await sound();
+    const indexedInfo = await page.locator('#fileInfo').textContent();
+    for (const [filename, bytes, reason] of [['init-budget.sid', fixtures.loop, 'initialization subroutine'],
+      ['play-budget.sid', fixtures.playImmediate, 'play subroutine'], ['cpu-jam.sid', fixtures.jam, 'JAM'],
+      ['real-vic-read.sid', fixtures.realVicRead, '$D318']]) {
+      await loadFile(bytes, filename);
+      await page.waitForFunction(({filename, reason}) => {const status = document.querySelector('#status'); return status.dataset.state === 'error' && status.textContent.includes(filename) && status.textContent.includes(reason);}, {filename, reason});
+      assert.equal(await page.locator('#fileInfo').textContent(), indexedInfo); assert.equal((await read()).playing, true); await sound();
+    }
+    measurements.vbiEnvironment = {palFrequency: fixtures.palFrequency, bankInit: fixtures.bankInit, bankPlay: fixtures.bankPlay,
+      indexedStoreSucceeded: true, namedCandidateErrorsKeptOldSound: true};
+
     check('local RSID demo executes continuous CIA interrupts and drives real SID pulse width');
     if (!await page.locator('#rsidSettings').evaluate(details => details.open)) await page.locator('#rsidSettings > summary').click();
     await page.locator('#rsidEnvironment').selectOption({value: 'minimal'}); await page.locator('#assumeRsid').uncheck();
@@ -496,7 +519,8 @@ async function checkBrowser(name, engine, origin, fixtures) {
 (async () => {
   if (config.screenshots) await fs.mkdir(config.screenshots, {recursive: true});
   report.checkerSha256 = createHash('sha256').update(await fs.readFile(__filename)).digest('hex');
-  const {createSidPlayerTestFixture, SID_PLAYER_TEST_FREQUENCIES} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/sid_player_fixtures.mjs')));
+  const {createSidPlayerTestFixture, SID_PLAYER_TEST_FREQUENCIES, createSidPlayerPalFixture, createSidPlayerBankEnvironmentFixture,
+    createSidPlayerJamFixture, createSidPlayerIndexedStoreFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/sid_player_fixtures.mjs')));
   const {createPsidCiaFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/psid_cia_fixtures.mjs')));
   const {createRsidFixture, createRsidBasicFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_fixtures.mjs')));
   const {createRsidTestRoms} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_test_roms.mjs')));
@@ -511,12 +535,16 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const relocated = createPsidCiaFixture({driverRange: [0x20, 1], protectLegacy: true}).bytes;
   const noDriver = createPsidCiaFixture({driverRange: [255, 0]}).bytes;
   const overlap = relocated.slice(), invalidSentinel = noDriver.slice(); overlap[120] = 0x10; invalidSentinel[121] = 1;
+  const pal = createSidPlayerPalFixture(), bank = createSidPlayerBankEnvironmentFixture({playAddress: 0xc000});
   new DataView(ciaRomFixture.bytes.buffer).setUint16(16, 2);
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
     playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
     psidUnknown: psidChoices[0], psidEither: psidChoices[1], psidNtsc: psidChoices[2], psid8580: psidChoices[3],
     psidCia: ciaFixture.bytes, psidCiaSelected: ciaSelected, psidCiaRom: ciaRomFixture.bytes, ciaFrequencies: ciaFixture.frequencies, ciaRoms,
     psidRelocated: relocated, psidNoDriver: noDriver, psidRelocationOverlap: overlap, psidRelocationSentinel: invalidSentinel,
+    palEnvironment: pal.bytes, palFrequency: pal.palFrequency, bankEnvironment: bank.bytes, bankInit: bank.initBank, bankPlay: bank.playBank,
+    indexedStore: createSidPlayerIndexedStoreFixture().bytes, realVicRead: createSidPlayerIndexedStoreFixture({realIoRead: true}).bytes,
+    jam: createSidPlayerJamFixture().bytes, playImmediate: createSidPlayerTestFixture('play-loop'),
     rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
     rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
     rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};

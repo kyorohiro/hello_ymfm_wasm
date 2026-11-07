@@ -1,0 +1,753 @@
+{
+  "format": "tetorica-psid-vbi-regression-baseline",
+  "version": 1,
+  "source": "Pre-PAL-flag/per-call-bank/timeout-diagnostics VBI native binary",
+  "wasmSha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491",
+  "seconds": 0.5,
+  "cases": [
+    {
+      "sampleRate": 44100,
+      "profile": "tone",
+      "frames": 22050,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "pcmSha256": "57227ccc96e61bb2c0322dbeea33833368aa735f7071b1247153ebcadfeb83ef",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15327793
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "pulse",
+      "frames": 22050,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "pcmSha256": "adb22d69d658d0821531b1e94fc887641f9ddd597d4c342154d0e59295ba367a",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "noise",
+      "frames": 22050,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "pcmSha256": "4f993839e6cb2ba04574377096f42dba304239be8f7b38503092dfdf2c1687a1",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "melody-filter",
+      "frames": 22050,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "pcmSha256": "094c9410b62ad8466b8fa4373692a06a2c670b0e5916d33ab987a9e969ed7955",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "tone",
+      "frames": 24000,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "pcmSha256": "8ed23ecf4f68967e44dd56e01f3177bc866f6d0fc2ed3345630dc57d554d6f84",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15327793
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "pulse",
+      "frames": 24000,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "pcmSha256": "cbfb394dcee1905fd480c97ed8958786c07ae58ef77f143943d59a4840cbf16e",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "noise",
+      "frames": 24000,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "pcmSha256": "56b621a9ebf224f3ecdc8834be2435bd9e5a04e608c4011b36a6c6f33c023177",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "melody-filter",
+      "frames": 24000,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "pcmSha256": "e8589b83a6f25729931ae6f7a770b978e453f6c2f5fe1548432b2cfd965f51f6",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "tone",
+      "frames": 48000,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "pcmSha256": "3dd6f7494a7d341baf287003fb608f3c2e08d2941409230f9708a7d052f86220",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15327793
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "pulse",
+      "frames": 48000,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "pcmSha256": "8f95b1da793c55433d05502595806ba212d59e6294b67c31307f242694aa2365",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "noise",
+      "frames": 48000,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "pcmSha256": "e62b68bcf6dba5fb7685f7fe120968473114a2ad541f98b8f27f38f62459797c",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "melody-filter",
+      "frames": 48000,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "pcmSha256": "4b107758bed646560ea63ff96fee51284ec24806e8b87971827b460635cd735d",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1263735
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    }
+  ]
+}

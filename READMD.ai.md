@@ -20,8 +20,8 @@ CIA1 interrupts in the continuous C64 machine. RSID v2 uses that machine for its
 own interrupt or continuous code. All target PAL / one 6581. Local files,
 original demos, subtunes, Play / Stop and live voice/filter state are implemented.
 The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
-substitute host-periodic VBI calls. Player integration passed 76 player tests,
-29 reference tests and 112 source/ZIP Chromium/WebKit checks on 2026-11-07;
+substitute host-periodic VBI calls. Player integration passed 83 player tests,
+29 reference tests and 116 source/ZIP Chromium/WebKit checks on 2026-11-07;
 see the current TODO and linked evidence for the checked scope. Accepted CIA
 ROM settings survive intermediate VBI subtunes until explicitly reapplied.
 Relocation metadata describes free player-driver RAM, not a new tune load
@@ -36,6 +36,46 @@ latest totals above; see phase 9 of the TODO and the sid_psid_relocation reports
 The prior clean-file CIA PCM/trace/state stayed exact in nine cases, alongside
 the existing twelve-case RSID baseline. The new native source kit reproduces
 the packaged WASM byte for byte. VBI still owns its reserved caller and stack.
+The bounded-VBI host sets the required PAL byte 02A6=1 and the entry-based
+bank before every init/play call (37 below A000, otherwise 36 for the supported
+payload range). Its timeout messages distinguish init from play, and JAM/KIL is
+reported explicitly. The 100k/16k budgets are host policy, not PSID format limits;
+they have not been increased. A pinned-m6502 microcycle guard accepts only an
+unconsumed wrong-page VIC read from indexed STA (9D/99 post-IR phase3, 91 phase4)
+whose corrected address is SID. Mirrored 1E/1F collision reads remain unsupported
+because they clear state; only side-effect-free reads qualify. Actual VIC/CIA/ROM
+accesses remain unsupported in this backend; do not broaden this to blanket I/O
+reads. These changes passed the latest totals above, twelve unchanged VBI
+PCM/trace/state baselines and isolated source-kit rebuilds. Zyx.sid now renders
+ten seconds and stops cleanly without changing its input bytes; see phase 10
+and the sid_zyx_vbi_verification / sid_vbi_environment reports. The original
+user timeout at 1EE4 still has no identified input; resolving Zyx's distinct
+dummy-read failure does not resolve that unknown timeout.
+
+The user also requested an audit of the local ww/C64Music corpus. The new
+check:sid-corpus tooling passed eight synthetic-corpus tests and a five-demo
+pilot, including a zero-new-row resume with unchanged checkpoint hash. The full
+default-subtune, two-second/48kHz PAL/6581 minimal-environment run completed all
+61,157 files in about 21.6 minutes: 26,497 executed_nonzero, 1,050 executed_silent,
+32,448 unsupported, 906 needs_rom and 256 runtime_failed. Read [the report](docs/issues/sid_corpus_audit_01.md).
+Whole-corpus resume reused all 61,157 rows with zero new results and unchanged
+checkpoint, input manifest, source/WASM fingerprint and classifications. No lock
+remained. [Independent row/measurement verification](docs/issues/sid_corpus_audit_verification_01.json)
+passed: 61,157 unique contiguous rows match the manifest; all 27,547 completed
+windows have 96,000 finite samples and zero/stable Stop output, without missing
+or duplicate rows or successful-row measurement anomalies.
+These classifications do not establish that
+all files or subtunes play correctly. Western_Games song1 reproduces 1EE4 and
+returns from a legitimate init at 132,113 cycles in scratch diagnostics, then
+hits a genuine STA DC04. Plan full-machine VBI plus retained-PCM long init;
+do not just raise budgets, rewrite speed or ignore real I/O. The user's original
+timeout input remains unconfirmed.
+Commands, status meanings and restart instructions are in [the corpus guide](docs/sid-corpus.md).
+Keep all input manifests and result
+JSONL under release; only compact summaries belong in docs/issues. Checkpoint
+resume must match sources, WASM, policy and inputs. Do not edit runtime or audit
+worker sources while that run is active, and do not treat silence, a short
+smoke test or header acceptance as musical or full-song compatibility.
 The C64 backend's default firmware is an independently authored, limited IRQ/NMI
 shim with fail-closed unsupported ROM access. Optional user Character / BASIC /
 KERNAL ROMs apply to PSID CIA and RSID and stay in memory only. PSID VBI remains
@@ -53,7 +93,8 @@ an executing program can remain silent. Read [the guide](docs/sid-player/README.
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
 and original host/shim compile as C++17. `scripts/sid_rsid_artifacts.mjs --check`
 authenticates the C64 RSID / PSID CIA WASM and matching source kit; `build:sid-rsid`
-rebuilds it. The old PSID/SID WASM and calibrated SDK remain unchanged. No GPL
+rebuilds it. The bounded VBI host has its own separate WASM/source receipt; the
+SID Synth/Playground chip core and calibrated SDK remain unchanged. No GPL
 reference player, Commodore ROM or game data is linked or bundled. A valid
 header does not prove driver compatibility. No npm release / Native SDK is published.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside

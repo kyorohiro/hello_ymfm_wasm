@@ -24,11 +24,13 @@ on:
       - 'scripts/*sid_player*'
       - 'scripts/*sid_rsid*'
       - 'scripts/*rsid*'
+      - 'scripts/*sid_corpus*'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
       - 'test/sid_rsid*'
       - 'test/rsid*'
+      - 'test/sid_corpus*'
       - 'test/psid_cia*'
       - 'test/helpers/sid_player*'
       - 'test/helpers/rsid*'
@@ -59,11 +61,13 @@ on:
       - 'scripts/*sid_player*'
       - 'scripts/*sid_rsid*'
       - 'scripts/*rsid*'
+      - 'scripts/*sid_corpus*'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
       - 'test/sid_rsid*'
       - 'test/rsid*'
+      - 'test/sid_corpus*'
       - 'test/psid_cia*'
       - 'test/helpers/sid_player*'
       - 'test/helpers/rsid*'
@@ -93,6 +97,7 @@ jobs:
           node scripts/sid_player_artifacts.mjs --check
           node scripts/sid_rsid_artifacts.mjs --check
           npm run test:sid-player
+          npm run test:sid-corpus
           npm run test:sid-reference
           npm run check:runtime-artifacts
       - name: Play the source application

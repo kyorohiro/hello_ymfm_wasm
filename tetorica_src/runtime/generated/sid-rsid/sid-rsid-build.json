@@ -109,8 +109,8 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-m6502/README.md": {
-      "bytes": 4086,
-      "sha256": "7939fcd64483033bcc6be8df042cb824cf42f406b4220a052205e1e7cff64ba3"
+      "bytes": 5077,
+      "sha256": "500ec456790a8c1a1a2236cc08ed576c86af4c59a90dcd09c70d2ea9f627d59c"
     },
     "third_party/chips-m6502/upstream/m6502.h": {
       "bytes": 144215,

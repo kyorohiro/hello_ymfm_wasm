@@ -6,7 +6,9 @@ import {createHash} from 'node:crypto';
 import {SidCore} from '../tetorica_src/runtime/sid.js';
 import {validateBrowserPsid} from '../docs/js/sid_psid.js';
 import {createSidReferenceFixture, SID_REFERENCE_FIXTURES} from './fixtures/sid-reference/fixture.mjs';
-import {createSidPlayerTestFixture, createSidPlayerBankFixture, SID_PLAYER_TEST_FREQUENCIES} from './helpers/sid_player_fixtures.mjs';
+import {createSidPlayerTestFixture, createSidPlayerBankFixture, SID_PLAYER_TEST_FREQUENCIES,
+  createSidPlayerPalFixture, createSidPlayerBankEnvironmentFixture, createSidPlayerJamFixture,
+  SID_PLAYER_JAM_OPCODES, createSidPlayerIndexedStoreFixture} from './helpers/sid_player_fixtures.mjs';
 
 const CLOCK = 985248, FRAME_CYCLES = 19656;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -235,4 +237,115 @@ test('a bounded play-loop failure zeros the requested output and leaves the mach
     assert(output.every(value => value === 0)); assert.equal(core.getState().playing, false);
     core.load(createSidPlayerTestFixture()); assert(render(core, 4096, 128).some(value => Math.abs(value) > .001));
   } finally { core.dispose(); }
+});
+
+test('the real PAL environment byte selects the PAL branch and its audible frequency', async () => {
+  const fixture = createSidPlayerPalFixture(), core = await create(48000);
+  try {
+    core.load(fixture.bytes); const state = core.getState(), pcm = render(core, 4800, 128);
+    assert.equal(state.registers[0] | state.registers[1] << 8, fixture.palFrequency);
+    assert.notEqual(fixture.palFrequency, fixture.nonPalFrequency); assert(pcm.some(value => Math.abs(value) > .001));
+  } finally {core.dispose();}
+});
+
+test('each init and play call establishes the specified bank even after the previous call changed $01', async () => {
+  for (const [initAddress, playAddress] of [[0x1000, 0x1100], [0xa000, 0x1100], [0xc000, 0x1100], [0x1000, 0xa000], [0x1000, 0xc000], [0xa000, 0xc000]]) {
+    for (const returnBank of [0x35, 0x36]) {
+      const fixture = createSidPlayerBankEnvironmentFixture({initAddress, playAddress, returnBank}), core = await create(48000);
+      try {
+        core.load(fixture.bytes); assert.equal(core.getState().registers[2], fixture.initBank);
+        const pcm = render(core, 12000, 128), state = core.getState();
+        assert(state.playCalls > 10); assert.equal(state.registers[3], fixture.playBank);
+        assert(writesOf(core).filter(write => write.register === 3).every(write => write.value === fixture.playBank));
+        assert(pcm.some(value => Math.abs(value) > .001));
+      } finally {core.dispose();}
+    }
+  }
+});
+
+test('init and play timeouts retain code5 but name their own bounded subroutine phase', async () => {
+  const a = await create(48000), b = await create(48000), play = await create(48000);
+  try {
+    a.load(createSidPlayerTestFixture()); b.load(createSidPlayerTestFixture()); render(a, 2048, 128); render(b, 2048, 128);
+    const state = a.getState();
+    assert.throws(() => a.load(createSidPlayerTestFixture('init-loop')), error => error.code === 5 && /\binit(?:ialization)?\b/i.test(error.message) && /100000/.test(error.message) && !/\bplay\b/i.test(error.message));
+    assert.deepEqual(a.getState(), state); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+    play.load(createSidPlayerTestFixture('play-loop')); const output = new Float32Array(8192).fill(1);
+    assert.throws(() => play.renderInto(output), error => error.code === 5 && /\bplay\b/i.test(error.message) && /16000/.test(error.message) && !/\binit(?:ialization)?\b/i.test(error.message));
+    assert(output.every(value => value === 0)); assert.equal(play.getState().playing, false);
+  } finally {a.dispose(); b.dispose(); play.dispose();}
+});
+
+test('all12 CPU JAM/KIL opcodes fail at their own address and never masquerade as ROM or a timeout', async () => {
+  const a = await create(48000), b = await create(48000);
+  try {
+    a.load(createSidPlayerTestFixture()); b.load(createSidPlayerTestFixture()); render(a, 2048, 128); render(b, 2048, 128);
+    for (const opcode of SID_PLAYER_JAM_OPCODES) for (const bank of [0x35, 0x37]) {
+      const fixture = createSidPlayerJamFixture({opcode, bank}), state = a.getState(), trace = a.readTrace();
+      assert.throws(() => a.load(fixture.bytes), error => error.code === 10 && error.address === fixture.address && /JAM|KIL/.test(error.message));
+      assert.deepEqual(a.getState(), state); assert.deepEqual(a.readTrace(), trace); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+      const play = await create(48000), playFixture = createSidPlayerJamFixture({opcode, bank, phase: 'play'});
+      try {
+        play.load(playFixture.bytes); const output = new Float32Array(8192).fill(1);
+        assert.throws(() => play.renderInto(output), error => error.code === 10 && error.address === playFixture.address && /JAM|KIL/.test(error.message));
+        assert(output.every(value => value === 0)); assert.equal(play.getState().playing, false);
+      } finally {play.dispose();}
+    }
+  } finally {a.dispose(); b.dispose();}
+});
+
+test('indexed SID stores retain every bus clock and real OSC3/ENV3 read through all3 ordinary addressing modes', async () => {
+  for (const mode of ['absolute-x', 'absolute-y', 'indirect-y']) {
+    const fixture = createSidPlayerIndexedStoreFixture({mode}), core = await create(48000);
+    const sid = await SidCore.create({sampleRate: 48000, wasmBinary: await readFile(new URL('../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url))});
+    try {
+      core.load(fixture.bytes); const initCount = writesOf(core).length, expected = render(core, 12000, 128), events = writesOf(core), state = core.getState();
+      assert.equal(events.length, initCount + state.playCalls * 27); assert(state.playCalls > 10);
+      const readCycles = new Map();
+      for (let at = initCount; at < events.length; at += 27) {
+        for (let offset = 0; offset < 25; offset++) {
+          assert.equal(events[at + offset].register, 24 - offset); assert.equal(events[at + offset].value, fixture.registers[24 - offset]);
+        }
+        readCycles.set(events[at + 25].cycle - 4, {register: 27, expected: events[at + 25].value});
+        readCycles.set(events[at + 26].cycle - 4, {register: 28, expected: events[at + 26].value});
+      }
+      const actual = new Float32Array(expected.length), one = new Float32Array(1); let event = 0, output = 0;
+      for (let cycle = 0; cycle < state.cycles; cycle++) {
+        const read = readCycles.get(cycle);
+        if (read) assert.equal(sid.readRegister(read.register), read.expected, 'a real SID read keeps its CPU-visible value');
+        else if (event < events.length && events[event].cycle === cycle) {const write = events[event++]; sid.writeRegister(write.register, write.value);}
+        else sid.readRegister(31);
+        if (Math.floor((cycle + 1) * 48000 / CLOCK) > output) {sid.renderInto(one); actual[output++] = one[0];}
+      }
+      assert.equal(event, events.length); assert.equal(output, expected.length); assert.deepEqual(actual, expected, mode + ': a dummy bus cycle was skipped or a SID read changed');
+    } finally {core.dispose(); sid.dispose();}
+  }
+});
+
+test('the dummy-read exception never hides a real VIC read or mirrored collision clear-on-read register', async () => {
+  const core = await create(48000);
+  try {
+    assert.throws(() => core.load(createSidPlayerIndexedStoreFixture({realIoRead: true}).bytes), error => error.code === 3 && error.address === 0xd318);
+    assert.throws(() => core.load(createSidPlayerTestFixture('rom-read')), error => error.code === 4 && error.address === 0xe000);
+    for (const mode of ['absolute-x', 'absolute-y', 'indirect-y']) for (const index of [0x1f, 0x20, 0x5f]) {
+      const fixture = createSidPlayerIndexedStoreFixture({mode, singleIndex: index}); core.load(fixture.bytes);
+      const output = new Float32Array(8192).fill(1);
+      assert.throws(() => core.renderInto(output), error => error.code === 3 && error.address === fixture.dummyAddress);
+      assert(output.every(value => value === 0)); assert.equal(core.getState().playing, false);
+    }
+  } finally {core.dispose();}
+});
+
+test('environment and diagnostic fixes preserve the four unaffected VBI fixture PCMs and traces at three rates', async () => {
+  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/vbi_baseline_005.json', import.meta.url)));
+  assert.equal(baseline.wasmSha256, 'a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491');
+  for (const item of baseline.cases) {
+    const fixture = createSidReferenceFixture(item.profile), core = await create(item.sampleRate);
+    try {
+      assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes);
+      const pcm = render(core, item.frames, 128), state = core.getState();
+      assert.equal(sha(new Uint8Array(pcm.buffer)), item.pcmSha256); assert.equal(sha(JSON.stringify(core.readTrace())), item.traceSha256);
+      const exact = {}; for (const key of Object.keys(item.state)) exact[key] = state[key]; assert.deepEqual(exact, item.state);
+    } finally {core.dispose();}
+  }
 });

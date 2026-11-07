@@ -1,0 +1,106 @@
+{
+  "format": "tetorica-sid-vbi-environment-package-check",
+  "version": 1,
+  "passed": true,
+  "packageVersion": "0.0.6-vbi-env-preview",
+  "archive": "release/tetorica_sid_player_0.0.6-vbi-env-preview_itch.zip",
+  "extracted": "release/sid-player-0.0.6-vbi-env-preview-extracted",
+  "files": 80,
+  "browserModules": 10,
+  "archiveRecord": {
+    "bytes": 1566529,
+    "sha256": "b758542f6c9152f3e5ce5b2aa057658f8ab62df289dba68249b8969de031a5f8"
+  },
+  "builder": {
+    "name": "source-copy",
+    "minify": false,
+    "bundle": false,
+    "dependencyAnalyzer": {
+      "name": "esbuild",
+      "version": "0.28.2"
+    }
+  },
+  "originalInputs": 68,
+  "sourceArchive": {
+    "path": "sources/sid-player-browser-inputs.zip",
+    "bytes": 751231,
+    "sha256": "3108de89099842c5e74c622146d72d8c0eb4b5e4ca62e27e9cd010635d95db70"
+  },
+  "nativeArtifacts": [
+    {
+      "component": "sid-player",
+      "output": {
+        "bytes": 74326,
+        "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+      },
+      "inputsChecked": 14
+    },
+    {
+      "component": "sid-rsid",
+      "output": {
+        "bytes": 113890,
+        "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
+      },
+      "inputsChecked": 29
+    }
+  ],
+  "tests": {
+    "sidPlayer": {
+      "passed": 83,
+      "failed": 0
+    },
+    "sidReference": {
+      "passed": 29,
+      "failed": 0
+    }
+  },
+  "browserChecks": {
+    "passed": true,
+    "total": 116,
+    "reports": [
+      {
+        "path": "docs/issues/sid_vbi_environment_browser_01.json",
+        "bytes": 21462,
+        "sha256": "171cbeb7db3c0875412639bf621a8d883e10f20a1187631d46ce66a372902ae1",
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 29
+          },
+          {
+            "engine": "webkit",
+            "checks": 29
+          }
+        ]
+      },
+      {
+        "path": "docs/issues/sid_vbi_environment_zip_browser_01.json",
+        "bytes": 21451,
+        "sha256": "2a2b479390ad8e84307d576f22de8ca81ca3e798af29c916ba73cff173e756e0",
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 29
+          },
+          {
+            "engine": "webkit",
+            "checks": 29
+          }
+        ]
+      }
+    ]
+  },
+  "supportingEvidence": [
+    "docs/issues/sid_zyx_vbi_verification_01.json",
+    "docs/issues/sid_vbi_environment_sourcekits_01.json"
+  ],
+  "zipValidation": {
+    "outerCrcPassed": true,
+    "nestedSourceCrcPassed": true,
+    "allInputHashesMatched": true,
+    "extractedFilesByteIdentical": true,
+    "userRomAndGameFilesAbsent": true
+  },
+  "original1ee4TimeoutReproduced": false,
+  "published": false
+}

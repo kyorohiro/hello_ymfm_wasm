@@ -1,0 +1,792 @@
+{
+  "format": "tetorica-sid-corpus-audit",
+  "version": 1,
+  "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/ww/C64Music",
+  "fingerprint": {
+    "policy": {
+      "version": 1,
+      "seconds": 2,
+      "sampleRate": 48000,
+      "frames": 96000,
+      "timeoutMs": 15000,
+      "subtunes": "header-default-only",
+      "target": {
+        "clock": "pal",
+        "model": "6581",
+        "unknownOrEither": "explicit-choice",
+        "knownNtscOr8580": "reject"
+      },
+      "environment": "minimal",
+      "maxFileBytes": 65660,
+      "fileOrder": "case-sensitive-codepoint-path",
+      "followSymlinks": false,
+      "silence": "exact-zero; not a compatibility verdict",
+      "stopFrames": 128,
+      "workerRetireAfterFiles": 64,
+      "oversizedHash": "size+mtimeNs+bounded-header; no payload read or execution"
+    },
+    "sources": [
+      {
+        "path": "scripts/check_sid_corpus.mjs",
+        "bytes": 23920,
+        "sha256": "a70ab41d835c69a1104ae1dcbfb1f421e72cb68dc56709ce07779510daf3b0aa"
+      },
+      {
+        "path": "scripts/sid_corpus_worker.mjs",
+        "bytes": 4018,
+        "sha256": "388d0248b2a762573d5e205cc8d96fc5db379a417e4e530796f3067d054cdf05"
+      },
+      {
+        "path": "docs/sid-player/core.js",
+        "bytes": 7241,
+        "sha256": "2791ab0dedbb93cb5bbe0402b09fbcc417f018fa0afef83cc671dd7e376a55e0"
+      },
+      {
+        "path": "docs/sid-player/rsid_core.js",
+        "bytes": 9762,
+        "sha256": "e3fa23771304a261ca065b03e3a5f955008db30797ccf84dfb45602e7a972aa2"
+      },
+      {
+        "path": "docs/sid-player/roms.js",
+        "bytes": 1869,
+        "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+      },
+      {
+        "path": "docs/js/sid_psid.js",
+        "bytes": 10989,
+        "sha256": "6c937b313b183f30dd678f507c6f4a4703796d1f73b66a54971dad2cb74327f0"
+      },
+      {
+        "path": "docs/js/sid_rsid.js",
+        "bytes": 9114,
+        "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+      },
+      {
+        "path": "tetorica_src/runtime/sid_psid.js",
+        "bytes": 10989,
+        "sha256": "6c937b313b183f30dd678f507c6f4a4703796d1f73b66a54971dad2cb74327f0"
+      },
+      {
+        "path": "tetorica_src/runtime/sid_rsid.js",
+        "bytes": 9114,
+        "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+      },
+      {
+        "path": "docs/generated/sid-player/sid-player-build.json",
+        "bytes": 3357,
+        "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88"
+      },
+      {
+        "path": "docs/generated/sid-rsid/sid-rsid-build.json",
+        "bytes": 6094,
+        "sha256": "5653758ffbd9c26b525842e1ff8552471ab4d6b4c0da5b2a4e1737737ad910cb"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 1519,
+        "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+      },
+      {
+        "path": "third_party/chips-m6502/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-m6502/README.md",
+        "bytes": 5077,
+        "sha256": "500ec456790a8c1a1a2236cc08ed576c86af4c59a90dcd09c70d2ea9f627d59c"
+      },
+      {
+        "path": "third_party/chips-m6502/upstream/m6502.h",
+        "bytes": 144215,
+        "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+      },
+      {
+        "path": "third_party/chips-m6581/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-m6581/README.md",
+        "bytes": 2306,
+        "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+      },
+      {
+        "path": "third_party/chips-m6581/PATCHES.md",
+        "bytes": 2239,
+        "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+      },
+      {
+        "path": "third_party/chips-m6581/upstream/m6581.h",
+        "bytes": 26332,
+        "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+      },
+      {
+        "path": "third_party/chips-m6581/m6581.h",
+        "bytes": 27313,
+        "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_player_core.h",
+        "bytes": 13501,
+        "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_player_wasm.cpp",
+        "bytes": 2262,
+        "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+      },
+      {
+        "path": "scripts/build_sid_player_wasm.sh",
+        "bytes": 721,
+        "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+      },
+      {
+        "path": "scripts/sid_player_artifacts.mjs",
+        "bytes": 6146,
+        "sha256": "c1ca5f704d8fad3bbd0612085ee0753c4ec58cd9ad904132898ddd9a35f3b155"
+      },
+      {
+        "path": "scripts/prepare_sid_core.py",
+        "bytes": 3625,
+        "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+      },
+      {
+        "path": "third_party/chips-c64/LICENSE",
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      {
+        "path": "third_party/chips-c64/README.md",
+        "bytes": 7564,
+        "sha256": "3e23f10abe0727edb8846de6d185e62182ff2e0345a2be32ea4410897be529ac"
+      },
+      {
+        "path": "third_party/chips-c64/SOURCES.json",
+        "bytes": 1619,
+        "sha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/chips_common.h",
+        "bytes": 3477,
+        "sha256": "f5992674dc6ddecd88a19b146d2259ba1142e4d2fce9b0620b14c7783965bb7b"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/clk.h",
+        "bytes": 2037,
+        "sha256": "17b8791dbfcbe9d17203ea0b481f7674a8a3558cf4546c3196b6fb6e2736dcd1"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/kbd.h",
+        "bytes": 15708,
+        "sha256": "18f16af06fa483eebb1a7f6fdcac6299ef6b025198f8623e5b1a2de00218c364"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6522.h",
+        "bytes": 28897,
+        "sha256": "85ae4f49779b7e909a41fd979a6eb6afb5738e4a0c24ce1c76a8f4b376f218bd"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6526.h",
+        "bytes": 26154,
+        "sha256": "327a362b9b2235af55c0af712c527bce068633c98f76cdc0c8c4bb35e1d47393"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/m6569.h",
+        "bytes": 66024,
+        "sha256": "8ba7e2296e34eb486b8cd9f3488814ab1af22c418b2e06a7716e01cbed820d29"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/chips/mem.h",
+        "bytes": 16608,
+        "sha256": "451a9c9c0545bfe724a164f655df2f255e4741bba1d7e0e7e980af865e9fbb49"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c1530.h",
+        "bytes": 8475,
+        "sha256": "fe90f38b06b3b9388ee39c1bb92db02ad120ffe81e528c1e6f97449484d83fbc"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c1541.h",
+        "bytes": 5364,
+        "sha256": "597511b00e9ee8d8c32b529b47eab26a8dbf675d42d314c0235ec9f040ac9890"
+      },
+      {
+        "path": "third_party/chips-c64/upstream/systems/c64.h",
+        "bytes": 41974,
+        "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_core.h",
+        "bytes": 23158,
+        "sha256": "d9e60b1b62c43c34676fb425a732c72ea192f030113fc83d9ecea731b8f7caa3"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_wasm.cpp",
+        "bytes": 3341,
+        "sha256": "63aee43644eb3afd7ea91419c9b7c45f0af4be1c3b7ad83bedf9f1020f3e9510"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_machine.c",
+        "bytes": 1050,
+        "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_rsid_chip.cpp",
+        "bytes": 191,
+        "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+      },
+      {
+        "path": "scripts/build_sid_rsid_wasm.sh",
+        "bytes": 1020,
+        "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
+      },
+      {
+        "path": "scripts/sid_rsid_artifacts.mjs",
+        "bytes": 6815,
+        "sha256": "ed5059178e7e4c203329be7bf7f605efe879e19d29519911cab77c574906bef3"
+      }
+    ],
+    "wasm": {
+      "vbi": {
+        "bytes": 74326,
+        "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+      },
+      "c64": {
+        "bytes": 113890,
+        "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
+      }
+    },
+    "sha256": "a28f055ae6a9f6a6b726cfbeaa8ac066ab3cb9e0b6466da69b6e7903fd131513"
+  },
+  "inputCount": 61157,
+  "completed": 61157,
+  "remaining": 0,
+  "complete": true,
+  "interrupted": false,
+  "resumed": false,
+  "newResults": 61157,
+  "discardedTailBytes": 0,
+  "policy": {
+    "version": 1,
+    "seconds": 2,
+    "sampleRate": 48000,
+    "frames": 96000,
+    "timeoutMs": 15000,
+    "subtunes": "header-default-only",
+    "target": {
+      "clock": "pal",
+      "model": "6581",
+      "unknownOrEither": "explicit-choice",
+      "knownNtscOr8580": "reject"
+    },
+    "environment": "minimal",
+    "maxFileBytes": 65660,
+    "fileOrder": "case-sensitive-codepoint-path",
+    "followSymlinks": false,
+    "silence": "exact-zero; not a compatibility verdict",
+    "stopFrames": 128,
+    "workerRetireAfterFiles": 64,
+    "oversizedHash": "size+mtimeNs+bounded-header; no payload read or execution"
+  },
+  "inputManifest": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid-corpus-audit-20261107/results.jsonl.inputs.json",
+    "sha256": "218b879d7e2c96d286368f5149e20c3e0342f88551456e7c89e3b437b6349cf9"
+  },
+  "checkpoint": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid-corpus-audit-20261107/results.jsonl",
+    "bytes": 44117106,
+    "sha256": "84b8778bdbd9f2512154d9998ba5c2b90198fc4bf005ee5e5c0f076005ee3325"
+  },
+  "statuses": {
+    "unsupported": 32448,
+    "executed_nonzero": 26497,
+    "executed_silent": 1050,
+    "needs_rom": 906,
+    "runtime_failed": 256
+  },
+  "backends": {
+    "not_run": 29932,
+    "vbi": 24791,
+    "cia": 3836,
+    "rsid": 2598
+  },
+  "stages": {
+    "metadata": 29932,
+    "complete": 27547,
+    "render": 2722,
+    "load": 956
+  },
+  "statusByBackend": {
+    "not_run:unsupported": 29564,
+    "vbi:executed_nonzero": 21474,
+    "cia:executed_nonzero": 3631,
+    "vbi:unsupported": 2884,
+    "rsid:executed_nonzero": 1392,
+    "rsid:executed_silent": 861,
+    "not_run:needs_rom": 368,
+    "rsid:needs_rom": 339,
+    "vbi:needs_rom": 177,
+    "vbi:runtime_failed": 172,
+    "cia:executed_silent": 105,
+    "vbi:executed_silent": 84,
+    "cia:runtime_failed": 78,
+    "cia:needs_rom": 22,
+    "rsid:runtime_failed": 6
+  },
+  "errorStageCode": {
+    "not_run:unsupported:metadata:PSID_UNSUPPORTED": 28606,
+    "vbi:unsupported:render:3": 2600,
+    "not_run:unsupported:metadata:RSID_UNSUPPORTED": 958,
+    "not_run:needs_rom:metadata:RSID_ROM_REQUIRED": 368,
+    "rsid:needs_rom:load:4": 320,
+    "vbi:unsupported:load:3": 231,
+    "vbi:runtime_failed:load:5": 167,
+    "vbi:needs_rom:load:4": 106,
+    "vbi:needs_rom:render:4": 71,
+    "cia:runtime_failed:load:11": 56,
+    "vbi:unsupported:load:9": 45,
+    "cia:needs_rom:load:4": 20,
+    "rsid:needs_rom:render:4": 19,
+    "cia:runtime_failed:render:12": 12,
+    "cia:runtime_failed:load:12": 10,
+    "vbi:unsupported:render:9": 8,
+    "rsid:runtime_failed:render:6": 5,
+    "vbi:runtime_failed:render:5": 5,
+    "cia:needs_rom:render:4": 2,
+    "rsid:runtime_failed:load:6": 1
+  },
+  "reasons": {
+    "unsupported: PSID_UNSUPPORTED: PSID: this browser engine does not support a tune declared as 8580": 23729,
+    "unsupported: 3: This PSID accesses unsupported C64 I/O (VIC/CIA/expansion); a full C64 environment is required": 2831,
+    "unsupported: PSID_UNSUPPORTED: PSID: this browser engine does not support a tune declared as NTSC": 2643,
+    "unsupported: PSID_UNSUPPORTED: PSID: the browser player supports program RAM $0800..$CFFF only": 1407,
+    "unsupported: RSID_UNSUPPORTED: RSID: this browser engine does not support a tune declared as 8580": 602,
+    "needs_rom: RSID_ROM_REQUIRED: RSID: C64 BASIC requires the ROM environment and three valid user-supplied ROM images": 368,
+    "unsupported: PSID_UNSUPPORTED: PSID: playAddress outside the loaded payload may require init-generated code and is not supported": 364,
+    "needs_rom: 4: This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set": 361,
+    "unsupported: PSID_UNSUPPORTED: PSID: additional SID model flags are outside the single-SID subset": 345,
+    "unsupported: RSID_UNSUPPORTED: RSID: this browser engine does not support a tune declared as NTSC": 344,
+    "needs_rom: 4: This PSID accesses a mapped BASIC/KERNAL ROM; ROM calls are not supported": 177,
+    "runtime_failed: 5: PSID initialization subroutine did not return within 100000 cycles": 167,
+    "unsupported: PSID_UNSUPPORTED: PSID: playAddress 0 installs an IRQ handler; this subset requires an explicit play subroutine": 111,
+    "runtime_failed: 11: PSID initialization did not return within 100000 machine cycles": 56,
+    "unsupported: 9: This PSID changes 6510 memory banking beyond the supported I/O-visible configuration": 53,
+    "runtime_failed: 12: PSID CIA play routine did not return within 16000 machine cycles": 22,
+    "unsupported: RSID_UNSUPPORTED: RSID: version 3; this player supports RSID v2 only": 12,
+    "unsupported: PSID_UNSUPPORTED: PSID: additional SID address fields are outside the single-SID subset": 7,
+    "runtime_failed: 6: SID execution reached a CPU JAM/KIL instruction": 6,
+    "runtime_failed: 5: PSID play subroutine did not return within 16000 cycles": 5
+  },
+  "examples": {
+    "needs_rom: RSID_ROM_REQUIRED: RSID: C64 BASIC requires the ROM environment and three valid user-supplied ROM images": [
+      {
+        "path": "DEMOS/0-9/128_Byte_Blues_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Ahoy_Magazine_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Arrival_of_the_Queen_of_Sheba_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: this browser engine does not support a tune declared as 8580": [
+      {
+        "path": "DEMOS/0-9/1394.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/0-9/1982_Senioridevaaja.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/0-9/1st_Chaff.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "needs_rom: 4: This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set": [
+      {
+        "path": "DEMOS/0-9/3_Oversample.sid",
+        "subtune": 1,
+        "address": 60027,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/A-F/Aces_High_tune_2.sid",
+        "subtune": 1,
+        "address": 60027,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/A-F/All_Micronet_part_2.sid",
+        "subtune": 1,
+        "address": 60027,
+        "phase": "load"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: the browser player supports program RAM $0800..$CFFF only": [
+      {
+        "path": "DEMOS/0-9/4checkers.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Bad_Pixels.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Blue_Monday.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: this browser engine does not support a tune declared as NTSC": [
+      {
+        "path": "DEMOS/0-9/5th_Demo.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/0-9/8-bit_Panda-Ending_Theme.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Addictive_part_4.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: 3: This PSID accesses unsupported C64 I/O (VIC/CIA/expansion); a full C64 environment is required": [
+      {
+        "path": "DEMOS/A-F/A_Dyme_and_a_Table.sid",
+        "subtune": 1,
+        "address": 54047,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/A-F/Above_the_Stars_part_2.sid",
+        "subtune": 1,
+        "address": 53280,
+        "phase": "render"
+      },
+      {
+        "path": "DEMOS/A-F/Accept_intro.sid",
+        "subtune": 1,
+        "address": 53280,
+        "phase": "render"
+      }
+    ],
+    "unsupported: RSID_UNSUPPORTED: RSID: this browser engine does not support a tune declared as NTSC": [
+      {
+        "path": "DEMOS/A-F/Air-Bach_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/America_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/American_Flag_BASIC.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: RSID_UNSUPPORTED: RSID: this browser engine does not support a tune declared as 8580": [
+      {
+        "path": "DEMOS/A-F/Another_Quick_Demo.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Cannon_Fodder_Digi.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/A-F/Catalysis.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "needs_rom: 4: This PSID accesses a mapped BASIC/KERNAL ROM; ROM calls are not supported": [
+      {
+        "path": "DEMOS/A-F/Big_Boing.sid",
+        "subtune": 1,
+        "address": 40960,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/M-R/Megasprite-Generator.sid",
+        "subtune": 1,
+        "address": 57477,
+        "phase": "render"
+      },
+      {
+        "path": "DEMOS/M-R/Nameless.sid",
+        "subtune": 1,
+        "address": 65281,
+        "phase": "render"
+      }
+    ],
+    "runtime_failed: 12: PSID CIA play routine did not return within 16000 machine cycles": [
+      {
+        "path": "DEMOS/A-F/Blue_Monday_Roosta.sid",
+        "subtune": 1,
+        "address": 21109,
+        "phase": "play"
+      },
+      {
+        "path": "GAMES/G-L/Kosmic_Kanga.sid",
+        "subtune": 1,
+        "address": 14974,
+        "phase": "play"
+      },
+      {
+        "path": "GAMES/S-Z/West.sid",
+        "subtune": 1,
+        "address": 50583,
+        "phase": "play"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: playAddress outside the loaded payload may require init-generated code and is not supported": [
+      {
+        "path": "DEMOS/A-F/City_of_New_Orleans.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/G-L/Het_Pleintje.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/M-R/Maenner.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: additional SID model flags are outside the single-SID subset": [
+      {
+        "path": "DEMOS/A-F/Devils_ReSIDence_3SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/G-L/Hallows_Eve_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/M-R/Outerversal_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: playAddress 0 installs an IRQ handler; this subset requires an explicit play subroutine": [
+      {
+        "path": "DEMOS/A-F/First_Day_Tune.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/S-Z/SID_or_without_U.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "DEMOS/UNKNOWN/Lemon_Remix_II.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "runtime_failed: 11: PSID initialization did not return within 100000 machine cycles": [
+      {
+        "path": "DEMOS/A-F/Fugue.sid",
+        "subtune": 1,
+        "address": 32113,
+        "phase": "init"
+      },
+      {
+        "path": "DEMOS/M-R/Minuette.sid",
+        "subtune": 1,
+        "address": 32113,
+        "phase": "init"
+      },
+      {
+        "path": "DEMOS/UNKNOWN/Axel_F.sid",
+        "subtune": 1,
+        "address": 32107,
+        "phase": "init"
+      }
+    ],
+    "unsupported: 9: This PSID changes 6510 memory banking beyond the supported I/O-visible configuration": [
+      {
+        "path": "DEMOS/G-L/Itaepasila.sid",
+        "subtune": 1,
+        "address": 1,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/G-L/Logix.sid",
+        "subtune": 1,
+        "address": 1,
+        "phase": "load"
+      },
+      {
+        "path": "DEMOS/M-R/Run.sid",
+        "subtune": 1,
+        "address": 1,
+        "phase": "load"
+      }
+    ],
+    "runtime_failed: 5: PSID play subroutine did not return within 16000 cycles": [
+      {
+        "path": "GAMES/A-F/Blockbusters_1988.sid",
+        "subtune": 1,
+        "address": 22231,
+        "phase": "play"
+      },
+      {
+        "path": "GAMES/A-F/Donkey_Kong.sid",
+        "subtune": 1,
+        "address": 37167,
+        "phase": "play"
+      },
+      {
+        "path": "MUSICIANS/C/Connolly_Sean/Magnetic_Fields_4.sid",
+        "subtune": 1,
+        "address": 26290,
+        "phase": "play"
+      }
+    ],
+    "runtime_failed: 5: PSID initialization subroutine did not return within 100000 cycles": [
+      {
+        "path": "GAMES/A-F/Dynamite_Duex.sid",
+        "subtune": 1,
+        "address": 10307,
+        "phase": "init"
+      },
+      {
+        "path": "GAMES/G-L/Hercules_Slayer_of_the_Damned.sid",
+        "subtune": 1,
+        "address": 42908,
+        "phase": "init"
+      },
+      {
+        "path": "GAMES/G-L/Killer_Games.sid",
+        "subtune": 1,
+        "address": 30693,
+        "phase": "init"
+      }
+    ],
+    "runtime_failed: 6: SID execution reached a CPU JAM/KIL instruction": [
+      {
+        "path": "MUSICIANS/B/Blues_Muz/Gallefoss_Glenn/Black_Keys_Matter.sid",
+        "subtune": 1,
+        "address": 38714,
+        "phase": "render"
+      },
+      {
+        "path": "MUSICIANS/F/Fade/Swallow_the_Rich_Whole_echofied.sid",
+        "subtune": 1,
+        "address": 56596,
+        "phase": "render"
+      },
+      {
+        "path": "MUSICIANS/H/Hubbard_Rob/Mega_Apocalypse.sid",
+        "subtune": 1,
+        "address": 1802,
+        "phase": "load"
+      }
+    ],
+    "unsupported: RSID_UNSUPPORTED: RSID: version 3; this player supports RSID v2 only": [
+      {
+        "path": "MUSICIANS/D/Data/Banditti_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "MUSICIANS/M/Mahoney/Stereophonik_6581_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "MUSICIANS/M/Mahoney/Stereophonik_8580_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ],
+    "unsupported: PSID_UNSUPPORTED: PSID: additional SID address fields are outside the single-SID subset": [
+      {
+        "path": "MUSICIANS/R/Rosenfeldt_Harald/Crazy_Little_Thing_Called_Love_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "MUSICIANS/R/Rosenfeldt_Harald/Demo-Music_1_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      },
+      {
+        "path": "MUSICIANS/R/Rosenfeldt_Harald/Demo-Music_2_2SID.sid",
+        "subtune": 1,
+        "address": null,
+        "phase": "metadata"
+      }
+    ]
+  },
+  "elapsedMs": 1296687,
+  "limitations": [
+    "Default header subtune only; other subtunes are untested.",
+    "Finite PCM and Stop checks do not establish whole-song or real-hardware accuracy.",
+    "Silent output is a measurement, not proof that a tune is broken; D418 digi remains unmodeled.",
+    "Metadata rejection records the first failed rule, not every unsupported feature.",
+    "Observed ROM access does not establish that supplied firmware would make a tune compatible.",
+    "Minimal environment only; no user ROMs were loaded and no game music, ROM or PCM was copied."
+  ]
+}

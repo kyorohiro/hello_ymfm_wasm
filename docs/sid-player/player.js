@@ -179,7 +179,7 @@ async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions
       if (attempt) sidAttempt = attempt;
       if (selected) $('subtune').value = String(selected.parsed.subtune);
       if (attempt && (typeof error.code === 'string' && (error.code === 'PSID_CHOICE_REQUIRED' || error.code.startsWith('RSID_')) || error.message.includes('ROM'))) $('rsidSettings').open = true;
-      status(`Load failed: ${error.message}. ${selected ? 'Current file kept.' : 'Try one of the demos.'}`, 'error', true);
+      status(`Load failed: ${name}: ${error.message}. ${selected ? 'Current file kept.' : 'Try one of the demos.'}`, 'error', true);
     }
   } finally {
     candidate?.dispose();

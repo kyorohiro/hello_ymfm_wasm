@@ -1,0 +1,117 @@
+{
+  "format": "tetorica-sid-zyx-vbi-verification",
+  "version": 1,
+  "createdAt": "2026-11-07T06:54:00.162Z",
+  "input": {
+    "fileName": "Zyx.sid",
+    "bytes": 746,
+    "sha256": "86636945eefd200ef6ebdaee2af0afba48a21f7c0064c51bd380887e0bc1c373",
+    "sourceFileUnchanged": true,
+    "subtune": 1,
+    "declaredClock": "pal",
+    "declaredModel": "unknown",
+    "selectedClock": "pal",
+    "selectedModel": "6581",
+    "timing": "vbi",
+    "relocation": {
+      "startPage": 40,
+      "pageLength": 120
+    }
+  },
+  "scope": "User-provided local SID read only. No original SID, ROM or PCM payload copied into the repository or distribution.",
+  "reportedError": {
+    "address": 7908,
+    "reproduced": false
+  },
+  "beforeFix": {
+    "initializationCycles": 750,
+    "errorCode": 3,
+    "errorAddress": 54040
+  },
+  "cause": {
+    "instructionAddress": 2127,
+    "instruction": "STA absolute,X",
+    "baseAddress": 54271,
+    "index": 25,
+    "discardedReadAddress": 54040,
+    "intendedSidWriteAddress": 54296
+  },
+  "native": {
+    "core": "tetorica_src/wasm/sid_player_core.h",
+    "coreSha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16",
+    "sampleRate": 48000,
+    "frames": 480000,
+    "seconds": 10,
+    "initializationCycles": 750,
+    "playCalls": 501,
+    "cycles": 9852480,
+    "rms": 0.113528,
+    "peak": 0.351852,
+    "finitePcm": true,
+    "stopProducesExactZero": true,
+    "traceWrites": 4096,
+    "droppedTraceWrites": 8530,
+    "scalarPrecision": "6 significant digits from the native console"
+  },
+  "boundaries": {
+    "initCycleLimit": 100000,
+    "playCycleLimit": 16000,
+    "budgetsUnchanged": true,
+    "allowedStoreOpcodes": [
+      157,
+      153,
+      145
+    ],
+    "discardedReadOnly": true,
+    "computedFollowingTargetMustBeSid": true,
+    "excludedVicMirrorRegisters": [
+      30,
+      31
+    ],
+    "trueVicCiaRomAccessStillRejected": true
+  },
+  "authoredNativeChecks": {
+    "absoluteX": true,
+    "absoluteY": true,
+    "indirectY": true,
+    "explicitVicReadRejectedAt": 54040,
+    "collisionDummyReadRejectedAt": 54046,
+    "cpuJamCode": 10,
+    "cpuJamAddress": 4100,
+    "initializationTimeoutCode": 5,
+    "playTimeoutCode": 5
+  },
+  "notes": [
+    "The user-reported timeout at $1EE4 was not reproduced with this exact file. The independently reproduced D318 rejection is fixed by the narrow compatibility rule.",
+    "Native execution and finite output do not establish original-hardware or musical accuracy."
+  ],
+  "wasm": {
+    "path": "docs/generated/sid-player/sid-player.wasm",
+    "bytes": 74326,
+    "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76",
+    "sampleRate": 48000,
+    "frames": 480000,
+    "seconds": 10,
+    "rms": 0.11352821236939188,
+    "peak": 0.35185205936431885,
+    "pcmSha256": "899fd9e0aa1a779b438d3f556099bc8c785333a768a5d30759882a878aba822c",
+    "finitePcm": true,
+    "initializationCycles": 750,
+    "playCalls": 501,
+    "cycles": 9852480,
+    "targetSelection": {
+      "clock": "header",
+      "model": "explicit"
+    },
+    "traceWrites": 4096,
+    "droppedTraceWrites": 8530,
+    "traceSha256": "8a381e00a7f5a228da935dd5ed46825cf5adc3a1cd00874a31d44c9865931442",
+    "stopProducesExactZero": true,
+    "stopFreezesCycles": true
+  },
+  "unchangedC64Machine": {
+    "path": "docs/generated/sid-rsid/sid-rsid.wasm",
+    "bytes": 113890,
+    "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
+  }
+}

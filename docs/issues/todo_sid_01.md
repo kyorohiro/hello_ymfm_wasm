@@ -38,6 +38,46 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### ローカルHVSC全体の実行監査（2026-11-07）
+
+ユーザーが`ww/C64Music`配下を一通り動作確認するよう依頼した。Zyx修正後の音は正常になっていそうとの実聴コメントあり。
+全ファイルをmetadata確認し、現行backendで受理できる各ファイルの既定subtuneを短時間実行する。
+曲全体・全subtune・聴感の正しさを確認したとは扱わず、silentも初期無音／D418等と区別せず記録する。
+
+実行手順と分類は[ローカルSID corpus監査](../sid-corpus.md)。`npm run test:sid-corpus`の自作corpus8件が成功した。
+5demoのpilotは全件nonzero／Stop成功、resumeは5件再利用・追加0件・checkpoint SHA不変。
+`node scripts/check_sid_corpus.mjs --root ww/C64Music --checkpoint release/sid-corpus-audit-20261107/results.jsonl --out docs/issues/sid_corpus_audit_01.json`を既定2秒／48kHz／2workersで実行し、61,157件の分類が完了した（残0、約21.6分）。[結果](sid_corpus_audit_01.md)は非zero26,497／全zero1,050／未対応32,448／ROM要求・アクセス906／実行停止256。全件resumeは追加0件、checkpoint SHA・入力manifest・fingerprint・分類件数不変、lock残留なし。[独立検証](sid_corpus_audit_verification_01.json)も成功し、61,157行の欠落・重複0、完走27,547行すべて96,000 frames／有限PCM／Stop全zero・停止状態不変を確認した。
+中断後は同じcommandへ`--resume`を追加する。JSONLと入力manifestはrelease配下、compact summaryだけdocs/issuesへ置く。実行中はfingerprint対象のsource／WASMを変更しない。
+
+- [x] 実WASMによるVBI／CIA／RSID、PAL／6581の明示選択、ROMなし環境の全体監査CLIを作る。
+- [x] 非対応header／ROM要求／不正入力／CPU・I/O・timeout失敗／有限PCM・有音／無音／Stopを別集計する。
+- [x] JSONL checkpointと再開時の入力・source／WASM／条件一致確認、worker watchdog、無変更・非同梱を検証する。
+- [x] 自作corpusのテストと小規模benchmark後、`ww/C64Music`全体の既定subtuneを実行して結果を残す。
+- [x] 全件resumeの追加0件・checkpoint不変、入力manifestとsource／WASM／条件の一致を確認する。
+- [x] 結果行の一意性と測定値を独立確認する。
+- [x] 失敗上位と代表例を整理し、次の修正TODOと再実行手順をまとめる。元$1EE4のfileは未確認と区別する。
+- [ ] 後続: VBI宣言のままC64機械を使う再生経路と、init PCMを保持する長いbounded初期化を検討する。Western_Games song1は$1EE4を再現し、scratchでinit132,113cycles後に実STA$DC04へ到達した。上限増加だけで成功とはせず、speed bitも変更しない。[診断](sid_western_games_diagnosis_01.json)。
+
+### PSID実行診断とZyx.sidの予備読み出し（2026-11-07）
+
+ユーザーが `PSID init/play subroutine exceeded its cycle budget or did not return (at $1EE4)` を報告した。
+対象ファイル・subtuneを確認し、正常な長い初期化／実行環境不足／returnやCPU処理の問題を区別する。
+ユーザー添付の`Downloads/Zyx.sid`は別のエラーで、local HVSCのZyx.sidとbyte一致した。
+initは750cyclesで戻り、playの`STA $D3FF,X`が最終SID書込$D418の前にdummy read $D318を行うため、
+bounded VBI hostが未対応I/Oとして拒否していた。$1EE4の元ファイルはまだ特定していない。
+
+[HVSC一次仕様の実行環境](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt)はPAL時`$02A6=1`と、毎回のinit／play entryに応じたbank選択を要求する。VBI hostのzero RAMと前callのbank保持を修正する。
+100k init／16k playは本hostの安全上限でありPSID仕様・音源chipの制約ではない。元ファイルの原因確認前に上限は増やさず、init／play timeoutとCPU JAM/KILを区別して表示する。init PCMのbounded queueも維持する。
+[固定m6502の一次source](https://github.com/floooh/chips/blob/9e88298ce56319953ac7a43213a1120359f7a3a6/chips/m6502.h)で、`STA abs,X`／`abs,Y`のpost-IR phase3、`STA (zp),Y`のphase4は次のstoreへ渡さない予備readと確認した。修正はwrong-page実bus addressと補正後SID addressが一致する場合のside-effect-free readに限定し、CPU／SIDのclockを省略しない。read時にcollision latchをclearするmirrored register `$1E/$1F`は拒否する。VICを一般的に再現する変更ではなく、実VIC／CIA／ROM readは拒否を保つ。
+回帰・実ファイル・配布検証は下記第10段階に記録した。Zyx.sidの別症状を直しても、未特定の$1EE4 timeoutを解決済みとは記録しない。
+
+- [ ] 後続: $1EE4の元ファイルで停止したroutine・cycle数・PC周辺を確認する。上限を増やすだけで無条件に受理しない。
+- [x] 添付Zyx.sidのD318エラーを再現し、indexed SID storeの実bus cycleを確認する。
+- [x] indexed SID storeの予備VIC readを厳密に識別し、実SID read／実VIC・CIA・ROMアクセスと区別する。
+- [x] VBIの初期メモリ／bank／CPU／呼出・復帰条件を一次仕様と既存C64 backendに照合する。
+- [x] 原因に必要な修正とinit／play別の診断、bounded実行・旧音保持の回帰を用意する。
+- [x] 実ファイル・自作fixture・既存VBI／CIA／RSID・browser／配布・再開記録を確認する。
+
 ### PSIDの再配置情報による拒否を改善する今回の作業（2026-11-07）
 
 ユーザーが `unspecified relocation (0/0) only` を報告した。
@@ -536,6 +576,34 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
 - README英日AI・home・guide・scannerの対応範囲を更新。既存CIが今回のtest／fixtureも実行する。
   固定SDK33 builds／68 outputs／75 mirrors、両Mixer policy checkは成功。commit／push／tag／公開はしていない。
   8580、実ROM／BASIC・長時間／実聴、VBIのfull C64 I/O、D418 digi、音色取り込みは引き続き後続。
+
+## 第10段階: Zyx.sidのindexed storeとVBI実行環境（2026-11-07）
+
+- 添付Zyx.sidはlocal HVSCと同一746bytes、SHA-256 `86636945eefd200ef6ebdaee2af0afba48a21f7c0064c51bd380887e0bc1c373`。
+  init750cyclesで戻り、`STA $D3FF,X`がSID $D418へ書く前のdummy read $D318で止まっていた。
+  最初の$1EE4 timeoutとは別症状とユーザーも確認した。元timeoutの入力は未特定で、上限を増やしていない。
+- 固定m6502の正確なSTA abs,X／abs,Y／(zp),Y cycleで、wrong-page addressと補正後SID addressを照合する。
+  返り値を使わない副作用なしVIC readだけを通し、CPU／SID clockは進める。
+  read-to-clearの$1E／$1F mirrors、実VIC／CIA／ROMアクセス、他opcodeは引き続き拒否する。
+- 必須PAL flag $02A6=1と、毎callのentry bank $37／$36を修正した。
+  init100k／play16k上限は維持し、timeoutのphaseを区別、12種類のCPU JAM/KILをcode10／opcode addressで報告。
+  読込失敗時の表示に候補ファイル名を加えた。
+- `npm run test:sid-player` **83件成功**、参照CLI／trace／metrics **29件成功**。
+  PAL分岐、12 bank組合せ、STA3方式の25 register blockと独立SidCore PCM／readback、
+  timeout／JAM／実I/Oの区別・旧音保持を確認。従来4fixture×3rateのVBI12ケースはPCM／trace／状態が完全一致。
+- [Zyx実ファイル](sid_zyx_vbi_verification_01.json): Native／実WASMとも10秒、501plays、RMS約0.113528／peak約0.351852、
+  finite／有音・Stop0・cycle停止。入力は無変更、曲／PCM／ROMは保存・同梱しない。
+  ユーザーは音が正常になっていそうとコメントした。全曲の実聴確認とは分ける。
+- [source kit単独再build](sid_vbi_environment_sourcekits_01.json): VBI14inputs／C6429inputsで両WASM・receiptがbyte一致。
+  VBI74,326bytes SHA `467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76`。
+  共有CPU guide修正のためC64 receiptも更新したが、C64 WASMは前ef6ae771…480dc4eと不変。
+- [Source browser](sid_vbi_environment_browser_01.json)／[実ZIP browser](sid_vbi_environment_zip_browser_01.json):
+  **Chromium／WebKit各29項目、計116チェック成功**。追加項目でPAL／bank／STA／phase診断と候補名・旧音保持を実Workletで確認。
+- [配布記録](sid_vbi_environment_package_01.json): `release/tetorica_sid_player_0.0.6-vbi-env-preview_itch.zip`、
+  80files／10 readable modules／1,566,529bytes、SHA `b758542f6c9152f3e5ce5b2aa057658f8ab62df289dba68249b8969de031a5f8`。
+  original inputs68件、matching sources／license、ZIPのhash・CRC・実展開一致を検証した。
+- 固定SDK33 builds／68 outputs／75 mirrorsと両Mixer checkは成功、SID Synth／PlaygroundのDSP・gainは不変。
+  commit／push／tag／公開はしていない。次は上のローカルHVSC全体監査を進める。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

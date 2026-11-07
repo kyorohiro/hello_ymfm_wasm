@@ -37,6 +37,8 @@
     "test:sid-player": "node --test test/sid_psid_browser.test.mjs test/sid_player_integration.test.mjs test/sid_player_audio.test.mjs test/sid_player_hvsc_metadata.test.mjs test/sid_player_roms.test.mjs test/sid_rsid.test.mjs test/rsid_player_integration.test.mjs test/psid_cia_player_integration.test.mjs scripts/package_sid_player.test.mjs",
     "build:sid-rsid": "sh scripts/build_sid_rsid_wasm.sh",
     "test:sid-player:browser": "node scripts/check_sid_player_browser.cjs",
+    "check:sid-corpus": "node scripts/check_sid_corpus.mjs",
+    "test:sid-corpus": "node --test test/sid_corpus.test.mjs",
     "pack:sid-player": "node scripts/package_sid_player.mjs",
     "build:virtual-files": "node scripts/build_virtual_files.mjs && node scripts/build_virtual_git.mjs",
     "test:virtual-files": "node --test packages/virtual-files/tests/*.test.mjs",

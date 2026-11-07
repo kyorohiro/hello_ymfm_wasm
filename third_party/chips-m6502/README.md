@@ -22,11 +22,11 @@ SID reads return real emulated bus readback on the same cycle. The single SID
 at $D400 includes its $D400..$D7FF register mirrors.
 
 This is **not a complete C64 machine**. It has 64 KiB of initialized RAM,
-standard $00/$01 memory-configuration bytes, the usual I/O-visible bank maps
-$35/$36/$37, the CPU stack, and a small host-owned JSR trampoline at $0200.
-Before either init or play enters loaded RAM in $A000..$BFFF, the host makes
-that RAM visible: if BASIC is mapped, it clears only LORAM ($37 becomes $36),
-retaining SID I/O and all other bank bits. An already suitable map is preserved.
+standard $00/$01 memory-configuration bytes, PAL flag $02A6=1, the usual
+I/O-visible bank maps $35/$36/$37, the CPU stack, and a small host-owned JSR
+trampoline at $0200. Every init/play call writes the bank required by the PSID
+environment: $37 for an entry below $A000, or $36 for an entry at $A000..$CFFF.
+The bank left by the preceding routine is not substituted for that requirement.
 Init receives the zero-based subtune in A, X/Y are zero, interrupt-disable is
 set, and the stack starts at $01FD. Play calls receive A/X/Y zero. A normal
 top-level RTS must return to the trampoline; arbitrary IRQ/BRK entry is rejected.
@@ -39,6 +39,17 @@ CIA timer, VIC raster/steal timing or interrupt controller is guessed. A header
 that passes the supported PSID format subset does not prove its program avoids
 these unsupported devices; such a program can fail during execution.
 
+Ordinary `STA abs,X`, `STA abs,Y` and `STA (zp),Y` instructions perform a
+discarded read before their write. A page-crossing write to SID can put that
+read in the VIC mirror area $D300..$D3FF (for example, `STA $D3FF,X` with
+X=$19 reads $D318 before writing $D418). The host admits only those exact
+pinned-CPU instruction phases, checks the computed following target is SID,
+and returns an unused $FF for the side-effect-free dummy read. CPU/SID clocks
+still advance for the bus cycle. Sprite-collision register mirrors $1E/$1F
+are excluded because reading them clears hardware latches. Actual VIC reads,
+CIA/ROM dependencies and other unsupported I/O remain errors; real SID dummy
+reads still use the SID chip. This narrow rule is not a VIC implementation.
+
 Init runs synchronously for at most 100,000 cycles. Its audio is retained in a
 fixed 16,384-frame queue (enough at the maximum 96 kHz sample rate). The first
 Play is the first strict 19,656-cycle PAL VBI boundary after init completes;
@@ -47,6 +58,9 @@ start every 19,656 cycles, each with a 16,000-cycle budget. There is no claim
 that these absolute call times match libsidplayfp's full C64 driver.
 Rendering advances the program only as needed for the requested PCM frames,
 so splitting a render request does not change the write sequence or PCM.
+These are host safety limits, not SID format limits. Timeout diagnostics keep
+error code 5 and identify initialization or play separately. The twelve CPU
+JAM/KIL opcodes fail immediately with code 10 at their actual opcode address.
 
 The SID is the existing **6581 approximation** with its existing 12 Hz output
 DC blocker and unity chip magnitude. Sample rate is 8..96 kHz, PAL clock is

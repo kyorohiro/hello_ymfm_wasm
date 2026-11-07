@@ -1,0 +1,47 @@
+{
+  "format": "tetorica-vbi-environment-sourcekit-rebuilds",
+  "version": 1,
+  "createdAt": "2026-11-07T06:58:04.029Z",
+  "compiler": "Emscripten 6.0.6-git",
+  "isolatedSourceKits": true,
+  "repositorySourceFallback": false,
+  "c64MachineWasmUnchanged": true,
+  "components": [
+    {
+      "component": "sid-player",
+      "sourceKit": "docs/sources/sid-player",
+      "buildInputsVerified": 14,
+      "wasm": {
+        "bytes": 74326,
+        "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76",
+        "byteIdenticalToPublic": true
+      },
+      "receipt": {
+        "bytes": 3357,
+        "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88",
+        "byteIdenticalToPublic": true
+      }
+    },
+    {
+      "component": "sid-rsid",
+      "sourceKit": "docs/sources/sid-rsid",
+      "buildInputsVerified": 29,
+      "wasm": {
+        "bytes": 113890,
+        "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e",
+        "byteIdenticalToPublic": true
+      },
+      "receipt": {
+        "bytes": 6094,
+        "sha256": "5653758ffbd9c26b525842e1ff8552471ab4d6b4c0da5b2a4e1737737ad910cb",
+        "byteIdenticalToPublic": true
+      }
+    }
+  ],
+  "notes": [
+    "Both source kits were copied after final public source/WASM receipt checks. All 14 VBI and 29 C64 build inputs were independently verified.",
+    "Both sandbox links reached only an external compiler global-cache lock denial; root reran the same commands with approved compiler access.",
+    "C64 machine source code was unchanged. Its shared CPU component README was corrected, so its source receipt was regenerated while the WASM stayed byte-identical.",
+    "No game, ROM or PCM payload is included."
+  ]
+}

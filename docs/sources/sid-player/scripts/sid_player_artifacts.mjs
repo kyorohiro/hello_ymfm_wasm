@@ -31,6 +31,10 @@ async function inputs(repositoryRoot=root){
 }
 function metadata(files,wasm){return{schemaVersion:1,component:'sid-player',fixedSdkArtifact:false,
   model:'6581',clockHz:985248,frameCycles:19656,initCycleLimit:100000,playCycleLimit:16000,
+  initialPalFlag:1,entryBank:'every-call: below A000=37; A000..CFFF=36',
+  diagnostics:{timeoutCode:5,timeoutPhase:'initialization-or-play',cpuJamCode:10},
+  indexedSidStores:{opcodes:[0x9d,0x99,0x91],discardedVicRead:'exact-m6502-phase-D300..D3FF-before-SID-write-only',
+    excludedVicMirrorRegisters:[0x1e,0x1f],dummyData:255},
   cpu:'chips/m6502',environment:'bounded-psid-init-play-no-rom-cia-vic-irq',upstream,inputs:files,output:digest(wasm)};}
 export async function recordSidPlayerBuild(directory){
   const wasm=await readFile(join(directory,'sid-player.wasm'));await WebAssembly.compile(wasm);
@@ -43,7 +47,7 @@ export async function checkSidPlayerBuild({root:repositoryRoot=root,directory=jo
   if(!isDeepStrictEqual(receipt,expected))throw new Error('PSID player source/WASM receipt differs; run sh scripts/build_sid_player_wasm.sh');
   return receipt;
 }
-const sourceReadme='# Bounded browser PSID source kit\n\nBSD-3-Clause host with pinned zlib chips/m6502 and chips/m6581 components.\nNo C64 ROMs, GPL playback engine or game music are included. This is a direct\ninit/play subroutine host, not a complete C64 emulator. Read the component\nREADME for CPU, memory, timing and execution-limit details.\n\nWith Node.js, Python 3 and Emscripten, from this source directory:\n\n```sh\nsh scripts/build_sid_player_wasm.sh /tmp/tetorica-sid-player-rebuild\n```\n\nThe separate WASM/receipt does not change the existing SID Synth or fixed SDK.\n';
+const sourceReadme='# Bounded browser PSID source kit\n\nBSD-3-Clause host with pinned zlib chips/m6502 and chips/m6581 components.\nNo C64 ROMs, GPL playback engine or game music are included. This is a direct\ninit/play subroutine host, not a complete C64 emulator. Read the component\nREADME for CPU, memory, timing and execution-limit details.\n\nPAL RAM flag $02A6 is initialized to 1. Every init/play entry sets its required\nbank ($37 below $A000, $36 through $CFFF). The unchanged 100k/16k cycle limits\nreport initialization/play separately; CPU JAM/KIL reports its opcode address.\nOnly exact discarded read phases of STA abs,X / abs,Y / (zp),Y crossing from\nVIC mirrors to a SID write are admitted. Their data is unused, and CPU/SID\nclocks still advance. Collision-register mirrors that clear on read are excluded.\nActual VIC/CIA/ROM dependencies remain unsupported.\n\nWith Node.js, Python 3 and Emscripten, from this source directory:\n\n```sh\nsh scripts/build_sid_player_wasm.sh /tmp/tetorica-sid-player-rebuild\n```\n\nThe separate WASM/receipt does not change the existing SID Synth or fixed SDK.\n';
 export async function syncSidPlayerArtifacts({check=false}={}){
   await checkSidPlayerBuild();
   const copies=[...['sid-player.wasm','sid-player-build.json'].map(name=>[

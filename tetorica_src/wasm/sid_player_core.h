@@ -21,7 +21,7 @@ public:
     enum State : unsigned { Empty = 0, Running = 1, Stopped = 2, Error = 3 };
     enum ErrorCode : unsigned { None = 0, InvalidArguments, InvalidProgramRange,
         UnsupportedIo, MissingRom, SubroutineTimeout, UnsupportedExecution,
-        AudioQueueFull, NotLoaded, UnsupportedBanking };
+        AudioQueueFull, NotLoaded, UnsupportedBanking, CpuJam };
     struct TraceEntry { uint32_t cycleLow, cycleHigh, reg, value; };
 
     explicit SidPlayerCore(unsigned sampleRate) : sampleRate_(sampleRate) { resetSound(); }
@@ -32,10 +32,10 @@ public:
         const uint64_t end = uint64_t(loadAddress) + length;
         if (loadAddress < 0x0800 || end > 0xd000 || initAddress < loadAddress || initAddress >= end
             || playAddress < loadAddress || playAddress >= end) return fail(InvalidProgramRange);
-        resetSound(); ram_.fill(0); ram_[0] = 0x2f; ram_[1] = 0x37;
+        resetSound(); ram_.fill(0); ram_[0] = 0x2f; ram_[1] = 0x37; ram_[0x02a6] = 1;
         std::memcpy(ram_.data() + loadAddress, input_.data(), length);
         cycles_ = 0; initCycles_ = playCalls_ = skippedVbis_ = 0;
-        traceCount_ = droppedTrace_ = 0; errorCode_ = None; errorAddress_ = 0;
+        traceCount_ = droppedTrace_ = 0; errorCode_ = None; errorAddress_ = 0; timeoutDuringInit_ = false;
         initAddress_ = initAddress; playAddress_ = playAddress;
         m6502_desc_t desc{}; cpuPins_ = m6502_init(&cpu_, &desc);
         state_ = Running; initializing_ = true;
@@ -75,11 +75,14 @@ public:
         case InvalidProgramRange: return "Program and init/play entry points must be in RAM $0800..$CFFF";
         case UnsupportedIo: return "This PSID accesses unsupported C64 I/O (VIC/CIA/expansion); a full C64 environment is required";
         case MissingRom: return "This PSID accesses a mapped BASIC/KERNAL ROM; ROM calls are not supported";
-        case SubroutineTimeout: return "PSID init/play subroutine exceeded its cycle budget or did not return";
+        case SubroutineTimeout: return timeoutDuringInit_
+            ? "PSID initialization subroutine did not return within 100000 cycles"
+            : "PSID play subroutine did not return within 16000 cycles";
         case UnsupportedExecution: return "PSID attempted BRK/IRQ, I/O execution or an invalid host return";
         case AudioQueueFull: return "PSID initialization exceeded the bounded audio queue";
         case NotLoaded: return "No PSID program is loaded";
         case UnsupportedBanking: return "This PSID changes 6510 memory banking beyond the supported I/O-visible configuration";
+        case CpuJam: return "PSID execution reached a CPU JAM/KIL instruction";
         }
         return "PSID player error";
     }
@@ -104,14 +107,15 @@ private:
         dcPole_ = std::exp(-2.0 * 3.14159265358979323846 * 12.0 / sampleRate_);
     }
     bool fail(ErrorCode code, unsigned address = 0) {
+        if (code == SubroutineTimeout) timeoutDuringInit_ = initializing_;
         errorCode_ = code; errorAddress_ = address; state_ = Error; cpuActive_ = false;
         resetSound(); output_.fill(0); return false;
     }
     void startCall(unsigned entry, uint8_t a) {
-        // A PSID entry in the BASIC window denotes loaded RAM, not a ROM call.
-        // Preserve an already suitable map; otherwise $37 -> $36 exposes that
-        // RAM while keeping SID I/O and the other memory-configuration bits.
-        if (entry >= 0xa000 && entry <= 0xbfff && (ram_[1] & 3) == 3) ram_[1] &= ~uint8_t(1);
+        // PSID specifies the bank for EVERY init/play call, independently of
+        // what the preceding routine left behind. The current payload subset
+        // ends at $CFFF, so these are the only two entry mappings required.
+        ram_[1] = entry < 0xa000 ? 0x37 : 0x36;
         // An actual six-cycle JSR uses the normal emulated stack. Its top-level
         // RTS must return to $0203 with the original stack pointer.
         ram_[0x0200] = 0x20; ram_[0x0201] = static_cast<uint8_t>(entry);
@@ -124,7 +128,29 @@ private:
         cpuActive_ = true; callCycles_ = 0; instruction_ = 0x20;
     }
     bool isSid(unsigned address) const { return address >= 0xd400 && address <= 0xd7ff; }
+    bool discardedVicReadBeforeSidStore(unsigned address) const {
+        // Pinned m6502 uses IR++ in its dispatcher. These are precisely the
+        // discarded read phases of ordinary STA abs,X / abs,Y / (zp),Y, not
+        // an operand read or a general permission to access VIC registers.
+        if ((cpuPins_ & (M6502_RW | M6502_SYNC)) != M6502_RW || address < 0xd300 || address > 0xd3ff) return false;
+        // VIC sprite-collision mirrors clear latches on read, even when the
+        // CPU discards the returned value. This limited host cannot fake that.
+        if ((address & 0x3f) == 0x1e || (address & 0x3f) == 0x1f) return false;
+        unsigned index;
+        switch (cpu_.IR) {
+        case (0x9d << 3) | 3: index = cpu_.X; break;
+        case (0x99 << 3) | 3: case (0x91 << 3) | 4: index = cpu_.Y; break;
+        default: return false;
+        }
+        const uint16_t target = static_cast<uint16_t>(cpu_.AD + index);
+        return isSid(target) && address == ((cpu_.AD & 0xff00) | (target & 0xff));
+    }
     bool memoryRead(unsigned address, uint8_t& value) {
+        // The following write uses A, never this dummy read's data. Keep the
+        // bus cycle and SID clock for a side-effect-free VIC read, without
+        // inventing a VIC model. Actual VIC accesses and read-side effects
+        // still require a full C64 environment and remain rejected.
+        if (discardedVicReadBeforeSidStore(address)) { value = 0xff; return true; }
         if ((address >= 0xa000 && address <= 0xbfff && (ram_[1] & 3) == 3)
             || (address >= 0xe000 && (ram_[1] & 2))) return fail(MissingRom, address);
         if (address >= 0xd000 && address <= 0xdfff) return fail(UnsupportedIo, address);
@@ -178,6 +204,11 @@ private:
                 if (!memoryRead(address, value)) return;
                 if (cpuPins_ & M6502_SYNC) {
                     if (!value) { fail(UnsupportedExecution, address); return; }
+                    switch (value) {
+                    case 0x02:case 0x12:case 0x22:case 0x32:case 0x42:case 0x52:
+                    case 0x62:case 0x72:case 0x92:case 0xb2:case 0xd2:case 0xf2:
+                        fail(CpuJam,address); return;
+                    }
                     instruction_ = value;
                 }
                 M6502_SET_DATA(cpuPins_, value);
@@ -209,7 +240,7 @@ private:
     unsigned initCycles_ = 0, playCalls_ = 0, skippedVbis_ = 0;
     unsigned callCycles_ = 0, queueRead_ = 0, queueCount_ = 0, traceCount_ = 0, droppedTrace_ = 0;
     uint8_t instruction_ = 0;
-    bool initializing_ = false, cpuActive_ = false;
+    bool initializing_ = false, cpuActive_ = false, timeoutDuringInit_ = false;
     double previousInput_ = 0, previousOutput_ = 0, dcPole_ = 0;
 };
 }

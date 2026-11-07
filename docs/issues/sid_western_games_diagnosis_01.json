@@ -1,0 +1,115 @@
+{
+  "format": "tetorica-sid-western-games-diagnosis",
+  "version": 1,
+  "createdAt": "2026-11-07T07:13:58.831Z",
+  "scope": "Three targeted native diagnostic runs on one local SID. No music bytes, ROM or PCM payload is included. Production sources and published WASM were not modified.",
+  "input": {
+    "path": "ww/C64Music/GAMES/S-Z/Western_Games.sid",
+    "bytes": 22294,
+    "sha256": "0b0148daf96a789267dac2b178d4d6edc3564c8e11a313b54b0e961c25ac6432",
+    "subtune": 1,
+    "format": "PSID",
+    "version": 2,
+    "declaredClock": "pal",
+    "declaredModel": "unknown",
+    "selectedModel": "6581",
+    "timing": "vbi",
+    "loadAddress": 4096,
+    "initAddress": 7792,
+    "playAddress": 7924,
+    "endAddress": 26264,
+    "relocation": {
+      "startPage": 4,
+      "pageLength": 12
+    }
+  },
+  "production": {
+    "source": {
+      "path": "tetorica_src/wasm/sid_player_core.h",
+      "bytes": 13501,
+      "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+    },
+    "wasm": {
+      "path": "docs/generated/sid-player/sid-player.wasm",
+      "bytes": 74326,
+      "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+    },
+    "initCycleLimit": 100000,
+    "playCycleLimit": 16000,
+    "queueCapacityFrames": 16384,
+    "sampleRate": 48000
+  },
+  "initialStop": {
+    "errorCode": 5,
+    "phase": "init",
+    "pc": 7908,
+    "elapsedCycles": 100000,
+    "attemptedCallCycles": 100001,
+    "x": 8,
+    "y": 178,
+    "sourcePointer": 14080,
+    "destinationPointer": 44528,
+    "operation": "BNE in a normal indirect-indexed memory-copy loop, not a CPU JAM or ROM access"
+  },
+  "copy": {
+    "bytes": 8192,
+    "sourceStart": 7936,
+    "sourceEndExclusive": 16128,
+    "destinationStart": 38384,
+    "destinationEndExclusive": 46576,
+    "initialPageCount": 32,
+    "bank": 53,
+    "explanation": "The 32-page copy alone exceeds 100k cycles. The source and destination pointers advance normally; no iteration limit was bypassed."
+  },
+  "scratch": {
+    "header": {
+      "path": "/private/tmp/tetorica-western-diag-core.h",
+      "bytes": 13593,
+      "sha256": "8e8ceebcbaf6751e7352386996d88e4e576051982292faa2da4ee5a8907d2180"
+    },
+    "probe": {
+      "path": "/private/tmp/tetorica-western-detail.cpp",
+      "bytes": 2337,
+      "sha256": "2c72f9abc9990fbbd81064ebaab3a13b67bb638eb5a101cb58269b811f926943"
+    },
+    "changes": [
+      "Copied the production core header into /private/tmp and made third-party includes absolute.",
+      "Made private diagnostic state readable in the scratch header only.",
+      "Replaced initBudget with SID_DIAG_INIT_BUDGET; compiled one 100k baseline and two 2M diagnostics.",
+      "Expanded only the scratch retained-audio queue from 16384 to 131072 frames (524288 bytes at Float32).",
+      "CPU/SID source, clock, bank behavior, I/O policy and play 16k limit were unchanged."
+    ],
+    "buildCommand": "c++ -std=c++17 -O2 -DNDEBUG -ffp-contract=off -DSID_DIAG_INIT_BUDGET=2000000 /private/tmp/tetorica-western-detail.cpp -o /private/tmp/tetorica-western-detail",
+    "runCommand": "/private/tmp/tetorica-western-detail ww/C64Music/GAMES/S-Z/Western_Games.sid",
+    "initCycleLimit": 2000000,
+    "queueCapacityFrames": 131072,
+    "initializationReturned": true,
+    "initializationCycles": 132113
+  },
+  "nextFailure": {
+    "errorCode": 3,
+    "phase": "play",
+    "address": 56324,
+    "instructionAddress": 6410,
+    "observedPc": 6413,
+    "opcode": 141,
+    "instruction": "STA absolute",
+    "a": 0,
+    "x": 24,
+    "y": 0,
+    "elapsedCycles": 141187,
+    "playCallCycles": 3596,
+    "interpretation": "A real CIA1 Timer A low-byte write. Nearby code also conditionally writes the high byte at $DC05; this is not an indexed-store dummy read."
+  },
+  "conclusions": [
+    "The 100k init timeout is reproducible and caused by legitimate longer initialization, which returns at 132113 cycles in the scratch host.",
+    "Increasing the init limit alone is insufficient: the first play routine then requires actual CIA I/O.",
+    "Future work needs a longer bounded initialization policy with retained-PCM capacity checks AND full-machine VBI execution, preserving original VBI timing and header bytes.",
+    "Do not silently switch the file to CIA-speed, bypass real I/O, or claim playback success from the init return alone."
+  ],
+  "unchanged": {
+    "inputSha256": "0b0148daf96a789267dac2b178d4d6edc3564c8e11a313b54b0e961c25ac6432",
+    "productionSourceSha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16",
+    "publishedWasmSha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+  }
+}
