@@ -85,6 +85,26 @@ without altering ROM bytes. Original RSID startup, interrupt conventions and
 nonreturning-init behavior remain separate and unchanged. The old VBI-only
 PSID backend and the strict external reference CLI remain unchanged.
 
+PSID relocation header bytes describe free RAM for this host driver, not
+permission to move the tune. With unspecified relocation `0/0`, the original
+$0400/$0600/$0700 placement and machine behavior are retained. For a declared
+free range, the browser selects its first viable page from $04..$9F or
+$C0..$CF, excluding the unchanged tune payload. The native ABI independently
+validates that page and packs IRQ, NMI, caller and bootstrap at offsets $00,
+$28, $40 and $60. Every section has an explicit emission bound; the complete
+code fits one 256-byte page. RAM under BASIC/KERNAL or I/O is unsuitable because
+the tune's required entry bank must not hide its caller or interrupt driver.
+The ordinary stack, CPU port and IRQ/NMI vector cells retain their C64 roles.
+`sidr_driver_address` reports the actual IRQ-driver address (zero for RSID).
+
+The header `FF/0` declares no free driver page, so the CIA backend rejects it
+instead of overwriting arbitrary RAM. The separate VBI host uses its existing
+caller in reserved page $02 rather than installing a page in these driver
+ranges; its parser can retain such relocation metadata without moving payload
+or changing its execution backend. This is not support for arbitrary load
+ranges: the current PSID subset still requires payload and init/play entries
+within $0800..$CFFF.
+
 ## Build
 
 ```sh

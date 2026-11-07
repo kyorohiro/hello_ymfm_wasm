@@ -64,7 +64,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
 | [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | 実験的なC64 6581の3声鍵盤、Pulse幅、hardware ADSR、共有filter、1音のSync／Ringペア。portable preset保存・可読JavaScript出力に対応。[ガイド](docs/synth-sid/README.md)。 |
 | [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。 |
-| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | 対応するPAL／6581のPSID v2・RSID v2を再生し、3声と共有filterを表示。PSIDはsubtune別にVBI／CIAを選び、CIAとRSIDはC64機械を実行。限定内蔵IRQ環境または手元のC64 ROMを選べます。自作デモ・可読ソースを同梱します。[使い方・制限](docs/sid-player/README.md)。 |
+| [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | 対応するPAL／6581のPSID v2・RSID v2を再生し、3声と共有filterを表示。PSIDはsubtune別にVBI／CIAを選び、driver用の空きRAM宣言を保持。CIAには使える1pageが必要です。CIAとRSIDは限定内蔵IRQ環境または手元のC64 ROMで実行。自作デモ・可読ソース付きです。[使い方・制限](docs/sid-player/README.md)。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
 | [YM2612入門](https://kyorohiro.github.io/hello_ymfm_wasm/introductions/index-ja.html) | JavaScriptを通じてFM合成とチップを学ぶ。 |

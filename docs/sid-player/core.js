@@ -69,6 +69,7 @@ export class SidPlayerCore {
     this.handle = candidate; this.positionFrames = 0; this.subtune = parsed.subtune;
     this.declaredClock = parsed.clock; this.declaredModel = parsed.model;
     this.targetSelection = {...parsed.selection};
+    this.relocation = {...parsed.relocation};
     return this.getState();
   }
   /** @param {Float32Array} output */
@@ -98,6 +99,8 @@ export class SidPlayerCore {
       loaded: !!handle, playing: state === 1, state, format: 'PSID', timing: 'vbi', model: '6581', clockHz: SID_PLAYER_CLOCK,
       declaredClock: this.declaredClock, declaredModel: this.declaredModel,
       targetSelection: this.targetSelection ? {...this.targetSelection} : null,
+      relocation: this.relocation ? {...this.relocation} : null,
+      driverAddress: null,
       frameCycles: SID_PLAYER_FRAME_CYCLES, sampleRate: this.sampleRate, subtune: this.subtune,
       cycles: handle ? api.sidp_cycles(handle) : 0, initCycles: handle ? api.sidp_init_cycles(handle) : 0,
       playCalls: handle ? api.sidp_play_calls(handle) : 0, skippedVbis: handle ? api.sidp_skipped_vbis(handle) : 0,

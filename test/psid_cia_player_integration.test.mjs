@@ -7,6 +7,7 @@ import {validateBrowserPsid} from '../docs/js/sid_psid.js';
 import {createPsidCiaFixture} from './helpers/psid_cia_fixtures.mjs';
 import {createRsidFixture} from './helpers/rsid_fixtures.mjs';
 import {createRsidTestRoms} from './helpers/rsid_test_roms.mjs';
+import {createSidPlayerTestFixture} from './helpers/sid_player_fixtures.mjs';
 
 const sha = input => createHash('sha256').update(input).digest('hex');
 let RsidPlayerCore, SidPlayerCore, wasmBinary, vbiBinary;
@@ -168,6 +169,110 @@ test('PSID CIA Stop freezes CPU/timers and clears queued samples; reload starts 
     assert.equal(core.readRam(fixture.counterAddress), counter);
     core.load(fixture.bytes, {subtune: 2}); assert.deepEqual(render(core, 12000, 17), expected);
   } finally {core.dispose();}
+});
+
+test('VBI playback preserves positive and FF/0 relocation headers without moving the music payload or changing PCM', async () => {
+  const reference = await vbi(48000), bytes = createSidPlayerTestFixture();
+  try {
+    reference.load(bytes); const expected = render(reference, 4800, 128);
+    for (const [startPage, pageLength] of [[0x20, 1], [255, 0]]) {
+      const copy = bytes.slice(); copy[120] = startPage; copy[121] = pageLength; const before = copy.slice(), core = await vbi(48000);
+      try {
+        const parsed = validateBrowserPsid(copy); assert.deepEqual(parsed.originalBytes, before);
+        core.load(copy); const state = core.getState(); assert.equal(state.driverAddress, null);
+        assert.deepEqual(state.relocation, {startPage, pageLength}); state.relocation.startPage = 0;
+        assert.deepEqual(core.getState().relocation, {startPage, pageLength});
+        assert.deepEqual(render(core, 4800, 17), expected); assert.deepEqual(copy, before);
+      } finally {core.dispose();}
+    }
+  } finally {reference.dispose();}
+});
+
+test('positive CIA driver pages preserve the old fixed driver cells and fit in the last visible RAM page', async () => {
+  for (const sampleRate of [44100, 48000, 96000]) for (const page of [0x20, 0xcf]) {
+    const fixture = createPsidCiaFixture({driverRange: [page, 1], protectLegacy: true, variable: true, bankAfterInit: 0x35, bankAfterPlay: 0x36});
+    let baseline;
+    for (const chunk of [1, 4096]) {
+      const core = await create(sampleRate);
+      try {
+        const original = fixture.bytes.slice(), parsed = validateBrowserPsid(fixture.bytes, {subtune: 2});
+        assert.equal(parsed.driverPage, page); assert.deepEqual(parsed.originalBytes, original);
+        core.load(fixture.bytes, {subtune: 2}); const pcm = render(core, sampleRate / 2, chunk), state = core.getState();
+        assert.equal(state.driverAddress, page * 256); assert.deepEqual(state.relocation, {startPage: page, pageLength: 1});
+        assert(state.playCalls > 100); assert(pcm.some(value => Math.abs(value) > .001));
+        for (const [address, value] of fixture.sentinels) assert.equal(core.readRam(address), value, `legacy cell $${address.toString(16)} was clobbered`);
+        const intervals = deltas(writes(core)); assert(Math.abs(median(intervals.slice(12, 30)) - fixture.secondPeriodCycles) <= 6);
+        const current = {pcm: sha(new Uint8Array(pcm.buffer)), state, trace: core.readTrace()};
+        if (!baseline) baseline = current; else assert.deepEqual(current, baseline);
+        assert.deepEqual(fixture.bytes, original);
+      } finally {core.dispose();}
+    }
+  }
+});
+
+test('native CIA rejects an invalid or payload-overlapping driver page without disturbing the accepted machine', async () => {
+  const fixture = createPsidCiaFixture(), a = await create(48000), b = await create(48000);
+  try {
+    a.load(fixture.bytes, {subtune: 2}); b.load(fixture.bytes, {subtune: 2}); render(a, 2048, 128); render(b, 2048, 128);
+    for (const page of [3, 0x10, 0xa0, 0xbf, 0xd0, 255, 256]) {
+      const api = a.exports, candidate = api.sidr_create(48000), before = a.getState(), trace = a.readTrace();
+      try {
+        new Uint8Array(api.memory.buffer, api.sidr_input(candidate), fixture.program.length).set(fixture.program);
+        assert.equal(api.sidr_load_psid(candidate, fixture.program.length, fixture.loadAddress, fixture.initAddress, fixture.playAddress, 1, 0, page), 0);
+        assert.equal(api.sidr_error_code(candidate), 13);
+      } finally {api.sidr_destroy(candidate);}
+      assert.deepEqual(a.getState(), before); assert.deepEqual(a.readTrace(), trace); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+    }
+  } finally {a.dispose(); b.dispose();}
+});
+
+test('a missing or inconsistent relocation ABI rejects the candidate while preserving the accepted machine and its PCM', async () => {
+  const fixture = createPsidCiaFixture(), candidate = createPsidCiaFixture({driverRange: [0x20, 1], protectLegacy: true});
+  const a = await create(48000), b = await create(48000);
+  try {
+    a.load(fixture.bytes, {subtune: 2}); b.load(fixture.bytes, {subtune: 2}); render(a, 2048, 128); render(b, 2048, 128);
+    const original = a.exports;
+    for (const missing of [true, false]) {
+      let created = 0; const destroyed = [], before = a.getState(), trace = a.readTrace(), acceptedHandle = a.handle;
+      const api = {...original, sidr_create(...args) {created++; return original.sidr_create(...args);},
+        sidr_destroy(handle) {destroyed.push(handle); return original.sidr_destroy(handle);}};
+      if (missing) delete api.sidr_driver_address; else api.sidr_driver_address = () => 0;
+      try {
+        a.exports = api;
+        assert.throws(() => a.load(candidate.bytes, {subtune: 2}), /relocation|driver|updated|address/i);
+      } finally {a.exports = original;}
+      assert.equal(created, missing ? 0 : 1); assert.equal(destroyed.length, missing ? 0 : 1);
+      assert(!destroyed.includes(acceptedHandle)); assert.equal(a.handle, acceptedHandle);
+      assert.deepEqual(a.getState(), before); assert.deepEqual(a.readTrace(), trace); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+    }
+  } finally {a.dispose(); b.dispose();}
+});
+
+test('a mixed FF/0 tune keeps its playing VBI song when the CIA song has no viable driver page', async () => {
+  for (const driverRange of [[255, 0], [0xa0, 0x20]]) {
+    const bytes = createPsidCiaFixture({driverRange}).bytes, a = await vbi(48000), b = await vbi(48000);
+    try {
+      a.load(bytes, {subtune: 1}); b.load(bytes, {subtune: 1}); render(a, 2048, 128); render(b, 2048, 128);
+      const state = a.getState(), trace = a.readTrace();
+      assert.throws(() => a.load(bytes, {subtune: 2}), error => error.code === 'PSID_UNSUPPORTED' && /free RAM page|always-visible RAM/.test(error.message));
+      assert.deepEqual(a.getState(), state); assert.deepEqual(a.readTrace(), trace); assert.deepEqual(render(a, 257, 17), render(b, 257, 17));
+    } finally {a.dispose(); b.dispose();}
+  }
+});
+
+test('relocatable drivers preserve all legacy 0/0 CIA PCM, bus traces and machine state from the 0.0.4 binary', async () => {
+  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/psid_cia_baseline_004.json', import.meta.url)));
+  assert.equal(baseline.wasmSha256, '188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00');
+  for (const item of baseline.cases) {
+    const fixture = createPsidCiaFixture(item.options), core = await create(item.sampleRate);
+    try {
+      assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes, {subtune: 2});
+      const pcm = render(core, item.frames, 128), state = core.getState();
+      assert.equal(sha(new Uint8Array(pcm.buffer)), item.pcmSha256); assert.equal(sha(JSON.stringify(core.readTrace())), item.traceSha256);
+      const exact = {}; for (const key of Object.keys(item.state)) exact[key] = state[key];
+      assert.deepEqual(exact, item.state); assert.equal(core.readRam(fixture.counterAddress), item.counter);
+    } finally {core.dispose();}
+  }
 });
 
 test('adding PSID CIA playback preserves existing RSID PCM, trace, counters and voice state from the 0.0.3 native binary', async () => {

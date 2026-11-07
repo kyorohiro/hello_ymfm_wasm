@@ -116,14 +116,13 @@ export function parsePsid(input,{maxBytes=PSID_MAX_FILE_BYTES}={}){
  * returned declaration fields and original header bytes are never rewritten.
  * @param {ArrayBuffer|ArrayBufferView} input
  * @param {{subtune?:number,clock?:'pal',model?:'6581',maxBytes?:number}} [options]
- * @returns {ReturnType<typeof parsePsidStructure> & {subtune:number,timing:'vbi'|'cia',selectedClock:'pal',selectedModel:'6581',clockHz:number,selection:{clock:string,model:string}}}
+ * @returns {ReturnType<typeof parsePsidStructure> & {subtune:number,timing:'vbi'|'cia',driverPage:number|null,selectedClock:'pal',selectedModel:'6581',clockHz:number,selection:{clock:string,model:string}}}
  */
 export function validateBrowserPsid(input,{subtune,clock,model,maxBytes=PSID_MAX_FILE_BYTES}={}){
   if(clock!==undefined&&clock!=='pal')throw new RangeError('The browser PSID target clock option must be pal');
   if(model!==undefined&&model!=='6581')throw new RangeError('The browser PSID target model option must be 6581');
   const parsed=parsePsidStructure(input,{maxBytes});
   if(parsed.version!==2)unsupported('the browser player supports PSID v2 only');
-  if(parsed.relocation.startPage!==0||parsed.relocation.pageLength!==0)unsupported('the browser player supports unspecified relocation (0/0) only');
   if(parsed.loadAddress<0x0800||parsed.endAddress>0xd000)unsupported('the browser player supports program RAM $0800..$CFFF only');
   if(parsed.clock==='ntsc')unsupported('this browser engine does not support a tune declared as NTSC');
   if(parsed.model==='8580')unsupported('this browser engine does not support a tune declared as 8580');
@@ -131,6 +130,21 @@ export function validateBrowserPsid(input,{subtune,clock,model,maxBytes=PSID_MAX
   if(parsed.model!=='6581'&&model!=='6581')throw new SidPsidError('model is unspecified or supports either SID; explicitly choose 6581 to continue','PSID_CHOICE_REQUIRED');
   const selected=subtune===undefined?parsed.startSong:subtune;
   if(!Number.isInteger(selected)||selected<1||selected>parsed.songs)throw new RangeError(`PSID subtune must be an integer 1..${parsed.songs}`);
-  return {...parsed,subtune:selected,timing:parsed.songSpeeds[selected-1],selectedClock:'pal',selectedModel:'6581',clockHz:985248,
+  const timing=parsed.songSpeeds[selected-1];
+  let driverPage=null;
+  if(timing==='cia'){
+    const {startPage,pageLength}=parsed.relocation;
+    if(startPage===255)unsupported('this CIA subtune needs a free RAM page for its player driver, but the header declares none ($FF/0)');
+    if(startPage===0)driverPage=0; // Existing clean-file driver layout.
+    else{
+      // Relocation describes free DRIVER RAM, not a new payload load address.
+      // The packed original driver needs one page visible under both $37/$36.
+      for(let page=startPage;page<startPage+pageLength;page++){
+        if(page>=4&&(page<0xa0||page>=0xc0&&page<0xd0)){driverPage=page;break;}
+      }
+      if(driverPage===null)unsupported('the declared relocation range has no always-visible RAM page for the CIA player driver');
+    }
+  }
+  return {...parsed,subtune:selected,timing,driverPage,selectedClock:'pal',selectedModel:'6581',clockHz:985248,
     selection:{clock:parsed.clock==='pal'?'header':'explicit',model:parsed.model==='6581'?'header':'explicit'}};
 }

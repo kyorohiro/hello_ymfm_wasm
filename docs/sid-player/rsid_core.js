@@ -69,6 +69,7 @@ export class RsidPlayerCore {
     if (psid && parsed.timing !== 'cia') throw new Error('This PSID subtune uses VBI timing; load it through the VBI player');
     const firmware = environment === 'rom' ? concatenateRoms(roms) : null, api = this.exports;
     if (psid && typeof api.sidr_load_psid !== 'function') throw new Error('PSID CIA needs the updated C64 WASM. Reload the player.');
+    if (psid && parsed.driverPage && typeof api.sidr_driver_address !== 'function') throw new Error('PSID driver relocation needs the updated C64 WASM. Reload the player.');
     const candidate = api.sidr_create(this.sampleRate);
     if (!candidate) throw new Error('RSID player allocation failed');
     try {
@@ -76,15 +77,18 @@ export class RsidPlayerCore {
       if (firmware) new Uint8Array(api.memory.buffer, api.sidr_rom_input(candidate), firmware.length).set(firmware);
       const loaded = psid
         ? api.sidr_load_psid(candidate, parsed.program.length, parsed.loadAddress, parsed.initAddress, parsed.playAddress,
-          parsed.subtune - 1, Number(environment === 'rom'))
+          parsed.subtune - 1, Number(environment === 'rom'), parsed.driverPage)
         : api.sidr_load(candidate, parsed.program.length, parsed.loadAddress, parsed.initAddress,
           parsed.subtune - 1, Number(parsed.basic), Number(environment === 'rom'));
       if (!loaded) throw this.nativeError(candidate);
+      if (psid && parsed.driverPage && api.sidr_driver_address(candidate) !== parsed.driverPage * 256)
+        throw new Error('The C64 WASM did not place the PSID driver in its declared free page. Reload the player.');
     } catch (error) {api.sidr_destroy(candidate); throw error;}
     if (this.handle) api.sidr_destroy(this.handle);
     this.handle = candidate; this.positionFrames = 0; this.subtune = parsed.subtune;
     this.environment = environment; this.format = parsed.format; this.timing = psid ? 'cia' : 'c64-irq';
     this.declaredClock = parsed.clock; this.declaredModel = parsed.model; this.targetSelection = {...parsed.selection};
+    this.relocation = {...parsed.relocation};
     return this.getState();
   }
   /** @param {Float32Array} output */
@@ -115,6 +119,8 @@ export class RsidPlayerCore {
       model: '6581', clockHz: RSID_PLAYER_CLOCK, frameCycles: RSID_PLAYER_FRAME_CYCLES,
       declaredClock: this.declaredClock ?? null, declaredModel: this.declaredModel ?? null,
       targetSelection: this.targetSelection ? {...this.targetSelection} : null,
+      relocation: this.relocation ? {...this.relocation} : null,
+      driverAddress: handle && api.sidr_driver_address ? api.sidr_driver_address(handle) : null,
       sampleRate: this.sampleRate, subtune: this.subtune, positionFrames: this.positionFrames,
       cycles: handle ? api.sidr_cycles(handle) : 0, initCycles: handle ? api.sidr_init_cycles(handle) : 0,
       bootCycles: handle ? api.sidr_boot_cycles(handle) : 0, initReturned: handle ? !!api.sidr_init_returned(handle) : false,

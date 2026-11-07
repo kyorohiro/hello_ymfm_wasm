@@ -1,0 +1,119 @@
+{
+  "format": "tetorica-psid-relocation-package-check",
+  "version": 1,
+  "passed": true,
+  "packageVersion": "0.0.5-relocation-preview",
+  "archive": "release/tetorica_sid_player_0.0.5-relocation-preview_itch.zip",
+  "extracted": "release/sid-player-0.0.5-relocation-preview-extracted",
+  "files": 80,
+  "browserModules": 10,
+  "archiveRecord": {
+    "bytes": 1561381,
+    "sha256": "6921f7830a5bb16e22dfdbcd554dd5deaf32edadc4dab87d2caaeea74197aebf"
+  },
+  "builder": {
+    "name": "source-copy",
+    "minify": false,
+    "bundle": false,
+    "dependencyAnalyzer": {
+      "name": "esbuild",
+      "version": "0.28.2"
+    }
+  },
+  "originalInputs": 68,
+  "sourceArchive": {
+    "path": "sources/sid-player-browser-inputs.zip",
+    "bytes": 749266,
+    "sha256": "bf570c8fce9fc3dcf2bd7d18e436515a43d50866f71a7dd974b3f30b24f1be9e"
+  },
+  "nativeArtifacts": [
+    {
+      "component": "sid-player",
+      "output": {
+        "bytes": 74012,
+        "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+      },
+      "inputsChecked": 14
+    },
+    {
+      "component": "sid-rsid",
+      "output": {
+        "bytes": 113890,
+        "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
+      },
+      "inputsChecked": 29
+    }
+  ],
+  "tests": {
+    "sidPlayer": {
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sidReference": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "zipValidation": {
+    "outerCrcPassed": true,
+    "nestedSourceCrcPassed": true,
+    "allInputHashesMatched": true,
+    "extractedFilesByteIdentical": true,
+    "readableModulesMatchCurrentSource": true,
+    "userRomAndGameFilesAbsent": true
+  },
+  "compatibilityLimits": {
+    "target": "PAL, one 6581 approximation",
+    "ciaDriverRequiresFreeAlwaysVisiblePage": true,
+    "vbiReservedCallerAndStackRequired": true,
+    "known8580Supported": false,
+    "realC64FirmwareVerified": false
+  },
+  "published": false,
+  "browserChecks": {
+    "passed": true,
+    "total": 112,
+    "reports": [
+      {
+        "path": "docs/issues/sid_psid_relocation_browser_01.json",
+        "sha256": "c62cd5f16ae6e3f773aa2c425a58d239442c2d6313b88439405893d6ffa8d656",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 28
+          },
+          {
+            "engine": "webkit",
+            "checks": 28
+          }
+        ]
+      },
+      {
+        "path": "docs/issues/sid_psid_relocation_zip_browser_01.json",
+        "sha256": "aed69e2128bfe28e8b7afaf3290d584e2895a3ee2ddfbd0a21d9f873de69822b",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 28
+          },
+          {
+            "engine": "webkit",
+            "checks": 28
+          }
+        ]
+      }
+    ]
+  },
+  "browserChecker": {
+    "path": "scripts/check_sid_player_browser.cjs",
+    "sha256": "ca7d898b4b62faa89bd9482d2a5747d7bb47bde8d282f1f7834ecf106f07ef9e"
+  },
+  "supportingEvidence": [
+    "docs/issues/sid_psid_relocation_hvsc_01.json",
+    "docs/issues/sid_psid_relocation_sourcekit_01.json"
+  ]
+}

@@ -57,7 +57,11 @@ function showSelection() {
   const environment = machine ? ` · ${selected.loadOptions.environment === 'rom' ? 'Your C64 ROMs' : 'Built-in IRQ environment'}${parsed.basic ? ' · BASIC' : ''}` : '';
   const assumptions = parsed.clock !== 'pal' || parsed.model !== '6581' ? ` · Header ${parsed.clock} / ${parsed.model} → PAL / 6581` : '';
   const entry = parsed.format === 'RSID' ? (parsed.basic ? ' · BASIC RUN' : ` · Init ${hex(parsed.initAddress)} · Hardware interrupts`) : ` · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)} · ${parsed.timing === 'cia' ? 'CIA timer' : 'VBI timing'}`;
-  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · PAL / 6581 · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}`;
+  const relocation = parsed.format === 'PSID' && parsed.relocation.startPage
+    ? parsed.relocation.startPage === 255 ? ' · No free driver pages'
+      : ` · Free driver RAM ${hex(parsed.relocation.startPage * 256)}–${hex((parsed.relocation.startPage + parsed.relocation.pageLength) * 256 - 1)}${parsed.timing === 'cia' ? ` · Driver ${hex(parsed.driverPage * 256)}` : ''}`
+    : '';
+  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · PAL / 6581 · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}${relocation}`;
   $('subtune').replaceChildren();
   for (let song = 1; song <= parsed.songs; song++) {
     const option = document.createElement('option'); option.value = String(song); option.textContent = `${song} / ${parsed.songs}`;

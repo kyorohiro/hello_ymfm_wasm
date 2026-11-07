@@ -9,9 +9,11 @@ The player runs a tune's 6502 program and follows its writes to the SID. The thr
 The PSID path chooses its backend from the selected subtune's speed bit:
 
 - PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags require the visible **Use PAL / 6581** checkbox. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
-- VBI or CIA timing, with unspecified relocation (`0/0`). A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
+- VBI or CIA timing. A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
 - Loaded program RAM `$0800..$CFFF`, with effective init and explicit nonzero play addresses inside that payload. An init header value of zero defaults to the load address.
 - At most **65,660 bytes**, with one-based song selection from `1..songs` (up to 256).
+
+PSID relocation metadata describes free RAM for the **player driver**, not a request to move the tune. `0/0` declares a clean file; `$FF/0` declares no free driver page. The VBI host accepts structurally valid relocation metadata, including `$FF/0`, because its caller does not use a driver page in that range. CIA playback needs one page: for an explicit free range, it selects the first page within `$0400..$9FFF` or `$C000..$CFFF`. A range with no such page, or `$FF/0`, is rejected for CIA. A range may extend across other memory areas if it still contains a usable page. Payload overlap, range overflow and inconsistent sentinel fields are rejected. The header, loaded payload and init/play addresses are preserved. See the [HVSC format specification, fields +78/+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt).
 
 The separate RSID path accepts **RSID v2**, one SID and a PAL / 6581 target:
 
@@ -52,6 +54,8 @@ The initial memory map is `$37`. Before calling an init or play entry in loaded 
 Init has a 100,000-cycle limit; each play routine has a 16,000-cycle limit. The first play call is at the first strict 19,656-cycle PAL frame boundary after init completes, then once per frame. Audio produced during init is retained. These absolute scheduling times are not claimed to match libsidplayfp's complete C64 driver.
 
 The **PSID CIA** backend instead clocks the continuous C64 machine, including both CIAs and VIC. An original RAM driver calls init with the zero-based subtune in A, then calls the explicit play routine from CIA1 timer-A interrupts. The initial latch is `$4025` (approximately 60 Hz on PAL), with the timer and its IRQ enabled. The tune can change its latch, control and interrupt mask; there is no host-periodic VBI substitute. Init and play must still return with RTS within their 100,000- and 16,000-machine-cycle bounds. The built-in environment supplies only limited original firmware; optional user-ROM mode boots the supplied firmware before installing the same RAM driver. Neither mode removes the PSID entry and RAM restrictions.
+
+For clean `0/0` files the existing CIA driver layout remains unchanged. For an explicit free range, the original bootstrap, interrupt handlers and caller are packed into the selected page, including their branch targets and vectors. The browser validator returns `driverPage` (`null` for VBI, `0` for the clean-file layout); the C64 API reports the actual `driverAddress`. The VBI caller remains at `$0200..$0203`, outside the driver-page area, and still uses the CPU stack at `$0100..$01FF`. Accepting `$FF/0` does not prove compatibility with a program that overwrites that caller or stack. These host placements do not relocate or patch the music program.
 
 The **RSID** host uses the same pinned **chips/c64** system wiring: CPU, both CIA chips, VIC, SID and memory banking advance together. IRQ and NMI reach the emulated CPU, and the program's RTI returns to the interrupted code. It runs the tune's own interrupt or continuous code without a host play-routine call. RSID programs may legitimately stay in an init busy loop, unlike the returning PSID init/play subroutines.
 

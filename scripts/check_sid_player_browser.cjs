@@ -265,6 +265,35 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await page.locator('#stop').click(); releaseWasm(); releaseWasm = null; await ready(); await silent();
     assert.equal(await page.locator('#subtune').inputValue(), '1'); await play(); assert.equal((await read()).timing, 'vbi');
 
+    check('positive relocation preserves raw metadata and runs CIA from its declared free driver page');
+    await loadFile(fixtures.psidRelocated, 'relocated-mixed.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('relocated-mixed.sid'));
+    await ready(); await silent(); await play();
+    let relocatedState = await read(); assert.equal(relocatedState.timing, 'vbi'); assert.equal(relocatedState.driverAddress, null);
+    assert.deepEqual(relocatedState.relocation, {startPage: 0x20, pageLength: 1});
+    await page.locator('#subtune').selectOption({value: '2'}); await ready(); await silent(); await play();
+    relocatedState = await waitState(value => value.timing === 'cia' && value.playCalls > 100);
+    assert.equal(relocatedState.driverAddress, 0x2000); assert.deepEqual(relocatedState.relocation, {startPage: 0x20, pageLength: 1});
+    assert.match(await page.locator('#fileInfo').textContent(), /Driver \$2000/); await sound();
+    measurements.relocation = {declaredStartPage: 0x20, declaredLength: 1, actualDriver: relocatedState.driverAddress, audiblePcm: true};
+
+    check('VBI accepts FF/0 while unsupported CIA or malformed relocation keeps the old playing song');
+    await loadFile(fixtures.psidNoDriver, 'no-free-pages.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('no-free-pages.sid'));
+    await ready(); await silent(); await play();
+    const noDriverInfo = await page.locator('#fileInfo').textContent(); assert.match(noDriverInfo, /No free driver pages/);
+    assert.deepEqual((await read()).relocation, {startPage: 255, pageLength: 0});
+    await page.locator('#subtune').selectOption({value: '2'});
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /free RAM page/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#subtune').inputValue(), '1'); assert.equal(await page.locator('#fileInfo').textContent(), noDriverInfo);
+    assert.equal((await read()).timing, 'vbi'); assert.equal((await read()).playing, true); await sound();
+    for (const [name, bytes, reason] of [['relocation-overlap.sid', fixtures.psidRelocationOverlap, 'overlap'], ['relocation-invalid-sentinel.sid', fixtures.psidRelocationSentinel, 'pageLength']]) {
+      await loadFile(bytes, name);
+      await page.waitForFunction(reason => document.querySelector('#status').dataset.state === 'error' && document.querySelector('#status').textContent.includes(reason), reason);
+      assert.equal(await page.locator('#fileInfo').textContent(), noDriverInfo); assert.equal((await read()).playing, true); await sound();
+      assert.deepEqual((await read()).relocation, {startPage: 255, pageLength: 0});
+    }
+
     check('file selection exposes two subtunes and passes the selected init A value into actual SID frequency');
     await loadFile(fixtures.two, 'two-subtunes.sid'); await page.waitForFunction(() => document.querySelector('#fileInfo').textContent.includes('two-subtunes.sid') && document.querySelector('#subtune').options.length === 2); await ready();
     await play(); let state = await read(); assert.equal(state.subtune, 1);
@@ -479,11 +508,15 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const ciaRoms = createRsidTestRoms();
   ciaRoms.kernal.set([0x48, 0x8a, 0x48, 0x98, 0x48, 0x6c, 0x14, 0x03], 0xff48 - 0xe000);
   ciaRoms.kernal[0x1ffe] = 0x48; ciaRoms.kernal[0x1fff] = 0xff;
+  const relocated = createPsidCiaFixture({driverRange: [0x20, 1], protectLegacy: true}).bytes;
+  const noDriver = createPsidCiaFixture({driverRange: [255, 0]}).bytes;
+  const overlap = relocated.slice(), invalidSentinel = noDriver.slice(); overlap[120] = 0x10; invalidSentinel[121] = 1;
   new DataView(ciaRomFixture.bytes.buffer).setUint16(16, 2);
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
     playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
     psidUnknown: psidChoices[0], psidEither: psidChoices[1], psidNtsc: psidChoices[2], psid8580: psidChoices[3],
     psidCia: ciaFixture.bytes, psidCiaSelected: ciaSelected, psidCiaRom: ciaRomFixture.bytes, ciaFrequencies: ciaFixture.frequencies, ciaRoms,
+    psidRelocated: relocated, psidNoDriver: noDriver, psidRelocationOverlap: overlap, psidRelocationSentinel: invalidSentinel,
     rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
     rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
     rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};

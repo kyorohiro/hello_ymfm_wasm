@@ -35,13 +35,40 @@ test('browser song selection is one-based, defaults to the header and never coer
   assert.equal(browser.validateBrowserPsid(max,{subtune:256}).subtune,256);
 });
 
-test('browser execution rejects metadata-only versions and relocation',()=>{
+test('browser execution rejects metadata-only versions',()=>{
   for(const version of [3,4]){
     const bytes=createSidReferenceFixture('tone',{version}).bytes;
     assert.equal(browser.parsePsid(bytes).version,version);
     unsupported(bytes,/v2 only/);
   }
-  for(const [page,length] of [[0x20,2],[255,0]])unsupported(modified((_view,bytes)=>{bytes[0x78]=page;bytes[0x79]=length;}),/relocation/);
+});
+
+test('relocation metadata is preserved and only CIA songs select a declared always-visible driver page',()=>{
+  for(const [page,length,expectedPage] of [[0,0,0],[0x20,2,0x20],[4,1,4],[0x9f,1,0x9f],
+    [0xc0,1,0xc0],[0xcf,1,0xcf],[3,2,4],[0xa0,0x21,0xc0],[0xcf,2,0xcf]]){
+    const bytes=modified((view,bytes)=>{view.setUint16(14,2);view.setUint32(18,2);bytes[0x78]=page;bytes[0x79]=length;}),before=bytes.slice();
+    for(const [subtune,driverPage]of [[1,null],[2,expectedPage]]){
+      const parsed=browser.validateBrowserPsid(bytes,{subtune});
+      assert.deepEqual(parsed.relocation,{startPage:page,pageLength:length});assert.equal(parsed.driverPage,driverPage);
+      assert.deepEqual(parsed.originalBytes,before);assert.deepEqual(parsed.program,before.slice(126));
+      assert.equal(parsed.loadAddress,0x1000,'driver placement must not relocate the music payload');
+    }
+    assert.deepEqual(bytes,before);
+  }
+  for(const [page,length]of [[255,0],[1,2],[0xa0,0x20],[0xd0,0x20],[0xfe,1]]){
+    const bytes=modified((view,bytes)=>{view.setUint16(14,2);view.setUint32(18,2);bytes[0x78]=page;bytes[0x79]=length;});
+    const vbi=browser.validateBrowserPsid(bytes,{subtune:1});assert.equal(vbi.driverPage,null);
+    assert.deepEqual(vbi.relocation,{startPage:page,pageLength:length});assert.deepEqual(vbi.originalBytes,bytes);
+    assert.throws(()=>browser.validateBrowserPsid(bytes,{subtune:2}),error=>error.code==='PSID_UNSUPPORTED'&&/free RAM page|always-visible RAM/.test(error.message));
+  }
+});
+
+test('relocation sentinels, page overflow and payload overlap remain malformed for both browser timings',()=>{
+  for(const [page,length]of [[0,1],[255,1],[254,3],[0x20,0],[0x10,1]])for(const speed of [0,1]){
+    const bytes=modified((view,bytes)=>{view.setUint32(18,speed);bytes[0x78]=page;bytes[0x79]=length;});
+    assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error.code==='PSID_INVALID'&&/relocation/.test(error.message));
+    assert.throws(()=>cli.parsePsid(bytes),error=>error.code==='PSID_INVALID'&&/relocation/.test(error.message));
+  }
 });
 
 test('browser timing follows only the selected song and retains the complete speed declaration',()=>{
@@ -158,7 +185,7 @@ test('explicit target choices cannot bypass the existing file, version, relocati
   const options={clock:'pal',model:'6581'};
   const explicitRejects=(bytes,pattern,code='PSID_UNSUPPORTED')=>assert.throws(()=>browser.validateBrowserPsid(bytes,options),error=>error.code===code&&pattern.test(error.message));
   for(const version of [3,4])explicitRejects(modified(view=>view.setUint16(0x76,0),{version}),/v2 only/);
-  explicitRejects(modified((view,bytes)=>{view.setUint16(0x76,0);bytes[0x78]=0x20;bytes[0x79]=1;}),/relocation/);
+  explicitRejects(modified((view,bytes)=>{view.setUint16(0x76,0);bytes[0x78]=0x20;bytes[0x79]=0;}),/relocation/,'PSID_INVALID');
   explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(8,0x0700);view.setUint16(10,0x0700);view.setUint16(12,0x0700);}),/RAM/);
   explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(12,0);}),/IRQ/);
   explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(10,0xffff);}),/initAddress/,'PSID_INVALID');

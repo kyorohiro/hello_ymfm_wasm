@@ -1,0 +1,26 @@
+{
+  "format": "tetorica-psid-relocation-sourcekit-rebuild",
+  "version": 1,
+  "createdAt": "2026-11-07T06:32:47.963Z",
+  "sourceKit": "docs/sources/sid-rsid",
+  "compiler": "Emscripten 6.0.6-git",
+  "buildCommand": "sh scripts/build_sid_rsid_wasm.sh /tmp/tetorica-sid-rsid-rebuild",
+  "isolatedSourceKit": true,
+  "repositorySourceFallback": false,
+  "buildInputsVerified": 29,
+  "wasm": {
+    "bytes": 113890,
+    "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e",
+    "byteIdenticalToPublic": true
+  },
+  "receipt": {
+    "bytes": 6094,
+    "sha256": "631b702569ac61325fe30d8be4131761dad1206057e84d492720bb1465da9c51",
+    "byteIdenticalToPublic": true
+  },
+  "notes": [
+    "All 29 input bytes/hashes were verified in an independently copied source kit before compilation.",
+    "The compiler toolchain is an external prerequisite. A sandbox global-cache lock denial was retried by root with approved compiler access; source files and build command were unchanged.",
+    "No game, ROM or PCM payload is included."
+  ]
+}

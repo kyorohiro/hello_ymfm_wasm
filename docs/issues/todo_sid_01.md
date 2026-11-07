@@ -38,6 +38,22 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### PSIDの再配置情報による拒否を改善する今回の作業（2026-11-07）
+
+ユーザーが `unspecified relocation (0/0) only` を報告した。
+先にPSIDのstartPage／pageLengthと各backendのRAM使用を確認し、音楽payloadの移動要求と誤解してheaderを書き換えない。
+
+[HVSC一次仕様の+78／+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt)では、再配置情報は再生driver用の空き領域を示す。`0/0`はdriver範囲でpayload外を書かないclean file、`$FF/0`は空きpageなし、それ以外は最大の連続空き範囲。
+今回の方針はVBIとCIAを分ける。VBIは既存`$0200..$0203` callerのまま、構造が正当な明示範囲・`$FF/0`を受理する。
+CIAは明示範囲内で最初のalways-visible page（`$04..$9F`または`$C0..$CF`）へ独自driverを1pageで配置する。範囲全体がそのRAM内に収まる必要はなく、使える1pageがあればよい。`$FF/0`／使えるpageなしはCIA用の理由付き拒否とする。
+`0/0`の従来driver配置は保持し、音楽payload／header／load・init・play addressは変更しない。ABIは`sidr_load_psid`末尾の`driverPage`（0=従来配置）と`sidr_driver_address`。parserは選択subtuneごとにVBIなら`null`、CIAなら0またはpageを返す。旧CLIの実行subsetと既存strict parserを黙って拡大しない。検証・配布記録は下記第9段階。
+
+- [x] 一次仕様で再配置情報の意味を確認し、VBI trampoline／CIA RAM driverとの関係と受理条件を決める。
+- [x] 正当な明示範囲・$FF/0を必要に応じて扱い、不正範囲・payload overlap・RAM競合は区別する。
+- [x] parser／Main／Worklet／nativeを必要範囲で変更し、元header・target・ROM snapshot・失敗時の旧音を保持する。
+- [x] 自作fixture・実HVSC・既存VBI／CIA／RSID・strict CLI・Chromium／WebKitで確認する。
+- [x] 可読ZIP／matching sources／再build・guide／README／CI・再開記録を揃える。
+
 ### PSID CIA再生と8580指定の扱い（2026-11-07）
 
 ユーザーがPSIDのCIA-speed拒否と既知8580拒否を報告した。先にTODOを残し、PSID CIA再生をC64 machineへ接続する。
@@ -151,7 +167,7 @@ CIA再生を先に仕上げ、次は6581／8580を明示的に選択できる音
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
 通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階、
-限定browser PSID Playerは第5段階、RSIDは第6段階、PSIDのsubtune別CIA再生は第8段階で対応した。
+限定browser PSID Playerは第5段階、RSIDは第6段階、PSIDのsubtune別CIA再生は第8段階、再配置情報は第9段階で対応した。
 package-root raw chip factory／Native出力／専用8580 model・完全なC64互換は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
@@ -490,6 +506,36 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
   README英日AI・guide・CI trigger／test登録を更新した。commit／push／tag／公開はしていない。
 - 8580は専用model候補と採用条件を上のTODOへ記録した。6581 preview overrideは追加していない。
   実ROM／BASIC、長時間・実聴、D418 digi、音色取り込みも後続。
+
+## 第9段階: PSIDの再配置情報（2026-11-07）
+
+- `0/0 only` のbrowser guardを置き換え、VBIは正当な空き領域と$FF/0を受理する。
+  CIAは明示範囲内のalways-visibleな1pageへ独自driverを配置する。音楽payload、header、entrypointは移動しない。
+  $FF/0／利用可能pageなしのCIAは具体的理由で拒否し、不正範囲やpayload overlapも従来どおり拒否する。
+- native側もpage範囲とpayload overlapを再検証し、IRQ／NMI／caller／bootstrapのemit境界を設けた。
+  parserとstateに元のrelocation情報、選んだpage／実driver addressを保持し、UIに空きRAMと配置先を表示する。
+  古いWASMのexport不在・配置address不一致は候補のみ破棄し、旧音と次PCMを保つ。
+- `npm run test:sid-player` **76件成功**、`npm run test:sid-reference` **29件成功**。
+  $20／$CFの1page配置、旧$0400／$0600／$0700領域を使う自作programの保護、44.1／48／96kHzの
+  分割render、FF/0・不正範囲・ABI不整合時の保持を確認。旧CIA0/0の9ケースとRSID12ケースは
+  PCM／trace／状態が完全一致し、既存VBI WASM・SID DSPは変更していない。
+- [実HVSC](sid_psid_relocation_hvsc_01.json): Ski Weltcup／Bullseye／Hooper／Monty Moleの
+  4ファイル×2subtunes、**8件すべて有音・Stop0**。CIA4件は宣言された$08／$20／$09／$04ページ、
+  VBI4件は既存backendで実行した。元ファイル無変更、曲／ROM／PCM payloadは保存・配布しない。
+- [独立source kit再build](sid_psid_relocation_sourcekit_01.json): 29 inputsのコピーだけから再生成し、
+  WASM113,890bytes・receiptとも公開コピーへbyte一致。
+  WASM SHA-256 `ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e`。
+- [Source browser](sid_psid_relocation_browser_01.json)／[実ZIP browser](sid_psid_relocation_zip_browser_01.json):
+  **Chromium／WebKit各28項目、合計112チェック成功**。追加2項目で元metadataと実driver address、
+  再配置CIAの実PCM、FF/0 VBIからCIAへの切替拒否、不正候補時の旧音保持を確認した。
+  既存ROM snapshot／Stop／Masterと1180／390px表示も成功。physical outputはmuteで実聴とは別。
+- [配布記録](sid_psid_relocation_package_01.json):
+  `release/tetorica_sid_player_0.0.5-relocation-preview_itch.zip`、80files／10 readable modules／1,561,381bytes。
+  SHA-256 `6921f7830a5bb16e22dfdbcd554dd5deaf32edadc4dab87d2caaeea74197aebf`。
+  source ZIPの68 original inputs、同梱native sources／license、全hash・CRC・実展開file一致を確認した。
+- README英日AI・home・guide・scannerの対応範囲を更新。既存CIが今回のtest／fixtureも実行する。
+  固定SDK33 builds／68 outputs／75 mirrors、両Mixer policy checkは成功。commit／push／tag／公開はしていない。
+  8580、実ROM／BASIC・長時間／実聴、VBIのfull C64 I/O、D418 digi、音色取り込みは引き続き後続。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

@@ -20,10 +20,22 @@ CIA1 interrupts in the continuous C64 machine. RSID v2 uses that machine for its
 own interrupt or continuous code. All target PAL / one 6581. Local files,
 original demos, subtunes, Play / Stop and live voice/filter state are implemented.
 The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
-substitute host-periodic VBI calls. CIA integration passed 68 player tests,
-29 reference tests and 104 source/ZIP Chromium/WebKit checks on 2026-11-07;
+substitute host-periodic VBI calls. Player integration passed 76 player tests,
+29 reference tests and 112 source/ZIP Chromium/WebKit checks on 2026-11-07;
 see the current TODO and linked evidence for the checked scope. Accepted CIA
 ROM settings survive intermediate VBI subtunes until explicitly reapplied.
+Relocation metadata describes free player-driver RAM, not a new tune load
+address. VBI accepts structurally valid ranges and FF/0 without adding a RAM
+driver page. CIA keeps the legacy layout for 0/0; otherwise it packs the
+original host driver into the first declared page in 04..9F or C0..CF. CIA
+rejects FF/0 or a range with no usable page. Do not require the entire declared
+window to avoid ROM, and do not rewrite the header or payload. The browser
+validator's driverPage is null for VBI, 0 for legacy CIA, or the chosen page;
+the native C64 API reports driverAddress. The relocation path is covered by the
+latest totals above; see phase 9 of the TODO and the sid_psid_relocation reports.
+The prior clean-file CIA PCM/trace/state stayed exact in nine cases, alongside
+the existing twelve-case RSID baseline. The new native source kit reproduces
+the packaged WASM byte for byte. VBI still owns its reserved caller and stack.
 The C64 backend's default firmware is an independently authored, limited IRQ/NMI
 shim with fail-closed unsupported ROM access. Optional user Character / BASIC /
 KERNAL ROMs apply to PSID CIA and RSID and stay in memory only. PSID VBI remains

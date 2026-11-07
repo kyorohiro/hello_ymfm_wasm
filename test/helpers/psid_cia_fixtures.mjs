@@ -35,10 +35,12 @@ class Program {
  */
 export function createPsidCiaFixture({period = 997, secondPeriod = 2053, variable = false,
   bit31 = false, bankAfterInit = 0x37, bankAfterPlay = 0x37,
-  irqEnabled = true, timerRunning = true, observeIcr = false, observeDefaults = false, fault = null} = {}) {
+  irqEnabled = true, timerRunning = true, observeIcr = false, observeDefaults = false,
+  driverRange = [0, 0], protectLegacy = false, fault = null} = {}) {
   for (const value of [period, secondPeriod]) if (value !== null && (!Number.isInteger(value) || value < 256 || value > 65536)) throw new RangeError('PSID fixture period must be 256..65536 or null');
   for (const value of [bankAfterInit, bankAfterPlay]) if (![0x35, 0x36, 0x37].includes(value)) throw new RangeError('Unknown PSID fixture bank');
   if ([irqEnabled, timerRunning, observeIcr, observeDefaults].some(value => typeof value !== 'boolean')) throw new TypeError('PSID fixture IRQ/timer flags must be booleans');
+  if (!Array.isArray(driverRange) || driverRange.length !== 2 || driverRange.some(value => !Number.isInteger(value) || value < 0 || value > 255)) throw new RangeError('PSID fixture driver range needs two bytes');
   if (![null, 'init-rom', 'init-loop', 'play-rom', 'play-loop'].includes(fault)) throw new RangeError('Unknown PSID fixture fault');
   const p = new Program(), firstCia = bit31 ? 31 : 1;
   p.label('init'); p.absolute(0x8d, IS_CIA); // Preserve incoming zero-based song.
@@ -48,6 +50,8 @@ export function createPsidCiaFixture({period = 997, secondPeriod = 2053, variabl
   p.absolute(0xbd, 'frequency-high'); p.absolute(0x8d, 0xd401); p.store(0xd404, 0x41);
   p.store(COUNTER, 0); p.absolute(0xad, IS_CIA); p.emit(0xc9, firstCia); p.branch(0x90, 'vbi-init');
   p.store(IS_CIA, 1);
+  const sentinels = [[0x0400, 0xa4], [0x04ff, 0xb4], [0x0600, 0xa6], [0x06ff, 0xb6], [0x0700, 0xa7], [0x07ff, 0xb7]];
+  if (protectLegacy) for (const [address, value] of sentinels) p.store(address, value);
   if (observeDefaults) for (const [index, address] of [0xdc06, 0xdc07, 0xdd04, 0xdd05, 0xdd06, 0xdd07].entries()) {
     p.absolute(0xad, address); p.absolute(0x8d, 0x0340 + index);
   }
@@ -78,10 +82,11 @@ export function createPsidCiaFixture({period = 997, secondPeriod = 2053, variabl
   bytes.set([80, 83, 73, 68]); view.setUint16(4, 2); view.setUint16(6, 124);
   view.setUint16(8, LOAD); view.setUint16(10, p.address('init')); view.setUint16(12, p.address('play'));
   view.setUint16(14, bit31 ? 34 : 2); view.setUint16(16, 1); view.setUint32(18, bit31 ? 0x80000000 : 2); view.setUint16(118, 0x14);
+  bytes[120] = driverRange[0]; bytes[121] = driverRange[1];
   for (const [at, text] of [[22, 'Tetorica mixed VBI CIA test'], [54, 'Tetorica contributors'], [86, '2026 BSD-3-Clause']]) bytes.set(new TextEncoder().encode(text).subarray(0, 32), at);
   bytes.set(program, 124);
   return {bytes, program, loadAddress: LOAD, initAddress: p.address('init'), playAddress: p.address('play'),
     counterAddress: COUNTER, bankAddress: BANK, icrAddress: ICR, timerDefaultsAddress: 0x0340,
     periodCycles: period ?? 0x4026, secondPeriodCycles: secondPeriod,
-    ciaSubtune: firstCia + 1, frequencies: PSID_CIA_FREQUENCIES};
+    ciaSubtune: firstCia + 1, frequencies: PSID_CIA_FREQUENCIES, sentinels: protectLegacy ? sentinels : []};
 }

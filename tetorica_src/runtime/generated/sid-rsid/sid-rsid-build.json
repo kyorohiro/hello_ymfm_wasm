@@ -17,6 +17,26 @@
     "ramBootstrap": 1024,
     "ramIrqDriver": 1536,
     "ramInitCaller": 1792,
+    "explicitRelocation": {
+      "pageBytes": 256,
+      "safePageRanges": [
+        [
+          4,
+          159
+        ],
+        [
+          192,
+          207
+        ]
+      ],
+      "offsets": {
+        "irq": 0,
+        "nmi": 40,
+        "caller": 64,
+        "bootstrap": 96
+      },
+      "payloadRelocated": false
+    },
     "preserves": "A/X/Y/bank; tune timer latch/control/mask retained after init"
   },
   "upstreamRevision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
@@ -37,8 +57,8 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-c64/README.md": {
-      "bytes": 6239,
-      "sha256": "aa64746ead5461232cfb3a61ecafd8953c71333810f7c6ad9b923a54453b7287"
+      "bytes": 7564,
+      "sha256": "3e23f10abe0727edb8846de6d185e62182ff2e0345a2be32ea4410897be529ac"
     },
     "third_party/chips-c64/SOURCES.json": {
       "bytes": 1619,
@@ -117,12 +137,12 @@
       "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
     },
     "tetorica_src/wasm/sid_rsid_core.h": {
-      "bytes": 21311,
-      "sha256": "afbb469ff5c496b0d9a63b4bb7cd6ff5dfe9e0bd5af6b79e1a1a90834bb3abc5"
+      "bytes": 23158,
+      "sha256": "d9e60b1b62c43c34676fb425a732c72ea192f030113fc83d9ecea731b8f7caa3"
     },
     "tetorica_src/wasm/sid_rsid_wasm.cpp": {
-      "bytes": 3216,
-      "sha256": "f329111eba68b5fc4020adcdd44d6239f8725718af5d2ef0176024bde0f649b4"
+      "bytes": 3341,
+      "sha256": "63aee43644eb3afd7ea91419c9b7c45f0af4be1c3b7ad83bedf9f1020f3e9510"
     },
     "tetorica_src/wasm/sid_rsid_machine.c": {
       "bytes": 1050,
@@ -137,8 +157,8 @@
       "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
     },
     "scripts/sid_rsid_artifacts.mjs": {
-      "bytes": 6510,
-      "sha256": "27ebbf79911ea2bd109594220f0195e33116f86725a5bbb8c569a7581873d35c"
+      "bytes": 6815,
+      "sha256": "ed5059178e7e4c203329be7bf7f605efe879e19d29519911cab77c574906bef3"
     },
     "scripts/prepare_sid_core.py": {
       "bytes": 3625,
@@ -146,7 +166,7 @@
     }
   },
   "output": {
-    "bytes": 104302,
-    "sha256": "188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00"
+    "bytes": 113890,
+    "sha256": "ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e"
   }
 }

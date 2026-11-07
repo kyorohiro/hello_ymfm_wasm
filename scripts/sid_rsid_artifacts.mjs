@@ -35,6 +35,8 @@ function metadata(files,bytes){return{schemaVersion:1,component:'sid-rsid',fixed
   initPolicy:'100000-cycle preflight; RSID nonreturning init allowed; PSID CIA init must return',bootCycleLimit:2000000,
   psidCiaDriver:{timerADefaultLatch:0x4025,initCycleLimit:100000,playCycleLimit:16000,
     timing:'machine-CIA1-Timer-A-IRQ',acknowledgement:'read-ICR-after-play',ramBootstrap:0x0400,ramIrqDriver:0x0600,ramInitCaller:0x0700,
+    explicitRelocation:{pageBytes:256,safePageRanges:[[0x04,0x9f],[0xc0,0xcf]],
+      offsets:{irq:0,nmi:0x28,caller:0x40,bootstrap:0x60},payloadRelocated:false},
     preserves:'A/X/Y/bank; tune timer latch/control/mask retained after init'},
   upstreamRevision:'9e88298ce56319953ac7a43213a1120359f7a3a6',pristineSourcesSha256:sourcePin,
   build:{machineLanguage:'C11',sidAndHostLanguage:'C++17',optimization:'-O2',floatingPointContraction:false},inputs:files,output:digest(bytes)};}
@@ -47,7 +49,7 @@ export async function checkSidRsidBuild({root:repositoryRoot=root,directory=join
   if(!isDeepStrictEqual(receipt,metadata(await inputs(repositoryRoot),await readFile(join(directory,'sid-rsid.wasm')))))throw new Error('RSID source/WASM receipt differs; rebuild with sh scripts/build_sid_rsid_wasm.sh');
   return receipt;
 }
-const guide='# C64 RSID / PSID CIA machine source kit\n\nBSD-3-Clause host and independently authored minimal boot/IRQ/NMI shim and\nPSID CIA RAM driver, with pinned zlib chips C64/CPU/CIA/VIC/SID components.\nNo original C64 ROM, game file, or GPL player/stub is included.\nSee third_party/chips-c64/README.md.\n\nWith Node.js, Python 3 and Emscripten, from this directory:\n\n```sh\nsh scripts/build_sid_rsid_wasm.sh /tmp/tetorica-rsid-rebuild\n```\n\nThe unmodified machine headers compile as C11; existing SID and host compile\nas C++17. This separate WASM leaves the original PSID VBI/Synth backend and\nSDK unchanged. PSID CIA play calls are driven by the actual CIA1 Timer A IRQ.\n';
+const guide='# C64 RSID / PSID CIA machine source kit\n\nBSD-3-Clause host and independently authored minimal boot/IRQ/NMI shim and\nPSID CIA RAM driver, with pinned zlib chips C64/CPU/CIA/VIC/SID components.\nNo original C64 ROM, game file, or GPL player/stub is included.\nSee third_party/chips-c64/README.md.\n\nWith Node.js, Python 3 and Emscripten, from this directory:\n\n```sh\nsh scripts/build_sid_rsid_wasm.sh /tmp/tetorica-rsid-rebuild\n```\n\nThe unmodified machine headers compile as C11; existing SID and host compile\nas C++17. This separate WASM leaves the original PSID VBI/Synth backend and\nSDK unchanged. PSID CIA play calls are driven by the actual CIA1 Timer A IRQ.\nA declared free driver page may hold the packed one-page driver. Tune payload\nbytes and their load/init/play addresses are never relocated.\n';
 export async function syncSidRsidArtifacts({check=false}={}){
   await checkSidRsidBuild();
   const pairs=[...['sid-rsid.wasm','sid-rsid-build.json'].map(name=>[
