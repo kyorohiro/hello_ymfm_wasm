@@ -58,6 +58,7 @@ export class SidPlayerCore {
   load(bytes, {subtune, clock, model} = {}) {
     this.assertOpen();
     const parsed = validateBrowserPsid(bytes, {subtune, clock, model}), api = this.exports;
+    if (parsed.timing !== 'vbi') throw new Error('This PSID subtune uses CIA timing; load it through the C64 machine player');
     const candidate = api.sidp_create(this.sampleRate);
     if (!candidate) throw new Error('SID player allocation failed');
     try {
@@ -94,7 +95,7 @@ export class SidPlayerCore {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidp_state(handle) : 0;
     return {
-      loaded: !!handle, playing: state === 1, state, format: 'PSID', model: '6581', clockHz: SID_PLAYER_CLOCK,
+      loaded: !!handle, playing: state === 1, state, format: 'PSID', timing: 'vbi', model: '6581', clockHz: SID_PLAYER_CLOCK,
       declaredClock: this.declaredClock, declaredModel: this.declaredModel,
       targetSelection: this.targetSelection ? {...this.targetSelection} : null,
       frameCycles: SID_PLAYER_FRAME_CYCLES, sampleRate: this.sampleRate, subtune: this.subtune,

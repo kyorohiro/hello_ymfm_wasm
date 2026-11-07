@@ -30,7 +30,8 @@ public:
     static constexpr unsigned preflightCycles = 100000, fullBootCycles = 2000000;
     enum State : unsigned { Empty = 0, Running = 1, Stopped = 2, Error = 3 };
     enum ErrorCode : unsigned { None = 0, InvalidArguments = 1, InvalidProgramRange = 2,
-        MissingRom = 4, CpuJam = 6, AudioQueueFull = 7, BasicNeedsRoms = 10 };
+        MissingRom = 4, CpuJam = 6, AudioQueueFull = 7, BasicNeedsRoms = 10,
+        InitTimeout = 11, PlayTimeout = 12 };
     struct TraceEntry { uint32_t cycleLow, cycleHigh, reg, value; };
     explicit SidRsidCore(unsigned sampleRate) : sampleRate_(sampleRate) {}
     ~SidRsidCore() { if (machine_.valid) c64_discard(&machine_); }
@@ -38,10 +39,19 @@ public:
     uint8_t* romInput() { return romInput_.data(); }
     float* output() { return output_.data(); }
     bool load(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned subtune, unsigned basic, unsigned useRoms) {
+        return loadMode(length,loadAddress,initAddress,0,subtune,basic,useRoms,false);
+    }
+    bool loadPsid(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned useRoms) {
+        return loadMode(length,loadAddress,initAddress,playAddress,subtune,0,useRoms,true);
+    }
+private:
+    bool loadMode(unsigned length, unsigned loadAddress, unsigned initAddress, unsigned playAddress, unsigned subtune, unsigned basic, unsigned useRoms, bool psid) {
         if (!length || length > input_.size() || subtune > 255 || basic > 1 || useRoms > 1) return fail(InvalidArguments);
         const uint64_t end = uint64_t(loadAddress) + length;
-        if (loadAddress < 0x07e8 || end > 65536 || (!basic && (initAddress < loadAddress || initAddress >= end
-            || !((initAddress >= 0x07e8 && initAddress < 0xa000) || (initAddress >= 0xc000 && initAddress < 0xd000)))))
+        if (psid ? (loadAddress < 0x0800 || end > 0xd000 || initAddress < loadAddress || initAddress >= end
+            || playAddress < loadAddress || playAddress >= end)
+            : (loadAddress < 0x07e8 || end > 65536 || (!basic && (initAddress < loadAddress || initAddress >= end
+            || !((initAddress >= 0x07e8 && initAddress < 0xa000) || (initAddress >= 0xc000 && initAddress < 0xd000))))))
             return fail(InvalidProgramRange);
         if (basic && !useRoms) return fail(BasicNeedsRoms);
         if (machine_.valid) c64_discard(&machine_);
@@ -49,6 +59,7 @@ public:
         cycles_ = bootCycles_ = initCycles_ = initReturnCycle_ = 0;
         irqCount_ = nmiCount_ = readCount_ = writeCount_ = traceCount_ = droppedTrace_ = 0;
         previousInterrupts_ = 0; initReturned_ = initSeen_ = false;
+        psid_ = psid; playAddress_ = playAddress; playCalls_ = 0; playPending_ = playActive_ = false;
         useRoms_ = useRoms != 0; basic_ = basic != 0; initAddress_ = initAddress;
         discardAudio_ = useRoms_; clearAudio(); registers_.fill(0);
         if (!useRoms_) prepareShim(initAddress, static_cast<uint8_t>(subtune));
@@ -71,7 +82,9 @@ public:
             for (unsigned address : {0x2d, 0x2f, 0x31, 0x33, 0xae}) setRam16(address, static_cast<unsigned>(end) & 65535);
             machine_.ram[0x030c] = static_cast<uint8_t>(subtune);
             machine_.ram[0x030d] = machine_.ram[0x030e] = 0; machine_.ram[0x030f] = M6502_XF;
-            if (basic_) c64_basic_run(&machine_); else c64_basic_syscall(&machine_, static_cast<uint16_t>(initAddress));
+            if (!psid_) {
+                if (basic_) c64_basic_run(&machine_); else c64_basic_syscall(&machine_, static_cast<uint16_t>(initAddress));
+            }
         } else {
             // The independently authored reset shim supplies only documented
             // power-on state and IRQ/NMI calling conventions, not a ROM clone.
@@ -80,11 +93,14 @@ public:
         if (!useRoms_) {
             std::memcpy(machine_.ram + loadAddress, input_.data(), length);
         }
+        if (psid_) preparePsidCaller(initAddress,playAddress,static_cast<uint8_t>(subtune));
         const uint64_t start = cycles_;
         while (cycles_ - start < preflightCycles && state_ == Running) tick();
         initCycles_ = static_cast<unsigned>(cycles_ - start);
+        if (psid_ && state_ == Running && !initReturned_) return fail(InitTimeout,initAddress_);
         return state_ == Running;
     }
+public:
     bool render(unsigned frames) {
         output_.fill(0);
         if (frames > outputCapacity) return fail(InvalidArguments);
@@ -108,12 +124,14 @@ public:
     const char* error() const {
         switch (errorCode_) {
         case None: return "";
-        case InvalidArguments: return "Invalid RSID host arguments or render size";
-        case InvalidProgramRange: return "Invalid RSID RAM range or initialization entry";
-        case MissingRom: return "This RSID reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set";
-        case CpuJam: return "RSID execution reached a CPU JAM/KIL instruction";
-        case AudioQueueFull: return "RSID preflight exceeded the bounded audio queue";
+        case InvalidArguments: return "Invalid SID machine host arguments or render size";
+        case InvalidProgramRange: return "Invalid SID RAM range or initialization/play entry";
+        case MissingRom: return "This SID program reads unimplemented BASIC/KERNAL/character ROM; provide your C64 ROM set";
+        case CpuJam: return "SID execution reached a CPU JAM/KIL instruction";
+        case AudioQueueFull: return "SID preflight exceeded the bounded audio queue";
         case BasicNeedsRoms: return "RSID BASIC playback requires your character, BASIC and KERNAL ROMs";
+        case InitTimeout: return "PSID initialization did not return within 100000 machine cycles";
+        case PlayTimeout: return "PSID CIA play routine did not return within 16000 machine cycles";
         }
         return "RSID host error";
     }
@@ -124,6 +142,7 @@ public:
     uint64_t initReturnCycle() const { return initReturnCycle_; }
     unsigned irqCount() const { return irqCount_; }
     unsigned nmiCount() const { return nmiCount_; }
+    unsigned playCalls() const { return playCalls_; }
     unsigned readCount() const { return readCount_; }
     unsigned writeCount() const { return writeCount_; }
     unsigned pc() const { return machine_.valid ? machine_.cpu.PC : 0; }
@@ -157,6 +176,63 @@ private:
     }
     void setRam16(unsigned address, unsigned value) {
         machine_.ram[address] = static_cast<uint8_t>(value); machine_.ram[address + 1] = static_cast<uint8_t>(value >> 8);
+    }
+    void preparePsidCaller(unsigned initAddress, unsigned playAddress, uint8_t subtune) {
+        // Firmware boot may have fetched an address equal to the future tune's
+        // entry. Only the subsequent loaded PSID invocation counts as init.
+        initSeen_ = initReturned_ = false; initReturnCycle_ = 0;
+        // This is an original PSID host driver, not a KERNAL replacement. The
+        // machine's CIA clocks assert IRQ; no host-side periodic play callback
+        // exists. Both ROM-mapped and banked-out IRQ paths enter the same RAM
+        // dispatcher, with A/X/Y already saved on the 6502 stack.
+        unsigned cursor = 0x0600;
+        auto put = [&](std::initializer_list<uint8_t> bytes) { for (auto byte : bytes) machine_.ram[cursor++] = byte; };
+        put({0x48,0x8a,0x48,0x98,0x48}); // raw RAM IRQ vector: PHA/TXA/PHA/TYA/PHA
+        const unsigned dispatcher = cursor;
+        put({0xa5,0x01,0x48,0xa9,static_cast<uint8_t>(playAddress < 0xa000 ? 0x37 : 0x36),0x85,0x01});
+        put({0xa9,0,0xaa,0xa8});
+        playCallAddress_ = cursor;
+        put({0x20,static_cast<uint8_t>(playAddress),static_cast<uint8_t>(playAddress >> 8)});
+        playReturnAddress_ = cursor;
+        // A play routine may inspect the triggering ICR flags itself. Read to
+        // acknowledge only after play, with I/O visible even if it left bank35.
+        put({0xa9,0x37,0x85,0x01,0xad,0x0d,0xdc});
+        put({0x68,0x85,0x01,0x68,0xa8,0x68,0xaa,0x68,0x40}); // bank, Y, X, A, RTI
+        // A benign NMI handler is also in RAM, so a tune may bank KERNAL out.
+        cursor = 0x0650;
+        put({0x48,0x8a,0x48,0x98,0x48,0xa5,0x01,0x48,0xa9,0x37,0x85,0x01,
+            0xad,0x0d,0xdd,0x68,0x85,0x01,0x68,0xa8,0x68,0xaa,0x68,0x40});
+        setRam16(0x0314,dispatcher); setRam16(0xfffe,0x0600);
+        setRam16(0x0318,0x0650); setRam16(0xfffa,0x0650);
+        // PSID init is a subroutine with I set. Its own CIA latch/control/mask
+        // changes remain in effect after it returns. The idle loop never calls
+        // play itself, and remains executable with any supported ROM bank.
+        cursor = 0x0700;
+        put({0x78,0xa9,subtune,0xa2,0,0xa0,0,0x20,static_cast<uint8_t>(initAddress),
+            static_cast<uint8_t>(initAddress >> 8),0x58,0x4c,0x0b,0x07});
+        idleAddress_ = 0x070a;
+        // Apply documented PSID host defaults by actual CPU register writes,
+        // including after optional firmware boot. The RAM bootstrap is below
+        // the minimum PSID payload and does not patch user-supplied ROM bytes.
+        cursor = 0x0400;
+        auto sta = [&](unsigned address, unsigned value) {
+            put({0xa9,static_cast<uint8_t>(value),0x8d,static_cast<uint8_t>(address),static_cast<uint8_t>(address >> 8)});
+        };
+        put({0x78,0xd8,0xa2,0xff,0x9a});
+        sta(1,0x37); sta(0,0x2f); sta(0x02a6,1);
+        sta(0xd01a,0); sta(0xd019,0x0f);
+        sta(0xdc0e,0); sta(0xdc0f,0); sta(0xdd0e,0); sta(0xdd0f,0);
+        sta(0xdc0d,0x7f); sta(0xdd0d,0x7f); put({0xad,0x0d,0xdc,0xad,0x0d,0xdd});
+        for (unsigned address : {0xdc06,0xdc07,0xdd04,0xdd05,0xdd06,0xdd07}) sta(address,0xff);
+        sta(0xdc04,0x25); sta(0xdc05,0x40); sta(0xdc0d,0x81); sta(0xdc0e,0x11);
+        sta(1,initAddress < 0xa000 ? 0x37 : 0x36);
+        put({0x4c,0x00,0x07});
+        // Documented m6502 prefetch API: begin at the RAM bootstrap without
+        // resetting the continuously clocked CIA/VIC/SID hardware after boot.
+        m6502_set_p(&machine_.cpu,M6502_IF | M6502_XF);
+        m6502_set_pc(&machine_.cpu,0x0400);
+        machine_.pins = M6502_SYNC | M6502_RW;
+        M6502_SET_ADDR(machine_.pins,0x0400); M6502_SET_DATA(machine_.pins,machine_.ram[0x0400]);
     }
     void emit(unsigned address, std::initializer_list<uint8_t> bytes) {
         for (auto byte : bytes) { kernal_[address - 0xe000] = byte; romAllowed_[address - 0xe000] = 1; ++address; }
@@ -221,9 +297,17 @@ private:
             case 0x62:case 0x72:case 0x92:case 0xb2:case 0xd2:case 0xf2: fail(CpuJam,address); return;
             }
             if (address == initAddress_) initSeen_ = true;
-            const unsigned returned = useRoms_ ? c64_syscall_return_addr() : idleAddress_;
+            const unsigned returned = useRoms_ && !psid_ ? c64_syscall_return_addr() : idleAddress_;
             if (!basic_ && initSeen_ && !initReturned_ && address == returned) { initReturned_ = true; initReturnCycle_ = cycles_; }
+            if (psid_) {
+                if (address == playCallAddress_) playPending_ = true;
+                else if (playPending_ && address == playAddress_) {
+                    playPending_ = false; playActive_ = true; playStartCycle_ = cycles_; increase(playCalls_);
+                }
+                if (playActive_ && address == playReturnAddress_) playActive_ = false;
+            }
         }
+        if (playActive_ && cycles_ - playStartCycle_ >= 16000) { fail(PlayTimeout,address); return; }
         const uint64_t interrupts = pins & (M6502_IRQ | M6502_NMI);
         if ((interrupts & M6502_IRQ) && !(previousInterrupts_ & M6502_IRQ)) increase(irqCount_);
         if ((interrupts & M6502_NMI) && !(previousInterrupts_ & M6502_NMI)) increase(nmiCount_);
@@ -250,11 +334,13 @@ private:
     std::array<float,queueCapacity> queue_{};
     std::array<TraceEntry,traceCapacity> trace_{};
     State state_ = Empty; ErrorCode errorCode_ = None;
-    unsigned errorAddress_ = 0,initAddress_ = 0,idleAddress_ = 0;
+    unsigned errorAddress_ = 0,initAddress_ = 0,idleAddress_ = 0,playAddress_ = 0,playCallAddress_ = 0,playReturnAddress_ = 0;
     uint64_t cycles_ = 0,bootCycles_ = 0,initReturnCycle_ = 0,previousInterrupts_ = 0;
-    unsigned initCycles_ = 0,irqCount_ = 0,nmiCount_ = 0,readCount_ = 0,writeCount_ = 0;
+    unsigned initCycles_ = 0,irqCount_ = 0,nmiCount_ = 0,readCount_ = 0,writeCount_ = 0,playCalls_ = 0;
     unsigned queueRead_ = 0,queueCount_ = 0,traceCount_ = 0,droppedTrace_ = 0;
     bool useRoms_ = false,basic_ = false,discardAudio_ = false,initReturned_ = false,initSeen_ = false;
+    bool psid_ = false,playPending_ = false,playActive_ = false;
+    uint64_t playStartCycle_ = 0;
     double previousInput_ = 0,previousOutput_ = 0,dcPole_ = 0;
 };
 }

@@ -87,8 +87,8 @@ export async function scanSidPlayerCorpus({root,out,candidateCount=10}={}){
   try{const document=await readFile(resolve(directory,'DOCUMENTS/HVSC.txt'),'utf8');corpusVersion=document.match(/^\s*(Release\s+\d+)\s*$/m)?.[1];}catch{}
   const report={format:'tetorica-sid-player-metadata-audit',version:1,corpus:{root:relative(process.cwd(),directory).replaceAll('\\','/'),versionHint:corpusVersion},
     parserSha256:sha256(await readFile(new URL('../tetorica_src/runtime/sid_psid.js',import.meta.url))),
-    scope:'Metadata/header validation only. No C64 program execution, musical data copy or audio test. Rejection reasons count the first failing rule only.',
-    subset:'PSID v2, explicit PAL 6581, one SID, all VBI speed bits zero, relocation 0/0, RAM $0800..$CFFF, effective init and explicit play inside payload.',
+    scope:'Metadata/header acceptance only, not executable-driver compatibility. No C64 program execution, musical data copy or audio test. Rejection reasons count the first failing rule only.',
+    subset:'PSID v2, explicit PAL 6581, one SID, selected-song VBI or CIA timing (default header song; bit 31 covers songs 32..256), relocation 0/0, RAM $0800..$CFFF, effective init and explicit play inside payload.',
     total,supported:supported.length,rejected:total-supported.length,supportedMultipleSongs:supported.filter(item=>item.songs>1).length,
     supportedTotalSongs:supported.reduce((sum,item)=>sum+item.songs,0),categories,headerVersions:sortedCounts(versions),rejections:sortedCounts(rejections),
     candidateHeuristic:'Candidates favor distinct authors, multiple songs, known game names and zero raw JSR/JMP-to-ROM byte patterns outside loaded RAM. This is not disassembly or proof of ROM independence.',

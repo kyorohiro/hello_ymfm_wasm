@@ -1,0 +1,117 @@
+{
+  "format": "tetorica-psid-cia-package-check",
+  "version": 1,
+  "passed": true,
+  "packageVersion": "0.0.4-cia-preview.1",
+  "archive": "release/tetorica_sid_player_0.0.4-cia-preview.1_itch.zip",
+  "extracted": "release/sid-player-0.0.4-cia-preview.1-extracted",
+  "files": 80,
+  "browserModules": 10,
+  "archiveRecord": {
+    "bytes": 1554732,
+    "sha256": "65116b390424588789ae949a23b6df0f889ac6836a307131e7efaab5db8fd797"
+  },
+  "builder": {
+    "name": "source-copy",
+    "minify": false,
+    "bundle": false,
+    "dependencyAnalyzer": {
+      "name": "esbuild",
+      "version": "0.28.2"
+    }
+  },
+  "originalInputs": 68,
+  "sourceArchive": {
+    "path": "sources/sid-player-browser-inputs.zip",
+    "bytes": 746519,
+    "sha256": "3fd85308bfdbb119206ea08db2e2ccf3c679e7e72518f545a16e8abbd1f44a58"
+  },
+  "nativeArtifacts": [
+    {
+      "component": "sid-player",
+      "output": {
+        "bytes": 74012,
+        "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+      },
+      "inputsChecked": 14
+    },
+    {
+      "component": "sid-rsid",
+      "output": {
+        "bytes": 104302,
+        "sha256": "188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00"
+      },
+      "inputsChecked": 29
+    }
+  ],
+  "tests": {
+    "sidPlayer": {
+      "passed": 68,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sidReference": {
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "zipValidation": {
+    "outerCrcPassed": true,
+    "nestedSourceCrcPassed": true,
+    "allInputHashesMatched": true,
+    "extractedFilesByteIdentical": true,
+    "readableModulesMatchCurrentSource": true,
+    "userRomAndGameFilesAbsent": true
+  },
+  "supportingEvidence": [
+    "docs/issues/sid_psid_cia_hvsc_playback_01.json",
+    "docs/issues/sid_psid_cia_sourcekit_rebuild_01.json",
+    "docs/issues/sid_psid_cia_browser_01.json",
+    "docs/issues/sid_psid_cia_zip_browser_01.json"
+  ],
+  "compatibilityLimits": {
+    "target": "PAL, one 6581 approximation",
+    "known8580Supported": false,
+    "d418DigiSupported": false,
+    "realC64FirmwareVerified": false,
+    "psidExplicitPlayAddressRequired": true
+  },
+  "published": false,
+  "browserChecks": {
+    "passed": true,
+    "total": 104,
+    "reports": [
+      {
+        "path": "docs/issues/sid_psid_cia_browser_01.json",
+        "sha256": "d8365d172fd4f906a6c6389332d3b3e1012f9a34a6328366acfa8ad2886b0a96",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 26
+          },
+          {
+            "engine": "webkit",
+            "checks": 26
+          }
+        ]
+      },
+      {
+        "path": "docs/issues/sid_psid_cia_zip_browser_01.json",
+        "sha256": "a42ff5f0b4ac06eac7b331f67746d5e898cbfc97e9a2cdebde8875762fc2595e",
+        "passed": true,
+        "engines": [
+          {
+            "engine": "chromium",
+            "checks": 26
+          },
+          {
+            "engine": "webkit",
+            "checks": 26
+          }
+        ]
+      }
+    ]
+  }
+}

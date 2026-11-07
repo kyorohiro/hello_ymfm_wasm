@@ -20,6 +20,7 @@ test('the CLI compatibility entry retains every shared parser export',()=>{
     assert.equal(parsed.subtune,1);assert.equal(parsed.version,2);assert.equal(parsed.clockHz,985248);
     assert.equal(parsed.sidCount,1);assert.equal(parsed.model,'6581');assert.equal(parsed.flags,0x14);
     assert.equal(parsed.selectedClock,'pal');assert.equal(parsed.selectedModel,'6581');
+    assert.equal(parsed.timing,'vbi');
     assert.deepEqual(parsed.selection,{clock:'header',model:'header'});
     assert.deepEqual(parsed.program,fixture.program);assert.equal(parsed.metadata.name,`Tetorica ${profile}`);
   }
@@ -34,18 +35,52 @@ test('browser song selection is one-based, defaults to the header and never coer
   assert.equal(browser.validateBrowserPsid(max,{subtune:256}).subtune,256);
 });
 
-test('browser execution rejects metadata-only versions, all CIA bits and relocation',()=>{
+test('browser execution rejects metadata-only versions and relocation',()=>{
   for(const version of [3,4]){
     const bytes=createSidReferenceFixture('tone',{version}).bytes;
     assert.equal(browser.parsePsid(bytes).version,version);
     unsupported(bytes,/v2 only/);
   }
-  for(const speed of [1,2,0x80000000,0xffffffff]){
-    const bytes=modified(view=>view.setUint32(18,speed));
-    assert.equal(browser.parsePsid(bytes).speed,speed);
-    unsupported(bytes,/VBI.*CIA/);
-  }
   for(const [page,length] of [[0x20,2],[255,0]])unsupported(modified((_view,bytes)=>{bytes[0x78]=page;bytes[0x79]=length;}),/relocation/);
+});
+
+test('browser timing follows only the selected song and retains the complete speed declaration',()=>{
+  const bytes=modified(view=>{view.setUint16(14,3);view.setUint16(16,2);view.setUint32(18,2);}),before=bytes.slice();
+  for(const [subtune,timing] of [[undefined,'cia'],[1,'vbi'],[2,'cia'],[3,'vbi']]){
+    const parsed=browser.validateBrowserPsid(bytes,{subtune});
+    assert.equal(parsed.subtune,subtune??2);assert.equal(parsed.timing,timing);
+    assert.equal(parsed.speed,2);assert.deepEqual(parsed.songSpeeds,['vbi','cia','vbi']);
+    assert.deepEqual(parsed.originalBytes,before);assert.deepEqual(parsed.program,before.slice(126));
+  }
+  const strict=cli.parsePsid(bytes);
+  assert.equal(strict.speed,2);assert.deepEqual(strict.songSpeeds,['vbi','cia','vbi']);
+  assert.equal('timing' in strict,false,'reference metadata does not select a browser backend');
+  assert.deepEqual(bytes,before);
+});
+
+test('browser CIA selection extends bit 31 to songs 32 through 256 without accepting invalid subtunes',()=>{
+  for(const speed of [0,1,2,0x80000000,0x80000001,0xffffffff]){
+    const bytes=modified(view=>{view.setUint16(14,256);view.setUint16(16,34);view.setUint32(18,speed);});
+    for(const subtune of [1,2,3,31,32,33,34,255,256]){
+      const parsed=browser.validateBrowserPsid(bytes,{subtune});
+      assert.equal(parsed.timing,(speed>>>Math.min(subtune-1,31))&1?'cia':'vbi');
+      assert.equal(parsed.songSpeeds.length,256);assert.equal(parsed.speed,speed);
+    }
+    assert.equal(browser.validateBrowserPsid(bytes).timing,(speed>>>31)&1?'cia':'vbi');
+    for(const subtune of [0,-1,257,1.5,NaN,Infinity,null,'2',true])assert.throws(()=>browser.validateBrowserPsid(bytes,{subtune}),RangeError);
+  }
+});
+
+test('CIA timing still requires explicit choices for unspecified hints and rejects known NTSC or 8580',()=>{
+  const bytes=modified(view=>{view.setUint16(0x76,0);view.setUint32(18,1);});
+  assert.throws(()=>browser.validateBrowserPsid(bytes),error=>error.code==='PSID_CHOICE_REQUIRED');
+  const parsed=browser.validateBrowserPsid(bytes,{clock:'pal',model:'6581'});
+  assert.equal(parsed.timing,'cia');assert.equal(parsed.clock,'unknown');assert.equal(parsed.model,'unknown');
+  assert.deepEqual(parsed.selection,{clock:'explicit',model:'explicit'});
+  for(const flags of [0x18,0x24]){
+    const incompatible=modified(view=>{view.setUint16(0x76,flags);view.setUint32(18,0xffffffff);});
+    assert.throws(()=>browser.validateBrowserPsid(incompatible,{clock:'pal',model:'6581'}),error=>error.code==='PSID_UNSUPPORTED'&&/NTSC|8580/.test(error.message));
+  }
 });
 
 test('browser program RAM bounds are inclusive at $0800 and exclusive at $D000',()=>{
@@ -119,11 +154,10 @@ test('only missing browser hints require corresponding explicit options, with no
   for(const subtune of [0,4,null,'2'])assert.throws(()=>browser.validateBrowserPsid(unknown,{clock:'pal',model:'6581',subtune}),RangeError);
 });
 
-test('explicit target choices cannot bypass the existing file, version, speed, relocation, RAM or entry limits',()=>{
+test('explicit target choices cannot bypass the existing file, version, relocation, RAM or entry limits',()=>{
   const options={clock:'pal',model:'6581'};
   const explicitRejects=(bytes,pattern,code='PSID_UNSUPPORTED')=>assert.throws(()=>browser.validateBrowserPsid(bytes,options),error=>error.code===code&&pattern.test(error.message));
   for(const version of [3,4])explicitRejects(modified(view=>view.setUint16(0x76,0),{version}),/v2 only/);
-  explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint32(18,1);}),/VBI/);
   explicitRejects(modified((view,bytes)=>{view.setUint16(0x76,0);bytes[0x78]=0x20;bytes[0x79]=1;}),/relocation/);
   explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(8,0x0700);view.setUint16(10,0x0700);view.setUint16(12,0x0700);}),/RAM/);
   explicitRejects(modified(view=>{view.setUint16(0x76,0);view.setUint16(12,0);}),/IRQ/);

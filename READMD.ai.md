@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground, SID Synth and bounded browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground, SID Synth and browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -14,22 +14,33 @@ mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
 instances, typed note / voice / shared-filter helpers and a read-only SID tab
 are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
 at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). A separate
-browser [SID Player](docs/sid-player/index.html) has separate PSID v2 VBI and
-continuous C64 RSID v2 backends, both PAL / one 6581. Local files, original demos,
-subtunes, Play / Stop and live voice/filter state are implemented. RSID clocks
-CPU, both CIAs, VIC and IRQ/NMI; it does not substitute host-periodic play calls.
-The default firmware is an independently authored, limited IRQ/NMI shim with
-fail-closed unsupported ROM access. Optional user Character / BASIC / KERNAL
-ROMs stay in memory only. Both PSID and RSID browser validators accept
+browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
+v2 subtune's speed bit: VBI uses the bounded init/play host; CIA uses actual
+CIA1 interrupts in the continuous C64 machine. RSID v2 uses that machine for its
+own interrupt or continuous code. All target PAL / one 6581. Local files,
+original demos, subtunes, Play / Stop and live voice/filter state are implemented.
+The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
+substitute host-periodic VBI calls. CIA integration passed 68 player tests,
+29 reference tests and 104 source/ZIP Chromium/WebKit checks on 2026-11-07;
+see the current TODO and linked evidence for the checked scope. Accepted CIA
+ROM settings survive intermediate VBI subtunes until explicitly reapplied.
+The C64 backend's default firmware is an independently authored, limited IRQ/NMI
+shim with fail-closed unsupported ROM access. Optional user Character / BASIC /
+KERNAL ROMs apply to PSID CIA and RSID and stay in memory only. PSID VBI remains
+independent of those settings and pending firmware reads. After supplied-ROM
+boot, CIA installs the original RAM init/play caller, while RSID requests RUN or
+SYS. Both PSID and RSID browser validators accept
 unknown/either clock/model flags only after explicit PAL/6581 selection through
 the initially unchecked playback-target setting. Declared hints and original
 header bytes remain intact; selected target metadata is separate. Known
-NTSC/8580/multi-SID are rejected even with that setting enabled. Real-ROM/BASIC
+NTSC/8580/multi-SID are rejected even with that setting enabled. Dedicated 8580
+model candidates are under investigation; do not add a 6581 preview override or
+describe current playback as 8580 emulation. Real-ROM/BASIC
 compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
 an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
 and original host/shim compile as C++17. `scripts/sid_rsid_artifacts.mjs --check`
-authenticates the separate RSID WASM and matching source kit; `build:sid-rsid`
+authenticates the C64 RSID / PSID CIA WASM and matching source kit; `build:sid-rsid`
 rebuilds it. The old PSID/SID WASM and calibrated SDK remain unchanged. No GPL
 reference player, Commodore ROM or game data is linked or bundled. A valid
 header does not prove driver compatibility. No npm release / Native SDK is published.
@@ -59,8 +70,8 @@ contract or alter the native helper's accepted input subset.
 Use `npm run test:sid-reference`, `npm run check:sid-reference`, or
 `npm run sid:reference -- --fixture melody-filter --seconds 2`.
 ROM dumps, game data, instrument import and real-hardware fidelity are outside
-this milestone. Browser playback uses the separate bounded host described above,
-with different driver scheduling from libsidplayfp. The Node CLI is repository tooling,
+this milestone. Browser playback uses the selected VBI or C64 backend described
+above, with different driver scheduling from libsidplayfp. The Node CLI is repository tooling,
 outside the published CLI/runtime entry-point closures. Native SDK / audio
 integration remains subsequent work. The Playground creation
 clock is fixed (PAL default, optional NTSC); only model '6581' is supported.

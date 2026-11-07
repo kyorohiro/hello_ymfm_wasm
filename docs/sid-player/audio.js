@@ -14,7 +14,7 @@ function validateVolume(value) {
  */
 export async function createAudio({volume = .7, backend = 'psid', onError = () => {}, signal} = {}) {
   validateVolume(volume);
-  if (!['psid', 'rsid'].includes(backend)) throw new RangeError('Unknown SID playback environment');
+  if (!['psid', 'psid-cia', 'rsid'].includes(backend)) throw new RangeError('Unknown SID playback environment');
   if (signal?.aborted) throw new DOMException('SID player audio startup cancelled', 'AbortError');
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
@@ -70,7 +70,7 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
     // Resume inside the user gesture, before awaiting either asset load.
     const resumed = context.resume();
     const [wasmBinary] = await boundedStartup(Promise.all([
-      fetch(backend === 'rsid'
+      fetch(backend !== 'psid'
         ? new URL('../generated/sid-rsid/sid-rsid.wasm', import.meta.url)
         : new URL('../generated/sid-player/sid-player.wasm', import.meta.url), {signal: controller.signal}).then(response => {
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);

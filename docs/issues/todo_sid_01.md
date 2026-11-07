@@ -38,6 +38,37 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### PSID CIA再生と8580指定の扱い（2026-11-07）
+
+ユーザーがPSIDのCIA-speed拒否と既知8580拒否を報告した。先にTODOを残し、PSID CIA再生をC64 machineへ接続する。
+PSIDは選択したsubtuneのspeed bitでVBI／CIAを分け、CIAはC64 machineの割り込みからplayを呼ぶ。
+8580は6581での代替試聴を追加せず、専用modelを選択できる方針で次の調査・試作へ進む。現行版の8580拒否は維持する。
+既存のVBI／RSID・strict CLI・未commit／stage済み変更を保持する。
+
+- [x] PSIDのsubtune別speed bitとCIA timer／play呼出／bank規約を確認し、自作PSID CIA fixtureを用意する。
+- [x] 既存C64機械でPSIDのinitとCIA割り込み駆動のplay routineを実行し、固定host VBIで代用しない。
+- [x] parser／Main／Worklet／native ABIへPSID CIAを接続し、subtune切替・Stop／旧音保持・明示targetを維持する。
+- [x] 8580は専用modelを調査する方針にする。6581 preview overrideは実装せず、元のmodel宣言を保持する。
+- [x] 自作IRQ／可変CIA・実HVSC、既存VBI／RSID、strict CLI・source／独立ZIPのChromium／WebKitを確認する。
+- [x] source／license／再build／配布・guide／README／CI／再開記録を更新する。
+- [ ] 後続: VBI宣言でもCIA／VICへアクセスするPSIDをC64環境で扱う。今回の実ファイル検証ではKayak song3（$D019）とIcicle Works song1（$DC04）が従来VBI backendのI/O制限で止まる。CIA-speed対応やheader受理だけで全PSID互換とはしない。
+
+### 専用8580 modelの調査と次の段階（2026-11-07）
+
+CIA再生を先に仕上げ、次は6581／8580を明示的に選択できる音源を検討する。以下は一次資料の調査結果で、採用・音質・ブラウザー性能の検証完了を意味しない。
+
+- [perfect6581](https://github.com/libsidplayfp/perfect6581) はMITだが、READMEはdigital partsのみと明記し、現treeは6581 netlistを持つ。analog filter／PCM出力を備えた8580音源としてそのまま採用しない。
+- [sidera](https://docs.rs/sidera/latest/sidera/) はMITの6581／8580候補。integer／no_stdのfilter・DC modelを持つが、公開 `clock()` は出力sample単位。C64 CPUとのcycle単位read／writeにはadapterまたは公開APIの追加が必要。combined wave／cutoff curveは近似で、実機完全一致とは扱わない。
+- [MAMEのMOS6581／8580](https://github.com/mamedev/mame/blob/master/src/devices/sound/mos6581.cpp) はBSD wrapperを持つ候補。SID本体・tables・依存closureのlicense、単独buildとcycle接続は未監査。
+- [libresidfp](https://github.com/libsidplayfp/libresidfp) は両model・cycle単位read／write／renderを持ち、既存の外部参照toolでも使う。ただしGPL-2.0-or-laterであり、採用時は配布物と対応source／licenseを別途設計する。別WASMにするだけで条件を回避できるとは扱わない。
+- 現行zlib m6581へ線形cutoffだけを追加して8580対応とはしない。DAC／DC、combined waves、bus／pipelineなどを含むmodel差を検証する。
+
+- [ ] permissive候補のrevision／全license／依存sourceを固定し、cycle単位adapterの小さなNative試作で比較する。
+- [ ] OSC3／ENV3／bus read、wave／TEST／Sync／Ring／ADSR、filter／resonance／D418を自作fixtureと外部参照で確認する。既存6581の結果を保持する。
+- [ ] 既知8580曲、PSID CIA／VBI、RSIDで実行・音声を確認する。実機と参照engineの近似も区別する。
+- [ ] Chromium／WebKitのCPU負荷・memory・音切れを計測して採用を決める。未計測の性能や安定性を保証しない。
+- [ ] 採用後にModel UI／parser／Main・Worklet／Native ABIへ接続し、原宣言と実行modelを別表示する。可読source／license／build receipt／ZIPを揃える。
+
 ### PSIDの不明／両対応clock・model指定を改善する今回の作業（2026-11-07）
 
 ユーザーがPSIDのPAL／6581必須エラーを報告した。RSIDで導入した明示選択をPSIDにも揃える。
@@ -120,8 +151,8 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
 通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階、
-限定browser PSID Playerは第5段階で対応した。
-package-root raw chip factory／Native出力／RSID・CIA・完全なC64環境は後続。
+限定browser PSID Playerは第5段階、RSIDは第6段階、PSIDのsubtune別CIA再生は第8段階で対応した。
+package-root raw chip factory／Native出力／専用8580 model・完全なC64互換は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
 
@@ -426,6 +457,39 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
   既存PSID／RSID・ROM・Stop・Master・mobile項目も成功。page／console／HTTP error・外部通信0、
   1180／390pxのoverflow0、speakerはmuteで最終PCM RMS／peak0。人の実聴は別。
 - ガイド・英語AI README・TODOを更新。commit／push／公開・npm更新はしていない。
+
+## 第8段階: PSIDのsubtune別CIA再生（2026-11-07）
+
+- 選択songのspeed bitでVBI／CIAを決める。bit31はsong32以降にも適用する。
+  VBIは既存bounded host、CIAはC64 machine／CIA1 Timer Aの実IRQからoriginal RAM driverでplayを呼ぶ。
+  strict `parsePsid`／参照CLIはVBI限定のまま。既知NTSC／8580の拒否と元のheaderを保持した。
+- CIAの初期latchは$4025、他timerは停止・$FFFF。initのlatch／control／IRQ mask変更を保持し、
+  play後にICRをackする。init100k／play16k cycles、A／X／Y／bank復元、optional ROM boot、
+  候補失敗時の旧機械・次PCM保持に対応。RSIDのnonreturning initは従来どおり許可する。
+- Main／Workletをsubtune単位で切替え、CIA／VBI表示とplay回数を追加した。
+  ROM読込中はCIAの新規Applyを待ち、VBIは独立して使える。
+  適用済みROMはCIA→VBI→CIAでも保持し、未Applyのdraftや読込中の差し替えに置換されない。
+- `npm run test:sid-player` **68件成功**、`npm run test:sid-reference` **29件成功**。
+  自作CIA10テストで44.1／48／96kHzとrender分割、可変周期、IRQ mask／停止、ICR観測、
+  bank、ROM初期値、timeout、Stopを確認した。旧RSIDのPCM／trace／状態は12ケース完全一致。
+- [実HVSC](sid_psid_cia_hvsc_playback_01.json): 各2秒48kHz、CIA5件すべて有音・Stop0。
+  VBIも2件成功、上記2件の既存I/O制限は明示した。曲／ROM／PCM payloadは保存・同梱しない。
+- [source kit再build](sid_psid_cia_sourcekit_rebuild_01.json): 独立コピー29 inputsのみで再生成し、
+  104,302bytesのWASMとreceiptが公開コピーへbyte一致。
+  WASM SHA-256 `188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00`。
+- [Source](sid_psid_cia_browser_01.json)／[実ZIP](sid_psid_cia_zip_browser_01.json):
+  **Chromium／WebKit各26項目、合計104チェック成功**。CIAの実Worklet音声・backend往復・ROM保持、
+  既存VBI／RSID／BASIC synthetic firmware・失敗保持・取消・Masterを確認した。
+  1180／390px overflow0、page error0、最終PCM0。physical outputはmuteで、人の実聴は別。
+- [配布記録](sid_psid_cia_package_01.json):
+  `release/tetorica_sid_player_0.0.4-cia-preview.1_itch.zip`、80files／10 readable modules／1,554,732bytes。
+  SHA-256 `65116b390424588789ae949a23b6df0f889ac6836a307131e7efaab5db8fd797`。
+  可読JS／CSS、matching native sources／license、68 original inputsのsource ZIPを検証した。
+- 固定SDK33 builds／68 outputs／75 mirrorsと両Mixer policy checkは成功し、既存gainを保持。
+  SID Synth／Playground音源、旧VBI WASM、npm／Native SDKは変更していない。
+  README英日AI・guide・CI trigger／test登録を更新した。commit／push／tag／公開はしていない。
+- 8580は専用model候補と採用条件を上のTODOへ記録した。6581 preview overrideは追加していない。
+  実ROM／BASIC、長時間・実聴、D418 digi、音色取り込みも後続。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

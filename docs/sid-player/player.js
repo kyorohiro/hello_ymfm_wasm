@@ -43,7 +43,7 @@ function updateButtons() {
   $('stop').disabled = !loading && !starting && !playing;
   $('subtune').disabled = !selected || selected.parsed.songs < 2 || !!loading || !!starting;
   $('loadDemo').disabled = !!loading;
-  $('applyRsidEnvironment').disabled = !sidAttempt || !!loading || !!starting || (sidAttempt?.format === 'RSID' && $('rsidEnvironment').value === 'rom' && pendingRoms.size > 0);
+  $('applyRsidEnvironment').disabled = !sidAttempt || !!loading || !!starting || ((sidAttempt?.format === 'RSID' || sidAttempt?.timing === 'cia') && $('rsidEnvironment').value === 'rom' && pendingRoms.size > 0);
   $('transport').setAttribute('aria-busy', String(!!loading || !!starting));
   $('play').textContent = starting ? 'Preparing…' : 'Play';
 }
@@ -53,9 +53,10 @@ function showSelection() {
   $('title').textContent = parsed.metadata.name || selected.name;
   $('author').textContent = parsed.metadata.author || 'Author not specified';
   $('released').textContent = parsed.metadata.released;
-  const environment = parsed.format === 'RSID' ? ` · ${selected.loadOptions.environment === 'rom' ? 'Your C64 ROMs' : 'Built-in IRQ environment'}${parsed.basic ? ' · BASIC' : ''}` : '';
+  const machine = parsed.format === 'RSID' || parsed.timing === 'cia';
+  const environment = machine ? ` · ${selected.loadOptions.environment === 'rom' ? 'Your C64 ROMs' : 'Built-in IRQ environment'}${parsed.basic ? ' · BASIC' : ''}` : '';
   const assumptions = parsed.clock !== 'pal' || parsed.model !== '6581' ? ` · Header ${parsed.clock} / ${parsed.model} → PAL / 6581` : '';
-  const entry = parsed.format === 'RSID' ? (parsed.basic ? ' · BASIC RUN' : ` · Init ${hex(parsed.initAddress)} · Hardware interrupts`) : ` · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)}`;
+  const entry = parsed.format === 'RSID' ? (parsed.basic ? ' · BASIC RUN' : ` · Init ${hex(parsed.initAddress)} · Hardware interrupts`) : ` · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)} · ${parsed.timing === 'cia' ? 'CIA timer' : 'VBI timing'}`;
   $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · PAL / 6581 · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}`;
   $('subtune').replaceChildren();
   for (let song = 1; song <= parsed.songs; song++) {
@@ -83,20 +84,23 @@ function showState(state) {
   const seconds = Math.floor((state?.positionFrames ?? 0) / (state?.sampleRate ?? 48000));
   $('elapsed').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   $('engineInfo').textContent = !state ? 'Audio idle · PAL 985,248 Hz'
-    : state.format === 'RSID' ? `${state.sampleRate.toLocaleString()} Hz output · C64 PAL · IRQ ${state.irqCount.toLocaleString()} · NMI ${state.nmiCount.toLocaleString()} · ${state.environment === 'rom' ? 'Your ROMs · ROM startup' : `Init ${state.initReturned ? 'returned' : 'not returned'} · Limited IRQ environment`}`
+    : state.format === 'RSID' || state.timing === 'cia' ? `${state.sampleRate.toLocaleString()} Hz output · C64 PAL${state.timing === 'cia' ? ` · CIA timer · ${state.playCalls.toLocaleString()} play calls` : ''} · IRQ ${state.irqCount.toLocaleString()} · NMI ${state.nmiCount.toLocaleString()} · ${state.environment === 'rom' ? 'Your ROMs · ROM startup' : `Init ${state.initReturned ? 'returned' : 'not returned'} · Limited IRQ environment`}`
     : `${state.sampleRate.toLocaleString()} Hz output · PAL 985,248 Hz · ${state.playCalls.toLocaleString()} play calls · Init ${state.initCycles.toLocaleString()} cycles`;
 }
 
 function targetOptions() {
   return $('assumeRsid').checked ? {clock: 'pal', model: '6581'} : {};
 }
-function rsidOptions(subtune) {
+function machineOptions(options) {
+  // A subtune switch keeps the environment of an accepted machine tune.
+  // A VBI-to-CIA switch reads the draft environment only when it first needs it.
+  if (options.environment) return options;
   const environment = $('rsidEnvironment').value;
   if (environment === 'rom' && pendingRoms.size) {
     const error = new Error('Wait for the selected ROM files to finish reading, then press Apply');
     error.code = 'RSID_ROM_PENDING'; throw error;
   }
-  return {subtune, environment, ...targetOptions(), ...(environment === 'rom' ? {roms: copyRomSet(roms)} : {})};
+  return {...options, environment, ...(environment === 'rom' ? {roms: copyRomSet(roms)} : {})};
 }
 function sidSignature(bytes) {
   const view = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -134,7 +138,7 @@ function stop() {
  * untouched until this candidate succeeds; failed or superseded loads keep it.
  * The preflight is not proof that a whole tune is ROM independent.
  */
-async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions} = {}) {
+async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions, machineSettings: acceptedMachineSettings} = {}) {
   cancelLoad();
   const owner = {sequence: loadSequence, controller: new AbortController()}; loading = owner;
   status(`Checking ${name}…`, 'loading'); updateButtons();
@@ -144,16 +148,26 @@ async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions
     owner.controller.signal.throwIfAborted();
     const format = sidSignature(bytes), isRsid = format === 'RSID';
     if (format) attempt = {format, bytes, name, subtune};
-    const options = acceptedOptions ? {...acceptedOptions, subtune}
-      : isRsid ? rsidOptions(subtune) : {subtune, ...targetOptions()};
+    let options = acceptedOptions ? {...acceptedOptions, ...acceptedMachineSettings, subtune} : {subtune, ...targetOptions()};
+    if (isRsid) options = machineOptions(options);
     const parsed = isRsid ? validateBrowserRsid(bytes, options) : validateBrowserPsid(bytes, options);
-    const Core = isRsid ? RsidPlayerCore : SidPlayerCore;
+    if (attempt) attempt.timing = parsed.timing;
+    const machine = isRsid || parsed.timing === 'cia';
+    if (machine) options = machineOptions(options);
+    else {delete options.environment; delete options.roms;}
+    // Keep an accepted CIA environment across intermediate VBI songs without
+    // sending firmware to the VBI backend. Apply starts a new selection and
+    // reads the draft controls instead of retaining this snapshot.
+    const machineSettings = machine
+      ? {environment: options.environment, ...(options.roms ? {roms: options.roms} : {})}
+      : acceptedMachineSettings;
+    const Core = machine ? RsidPlayerCore : SidPlayerCore;
     candidate = await Core.create({sampleRate: 48000, signal: owner.controller.signal});
     candidate.load(parsed.originalBytes, {...options, subtune: parsed.subtune});
     candidate.render(12000);
     if (disposed || loading !== owner || owner.sequence !== loadSequence) return;
-    retireAudio(); selected = {bytes: parsed.originalBytes, parsed, name, loadOptions: {...options, subtune: parsed.subtune}};
-    sidAttempt = {format: parsed.format, bytes: parsed.originalBytes, name, subtune: parsed.subtune};
+    retireAudio(); selected = {bytes: parsed.originalBytes, parsed, name, machineSettings, loadOptions: {...options, subtune: parsed.subtune}};
+    sidAttempt = {format: parsed.format, timing: parsed.timing, bytes: parsed.originalBytes, name, subtune: parsed.subtune};
     showSelection();
     status(`Ready. Press Play · subtune ${parsed.subtune} / ${parsed.songs}.`, 'ready');
   } catch (error) {
@@ -174,7 +188,8 @@ async function play() {
   starting = owner; status('Preparing SID playback…', 'starting'); updateButtons();
   try {
     // createAudio resumes immediately, while this click is still a user gesture.
-    const engine = await createAudio({volume: Number($('master').value), backend: tune.parsed.format === 'RSID' ? 'rsid' : 'psid', signal: owner.controller.signal, onError: error => audioFailed(error, owner)});
+    const backend = tune.parsed.format === 'RSID' ? 'rsid' : tune.parsed.timing === 'cia' ? 'psid-cia' : 'psid';
+    const engine = await createAudio({volume: Number($('master').value), backend, signal: owner.controller.signal, onError: error => audioFailed(error, owner)});
     owner.engine = engine;
     const current = () => !disposed && starting === owner && generation === owner.generation && selected === tune;
     if (!current()) throw new DOMException('SID start cancelled', 'AbortError');
@@ -220,7 +235,7 @@ $('loadDemo').addEventListener('click', () => {
 $('subtune').addEventListener('change', () => {
   if (!selected) return;
   const tune = selected, subtune = Number($('subtune').value);
-  void loadSource(async () => tune.bytes, tune.name, {subtune, loadOptions: tune.loadOptions});
+  void loadSource(async () => tune.bytes, tune.name, {subtune, loadOptions: tune.loadOptions, machineSettings: tune.machineSettings});
 });
 $('rsidEnvironment').addEventListener('change', () => {$('romFiles').hidden = $('rsidEnvironment').value !== 'rom'; updateButtons();});
 $('applyRsidEnvironment').addEventListener('click', () => {

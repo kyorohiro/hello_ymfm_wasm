@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {validateBrowserRsid} from '../js/sid_rsid.js';
+import {validateBrowserPsid} from '../js/sid_psid.js';
 import {concatenateRoms} from './roms.js';
 
 export const RSID_PLAYER_CLOCK = 985248;
@@ -9,7 +10,7 @@ const integer = (value, min, max, label) => {
   return value;
 };
 
-/** A continuous C64 machine host for RSID. CPU, both CIAs, VIC and SID run
+/** A continuous C64 machine host for RSID and PSID CIA subtunes. CPU, both CIAs, VIC and SID run
  * together; no host-scheduled play routine is substituted for interrupts.
  * The minimal environment supplies an original, limited IRQ/NMI shim. Full
  * firmware mode uses only ROM bytes supplied by the caller. Neither is a claim
@@ -59,19 +60,31 @@ export class RsidPlayerCore {
    */
   load(bytes, {subtune, environment = 'minimal', clock, model, roms} = {}) {
     this.assertOpen();
-    const parsed = validateBrowserRsid(bytes, {subtune, environment, clock, model});
+    if (!['minimal', 'rom'].includes(environment)) throw new RangeError('C64 environment must be minimal or rom');
+    const view = bytes instanceof ArrayBuffer ? new Uint8Array(bytes)
+      : ArrayBuffer.isView(bytes) ? new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength) : null;
+    const psid = view && view.length >= 4 && view[0] === 80 && view[1] === 83 && view[2] === 73 && view[3] === 68;
+    const parsed = psid ? validateBrowserPsid(bytes, {subtune, clock, model})
+      : validateBrowserRsid(bytes, {subtune, environment, clock, model});
+    if (psid && parsed.timing !== 'cia') throw new Error('This PSID subtune uses VBI timing; load it through the VBI player');
     const firmware = environment === 'rom' ? concatenateRoms(roms) : null, api = this.exports;
+    if (psid && typeof api.sidr_load_psid !== 'function') throw new Error('PSID CIA needs the updated C64 WASM. Reload the player.');
     const candidate = api.sidr_create(this.sampleRate);
     if (!candidate) throw new Error('RSID player allocation failed');
     try {
       new Uint8Array(api.memory.buffer, api.sidr_input(candidate), parsed.program.length).set(parsed.program);
       if (firmware) new Uint8Array(api.memory.buffer, api.sidr_rom_input(candidate), firmware.length).set(firmware);
-      if (!api.sidr_load(candidate, parsed.program.length, parsed.loadAddress, parsed.initAddress,
-        parsed.subtune - 1, Number(parsed.basic), Number(environment === 'rom'))) throw this.nativeError(candidate);
+      const loaded = psid
+        ? api.sidr_load_psid(candidate, parsed.program.length, parsed.loadAddress, parsed.initAddress, parsed.playAddress,
+          parsed.subtune - 1, Number(environment === 'rom'))
+        : api.sidr_load(candidate, parsed.program.length, parsed.loadAddress, parsed.initAddress,
+          parsed.subtune - 1, Number(parsed.basic), Number(environment === 'rom'));
+      if (!loaded) throw this.nativeError(candidate);
     } catch (error) {api.sidr_destroy(candidate); throw error;}
     if (this.handle) api.sidr_destroy(this.handle);
     this.handle = candidate; this.positionFrames = 0; this.subtune = parsed.subtune;
-    this.environment = environment;
+    this.environment = environment; this.format = parsed.format; this.timing = psid ? 'cia' : 'c64-irq';
+    this.declaredClock = parsed.clock; this.declaredModel = parsed.model; this.targetSelection = {...parsed.selection};
     return this.getState();
   }
   /** @param {Float32Array} output */
@@ -98,12 +111,15 @@ export class RsidPlayerCore {
     this.assertOpen();
     const api = this.exports, handle = this.handle, state = handle ? api.sidr_state(handle) : 0;
     return {
-      loaded: !!handle, playing: state === 1, state, format: 'RSID', environment: this.environment ?? 'minimal',
+      loaded: !!handle, playing: state === 1, state, format: this.format ?? 'RSID', timing: this.timing ?? 'c64-irq', environment: this.environment ?? 'minimal',
       model: '6581', clockHz: RSID_PLAYER_CLOCK, frameCycles: RSID_PLAYER_FRAME_CYCLES,
+      declaredClock: this.declaredClock ?? null, declaredModel: this.declaredModel ?? null,
+      targetSelection: this.targetSelection ? {...this.targetSelection} : null,
       sampleRate: this.sampleRate, subtune: this.subtune, positionFrames: this.positionFrames,
       cycles: handle ? api.sidr_cycles(handle) : 0, initCycles: handle ? api.sidr_init_cycles(handle) : 0,
       bootCycles: handle ? api.sidr_boot_cycles(handle) : 0, initReturned: handle ? !!api.sidr_init_returned(handle) : false,
       irqCount: handle ? api.sidr_irq_count(handle) : 0, nmiCount: handle ? api.sidr_nmi_count(handle) : 0,
+      playCalls: handle && api.sidr_play_calls ? api.sidr_play_calls(handle) : 0,
       readCount: handle ? api.sidr_read_count(handle) : 0, writeCount: handle ? api.sidr_write_count(handle) : 0,
       pc: handle ? api.sidr_pc(handle) : 0,
       registers: Array.from({length: 32}, (_, index) => handle ? api.sidr_register(handle, index) : 0),
@@ -112,7 +128,7 @@ export class RsidPlayerCore {
   }
   readRam(address) {
     this.assertOpen(); integer(address, 0, 65535, 'C64 RAM address');
-    if (!this.handle) throw new Error('No RSID is loaded');
+    if (!this.handle) throw new Error('No SID is loaded');
     return this.exports.sidr_ram_read(this.handle, address);
   }
   /** Bounded diagnostic writes, in real CPU bus order. Reads and same-value

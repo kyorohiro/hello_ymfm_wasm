@@ -23,11 +23,11 @@ test('optional metadata scan uses a local synthetic corpus, reports first reject
   await writeFile(join(root,'DOCUMENTS/HVSC.txt'),'Example collection\n    Release 85\n');
   await writeFile(join(root,'ignored.bin'),fixture.bytes);await symlink(join(root,'GAMES/A/tone.sid'),join(root,'ignored-link.sid'));
   const report=await scanSidPlayerCorpus({root,out});
-  assert.equal(report.total,5);assert.equal(report.supported,2);assert.equal(report.rejected,3);
-  assert.equal(report.supportedMultipleSongs,1);assert.equal(report.supportedTotalSongs,4);assert.equal(report.corpus.versionHint,'Release 85');
-  assert.deepEqual(report.categories.DEMOS,{total:3,supported:0,rejected:3});
-  assert.equal(Object.values(report.rejections).reduce((sum,value)=>sum+value,0),3);
-  assert(Object.keys(report.rejections).some(reason=>reason.includes('CIA')));assert(Object.keys(report.rejections).some(reason=>reason.includes('RSID')));assert(Object.keys(report.rejections).some(reason=>reason.includes('PSID_LIMIT')));
+  assert.equal(report.total,5);assert.equal(report.supported,3);assert.equal(report.rejected,2);
+  assert.equal(report.supportedMultipleSongs,1);assert.equal(report.supportedTotalSongs,5);assert.equal(report.corpus.versionHint,'Release 85');
+  assert.deepEqual(report.categories.DEMOS,{total:3,supported:1,rejected:2});
+  assert.equal(Object.values(report.rejections).reduce((sum,value)=>sum+value,0),2);
+  assert(!Object.keys(report.rejections).some(reason=>reason.includes('CIA')));assert(Object.keys(report.rejections).some(reason=>reason.includes('RSID')));assert(Object.keys(report.rejections).some(reason=>reason.includes('PSID_LIMIT')));
   assert.equal(report.candidates.length,2);assert.equal(report.candidates[1].songs,3);
   assert(report.candidates.every(candidate=>candidate.rawRomCallPatterns===0&&candidate.sha256.length===64));
   assert(report.candidates.every(candidate=>!('program' in candidate)&&!('originalBytes' in candidate)));

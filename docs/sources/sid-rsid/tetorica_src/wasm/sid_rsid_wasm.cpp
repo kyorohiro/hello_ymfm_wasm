@@ -9,6 +9,7 @@ EMSCRIPTEN_KEEPALIVE void sidr_destroy(Instance* p) { delete p; }
 EMSCRIPTEN_KEEPALIVE uint8_t* sidr_input(Instance* p) { return p->input(); }
 EMSCRIPTEN_KEEPALIVE uint8_t* sidr_rom_input(Instance* p) { return p->romInput(); }
 EMSCRIPTEN_KEEPALIVE int sidr_load(Instance* p,unsigned length,unsigned load,unsigned init,unsigned song,unsigned basic,unsigned roms) { return p->load(length,load,init,song,basic,roms); }
+EMSCRIPTEN_KEEPALIVE int sidr_load_psid(Instance* p,unsigned length,unsigned load,unsigned init,unsigned play,unsigned song,unsigned roms) { return p->loadPsid(length,load,init,play,song,roms); }
 EMSCRIPTEN_KEEPALIVE float* sidr_output(Instance* p) { return p->output(); }
 EMSCRIPTEN_KEEPALIVE int sidr_render(Instance* p,unsigned n) { return p->render(n); }
 EMSCRIPTEN_KEEPALIVE void sidr_stop(Instance* p) { p->stop(); }
@@ -23,6 +24,7 @@ EMSCRIPTEN_KEEPALIVE unsigned sidr_init_returned(Instance* p) { return p->initRe
 EMSCRIPTEN_KEEPALIVE double sidr_init_return_cycle(Instance* p) { return static_cast<double>(p->initReturnCycle()); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_irq_count(Instance* p) { return p->irqCount(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_nmi_count(Instance* p) { return p->nmiCount(); }
+EMSCRIPTEN_KEEPALIVE unsigned sidr_play_calls(Instance* p) { return p->playCalls(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_read_count(Instance* p) { return p->readCount(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_write_count(Instance* p) { return p->writeCount(); }
 EMSCRIPTEN_KEEPALIVE unsigned sidr_pc(Instance* p) { return p->pc(); }

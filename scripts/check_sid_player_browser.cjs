@@ -186,7 +186,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     assert.equal(await page.locator('#subtune').inputValue(), '2'); await page.locator('#applyRsidEnvironment').click();
     await ready(); await silent(); await play(); assert.equal((await read()).subtune, 2);
 
-    check('pending or missing RSID ROM files never block PSID Open/Apply and known NTSC/8580 remain refused');
+    check('PSID VBI ignores pending ROM files, CIA guards them, and known NTSC/8580 remain refused');
     await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'pending-psid-choice-chars.bin';});
     await page.locator('#romChars').setInputFiles({name: 'pending-psid-choice-chars.bin', mimeType: 'application/octet-stream', buffer: Buffer.from(fixtures.roms.chars)});
     await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
@@ -197,8 +197,15 @@ async function checkBrowser(name, engine, origin, fixtures) {
     assert.equal((await read()).declaredClock, 'any'); assert.equal((await read()).declaredModel, 'any');
     await page.locator('#applyRsidEnvironment').click(); await ready(); await silent(); await play();
     assert.match(await page.locator('#fileInfo').textContent(), /Header any \/ any/);
+    const beforePendingCia = await page.locator('#fileInfo').textContent();
+    await loadFile(fixtures.psidCiaSelected, 'pending-cia-roms.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /finish reading/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), beforePendingCia);
+    assert.equal((await read()).timing, 'vbi'); assert.equal((await read()).playing, true); await sound();
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), true, 'CIA retry must wait for its selected ROM read');
     await page.evaluate(() => __sidPlayerAudit.releaseFile());
     await page.waitForFunction(() => document.querySelector('#romCharsInfo').textContent.includes('pending-psid-choice-chars.bin'));
+    assert.equal(await page.locator('#applyRsidEnvironment').isDisabled(), false);
     const acceptedPsidInfo = await page.locator('#fileInfo').textContent();
     for (const [bytes, filename, reason] of [[fixtures.psidNtsc, 'ntsc-target.psid', 'NTSC'], [fixtures.psid8580, '8580-target.psid', '8580']]) {
       await loadFile(bytes, filename);
@@ -206,8 +213,60 @@ async function checkBrowser(name, engine, origin, fixtures) {
       assert.equal(await page.locator('#fileInfo').textContent(), acceptedPsidInfo); assert.equal((await read()).playing, true); await sound();
     }
 
+    check('mixed PSID songs select real VBI or CIA playback and never autoplay after changing backend');
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'});
+    await loadFile(fixtures.psidCia, 'mixed-vbi-cia.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('mixed-vbi-cia.sid'));
+    await ready(); await silent(); await play(); let ciaState = await read();
+    assert.equal(ciaState.format, 'PSID'); assert.equal(ciaState.timing, 'vbi');
+    assert.equal(ciaState.subtune, 1); assert.equal(ciaState.registers[0] | ciaState.registers[1] << 8, fixtures.ciaFrequencies[0]);
+    await page.locator('#subtune').selectOption({value: '2'}); await ready(); await silent(); await play();
+    ciaState = await waitState(value => value.timing === 'cia' && value.irqCount > 100 && value.playCalls > 100);
+    assert.equal(ciaState.format, 'PSID'); assert.equal(ciaState.subtune, 2);
+    assert.equal(ciaState.registers[0] | ciaState.registers[1] << 8, fixtures.ciaFrequencies[1]);
+    const firstPlayCalls = ciaState.playCalls; await page.waitForTimeout(300); ciaState = await read();
+    assert(ciaState.playCalls - firstPlayCalls > 100, 'actual CIA plays far more often than a 50Hz VBI callback');
+    assert.equal(ciaState.nmiCount, 0); await sound();
+    measurements.psidCia = {timing: ciaState.timing, playCalls: ciaState.playCalls, irqCount: ciaState.irqCount, rms: (await sample()).rms};
+    await stop(); await page.locator('#rsidEnvironment').selectOption({value: 'rom'});
+    for (const [key, input] of [['chars', '#romChars'], ['basic', '#romBasic'], ['kernal', '#romKernal']]) {
+      await page.locator(input).setInputFiles({name: `cia-saved-a-${key}.bin`, mimeType: 'application/octet-stream', buffer: Buffer.from(fixtures.ciaRoms[key])});
+      await page.waitForFunction(({input, key}) => document.querySelector(input + 'Info').textContent.includes(`cia-saved-a-${key}.bin`), {input, key});
+    }
+    await loadFile(fixtures.psidCiaSelected, 'mixed-saved-roms.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'ready' && document.querySelector('#fileInfo').textContent.includes('mixed-saved-roms.sid'));
+    await ready(); await silent(); await play(); assert.equal((await read()).environment, 'rom');
+    await page.locator('#subtune').selectOption({value: '1'}); await ready(); await silent(); await play();
+    assert.equal((await read()).timing, 'vbi');
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'});
+    await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'pending-cia-saved-b-kernal.bin';});
+    await page.locator('#romKernal').setInputFiles({name: 'pending-cia-saved-b-kernal.bin', mimeType: 'application/octet-stream', buffer: Buffer.alloc(8192, 0x02)});
+    await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
+    await page.locator('#subtune').selectOption({value: '2'}); await ready(); await silent(); await play();
+    ciaState = await waitState(value => value.timing === 'cia' && value.playCalls > 100);
+    assert.equal(ciaState.environment, 'rom'); assert.equal(ciaState.bootCycles, 2000000);
+    assert.equal(await page.locator('#rsidEnvironment').inputValue(), 'minimal', 'an unapplied environment draft does not replace accepted ROM settings');
+    await page.evaluate(() => __sidPlayerAudit.releaseFile());
+    await page.waitForFunction(() => document.querySelector('#romKernalInfo').textContent.includes('pending-cia-saved-b-kernal.bin'));
+    await stop(); await play(); ciaState = await read();
+    assert.equal(ciaState.environment, 'rom'); assert.equal(ciaState.bootCycles, 2000000); await sound();
+    measurements.psidCia.savedRomsAcrossVbi = {preserved: true, pendingReplacementIgnored: true, restartAfterBadReplacement: true};
+
+    check('CIA candidate CPU faults keep the playing machine and Stop cancels a cross-backend subtune transition');
+    const acceptedCiaInfo = await page.locator('#fileInfo').textContent();
+    await loadFile(fixtures.psidCiaRom, 'cia-rom-error.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /ROM/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), acceptedCiaInfo); assert.equal((await read()).timing, 'cia'); await sound();
+    await page.locator('#subtune').selectOption({value: '1'}); await ready(); await silent(); await play();
+    assert.equal((await read()).timing, 'vbi'); await stop(); holdWasm = true;
+    await page.locator('#subtune').selectOption({value: '2'});
+    for (let i = 0; !releaseWasm && i < 120; ++i) await page.waitForTimeout(25);
+    assert(releaseWasm, 'CIA transition reached the separate C64 WASM request');
+    await page.locator('#stop').click(); releaseWasm(); releaseWasm = null; await ready(); await silent();
+    assert.equal(await page.locator('#subtune').inputValue(), '1'); await play(); assert.equal((await read()).timing, 'vbi');
+
     check('file selection exposes two subtunes and passes the selected init A value into actual SID frequency');
-    await loadFile(fixtures.two, 'two-subtunes.sid'); await page.waitForFunction(() => document.querySelector('#subtune').options.length === 2); await ready();
+    await loadFile(fixtures.two, 'two-subtunes.sid'); await page.waitForFunction(() => document.querySelector('#fileInfo').textContent.includes('two-subtunes.sid') && document.querySelector('#subtune').options.length === 2); await ready();
     await play(); let state = await read(); assert.equal(state.subtune, 1);
     assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.frequencies[0]); await stop();
     await page.locator('#subtune').selectOption('2'); await ready(); await play(); state = await read(); assert.equal(state.subtune, 2);
@@ -409,14 +468,22 @@ async function checkBrowser(name, engine, origin, fixtures) {
   if (config.screenshots) await fs.mkdir(config.screenshots, {recursive: true});
   report.checkerSha256 = createHash('sha256').update(await fs.readFile(__filename)).digest('hex');
   const {createSidPlayerTestFixture, SID_PLAYER_TEST_FREQUENCIES} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/sid_player_fixtures.mjs')));
+  const {createPsidCiaFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/psid_cia_fixtures.mjs')));
   const {createRsidFixture, createRsidBasicFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_fixtures.mjs')));
   const {createRsidTestRoms} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_test_roms.mjs')));
   const unknown = createRsidFixture().bytes.slice(), ntsc = createRsidFixture().bytes.slice(), basic = createRsidBasicFixture();
   new DataView(unknown.buffer).setUint16(118, 0); new DataView(ntsc.buffer).setUint16(118, 0x18);
   const psidChoices = [0, 0x3c, 0x18, 0x24].map(flags => {const bytes = createSidPlayerTestFixture(); new DataView(bytes.buffer).setUint16(118, flags); return bytes;});
+  const ciaFixture = createPsidCiaFixture(), ciaRomFixture = createPsidCiaFixture({fault: 'init-rom'});
+  const ciaSelected = ciaFixture.bytes.slice(); new DataView(ciaSelected.buffer).setUint16(16, 2);
+  const ciaRoms = createRsidTestRoms();
+  ciaRoms.kernal.set([0x48, 0x8a, 0x48, 0x98, 0x48, 0x6c, 0x14, 0x03], 0xff48 - 0xe000);
+  ciaRoms.kernal[0x1ffe] = 0x48; ciaRoms.kernal[0x1fff] = 0xff;
+  new DataView(ciaRomFixture.bytes.buffer).setUint16(16, 2);
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
     playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
     psidUnknown: psidChoices[0], psidEither: psidChoices[1], psidNtsc: psidChoices[2], psid8580: psidChoices[3],
+    psidCia: ciaFixture.bytes, psidCiaSelected: ciaSelected, psidCiaRom: ciaRomFixture.bytes, ciaFrequencies: ciaFixture.frequencies, ciaRoms,
     rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
     rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
     rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};

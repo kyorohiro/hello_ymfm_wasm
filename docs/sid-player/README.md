@@ -6,10 +6,10 @@ The player runs a tune's 6502 program and follows its writes to the SID. The thr
 
 ## Supported files
 
-The PSID path preserves the existing bounded init/play host:
+The PSID path chooses its backend from the selected subtune's speed bit:
 
 - PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags require the visible **Use PAL / 6581** checkbox. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
-- All VBI speed bits zero, with unspecified relocation (`0/0`).
+- VBI or CIA timing, with unspecified relocation (`0/0`). A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
 - Loaded program RAM `$0800..$CFFF`, with effective init and explicit nonzero play addresses inside that payload. An init header value of zero defaults to the load address.
 - At most **65,660 bytes**, with one-based song selection from `1..songs` (up to 256).
 
@@ -25,33 +25,35 @@ The header's default song is selected on load. A failed file, demo or subtune ch
 
 Cancelling a pending subtune change restores the accepted song in the selector. If the browser caches this page for Back/Forward navigation, leaving stops its audio while keeping the selected file; press **Play** after returning.
 
-Header acceptance does not establish whole-song compatibility. Execution can still stop with a diagnostic and address. The PSID path continues to reject IRQ-only and CIA drivers; those limits have not been silently relaxed by adding RSID.
+Header acceptance does not establish whole-song compatibility. Execution can still stop with a diagnostic and address. PSID still requires an explicit play subroutine; `playAddress=0` IRQ-installed drivers remain outside this subset. A dedicated 8580 model is under investigation; the current player does not substitute 6581 for a known 8580 declaration.
 
-## Playback target and optional RSID ROM files
+## Playback target and optional C64 ROM files
 
-For an unspecified or either-standard/model **PSID or RSID**, open **Playback settings · PAL / 6581 & RSID ROMs**, check **Use PAL / 6581**, then press **Apply / retry SID**. You can retry the file that just failed without reopening it. Its original header and declared clock/model are retained; the selected playback target is shown separately.
+For an unspecified or either-standard/model **PSID or RSID**, open **Playback settings · PAL / 6581 & C64 ROMs**, check **Use PAL / 6581**, then press **Apply / retry SID**. You can retry the file that just failed without reopening it. Its original header and declared clock/model are retained; the selected playback target is shown separately.
 
 The checkbox starts unchecked. The command-line reference parser still requires explicitly PAL / 6581 files; only the browser validator accepts these explicit target choices.
 
-The RSID environment and firmware controls in the same panel apply to **RSID only**. PSID can load and retry without ROM files, even while draft RSID ROM files are being read. A failed candidate keeps the previous tune. Changing subtunes retains the accepted target and ROM snapshot until you explicitly apply new settings.
+The environment and firmware controls in the same panel apply to **PSID CIA and RSID**, which use the C64 machine. **PSID VBI** uses its separate host and can load or retry without ROM files, even while draft firmware files are being read. A new CIA or RSID candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
 
 **Built-in IRQ environment** supplies an original, limited BSD IRQ/NMI shim with the C64 devices. It runs without a Commodore ROM dump and can play programs that use the supported environment. Unsupported BASIC, KERNAL or character-ROM reads stop with an explanation. It is not a replacement for all C64 firmware.
 
-**Use my C64 ROMs** accepts three files: Character **4,096 bytes**, BASIC **8,192 bytes** and KERNAL **8,192 bytes**. The browser checks their exact sizes and makes detached copies. Size checks do not identify the firmware or guarantee compatibility. ROM bytes remain in browser memory; they are not saved, uploaded or included in packages. No firmware is downloaded automatically. The loader boots the supplied machine before loading the tune and requesting BASIC `RUN` or a machine-code `SYS`.
+**Use my C64 ROMs** accepts three files: Character **4,096 bytes**, BASIC **8,192 bytes** and KERNAL **8,192 bytes**. The browser checks their exact sizes and makes detached copies. Size checks do not identify the firmware or guarantee compatibility. ROM bytes remain in browser memory; they are not saved, uploaded or included in packages. No firmware is downloaded automatically. After booting the supplied machine, PSID CIA installs the original RAM init/play driver; RSID requests BASIC `RUN` or a machine-code `SYS` as appropriate. Firmware bytes themselves are not patched.
 
-The user-ROM/BASIC path is experimental. Original synthetic test ROMs can exercise its loading and subtune plumbing, but playback with actual Commodore firmware and general BASIC tunes has not been verified. Use the built-in RSID demo to try the ROM-free environment.
+The user-ROM/BASIC path is experimental. Original synthetic test ROMs exercise its loading and subtune plumbing; compatibility with actual Commodore firmware and general BASIC tunes needs separate confirmation. Use the built-in RSID demo to try the ROM-free environment.
 
 ## What is emulated
 
-The PSID host combines the pinned, cycle-stepped **chips/m6502** CPU with Tetorica's existing **chips/m6581 6581 approximation**. One CPU bus cycle advances one SID tick at 985,248 Hz. SID writes commit after that cycle's audio step; supported SID reads use real emulated readback. `$D400..$D7FF` register mirrors are supported.
+Both PSID backends combine the pinned, cycle-stepped **chips/m6502** CPU with Tetorica's existing **chips/m6581 6581 approximation**. One CPU bus cycle advances one SID tick at 985,248 Hz. SID writes commit after that cycle's audio step; supported SID reads use real emulated readback. `$D400..$D7FF` register mirrors are supported.
 
-The **PSID** host supplies initialized RAM, a CPU stack and a host-owned JSR trampoline. Init receives the zero-based subtune in A; X and Y are zero. Play receives A, X and Y zero. Both routines must return normally with RTS. It does not emulate CIA timers, VIC raster timing or an interrupt controller. Unsupported memory banking, mapped ROM reads, other I/O and invalid returns fail explicitly.
+The **PSID VBI** host supplies initialized RAM, a CPU stack and a host-owned JSR trampoline. Init receives the zero-based subtune in A; X and Y are zero. Play receives A, X and Y zero. Both routines must return normally with RTS. This backend does not emulate CIA timers, VIC raster timing or an interrupt controller. Unsupported memory banking, mapped ROM reads, other I/O and invalid returns fail explicitly.
 
 The initial memory map is `$37`. Before calling an init or play entry in loaded RAM at `$A000..$BFFF`, the host exposes that RAM if BASIC is mapped: it clears only LORAM (`$37` becomes `$36`), preserving SID I/O and the other bank bits. An already suitable map is kept. This selects RAM for the supplied program; it does not provide a BASIC ROM or permit ROM calls.
 
 Init has a 100,000-cycle limit; each play routine has a 16,000-cycle limit. The first play call is at the first strict 19,656-cycle PAL frame boundary after init completes, then once per frame. Audio produced during init is retained. These absolute scheduling times are not claimed to match libsidplayfp's complete C64 driver.
 
-The **RSID** host instead uses pinned **chips/c64** system wiring: CPU, both CIA chips, VIC, SID and memory banking advance together. IRQ and NMI reach the emulated CPU, and the program's RTI returns to the interrupted code. There is no periodic host play-routine call. Programs may legitimately stay in an init busy loop. The built-in and user-ROM environments are distinct from the PSID trampoline and its per-subroutine budgets.
+The **PSID CIA** backend instead clocks the continuous C64 machine, including both CIAs and VIC. An original RAM driver calls init with the zero-based subtune in A, then calls the explicit play routine from CIA1 timer-A interrupts. The initial latch is `$4025` (approximately 60 Hz on PAL), with the timer and its IRQ enabled. The tune can change its latch, control and interrupt mask; there is no host-periodic VBI substitute. Init and play must still return with RTS within their 100,000- and 16,000-machine-cycle bounds. The built-in environment supplies only limited original firmware; optional user-ROM mode boots the supplied firmware before installing the same RAM driver. Neither mode removes the PSID entry and RAM restrictions.
+
+The **RSID** host uses the same pinned **chips/c64** system wiring: CPU, both CIA chips, VIC, SID and memory banking advance together. IRQ and NMI reach the emulated CPU, and the program's RTI returns to the interrupted code. It runs the tune's own interrupt or continuous code without a host play-routine call. RSID programs may legitimately stay in an init busy loop, unlike the returning PSID init/play subroutines.
 
 Both RSID environments perform a bounded 100,000-cycle preflight and retain its generated PCM. User-ROM mode first boots for at most 2,000,000 cycles and discards boot audio. Initialization that has not returned after preflight can continue during playback; it is not automatically treated as a failed PSID-style subroutine.
 
@@ -67,12 +69,12 @@ The application is distributed as readable source modules and CSS, with their co
 
 - [player.js](player.js): file selection, transport and live display.
 - [audio.js](audio.js) and [processor.js](processor.js): Web Audio lifecycle and AudioWorklet commands.
-- [core.js](core.js): existing bounded PSID API.
-- [rsid_core.js](rsid_core.js) and [roms.js](roms.js): C64 RSID API and in-memory firmware input checks.
-- [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header.
+- [core.js](core.js): bounded PSID VBI API.
+- [rsid_core.js](rsid_core.js) and [roms.js](roms.js): continuous C64 API for RSID and PSID CIA, and in-memory firmware input checks.
+- [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` selects the subtune's VBI/CIA timing, accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header. The reference CLI remains VBI-only.
 - [sid_rsid.js](../js/sid_rsid.js): independent RSID parser with the same explicit browser target-selection policy. Neither browser validator overrides a known NTSC or 8580 declaration.
 - [PSID demo sources and license](demos/README.md) and [RSID demo sources and license](demos/rsid/README.md).
-- Separate [PSID native source kit](../sources/sid-player/README.md) and [RSID native source kit](../sources/sid-rsid/README.md), with pinned upstream sources, original host/shim, SID patch documentation and licenses.
+- Separate [PSID VBI native source kit](../sources/sid-player/README.md) and [C64 / CIA / RSID native source kit](../sources/sid-rsid/README.md), with pinned upstream sources, original host/shim, SID patch documentation and licenses.
 
 In a standalone ZIP, `sources/sid-player-browser.json` lists the original browser/build inputs with SHA-256 hashes and points to `sources/sid-player-browser-inputs.zip`. The native receipts are `generated/sid-player/sid-player-build.json` and `generated/sid-rsid/sid-rsid-build.json`; their input hashes match their respective source kits, and their output hashes identify each packaged WASM. Both canonical parsers in the browser-input archive match the served modules byte for byte. The source archive retains the original HTML before standalone navigation adjustments. Only fixed source/demo inputs are copied: user-selected ROMs and songs are never package inputs.
 

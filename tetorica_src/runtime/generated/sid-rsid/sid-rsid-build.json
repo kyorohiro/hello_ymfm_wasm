@@ -6,8 +6,19 @@
   "model": "6581",
   "hardware": "pinned chips/c64 (CPU, two CIAs, VIC, SID)",
   "environment": "continuous-machine-minimal-original-shim-or-user-roms",
-  "initPolicy": "100000-cycle preflight; nonreturning init allowed",
+  "initPolicy": "100000-cycle preflight; RSID nonreturning init allowed; PSID CIA init must return",
   "bootCycleLimit": 2000000,
+  "psidCiaDriver": {
+    "timerADefaultLatch": 16421,
+    "initCycleLimit": 100000,
+    "playCycleLimit": 16000,
+    "timing": "machine-CIA1-Timer-A-IRQ",
+    "acknowledgement": "read-ICR-after-play",
+    "ramBootstrap": 1024,
+    "ramIrqDriver": 1536,
+    "ramInitCaller": 1792,
+    "preserves": "A/X/Y/bank; tune timer latch/control/mask retained after init"
+  },
   "upstreamRevision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
   "pristineSourcesSha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8",
   "build": {
@@ -26,8 +37,8 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-c64/README.md": {
-      "bytes": 4650,
-      "sha256": "7473491a559a43c62726767e385bb7ffacfbdd645be2154bc8d1344b0a39b398"
+      "bytes": 6239,
+      "sha256": "aa64746ead5461232cfb3a61ecafd8953c71333810f7c6ad9b923a54453b7287"
     },
     "third_party/chips-c64/SOURCES.json": {
       "bytes": 1619,
@@ -106,12 +117,12 @@
       "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
     },
     "tetorica_src/wasm/sid_rsid_core.h": {
-      "bytes": 15571,
-      "sha256": "e39323eaf5edd46dd99d0a2e6679e23474bec0552109ce225d41a51f7ceb1282"
+      "bytes": 21311,
+      "sha256": "afbb469ff5c496b0d9a63b4bb7cd6ff5dfe9e0bd5af6b79e1a1a90834bb3abc5"
     },
     "tetorica_src/wasm/sid_rsid_wasm.cpp": {
-      "bytes": 2934,
-      "sha256": "a0ddeaf574715be265a9ad8a006244f9ed28c4e80e413ddda1fc7b52d298ac35"
+      "bytes": 3216,
+      "sha256": "f329111eba68b5fc4020adcdd44d6239f8725718af5d2ef0176024bde0f649b4"
     },
     "tetorica_src/wasm/sid_rsid_machine.c": {
       "bytes": 1050,
@@ -126,8 +137,8 @@
       "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
     },
     "scripts/sid_rsid_artifacts.mjs": {
-      "bytes": 6054,
-      "sha256": "4a83380f12e297a358ae9a6ecb7f77441f57d7c723cb0494fc1a4b8698e145e0"
+      "bytes": 6510,
+      "sha256": "27ebbf79911ea2bd109594220f0195e33116f86725a5bbb8c569a7581873d35c"
     },
     "scripts/prepare_sid_core.py": {
       "bytes": 3625,
@@ -135,7 +146,7 @@
     }
   },
   "output": {
-    "bytes": 102775,
-    "sha256": "496f32f4bbdf2d788f42124c385da033861852b738147f59b61a338580b91a18"
+    "bytes": 104302,
+    "sha256": "188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00"
   }
 }
