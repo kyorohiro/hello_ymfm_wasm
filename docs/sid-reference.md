@@ -4,7 +4,10 @@ This repository-only CLI executes a small PSID in an external C64 player,
 records timed SID bus writes and replays them through Tetorica's unchanged
 6581 core. It writes WAV files and diagnostic JSON; it opens no audio device.
 The [SID Synth](synth-sid/index.html) and [C64 Playground](sid.md) remain separate
-browser instruments. Browser `.sid` loading and instrument extraction are later work.
+browser instruments. To choose and play a supported file without a command,
+open the separate [SID Player](sid-player/index.html) ([scope and guide](sid-player/README.md)).
+That bounded CPU host uses the Tetorica SID approximation; the external GPL
+reference engine described here is not included in the browser. Instrument extraction is later work.
 
 ## Run an original diagnostic tune
 

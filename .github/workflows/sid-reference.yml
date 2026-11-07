@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'tetorica_src/cli/sid_*.mjs'
+      - 'tetorica_src/runtime/sid_psid.js'
       - 'scripts/*sid_reference*'
       - 'test/sid_*.test.mjs'
       - 'test/helpers/sid_*reference.cpp'
@@ -20,6 +21,7 @@ on:
   pull_request:
     paths:
       - 'tetorica_src/cli/sid_*.mjs'
+      - 'tetorica_src/runtime/sid_psid.js'
       - 'scripts/*sid_reference*'
       - 'test/sid_*.test.mjs'
       - 'test/helpers/sid_*reference.cpp'

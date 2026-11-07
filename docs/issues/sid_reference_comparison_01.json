@@ -20,8 +20,8 @@
     {
       "fixture": "tone",
       "sampleRate": 44100,
-      "directory": "release/sid-reference-validation/comparison-Ugau0u",
-      "comparison": "release/sid-reference-validation/comparison-Ugau0u/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-1jgrpM",
+      "comparison": "release/sid-reference-validation/comparison-1jgrpM/comparison.json",
       "writes": 163,
       "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
       "fixtureChecks": {
@@ -62,8 +62,8 @@
     {
       "fixture": "tone",
       "sampleRate": 48000,
-      "directory": "release/sid-reference-validation/comparison-iJJ9pU",
-      "comparison": "release/sid-reference-validation/comparison-iJJ9pU/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-9MkUfm",
+      "comparison": "release/sid-reference-validation/comparison-9MkUfm/comparison.json",
       "writes": 163,
       "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
       "fixtureChecks": {
@@ -104,8 +104,8 @@
     {
       "fixture": "tone",
       "sampleRate": 96000,
-      "directory": "release/sid-reference-validation/comparison-UeVhC9",
-      "comparison": "release/sid-reference-validation/comparison-UeVhC9/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-MMHrxu",
+      "comparison": "release/sid-reference-validation/comparison-MMHrxu/comparison.json",
       "writes": 163,
       "writesSha256": "ff654e20384828fd6a697701312f56ee47fb6da3a87fc62b4efeb8c67e6daa70",
       "fixtureChecks": {
@@ -146,8 +146,8 @@
     {
       "fixture": "pulse",
       "sampleRate": 48000,
-      "directory": "release/sid-reference-validation/comparison-MiqJam",
-      "comparison": "release/sid-reference-validation/comparison-MiqJam/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-fBzjDN",
+      "comparison": "release/sid-reference-validation/comparison-fBzjDN/comparison.json",
       "writes": 247,
       "writesSha256": "c01e021f20d2fee8bfe9a7dea73a1c0c5301a8416fd47a2a3e26630e13e79125",
       "fixtureChecks": {
@@ -188,8 +188,8 @@
     {
       "fixture": "noise",
       "sampleRate": 48000,
-      "directory": "release/sid-reference-validation/comparison-hmu1wo",
-      "comparison": "release/sid-reference-validation/comparison-hmu1wo/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-DKZ4IT",
+      "comparison": "release/sid-reference-validation/comparison-DKZ4IT/comparison.json",
       "writes": 163,
       "writesSha256": "5608a6508f4d6773b7a6768dde6f948096e6a0a1fab158e006c9f2dd6caf189c",
       "fixtureChecks": {
@@ -230,8 +230,8 @@
     {
       "fixture": "melody-filter",
       "sampleRate": 48000,
-      "directory": "release/sid-reference-validation/comparison-gMNcFa",
-      "comparison": "release/sid-reference-validation/comparison-gMNcFa/comparison.json",
+      "directory": "release/sid-reference-validation/comparison-AUF0PV",
+      "comparison": "release/sid-reference-validation/comparison-AUF0PV/comparison.json",
       "writes": 289,
       "writesSha256": "4411836802c04bd15e5b3e4e67b2b35dc9d27a0281f71c64144f3c99a8f0b7f6",
       "fixtureChecks": {
@@ -276,7 +276,7 @@
     "repeatedEventChunk": 1,
     "firstRenderChunk": 4096,
     "repeatedRenderChunk": 1,
-    "directory": "release/sid-reference-validation/comparison-6zx1DV",
+    "directory": "release/sid-reference-validation/comparison-QerXm3",
     "writesExact": true,
     "referencePcmExact": true,
     "tetoricaPcmExact": true,
@@ -285,13 +285,13 @@
   "initAddressZero": [
     {
       "embeddedLoadAddress": true,
-      "directory": "release/sid-reference-validation/comparison-AkSQnC",
+      "directory": "release/sid-reference-validation/comparison-vOjUp0",
       "writesExact": true,
       "pcmExact": true
     },
     {
       "embeddedLoadAddress": false,
-      "directory": "release/sid-reference-validation/comparison-eDRIZ2",
+      "directory": "release/sid-reference-validation/comparison-7i3Dys",
       "writesExact": true,
       "pcmExact": true
     }
@@ -392,8 +392,8 @@
   "sources": [
     {
       "path": "scripts/check_sid_reference.mjs",
-      "bytes": 6981,
-      "sha256": "369e965a8e872aa3f4a9db274713bd806580913749d64af6f870436f26d21169"
+      "bytes": 7017,
+      "sha256": "e8e052eff2199c51a0cf52dd8bfef72fd63008aa179594007c3eb3ab064fb071"
     },
     {
       "path": "scripts/prepare_sid_reference.mjs",
@@ -412,8 +412,13 @@
     },
     {
       "path": "tetorica_src/cli/sid_psid.mjs",
-      "bytes": 6489,
-      "sha256": "c2640a04e749b715534b9001a3381401802dda6ad9a2baaa1177a7d52539c56c"
+      "bytes": 145,
+      "sha256": "9f175f710749e4fd8e53784ee36fd4b555ca084de31c6bbc151a96d329f60bf6"
+    },
+    {
+      "path": "tetorica_src/runtime/sid_psid.js",
+      "bytes": 8291,
+      "sha256": "1999d02e252e015b0dee02cbd83b7357976f516c4328361ed7ee276065142dcb"
     },
     {
       "path": "tetorica_src/cli/sid_trace.mjs",

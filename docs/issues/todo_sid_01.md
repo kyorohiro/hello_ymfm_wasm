@@ -38,6 +38,18 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### ブラウザーでSIDファイルを再生する今回の作業（2026-11-07）
+
+ユーザーの「次に進めて」により、コマンド操作なしで `.sid` を選び、再生・停止できる入口を作る。
+最初にブラウザー向けC64 program実行方法とlicense／ROM条件を確認し、対応するPSID subsetを明示する。
+既存Synthの楽器編集、SDK／校正値、外部GPL参照CLIの境界を維持する。
+
+- [x] ブラウザーで動くCPU／SID接続方法、実行上限、対応PSIDとROM／license条件を決める。
+- [x] SIDファイル選択、曲情報、subtune選択、再生／停止、エラー表示と自作デモのある可読画面を作る。
+- [x] AudioWorkletでprogram実行とSIDを接続し、読み込み中Stop／再読み込み／無効入力時の保持・無音化を整える。
+- [x] 自作PSIDの期待write列、実音声、分割render、停止、異常入力を自動検証する。人の実聴と区別する。
+- [x] Chromium／WebKit、mobile幅、配布・source／license／再ビルド手順、READMEと再開メモを更新する。
+
 ### 参照再生／比較CLIの今回の作業（2026-11-07）
 
 ユーザーの「進めて」により、SID曲を基準にした検証を開始する。
@@ -84,8 +96,9 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 ## 再開メモ
 
 TODOを作成してから調査を開始した。第1段階のcore／Native・WASM／独立ラボは実装済み。
-通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階で対応した。
-package-root raw chip factory／Native出力／browserのSID曲再生／RSIDは後続。
+通常Playground modeは下記第2段階、独立Synthは第3段階、限定PSID参照CLIは第4段階、
+限定browser PSID Playerは第5段階で対応した。
+package-root raw chip factory／Native出力／RSID・CIA・完全なC64環境は後続。
 `.sid`はC64演奏programとdataを含むため、単体SIDのregister APIと曲再生を別段階にする。
 既存の公開済みS-DSP、SDK receipt、npm packageはこのTODO作成時点では変更していない。
 
@@ -255,9 +268,59 @@ SID曲／音色抽出、外部reference／実機比較、Native出力は別TODO�
   固定SDK33 builds／全68 outputs／75 mirrorsと、両Mixer policy checkも成功。runtime／WASM／校正値は変更していない。
   GitHub上のCI実行・commit／push・npm／Web公開は行っていない。
 
-再開時はまず上記コマンドと比較用WAVを使う。次は実ゲームの対応subset PSIDでdriver依存と実聴を確認する。
-その結果をもとにbrowserでの曲再生／状態表示、時変parameterを含む音色取り込みを設計する。
+第4段階のコマンドと比較WAVはAI側の検証用。ユーザーには第5段階のbrowser画面を入口として案内する。
+時変parameterを含む音色取り込みは後続。
 CLIの比較結果をSynth音色の完全復元や実機精度と呼ばない。
+
+## 第5段階: ブラウザーSID Player（2026-11-07）
+
+- 入口は `docs/sid-player/index.html`。**Load demo → Play**、または **Open SID… → Play**。
+  ファイルはブラウザー内で処理しuploadしない。曲名／作者／subtune、3voiceのwave／frequency／Pulse幅／Gate／ENV／ADSR、
+  shared filter、post-Master Waveform／Spectrumを表示する。Master0..380%と100%超orangeを継承。
+- GPL参照engineをbrowserへ移さず、同じ固定revisionのzlib **chips/m6502** と既存のadapted **m6581** を
+  新しい独立WASMで接続。既存Synth／Playground SID WASM、固定SDK33 builds／68 outputs／75 mirrorsは変更していない。
+  CPUの1bus cycleでSIDも1tick進み、writeはtick後commit。実SID readも同じbusで処理する。
+- 初版は **PSID v2・明示PAL／6581・単一SID・全VBI・relocation0/0・RAM$0800..$CFFF・explicit init/play**。
+  65,660-byte上限。init=0はload addressへ解決し、subtuneは1-based。共有parserをbrowser-safeに抽出しCLI互換entryも維持した。
+  Windows-1252 metadataのdecodeはpure JSで、TextDecoderのないAudioWorkletでもimportできる。
+- 完全なC64の代わりにbounded init/play driverを提供する。RAM／stack／JSRを用意し、initはA=subtune-1、
+  playはA/X/Y=0。init上限100,000 cycles、play上限16,000 cycles、PAL frame19,656 cyclesごとに呼ぶ。
+  init中の音声を保持し、initで過ぎたVBIをまとめて呼び戻さない。RSID／CIA／VIC／IRQ／ROM依存／非対応bankingは理由・address付きで拒否する。
+  $A000..$BFFFのentryを呼ぶ際、BASICがmappedならLORAMだけclearして$37→$36にする。
+  これはPSID host側のbank選択で、SID I/Oを隠さず、既に適合するmapは保持する。
+- 旧CLIのlibsidplayfp driverには起動warmup／IRQ／driver命令があり、browser direct hostと絶対cycleは異なる。
+  自作toneの最初のwriteはCLI168,000、browser16で、どちらも同じsubroutine内のSTA間隔は6cycles。
+  driverを跨ぐPCM完全一致とは呼ばず、browserが記録した同じcycleのwriteを既存SidCoreへ再生したPCM一致を確認する。
+- 候補のparse／initと最初0.25秒の無音preflightが成功するまで選択・再生中の曲を保持する。
+  Stopは起動中のengineも即disposeし、遅れたACKで再発音させない。subtune変更取消時もaccepted選択へ戻す。
+  persisted pagehideは音声だけ退役し、Back/Forward復帰後も同じ選択から再生できる。
+- [HVSC metadata調査](sid_player_hvsc_metadata_01.json): ユーザーの `ww/C64Music`（Release85）をread-onlyで確認。
+  **61,157件中15,214件**がheader条件を通過した。これは再生成功数ではない。
+  [実WASM実行](sid_player_hvsc_playback_01.json): 候補10曲・16subtunesを各2秒、**14件でfinite/nonzero PCMとStop後0**。
+  残り2件はCIA$DC04／VIC$D020で明示拒否。Cybernoidは両subtune成功。
+  入力hash／metadata／scalar測定だけを保存し、ゲーム音楽／PCM／ROMを配布物へコピーしていない。実聴・長時間再生・原曲との一致は未確認。
+- [配布記録](sid_player_package_01.json): 可読JS／CSS・自作4demoと元generator・source receipt・license・matching native source kitを同梱。
+  source kitだけから別directoryへ再buildしたWASMが配布用とbyte一致した。
+  最終WASMは74,012 bytes、SHA-256 `a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491`。
+  最新候補は `release/tetorica_sid_player_0.0.1-preview4_itch.zip`、40files／1,293,564bytes、
+  SHA-256 `48f7737c4fe6fd87b4784bcc254465ac006cd1cbe98e1178ccebc642d6ababca`。
+  旧preview〜preview3は修正前の履歴で、今回の最終候補には使わない。
+- `npm run test:sid-player`: **27件成功**。4自作program×44.1／48／96kHz×chunk1／128／4096、
+  期待CPU write列と6cycle間隔、VBI周期、既存SidCoreへの同cycle replay PCM一致、OSC3／ENV3 read→STAと実read値一致、
+  A000／BFFFのinit／playとbank再選択、96kHzで4096を超えるinit音声queue、atomic load／Stop／fault無音化を確認。
+  parser／TextDecoderなしWorklet／bounded input、RPC起動・取消、metadata scan、可読ZIP・hash／CRCも含む。
+  既存SID Synth42件、PSID CLI／trace／共有parser関連38件、外部CLI6ケース＋repeat＋init0の2load形式も成功した。
+- [Source browser](sid_player_browser_01.json)／[実ZIP browser](sid_player_zip_browser_01.json):
+  **Chromium／WebKit各11項目、計44チェック成功**。実PCM・4demo・2subtune・pending preflightの取消・
+  pending startのStop・不正候補で旧曲保持・runtime fault復帰・Master比率・380%・1出力pathを確認。
+  persisted pagehide/pageshowはsynthetic eventでの停止・再Play確認で、実historyのBFCache適用条件を保証しない。
+  desktop1180／mobile390のpage overflow0。mobileのcanvasはCSS幅に合わせ文字の縮小潰れを防ぎ、画像も目視した。
+  page／console／HTTP error・外部通信0。speakerは最終gain0でmuteし、人の実聴はしていない。最終PCMはRMS／peak0。
+- README en／ja／AI、両home、SID Synthからのlink、guide、feature statusとSID Player専用CIを更新。
+  commit／push／公開・npm更新はしていない。ローカル入口は `http://localhost:8008/sid-player/index.html`。
+
+次は人が対応する実曲を実聴する。その後、演奏中のvoice設定／時間変化から試奏用の音色を取り込む設計へ進む。
+瞬間snapshotを元instrumentの完全復元とは扱わない。非対応RSID／CIA／8580等の拡張は別の段階とする。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

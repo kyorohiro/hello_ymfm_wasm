@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "entry": "/index.html",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "fixtures": "Newly authored C64 PSID programs only; no game or ROM data",
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "local readable player loads without audio; selecting a demo preflights its real CPU and metadata",
+        "Stop cancels delayed audio startup and no stale Play becomes audible",
+        "all four local demos produce finite real PCM and program-driven voice/filter changes",
+        "file selection exposes two subtunes and passes the selected init A value into actual SID frequency",
+        "Stop cancels a pending subtune preflight and restores the accepted selector and actual tune",
+        "synthetic persisted pagehide stops audio while pageshow leaves the selected tune and controls usable",
+        "cancel, malformed PSID and CPU preflight errors keep the selected and currently playing tune",
+        "Master is post-player, doubles amplitude and supports orange 380 percent",
+        "Stop fences a pending start command, then fresh Play restarts from the selected file",
+        "a bounded runtime CPU fault becomes silent and a valid demo recovers without reloading the page",
+        "one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local"
+      ],
+      "measurements": {
+        "demos": {
+          "tone": {
+            "rms": 0.02015763123237808,
+            "peak": 0.03453703969717026,
+            "cycles": 45755,
+            "playCalls": 2,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "pulse": {
+            "rms": 0.021619371636322063,
+            "peak": 0.0562455877661705,
+            "cycles": 34317,
+            "playCalls": 1,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 4
+          },
+          "noise": {
+            "rms": 0.013566407252114006,
+            "peak": 0.037080489099025726,
+            "cycles": 34317,
+            "playCalls": 1,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "melody-filter": {
+            "rms": 0.014066800938994428,
+            "peak": 0.048864882439374924,
+            "cycles": 40036,
+            "playCalls": 2,
+            "distinctCutoffs": 3,
+            "distinctPulseWidths": 1
+          }
+        },
+        "persistedLifecycle": {
+          "syntheticEvents": true,
+          "retainedSubtune": 2,
+          "restarted": true
+        },
+        "masterRatio": 2.000379021351918,
+        "layouts": [
+          {
+            "width": 1180,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        }
+      ],
+      "finalSample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "local readable player loads without audio; selecting a demo preflights its real CPU and metadata",
+        "Stop cancels delayed audio startup and no stale Play becomes audible",
+        "all four local demos produce finite real PCM and program-driven voice/filter changes",
+        "file selection exposes two subtunes and passes the selected init A value into actual SID frequency",
+        "Stop cancels a pending subtune preflight and restores the accepted selector and actual tune",
+        "synthetic persisted pagehide stops audio while pageshow leaves the selected tune and controls usable",
+        "cancel, malformed PSID and CPU preflight errors keep the selected and currently playing tune",
+        "Master is post-player, doubles amplitude and supports orange 380 percent",
+        "Stop fences a pending start command, then fresh Play restarts from the selected file",
+        "a bounded runtime CPU fault becomes silent and a valid demo recovers without reloading the page",
+        "one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local"
+      ],
+      "measurements": {
+        "demos": {
+          "tone": {
+            "rms": 0.020112329188474776,
+            "peak": 0.03453703969717026,
+            "cycles": 42896,
+            "playCalls": 2,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "pulse": {
+            "rms": 0.02273266767724184,
+            "peak": 0.06817016750574112,
+            "cycles": 45755,
+            "playCalls": 2,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 4
+          },
+          "noise": {
+            "rms": 0.013422476409553194,
+            "peak": 0.05653093010187149,
+            "cycles": 42896,
+            "playCalls": 2,
+            "distinctCutoffs": 1,
+            "distinctPulseWidths": 1
+          },
+          "melody-filter": {
+            "rms": 0.014582623952018894,
+            "peak": 0.06101246178150177,
+            "cycles": 45755,
+            "playCalls": 2,
+            "distinctCutoffs": 3,
+            "distinctPulseWidths": 1
+          }
+        },
+        "persistedLifecycle": {
+          "syntheticEvents": true,
+          "retainedSubtune": 2,
+          "restarted": true
+        },
+        "masterRatio": 1.9998672077174664,
+        "layouts": [
+          {
+            "width": 1180,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "iconLoaded": 1254,
+            "voices": 3
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        }
+      ],
+      "finalSample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    }
+  ],
+  "checkerSha256": "82a85fa0d8123d5802019477551d47b2957aa4b5ca4c4d0af9dccccb8e79c3fe"
+}

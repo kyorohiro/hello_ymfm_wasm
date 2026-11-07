@@ -1,0 +1,388 @@
+{
+  "format": "tetorica-sid-player-package-check",
+  "version": 1,
+  "passed": true,
+  "packageVersion": "0.0.1-preview4",
+  "stage": "release/sid-player-0.0.1-preview4-stage-8oU7NO",
+  "archive": "release/tetorica_sid_player_0.0.1-preview4_itch.zip",
+  "extracted": "release/sid-player-0.0.1-preview4-extracted",
+  "files": 40,
+  "archiveRecord": {
+    "bytes": 1293564,
+    "sha256": "48f7737c4fe6fd87b4784bcc254465ac006cd1cbe98e1178ccebc642d6ababca"
+  },
+  "builder": {
+    "name": "source-copy",
+    "minify": false,
+    "bundle": false,
+    "dependencyAnalyzer": {
+      "name": "esbuild",
+      "version": "0.28.2"
+    }
+  },
+  "browserModules": 7,
+  "originalInputs": 39,
+  "sourceArchive": {
+    "path": "sources/sid-player-browser-inputs.zip",
+    "bytes": 648305,
+    "sha256": "fd2c732df4d3c229ecdf254b887ec445d2c73029540777e734feabb44e32a05d"
+  },
+  "nativeArtifact": {
+    "path": "generated/sid-player/sid-player.wasm",
+    "bytes": 74012,
+    "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+  },
+  "nativeInputs": 14,
+  "nativeReceipt": {
+    "schemaVersion": 1,
+    "component": "sid-player",
+    "fixedSdkArtifact": false,
+    "model": "6581",
+    "clockHz": 985248,
+    "frameCycles": 19656,
+    "initCycleLimit": 100000,
+    "playCycleLimit": 16000,
+    "cpu": "chips/m6502",
+    "environment": "bounded-psid-init-play-no-rom-cia-vic-irq",
+    "upstream": {
+      "revision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
+      "cpuHeaderSha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e",
+      "sidHeaderSha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf",
+      "licenseSha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "inputs": {
+      "LICENSE": {
+        "bytes": 1519,
+        "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+      },
+      "third_party/chips-m6502/LICENSE": {
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      "third_party/chips-m6502/README.md": {
+        "bytes": 4086,
+        "sha256": "7939fcd64483033bcc6be8df042cb824cf42f406b4220a052205e1e7cff64ba3"
+      },
+      "third_party/chips-m6502/upstream/m6502.h": {
+        "bytes": 144215,
+        "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+      },
+      "third_party/chips-m6581/LICENSE": {
+        "bytes": 893,
+        "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+      },
+      "third_party/chips-m6581/README.md": {
+        "bytes": 2306,
+        "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+      },
+      "third_party/chips-m6581/PATCHES.md": {
+        "bytes": 2239,
+        "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+      },
+      "third_party/chips-m6581/upstream/m6581.h": {
+        "bytes": 26332,
+        "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+      },
+      "third_party/chips-m6581/m6581.h": {
+        "bytes": 27313,
+        "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+      },
+      "tetorica_src/wasm/sid_player_core.h": {
+        "bytes": 11524,
+        "sha256": "e0c44a15165acbf7da51e15b54f2635f6d688f41541e96893dc6dca907bc100d"
+      },
+      "tetorica_src/wasm/sid_player_wasm.cpp": {
+        "bytes": 2262,
+        "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+      },
+      "scripts/build_sid_player_wasm.sh": {
+        "bytes": 721,
+        "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+      },
+      "scripts/sid_player_artifacts.mjs": {
+        "bytes": 5282,
+        "sha256": "ed7d7fac5e29dd56ee9a62b2cb685adbacf8ec6410c80a9b664ba7012203a068"
+      },
+      "scripts/prepare_sid_core.py": {
+        "bytes": 3625,
+        "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+      }
+    },
+    "output": {
+      "bytes": 74012,
+      "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+    }
+  },
+  "runtimeInputHashes": [
+    {
+      "path": "docs/js/sid_psid.js",
+      "bytes": 8291,
+      "sha256": "1999d02e252e015b0dee02cbd83b7357976f516c4328361ed7ee276065142dcb"
+    },
+    {
+      "path": "docs/sid-player/audio.js",
+      "bytes": 7439,
+      "sha256": "f36fb8a1b0ee01b912f39683500331f3f7df1f5c3c2fbb6d6d6f73ee584a5c9b"
+    },
+    {
+      "path": "docs/sid-player/core.js",
+      "bytes": 6529,
+      "sha256": "6074a773e0fbdfa9046d8dc011e3c7f8b67e7e4ae32d7bbd1f71f490584cd3da"
+    },
+    {
+      "path": "docs/sid-player/player.css",
+      "bytes": 7056,
+      "sha256": "783198ebfe2950c79f156d7475a503ae39e8e6916c1618bee62d47ef57ab89e5"
+    },
+    {
+      "path": "docs/sid-player/player.js",
+      "bytes": 12085,
+      "sha256": "f965529c746dda5cfa8aec20feed4716de590d226a53b1be49a6945eb579cfcb"
+    },
+    {
+      "path": "docs/sid-player/processor.js",
+      "bytes": 2543,
+      "sha256": "c5c482a8fad621a0acc01d114300bddf3cb0eb494208ef4d5f272c35c3e3fafc"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_visualizer.js",
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    }
+  ],
+  "originalInputHashes": [
+    {
+      "path": "LICENSE",
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    {
+      "path": "docs/js/sid_psid.js",
+      "bytes": 8291,
+      "sha256": "1999d02e252e015b0dee02cbd83b7357976f516c4328361ed7ee276065142dcb"
+    },
+    {
+      "path": "docs/sid-player/README.md",
+      "bytes": 6518,
+      "sha256": "a4b32c362b380cf35eb28b55dacea6a759915e280bd7144b2d239979bb00856a"
+    },
+    {
+      "path": "docs/sid-player/audio.js",
+      "bytes": 7439,
+      "sha256": "f36fb8a1b0ee01b912f39683500331f3f7df1f5c3c2fbb6d6d6f73ee584a5c9b"
+    },
+    {
+      "path": "docs/sid-player/core.js",
+      "bytes": 6529,
+      "sha256": "6074a773e0fbdfa9046d8dc011e3c7f8b67e7e4ae32d7bbd1f71f490584cd3da"
+    },
+    {
+      "path": "docs/sid-player/demos/LICENSE.txt",
+      "bytes": 1543,
+      "sha256": "af18819362f4db33dd35bb350eece5aea3efb52f3bbf375afcaa88b138d9a42b"
+    },
+    {
+      "path": "docs/sid-player/demos/README.md",
+      "bytes": 2076,
+      "sha256": "77ae56f91ff0f8e0c756f0f8b0b9966d1c80d8eb36cd859881435faaa737c5a6"
+    },
+    {
+      "path": "docs/sid-player/demos/fixture.mjs",
+      "bytes": 5578,
+      "sha256": "17781a8a2c40041a5879a6623d20a81764331234a53a79480a65cb63bb3a21db"
+    },
+    {
+      "path": "docs/sid-player/demos/melody-filter.sid",
+      "bytes": 412,
+      "sha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0"
+    },
+    {
+      "path": "docs/sid-player/demos/noise.sid",
+      "bytes": 370,
+      "sha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7"
+    },
+    {
+      "path": "docs/sid-player/demos/provenance.json",
+      "bytes": 1716,
+      "sha256": "decd4f13c86815911d629579aacc3fe6b041c5a5f7f7c47b1f95755a7de1df6b"
+    },
+    {
+      "path": "docs/sid-player/demos/pulse.sid",
+      "bytes": 398,
+      "sha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea"
+    },
+    {
+      "path": "docs/sid-player/demos/tone.sid",
+      "bytes": 370,
+      "sha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28"
+    },
+    {
+      "path": "docs/sid-player/index.html",
+      "bytes": 5488,
+      "sha256": "60e8eacea7e4f96e1f837ed6091743c86206fc0d460c2cc66f71a68753f40129"
+    },
+    {
+      "path": "docs/sid-player/player.css",
+      "bytes": 7056,
+      "sha256": "783198ebfe2950c79f156d7475a503ae39e8e6916c1618bee62d47ef57ab89e5"
+    },
+    {
+      "path": "docs/sid-player/player.js",
+      "bytes": 12085,
+      "sha256": "f965529c746dda5cfa8aec20feed4716de590d226a53b1be49a6945eb579cfcb"
+    },
+    {
+      "path": "docs/sid-player/processor.js",
+      "bytes": 2543,
+      "sha256": "c5c482a8fad621a0acc01d114300bddf3cb0eb494208ef4d5f272c35c3e3fafc"
+    },
+    {
+      "path": "docs/synth-spu/spu_synth_visualizer.js",
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    },
+    {
+      "path": "docs/tetorica_sid_synth.webp",
+      "bytes": 544322,
+      "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 55415,
+      "sha256": "25b371d87334725070a1d055e140a426e5aecf6101db517c8be803d363d22849"
+    },
+    {
+      "path": "package.json",
+      "bytes": 6198,
+      "sha256": "8e626febb0c03988bc677ea2816837ddf55c1ebcd561e10c16e0362d41171761"
+    },
+    {
+      "path": "scripts/build_sid_player_wasm.sh",
+      "bytes": 721,
+      "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+    },
+    {
+      "path": "scripts/copy_readable_modules.mjs",
+      "bytes": 3657,
+      "sha256": "bf58b3f05bfc2a48f7a35a0cb3f797436ed6f379af251e8ecf03240ba297d05a"
+    },
+    {
+      "path": "scripts/package_sid_player.mjs",
+      "bytes": 10851,
+      "sha256": "fcc0f81de42ad5258063b0bb45cbf57f2870cc6736a715e617dc444069ff9518"
+    },
+    {
+      "path": "scripts/prepare_sid_core.py",
+      "bytes": 3625,
+      "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+    },
+    {
+      "path": "scripts/sid_player_artifacts.mjs",
+      "bytes": 5282,
+      "sha256": "ed7d7fac5e29dd56ee9a62b2cb685adbacf8ec6410c80a9b664ba7012203a068"
+    },
+    {
+      "path": "test/fixtures/sid-reference/fixture.mjs",
+      "bytes": 5578,
+      "sha256": "17781a8a2c40041a5879a6623d20a81764331234a53a79480a65cb63bb3a21db"
+    },
+    {
+      "path": "tetorica_src/cli/sid_psid.mjs",
+      "bytes": 145,
+      "sha256": "9f175f710749e4fd8e53784ee36fd4b555ca084de31c6bbc151a96d329f60bf6"
+    },
+    {
+      "path": "tetorica_src/runtime/sid_psid.js",
+      "bytes": 8291,
+      "sha256": "1999d02e252e015b0dee02cbd83b7357976f516c4328361ed7ee276065142dcb"
+    },
+    {
+      "path": "tetorica_src/wasm/sid_player_core.h",
+      "bytes": 11524,
+      "sha256": "e0c44a15165acbf7da51e15b54f2635f6d688f41541e96893dc6dca907bc100d"
+    },
+    {
+      "path": "tetorica_src/wasm/sid_player_wasm.cpp",
+      "bytes": 2262,
+      "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+    },
+    {
+      "path": "third_party/chips-m6502/LICENSE",
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    {
+      "path": "third_party/chips-m6502/README.md",
+      "bytes": 4086,
+      "sha256": "7939fcd64483033bcc6be8df042cb824cf42f406b4220a052205e1e7cff64ba3"
+    },
+    {
+      "path": "third_party/chips-m6502/upstream/m6502.h",
+      "bytes": 144215,
+      "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+    },
+    {
+      "path": "third_party/chips-m6581/LICENSE",
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    {
+      "path": "third_party/chips-m6581/PATCHES.md",
+      "bytes": 2239,
+      "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+    },
+    {
+      "path": "third_party/chips-m6581/README.md",
+      "bytes": 2306,
+      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+    },
+    {
+      "path": "third_party/chips-m6581/m6581.h",
+      "bytes": 27313,
+      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+    },
+    {
+      "path": "third_party/chips-m6581/upstream/m6581.h",
+      "bytes": 26332,
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    }
+  ],
+  "supersedes": {
+    "archive": "release/tetorica_sid_player_0.0.1-preview3_itch.zip",
+    "archiveRecord": {
+      "bytes": 1293083,
+      "sha256": "53379eae9e43dd5534115afafe9515082db2815fae7c12eae72f0557785b7fa9"
+    },
+    "reason": "App-local responsive monitor canvas dimensions keep waveform and spectrum labels readable on narrow screens; earlier preview ZIPs are preserved as historical snapshots."
+  },
+  "tests": {
+    "command": "node --test scripts/package_sid_player.test.mjs",
+    "passed": 2
+  },
+  "checks": [
+    "Two independent packages are byte-identical.",
+    "Both ZIP archives pass CRC checks; archived original inputs match their SHA-256 receipt.",
+    "Readable runtime JS/CSS and native source kit retain original bytes; canonical parser matches served copy.",
+    "All runtime imports, AudioWorklet/WASM URLs and HTML assets are local; unshipped navigation opens published guides.",
+    "Exactly four self-authored BSD demos; no HVSC files, game music, ROMs, GPL engine or tests in runtime package.",
+    "Existing ZIP archives are never overwritten."
+  ],
+  "zipValidation": {
+    "outerCrcPassed": true,
+    "nestedSourceCrcPassed": true,
+    "allInputHashesMatched": true,
+    "extractedFilesByteIdentical": true,
+    "files": 40
+  },
+  "nativeSourceRebuild": {
+    "passed": true,
+    "sourceDirectory": "docs/sources/sid-player",
+    "command": "sh scripts/build_sid_player_wasm.sh /private/tmp/tetorica-sid-player-source-rebuild-final-20261107",
+    "compiler": "Emscripten 6.0.6",
+    "output": {
+      "bytes": 74012,
+      "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+    },
+    "matchesPackagedWasm": true
+  }
+}

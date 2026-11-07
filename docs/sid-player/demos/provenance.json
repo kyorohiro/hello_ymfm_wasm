@@ -1,0 +1,66 @@
+{
+  "format": "tetorica-sid-player-demos",
+  "version": 1,
+  "license": "BSD-3-Clause",
+  "copyright": "Copyright (c) 2026 kyorohiro and Tetorica contributors.",
+  "target": {
+    "format": "PSID",
+    "version": 2,
+    "clock": "PAL",
+    "clockHz": 985248,
+    "model": "6581",
+    "sidCount": 1,
+    "timing": "VBI"
+  },
+  "generator": {
+    "repositoryPath": "test/fixtures/sid-reference/fixture.mjs",
+    "localPath": "fixture.mjs",
+    "sha256": "17781a8a2c40041a5879a6623d20a81764331234a53a79480a65cb63bb3a21db"
+  },
+  "files": [
+    {
+      "name": "tone.sid",
+      "profile": "tone",
+      "bytes": 370,
+      "sha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4282
+    },
+    {
+      "name": "pulse.sid",
+      "profile": "pulse",
+      "bytes": 398,
+      "sha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4282
+    },
+    {
+      "name": "noise.sid",
+      "profile": "noise",
+      "bytes": 370,
+      "sha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4282
+    },
+    {
+      "name": "melody-filter.sid",
+      "profile": "melody-filter",
+      "bytes": 412,
+      "sha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4282
+    }
+  ]
+}

@@ -79,7 +79,7 @@ for (const embeddedLoadAddress of [true, false]) {
 report.reference = repeated.report.provenance;
 report.referenceTiming = repeated.report.timing;
 const sources = ['scripts/check_sid_reference.mjs', 'scripts/prepare_sid_reference.mjs',
-  'tetorica_src/cli/sid_reference.mjs', 'tetorica_src/cli/sid_reference_metrics.mjs', 'tetorica_src/cli/sid_psid.mjs', 'tetorica_src/cli/sid_trace.mjs',
+  'tetorica_src/cli/sid_reference.mjs', 'tetorica_src/cli/sid_reference_metrics.mjs', 'tetorica_src/cli/sid_psid.mjs', 'tetorica_src/runtime/sid_psid.js', 'tetorica_src/cli/sid_trace.mjs',
   'test/fixtures/sid-reference/fixture.mjs', 'test/helpers/sid_player_reference.cpp', 'test/helpers/sid_trace_render.cpp',
   'third_party/sid-reference/serial-filter-tables.patch', 'third_party/sid-reference/serial-filter-tables.json',
   'third_party/sid-reference/COPYING.libsidplayfp', 'third_party/sid-reference/COPYING.libresidfp',

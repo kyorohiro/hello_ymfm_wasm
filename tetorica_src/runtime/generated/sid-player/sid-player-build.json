@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "component": "sid-player",
+  "fixedSdkArtifact": false,
+  "model": "6581",
+  "clockHz": 985248,
+  "frameCycles": 19656,
+  "initCycleLimit": 100000,
+  "playCycleLimit": 16000,
+  "cpu": "chips/m6502",
+  "environment": "bounded-psid-init-play-no-rom-cia-vic-irq",
+  "upstream": {
+    "revision": "9e88298ce56319953ac7a43213a1120359f7a3a6",
+    "cpuHeaderSha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e",
+    "sidHeaderSha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf",
+    "licenseSha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+  },
+  "inputs": {
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "third_party/chips-m6502/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6502/README.md": {
+      "bytes": 4086,
+      "sha256": "7939fcd64483033bcc6be8df042cb824cf42f406b4220a052205e1e7cff64ba3"
+    },
+    "third_party/chips-m6502/upstream/m6502.h": {
+      "bytes": 144215,
+      "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+    },
+    "third_party/chips-m6581/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6581/README.md": {
+      "bytes": 2306,
+      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+    },
+    "third_party/chips-m6581/PATCHES.md": {
+      "bytes": 2239,
+      "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+    },
+    "third_party/chips-m6581/upstream/m6581.h": {
+      "bytes": 26332,
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    },
+    "third_party/chips-m6581/m6581.h": {
+      "bytes": 27313,
+      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+    },
+    "tetorica_src/wasm/sid_player_core.h": {
+      "bytes": 11524,
+      "sha256": "e0c44a15165acbf7da51e15b54f2635f6d688f41541e96893dc6dca907bc100d"
+    },
+    "tetorica_src/wasm/sid_player_wasm.cpp": {
+      "bytes": 2262,
+      "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+    },
+    "scripts/build_sid_player_wasm.sh": {
+      "bytes": 721,
+      "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+    },
+    "scripts/sid_player_artifacts.mjs": {
+      "bytes": 5282,
+      "sha256": "ed7d7fac5e29dd56ee9a62b2cb685adbacf8ec6410c80a9b664ba7012203a068"
+    },
+    "scripts/prepare_sid_core.py": {
+      "bytes": 3625,
+      "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+    }
+  },
+  "output": {
+    "bytes": 74012,
+    "sha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491"
+  }
+}

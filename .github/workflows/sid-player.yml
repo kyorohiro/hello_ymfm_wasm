@@ -1,0 +1,84 @@
+name: SID Player
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/sid-player/**'
+      - 'docs/js/sid_psid.js'
+      - 'docs/generated/sid-player/**'
+      - 'docs/sources/sid-player/**'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/generated/sid-player/**'
+      - 'tetorica_src/wasm/sid_player*'
+      - 'third_party/chips-m6502/**'
+      - 'third_party/chips-m6581/**'
+      - 'scripts/*sid_player*'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'test/sid_psid*'
+      - 'test/sid_player*'
+      - 'test/helpers/sid_player*'
+      - 'test/fixtures/sid-reference/**'
+      - 'package*.json'
+      - '.github/workflows/sid-player.yml'
+  pull_request:
+    paths:
+      - 'docs/sid-player/**'
+      - 'docs/js/sid_psid.js'
+      - 'docs/generated/sid-player/**'
+      - 'docs/sources/sid-player/**'
+      - 'docs/synth-spu/spu_synth_visualizer.js'
+      - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/generated/sid-player/**'
+      - 'tetorica_src/wasm/sid_player*'
+      - 'third_party/chips-m6502/**'
+      - 'third_party/chips-m6581/**'
+      - 'scripts/*sid_player*'
+      - 'scripts/copy_readable_modules.mjs'
+      - 'test/sid_psid*'
+      - 'test/sid_player*'
+      - 'test/helpers/sid_player*'
+      - 'test/fixtures/sid-reference/**'
+      - 'package*.json'
+      - '.github/workflows/sid-player.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify bounded player sources and real CPU / PCM
+        run: |
+          node scripts/sid_player_artifacts.mjs --check
+          npm run test:sid-player
+          npm run test:sid-reference
+          npm run check:runtime-artifacts
+      - name: Play the source application
+        run: node scripts/check_sid_player_browser.cjs --out release/sid-player-source-browser.json --screenshots release/sid-player-source-images
+      - name: Package and play the standalone player
+        run: |
+          npm run pack:sid-player -- ci
+          python3 -m zipfile -e release/tetorica_sid_player_ci_itch.zip release/sid-player-browser
+          node scripts/check_sid_player_browser.cjs --root release/sid-player-browser --entry /index.html --out release/sid-player-zip-browser.json --screenshots release/sid-player-zip-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sid-player-check
+          path: |
+            release/tetorica_sid_player_ci_itch.zip
+            release/sid-player-source-browser.json
+            release/sid-player-zip-browser.json
+            release/sid-player-source-images/
+            release/sid-player-zip-images/
+          if-no-files-found: ignore

@@ -16,8 +16,11 @@ Ring pair, portable presets and readable JavaScript export. See its
 [SID Register Lab](playground/sid-lab/index.html) remains available for register
 experiments. An offline [PSID reference comparison CLI](sid-reference.md) now
 executes a bounded PAL/6581 subset, captures cycle-timed writes and writes
-reference/Tetorica WAVs. A browser `.sid` song player is a separate later stage,
-tracked in [the TODO](issues/todo_sid_01.md).
+reference/Tetorica WAVs. For a supported `.sid` file, open the separate
+[SID Player](sid-player/index.html): load the original demo or your file, then
+press Play. It runs a bounded PSID v2 / PAL / 6581 VBI subset with a 6502 CPU;
+see [its limits](sid-player/README.md). The Synth and Playground APIs remain
+separate instruments. Instrument extraction is tracked in [the TODO](issues/todo_sid_01.md).
 
 ## Musical and register controls
 

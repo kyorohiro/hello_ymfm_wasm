@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground and standalone SID Synth). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground, SID Synth and bounded browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -13,8 +13,15 @@ at `docs/playground/sid-lab/index.html`. Regular **C64**
 mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
 instances, typed note / voice / shared-filter helpers and a read-only SID tab
 are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
-at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). These changes
-do not implement browser `.sid` song playback or publish a new npm release / Native SDK.
+at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). A separate
+browser [SID Player](docs/sid-player/index.html) now accepts a bounded PSID v2 /
+PAL / 6581 / single-SID / VBI subset. It has local file and original demo loading,
+subtune selection, Play / Stop and live voice/filter state. Read
+[its guide](docs/sid-player/README.md) before changing the CPU host: it has no
+ROMs, CIA, VIC or IRQ-driver emulation and is not a complete C64. Its separate
+WASM uses pinned zlib chips/m6502 and the existing m6581 approximation; no GPL
+reference player is linked into the browser. File header validation is not proof
+that a driver will run. No new npm release / Native SDK is published.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
 the marked adaptation. BSD-3-Clause wrappers live in `tetorica_src/wasm/sid_*`
 and `tetorica_src/runtime/sid*`; public modules are exact `docs/js` copies.
@@ -37,8 +44,9 @@ provide expected CPU writes. A marked reference-only serial table-initialization
 patch makes repeat PCM deterministic; the application core is unchanged.
 Use `npm run test:sid-reference`, `npm run check:sid-reference`, or
 `npm run sid:reference -- --fixture melody-filter --seconds 2`.
-ROM dumps, game data, browser integration, instrument import and real-hardware
-fidelity are outside this milestone. The new Node CLI is repository tooling,
+ROM dumps, game data, instrument import and real-hardware fidelity are outside
+this milestone. Browser playback uses the separate bounded host described above,
+with different driver scheduling from libsidplayfp. The Node CLI is repository tooling,
 outside the published CLI/runtime entry-point closures. Native SDK / audio
 integration remains subsequent work. The Playground creation
 clock is fixed (PAL default, optional NTSC); only model '6581' is supported.

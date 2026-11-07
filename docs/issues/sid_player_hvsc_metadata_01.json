@@ -1,0 +1,234 @@
+{
+  "format": "tetorica-sid-player-metadata-audit",
+  "version": 1,
+  "corpus": {
+    "root": "ww/C64Music",
+    "versionHint": "Release 85"
+  },
+  "parserSha256": "1999d02e252e015b0dee02cbd83b7357976f516c4328361ed7ee276065142dcb",
+  "scope": "Metadata/header validation only. No C64 program execution, musical data copy or audio test. Rejection reasons count the first failing rule only.",
+  "subset": "PSID v2, explicit PAL 6581, one SID, all VBI speed bits zero, relocation 0/0, RAM $0800..$CFFF, effective init and explicit play inside payload.",
+  "total": 61157,
+  "supported": 15214,
+  "rejected": 45943,
+  "supportedMultipleSongs": 1110,
+  "supportedTotalSongs": 20533,
+  "categories": {
+    "DEMOS": {
+      "total": 3058,
+      "supported": 461,
+      "rejected": 2597
+    },
+    "GAMES": {
+      "total": 1531,
+      "supported": 166,
+      "rejected": 1365
+    },
+    "MUSICIANS": {
+      "total": 56568,
+      "supported": 14587,
+      "rejected": 41981
+    }
+  },
+  "headerVersions": {
+    "PSID v2": 56881,
+    "RSID v2": 3912,
+    "PSID v3": 325,
+    "PSID v4": 27,
+    "RSID v3": 12
+  },
+  "rejections": {
+    "PSID_UNSUPPORTED: PSID: the SID model must explicitly select 6581 (not unknown, 8580 or both)": 31081,
+    "PSID_UNSUPPORTED: PSID: the video standard must explicitly select PAL (not unknown, NTSC or both)": 6015,
+    "PSID_UNSUPPORTED: PSID: RSID/BASIC requires a real-C64 environment and is outside this reference subset": 3924,
+    "PSID_UNSUPPORTED: PSID: the browser player supports VBI timing only; all CIA-speed bits must be zero": 2904,
+    "PSID_UNSUPPORTED: PSID: the browser player supports unspecified relocation (0/0) only": 1028,
+    "PSID_UNSUPPORTED: PSID: the browser player supports program RAM $0800..$CFFF only": 513,
+    "PSID_UNSUPPORTED: PSID: additional SID model flags are outside the single-SID subset": 345,
+    "PSID_UNSUPPORTED: PSID: playAddress outside the loaded payload may require init-generated code and is not supported": 72,
+    "PSID_UNSUPPORTED: PSID: playAddress 0 installs an IRQ handler; this subset requires an explicit play subroutine": 61
+  },
+  "candidateHeuristic": "Candidates favor distinct authors, multiple songs, known game names and zero raw JSR/JMP-to-ROM byte patterns outside loaded RAM. This is not disassembly or proof of ROM independence.",
+  "candidates": [
+    {
+      "path": "GAMES/A-F/Bellringer_II.sid",
+      "bytes": 382,
+      "sha256": "01af193f461206aa1a7beea2826193ec899f8b9e24d84cd7001ef2f10e30ab4d",
+      "metadata": {
+        "name": "Bellringer II",
+        "author": "Geir Straume",
+        "released": "2005 Geir Straume"
+      },
+      "songs": 4,
+      "startSong": 1,
+      "loadAddress": 5458,
+      "initAddress": 5464,
+      "playAddress": 5510,
+      "programLength": 256,
+      "headerInitAddress": 5464,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "GAMES/G-L/Hunchback_at_the_Olympics.sid",
+      "bytes": 585,
+      "sha256": "b4e11f6248aabd6ecaa4b5fa1d5736ce80e9f41d39a95dc589487842ffabb5c3",
+      "metadata": {
+        "name": "Hunchback at the Olympics",
+        "author": "<?>",
+        "released": "1985 Software Projects"
+      },
+      "songs": 2,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4099,
+      "programLength": 459,
+      "headerInitAddress": 4096,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "GAMES/G-L/Icicle_Works.sid",
+      "bytes": 1287,
+      "sha256": "23a14153b75d07e05f963aaf64fa57937ce8bdd1c24fae558e9f7c48fc686276",
+      "metadata": {
+        "name": "Icicle Works",
+        "author": "Doug Turner",
+        "released": "1985 Commodore"
+      },
+      "songs": 2,
+      "startSong": 2,
+      "loadAddress": 33216,
+      "initAddress": 33216,
+      "playAddress": 33225,
+      "programLength": 1161,
+      "headerInitAddress": 33216,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/T/Tel_Jeroen/Cybernoid.sid",
+      "bytes": 4734,
+      "sha256": "5f96c242e7c9c7d61d4c4c7b8c58af4bb4cfe7dedce0c37ab10f869cda2b42a1",
+      "metadata": {
+        "name": "Cybernoid",
+        "author": "Jeroen Tel",
+        "released": "1988 Hewson"
+      },
+      "songs": 2,
+      "startSong": 1,
+      "loadAddress": 44544,
+      "initAddress": 44544,
+      "playAddress": 44550,
+      "programLength": 4608,
+      "headerInitAddress": 44544,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/B/Blues_Muz/Gallefoss_Glenn/Delta.sid",
+      "bytes": 1642,
+      "sha256": "038c01c43b9d082754e22034e35bd0bb85a6e4fd7b363d486f4a719781ec61df",
+      "metadata": {
+        "name": "Delta",
+        "author": "Glenn Rune Gallefoss",
+        "released": "2001 SHAPE/Blues Muz'"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4099,
+      "programLength": 1516,
+      "headerInitAddress": 4096,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/C/Cadaver/Commando.sid",
+      "bytes": 1805,
+      "sha256": "63903bc9f04ad6d6ea7cbb536f8fbf4442684d4b9836a022e4ba7b8223fbd5fd",
+      "metadata": {
+        "name": "Commando",
+        "author": "Lasse Öörni (Cadaver)",
+        "released": "1999 Cadaver"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4099,
+      "programLength": 1679,
+      "headerInitAddress": 4096,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/D/Danko_Tomas/Delta.sid",
+      "bytes": 2154,
+      "sha256": "d291c8990c80a9884f0e10a2c779f1a9a90bb5cc390c0e0ee64880495e1408ee",
+      "metadata": {
+        "name": "Delta",
+        "author": "Tomas Danko",
+        "released": "1989 Tomas Danko"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 8192,
+      "initAddress": 8195,
+      "playAddress": 8192,
+      "programLength": 2028,
+      "headerInitAddress": 8195,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/M/Moerkrid_Olav/Wizball_Highscore_Tune.sid",
+      "bytes": 2493,
+      "sha256": "cac6ae45c3a0eaaf6f5d94da32305bdfc7c619ba9935b94d09f4d8cf504438bc",
+      "metadata": {
+        "name": "Wizball Highscore Tune",
+        "author": "Olav Mørkrid",
+        "released": "1990 Full Force"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4099,
+      "playAddress": 4102,
+      "programLength": 2367,
+      "headerInitAddress": 4099,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/M/Mitch_and_Dane/Mitch/Last_Ninja.sid",
+      "bytes": 3164,
+      "sha256": "902c444fc8865d464f1db7125f227536895fb22578ae52323b49bce20bd7d16c",
+      "metadata": {
+        "name": "Last Ninja",
+        "author": "M. Nilsson-Vonderburgh (Yankee)",
+        "released": "1990 Dynamix"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 4096,
+      "initAddress": 4096,
+      "playAddress": 4099,
+      "programLength": 3038,
+      "headerInitAddress": 4096,
+      "rawRomCallPatterns": 0
+    },
+    {
+      "path": "MUSICIANS/F/Francois_Marc/Last_Ninja_2_Cover.sid",
+      "bytes": 3273,
+      "sha256": "2ed5cc5db65c5f3898609d2e6035ab30ef4c6b8c9c79cbc7beaacb958679edee",
+      "metadata": {
+        "name": "Last Ninja 2 Cover",
+        "author": "Marc François",
+        "released": "1989 Sonix Systems"
+      },
+      "songs": 1,
+      "startSong": 1,
+      "loadAddress": 32768,
+      "initAddress": 32768,
+      "playAddress": 32774,
+      "programLength": 3147,
+      "headerInitAddress": 32768,
+      "rawRomCallPatterns": 0
+    }
+  ]
+}
