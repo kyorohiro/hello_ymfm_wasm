@@ -20,8 +20,11 @@ subtunes, Play / Stop and live voice/filter state are implemented. RSID clocks
 CPU, both CIAs, VIC and IRQ/NMI; it does not substitute host-periodic play calls.
 The default firmware is an independently authored, limited IRQ/NMI shim with
 fail-closed unsupported ROM access. Optional user Character / BASIC / KERNAL
-ROMs stay in memory only. Unknown/either clock/model flags require explicit
-PAL/6581 choice; known NTSC/8580/multi-SID are rejected. Real-ROM/BASIC
+ROMs stay in memory only. Both PSID and RSID browser validators accept
+unknown/either clock/model flags only after explicit PAL/6581 selection through
+the initially unchecked playback-target setting. Declared hints and original
+header bytes remain intact; selected target metadata is separate. Known
+NTSC/8580/multi-SID are rejected even with that setting enabled. Real-ROM/BASIC
 compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
 an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
@@ -50,6 +53,9 @@ separate GPL validation executable. It preserves PHI2 writes, original PCM/WAV,
 clock/sampling/DC differences and source hashes. Original self-authored fixtures
 provide expected CPU writes. A marked reference-only serial table-initialization
 patch makes repeat PCM deterministic; the application core is unchanged.
+Its public `parsePsid()` entry still requires explicit PAL and 6581 header
+declarations. The browser's target-choice support does not relax this CLI
+contract or alter the native helper's accepted input subset.
 Use `npm run test:sid-reference`, `npm run check:sid-reference`, or
 `npm run sid:reference -- --fixture melody-filter --seconds 2`.
 ROM dumps, game data, instrument import and real-hardware fidelity are outside

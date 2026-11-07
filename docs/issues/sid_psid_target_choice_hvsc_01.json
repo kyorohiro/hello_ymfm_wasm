@@ -1,0 +1,164 @@
+{
+  "format": "tetorica-psid-target-choice-local-audit",
+  "version": 1,
+  "scope": "Read-only local HVSC files, unmodified original bytes. 2-second actual PSID WASM execution at an explicitly selected PAL/6581 target; no audio device, musical bytes or PCM distributed. Finite/nonzero PCM is not proof of correct music, original model or hardware fidelity. Strict reference CLI behavior remains unchanged.",
+  "corpus": {
+    "root": "ww/C64Music",
+    "versionHint": "Release 85"
+  },
+  "implementation": {
+    "wasmSha256": "a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491",
+    "parserSha256": "64af272af00ec99810b711e21d0d285b331c2d19818d7314c6c282774a988d48",
+    "browserCoreSha256": "a465c8b51c3455991f8c12680d19ecf07eadf57d4ae190ca7bca1210237ce350"
+  },
+  "boundedHeaderAudit": {
+    "directories": [
+      "MUSICIANS/H/Hubbard_Rob",
+      "MUSICIANS/G/Galway_Martin"
+    ],
+    "psidFiles": 113,
+    "combinations": {
+      "pal/6581": 103,
+      "pal/any": 6,
+      "pal/8580": 2,
+      "ntsc/6581": 2
+    },
+    "wholeCorpusScanned": false
+  },
+  "summary": {
+    "positiveFiles": 3,
+    "successfulExecutions": 3,
+    "knownUnsupportedRejected": 2,
+    "strictCliAmbiguousRejected": 3,
+    "originalFilesUnchanged": true
+  },
+  "positives": [
+    {
+      "path": "GAMES/A-F/A_P_E_X_preview.sid",
+      "bytes": 2654,
+      "sha256": "44fc1bc628304a2d36e7f6b0877e3f9a17b50cadfb00a51906cbfaef62ec9d48",
+      "metadata": {
+        "name": "A.P.E.X. (preview)",
+        "author": "<?>",
+        "released": "1996 Secure Softwares"
+      },
+      "flags": 0,
+      "declaredClock": "unknown",
+      "declaredModel": "unknown",
+      "selectedClock": "pal",
+      "selectedModel": "6581",
+      "targetSelection": {
+        "clock": "explicit",
+        "model": "explicit"
+      },
+      "subtune": 1,
+      "sampleRate": 48000,
+      "frames": 96000,
+      "seconds": 2,
+      "finite": true,
+      "nonzeroFrames": 94860,
+      "peak": 0.32175368070602417,
+      "rms": 0.04154652980607589,
+      "pcmSha256": "cdfbc2ce0bdfbc126a76718a108f6f297f8b29012bdc1552cd214fbbf92cdc97",
+      "initCycles": 437,
+      "playCalls": 100,
+      "stopZero": true,
+      "strictCliRejected": true,
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "GAMES/A-F/Addams_Family.sid",
+      "bytes": 3880,
+      "sha256": "84df09dfa09920de41c8260c0cb20913f89cc719df715c64ed582c40b1b9703e",
+      "metadata": {
+        "name": "The Addams Family",
+        "author": "Dean Evans",
+        "released": "1992 Ocean"
+      },
+      "flags": 4,
+      "declaredClock": "pal",
+      "declaredModel": "unknown",
+      "selectedClock": "pal",
+      "selectedModel": "6581",
+      "targetSelection": {
+        "clock": "header",
+        "model": "explicit"
+      },
+      "subtune": 1,
+      "sampleRate": 48000,
+      "frames": 96000,
+      "seconds": 2,
+      "finite": true,
+      "nonzeroFrames": 94872,
+      "peak": 0.18675965070724487,
+      "rms": 0.024869761764116108,
+      "pcmSha256": "d5d3b35d1ffbac20af3db095099de43e396e9a12aa9ea90056e7b880df32d83c",
+      "initCycles": 1501,
+      "playCalls": 100,
+      "stopZero": true,
+      "strictCliRejected": true,
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "MUSICIANS/H/Hubbard_Rob/Task_Force.sid",
+      "bytes": 4526,
+      "sha256": "abd3051eb4efc4959a6761396024d509a4701a171c780d230152c4a4dcf1da18",
+      "metadata": {
+        "name": "Task Force",
+        "author": "Rob Hubbard & Jason Page",
+        "released": "2018 Project Hubbard"
+      },
+      "flags": 52,
+      "declaredClock": "pal",
+      "declaredModel": "any",
+      "selectedClock": "pal",
+      "selectedModel": "6581",
+      "targetSelection": {
+        "clock": "header",
+        "model": "explicit"
+      },
+      "subtune": 1,
+      "sampleRate": 48000,
+      "frames": 96000,
+      "seconds": 2,
+      "finite": true,
+      "nonzeroFrames": 92169,
+      "peak": 0.360573410987854,
+      "rms": 0.0689961386630466,
+      "pcmSha256": "cb1bea4442a3ce15fb2a7187cc85bd78a611b302389ca9e77c221ca03c1092fd",
+      "initCycles": 274,
+      "playCalls": 100,
+      "stopZero": true,
+      "strictCliRejected": true,
+      "originalBytesUnchanged": true
+    }
+  ],
+  "negatives": [
+    {
+      "path": "MUSICIANS/H/Hubbard_Rob/Era_of_Eidolon.sid",
+      "bytes": 6263,
+      "sha256": "d7fa2da74e4378242823ae02df1f7bfb8d547085af6b94422457f975598c1577",
+      "flags": 36,
+      "declaredClock": "pal",
+      "declaredModel": "8580",
+      "requestedClock": "pal",
+      "requestedModel": "6581",
+      "rejected": true,
+      "code": "PSID_UNSUPPORTED",
+      "message": "PSID: this browser engine does not support a tune declared as 8580"
+    },
+    {
+      "path": "GAMES/A-F/Alcazar.sid",
+      "bytes": 620,
+      "sha256": "5c671a5fcde000f98d62defd88ac60102e1a5b343b50578f6076503a95aacbdd",
+      "flags": 24,
+      "declaredClock": "ntsc",
+      "declaredModel": "6581",
+      "requestedClock": "pal",
+      "requestedModel": "6581",
+      "rejected": true,
+      "code": "PSID_UNSUPPORTED",
+      "message": "PSID: this browser engine does not support a tune declared as NTSC"
+    }
+  ]
+}

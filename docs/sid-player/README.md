@@ -69,8 +69,8 @@ The application is distributed as readable source modules and CSS, with their co
 - [audio.js](audio.js) and [processor.js](processor.js): Web Audio lifecycle and AudioWorklet commands.
 - [core.js](core.js): existing bounded PSID API.
 - [rsid_core.js](rsid_core.js) and [roms.js](roms.js): C64 RSID API and in-memory firmware input checks.
-- [sid_psid.js](../js/sid_psid.js): browser-safe, bounded input parser, also shared by the Node comparison CLI.
-- [sid_rsid.js](../js/sid_rsid.js): independent RSID parser and explicit PAL/6581 selection. The PSID parser and comparison CLI retain their earlier restrictions.
+- [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header.
+- [sid_rsid.js](../js/sid_rsid.js): independent RSID parser with the same explicit browser target-selection policy. Neither browser validator overrides a known NTSC or 8580 declaration.
 - [PSID demo sources and license](demos/README.md) and [RSID demo sources and license](demos/rsid/README.md).
 - Separate [PSID native source kit](../sources/sid-player/README.md) and [RSID native source kit](../sources/sid-rsid/README.md), with pinned upstream sources, original host/shim, SID patch documentation and licenses.
 

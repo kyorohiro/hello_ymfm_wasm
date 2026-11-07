@@ -43,10 +43,10 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 ユーザーがPSIDのPAL／6581必須エラーを報告した。RSIDで導入した明示選択をPSIDにも揃える。
 旧CLIの厳密な参照条件と、既知NTSC／8580の非対応は維持する。既存のRSID作業と変更は保持する。
 
-- [ ] PSIDの宣言clock/modelを保ち、browserでは不明／両対応を明示PAL／6581選択で受理する。CLIのparsePsidは従来どおりstrictにする。
-- [ ] 共通の再生設定とApply/retryをPSIDにも接続し、AudioWorkletへ選択を渡す。PSIDにRSID用ROMを要求しない。
-- [ ] 未指定／両対応・既知NTSC／8580・保存済みsubtune・無効候補保持・取消のテストと既存RSID回帰を確認する。
-- [ ] 実ブラウザー／独立ZIP、可読sourceとhash、guide／TODO／CI記録を更新する。
+- [x] PSIDの宣言clock/modelを保ち、browserでは不明／両対応を明示PAL／6581選択で受理する。CLIのparsePsidは従来どおりstrictにする。
+- [x] 共通の再生設定とApply/retryをPSIDにも接続し、AudioWorkletへ選択を渡す。PSIDにRSID用ROMを要求しない。
+- [x] 未指定／両対応・既知NTSC／8580・保存済みsubtune・無効候補保持・取消のテストと既存RSID回帰を確認する。
+- [x] 実ブラウザー／独立ZIP、可読sourceとhash、guide／TODO／CI記録を更新する。
 
 ### RSID再生を優先する今回の作業（2026-11-07）
 
@@ -394,6 +394,38 @@ PSID曲の再生はユーザーが実聴して「再生はできてる」と確�
 
 次の候補はD418 digiモデル、実ROM／BASIC・長時間／実聴の確認、または音色取り込み。
 RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先順を確認して進める。
+
+## 第7段階: PSIDのclock／model明示選択（2026-11-07）
+
+- ユーザーがPSIDの「PAL／6581を明記する必要がある」エラー2種を報告した。
+  不明／両対応flagと、実際に非対応のNTSC／8580専用を区別し、browserだけ明示選択を許可する。
+- private構造parserを共有しつつ、公開 `parsePsid` はstrict PAL／6581条件・戻り値・exportを維持した。
+  `validateBrowserPsid(bytes,{clock:'pal',model:'6581'})` は不明／両対応を受け付け、未選択時は `PSID_CHOICE_REQUIRED`。
+  既知NTSC／8580は明示optionでも拒否する。v2／VBI／relocation0／RAM／entrypointの従来制約は維持。
+  original bytes／flags／raw clock・modelは書き換えず、selectedClock／selectedModel／selectionを別に持つ。
+- 共通パネルを **Playback settings · PAL / 6581 & RSID ROMs**、ボタンを **Apply / retry SID** とした。
+  エラー時は設定を開き、**Use PAL / 6581 → Apply / retry SID → Play** で失敗したファイルを再選択せず試せる。
+  PSIDはRSID ROMの未選択／読込中でもOpen／Applyでき、subtuneはaccepted targetを保つ。
+  取消した候補はretry先へ残らず、Play／Workletで再検証する際にもclock／model optionを渡す。
+- `SidPlayerCore.getState()` は実行値model6581／clockHz985248を保ち、declaredClock／declaredModel／detached targetSelectionを追加。
+  新しいmetadataもnative候補成功時だけcommitし、失敗時は旧機械・metadata・次のPCMを保持する。
+- `npm run test:sid-player` **55件成功**、CLI／trace／metrics **29件成功**。
+  [外部参照の回帰](sid_reference_target_choice_01.json)は6ケース＋完全repeat＋init0の2load形式が成功し、
+  旧baseline6ケースのwrite hash・参照／Tetorica／raw PCM hashがすべて一致した。WASM／Native／SID DSPは変更していない。
+- [実HVSC検証](sid_psid_target_choice_hvsc_01.json): 元ファイル無変更、各2秒48kHz。
+  A_P_E_X_preview（unknown/unknown）、Addams_Family（PAL/unknown）、Task_Force（PAL/any model）の3件で有音・Stop0。
+  同じ3件はstrict CLIでは従来どおり拒否し、PAL/8580とNTSC/6581の実ファイル2件もbrowserで引き続き拒否した。
+  入力hash／metadata／scalarのみを保存し、曲／PCM／ROMは同梱しない。
+- [配布記録](sid_psid_target_choice_package_01.json): `release/tetorica_sid_player_0.0.3-target-choice-preview_itch.zip`、
+  80files／10 readable modules／1,546,049bytes、SHA-256 `aa059accfeb783072903064f9ca1dd9185309821a83e0f7f5d584bae7c421f97`。
+  両native WASMは前RSID版とbyte一致。旧PSID／RSID package記録は保持した。
+- [Source browser](sid_psid_target_choice_browser_01.json)／[実ZIP browser](sid_psid_target_choice_zip_browser_01.json):
+  **Chromium／WebKit各24項目、計96チェック成功**。追加3項目でPSID choice errorの旧音保持・設定開示、
+  Applyから実Workletへ届くraw declaration／selected target／PCM、未Applyのcheckbox変更後のsubtune、取消後Apply、
+  RSID ROM未選択／読込中でもPSIDが独立してOpen／Applyできること、既知NTSC／8580の保持付き拒否を確認。
+  既存PSID／RSID・ROM・Stop・Master・mobile項目も成功。page／console／HTTP error・外部通信0、
+  1180／390pxのoverflow0、speakerはmuteで最終PCM RMS／peak0。人の実聴は別。
+- ガイド・英語AI README・TODOを更新。commit／push／公開・npm更新はしていない。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、
