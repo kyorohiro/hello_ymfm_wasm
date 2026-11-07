@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-07 (English handoff; readable distributions, C64 Playground, SID Synth and browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-08 (English handoff; readable distributions, C64 Playground, SID Synth and dual-model browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -18,13 +18,19 @@ browser [SID Player](docs/sid-player/index.html) selects a backend from each PSI
 v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64
 machine; CIA uses CIA1 interrupts. Direct VBI is an explicit legacy option.
 RSID v2 uses that machine for its
-own interrupt or continuous code. All target PAL / one 6581. Local files,
+own interrupt or continuous code. Player targets PAL / one SID, with Auto / 6581 /
+8580 Preview selection. Synth and Playground remain 6581. Auto follows known
+header models; missing/either models default to 6581 through the checked fallback,
+or use a manual model choice. Known-model conflicts are rejected. The declared
+model and chosen playback target stay separate; original bytes are never patched.
+Local files,
 original demos, subtunes, Play / Stop and live voice/filter state are implemented.
 The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
-substitute host-periodic VBI calls. Current integration passed 93 player tests,
+substitute host-periodic VBI calls. The earlier 6581 integration passed 93 player tests,
 10 corpus-tool tests, 29 reference tests and 124 source/actual-ZIP
 Chromium/WebKit checks on 2026-11-07. See [the current result](docs/issues/sid_c64_vbi_result_01.md)
-and [package proof](docs/issues/sid_c64_vbi_package_01.json) for the checked scope.
+and [package proof](docs/issues/sid_c64_vbi_package_01.json) for that historical scope.
+The current model-selection result is [here](docs/issues/sid_player_models_result_01.md).
 Accepted machine ROM settings survive intermediate Direct VBI subtunes until
 explicitly reapplied.
 Relocation metadata describes free player-driver RAM, not a new tune load
@@ -86,9 +92,10 @@ yields while validating pending candidates before adoption; playback reloads a
 fresh machine and streams the initial PCM. Play remains limited to 16k cycles.
 Expansion I/O DE00..DFFF is explicitly unsupported in the new C64 VBI route;
 do not describe this as complete C64 software, cartridge or disk support.
-The shared browser validator keeps vbiBackend:'direct' by default for API
+The shared 6581 browser validator keeps vbiBackend:'direct' by default for API
 compatibility, while UI/C64 wrapper explicitly choose c64. CLI reference limits
-and known NTSC/8580 rejection remain unchanged. The old 61,157-file audit is an
+and its known NTSC/8580 rejection remain unchanged; ordinary Player dispatches
+8580 through the separate application adapter. The old 61,157-file audit is an
 immutable Direct VBI baseline. This was a targeted retry of 3,233 prior VBI
 failures plus 64 controls, not a new whole-corpus run. Of the old failures,
 3,025 completed (3,015 nonzero and ten exact-zero windows); 195 ROM-access cases,
@@ -122,12 +129,14 @@ KERNAL ROMs apply to C64 PSID VBI, PSID CIA and RSID and stay in memory only.
 Direct VBI remains independent of those settings and pending firmware reads.
 After supplied-ROM boot, PSID installs the original RAM init/play caller, while RSID requests RUN or
 SYS. Both PSID and RSID browser validators accept
-unknown/either clock/model flags only after explicit PAL/6581 selection through
-the initially unchecked playback-target setting. Declared hints and original
+unknown/either clock/model flags after explicit target options. The ordinary
+Player's model_policy.js supplies these through the default-on fallback or manual
+selection, and routes 8580 to the separate dedicated core; canonical 6581
+validators and the reference CLI stay unchanged. Declared hints and original
 header bytes remain intact; selected target metadata is separate. Known
-NTSC/8580/multi-SID are rejected even with that setting enabled. An isolated
-8580 research prototype is described below; it has not been adopted. Do not add
-a 6581 preview override or describe current Player playback as 8580 emulation. Real-ROM/BASIC
+NTSC/multi-SID and conflicting known-model choices are rejected. Do not substitute
+the 6581 core for 8580. The independent research stages below remain historical;
+ordinary Player now exposes that model as a Preview. Real-ROM/BASIC
 compatibility still needs confirmation. D418 volume-DAC digi is not modeled;
 an executing program can remain silent. Read [the guide](docs/sid-player/README.md).
 Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
@@ -149,12 +158,13 @@ kit. The full runtime artifact catalog includes SID as an application instrument
 with its separate receipt, while the fixed SDK remains unchanged.
 `node scripts/package_sid_lab.mjs` creates a readable standalone lab package;
 `sh scripts/package_itch_playground.sh` also ships the regular C64 mode.
-6581 filter / combined waves remain approximations; production APIs provide no 8580 model.
+6581 filter / combined waves remain approximations; Synth / Playground / SDK APIs
+still provide no 8580 model. Player's separate application adapter supports it.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
 
 The initial 8580 research/prototype milestone (phase 13) is a historical snapshot;
-the current bounded-bus/real-6502 follow-up is described below. Production
-adoption is still deferred. Read [the fixed-source/license selection](docs/issues/sid8580_core_selection_01.md)
+the bounded-bus/real-6502 follow-ups and eventual Player Preview connection are
+described below. Adoption was deferred at that initial milestone. Read [the fixed-source/license selection](docs/issues/sid8580_core_selection_01.md)
 and [prototype result](docs/issues/sid8580_probe_result_01.md) before continuing.
 The candidate is sidera 1.1.1's dependency-free MIT library, revision
 15041709d26c2bc36667ba27f729332c9f523696, crate SHA-256
@@ -432,9 +442,41 @@ WebKit timing attribution remain TODO. No publication or new ZIP is implied.
 Next manually compare user-owned real 8580 VBI/CIA/RSID tunes and subtunes, then
 measure long/background/device-switch workloads. Keep low-FC residuals,
 mode-specific gain/loading, read/audio pipeline and DAC/digi quality separate.
-Production Player/Synth/SDK and their known-8580 rejection remain unchanged;
-only the explicitly experimental lab accepts its PAL/8580 subset. Production
-model selection/adoption remains a later decision.
+Those research results did not themselves change production playback. The next
+application stage below adds explicit Player Preview routing; Synth/SDK remain
+unchanged. Listening and stable-audio approval are separate.
+
+The ordinary SID Player now has Auto / 6581 / 8580 Preview selection in
+docs/sid-player/index.html. models.js selects validators and core factories;
+model_policy.js retains original declarations and resolves missing hints. The
+default-on fallback selects PAL / 6581 in Auto; manual model choices resolve
+unknown/either only, while known-model conflicts and NTSC remain errors.
+Changing #sidModel rechecks the latest accepted/failed file, commits only after
+bounded candidate preflight, and never autoplays. Successful selection and Stop
+restore the accepted selector; passive ROM/backend drafts remain Apply-based.
+Subtune changes keep accepted model and detached firmware settings.
+
+core8580.js adapts Sid8580MachineCore to ordinary Player state without copying
+the DSP. It fixes both research profiles Off, exposes model:'8580',backend:'c64',
+and keeps unavailable per-voice Envelope/phase null. The UI displays a dash for
+unavailable Envelope, not zero. 8580 VBI requires C64 machine; CIA/RSID use it
+regardless of the unrelated VBI selector. audio.js fetches the two dedicated
+WASMs only for backend:'8580'; processor.js selects that adapter. Other backends
+keep their existing binaries. A Stop epoch fences queued Starts during startup.
+Master remains post-core, unity balance and 0..3.8 user gain. Native/Synth/
+Playground APIs and old compiled binaries are unchanged.
+
+scripts/copy_sid8580_machine_sources.mjs adds two binaries/receipt and all99
+compiled inputs, marked generators and Rust/Emscripten notices to the readable
+Player ZIP, alongside the old6581/RSID kits. Static source/hash/import checks
+need Node/Python, not installed compilers; independent rebuilding uses the
+kit's pinned Rust/Emscripten profile. There are four runtime WASMs total.
+No Native binary, GPL player, game music/PCM or firmware is bundled. Run
+npm run test:sid-player, node scripts/check_sid_player_browser.cjs and
+node scripts/package_sid_player.mjs VERSION. The workflow watches both new
+machine and shared probe sources. Test scope and final ZIP proofs are recorded
+in docs/issues/sid_player_models_result_01.md. No npm publication, commit/push,
+tag or release is implied by this local implementation.
 
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a

@@ -1,0 +1,2392 @@
+{
+  "format": "tetorica-sid-player-models-local-pilot",
+  "version": 1,
+  "completed": true,
+  "passed": true,
+  "date": "2026-11-08",
+  "productEntry": "/sid-player/index.html",
+  "target": {
+    "control": "auto",
+    "clock": "pal",
+    "declaredModel": "8580",
+    "runningModel": "8580",
+    "vbiBackend": "c64",
+    "environment": "minimal"
+  },
+  "profileBits": 0,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "containsMusicBytes": false,
+  "containsPcm": false,
+  "userFirmwareUsed": false,
+  "observation": {
+    "waitMilliseconds": 2000,
+    "analyserWindowsPerCase": 4,
+    "analyserWindowFrames": 4096,
+    "scope": "Four noncontiguous sampled post-Master PCM windows while the actual AudioWorklet plays for approximately two seconds. This is not contiguous whole-frame capture.",
+    "performanceClaim": false,
+    "longRunClaim": false
+  },
+  "plan": {
+    "bytes": 8688,
+    "sha256": "fa964e69a200043a0cdf0d05740ec74d28978d964f439ba8043a1b11175a5629"
+  },
+  "inputs": {
+    "docs/sid-player/index.html": {
+      "bytes": 9956,
+      "sha256": "d7e9a1d9b6051cee5c3051b96205807d66a7d2c76f294976dd1f77ccf58e6d74"
+    },
+    "docs/sid-player/player.css": {
+      "bytes": 7915,
+      "sha256": "378da3fd88bc3919f5e973fc9a806ba60228d8e2f1666da6845a3aa85b476178"
+    },
+    "docs/sid-player/player.js": {
+      "bytes": 20620,
+      "sha256": "87cb6fc5d0b9bedc0799741a8eecb17e126469f798214efa6a3564e6e29357b5"
+    },
+    "docs/sid-player/models.js": {
+      "bytes": 2302,
+      "sha256": "876bda5bdf4429be0eec29725072e5b8b0101ddb244b34426da4f73ef371b398"
+    },
+    "docs/sid-player/model_policy.js": {
+      "bytes": 4220,
+      "sha256": "8534913a609fdceb3e6e288cfe5395d330cc59c88b990f2208f6aadafe9bf75f"
+    },
+    "docs/sid-player/core8580.js": {
+      "bytes": 2729,
+      "sha256": "75f53e8215b6368ff7e0784b780beffa4037545fe9118345694a54a046987942"
+    },
+    "docs/sid-player/audio.js": {
+      "bytes": 8026,
+      "sha256": "6146144688bdff27026497ec8d062df16baa77bb92acd7b5fdc07d16ad885c74"
+    },
+    "docs/sid-player/processor.js": {
+      "bytes": 3460,
+      "sha256": "663755c8159fc4fc8861a6404bfcdf56f6502a5a63a0bd29d5e3ffb411224dde"
+    },
+    "docs/sid-player/core.js": {
+      "bytes": 7432,
+      "sha256": "5de26ddf095d1d50473e369e2a6c6f132dfe12f454d6308a0138a84c1f90c865"
+    },
+    "docs/sid-player/rsid_core.js": {
+      "bytes": 10462,
+      "sha256": "3af43c1ba3c71951dcdf4f318d80c0b6812355a7e0a0317462f5de43b50e99c5"
+    },
+    "docs/sid-player/roms.js": {
+      "bytes": 1869,
+      "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+    },
+    "docs/sid8580-lab/core.js": {
+      "bytes": 9248,
+      "sha256": "b640da2230f2e2c13776b77e13773125508a291c356bc2f9f08b2740a4dcb0b2"
+    },
+    "docs/sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "docs/sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "docs/js/sid_psid.js": {
+      "bytes": 11445,
+      "sha256": "0e88cc343c295507c18db9a591c9f320f6bc0e47ae87f71ffb9a6853d6de2fff"
+    },
+    "docs/js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    },
+    "docs/synth-spu/spu_synth_visualizer.js": {
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    },
+    "docs/tetorica_sid_synth.webp": {
+      "bytes": 544322,
+      "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+    },
+    "docs/generated/sid-player/sid-player.wasm": {
+      "bytes": 74326,
+      "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+    },
+    "docs/generated/sid-player/sid-player-build.json": {
+      "bytes": 3357,
+      "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88"
+    },
+    "docs/generated/sid-rsid/sid-rsid.wasm": {
+      "bytes": 116131,
+      "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+    },
+    "docs/generated/sid-rsid/sid-rsid-build.json": {
+      "bytes": 6749,
+      "sha256": "c8976d3352b104cb7dc4177dd77f42619cd2e64b17bc1297fe5bba8c085376ff"
+    },
+    "docs/generated/sid8580-machine/sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine-build.json": {
+      "bytes": 20404,
+      "sha256": "919522e2443abdc70368c70b231b08cd88a3c915b38d1829055e25054db29ed6"
+    },
+    "scripts/check_sid_player_models_local.mjs": {
+      "bytes": 14898,
+      "sha256": "c16ecc938639494fac63186ff7d61822b04e31970c08329ab9d47f2a743dc796"
+    }
+  },
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "cases": [
+        {
+          "path": "DEMOS/A-F/Bach4Xmas.sid",
+          "input": {
+            "bytes": 4952,
+            "sha256": "f90a8473ac4dbb915e971c4a2106deead02a227b61f773b37e766a798a0cd639"
+          },
+          "header": {
+            "format": "PSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 2,
+            "startSong": 1,
+            "speed": 0,
+            "loadAddress": 4096,
+            "initAddress": 4096,
+            "playAddress": 4102,
+            "basic": false,
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "subtune": 1,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 1024,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 296,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 295,
+            "irqCount": 5,
+            "nmiCount": 0,
+            "playCalls": 5,
+            "driverAddress": 1536,
+            "readCount": 84,
+            "writeCount": 100,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              9,
+              112,
+              245,
+              0,
+              0,
+              0,
+              0,
+              9,
+              0,
+              250,
+              0,
+              0,
+              0,
+              0,
+              9,
+              0,
+              251,
+              0,
+              0,
+              0,
+              15,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "samples": [
+            {
+              "rms": 0.0982829421066721,
+              "peak": 0.3852379620075226,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.15286995639910453,
+              "peak": 0.4420381486415863,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.11347917799220865,
+              "peak": 0.3228749930858612,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.10786130383936703,
+              "peak": 0.36837148666381836,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 89856,
+            "cycles": 2007494,
+            "sidCycles": 2007494,
+            "bootCycles": 0,
+            "initCycles": 296,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 295,
+            "irqCount": 102,
+            "nmiCount": 0,
+            "playCalls": 102,
+            "driverAddress": 1536,
+            "readCount": 2121,
+            "writeCount": 2525,
+            "pc": 1805,
+            "hostDcHz": 12,
+            "registers": [
+              94,
+              41,
+              44,
+              133,
+              64,
+              112,
+              245,
+              9,
+              13,
+              215,
+              131,
+              80,
+              0,
+              248,
+              180,
+              8,
+              44,
+              132,
+              80,
+              0,
+              250,
+              1,
+              22,
+              129,
+              31,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "audioFrameAdvance": 88832,
+          "audioSecondsAdvance": 2.014331065759637,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        },
+        {
+          "path": "GAMES/M-R/Mastermind.sid",
+          "input": {
+            "bytes": 17240,
+            "sha256": "0371f3a7e4243de1c598ddca71a3bc9dd2af7e6a4013317d69340fc56d76e05f"
+          },
+          "header": {
+            "format": "PSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 3,
+            "startSong": 1,
+            "speed": 3,
+            "loadAddress": 35104,
+            "initAddress": 40906,
+            "playAddress": 40864,
+            "basic": false,
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "subtune": 1,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 768,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 202,
+            "irqCount": 5,
+            "nmiCount": 0,
+            "playCalls": 5,
+            "driverAddress": 2048,
+            "readCount": 84,
+            "writeCount": 105,
+            "pc": 2126,
+            "hostDcHz": 12,
+            "registers": [
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              8,
+              48,
+              0,
+              15,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "samples": [
+            {
+              "rms": 0.1439596954112453,
+              "peak": 0.3585960566997528,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.12849551527723402,
+              "peak": 0.40253955125808716,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.11949104620797088,
+              "peak": 0.33962365984916687,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.19223948306594,
+              "peak": 0.49148792028427124,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 89856,
+            "cycles": 2007494,
+            "sidCycles": 2007494,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 202,
+            "irqCount": 107,
+            "nmiCount": 0,
+            "playCalls": 107,
+            "driverAddress": 2048,
+            "readCount": 1092,
+            "writeCount": 1760,
+            "pc": 2125,
+            "hostDcHz": 12,
+            "registers": [
+              100,
+              15,
+              48,
+              8,
+              65,
+              14,
+              233,
+              224,
+              3,
+              96,
+              11,
+              65,
+              14,
+              233,
+              137,
+              19,
+              253,
+              8,
+              65,
+              14,
+              239,
+              48,
+              119,
+              63,
+              159,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "audioFrameAdvance": 89088,
+          "audioSecondsAdvance": 2.020136054421769,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 1,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        },
+        {
+          "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+          "input": {
+            "bytes": 30974,
+            "sha256": "7a353e4f2fa9f84bac8a92193bfe20c00163a1687986f9c82d5bc2b6cee07db7"
+          },
+          "header": {
+            "format": "RSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 4,
+            "startSong": 4,
+            "speed": 0,
+            "loadAddress": 16384,
+            "initAddress": 16384,
+            "playAddress": 0,
+            "basic": false,
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "subtune": 4,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 4,
+            "environment": "minimal",
+            "positionFrames": 1024,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": false,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 0,
+            "irqCount": 1,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 0,
+            "writeCount": 0,
+            "pc": 16449,
+            "hostDcHz": 12,
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "samples": [
+            {
+              "rms": 0,
+              "peak": 0,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.055032416648327,
+              "peak": 0.1477428823709488,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.0173314858190127,
+              "peak": 0.05543028190732002,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.0068865702956998984,
+              "peak": 0.020571837201714516,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 4,
+            "environment": "minimal",
+            "positionFrames": 89856,
+            "cycles": 2007494,
+            "sidCycles": 2007494,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": false,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 0,
+            "irqCount": 75,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 2156,
+            "writeCount": 1776,
+            "pc": 16645,
+            "hostDcHz": 12,
+            "registers": [
+              172,
+              87,
+              0,
+              8,
+              128,
+              15,
+              251,
+              172,
+              87,
+              0,
+              8,
+              128,
+              0,
+              0,
+              161,
+              27,
+              192,
+              8,
+              64,
+              236,
+              206,
+              0,
+              58,
+              241,
+              63,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "audioFrameAdvance": 88832,
+          "audioSecondsAdvance": 2.014331065759637,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 1,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 2,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        }
+      ],
+      "errors": [],
+      "httpFailures": [],
+      "external": [],
+      "wasmRequests": [
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm"
+      ],
+      "finalSnapshot": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true,
+        "runningContexts": 0,
+        "contexts": [
+          {
+            "id": 0,
+            "state": "closed",
+            "sampleRate": 44100
+          },
+          {
+            "id": 1,
+            "state": "closed",
+            "sampleRate": 44100
+          },
+          {
+            "id": 2,
+            "state": "closed",
+            "sampleRate": 44100
+          }
+        ]
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "cases": [
+        {
+          "path": "DEMOS/A-F/Bach4Xmas.sid",
+          "input": {
+            "bytes": 4952,
+            "sha256": "f90a8473ac4dbb915e971c4a2106deead02a227b61f773b37e766a798a0cd639"
+          },
+          "header": {
+            "format": "PSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 2,
+            "startSong": 1,
+            "speed": 0,
+            "loadAddress": 4096,
+            "initAddress": 4096,
+            "playAddress": 4102,
+            "basic": false,
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "subtune": 1,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 256,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 296,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 295,
+            "irqCount": 5,
+            "nmiCount": 0,
+            "playCalls": 5,
+            "driverAddress": 1536,
+            "readCount": 84,
+            "writeCount": 100,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              9,
+              112,
+              245,
+              0,
+              0,
+              0,
+              0,
+              9,
+              0,
+              250,
+              0,
+              0,
+              0,
+              0,
+              9,
+              0,
+              251,
+              0,
+              0,
+              0,
+              15,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "samples": [
+            {
+              "rms": 0.10224044802650575,
+              "peak": 0.3077382743358612,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.1564121707594525,
+              "peak": 0.4513114392757416,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.11749229066822235,
+              "peak": 0.3228749930858612,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.11759601554549307,
+              "peak": 0.36837148666381836,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 89472,
+            "cycles": 1998915,
+            "sidCycles": 1998915,
+            "bootCycles": 0,
+            "initCycles": 296,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 295,
+            "irqCount": 101,
+            "nmiCount": 0,
+            "playCalls": 101,
+            "driverAddress": 1536,
+            "readCount": 2100,
+            "writeCount": 2500,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              94,
+              41,
+              40,
+              133,
+              64,
+              112,
+              245,
+              9,
+              13,
+              210,
+              131,
+              80,
+              0,
+              248,
+              180,
+              8,
+              39,
+              132,
+              80,
+              0,
+              250,
+              6,
+              21,
+              129,
+              31,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 0,
+              "pageLength": 0
+            }
+          },
+          "audioFrameAdvance": 89216,
+          "audioSecondsAdvance": 2.0230385487528344,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        },
+        {
+          "path": "GAMES/M-R/Mastermind.sid",
+          "input": {
+            "bytes": 17240,
+            "sha256": "0371f3a7e4243de1c598ddca71a3bc9dd2af7e6a4013317d69340fc56d76e05f"
+          },
+          "header": {
+            "format": "PSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 3,
+            "startSong": 1,
+            "speed": 3,
+            "loadAddress": 35104,
+            "initAddress": 40906,
+            "playAddress": 40864,
+            "basic": false,
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "subtune": 1,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 256,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 202,
+            "irqCount": 5,
+            "nmiCount": 0,
+            "playCalls": 5,
+            "driverAddress": 2048,
+            "readCount": 84,
+            "writeCount": 105,
+            "pc": 2126,
+            "hostDcHz": 12,
+            "registers": [
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              124,
+              3,
+              48,
+              8,
+              0,
+              0,
+              0,
+              8,
+              48,
+              0,
+              15,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "samples": [
+            {
+              "rms": 0.14751793442053324,
+              "peak": 0.4013458788394928,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.13341589492080455,
+              "peak": 0.40253955125808716,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.12212339971622371,
+              "peak": 0.33962365984916687,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.18207177438741792,
+              "peak": 0.48265931010246277,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 89088,
+            "cycles": 1990336,
+            "sidCycles": 1990336,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 202,
+            "irqCount": 106,
+            "nmiCount": 0,
+            "playCalls": 106,
+            "driverAddress": 2048,
+            "readCount": 1082,
+            "writeCount": 1747,
+            "pc": 2125,
+            "hostDcHz": 12,
+            "registers": [
+              229,
+              15,
+              32,
+              8,
+              65,
+              14,
+              233,
+              224,
+              3,
+              64,
+              11,
+              65,
+              14,
+              233,
+              137,
+              19,
+              254,
+              7,
+              65,
+              14,
+              239,
+              32,
+              129,
+              63,
+              159,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 8,
+              "pageLength": 88
+            }
+          },
+          "audioFrameAdvance": 88832,
+          "audioSecondsAdvance": 2.014331065759637,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 1,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        },
+        {
+          "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+          "input": {
+            "bytes": 30974,
+            "sha256": "7a353e4f2fa9f84bac8a92193bfe20c00163a1687986f9c82d5bc2b6cee07db7"
+          },
+          "header": {
+            "format": "RSID",
+            "version": 2,
+            "flags": 36,
+            "clock": "pal",
+            "model": "8580",
+            "sidCount": 1,
+            "songs": 4,
+            "startSong": 4,
+            "speed": 0,
+            "loadAddress": 16384,
+            "initAddress": 16384,
+            "playAddress": 0,
+            "basic": false,
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "subtune": 4,
+          "passed": true,
+          "stage": "complete",
+          "initialState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 4,
+            "environment": "minimal",
+            "positionFrames": 256,
+            "cycles": 100000,
+            "sidCycles": 100000,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": false,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 0,
+            "irqCount": 1,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 0,
+            "writeCount": 0,
+            "pc": 16449,
+            "hostDcHz": 12,
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "samples": [
+            {
+              "rms": 0,
+              "peak": 0,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.05666391801084538,
+              "peak": 0.1560337096452713,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.01763105479502122,
+              "peak": 0.05543028190732002,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            },
+            {
+              "rms": 0.00703021157116357,
+              "peak": 0.020571837201714516,
+              "finite": true,
+              "muted": true,
+              "runningContexts": 1,
+              "contexts": [
+                {
+                  "id": 0,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 1,
+                  "state": "closed",
+                  "sampleRate": 44100
+                },
+                {
+                  "id": 2,
+                  "state": "running",
+                  "sampleRate": 44100
+                }
+              ]
+            }
+          ],
+          "finalState": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "c64",
+            "model": "8580",
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 4,
+            "environment": "minimal",
+            "positionFrames": 89344,
+            "cycles": 1996055,
+            "sidCycles": 1996055,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": false,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 0,
+            "irqCount": 75,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 2156,
+            "writeCount": 1776,
+            "pc": 16654,
+            "hostDcHz": 12,
+            "registers": [
+              172,
+              87,
+              0,
+              8,
+              128,
+              15,
+              251,
+              172,
+              87,
+              0,
+              8,
+              128,
+              0,
+              0,
+              161,
+              27,
+              192,
+              8,
+              64,
+              236,
+              206,
+              0,
+              58,
+              241,
+              63,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "frameCycles": 19656,
+            "modelStatus": "preview",
+            "targetSelection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "relocation": {
+              "startPage": 192,
+              "pageLength": 16
+            }
+          },
+          "audioFrameAdvance": 89088,
+          "audioSecondsAdvance": 2.020136054421769,
+          "stopped": {
+            "rms": 0,
+            "peak": 0,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 0,
+            "contexts": [
+              {
+                "id": 0,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 1,
+                "state": "closed",
+                "sampleRate": 44100
+              },
+              {
+                "id": 2,
+                "state": "closed",
+                "sampleRate": 44100
+              }
+            ]
+          }
+        }
+      ],
+      "errors": [],
+      "httpFailures": [],
+      "external": [],
+      "wasmRequests": [
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-machine.wasm",
+        "/generated/sid8580-machine/sid8580-endpoint.wasm"
+      ],
+      "finalSnapshot": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true,
+        "runningContexts": 0,
+        "contexts": [
+          {
+            "id": 0,
+            "state": "closed",
+            "sampleRate": 44100
+          },
+          {
+            "id": 1,
+            "state": "closed",
+            "sampleRate": 44100
+          },
+          {
+            "id": 2,
+            "state": "closed",
+            "sampleRate": 44100
+          }
+        ]
+      }
+    }
+  ],
+  "interpretation": "Header-default songs of the existing metadata-only frozen three-file plan; no execution-based file replacement. This pilot verifies ordinary-Player routing, sampled output and Stop, not listening quality, full-song compatibility or glitch-free timing.",
+  "summary": {
+    "files": 3,
+    "cases": 6,
+    "passed": 6
+  }
+}

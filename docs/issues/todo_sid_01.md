@@ -46,7 +46,7 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] 高級API・型定義・Main／Worker・Preset保存／読み込み・Copy JavaScriptへ全組み合わせを通した。全モードOffはSynthではbypassとし、フィルター有効化時に選択がなければLPから始める。
 - [x] 実WASMとブラウザーで各組み合わせ・live edit・既存Preset互換・演奏keyboardへのfocus影響・可読配布を確認した。Synth46＋runtime20件、ソース／実ZIPのChromium・WebKit計52項目、Playground型検証が成功。[結果](sid_synth_filter_result_01.md)。
 - [x] 8580の代表実曲を実AudioWorkletでVBI／CIA／RSID・複数subtune・停止／再開まで確認した。3曲×2subtune×Chromium／WebKitの12ケースを各30秒完走。[結果](sid8580_real_worklet_result_01.md)。実聴・長時間・音切れ判定は別確認。
-- [ ] 通常SID Playerの6581／8580選択と稼働model表示へ接続する。元header宣言と選択modelを分けて保持する。
+- [x] 通常SID PlayerのAuto／6581／8580 Preview選択と稼働model表示へ接続した。元header宣言と選択modelを分けて保持。[結果](sid_player_models_result_01.md)。
 - [ ] SID Synthの単体8580 core・model選択・Presetのmodel保存・API／型／Copy JavaScriptへ反映する。旧Presetは6581互換とし、未提供のvoice envelopeを0扱いしてreleaseを切らない。
 
 ### 今回の続き: 8580代表実曲のAudioWorklet検証（2026-11-08）
@@ -58,6 +58,16 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] 3曲すべてで2subtuneの切り替えを確認し、停止／再開と不正候補時に旧実曲再生を保持する確認も3曲×2engineの6組で成功した。
 - [x] 実行失敗0・無音0として全caseを保持し、再開手順・人の実聴用候補を[結果](sid8580_real_worklet_result_01.md)へまとめた。通常Playerへの採用・全曲互換・音質の合格とは区別する。
 - [ ] 後続: WebKitのcapture内予算超過248／62,016blocks（約0.40%、最大9ms）を、通常の無計測再生・観測負荷・timer／schedulerと切り分ける。人の実聴・長時間／background／device切替・高負荷確認も残す。
+
+### 今回の続き: 通常SID Playerの6581／8580選択（2026-11-08）
+
+ユーザー承認: 代表実曲検証の次として、通常SID Playerへ6581／8580の選択を追加する。8580は試作modelとして表示し、Synth／Playground／SDKのmodel対応は別段階とする。
+
+- [x] ModelをAuto（file declaration）／6581／8580 Previewから選択可能にし、元headerと稼働modelを分けて表示した。Autoは既知宣言を使用し、未指定／eitherは既定Onの補完設定でPAL／6581。既知宣言との不一致は理由付きで拒否する。
+- [x] 既存6581 validator／CLIを保持し、8580を専用の二つのWASMへ接続した。PAL・single SID v2・C64 machineに限定し、8580 Direct VBI／NTSC／multi-SIDの非対応を明示。研究用filter補正はOff。
+- [x] Main preflight／AudioWorklet／停止・subtune・失敗時の旧再生保持／ROM snapshotを接続した。8580の未提供Envelopeはdash表示。失敗したmodel draftは成功したsubtune選択／Stop時にaccepted表示へ復元する。
+- [x] unit110件、ソース／実ZIPのChromium／WebKit各35項目・計140項目、通常Playerでの実曲pilot6ケースが成功。既存corpus10／reference29件も成功。[結果](sid_player_models_result_01.md)。
+- [x] 可読ZIPへmatching 4WASM／99入力の8580 source／生成器／license・toolchain noticesを同梱。配布7項目照合成功、README en／ja／英語AI・home・guideとCI監視pathを更新した。[配布proof](sid_player_models_package_01.json)。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

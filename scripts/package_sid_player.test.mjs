@@ -25,6 +25,12 @@ test('SID player ZIP is deterministic, readable, self-contained and hash-checked
   await mkdir(join(directory,'first','private-roms'),{recursive:true});
   await writeFile(join(directory,'first','my-kernal.rom'),privateRom);
   await writeFile(join(directory,'first','private-roms','basic.bin'),privateRom);
+  // Browser packaging authenticates the recorded 8580 inputs and WASM import
+  // contract. It must not require the build toolchain used by that receipt.
+  const oldRustc=process.env.RUSTC,oldEmcc=process.env.EMCC;
+  process.env.RUSTC=join(directory,'missing-rustc');process.env.EMCC=join(directory,'missing-emcc');
+  t.after(()=>{if(oldRustc===undefined)delete process.env.RUSTC;else process.env.RUSTC=oldRustc;
+    if(oldEmcc===undefined)delete process.env.EMCC;else process.env.EMCC=oldEmcc;});
   const first=await packageSidPlayer({version:'test',releaseDir:join(directory,'first')});
   const second=await packageSidPlayer({version:'test',releaseDir:join(directory,'second')});
   const archive=await readFile(first.archive);
@@ -74,7 +80,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     for(const specifier of module.localImports)assert(present.has(resolvePath(specifier,module.path)),`${module.path}: ${specifier}`);
     for(const [,,target] of bytes.toString().matchAll(/new URL\(\s*(['"])([^'"]+)\1\s*,\s*import\.meta\.url\s*\)/g))assert(present.has(resolvePath(target,module.path)),`${module.path}: ${target}`);
   }
-  assert.equal(info.receipt.nativeArtifacts.length,2);
+  assert.equal(info.receipt.nativeArtifacts.length,4);
+  assert.equal(info.names.filter(name=>name.endsWith('.wasm')).length,4);
   for(const component of ['sid-player','sid-rsid']){
     const native=JSON.parse(await readFile(join(first.stage,`generated/${component}/${component}-build.json`),'utf8'));
     assert.equal(native.component,component);assert.equal(native.fixedSdkArtifact,false);
@@ -82,6 +89,39 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     for(const [path,digest] of Object.entries(native.inputs))assert.deepEqual(record(await readFile(join(first.stage,'sources',component,path))),digest,path);
     assert(info.receipt.nativeArtifacts.some(artifact=>artifact.path===`generated/${component}/${component}.wasm`&&artifact.sha256===native.output.sha256));
   }
+  const kitPath='sources/sid8580-machine',kit=JSON.parse(await readFile(join(first.stage,kitPath,'source-kit.json'),'utf8'));
+  const machine=JSON.parse(await readFile(join(first.stage,'generated/sid8580-machine/sid8580-machine-build.json'),'utf8'));
+  assert.equal(machine.model,'8580');assert.equal(machine.fixedSdkArtifact,false);
+  assert.deepEqual(machine.profileDefaults,{resonance:false,cutoff:false});assert.equal(Object.keys(machine.inputs).length,99);
+  assert.equal(kit.format,'tetorica-sid-player-8580-source-kit');assert.equal(kit.compiledInputCount,99);assert.equal(kit.compilerInvocationPerformed,false);
+  assert.deepEqual(kit.compiledInputs,machine.inputs);
+  assert.deepEqual(record(await readFile(join(first.stage,kitPath,'sid8580-machine-build.json'))),{bytes:kit.buildReceipt.bytes,sha256:kit.buildReceipt.sha256});
+  for(const [path,hash]of Object.entries(kit.sources)){
+    assert.deepEqual(record(await readFile(join(first.stage,kitPath,path))),hash,path);
+    assert(info.receipt.originalInputs.some(input=>input.path===path&&input.sha256===hash.sha256),`8580 original input unbound: ${path}`);
+  }
+  for(const [path,hash]of Object.entries(machine.inputs))assert.deepEqual(kit.sources[path],hash,`Missing compiled input ${path}`);
+  assert(info.receipt.originalInputs.some(input=>input.path==='scripts/copy_sid8580_machine_sources.mjs'));
+  assert.deepEqual(info.receipt.nativeSourceKits,[{path:kitPath,manifest:'source-kit.json',compiledInputCount:99,
+    buildReceipt:kit.buildReceipt,noticeRoots:kit.noticeRoots}]);
+  for(const name of ['sid8580-endpoint.wasm','sid8580-machine.wasm']){
+    const path='generated/sid8580-machine/'+name,bytes=await readFile(join(first.stage,path));
+    assert.deepEqual(record(bytes),machine.outputs[name]);
+    assert(info.receipt.nativeArtifacts.some(artifact=>artifact.path===path&&artifact.sha256===machine.outputs[name].sha256));
+  }
+  assert(!info.names.some(path=>path.endsWith('/sid8580-machine')||/\.(?:a|o|rlib|wav|pcm|f32le)$/.test(path)),'No native executable or build/audio binary may be included');
+  assert.match(await readFile(join(first.stage,kitPath,'third_party/sidera/LICENSE'),'utf8'),/MIT License/);
+  assert.match(await readFile(join(first.stage,kitPath,'third_party/chips-c64/LICENSE'),'utf8'),/zlib\/libpng/);
+  assert(kit.sources['tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h']);
+  assert(kit.sources['third_party/chips-c64/upstream/systems/c64.h']);
+  assert(kit.sources['third_party/sidera/upstream/src/filter.rs']);assert(kit.sources['third_party/sidera/adapted/src/filter.rs']);
+  assert(kit.sources['scripts/prepare_sid8580_parser.mjs']);assert(kit.sources['tetorica_src/runtime/sid_psid.js']);
+  assert(kit.sources['docs/sid8580-lab/psid_structure.js']);
+  for(const notices of kit.noticeRoots){
+    const provenance=JSON.parse(await readFile(join(first.stage,kitPath,notices,'SOURCES.json'),'utf8'));
+    for(const [name,hash]of Object.entries(provenance.files))assert.deepEqual(record(await readFile(join(first.stage,kitPath,notices,name))),{bytes:hash.bytes,sha256:hash.sha256});
+  }
+  assert.match(await readFile(join(first.stage,kitPath,'README.md'),'utf8'),/sh scripts\/build_sid8580_machine\.sh/);
   const rsidProvenance=JSON.parse(await readFile(join(first.stage,'sid-player/demos/rsid/provenance.json'),'utf8'));
   assert.equal(rsidProvenance.containsRomDump,false);assert.equal(rsidProvenance.containsThirdPartyMusic,false);
   assert.doesNotMatch(await readFile(join(first.stage,'sid-player/demos/rsid/fixture.mjs'),'utf8'),/createRsidTestRoms/);

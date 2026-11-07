@@ -2,40 +2,42 @@
 
 Open a supported `.sid` file, choose its subtune and press **Play**. The file stays in your browser. **Load demo** offers four original PSID tests and an original RSID CIA-interrupt example. No game music or C64 ROM image is included.
 
+**SID model** defaults to **Auto · file**: declared 6581 files use the existing 6581 core, and declared 8580 files use the **8580 Preview** core. The original declaration and selected target are shown separately. Changing the model checks the latest file again; successful changes require **Play**.
+
 The player runs a tune's 6502 program and follows its writes to the SID. The three voice rows and shared filter display the running program's registers. Waveform and Spectrum show output after the software Master control. This screen plays music; use [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) to edit an instrument or [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) to write your own register code.
 
 ## Supported files
 
 PSID uses the selected subtune's original speed bit. VBI defaults to the C64 machine's raster interrupt; CIA uses its timer interrupt. **Direct VBI** keeps the earlier bounded subroutine host as an explicit compatibility option.
 
-- PSID **v2**, one SID and a **PAL / 6581** playback target. Unknown or either-standard/model flags use PAL / 6581 by default through the checked **Use PAL / 6581** option. Known NTSC or 8580 declarations remain unsupported even with the checkbox checked.
+- PSID **v2**, one SID and a **PAL / 6581 or 8580 Preview** playback target. Unknown or either-standard/model flags use PAL / 6581 by default; selecting 8580 chooses that model for an unspecified/either declaration. Known NTSC remains unsupported.
 - VBI or CIA timing. A file may mix both timings; bit 31 applies to songs 32 through 256. Other songs' speed bits do not reject the selected song.
 - Loaded program RAM `$0800..$CFFF`, with effective init and explicit nonzero play addresses inside that payload. An init header value of zero defaults to the load address.
 - At most **65,660 bytes**, with one-based song selection from `1..songs` (up to 256).
 
-PSID relocation metadata describes free RAM for the **player driver**, not a request to move the tune. `0/0` declares a clean file; `$FF/0` declares no free driver page. C64 VBI and CIA need safe driver RAM: for an explicit free range, they select the first page within `$0400..$9FFF` or `$C000..$CFFF`. A range may extend across other memory areas if it still contains a usable page. If a VBI tune declares `$FF/0` or no usable page, choose Direct VBI or keep the reasoned rejection; the player does not silently write outside that range. Direct VBI accepts structurally valid relocation metadata without adding a driver page there. Payload overlap, range overflow and inconsistent sentinel fields are rejected. The header, loaded payload and init/play addresses are preserved. See the [HVSC format specification, fields +78/+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt).
+PSID relocation metadata describes free RAM for the **player driver**, not a request to move the tune. `0/0` declares a clean file; `$FF/0` declares no free driver page. C64 VBI and CIA need safe driver RAM: for an explicit free range, they select the first page within `$0400..$9FFF` or `$C000..$CFFF`. A range may extend across other memory areas if it still contains a usable page. For 6581 VBI, Direct VBI can try a file with no free driver page; 8580 requires the C64 machine and keeps the reasoned rejection. The player does not silently write outside that range. Direct VBI accepts structurally valid relocation metadata without adding a driver page there. Payload overlap, range overflow and inconsistent sentinel fields are rejected. The header, loaded payload and init/play addresses are preserved. See the [HVSC format specification, fields +78/+79](https://hvsc.c64.org/download/C64Music/DOCUMENTS/SID_file_format.txt).
 
-The separate RSID path accepts **RSID v2**, one SID and a PAL / 6581 target:
+The separate RSID path accepts **RSID v2**, one SID and a PAL / 6581 or 8580 Preview target:
 
 - The reserved header load address, play address and speed fields must all be zero. RSID runs its own interrupt or continuous program; speed zero does **not** mean a host-scheduled VBI play call.
 - The embedded little-endian load address must be at least `$07E8`. Payload RAM may extend through `$FFFF`, including physical RAM underneath ROM and I/O mappings. A non-BASIC init entry must be inside the payload at `$07E8..$9FFF` or `$C000..$CFFF`; a zero header init defaults to the load address.
 - A BASIC flag requires a zero header init and the user-ROM environment. That zero requests BASIC startup, not a call to address zero.
-- Unspecified or either-standard/model flags use PAL / 6581 by default through the checked **Use PAL / 6581** option. Known NTSC or 8580 declarations are rejected even with the checkbox checked.
+- Unspecified or either-standard/model flags use the same target-selection policy as PSID. Known NTSC and multiple SIDs remain unsupported.
 - The same 65,660-byte file bound and one-based `1..songs` subtune selection apply. This version does not support additional SIDs, newer file versions or external MUS players.
 
 The header's default song is selected on load. A failed file, demo or subtune change keeps the previous selection and sound. **Stop** cancels startup or resets playback; **Play** starts the selected song again from its init routine. Playback needs a browser with Web Audio and AudioWorklet, served over HTTPS or localhost. The output sample rate must be 8..96 kHz.
 
 Cancelling a pending subtune change restores the accepted song in the selector. If the browser caches this page for Back/Forward navigation, leaving stops its audio while keeping the selected file; press **Play** after returning.
 
-Header acceptance does not establish whole-song compatibility. Execution can still stop with a diagnostic and address. PSID still requires an explicit play subroutine; `playAddress=0` IRQ-installed drivers remain outside this subset. A dedicated 8580 model is under investigation; the current player does not substitute 6581 for a known 8580 declaration.
+Header acceptance does not establish whole-song compatibility. Execution can still stop with a diagnostic and address. PSID still requires an explicit play subroutine; `playAddress=0` IRQ-installed drivers remain outside this subset. A known model declaration is preserved: selecting a conflicting model is rejected and keeps the accepted sound.
 
 ## Playback target and optional C64 ROM files
 
-For an unspecified or either-standard/model **PSID or RSID**, **Use PAL / 6581** is on by default, so opening the file selects that playback target automatically. Its original header and declared clock/model are retained; the selected playback target is shown separately.
+The **SID model** choices are **Auto · file**, **6581** and **8580 · Preview**. Auto follows a known header declaration. The checked default-target setting supplies PAL / 6581 for unknown/either declarations in Auto; a manual model choice supplies 6581 or 8580 for an unknown/either model. The original header is retained and the selected target is shown separately. A model change preflights the latest file, stops the old sound only after a successful selection, and requires Play to start the new selection.
 
-To require an explicit PAL / 6581 declaration, open **Playback settings · PAL / 6581 & C64 ROMs** and uncheck **Use PAL / 6581**. Press **Apply / retry SID** after changing the setting; you can retry a failed file without reopening it. The command-line reference parser and browser validator API defaults are unchanged; the player UI supplies its selected target.
+To require a declared PAL clock and a declared or manually selected model, open **Playback settings · PAL / SID model & C64 ROMs** and uncheck the default-target setting. Press **Apply / retry SID** after changing it; you can retry a failed file without reopening it. The existing command-line reference parser and 6581 browser-validator defaults are unchanged. The application-specific model policy chooses the appropriate core.
 
-The **PSID VBI playback** selector defaults to **C64 machine · VIC / CIA** and offers **Direct VBI · limited I/O** explicitly. The environment and firmware controls apply to **C64 VBI, CIA and RSID**. Direct VBI stays independent of ROM settings and pending firmware reads. A new C64 candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
+The **PSID VBI playback** selector defaults to **C64 machine · VIC / CIA** and offers **Direct VBI · limited I/O** for 6581 only. The environment and firmware controls apply to **C64 VBI, CIA and RSID**, including 8580. Direct VBI stays independent of ROM settings and pending firmware reads. A new C64 candidate in user-ROM mode waits for all three firmware files; accepted playback retains its own detached ROM snapshot. A failed candidate keeps the previous tune. Changing subtunes retains the accepted settings until you explicitly apply new ones.
 
 **Built-in IRQ environment** supplies an original, limited BSD IRQ/NMI shim with the C64 devices. It runs without a Commodore ROM dump and can play programs that use the supported environment. Unsupported BASIC, KERNAL or character-ROM reads stop with an explanation. It is not a replacement for all C64 firmware.
 
@@ -45,7 +47,9 @@ The user-ROM/BASIC path is experimental. Original synthetic test ROMs exercise i
 
 ## What is emulated
 
-Both PSID backends combine the pinned, cycle-stepped **chips/m6502** CPU with Tetorica's existing **chips/m6581 6581 approximation**. One CPU bus cycle advances one SID tick at 985,248 Hz. SID writes commit after that cycle's audio step; supported SID reads use real emulated readback. `$D400..$D7FF` register mirrors are supported.
+The 6581 backends combine the pinned, cycle-stepped **chips/m6502** CPU with Tetorica's existing **chips/m6581 6581 approximation**. One CPU bus cycle advances one SID tick at 985,248 Hz. SID writes commit after that cycle's audio step; supported SID reads use real emulated readback. `$D400..$D7FF` register mirrors are supported.
+
+**8580 Preview** connects the same pinned C64 CPU / CIA / VIC environment to the separate MIT **sidera** 8580 model through two directly linked WASM modules. Its experimental resonance / cutoff reference-fit profiles stay off. Live per-voice Envelope observations are unavailable and shown as a dash, rather than zero. Waveform, register settings, filter and elapsed playback remain visible. The model is an approximation; finite test runs do not establish real-hardware sound or glitch-free playback. The real-file research checks observed some WebKit render-budget overruns, so listening and longer/background/device tests remain separate work.
 
 The **Direct VBI** host supplies initialized RAM, the PAL identification byte `$02A6=1`, a CPU stack and a host-owned JSR trampoline. Init receives the zero-based subtune in A; X and Y are zero. Play receives A, X and Y zero. Both routines must return normally with RTS. This explicit legacy option does not emulate CIA timers, VIC raster timing or an interrupt controller. Unsupported memory banking, mapped ROM reads, other I/O and invalid returns fail explicitly.
 
@@ -71,15 +75,17 @@ These devices and the SID remain approximations. The upstream C64 implementation
 
 The new C64 VBI path rejects unimplemented expansion I/O at `$DE00..$DFFF` when I/O is mapped. Cartridge devices, disk loading and arbitrary C64 software are not added by routing VBI through the machine. The prior CIA/RSID execution policies remain distinct.
 
-The current 6581 approximation does not reproduce **volume-DAC / D418-only digi sample playback**. A tune can execute correctly and write the volume register while that sampled part remains silent. RSID file support does not imply support for every SID sound technique or every HVSC tune.
+The current 6581 approximation does not reproduce **volume-DAC / D418-only digi sample playback**. A tune can execute correctly and write the volume register while that sampled part remains silent. Accurate DAC/digi and combined-wave quality in 8580 also remain research items. RSID file support does not imply support for every SID sound technique or every HVSC tune.
 
-The SID's existing 12 Hz software DC blocker remains on the output. The software Master runs from 0 to 380%; above 100% it turns orange. There is no hidden gain calibration or new filter algorithm. The two application-local WASM files do not change the existing SID Synth, Playground SID core, fixed SDK or calibrated mixer levels.
+The SID's existing 12 Hz software DC blocker remains on the output. The software Master runs from 0 to 380%; above 100% it turns orange. There is no hidden gain calibration. The four application-local WASM files do not change the existing SID Synth, Playground SID core, fixed SDK or calibrated mixer levels.
 
 ## Read, modify and reuse
 
 The application is distributed as readable source modules and CSS, with their comments and original layout. There is no minified runtime bundle.
 
 - [player.js](player.js): file selection, transport and live display.
+- [models.js](models.js) and [model_policy.js](model_policy.js): Auto / explicit model policy and core selection, retaining original declarations.
+- [core8580.js](core8580.js): application-specific 8580 adapter over the separate model; no 6581 substitution.
 - [audio.js](audio.js) and [processor.js](processor.js): Web Audio lifecycle and AudioWorklet commands.
 - [core.js](core.js): explicit Direct VBI API.
 - [rsid_core.js](rsid_core.js) and [roms.js](roms.js): continuous C64 API for RSID and PSID CIA, and in-memory firmware input checks.
@@ -88,7 +94,7 @@ The application is distributed as readable source modules and CSS, with their co
 - [PSID demo sources and license](demos/README.md) and [RSID demo sources and license](demos/rsid/README.md).
 - Separate [PSID VBI native source kit](../sources/sid-player/README.md) and [C64 / CIA / RSID native source kit](../sources/sid-rsid/README.md), with pinned upstream sources, original host/shim, SID patch documentation and licenses.
 
-In a standalone ZIP, `sources/sid-player-browser.json` lists the original browser/build inputs with SHA-256 hashes and points to `sources/sid-player-browser-inputs.zip`. The native receipts are `generated/sid-player/sid-player-build.json` and `generated/sid-rsid/sid-rsid-build.json`; their input hashes match their respective source kits, and their output hashes identify each packaged WASM. Both canonical parsers in the browser-input archive match the served modules byte for byte. The source archive retains the original HTML before standalone navigation adjustments. Only fixed source/demo inputs are copied: user-selected ROMs and songs are never package inputs.
+In a standalone ZIP, `sources/sid-player-browser.json` lists the original browser/build inputs with SHA-256 hashes and points to `sources/sid-player-browser-inputs.zip`. The 6581 native receipts are `generated/sid-player/sid-player-build.json` and `generated/sid-rsid/sid-rsid-build.json`. The 8580 receipt and two binaries are under `generated/sid8580-machine/`; matching C / C++ / Rust inputs, generators and Rust / Emscripten license notices are under `sources/sid8580-machine/`. Input hashes match their source kits, and output hashes identify the packaged WASMs. Both canonical 6581 parsers in the browser-input archive match the served modules byte for byte. The source archive retains the original HTML before standalone navigation adjustments. Only fixed source/demo inputs are copied: user-selected ROMs and songs are never package inputs.
 
 Use Node.js, Python 3 and Emscripten to rebuild from the respective native source kit. From `sources/sid-player/`:
 
@@ -107,6 +113,14 @@ Copy the resulting WASM and build receipt into the matching `generated/sid-playe
 ```sh
 python3 -m http.server 8000
 ```
+
+The 8580 kit has its own pinned Rust / Emscripten build profile, compiler requirements and notices in `sources/sid8580-machine/README.md`. From that directory:
+
+```sh
+sh scripts/build_sid8580_machine.sh build/sid8580-machine
+```
+
+Copy its two resulting WASMs and receipt into `generated/sid8580-machine/` at the package root. Packaging existing checked binaries needs Node / Python only; rebuilding the 8580 engine requires the toolchains described in that kit. The 6581 chip uses zlib-licensed chips code, the 8580 model uses MIT-licensed sidera, and Tetorica adapters / UI use BSD-3-Clause. The original component and toolchain notices are included with their sources.
 
 From the full Tetorica repository, validate current build/source copies and create a new package with:
 

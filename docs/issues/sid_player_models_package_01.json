@@ -1,0 +1,167 @@
+{
+  "format": "tetorica-sid-player-models-package-verification",
+  "version": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "archive": {
+    "path": "release/tetorica_sid_player_20261108-models_itch.zip",
+    "bytes": 2666036,
+    "sha256": "6201acbeef92defb203a749c8109463778ae7b763125394299629fc12b0e6777",
+    "files": 219,
+    "crcPassed": true,
+    "allExtractedBytesIdentical": true,
+    "extraExtractedFiles": []
+  },
+  "extractedDirectory": "/private/tmp/sid-player-models-zip-20261108",
+  "browserReceipt": {
+    "path": "sources/sid-player-browser.json",
+    "bytes": 37765,
+    "sha256": "72c182c728c66212e5dcf5e34ba973731996c5e6d8f377bdc9f7fa600b42fe9d",
+    "originalInputCount": 172,
+    "moduleCount": 16,
+    "sourceArchive": {
+      "path": "sources/sid-player-browser-inputs.zip",
+      "bytes": 1043839,
+      "sha256": "fc1009710ed6862e79be606a52b18752f77537216429b3086b476b42fc553028"
+    }
+  },
+  "nativeArtifacts": [
+    {
+      "path": "generated/sid-player/sid-player.wasm",
+      "bytes": 74326,
+      "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+    },
+    {
+      "path": "generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116131,
+      "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    }
+  ],
+  "sid8580SourceKit": {
+    "path": "sources/sid8580-machine",
+    "manifest": {
+      "bytes": 38174,
+      "sha256": "56fc10015e72262704a185ba99ffb89907ef235a8d61dba4c337b9588232704e"
+    },
+    "compiledInputs": 99,
+    "copiedSources": 127,
+    "buildReceipt": {
+      "bytes": 20404,
+      "sha256": "919522e2443abdc70368c70b231b08cd88a3c915b38d1829055e25054db29ed6"
+    },
+    "notices": [
+      {
+        "path": "third_party/sidera/toolchain-notices",
+        "files": 13,
+        "provenance": {
+          "bytes": 2291,
+          "sha256": "7466cf0db64e24f6be84a5877aea870420850f0958176f7cf3557317f01bfe8e"
+        }
+      },
+      {
+        "path": "third_party/sid8580-machine-toolchain-notices",
+        "files": 8,
+        "provenance": {
+          "bytes": 2330,
+          "sha256": "a0fd873a58c09a732c2cf414288937054d6622b6d0ef7c603eb568981be1c087"
+        }
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "ZIP CRC, unique safe regular entries, exact extracted bytes with no extras",
+      "passed": true,
+      "files": 219
+    },
+    {
+      "name": "Browser receipt, source archive CRC and all original inputs match current frozen repository",
+      "passed": true,
+      "originalInputs": 172
+    },
+    {
+      "name": "Readable source-copy modules and all static imports/runtime assets are local and present",
+      "passed": true,
+      "modules": 16,
+      "imports": 28,
+      "literalRuntimeURLs": 3,
+      "explicitWasmAssets": 4
+    },
+    {
+      "name": "All four WASMs and legacy source kits match their independent receipts",
+      "passed": true,
+      "artifacts": 4,
+      "legacyKits": [
+        {
+          "component": "sid-player",
+          "inputs": 14,
+          "receipt": {
+            "bytes": 3357,
+            "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88"
+          }
+        },
+        {
+          "component": "sid-rsid",
+          "inputs": 29,
+          "receipt": {
+            "bytes": 6749,
+            "sha256": "c8976d3352b104cb7dc4177dd77f42619cd2e64b17bc1297fe5bba8c085376ff"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8580 compiled input closure, marked/original sources, parser generator and notices match current repository",
+      "passed": true,
+      "compiledInputs": 99,
+      "copiedSources": 127,
+      "noticeInventories": [
+        {
+          "path": "third_party/sidera/toolchain-notices",
+          "files": 13,
+          "provenance": {
+            "bytes": 2291,
+            "sha256": "7466cf0db64e24f6be84a5877aea870420850f0958176f7cf3557317f01bfe8e"
+          }
+        },
+        {
+          "path": "third_party/sid8580-machine-toolchain-notices",
+          "files": 8,
+          "provenance": {
+            "bytes": 2330,
+            "sha256": "a0fd873a58c09a732c2cf414288937054d6622b6d0ef7c603eb568981be1c087"
+          }
+        }
+      ]
+    },
+    {
+      "name": "No native executable, user firmware/music/PCM or GPL reference engine; only five authored SID demos",
+      "passed": true,
+      "authoredDemos": 5
+    },
+    {
+      "name": "Browser receipt points to the exact 8580 source-kit manifest, build receipt and notice inventories",
+      "passed": true,
+      "nativeSourceKits": 1
+    }
+  ],
+  "missing": [],
+  "method": "Independent Python stdlib zipfile/hashlib verification of frozen ZIP against extracted directory, nested source archive, current repo bytes and per-component receipts. No packager helper was called.",
+  "limitations": {
+    "compilerRebuildPerformed": false,
+    "browserRunPerformedByThisAudit": false,
+    "listeningPerformed": false,
+    "hardwareFidelityApproved": false,
+    "note": "Matching source/output/import evidence and packaging integrity only. The prior 99-input byte-identical rebuild proof remains historical; no compiler rebuild is claimed for this audit."
+  }
+}

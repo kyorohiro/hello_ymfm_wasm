@@ -94,7 +94,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.origin !== origin && !['data:', 'blob:'].includes(url.protocol)) {external.push(url.href); return route.abort();}
-      if (url.origin === origin && /\/sid-(?:player|rsid)\/sid-(?:player|rsid)\.wasm$/.test(url.pathname) && holdWasm) {
+      if (url.origin === origin && /\/(?:sid-(?:player|rsid)\/sid-(?:player|rsid)|sid8580-machine\/sid8580-(?:endpoint|machine))\.wasm$/.test(url.pathname) && holdWasm) {
         holdWasm = false; await new Promise(resolve => {releaseWasm = resolve;}); return route.continue().catch(() => {});
       }
       return route.continue();
@@ -134,6 +134,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     check('local readable player loads without audio; selecting a demo preflights its real CPU and metadata');
     assert.match(await page.title(), /SID Player/); assert.equal(await page.evaluate(() => __sidPlayerAudit.contexts.length), 0);
     assert.equal(await page.locator('#vbiBackend').inputValue(), 'c64', 'new UI defaults to the C64 machine');
+    assert.equal(await page.locator('#sidModel').inputValue(), 'auto', 'file model declaration is the default');
     assert.equal(await page.locator('#assumeRsid').isChecked(), true, 'unknown/either targets default to PAL / 6581');
     assert.equal(await page.locator('#play').isDisabled(), true);
     await loadFile(fixtures.psidUnknown, 'default-unknown-target.psid');
@@ -208,7 +209,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
     assert.equal(await page.locator('#subtune').inputValue(), '2'); await page.locator('#applyRsidEnvironment').click();
     await ready(); await silent(); await play(); assert.equal((await read()).subtune, 2);
 
-    check('PSID VBI ignores pending ROM files, CIA guards them, and known NTSC/8580 remain refused');
+    check('PSID VBI ignores pending ROM files, CIA guards them, and known NTSC or 8580 Direct VBI remain refused');
     await page.evaluate(() => {__sidPlayerAudit.holdFileName = 'pending-psid-choice-chars.bin';});
     await page.locator('#romChars').setInputFiles({name: 'pending-psid-choice-chars.bin', mimeType: 'application/octet-stream', buffer: Buffer.from(fixtures.roms.chars)});
     await page.waitForFunction(() => typeof __sidPlayerAudit.releaseFile === 'function');
@@ -556,6 +557,87 @@ async function checkBrowser(name, engine, origin, fixtures) {
     await loadDemo('rsid-irq', 'rsid cia-irq'); await play(); assert.equal((await read()).format, 'RSID'); await stop();
     assert.deepEqual(await page.evaluate(() => ({local: Object.keys(localStorage), session: Object.keys(sessionStorage)})), {local: [], session: []});
 
+    check('Auto selects the actual 8580 core for authored VBI, CIA and RSID without fabricating envelope values');
+    await page.locator('#rsidEnvironment').selectOption({value: 'minimal'}); await page.locator('#vbiBackend').selectOption({value: 'c64'});
+    await page.locator('#assumeRsid').check();
+    measurements.models8580 = {};
+    for (const [profile, bytes, format, timing] of [
+      ['vbi', fixtures.machine8580Vbi, 'PSID', 'vbi'], ['cia', fixtures.machine8580Cia, 'PSID', 'cia'], ['rsid', fixtures.machine8580Rsid, 'RSID', 'c64-irq'],
+    ]) {
+      await loadFile(bytes, `model-8580-${profile}.sid`); await ready(); await silent();
+      assert.match(await page.locator('#fileInfo').textContent(), /Header pal \/ 8580 → PAL \/ 8580/);
+      assert.match(await page.locator('#runningModel').textContent(), /8580/); assert.match(await page.locator('#modelNote').textContent(), /preview/i);
+      await play(); state = await read(); assert.equal(state.model, '8580'); assert.equal(state.backend, 'c64');
+      assert.equal(state.format, format); assert.equal(state.timing, timing); assert.equal(state.declaredModel, '8580');
+      assert.equal(state.cycles, state.sidCycles); assert.equal(state.profileBits, 0); assert.equal(state.perCycleJavaScriptCallbacks, 0);
+      assert.equal(state.voices[0].envelope, null); assert.equal(state.voices[0].phase, null);
+      await page.waitForFunction(() => [...document.querySelectorAll('#voices tr')].every(row => row.cells[5].textContent === '—'));
+      measurements.models8580[profile] = {model: state.model, format: state.format, timing: state.timing,
+        irqCount: state.irqCount, playCalls: state.playCalls, output: await sample(), envelopeUnavailable: true};
+      if (profile === 'vbi' && config.screenshots) {
+        for (const width of [1180, 390]) {
+          await page.setViewportSize({width, height: width === 390 ? 844 : 1000}); await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(100);
+          assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), '8580 controls fit a narrow viewport');
+          await page.screenshot({path: path.join(config.screenshots, `${name}-8580-${width}.png`), fullPage: true});
+        }
+        await page.setViewportSize({width: 1180, height: 1000});
+      }
+      await stop();
+    }
+
+    check('manual model changes retry unknown headers without rewriting them, preserving subtune and requiring Play');
+    await loadFile(fixtures.psidUnknown, 'model-choice-unknown.sid'); await ready(); await page.locator('#subtune').selectOption({value: '2'}); await ready();
+    await play(); state = await read(); assert.equal(state.model, '6581'); assert.equal(state.subtune, 2);
+    for (const model of ['8580', '6581']) {
+      await page.locator('#sidModel').selectOption({value: model}); await ready(); await silent();
+      assert.equal(await page.locator('#subtune').inputValue(), '2');
+      assert.match(await page.locator('#fileInfo').textContent(), new RegExp(`Header unknown / unknown → PAL / ${model}`));
+      await play(); state = await read(); assert.equal(state.model, model); assert.equal(state.subtune, 2);
+      assert.equal(state.declaredModel, 'unknown'); assert.equal(state.declaredClock, 'unknown');
+      assert.equal(state.registers[0] | state.registers[1] << 8, fixtures.frequencies[1]);
+    }
+
+    check('known-model mismatch keeps current audio and Auto retries the original declared 8580 file');
+    const beforeMismatch = await page.locator('#fileInfo').textContent();
+    await loadFile(fixtures.machine8580Vbi, 'known-8580-model-mismatch.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /6581|8580/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), beforeMismatch); assert.equal((await read()).model, '6581'); await sound();
+    await page.locator('#sidModel').selectOption({value: 'auto'}); await ready(); await silent(); await play();
+    state = await read(); assert.equal(state.model, '8580'); assert.equal(state.declaredModel, '8580');
+    const knownInfo = await page.locator('#fileInfo').textContent();
+    await page.locator('#sidModel').selectOption({value: '6581'});
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error');
+    assert.equal(await page.locator('#fileInfo').textContent(), knownInfo); assert.equal((await read()).model, '8580'); await sound();
+    assert.equal(await page.locator('#sidModel').inputValue(), '6581', 'a failed choice remains a draft until recovery or Stop');
+    await page.locator('#subtune').selectOption({value: '2'}); await ready(); await silent();
+    assert.equal(await page.locator('#sidModel').inputValue(), 'auto', 'successful subtune recovery restores the accepted model choice');
+    assert.equal(await page.locator('#subtune').inputValue(), '2'); await play();
+    state = await read(); assert.equal(state.model, '8580'); assert.equal(state.subtune, 2);
+    await page.locator('#sidModel').selectOption({value: '6581'});
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error');
+    assert.equal((await read()).model, '8580'); await sound(); await stop();
+    assert.equal(await page.locator('#sidModel').inputValue(), 'auto', 'Stop restores the accepted model choice after a failed draft');
+    assert.equal(await page.locator('#subtune').inputValue(), '2'); await play();
+    state = await read(); assert.equal(state.model, '8580'); assert.equal(state.subtune, 2);
+    measurements.models8580.rejectedChoiceRecovery = {subtune: 2, acceptedChoice: 'auto', subtuneRestoredChoice: true, stopRestoredChoice: true};
+
+    check('failed 8580 POT preflight preserves the active model and Stop cancels paired-WASM startup');
+    const accepted8580Info = await page.locator('#fileInfo').textContent(), beforePot = await read();
+    await loadFile(fixtures.machine8580Pot, 'unsupported-8580-pot.sid');
+    await page.waitForFunction(() => document.querySelector('#status').dataset.state === 'error' && /POT|D419/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#fileInfo').textContent(), accepted8580Info);
+    state = await read(); assert.equal(state.model, '8580'); assert(state.cycles >= beforePot.cycles); await sound();
+    await stop(); const starts8580 = await page.evaluate(() => __sidPlayerAudit.messages.filter(message => message.method === 'start').length);
+    holdWasm = true; await page.locator('#play').click();
+    for (let i = 0; !releaseWasm && i < 120; ++i) await page.waitForTimeout(25);
+    assert(releaseWasm, '8580 startup reached its held WASM request'); await page.locator('#stop').click(); releaseWasm(); releaseWasm = null;
+    await ready(); await silent(); await page.waitForTimeout(100);
+    assert.equal(await page.evaluate(() => __sidPlayerAudit.messages.filter(message => message.method === 'start').length), starts8580);
+    await play(); assert.equal((await read()).model, '8580'); await stop();
+
+    // Keep the existing final layout/ROM controls check on its 6581 path.
+    await loadDemo('tone'); await ready();
+
     check('one passive waveform/spectrum monitor and compact desktop/mobile player stay entirely local');
     assert.equal(await page.locator('#outputCanvas').count(), 1);
     await page.locator('[data-view="spectrum"]').click(); assert.equal(await page.locator('[data-view="spectrum"]').getAttribute('aria-pressed'), 'true');
@@ -600,6 +682,7 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const {createRsidFixture, createRsidBasicFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_fixtures.mjs')));
   const {createRsidTestRoms} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/rsid_test_roms.mjs')));
   const {createPsidVbiMachineFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/psid_vbi_machine_fixtures.mjs')));
+  const {createSid8580MachineFixture} = await import(pathToFileURL(path.resolve(__dirname, '../test/helpers/sid8580_machine_fixtures.mjs')));
   const unknown = createRsidFixture().bytes.slice(), ntsc = createRsidFixture().bytes.slice(), basic = createRsidBasicFixture();
   new DataView(unknown.buffer).setUint16(118, 0); new DataView(ntsc.buffer).setUint16(118, 0x18);
   const psidChoices = [0, 0x3c, 0x18, 0x24].map(flags => {const bytes = createSidPlayerTestFixture(); new DataView(bytes.buffer).setUint16(118, flags); return bytes;});
@@ -613,6 +696,8 @@ async function checkBrowser(name, engine, origin, fixtures) {
   const overlap = relocated.slice(), invalidSentinel = noDriver.slice(); overlap[120] = 0x10; invalidSentinel[121] = 1;
   const pal = createSidPlayerPalFixture(), bank = createSidPlayerBankEnvironmentFixture({playAddress: 0xc000});
   const machineLong = createPsidVbiMachineFixture({delayBlocks: 6});
+  const machine8580Cia = createSid8580MachineFixture('psid-cia');
+  const machine8580CiaBytes = machine8580Cia.bytes.slice(); new DataView(machine8580CiaBytes.buffer).setUint16(16, machine8580Cia.subtune);
   new DataView(ciaRomFixture.bytes.buffer).setUint16(16, 2);
   const fixtures = {two: createSidPlayerTestFixture(), rom: createSidPlayerTestFixture('rom-read'), loop: createSidPlayerTestFixture('init-loop'),
     playLoop: createSidPlayerTestFixture('late-play-loop'), frequencies: SID_PLAYER_TEST_FREQUENCIES,
@@ -626,6 +711,8 @@ async function checkBrowser(name, engine, origin, fixtures) {
     machineVbiLateRom: createPsidVbiMachineFixture({delayBlocks: 6, fault: 'late-rom'}).bytes,
     machineVbiLateJam: createPsidVbiMachineFixture({delayBlocks: 6, fault: 'late-jam'}).bytes,
     machineVbiTimeout: createPsidVbiMachineFixture({fault: 'init-loop'}).bytes,
+    machine8580Vbi: createSid8580MachineFixture('psid-vbi').bytes, machine8580Cia: machine8580CiaBytes,
+    machine8580Rsid: createSid8580MachineFixture('rsid-cia-irq').bytes, machine8580Pot: createSid8580MachineFixture('pot-x').bytes,
     rsidBusy: createRsidFixture('busy-loop').bytes, rsidRomRequired: createRsidFixture('rom-required').bytes,
     rsidRaster: createRsidFixture('raster-irq').bytes, rsidNmi: createRsidFixture('cia-nmi').bytes, rsidMultispeed: createRsidFixture('multispeed').bytes,
     rsidUnknown: unknown, rsidNtsc: ntsc, rsidBasic: basic.bytes, basicFrequencies: basic.frequencies, roms: createRsidTestRoms()};

@@ -12,6 +12,7 @@ import {version as esbuildVersion} from 'esbuild';
 import {copyReadableModules} from './copy_readable_modules.mjs';
 import {syncSidPlayerArtifacts,SID_PLAYER_BUILD_INPUTS} from './sid_player_artifacts.mjs';
 import {syncSidRsidArtifacts,SID_RSID_BUILD_INPUTS} from './sid_rsid_artifacts.mjs';
+import {copySid8580MachineSources} from './copy_sid8580_machine_sources.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const record=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -105,6 +106,9 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
     assert(!/(?:from\s*|import\s*\(|require\s*\()\s*['"]node:/.test(text),`Node import in runtime: ${module.path}`);
   }
   const nativeArtifacts=[await copyNativeKit(stage,'sid-player',SID_PLAYER_BUILD_INPUTS),await copyNativeKit(stage,'sid-rsid',SID_RSID_BUILD_INPUTS)];
+  const sid8580=await copySid8580MachineSources(stage);
+  nativeArtifacts.push(...sid8580.artifacts);
+  for(const source of sid8580.inputPaths)inputs.add(source);
   const demoFiles=['README.md','LICENSE.txt','fixture.mjs','provenance.json',...demos.map(name=>name+'.sid')];
   const provenance=JSON.parse(await readFile(join(root,'docs/sid-player/demos/provenance.json'),'utf8'));
   assert.equal(provenance.license,'BSD-3-Clause');
@@ -149,7 +153,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
   const receipt={schemaVersion:1,product:'Tetorica SID Player',productId:'tetorica-sid-player',version,
     builder:{name:'source-copy',minify:false,bundle:false,dependencyAnalyzer:{name:'esbuild',version:esbuildVersion}},
     entries:browser.entries,modules:browser.modules,
-    nativeArtifact:nativeArtifacts[0],nativeArtifacts,
+    nativeArtifact:nativeArtifacts[0],nativeArtifacts,nativeSourceKits:[sid8580.sourceKit],
     originalInputs:await Promise.all(names.map(async path=>({path,...record(await readFile(join(root,path)))}))),
     sourceArchive:{path:sourceArchive,...record(await readFile(join(stage,sourceArchive)))}};
   await writeFile(join(stage,'sources/sid-player-browser.json'),JSON.stringify(receipt,null,2)+'\n');

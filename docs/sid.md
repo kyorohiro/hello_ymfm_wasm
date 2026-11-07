@@ -20,8 +20,9 @@ reference/Tetorica WAVs. For a supported `.sid` file, open the separate
 [SID Player](sid-player/index.html): load the original demo or your file, then
 press Play. PSID v2 uses the C64 machine's VBI or CIA interrupts per subtune,
 with Direct VBI available as an explicit legacy option. RSID v2 runs its own
-interrupt or continuous code in that machine. Both target PAL / one 6581;
-a dedicated 8580 model remains subsequent work.
+interrupt or continuous code in that machine. Player targets PAL / one SID,
+with Auto / 6581 / 8580 Preview selection. Direct VBI is a 6581-only option.
+The Synth and Playground APIs described below still use the 6581 core.
 The C64 backend has a limited original IRQ environment and an optional user-ROM mode;
 no C64 firmware is bundled. See [the ROM, timing and digi limits](sid-player/README.md).
 The Synth and Playground APIs remain

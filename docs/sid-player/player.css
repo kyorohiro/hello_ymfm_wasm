@@ -41,6 +41,8 @@ h2 { font-size: 1.4rem; margin: 5px 0; overflow-wrap: anywhere; }
 .subtune-control { display: grid; gap: 4px; flex: 0 0 auto; }
 .subtune-control label { font-size: .72rem; font-weight: 700; color: #766850; }
 .subtune-control select { min-width: 95px; }
+.tune-selectors { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
+.tune-selectors select { max-width: 100%; }
 .file-info { font: .73rem ui-monospace, monospace; color: #796b53; margin-top: 16px; overflow-wrap: anywhere; }
 .transport { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; border-top: 1px solid #d5cbb5; padding-top: 18px; margin-top: 17px; }
 .transport-buttons { display: flex; align-items: center; gap: 10px; }
@@ -98,6 +100,7 @@ td[data-on="true"] { color: #346a3e; font-weight: 750; }
   .tune-heading { flex-wrap: wrap; gap: 10px; }
   .subtune-control { display: flex; align-items: center; gap: 8px; }
   .subtune-control select { min-height: 36px; padding: 5px 10px; }
+  .tune-selectors { width: 100%; justify-content: flex-start; }
   .master-control { width: 100%; grid-template-columns: auto minmax(90px, 1fr) 48px; }
   .state-content { padding-left: 12px; padding-right: 12px; }
   canvas { height: 155px; }

@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidPlayerCore} from './core.js';
 import {RsidPlayerCore} from './rsid_core.js';
+import {Sid8580PlayerCore} from './core8580.js';
 
 const COMMANDS = new Set(['load', 'start', 'stop', 'read']);
 class SidPlayerProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
-    super(); this.dead = false; this.core = null; this.playing = false;
+    super(); this.dead = false; this.core = null; this.playing = false; this.startEpoch = 0;
     this.port.onmessage = ({data}) => this.receive(data);
-    const Core = ['rsid', 'psid-cia', 'psid-vbi'].includes(processorOptions.backend) ? RsidPlayerCore : SidPlayerCore;
-    this.ready = Core.create({sampleRate, wasmBinary: processorOptions.wasmBinary}).then(core => {
+    const Core = processorOptions.backend === '8580' ? Sid8580PlayerCore
+      : ['rsid', 'psid-cia', 'psid-vbi'].includes(processorOptions.backend) ? RsidPlayerCore : SidPlayerCore;
+    const options = processorOptions.backend === '8580'
+      ? {sampleRate, endpointBinary: processorOptions.endpointBinary, machineBinary: processorOptions.machineBinary}
+      : {sampleRate, wasmBinary: processorOptions.wasmBinary};
+    this.ready = Core.create(options).then(core => {
       if (this.dead) {core.dispose(); return;}
       this.core = core; this.port.postMessage({ready: true});
     }).catch(error => this.fail(error));
@@ -23,6 +28,12 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
   receive(data) {
     if (data?.method === 'dispose') {this.dispose(); return;}
     if (this.dead) return;
+    // Stop must fence a Start already queued behind asynchronous WASM startup.
+    // Invalid arguments still fail transactionally without muting active audio.
+    if (data?.method === 'stop' && (data.args === undefined || Array.isArray(data.args))) {
+      this.playing = false; this.startEpoch++;
+    }
+    const startEpoch = this.startEpoch;
     this.commands = this.commands.then(() => {
       if (this.dead) return;
       try {
@@ -31,6 +42,7 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
         const args = data.args ?? [];
         if (data.method === 'load') {this.core.load(args[0], args[1]); this.playing = false;}
         if (data.method === 'start') {
+          if (startEpoch !== this.startEpoch) throw new Error('SID start was cancelled');
           if (!this.core.getState().playing) throw new Error('Load a SID before playing');
           this.playing = true;
         }

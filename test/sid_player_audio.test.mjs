@@ -6,8 +6,8 @@ import vm from 'node:vm';
 const source = await readFile(new URL('../docs/sid-player/audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture({stalledFetch = false, ready = true, fetchFailure = false} = {}) {
-  let createAudio, context, node, nextTimer = 0, mode = 'reply', releaseFetch;
-  const timers = new Map(), errors = [], events = [], messages = [];
+  let createAudio, context, node, nextTimer = 0, mode = 'reply';
+  const timers = new Map(), errors = [], events = [], messages = [], fetches = [], releases = [];
   class Context {
     constructor() {
       context = this; this.sampleRate = 48000; this.state = 'suspended'; this.currentTime = 1;
@@ -43,17 +43,18 @@ function fixture({stalledFetch = false, ready = true, fetchFailure = false} = {}
   const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('../docs/sid-player/audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
     AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,
-    fetch: async () => {
-      events.push('fetch');
-      if (stalledFetch) return new Promise(resolve => {releaseFetch = () => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(0)});});
-      return fetchFailure ? {ok: false, status: 503} : {ok: true, arrayBuffer: async () => new ArrayBuffer(0)};
+    fetch: async (url, {signal}) => {
+      events.push('fetch'); const path = String(url); fetches.push({path, signal});
+      const reply = {ok: true, arrayBuffer: async () => Uint8Array.of(path.includes('endpoint') ? 1 : path.includes('sid8580-machine.wasm') ? 2 : 3).buffer};
+      if (stalledFetch) return new Promise(resolve => {releases.push(() => resolve(reply));});
+      return fetchFailure === true || typeof fetchFailure === 'string' && path.endsWith(fetchFailure) ? {ok: false, status: 503} : reply;
     },
     setTimeout(fn, ms) {const id = ++nextTimer; timers.set(id, {fn, ms}); return id;},
     clearTimeout(id) {timers.delete(id);}, provide: value => {createAudio = value;},
   });
   return {create: options => createAudio({onError: error => errors.push(error), ...options}),
-    get context() {return context;}, get node() {return node;}, errors, timers, events, messages,
-    mode(value) {mode = value;}, releaseFetch() {releaseFetch?.();},
+    get context() {return context;}, get node() {return node;}, errors, timers, events, messages, fetches,
+    mode(value) {mode = value;}, releaseFetch() {for (const release of releases.splice(0)) release();},
     expire() {const [id, timer] = timers.entries().next().value; assert.equal(timer.ms, 15000); timers.delete(id); timer.fn();}};
 }
 
@@ -67,6 +68,37 @@ test('SID player audio resumes before assets and has one unity-balanced post-Mas
   assert.throws(() => audio.setVolume(3.81), /Master/);
   const closing = audio.dispose(); assert.equal(audio.dispose(), closing); await closing;
   assert.equal(f.context.closeCount, 1); assert.equal(f.node.disposed, 1); assert(f.node.port.closed);
+});
+
+test('each SID backend fetches only its matching WASM and 8580 passes two distinct modules', async () => {
+  for (const backend of ['psid', 'psid-cia', 'psid-vbi', 'rsid', '8580']) {
+    const f = fixture(), audio = await f.create({backend});
+    assert.equal(f.events[0], 'resume'); assert.equal(f.node.options.processorOptions.backend, backend);
+    if (backend === '8580') {
+      assert.deepEqual(f.fetches.map(item => new URL(item.path).pathname.split('/').slice(-2).join('/')),
+        ['sid8580-machine/sid8580-endpoint.wasm', 'sid8580-machine/sid8580-machine.wasm']);
+      assert.deepEqual([...new Uint8Array(f.node.options.processorOptions.endpointBinary)], [1]);
+      assert.deepEqual([...new Uint8Array(f.node.options.processorOptions.machineBinary)], [2]);
+      assert.equal(f.node.options.processorOptions.wasmBinary, undefined);
+    } else {
+      assert.equal(f.fetches.length, 1);
+      assert(f.fetches[0].path.endsWith(backend === 'psid' ? '/sid-player/sid-player.wasm' : '/sid-rsid/sid-rsid.wasm'));
+      assert.deepEqual([...new Uint8Array(f.node.options.processorOptions.wasmBinary)], [3]);
+      assert.equal(f.node.options.processorOptions.endpointBinary, undefined);
+    }
+    await audio.dispose();
+  }
+});
+
+test('8580 startup cancellation and a failed second WASM close audio and fence both fetches', async () => {
+  const f = fixture({stalledFetch: true}), controller = new AbortController(), pending = f.create({backend: '8580', signal: controller.signal});
+  assert.equal(f.fetches.length, 2); controller.abort(); await assert.rejects(pending, {name: 'AbortError'});
+  assert(f.fetches.every(item => item.signal.aborted)); f.releaseFetch(); await flush();
+  assert.equal(f.node, undefined); assert.equal(f.context.closeCount, 1); assert.equal(f.timers.size, 0); assert.equal(f.errors.length, 0);
+  const failed = fixture({fetchFailure: 'sid8580-machine.wasm'});
+  await assert.rejects(failed.create({backend: '8580'}), /503/);
+  assert.equal(failed.fetches.length, 2); assert(failed.fetches.every(item => item.signal.aborted));
+  assert.equal(failed.node, undefined); assert.equal(failed.context.state, 'closed'); assert.equal(failed.errors.length, 1);
 });
 
 test('SID player startup Abort rejects silently and prevents late fetch/readiness from creating playback', async () => {

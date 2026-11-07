@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {validateBrowserPsid, PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
-import {SidPlayerCore} from './core.js';
-import {RsidPlayerCore} from './rsid_core.js';
-import {validateBrowserRsid} from '../js/sid_rsid.js';
+import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
+import {validatePlayerSid, createPlayerCore} from './models.js';
 import {copyRomSet, readRomFile} from './roms.js';
 import {createAudio} from './audio.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
@@ -42,6 +40,7 @@ function updateButtons() {
   $('play').disabled = !selected || !!loading || !!starting || playing;
   $('stop').disabled = !loading && !starting && !playing;
   $('subtune').disabled = !selected || selected.parsed.songs < 2 || !!loading || !!starting;
+  $('sidModel').disabled = !!loading || !!starting;
   $('loadDemo').disabled = !!loading;
   const retryUsesMachine = sidAttempt?.format === 'RSID' || sidAttempt?.timing === 'cia'
     || sidAttempt?.format === 'PSID' && $('vbiBackend').value === 'c64';
@@ -57,21 +56,30 @@ function showSelection() {
   $('released').textContent = parsed.metadata.released;
   const machine = parsed.format === 'RSID' || parsed.playbackBackend === 'c64';
   const environment = machine ? ` · ${selected.loadOptions.environment === 'rom' ? 'Your C64 ROMs' : 'Built-in IRQ environment'}${parsed.basic ? ' · BASIC' : ''}` : '';
-  const assumptions = parsed.clock !== 'pal' || parsed.model !== '6581' ? ` · Header ${parsed.clock} / ${parsed.model} → PAL / 6581` : '';
+  const model = parsed.selectedModel;
+  const assumptions = ` · Header ${parsed.clock} / ${parsed.model} → PAL / ${model}`;
   const entry = parsed.format === 'RSID' ? (parsed.basic ? ' · BASIC RUN' : ` · Init ${hex(parsed.initAddress)} · Hardware interrupts`) : ` · Init ${hex(parsed.initAddress)} · Play ${hex(parsed.playAddress)} · ${parsed.timing === 'cia' ? 'CIA timer' : machine ? 'VBI · C64 machine' : 'VBI · Direct'}`;
   const relocation = parsed.format === 'PSID' && parsed.relocation.startPage
     ? parsed.relocation.startPage === 255 ? ' · No free driver pages'
       : ` · Free driver RAM ${hex(parsed.relocation.startPage * 256)}–${hex((parsed.relocation.startPage + parsed.relocation.pageLength) * 256 - 1)}${machine ? ` · Driver ${hex(parsed.driverPage * 256)}` : ''}`
     : '';
-  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · PAL / 6581 · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}${relocation}`;
+  $('fileInfo').textContent = `${selected.name} · ${parsed.fileSize.toLocaleString()} bytes · ${parsed.format} v${parsed.version} · Target PAL / ${model}${model === '8580' ? ' Preview' : ''} · Load ${hex(parsed.loadAddress)}${entry}${environment}${assumptions}${relocation}`;
   $('subtune').replaceChildren();
   for (let song = 1; song <= parsed.songs; song++) {
     const option = document.createElement('option'); option.value = String(song); option.textContent = `${song} / ${parsed.songs}`;
     $('subtune').append(option);
   }
   $('subtune').value = String(parsed.subtune);
+  $('sidModel').value = selected.loadOptions.modelSelection ?? 'auto';
+  showState(null);
 }
 function showState(state) {
+  const model = state?.model ?? selected?.parsed.selectedModel;
+  $('runningModel').textContent = model ?? 'Auto';
+  $('modelNote').textContent = model === '8580' ? 'PAL · PREVIEW' : model === '6581' ? 'PAL · APPROXIMATION' : 'PAL · SINGLE SID';
+  $('voiceObservation').textContent = model === '8580'
+    ? '8580 Preview: live Envelope values are unavailable and shown as a dash.'
+    : 'The tune\'s program controls these registers. This display does not change them.';
   const registers = state?.registers ?? Array(32).fill(0);
   for (let voice = 0; voice < 3; voice++) {
     const base = voice * 7, control = registers[base + 4], cells = voiceCells[voice];
@@ -81,7 +89,8 @@ function showState(state) {
     cells[2].textContent = `${((registers[base] | registers[base + 1] << 8) * 985248 / 16777216).toFixed(1)} Hz`;
     cells[3].textContent = String(registers[base + 2] | (registers[base + 3] & 15) << 8);
     cells[4].textContent = control & 1 ? 'On' : 'Off'; cells[4].dataset.on = String(!!(control & 1));
-    cells[5].textContent = String(state?.voices?.[voice]?.envelope ?? 0);
+    const envelope = state?.voices?.[voice]?.envelope;
+    cells[5].textContent = Number.isFinite(envelope) ? String(envelope) : '—';
     cells[6].textContent = [registers[base + 5] >> 4, registers[base + 5] & 15, registers[base + 6] >> 4, registers[base + 6] & 15].join(' / ');
   }
   const modes = [[16, 'LP'], [32, 'BP'], [64, 'HP']].filter(([mask]) => registers[24] & mask).map(([, name]) => name);
@@ -89,13 +98,14 @@ function showState(state) {
   $('filterState').textContent = `Filter ${modes.join(' + ') || 'Off'} · Cutoff ${(registers[22] << 3) | (registers[21] & 7)} · Resonance ${registers[23] >> 4} · Routed voices ${route.join(', ') || 'none'} · Volume ${registers[24] & 15}`;
   const seconds = Math.floor((state?.positionFrames ?? 0) / (state?.sampleRate ?? 48000));
   $('elapsed').textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-  $('engineInfo').textContent = !state ? 'Audio idle · PAL 985,248 Hz'
+  $('engineInfo').textContent = !state ? `Audio idle · PAL 985,248 Hz${model ? ` · ${model}` : ''}`
     : state.backend === 'c64' ? `${state.sampleRate.toLocaleString()} Hz output · C64 PAL${state.format === 'PSID' ? ` · ${state.timing === 'cia' ? 'CIA timer' : 'VIC raster'} · ${state.playCalls.toLocaleString()} play calls` : ''} · IRQ ${state.irqCount.toLocaleString()} · NMI ${state.nmiCount.toLocaleString()} · Init ${state.initPending ? 'in progress' : state.initReturned ? 'returned' : 'not returned'} · ${state.environment === 'rom' ? 'Your ROMs' : 'Limited IRQ environment'}`
     : `${state.sampleRate.toLocaleString()} Hz output · PAL 985,248 Hz · ${state.playCalls.toLocaleString()} play calls · Init ${state.initCycles.toLocaleString()} cycles`;
+  if (state) $('engineInfo').textContent += ` · ${model}${model === '8580' ? ' Preview' : ''}`;
 }
 
 function targetOptions() {
-  return $('assumeRsid').checked ? {clock: 'pal', model: '6581'} : {};
+  return {modelSelection: $('sidModel').value, assumeUnknown: $('assumeRsid').checked};
 }
 async function preflight(core, signal) {
   // A VBI init may outlive the native 100k-cycle preflight. Drain only this
@@ -151,6 +161,7 @@ function cancelLoad() {
 }
 function stop() {
   cancelLoad(); retireAudio(); updateButtons();
+  if (selected) $('sidModel').value = selected.loadOptions.modelSelection ?? 'auto';
   status(selected ? 'Stopped. Press Play to start this subtune again.' : 'Stopped. Load a demo or open a SID.', 'stopped');
 }
 
@@ -171,7 +182,8 @@ async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions
     let options = acceptedOptions ? {...acceptedOptions, ...acceptedMachineSettings, subtune}
       : {subtune, vbiBackend: $('vbiBackend').value, ...targetOptions()};
     if (isRsid) options = machineOptions(options);
-    const parsed = isRsid ? validateBrowserRsid(bytes, options) : validateBrowserPsid(bytes, options);
+    const parsed = validatePlayerSid(bytes, options);
+    options = {...options, ...parsed.playerOptions};
     if (attempt) attempt.timing = parsed.timing;
     const machine = isRsid || parsed.playbackBackend === 'c64';
     if (machine) options = machineOptions(options);
@@ -182,8 +194,8 @@ async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions
     const machineSettings = machine
       ? {environment: options.environment, ...(options.roms ? {roms: options.roms} : {})}
       : acceptedMachineSettings;
-    const Core = machine ? RsidPlayerCore : SidPlayerCore;
-    candidate = await Core.create({sampleRate: 48000, signal: owner.controller.signal});
+    const backend = isRsid ? 'rsid' : machine ? parsed.timing === 'cia' ? 'psid-cia' : 'psid-vbi' : 'psid';
+    candidate = await createPlayerCore({model: parsed.selectedModel, backend, sampleRate: 48000, signal: owner.controller.signal});
     candidate.load(parsed.originalBytes, {...options, subtune: parsed.subtune});
     await preflight(candidate, owner.controller.signal);
     if (disposed || loading !== owner || owner.sequence !== loadSequence) return;
@@ -195,7 +207,7 @@ async function loadSource(getBytes, name, {subtune, loadOptions: acceptedOptions
     if (!disposed && loading === owner && error.name !== 'AbortError') {
       if (attempt) sidAttempt = attempt;
       if (selected) $('subtune').value = String(selected.parsed.subtune);
-      if (attempt && (typeof error.code === 'string' && (error.code === 'PSID_CHOICE_REQUIRED' || error.code.startsWith('RSID_')) || error.message.includes('ROM') || error.message.includes('Direct VBI'))) $('rsidSettings').open = true;
+      if (attempt && (typeof error.code === 'string' && (error.code === 'PSID_CHOICE_REQUIRED' || error.code.startsWith('RSID_') || error.code.startsWith('SID_')) || error.message.includes('ROM') || error.message.includes('Direct VBI'))) $('rsidSettings').open = true;
       status(`Load failed: ${name}: ${error.message}. ${selected ? 'Current file kept.' : 'Try one of the demos.'}`, 'error', true);
     }
   } finally {
@@ -209,7 +221,7 @@ async function play() {
   starting = owner; status('Preparing SID playback…', 'starting'); updateButtons();
   try {
     // createAudio resumes immediately, while this click is still a user gesture.
-    const backend = tune.parsed.format === 'RSID' ? 'rsid' : tune.parsed.playbackBackend === 'c64'
+    const backend = tune.parsed.selectedModel === '8580' ? '8580' : tune.parsed.format === 'RSID' ? 'rsid' : tune.parsed.playbackBackend === 'c64'
       ? tune.parsed.timing === 'cia' ? 'psid-cia' : 'psid-vbi' : 'psid';
     const engine = await createAudio({volume: Number($('master').value), backend, signal: owner.controller.signal, onError: error => audioFailed(error, owner)});
     owner.engine = engine;
@@ -261,6 +273,13 @@ $('subtune').addEventListener('change', () => {
 });
 $('rsidEnvironment').addEventListener('change', () => {$('romFiles').hidden = $('rsidEnvironment').value !== 'rom'; updateButtons();});
 $('vbiBackend').addEventListener('change', updateButtons);
+$('sidModel').addEventListener('change', () => {
+  // Model changes preflight the latest file, just like a subtune change. A
+  // successful choice requires Play; failed choices keep the accepted sound.
+  if (!sidAttempt) return;
+  const attempt = sidAttempt;
+  void loadSource(async () => attempt.bytes, attempt.name, {subtune: attempt.subtune});
+});
 $('applyRsidEnvironment').addEventListener('click', () => {
   if (!sidAttempt) return;
   const attempt = sidAttempt;
