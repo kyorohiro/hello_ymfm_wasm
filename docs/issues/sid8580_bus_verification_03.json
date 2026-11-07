@@ -1,0 +1,1440 @@
+{
+  "format": "tetorica-sid8580-bus-verification",
+  "version": 1,
+  "passed": true,
+  "wasm": {
+    "bytes": 1395934,
+    "sha256": "bb6e699859f4dca3bbe052537e27e2ad82dfc247065c01ad22108f3f2a24f3da"
+  },
+  "hardwareTimingVerified": false,
+  "policy": "Reference-measured TTL; write/readable-read refresh; write-only read halves residual with minimum1; completed ticks expire it.",
+  "ttl": {
+    "6581": 7424,
+    "8580": 663552
+  },
+  "cases": [
+    {
+      "name": "latest-valid-write",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        0
+      ],
+      "cycles": 7424,
+      "frames": 332,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 664,
+        "sha256": "a9696dcbc2bef81a08d6b1a798091d2b1a49654218d3ebdb12f9b255cbb1476f"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165
+      ],
+      "cycles": 7423,
+      "frames": 332,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 664,
+        "sha256": "a9696dcbc2bef81a08d6b1a798091d2b1a49654218d3ebdb12f9b255cbb1476f"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 3712,
+      "frames": 166,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 332,
+        "sha256": "f18e4c8388d95251d22fdb63456987c14f67d4027576801db5bcb985dc061565"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 3711,
+      "frames": 166,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 332,
+        "sha256": "f18e4c8388d95251d22fdb63456987c14f67d4027576801db5bcb985dc061565"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 332,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 664,
+        "sha256": "a9696dcbc2bef81a08d6b1a798091d2b1a49654218d3ebdb12f9b255cbb1476f"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 6012,
+      "frames": 269,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 538,
+        "sha256": "814fd21e8534b178582a97f4d00d1a5d0b7389d502ef336c2bfdf66f60bc3f6f"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 44,
+      "busValue": 137,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 88,
+        "sha256": "10eef285deef7a4b7c82b22aa53589b7833df29de3814649c772bbd5c832f365"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 4,
+      "busValue": 0,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 44100,
+      "model": 6581,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 332,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 664,
+        "sha256": "a9696dcbc2bef81a08d6b1a798091d2b1a49654218d3ebdb12f9b255cbb1476f"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "latest-valid-write",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        0
+      ],
+      "cycles": 663552,
+      "frames": 29700,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 59400,
+        "sha256": "0559431387d965069ed3dcab44cb322f7e922cfbc37f2c62af23be92ee4e4dca"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165
+      ],
+      "cycles": 663551,
+      "frames": 29700,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 59400,
+        "sha256": "0559431387d965069ed3dcab44cb322f7e922cfbc37f2c62af23be92ee4e4dca"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 331776,
+      "frames": 14850,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 29700,
+        "sha256": "da267d3f289cc8dc2acd20420cb3d24a93b75bc062756ff15f6b1fe1f5d42a7e"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 331775,
+      "frames": 14850,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 29700,
+        "sha256": "da267d3f289cc8dc2acd20420cb3d24a93b75bc062756ff15f6b1fe1f5d42a7e"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 29700,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 59400,
+        "sha256": "0559431387d965069ed3dcab44cb322f7e922cfbc37f2c62af23be92ee4e4dca"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 334076,
+      "frames": 14953,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 29906,
+        "sha256": "a076dec64cbc4d6bb325265c309bd9192fe87a42da6b8e47e0bc16fa43d1337d"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 44,
+      "busValue": 137,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 88,
+        "sha256": "10eef285deef7a4b7c82b22aa53589b7833df29de3814649c772bbd5c832f365"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 4,
+      "busValue": 0,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 44100,
+      "model": 8580,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 29700,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 59400,
+        "sha256": "0559431387d965069ed3dcab44cb322f7e922cfbc37f2c62af23be92ee4e4dca"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "latest-valid-write",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        0
+      ],
+      "cycles": 7424,
+      "frames": 361,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165
+      ],
+      "cycles": 7423,
+      "frames": 361,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 3712,
+      "frames": 180,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 360,
+        "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 3711,
+      "frames": 180,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 360,
+        "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 361,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 6012,
+      "frames": 292,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 584,
+        "sha256": "62ec1707572ac5078d31a687a5d23de0c6d2a58d3462efb7039957548a7986cc"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 48,
+      "busValue": 137,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 96,
+        "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 4,
+      "busValue": 0,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 48000,
+      "model": 6581,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 361,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "latest-valid-write",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        0
+      ],
+      "cycles": 663552,
+      "frames": 32327,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165
+      ],
+      "cycles": 663551,
+      "frames": 32327,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 331776,
+      "frames": 16163,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 32326,
+        "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 331775,
+      "frames": 16163,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 32326,
+        "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 32327,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 334076,
+      "frames": 16275,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 32550,
+        "sha256": "97eed7b41c30b18d0b0e4bc4b4a2a6af1dbfa43f79bb3565afc18003c47af47e"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 48,
+      "busValue": 137,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 96,
+        "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 4,
+      "busValue": 0,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 48000,
+      "model": 8580,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 32327,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "latest-valid-write",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        0
+      ],
+      "cycles": 7424,
+      "frames": 723,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 1446,
+        "sha256": "a036842f845435a083749b3732f6956929ad0a253e3829bfa0564abeafa5e010"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165
+      ],
+      "cycles": 7423,
+      "frames": 723,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 1446,
+        "sha256": "a036842f845435a083749b3732f6956929ad0a253e3829bfa0564abeafa5e010"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 3712,
+      "frames": 361,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 3711,
+      "frames": 361,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 722,
+        "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 723,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 1446,
+        "sha256": "a036842f845435a083749b3732f6956929ad0a253e3829bfa0564abeafa5e010"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 6012,
+      "frames": 585,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 1170,
+        "sha256": "bb22e7c937802de18d1dfa08a5f6821a913d37c038e8d763f8ef0bba55648bdd"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 97,
+      "busValue": 137,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 194,
+        "sha256": "5c08fc84db4979cd21082805804057992dbf14f586880ce86270ad51d9195626"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 9,
+      "busValue": 0,
+      "busRemaining": 3712,
+      "pcm": {
+        "bytes": 18,
+        "sha256": "60daa3a5f7dbfa200f8c82840ecf5b42640b70f3b7218a4c6bbd67db542e75a4"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 96000,
+      "model": 6581,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 7424,
+      "frames": 723,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 1446,
+        "sha256": "a036842f845435a083749b3732f6956929ad0a253e3829bfa0564abeafa5e010"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "latest-valid-write",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        60,
+        240
+      ],
+      "cycles": 0,
+      "frames": 0,
+      "busValue": 240,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-expiry",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        0
+      ],
+      "cycles": 663552,
+      "frames": 64654,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 129308,
+        "sha256": "582abde3ed4eea3d45f7848a3337bd4da7642ecab4961e6d18a8e0f8c77a989d"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "fresh-write-last-retained",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165
+      ],
+      "cycles": 663551,
+      "frames": 64654,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 129308,
+        "sha256": "582abde3ed4eea3d45f7848a3337bd4da7642ecab4961e6d18a8e0f8c77a989d"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-halves-retention",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 331776,
+      "frames": 32327,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-shortened-last-cycle",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        165
+      ],
+      "cycles": 331775,
+      "frames": 32327,
+      "busValue": 165,
+      "busRemaining": 1,
+      "pcm": {
+        "bytes": 64654,
+        "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "bounded-residual-expiry",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 64654,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 129308,
+        "sha256": "582abde3ed4eea3d45f7848a3337bd4da7642ecab4961e6d18a8e0f8c77a989d"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "repeated-no-clock-reads",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        0
+      ],
+      "cycles": 1,
+      "frames": 0,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "envelope-read-drives-bus",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        255,
+        255,
+        0
+      ],
+      "cycles": 334076,
+      "frames": 32551,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 65102,
+        "sha256": "cb8019ae1f42b5624d559088896ddefcf9d711f03a12942f60b0eb0a5800c468"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "oscillator-read-drives-bus",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        137,
+        137
+      ],
+      "cycles": 1000,
+      "frames": 97,
+      "busValue": 137,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 194,
+        "sha256": "5c08fc84db4979cd21082805804057992dbf14f586880ce86270ad51d9195626"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "read-only-write-still-drives-bus",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        165,
+        0,
+        0
+      ],
+      "cycles": 100,
+      "frames": 9,
+      "busValue": 0,
+      "busRemaining": 331776,
+      "pcm": {
+        "bytes": 18,
+        "sha256": "60daa3a5f7dbfa200f8c82840ecf5b42640b70f3b7218a4c6bbd67db542e75a4"
+      },
+      "nativeWasm": true,
+      "split": true
+    },
+    {
+      "name": "zero-byte-clears-latch",
+      "rate": 96000,
+      "model": 8580,
+      "reads": [
+        0,
+        0
+      ],
+      "cycles": 663552,
+      "frames": 64654,
+      "busValue": 0,
+      "busRemaining": 0,
+      "pcm": {
+        "bytes": 129308,
+        "sha256": "582abde3ed4eea3d45f7848a3337bd4da7642ecab4961e6d18a8e0f8c77a989d"
+      },
+      "nativeWasm": true,
+      "split": true
+    }
+  ],
+  "checks": {
+    "nativeWasmCases": 66,
+    "expiryBoundaries": true,
+    "readUpdatesAndSideEffects": true,
+    "noClockReads": true,
+    "noImmortalResidual": true,
+    "invalidAndPotPreserveBus": true,
+    "resetStopAndIsolation": true,
+    "potRejectedBeforePcm": true
+  },
+  "reference": [],
+  "inputs": {
+    "scripts/check_sid8580_bus.mjs": {
+      "bytes": 5594,
+      "sha256": "8cbe7f7b3e5c6c8b046a12d92a51937d3151405f67c195d764ff7140e936cdde"
+    },
+    "test/helpers/sid8580_bus_fixtures.mjs": {
+      "bytes": 1796,
+      "sha256": "fde0b00cb0363185b135fa60fc3fdb8f4353232bdc710c3e3e686642ee0fdf84"
+    },
+    "test/helpers/sid8580_probe_fixtures.mjs": {
+      "bytes": 3133,
+      "sha256": "134354d3858891d0ecfeae3803e193bede02eba5c0e906497091f414c0415721"
+    }
+  }
+}

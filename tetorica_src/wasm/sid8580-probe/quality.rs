@@ -96,6 +96,9 @@ impl QualityProbe {
     pub fn set_8580_calibration(&mut self, enabled: bool) {
         self.probe.set_8580_calibration(enabled);
     }
+    pub fn set_8580_cutoff_calibration(&mut self, enabled: bool) {
+        self.probe.set_8580_cutoff_calibration(enabled);
+    }
 
     /// Clock exact completed cycles. Discarding samples never changes the
     /// Probe, sampler phase, bus aging or global frame accounting. The sink is

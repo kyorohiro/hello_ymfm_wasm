@@ -98,11 +98,12 @@ fn optional_number(value: Option<u64>) -> String {
 
 fn main_run() -> Result<(), String> {
     let mut calibration = false;
+    let mut cutoff_calibration = false;
     for argument in std::env::args().skip(1) {
-        if argument == "--8580-calibration" && !calibration {
-            calibration = true;
-        } else {
-            return Err("Only one optional --8580-calibration flag is supported".into());
+        match argument.as_str() {
+            "--8580-calibration" if !calibration => calibration = true,
+            "--8580-cutoff-calibration" if !cutoff_calibration => cutoff_calibration = true,
+            _ => return Err("Unknown or duplicate quality calibration flag".into()),
         }
     }
     let mut bytes = Vec::new();
@@ -118,6 +119,7 @@ fn main_run() -> Result<(), String> {
     let (rate, model, commands) = parse(text)?;
     let mut engine = QualityProbe::new(rate, model).ok_or("Quality arguments rejected")?;
     engine.set_8580_calibration(calibration);
+    engine.set_8580_cutoff_calibration(cutoff_calibration);
     let stdout = io::stdout();
     let mut output = io::BufWriter::new(stdout.lock());
     let mut pcm = [0u8; probe::OUTPUT_CAPACITY * 2];
@@ -179,18 +181,24 @@ fn main_run() -> Result<(), String> {
     } else {
         "upstream"
     };
+    let cutoff_profile = if chip.cutoff_calibration() {
+        probe::CUTOFF_CALIBRATION_PROFILE
+    } else {
+        "upstream"
+    };
     let written = chip
         .written()
         .iter()
         .map(u8::to_string)
         .collect::<Vec<_>>()
         .join(",");
-    eprintln!("{{\"format\":\"tetorica-sid8580-quality\",\"version\":1,\"sampleRate\":{rate},\"model\":{},\"clockHz\":{CLOCK_HZ},\"cycles\":{},\"frames\":{},\"globalCycles\":{},\"globalFrames\":{},\"generatedFrames\":{},\"allSampleFrames\":{},\"epochCycles\":{},\"epochFrames\":{},\"requestedCycles\":{},\"captureCycles\":{},\"skippedCycles\":{},\"capturedFrames\":{},\"discardedFrames\":{},\"reads\":[{reads}],\"readEvents\":[{events}],\"captureRanges\":[{ranges}],\"stopped\":{},\"error\":{},\"registers\":[{written}],\"busValue\":{},\"busRemaining\":{},\"calibrationEnabled\":{},\"calibrationEffective\":{},\"calibrationProfile\":\"{calibration_profile}\"}}",
+    eprintln!("{{\"format\":\"tetorica-sid8580-quality\",\"version\":1,\"sampleRate\":{rate},\"model\":{},\"clockHz\":{CLOCK_HZ},\"cycles\":{},\"frames\":{},\"globalCycles\":{},\"globalFrames\":{},\"generatedFrames\":{},\"allSampleFrames\":{},\"epochCycles\":{},\"epochFrames\":{},\"requestedCycles\":{},\"captureCycles\":{},\"skippedCycles\":{},\"capturedFrames\":{},\"discardedFrames\":{},\"reads\":[{reads}],\"readEvents\":[{events}],\"captureRanges\":[{ranges}],\"stopped\":{},\"error\":{},\"registers\":[{written}],\"busValue\":{},\"busRemaining\":{},\"calibrationEnabled\":{},\"calibrationEffective\":{},\"calibrationProfile\":\"{calibration_profile}\",\"cutoffCalibrationEnabled\":{},\"cutoffCalibrationEffective\":{},\"cutoffCalibrationProfile\":\"{cutoff_profile}\"}}",
         if model == 0 {6581} else {8580}, engine.global_cycles(), engine.captured_frames(),
         engine.global_cycles(), engine.global_frames(), engine.global_frames(), engine.global_frames(), chip.cycle_count(), chip.frame_count(),
         engine.requested_cycles(), engine.capture_cycles(), engine.skipped_cycles(),
         engine.captured_frames(), engine.discarded_frames(), chip.stopped(), chip.error() as u32,
-        chip.bus_value(), chip.bus_remaining(), chip.calibration(), chip.calibration() && model == 1);
+        chip.bus_value(), chip.bus_remaining(), chip.calibration(), chip.calibration() && model == 1,
+        chip.cutoff_calibration(), chip.cutoff_calibration() && model == 1);
     Ok(())
 }
 

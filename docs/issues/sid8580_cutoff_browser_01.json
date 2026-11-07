@@ -1,0 +1,3828 @@
+{
+  "format": "tetorica-sid8580-cutoff-browser",
+  "version": 1,
+  "passed": true,
+  "productionAdopted": false,
+  "wasm": {
+    "bytes": 1395934,
+    "sha256": "bb6e699859f4dca3bbe052537e27e2ad82dfc247065c01ad22108f3f2a24f3da"
+  },
+  "nativeReport": {
+    "bytes": 1226483,
+    "sha256": "b62b58127e83c6626b97052f51b43c30ea205cde0bb03eac755cf2e8cf992087"
+  },
+  "inputs": {
+    "checker": {
+      "bytes": 6998,
+      "sha256": "0b4cfa2e6f707973c4580430cdfc8859d66513759c832bd961a6f4b8b54e61f8"
+    },
+    "fixtures": {
+      "bytes": 2617,
+      "sha256": "fa161d3297d78ecd7e7d337c067e9adeea8cc9cc35c7f45b649530f71098f474"
+    }
+  },
+  "profiles": {
+    "resonance": true,
+    "cutoff": true
+  },
+  "physicalAudioOpened": false,
+  "workletTested": false,
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "cases": [
+        {
+          "name": "holdout-fc:fc96:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "74e22111a45ae91a968ec19e73244ecb4d258dde07a767d6a0ccaae27bcf3e26"
+          }
+        },
+        {
+          "name": "holdout-fc:fc96:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "66b07a01ce77dc06c3c5332478aa1f8571a0b2937ea91dd2ca0ed072e37ce05f"
+          }
+        },
+        {
+          "name": "dry:8580:48000:11498:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "0f250a5ccdd180c0a0e35cde09ea6f3921cc579f2aeb131cb7e1c381287bf8b8"
+          }
+        },
+        {
+          "name": "holdout-fc:fc192:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "cfb04ad7cc13d862ea25c05907311c574b2d6bd886b539edaf2e405da5f4e845"
+          }
+        },
+        {
+          "name": "holdout-fc:fc192:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "0131d589aeca3e734eca7c4e1762e9b2bbd01e4f8bf1eed1bdbe39921fcf84cb"
+          }
+        },
+        {
+          "name": "dry:8580:48000:22444:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "516f00dac18b9e8f60e747f07f330af846feb8d97569123c491bd6a22d29dc7f"
+          }
+        },
+        {
+          "name": "holdout-fc:fc384:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "b744e3a53d200f067c642365c42d2b4e30136c41913b1c10547f086cecdb5a3e"
+          }
+        },
+        {
+          "name": "holdout-fc:fc384:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "1c1bb2fec23a8b1be5f4dae6409c59e94caea95a812d43811993520eb7b7b209"
+          }
+        },
+        {
+          "name": "dry:8580:48000:44336:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "e99df46e38abe29e2b2b19ee7c11047f17a387860042d485bf67cf44c515d7ff"
+          }
+        },
+        {
+          "name": "holdout-fc:fc768:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "ab4e63f7d49cd436cdcfaf1bd734bdc74b2639c1534a2b623d6f34b25a8e503e"
+          }
+        },
+        {
+          "name": "holdout-fc:fc768:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "149a0cbeccc79ce68583d126cc0568b932263fafdfb0c7c6db036d60e1753012"
+          }
+        },
+        {
+          "name": "dry:8580:48000:44060:4:32:2",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "ea93be94f62add8b109af9550c2f435dc9967d04ad5e6627c4bd2c3a05ed759b"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1280:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "70c0a78e243d16cbda2b74084d8c6c7b86c949599c3409b564ca0f1b68eedc5a"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1280:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "73606023ca1161af62872f9b44a4c9624c41faaf60e4231eba3ebee43932ce7a"
+          }
+        },
+        {
+          "name": "dry:8580:48000:48833:4:32:3",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "3ab14c738fefa7edf793da72860f0a239ceadd941401bb2050161730d36394e5"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1792:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "6bc0372aadf63127aad2c8773d9e80c322e23f4c7c34f2c6b15b1fc370eadbef"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1792:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "e9ef223515c86afa9effe08f865682ef0ced873c323f5f600ba34ea584e9e959"
+          }
+        },
+        {
+          "name": "dry:8580:48000:40976:4:32:5",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "21fd7acda87098407e272a3ca0a4a8fc920ab4a2c830ba0b6e603f6697a6df94"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate44100:f4:lp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "a4750d2e61bc011d821e05b25f3a161dcca57050f4b141c0fe1c88e41343e284"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate44100:f4:hp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "fe9d71a27e40f25149d09e51a3af0773fccad5e028c61443a8c4c9b8e5200a74"
+          }
+        },
+        {
+          "name": "dry:8580:44100:22444:15:32:1",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "15e4154575e9cb7bd0eca8014d02c55b6d061e38088a6da82bbfe7bfe4287596"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate96000:f4:lp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "69c6167e81645d65ea511fc12134884e68eb43c06396fc804ae1e3085f4bfc53"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate96000:f4:hp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "65368e22f86338151cb796997231f37483f7e236c395e08a7e8f9ae248e1249b"
+          }
+        },
+        {
+          "name": "dry:8580:96000:22444:15:32:1",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "bd2d9ca894af80484fb9a5c25f48fe6ba50cd4872216dc3dfa447eb28653d9be"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate44100:f4:lp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "48f877de4070769c0d73593a49a755fce74eb51c1588e19b17dae8abd357cb5c"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate44100:f4:hp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "6bf1359e8b6796860ad52cc19b8acb468b1357699c7447e3c2c9821667d4f654"
+          }
+        },
+        {
+          "name": "dry:8580:44100:48833:15:32:3",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "2b2b48456ef7fa1d3138bd7d3df6b2fe9c4fe6e0ad0f51b572c3b85d2d6c88c8"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate96000:f4:lp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "820823bed50d945da0c54f75240c9ff3475e5fc7383d8eac1c4320b4d76b6ec6"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate96000:f4:hp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "954cd19ee69de6c4b775e25d1008028f91e77039c56d567768a25935d1cb5988"
+          }
+        },
+        {
+          "name": "dry:8580:96000:48833:15:32:3",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "2bdfe311a60fbc3fc576119f1565661aaf368941050588b4fb64ca8ade027d6f"
+          }
+        }
+      ],
+      "errors": [],
+      "resetStopPreserveBothProfiles": true
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "cases": [
+        {
+          "name": "holdout-fc:fc96:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "74e22111a45ae91a968ec19e73244ecb4d258dde07a767d6a0ccaae27bcf3e26"
+          }
+        },
+        {
+          "name": "holdout-fc:fc96:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "66b07a01ce77dc06c3c5332478aa1f8571a0b2937ea91dd2ca0ed072e37ce05f"
+          }
+        },
+        {
+          "name": "dry:8580:48000:11498:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            104
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 104
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "0f250a5ccdd180c0a0e35cde09ea6f3921cc579f2aeb131cb7e1c381287bf8b8"
+          }
+        },
+        {
+          "name": "holdout-fc:fc192:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "cfb04ad7cc13d862ea25c05907311c574b2d6bd886b539edaf2e405da5f4e845"
+          }
+        },
+        {
+          "name": "holdout-fc:fc192:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "0131d589aeca3e734eca7c4e1762e9b2bbd01e4f8bf1eed1bdbe39921fcf84cb"
+          }
+        },
+        {
+          "name": "dry:8580:48000:22444:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "516f00dac18b9e8f60e747f07f330af846feb8d97569123c491bd6a22d29dc7f"
+          }
+        },
+        {
+          "name": "holdout-fc:fc384:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "b744e3a53d200f067c642365c42d2b4e30136c41913b1c10547f086cecdb5a3e"
+          }
+        },
+        {
+          "name": "holdout-fc:fc384:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "1c1bb2fec23a8b1be5f4dae6409c59e94caea95a812d43811993520eb7b7b209"
+          }
+        },
+        {
+          "name": "dry:8580:48000:44336:4:32:1",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            179
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 179
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "e99df46e38abe29e2b2b19ee7c11047f17a387860042d485bf67cf44c515d7ff"
+          }
+        },
+        {
+          "name": "holdout-fc:fc768:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "ab4e63f7d49cd436cdcfaf1bd734bdc74b2639c1534a2b623d6f34b25a8e503e"
+          }
+        },
+        {
+          "name": "holdout-fc:fc768:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "149a0cbeccc79ce68583d126cc0568b932263fafdfb0c7c6db036d60e1753012"
+          }
+        },
+        {
+          "name": "dry:8580:48000:44060:4:32:2",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            182
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 182
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "ea93be94f62add8b109af9550c2f435dc9967d04ad5e6627c4bd2c3a05ed759b"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1280:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "70c0a78e243d16cbda2b74084d8c6c7b86c949599c3409b564ca0f1b68eedc5a"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1280:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "73606023ca1161af62872f9b44a4c9624c41faaf60e4231eba3ebee43932ce7a"
+          }
+        },
+        {
+          "name": "dry:8580:48000:48833:4:32:3",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "3ab14c738fefa7edf793da72860f0a239ceadd941401bb2050161730d36394e5"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1792:s4:r0:rate48000:f4:lp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "6bc0372aadf63127aad2c8773d9e80c322e23f4c7c34f2c6b15b1fc370eadbef"
+          }
+        },
+        {
+          "name": "holdout-fc:fc1792:s4:r0:rate48000:f4:hp",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "e9ef223515c86afa9effe08f865682ef0ced873c323f5f600ba34ea584e9e959"
+          }
+        },
+        {
+          "name": "dry:8580:48000:40976:4:32:5",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            68,
+            0,
+            68,
+            74
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 68
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 74
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 24359,
+              "endFrame": 36359,
+              "captureOffset": 0,
+              "frames": 12000,
+              "firstSampleCycle": 500014,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 12000,
+          "generatedFrames": 36359,
+          "pcm": {
+            "bytes": 24000,
+            "sha256": "21fd7acda87098407e272a3ca0a4a8fc920ab4a2c830ba0b6e603f6697a6df94"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate44100:f4:lp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "a4750d2e61bc011d821e05b25f3a161dcca57050f4b141c0fe1c88e41343e284"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate44100:f4:hp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "fe9d71a27e40f25149d09e51a3af0773fccad5e028c61443a8c4c9b8e5200a74"
+          }
+        },
+        {
+          "name": "dry:8580:44100:22444:15:32:1",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "15e4154575e9cb7bd0eca8014d02c55b6d061e38088a6da82bbfe7bfe4287596"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate96000:f4:lp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "69c6167e81645d65ea511fc12134884e68eb43c06396fc804ae1e3085f4bfc53"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc192:s15:r12:rate96000:f4:hp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "65368e22f86338151cb796997231f37483f7e236c395e08a7e8f9ae248e1249b"
+          }
+        },
+        {
+          "name": "dry:8580:96000:22444:15:32:1",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            214
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 214
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "bd2d9ca894af80484fb9a5c25f48fe6ba50cd4872216dc3dfa447eb28653d9be"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate44100:f4:lp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "48f877de4070769c0d73593a49a755fce74eb51c1588e19b17dae8abd357cb5c"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate44100:f4:hp",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "6bf1359e8b6796860ad52cc19b8acb468b1357699c7447e3c2c9821667d4f654"
+          }
+        },
+        {
+          "name": "dry:8580:44100:48833:15:32:3",
+          "rate": 44100,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 22380,
+              "endFrame": 33405,
+              "captureOffset": 0,
+              "frames": 11025,
+              "firstSampleCycle": 500019,
+              "lastSampleCycle": 746309
+            }
+          ],
+          "cycles": 746312,
+          "frames": 11025,
+          "generatedFrames": 33405,
+          "pcm": {
+            "bytes": 22050,
+            "sha256": "2b2b48456ef7fa1d3138bd7d3df6b2fe9c4fe6e0ad0f51b572c3b85d2d6c88c8"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate96000:f4:lp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "820823bed50d945da0c54f75240c9ff3475e5fc7383d8eac1c4320b4d76b6ec6"
+          }
+        },
+        {
+          "name": "holdout-interaction:fc1280:s15:r12:rate96000:f4:hp",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "954cd19ee69de6c4b775e25d1008028f91e77039c56d567768a25935d1cb5988"
+          }
+        },
+        {
+          "name": "dry:8580:96000:48833:15:32:3",
+          "rate": 96000,
+          "reads": [
+            0,
+            0,
+            255,
+            0,
+            255,
+            34
+          ],
+          "readEvents": [
+            {
+              "cycle": 100000,
+              "register": 28,
+              "value": 0
+            },
+            {
+              "cycle": 100000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 200000,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 200000,
+              "register": 27,
+              "value": 0
+            },
+            {
+              "cycle": 746312,
+              "register": 28,
+              "value": 255
+            },
+            {
+              "cycle": 746312,
+              "register": 27,
+              "value": 34
+            }
+          ],
+          "captureRanges": [
+            {
+              "startCycle": 500000,
+              "endCycle": 746312,
+              "startFrame": 48718,
+              "endFrame": 72718,
+              "captureOffset": 0,
+              "frames": 24000,
+              "firstSampleCycle": 500004,
+              "lastSampleCycle": 746305
+            }
+          ],
+          "cycles": 746312,
+          "frames": 24000,
+          "generatedFrames": 72718,
+          "pcm": {
+            "bytes": 48000,
+            "sha256": "2bdfe311a60fbc3fc576119f1565661aaf368941050588b4fb64ca8ade027d6f"
+          }
+        }
+      ],
+      "errors": [],
+      "resetStopPreserveBothProfiles": true
+    }
+  ]
+}

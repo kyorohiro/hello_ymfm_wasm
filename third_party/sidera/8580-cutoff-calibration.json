@@ -1,0 +1,280 @@
+{
+  "format": "tetorica-sid8580-experimental-cutoff-calibration",
+  "version": 1,
+  "profile": "8580-cutoff-crossover-v1",
+  "defaultEnabled": false,
+  "model": "8580 only; original6581 and upstream/default APIs unchanged",
+  "hardwareCalibration": false,
+  "derivation": "Training-only black-box output measurements; no reference-engine implementation or tables copied",
+  "rule": "Original pinned MIT integer coefficientHz * reference operational LP/HP crossover / candidate operational crossover; round nearest integer; piecewise interpolation between knots.",
+  "trainingReport": {
+    "path": "docs/issues/sid8580_cutoff_training_before_01.json",
+    "bytes": 856614,
+    "sha256": "fe93d20e57bdc68e8572d9d2f224c9ce11390829a177b34ea77f3d86bf4f39ac",
+    "wasm": {
+      "bytes": 1392873,
+      "sha256": "ca7c478e2dbc57f0a0203f908d625037aeaa92f39b23d7541db4d4be4d873c77"
+    },
+    "referenceExecutable": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+      "bytes": 126680,
+      "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+    },
+    "checks": {
+      "nativeWasmAndChunkCases": 189,
+      "matchedObservableSetup": true,
+      "commonExactSampleTicks": true,
+      "curves": 7,
+      "validCandidateCrossings": 7,
+      "validReferenceCrossings": 7,
+      "noPcmGainOrPhaseCorrection": true
+    }
+  },
+  "predeclaredPlan": {
+    "path": "docs/issues/sid8580_cutoff_plan_01.json",
+    "bytes": 131293,
+    "sha256": "bf1514345fca706b5705f7bbbd94e898a9c0f56a80c196b015de81d37fc54835"
+  },
+  "analyzer": {
+    "path": "scripts/analyze_sid8580_cutoff.mjs",
+    "bytes": 12665,
+    "sha256": "a05217b5bba9c9e437718d0cb30a39ff8fb21caab196eb0bd00b353bc7c0417a",
+    "metric": {
+      "path": "scripts/sid8580_cutoff_metrics.mjs",
+      "bytes": 5442,
+      "sha256": "1925179cea54cfb84b1a00d172dbfade841cae9022229f42d14c072628fa61bd"
+    }
+  },
+  "trainingSelection": {
+    "fc": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      1536,
+      2047
+    ],
+    "rate": 48000,
+    "sustain": 4,
+    "res": 0,
+    "volume": 12,
+    "holdoutRead": false,
+    "retuningFromHoldout": false
+  },
+  "unmeasuredAnchor": {
+    "fc": 0,
+    "coefficientHz": 30,
+    "source": "Unchanged original sidera1.1.1 value; not measured or calibrated against hardware."
+  },
+  "stabilityCeilingHz": 16000,
+  "knots": [
+    [
+      0,
+      30
+    ],
+    [
+      64,
+      405
+    ],
+    [
+      128,
+      899
+    ],
+    [
+      256,
+      1796
+    ],
+    [
+      512,
+      3574
+    ],
+    [
+      1024,
+      7169
+    ],
+    [
+      1536,
+      10749
+    ],
+    [
+      2047,
+      14348
+    ]
+  ],
+  "training": [
+    {
+      "curveIndex": 0,
+      "fc": 64,
+      "originalCoefficientHz": 422,
+      "candidateCrossoverHz": 460.676467593188,
+      "referenceCrossoverHz": 441.923597580842,
+      "scale": 0.9592927546086287,
+      "unroundedCoefficientHz": 404.8215424448413,
+      "coefficientHz": 405,
+      "candidateBracketHz": [
+        409.72681617736816,
+        460.9353275299072
+      ],
+      "referenceBracketHz": [
+        409.72681617736816,
+        460.9353275299072
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 1,
+      "fc": 128,
+      "originalCoefficientHz": 815,
+      "candidateCrossoverHz": 801.7152897631406,
+      "referenceCrossoverHz": 883.8835363045457,
+      "scale": 1.102490556922871,
+      "unroundedCoefficientHz": 898.5298038921397,
+      "coefficientHz": 899,
+      "candidateBracketHz": [
+        790.6782073974609,
+        889.5129833221436
+      ],
+      "referenceBracketHz": [
+        790.6782073974609,
+        889.5129833221436
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 2,
+      "fc": 256,
+      "originalCoefficientHz": 1600,
+      "candidateCrossoverHz": 1575.621557908209,
+      "referenceCrossoverHz": 1768.3526552166968,
+      "scale": 1.1223206780468002,
+      "unroundedCoefficientHz": 1795.7130848748805,
+      "coefficientHz": 1796,
+      "candidateBracketHz": [
+        1552.5222644805908,
+        1746.5508441925049
+      ],
+      "referenceBracketHz": [
+        1746.5508441925049,
+        1940.6381492614746
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 3,
+      "fc": 512,
+      "originalCoefficientHz": 3300,
+      "candidateCrossoverHz": 3266.7087394622504,
+      "referenceCrossoverHz": 3538.292297405041,
+      "scale": 1.083136753106277,
+      "unroundedCoefficientHz": 3574.351285250714,
+      "coefficientHz": 3574,
+      "candidateBracketHz": [
+        3076.2691040039062,
+        3460.8027420043945
+      ],
+      "referenceBracketHz": [
+        3460.8027420043945,
+        3845.336380004883
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 4,
+      "fc": 1024,
+      "originalCoefficientHz": 6500,
+      "candidateCrossoverHz": 6419.686598838227,
+      "referenceCrossoverHz": 7080.43614005205,
+      "scale": 1.1029255137366674,
+      "unroundedCoefficientHz": 7169.015839288338,
+      "coefficientHz": 7169,
+      "candidateBracketHz": [
+        6123.704057693481,
+        6889.1890869140625
+      ],
+      "referenceBracketHz": [
+        6889.1890869140625,
+        7654.497940063477
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 5,
+      "fc": 1536,
+      "originalCoefficientHz": 9800,
+      "candidateCrossoverHz": 9672.04179847433,
+      "referenceCrossoverHz": 10608.290092866846,
+      "scale": 1.0967994466835533,
+      "unroundedCoefficientHz": 10748.634577498822,
+      "coefficientHz": 10749,
+      "candidateBracketHz": [
+        9171.021560668945,
+        10317.340530395508
+      ],
+      "referenceBracketHz": [
+        10317.340530395508,
+        11463.894401550293
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    },
+    {
+      "curveIndex": 6,
+      "fc": 2047,
+      "originalCoefficientHz": 12500,
+      "candidateCrossoverHz": 12329.693387216654,
+      "referenceCrossoverHz": 14152.55070743055,
+      "scale": 1.147842875160531,
+      "unroundedCoefficientHz": 14348.035939506637,
+      "coefficientHz": 14348,
+      "candidateBracketHz": [
+        12212.525253295898,
+        13739.090909957886
+      ],
+      "referenceBracketHz": [
+        13739.090909957886,
+        15265.656566619873
+      ],
+      "excludedCandidatePoints": 0,
+      "excludedReferencePoints": 0
+    }
+  ],
+  "originalCoefficientCurve": [
+    [
+      0,
+      30
+    ],
+    [
+      256,
+      1600
+    ],
+    [
+      512,
+      3300
+    ],
+    [
+      1024,
+      6500
+    ],
+    [
+      1536,
+      9800
+    ],
+    [
+      2047,
+      12500
+    ]
+  ],
+  "limitations": [
+    "This is an explicitly opt-in operational crossover fit, not a physical pole or a -3dB hardware cutoff calibration.",
+    "Mode gain, nonlinearities, quantization, harmonic changes and output loading can bias a crossover.",
+    "FC0 is untested. All seven measured training FCs, including2047, were required to have valid two-sided crossings; no missing values were filled or silently clamped.",
+    "Resonance damping, output gain/RC, waveform/noise, ADSR, CPU and read pipelines are unchanged.",
+    "Untrained FCs, sustain/rate/resonance interactions and the original default regressions must be tested before retaining this research profile."
+  ]
+}

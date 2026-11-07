@@ -1,0 +1,69 @@
+{
+  "format": "tetorica-sid8580-pre-cutoff-baseline",
+  "version": 1,
+  "sourceReport": {
+    "path": "docs/issues/sid8580_calibration_policy_01.json",
+    "bytes": 14740,
+    "sha256": "313560a458f29ccee57ac018c789082689ca766612f56b978eb9c310a26f5ed0"
+  },
+  "sourceWasm": {
+    "bytes": 1392873,
+    "sha256": "ca7c478e2dbc57f0a0203f908d625037aeaa92f39b23d7541db4d4be4d873c77"
+  },
+  "fixtures": {
+    "path": "test/helpers/sid8580_probe_fixtures.mjs",
+    "bytes": 3133,
+    "sha256": "134354d3858891d0ecfeae3803e193bede02eba5c0e906497091f414c0415721"
+  },
+  "fixture": "filter-sweep",
+  "cutoffCalibration": false,
+  "resonanceProfile": "8580-resonance-logfit-v1",
+  "musicOrFirmwareUsed": false,
+  "cases": [
+    {
+      "sampleRate": 44100,
+      "model6581": {
+        "bytes": 18262,
+        "sha256": "09a0ecfec4039a1d49196ff77ff87a05e308039b77c22fb58dd9f035de9eb0b2"
+      },
+      "model8580Default": {
+        "bytes": 18262,
+        "sha256": "02ba109e0308ddbe4a05cd7fd66a3097260b14552519a973a7514ecacc19b08e"
+      },
+      "model8580ResonanceOnly": {
+        "bytes": 18262,
+        "sha256": "cfb7866f283db3c7496fc5452bafdef3e66d2f620b57249ff4c77b86ff7997e4"
+      }
+    },
+    {
+      "sampleRate": 48000,
+      "model6581": {
+        "bytes": 19876,
+        "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+      },
+      "model8580Default": {
+        "bytes": 19876,
+        "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+      },
+      "model8580ResonanceOnly": {
+        "bytes": 19876,
+        "sha256": "9b2f1324d395e95f920acd6e3c65ee14e4f5061e722ff66d3863c43a25077184"
+      }
+    },
+    {
+      "sampleRate": 96000,
+      "model6581": {
+        "bytes": 39754,
+        "sha256": "db5232e4545d6c6a9f8c6b0374cae16a4088bb83141afacfdd1d65da53a6fcf6"
+      },
+      "model8580Default": {
+        "bytes": 39754,
+        "sha256": "9d9835c7efb707c61452891356e42824135130a592cf1d7dd36984aaf4e92df9"
+      },
+      "model8580ResonanceOnly": {
+        "bytes": 39754,
+        "sha256": "0fd22e59642dd7bb5ceb6a77119a615b518f0c5b93b9e4567dfc024a99ee64a7"
+      }
+    }
+  ]
+}

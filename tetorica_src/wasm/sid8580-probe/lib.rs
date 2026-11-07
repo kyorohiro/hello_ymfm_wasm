@@ -13,6 +13,7 @@ pub const READ_ERROR: u32 = 256;
 pub const BUS_TTL_6581: u32 = 7424;
 pub const BUS_TTL_8580: u32 = 663552;
 pub const CALIBRATION_PROFILE: &str = "8580-resonance-logfit-v1";
+pub const CUTOFF_CALIBRATION_PROFILE: &str = "8580-cutoff-crossover-v1";
 
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -221,6 +222,14 @@ impl Probe {
     pub fn calibration(&self) -> bool {
         self.sid.resonance_calibration_8580()
     }
+    /// Independent research option with the same non-clocking state contract.
+    pub fn set_8580_cutoff_calibration(&mut self, enabled: bool) {
+        self.sid.set_8580_cutoff_calibration(enabled);
+        self.error = Error::None;
+    }
+    pub fn cutoff_calibration(&self) -> bool {
+        self.sid.cutoff_calibration_8580()
+    }
     pub fn error(&self) -> Error {
         self.error
     }
@@ -396,6 +405,22 @@ pub extern "C" fn sid8p_set_8580_calibration(handle: u32, enabled: u32) -> u32 {
 #[no_mangle]
 pub extern "C" fn sid8p_calibration(handle: u32) -> u32 {
     with_probe(handle, |probe| u32::from(probe.calibration())).unwrap_or(0)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_set_8580_cutoff_calibration(handle: u32, enabled: u32) -> u32 {
+    with_probe(handle, |probe| {
+        if enabled > 1 {
+            probe.error = Error::InvalidArgument;
+            return 0;
+        }
+        probe.set_8580_cutoff_calibration(enabled != 0);
+        1
+    })
+    .unwrap_or(0)
+}
+#[no_mangle]
+pub extern "C" fn sid8p_cutoff_calibration(handle: u32) -> u32 {
+    with_probe(handle, |probe| u32::from(probe.cutoff_calibration())).unwrap_or(0)
 }
 #[no_mangle]
 pub extern "C" fn sid8p_written(handle: u32, register: u32) -> u32 {

@@ -15,9 +15,14 @@ export const SID8580_SOURCEKIT_EXTRAS=Object.freeze([
   'scripts/check_sid8580_probe.mjs','scripts/check_sid8580_bus.mjs','scripts/check_sid8580_cpu.mjs',
   'scripts/check_sid8580_probe_browser.mjs','scripts/check_sid8580_quality.mjs',
   'scripts/check_sid8580_calibration.mjs','scripts/sid8580_quality_metrics.mjs',
+  'scripts/check_sid8580_cutoff.mjs','scripts/check_sid8580_cutoff_browser.mjs',
+  'scripts/check_sid8580_cutoff_policy.mjs','scripts/sid8580_cutoff_metrics.mjs',
+  'scripts/analyze_sid8580_cutoff.mjs','scripts/analyze_sid8580_cutoff_validation.mjs',
   'test/helpers/sid8580_probe_fixtures.mjs','test/helpers/sid8580_bus_fixtures.mjs',
   'test/helpers/sid8580_cpu_fixtures.mjs','test/helpers/sid8580_quality_fixtures.mjs',
   'test/helpers/sid8580_legacy_parity.rs','test/sid8580_quality_metrics.test.mjs',
+  'test/helpers/sid8580_cutoff_fixtures.mjs','test/sid8580_cutoff_metrics.test.mjs',
+  'test/fixtures/sid8580_cutoff_baseline.json',
   'tetorica_src/cli/sid_reference_metrics.mjs',
   // Scalar/hash baseline only; required by the included CI parity command.
   'docs/issues/sid8580_probe_verification_01.json',
@@ -26,6 +31,12 @@ export const SID8580_SOURCEKIT_EXTRAS=Object.freeze([
   'docs/issues/sid8580_quality_capture_reference_01.json',
   'docs/issues/sid8580_calibration_policy_01.json',
   'docs/issues/sid8580_probe_browser_03.json',
+  'docs/issues/sid8580_probe_browser_04.json',
+  'docs/issues/sid8580_cutoff_method_01.md',
+  'docs/issues/sid8580_cutoff_plan_01.json',
+  'docs/issues/sid8580_cutoff_validation_analysis_01.json',
+  'docs/issues/sid8580_cutoff_policy_01.json',
+  'docs/issues/sid8580_cutoff_browser_01.json',
 ]);
 const WASM=['sid8580-probe.wasm','sid8580-cpu.wasm'];
 const NOTICE_ROOT='third_party/sidera/toolchain-notices';
@@ -92,6 +103,21 @@ export async function planSid8580SourceKit({buildDir=join(probeRoot,'build/sid85
       JSON.parse(await regularBytes(probeRoot,declared.path));
     }else externalEvidence[key]={...declared,packaged:false,requiredForBuildOrTests:false};
   }
+  const cutoff=JSON.parse(await regularBytes(probeRoot,'third_party/sidera/8580-cutoff-calibration.json'));
+  const cutoffEvidence=(declared,label)=>{
+    assert(declared&&/^docs\/issues\/sid8580_[A-Za-z0-9_.-]+\.json$/.test(declared.path),`Unexpected cutoff ${label} path`);
+    assert(Number.isSafeInteger(declared.bytes)&&declared.bytes>0&&/^[a-f0-9]{64}$/.test(declared.sha256),`Invalid cutoff ${label} provenance`);
+    return {bytes:declared.bytes,sha256:declared.sha256};
+  };
+  await add(cutoff.predeclaredPlan.path,cutoffEvidence(cutoff.predeclaredPlan,'plan'));
+  // Unlike the larger historical resonance capture, the cutoff training JSON
+  // is included for an offline, independently recomputed --fit --check.
+  await add(cutoff.trainingReport.path,cutoffEvidence(cutoff.trainingReport,'training report'));
+  assert.equal(cutoff.analyzer.path,'scripts/analyze_sid8580_cutoff.mjs');
+  assert.equal(cutoff.analyzer.metric.path,'scripts/sid8580_cutoff_metrics.mjs');
+  for(const declared of [cutoff.analyzer,cutoff.analyzer.metric]) {
+    await add(declared.path,{bytes:declared.bytes,sha256:declared.sha256});
+  }
   const artifacts={};
   for(const name of WASM) {
     const bytes=await regularBytes(buildDir,name);assert.deepEqual(digest(bytes),receipt.outputs[name]);
@@ -103,13 +129,14 @@ export async function planSid8580SourceKit({buildDir=join(probeRoot,'build/sid85
   return {buildDir,receipt,compiledInputs:Object.keys(receipt.inputs).length,
     sources:Object.fromEntries([...sources].sort(([a],[b])=>a<b?-1:a>b?1:0)),artifacts,externalEvidence};
 }
-const README=`# SID8580 controlled-quality research source kit
+const README=`# SID8580 controlled-quality and cutoff research source kit
 
 This is an isolated research harness, not a Player, Synth, plugin or SDK release.
 It contains pinned sidera 1.1.1 (MIT), marked changes, BSD wrappers, the unchanged
 zlib chips/m6502 CPU, original source/license records, Rust 1.91.1 standard-library
 notices, matching chip/CPU WASM and readable verification scripts. The damping
-profile is experimental, opt-in and 8580-only; defaults and 6581 remain unchanged.
+and operational LP/HP crossover profiles are independent, experimental, opt-in
+and 8580-only; defaults and 6581 remain unchanged.
 Bus decay is a bounded approximation and POT reads explicitly fail.
 
 Requirements: Node.js 22+, Rust 1.91.1 with wasm32-unknown-unknown, native C11
@@ -121,11 +148,15 @@ Rebuild and check from this directory:
 
     sh scripts/build_sid8580_probe.sh
     node --test test/sid8580_quality_metrics.test.mjs
+    node --test test/sid8580_cutoff_metrics.test.mjs
+    node scripts/analyze_sid8580_cutoff.mjs --fit docs/issues/sid8580_cutoff_training_before_01.json --plan docs/issues/sid8580_cutoff_plan_01.json --check
     node scripts/check_sid8580_probe.mjs --baseline docs/issues/sid8580_probe_verification_01.json
     node scripts/check_sid8580_bus.mjs
     node scripts/check_sid8580_cpu.mjs
     node scripts/check_sid8580_calibration.mjs
     node scripts/check_sid8580_quality.mjs
+    node scripts/check_sid8580_cutoff_policy.mjs
+    node scripts/check_sid8580_cutoff.mjs --validation --cutoff-calibrated --resonance-calibrated
     node scripts/sid8580_probe_artifacts.mjs --check build/sid8580-probe
 
 The original upstream sample-clock API can be rechecked with the compile/run
@@ -138,15 +169,21 @@ skip CYCLES, reset and stop. Reads/writes do not clock. Skip advances the same
 chip and sampler phase while discarding output. Frames means captured stdout
 frames; global/generated/all-sample counters include skipped frames. No automatic
 warmup, phase, gain or DC correction is applied. Fixtures explicitly establish
-TEST/Gate/envelope conditions. --8580-calibration enables the experimental
-profile only for the candidate quality executable; the default is unchanged.
+TEST/Gate/envelope conditions. The candidate quality executable accepts
+--8580-calibration and --8580-cutoff-calibration independently; both are off by
+default. The cutoff checker uses the corresponding --resonance-calibrated and
+--cutoff-calibrated flags. Its holdout mode is --validation. An LP=HP crossover
+is an operational measurement, not a hardware pole or a -3dB cutoff claim.
 
 No Native binary, GPL SID oracle implementation/binary, ROM, music or PCM data is
 distributed. Optional --reference comparisons require a separately prepared GPL
 executable outside this kit. Historical JSON measurements contain only metadata,
 hashes/scalars and provenance. They do not bundle that engine. The optional
-large training-case report is represented by its recorded hash/provenance;
-the compact fit analysis and held-out summary are included. The optional
+historical resonance training-case report is represented by its recorded
+hash/provenance. The compact fits, prefrozen cutoff plan, cutoff training JSON,
+methods and held-out analyses are included. The cutoff fit can be independently
+recomputed and checked offline with the command above; the training JSON contains
+measurements and provenance, not PCM or reference-engine code. The optional
 browser checker needs separately installed matching Playwright/browser binaries;
 the default checks use only built-in Node modules and local compilers.
 
@@ -161,11 +198,15 @@ async function verifyKit(stage,original) {
   };
   run('independent-build','sh',['scripts/build_sid8580_probe.sh',work]);
   run('analytical-metrics','node',['--test','test/sid8580_quality_metrics.test.mjs']);
+  run('analytical-cutoff-metrics','node',['--test','test/sid8580_cutoff_metrics.test.mjs']);
+  run('training-only-cutoff-fit','node',['scripts/analyze_sid8580_cutoff.mjs','--fit','docs/issues/sid8580_cutoff_training_before_01.json','--plan','docs/issues/sid8580_cutoff_plan_01.json','--check']);
   run('chip-parity','node',['scripts/check_sid8580_probe.mjs','--work-dir',work,'--baseline','docs/issues/sid8580_probe_verification_01.json']);
   run('bounded-bus','node',['scripts/check_sid8580_bus.mjs','--work-dir',work]);
   run('real-cpu','node',['scripts/check_sid8580_cpu.mjs','--work-dir',work]);
   run('calibration-policy','node',['scripts/check_sid8580_calibration.mjs','--work-dir',work]);
   run('controlled-candidate-quality','node',['scripts/check_sid8580_quality.mjs','--work-dir',work]);
+  run('cutoff-policy','node',['scripts/check_sid8580_cutoff_policy.mjs','--work-dir',work]);
+  run('candidate-cutoff-holdouts','node',['scripts/check_sid8580_cutoff.mjs','--work-dir',work,'--validation','--cutoff-calibrated','--resonance-calibrated']);
   run('original-library','rustc',['--edition=2021','-C','opt-level=3','-C','panic=abort','--crate-name','sidera_upstream','--crate-type','rlib','third_party/sidera/upstream/src/lib.rs','-o',work+'/libsidera_upstream.rlib']);
   run('original-api-harness','rustc',['--edition=2021','-C','opt-level=3','-C','panic=abort','test/helpers/sid8580_legacy_parity.rs','--extern','sidera='+work+'/libsidera.rlib','--extern','sidera_upstream='+work+'/libsidera_upstream.rlib','-o',work+'/legacy-parity']);
   run('original-api-parity',join(stage,work,'legacy-parity'),[]);

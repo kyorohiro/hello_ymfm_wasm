@@ -1,0 +1,570 @@
+{
+  "format": "tetorica-sid8580-calibration-policy",
+  "version": 1,
+  "productionAdopted": false,
+  "wasm": {
+    "bytes": 1395934,
+    "sha256": "bb6e699859f4dca3bbe052537e27e2ad82dfc247065c01ad22108f3f2a24f3da"
+  },
+  "compiler": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+  "inputs": {
+    "checker": {
+      "bytes": 10530,
+      "sha256": "8b8f147c8752fc2c96f042cc0f7748aba79b157a50a892f3a499ae9c0de81151"
+    },
+    "fixtures": {
+      "bytes": 3133,
+      "sha256": "134354d3858891d0ecfeae3803e193bede02eba5c0e906497091f414c0415721"
+    }
+  },
+  "physicalAudioOpened": false,
+  "musicOrFirmwareUsed": false,
+  "listeningPerformed": false,
+  "policyCases": [
+    {
+      "rate": 44100,
+      "model": 6581,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    },
+    {
+      "rate": 44100,
+      "model": 8580,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    },
+    {
+      "rate": 48000,
+      "model": 6581,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    },
+    {
+      "rate": 48000,
+      "model": 8580,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    },
+    {
+      "rate": 96000,
+      "model": 6581,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    },
+    {
+      "rate": 96000,
+      "model": 8580,
+      "defaultFalse": true,
+      "validZeroOne": true,
+      "invalidTwoAndUintMaxAtomic": true,
+      "validSetterClearsError": true,
+      "resetStopPreserve": true,
+      "stoppedSetterDoesNotResume": true
+    }
+  ],
+  "unchanged6581": [
+    {
+      "name": "phase-envelope",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 10784,
+        "sha256": "34d6ca891018dd39dfb1261757a07d1dff7543b4b0fa011011720bab307fc018"
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 11198,
+        "sha256": "d8c8192f6873659126eff0f34ec17939d677687f1b5d8b21cf9138c4cbb8ff9f"
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "17cc19fc4c2e35bd9844c33b53f71f62aaa1b3d36c9e40e77254af690ade0f26"
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "b0df8c88a6a29381874cf47290ec6efa5811dd11918d0dc6b99a9969bad28aaf"
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "aef4d9e8973df28a4774847e1c5934e7b388a55b2b69bc9eb4b9fceafffe8b87"
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "97a4de87de74195cd0f3f4e694e9925fa8ed4713024581bc226c339be16054bf"
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "0adfb953c405a484e961d7ec5be41d86dd213f76afc6d144423157605a95afaa"
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "09437e3352ea71e2bf1c74b1577dd721df1fb21ddb2af01e05e61419e1a5a8ed"
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "b8afb08d892ded49f84492e64a7986e1dbe052775007b08f5cbc8eea0540df38"
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "0e23cce7ba7b841a062affdda9219fc8a228cedcaaf8ef86665f13d4adb54009"
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 16112,
+        "sha256": "33236346296dccd42508cf29a154a5dadd71102556e677d072a03c5ebc81c614"
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 18262,
+        "sha256": "09a0ecfec4039a1d49196ff77ff87a05e308039b77c22fb58dd9f035de9eb0b2"
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 11732,
+        "sha256": "beddf4f4050559539c368f59cf7c37ce4a3ea7ba4d49a9c05588b36452754763"
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 44100,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 732,
+        "sha256": "37e58b86de0358dccb1639f19b89157fbff05b9828a9ccd1c28c79db69b89772"
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 11738,
+        "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 12188,
+        "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 17538,
+        "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 19876,
+        "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 12770,
+        "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 48000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 798,
+        "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+      }
+    },
+    {
+      "name": "phase-envelope",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 23476,
+        "sha256": "589e69f5ca339aa258b79b850eeeccdfcbc5fb933fef9039192947dce034d498"
+      }
+    },
+    {
+      "name": "test-and-release",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 24378,
+        "sha256": "fc0582dcf2e8dfde37d9c89642bf191e1a4ab8ef9da7adbf00655f75280d78f3"
+      }
+    },
+    {
+      "name": "triangle",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "b632c4a5a051d85751651075ec92fca902addd8fd74bf6b2256e566bfc6b95a3"
+      }
+    },
+    {
+      "name": "saw",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "e49173fc76c718192aa857c052949517a38dcbaa6bee1f231af76220e192a4ce"
+      }
+    },
+    {
+      "name": "pulse",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "b4a292537c78a501afb758a38023d5b72b82aebd20c8a1001a7e8f423a7c7c0b"
+      }
+    },
+    {
+      "name": "noise",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "6a46f98cc1b97b47e7042b16b8968d757fbe86a151178eda6f36365cc0c23fc7"
+      }
+    },
+    {
+      "name": "combined",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "63efffd8a042c9c4d8cf424dc1474a293907598caac75f9e1779f9a703fec3c1"
+      }
+    },
+    {
+      "name": "sync-off",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "9342bdb60d4641ccb351a7a1c6d819aae51eae161569d7caea3adeb7b1046c59"
+      }
+    },
+    {
+      "name": "sync-on",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "d6b72672d14adb3fe70f2825b85856ce75e0b88a15d795bd0326373a2eddc4fa"
+      }
+    },
+    {
+      "name": "ring-off",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "6c17cc1ff3a2eddcad037f6fd51861079264be5d9de03b3f45cf24cc0c94b20e"
+      }
+    },
+    {
+      "name": "ring-on",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 35076,
+        "sha256": "709670e07e97a868f180f7da1d9f5fa204f242bba6e661068b9bd28e584db1fb"
+      }
+    },
+    {
+      "name": "filter-sweep",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 39754,
+        "sha256": "db5232e4545d6c6a9f8c6b0374cae16a4088bb83141afacfdd1d65da53a6fcf6"
+      }
+    },
+    {
+      "name": "volume-dc",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 25542,
+        "sha256": "38561e9d36e04c9897b3af21c3edbb10c608c55c7f7544ae05d3683824e7a1d9"
+      }
+    },
+    {
+      "name": "write-only-bus",
+      "rate": 96000,
+      "exactPcmAndReads": true,
+      "pcm": {
+        "bytes": 1596,
+        "sha256": "bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc"
+      }
+    }
+  ],
+  "effective8580": [
+    {
+      "rate": 44100,
+      "changesFilterPcmOnly": true,
+      "ordinaryPcm": {
+        "bytes": 18262,
+        "sha256": "02ba109e0308ddbe4a05cd7fd66a3097260b14552519a973a7514ecacc19b08e"
+      },
+      "calibratedPcm": {
+        "bytes": 18262,
+        "sha256": "cfb7866f283db3c7496fc5452bafdef3e66d2f620b57249ff4c77b86ff7997e4"
+      }
+    },
+    {
+      "rate": 48000,
+      "changesFilterPcmOnly": true,
+      "ordinaryPcm": {
+        "bytes": 19876,
+        "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+      },
+      "calibratedPcm": {
+        "bytes": 19876,
+        "sha256": "9b2f1324d395e95f920acd6e3c65ee14e4f5061e722ff66d3863c43a25077184"
+      }
+    },
+    {
+      "rate": 96000,
+      "changesFilterPcmOnly": true,
+      "ordinaryPcm": {
+        "bytes": 39754,
+        "sha256": "9d9835c7efb707c61452891356e42824135130a592cf1d7dd36984aaf4e92df9"
+      },
+      "calibratedPcm": {
+        "bytes": 39754,
+        "sha256": "0fd22e59642dd7bb5ceb6a77119a615b518f0c5b93b9e4567dfc024a99ee64a7"
+      }
+    }
+  ],
+  "instanceIsolation": [
+    {
+      "rate": 44100,
+      "peerModel": 6581,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 1784,
+        "sha256": "66aebf71e97bc544b9e9a8aee1e47ac7b1ebf68106a012567a48c879e328c532"
+      }
+    },
+    {
+      "rate": 44100,
+      "peerModel": 8580,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 1784,
+        "sha256": "66aebf71e97bc544b9e9a8aee1e47ac7b1ebf68106a012567a48c879e328c532"
+      }
+    },
+    {
+      "rate": 48000,
+      "peerModel": 6581,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 1942,
+        "sha256": "9c9fa50b0e87e0408c2e262436022d7a5525b0acaf48b655d52153e83b9bc274"
+      }
+    },
+    {
+      "rate": 48000,
+      "peerModel": 8580,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 1942,
+        "sha256": "9c9fa50b0e87e0408c2e262436022d7a5525b0acaf48b655d52153e83b9bc274"
+      }
+    },
+    {
+      "rate": 96000,
+      "peerModel": 6581,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 3884,
+        "sha256": "098d06dace49254b6d403f1d0e4483bd8c5d3fd2c61bef1c741c2b5b514264d5"
+      }
+    },
+    {
+      "rate": 96000,
+      "peerModel": 8580,
+      "independent8580PcmAndState": true,
+      "pcm": {
+        "bytes": 3884,
+        "sha256": "098d06dace49254b6d403f1d0e4483bd8c5d3fd2c61bef1c741c2b5b514264d5"
+      }
+    }
+  ],
+  "checks": {
+    "defaultFalseConfigurations": 6,
+    "validAndInvalidSetterAtomicity": true,
+    "validSetterClearsStaleErrors": true,
+    "resetStopPreserveExplicitProfile": true,
+    "staleHandlesCannotChangeReplacement": true,
+    "unchanged6581Scenes": 42,
+    "effective8580Controls": 3,
+    "independentInstanceCases": 6
+  },
+  "passed": true
+}

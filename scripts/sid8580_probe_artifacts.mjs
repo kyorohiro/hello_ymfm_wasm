@@ -44,6 +44,7 @@ export async function probeSourceRecords() {
   const files = ['LICENSE', 'third_party/sidera/LICENSE', 'third_party/sidera/SOURCES.json',
     'third_party/sidera/PATCHES.json', 'third_party/sidera/README.md',
     'third_party/sidera/8580-resonance-calibration.json',
+    'third_party/sidera/8580-cutoff-calibration.json',
     'tetorica_src/wasm/sid8580-probe/lib.rs', 'tetorica_src/wasm/sid8580-probe/native.rs',
     'tetorica_src/wasm/sid8580-probe/cpu_bridge.c', 'tetorica_src/wasm/sid8580-probe/cpu.rs',
     'tetorica_src/wasm/sid8580-probe/cpu_native.rs',

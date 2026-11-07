@@ -24,6 +24,14 @@ const RESEARCH_8580_Q1024: [i64; 16] = [
     1448, 1329, 1220, 1120, 1028, 943, 866, 795, 729, 669, 614, 564, 518, 475, 436, 400,
 ];
 
+// Independent opt-in FC-to-Hz fit from seven black-box LP/HP crossovers.
+// FC=0 retains the original 30Hz anchor and was not a training measurement.
+// Coefficients are operational reference fits, not hardware measurements.
+const RESEARCH_8580_CUTOFF_HZ: [(i64, i64); 8] = [
+    (0, 30), (64, 405), (128, 899), (256, 1796),
+    (512, 3574), (1024, 7169), (1536, 10749), (2047, 14348),
+];
+
 #[derive(Clone, Copy)]
 pub struct Filter {
     // Filter state (integrator outputs).
@@ -52,6 +60,7 @@ pub struct Filter {
     mixer_dc: i32,
     is_6581: bool,
     research_8580_resonance_calibration: bool,
+    research_8580_cutoff_calibration: bool,
 }
 
 impl Filter {
@@ -73,6 +82,7 @@ impl Filter {
             mixer_dc: -453,
             is_6581: true,
             research_8580_resonance_calibration: false,
+            research_8580_cutoff_calibration: false,
         }
     }
 
@@ -97,6 +107,16 @@ impl Filter {
 
     pub fn resonance_calibration_8580(&self) -> bool {
         self.research_8580_resonance_calibration
+    }
+
+    /// Independent research FC mapping. No integrator, routing or Q reset.
+    pub fn set_8580_cutoff_calibration(&mut self, enabled: bool) {
+        self.research_8580_cutoff_calibration = enabled;
+        self.set_w0();
+    }
+
+    pub fn cutoff_calibration_8580(&self) -> bool {
+        self.research_8580_cutoff_calibration
     }
 
     /// Advance the filter by one chip cycle.
@@ -211,7 +231,11 @@ impl Filter {
     /// Map the 11-bit cutoff register to `w0` via the non-linear curve.
     #[inline(always)]
     fn set_w0(&mut self) {
-        let f0 = cutoff_hz(self.fc, self.is_6581);
+        let f0 = if !self.is_6581 && self.research_8580_cutoff_calibration {
+            research_8580_cutoff_hz(self.fc)
+        } else {
+            cutoff_hz(self.fc, self.is_6581)
+        };
         let f0_ceil = if f0 > FC_CEIL_HZ { FC_CEIL_HZ } else { f0 };
         self.w0_ceil_1 = f0_ceil * W0_K / 1_000_000;
     }
@@ -226,6 +250,21 @@ impl Filter {
         let q_milli = 707 + (1000 * self.res as i64) / 15;
         self.q1024 = 1_024_000 / q_milli;
     }
+}
+
+#[inline(always)]
+fn research_8580_cutoff_hz(fc: u16) -> i64 {
+    let x = fc as i64;
+    let mut i = 0;
+    while i + 1 < RESEARCH_8580_CUTOFF_HZ.len() && RESEARCH_8580_CUTOFF_HZ[i + 1].0 <= x {
+        i += 1;
+    }
+    if i + 1 == RESEARCH_8580_CUTOFF_HZ.len() {
+        return RESEARCH_8580_CUTOFF_HZ[i].1;
+    }
+    let (x0, y0) = RESEARCH_8580_CUTOFF_HZ[i];
+    let (x1, y1) = RESEARCH_8580_CUTOFF_HZ[i + 1];
+    y0 + (y1 - y0) * (x - x0) / (x1 - x0)
 }
 
 /// Non-linear FC→cutoff-frequency map (`SID_ANALOG_SPEC.md` §6.2).

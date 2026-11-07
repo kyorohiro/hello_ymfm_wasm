@@ -1,0 +1,5520 @@
+{
+  "format": "tetorica-sid8580-probe-browser",
+  "version": 3,
+  "wasm": {
+    "bytes": 1395934,
+    "sha256": "bb6e699859f4dca3bbe052537e27e2ad82dfc247065c01ad22108f3f2a24f3da"
+  },
+  "passed": true,
+  "physicalAudioOpened": false,
+  "workletTested": false,
+  "checker": {
+    "bytes": 13426,
+    "sha256": "43eb888aaac04b058fa8e7cf18512d0f08209094dcfba745c91e4f34eed155e1"
+  },
+  "nativeReport": {
+    "bytes": 95117,
+    "sha256": "00ee642ae0dac36fcf802a198e7282d7fac4872c3e33c00057ff5bf3856e2ba7"
+  },
+  "cpuWasm": {
+    "bytes": 1478007,
+    "sha256": "392f11f5e7d8f62252658c639615a3d51168f7553afd2fc5a7d463d0a831b46e"
+  },
+  "qualityReport": {
+    "bytes": 722957,
+    "sha256": "49f07fd7a22308f7bfcc3e9edd8c338addf10870c3d784072878566798459cd6"
+  },
+  "interpretation": "Standalone WASM throughput and integer PCM/read parity, not full C64 or real-time audio scheduling.",
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "cases": [
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "latest-valid-write",
+          "rate": 48000,
+          "reads": [
+            165,
+            60,
+            240
+          ],
+          "cycles": 0,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "fresh-write-expiry",
+          "rate": 48000,
+          "reads": [
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "fresh-write-last-retained",
+          "rate": 48000,
+          "reads": [
+            165
+          ],
+          "cycles": 7423,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-halves-retention",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 3712,
+          "frames": 180,
+          "pcm": {
+            "bytes": 360,
+            "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-shortened-last-cycle",
+          "rate": 48000,
+          "reads": [
+            165,
+            165
+          ],
+          "cycles": 3711,
+          "frames": 180,
+          "pcm": {
+            "bytes": 360,
+            "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "bounded-residual-expiry",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "repeated-no-clock-reads",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            0
+          ],
+          "cycles": 1,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "envelope-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            255,
+            255,
+            0
+          ],
+          "cycles": 6012,
+          "frames": 292,
+          "pcm": {
+            "bytes": 584,
+            "sha256": "62ec1707572ac5078d31a687a5d23de0c6d2a58d3462efb7039957548a7986cc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "oscillator-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            137,
+            137
+          ],
+          "cycles": 1000,
+          "frames": 48,
+          "pcm": {
+            "bytes": 96,
+            "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-only-write-still-drives-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            0,
+            0
+          ],
+          "cycles": 100,
+          "frames": 4,
+          "pcm": {
+            "bytes": 8,
+            "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "zero-byte-clears-latch",
+          "rate": 48000,
+          "reads": [
+            0,
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "44428dac9c2d86dbdbc7b94895c9ea8bfdb06d0160ba47192b9e44834eb7c78d"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "ad9a51f68682a72a9dbe9f20ad788962fbb739189389f34940962f667c165045"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "c1a6dc3f28d3442ca629fd6bde5867061f7b5865966df9bf528f9be53e80c22e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "92f1e31e3a301bd33ce241ff7d6bd476de8750363f1697978cc29cabb096a30e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2a98fbf85e26bc468c890c934c655adc1ba5ad206fb79bf4fa77de8afdc4ec38"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9f9aea523460513ac37497d4f4f40e21bd39dcaf18cb3e39d69b53d3da4fa0c0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "a8483a6a036e87a3fdcff66e66eb8a921eb8628e66b75d0ac56c6f8f3af67456"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "8aaafc1662e5a16ae9babb4deb7489c569e5c41342b4883adaafa3547ba76f4e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "latest-valid-write",
+          "rate": 48000,
+          "reads": [
+            165,
+            60,
+            240
+          ],
+          "cycles": 0,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "fresh-write-expiry",
+          "rate": 48000,
+          "reads": [
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "fresh-write-last-retained",
+          "rate": 48000,
+          "reads": [
+            165
+          ],
+          "cycles": 663551,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-halves-retention",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 331776,
+          "frames": 16163,
+          "pcm": {
+            "bytes": 32326,
+            "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-shortened-last-cycle",
+          "rate": 48000,
+          "reads": [
+            165,
+            165
+          ],
+          "cycles": 331775,
+          "frames": 16163,
+          "pcm": {
+            "bytes": 32326,
+            "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "bounded-residual-expiry",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "repeated-no-clock-reads",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            0
+          ],
+          "cycles": 1,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "envelope-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            255,
+            255,
+            0
+          ],
+          "cycles": 334076,
+          "frames": 16275,
+          "pcm": {
+            "bytes": 32550,
+            "sha256": "97eed7b41c30b18d0b0e4bc4b4a2a6af1dbfa43f79bb3565afc18003c47af47e"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "oscillator-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            137,
+            137
+          ],
+          "cycles": 1000,
+          "frames": 48,
+          "pcm": {
+            "bytes": 96,
+            "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-only-write-still-drives-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            0,
+            0
+          ],
+          "cycles": 100,
+          "frames": 4,
+          "pcm": {
+            "bytes": 8,
+            "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "zero-byte-clears-latch",
+          "rate": 48000,
+          "reads": [
+            0,
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        }
+      ],
+      "benchmarks": [
+        {
+          "model": 6581,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 44.399999998509884,
+          "realtimeMultiple": 72.23095647775362
+        },
+        {
+          "model": 8580,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 44.600000001490116,
+          "realtimeMultiple": 71.90705083850848
+        }
+      ],
+      "memoryBytes": 1179648,
+      "instantiateMs": 12.899999998509884,
+      "cpu": {
+        "cases": [
+          {
+            "id": 0,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              0,
+              48000,
+              0,
+              2130,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              39998
+            ],
+            "signature": [
+              165,
+              17,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 66,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 3234155186,
+            "program": {
+              "bytes": 82,
+              "sha256": "3f1881a42bd6cb4ff07fd4a64e2e0cfe8b568fe9005ff4152d28b72b5e534b03"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "0f043ae07764e7c30876d1fdea1ef5cf4c87cd177868b981cd81a6892d1c7bee"
+            }
+          },
+          {
+            "id": 1,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              1,
+              48000,
+              0,
+              2154,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              42762
+            ],
+            "signature": [
+              0,
+              50,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 41219,
+                "address": 54272,
+                "value": 0,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 2490836738,
+            "program": {
+              "bytes": 109,
+              "sha256": "90a4eed7780934bc22d2b42508af45f32842452b702cc1473ef66e52967c9598"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "73c8aa603904a2bbd07383466116ad79efb7ac6e3240387d9a860a1c90dc268f"
+            }
+          },
+          {
+            "id": 2,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              2,
+              48000,
+              0,
+              2227,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              40602
+            ],
+            "signature": [
+              0,
+              255,
+              177,
+              255,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              81,
+              165
+            ],
+            "registers": [
+              177,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              69,
+              35,
+              0,
+              0,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 7807,
+                "address": 54299,
+                "value": 0,
+                "error": 0
+              },
+              {
+                "cycle": 7820,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              },
+              {
+                "cycle": 9126,
+                "address": 54299,
+                "value": 177,
+                "error": 0
+              },
+              {
+                "cycle": 9137,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              }
+            ],
+            "writeCount": 15,
+            "writeHash": 2316126051,
+            "program": {
+              "bytes": 180,
+              "sha256": "58725d375c3ab61c62ad43a1c3186c2892a78b062570a3beccf2b90efdcd9ce2"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "0c4aa906af7c7db23530cc85fd5d8d46904d27dfd1ddea39b21df633e3a6a33d"
+            }
+          },
+          {
+            "id": 3,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              5,
+              1,
+              3,
+              48000,
+              0,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              54297,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 12,
+                "address": 54297,
+                "value": 256,
+                "error": 5
+              }
+            ],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "7709b80cfd11d50f984ac250f62aaa1dbc5b2cb93f0090cfe067b0b647acaab0"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 4,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 15,
+            "frames": 0,
+            "state": [
+              10,
+              1,
+              4,
+              48000,
+              0,
+              2054,
+              74,
+              0,
+              0,
+              253,
+              20,
+              0,
+              2054,
+              0,
+              4
+            ],
+            "signature": [
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 7,
+              "sha256": "b8804712a362883de4859ad98b3c799da23c820b17abde9a0c3af48c413dc030"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 5,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              3,
+              1,
+              5,
+              48000,
+              0,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              57344,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "1cf7c3772d2abe566f5b3c6a6ee71973fcf2d7dc7cdb6631d3c0b7e766497675"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 0,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              0,
+              48000,
+              1,
+              2130,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              39998
+            ],
+            "signature": [
+              165,
+              17,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 66,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 3234155186,
+            "program": {
+              "bytes": 82,
+              "sha256": "3f1881a42bd6cb4ff07fd4a64e2e0cfe8b568fe9005ff4152d28b72b5e534b03"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "3d7c624579a794c212dd91a334baa8f77e93aca929c56a4426fdc7961f5a708a"
+            }
+          },
+          {
+            "id": 1,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              1,
+              48000,
+              1,
+              2157,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              42762
+            ],
+            "signature": [
+              165,
+              49,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              128,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 41219,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 2143901310,
+            "program": {
+              "bytes": 109,
+              "sha256": "90a4eed7780934bc22d2b42508af45f32842452b702cc1473ef66e52967c9598"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "7a5c44fe52bb7d828a846eb8042b9cce2c46c78e556e749ebc9df5e081bc9e22"
+            }
+          },
+          {
+            "id": 2,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              2,
+              48000,
+              1,
+              2227,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              40602
+            ],
+            "signature": [
+              0,
+              255,
+              177,
+              255,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              81,
+              165
+            ],
+            "registers": [
+              177,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              69,
+              35,
+              0,
+              0,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 7807,
+                "address": 54299,
+                "value": 0,
+                "error": 0
+              },
+              {
+                "cycle": 7820,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              },
+              {
+                "cycle": 9126,
+                "address": 54299,
+                "value": 177,
+                "error": 0
+              },
+              {
+                "cycle": 9137,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              }
+            ],
+            "writeCount": 15,
+            "writeHash": 2316126051,
+            "program": {
+              "bytes": 180,
+              "sha256": "58725d375c3ab61c62ad43a1c3186c2892a78b062570a3beccf2b90efdcd9ce2"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "5ab94a41d18099f48fad40aa24c5e2e30a6ed3c090d6b77df74cbd4e92e8142e"
+            }
+          },
+          {
+            "id": 3,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              5,
+              1,
+              3,
+              48000,
+              1,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              54297,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 12,
+                "address": 54297,
+                "value": 256,
+                "error": 5
+              }
+            ],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "7709b80cfd11d50f984ac250f62aaa1dbc5b2cb93f0090cfe067b0b647acaab0"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 4,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 15,
+            "frames": 0,
+            "state": [
+              10,
+              1,
+              4,
+              48000,
+              1,
+              2054,
+              74,
+              0,
+              0,
+              253,
+              20,
+              0,
+              2054,
+              0,
+              4
+            ],
+            "signature": [
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 7,
+              "sha256": "b8804712a362883de4859ad98b3c799da23c820b17abde9a0c3af48c413dc030"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 5,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              3,
+              1,
+              5,
+              48000,
+              1,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              57344,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "1cf7c3772d2abe566f5b3c6a6ee71973fcf2d7dc7cdb6631d3c0b7e766497675"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "benchmarks": [
+          {
+            "model": 6581,
+            "cycles": 2955744,
+            "frames": 144000,
+            "ms": 79.20000000298023,
+            "realtimeMultiple": 37.87878787736253,
+            "scope": "m6502+SID in one WASM; no Worklet/full C64"
+          },
+          {
+            "model": 8580,
+            "cycles": 2955744,
+            "frames": 144000,
+            "ms": 71.5,
+            "realtimeMultiple": 41.95804195804196,
+            "scope": "m6502+SID in one WASM; no Worklet/full C64"
+          }
+        ],
+        "memoryBytes": 1310720
+      },
+      "quality": {
+        "profile": "8580-resonance-logfit-v1",
+        "cases": [
+          {
+            "name": "dry-30651-s4",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "e72febc224c66e51816a345d01016b5add9623d171286a40de43cf7bf9b4b154"
+            }
+          },
+          {
+            "name": "dry-30651-s15",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "2f4706b5fa812eedc0bd2e548b89b1e8ec2feb1f1e40948bef66d20649eae1db"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r2-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "ceacfd0b2ea5659c1fb21409b8d3e64c95c3e09bb144fecf561dfc8906144d6c"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r6-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "a15b8af2e6bfa370266b875c0132113eee0591e1fd9531859c74f4e3fca5a6d2"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r10-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "0586f93dc7b92dc45e2e2f8dcf91302edd63521161005d9a85bcdf90bad554b4"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r14-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "86ee91bfdb12940b4c460ace1ee7df88f0a9026592352c2f9fe52545ac2f346c"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r2-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "112e852b0071d11e972e0b9876fd690eed16f275894f10b473483fd3f9bc8a0e"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r6-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "8abe4d561cc59438447e597b4a980bbfbcb717de692c01b7e84f63b36f71b375"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r10-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "acabf4d091ff94b38c870a55a7dea9c5f236c614313ae56ba4b81efebbd29ecc"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r14-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "ba423e17ab453f25767db357940d88f2a4cb8666d2542edf54cd44d6599c949a"
+            }
+          },
+          {
+            "name": "dense-fc128-r15-f850",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              80
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 80
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "902fc77d34f437fa512b9b6601e360f2a5e8f0eec655a3d35bf409837dccf690"
+            }
+          }
+        ],
+        "resetStopPreserveProfile": true
+      },
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "cases": [
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "be53a4a7f6c03f2d84da315b32d377dcad83afcd1232c29a532f0b3adf3f879f"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "e799721d8ad7bf2d7fee2ca777fd2a1f5ae5841f4d0bb561901ea86a54b8770b"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2f949c2456902b61e6e26ba7ced5bea7ac03d6dcc4a6d5305d5204cf81a6d128"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "061b15b12133e16ee30a6e700d694db7672b35cab18258ea30cec22ca34a5167"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "e92ae3e76e934e224c30fd4b9d48cb477d5540ed0437ea61fa21c9023bc3c0e1"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "8ade3973759ed1f226f94036e5a4e3ad7ff2d9d25273dc6b1dbec314366c85c9"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "315fb86020bb69f1a0c4bc7affaf9c945375c440173103ff1fd06817b380b2f8"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "eaf43b71b7151cf6e94e4ac6cf587d4b30428deb460b138d7467b23a3aaa4d8e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5bff7ea4a0167190c8a4db067053ff22316659d6c1155cccbf4e70406c59bbbc"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "6fc0c494aad50147f3553ee34f5f2e25912aca6fbbe7e20468eaa1f1852c3bbd"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9d8cf369a458cb6d55d18959439f3538a8529f57970d67960d35f5f6b24db6bd"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "55436fb6cc48f26bcc9a36ee9429537d17d1303c1be7fee5be338f2174643054"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "5e0efe6579f8ef8518c73f9c1a550d8372ba6518dc34b2dc89be1b6e0c0c44a2"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 6581,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            0
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "latest-valid-write",
+          "rate": 48000,
+          "reads": [
+            165,
+            60,
+            240
+          ],
+          "cycles": 0,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "fresh-write-expiry",
+          "rate": 48000,
+          "reads": [
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "fresh-write-last-retained",
+          "rate": 48000,
+          "reads": [
+            165
+          ],
+          "cycles": 7423,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-halves-retention",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 3712,
+          "frames": 180,
+          "pcm": {
+            "bytes": 360,
+            "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-shortened-last-cycle",
+          "rate": 48000,
+          "reads": [
+            165,
+            165
+          ],
+          "cycles": 3711,
+          "frames": 180,
+          "pcm": {
+            "bytes": 360,
+            "sha256": "d3df611a0ed2e328b050d285287637c60643ba96ec09e4aaefaad7f2cd114b77"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "bounded-residual-expiry",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "repeated-no-clock-reads",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            0
+          ],
+          "cycles": 1,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "envelope-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            255,
+            255,
+            0
+          ],
+          "cycles": 6012,
+          "frames": 292,
+          "pcm": {
+            "bytes": 584,
+            "sha256": "62ec1707572ac5078d31a687a5d23de0c6d2a58d3462efb7039957548a7986cc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "oscillator-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            137,
+            137
+          ],
+          "cycles": 1000,
+          "frames": 48,
+          "pcm": {
+            "bytes": 96,
+            "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "read-only-write-still-drives-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            0,
+            0
+          ],
+          "cycles": 100,
+          "frames": 4,
+          "pcm": {
+            "bytes": 8,
+            "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 6581,
+          "name": "zero-byte-clears-latch",
+          "rate": 48000,
+          "reads": [
+            0,
+            0
+          ],
+          "cycles": 7424,
+          "frames": 361,
+          "pcm": {
+            "bytes": 722,
+            "sha256": "ff84331fe60b287e19364350a50608486b8232f7cf390c9410d0fd8d55a0a4fa"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "phase-envelope",
+          "rate": 48000,
+          "reads": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            5,
+            4,
+            51,
+            41,
+            64,
+            52,
+            255
+          ],
+          "cycles": 120470,
+          "frames": 5869,
+          "pcm": {
+            "bytes": 11738,
+            "sha256": "44428dac9c2d86dbdbc7b94895c9ea8bfdb06d0160ba47192b9e44834eb7c78d"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "test-and-release",
+          "rate": 48000,
+          "reads": [
+            0,
+            255,
+            114,
+            0
+          ],
+          "cycles": 125096,
+          "frames": 6094,
+          "pcm": {
+            "bytes": 12188,
+            "sha256": "ad9a51f68682a72a9dbe9f20ad788962fbb739189389f34940962f667c165045"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "triangle",
+          "rate": 48000,
+          "reads": [
+            200,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "saw",
+          "rate": 48000,
+          "reads": [
+            100,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "pulse",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "c1a6dc3f28d3442ca629fd6bde5867061f7b5865966df9bf528f9be53e80c22e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "noise",
+          "rate": 48000,
+          "reads": [
+            230,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "92f1e31e3a301bd33ce241ff7d6bd476de8750363f1697978cc29cabb096a30e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "combined",
+          "rate": 48000,
+          "reads": [
+            0,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "2a98fbf85e26bc468c890c934c655adc1ba5ad206fb79bf4fa77de8afdc4ec38"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "sync-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "069ec4b662efb7219986f3d0b91731dad2f2bc5792ea4635b39ad2d9e24a08d0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "sync-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "9f9aea523460513ac37497d4f4f40e21bd39dcaf18cb3e39d69b53d3da4fa0c0"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "ring-off",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "5ee8de5a07e19f83c30753381e5fd69b69e4633ea040181cc28b9609909314b4"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "ring-on",
+          "rate": 48000,
+          "reads": [
+            83,
+            255
+          ],
+          "cycles": 180000,
+          "frames": 8769,
+          "pcm": {
+            "bytes": 17538,
+            "sha256": "a8483a6a036e87a3fdcff66e66eb8a921eb8628e66b75d0ac56c6f8f3af67456"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "filter-sweep",
+          "rate": 48000,
+          "reads": [
+            28,
+            255
+          ],
+          "cycles": 204000,
+          "frames": 9938,
+          "pcm": {
+            "bytes": 19876,
+            "sha256": "659a3fedb4adb80e96e53112a27eac6fcafd041fb1c37a886ecf3ba3ff492612"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "volume-dc",
+          "rate": 48000,
+          "reads": [],
+          "cycles": 131072,
+          "frames": 6385,
+          "pcm": {
+            "bytes": 12770,
+            "sha256": "8aaafc1662e5a16ae9babb4deb7489c569e5c41342b4883adaafa3547ba76f4e"
+          }
+        },
+        {
+          "kind": "chip",
+          "model": 8580,
+          "name": "write-only-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165
+          ],
+          "cycles": 8193,
+          "frames": 399,
+          "pcm": {
+            "bytes": 798,
+            "sha256": "7432f4e5a9b64b1a8430dd6a17d8661e4afeb70ebb88661332777c11173243b6"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "latest-valid-write",
+          "rate": 48000,
+          "reads": [
+            165,
+            60,
+            240
+          ],
+          "cycles": 0,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "fresh-write-expiry",
+          "rate": 48000,
+          "reads": [
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "fresh-write-last-retained",
+          "rate": 48000,
+          "reads": [
+            165
+          ],
+          "cycles": 663551,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-halves-retention",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 331776,
+          "frames": 16163,
+          "pcm": {
+            "bytes": 32326,
+            "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-shortened-last-cycle",
+          "rate": 48000,
+          "reads": [
+            165,
+            165
+          ],
+          "cycles": 331775,
+          "frames": 16163,
+          "pcm": {
+            "bytes": 32326,
+            "sha256": "6ce6667583e23717cf0f4c30957b99d7bc745950b957f21fd576a63bcee47c58"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "bounded-residual-expiry",
+          "rate": 48000,
+          "reads": [
+            165,
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "repeated-no-clock-reads",
+          "rate": 48000,
+          "reads": [
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            165,
+            0
+          ],
+          "cycles": 1,
+          "frames": 0,
+          "pcm": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "envelope-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            255,
+            255,
+            0
+          ],
+          "cycles": 334076,
+          "frames": 16275,
+          "pcm": {
+            "bytes": 32550,
+            "sha256": "97eed7b41c30b18d0b0e4bc4b4a2a6af1dbfa43f79bb3565afc18003c47af47e"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "oscillator-read-drives-bus",
+          "rate": 48000,
+          "reads": [
+            137,
+            137
+          ],
+          "cycles": 1000,
+          "frames": 48,
+          "pcm": {
+            "bytes": 96,
+            "sha256": "2ea9ab9198d1638007400cd2c3bef1cc745b864b76011a0e1bc52180ac6452d4"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "read-only-write-still-drives-bus",
+          "rate": 48000,
+          "reads": [
+            165,
+            0,
+            0
+          ],
+          "cycles": 100,
+          "frames": 4,
+          "pcm": {
+            "bytes": 8,
+            "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+          }
+        },
+        {
+          "kind": "bus",
+          "model": 8580,
+          "name": "zero-byte-clears-latch",
+          "rate": 48000,
+          "reads": [
+            0,
+            0
+          ],
+          "cycles": 663552,
+          "frames": 32327,
+          "pcm": {
+            "bytes": 64654,
+            "sha256": "0589dd217aaacb95790dc4b196a9a8bdd98b5315304388d8994052a090cb4b63"
+          }
+        }
+      ],
+      "benchmarks": [
+        {
+          "model": 6581,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 45,
+          "realtimeMultiple": 71.2678770556584
+        },
+        {
+          "model": 8580,
+          "rate": 48000,
+          "cycles": 3159744,
+          "frames": 153938,
+          "ms": 44,
+          "realtimeMultiple": 72.8876015341961
+        }
+      ],
+      "memoryBytes": 1179648,
+      "instantiateMs": 8,
+      "cpu": {
+        "cases": [
+          {
+            "id": 0,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              0,
+              48000,
+              0,
+              2130,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              39998
+            ],
+            "signature": [
+              165,
+              17,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 66,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 3234155186,
+            "program": {
+              "bytes": 82,
+              "sha256": "3f1881a42bd6cb4ff07fd4a64e2e0cfe8b568fe9005ff4152d28b72b5e534b03"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "0f043ae07764e7c30876d1fdea1ef5cf4c87cd177868b981cd81a6892d1c7bee"
+            }
+          },
+          {
+            "id": 1,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              1,
+              48000,
+              0,
+              2154,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              42762
+            ],
+            "signature": [
+              0,
+              50,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 41219,
+                "address": 54272,
+                "value": 0,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 2490836738,
+            "program": {
+              "bytes": 109,
+              "sha256": "90a4eed7780934bc22d2b42508af45f32842452b702cc1473ef66e52967c9598"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "73c8aa603904a2bbd07383466116ad79efb7ac6e3240387d9a860a1c90dc268f"
+            }
+          },
+          {
+            "id": 2,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              2,
+              48000,
+              0,
+              2227,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              40602
+            ],
+            "signature": [
+              0,
+              255,
+              177,
+              255,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              81,
+              165
+            ],
+            "registers": [
+              177,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              69,
+              35,
+              0,
+              0,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 7807,
+                "address": 54299,
+                "value": 0,
+                "error": 0
+              },
+              {
+                "cycle": 7820,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              },
+              {
+                "cycle": 9126,
+                "address": 54299,
+                "value": 177,
+                "error": 0
+              },
+              {
+                "cycle": 9137,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              }
+            ],
+            "writeCount": 15,
+            "writeHash": 2316126051,
+            "program": {
+              "bytes": 180,
+              "sha256": "58725d375c3ab61c62ad43a1c3186c2892a78b062570a3beccf2b90efdcd9ce2"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "0c4aa906af7c7db23530cc85fd5d8d46904d27dfd1ddea39b21df633e3a6a33d"
+            }
+          },
+          {
+            "id": 3,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              5,
+              1,
+              3,
+              48000,
+              0,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              54297,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 12,
+                "address": 54297,
+                "value": 256,
+                "error": 5
+              }
+            ],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "7709b80cfd11d50f984ac250f62aaa1dbc5b2cb93f0090cfe067b0b647acaab0"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 4,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 15,
+            "frames": 0,
+            "state": [
+              10,
+              1,
+              4,
+              48000,
+              0,
+              2054,
+              74,
+              0,
+              0,
+              253,
+              20,
+              0,
+              2054,
+              0,
+              4
+            ],
+            "signature": [
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 7,
+              "sha256": "b8804712a362883de4859ad98b3c799da23c820b17abde9a0c3af48c413dc030"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 5,
+            "model": 6581,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              3,
+              1,
+              5,
+              48000,
+              0,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              57344,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "1cf7c3772d2abe566f5b3c6a6ee71973fcf2d7dc7cdb6631d3c0b7e766497675"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 0,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              0,
+              48000,
+              1,
+              2130,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              39998
+            ],
+            "signature": [
+              165,
+              17,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              64,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 66,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 3234155186,
+            "program": {
+              "bytes": 82,
+              "sha256": "3f1881a42bd6cb4ff07fd4a64e2e0cfe8b568fe9005ff4152d28b72b5e534b03"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "3d7c624579a794c212dd91a334baa8f77e93aca929c56a4426fdc7961f5a708a"
+            }
+          },
+          {
+            "id": 1,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              1,
+              48000,
+              1,
+              2157,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              42762
+            ],
+            "signature": [
+              165,
+              49,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              165
+            ],
+            "registers": [
+              128,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 41219,
+                "address": 54272,
+                "value": 165,
+                "error": 0
+              }
+            ],
+            "writeCount": 10,
+            "writeHash": 2143901310,
+            "program": {
+              "bytes": 109,
+              "sha256": "90a4eed7780934bc22d2b42508af45f32842452b702cc1473ef66e52967c9598"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "7a5c44fe52bb7d828a846eb8042b9cce2c46c78e556e749ebc9df5e081bc9e22"
+            }
+          },
+          {
+            "id": 2,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 120000,
+            "frames": 5846,
+            "state": [
+              0,
+              0,
+              2,
+              48000,
+              1,
+              2227,
+              165,
+              0,
+              0,
+              253,
+              149,
+              1,
+              0,
+              0,
+              40602
+            ],
+            "signature": [
+              0,
+              255,
+              177,
+              255,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              81,
+              165
+            ],
+            "registers": [
+              177,
+              20,
+              0,
+              8,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              69,
+              35,
+              0,
+              0,
+              33,
+              0,
+              240,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 7807,
+                "address": 54299,
+                "value": 0,
+                "error": 0
+              },
+              {
+                "cycle": 7820,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              },
+              {
+                "cycle": 9126,
+                "address": 54299,
+                "value": 177,
+                "error": 0
+              },
+              {
+                "cycle": 9137,
+                "address": 54300,
+                "value": 255,
+                "error": 0
+              }
+            ],
+            "writeCount": 15,
+            "writeHash": 2316126051,
+            "program": {
+              "bytes": 180,
+              "sha256": "58725d375c3ab61c62ad43a1c3186c2892a78b062570a3beccf2b90efdcd9ce2"
+            },
+            "pcm": {
+              "bytes": 11692,
+              "sha256": "5ab94a41d18099f48fad40aa24c5e2e30a6ed3c090d6b77df74cbd4e92e8142e"
+            }
+          },
+          {
+            "id": 3,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              5,
+              1,
+              3,
+              48000,
+              1,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              54297,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [
+              {
+                "cycle": 12,
+                "address": 54297,
+                "value": 256,
+                "error": 5
+              }
+            ],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "7709b80cfd11d50f984ac250f62aaa1dbc5b2cb93f0090cfe067b0b647acaab0"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 4,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 15,
+            "frames": 0,
+            "state": [
+              10,
+              1,
+              4,
+              48000,
+              1,
+              2054,
+              74,
+              0,
+              0,
+              253,
+              20,
+              0,
+              2054,
+              0,
+              4
+            ],
+            "signature": [
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 7,
+              "sha256": "b8804712a362883de4859ad98b3c799da23c820b17abde9a0c3af48c413dc030"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "id": 5,
+            "model": 8580,
+            "rate": 48000,
+            "cycles": 12,
+            "frames": 0,
+            "state": [
+              3,
+              1,
+              5,
+              48000,
+              1,
+              2052,
+              0,
+              0,
+              0,
+              253,
+              22,
+              0,
+              57344,
+              0,
+              2
+            ],
+            "signature": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "registers": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "reads": [],
+            "writeCount": 0,
+            "writeHash": 2166136261,
+            "program": {
+              "bytes": 15,
+              "sha256": "1cf7c3772d2abe566f5b3c6a6ee71973fcf2d7dc7cdb6631d3c0b7e766497675"
+            },
+            "pcm": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "benchmarks": [
+          {
+            "model": 6581,
+            "cycles": 2955744,
+            "frames": 144000,
+            "ms": 70,
+            "realtimeMultiple": 42.857142857142854,
+            "scope": "m6502+SID in one WASM; no Worklet/full C64"
+          },
+          {
+            "model": 8580,
+            "cycles": 2955744,
+            "frames": 144000,
+            "ms": 68,
+            "realtimeMultiple": 44.11764705882353,
+            "scope": "m6502+SID in one WASM; no Worklet/full C64"
+          }
+        ],
+        "memoryBytes": 1310720
+      },
+      "quality": {
+        "profile": "8580-resonance-logfit-v1",
+        "cases": [
+          {
+            "name": "dry-30651-s4",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "e72febc224c66e51816a345d01016b5add9623d171286a40de43cf7bf9b4b154"
+            }
+          },
+          {
+            "name": "dry-30651-s15",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "2f4706b5fa812eedc0bd2e548b89b1e8ec2feb1f1e40948bef66d20649eae1db"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r2-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "ceacfd0b2ea5659c1fb21409b8d3e64c95c3e09bb144fecf561dfc8906144d6c"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r6-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "a15b8af2e6bfa370266b875c0132113eee0591e1fd9531859c74f4e3fca5a6d2"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r10-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "0586f93dc7b92dc45e2e2f8dcf91302edd63521161005d9a85bcdf90bad554b4"
+            }
+          },
+          {
+            "name": "heldout-s4-fc256-r14-f1800",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "86ee91bfdb12940b4c460ace1ee7df88f0a9026592352c2f9fe52545ac2f346c"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r2-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "112e852b0071d11e972e0b9876fd690eed16f275894f10b473483fd3f9bc8a0e"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r6-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "8abe4d561cc59438447e597b4a980bbfbcb717de692c01b7e84f63b36f71b375"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r10-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "acabf4d091ff94b38c870a55a7dea9c5f236c614313ae56ba4b81efebbd29ecc"
+            }
+          },
+          {
+            "name": "heldout-s15-fc256-r14-f1800",
+            "reads": [
+              0,
+              0,
+              255,
+              0,
+              255,
+              20
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 255
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 20
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "ba423e17ab453f25767db357940d88f2a4cb8666d2542edf54cd44d6599c949a"
+            }
+          },
+          {
+            "name": "dense-fc128-r15-f850",
+            "reads": [
+              0,
+              0,
+              68,
+              0,
+              68,
+              80
+            ],
+            "readEvents": [
+              {
+                "cycle": 100000,
+                "register": 28,
+                "value": 0
+              },
+              {
+                "cycle": 100000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 200000,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 200000,
+                "register": 27,
+                "value": 0
+              },
+              {
+                "cycle": 746312,
+                "register": 28,
+                "value": 68
+              },
+              {
+                "cycle": 746312,
+                "register": 27,
+                "value": 80
+              }
+            ],
+            "captureRanges": [
+              {
+                "startCycle": 500000,
+                "endCycle": 746312,
+                "startFrame": 24359,
+                "endFrame": 36359,
+                "captureOffset": 0,
+                "frames": 12000,
+                "firstSampleCycle": 500014,
+                "lastSampleCycle": 746305
+              }
+            ],
+            "cycles": 746312,
+            "frames": 12000,
+            "generatedFrames": 36359,
+            "pcm": {
+              "bytes": 24000,
+              "sha256": "902fc77d34f437fa512b9b6601e360f2a5e8f0eec655a3d35bf409837dccf690"
+            }
+          }
+        ],
+        "resetStopPreserveProfile": true
+      },
+      "errors": []
+    }
+  ]
+}

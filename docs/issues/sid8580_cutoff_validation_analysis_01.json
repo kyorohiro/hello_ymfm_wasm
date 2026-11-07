@@ -1,0 +1,3583 @@
+{
+  "format": "tetorica-sid8580-cutoff-heldout-analysis",
+  "version": 1,
+  "productionAdopted": false,
+  "retunedOnHoldout": false,
+  "profile": "8580-cutoff-crossover-v1",
+  "knots": [
+    [
+      0,
+      30
+    ],
+    [
+      64,
+      405
+    ],
+    [
+      128,
+      899
+    ],
+    [
+      256,
+      1796
+    ],
+    [
+      512,
+      3574
+    ],
+    [
+      1024,
+      7169
+    ],
+    [
+      1536,
+      10749
+    ],
+    [
+      2047,
+      14348
+    ]
+  ],
+  "provenance": {
+    "before": {
+      "path": "docs/issues/sid8580_cutoff_holdout_before_01.json",
+      "bytes": 1226454,
+      "sha256": "9aa8b1249731140bfda0300e042b9c81a7048d8953f528f33d30c449645b8a18"
+    },
+    "resonance": {
+      "path": "docs/issues/sid8580_cutoff_holdout_resonance_01.json",
+      "bytes": 1226390,
+      "sha256": "f1afce510c1b0f4c2d8b9468f49cd08e8fda9e9acea271210bcd972e6dd5188a"
+    },
+    "cutoff": {
+      "path": "docs/issues/sid8580_cutoff_holdout_cutoff_01.json",
+      "bytes": 1226496,
+      "sha256": "4a58eb5b3f07f3841659221bc8f971bd3f10c6c64aff0b4ff1228ec29967ccb4"
+    },
+    "both": {
+      "path": "docs/issues/sid8580_cutoff_holdout_both_01.json",
+      "bytes": 1226483,
+      "sha256": "b62b58127e83c6626b97052f51b43c30ea205cde0bb03eac755cf2e8cf992087"
+    },
+    "plan": {
+      "path": "docs/issues/sid8580_cutoff_plan_01.json",
+      "bytes": 131293,
+      "sha256": "bf1514345fca706b5705f7bbbd94e898a9c0f56a80c196b015de81d37fc54835"
+    },
+    "fit": {
+      "path": "third_party/sidera/8580-cutoff-calibration.json",
+      "bytes": 7556,
+      "sha256": "f9c78e2dfef767aaf2317e7f21cebeff17b0ddf3225d83e9cbca890953b89a0a"
+    }
+  },
+  "analyzer": {
+    "path": "scripts/analyze_sid8580_cutoff_validation.mjs",
+    "bytes": 17736,
+    "sha256": "4ab9890844008bb702f0f4fa2f21e26273853ef3ba718dda69b5166f14bba92b",
+    "metric": {
+      "bytes": 5442,
+      "sha256": "1925179cea54cfb84b1a00d172dbfade841cae9022229f42d14c072628fa61bd"
+    }
+  },
+  "wasm": {
+    "bytes": 1395934,
+    "sha256": "bb6e699859f4dca3bbe052537e27e2ad82dfc247065c01ad22108f3f2a24f3da"
+  },
+  "referenceExecutable": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/sid-reference/sid8580-quality-reference",
+    "bytes": 126680,
+    "sha256": "ad8b2bf21f9255efa5afd6a632b497c6616dfd57573edbbac2c8ce7c7961de39"
+  },
+  "method": "Operational LP=HP harmonic crossover and same-core filtered/dry amplitude ratios. Scalar diagnostics only; no PCM gain, DC, phase, frequency or time correction.",
+  "interpretation": [
+    "All six FC values are held out from the seven-point fit; the four rate/sustain/resonance interactions are separately summarized.",
+    "Both profiles are opt-in research flags. A crossover is not an arbitrary-Q -3dB cutoff or hardware pole.",
+    "Curve-error comparisons use the intersection of valid LP/HP/dry measurements for each pair, with excluded crossover points kept explicit.",
+    "Nine predeclared frequencies provide deterministic bracket/interpolation estimates, not statistical confidence intervals or a proof of sub-percent physical accuracy.",
+    "FC0 remains an unmeasured unchanged 30-Hz anchor. No listening, hardware, broadband fidelity or Player adoption claim follows from these scalar errors."
+  ],
+  "recommendation": {
+    "retainAsOptInResearch": true,
+    "productionPlayerAdoption": false,
+    "defaultEnabled": false,
+    "rationale": "The independent cutoff contrasts improve all held-out crossover errors and reduce aggregate same-core LP/HP transfer error. Individual frequency bins still worsen; retain explicit flags and all original defaults.",
+    "unresolved": [
+      "FC96 is the largest residual crossover error and largest remaining single-bin amplitude error in this matrix; it was not used to retune the frozen fit.",
+      "A better operational crossover does not ensure a better complete transfer curve: cutoff-only high-resonance/high-input bins may move away from the reference.",
+      "No fresh oscillator/noise, ADSR, combined-wave, 6581, CPU, external-output loading or physical-chip calibration was inferred from these crossover captures."
+    ]
+  },
+  "checks": {
+    "fourFlagGroups": true,
+    "sameFrozenWasm": true,
+    "sameReferenceExecutable": true,
+    "unchangedReferencePcmAndMetadataCases": 270,
+    "unchangedDryCandidateCases": 90,
+    "matchingReadEventsAllCases": true,
+    "curvesLinkedToActualCaptures": true,
+    "recomputedCrossovers": true,
+    "sixUntrainedFcCurves": true,
+    "fourHeldOutInteractions": true,
+    "noRetuning": true
+  },
+  "curves": [
+    {
+      "key": "holdout-fc:fc96:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 96,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 662.7017184990469,
+      "profiles": {
+        "before": {
+          "crossoverHz": 590.9759664337657,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.823233147445709,
+          "candidateBracketHz": [
+            525.1808681488037,
+            600.1731491088867
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          }
+        },
+        "resonance": {
+          "crossoverHz": 590.9759664337657,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.823233147445709,
+          "candidateBracketHz": [
+            525.1808681488037,
+            600.1731491088867
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 642.2812219699795,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -3.0814008714686647,
+          "candidateBracketHz": [
+            600.1731491088867,
+            675.2241554260254
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.2647250528735465,
+            "meanAbsolute": 0.8040605388024833,
+            "rms": 1.0574847778845817,
+            "maximumAbsolute": 2.7949458043624356
+          }
+        },
+        "both": {
+          "crossoverHz": 642.2812219699795,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -3.0814008714686647,
+          "candidateBracketHz": [
+            600.1731491088867,
+            675.2241554260254
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.2647250528735465,
+            "meanAbsolute": 0.8040605388024833,
+            "rms": 1.0574847778845817,
+            "maximumAbsolute": 2.7949458043624356
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-fc:fc192:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 192,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 1326.0082750155166,
+      "profiles": {
+        "before": {
+          "crossoverHz": 1189.5234275720914,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.292910686536105,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          }
+        },
+        "resonance": {
+          "crossoverHz": 1189.5234275720914,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.292910686536105,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 1333.0166830709154,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.528534262376068,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.19955858242003144,
+            "meanAbsolute": 0.2150513391466903,
+            "rms": 0.29594312493778757,
+            "maximumAbsolute": 0.655561548799297
+          }
+        },
+        "both": {
+          "crossoverHz": 1333.0166830709154,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.528534262376068,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.19955858242003144,
+            "meanAbsolute": 0.2150513391466903,
+            "rms": 0.29594312493778757,
+            "maximumAbsolute": 0.655561548799297
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-fc:fc384:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 384,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 2653.4465561366237,
+      "profiles": {
+        "before": {
+          "crossoverHz": 2418.5529043399315,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -8.85239807274255,
+          "candidateBracketHz": [
+            2314.3663215637207,
+            2603.647430419922
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          }
+        },
+        "resonance": {
+          "crossoverHz": 2418.5529043399315,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -8.85239807274255,
+          "candidateBracketHz": [
+            2314.3663215637207,
+            2603.647430419922
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 2635.0062093265387,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -0.6949582899055562,
+          "candidateBracketHz": [
+            2603.647430419922,
+            2892.9872646331787
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.1342279231524448,
+            "meanAbsolute": 0.20700355493040057,
+            "rms": 0.25590357667022756,
+            "maximumAbsolute": 0.4776559441811601
+          }
+        },
+        "both": {
+          "crossoverHz": 2635.0062093265387,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -0.6949582899055562,
+          "candidateBracketHz": [
+            2603.647430419922,
+            2892.9872646331787
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.1342279231524448,
+            "meanAbsolute": 0.20700355493040057,
+            "rms": 0.25590357667022756,
+            "maximumAbsolute": 0.4776559441811601
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-fc:fc768:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 768,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 5308.315978116366,
+      "profiles": {
+        "before": {
+          "crossoverHz": 4863.952768859451,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -8.371076836586422,
+          "candidateBracketHz": [
+            4599.957218170166,
+            5174.878463745117
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          }
+        },
+        "resonance": {
+          "crossoverHz": 4863.952768859451,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -8.371076836586422,
+          "candidateBracketHz": [
+            4599.957218170166,
+            5174.878463745117
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 5336.583545468193,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.5325147837536459,
+          "candidateBracketHz": [
+            5174.878463745117,
+            5749.91716003418
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.028547625884766423,
+            "meanAbsolute": 0.08153315907017464,
+            "rms": 0.11536477511352895,
+            "maximumAbsolute": 0.3463891204405578
+          }
+        },
+        "both": {
+          "crossoverHz": 5336.583545468193,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.5325147837536459,
+          "candidateBracketHz": [
+            5174.878463745117,
+            5749.91716003418
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.028547625884766423,
+            "meanAbsolute": 0.08153315907017464,
+            "rms": 0.11536477511352895,
+            "maximumAbsolute": 0.3463891204405578
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-fc:fc1280:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 1280,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 8847.010047104692,
+      "profiles": {
+        "before": {
+          "crossoverHz": 8031.322017942704,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.219928821364142,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          }
+        },
+        "resonance": {
+          "crossoverHz": 8031.322017942704,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.219928821364142,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 8816.435064505402,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -0.34559678847991826,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.2382028827849592,
+            "meanAbsolute": 0.24326770542383183,
+            "rms": 0.287185246778491,
+            "maximumAbsolute": 0.5195012186427955
+          }
+        },
+        "both": {
+          "crossoverHz": 8816.435064505402,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -0.34559678847991826,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.2382028827849592,
+            "meanAbsolute": 0.24326770542383183,
+            "rms": 0.287185246778491,
+            "maximumAbsolute": 0.5195012186427955
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-fc:fc1792:s4:r0:rate48000",
+      "group": "holdout-fc",
+      "fc": 1792,
+      "rate": 48000,
+      "res": 0,
+      "sustain": 4,
+      "volume": 12,
+      "referenceCrossoverHz": 12365.30520409625,
+      "profiles": {
+        "before": {
+          "crossoverHz": 10998.079518857863,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -11.056950578021052,
+          "candidateBracketHz": [
+            10694.827125549316,
+            12031.651153564453
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          }
+        },
+        "resonance": {
+          "crossoverHz": 10998.079518857863,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -11.056950578021052,
+          "candidateBracketHz": [
+            10694.827125549316,
+            12031.651153564453
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 12365.96117513365,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.005304932038252552,
+          "candidateBracketHz": [
+            12031.651153564453,
+            13368.533906936646
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.29009934145930427,
+            "meanAbsolute": 0.29009934145930427,
+            "rms": 0.3173885323998357,
+            "maximumAbsolute": 0.5994538472763256
+          }
+        },
+        "both": {
+          "crossoverHz": 12365.96117513365,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.005304932038252552,
+          "candidateBracketHz": [
+            12031.651153564453,
+            13368.533906936646
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.29009934145930427,
+            "meanAbsolute": 0.29009934145930427,
+            "rms": 0.3173885323998357,
+            "maximumAbsolute": 0.5994538472763256
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-interaction:fc192:s15:r12:rate44100",
+      "group": "holdout-interaction",
+      "fc": 192,
+      "rate": 44100,
+      "res": 12,
+      "sustain": 15,
+      "volume": 12,
+      "referenceCrossoverHz": 1318.0221924655864,
+      "profiles": {
+        "before": {
+          "crossoverHz": 1188.8845539814952,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.797834909176839,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.442187710785969,
+            "meanAbsolute": 2.058943338688501,
+            "rms": 2.377537592350007,
+            "maximumAbsolute": 3.9442016779510043
+          }
+        },
+        "resonance": {
+          "crossoverHz": 1188.500583199051,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.826967254947572,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.10673599376416358,
+            "meanAbsolute": 1.642793130052958,
+            "rms": 1.9300932216905071,
+            "maximumAbsolute": 3.049623003902062
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 1327.68065007096,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.7327993155643142,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.3227909671709206,
+            "meanAbsolute": 1.3254057518945175,
+            "rms": 1.478260911864107,
+            "maximumAbsolute": 2.3563898340511846
+          }
+        },
+        "both": {
+          "crossoverHz": 1326.512152478876,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.6441439348913836,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.08318337970744714,
+            "meanAbsolute": 0.12762577371646844,
+            "rms": 0.16434641603151512,
+            "maximumAbsolute": 0.4530133074934817
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-interaction:fc192:s15:r12:rate96000",
+      "group": "holdout-interaction",
+      "fc": 192,
+      "rate": 96000,
+      "res": 12,
+      "sustain": 15,
+      "volume": 12,
+      "referenceCrossoverHz": 1318.1327270675924,
+      "profiles": {
+        "before": {
+          "crossoverHz": 1188.8741822070529,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.806185842005222,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.4421798204507221,
+            "meanAbsolute": 2.0588956795862403,
+            "rms": 2.3775142765748907,
+            "maximumAbsolute": 3.944153112032743
+          }
+        },
+        "resonance": {
+          "crossoverHz": 1188.4935915882288,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -9.835059309070315,
+          "candidateBracketHz": [
+            1171.570873260498,
+            1318.0319137573242
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.10674094363441661,
+            "meanAbsolute": 1.6428441140505488,
+            "rms": 1.9301086632451447,
+            "maximumAbsolute": 3.04956300984641
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 1327.8165599913214,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.7346629610867961,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.3227712171012216,
+            "meanAbsolute": 1.3253661862488635,
+            "rms": 1.4782244660326747,
+            "maximumAbsolute": 2.3565377983582474
+          }
+        },
+        "both": {
+          "crossoverHz": 1326.6147473426804,
+          "crossoverReason": null,
+          "crossoverErrorPercent": 0.6434875715405131,
+          "candidateBracketHz": [
+            1318.0319137573242,
+            1464.4929542541504
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.08318412083055365,
+            "meanAbsolute": 0.1276177460676261,
+            "rms": 0.16428398923317894,
+            "maximumAbsolute": 0.452597691224631
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+      "group": "holdout-interaction",
+      "fc": 1280,
+      "rate": 44100,
+      "res": 12,
+      "sustain": 15,
+      "volume": 12,
+      "referenceCrossoverHz": 8943.528586056045,
+      "profiles": {
+        "before": {
+          "crossoverHz": 8034.762616131934,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.16115687650374,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.0290731244816032,
+            "meanAbsolute": 1.7765832127047694,
+            "rms": 2.1162917148211986,
+            "maximumAbsolute": 3.5651478155974416
+          }
+        },
+        "resonance": {
+          "crossoverHz": 8032.041586784333,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.191581437921737,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.3745782926822913,
+            "meanAbsolute": 1.616112509345806,
+            "rms": 1.9375456251865444,
+            "maximumAbsolute": 3.3347388830895417
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 8830.799602019655,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -1.2604531080959158,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.9541993391226499,
+            "meanAbsolute": 0.9955469640341832,
+            "rms": 1.109407391616341,
+            "maximumAbsolute": 1.7429048922333035
+          }
+        },
+        "both": {
+          "crossoverHz": 8829.890581280582,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -1.2706171136148359,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.5087567060172188,
+            "meanAbsolute": 0.5368857969268019,
+            "rms": 0.6132042020020942,
+            "maximumAbsolute": 1.0338752234069881
+          }
+        }
+      }
+    },
+    {
+      "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+      "group": "holdout-interaction",
+      "fc": 1280,
+      "rate": 96000,
+      "res": 12,
+      "sustain": 15,
+      "volume": 12,
+      "referenceCrossoverHz": 8942.855597014173,
+      "profiles": {
+        "before": {
+          "crossoverHz": 8033.58717693496,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.167540001236286,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -1.029038079470937,
+            "meanAbsolute": 1.776655628601881,
+            "rms": 2.1163732162200044,
+            "maximumAbsolute": 3.5652148637092806
+          }
+        },
+        "resonance": {
+          "crossoverHz": 8031.199596555085,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -10.194238189012806,
+          "candidateBracketHz": [
+            7647.27472114563,
+            8603.20608329773
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.37449403854560975,
+            "meanAbsolute": 1.616233386988825,
+            "rms": 1.9375359877107836,
+            "maximumAbsolute": 3.3343046757366475
+          }
+        },
+        "cutoff": {
+          "crossoverHz": 8829.855503933379,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -1.2635795340195655,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": -0.9541099778277287,
+            "meanAbsolute": 0.9955584687907381,
+            "rms": 1.1094267031926333,
+            "maximumAbsolute": 1.7427203731698087
+          }
+        },
+        "both": {
+          "crossoverHz": 8829.105950493096,
+          "crossoverReason": null,
+          "crossoverErrorPercent": -1.2719611234587758,
+          "candidateBracketHz": [
+            8603.20608329773,
+            9559.313621520996
+          ],
+          "excludedCandidatePoints": [],
+          "validTransferPoints": 18,
+          "wholeCurveErrorDb": {
+            "count": 18,
+            "mean": 0.508735750931532,
+            "meanAbsolute": 0.5368292659828777,
+            "rms": 0.6131330220436393,
+            "maximumAbsolute": 1.0331346423846854
+          }
+        }
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "before": "before",
+      "after": "cutoff",
+      "purpose": "Cutoff alone versus neither profile",
+      "commonValidPointsOnly": true,
+      "groups": {
+        "all": {
+          "curves": 10,
+          "crossoversImproved": 10,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -9.854921577161807,
+            "meanAbsolute": 9.854921577161807,
+            "rms": 9.887246012840052,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -0.4112172337150543,
+            "meanAbsolute": 0.9179804846788698,
+            "rms": 1.2215761899740667,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 180,
+            "mean": -0.5137260436671045,
+            "meanAbsolute": 1.3311472674658202,
+            "rms": 1.6668761495137243,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 180,
+            "mean": -0.45955332095395124,
+            "meanAbsolute": 0.6482893009801182,
+            "rms": 0.9110366717571821,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 148,
+          "pointsWorsened": 32,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": -1.4538953468865257,
+                "meanAbsolute": 1.4687494130396856,
+                "rms": 1.9065048209361044,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": -0.5408210230602252,
+                "meanAbsolute": 0.6811824701908538,
+                "rms": 0.9282114911632066,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 75,
+              "pointsWorsened": 15,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": 0.42644325955231666,
+                "meanAbsolute": 1.1935451218919546,
+                "rms": 1.3864312328358712,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": -0.37828561884767764,
+                "meanAbsolute": 0.6153961317693839,
+                "rms": 0.8935317914016175,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 73,
+              "pointsWorsened": 17,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-fc": {
+          "curves": 6,
+          "crossoversImproved": 6,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -9.769416357115999,
+            "meanAbsolute": 9.769416357115999,
+            "rms": 9.821655569566058,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -0.5092669952810288,
+            "meanAbsolute": 0.8647183213370176,
+            "rms": 1.3329406150393868,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 108,
+            "mean": -0.03246361691363595,
+            "meanAbsolute": 0.9400658025128013,
+            "rms": 1.1196558717799454,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 108,
+            "mean": -0.006943618052832176,
+            "meanAbsolute": 0.30683593980548074,
+            "rms": 0.49461481764623344,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 98,
+          "pointsWorsened": 10,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": -0.9424356857258865,
+                "meanAbsolute": 0.958367531679209,
+                "rms": 1.1229404295918424,
+                "maximumAbsolute": 2.6454132648808395
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": -0.0779564949293208,
+                "meanAbsolute": 0.31189224014703504,
+                "rms": 0.48434345672060247,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 51,
+              "pointsWorsened": 3,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": 0.8775084518986149,
+                "meanAbsolute": 0.9217640733463944,
+                "rms": 1.1163616501881037,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": 0.06406925882365642,
+                "meanAbsolute": 0.30177963946392655,
+                "rms": 0.5046771756304927,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 47,
+              "pointsWorsened": 7,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-interaction": {
+          "curves": 4,
+          "crossoversImproved": 4,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -9.983179407230523,
+            "meanAbsolute": 9.983179407230523,
+            "rms": 9.98482383947117,
+            "maximumAbsolute": 10.167540001236286
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -0.26414259136609275,
+            "meanAbsolute": 0.9978737296916479,
+            "rms": 1.032242677351855,
+            "maximumAbsolute": 1.2635795340195655
+          },
+          "beforeErrorDb": {
+            "count": 72,
+            "mean": -1.2356196837973075,
+            "meanAbsolute": 1.917769464895348,
+            "rms": 2.250721292769784,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 72,
+            "mean": -1.13846787530563,
+            "meanAbsolute": 1.1604693427420754,
+            "rms": 1.3069062003308363,
+            "maximumAbsolute": 2.3565377983582474
+          },
+          "pointsImproved": 50,
+          "pointsWorsened": 22,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -2.2210848386274846,
+                "meanAbsolute": 2.2343222350804006,
+                "rms": 2.682425911001766,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": -1.2351178152565818,
+                "meanAbsolute": 1.2351178152565818,
+                "rms": 1.3424077453279482,
+                "maximumAbsolute": 2.229984783822337
+              },
+              "pointsImproved": 24,
+              "pointsWorsened": 12,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -0.2501545289671311,
+                "meanAbsolute": 1.6012166947102953,
+                "rms": 1.71350048364187,
+                "maximumAbsolute": 2.4819777602213033
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": -1.041817935354679,
+                "meanAbsolute": 1.0858208702275698,
+                "rms": 1.2704129557785149,
+                "maximumAbsolute": 2.3565377983582474
+              },
+              "pointsImproved": 26,
+              "pointsWorsened": 10,
+              "pointsUnchanged": 0
+            }
+          }
+        }
+      },
+      "curves": [
+        {
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.823233147445709,
+          "afterCrossoverErrorPercent": -3.0814008714686647,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.2647250528735465,
+            "meanAbsolute": 0.8040605388024833,
+            "rms": 1.0574847778845817,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 13,
+          "pointsWorsened": 5,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc192:s4:r0:rate48000",
+          "fc": 192,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.292910686536105,
+          "afterCrossoverErrorPercent": 0.528534262376068,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.19955858242003144,
+            "meanAbsolute": 0.2150513391466903,
+            "rms": 0.29594312493778757,
+            "maximumAbsolute": 0.655561548799297
+          },
+          "pointsImproved": 17,
+          "pointsWorsened": 1,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc384:s4:r0:rate48000",
+          "fc": 384,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.85239807274255,
+          "afterCrossoverErrorPercent": -0.6949582899055562,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.1342279231524448,
+            "meanAbsolute": 0.20700355493040057,
+            "rms": 0.25590357667022756,
+            "maximumAbsolute": 0.4776559441811601
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc768:s4:r0:rate48000",
+          "fc": 768,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.371076836586422,
+          "afterCrossoverErrorPercent": 0.5325147837536459,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.028547625884766423,
+            "meanAbsolute": 0.08153315907017464,
+            "rms": 0.11536477511352895,
+            "maximumAbsolute": 0.3463891204405578
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1280:s4:r0:rate48000",
+          "fc": 1280,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -9.219928821364142,
+          "afterCrossoverErrorPercent": -0.34559678847991826,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.2382028827849592,
+            "meanAbsolute": 0.24326770542383183,
+            "rms": 0.287185246778491,
+            "maximumAbsolute": 0.5195012186427955
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1792:s4:r0:rate48000",
+          "fc": 1792,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -11.056950578021052,
+          "afterCrossoverErrorPercent": 0.005304932038252552,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.29009934145930427,
+            "meanAbsolute": 0.29009934145930427,
+            "rms": 0.3173885323998357,
+            "maximumAbsolute": 0.5994538472763256
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.797834909176839,
+          "afterCrossoverErrorPercent": 0.7327993155643142,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.442187710785969,
+            "meanAbsolute": 2.058943338688501,
+            "rms": 2.377537592350007,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -1.3227909671709206,
+            "meanAbsolute": 1.3254057518945175,
+            "rms": 1.478260911864107,
+            "maximumAbsolute": 2.3563898340511846
+          },
+          "pointsImproved": 12,
+          "pointsWorsened": 6,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.806185842005222,
+          "afterCrossoverErrorPercent": 0.7346629610867961,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.4421798204507221,
+            "meanAbsolute": 2.0588956795862403,
+            "rms": 2.3775142765748907,
+            "maximumAbsolute": 3.944153112032743
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -1.3227712171012216,
+            "meanAbsolute": 1.3253661862488635,
+            "rms": 1.4782244660326747,
+            "maximumAbsolute": 2.3565377983582474
+          },
+          "pointsImproved": 12,
+          "pointsWorsened": 6,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.16115687650374,
+          "afterCrossoverErrorPercent": -1.2604531080959158,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.0290731244816032,
+            "meanAbsolute": 1.7765832127047694,
+            "rms": 2.1162917148211986,
+            "maximumAbsolute": 3.5651478155974416
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.9541993391226499,
+            "meanAbsolute": 0.9955469640341832,
+            "rms": 1.109407391616341,
+            "maximumAbsolute": 1.7429048922333035
+          },
+          "pointsImproved": 13,
+          "pointsWorsened": 5,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.167540001236286,
+          "afterCrossoverErrorPercent": -1.2635795340195655,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.029038079470937,
+            "meanAbsolute": 1.776655628601881,
+            "rms": 2.1163732162200044,
+            "maximumAbsolute": 3.5652148637092806
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.9541099778277287,
+            "meanAbsolute": 0.9955584687907381,
+            "rms": 1.1094267031926333,
+            "maximumAbsolute": 1.7427203731698087
+          },
+          "pointsImproved": 13,
+          "pointsWorsened": 5,
+          "pointsUnchanged": 0
+        }
+      ],
+      "largestRegressions": [
+        {
+          "frequencyIndex": 3,
+          "hz": 1171.570873260498,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -1.8963369815367837,
+          "beforeErrorDb": -0.3585844895337359,
+          "afterErrorDb": -1.8963369815367837,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 1171.570873260498,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -1.8962587729219744,
+          "beforeErrorDb": -0.3585827407069214,
+          "afterErrorDb": -1.8962587729219744,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 1,
+          "hz": 450.12986183166504,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -1.0534670281334502,
+          "beforeErrorDb": -0.30505322229328113,
+          "afterErrorDb": -1.0534670281334502,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": -1.1305705210608876,
+          "beforeErrorDb": 0.43998193659498586,
+          "afterErrorDb": -1.1305705210608876,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": -1.130577561521254,
+          "beforeErrorDb": 0.44034450759877,
+          "afterErrorDb": -1.130577561521254,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 4,
+          "hz": 8603.20608329773,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": -1.5340935517383048,
+          "beforeErrorDb": -0.8992789951136043,
+          "afterErrorDb": -1.5340935517383048,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 4,
+          "hz": 8603.20608329773,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": -1.5339625745662007,
+          "beforeErrorDb": -0.8997130272422454,
+          "afterErrorDb": -1.5339625745662007,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 1,
+          "hz": 878.7075176239014,
+          "harmonic": 1,
+          "mode": "lp",
+          "errorDb": -0.8222517247179356,
+          "beforeErrorDb": -0.24625005827071,
+          "afterErrorDb": -0.8222517247179356,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        }
+      ]
+    },
+    {
+      "before": "resonance",
+      "after": "both",
+      "purpose": "Independent cutoff benefit with resonance already enabled",
+      "commonValidPointsOnly": true,
+      "groups": {
+        "all": {
+          "curves": 10,
+          "crossoversImproved": 10,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -9.866434433364843,
+            "meanAbsolute": 9.866434433364843,
+            "rms": 9.898878776235156,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -0.4310548702327887,
+            "meanAbsolute": 0.9018519671527614,
+            "rms": 1.213331558639902,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 180,
+            "mean": 0.03408136923475053,
+            "meanAbsolute": 1.2158377955514947,
+            "rms": 1.4993493147686225,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 180,
+            "mean": 0.11421982491697585,
+            "meanAbsolute": 0.31699742215266585,
+            "rms": 0.47684519255891233,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 164,
+          "pointsWorsened": 16,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": -0.9065479919103557,
+                "meanAbsolute": 1.1931899465055522,
+                "rms": 1.4295440791895857,
+                "maximumAbsolute": 2.7312487457644776
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": 0.03265073903328045,
+                "meanAbsolute": 0.2868743118559957,
+                "rms": 0.43129792800376787,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 85,
+              "pointsWorsened": 5,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": 0.974710730379857,
+                "meanAbsolute": 1.2384856445974373,
+                "rms": 1.5660461235379606,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": 0.1957889108006712,
+                "meanAbsolute": 0.34712053244933594,
+                "rms": 0.5184059920880054,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 79,
+              "pointsWorsened": 11,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-fc": {
+          "curves": 6,
+          "crossoversImproved": 6,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -9.769416357115999,
+            "meanAbsolute": 9.769416357115999,
+            "rms": 9.821655569566058,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -0.5092669952810288,
+            "meanAbsolute": 0.8647183213370176,
+            "rms": 1.3329406150393868,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 108,
+            "mean": -0.03246361691363595,
+            "meanAbsolute": 0.9400658025128013,
+            "rms": 1.1196558717799454,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 108,
+            "mean": -0.006943618052832176,
+            "meanAbsolute": 0.30683593980548074,
+            "rms": 0.49461481764623344,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 98,
+          "pointsWorsened": 10,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": -0.9424356857258865,
+                "meanAbsolute": 0.958367531679209,
+                "rms": 1.1229404295918424,
+                "maximumAbsolute": 2.6454132648808395
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": -0.0779564949293208,
+                "meanAbsolute": 0.31189224014703504,
+                "rms": 0.48434345672060247,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 51,
+              "pointsWorsened": 3,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": 0.8775084518986149,
+                "meanAbsolute": 0.9217640733463944,
+                "rms": 1.1163616501881037,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": 0.06406925882365642,
+                "meanAbsolute": 0.30177963946392655,
+                "rms": 0.5046771756304927,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 47,
+              "pointsWorsened": 7,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-interaction": {
+          "curves": 4,
+          "crossoversImproved": 4,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -10.011961547738107,
+            "meanAbsolute": 10.011961547738107,
+            "rms": 10.013597024831542,
+            "maximumAbsolute": 10.194238189012806
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -0.31373668266042876,
+            "meanAbsolute": 0.9575524358763771,
+            "rms": 1.0076396444892726,
+            "maximumAbsolute": 1.2719611234587758
+          },
+          "beforeErrorDb": {
+            "count": 72,
+            "mean": 0.13389884845733036,
+            "meanAbsolute": 1.6294957851095342,
+            "rms": 1.933824452329083,
+            "maximumAbsolute": 3.3347388830895417
+          },
+          "afterErrorDb": {
+            "count": 72,
+            "mean": 0.2959649893716879,
+            "meanAbsolute": 0.33223964567344344,
+            "rms": 0.44887372101019735,
+            "maximumAbsolute": 1.0338752234069881
+          },
+          "pointsImproved": 66,
+          "pointsWorsened": 6,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -0.8527164511870597,
+                "meanAbsolute": 1.545423568745066,
+                "rms": 1.7937385186384145,
+                "maximumAbsolute": 2.7312487457644776
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": 0.19856158997718232,
+                "meanAbsolute": 0.24934741941943706,
+                "rms": 0.336395423049668,
+                "maximumAbsolute": 0.8248075735489113
+              },
+              "pointsImproved": 34,
+              "pointsWorsened": 2,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": 1.1205141481017205,
+                "meanAbsolute": 1.7135680014740027,
+                "rms": 2.0644263492807453,
+                "maximumAbsolute": 3.3347388830895417
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": 0.39336838876619346,
+                "meanAbsolute": 0.41513187192744994,
+                "rms": 0.5383431565259429,
+                "maximumAbsolute": 1.0338752234069881
+              },
+              "pointsImproved": 32,
+              "pointsWorsened": 4,
+              "pointsUnchanged": 0
+            }
+          }
+        }
+      },
+      "curves": [
+        {
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.823233147445709,
+          "afterCrossoverErrorPercent": -3.0814008714686647,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.2647250528735465,
+            "meanAbsolute": 0.8040605388024833,
+            "rms": 1.0574847778845817,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 13,
+          "pointsWorsened": 5,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc192:s4:r0:rate48000",
+          "fc": 192,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.292910686536105,
+          "afterCrossoverErrorPercent": 0.528534262376068,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.19955858242003144,
+            "meanAbsolute": 0.2150513391466903,
+            "rms": 0.29594312493778757,
+            "maximumAbsolute": 0.655561548799297
+          },
+          "pointsImproved": 17,
+          "pointsWorsened": 1,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc384:s4:r0:rate48000",
+          "fc": 384,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.85239807274255,
+          "afterCrossoverErrorPercent": -0.6949582899055562,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.1342279231524448,
+            "meanAbsolute": 0.20700355493040057,
+            "rms": 0.25590357667022756,
+            "maximumAbsolute": 0.4776559441811601
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc768:s4:r0:rate48000",
+          "fc": 768,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.371076836586422,
+          "afterCrossoverErrorPercent": 0.5325147837536459,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.028547625884766423,
+            "meanAbsolute": 0.08153315907017464,
+            "rms": 0.11536477511352895,
+            "maximumAbsolute": 0.3463891204405578
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1280:s4:r0:rate48000",
+          "fc": 1280,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -9.219928821364142,
+          "afterCrossoverErrorPercent": -0.34559678847991826,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.2382028827849592,
+            "meanAbsolute": 0.24326770542383183,
+            "rms": 0.287185246778491,
+            "maximumAbsolute": 0.5195012186427955
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1792:s4:r0:rate48000",
+          "fc": 1792,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -11.056950578021052,
+          "afterCrossoverErrorPercent": 0.005304932038252552,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.29009934145930427,
+            "meanAbsolute": 0.29009934145930427,
+            "rms": 0.3173885323998357,
+            "maximumAbsolute": 0.5994538472763256
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.826967254947572,
+          "afterCrossoverErrorPercent": 0.6441439348913836,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.10673599376416358,
+            "meanAbsolute": 1.642793130052958,
+            "rms": 1.9300932216905071,
+            "maximumAbsolute": 3.049623003902062
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.08318337970744714,
+            "meanAbsolute": 0.12762577371646844,
+            "rms": 0.16434641603151512,
+            "maximumAbsolute": 0.4530133074934817
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.835059309070315,
+          "afterCrossoverErrorPercent": 0.6434875715405131,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.10674094363441661,
+            "meanAbsolute": 1.6428441140505488,
+            "rms": 1.9301086632451447,
+            "maximumAbsolute": 3.04956300984641
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.08318412083055365,
+            "meanAbsolute": 0.1276177460676261,
+            "rms": 0.16428398923317894,
+            "maximumAbsolute": 0.452597691224631
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.191581437921737,
+          "afterCrossoverErrorPercent": -1.2706171136148359,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.3745782926822913,
+            "meanAbsolute": 1.616112509345806,
+            "rms": 1.9375456251865444,
+            "maximumAbsolute": 3.3347388830895417
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.5087567060172188,
+            "meanAbsolute": 0.5368857969268019,
+            "rms": 0.6132042020020942,
+            "maximumAbsolute": 1.0338752234069881
+          },
+          "pointsImproved": 15,
+          "pointsWorsened": 3,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.194238189012806,
+          "afterCrossoverErrorPercent": -1.2719611234587758,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.37449403854560975,
+            "meanAbsolute": 1.616233386988825,
+            "rms": 1.9375359877107836,
+            "maximumAbsolute": 3.3343046757366475
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.508735750931532,
+            "meanAbsolute": 0.5368292659828777,
+            "rms": 0.6131330220436393,
+            "maximumAbsolute": 1.0331346423846854
+          },
+          "pointsImproved": 15,
+          "pointsWorsened": 3,
+          "pointsUnchanged": 0
+        }
+      ],
+      "largestRegressions": [
+        {
+          "frequencyIndex": 1,
+          "hz": 450.12986183166504,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -1.0534670281334502,
+          "beforeErrorDb": -0.30505322229328113,
+          "afterErrorDb": -1.0534670281334502,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 5,
+          "hz": 9559.313621520996,
+          "harmonic": 4,
+          "mode": "hp",
+          "errorDb": 0.9377520252045679,
+          "beforeErrorDb": 0.2148667382060454,
+          "afterErrorDb": 0.9377520252045679,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 5,
+          "hz": 9559.313621520996,
+          "harmonic": 4,
+          "mode": "hp",
+          "errorDb": 0.9380229523536998,
+          "beforeErrorDb": 0.2160300586649455,
+          "afterErrorDb": 0.9380229523536998,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 525.1808681488037,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.6728573449678499,
+          "beforeErrorDb": -0.12351726552665143,
+          "afterErrorDb": -0.6728573449678499,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 4,
+          "hz": 8603.20608329773,
+          "harmonic": 3,
+          "mode": "lp",
+          "errorDb": 0.8248075735489113,
+          "beforeErrorDb": -0.33018795050844707,
+          "afterErrorDb": 0.8248075735489113,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 4,
+          "hz": 8603.20608329773,
+          "harmonic": 3,
+          "mode": "lp",
+          "errorDb": 0.8246968754481265,
+          "beforeErrorDb": -0.3302276514515068,
+          "afterErrorDb": 0.8246968754481265,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 6,
+          "hz": 825.2674427032471,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.42729255511308156,
+          "beforeErrorDb": -0.05843796742133284,
+          "afterErrorDb": -0.42729255511308156,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 7,
+          "hz": 900.2597236633301,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.463556747760661,
+          "beforeErrorDb": -0.09892016060715159,
+          "afterErrorDb": -0.463556747760661,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        }
+      ]
+    },
+    {
+      "before": "before",
+      "after": "resonance",
+      "purpose": "Resonance alone versus neither profile",
+      "commonValidPointsOnly": true,
+      "groups": {
+        "all": {
+          "curves": 10,
+          "crossoversImproved": 0,
+          "crossoversWorsened": 4,
+          "crossoversUnchanged": 6,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -9.854921577161807,
+            "meanAbsolute": 9.854921577161807,
+            "rms": 9.887246012840052,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -9.866434433364843,
+            "meanAbsolute": 9.866434433364843,
+            "rms": 9.898878776235156,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "beforeErrorDb": {
+            "count": 180,
+            "mean": -0.5137260436671045,
+            "meanAbsolute": 1.3311472674658202,
+            "rms": 1.6668761495137243,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 180,
+            "mean": 0.03408136923475053,
+            "meanAbsolute": 1.2158377955514947,
+            "rms": 1.4993493147686225,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "pointsImproved": 44,
+          "pointsWorsened": 28,
+          "pointsUnchanged": 108,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": -1.4538953468865257,
+                "meanAbsolute": 1.4687494130396856,
+                "rms": 1.9065048209361044,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": -0.9065479919103557,
+                "meanAbsolute": 1.1931899465055522,
+                "rms": 1.4295440791895857,
+                "maximumAbsolute": 2.7312487457644776
+              },
+              "pointsImproved": 26,
+              "pointsWorsened": 10,
+              "pointsUnchanged": 54
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": 0.42644325955231666,
+                "meanAbsolute": 1.1935451218919546,
+                "rms": 1.3864312328358712,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": 0.974710730379857,
+                "meanAbsolute": 1.2384856445974373,
+                "rms": 1.5660461235379606,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "pointsImproved": 18,
+              "pointsWorsened": 18,
+              "pointsUnchanged": 54
+            }
+          }
+        },
+        "holdout-fc": {
+          "curves": 6,
+          "crossoversImproved": 0,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 6,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -9.769416357115999,
+            "meanAbsolute": 9.769416357115999,
+            "rms": 9.821655569566058,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -9.769416357115999,
+            "meanAbsolute": 9.769416357115999,
+            "rms": 9.821655569566058,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "beforeErrorDb": {
+            "count": 108,
+            "mean": -0.03246361691363595,
+            "meanAbsolute": 0.9400658025128013,
+            "rms": 1.1196558717799454,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 108,
+            "mean": -0.03246361691363595,
+            "meanAbsolute": 0.9400658025128013,
+            "rms": 1.1196558717799454,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 108,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": -0.9424356857258865,
+                "meanAbsolute": 0.958367531679209,
+                "rms": 1.1229404295918424,
+                "maximumAbsolute": 2.6454132648808395
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": -0.9424356857258865,
+                "meanAbsolute": 0.958367531679209,
+                "rms": 1.1229404295918424,
+                "maximumAbsolute": 2.6454132648808395
+              },
+              "pointsImproved": 0,
+              "pointsWorsened": 0,
+              "pointsUnchanged": 54
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": 0.8775084518986149,
+                "meanAbsolute": 0.9217640733463944,
+                "rms": 1.1163616501881037,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": 0.8775084518986149,
+                "meanAbsolute": 0.9217640733463944,
+                "rms": 1.1163616501881037,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "pointsImproved": 0,
+              "pointsWorsened": 0,
+              "pointsUnchanged": 54
+            }
+          }
+        },
+        "holdout-interaction": {
+          "curves": 4,
+          "crossoversImproved": 0,
+          "crossoversWorsened": 4,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -9.983179407230523,
+            "meanAbsolute": 9.983179407230523,
+            "rms": 9.98482383947117,
+            "maximumAbsolute": 10.167540001236286
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -10.011961547738107,
+            "meanAbsolute": 10.011961547738107,
+            "rms": 10.013597024831542,
+            "maximumAbsolute": 10.194238189012806
+          },
+          "beforeErrorDb": {
+            "count": 72,
+            "mean": -1.2356196837973075,
+            "meanAbsolute": 1.917769464895348,
+            "rms": 2.250721292769784,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 72,
+            "mean": 0.13389884845733036,
+            "meanAbsolute": 1.6294957851095342,
+            "rms": 1.933824452329083,
+            "maximumAbsolute": 3.3347388830895417
+          },
+          "pointsImproved": 44,
+          "pointsWorsened": 28,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -2.2210848386274846,
+                "meanAbsolute": 2.2343222350804006,
+                "rms": 2.682425911001766,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": -0.8527164511870597,
+                "meanAbsolute": 1.545423568745066,
+                "rms": 1.7937385186384145,
+                "maximumAbsolute": 2.7312487457644776
+              },
+              "pointsImproved": 26,
+              "pointsWorsened": 10,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -0.2501545289671311,
+                "meanAbsolute": 1.6012166947102953,
+                "rms": 1.71350048364187,
+                "maximumAbsolute": 2.4819777602213033
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": 1.1205141481017205,
+                "meanAbsolute": 1.7135680014740027,
+                "rms": 2.0644263492807453,
+                "maximumAbsolute": 3.3347388830895417
+              },
+              "pointsImproved": 18,
+              "pointsWorsened": 18,
+              "pointsUnchanged": 0
+            }
+          }
+        }
+      },
+      "curves": [
+        {
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.823233147445709,
+          "afterCrossoverErrorPercent": -10.823233147445709,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-fc:fc192:s4:r0:rate48000",
+          "fc": 192,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.292910686536105,
+          "afterCrossoverErrorPercent": -10.292910686536105,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-fc:fc384:s4:r0:rate48000",
+          "fc": 384,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.85239807274255,
+          "afterCrossoverErrorPercent": -8.85239807274255,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-fc:fc768:s4:r0:rate48000",
+          "fc": 768,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.371076836586422,
+          "afterCrossoverErrorPercent": -8.371076836586422,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-fc:fc1280:s4:r0:rate48000",
+          "fc": 1280,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -9.219928821364142,
+          "afterCrossoverErrorPercent": -9.219928821364142,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-fc:fc1792:s4:r0:rate48000",
+          "fc": 1792,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -11.056950578021052,
+          "afterCrossoverErrorPercent": -11.056950578021052,
+          "crossoverOutcome": "unchanged",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          },
+          "pointsImproved": 0,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 18
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.797834909176839,
+          "afterCrossoverErrorPercent": -9.826967254947572,
+          "crossoverOutcome": "worsened",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.442187710785969,
+            "meanAbsolute": 2.058943338688501,
+            "rms": 2.377537592350007,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.10673599376416358,
+            "meanAbsolute": 1.642793130052958,
+            "rms": 1.9300932216905071,
+            "maximumAbsolute": 3.049623003902062
+          },
+          "pointsImproved": 12,
+          "pointsWorsened": 6,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.806185842005222,
+          "afterCrossoverErrorPercent": -9.835059309070315,
+          "crossoverOutcome": "worsened",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.4421798204507221,
+            "meanAbsolute": 2.0588956795862403,
+            "rms": 2.3775142765748907,
+            "maximumAbsolute": 3.944153112032743
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.10674094363441661,
+            "meanAbsolute": 1.6428441140505488,
+            "rms": 1.9301086632451447,
+            "maximumAbsolute": 3.04956300984641
+          },
+          "pointsImproved": 12,
+          "pointsWorsened": 6,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.16115687650374,
+          "afterCrossoverErrorPercent": -10.191581437921737,
+          "crossoverOutcome": "worsened",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.0290731244816032,
+            "meanAbsolute": 1.7765832127047694,
+            "rms": 2.1162917148211986,
+            "maximumAbsolute": 3.5651478155974416
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.3745782926822913,
+            "meanAbsolute": 1.616112509345806,
+            "rms": 1.9375456251865444,
+            "maximumAbsolute": 3.3347388830895417
+          },
+          "pointsImproved": 10,
+          "pointsWorsened": 8,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.167540001236286,
+          "afterCrossoverErrorPercent": -10.194238189012806,
+          "crossoverOutcome": "worsened",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.029038079470937,
+            "meanAbsolute": 1.776655628601881,
+            "rms": 2.1163732162200044,
+            "maximumAbsolute": 3.5652148637092806
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.37449403854560975,
+            "meanAbsolute": 1.616233386988825,
+            "rms": 1.9375359877107836,
+            "maximumAbsolute": 3.3343046757366475
+          },
+          "pointsImproved": 10,
+          "pointsWorsened": 8,
+          "pointsUnchanged": 0
+        }
+      ],
+      "largestRegressions": [
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 2.921003386685662,
+          "beforeErrorDb": 0.44034450759877,
+          "afterErrorDb": 2.921003386685662,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 2.919904309934265,
+          "beforeErrorDb": 0.43998193659498586,
+          "afterErrorDb": 2.919904309934265,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 1025.1098327636719,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": 3.0029979527898436,
+          "beforeErrorDb": 1.0930605483468767,
+          "afterErrorDb": 3.0029979527898436,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 1025.1098327636719,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": 3.0026146241459033,
+          "beforeErrorDb": 1.0930945493595603,
+          "afterErrorDb": 3.0026146241459033,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 6691.519535064697,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 3.3347388830895417,
+          "beforeErrorDb": 1.5903577848350543,
+          "afterErrorDb": 3.3347388830895417,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 6691.519535064697,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 3.3343046757366475,
+          "beforeErrorDb": 1.5901554301664738,
+          "afterErrorDb": 3.3343046757366475,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 1171.570873260498,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": 2.033857777654082,
+          "beforeErrorDb": -0.3585844895337359,
+          "afterErrorDb": 2.033857777654082,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 1171.570873260498,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": 2.0337551914544916,
+          "beforeErrorDb": -0.3585827407069214,
+          "afterErrorDb": 2.0337551914544916,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        }
+      ]
+    },
+    {
+      "before": "before",
+      "after": "both",
+      "purpose": "Both profiles versus neither profile",
+      "commonValidPointsOnly": true,
+      "groups": {
+        "all": {
+          "curves": 10,
+          "crossoversImproved": 10,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -9.854921577161807,
+            "meanAbsolute": 9.854921577161807,
+            "rms": 9.887246012840052,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 10,
+            "mean": -0.4310548702327887,
+            "meanAbsolute": 0.9018519671527614,
+            "rms": 1.213331558639902,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 180,
+            "mean": -0.5137260436671045,
+            "meanAbsolute": 1.3311472674658202,
+            "rms": 1.6668761495137243,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 180,
+            "mean": 0.11421982491697585,
+            "meanAbsolute": 0.31699742215266585,
+            "rms": 0.47684519255891233,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 162,
+          "pointsWorsened": 18,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": -1.4538953468865257,
+                "meanAbsolute": 1.4687494130396856,
+                "rms": 1.9065048209361044,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": 0.03265073903328045,
+                "meanAbsolute": 0.2868743118559957,
+                "rms": 0.43129792800376787,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 83,
+              "pointsWorsened": 7,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 90,
+                "mean": 0.42644325955231666,
+                "meanAbsolute": 1.1935451218919546,
+                "rms": 1.3864312328358712,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 90,
+                "mean": 0.1957889108006712,
+                "meanAbsolute": 0.34712053244933594,
+                "rms": 0.5184059920880054,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 79,
+              "pointsWorsened": 11,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-fc": {
+          "curves": 6,
+          "crossoversImproved": 6,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -9.769416357115999,
+            "meanAbsolute": 9.769416357115999,
+            "rms": 9.821655569566058,
+            "maximumAbsolute": 11.056950578021052
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 6,
+            "mean": -0.5092669952810288,
+            "meanAbsolute": 0.8647183213370176,
+            "rms": 1.3329406150393868,
+            "maximumAbsolute": 3.0814008714686647
+          },
+          "beforeErrorDb": {
+            "count": 108,
+            "mean": -0.03246361691363595,
+            "meanAbsolute": 0.9400658025128013,
+            "rms": 1.1196558717799454,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 108,
+            "mean": -0.006943618052832176,
+            "meanAbsolute": 0.30683593980548074,
+            "rms": 0.49461481764623344,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 98,
+          "pointsWorsened": 10,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": -0.9424356857258865,
+                "meanAbsolute": 0.958367531679209,
+                "rms": 1.1229404295918424,
+                "maximumAbsolute": 2.6454132648808395
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": -0.0779564949293208,
+                "meanAbsolute": 0.31189224014703504,
+                "rms": 0.48434345672060247,
+                "maximumAbsolute": 2.3946487410935458
+              },
+              "pointsImproved": 51,
+              "pointsWorsened": 3,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 54,
+                "mean": 0.8775084518986149,
+                "meanAbsolute": 0.9217640733463944,
+                "rms": 1.1163616501881037,
+                "maximumAbsolute": 3.3702721963451943
+              },
+              "afterErrorDb": {
+                "count": 54,
+                "mean": 0.06406925882365642,
+                "meanAbsolute": 0.30177963946392655,
+                "rms": 0.5046771756304927,
+                "maximumAbsolute": 2.7949458043624356
+              },
+              "pointsImproved": 47,
+              "pointsWorsened": 7,
+              "pointsUnchanged": 0
+            }
+          }
+        },
+        "holdout-interaction": {
+          "curves": 4,
+          "crossoversImproved": 4,
+          "crossoversWorsened": 0,
+          "crossoversUnchanged": 0,
+          "crossoversNotComparable": 0,
+          "beforeCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -9.983179407230523,
+            "meanAbsolute": 9.983179407230523,
+            "rms": 9.98482383947117,
+            "maximumAbsolute": 10.167540001236286
+          },
+          "afterCrossoverErrorPercent": {
+            "count": 4,
+            "mean": -0.31373668266042876,
+            "meanAbsolute": 0.9575524358763771,
+            "rms": 1.0076396444892726,
+            "maximumAbsolute": 1.2719611234587758
+          },
+          "beforeErrorDb": {
+            "count": 72,
+            "mean": -1.2356196837973075,
+            "meanAbsolute": 1.917769464895348,
+            "rms": 2.250721292769784,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 72,
+            "mean": 0.2959649893716879,
+            "meanAbsolute": 0.33223964567344344,
+            "rms": 0.44887372101019735,
+            "maximumAbsolute": 1.0338752234069881
+          },
+          "pointsImproved": 64,
+          "pointsWorsened": 8,
+          "pointsUnchanged": 0,
+          "byMode": {
+            "lp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -2.2210848386274846,
+                "meanAbsolute": 2.2343222350804006,
+                "rms": 2.682425911001766,
+                "maximumAbsolute": 3.9442016779510043
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": 0.19856158997718232,
+                "meanAbsolute": 0.24934741941943706,
+                "rms": 0.336395423049668,
+                "maximumAbsolute": 0.8248075735489113
+              },
+              "pointsImproved": 32,
+              "pointsWorsened": 4,
+              "pointsUnchanged": 0
+            },
+            "hp": {
+              "beforeErrorDb": {
+                "count": 36,
+                "mean": -0.2501545289671311,
+                "meanAbsolute": 1.6012166947102953,
+                "rms": 1.71350048364187,
+                "maximumAbsolute": 2.4819777602213033
+              },
+              "afterErrorDb": {
+                "count": 36,
+                "mean": 0.39336838876619346,
+                "meanAbsolute": 0.41513187192744994,
+                "rms": 0.5383431565259429,
+                "maximumAbsolute": 1.0338752234069881
+              },
+              "pointsImproved": 32,
+              "pointsWorsened": 4,
+              "pointsUnchanged": 0
+            }
+          }
+        }
+      },
+      "curves": [
+        {
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.823233147445709,
+          "afterCrossoverErrorPercent": -3.0814008714686647,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.39190840860877374,
+            "meanAbsolute": 1.0536356978676649,
+            "rms": 1.3961460214961965,
+            "maximumAbsolute": 3.3702721963451943
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.2647250528735465,
+            "meanAbsolute": 0.8040605388024833,
+            "rms": 1.0574847778845817,
+            "maximumAbsolute": 2.7949458043624356
+          },
+          "pointsImproved": 13,
+          "pointsWorsened": 5,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc192:s4:r0:rate48000",
+          "fc": 192,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -10.292910686536105,
+          "afterCrossoverErrorPercent": 0.528534262376068,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.12737147975502708,
+            "meanAbsolute": 1.0332269187328003,
+            "rms": 1.2026446589871715,
+            "maximumAbsolute": 2.0976510786288127
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.19955858242003144,
+            "meanAbsolute": 0.2150513391466903,
+            "rms": 0.29594312493778757,
+            "maximumAbsolute": 0.655561548799297
+          },
+          "pointsImproved": 17,
+          "pointsWorsened": 1,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc384:s4:r0:rate48000",
+          "fc": 384,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.85239807274255,
+          "afterCrossoverErrorPercent": -0.6949582899055562,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -0.137212647782357,
+            "meanAbsolute": 0.8525943995797376,
+            "rms": 0.9544043267082254,
+            "maximumAbsolute": 1.7344280360659814
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": -0.1342279231524448,
+            "meanAbsolute": 0.20700355493040057,
+            "rms": 0.25590357667022756,
+            "maximumAbsolute": 0.4776559441811601
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc768:s4:r0:rate48000",
+          "fc": 768,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -8.371076836586422,
+          "afterCrossoverErrorPercent": 0.5325147837536459,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.017003131043502612,
+            "meanAbsolute": 0.8267046754591321,
+            "rms": 0.938302175722865,
+            "maximumAbsolute": 1.8996506257671586
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.028547625884766423,
+            "meanAbsolute": 0.08153315907017464,
+            "rms": 0.11536477511352895,
+            "maximumAbsolute": 0.3463891204405578
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1280:s4:r0:rate48000",
+          "fc": 1280,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -9.219928821364142,
+          "afterCrossoverErrorPercent": -0.34559678847991826,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.18167271497118315,
+            "meanAbsolute": 0.8382221668995411,
+            "rms": 0.9626280409552509,
+            "maximumAbsolute": 1.667479753893495
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.2382028827849592,
+            "meanAbsolute": 0.24326770542383183,
+            "rms": 0.287185246778491,
+            "maximumAbsolute": 0.5195012186427955
+          },
+          "pointsImproved": 18,
+          "pointsWorsened": 0,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-fc:fc1792:s4:r0:rate48000",
+          "fc": 1792,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4,
+          "beforeCrossoverErrorPercent": -11.056950578021052,
+          "afterCrossoverErrorPercent": 0.005304932038252552,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": 0.2630349886496566,
+            "meanAbsolute": 1.0360109565379336,
+            "rms": 1.1866955806350834,
+            "maximumAbsolute": 2.0773930167972363
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.29009934145930427,
+            "meanAbsolute": 0.29009934145930427,
+            "rms": 0.3173885323998357,
+            "maximumAbsolute": 0.5994538472763256
+          },
+          "pointsImproved": 16,
+          "pointsWorsened": 2,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate44100",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.797834909176839,
+          "afterCrossoverErrorPercent": 0.6441439348913836,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.442187710785969,
+            "meanAbsolute": 2.058943338688501,
+            "rms": 2.377537592350007,
+            "maximumAbsolute": 3.9442016779510043
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.08318337970744714,
+            "meanAbsolute": 0.12762577371646844,
+            "rms": 0.16434641603151512,
+            "maximumAbsolute": 0.4530133074934817
+          },
+          "pointsImproved": 17,
+          "pointsWorsened": 1,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc192:s15:r12:rate96000",
+          "fc": 192,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -9.806185842005222,
+          "afterCrossoverErrorPercent": 0.6434875715405131,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.4421798204507221,
+            "meanAbsolute": 2.0588956795862403,
+            "rms": 2.3775142765748907,
+            "maximumAbsolute": 3.944153112032743
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.08318412083055365,
+            "meanAbsolute": 0.1276177460676261,
+            "rms": 0.16428398923317894,
+            "maximumAbsolute": 0.452597691224631
+          },
+          "pointsImproved": 17,
+          "pointsWorsened": 1,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.16115687650374,
+          "afterCrossoverErrorPercent": -1.2706171136148359,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.0290731244816032,
+            "meanAbsolute": 1.7765832127047694,
+            "rms": 2.1162917148211986,
+            "maximumAbsolute": 3.5651478155974416
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.5087567060172188,
+            "meanAbsolute": 0.5368857969268019,
+            "rms": 0.6132042020020942,
+            "maximumAbsolute": 1.0338752234069881
+          },
+          "pointsImproved": 15,
+          "pointsWorsened": 3,
+          "pointsUnchanged": 0
+        },
+        {
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15,
+          "beforeCrossoverErrorPercent": -10.167540001236286,
+          "afterCrossoverErrorPercent": -1.2719611234587758,
+          "crossoverOutcome": "improved",
+          "beforeErrorDb": {
+            "count": 18,
+            "mean": -1.029038079470937,
+            "meanAbsolute": 1.776655628601881,
+            "rms": 2.1163732162200044,
+            "maximumAbsolute": 3.5652148637092806
+          },
+          "afterErrorDb": {
+            "count": 18,
+            "mean": 0.508735750931532,
+            "meanAbsolute": 0.5368292659828777,
+            "rms": 0.6131330220436393,
+            "maximumAbsolute": 1.0331346423846854
+          },
+          "pointsImproved": 15,
+          "pointsWorsened": 3,
+          "pointsUnchanged": 0
+        }
+      ],
+      "largestRegressions": [
+        {
+          "frequencyIndex": 1,
+          "hz": 450.12986183166504,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -1.0534670281334502,
+          "beforeErrorDb": -0.30505322229328113,
+          "afterErrorDb": -1.0534670281334502,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 2,
+          "hz": 525.1808681488037,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.6728573449678499,
+          "beforeErrorDb": -0.12351726552665143,
+          "afterErrorDb": -0.6728573449678499,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 0.8645150348763325,
+          "beforeErrorDb": 0.44034450759877,
+          "afterErrorDb": 0.8645150348763325,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 3,
+          "hz": 7647.27472114563,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 0.8641301552920233,
+          "beforeErrorDb": 0.43998193659498586,
+          "afterErrorDb": 0.8641301552920233,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate96000",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 96000,
+          "res": 12,
+          "sustain": 15
+        },
+        {
+          "frequencyIndex": 6,
+          "hz": 825.2674427032471,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.42729255511308156,
+          "beforeErrorDb": -0.05843796742133284,
+          "afterErrorDb": -0.42729255511308156,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 7,
+          "hz": 900.2597236633301,
+          "harmonic": 1,
+          "mode": "hp",
+          "errorDb": -0.463556747760661,
+          "beforeErrorDb": -0.09892016060715159,
+          "afterErrorDb": -0.463556747760661,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 0,
+          "hz": 375.13758087158203,
+          "harmonic": 1,
+          "mode": "lp",
+          "errorDb": 0.6217729788528046,
+          "beforeErrorDb": 0.4301598407397027,
+          "afterErrorDb": 0.6217729788528046,
+          "outcome": "worsened",
+          "key": "holdout-fc:fc96:s4:r0:rate48000",
+          "fc": 96,
+          "group": "holdout-fc",
+          "rate": 48000,
+          "res": 0,
+          "sustain": 4
+        },
+        {
+          "frequencyIndex": 4,
+          "hz": 8603.20608329773,
+          "harmonic": 3,
+          "mode": "hp",
+          "errorDb": 1.0338752234069881,
+          "beforeErrorDb": -0.8992789951136043,
+          "afterErrorDb": 1.0338752234069881,
+          "outcome": "worsened",
+          "key": "holdout-interaction:fc1280:s15:r12:rate44100",
+          "fc": 1280,
+          "group": "holdout-interaction",
+          "rate": 44100,
+          "res": 12,
+          "sustain": 15
+        }
+      ]
+    }
+  ]
+}

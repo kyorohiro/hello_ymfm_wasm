@@ -294,7 +294,7 @@ controlled228 and the original 376,200 sample API comparison remain unchanged.
 12 CPU and 11 controlled-quality cases: 146 matches total, without AudioWorklet
 or full-C64/listening acceptance.
 
-[The latest independent kit](docs/issues/sid8580_probe_sourcekit_03.json) rebuilds
+[The phase-15 independent kit](docs/issues/sid8580_probe_sourcekit_03.json) rebuilds
 all five outputs/receipt from 62 compiled inputs byte-identically and passes
 eleven build/test commands, including the 228 candidate-only quality scenes and
 seven math tests, without GPL reference or parent-source fallback. Archive
@@ -307,12 +307,57 @@ Use node scripts/package_sid8580_sourcekit.mjs --plan for a read-only closure
 check, or --version NEXT --verify for a new exclusive stage/archive and rebuild.
 CI has thirteen steps; no GitHub Actions run, push, commit, tag or release occurred.
 
-Keep this profile opt-in/OFF. Next investigate cutoff/center frequency separately:
-FC256 peaks remain around 1600Hz in the candidate versus 1750–1800Hz in the
-reference. Use a wider FC matrix and separate training/holdout, not global gain
-or resonance compensation. Hidden state/pipeline/RC, DAC/combined waves, held-out
-LP/HP/rates, real 8580 files, C64/Worklet scheduling and listening remain subsequent
-work. Production Player/Synth/SDK and the known-8580 rejection are unchanged.
+Phase 16 completes the separate [cutoff experiment](docs/issues/sid8580_cutoff_result_01.md),
+using a [prefrozen matrix](docs/issues/sid8580_cutoff_plan_01.json) and
+[explicit LP/HP method](docs/issues/sid8580_cutoff_method_01.md). The operational
+same-harmonic LP=HP crossover cancels Q/common RC only under the stated linear
+conditions; it is not an intrinsic pole or arbitrary-Q -3dB cutoff. Actual sample
+ticks, observable warmup, validity guards and raw PCM are retained. Thirteen
+analytical/synthetic-fit tests pass. The seven training FCs at 48k/sustain4/RES0
+provide 189 captures; the fitted 8580-cutoff-crossover-v1 profile is frozen before
+holdout and independent of the damping flag. FC0 retains the unmeasured original
+30-Hz anchor. Both experimental flags remain OFF by default.
+
+Four flag groups each cover 270 holdout captures: six untrained FC curves and
+four separate rate/level/resonance interactions. [Independent analysis](docs/issues/sid8580_cutoff_validation_analysis_01.json)
+finds all ten crossover errors improve with cutoff alone, mean absolute error
+9.855% to 0.918%. Across 180 LP/HP amplitude-ratio bins mean absolute error falls
+1.331 to .648dB, but 32 bins worsen (148 improve). Adding cutoff to resonance-only
+improves ten of ten crossovers, 9.866% to .902%, and mean bin error 1.216 to .317dB,
+with 164 improving and 16 worsening. The six true held-out FCs improve 9.769% to
+.865%; keep the four interactions separate. FC96 still has -3.081% crossover
+error and about 2.795dB maximum bin error. Nine predeclared frequencies are a
+deterministic bracket estimate, not a physical-accuracy confidence interval.
+No holdout retuning, reference implementation/table copying or PCM correction
+was used. All reference 270 and candidate dry90 objects are unchanged.
+
+[Cutoff policy](docs/issues/sid8580_cutoff_policy_01.json) checks independent flags,
+default/invalid/reset/Stop/model/instance behavior, 42 inert 6581 scenes, nine old
+PCM hashes, three effective 8580 controls, 24 Native-quality and 24 raw Rust model
+cases. Old84/bus66/CPU36, the 376,200-sample original API and the earlier resonance
+260-case PCM/read/range outputs are unchanged. [Refreshed browsers](docs/issues/sid8580_probe_browser_04.json)
+match 146 prior cases; [cutoff browsers](docs/issues/sid8580_cutoff_browser_01.json)
+match 30 per Chromium/WebKit, for 206 total batch-WASM matches, not Worklet/audio
+or full-C64 acceptance.
+
+[Source kit _04](docs/issues/sid8580_probe_sourcekit_04.json) independently rebuilds
+all five outputs and receipt byte-identically from 63 compiled inputs, with
+15 build/test commands and CRC/all-file equality. The new archive is
+release/tetorica_sid8580_quality_20261107-cutoff_sources.zip: 122 files/1,214,079 bytes,
+SHA-256 369fbbe97506407679c74f58c57cdad3973d7cea2880e79d86660717d27fc02c.
+Readable sources, two WASMs, cutoff training metadata/plan/fit/analysis, tests and
+license/Rust notices are included. Native binaries, GPL SID oracle, ROM/music/PCM
+are excluded; the larger historical resonance training report remains SHA-only.
+The 17-step CI covers cutoff math, offline fit recomputation, policy and candidate
+holdout with both flags. Local checks and runtime33/68/75 plus old SID/PSID/RSID
+receipts pass; no GitHub Actions run, commit/push/tag or publication was performed.
+Older reports and archives remain historical and unchanged.
+
+Next separate low-FC residuals, mode-specific gain/loading and read/audio pipeline,
+and design research-only C64/AudioWorklet integration. Real 8580 file playback,
+listening, scheduling/performance and production adoption are later decisions.
+Keep both profiles opt-in/OFF. Production Player/Synth/SDK and known-8580 rejection
+remain unchanged; this phase does not enable 8580 file import.
 
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a

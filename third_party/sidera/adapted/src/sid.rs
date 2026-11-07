@@ -68,12 +68,13 @@ impl Sid {
     }
 
     /// Reset to power-on state, preserving sample rate, clock, chip model and
-    /// the explicitly selected Tetorica research resonance configuration.
+    /// the explicitly selected Tetorica research resonance/cutoff configurations.
     pub fn reset(&mut self) {
         let sr = self.sample_rate;
         let clk = self.chip_clock;
         let is_6581 = self.voices[0].is_6581;
         let calibration = self.filter.resonance_calibration_8580();
+        let cutoff_calibration = self.filter.cutoff_calibration_8580();
         *self = Self::new(sr);
         self.chip_clock = clk;
         self.set_model(if is_6581 {
@@ -82,6 +83,7 @@ impl Sid {
             ChipModel::Mos8580
         });
         self.filter.set_8580_resonance_calibration(calibration);
+        self.filter.set_8580_cutoff_calibration(cutoff_calibration);
     }
 
     /// Select the chip model (default [`ChipModel::Mos6581`]).
@@ -101,6 +103,16 @@ impl Sid {
 
     pub fn resonance_calibration_8580(&self) -> bool {
         self.filter.resonance_calibration_8580()
+    }
+
+    /// Independent research cutoff mapping, disabled by default and inert on
+    /// the 6581. Does not clock the chip or reset its integrator state.
+    pub fn set_8580_cutoff_calibration(&mut self, enabled: bool) {
+        self.filter.set_8580_cutoff_calibration(enabled);
+    }
+
+    pub fn cutoff_calibration_8580(&self) -> bool {
+        self.filter.cutoff_calibration_8580()
     }
 
     /// Set the SID master clock (e.g. [`PAL_CLOCK`] or [`NTSC_CLOCK`]).

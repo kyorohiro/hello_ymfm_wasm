@@ -70,10 +70,23 @@ Cutoff, input gain, external RC, oscillators, ADSR and noise are unchanged.
 Stop/reset retain that explicit setting. Invalid C ABI values are rejected
 without advancing audio or replacing the current setting.
 
+The separate `8580-cutoff-crossover-v1` research profile changes the 8580 FC-to-filter
+coefficient map only. It is also **off by default** and independent of the
+resonance option. `Sid::set_8580_cutoff_calibration()` and
+`sid8p_set_8580_cutoff_calibration()` select it per instance; Stop/reset preserve
+both choices and neither option affects 6581. The original map, integrator,
+stability ceiling, global gain and external RC remain unchanged when disabled.
+[8580-cutoff-calibration.json](8580-cutoff-calibration.json) records the
+training-only derivation from same-harmonic LP/HP crossings. Those are operational
+crossovers, not physical pole measurements or arbitrary-Q -3dB cutoffs. The
+unmeasured FC0 endpoint retains the original 30-Hz coefficient.
+
 The additional Native `sid8580-quality` executable accepts the versioned
 `SID8QUALITY` text protocol. It clocks both captured and discarded intervals,
 retains the integer sampler phase, and reports the exact global sample ranges
 and register-read times. Pass `--8580-calibration` to opt into the profile.
+The independent `--8580-cutoff-calibration` flag selects the cutoff profile;
+the two flags can be combined explicitly.
 The controlled checker uses the existing probe WASM for the same operations:
 
 ```sh

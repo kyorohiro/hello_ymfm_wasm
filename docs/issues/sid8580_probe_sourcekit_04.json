@@ -1,0 +1,80 @@
+{
+  "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid8580-quality-source-kit-20261107-cutoff",
+  "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid8580_quality_20261107-cutoff_sources.zip",
+  "files": 122,
+  "bytes": 1214079,
+  "sha256": "369fbbe97506407679c74f58c57cdad3973d7cea2880e79d86660717d27fc02c",
+  "compiledInputs": 63,
+  "verification": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "independent-build",
+        "passed": true
+      },
+      {
+        "name": "analytical-metrics",
+        "passed": true
+      },
+      {
+        "name": "analytical-cutoff-metrics",
+        "passed": true
+      },
+      {
+        "name": "training-only-cutoff-fit",
+        "passed": true
+      },
+      {
+        "name": "chip-parity",
+        "passed": true
+      },
+      {
+        "name": "bounded-bus",
+        "passed": true
+      },
+      {
+        "name": "real-cpu",
+        "passed": true
+      },
+      {
+        "name": "calibration-policy",
+        "passed": true
+      },
+      {
+        "name": "controlled-candidate-quality",
+        "passed": true
+      },
+      {
+        "name": "cutoff-policy",
+        "passed": true
+      },
+      {
+        "name": "candidate-cutoff-holdouts",
+        "passed": true
+      },
+      {
+        "name": "original-library",
+        "passed": true
+      },
+      {
+        "name": "original-api-harness",
+        "passed": true
+      },
+      {
+        "name": "original-api-parity",
+        "passed": true
+      },
+      {
+        "name": "matching-receipt",
+        "passed": true
+      }
+    ],
+    "sameCompilerProfile": true,
+    "allOutputsByteIdentical": true,
+    "receiptByteIdentical": true,
+    "referenceUsed": false,
+    "parentSourceFallback": false
+  },
+  "zipCrcPassed": true,
+  "archiveFilesByteIdentical": true
+}

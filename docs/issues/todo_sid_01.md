@@ -128,6 +128,15 @@ PSIDは選択したsubtuneのspeed bitでVBI／CIAを分け、CIAはC64 machine�
 
 ### 専用8580 modelの調査と次の段階（2026-11-07）
 
+#### 今回の続き: 8580 cutoffの分離測定（2026-11-07）
+
+共振の鋭さと中心周波数を分け、広いFC範囲でLP／HPの交点などを測る。本番Player／Synth／SDK・原本・既存profile・過去の記録は維持する。
+
+- [x] LP／HPの同一harmonic比からoperational crossoverを推定し、共振・出力RC・入力level、実sample tick、高調波と基本波、測定下限を区別した。解析・無効条件・fit guardの13テストが成功。
+- [x] training／holdoutのFC・level・rateを先に固定し、189 training・各270 holdoutを別processの公開APIでblack-box測定した。参照実装や係数表は移植しない。
+- [x] 8580限定・既定Offの`8580-cutoff-crossover-v1`を作り、共振補正と独立に評価した。交点10／10改善でも、cutoff単独32／180点・共振のみへの追加16／180点は悪化と記録した。
+- [x] default／6581／既存profile・Native／WASM／browser206一致、63inputsから5出力／receiptの独立byte一致、source ZIP／license／CI／英語AI引継ぎを確認した。[結果](sid8580_cutoff_result_01.md)。本番採用・実機一致とは区別する。
+
 #### 今回の続き: 比較条件の整備と8580音声段の検証（2026-11-07）
 
 ユーザー承認により、初期状態・発音時刻・sampling／出力段の違いを切り分け、8580の波形・ADSR・filter cutoff／resonanceを比較する。原本・既存6581製品・Player／SDK・過去の検証記録は維持し、参照への無条件な音量合わせやGPL音源実装の転用は行わない。
@@ -165,10 +174,11 @@ CIA／C64 VBI対応後、独立試作の移植一致と外部差分を確認し�
 - [x] permissive候補のrevision／必要なlicense／library sourceを固定し、cycle単位adapterの小さなNative／WASM試作で比較する。元sample APIは376,200samples・6設定で完全一致した。
 - [x] write-only bus latch／保持・decay／read更新をwrapperのbounded近似として追加する。TTL6581=7,424／8580=663,552cycles、write-only readは残存寿命を半分・最小1とし、参照のゼロ寿命edge残留は再現しない。実機の普遍的定数とはせず、POTはerror5を維持する。
 - [x] TEST／Gateで観測可能な初期OSC3／ENV3と実sample tickを揃え、同じcoreのdry比で外部比較する。hidden state／read・audio pipeline／RCまで同一とせず、raw RMS比で補償しない。
-- [ ] 次: cutoff／中心周波数の差を広いFC matrixで調べ、trainingとholdoutを分離する。FC256の候補約1600Hz対参照1750～1800Hzをresonance・全体gainへ吸収しない。
+- [x] cutoff／中心周波数の差を広いFC matrixで分離し、training後に固定した専用profileを未使用条件で検証した。下記第16段階に記録した。
+- [ ] 次: FC96の交点残差約−3.081%とmode別gain／loading・pipelineを分離する。研究用C64／AudioWorklet接続を設計し、実8580曲・実聴・本番採用とは段階を分ける。
 - [ ] 採用前: read／audio pipeline、motherboard RC／scale、hidden stateの残差を分離する。今回のcommon sampler・dry比を実機一致とは扱わない。
 - [x] 自作RAMプログラムの実6502へ各core自身のOSC3／ENV3／bus readを返すclosed-loop fixtureを検証する。Native／WASM・chunk一致とmodel別の実分岐を確認した。full C64や実曲検証ではない。
-- [ ] 採用前: DAC・D418／combined wave等の品質、LP／HPや他rate／levelのholdoutを確認する。今回のBP damping改善は67悪化点もあり、default Offの研究profileを本番採用・音質合格としない。
+- [ ] 採用前: DAC・D418／combined wave等と、今回のLP／HP・rate／level matrix外の品質を確認する。BP dampingとcutoffのholdoutにも悪化点があり、既定Offの研究profileを本番採用・音質合格としない。
 - [ ] 既知8580曲、PSID CIA／VBI、RSIDで実行・音声を確認する。実機と参照engineの近似も区別する。
 - [ ] Chromium／WebKitのCPU負荷・memory・音切れを計測して採用を決める。未計測の性能や安定性を保証しない。
 - [ ] 採用後にModel UI／parser／Main・Worklet／Native ABIへ接続し、原宣言と実行modelを別表示する。可読source／license／build receipt／ZIPを揃える。
@@ -697,6 +707,15 @@ RSID完全互換や実機精度の保証とは扱わず、ユーザーの優先�
 - [policy](sid8580_calibration_policy_01.json)は6設定・6581不変42scene・8580 positive3・instance6を確認。旧84PCM／bus66／実CPU36・default controlled228・元API376,200samplesを保持。[browser `_03`](sid8580_probe_browser_03.json)は各73、**計146一致**。実機／full C64／Worklet／実聴とは区別する。
 - [source kit `_03`](sid8580_probe_sourcekit_03.json)は62inputsから全5出力とreceiptがbyte一致、11検証command成功。`release/tetorica_sid8580_quality_20261107_sources.zip`は105files／1,059,166bytes、SHA `8356799fd4b2f8313d570687e089f04615cbfd32366f731bcb3aaab681741b62`。可読source・2WASM・test／checker・license／Rust noticesを含み、Native binary／GPL SID参照／ROM／音楽／PCMを含めない。
 - CI13stepsへ数学・候補quality・policy・source closureを追加。固定runtime33／68／75・SID／PSID／C64 receiptも成功。GitHub Actions実行・commit／push／tag／公開はしていない。次はcutoff差の別検証で、Player／Synth／SDKと既知8580 guardは保持する。
+
+## 第16段階: LP／HP crossoverとopt-in cutoff（2026-11-07）
+
+- [事前plan](sid8580_cutoff_plan_01.json)・[方法](sid8580_cutoff_method_01.md)・[結果](sid8580_cutoff_result_01.md)を記録。同一harmonicのLP／HP比を使い、Qや共通RCと分離したoperational crossoverを推定する。内部pole／−3dB／実機精度とは呼ばない。数学・合成fit guard13件が成功。
+- training7 FC／48k／sustain4／RES0の189ケースから`8580-cutoff-crossover-v1`を固定。未学習6 FC＋4 interactionを、Off／共振のみ／cutoffのみ／両方の各270ケースで比較した。profileは独立opt-in・既定Off、FC0の30Hzは未測定の元anchor。
+- [独立解析](sid8580_cutoff_validation_analysis_01.json): cutoff単独は交点平均絶対誤差9.855%→0.918%、10／10改善、180点の平均絶対誤差1.331→0.648dB、148改善・32悪化。共振のみへ追加すると9.866%→0.902%、1.216→0.317dB、164改善・16悪化。FC96は約−3.081%・最大2.795dBが残る。
+- [policy](sid8580_cutoff_policy_01.json)・旧84 PCM／bus66／CPU36・元API376,200samples、既存resonance260ケースを保持。[従来browser](sid8580_probe_browser_04.json)146＋[cutoff browser](sid8580_cutoff_browser_01.json)60で計206一致。full C64／Worklet／実聴ではない。
+- [source kit `_04`](sid8580_probe_sourcekit_04.json)は63inputsから5出力／receiptがbyte一致し、15検証command成功。`release/tetorica_sid8580_quality_20261107-cutoff_sources.zip`は122files／1,214,079bytes、SHA `369fbbe97506407679c74f58c57cdad3973d7cea2880e79d86660717d27fc02c`。可読source・2WASM・training JSON／plan／fit／解析・test・license／Rust noticesを含み、Native binary／GPL SID参照／ROM／音楽／PCMは含めない。CI17steps、過去ZIP／記録は不変。
+- 固定runtime33／68／75・既存SID／PSID／RSID receiptも成功。GitHub Actions実行・commit／push／tag／公開はしていない。低FC／mode gain／pipelineと研究用C64・AudioWorklet接続、実8580曲の実聴を次に分け、本番Player／Synth／SDK・既知8580拒否は維持する。
 
 参考: [VGM specification](https://vgmrips.net/wiki/VGM_Specification)、
 [HVSC](https://hvsc.c64.org/faq)、

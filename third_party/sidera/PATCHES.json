@@ -1,8 +1,8 @@
 {
   "format": "tetorica-sidera-marked-adaptation",
-  "version": 2,
+  "version": 3,
   "upstreamVersion": "1.1.1",
-  "description": "Expose one existing chip cycle; add explicitly opt-in8580-only measured damping configuration, disabled by default. Original source and defaultAPI/DSP behavior remain intact.",
+  "description": "Expose one existing chip cycle; add independent explicitly opt-in 8580-only measured damping and operational LP/HP cutoff configurations, both disabled by default. Original source and default API/DSP behavior remain intact.",
   "files": {
     "src/sid.rs": {
       "before": {
@@ -10,8 +10,8 @@
         "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
       },
       "after": {
-        "bytes": 14429,
-        "sha256": "de6a0aadace7c0f1f8426e9cf895b17d4d8bb1d3e0ba657fd821e3af3cb974f0"
+        "bytes": 14966,
+        "sha256": "f80ebc570bb1e0e207c3b9b2aaa1639ebfa1f7646583cd63608505e7b8a93946"
       }
     },
     "src/filter.rs": {
@@ -20,8 +20,8 @@
         "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
       },
       "after": {
-        "bytes": 8854,
-        "sha256": "b8fb6ee49c6ae6995abd20d6362b0c0e7f69df83fe55fef71026a31b3272011b"
+        "bytes": 10281,
+        "sha256": "2bfea93993ef97539c966b97519e72983dd45f667d8c456b8eabea860360859b"
       }
     }
   }
