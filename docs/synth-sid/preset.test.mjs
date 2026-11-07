@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
+import {createDefaultPreset,readPreset,presetToCode,filterModeBits,filterModeFromBits} from './preset.js';
+
+const filterModes=['off','lowpass','bandpass','lowpass+bandpass','highpass','notch','bandpass+highpass','lowpass+bandpass+highpass'];
 
 test('SID v1 default is portable, detached and keeps dormant filter settings',()=>{
   const preset=createDefaultPreset(),copy=readPreset(JSON.stringify(preset));assert.deepEqual(copy,preset);
@@ -20,7 +22,7 @@ test('SID preset fields reject unknown keys, coercions, unsafe names and unsuppo
     p=>p.voice.attack=16,p=>p.voice.decay=-1,p=>p.voice.sustain=NaN,p=>p.voice.release=Infinity,p=>p.voice.test=1,
     p=>p.modulation.sync='true',p=>p.modulation.ring=0,p=>p.modulation.ratio=.124,p=>p.modulation.ratio=8.001,
     p=>p.modulation.ratio=NaN,p=>p.modulation.ratio=Infinity,p=>p.modulation.ratio='1',p=>p.modulation.extra=0,
-    p=>p.filter.enabled=1,p=>p.filter.mode='off',p=>p.filter.mode='LP',p=>p.filter.cutoff=2048,p=>p.filter.cutoff=-1,
+    p=>p.filter.enabled=1,p=>p.filter.mode='combined',p=>p.filter.mode='LP',p=>p.filter.mode=3,p=>p.filter.mode=['lowpass','bandpass'],p=>p.filter.cutoff=2048,p=>p.filter.cutoff=-1,
     p=>p.filter.resonance=16,p=>p.filter.volume=16,p=>p.filter.routing=7,p=>p.filter.volume=.5];
   for(const mutate of mutations){const preset=createDefaultPreset();mutate(preset);assert.throws(()=>readPreset(preset));assert.throws(()=>presetToCode(preset));}
   for(const value of [null,[],true,5,'{broken',new Date()])assert.throws(()=>readPreset(value));
@@ -30,14 +32,46 @@ test('SID preset fields reject unknown keys, coercions, unsafe names and unsuppo
   assert.throws(()=>readPreset(accessor),/accessors/);assert.equal(read,0);
 });
 
-test('all four waveforms and filter modes retain exact register parameter boundaries',()=>{
-  for(const waveform of ['triangle','saw','pulse','noise'])for(const mode of ['lowpass','bandpass','highpass','notch']){
+test('all four waveforms and eight filter output masks retain exact register parameter boundaries',()=>{
+  for(const waveform of ['triangle','saw','pulse','noise'])for(const mode of filterModes){
     const preset=createDefaultPreset();Object.assign(preset.voice,{waveform,pulseWidth:4095,attack:15,decay:15,sustain:15,release:15,test:true});
-    Object.assign(preset.modulation,{sync:true,ring:true,ratio:8});Object.assign(preset.filter,{enabled:true,mode,cutoff:2047,resonance:15,volume:15});
+    Object.assign(preset.modulation,{sync:true,ring:true,ratio:8});Object.assign(preset.filter,{enabled:mode!=='off',mode,cutoff:2047,resonance:15,volume:15});
     assert.deepEqual(readPreset(preset),preset);
     Object.assign(preset.voice,{pulseWidth:0,attack:0,decay:0,sustain:0,release:0});preset.modulation.ratio=.125;
     Object.assign(preset.filter,{cutoff:0,resonance:0,volume:0});assert.deepEqual(readPreset(preset),preset);
   }
+});
+
+test('filter output helpers preserve LP/BP/HP masks and reject unsupported values',()=>{
+  for(let bits=0;bits<8;bits++){
+    assert.equal(filterModeFromBits(bits),filterModes[bits]);
+    assert.equal(filterModeBits(filterModes[bits]),bits);
+  }
+  for(const bits of [-1,8,1.5,NaN,Infinity,'3',null])assert.throws(()=>filterModeFromBits(bits));
+  for(const mode of [undefined,null,0,3,[],['lowpass'],'combined','LP','highpass+bandpass'])assert.throws(()=>filterModeBits(mode));
+});
+
+test('all filter output combinations round-trip and copied JavaScript applies the same shared filter',()=>{
+  for(let bits=0;bits<8;bits++){
+    const preset=createDefaultPreset();Object.assign(preset.filter,{enabled:bits!==0,mode:filterModes[bits],cutoff:841,resonance:11,volume:9});
+    assert.deepEqual(readPreset(JSON.stringify(preset)),preset);
+    const filters=[],sid={initialize(){},setVoice(){},setFilter(value){filters.push(value);},noteOn(){}};
+    new Function('sid',presetToCode(preset))(sid);
+    assert.deepEqual(filters,[{mode:filterModes[bits],cutoff:841,resonance:11,routing:bits?7:0,volume:9,voice3off:false}]);
+  }
+  const notch=createDefaultPreset();Object.assign(notch.filter,{enabled:true,mode:'notch'});
+  assert.deepEqual(readPreset(notch),notch,'existing v1 Notch authoring data is unchanged');
+  assert.equal(filterModeBits(readPreset(notch).filter.mode),5,'legacy Notch remains LP + HP');
+});
+
+test('all outputs off canonicalizes to Synth bypass without mutating or coercing imported data',()=>{
+  const input=createDefaultPreset();Object.assign(input.filter,{enabled:true,mode:'off',cutoff:2047,resonance:15});
+  const result=readPreset(input);
+  assert.equal(result.filter.enabled,false);assert.equal(result.filter.mode,'off');
+  assert.equal(input.filter.enabled,true);assert.equal(input.filter.mode,'off');
+  assert.equal(result.filter.cutoff,2047);assert.equal(result.filter.resonance,15);
+  assert.match(presetToCode(input),/"mode":"off".*"routing":0/);
+  input.filter.enabled=1;assert.throws(()=>readPreset(input),/boolean/);
 });
 
 test('readable JavaScript identifies software allocation/ratio and uses the physical silent source',()=>{

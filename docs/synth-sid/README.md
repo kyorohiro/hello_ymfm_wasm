@@ -57,11 +57,17 @@ automatic normalization or post-mix compensation is applied.
 
 ## One shared SID filter
 
-All keyboard carrier voices share the same filter and chip volume. Select LP,
-BP, HP or Notch (LP + HP), then change Cutoff (`0..2047`, a register code, not
-Hz) and Resonance (`0..15`). Selecting a filter mode enables it automatically.
-Disabling it routes the carriers dry. The silent modulation source stays out
-of this path.
+All keyboard carrier voices share the same filter and chip volume. The LP, BP
+and HP buttons switch each hardware output independently; selected outputs are
+added together. LP + HP is Notch, and LP + BP, BP + HP and all three outputs
+are available too. All use the same Cutoff (`0..2047`, a register code, not Hz)
+and Resonance (`0..15`). Turning on an output enables the filter automatically.
+
+Turning off the last output or disabling **Enable filter** routes the carriers
+dry in this Synth. Enabling it again restores the selected outputs, or starts
+with LP if none were selected. The silent modulation source stays out of this
+path. This bypass is a Synth convenience: the low-level SID API can route
+voices into an all-off filter, which makes those routed voices silent.
 
 Pulse width is `0..4095`. Chip volume is the shared hardware `0..15` volume;
 the separate Master control changes the host output gain. Live waveform,
@@ -72,7 +78,9 @@ ownership. Sync / Ring / TEST topology changes, preset load and Stop clear it.
 
 The portable format is `tetorica-sid-voice`, version 1. It contains the carrier
 waveform / pulse width / ADSR / TEST, Sync / Ring / software ratio and shared
-filter / chip volume. It does not contain a SID tune or C64 program. Invalid
+filter / chip volume, including the combined filter outputs. Existing version-1
+presets remain supported; Notch loads as LP + HP. All-off mode saves with the
+filter bypassed. It does not contain a SID tune or C64 program. Invalid
 files, cancelled selection and rejected edits retain the accepted instrument.
 Preset files are limited to 64 KiB.
 

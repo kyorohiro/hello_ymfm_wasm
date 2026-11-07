@@ -39,13 +39,31 @@ test('passive SID editor uses compact stepper/buttons, keeps folds and enables a
   assert.equal(f.changes.length,0);assert.equal(find(f.root,'filterCard').open,true);assert.equal(find(f.root,'voiceCard').open,true);assert.equal(find(f.root,'modulationCard').open,false);
   assert.equal(walk(f.root).some(node=>node.tagName==='select'||node.tagName==='input'&&node.type==='number'),false);
   assert.equal(find(f.root,'filterEnabled').checked,false);
-  await choice(f.root,'filterMode','lowpass').fire('click');
-  assert.equal(f.changes.at(-1).filter.enabled,true,'choosing the already selected mode also enables filter');
+  await find(f.root,'filterLowpass').fire('click');
+  assert.equal(f.changes.at(-1).filter.enabled,true,'turning on a filter output enables the filter');
   assert.equal(find(f.root,'filterEnabled').checked,true);
   find(f.root,'filterEnabled').checked=false;await find(f.root,'filterEnabled').fire('change');
   assert.equal(f.changes.at(-1).filter.enabled,false);assert.match(find(f.root,'filterHelp').textContent,/dry routing/);
   find(f.root,'voiceCard').open=false;const next=createDefaultPreset();next.voice.attack=7;f.editor.update(next);assert.equal(find(f.root,'voiceCard').open,false,'incoming state never reopens a folded card');
   f.editor.dispose();
+});
+
+test('independent filter outputs combine, preserve shared settings and bypass when the last output turns off',async t=>{
+  const f=editorFixture(t),lp=find(f.root,'filterLowpass'),bp=find(f.root,'filterBandpass'),hp=find(f.root,'filterHighpass');
+  const shared=f.editor.getPreset().filter;
+  for(const [button,mode]of [[lp,'lowpass'],[bp,'lowpass+bandpass'],[hp,'lowpass+bandpass+highpass'],[lp,'bandpass+highpass'],[bp,'highpass'],[hp,'off']]){
+    await button.fire('click');const value=f.changes.at(-1).filter;
+    assert.equal(value.mode,mode);assert.equal(value.enabled,mode!=='off');
+    for(const key of ['cutoff','resonance','volume'])assert.equal(value[key],shared[key]);
+  }
+  assert.equal(find(f.root,'filterEnabled').checked,false);for(const button of [lp,bp,hp])assert.equal(button.getAttribute('aria-pressed'),'false');
+  const enable=find(f.root,'filterEnabled');enable.checked=true;await enable.fire('change');
+  assert.equal(f.editor.getPreset().filter.mode,'lowpass');await hp.fire('click');
+  assert.equal(f.editor.getPreset().filter.mode,'notch');assert.match(find(f.root,'filterHelp').textContent,/LP \+ HP \(Notch\)/);
+  const legacy=createDefaultPreset();legacy.filter.enabled=true;legacy.filter.mode='notch';f.editor.update(legacy);
+  assert.equal(lp.getAttribute('aria-pressed'),'true');assert.equal(bp.getAttribute('aria-pressed'),'false');assert.equal(hp.getAttribute('aria-pressed'),'true');
+  const input=new Element(f.doc,'input');input.focus();assert.equal((await bp.fire('pointerdown')).defaultPrevented,true);assert.equal(f.doc.activeElement,null);
+  assert.equal(f.errors.length,0);f.editor.dispose();
 });
 
 test('wave/Pulse/ADSR/filter edits use the latest patch and pointer editing returns focus to performance',async t=>{

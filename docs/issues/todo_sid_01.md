@@ -38,6 +38,17 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 次の実装順序とFilter組み合わせ（2026-11-07）
+
+ユーザー承認: まずSID SynthのLP／BP／HPを独立On／Offにし、その後に8580代表実曲のAudioWorklet検証、通常Playerの6581／8580切り替え、Synthのモデル選択・Preset／API対応の順で進める。
+
+- [x] 共有FilterのLP／BP／HPを独立したボタンにした。同じCutoff／Resonanceを共有し、出力を加算する実機の組み合わせを扱う。NotchはLP＋HPとして旧Preset互換を維持。
+- [x] 高級API・型定義・Main／Worker・Preset保存／読み込み・Copy JavaScriptへ全組み合わせを通した。全モードOffはSynthではbypassとし、フィルター有効化時に選択がなければLPから始める。
+- [x] 実WASMとブラウザーで各組み合わせ・live edit・既存Preset互換・演奏keyboardへのfocus影響・可読配布を確認した。Synth46＋runtime20件、ソース／実ZIPのChromium・WebKit計52項目、Playground型検証が成功。[結果](sid_synth_filter_result_01.md)。
+- [ ] 8580の代表実曲を実AudioWorkletでVBI／CIA／RSID・複数subtune・停止／再開まで確認する。実聴と自動PCM検証は区別する。
+- [ ] 通常SID Playerの6581／8580選択と稼働model表示へ接続する。元header宣言と選択modelを分けて保持する。
+- [ ] SID Synthの単体8580 core・model選択・Presetのmodel保存・API／型／Copy JavaScriptへ反映する。旧Presetは6581互換とし、未提供のvoice envelopeを0扱いしてreleaseを切らない。
+
 ### PAL／6581補完設定の初期値（2026-11-07）
 
 ユーザー報告: Zombi.sidのmodel未指定エラーと、設定に気付きにくい問題を受け、通常SID Playerの「Use PAL / 6581」を既定Onにする。

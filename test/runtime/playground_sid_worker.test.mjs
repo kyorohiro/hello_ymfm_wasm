@@ -94,11 +94,13 @@ test('actual SID primary Worker shares globals/pg/livePrepare and restores loop 
     if(sid!==pg.sid||await useSoundChip('sid')!==sid||typeof sid.dispose!=='undefined')throw Error('Wrong borrowedSID');
     if(typeof fm!=='undefined'||typeof play!=='undefined')throw Error('Unexpected OPN');
     if(await livePrepare('sid',({sid})=>sid)!==sid)throw Error('Missing preparedSID');
+    sid.setFilter({mode:'lowpass+bandpass+highpass',cutoff:950,resonance:10,routing:7});
     liveLoop('old',async()=>{try{sid.noteOn(0,'C4');await sid.readRegister(27);sid.noteOn(1,'E4');log('old-ready');await sleep(60);}finally{sid.writeRegister(18,0);}});
     liveLoop('new',async()=>{sid.noteOn(2,'G4');log('new-ready');await sleep(60);});
   `);
   await until(()=>f.logged('old-ready')&&f.logged('new-ready'),'both voices');
   const device=f.devices[0];assertLoopOwnership(device);
+  assert.equal((device.registers[24] >> 4) & 7, 7, 'the real logic Worker accepts combined filter outputs');
   assert.equal(device.commands.filter(command=>command.method==='reset').length,0,'handoff does not initialize or replay the Main instrument');
   await f.run(`liveLoop('new',async()=>{await sleep(60);});`);
   await until(()=>!(device.registers[4]&1)&&!(device.registers[11]&1),'retired loop release');

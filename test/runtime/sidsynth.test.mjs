@@ -31,7 +31,8 @@ test('SID defaults are silent, helpers address three physical voices, and borrow
 test('SID voice/filter patches validate atomically and preserve unrelated bits and held Gates', async t => {
   const {core, synth} = await setup(t); synth.initialize(); synth.noteOn(0, 'C4');
   for (const [method, args] of [['setVoice', [0, {attack: 15, pulseWidth: 4096}]], ['setVoice', [0, {ring: true, other: 1}]],
-    ['setFilter', [{volume: 15, cutoff: -1}]], ['setFilter', [{mode: 'lowpass', voice3off: 1}]], ['noteOn', [0, 127]]]) {
+    ['setFilter', [{volume: 15, cutoff: -1}]], ['setFilter', [{mode: 'lowpass', voice3off: 1}]],
+    ['setFilter', [{volume: 15, mode: 'lowpass+noise'}]], ['noteOn', [0, 127]]]) {
     const before = synth._getState(), cycles = core.getState().cycles;
     assert.throws(() => synth[method](...args)); assert.deepEqual(synth._getState(), before); assert.equal(core.getState().cycles, cycles);
   }
@@ -50,9 +51,29 @@ test('SID applied shadow represents raw waveform/filter combinations and exposes
   const {synth} = await setup(t); synth.initialize(); synth.writeRegister(4, 0x71); synth.writeRegister(24, 0xff);
   const state = synth._getState(); assert.equal(state.channels[0].waveform, 'combined');
   assert.deepEqual(state.channels[0].waveforms, ['triangle', 'saw', 'pulse']); assert.equal(state.channels[0].waveformBits, 7);
-  assert.equal(state.filter.mode, 'combined'); assert.equal(state.filter.modeBits, 7);
+  assert.equal(state.filter.mode, 'lowpass+bandpass+highpass'); assert.equal(state.filter.modeBits, 7);
   state.channels[0].waveforms.length = 0; state.registers[4] = 0; state.filter.volume = 0;
   assert.equal(synth._getState().registers[4], 0x71); assert.equal(synth._getState().filter.volume, 15);
+});
+
+test('all SID filter output combinations match raw mode writes and retain shared settings and Gates', async t => {
+  const modes = ['off', 'lowpass', 'bandpass', 'lowpass+bandpass', 'highpass', 'notch',
+    'bandpass+highpass', 'lowpass+bandpass+highpass'];
+  for (const [bits, mode] of modes.entries()) {
+    const authoring = await setup(t), raw = await setup(t);
+    for (const {synth} of [authoring, raw]) {
+      synth.initialize(); synth.setFilter({cutoff: 699, resonance: 9, routing: 5, volume: 11, voice3off: true});
+      synth.noteOn(0, 'C4'); synth.noteOn(2, 'G4');
+    }
+    authoring.synth.setFilter({mode}); raw.synth.writeRegister(24, 0x8b | (bits << 4));
+    const state = authoring.synth._getState();
+    assert.deepEqual(state.filter, {mode, modeBits: bits, cutoff: 699, resonance: 9, routing: 5, volume: 11, voice3off: true});
+    assert.equal(state.registers[24], 0x8b | (bits << 4));
+    assert.deepEqual(state.channels.map(voice => voice.gate), [true, false, true]);
+    const pcm = authoring.core.render(4096);
+    assert(pcm.every(Number.isFinite)); assert.deepEqual(pcm, raw.core.render(4096), mode);
+    assert.equal(authoring.core.getState().cycles, raw.core.getState().cycles);
+  }
 });
 
 test('SID adoption never replays writes and a blocked owner hook does not mutate local state', () => {

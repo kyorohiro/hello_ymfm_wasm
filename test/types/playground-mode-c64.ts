@@ -6,6 +6,9 @@ async function checkC64ModeTypes() {
   sid.setVoice(0, {waveform:'pulse',pulseWidth:2048,attack:2,decay:6,sustain:12,release:5});
   sid.setVoice(1, {sync:true,ring:true,test:false});
   sid.setFilter({mode:'bandpass',cutoff:1000,resonance:6,routing:7,volume:8,voice3off:false});
+  sid.setFilter({mode:'lowpass+bandpass'});
+  sid.setFilter({mode:'bandpass+highpass'});
+  sid.setFilter({mode:'lowpass+bandpass+highpass'});
   const hz:number = sid.setNote(0, 'C4');
   sid.setFrequency(1, hz * 2); sid.keyOn(1); sid.noteOff(1);
   sid.noteOn(2, 67); sid.keyOff(2); pg.sid.allNotesOff();

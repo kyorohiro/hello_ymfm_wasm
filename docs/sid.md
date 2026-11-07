@@ -58,7 +58,13 @@ routing. TEST resets/holds an oscillator; it is not a musical mute.
 The chip has **one shared filter**. `routing` is a mask: `1`, `2`, `4` select
 voices 1, 2, 3. `cutoff` is an 11-bit register code (`0..2047`), not Hz;
 `resonance` and shared `volume` are `0..15`. Modes are `off`, `lowpass`,
-`bandpass`, `highpass`, and `notch` (LP + HP).
+`bandpass`, `highpass`, `notch` (LP + HP), `lowpass+bandpass`,
+`bandpass+highpass`, and `lowpass+bandpass+highpass`. Selected LP / BP / HP
+outputs are added together with one shared Cutoff and Resonance. For example:
+
+```js
+sid.setFilter({mode:'lowpass+bandpass', cutoff:600, resonance:8, routing:7});
+```
 
 **`mode:'off'` disables the filter outputs. Routed voices then become silent.**
 For dry output, use `sid.setFilter({mode:'off', routing:0})`. The initialized

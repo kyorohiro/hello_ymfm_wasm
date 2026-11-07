@@ -100,6 +100,16 @@ async function checkEngine(name, engine, origin) {
     const choice = (group, value) => page.locator(`[data-choice-for="${group}"][data-value="${value}"]`).click();
     const range = (id, value) => page.locator('#' + id).evaluate((input, next) => { input.value = String(next); input.dispatchEvent(new Event('input', {bubbles: true})); }, value);
     const settle = () => page.waitForFunction(() => document.querySelector('#patchStatus').dataset.busy !== 'true');
+    const filterModes = ['off', 'lowpass', 'bandpass', 'lowpass+bandpass', 'highpass', 'notch', 'bandpass+highpass', 'lowpass+bandpass+highpass'];
+    const filterMode = async mode => {
+      const mask = filterModes.indexOf(mode); assert(mask >= 0, `Unknown browser filter mode ${mode}`);
+      if (mask && !await page.locator('#filterEnabled').isChecked()) { await page.locator('#filterEnabled').check(); await settle(); }
+      for (const bit of [1, 2, 4]) {
+        const button = page.locator(`[data-filter-bit="${bit}"]`), selected = await button.getAttribute('aria-pressed') === 'true';
+        if (selected !== Boolean(mask & bit)) { await button.click(); await settle(); }
+      }
+      return wait(state => state.preset.filter.mode === mode && state.preset.filter.enabled === Boolean(mask));
+    };
     const stopped = async () => { await page.locator('#stopAudio').click(); await wait(state => state.voices.length === 0 && state.pitch === 0); await silent(); };
     const ready = () => page.waitForFunction(() => document.querySelector('#startAudio').textContent.includes('ready'));
     await page.goto(origin + config.entry); await page.waitForFunction(() => document.querySelector('[data-choice-for="waveform"]'));
@@ -197,10 +207,10 @@ async function checkEngine(name, engine, origin) {
     measurements.waveforms = Object.fromEntries(Object.entries(waves).map(([wave, {rms, peak}]) => [wave, {rms, peak}]));
     measurements.pulseSpectrumDifference = difference(narrow.spectrum, square.spectrum);
 
-    check('shared LP/BP/HP/Notch, live cutoff/resonance and chip volume reach held real output');
+    check('shared LP/BP/HP, live cutoff/resonance and chip volume reach held real output');
     measurements.filters = {};
     for (const mode of ['lowpass', 'bandpass', 'highpass']) {
-      await choice('filterMode', mode); await wait(value => value.preset.filter.enabled && value.preset.filter.mode === mode);
+      await filterMode(mode);
       await range('filterCutoffRange', 180); await wait(value => value.preset.filter.cutoff === 180); const low = await measure();
       await range('filterCutoffRange', 1700); await wait(value => value.preset.filter.cutoff === 1700); const high = await measure();
       assert(difference(low.spectrum, high.spectrum) > .01, `${mode}: cutoff changes PCM`);
@@ -209,11 +219,37 @@ async function checkEngine(name, engine, origin) {
       assert.equal(state.voices[0].id, owner); assert(difference(flat.spectrum, resonant.spectrum) > .005, `${mode}: resonance changes PCM`);
       measurements.filters[mode] = {cutoffSpectrumDifference: difference(low.spectrum, high.spectrum), resonanceSpectrumDifference: difference(flat.spectrum, resonant.spectrum)};
     }
-    await choice('filterMode', 'notch'); state = await wait(value => value.preset.filter.mode === 'notch'); assert.equal(state.registers[24] & 0x70, 0x50);
+    await filterMode('notch'); state = await wait(value => value.preset.filter.mode === 'notch'); assert.equal(state.registers[24] & 0x70, 0x50);
     await page.locator('#filterEnabled').uncheck(); await wait(value => !value.preset.filter.enabled); const chipEight = await measure();
     await page.locator('#chipVolume').press('Home'); for (let i = 0; i < 4; ++i) await page.locator('#chipVolume').press('ArrowUp');
     await wait(value => value.preset.filter.volume === 4); const chipFour = await measure(); assert(Math.abs(chipFour.rms / chipEight.rms - .5) < .08);
     for (let i = 0; i < 4; ++i) await page.locator('#chipVolume').press('ArrowUp'); await wait(value => value.preset.filter.volume === 8);
+
+    check('independent LP/BP/HP buttons cover every hardware output combination, preserve held notes and release keyboard focus');
+    assert.equal(await page.locator('#filterMode').getAttribute('role'), 'group');
+    assert.equal(await page.locator('#filterMode [aria-pressed]').count(), 3);
+    await range('filterCutoffRange', 700); await range('filterResonanceRange', 4);
+    measurements.filterCombinations = {};
+    // A Gray-code path changes one independent output at a time and reaches
+    // all seven additive mode masks plus the Synth's all-off dry bypass.
+    for (const mask of [1, 3, 2, 6, 7, 5, 4, 0]) {
+      state = await filterMode(filterModes[mask]);
+      assert.equal(state.registers[24] & 0x70, mask << 4);
+      assert.equal(state.registers[23] & 7, mask ? 7 : 0);
+      assert.equal(state.registers[24] & 15, 8);
+      assert.equal(state.preset.filter.cutoff, 700); assert.equal(state.preset.filter.resonance, 4);
+      assert.equal(state.voices[0].id, owner, `${filterModes[mask]} keeps the sounding voice owner`);
+      for (const bit of [1, 2, 4]) assert.equal(await page.locator(`[data-filter-bit="${bit}"]`).getAttribute('aria-pressed'), String(Boolean(mask & bit)));
+      const output = await measure(); assert(output.rms > .00001, `${filterModes[mask]} renders finite nonzero PCM`);
+      measurements.filterCombinations[filterModes[mask]] = {mask, rms: output.rms, peak: output.peak, routing: state.registers[23] & 7};
+    }
+    await page.locator('#filterEnabled').check(); state = await wait(value => value.preset.filter.enabled && value.preset.filter.mode === 'lowpass');
+    assert.equal(state.registers[24] & 0x70, 0x10, 'enabling an empty selection starts with LP');
+    await page.locator('#filterBandpass').click(); await wait(value => value.preset.filter.mode === 'lowpass+bandpass');
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('input,select,textarea') !== null), false, 'filter output buttons leave musical keyboard input available');
+    await page.keyboard.down(keys[1]); state = await wait(value => value.voices.length === 2);
+    assert(state.voices.some(voice => voice.id === owner)); await page.keyboard.up(keys[1]); await wait(value => value.voices.length === 1);
+    await filterMode('lowpass');
     await page.keyboard.up(keys[0]); await stopped();
 
     check('Sync/Ring reserve one carrier with silent unrouted voice 3; ratio and both Pitch wheels act live');
@@ -237,8 +273,10 @@ async function checkEngine(name, engine, origin) {
 
     check('portable preset save, cancel/invalid retention, load reset and readable executable Playground JavaScript');
     await page.locator('#presetTools > summary').click();
+    await filterMode('lowpass+bandpass');
     const downloadPromise = page.waitForEvent('download'); await page.locator('#savePreset').click(); const download = await downloadPromise;
     const saved = JSON.parse(await fs.readFile(await download.path(), 'utf8')); assert.equal(saved.format, 'tetorica-sid-voice'); assert.equal(saved.version, 1); assert(saved.modulation.ring);
+    assert.equal(saved.filter.mode, 'lowpass+bandpass');
     await page.keyboard.down(keys[0]); state = await wait(value => value.voices.length === 1); const savedOwner = state.voices[0].id;
     await page.locator('#presetFileInput').dispatchEvent('cancel'); assert.deepEqual((await read()).preset, saved); assert.equal((await read()).voices[0].id, savedOwner);
     await page.locator('#presetFileInput').setInputFiles({name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"format":"wrong"}')});
@@ -246,6 +284,12 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#resetPreset').click(); await wait(value => value.capacity === 3 && value.voices.length === 0); await page.keyboard.up(keys[0]);
     await page.locator('#presetFileInput').setInputFiles({name: 'voice.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved))});
     state = await wait(value => value.capacity === 1 && value.preset.modulation.ring); assert.deepEqual(state.preset, saved); assert.equal(state.pitch, 0);
+    const legacyNotch = {...saved, filter: {...saved.filter, mode: 'notch'}};
+    await page.locator('#presetFileInput').setInputFiles({name: 'legacy-notch-v1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(legacyNotch))});
+    state = await wait(value => value.preset.filter.mode === 'notch'); assert.equal(state.registers[24] & 0x70, 0x50);
+    for (const [bit, pressed] of [[1, true], [2, false], [4, true]]) assert.equal(await page.locator(`[data-filter-bit="${bit}"]`).getAttribute('aria-pressed'), String(pressed));
+    await page.locator('#presetFileInput').setInputFiles({name: 'combined-voice.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved))});
+    state = await wait(value => value.preset.filter.mode === 'lowpass+bandpass'); assert.deepEqual(state.preset, saved);
     await page.locator('#copyCode').click(); const code = await page.locator('#codeOutput').inputValue(); assert(code.split('\n').length > 10); assert.match(code, /sid\.setVoice/);
     measurements.copiedCode = await page.evaluate(async ({code}) => {
       const {SidCore} = await import(new URL('../js/sid.js', location.href).href), {SidSynth} = await import(new URL('../js/sidsynth.js', location.href).href);
@@ -255,6 +299,7 @@ async function checkEngine(name, engine, origin) {
       finally { sid.dispose(); core.dispose(); }
     }, {code});
     assert(measurements.copiedCode.finite && measurements.copiedCode.peak > .0001);
+    assert.equal(measurements.copiedCode.registers[24] & 0x70, 0x30, 'exported JavaScript retains LP + BP in the real SID core');
 
     check('rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels');
     await page.keyboard.down(keys[0]); await wait(value => value.voices.length === 1);

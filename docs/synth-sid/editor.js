@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createParamControl} from '../synth/synth_controls.js';
-import {createDefaultPreset,readPreset} from './preset.js';
+import {createDefaultPreset,readPreset,filterModeBits,filterModeFromBits} from './preset.js';
 
 /** Passive patch editor. It never creates or resumes an audio device. */
 export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
@@ -44,6 +44,19 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
     listen(input,'change',()=>{commit(next=>set(next,input.checked));input.blur();});
     controls.push(()=>{input.checked=Boolean(get(preset));});return input;
   }
+  function filterOutputs(parent) {
+    const row=field(parent,'Filter outputs · combine','filterMode','sid-choice-field'),group=make('div','sid-choice-group');
+    group.id='filterMode';group.setAttribute('role','group');group.setAttribute('aria-labelledby','filterModeLabel');row.append(group);
+    for(const [bit,id,label]of [[1,'filterLowpass','LP · Low-pass'],[2,'filterBandpass','BP · Band-pass'],[4,'filterHighpass','HP · High-pass']]){
+      const button=make('button','',label);button.id=id;button.type='button';button.dataset.filterBit=String(bit);pointerFocus(button);
+      listen(button,'click',()=>commit(next=>{
+        const bits=(next.filter.enabled?filterModeBits(next.filter.mode):0)^bit;
+        next.filter.mode=filterModeFromBits(bits);next.filter.enabled=bits!==0;
+      }));
+      controls.push(()=>button.setAttribute('aria-pressed',String(preset.filter.enabled&&!!(filterModeBits(preset.filter.mode)&bit))));
+      group.append(button);
+    }
+  }
   function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true}={}) {
     const row=field(parent,label,id,slider?'sid-slider':''),control=createParamControl({label,min,max,step,value:get(preset),showLabel:false,wheelAdjust:false,onChange:value=>commit(next=>set(next,value))});
     const [minus,value,plus]=control.element.children;value.id=id;value.setAttribute('role','spinbutton');value.setAttribute('aria-labelledby',`${id}Label`);value.setAttribute('aria-valuemin',String(min));value.setAttribute('aria-valuemax',String(max));
@@ -62,13 +75,13 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   }
 
   const filter=card('Shared SID filter','filterCard'),filterFields=fields(filter);
-  toggle(filterFields,'Enable filter','filterEnabled',p=>p.filter.enabled,(p,value)=>p.filter.enabled=value);
-  choice(filterFields,'Filter mode','filterMode',[['lowpass','Low-pass'],['bandpass','Band-pass'],['highpass','High-pass'],['notch','Notch']],p=>p.filter.mode,(p,value)=>{p.filter.mode=value;p.filter.enabled=true;});
+  toggle(filterFields,'Enable filter','filterEnabled',p=>p.filter.enabled,(p,value)=>{p.filter.enabled=value;if(value&&p.filter.mode==='off')p.filter.mode='lowpass';});
+  filterOutputs(filterFields);
   number(filterFields,'Cutoff · hardware code','filterCutoff',0,2047,1,p=>p.filter.cutoff,(p,value)=>p.filter.cutoff=value,{slider:true});
   number(filterFields,'Resonance','filterResonance',0,15,1,p=>p.filter.resonance,(p,value)=>p.filter.resonance=value,{slider:true});
   number(filterFields,'Chip volume · 0–15','chipVolume',0,15,1,p=>p.filter.volume,(p,value)=>p.filter.volume=value);
   const filterHelp=help(filter,'');filterHelp.id='filterHelp';
-  help(filter,'One filter for all three voices. Low-pass keeps lower frequencies, high-pass higher frequencies, band-pass a middle band, and Notch combines low-pass + high-pass. Cutoff is a chip code, not Hz.');
+  help(filter,'One shared hardware filter: selected LP, BP and HP outputs are added together with a common Cutoff and Resonance. LP + HP is Notch. With all outputs off, this synth bypasses the filter. Cutoff is a chip code, not Hz.');
 
   const voice=card('Sound source · SID oscillator','voiceCard'),voiceFields=fields(voice);
   choice(voiceFields,'Waveform','waveform',[['triangle','Triangle'],['saw','Saw'],['pulse','Pulse'],['noise','Noise']],p=>p.voice.waveform,(p,value)=>p.voice.waveform=value);
@@ -89,7 +102,8 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
 
   function render() {
     if(disposed)return;for(const update of controls)update();
-    filterHelp.textContent=preset.filter.enabled?'Filter on · live cutoff and resonance for every sounding voice.':'Filter bypassed · dry routing. Choose a mode to enable the filter automatically.';
+    const outputs=[[1,'LP'],[2,'BP'],[4,'HP']].filter(([bit])=>filterModeBits(preset.filter.mode)&bit).map(([,label])=>label).join(' + ');
+    filterHelp.textContent=preset.filter.enabled?`Filter on · ${outputs}${preset.filter.mode==='notch'?' (Notch)':''} · shared cutoff and resonance for every sounding voice.`:'Filter bypassed · dry routing. Turn on LP, BP or HP to enable the filter automatically.';
     const paired=preset.modulation.sync||preset.modulation.ring;
     modHelp.textContent=paired?'One carrier + one silent modulator · maximum 1 note.':'Sync / Ring off · 3 independent voices with round robin.';
     if(preset.modulation.ring&&preset.voice.waveform!=='triangle'){modHelp.textContent+=' Ring affects Triangle only; select Triangle to hear it.';modHelp.dataset.warning='true';}else delete modHelp.dataset.warning;

@@ -2755,7 +2755,8 @@ declare function createSoundChip(name:'scsp',options?:PlaygroundCreateSoundChipO
 /** SID physical voice indices; three oscillators share one chip-wide filter. */
 type PlaygroundSidChannel = 0 | 1 | 2;
 type PlaygroundSidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
-type PlaygroundSidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'highpass' | 'notch';
+/** Selected LP / BP / HP outputs are summed with shared cutoff and resonance. */
+type PlaygroundSidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'lowpass+bandpass' | 'highpass' | 'notch' | 'bandpass+highpass' | 'lowpass+bandpass+highpass';
 interface PlaygroundSidVoiceOptions {
   waveform?:PlaygroundSidWaveform;
   /** Pulse duty code, 0..4095. */

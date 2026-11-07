@@ -14,7 +14,7 @@ export {SID_PAL_CLOCK, SID_NTSC_CLOCK} from './sid.js';
  * @property {boolean} [test]
  */
 /** @typedef {Object} SidFilterOptions
- * @property {'off'|'lowpass'|'bandpass'|'highpass'|'notch'} [mode]
+ * @property {'off'|'lowpass'|'bandpass'|'lowpass+bandpass'|'highpass'|'notch'|'bandpass+highpass'|'lowpass+bandpass+highpass'} [mode] Selected outputs are added; notch is LP + HP. Cutoff and resonance are shared.
  * @property {number} [cutoff] 0..2047.
  * @property {number} [resonance] 0..15.
  * @property {number} [routing] Voice mask 0..7.
@@ -29,7 +29,8 @@ export {SID_PAL_CLOCK, SID_NTSC_CLOCK} from './sid.js';
 /** @typedef {{clock:number,model:'6581',initialized:boolean,registers:number[],channels:Array<{frequency:number,frequencyRegister:number,waveform:string,waveformBits:number,waveforms:string[],pulseWidth:number,attack:number,decay:number,sustain:number,release:number,sync:boolean,ring:boolean,test:boolean,gate:boolean,envelope?:number,phase?:number}>,filter:{mode:string,modeBits:number,cutoff:number,resonance:number,routing:number,volume:number,voice3off:boolean},cycles?:number}} SidState */
 
 const waves = Object.freeze({triangle: 0x10, saw: 0x20, pulse: 0x40, noise: 0x80});
-const modes = Object.freeze({off: 0, lowpass: 1, bandpass: 2, highpass: 4, notch: 5});
+const modes = Object.freeze({off: 0, lowpass: 1, bandpass: 2, 'lowpass+bandpass': 3,
+  highpass: 4, notch: 5, 'bandpass+highpass': 6, 'lowpass+bandpass+highpass': 7});
 const integer = (value, maximum, label) => {
   if (!Number.isInteger(value) || value < 0 || value > maximum) throw new RangeError(`SID ${label} must be an integer 0..${maximum}`);
   return value;
@@ -137,7 +138,7 @@ export class SidSynth {
     this.#ready(); patch(value, ['mode', 'cutoff', 'resonance', 'routing', 'volume', 'voice3off'], 'filter');
     for (const [key, max] of [['cutoff', 2047], ['resonance', 15], ['routing', 7], ['volume', 15]]) if (key in value) integer(value[key], max, key);
     if ('voice3off' in value) boolean(value.voice3off, 'voice3off');
-    if ('mode' in value && (typeof value.mode !== 'string' || !Object.hasOwn(modes, value.mode))) throw new RangeError('SID filter mode must be off, lowpass, bandpass, highpass or notch');
+    if ('mode' in value && (typeof value.mode !== 'string' || !Object.hasOwn(modes, value.mode))) throw new RangeError(`SID filter mode must be ${Object.keys(modes).join(', ')}`);
     const registers = this.#registers;
     if ('cutoff' in value) { this.#send(21, (registers[21] & 248) | (value.cutoff & 7)); this.#send(22, value.cutoff >> 3); }
     if ('resonance' in value || 'routing' in value) this.#send(23, ((value.resonance ?? (registers[23] >> 4)) << 4) | (registers[23] & 8) | (value.routing ?? (registers[23] & 7)));

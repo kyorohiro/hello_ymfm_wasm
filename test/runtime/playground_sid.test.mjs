@@ -39,6 +39,14 @@ for (const rate of [44100, 48000, 96000]) test(`SID client/Worklet matches direc
     assert.deepEqual(actual.left, expected); assert.deepEqual(actual.right, expected); assert(actual.active); maximum = Math.max(maximum, peak(expected));
   }
   assert(maximum > .01); const state = await p.client.getState(); assert.equal(state.channels[0].gate, true); assert.equal(state.clock, SID_PAL_CLOCK);
+  for (const [bits, mode] of ['off', 'lowpass', 'bandpass', 'lowpass+bandpass', 'highpass', 'notch',
+    'bandpass+highpass', 'lowpass+bandpass+highpass'].entries()) {
+    p.client.setFilter({mode}); synth.setFilter({mode});
+    assert.deepEqual(p.render(128).left, core.render(128), mode);
+    const filter = (await p.client.getState()).filter;
+    assert.equal(filter.mode, mode); assert.equal(filter.modeBits, bits); assert.equal(filter.cutoff, 950);
+    assert.equal(filter.resonance, 10); assert.equal(filter.routing, 7);
+  }
   const cycles = p.processor.core.getState().cycles; assert.equal(await p.client.readRegister(28), core.readRegister(28)); assert.equal(p.processor.core.getState().cycles, cycles + 1);
 });
 

@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
 
+/** @typedef {'off'|'lowpass'|'bandpass'|'lowpass+bandpass'|'highpass'|'notch'|'bandpass+highpass'|'lowpass+bandpass+highpass'} SidPresetFilterMode */
 /** @typedef {{format:'tetorica-sid-voice',version:1,name:string,
  * voice:{waveform:'triangle'|'saw'|'pulse'|'noise',pulseWidth:number,attack:number,decay:number,sustain:number,release:number,test:boolean},
  * modulation:{sync:boolean,ring:boolean,ratio:number},
- * filter:{enabled:boolean,mode:'lowpass'|'bandpass'|'highpass'|'notch',cutoff:number,resonance:number,volume:number}}} SidPreset */
+ * filter:{enabled:boolean,mode:SidPresetFilterMode,cutoff:number,resonance:number,volume:number}}} SidPreset */
+
+// Index equals the SID's LP/BP/HP output mask. Keep the original "notch"
+// spelling for LP + HP so existing v1 presets round-trip unchanged.
+const filterModes=Object.freeze(['off','lowpass','bandpass','lowpass+bandpass','highpass','notch','bandpass+highpass','lowpass+bandpass+highpass']);
 
 const own=(value,keys,label)=>{
   if(!value||typeof value!=='object'||Array.isArray(value)||![null,Object.prototype].includes(Object.getPrototypeOf(value)))throw new TypeError(`${label}: expected a plain object`);
@@ -17,6 +22,11 @@ const integer=(value,max,label)=>{
 };
 const boolean=(value,label)=>{if(typeof value!=='boolean')throw new TypeError(`${label}: expected a boolean`);return value;};
 const choice=(value,choices,label)=>{if(!choices.includes(value))throw new RangeError(`${label}: expected ${choices.join(' / ')}`);return value;};
+
+/** @param {unknown} mode @returns {number} Hardware LP/BP/HP mask, 0..7. */
+export function filterModeBits(mode){return filterModes.indexOf(choice(mode,filterModes,'SID filter mode'));}
+/** @param {number} bits @returns {SidPresetFilterMode} */
+export function filterModeFromBits(bits){return /** @type {SidPresetFilterMode} */ (filterModes[integer(bits,7,'SID filter output mask')]);}
 
 /** Portable authoring data only. Allocation and the modulator ratio are software
  * features; waveforms, ADSR, Sync/Ring, TEST and the shared filter are hardware.
@@ -42,12 +52,16 @@ export function readPreset(value){
   own(value.filter,['enabled','mode','cutoff','resonance','volume'],'SID filter');
   const ratio=value.modulation.ratio;
   if(!Number.isFinite(ratio)||ratio<.125||ratio>8)throw new RangeError('Software modulator ratio must be .125–8');
+  const filterMode=filterModeFromBits(filterModeBits(value.filter.mode));
+  const filterEnabled=boolean(value.filter.enabled,'SID filter enabled');
   return {format:'tetorica-sid-voice',version:1,name:value.name.trim(),
     voice:{waveform:choice(value.voice.waveform,['triangle','saw','pulse','noise'],'SID waveform'),
       pulseWidth:integer(value.voice.pulseWidth,4095,'SID pulse width'),attack:integer(value.voice.attack,15,'SID attack'),
       decay:integer(value.voice.decay,15,'SID decay'),sustain:integer(value.voice.sustain,15,'SID sustain'),release:integer(value.voice.release,15,'SID release'),test:boolean(value.voice.test,'SID TEST')},
     modulation:{sync:boolean(value.modulation.sync,'SID Sync'),ring:boolean(value.modulation.ring,'SID Ring'),ratio},
-    filter:{enabled:boolean(value.filter.enabled,'SID filter enabled'),mode:choice(value.filter.mode,['lowpass','bandpass','highpass','notch'],'SID filter mode'),
+    // The keyboard Synth bypasses when all outputs are off. Raw SidSynth
+    // register routing remains available for the hardware's silent case.
+    filter:{enabled:filterEnabled&&filterMode!=='off',mode:filterMode,
       cutoff:integer(value.filter.cutoff,2047,'SID cutoff'),resonance:integer(value.filter.resonance,15,'SID resonance'),volume:integer(value.filter.volume,15,'SID chip volume')}};
 }
 

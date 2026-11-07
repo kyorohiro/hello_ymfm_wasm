@@ -430,6 +430,10 @@ outside the published CLI/runtime entry-point closures. Native SDK / audio
 integration remains subsequent work. The Playground creation
 clock is fixed (PAL default, optional NTSC); only model '6581' is supported.
 Filter mode 'off' disables filter outputs; dry playback requires routing:0.
+The high-level API and types accept all eight output masks: off, lowpass,
+bandpass, lowpass+bandpass, highpass, notch (LP+HP), bandpass+highpass and
+lowpass+bandpass+highpass. Each selects outputs of the same shared hardware
+filter, with common cutoff/resonance. The DSP and WASM are unchanged.
 SID Mixer gain is explicit unmeasured unity, preserving every measured gain.
 `scripts/mixer_calibration_sid_revision.mjs` authenticates exact reviewed SID
 routing additions and reconstructs the pre-SID bytes for legacy calibration
@@ -443,8 +447,13 @@ voices; Sync / Ring switches to one carrier (voice 1) and silent oscillator
 source (voice 3), with software ratio and Pitch. Live edits preserve ownership;
 topology / TEST changes, preset load and Stop clear held notes, tails and Pitch.
 Hardware ADSR / rapid Gate quirks remain unmodified. The shared filter is
-register based; selecting its mode enables it, disabling it routes carriers
-dry. Master is separate software gain 0..3.8. Audio creation is lazy and startup
+register based. Independent LP/BP/HP toggle buttons enable and combine its
+outputs; changing them preserves held notes. Turning off the last output or
+disabling the master filter toggle routes carriers dry as a Synth convenience.
+Re-enabling restores the stored outputs, or starts with LP if mode is off.
+Strict v1 presets retain all combined mode strings; legacy notch loads as LP+HP.
+An imported modeoff normalizes enabled to false after boolean validation.
+Copy JavaScript preserves the combined mode. Master is separate software gain 0..3.8. Audio creation is lazy and startup
 cancel / fatal retry retire old engines. Preset JSON, code export, two Pitch
 wheels, focus handling, passive post-Master visualization and readable source
 distribution follow the other Synths. Use `npm run test:sid-synth`,

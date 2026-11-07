@@ -3,7 +3,9 @@ export {SID_PAL_CLOCK,SID_NTSC_CLOCK} from './sid.js';
 
 export type SidChannel = 0 | 1 | 2;
 export type SidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
-export type SidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'highpass' | 'notch';
+/** Outputs of one shared filter are added. Notch selects LP + HP. */
+export type SidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'lowpass+bandpass'
+  | 'highpass' | 'notch' | 'bandpass+highpass' | 'lowpass+bandpass+highpass';
 export interface SidVoiceOptions {
   waveform?:SidWaveform;
   /** Twelve-bit pulse comparator, 0..4095. */
