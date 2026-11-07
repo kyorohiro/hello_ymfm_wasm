@@ -405,6 +405,30 @@ stage is preserved; no archive was produced from it. The 12-step CI adds the
 separate research build, unit/machine checks, source closure and old receipt
 checks. No GitHub Actions run, commit/push/tag or publication was performed.
 
+The 2026-11-08 follow-up [real-file Worklet result](docs/issues/sid8580_real_worklet_result_01.md)
+extends this to three user-local declared-PAL8580 files, six subtune cases,
+each for 30 seconds in Chromium 153/WebKit 26.6: all 12 finite/nonzero. The
+[metadata-only selection plan](docs/issues/sid8580_worklet_cases_plan_01.json)
+was fixed before execution, with no successful-file replacements or header
+retargeting. An HTTP-only processor subclass scans every emitted raw frame
+after the original process/timer; exact 30-second PCM totals differ from full-block
+CPU/timing boundaries by 8 frames. Production JS/DSP/WASM are unchanged. Six
+file/engine transitions verify failed-candidate retention and Stop/restart.
+The [report](docs/issues/sid8580_real_worklet_01.json) binds current inputs and
+stores scalar data only, with all physical outputs muted. Music/PCM/ROMs are
+not saved or included. The optional repository-only tools are
+scripts/select_sid8580_worklet_cases.mjs and scripts/check_sid8580_real_worklet.mjs;
+use --validate-only before execution, --engines for one browser and a fresh
+--out path for repeats. Original archive files must match the frozen plan.
+No user firmware or GPL reference engine is used by these real-file checks.
+Core-render means are .56-.82ms with a coarse Date.now timer, but WebKit has
+248/62016 over-budget blocks (about .40%, lifetime max 9ms) versus Chromium's 1.
+Load timing of 9-22ms is separate. Added scan work is outside the core timer but adds
+real execution overhead. Do not claim glitch-free or uninstrumented real-time
+stability. WASM byte capacities are unchanged at capture boundaries; this is
+not a JS-heap or leak test. Listening/long/background/device/load checks and
+WebKit timing attribution remain TODO. No publication or new ZIP is implied.
+
 Next manually compare user-owned real 8580 VBI/CIA/RSID tunes and subtunes, then
 measure long/background/device-switch workloads. Keep low-FC residuals,
 mode-specific gain/loading, read/audio pipeline and DAC/digi quality separate.

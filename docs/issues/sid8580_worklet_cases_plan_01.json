@@ -1,0 +1,318 @@
+{
+  "format": "tetorica-sid8580-worklet-cases-plan",
+  "version": 1,
+  "frozenOn": "2026-11-08",
+  "corpus": {
+    "root": "ww/C64Music"
+  },
+  "scope": "Metadata-only selection before any real-file Worklet execution. Original declared PAL/MOS8580 single-SID v2 bytes only. No music, firmware or PCM copied.",
+  "selection": {
+    "metadataOnly": true,
+    "runtimeExecution": false,
+    "rule": "For each group in order PSID VBI, PSID CIA, RSID, select the first distinct structurally accepted file after multi-subtune-first then codepoint-lexical relative-path ordering. Minimal environment excludes BASIC. A timing-specific primary is the header default if matching, otherwise the first matching song. An alternate is the header default if different, otherwise song 1 or 2. No execution-based replacement.",
+    "headerReadLimit": 128,
+    "groups": [
+      {
+        "id": "psid-vbi",
+        "format": "PSID",
+        "timing": "vbi"
+      },
+      {
+        "id": "psid-cia",
+        "format": "PSID",
+        "timing": "cia"
+      },
+      {
+        "id": "rsid",
+        "format": "RSID",
+        "timing": "c64-irq"
+      }
+    ],
+    "maximumFiles": 3,
+    "maximumCases": 6
+  },
+  "target": {
+    "clock": "pal",
+    "model": "8580",
+    "environment": "minimal"
+  },
+  "profiles": {
+    "resonance": false,
+    "cutoff": false
+  },
+  "secondsPerCase": 30,
+  "inputs": {
+    "scripts/select_sid8580_worklet_cases.mjs": {
+      "bytes": 7659,
+      "sha256": "5cbf80e96d5ca0bc9ed3bf7b3185ab243558b79b3efca5e6947eb8baf430cedb"
+    },
+    "docs/sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "docs/sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "docs/js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    }
+  },
+  "scan": {
+    "files": 61157,
+    "categories": {
+      "not-declared-8580": 29359,
+      "not-declared-PAL": 6520,
+      "header-target-candidate": 24908,
+      "not-version-2": 364,
+      "BASIC-requires-user-ROMs": 6
+    },
+    "structurallyAccepted": 24285,
+    "structuralRejections": {
+      "Research PSID payload must fit RAM $0800..$CFFF": 574,
+      "PSID: playAddress outside the loaded payload may require init-generated code and is not supported": 34,
+      "PSID: playAddress 0 installs an IRQ handler; this subset requires an explicit play subroutine": 15
+    }
+  },
+  "files": [
+    {
+      "id": "psid-vbi",
+      "group": "psid-vbi",
+      "path": "DEMOS/A-F/Bach4Xmas.sid",
+      "input": {
+        "bytes": 4952,
+        "sha256": "f90a8473ac4dbb915e971c4a2106deead02a227b61f773b37e766a798a0cd639"
+      },
+      "metadata": {
+        "name": "Bach4Xmas",
+        "author": "Kaszi75 & András Kövér (Slyspy)",
+        "released": "2025 Kaszi75"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 2,
+        "startSong": 1,
+        "speed": 0,
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4102,
+        "basic": false,
+        "relocation": {
+          "startPage": 0,
+          "pageLength": 0
+        }
+      },
+      "structuralValidation": {
+        "accepted": true,
+        "environment": "minimal",
+        "executionPerformed": false,
+        "romIndependenceProven": false
+      },
+      "cases": [
+        {
+          "id": "psid-vbi-song-1",
+          "fileId": "psid-vbi",
+          "path": "DEMOS/A-F/Bach4Xmas.sid",
+          "subtune": 1,
+          "timing": "vbi",
+          "selectionRole": "default"
+        },
+        {
+          "id": "psid-vbi-song-2",
+          "fileId": "psid-vbi",
+          "path": "DEMOS/A-F/Bach4Xmas.sid",
+          "subtune": 2,
+          "timing": "vbi",
+          "selectionRole": "alternate"
+        }
+      ]
+    },
+    {
+      "id": "psid-cia",
+      "group": "psid-cia",
+      "path": "GAMES/M-R/Mastermind.sid",
+      "input": {
+        "bytes": 17240,
+        "sha256": "0371f3a7e4243de1c598ddca71a3bc9dd2af7e6a4013317d69340fc56d76e05f"
+      },
+      "metadata": {
+        "name": "Mastermind",
+        "author": "Peter Segschneider",
+        "released": "1991 Magic Disk 64/CP Verlag"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 3,
+        "startSong": 1,
+        "speed": 3,
+        "loadAddress": 35104,
+        "initAddress": 40906,
+        "playAddress": 40864,
+        "basic": false,
+        "relocation": {
+          "startPage": 8,
+          "pageLength": 88
+        }
+      },
+      "structuralValidation": {
+        "accepted": true,
+        "environment": "minimal",
+        "executionPerformed": false,
+        "romIndependenceProven": false
+      },
+      "cases": [
+        {
+          "id": "psid-cia-song-1",
+          "fileId": "psid-cia",
+          "path": "GAMES/M-R/Mastermind.sid",
+          "subtune": 1,
+          "timing": "cia",
+          "selectionRole": "default"
+        },
+        {
+          "id": "psid-cia-song-2",
+          "fileId": "psid-cia",
+          "path": "GAMES/M-R/Mastermind.sid",
+          "subtune": 2,
+          "timing": "cia",
+          "selectionRole": "alternate"
+        }
+      ]
+    },
+    {
+      "id": "rsid",
+      "group": "rsid",
+      "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+      "input": {
+        "bytes": 30974,
+        "sha256": "7a353e4f2fa9f84bac8a92193bfe20c00163a1687986f9c82d5bc2b6cee07db7"
+      },
+      "metadata": {
+        "name": "Desert Dream",
+        "author": "Alexander Rotzsch (Fanta)",
+        "released": "2007 Chorus & Resource"
+      },
+      "header": {
+        "format": "RSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 4,
+        "startSong": 4,
+        "speed": 0,
+        "loadAddress": 16384,
+        "initAddress": 16384,
+        "playAddress": 0,
+        "basic": false,
+        "relocation": {
+          "startPage": 192,
+          "pageLength": 16
+        }
+      },
+      "structuralValidation": {
+        "accepted": true,
+        "environment": "minimal",
+        "executionPerformed": false,
+        "romIndependenceProven": false
+      },
+      "cases": [
+        {
+          "id": "rsid-song-4",
+          "fileId": "rsid",
+          "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+          "subtune": 4,
+          "timing": "c64-irq",
+          "selectionRole": "default"
+        },
+        {
+          "id": "rsid-song-1",
+          "fileId": "rsid",
+          "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+          "subtune": 1,
+          "timing": "c64-irq",
+          "selectionRole": "alternate"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "psid-vbi-song-1",
+      "fileId": "psid-vbi",
+      "path": "DEMOS/A-F/Bach4Xmas.sid",
+      "subtune": 1,
+      "timing": "vbi",
+      "selectionRole": "default"
+    },
+    {
+      "id": "psid-vbi-song-2",
+      "fileId": "psid-vbi",
+      "path": "DEMOS/A-F/Bach4Xmas.sid",
+      "subtune": 2,
+      "timing": "vbi",
+      "selectionRole": "alternate"
+    },
+    {
+      "id": "psid-cia-song-1",
+      "fileId": "psid-cia",
+      "path": "GAMES/M-R/Mastermind.sid",
+      "subtune": 1,
+      "timing": "cia",
+      "selectionRole": "default"
+    },
+    {
+      "id": "psid-cia-song-2",
+      "fileId": "psid-cia",
+      "path": "GAMES/M-R/Mastermind.sid",
+      "subtune": 2,
+      "timing": "cia",
+      "selectionRole": "alternate"
+    },
+    {
+      "id": "rsid-song-4",
+      "fileId": "rsid",
+      "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+      "subtune": 4,
+      "timing": "c64-irq",
+      "selectionRole": "default"
+    },
+    {
+      "id": "rsid-song-1",
+      "fileId": "rsid",
+      "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+      "subtune": 1,
+      "timing": "c64-irq",
+      "selectionRole": "alternate"
+    }
+  ],
+  "unavailable": [],
+  "summary": {
+    "files": 3,
+    "cases": 6,
+    "groupsSelected": [
+      "psid-vbi",
+      "psid-cia",
+      "rsid"
+    ],
+    "filesWithMultipleSubtunes": 3,
+    "timingClasses": [
+      "c64-irq",
+      "cia",
+      "vbi"
+    ]
+  },
+  "interpretation": "Selection and parser acceptance are not playback success, ROM independence, listening approval, full-song compatibility or hardware fidelity. Original declarations are retained; failed runtime cases remain in the result."
+}

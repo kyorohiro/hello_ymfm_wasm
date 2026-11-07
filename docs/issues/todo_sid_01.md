@@ -45,9 +45,19 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] 共有FilterのLP／BP／HPを独立したボタンにした。同じCutoff／Resonanceを共有し、出力を加算する実機の組み合わせを扱う。NotchはLP＋HPとして旧Preset互換を維持。
 - [x] 高級API・型定義・Main／Worker・Preset保存／読み込み・Copy JavaScriptへ全組み合わせを通した。全モードOffはSynthではbypassとし、フィルター有効化時に選択がなければLPから始める。
 - [x] 実WASMとブラウザーで各組み合わせ・live edit・既存Preset互換・演奏keyboardへのfocus影響・可読配布を確認した。Synth46＋runtime20件、ソース／実ZIPのChromium・WebKit計52項目、Playground型検証が成功。[結果](sid_synth_filter_result_01.md)。
-- [ ] 8580の代表実曲を実AudioWorkletでVBI／CIA／RSID・複数subtune・停止／再開まで確認する。実聴と自動PCM検証は区別する。
+- [x] 8580の代表実曲を実AudioWorkletでVBI／CIA／RSID・複数subtune・停止／再開まで確認した。3曲×2subtune×Chromium／WebKitの12ケースを各30秒完走。[結果](sid8580_real_worklet_result_01.md)。実聴・長時間・音切れ判定は別確認。
 - [ ] 通常SID Playerの6581／8580選択と稼働model表示へ接続する。元header宣言と選択modelを分けて保持する。
 - [ ] SID Synthの単体8580 core・model選択・Presetのmodel保存・API／型／Copy JavaScriptへ反映する。旧Presetは6581互換とし、未提供のvoice envelopeを0扱いしてreleaseを切らない。
+
+### 今回の続き: 8580代表実曲のAudioWorklet検証（2026-11-08）
+
+ユーザー承認: Filter組み合わせの次として、`ww/C64Music`から8580の代表実曲を選び、研究用Labの実AudioWorkletで確認する。通常Player／Synthのmodel対応は、この結果を確認してからの次段階とする。
+
+- [x] 実行前に選定規則・file hash・元header・subtune・VBI／CIA／RSIDの分類を固定した。全3曲は元PAL／8580・v2 single SID、header書き換え／実行結果による差し替えなし。[Plan](sid8580_worklet_cases_plan_01.json)。
+- [x] Chromium／WebKitで各代表caseを30秒再生し、全12ケースの有限・非zero出力、CPU／SID進行・Worklet処理時間を記録した。物理出力はgain0、ゲーム曲／PCM／ROMの保存・配布なし。[Report](sid8580_real_worklet_01.json)。
+- [x] 3曲すべてで2subtuneの切り替えを確認し、停止／再開と不正候補時に旧実曲再生を保持する確認も3曲×2engineの6組で成功した。
+- [x] 実行失敗0・無音0として全caseを保持し、再開手順・人の実聴用候補を[結果](sid8580_real_worklet_result_01.md)へまとめた。通常Playerへの採用・全曲互換・音質の合格とは区別する。
+- [ ] 後続: WebKitのcapture内予算超過248／62,016blocks（約0.40%、最大9ms）を、通常の無計測再生・観測負荷・timer／schedulerと切り分ける。人の実聴・長時間／background／device切替・高負荷確認も残す。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

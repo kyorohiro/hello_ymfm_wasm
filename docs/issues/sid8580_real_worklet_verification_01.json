@@ -1,0 +1,327 @@
+{
+  "format": "tetorica-sid8580-real-worklet-independent-verification",
+  "version": 1,
+  "date": "2026-11-08",
+  "passed": true,
+  "boundedExecutionEvidenceVerified": true,
+  "stableAudioApproved": false,
+  "productionAdopted": false,
+  "listeningPerformed": false,
+  "report": {
+    "path": "docs/issues/sid8580_real_worklet_01.json",
+    "bytes": 281953,
+    "sha256": "255d1f69b0b339c7d8387a7d89a121159fb28dc8a869dead0eee5ff8070e788d"
+  },
+  "plan": {
+    "path": "docs/issues/sid8580_worklet_cases_plan_01.json",
+    "bytes": 8688,
+    "sha256": "fa964e69a200043a0cdf0d05740ec74d28978d964f439ba8043a1b11175a5629"
+  },
+  "procedure": "Independent Node assertion pass over the frozen report, current runtime/checker/selection source hashes, original local music hashes, and reconstructed HTTP-only instrumented processor hash. Recomputed durations, RMS, CPU/SID equality, capture/block deltas, window timing arithmetic, silence/error counters, sampled progress, selected targets and summary. Checked recorded transition assertions and stop/restart/final context snapshots. No playback rerun, new music or PCM output.",
+  "checks": {
+    "runtimeAndCheckerSourceHashes": 16,
+    "selectionSourceHashes": 4,
+    "localMusicHashes": 3,
+    "instrumentedProcessorReconstructed": true,
+    "cases": 12,
+    "progressSnapshots": 360,
+    "transitions": 6,
+    "summaryMatches": true
+  },
+  "engines": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "cases": 6,
+      "rawDurationSeconds": 180,
+      "totalBlocks": 62016,
+      "overBudgetBlocks": 1,
+      "overBudgetPercent": 0.001612487100103199,
+      "meanCoreRenderMsRange": [
+        0.5553405572755418,
+        0.6125193498452013
+      ],
+      "maximumLifetimeRenderMs": 3,
+      "allContextsClosed": true,
+      "contextCount": 9
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "cases": 6,
+      "rawDurationSeconds": 180,
+      "totalBlocks": 62016,
+      "overBudgetBlocks": 248,
+      "overBudgetPercent": 0.39989680082559337,
+      "meanCoreRenderMsRange": [
+        0.5755611455108359,
+        0.8221749226006192
+      ],
+      "maximumLifetimeRenderMs": 9,
+      "allContextsClosed": true,
+      "contextCount": 9
+    }
+  ],
+  "cases": [
+    {
+      "engine": "chromium",
+      "id": "psid-vbi-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.9102946669265,
+      "nonzeroFrames": 1319046,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5553405572755418,
+      "overBudgetBlocks": 1,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 3
+    },
+    {
+      "engine": "chromium",
+      "id": "psid-vbi-song-2",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.91609929682679,
+      "nonzeroFrames": 1317879,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5712074303405573,
+      "overBudgetBlocks": 0,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 2
+    },
+    {
+      "engine": "chromium",
+      "id": "psid-cia-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.921904941699957,
+      "nonzeroFrames": 1315941,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5880417956656346,
+      "overBudgetBlocks": 0,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 2
+    },
+    {
+      "engine": "chromium",
+      "id": "psid-cia-song-2",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.9102946669265,
+      "nonzeroFrames": 1316780,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5872678018575851,
+      "overBudgetBlocks": 0,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 2
+    },
+    {
+      "engine": "chromium",
+      "id": "rsid-song-4",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.921904941699957,
+      "nonzeroFrames": 1294584,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5886222910216719,
+      "overBudgetBlocks": 0,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 2
+    },
+    {
+      "engine": "chromium",
+      "id": "rsid-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.921904941699957,
+      "nonzeroFrames": 1294584,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.6125193498452013,
+      "overBudgetBlocks": 0,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 2
+    },
+    {
+      "engine": "webkit",
+      "id": "psid-vbi-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.9102946669265,
+      "nonzeroFrames": 1319046,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5878482972136223,
+      "overBudgetBlocks": 38,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 6
+    },
+    {
+      "engine": "webkit",
+      "id": "psid-vbi-song-2",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.89868439215304,
+      "nonzeroFrames": 1317111,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.5755611455108359,
+      "overBudgetBlocks": 31,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 6
+    },
+    {
+      "engine": "webkit",
+      "id": "psid-cia-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.901587214589625,
+      "nonzeroFrames": 1315045,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.78125,
+      "overBudgetBlocks": 33,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 5
+    },
+    {
+      "engine": "webkit",
+      "id": "psid-cia-song-2",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.901587214589625,
+      "nonzeroFrames": 1316396,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.8221749226006192,
+      "overBudgetBlocks": 50,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 5
+    },
+    {
+      "engine": "webkit",
+      "id": "rsid-song-4",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.89868439215304,
+      "nonzeroFrames": 1293560,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.8145317337461301,
+      "overBudgetBlocks": 50,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 9
+    },
+    {
+      "engine": "webkit",
+      "id": "rsid-song-1",
+      "sampleRate": 44100,
+      "rawFrames": 1323000,
+      "rawDurationSeconds": 30,
+      "blockBoundaryExtraFrames": 8,
+      "cpuAndSidMatch": true,
+      "cpuWindowSeconds": 29.89868439215304,
+      "nonzeroFrames": 1293560,
+      "nonfiniteFrames": 0,
+      "stereoMismatchFrames": 0,
+      "memoryBytes": {
+        "machine": 4194304,
+        "endpoint": 1179648
+      },
+      "meanCoreRenderMs": 0.783765479876161,
+      "overBudgetBlocks": 46,
+      "totalBlocks": 10336,
+      "lifetimeMaxRenderMs": 4
+    }
+  ],
+  "limitations": [
+    "Exact raw audio captures are 30 seconds each; CPU and render-metric end snapshots include the final complete 128-frame block, here 8 extra frames.",
+    "Retained init PCM means CPU-window cycle deltas need not equal 30 seconds of CPU time.",
+    "Core-render timing excludes added PCM audit scan overhead and uses coarse Date.now; budget overruns occurred and this does not approve glitch-free or stable physical audio.",
+    "Stable WASM linear-memory byte lengths do not prove allocation occupancy, JS heap behavior or absence of memory leaks.",
+    "Transition checks independently validate the stored assertion flags and available snapshots; retained old-node/position-reset assertions were performed by the runner and are not a separate replay.",
+    "No listening, full-song or corpus-wide compatibility, hardware accuracy, background/device/load stability, or production integration is approved."
+  ]
+}
