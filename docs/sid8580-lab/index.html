@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tetorica 8580 Research Lab</title><link rel="stylesheet" href="./lab.css"></head>
+<body><main>
+  <header><p class="eyebrow">Tetorica · C64 / AudioWorklet experiment</p><h1>8580 Research Lab</h1>
+    <p>PAL · one MOS8580 model · experimental playback</p></header>
+  <section aria-label="Sound file">
+    <div class="row"><label>Original demo<select id="demo"><option value="vbi">PSID · VIC raster / VBI</option><option value="cia">PSID · CIA timer</option><option value="irq">RSID · raster IRQ</option></select></label><button id="loadDemo">Load demo</button></div>
+    <label class="file">Open PSID / RSID v2<input id="sidFile" type="file" accept=".sid"></label>
+    <div class="row"><label>Unspecified clock<select id="clock"><option value="">Use declaration</option><option value="pal">Choose PAL</option></select></label>
+      <label>Unspecified model<select id="model"><option value="">Use declaration</option><option value="8580">Choose 8580</option></select></label>
+      <label>Subtune<select id="subtune" disabled><option value="1">1</option></select></label></div>
+    <p id="title">No sound loaded</p><p id="target">Declared model and running model appear here.</p>
+  </section>
+  <section aria-label="Playback">
+    <div class="row"><button id="play" disabled>Play / restart</button><button id="stop" disabled>Stop</button>
+      <label>Master <output id="volumeValue">50%</output><input id="volume" type="range" min="0" max="380" value="50"></label></div>
+    <div class="row"><label><input id="resonance" type="checkbox"> Research resonance profile</label><label><input id="cutoff" type="checkbox"> Research cutoff profile</label></div>
+    <p class="hint">Profiles are off by default. Changes apply on Play. They are software reference fits.</p>
+    <p id="status" role="status" data-state="empty">Load a demo or an 8580 SID file.</p>
+    <canvas id="wave" width="900" height="150" aria-label="Output waveform"></canvas>
+    <pre id="details">Audio starts only when you press Play.</pre>
+  </section>
+  <footer><p>The C64 CPU, CIA and VIC run with the SID model. User firmware is not included. This page uses the original minimal boot environment.</p>
+    <p><a href="./README.md">Source and experiment notes</a> · <a href="https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html">Existing 6581 SID Player</a></p></footer>
+</main><script type="module" src="./player.js"></script></body></html>

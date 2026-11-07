@@ -1,0 +1,835 @@
+{
+  "format": "tetorica-sid8580-machine-local-file-smoke",
+  "version": 1,
+  "researchOnly": true,
+  "productionAdopted": false,
+  "physicalAudioOpened": false,
+  "listeningPerformed": false,
+  "bundledMusic": false,
+  "bundledPcm": false,
+  "maximumFiles": 3,
+  "sampleRate": 48000,
+  "captureSeconds": 2,
+  "captureFrames": 96000,
+  "selectedSubtunes": "header default only",
+  "target": {
+    "clock": "pal",
+    "model": "8580",
+    "environment": "minimal"
+  },
+  "profiles": {
+    "resonance": false,
+    "cutoff": false
+  },
+  "selection": "First three declared PAL/MOS8580 PSIDv2 candidates in the earlier immutable local metadata checkpoint; no execution-based selection.",
+  "node": "v26.12.0",
+  "assets": {
+    "endpoint": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "machine": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "receipt": {
+      "bytes": 20404,
+      "sha256": "919522e2443abdc70368c70b231b08cd88a3c915b38d1829055e25054db29ed6"
+    }
+  },
+  "inputs": {
+    "scripts/check_sid8580_machine_hvsc_smoke.mjs": {
+      "bytes": 6190,
+      "sha256": "3ddf544044ae75ae4a5578c9751fe93fba8e1b80f38ff2eb26ce3626b5fc4089"
+    },
+    "docs/sid8580-lab/core.js": {
+      "bytes": 9248,
+      "sha256": "b640da2230f2e2c13776b77e13773125508a291c356bc2f9f08b2740a4dcb0b2"
+    },
+    "docs/sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "docs/sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "docs/sid8580-lab/preflight.js": {
+      "bytes": 632,
+      "sha256": "8f0b7bfd2ea2999000ee2c60eb643aa9978aa0b1a948f3048ac2b28e6221c17c"
+    },
+    "docs/js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    },
+    "docs/sid-player/roms.js": {
+      "bytes": 1869,
+      "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+    }
+  },
+  "cases": [
+    {
+      "path": "DEMOS/0-9/1394.sid",
+      "stage": "complete",
+      "input": {
+        "bytes": 2756,
+        "sha256": "07dbcbb0f9ac4421a49c3c4226138d71dfe6cc171488afea3e4c1c99d0408dea"
+      },
+      "metadata": {
+        "name": "1394",
+        "author": "Karol Iwan (Ivan)",
+        "released": "2002 Samar Productions"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "songs": 1,
+        "startSong": 1,
+        "subtune": 1,
+        "timing": "cia",
+        "loadAddress": 4086,
+        "initAddress": 4086,
+        "playAddress": 4099,
+        "driverPage": 0
+      },
+      "preflight": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "cia",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 0,
+        "cycles": 100000,
+        "sidCycles": 100000,
+        "bootCycles": 0,
+        "initCycles": 100000,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 100000,
+        "initReturnCycle": 197,
+        "irqCount": 9,
+        "nmiCount": 0,
+        "playCalls": 9,
+        "driverAddress": 1536,
+        "readCount": 139,
+        "writeCount": 155,
+        "pc": 1806,
+        "hostDcHz": 12,
+        "registers": [
+          0,
+          0,
+          96,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          68,
+          4,
+          0,
+          0,
+          0,
+          0,
+          144,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "measurement": {
+        "frames": 96000,
+        "finite": true,
+        "rms": 0.06385447767092257,
+        "peak": 0.3868762254714966,
+        "nonzeroFrames": 90386,
+        "aboveUnityFrames": 0
+      },
+      "state": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "cia",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 96000,
+        "cycles": 1970496,
+        "sidCycles": 1970496,
+        "bootCycles": 0,
+        "initCycles": 100000,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 100000,
+        "initReturnCycle": 197,
+        "irqCount": 199,
+        "nmiCount": 0,
+        "playCalls": 199,
+        "driverAddress": 1536,
+        "readCount": 3033,
+        "writeCount": 3301,
+        "pc": 1805,
+        "hostDcHz": 12,
+        "registers": [
+          0,
+          0,
+          160,
+          2,
+          0,
+          0,
+          0,
+          92,
+          1,
+          8,
+          8,
+          128,
+          0,
+          250,
+          175,
+          36,
+          228,
+          4,
+          16,
+          9,
+          154,
+          0,
+          144,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "stop": {
+        "zero": true,
+        "stableCycles": true,
+        "state": 2
+      },
+      "status": "executed_nonzero"
+    },
+    {
+      "path": "DEMOS/0-9/1982_Senioridevaaja.sid",
+      "stage": "complete",
+      "input": {
+        "bytes": 2313,
+        "sha256": "623e96da74c038444781fa62e630dd68b22a16d7e751b4498ad7fbd5f9855c2d"
+      },
+      "metadata": {
+        "name": "1982",
+        "author": "Senioridevaaja",
+        "released": "2022 Senioridevaaja"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "songs": 1,
+        "startSong": 1,
+        "subtune": 1,
+        "timing": "vbi",
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4099,
+        "driverPage": 0
+      },
+      "preflight": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "vbi",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 0,
+        "cycles": 100000,
+        "sidCycles": 100000,
+        "bootCycles": 0,
+        "initCycles": 190,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 2000000,
+        "initReturnCycle": 189,
+        "irqCount": 5,
+        "nmiCount": 0,
+        "playCalls": 5,
+        "driverAddress": 1536,
+        "readCount": 87,
+        "writeCount": 100,
+        "pc": 1806,
+        "hostDcHz": 12,
+        "registers": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "measurement": {
+        "frames": 96000,
+        "finite": true,
+        "rms": 0.04749690217849928,
+        "peak": 0.18501994013786316,
+        "nonzeroFrames": 87753,
+        "aboveUnityFrames": 0
+      },
+      "state": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "vbi",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 96000,
+        "cycles": 1970496,
+        "sidCycles": 1970496,
+        "bootCycles": 0,
+        "initCycles": 190,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 2000000,
+        "initReturnCycle": 189,
+        "irqCount": 100,
+        "nmiCount": 0,
+        "playCalls": 100,
+        "driverAddress": 1536,
+        "readCount": 2082,
+        "writeCount": 2380,
+        "pc": 1805,
+        "hostDcHz": 12,
+        "registers": [
+          85,
+          4,
+          117,
+          117,
+          65,
+          221,
+          65,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "stop": {
+        "zero": true,
+        "stableCycles": true,
+        "state": 2
+      },
+      "status": "executed_nonzero"
+    },
+    {
+      "path": "DEMOS/0-9/1st_Chaff.sid",
+      "stage": "complete",
+      "input": {
+        "bytes": 2217,
+        "sha256": "1d5f7cbefc8cadaf3b1a170307eedccde8868d80635d3506d8b009593f0c5cf3"
+      },
+      "metadata": {
+        "name": "1st Chaff",
+        "author": "Sam Laur (Chaffinch)",
+        "released": "1996 ISKTR Productions"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "songs": 1,
+        "startSong": 1,
+        "subtune": 1,
+        "timing": "vbi",
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4099,
+        "driverPage": 0
+      },
+      "preflight": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "vbi",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 0,
+        "cycles": 100000,
+        "sidCycles": 100000,
+        "bootCycles": 0,
+        "initCycles": 1623,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 2000000,
+        "initReturnCycle": 1622,
+        "irqCount": 5,
+        "nmiCount": 0,
+        "playCalls": 5,
+        "driverAddress": 1536,
+        "readCount": 106,
+        "writeCount": 119,
+        "pc": 1806,
+        "hostDcHz": 12,
+        "registers": [
+          90,
+          4,
+          192,
+          2,
+          9,
+          67,
+          138,
+          45,
+          2,
+          0,
+          8,
+          64,
+          3,
+          168,
+          45,
+          2,
+          32,
+          124,
+          64,
+          3,
+          102,
+          0,
+          64,
+          241,
+          31,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "measurement": {
+        "frames": 96000,
+        "finite": true,
+        "rms": 0.05532982715701098,
+        "peak": 0.29240864515304565,
+        "nonzeroFrames": 91141,
+        "aboveUnityFrames": 0
+      },
+      "state": {
+        "loaded": true,
+        "playing": true,
+        "state": 1,
+        "errorCode": 0,
+        "errorAddress": 0,
+        "backend": "research-c64",
+        "model": 8580,
+        "clockHz": 985248,
+        "sampleRate": 48000,
+        "profiles": {
+          "resonance": false,
+          "cutoff": false
+        },
+        "profileBits": 0,
+        "declaredModel": "8580",
+        "declaredClock": "pal",
+        "selectedModel": "8580",
+        "selectedClock": "pal",
+        "selection": {
+          "clock": "header",
+          "model": "header"
+        },
+        "format": "PSID",
+        "timing": "vbi",
+        "subtune": 1,
+        "environment": "minimal",
+        "positionFrames": 96000,
+        "cycles": 1970496,
+        "sidCycles": 1970496,
+        "bootCycles": 0,
+        "initCycles": 1623,
+        "initReturned": true,
+        "initPending": false,
+        "initCycleLimit": 2000000,
+        "initReturnCycle": 1622,
+        "irqCount": 100,
+        "nmiCount": 0,
+        "playCalls": 100,
+        "driverAddress": 1536,
+        "readCount": 1924,
+        "writeCount": 2197,
+        "pc": 1806,
+        "hostDcHz": 12,
+        "registers": [
+          90,
+          4,
+          64,
+          3,
+          8,
+          0,
+          0,
+          140,
+          58,
+          0,
+          8,
+          128,
+          3,
+          168,
+          45,
+          2,
+          64,
+          89,
+          64,
+          3,
+          102,
+          0,
+          64,
+          241,
+          31,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          },
+          {
+            "envelope": null,
+            "phase": null
+          }
+        ],
+        "lastCpuReads": [],
+        "bridge": "direct-wasm-function-imports",
+        "linkedSidFunctions": [
+          "sid8e_create",
+          "sid8e_reset",
+          "sid8e_error",
+          "sid8e_stop",
+          "sid8e_destroy",
+          "sid8e_set_profiles",
+          "sid8e_tick"
+        ],
+        "perCycleJavaScriptCallbacks": 0
+      },
+      "stop": {
+        "zero": true,
+        "stableCycles": true,
+        "state": 2
+      },
+      "status": "executed_nonzero"
+    }
+  ],
+  "interpretation": "Compatibility smoke of loading/preflight/two-second rendering only. No listening, full-song coverage, corpus-wide conclusion or hardware-fidelity claim.",
+  "completedFiles": 3,
+  "summary": {
+    "executedNonzero": 3,
+    "executedSilent": 0,
+    "failed": 0
+  }
+}

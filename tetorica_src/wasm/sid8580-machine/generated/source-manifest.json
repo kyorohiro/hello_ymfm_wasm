@@ -1,0 +1,105 @@
+{
+  "format": "tetorica-sid8580-machine-source-adaptation",
+  "version": 1,
+  "source": {
+    "path": "tetorica_src/wasm/sid_rsid_core.h",
+    "bytes": 25178,
+    "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+  },
+  "pristineC64": {
+    "path": "third_party/chips-c64/upstream/systems/c64.h",
+    "bytes": 41974,
+    "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c",
+    "modified": false
+  },
+  "output": {
+    "path": "tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h",
+    "bytes": 26966,
+    "sha256": "81eccc2619316b1056497785b2126271f497cdeb4085aad32fa68c5804d33ffb"
+  },
+  "recipes": [
+    {
+      "name": "research-class",
+      "occurrences": 4
+    },
+    {
+      "name": "compatibility-sid-include",
+      "occurrences": 1
+    },
+    {
+      "name": "relative-original-includes",
+      "occurrences": 11
+    },
+    {
+      "name": "separate-machine-tick",
+      "occurrences": 2
+    },
+    {
+      "name": "constructor-options",
+      "occurrences": 1
+    },
+    {
+      "name": "sid-handle-lifecycle",
+      "occurrences": 2
+    },
+    {
+      "name": "configure-new-endpoint",
+      "occurrences": 1
+    },
+    {
+      "name": "stop-preserves-debug-history",
+      "occurrences": 1
+    },
+    {
+      "name": "post-boot-debug-boundary",
+      "occurrences": 1
+    },
+    {
+      "name": "unsupported-pot-code",
+      "occurrences": 1
+    },
+    {
+      "name": "unsupported-pot-description",
+      "occurrences": 1
+    },
+    {
+      "name": "all-formats-expansion-guard",
+      "occurrences": 1
+    },
+    {
+      "name": "endpoint-fault-before-next-cpu-tick",
+      "occurrences": 1
+    },
+    {
+      "name": "selected-read-count",
+      "occurrences": 1
+    },
+    {
+      "name": "selected-write-count",
+      "occurrences": 1
+    },
+    {
+      "name": "unavailable-live-envelope",
+      "occurrences": 1
+    },
+    {
+      "name": "unavailable-live-phase",
+      "occurrences": 1
+    },
+    {
+      "name": "research-metadata-and-read-trace",
+      "occurrences": 1
+    },
+    {
+      "name": "store-profile-options",
+      "occurrences": 1
+    }
+  ],
+  "exclusions": [
+    "No hardware timing edits",
+    "No snapshots exported",
+    "No fake live voice state",
+    "No production source mutation"
+  ],
+  "outputChain": "Sidera external RC followed by retained 12Hz host DC blocker"
+}

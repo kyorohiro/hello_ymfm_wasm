@@ -1,0 +1,38 @@
+{
+  "format": "tetorica-sid8580-machine-demo-provenance",
+  "version": 1,
+  "license": "BSD-3-Clause",
+  "containsThirdPartyMusic": false,
+  "containsRomDump": false,
+  "generator": {
+    "path": "test/helpers/sid8580_machine_fixtures.mjs",
+    "bytes": 9129,
+    "sha256": "a587005e4eb4afe09c304ca2a5c97393dc87c09e7c8d25bf3844635831a74e4f"
+  },
+  "outputs": [
+    {
+      "file": "vbi.sid",
+      "profile": "psid-vbi",
+      "bytes": 261,
+      "sha256": "f78012a54bfc9789feb756203e1cde12fef24e7197dceaa74e2be3f958101dc9",
+      "startSong": 1
+    },
+    {
+      "file": "cia.sid",
+      "profile": "psid-cia",
+      "bytes": 280,
+      "sha256": "0f9f73bd333c37d394d9c8ceddc8fe6ff86cd73fc7465e4119e2d6d047d37629",
+      "startSong": 2
+    },
+    {
+      "file": "irq.sid",
+      "profile": "rsid-raster-irq",
+      "bytes": 262,
+      "sha256": "ce6275800d2379de22ac5f3a873ea3cb1d7829993ec712ef14801eec33e4dad1",
+      "startSong": 1
+    }
+  ],
+  "authoring": {
+    "ciaStartSong": "Use the fixture selected CIA subtune as this authored demo header default; user files are never rewritten"
+  }
+}

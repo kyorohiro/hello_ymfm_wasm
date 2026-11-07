@@ -1,0 +1,40 @@
+{
+  "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/sid8580-machine-20261107-machine.1",
+  "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid8580_machine_20261107-machine.1_research.zip",
+  "files": 161,
+  "bytes": 856803,
+  "sha256": "c7b725a2fe7c212597188454dc4e4a03b7b35a4f2d257dd6c33a666d8a3f8d6f",
+  "compiledInputs": 99,
+  "verification": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "independent-build",
+        "passed": true
+      },
+      {
+        "name": "parser-view",
+        "passed": true
+      },
+      {
+        "name": "research-unit-tests",
+        "passed": true
+      },
+      {
+        "name": "actual-machine-native-wasm",
+        "passed": true
+      },
+      {
+        "name": "fresh-receipt",
+        "passed": true
+      }
+    ],
+    "sameCompilerProfile": true,
+    "allOutputsByteIdentical": true,
+    "receiptByteIdentical": true,
+    "parentSourceFallback": false,
+    "referenceUsed": false
+  },
+  "zipCrcPassed": true,
+  "archiveFilesByteIdentical": true
+}

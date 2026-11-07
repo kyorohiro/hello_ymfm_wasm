@@ -1,0 +1,530 @@
+{
+  "format": "tetorica-sid8580-research-machine-build",
+  "version": 1,
+  "production": false,
+  "fixedSdkArtifact": false,
+  "clockHz": 985248,
+  "model": "8580",
+  "models": [
+    "8580"
+  ],
+  "profileDefaults": {
+    "resonance": false,
+    "cutoff": false
+  },
+  "machine": "pinned chips C64 CPU/CIA/VIC; independent minimal host or user ROMs",
+  "sourcePolicy": "pristine C64 and old host unchanged; marked generated research host",
+  "outputChain": "candidate SID sample followed by existing 12Hz software DC blocker",
+  "buildProfile": {
+    "rust": {
+      "edition": "2021",
+      "optimization": 3,
+      "panic": "abort",
+      "codegenUnits": 1,
+      "wasmTarget": "wasm32-unknown-unknown",
+      "remappedSourceRoot": "tetorica"
+    },
+    "c": {
+      "standard": "c11",
+      "optimization": 2,
+      "ndebug": true,
+      "floatingPointContraction": false,
+      "remappedSourceRoot": "tetorica"
+    },
+    "cxx": {
+      "standard": "c++17",
+      "optimization": 2,
+      "ndebug": true,
+      "floatingPointContraction": false,
+      "remappedSourceRoot": "tetorica"
+    },
+    "nativeLinkFlags": [
+      "-liconv",
+      "-Wl,-S"
+    ],
+    "machineWasm": {
+      "standalone": true,
+      "memoryGrowth": true,
+      "initialMemory": 4194304,
+      "maximumMemory": 67108864,
+      "stackSize": 65536,
+      "errorOnUndefinedSymbols": false,
+      "noEntry": true
+    }
+  },
+  "compilers": {
+    "rust": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2",
+    "nativeC": "Apple clang version 17.0.0 (clang-1700.4.4.1)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "nativeCxx": "Apple clang version 17.0.0 (clang-1700.4.4.1)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "wasmC": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+    "wasmCxx": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+  },
+  "inputs": {
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "scripts/build_sid_rsid_wasm.sh": {
+      "bytes": 1020,
+      "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
+    },
+    "scripts/build_sid8580_machine.sh": {
+      "bytes": 3363,
+      "sha256": "222e723a04de8380bcb878d921dd6133eeadf5494f9cd755553456d516dc6e23"
+    },
+    "scripts/build_sid8580_probe.sh": {
+      "bytes": 3343,
+      "sha256": "1a440a6ca35fabdc0b25dcef3801f090cb52227044019adc126f7191eb2d924a"
+    },
+    "scripts/prepare_sid_core.py": {
+      "bytes": 3625,
+      "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+    },
+    "scripts/prepare_sid8580_machine_core.mjs": {
+      "bytes": 7034,
+      "sha256": "b71d6cb44ffccd797504a98ebfd0192b95c7dbf3d1a1c8c38488df7f66ad9dde"
+    },
+    "scripts/sid_rsid_artifacts.mjs": {
+      "bytes": 7593,
+      "sha256": "83aab4cfc0ccda73bac874b488128b071ec23c259bb9888d1c106193538b89ee"
+    },
+    "scripts/sid8580_machine_artifacts.mjs": {
+      "bytes": 8892,
+      "sha256": "b6f35ca078385fab9f067e0e9d448f21d2d05b25e296eca71923a71c32af02ac"
+    },
+    "scripts/sid8580_probe_artifacts.mjs": {
+      "bytes": 6114,
+      "sha256": "3b65c7b08adc135dca01b54947f1b457c84e99e2ba68775d46770c24b17cff53"
+    },
+    "tetorica_src/wasm/sid_rsid_chip.cpp": {
+      "bytes": 191,
+      "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+    },
+    "tetorica_src/wasm/sid_rsid_core.h": {
+      "bytes": 25178,
+      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+    },
+    "tetorica_src/wasm/sid_rsid_machine.c": {
+      "bytes": 1050,
+      "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
+    },
+    "tetorica_src/wasm/sid_rsid_wasm.cpp": {
+      "bytes": 3751,
+      "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
+    },
+    "tetorica_src/wasm/sid8580-machine/endpoint.rs": {
+      "bytes": 4624,
+      "sha256": "0ab38fba23549b57f8770d4174fdcbb2e17f0e9111e5023ab29523928e47ddb3"
+    },
+    "tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h": {
+      "bytes": 26966,
+      "sha256": "81eccc2619316b1056497785b2126271f497cdeb4085aad32fa68c5804d33ffb"
+    },
+    "tetorica_src/wasm/sid8580-machine/generated/source-manifest.json": {
+      "bytes": 2382,
+      "sha256": "35c776b620b95cba0db8246f7e5e158f34e06c57a0d6257f7d750fa339b5c8d9"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine_native.cpp": {
+      "bytes": 6807,
+      "sha256": "bb925b4819691fa8da7b1c02c038d177f0bb763785482b250db307053f48a6b1"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine_wasm.cpp": {
+      "bytes": 4712,
+      "sha256": "8eb58dcbf0301030618281b72158dfb80e9d3d22d96e670e3e3f702d685c37ef"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine.c": {
+      "bytes": 981,
+      "sha256": "5860f9393b056927524487833642b57c8f15e454faa158510bdfa9a74c7db6f0"
+    },
+    "tetorica_src/wasm/sid8580-machine/sid_endpoint.cpp": {
+      "bytes": 3584,
+      "sha256": "9518f70534ef44e3d893c188c0aff7bc7c0a5b0047223cd1f81f714abeec1787"
+    },
+    "tetorica_src/wasm/sid8580-machine/sid_endpoint.h": {
+      "bytes": 1230,
+      "sha256": "8eba120c98a86cbfbaa048902f5b5856652ef0dbd526e845935a95d220a0c7d8"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu_bridge.c": {
+      "bytes": 1923,
+      "sha256": "aea25ca482f8db7c43ed6deea27f0ff847e5dc134eb602304c6933896612b79c"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu_native.rs": {
+      "bytes": 6377,
+      "sha256": "3d0a0724afb095eda570e4d6472f9fe95b20164ba739b4fd628e7eb2ef39ba84"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu.rs": {
+      "bytes": 19700,
+      "sha256": "ea54eeaba78498ae730771d0d0e5b60c95734d6809cf7c0260ad19cd122ac440"
+    },
+    "tetorica_src/wasm/sid8580-probe/lib.rs": {
+      "bytes": 14402,
+      "sha256": "91228187132d85a9040f6d566484599a8870485e232a1a97e8587d8b4cc555ed"
+    },
+    "tetorica_src/wasm/sid8580-probe/native.rs": {
+      "bytes": 6864,
+      "sha256": "77287af31fa78f77a99031daae1e1faa3ad23935709d1780895fcd96e692f39e"
+    },
+    "tetorica_src/wasm/sid8580-probe/quality_native.rs": {
+      "bytes": 8869,
+      "sha256": "b499ff639f1702b2f443879ff8aec4141ee714ac9e626bb7aff5eca6f1b07fad"
+    },
+    "tetorica_src/wasm/sid8580-probe/quality.rs": {
+      "bytes": 6948,
+      "sha256": "b0029731b7cae2815e9bbd16dd9dd11b5b7a76597b98152e7d0a49d22daf9170"
+    },
+    "third_party/chips-c64/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-c64/README.md": {
+      "bytes": 9970,
+      "sha256": "c07fa8929cce27aef62dd564443c6a151320a328345ee5575202dc3ebc0de8aa"
+    },
+    "third_party/chips-c64/SOURCES.json": {
+      "bytes": 1619,
+      "sha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8"
+    },
+    "third_party/chips-c64/upstream/chips/chips_common.h": {
+      "bytes": 3477,
+      "sha256": "f5992674dc6ddecd88a19b146d2259ba1142e4d2fce9b0620b14c7783965bb7b"
+    },
+    "third_party/chips-c64/upstream/chips/clk.h": {
+      "bytes": 2037,
+      "sha256": "17b8791dbfcbe9d17203ea0b481f7674a8a3558cf4546c3196b6fb6e2736dcd1"
+    },
+    "third_party/chips-c64/upstream/chips/kbd.h": {
+      "bytes": 15708,
+      "sha256": "18f16af06fa483eebb1a7f6fdcac6299ef6b025198f8623e5b1a2de00218c364"
+    },
+    "third_party/chips-c64/upstream/chips/m6522.h": {
+      "bytes": 28897,
+      "sha256": "85ae4f49779b7e909a41fd979a6eb6afb5738e4a0c24ce1c76a8f4b376f218bd"
+    },
+    "third_party/chips-c64/upstream/chips/m6526.h": {
+      "bytes": 26154,
+      "sha256": "327a362b9b2235af55c0af712c527bce068633c98f76cdc0c8c4bb35e1d47393"
+    },
+    "third_party/chips-c64/upstream/chips/m6569.h": {
+      "bytes": 66024,
+      "sha256": "8ba7e2296e34eb486b8cd9f3488814ab1af22c418b2e06a7716e01cbed820d29"
+    },
+    "third_party/chips-c64/upstream/chips/mem.h": {
+      "bytes": 16608,
+      "sha256": "451a9c9c0545bfe724a164f655df2f255e4741bba1d7e0e7e980af865e9fbb49"
+    },
+    "third_party/chips-c64/upstream/systems/c1530.h": {
+      "bytes": 8475,
+      "sha256": "fe90f38b06b3b9388ee39c1bb92db02ad120ffe81e528c1e6f97449484d83fbc"
+    },
+    "third_party/chips-c64/upstream/systems/c1541.h": {
+      "bytes": 5364,
+      "sha256": "597511b00e9ee8d8c32b529b47eab26a8dbf675d42d314c0235ec9f040ac9890"
+    },
+    "third_party/chips-c64/upstream/systems/c64.h": {
+      "bytes": 41974,
+      "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c"
+    },
+    "third_party/chips-m6502/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6502/README.md": {
+      "bytes": 5077,
+      "sha256": "500ec456790a8c1a1a2236cc08ed576c86af4c59a90dcd09c70d2ea9f627d59c"
+    },
+    "third_party/chips-m6502/upstream/m6502.h": {
+      "bytes": 144215,
+      "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+    },
+    "third_party/chips-m6581/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6581/m6581.h": {
+      "bytes": 27313,
+      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+    },
+    "third_party/chips-m6581/PATCHES.md": {
+      "bytes": 2239,
+      "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+    },
+    "third_party/chips-m6581/README.md": {
+      "bytes": 2306,
+      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+    },
+    "third_party/chips-m6581/upstream/m6581.h": {
+      "bytes": 26332,
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    },
+    "third_party/sidera/8580-cutoff-calibration.json": {
+      "bytes": 7556,
+      "sha256": "f9c78e2dfef767aaf2317e7f21cebeff17b0ddf3225d83e9cbca890953b89a0a"
+    },
+    "third_party/sidera/8580-resonance-calibration.json": {
+      "bytes": 2431,
+      "sha256": "8c8e835be3d14a1c5ce063439436bc76de5b6f9035be399535085a9d8a67ddf5"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/bus.rs": {
+      "bytes": 2238,
+      "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/diag.rs": {
+      "bytes": 2402,
+      "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/main.rs": {
+      "bytes": 5629,
+      "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/output.rs": {
+      "bytes": 4341,
+      "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/player.rs": {
+      "bytes": 10189,
+      "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/psid.rs": {
+      "bytes": 4262,
+      "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+    },
+    "third_party/sidera/adapted/src/envelope.rs": {
+      "bytes": 5403,
+      "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+    },
+    "third_party/sidera/adapted/src/extfilt.rs": {
+      "bytes": 1946,
+      "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+    },
+    "third_party/sidera/adapted/src/filter.rs": {
+      "bytes": 10281,
+      "sha256": "2bfea93993ef97539c966b97519e72983dd45f667d8c456b8eabea860360859b"
+    },
+    "third_party/sidera/adapted/src/high.rs": {
+      "bytes": 18128,
+      "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+    },
+    "third_party/sidera/adapted/src/lib.rs": {
+      "bytes": 4153,
+      "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+    },
+    "third_party/sidera/adapted/src/noise.rs": {
+      "bytes": 2128,
+      "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+    },
+    "third_party/sidera/adapted/src/oscillator.rs": {
+      "bytes": 2582,
+      "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+    },
+    "third_party/sidera/adapted/src/registers.rs": {
+      "bytes": 2759,
+      "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+    },
+    "third_party/sidera/adapted/src/sid.rs": {
+      "bytes": 14966,
+      "sha256": "f80ebc570bb1e0e207c3b9b2aaa1639ebfa1f7646583cd63608505e7b8a93946"
+    },
+    "third_party/sidera/adapted/src/voice.rs": {
+      "bytes": 8899,
+      "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+    },
+    "third_party/sidera/LICENSE": {
+      "bytes": 1075,
+      "sha256": "4516b79c625d728704f7e189e676e528077fdb0388a2c819c9d583e214fef9b6"
+    },
+    "third_party/sidera/PATCHES.json": {
+      "bytes": 955,
+      "sha256": "841ef5bae4d8cc01f6b4a43a24946a2b8717e3cae49e76584092417107b66568"
+    },
+    "third_party/sidera/README.md": {
+      "bytes": 6150,
+      "sha256": "503cf96915f1df27f1e707f08ce6be606620f95892f3d0634ec8525175f38ad6"
+    },
+    "third_party/sidera/SOURCES.json": {
+      "bytes": 4569,
+      "sha256": "5a174a68d26fbd82e80c34a52d976916de14addf2789e770cfd0a7ca332a9275"
+    },
+    "third_party/sidera/upstream/.cargo_vcs_info.json": {
+      "bytes": 94,
+      "sha256": "4e547473ff03990b7d6b2fece426e3b4e56baff4cc3a6323cf751ce445c6d4d8"
+    },
+    "third_party/sidera/upstream/.gitignore": {
+      "bytes": 8,
+      "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d"
+    },
+    "third_party/sidera/upstream/Cargo.lock": {
+      "bytes": 25543,
+      "sha256": "ecec7919601412406b44a2e7615278b4a35fe0194b50dc8783f7488eefc61e9b"
+    },
+    "third_party/sidera/upstream/Cargo.toml": {
+      "bytes": 1846,
+      "sha256": "6f596633e56a0a25603014de6dafaa204c081734b9a57a3143e99f6a55db6443"
+    },
+    "third_party/sidera/upstream/Cargo.toml.orig": {
+      "bytes": 1037,
+      "sha256": "98015f5b2e7198e314245cd41eda7dca43392a8d0a3c49b63ec5d65da6cc6b8d"
+    },
+    "third_party/sidera/upstream/examples/bench.rs": {
+      "bytes": 1964,
+      "sha256": "3d6f27fc2b3d0651af84e735d3b05a2d43c480770311d7b0facf58644d6686c2"
+    },
+    "third_party/sidera/upstream/examples/render.rs": {
+      "bytes": 3188,
+      "sha256": "c4731c1000b95526f98b0244de45eff9d80d9fb53c40a8a0f588b40c7b553a8a"
+    },
+    "third_party/sidera/upstream/LICENSE": {
+      "bytes": 1075,
+      "sha256": "4516b79c625d728704f7e189e676e528077fdb0388a2c819c9d583e214fef9b6"
+    },
+    "third_party/sidera/upstream/README.md": {
+      "bytes": 13156,
+      "sha256": "35ae0865b06b12d43a02df962d5cb2afb762c6e3ab472052b17bf805a4c6ddd7"
+    },
+    "third_party/sidera/upstream/SID_ANALOG_SPEC.md": {
+      "bytes": 26732,
+      "sha256": "0a90da2eb550761c60b3b40d4afca21d236a8daa68fe07ef1af80311bad4cca3"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/bus.rs": {
+      "bytes": 2238,
+      "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/diag.rs": {
+      "bytes": 2402,
+      "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/main.rs": {
+      "bytes": 5629,
+      "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/output.rs": {
+      "bytes": 4341,
+      "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/player.rs": {
+      "bytes": 10189,
+      "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/psid.rs": {
+      "bytes": 4262,
+      "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+    },
+    "third_party/sidera/upstream/src/envelope.rs": {
+      "bytes": 5403,
+      "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+    },
+    "third_party/sidera/upstream/src/extfilt.rs": {
+      "bytes": 1946,
+      "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+    },
+    "third_party/sidera/upstream/src/filter.rs": {
+      "bytes": 7711,
+      "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+    },
+    "third_party/sidera/upstream/src/high.rs": {
+      "bytes": 18128,
+      "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+    },
+    "third_party/sidera/upstream/src/lib.rs": {
+      "bytes": 4153,
+      "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+    },
+    "third_party/sidera/upstream/src/noise.rs": {
+      "bytes": 2128,
+      "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+    },
+    "third_party/sidera/upstream/src/oscillator.rs": {
+      "bytes": 2582,
+      "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+    },
+    "third_party/sidera/upstream/src/registers.rs": {
+      "bytes": 2759,
+      "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+    },
+    "third_party/sidera/upstream/src/sid.rs": {
+      "bytes": 13227,
+      "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
+    },
+    "third_party/sidera/upstream/src/voice.rs": {
+      "bytes": 8899,
+      "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+    },
+    "third_party/sidera/upstream/tests/golden.rs": {
+      "bytes": 8170,
+      "sha256": "1c560531f4dcbbb5d8c47a6705786cb832210c42aaf724274ae1fca543b54bae"
+    },
+    "third_party/sidera/upstream/tests/integration.rs": {
+      "bytes": 29431,
+      "sha256": "6ea83bee56a03887fc7246a578ec6ea641a64b6468b546553c8761d71c61e8da"
+    }
+  },
+  "outputs": {
+    "sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "sid8580-machine": {
+      "bytes": 1421840,
+      "sha256": "1885573970af8e85f1fe355a340eac378058a564bdcaf684c5ecd386a3c7bdfd"
+    }
+  },
+  "wasmInterface": {
+    "endpointImports": [],
+    "machineImports": [
+      {
+        "module": "env",
+        "name": "sid8e_create",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_reset",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_error",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_stop",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_destroy",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_set_profiles",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "sid8e_tick",
+        "kind": "function"
+      },
+      {
+        "module": "env",
+        "name": "emscripten_notify_memory_growth",
+        "kind": "function"
+      }
+    ],
+    "directSidImports": [
+      "sid8e_create",
+      "sid8e_destroy",
+      "sid8e_reset",
+      "sid8e_stop",
+      "sid8e_tick",
+      "sid8e_set_profiles",
+      "sid8e_error"
+    ],
+    "perCycleJavaScriptCallbacks": false,
+    "separateLinearMemories": true
+  }
+}

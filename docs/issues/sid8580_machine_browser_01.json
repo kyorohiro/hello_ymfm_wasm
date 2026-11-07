@@ -1,0 +1,1188 @@
+{
+  "format": "tetorica-sid8580-machine-worklet-browser",
+  "version": 1,
+  "passed": true,
+  "researchOnly": true,
+  "productionAdopted": false,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "input": "Original authored PAL8580 programs only; no game music or firmware dump",
+  "inputs": {
+    "docs/sid8580-lab/index.html": {
+      "bytes": 2562,
+      "sha256": "ff6ef04822ec44d7a8d8fa3801199c87d8add19390707c2d8d4078619a8312a1"
+    },
+    "docs/sid8580-lab/lab.css": {
+      "bytes": 1690,
+      "sha256": "51791c7247ba65703741994f150be63756b4a52a6ecaf745dccc0cd196bae90d"
+    },
+    "docs/sid8580-lab/core.js": {
+      "bytes": 9248,
+      "sha256": "b640da2230f2e2c13776b77e13773125508a291c356bc2f9f08b2740a4dcb0b2"
+    },
+    "docs/sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "docs/sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "docs/sid8580-lab/audio.js": {
+      "bytes": 7910,
+      "sha256": "2580cee585c9c869ec50f6a6d7b8a33332ff81b1bbbe49465956243f9fcaf9c7"
+    },
+    "docs/sid8580-lab/processor.js": {
+      "bytes": 3592,
+      "sha256": "8a6410cc015231eee5a0285af34e44ab6396018fef817fa7dcf38166cec2fab9"
+    },
+    "docs/sid8580-lab/player.js": {
+      "bytes": 7680,
+      "sha256": "1515a90eaa9922ae3d210254e3b404e0266252e92d3ccf8ffa9d0f532fcaac49"
+    },
+    "docs/sid8580-lab/preflight.js": {
+      "bytes": 632,
+      "sha256": "8f0b7bfd2ea2999000ee2c60eb643aa9978aa0b1a948f3048ac2b28e6221c17c"
+    },
+    "docs/js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    },
+    "docs/sid-player/roms.js": {
+      "bytes": 1869,
+      "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+    },
+    "docs/generated/sid8580-machine/sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine-build.json": {
+      "bytes": 20404,
+      "sha256": "919522e2443abdc70368c70b231b08cd88a3c915b38d1829055e25054db29ed6"
+    },
+    "docs/sid8580-lab/demos/vbi.sid": {
+      "bytes": 261,
+      "sha256": "f78012a54bfc9789feb756203e1cde12fef24e7197dceaa74e2be3f958101dc9"
+    },
+    "docs/sid8580-lab/demos/cia.sid": {
+      "bytes": 280,
+      "sha256": "0f9f73bd333c37d394d9c8ceddc8fe6ff86cd73fc7465e4119e2d6d047d37629"
+    },
+    "docs/sid8580-lab/demos/irq.sid": {
+      "bytes": 262,
+      "sha256": "ce6275800d2379de22ac5f3a873ea3cb1d7829993ec712ef14801eec33e4dad1"
+    },
+    "docs/sid8580-lab/demos/provenance.json": {
+      "bytes": 1099,
+      "sha256": "bedd2e627819540272b9672628bbacd1e77690607b9c8d10cf0298ad64dae12e"
+    },
+    "scripts/check_sid8580_machine_browser.mjs": {
+      "bytes": 16813,
+      "sha256": "220cd14d643e1a5fe29541f991389335ae171a0b73208367f64fc82e1427627b"
+    },
+    "test/helpers/sid8580_machine_fixtures.mjs": {
+      "bytes": 9129,
+      "sha256": "a587005e4eb4afe09c304ca2a5c97393dc87c09e7c8d25bf3844635831a74e4f"
+    }
+  },
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "readable research page preflights actual C64 without opening audio",
+        "VBI plays in a real Worklet; measured output remains physically muted",
+        "Stop closes audio and Play reloads the subtune",
+        "cia executes its real C64 interrupt path through Worklet",
+        "irq executes its real C64 interrupt path through Worklet",
+        "failed CPU/POT and parser candidates retain the previous playing machine",
+        "actual Worklet SID read drives the CPU RAM and subsequent SID write",
+        "unknown hints require explicit selection and retain both declarations",
+        "both independent research profiles reach the real Worklet",
+        "Stop cancels held startup; stale Play never becomes audible",
+        "Stop retires a started engine even while its Start acknowledgement is held",
+        "Stop cancels a held demo selection without replacing the sound",
+        "fresh Play still works after cancelled loads and all old contexts retire"
+      ],
+      "measurements": {
+        "vbi": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 31744,
+            "cycles": 709200,
+            "sidCycles": 709200,
+            "bootCycles": 0,
+            "initCycles": 307,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 306,
+            "irqCount": 36,
+            "nmiCount": 0,
+            "playCalls": 36,
+            "driverAddress": 1536,
+            "readCount": 0,
+            "writeCount": 45,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              69,
+              29,
+              36,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 248,
+              "frames": 31744,
+              "totalRenderMs": 75,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 10,
+              "maxLoadMs": 10,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.3024193548387097,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04485858237320364,
+            "peak": 0.049959734082221985,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "cia": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 2,
+            "environment": "minimal",
+            "positionFrames": 8960,
+            "cycles": 200178,
+            "sidCycles": 200178,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 286,
+            "irqCount": 101,
+            "nmiCount": 0,
+            "playCalls": 101,
+            "driverAddress": 1536,
+            "readCount": 0,
+            "writeCount": 110,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              138,
+              58,
+              101,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 70,
+              "frames": 8960,
+              "totalRenderMs": 14,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 10,
+              "maxLoadMs": 10,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.2,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04445648872469301,
+            "peak": 0.04920084774494171,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "irq": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 8960,
+            "cycles": 200178,
+            "sidCycles": 200178,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 483,
+            "irqCount": 11,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 0,
+            "writeCount": 19,
+            "pc": 1802,
+            "hostDcHz": 12,
+            "registers": [
+              69,
+              29,
+              11,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 70,
+              "frames": 8960,
+              "totalRenderMs": 13,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 10,
+              "maxLoadMs": 10,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.18571428571428572,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04486999319383388,
+            "peak": 0.049450427293777466,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "failedWorkletLoad": {
+          "lastLoadMs": 1,
+          "keptPlaying": true
+        },
+        "causal": {
+          "reads": [
+            {
+              "cycle": 41503,
+              "address": 54272,
+              "register": 0,
+              "value": 165,
+              "error": 0
+            }
+          ],
+          "ram": 165
+        },
+        "profiles": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": true,
+              "cutoff": true
+            },
+            "profileBits": 3,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 20992,
+            "cycles": 468987,
+            "sidCycles": 468987,
+            "bootCycles": 0,
+            "initCycles": 408,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 407,
+            "irqCount": 23,
+            "nmiCount": 0,
+            "playCalls": 23,
+            "driverAddress": 1536,
+            "readCount": 1,
+            "writeCount": 39,
+            "pc": 1806,
+            "hostDcHz": 12,
+            "registers": [
+              165,
+              29,
+              23,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              64,
+              193,
+              24,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 164,
+              "frames": 20992,
+              "totalRenderMs": 46,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 10,
+              "maxLoadMs": 10,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.2804878048780488,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.047892793570739466,
+            "peak": 0.08974864333868027,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "readable research page preflights actual C64 without opening audio",
+        "VBI plays in a real Worklet; measured output remains physically muted",
+        "Stop closes audio and Play reloads the subtune",
+        "cia executes its real C64 interrupt path through Worklet",
+        "irq executes its real C64 interrupt path through Worklet",
+        "failed CPU/POT and parser candidates retain the previous playing machine",
+        "actual Worklet SID read drives the CPU RAM and subsequent SID write",
+        "unknown hints require explicit selection and retain both declarations",
+        "both independent research profiles reach the real Worklet",
+        "Stop cancels held startup; stale Play never becomes audible",
+        "Stop retires a started engine even while its Start acknowledgement is held",
+        "Stop cancels a held demo selection without replacing the sound",
+        "fresh Play still works after cancelled loads and all old contexts retire"
+      ],
+      "measurements": {
+        "vbi": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 31488,
+            "cycles": 703481,
+            "sidCycles": 703481,
+            "bootCycles": 0,
+            "initCycles": 307,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 306,
+            "irqCount": 35,
+            "nmiCount": 0,
+            "playCalls": 35,
+            "driverAddress": 1536,
+            "readCount": 0,
+            "writeCount": 44,
+            "pc": 1806,
+            "hostDcHz": 12,
+            "registers": [
+              69,
+              29,
+              35,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 246,
+              "frames": 31488,
+              "totalRenderMs": 115,
+              "maxRenderMs": 2,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 16,
+              "maxLoadMs": 16,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.46747967479674796,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04485858237320364,
+            "peak": 0.049959734082221985,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "cia": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "cia",
+            "subtune": 2,
+            "environment": "minimal",
+            "positionFrames": 8704,
+            "cycles": 194459,
+            "sidCycles": 194459,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 100000,
+            "initReturnCycle": 286,
+            "irqCount": 98,
+            "nmiCount": 0,
+            "playCalls": 98,
+            "driverAddress": 1536,
+            "readCount": 0,
+            "writeCount": 107,
+            "pc": 1806,
+            "hostDcHz": 12,
+            "registers": [
+              138,
+              58,
+              98,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 68,
+              "frames": 8704,
+              "totalRenderMs": 15,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 20,
+              "maxLoadMs": 20,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.22058823529411764,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04447680749886698,
+            "peak": 0.04915410280227661,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "irq": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": false,
+              "cutoff": false
+            },
+            "profileBits": 0,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "RSID",
+            "timing": "c64-irq",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 8704,
+            "cycles": 194459,
+            "sidCycles": 194459,
+            "bootCycles": 0,
+            "initCycles": 100000,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 0,
+            "initReturnCycle": 483,
+            "irqCount": 10,
+            "nmiCount": 0,
+            "playCalls": 0,
+            "driverAddress": 0,
+            "readCount": 0,
+            "writeCount": 18,
+            "pc": 1802,
+            "hostDcHz": 12,
+            "registers": [
+              69,
+              29,
+              10,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 68,
+              "frames": 8704,
+              "totalRenderMs": 16,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 20,
+              "maxLoadMs": 20,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.23529411764705882,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04487032905119802,
+            "peak": 0.049450427293777466,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        },
+        "failedWorkletLoad": {
+          "lastLoadMs": 1,
+          "keptPlaying": true
+        },
+        "causal": {
+          "reads": [
+            {
+              "cycle": 41503,
+              "address": 54272,
+              "register": 0,
+              "value": 165,
+              "error": 0
+            }
+          ],
+          "ram": 165
+        },
+        "profiles": {
+          "state": {
+            "loaded": true,
+            "playing": true,
+            "state": 1,
+            "errorCode": 0,
+            "errorAddress": 0,
+            "backend": "research-c64",
+            "model": 8580,
+            "clockHz": 985248,
+            "sampleRate": 44100,
+            "profiles": {
+              "resonance": true,
+              "cutoff": true
+            },
+            "profileBits": 3,
+            "declaredModel": "8580",
+            "declaredClock": "pal",
+            "selectedModel": "8580",
+            "selectedClock": "pal",
+            "selection": {
+              "clock": "header",
+              "model": "header"
+            },
+            "format": "PSID",
+            "timing": "vbi",
+            "subtune": 1,
+            "environment": "minimal",
+            "positionFrames": 20480,
+            "cycles": 457549,
+            "sidCycles": 457549,
+            "bootCycles": 0,
+            "initCycles": 408,
+            "initReturned": true,
+            "initPending": false,
+            "initCycleLimit": 2000000,
+            "initReturnCycle": 407,
+            "irqCount": 23,
+            "nmiCount": 0,
+            "playCalls": 23,
+            "driverAddress": 1536,
+            "readCount": 1,
+            "writeCount": 39,
+            "pc": 1803,
+            "hostDcHz": 12,
+            "registers": [
+              165,
+              29,
+              23,
+              8,
+              65,
+              0,
+              240,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              64,
+              193,
+              24,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "voices": [
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              },
+              {
+                "envelope": null,
+                "phase": null
+              }
+            ],
+            "lastCpuReads": [],
+            "bridge": "direct-wasm-function-imports",
+            "linkedSidFunctions": [
+              "sid8e_create",
+              "sid8e_reset",
+              "sid8e_error",
+              "sid8e_stop",
+              "sid8e_destroy",
+              "sid8e_set_profiles",
+              "sid8e_tick"
+            ],
+            "perCycleJavaScriptCallbacks": 0,
+            "worklet": {
+              "blocks": 160,
+              "frames": 20480,
+              "totalRenderMs": 63,
+              "maxRenderMs": 1,
+              "overBudgetBlocks": 0,
+              "lastLoadMs": 20,
+              "maxLoadMs": 20,
+              "timingSource": "Date.now",
+              "perCycleJavaScriptCallbacks": 0,
+              "meanRenderMs": 0.39375,
+              "quantumBudgetMs": 2.9024943310657596
+            }
+          },
+          "output": {
+            "rms": 0.04793861717346,
+            "peak": 0.08974864333868027,
+            "finite": true,
+            "muted": true,
+            "runningContexts": 1
+          }
+        }
+      },
+      "errors": []
+    }
+  ]
+}

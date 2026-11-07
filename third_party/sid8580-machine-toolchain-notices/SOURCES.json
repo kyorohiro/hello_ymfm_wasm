@@ -1,0 +1,51 @@
+{
+  "format": "tetorica-emscripten-toolchain-notices",
+  "version": 1,
+  "toolchain": "Emscripten 6.0.6-git",
+  "compilerVersion": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "installedDistribution": "/opt/homebrew/Cellar/emscripten/6.0.6",
+  "copiedUnmodified": true,
+  "files": {
+    "emscripten-LICENSE.txt": {
+      "bytes": 5093,
+      "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86",
+      "origin": "LICENSE"
+    },
+    "musl-COPYRIGHT.txt": {
+      "bytes": 6196,
+      "sha256": "b870108ec5e7790e9f9919064f1b9421d62d5f9b0e6c230c6adf7ea2da62e97b",
+      "origin": "libexec/system/lib/libc/musl/COPYRIGHT"
+    },
+    "libcxx-LICENSE.txt": {
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "origin": "libexec/system/lib/libcxx/LICENSE.TXT"
+    },
+    "libcxxabi-LICENSE.txt": {
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+      "origin": "libexec/system/lib/libcxxabi/LICENSE.TXT"
+    },
+    "libunwind-LICENSE.txt": {
+      "bytes": 16706,
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "origin": "libexec/system/lib/libunwind/LICENSE.TXT"
+    },
+    "compiler-rt-LICENSE.txt": {
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+      "origin": "libexec/system/lib/compiler-rt/LICENSE.TXT"
+    },
+    "llvm-libc-LICENSE.txt": {
+      "bytes": 15140,
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47",
+      "origin": "libexec/system/lib/llvm-libc/LICENSE.TXT"
+    },
+    "mimalloc-LICENSE.txt": {
+      "bytes": 1096,
+      "sha256": "82ade5d7d9b029044b5fbbc326207fc47c2d44ee4dd71e8a559c36d728217de9",
+      "origin": "libexec/system/lib/mimalloc/LICENSE"
+    }
+  },
+  "scope": "Conservative runtime/compiler notice set for the separate research C64 machine WASM. Inventory does not assert every listed library is linked. Rust standard-library notices are separately preserved."
+}

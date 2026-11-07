@@ -1,0 +1,91 @@
+name: SID8580 isolated C64 machine
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'third_party/sidera/**'
+      - 'third_party/sid8580-machine-toolchain-notices/**'
+      - 'third_party/chips-c64/**'
+      - 'third_party/chips-m6502/**'
+      - 'third_party/chips-m6581/**'
+      - 'tetorica_src/wasm/sid_rsid_core.h'
+      - 'tetorica_src/wasm/sid8580-machine/**'
+      - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/sid_rsid.js'
+      - 'docs/sid8580-lab/**'
+      - 'docs/js/sid_rsid.js'
+      - 'docs/sid-player/roms.js'
+      - 'scripts/*sid8580_machine*'
+      - 'scripts/prepare_sid8580_parser.mjs'
+      - 'test/sid8580_machine*.mjs'
+      - 'test/helpers/sid8580_machine_fixtures.mjs'
+      - 'test/helpers/psid_vbi_machine_fixtures.mjs'
+      - 'test/helpers/psid_cia_fixtures.mjs'
+      - 'test/helpers/rsid_fixtures.mjs'
+      - '.github/workflows/sid8580-machine.yml'
+  pull_request:
+    paths:
+      - 'third_party/sidera/**'
+      - 'third_party/sid8580-machine-toolchain-notices/**'
+      - 'third_party/chips-c64/**'
+      - 'third_party/chips-m6502/**'
+      - 'third_party/chips-m6581/**'
+      - 'tetorica_src/wasm/sid_rsid_core.h'
+      - 'tetorica_src/wasm/sid8580-machine/**'
+      - 'tetorica_src/runtime/sid_psid.js'
+      - 'tetorica_src/runtime/sid_rsid.js'
+      - 'docs/sid8580-lab/**'
+      - 'docs/js/sid_rsid.js'
+      - 'docs/sid-player/roms.js'
+      - 'scripts/*sid8580_machine*'
+      - 'scripts/prepare_sid8580_parser.mjs'
+      - 'test/sid8580_machine*.mjs'
+      - 'test/helpers/sid8580_machine_fixtures.mjs'
+      - 'test/helpers/psid_vbi_machine_fixtures.mjs'
+      - 'test/helpers/psid_cia_fixtures.mjs'
+      - 'test/helpers/rsid_fixtures.mjs'
+      - '.github/workflows/sid8580-machine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  research-machine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUSTUP_TOOLCHAIN: '1.91.1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: emscripten-core/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
+        with:
+          version: '6.0.6'
+      - name: Install pinned Rust and WASM target
+        run: rustup toolchain install 1.91.1 --profile minimal --target wasm32-unknown-unknown
+      - name: Build the separate Native and two-WASM research machine
+        run: sh scripts/build_sid8580_machine.sh
+      - name: Verify marked host and parser generation
+        run: |
+          node scripts/prepare_sid8580_machine_core.mjs --check
+          node scripts/prepare_sid8580_parser.mjs --check
+      - name: Check target selection, original guards and pending initialization
+        run: node --test test/sid8580_machine_parser.test.mjs test/sid8580_machine_preflight.test.mjs
+      - name: Check actual CPU, interrupts, reads, PCM and split-render behavior
+        run: node scripts/check_sid8580_machine.mjs --work-dir build/sid8580-machine --out build/sid8580-machine/verification.json
+      - name: Check source, output and direct cross-WASM imports
+        run: node scripts/sid8580_machine_artifacts.mjs --check build/sid8580-machine
+      - name: Stage only the new research browser assets
+        run: node scripts/sid8580_machine_artifacts.mjs --stage build/sid8580-machine
+      - name: Check readable application and source-kit closure
+        run: node scripts/package_sid8580_machine.mjs --plan
+      - name: Preserve original production source receipts
+        run: |
+          node scripts/sid8580_probe_artifacts.mjs --sources
+          node scripts/sid_player_artifacts.mjs --check
+          node scripts/sid_rsid_artifacts.mjs --check

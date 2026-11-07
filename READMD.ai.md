@@ -353,11 +353,64 @@ holdout with both flags. Local checks and runtime33/68/75 plus old SID/PSID/RSID
 receipts pass; no GitHub Actions run, commit/push/tag or publication was performed.
 Older reports and archives remain historical and unchanged.
 
-Next separate low-FC residuals, mode-specific gain/loading and read/audio pipeline,
-and design research-only C64/AudioWorklet integration. Real 8580 file playback,
-listening, scheduling/performance and production adoption are later decisions.
-Keep both profiles opt-in/OFF. Production Player/Synth/SDK and known-8580 rejection
-remain unchanged; this phase does not enable 8580 file import.
+Phase 17 adds a separate [8580 research lab](docs/sid8580-lab/index.html)
+([design](docs/issues/sid8580_machine_design_01.md), [result](docs/issues/sid8580_machine_result_01.md)).
+Under a docs server use /sid8580-lab/. Pristine C64 CPU/CIA/VIC devices run with
+a marked generated copy of the old BSD host and the pinned MIT sidera endpoint.
+The machine WASM directly imports seven SID WASM export functions; separate
+linear memories and scalar ABI avoid per-cycle JavaScript closures or trace
+replay. Native links a Rust static library. Actual SID reads drive the real CPU.
+The model's external RC/integer sampler is followed by the retained 12Hz host
+software DC blocker. Both research profile flags stay OFF by default. POT reads
+fail explicitly; Core/API OSC3/ENV3 observations are cached actual CPU reads, not fabricated
+live voice state. Snapshots are not exported because they would copy SID ownership.
+
+[Native/WASM checks](docs/issues/sid8580_machine_verification_01.json) pass 39 base
+cases (13 authored programs at 44.1/48/96k) and four independent-profile controls:
+43 total, including 997-chunk parity, real CIA/VIC IRQ/NMI, RAM/branch/SID read
+feedback, Stop/reload, failed-candidate preservation and shared-module isolation.
+Parser six plus pending-init six tests pass. Main-thread candidates must finish
+bounded long PSID initialization before adoption; late ROM errors, cancellation
+and the native 2M-cycle deadline preserve the old machine. A fresh Worklet load
+streams the original retained initialization PCM.
+
+[A small local-file smoke](docs/issues/sid8580_machine_hvsc_smoke_01.json) runs three
+declared PAL8580 PSID v2 files through the Node Core for two seconds/48kHz each:
+all 96,000 frames are finite/nonzero and Stop is zero. Actual play counts are
+199 for CIA and 100 each for two VBI files. No music/PCM is saved. This is not
+real-file AudioContext/Worklet or listening acceptance, nor an HVSC-wide audit.
+
+[Actual AudioWorklet browsers](docs/issues/sid8580_machine_browser_01.json) pass
+13 checks per Chromium/WebKit, 26 total. They explicitly cover CIA song2 as well
+as VBI/RSID, real CPU-read causality, profile forwarding, failed Worklet POT RPC,
+pending loads, Stop and a held Start acknowledgement. Physical output is muted;
+this is not listening acceptance. Coarse Date.now measurements at 44.1k/128 frames
+show ordinary-render means around .19–.47ms, maxima 1–2ms against a 2.902ms quantum;
+load preflight is separately 10–20ms. These finite windows do not guarantee hard
+real-time deadlines, glitch-free startup or long-session/device stability.
+
+[Independent source-kit proof](docs/issues/sid8580_machine_sourcekit_01.json) passes
+99 inputs, all three outputs (two WASMs and Native) plus receipt byte-identical,
+and five build/check commands including 12 unit tests and 43 machine cases. There
+is no parent-source fallback or GPL reference dependency. Darwin Native linking
+omits debug records with absolute archive paths; the SID/machine behavior is
+unchanged and all Native/WASM cases were rerun. The final archive is
+release/tetorica_sid8580_machine_20261107-machine.1_research.zip: 161 files/856,803 bytes,
+SHA-256 c7b725a2fe7c212597188454dc4e4a03b7b35a4f2d257dd6c33a666d8a3f8d6f.
+CRC and all-file equality pass. Readable app/source/generators/tests, two WASMs,
+matching receipt, zlib/MIT/BSD licenses, Rust/Emscripten notices and three authored
+demos are included. Native binaries, GPL SID oracle, user ROM/game music/PCM
+and the optional repository-only HVSC smoke tool are excluded. The first failed
+stage is preserved; no archive was produced from it. The 12-step CI adds the
+separate research build, unit/machine checks, source closure and old receipt
+checks. No GitHub Actions run, commit/push/tag or publication was performed.
+
+Next manually compare user-owned real 8580 VBI/CIA/RSID tunes and subtunes, then
+measure long/background/device-switch workloads. Keep low-FC residuals,
+mode-specific gain/loading, read/audio pipeline and DAC/digi quality separate.
+Production Player/Synth/SDK and their known-8580 rejection remain unchanged;
+only the explicitly experimental lab accepts its PAL/8580 subset. Production
+model selection/adoption remains a later decision.
 
 An offline [SID reference CLI](docs/sid-reference.md) now executes a bounded
 PSID v2 PAL/6581 single-SID/VBI subset using pinned libsidplayfp/libresidfp in a
