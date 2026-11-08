@@ -4,6 +4,9 @@ export function createSidImportPanel({root,liveRoot,getController}) {
   let selectionToken=null;
   const $=id=>root.querySelector('#'+id),listeners=[];
   const listen=(node,event,fn)=>{node.addEventListener(event,fn);listeners.push(()=>node.removeEventListener(event,fn));};
+  // Live observations arrive while the pointer may still be held down. Keep
+  // unchanged labels (and their text nodes) intact so Safari can finish a click.
+  const label=(node,text)=>{if(node.textContent!==text)node.textContent=text;};
   const message=(text,error=false)=>{const node=$('sidImportStatus');if(node.textContent!==text)node.textContent=text;node.dataset.error=String(error);if(error)node.dataset.state='error';};
   const act=(node,callback)=>listen(node,'click',()=>{
     node.blur();try{Promise.resolve(callback()).catch(error=>message(error?.message??String(error),true));}
@@ -35,18 +38,18 @@ export function createSidImportPanel({root,liveRoot,getController}) {
       $('sidImportStop').disabled=state.canStop===undefined?!state.playing&&!state.starting&&!state.loading&&!busy:!state.canStop;
       $('sidImportCapture').disabled=state.canCapture===undefined?!state.playing||busy:!state.canCapture;
       $('sidImportPause').disabled=!(state.canPause||state.canResume);
-      $('sidImportPause').textContent=state.pausing?'Pausing…':state.resuming?'Resuming…':state.paused?'Resume':'Pause';
+      label($('sidImportPause'),state.pausing?'Pausing…':state.resuming?'Resuming…':state.paused?'Resume':'Pause');
       $('sidImportSubtuneDown').disabled=!selection||busy||selection.subtune<=1;
       $('sidImportSubtuneUp').disabled=!selection||busy||selection.subtune>=selection.songs;
-      $('sidImportSubtuneValue').textContent=selection?`${selection.subtune} / ${selection.songs}`:'—';
+      label($('sidImportSubtuneValue'),selection?`${selection.subtune} / ${selection.songs}`:'—');
       const snapshot=state.snapshot;
       const captureInfo=snapshot
         ?`Captured: ${snapshot.name} · Subtune ${snapshot.subtune} · ${(snapshot.positionFrames/snapshot.sampleRate).toFixed(3)} s. Select a Voice to load these fixed settings and stop the song.`
         :'No snapshot yet. Capture voices, then select a Voice to load it into this keyboard.';
-      if($('sidImportCaptureInfo').textContent!==captureInfo)$('sidImportCaptureInfo').textContent=captureInfo;
-      $('sidImportInfo').textContent=selection
+      label($('sidImportCaptureInfo'),captureInfo);
+      label($('sidImportInfo'),selection
         ?`${selection.name} · ${selection.title||selection.name} · ${selection.format} · ${selection.timing} · PAL / ${selection.model}${selection.model==='8580'?' Preview':''}`
-        :'Open a SID file, play the song, then capture a voice for this keyboard.';
+        :'Open a SID file, play the song, then capture a voice for this keyboard.');
       message(state.message??'Choose a local SID file.',Boolean(state.error));
       $('sidImportStatus').dataset.state=state.error?'error':state.loading?'loading':state.starting?'starting':state.pausing?'pausing':state.resuming?'resuming':state.paused?'paused':state.playing?'playing':state.snapshot?'captured':selection?'ready':'idle';
       for(const button of root.querySelectorAll('[data-sid-import-model]')){
@@ -57,24 +60,24 @@ export function createSidImportPanel({root,liveRoot,getController}) {
         const voice=Number(button.dataset.sidImportVoice),candidate=state.snapshot?.voices?.[voice];
         button.disabled=!state.snapshot||busy;button.setAttribute('aria-pressed',String(voice===state.voice));
         button.dataset.available=String(Boolean(candidate?.available));
-        button.textContent=`Voice ${voice+1}${candidate?candidate.available?' · '+candidate.preset.voice.waveform:' · unavailable':''}`;
+        label(button,`Voice ${voice+1}${candidate?candidate.available?' · '+candidate.preset.voice.waveform:' · unavailable':''}`);
       }
       follow.checked=state.liveEnabled;
       for(const button of liveRoot.querySelectorAll('[data-sid-live-voice]'))button.setAttribute('aria-pressed',String(Number(button.dataset.sidLiveVoice)===(state.liveVoice??0)));
       $('sidImportVoicePreview').dataset.unavailable=String(Boolean(row&&!row.available));
-      if(!row)$('sidImportVoicePreview').textContent='No snapshot captured.';
-      else if(!row.available)$('sidImportVoicePreview').textContent=row.reason;
+      if(!row)label($('sidImportVoicePreview'),'No snapshot captured.');
+      else if(!row.available)label($('sidImportVoicePreview'),row.reason);
       else{
         const p=row.preset,pair=row.pair;
-        $('sidImportVoicePreview').textContent=
+        label($('sidImportVoicePreview'),
           `${state.snapshot.name} · Subtune ${state.snapshot.subtune} · Voice ${(state.voice??0)+1}\n`+
           `${p.model} · ${p.voice.waveform} · ADSR ${[p.voice.attack,p.voice.decay,p.voice.sustain,p.voice.release].join(' / ')}\n`+
           `Filter ${p.filter.enabled?p.filter.mode:'bypassed'} · Cutoff ${p.filter.cutoff} · Resonance ${p.filter.resonance}`+
           (pair?`\nVoice ${pair.sourceVoice+1} → ${pair.carrierVoice+1} · ${[pair.sync&&'Sync',pair.ring&&'Ring'].filter(Boolean).join(' + ')} · Ratio ≈${Number(pair.ratio.toPrecision(8))}×`:'')+
-          (row.warnings.length?'\n'+row.warnings.join(' '):'');
+          (row.warnings.length?'\n'+row.warnings.join(' '):''));
       }
-      $('sidImportPlay').textContent=state.starting?'Preparing…':state.playing?'Playing…':'Play song';
-      $('sidImportCapture').textContent=state.capturing?'Capturing…':'Capture voices';
+      label($('sidImportPlay'),state.starting?'Preparing…':state.playing?'Playing…':'Play song');
+      label($('sidImportCapture'),state.capturing?'Capturing…':'Capture voices');
       root.setAttribute('aria-busy',String(busy));
     },
     dispose(){for(const remove of listeners)remove();},

@@ -38,6 +38,19 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: 実SafariでLive中のPauseクリックが反応しない（2026-11-08）
+
+ユーザー指定の `localhost:8793/itch_sid_synth_dev-wVDGAN/` で再現した。
+配布ファイルは正本と一致し、アクセシビリティ操作ではPauseできるが、
+Live更新をまたぐ120ms／250msのマウスクリックでは再生が続く。
+毎回同じボタンのtextContentを置換する更新との関係を検証する。
+
+- [x] Live観察で変化していないボタンのラベルを置換しないようにした。Pause／Resumeの音声処理とchip状態は保持する。
+- [x] 押下中に複数のLive更新をまたぐマウス操作の回帰検証を追加。source／独立ZIPのChromium／WebKit計156項目、unit135件が成功した。
+- [x] ユーザー指定の配布フォルダーもmatching source／receipt込みで更新し、実Safariの同じURLで120ms／250msのマウスPauseとResume、位置の保持を再確認した。
+
+結果・配布候補: [実SafariのPauseクリック修正](sid_synth_safari_pause_click_result_01.md)。タブはRollin.sid・Master70%・Live On・Pausedで残した。commit／push／公開は未実行。
+
 ### 今回の続き: SynthでPauseが拒否されResumeが出ない更新不整合（2026-11-08）
 
 実画面 `localhost:8791/synth-sid/index.html` で `SID pause failed: Unknown SID command: pause` を確認した。配信中audio.jsにはpauseがあるため、ブラウザー内の旧audio moduleと新UIが混在している可能性が高い。表示があると断定せず、実画面で成功を確認する。

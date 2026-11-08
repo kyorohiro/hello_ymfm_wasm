@@ -1,5 +1,7 @@
 # SID Synth: Pauseが拒否されResumeが出ない更新不整合（2026-11-08）
 
+後続: ユーザー指定の実Safariでは、配布ファイルが一致していてもLive更新中のマウスクリックが失われる別の原因を再現した。[SafariのPauseクリック修正](sid_synth_safari_pause_click_result_01.md)を参照。この記録の更新不整合とは区別する。
+
 ユーザーの実画面を確認すると、`localhost:8791/synth-sid/index.html` に **SID pause failed: Unknown SID command: pause** と表示されていた。単にResume表示を見落とした状態ではなく、音声側がPauseを拒否してpreviewを閉じていた。
 
 現在配信される `sid-player/audio.js` はPause／Resume対応だった。このエラーはmain-thread facadeのcommand検証に由来し、新しいSynth UIと旧audio moduleが混在した状態と判断した。どのHTTP／module cache層が保持したかを直接計測したものではない。

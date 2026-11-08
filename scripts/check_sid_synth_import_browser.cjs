@@ -38,7 +38,7 @@ function createLiveFixture(base){
 
 function instrument(){
   const audit=window.__sidImportAudit={contexts:[],nodes:[],sinks:[],messages:[],processorErrors:[],
-    captureRequests:[],captureReplies:[],transportReplies:[],nextId:0,canvasDraws:0,playerReadsPending:0,playerReadsMax:0};
+    captureRequests:[],captureReplies:[],transportReplies:[],nextId:0,canvasDraws:0,playerReadsPending:0,playerReadsMax:0,playerReadReplies:0};
   const Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode;
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,ports=new WeakMap();
   const clearRect=CanvasRenderingContext2D.prototype.clearRect;
@@ -66,7 +66,7 @@ function instrument(){
       this.addEventListener('processorerror',()=>audit.processorErrors.push(args[1]));
       this.port.addEventListener('message',event=>{
         const request=requests.get(event.data?.id);if(!request||request.received)return;
-        request.received=true;if(request.read)audit.playerReadsPending--;
+        request.received=true;if(request.read){audit.playerReadsPending--;audit.playerReadReplies++;}
         if(ownerTransport(request.method)){
           audit.transportReplies.push({id:event.data.id,method:request.method,state:event.data.value,error:event.data.error??null});
           const flag=request.method==='pause'?'holdPauseReply':'holdResumeReply';
@@ -131,7 +131,7 @@ function instrument(){
 async function checkBrowser(name,engine,origin,helpers){
   const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
-  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[];
+  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[],pointerHoldObservations=[];
   let page,stage='startup',holdNextPlayerWasm=false,releaseWasm;
   const check=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
@@ -184,9 +184,50 @@ async function checkBrowser(name,engine,origin,helpers){
       return {node:__sidImportAudit.nodes.indexOf(node),context:__sidImportAudit.contexts.indexOf(node?.context),
         contexts:__sidImportAudit.contexts.length,loads:__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method==='load').length};
     });
-    async function pausePreview(){
+    async function pausePreview({heldPointer=false}={}){
       const count=await page.evaluate(()=>__sidImportAudit.transportReplies.filter(reply=>reply.method==='pause').length);
-      await page.locator('#sidImportPause').click();
+      const button=page.locator('#sidImportPause');
+      if(heldPointer){
+        await button.scrollIntoViewIfNeeded();
+        const box=await button.boundingBox();assert(box,'Pause has no pointer target');
+        await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+        await page.evaluate(()=>{
+          const button=document.getElementById('sidImportPause');
+          window.__sidHeldPause={button,label:button.firstChild,text:button.textContent,started:performance.now(),
+            reads:__sidImportAudit.messages.filter(item=>item.kind==='player'&&item.method==='read'&&item.id>0).length,
+            completedReads:__sidImportAudit.playerReadReplies,
+            frame:document.getElementById('sidLiveView').dataset.liveFrames};
+        });
+        let observation;
+        await page.mouse.down();
+        try{
+          // A normal pointer press spans several 50ms observations. Locator
+          // click() alone can finish before the first update and miss native
+          // Safari losing the click when its pressed text node is replaced.
+          await page.waitForTimeout(250);
+          await page.waitForFunction(()=>{
+            const held=window.__sidHeldPause;
+            return __sidImportAudit.playerReadReplies>=held.completedReads+2&&document.getElementById('sidLiveView').dataset.liveFrames!==held.frame;
+          },null,{timeout:5000});
+          observation=await page.evaluate(()=>{
+            const held=window.__sidHeldPause,button=document.getElementById('sidImportPause');
+            return {heldMs:performance.now()-held.started,sameButton:button===held.button,sameTextNode:button.firstChild===held.label,
+              initialLabel:held.text,labelDuringHold:button.textContent,initialFrame:held.frame,
+              frameDuringHold:document.getElementById('sidLiveView').dataset.liveFrames,
+              liveReadRequestsDuringHold:__sidImportAudit.messages.filter(item=>item.kind==='player'&&item.method==='read'&&item.id>0).length-held.reads,
+              completedLiveReadsDuringHold:__sidImportAudit.playerReadReplies-held.completedReads,
+              pauseRepliesBeforeRelease:__sidImportAudit.transportReplies.filter(reply=>reply.method==='pause').length};
+          });
+          pointerHoldObservations.push(observation);
+        }finally{await page.mouse.up();}
+        assert(observation.heldMs>=250,'Pointer press did not span Live observations');
+        assert(observation.completedLiveReadsDuringHold>=2,'Live reads did not occur during the pointer press');
+        assert.notEqual(observation.frameDuringHold,observation.initialFrame,'Live display did not update during the pointer press');
+        assert.equal(observation.sameButton,true,'A Live update replaced the pressed Pause button');
+        assert.equal(observation.sameTextNode,true,'A Live update replaced the pressed Pause text node');
+        assert.equal(observation.labelDuringHold,'Pause');
+        assert.equal(observation.pauseRepliesBeforeRelease,count,'Pause ran before pointer release');
+      }else await button.click();
       await page.waitForFunction(()=>document.getElementById('sidImportStatus').dataset.state==='paused');
       const reply=await page.evaluate(count=>__sidImportAudit.transportReplies.filter(reply=>reply.method==='pause')[count],count);
       assert(reply&&!reply.error,'Pause did not return a coherent Worklet ACK');
@@ -196,8 +237,8 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(await page.locator('#sidImportCapture').isDisabled(),false);
       await silent('player');return reply.state;
     }
-    async function resumePreview(){
-      await page.locator('#sidImportPause').click();
+    async function resumePreview({delay=0}={}){
+      await page.locator('#sidImportPause').click({delay});
       await page.waitForFunction(()=>document.getElementById('sidImportStatus').dataset.state==='playing');
       assert.match(await page.locator('#sidImportPause').textContent(),/Pause/);
       await waitState('player',state=>state.playing&&!state.paused);await sound('player');
@@ -518,6 +559,15 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual((await savedPreset()).value,edited);
     liveObservations.push({model:'8580',voice:0,frame:await liveFrame(),envelope:'unavailable'});
 
+    check('holding Pause across real Live updates preserves its text node and delivers Pause/Resume with the same engine');
+    const heldPointerIdentity=await playerIdentity(),heldPointerState=await pausePreview({heldPointer:true});
+    await checkPausedUi(heldPointerState);
+    assert.deepEqual(frozenCore(await read('player')),frozenCore(heldPointerState));
+    assert.deepEqual(await playerIdentity(),heldPointerIdentity);
+    await resumePreview({delay:250});
+    await waitState('player',state=>state.positionFrames>heldPointerState.positionFrames);
+    assert.deepEqual(await playerIdentity(),heldPointerIdentity);
+
     for(const entry of [
       {label:'6581 VBI',fixture:helpers.pair6581},
       {label:'6581 CIA',fixture:helpers.cia,subtune:2},
@@ -613,12 +663,12 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
     assert.deepEqual(await page.evaluate(()=>__sidImportAudit.processorErrors),[]);
     const muted=await page.evaluate(()=>__sidImportAudit.sinks.every(s=>s.mute.gain.value===0));assert(muted);
-    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,pauseObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
+    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,pauseObservations,pointerHoldObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
     console.log(`PASS ${name}: ${checks.length} direct SID import checks; every physical output muted.`);
   }catch(error){
     if(config.screenshots&&page)await page.screenshot({path:path.join(config.screenshots,`${name}-failed.png`),fullPage:true}).catch(()=>{});
     const state=await page?.evaluate(()=>({status:document.getElementById('sidImportStatus')?.textContent,info:document.getElementById('sidImportInfo')?.textContent,preview:document.getElementById('sidImportVoicePreview')?.textContent,audio:document.getElementById('audioStatus')?.textContent,live:document.getElementById('sidLiveView')?.dataset,liveText:document.getElementById('sidLiveView')?.textContent})).catch(()=>null);
-    report.results.push({browser:name,passed:false,stage,error:error.message,state,checks,errors,consoleErrors,failures,external});
+    report.results.push({browser:name,passed:false,stage,error:error.message,state,checks,pointerHoldObservations,errors,consoleErrors,failures,external});
     throw new Error(`${name} (${stage}): ${error.message}; ${JSON.stringify(state)}`,{cause:error});
   }finally{if(releaseWasm)releaseWasm();await context.close();await browser.close();}
 }
