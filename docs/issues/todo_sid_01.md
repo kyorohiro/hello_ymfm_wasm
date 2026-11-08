@@ -91,6 +91,29 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - `sh scripts/package_itch_sid_synth.sh <new-version>`と`sh scripts/package_itch_playground.sh <new-version>`で再生成可能。新module同期は`node scripts/sid_model_artifacts.mjs --sync`。CI監視pathと検証を更新済みだが、今回のGitHub Actions実行・commit／push／tag／公開はしていない。
 - [ ] 手動の次: 同じPresetを6581／8580へ切り替え、Cutoff／Resonance・LP／BP／HP、Pulse／Ring、短い連打と長いReleaseを聴き比べる。8580はPAL専用Previewで、Native出力・NTSC・実機精度／長時間検証は別作業。
 
+### 今回の続き: SID PlayerからSynthへ音色snapshotを取り込む（2026-11-08）
+
+ユーザー承認: 演奏中のVoice 1／2／3の瞬間設定を取り込み、SID Synthで試奏・編集・Preset保存できる導線を追加する。先にTODOを記録し、曲全体の音色変化の復元とは区別する。
+
+- [x] 実AudioWorkletへのreadで同じ時点の稼働model・32register・位置を取得し、選んだvoiceの波形／Pulse幅／ADSR・共有filter／volumeを既存Preset v2へ変換した。display pollingの古い値やdraft modelを取り込まない。
+- [x] 単一Triangle／Saw／Pulse／Noiseを初版の対応範囲とし、無波形・複合波形・Sync／Ring等の既存Synthで忠実に表せない設定は理由を表示する。Gate／elapsed Envelope／元の演奏pitch・software automationは再現しないことを明示し、共有filterの選択voice routing・voice3off・全output Offを黙ってbypassへ置換しない。
+- [x] Playerへvoice選択・snapshot取得・Preset保存の小さなfoldable UIを追加した。取得失敗・Stop／再load／subtune／model変更中・古いread完了で、保存済みsnapshotや現在の曲を壊さない。
+- [x] Synthへsnapshot JSONを既存Load presetから読み込めるようにし、同一originでは明示的な「Open in SID Synth」でも引き継げるようにした。音声・ROM・曲dataを渡さず、他origin／storage不可はPreset downloadを使う。
+- [x] pure変換・actual 6581／8580 snapshot・取消／競合・旧Preset互換・Mainの操作をunitで確認し、source／実ZIPのChromium／WebKitで「再生→取得→保存→Synth→試奏」を実行した。物理出力はmuteし、実聴と区別する。
+- [x] Player／Synth両方の可読ZIP・共通module・source kit・license・CI・README en／ja／英語AIと結果を更新した。Rust／WASM・fixed SDK／既存gainを変更せず、commit／push／公開は別とする。
+
+検証と再開情報:
+
+- `voice_snapshot.js`はpure変換、`voice_capture.js`は取得所有権・取消、`synth-sid/handoff.js`は同一origin・5分・一度限りのPreset転送。取得は明示的な1 readで、3voiceを同時点で保存し、後からvoiceを選んでも再生中の値に追従しない。保存済みsnapshotはStop／新しい曲でも保持する。
+- `npm run test:sid-player` **122件**／`npm run test:sid-synth` **75件成功**。pure変換8件は4波形×8filter mask×routing×両model、無波形・複合／Sync／Ring／TEST・voice3off・無音filter routeを含む。実Direct6581／C646581／8580で、取得・変換前後の状態と次PCM不変を検証。handoff13件とcontroller4件では、未要求時のstorage非参照、未知key保持、サイズ／期限／token／厳密Preset、storage拒否、取消・late replyを確認。
+- 既存Source browser回帰は[Player70項目](sid_voice_capture_player_regression_01.json)／[Synth32項目](sid_voice_capture_synth_regression_01.json)が成功。
+- 専用の[Source結合検証](sid_voice_capture_browser_01.json)は両browser各9項目・**18項目成功**。取得元の実Worklet応答と保存Presetの一致、旧snapshot保持、実稼働8580とdraft6581の区別、storage拒否時のfallback、両modelの同一origin引き継ぎ・要求keyの一度限り消費・無関係storage／URL fragment保持・受信だけでは音声開始しないこと、Synth実PCM・再保存を確認した。
+- [実ZIP結合検証](sid_voice_capture_zip_browser_01.json)は各8項目・**16項目成功**。standalone Playerの公開Synthリンクが別originであることを検出し、外部へ移動せずSave／Loadで両modelを展開済みSynthへ取り込み・実PCM試奏した。両browserで非対応設定の理由と1180／390px表示も確認。合計**136 browser項目**、全タブの物理出力はgain0、ゲーム曲／ROM／PCMの保存なし。実聴・長時間保証とは区別する。
+- [配布proof](sid_voice_capture_packages_01.json): Player `release/tetorica_sid_player_20261108-voice-snapshot.1_itch.zip` は **223files／20 readable modules／2,691,350bytes**、SHA `0e7774f190c269832d22a657a5383e9120cef2ea912d6ed888dee886eb5c57f2`。Synth `release/tetorica_sid_synth_20261108-voice-snapshot.1_itch.zip` は **194files／16 readable modules／2,511,075bytes**、SHA `158ec2021606911d4d5765f330f66dcd2b979dbb65480b9401100a80c3715764`。実展開byte・CRC・各176／160 original inputsのnested ZIP／hash、全authored moduleの原本byte、99 compiled inputsを含む127 native source／notice hashを確認した。初回の無印ZIPは途中snapshotとして保持。
+- fixed SDK **33 builds／68 outputs／75 mirrors**、PSID／C64 source receiptのcheckは成功。既存WASM・DSP・gain・preset v2形式は不変。両CIを更新し、SID Player workflowはsourceとPlayer／Synth両ZIPの結合検証・artifact保存を行う。GitHub Actions実行・commit／push／tag／公開はしていない。
+- 再実行は`npm run test:sid-voice:browser`。ZIPは`node scripts/check_sid_voice_capture_browser.cjs --player-root <Player展開先> --synth-root <Synth展開先> --out <JSON>`。packageは`node scripts/package_sid_player.mjs <new-version>`／`sh scripts/package_itch_sid_synth.sh <new-version>`。
+- [ ] 手動の次: 手元のSIDを再生し、`Voice snapshot → SID Synth`を開いてCapture now→Voice選択→Save preset／Open in SID Synthを試す。音の時間変化・元pitch・elapsed Envelopeは復元対象外。Sync／Ring pair・複合波形・時変instrument取り込みは別段階で検討する。
+
 ### PAL／6581補完設定の初期値（2026-11-07）
 
 ユーザー報告: Zombi.sidのmodel未指定エラーと、設定に気付きにくい問題を受け、通常SID Playerの「Use PAL / 6581」を既定Onにする。

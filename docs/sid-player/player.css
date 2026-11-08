@@ -81,6 +81,16 @@ td[data-on="true"] { color: #346a3e; font-weight: 750; }
 .rom-file input { max-width: 100%; min-width: 0; font-size: .75rem; }
 .rom-file output { overflow-wrap: anywhere; color: #6c614b; font-size: .75rem; }
 #applyRsidEnvironment { margin-top: 10px; }
+.snapshot-actions, #captureVoiceChoices { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.snapshot-actions { margin: 12px 0; }
+#captureVoiceChoices button { padding: 7px 12px; }
+#captureVoiceChoices button[aria-pressed="true"] { background: #d7e6d4; border-color: var(--accent); }
+.snapshot-link { display: inline-flex; align-items: center; min-height: 42px; font-size: .82rem; font-weight: 650; }
+.snapshot-link[aria-disabled="true"] { opacity: .5; cursor: default; }
+.scope-card .state-content > .snapshot-info { font-size: .75rem; overflow-wrap: anywhere; }
+.scope-card .state-content > .snapshot-preview { font: .75rem/1.7 ui-monospace, monospace; white-space: pre-line; overflow-wrap: anywhere; }
+#captureVoiceStatus { font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+#captureVoiceStatus[data-error="true"], #captureVoicePreview[data-unavailable="true"] { color: #9d3d24; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 600px) {
   main { padding: 12px 10px 30px; }

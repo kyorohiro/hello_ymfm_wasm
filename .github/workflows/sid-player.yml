@@ -5,21 +5,22 @@ on:
   push:
     paths:
       - 'docs/sid-player/**'
+      - 'docs/synth-sid/**'
       - 'docs/sid8580-lab/**'
       - 'docs/generated/sid8580-machine/**'
-      - 'docs/js/sid_psid.js'
-      - 'docs/js/sid_rsid.js'
+      - 'docs/js/sid*'
+      - 'docs/generated/sid/**'
+      - 'docs/sources/sid/**'
       - 'docs/generated/sid-player/**'
       - 'docs/generated/sid-rsid/**'
       - 'docs/sources/sid-player/**'
       - 'docs/sources/sid-rsid/**'
       - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'tetorica_src/runtime/sid_rsid.js'
+      - 'tetorica_src/runtime/sid*'
+      - 'tetorica_src/runtime/generated/sid/**'
       - 'tetorica_src/runtime/generated/sid-player/**'
       - 'tetorica_src/runtime/generated/sid-rsid/**'
-      - 'tetorica_src/wasm/sid_player*'
-      - 'tetorica_src/wasm/sid_rsid*'
+      - 'tetorica_src/wasm/sid*'
       - 'tetorica_src/wasm/sid8580-machine/**'
       - 'tetorica_src/wasm/sid8580-probe/**'
       - 'third_party/sidera/**'
@@ -32,6 +33,11 @@ on:
       - 'scripts/*rsid*'
       - 'scripts/*sid_corpus*'
       - 'scripts/*sid8580*'
+      - 'scripts/check_sid_voice_capture_browser.cjs'
+      - 'scripts/package_itch_sid_synth.*'
+      - 'scripts/sid_model_artifacts.mjs'
+      - 'scripts/sid_artifacts.mjs'
+      - 'scripts/copy_sid_sources.mjs'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
@@ -51,21 +57,22 @@ on:
   pull_request:
     paths:
       - 'docs/sid-player/**'
+      - 'docs/synth-sid/**'
       - 'docs/sid8580-lab/**'
       - 'docs/generated/sid8580-machine/**'
-      - 'docs/js/sid_psid.js'
-      - 'docs/js/sid_rsid.js'
+      - 'docs/js/sid*'
+      - 'docs/generated/sid/**'
+      - 'docs/sources/sid/**'
       - 'docs/generated/sid-player/**'
       - 'docs/generated/sid-rsid/**'
       - 'docs/sources/sid-player/**'
       - 'docs/sources/sid-rsid/**'
       - 'docs/synth-spu/spu_synth_visualizer.js'
-      - 'tetorica_src/runtime/sid_psid.js'
-      - 'tetorica_src/runtime/sid_rsid.js'
+      - 'tetorica_src/runtime/sid*'
+      - 'tetorica_src/runtime/generated/sid/**'
       - 'tetorica_src/runtime/generated/sid-player/**'
       - 'tetorica_src/runtime/generated/sid-rsid/**'
-      - 'tetorica_src/wasm/sid_player*'
-      - 'tetorica_src/wasm/sid_rsid*'
+      - 'tetorica_src/wasm/sid*'
       - 'tetorica_src/wasm/sid8580-machine/**'
       - 'tetorica_src/wasm/sid8580-probe/**'
       - 'third_party/sidera/**'
@@ -78,6 +85,11 @@ on:
       - 'scripts/*rsid*'
       - 'scripts/*sid_corpus*'
       - 'scripts/*sid8580*'
+      - 'scripts/check_sid_voice_capture_browser.cjs'
+      - 'scripts/package_itch_sid_synth.*'
+      - 'scripts/sid_model_artifacts.mjs'
+      - 'scripts/sid_artifacts.mjs'
+      - 'scripts/copy_sid_sources.mjs'
       - 'scripts/copy_readable_modules.mjs'
       - 'test/sid_psid*'
       - 'test/sid_player*'
@@ -114,25 +126,38 @@ jobs:
         run: |
           node scripts/sid_player_artifacts.mjs --check
           node scripts/sid_rsid_artifacts.mjs --check
+          node --test docs/synth-sid/handoff.test.mjs
           npm run test:sid-player
           npm run test:sid-corpus
           npm run test:sid-reference
           npm run check:runtime-artifacts
       - name: Play the source application
         run: node scripts/check_sid_player_browser.cjs --out release/sid-player-source-browser.json --screenshots release/sid-player-source-images
+      - name: Capture source voices and audition them in SID Synth
+        run: node scripts/check_sid_voice_capture_browser.cjs --root docs --out release/sid-voice-source-browser.json --screenshots release/sid-voice-source-images
       - name: Package and play the standalone player
         run: |
           npm run pack:sid-player -- ci
           python3 -m zipfile -e release/tetorica_sid_player_ci_itch.zip release/sid-player-browser
           node scripts/check_sid_player_browser.cjs --root release/sid-player-browser --entry /index.html --out release/sid-player-zip-browser.json --screenshots release/sid-player-zip-images
+      - name: Capture packaged voices and load them in the packaged Synth
+        run: |
+          sh scripts/package_itch_sid_synth.sh ci-voice-snapshot
+          python3 -m zipfile -e release/tetorica_sid_synth_ci-voice-snapshot_itch.zip release/sid-voice-synth
+          node scripts/check_sid_voice_capture_browser.cjs --player-root release/sid-player-browser --synth-root release/sid-voice-synth --out release/sid-voice-zip-browser.json --screenshots release/sid-voice-zip-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sid-player-check
           path: |
             release/tetorica_sid_player_ci_itch.zip
+            release/tetorica_sid_synth_ci-voice-snapshot_itch.zip
             release/sid-player-source-browser.json
             release/sid-player-zip-browser.json
+            release/sid-voice-source-browser.json
+            release/sid-voice-zip-browser.json
             release/sid-player-source-images/
             release/sid-player-zip-images/
+            release/sid-voice-source-images/
+            release/sid-voice-zip-images/
           if-no-files-found: ignore

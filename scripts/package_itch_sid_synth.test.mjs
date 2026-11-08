@@ -38,6 +38,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(!JSON.stringify(info.receipt).includes('/Users/'));
   assert.equal(info.receipt.product, 'Tetorica SID Synth');
   assert.equal(info.receipt.productId, 'tetorica-sid-synth');
+  for(const path of ['synth-sid/handoff.js','synth-sid/preset.js']){
+    assert(info.names.includes(path),`Missing readable preset handoff module: ${path}`);
+    const module=info.receipt.modules.find(item=>item.path===path);assert(module,`Missing module receipt: ${path}`);
+    assert.equal(module.sourcePath,'docs/'+path);
+    const bytes=await readFile(join(a.stage,path));assert.deepEqual(bytes,await readFile(new URL('../docs/'+path,import.meta.url)));
+    assert(info.receipt.originalInputs.some(item=>item.path==='docs/'+path&&item.sha256===sha(bytes)),`Missing preset handoff input: ${path}`);
+  }
   const icon = await readFile(new URL('../docs/tetorica_sid_synth.webp', import.meta.url));
   assert.deepEqual(await readFile(join(a.stage, 'tetorica_sid_synth.webp')), icon);
   for (const path of ['docs/tetorica_sid_synth.webp', 'docs/issues/tetorica_sid_icon_prompt_20261107.txt']) {

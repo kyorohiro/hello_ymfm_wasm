@@ -130,7 +130,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
   }
   const guide=await readFile(join(root,'docs/sid-player/README.md'),'utf8');
   await writeFile(join(stage,'sid-player/README.md'),guide);
-  await writeFile(join(stage,'README.md'),'# Tetorica SID Player\n\nOpen [the player](sid-player/index.html) through a local HTTP server or an HTTPS host. Read the [player guide](sid-player/README.md) for file limits, sources and rebuilding.\n\nJavaScript and CSS preserve their authored modules and comments; no runtime bundle or minification is used.\n');
+  await writeFile(join(stage,'README.md'),'# Tetorica SID Player\n\nOpen [the player](sid-player/index.html) through a local HTTP server or an HTTPS host. Read the [player guide](sid-player/README.md) for file limits, voice snapshots, sources and rebuilding.\n\nSave a supported captured voice as a preset JSON and load it in SID Synth. The standalone Player links to the published Synth on another origin; its direct same-origin transfer is unavailable there, so use the portable preset file.\n\nJavaScript and CSS preserve their authored modules and comments; no runtime bundle or minification is used.\n');
   // Preserve source UI paths for local dependencies. Navigation to products and
   // guides outside this standalone package opens their published documentation.
   let html=await readFile(join(root,'docs/sid-player/index.html'),'utf8');

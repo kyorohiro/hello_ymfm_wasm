@@ -3,6 +3,9 @@ import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
 import {validatePlayerSid, createPlayerCore} from './models.js';
 import {copyRomSet, readRomFile} from './roms.js';
 import {createAudio} from './audio.js';
+import {createVoiceCapture} from './voice_capture.js';
+import {SNAPSHOT_NOTICE} from './voice_snapshot.js';
+import {prepareSidPresetHandoff} from '../synth-sid/handoff.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 
 const $ = id => document.getElementById(id);
@@ -23,6 +26,7 @@ resizeMonitor();
 let selected = null, audio = null, starting = null, loading = null;
 let loadSequence = 0, generation = 0, playing = false, disposed = false, polling = false;
 let sidAttempt = null;
+let voiceCapture = null;
 const roms = {chars: null, basic: null, kernal: null}, romSequence = {chars: 0, basic: 0, kernal: 0};
 const pendingRoms = new Map();
 const voiceCells = [];
@@ -47,7 +51,82 @@ function updateButtons() {
   $('applyRsidEnvironment').disabled = !sidAttempt || !!loading || !!starting || (retryUsesMachine && $('rsidEnvironment').value === 'rom' && pendingRoms.size > 0);
   $('transport').setAttribute('aria-busy', String(!!loading || !!starting));
   $('play').textContent = starting ? 'Preparing…' : 'Play';
+  updateCaptureAvailability();
 }
+const synthDestination = new URL($('openSnapshotSynth').href, location.href);
+const sameSynthOrigin = location.origin !== 'null' && synthDestination.origin === location.origin;
+const handoffs = new Map();
+function updateCaptureAvailability() {
+  const state = voiceCapture?.read();
+  $('captureVoiceNow').disabled = !audio || !playing || !!loading || !!starting || !!state?.busy;
+  const available = !!state?.selected?.preset && !state.busy;
+  $('saveVoicePreset').disabled = !available;
+  $('openSnapshotSynth').setAttribute('aria-disabled', String(!available || !sameSynthOrigin));
+  $('openSnapshotSynth').title = sameSynthOrigin ? '' : 'Save the preset, then load it in the Synth on its separate host.';
+}
+function showCapture(state) {
+  const {snapshot,selected:row} = state;
+  for (const button of $('captureVoiceChoices').querySelectorAll('[data-snapshot-voice]')) {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.snapshotVoice) === state.voice));
+  }
+  $('captureVoiceNow').textContent = state.busy ? 'Capturing…' : 'Capture now';
+  $('captureVoiceStatus').textContent = state.message;
+  $('captureVoiceStatus').dataset.error = String(state.error);
+  $('captureVoicePreview').dataset.unavailable = String(!!row && !row.available);
+  if (!snapshot) {
+    $('captureVoiceInfo').textContent = 'No snapshot captured.';
+    $('captureVoicePreview').textContent = '';
+  } else {
+    const seconds = snapshot.positionFrames / snapshot.sampleRate;
+    $('captureVoiceInfo').textContent = `${snapshot.name} · Subtune ${snapshot.subtune} · ${snapshot.model}${snapshot.model === '8580' ? ' Preview' : ''} · ${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, '0')} · Voice ${state.voice + 1}`;
+    const preset = row.preset;
+    $('captureVoicePreview').textContent = preset
+      ? `${preset.voice.waveform} · Pulse width ${preset.voice.pulseWidth} · ADSR ${[preset.voice.attack,preset.voice.decay,preset.voice.sustain,preset.voice.release].join(' / ')}\nFilter ${preset.filter.enabled ? preset.filter.mode : 'bypassed for this voice'} · Cutoff ${preset.filter.cutoff} · Resonance ${preset.filter.resonance} · Volume ${preset.filter.volume}\nRecorded pitch ${row.frequencyHz.toFixed(1)} Hz (reference only)${row.warnings.length ? '\n' + row.warnings.join(' ') : ''}`
+      : row.reason;
+  }
+  updateCaptureAvailability();
+}
+voiceCapture = createVoiceCapture({
+  getSource: () => !disposed && audio && playing && !loading && !starting ? {
+    engine: audio, tune: selected, generation, sequence: loadSequence,
+    name: selected.parsed.metadata.name || selected.name, subtune: selected.parsed.subtune,
+  } : null,
+  isCurrent: source => !disposed && playing && !loading && !starting && audio === source.engine
+    && selected === source.tune && generation === source.generation && loadSequence === source.sequence,
+  onUpdate: showCapture,
+});
+$('captureVoiceNotice').textContent = SNAPSHOT_NOTICE;
+$('captureVoiceNow').addEventListener('click', () => {$('captureVoiceNow').blur(); void voiceCapture.capture();});
+for (const button of $('captureVoiceChoices').querySelectorAll('[data-snapshot-voice]')) {
+  button.addEventListener('click', () => {button.blur(); voiceCapture.selectVoice(Number(button.dataset.snapshotVoice));});
+}
+$('saveVoicePreset').addEventListener('click', () => {
+  $('saveVoicePreset').blur(); const state = voiceCapture.read(), preset = state.selected?.preset;
+  if (!preset || state.busy) return;
+  try {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(preset, null, 2) + '\n'], {type: 'application/json'}));
+    const link = document.createElement('a'); link.href = url; link.download = 'tetorica-sid-voice.json'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    voiceCapture.notify('Preset saved. Use Load preset… in SID Synth to audition it.');
+  } catch (error) {voiceCapture.notify(`Preset could not save: ${error.message}. Snapshot kept.`, true);}
+});
+$('openSnapshotSynth').addEventListener('click', event => {
+  const state = voiceCapture.read(), preset = state.selected?.preset;
+  if (!preset || state.busy || !sameSynthOrigin) {
+    event.preventDefault();
+    if (preset && !sameSynthOrigin) voiceCapture.notify('Use Save preset… here, then Load preset… in SID Synth. Automatic transfer needs the same host.');
+    return;
+  }
+  try {
+    const transfer = prepareSidPresetHandoff(preset), destination = new URL(synthDestination);
+    destination.hash = transfer.fragment; $('openSnapshotSynth').href = destination.href;
+    const timer = setTimeout(() => {transfer.dispose(); handoffs.delete(transfer);}, 301000);
+    handoffs.set(transfer, timer);
+    voiceCapture.notify('Opening the captured preset in SID Synth. Enable audio or play a key there.');
+  } catch (error) {
+    event.preventDefault(); voiceCapture.notify(`Automatic transfer unavailable: ${error.message}. Use Save preset… and Load preset… instead.`, true);
+  }
+});
 const hex = value => '$' + value.toString(16).toUpperCase().padStart(4, '0');
 function showSelection() {
   const parsed = selected.parsed;
@@ -138,6 +217,7 @@ function sidSignature(bytes) {
   return signature === 'PSID' || signature === 'RSID' ? signature : null;
 }
 function retireAudio() {
+  voiceCapture.invalidate();
   generation++;
   const old = audio; audio = null;
   const pending = starting; starting = null; pending?.controller.abort();
@@ -154,6 +234,7 @@ function audioFailed(error, owner) {
   status(`Playback stopped: ${error.message}. Selected file kept.`, 'error', true);
 }
 function cancelLoad() {
+  voiceCapture.invalidate();
   loadSequence++; const old = loading; loading = null; old?.controller.abort();
   // A select shows its draft before preflight finishes. Keep it aligned with
   // the accepted tune when that draft is cancelled or superseded.
@@ -323,5 +404,11 @@ window.addEventListener('pagehide', event => {
   // the selected tune and live controls so returning can start a new engine.
   if (event.persisted) return;
   disposed = true; clearInterval(timer); window.removeEventListener('resize', resizeMonitor); visualizer.dispose();
+  voiceCapture.dispose();
+  // A user can close this tab before the explicitly opened Synth has loaded.
+  // Its one-time transfer must survive; the receiver enforces the five-minute
+  // expiry. Only stop this realm's timers, never revoke a child tab's preset.
+  for (const timer of handoffs.values()) clearTimeout(timer);
+  handoffs.clear();
 });
 showState(null); updateButtons();

@@ -26,8 +26,16 @@ interrupt or continuous code in that machine. Player targets PAL / one SID,
 with Auto / 6581 / 8580 Preview selection. Direct VBI is a 6581-only option.
 The C64 backend has a limited original IRQ environment and an optional user-ROM mode;
 no C64 firmware is bundled. See [the ROM, timing and digi limits](sid-player/README.md).
-The Synth and Playground APIs remain
-separate instruments. Instrument extraction is tracked in [the TODO](issues/todo_sid_01.md).
+The Player's **Voice snapshot → SID Synth** section captures a fresh applied
+register snapshot for Voice 1, 2 or 3. Supported single-wave voices can be saved
+as a Synth preset or opened directly in the Synth on the same origin. It retains
+the running model, waveform, Pulse width, ADSR codes and the selected voice's
+shared-filter routing / settings and chip volume. Musical pitch, elapsed
+envelope / phase and the tune's later software changes are not restored; the
+Synth starts a new keyed note. Unsupported combinations show a reason.
+See [the capture workflow and limits](sid-player/README.md#capture-a-voice-for-sid-synth)
+and [the TODO](issues/todo_sid_01.md). The Synth and Playground remain independent
+instruments; capturing does not change the playing tune.
 
 ## Musical and register controls
 

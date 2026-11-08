@@ -5,6 +5,9 @@ on:
   push:
     paths:
       - 'docs/synth-sid/**'
+      - 'docs/sid-player/voice_capture.js'
+      - 'docs/sid-player/voice_snapshot.js'
+      - 'test/sid_player_voice*'
       - 'docs/tetorica_sid_synth.*'
       - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
       - 'docs/index.html'
@@ -40,6 +43,9 @@ on:
   pull_request:
     paths:
       - 'docs/synth-sid/**'
+      - 'docs/sid-player/voice_capture.js'
+      - 'docs/sid-player/voice_snapshot.js'
+      - 'test/sid_player_voice*'
       - 'docs/tetorica_sid_synth.*'
       - 'docs/issues/tetorica_sid_icon_prompt_20261107.txt'
       - 'docs/index.html'
@@ -82,6 +88,7 @@ jobs:
         run: |
           node scripts/sid_model_artifacts.mjs --check
           node --test test/runtime/sid8580.test.mjs test/runtime/sidsynth.test.mjs
+          node --test test/sid_player_voice_snapshot.test.mjs
           npm run test:sid-synth
           node scripts/check_sid_synth_browser.cjs --out release/sid-synth-source-browser.json --screenshots release/sid-synth-source-images
       - name: Package and play the standalone SID Synth

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "packages": [
+    {
+      "product": "Tetorica SID Player",
+      "archive": "release/tetorica_sid_player_20261108-voice-snapshot.1_itch.zip",
+      "bytes": 2691350,
+      "sha256": "0e7774f190c269832d22a657a5383e9120cef2ea912d6ed888dee886eb5c57f2",
+      "files": 223,
+      "readableModules": 20,
+      "originalInputs": 176,
+      "crcAndAllStageAndExtractedBytesVerified": true,
+      "originalSourceArchiveCrcAndAllHashesVerified": true,
+      "allAuthoredModuleBytesVerified": true,
+      "matching8580CompiledInputs": 99,
+      "matching8580SourceAndNoticeHashesVerified": 127,
+      "published": false
+    },
+    {
+      "product": "Tetorica SID Synth",
+      "archive": "release/tetorica_sid_synth_20261108-voice-snapshot.1_itch.zip",
+      "bytes": 2511075,
+      "sha256": "158ec2021606911d4d5765f330f66dcd2b979dbb65480b9401100a80c3715764",
+      "files": 194,
+      "readableModules": 16,
+      "originalInputs": 160,
+      "crcAndAllStageAndExtractedBytesVerified": true,
+      "originalSourceArchiveCrcAndAllHashesVerified": true,
+      "allAuthoredModuleBytesVerified": true,
+      "matching8580CompiledInputs": 99,
+      "matching8580SourceAndNoticeHashesVerified": 127,
+      "published": false
+    }
+  ],
+  "containsUserMusicRomOrPcm": false,
+  "nativeWasmChanged": false
+}

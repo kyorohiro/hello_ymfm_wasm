@@ -63,6 +63,13 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(info.names.length,first.files);assert(first.files<1000);
   assert(!JSON.stringify(info.receipt).includes('/Users/'));
   assert.equal(info.receipt.productId,'tetorica-sid-player');assert.equal(info.receipt.builder.minify,false);assert.equal(info.receipt.builder.bundle,false);
+  for(const path of ['sid-player/voice_capture.js','sid-player/voice_snapshot.js','synth-sid/preset.js','synth-sid/handoff.js']){
+    assert(info.names.includes(path),`Missing readable capture module: ${path}`);
+    const module=info.receipt.modules.find(item=>item.path===path);assert(module,`Missing module receipt: ${path}`);
+    assert.equal(module.sourcePath,'docs/'+path);
+    const bytes=await readFile(join(first.stage,path));assert.deepEqual(bytes,await readFile(new URL('../docs/'+path,import.meta.url)));
+    assert(info.receipt.originalInputs.some(item=>item.path==='docs/'+path&&item.sha256===record(bytes).sha256),`Missing capture input: ${path}`);
+  }
   assert.deepEqual(info.names.filter(name=>name.endsWith('.sid')).sort(),['sid-player/demos/melody-filter.sid','sid-player/demos/noise.sid','sid-player/demos/pulse.sid','sid-player/demos/rsid/irq.sid','sid-player/demos/tone.sid']);
   assert(!info.names.some(name=>/\.(?:bin|rom)$/i.test(name)));
   assert.deepEqual(await readFile(join(directory,'first','my-kernal.rom')),privateRom,'Private firmware is left untouched');
@@ -127,6 +134,11 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.doesNotMatch(await readFile(join(first.stage,'sid-player/demos/rsid/fixture.mjs'),'utf8'),/createRsidTestRoms/);
   const html=await readFile(join(first.stage,'sid-player/index.html'),'utf8');
   assert.match(html,/<title>SID Player · Tetorica<\/title>/);
+  const synthLink=[...html.matchAll(/<a\b[^>]*>/g)].map(([tag])=>tag).find(tag=>/\bid="openSnapshotSynth"/.test(tag));
+  assert(synthLink,'Missing explicit snapshot handoff link');
+  assert.match(synthLink,/\bhref="https:\/\/kyorohiro\.github\.io\/hello_ymfm_wasm\/synth-sid\/index\.html"/,'Standalone navigation must expose its different-origin target');
+  assert(!info.names.includes('synth-sid/index.html'),'The Player keeps the Synth as a separately distributed application');
+  assert.match(await readFile(join(first.stage,'README.md'),'utf8'),/portable preset file/);
   assert.match(await readFile(join(first.stage,'index.html'),'utf8'),/url=sid-player\/index.html/);
   for(const [tag] of html.matchAll(/<(?:img|script|link)\b[^>]*>/g))for(const [,target] of tag.matchAll(/\b(?:src|href)="([^"]+)"/g))assert(present.has(resolvePath(target,'sid-player/index.html')));
   for(const [,target] of html.matchAll(/\bhref="([^"]+)"/g)){

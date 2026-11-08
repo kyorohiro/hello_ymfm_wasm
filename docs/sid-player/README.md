@@ -4,7 +4,48 @@ Open a supported `.sid` file, choose its subtune and press **Play**. The file st
 
 **SID model** defaults to **Auto · file**: declared 6581 files use the existing 6581 core, and declared 8580 files use the **8580 Preview** core. The original declaration and selected target are shown separately. Changing the model checks the latest file again; successful changes require **Play**.
 
-The player runs a tune's 6502 program and follows its writes to the SID. The three voice rows and shared filter display the running program's registers. Waveform and Spectrum show output after the software Master control. This screen plays music; use [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) to edit an instrument or [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) to write your own register code.
+The player runs a tune's 6502 program and follows its writes to the SID. The three voice rows and shared filter display the running program's registers. Waveform and Spectrum show output after the software Master control. Capture a supported voice's current settings for [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html), or use [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) to write your own register code.
+
+## Capture a voice for SID Synth
+
+1. Load a tune and press **Play**.
+2. Open **Voice snapshot → SID Synth** and choose Voice 1, 2 or 3.
+3. Press **Capture now** when the sound you want is playing.
+4. Use **Save preset** to download the selected voice's JSON. In SID Synth,
+   open **Preset · save, load and JavaScript** and choose **Load preset…**.
+   When both pages share an origin, **Open in SID Synth** transfers the preset
+   directly; enable audio or play a key there to audition it.
+
+Capture reads the running AudioWorklet at the click, rather than reusing a
+potentially older display update. The captured batch stays fixed while the tune
+continues; choosing another voice inspects that same moment. Capture again for a
+later moment. Stop, load/subtune/model changes and late reads cannot replace an
+accepted snapshot with an obsolete result. Capturing sends no register writes,
+does not stop the tune and never copies its program or audio.
+
+The preset retains the running **6581 / 8580 Preview** model, one Triangle,
+Saw, Pulse or Noise waveform, Pulse width, hardware ADSR codes and shared
+Cutoff / Resonance / chip volume. Whether the selected voice is routed through
+the filter controls the Synth's filter enable state. Combined LP / BP / HP
+outputs are retained. A voice routed into an all-off filter is unavailable
+because the Synth's all-off convenience bypass would change that silent case.
+Combined waveforms, Sync / Ring dependencies, held TEST and a muted voice-3 dry
+path also show reasons instead of silently replacing those settings.
+
+This is an **instantaneous register snapshot**, not a recovered song instrument.
+The Synth follows its keyboard pitch and starts a fresh Gate / ADSR attack;
+original musical pitch, oscillator / envelope phase, elapsed Envelope, noise
+state and later software automation are not restored. A released Gate may still
+be captured, with that restarted-note behavior disclosed. Unavailable Envelope
+values in 8580 remain unknown, rather than being interpreted as zero.
+
+The direct handoff stores only a validated preset under a temporary random key
+on the same browser origin. It expires after five minutes and is consumed when
+the explicitly requested Synth page loads; the URL carries the key, not song,
+firmware or preset contents. It does not start an audio device. A standalone
+Player ZIP links to the published Synth on another origin, so use **Save preset**
+and **Load preset…** there. This file workflow also works when browser storage
+is unavailable. No automatic cross-origin transfer is attempted.
 
 ## Supported files
 
@@ -87,6 +128,8 @@ The application is distributed as readable source modules and CSS, with their co
 - [models.js](models.js) and [model_policy.js](model_policy.js): Auto / explicit model policy and core selection, retaining original declarations.
 - [core8580.js](core8580.js): application-specific 8580 adapter over the separate model; no 6581 substitution.
 - [audio.js](audio.js) and [processor.js](processor.js): Web Audio lifecycle and AudioWorklet commands.
+- [voice_snapshot.js](voice_snapshot.js): read-only register-to-preset conversion and unsupported-state reasons.
+- [handoff.js](../synth-sid/handoff.js) and [preset.js](../synth-sid/preset.js): validated, temporary same-origin transfer and portable preset format.
 - [core.js](core.js): explicit Direct VBI API.
 - [rsid_core.js](rsid_core.js) and [roms.js](roms.js): continuous C64 API for RSID and PSID CIA, and in-memory firmware input checks.
 - [sid_psid.js](../js/sid_psid.js): shared bounded PSID input module. Its `parsePsid()` entry retains the CLI's strict header requirements; `validateBrowserPsid()` selects the subtune's timing, accepts explicit PAL/6581 choices for unknown/either declarations and preserves the original header. Its `vbiBackend` option defaults to `direct` for existing API callers; the UI and C64 wrapper explicitly select `c64`. The reference CLI remains unchanged.

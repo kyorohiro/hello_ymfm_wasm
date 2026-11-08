@@ -2,6 +2,7 @@
 import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
+import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -214,4 +215,19 @@ $('copyCode').addEventListener('click',async()=>{
 window.addEventListener('pagehide',event=>{
   if(event.persisted){void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
-renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);
+function receivePlayerSnapshot(){
+  const fragment=window.location?.hash;
+  if(!fragment||!new URLSearchParams(fragment.slice(1)).has('sid-voice'))return;
+  try{
+    const incoming=consumeSidPresetHandoff(fragment);
+    if(!incoming)return;
+    // Startup has no audio engine. This changes authoring data only; the user
+    // still enables audio or presses a key to audition the captured settings.
+    void applyPreset(incoming,{load:true,message:'SID Player snapshot loaded · enable audio, then play. Envelope and pitch restart from this keyboard.'}).catch(report);
+  }catch(error){status(`SID Player import failed: ${error.message??error}. Current preset kept.`,true);return;}
+  try{
+    const hash=stripSidPresetHandoffFragment(fragment);
+    window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search+hash);
+  }catch{status('SID Player snapshot loaded. The URL token could not be cleared; it cannot import a second time.');}
+}
+renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);receivePlayerSnapshot();

@@ -92,6 +92,24 @@ filter bypassed. It does not contain a SID tune or C64 program. Invalid
 files, cancelled selection and rejected edits retain the accepted instrument.
 Preset files are limited to 64 KiB.
 
+To try a voice from [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html),
+capture a supported voice in **Voice snapshot → SID Synth** and save its preset,
+then choose **Load preset…** here. On the same origin, the Player's explicit
+**Open in SID Synth** link supplies that validated preset directly. This loads
+the preset without starting audio; play a key or enable audio to hear it. The
+temporary handoff expires after five minutes and is consumed once. Invalid or
+expired requests keep the current preset and show a diagnostic. Standalone
+packages on different origins use the portable JSON file workflow.
+
+Snapshots retain the model, one waveform, Pulse width, ADSR register codes and
+the selected voice's shared-filter routing / settings and chip volume. They
+restart as a keyboard-controlled instrument: the original musical pitch,
+elapsed envelope, oscillator / noise phase and later song automation are not
+recreated. Combined waveforms and unsupported modulation / silent-routing cases
+are rejected with reasons in the Player. The source modules remain readable in
+[voice_snapshot.js](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/sid-player/voice_snapshot.js)
+and [handoff.js](handoff.js).
+
 **Copy JavaScript** targets C64 mode in the Playground. A 6581 preset uses the
 primary `sid`; an 8580 preset creates a separate `sid8580` instance with
 `await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'})`, supported in
@@ -113,7 +131,7 @@ replaces the instrument within the same audio engine and clears held notes,
 tails and Pitch. A software 12 Hz output DC blocker follows each chip.
 Filters and combined waveforms are approximations; neither model promises
 real-chip fidelity or covers analog unit variation.
-`.sid` song playback, sound extraction, Native audio output, software LFOs and
+`.sid` song playback, time-varying instrument reconstruction, Native audio output, software LFOs and
 arbitrary modulation routing are separate work; none is implied by this UI.
 
 The 6581 chip is **zlib**, the 8580 [sidera core](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/sidera/README.md)

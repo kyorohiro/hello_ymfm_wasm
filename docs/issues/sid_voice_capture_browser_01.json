@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "packaged": false,
+  "playerEntry": "/sid-player/index.html",
+  "synthEntry": "/synth-sid/index.html",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "fixtures": "Original Tetorica register scenes and tiny PSID programs; no game tune, ROM dump or recorded audio",
+  "results": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "snapshot controls are folded and audio-free until explicit playback and capture",
+        "Capture now uses a fresh coherent real Worklet read and saves exactly its selected voice",
+        "Stop and new-file selection cancel delayed real capture replies while preserving the accepted snapshot",
+        "6581 real playback captures its applied model, shared filter route and hardware codes",
+        "blocked browser storage keeps playback and snapshot, and explains portable Save / Load fallback",
+        "6581 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+        "8580 real playback captures its applied model, shared filter route and hardware codes",
+        "8580 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+        "unsupported combined / Sync / TEST and routed-all-off controls report reasons from actual authored CPU programs"
+      ],
+      "captures": [
+        {
+          "model": "6581",
+          "capturePositionFrames": 512,
+          "captureReadId": 3,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica tone · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 2048,
+              "attack": 2,
+              "decay": 6,
+              "sustain": 12,
+              "release": 5,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": false,
+              "ratio": 1
+            },
+            "filter": {
+              "enabled": false,
+              "mode": "off",
+              "cutoff": 0,
+              "resonance": 0,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+          "model": "6581",
+          "audition": {
+            "rms": 0.006617111129910255,
+            "peak": 0.055224113166332245,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "8580 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+          "model": "8580",
+          "audition": {
+            "rms": 0.002007610245374614,
+            "peak": 0.03685404732823372,
+            "finite": true,
+            "muted": true
+          }
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failures": [],
+      "external": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "snapshot controls are folded and audio-free until explicit playback and capture",
+        "Capture now uses a fresh coherent real Worklet read and saves exactly its selected voice",
+        "Stop and new-file selection cancel delayed real capture replies while preserving the accepted snapshot",
+        "6581 real playback captures its applied model, shared filter route and hardware codes",
+        "blocked browser storage keeps playback and snapshot, and explains portable Save / Load fallback",
+        "6581 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+        "8580 real playback captures its applied model, shared filter route and hardware codes",
+        "8580 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+        "unsupported combined / Sync / TEST and routed-all-off controls report reasons from actual authored CPU programs"
+      ],
+      "captures": [
+        {
+          "model": "6581",
+          "capturePositionFrames": 768,
+          "captureReadId": 3,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica tone · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 2048,
+              "attack": 2,
+              "decay": 6,
+              "sustain": 12,
+              "release": 5,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": false,
+              "ratio": 1
+            },
+            "filter": {
+              "enabled": false,
+              "mode": "off",
+              "cutoff": 0,
+              "resonance": 0,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+          "model": "6581",
+          "audition": {
+            "rms": 0.007612352306260567,
+            "peak": 0.06808406114578247,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "8580 explicit same-origin handoff is single-use, preserves unrelated storage/hash and starts no Synth audio",
+          "model": "8580",
+          "audition": {
+            "rms": 0.01390441099904011,
+            "peak": 0.1232091560959816,
+            "finite": true,
+            "muted": true
+          }
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failures": [],
+      "external": []
+    }
+  ],
+  "checkerSha256": "dc69d10db5b7700eae6d440639937c93ae21f743ae33ff08080babeba07ab92e"
+}

@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player, voice snapshots and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -28,6 +28,41 @@ or use a manual model choice. Known-model conflicts are rejected. The declared
 model and chosen playback target stay separate; original bytes are never patched.
 Local files,
 original demos, subtunes, Play / Stop and live voice/filter state are implemented.
+The Player's explicit **Voice snapshot → SID Synth** workflow captures current
+register settings into a validated Synth v2 preset. A fresh Worklet read supplies
+one coherent model/register/position snapshot; it never borrows the display poll
+or model-selector draft. Choose Voice 1/2/3 within that captured batch, save its
+JSON, or open the Synth directly on the same origin. Capturing never writes SID
+registers or stops the tune. Pending reads are fenced against Stop, tune/subtune/
+model replacement and disposal; an obsolete reply cannot replace a retained
+snapshot. `voice_capture.js` owns this UI lifecycle, and pure
+`voice_snapshot.js` maps supported settings through the existing preset validator.
+Both are authored source under `docs/sid-player/`.
+
+Capture initially supports one Triangle/Saw/Pulse/Noise waveform without
+Sync/Ring dependencies or held TEST. It preserves Pulse width, hardware ADSR
+codes, model, shared cutoff/resonance/chip volume and whether the selected
+physical voice uses that filter. All eight LP/BP/HP masks are interpreted; a
+routed all-off filter cannot silently become Synth bypass. Muted voice-3 dry
+output and unsupported wave/modulation states have reasons. Gate-off settings
+may be captured with a restarted-attack warning. The resulting keyboard
+instrument does not preserve original note frequency, current/elapsed Envelope,
+oscillator/noise phase or song automation; unavailable 8580 Envelope stays null.
+
+`docs/synth-sid/handoff.js` transfers only a strict, detached preset through a
+random-key localStorage record and `#sid-voice=<token>` request, expires it after
+five minutes and consumes only that record. A direct request loads a preset
+without opening audio; rejected/expired requests keep the current patch and
+show an error. Ordinary Synth loads without the fragment do not read handoff
+records. Storage denial or a different-origin destination uses portable preset
+download/loading instead. Player standalone navigation is rewritten to the
+published Synth; it must never claim a same-origin transfer can cross that
+boundary. No C64 RAM, ROM, tune bytes or PCM enters the handoff or package.
+The schema remains preset v2, with strict v1→6581 migration. Shared modules are
+retained readably in both package closures and original-input archives. Current
+scope and validation records belong in `docs/issues/todo_sid_01.md`; this does
+not add song-instrument reconstruction, DSP/WASM changes or fixed SDK changes.
+
 The C64 backend clocks CPU, both CIAs, VIC and IRQ/NMI; CIA playback does not
 substitute host-periodic VBI calls. The earlier 6581 integration passed 93 player tests,
 10 corpus-tool tests, 29 reference tests and 124 source/actual-ZIP
