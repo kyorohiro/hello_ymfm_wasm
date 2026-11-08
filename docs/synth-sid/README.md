@@ -18,11 +18,25 @@ foldable sections and controls that leave computer keys available for playing.
 ## Play and change the sound
 
 1. Select **Enable audio**, or play a key to prepare audio.
-2. Choose Triangle, Saw, Pulse or Noise and change the hardware ADSR codes.
+2. Choose **CH 1 / CH 2 / CH 3** to edit and play one physical channel, or
+   **Round robin** to play across all three while keeping their sounds. Choose Triangle,
+   Saw, Pulse or Noise and change the hardware ADSR codes.
 3. Enable the shared filter and move Cutoff / Resonance while holding notes.
 4. Compare **6581** and **8580 · Preview** using the SID model buttons in the
    filter section. A model change stops held notes and resets Pitch.
-5. Save the instrument as JSON, or copy its readable Playground JavaScript.
+5. **Save voice preset…** saves the current sound. **Save channel setup…** also
+   saves all three channel patches and the selected target. **Copy JavaScript**
+   produces readable Playground code for the selected physical channel.
+
+Fixed channels retain separate oscillator, ADSR and modulation settings. Changing
+the selected CH restores its patch. Entering Round robin preserves all three
+patches. Editing a parameter there applies only that changed parameter to all
+three, preserving their other differences. When editing mixed settings, the
+controls use CH 1 as a reference and a short notice identifies the differences.
+While Auto update is on, they show its observed song CH instead.
+Loading a voice preset in Round robin deliberately replaces the complete sound
+on all three. Model and filter settings are shared.
+Switching the target stops held notes and resets Pitch.
 
 Opening the page and editing a preset start no audio device. Master is a
 software output gain; values above 100% use the orange boost color. The
@@ -42,13 +56,15 @@ Player page:
 4. Select **Voice 1**, **Voice 2** or **Voice 3**. The selected captured voice is
    loaded immediately: the preview closes and the preset becomes this keyboard's
    instrument. An unavailable voice shows its reason and keeps your instrument.
-5. Play, edit, **Save preset…**, or **Copy JavaScript** as usual.
+5. Play, edit, **Save voice preset…**, or **Copy JavaScript** as usual. The sound
+   is applied to the selected CH, or all three in Round robin.
 
 **Auto · file** follows a known 6581 / 8580 declaration. Unknown/either hints
 use PAL / 6581 by default; manual selection can resolve an unknown/either model.
 A known conflicting model or NTSC declaration is rejected without rewriting
-the file. Song model selection does not change the keyboard model until you
-use a captured voice.
+the file. With **Auto update from song** on, compatible observed settings also
+update the keyboard's selected target, including the model. With it off, use a
+captured Voice to import a sound explicitly.
 
 Preview supports PAL, single-SID PSID / RSID v2 through the existing C64
 machine's limited built-in environment. It does not accept user ROMs or offer
@@ -77,10 +93,10 @@ No song, ROM or PCM bytes are stored in a voice preset.
 
 **Pause** holds the current song position and CPU / SID state. Its button becomes
 **Resume**, which continues the same preview without reloading the file.
-With Live view on, **Your sound** keeps the same read-only controls at the
+With Auto update on, **Your sound** keeps the same read-only controls at the
 acknowledged pause point. Switch **CH 1 / CH 2 / CH 3** to inspect that held
-state, or turn Live off to view your authored keyboard instrument and on again
-to return to it. No periodic reads are needed while paused.
+state, or turn Auto update off to edit the latest playable settings. No periodic
+reads are needed while paused.
 
 **Capture voices** works while paused and reads that same fixed machine state.
 You can Resume after capture, or select a captured Voice to stop the preview
@@ -99,20 +115,26 @@ and Pause / Resume support before playing. This prevents an updated Synth from
 silently using an older cached audio module. If an already-open older page shows
 `Unknown SID command: pause`, reload the page to load the paired modules.
 
-### Follow a playing channel
+### Automatically reflect a playing channel
 
-**Live CH view while playing** is on by default. During song preview, **Your
-sound** displays the selected **CH 1 / CH 2 / CH 3** as it changes. Channel
-selection affects observation only; the song continues and your keyboard preset
-is preserved. Turn off Live view to return to the keyboard's normal editor.
-While paused, the same controls show the held channel state until Resume.
-Selecting a captured Voice closes the preview and returns to that editor with
-the imported sound.
+**Auto update from song** is on by default. During song preview, **Your sound**
+follows the selected physical **CH 1 / CH 2 / CH 3**. Compatible voice settings
+are kept in that channel's keyboard patch. In **Round robin**, the last explicitly
+selected song CH is observed and its compatible settings are applied to all three
+keyboard channels when those settings change. Selecting Round robin alone, or
+advancing to another observation of unchanged settings, does not copy them. The
+song itself is never changed.
+
+Turn Auto update off to keep the latest playable settings and edit or audition
+them. CH selection remains available. While paused, the same controls inspect
+the held state until Resume. Unsupported raw settings remain visible while Auto
+is on, with their reason; they do not overwrite the last playable patch. Loading
+a preset/setup or using Reset turns Auto update off so the explicit choice stays.
 
 Live and editing use the **same controls in the same positions**: waveform
 buttons, Pulse width, ADSR, filter and modulation controls update in place.
-Live values are read-only and changes are highlighted. Switching back restores
-the authored instrument, retaining the same control nodes and folded sections.
+Live values are read-only and changes are highlighted. Turning Auto update off
+keeps the same control nodes and folded sections and enables editing again.
 Long explanations are behind each section's **?** button, closed by default.
 
 The passive display shows the actual waveform flags (including combined or no
@@ -126,14 +148,16 @@ waveform buttons; raw filter routing and out-of-range ratios are not narrowed
 to a valid keyboard preset for display.
 
 This uses the existing player's coherent Worklet read at up to 20 updates per
-second, with one read at a time. It never writes the song or continually reloads
-the authored instrument. Fast register changes between observations can be
+second, with one read at a time. It never writes the song or starts keyboard
+audio merely to reflect settings. Fast register changes between observations can be
 missed; this is a sampled view, not a complete register-write recording. Capture
 still reads one fixed batch, and the captured Voice buttons load that batch.
 
 ## Three voices and oscillator modulation
 
-Normal playback uses the three physical SID voices in round-robin order.
+**Round robin** uses the three physical SID voices in round-robin order.
+**CH 1 / CH 2 / CH 3** plays only that selected physical channel, with one held
+note at a time; a later key replaces the earlier one on that CH.
 Allocation prefers a silent voice, then an older released tail, then the oldest
 held voice. Releasing an old key cannot release its replacement. Key release
 lowers the hardware Gate and leaves the hardware release envelope running.
@@ -142,13 +166,18 @@ treated as possible tails until reused; they are preferred over held voices.
 **Stop all sound** flushes voices, queued PCM and output tails while retaining
 the instrument. Stop, preset load and topology changes also reset Pitch.
 
-Sync / Ring use **voice 3 → voice 1** as one fixed pair, giving one keyboard
-note. Voice 3 runs as a silent oscillator; it is not an extra emulated chip.
+Sync / Ring use the selected carrier's physical preceding oscillator:
+**CH 3 → CH 1**, **CH 1 → CH 2**, or **CH 2 → CH 3**. In Round robin, if any CH
+has Sync / Ring enabled, the first such CH becomes the single carrier with its
+physical predecessor, giving one keyboard note. All saved channel patches are
+kept. The source runs as
+a silent Triangle oscillator; its saved channel patch is kept for a later target
+selection. It is not an extra emulated chip.
 Its Gate/envelope and selected output waveform do not control the modulation:
 hardware Sync resets phase, and Ring changes the Triangle oscillator's sign.
 Choose **Triangle** to hear Ring. Other carrier waveforms can still use Sync.
 
-**Modulator ratio** is a software tuning control for the physical third
+**Modulator ratio** is a software tuning control for the physical preceding
 oscillator. It follows the played note and Pitch, from 0.125× to 8×. It does not
 add a hardware modulation-depth parameter. Ratios / notes / Pitch that exceed
 the SID's frequency-register range are rejected before changing the current
@@ -194,9 +223,16 @@ filter bypassed. It does not contain a SID tune or C64 program. Invalid
 files, cancelled selection and rejected edits retain the accepted instrument.
 Preset files are limited to 64 KiB.
 
+The separate `tetorica-sid-channels`, **version 1**, setup contains three portable
+version-2 voice presets and `target` (`0`, `1`, `2` or `'round-robin'`). All three
+share their model and filter. Round robin can retain three different patches.
+**Load preset / setup…** accepts either format. A voice preset
+loads into the selected CH (all three in Round robin); a setup restores the
+complete bank and target. Both formats contain settings only, never song bytes.
+
 To try a voice from [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html),
 capture a supported voice in **Voice snapshot → SID Synth** and save its preset,
-then choose **Load preset…** here. On the same origin, the Player's explicit
+then choose **Load preset / setup…** here. On the same origin, the Player's explicit
 **Open in SID Synth** link supplies that validated preset directly. This loads
 the preset without starting audio; play a key or enable audio to hear it. The
 temporary handoff expires after five minutes and is consumed once. Invalid or
@@ -207,8 +243,8 @@ Snapshots retain the model, one carrier waveform, Pulse width, ADSR register
 codes and the selected voice's shared-filter routing / settings and chip volume.
 An isolated Sync / Ring pair also retains both carrier modulation flags and
 the unrounded source/carrier frequency-register ratio. The original physical
-connection is remapped to this Synth's **silent Triangle voice 3 → carrier 1**
-pair, using one keyboard note. SID Sync / Ring uses oscillator phase rather
+connection is remapped to the selected carrier's **silent Triangle predecessor**
+(the first paired CH in Round robin), using one keyboard note. SID Sync / Ring uses oscillator phase rather
 than the source's audible waveform / Gate / ADSR. Both 6581 and 8580 allow a
 source with no waveform selected; its phase continues while Gate is off too.
 The original source's audible part and the third song
@@ -226,7 +262,7 @@ primary `sid`; an 8580 preset creates a separate `sid8580` instance with
 `await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'})`, supported in
 Main and Worker execution. The code describes the fixed physical voices, routing and frequency ratio;
 standalone keyboard allocation remains host software. The modules
-[preset.js](preset.js), [instrument.js](instrument.js), [audio.js](audio.js),
+[preset.js](preset.js), [channel_settings.js](channel_settings.js), [instrument.js](instrument.js), [audio.js](audio.js),
 [processor.js](processor.js), [editor.js](editor.js) and [synth.js](synth.js)
 retain comments and imports for modification. The engine reuses
 [SidCore](../js/sid.js), [Sid8580Core](../js/sid8580.js) and [SidSynth](../js/sidsynth.js).

@@ -7,6 +7,7 @@ import {SidCore,SID_PAL_CLOCK} from '../js/sid.js';
 import {SidSynth} from '../js/sidsynth.js';
 import {SidInstrument} from './instrument.js';
 import {createDefaultPreset,presetToCode} from './preset.js';
+import {selectChannelTarget,applyChannelPreset} from './channel_settings.js';
 import {Sid8580Core} from '../../tetorica_src/runtime/sid8580.js';
 
 const wasmBinary=await readFile(new URL('../generated/sid/sid.wasm',import.meta.url));
@@ -80,6 +81,168 @@ test('three real voices rotate, steal oldest held ownership and ignore stale not
   assert.throws(()=>instrument.noteOn('replacement',70),/already active/);
   const detached=instrument.read();detached.voices[0].id='changed';detached.preset.voice.attack=15;detached.registers[4]=0;
   assert.equal(instrument.read().voices[0].id,'note1');assert.equal(instrument.read().preset.voice.attack,2);assert(core.registers[4]&1);
+});
+
+test('fixed channels retain independent patches, play only their physical voice and share the hardware filter in both models',async t=>{
+  for(const model of ['6581','8580']){
+    const {instrument,core}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=selectChannelTarget(instrument.read().channelSettings,2);
+    const patch=structuredClone(settings.channels[2]);
+    Object.assign(patch.voice,{waveform:'pulse',pulseWidth:731,attack:0,decay:4,sustain:10,release:11});patch.name='CH3 pulse';
+    settings=applyChannelPreset(settings,patch);instrument.setChannelSettings(settings);
+    assert.equal(instrument.read().capacity,1);
+    assert.deepEqual(instrument.noteOn('third',60),{channel:2,stolenId:null});render(instrument,6000);
+    assert(core.registers[18]&1);assert.equal(core.registers[4]&1,0);assert.equal(core.registers[11]&1,0);
+    const otherRegisters=instrument.read().registers.slice(0,14),before=instrument.read().voices;
+    const edited=instrument.read().preset;edited.voice.pulseWidth=987;edited.voice.decay=9;
+    Object.assign(edited.filter,{enabled:true,mode:'highpass',cutoff:1111,resonance:12,volume:10});
+    instrument.setPreset(edited);
+    assert.deepEqual(instrument.read().voices,before);assert.deepEqual(instrument.read().registers.slice(0,14),otherRegisters);
+    assert.equal(core.registers[16]|(core.registers[17]&15)<<8,987);assert.equal(core.registers[19]&15,9);assert(core.registers[18]&1);
+    assert.equal(core.registers[23]&7,4);assert.equal(core.registers[23]>>4,12);assert.equal(core.registers[24]&127,74);
+    assert(instrument.read().channelSettings.channels.every(value=>value.filter.cutoff===1111));
+    assert.deepEqual(instrument.noteOn('replacement',64),{channel:2,stolenId:'third'});
+    assert.equal(instrument.noteOff('third'),false);assert.equal(instrument.noteOff('replacement'),true);
+
+    instrument.setPitch(2);instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,0));
+    assert.equal(instrument.read().pitch,0);assert.deepEqual(instrument.read().voices,[]);
+    assert.equal(instrument.read().preset.voice.waveform,'saw');assert.equal(core.registers[23]&7,1);
+    const first=instrument.read().preset;first.voice.waveform='noise';first.voice.attack=7;instrument.setPreset(first);
+    assert.equal(instrument.read().channelSettings.channels[2].voice.pulseWidth,987);
+    assert.equal(instrument.read().channelSettings.channels[0].voice.waveform,'noise');
+    instrument.loadPreset({...first,name:'Reloaded CH1'});
+    assert.equal(instrument.read().channelSettings.channels[2].name,'CH3 pulse','loading one fixed patch retains the other bank slots');
+    instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,2));
+    assert.equal(instrument.read().preset.name,'CH3 pulse');assert.equal(instrument.read().preset.voice.pulseWidth,987);
+    assert.equal(instrument.noteOn('third-again',67).channel,2);assert(peak(render(instrument,6000))>.001);
+  }
+});
+
+test('entering Round robin preserves distinct voices, later edits broadcast and Stop retains the setup',async t=>{
+  for(const model of ['6581','8580']){
+    const {instrument}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=selectChannelTarget(instrument.read().channelSettings,1),patch=structuredClone(settings.channels[1]);
+    Object.assign(patch.voice,{waveform:'triangle',attack:0,decay:3,sustain:15,release:12});patch.name='Second channel';
+    settings=applyChannelPreset(settings,patch);instrument.loadChannelSettings(settings);
+    instrument.noteOn('mono',60);instrument.setPitch(-2);
+    const channelsBefore=instrument.read().channelSettings.channels;
+    instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,'round-robin'));
+    assert.equal(instrument.read().capacity,3);assert.equal(instrument.read().pitch,0);assert.deepEqual(instrument.read().voices,[]);
+    for(let channel=0;channel<3;channel++){
+      assert.deepEqual(instrument.read().channelSettings.channels[channel],channelsBefore[channel]);
+      assert.equal(instrument.noteOn(`round-${channel}`,60+4*channel).channel,channel);
+    }
+    const next=instrument.read().preset;next.voice.decay=8;next.filter.enabled=true;instrument.setPreset(next);
+    assert(instrument.read().channelSettings.channels.every(value=>value.voice.decay===8));
+    assert.equal(instrument.read().registers[23]&7,7);assert(peak(render(instrument,6000))>.001);
+    const keep=instrument.read().channelSettings;instrument.stop();
+    assert.deepEqual(instrument.read().channelSettings,keep);assert.equal(instrument.read().pitch,0);assert.deepEqual(instrument.read().voices,[]);
+    assert.equal(peak(render(instrument,6000)),0);assert.equal(instrument.noteOff('round-0'),false);
+    const detached=instrument.read().channelSettings;detached.channels[0].voice.attack=15;assert.equal(instrument.read().channelSettings.channels[0].voice.attack,2);
+  }
+});
+
+test('mixed Round robin timbres survive JSON reload and retain their own registers through live Pitch',async t=>{
+  for(const model of ['6581','8580']){
+    const {instrument,core}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=instrument.read().channelSettings;
+    for(const [channel,waveform]of ['triangle','pulse','noise'].entries()){
+      settings=selectChannelTarget(settings,channel);const value=structuredClone(settings.channels[channel]);
+      value.name=`Stored ${channel+1}`;Object.assign(value.voice,{waveform,pulseWidth:711+channel*137,attack:0,decay:channel+1,sustain:15,release:channel+4});
+      settings=applyChannelPreset(settings,value);
+    }
+    const stored=structuredClone(settings.channels),saved=selectChannelTarget(settings,'round-robin');
+    instrument.loadChannelSettings(JSON.stringify(saved));assert.deepEqual(instrument.read().channelSettings.channels,stored);
+    for(let channel=0;channel<3;channel++)assert.equal(instrument.noteOn(`mixed-${channel}`,60+channel*4).channel,channel);
+    render(instrument,5000);instrument.setPitch(-2);
+    for(const [channel,mask]of [16,64,128].entries()){
+      assert.equal(core.registers[channel*7+4]&0xf0,mask);assert.equal(core.registers[channel*7+4]&1,1);
+      assert.equal(core.registers[channel*7]|core.registers[channel*7+1]<<8,frequency(hz(58+channel*4)));
+      assert.equal(core.registers[channel*7+5]&15,channel+1);
+    }
+    const next=instrument.read().preset;next.voice.attack=7;instrument.setPreset(next);
+    assert(instrument.read().channelSettings.channels.every(p=>p.voice.attack===7));
+    assert.deepEqual(instrument.read().channelSettings.channels.map(p=>p.voice.waveform),['triangle','pulse','noise']);
+    assert.deepEqual(instrument.read().channelSettings.channels.map(p=>p.voice.decay),[1,2,3]);
+    const keep=instrument.read().channelSettings;instrument.stop();assert.deepEqual(instrument.read().channelSettings,keep);
+    instrument.loadChannelSettings(JSON.stringify(keep));assert.deepEqual(instrument.read().channelSettings,keep);
+    assert.equal(peak(render(instrument,2048)),0);assert.equal(instrument.noteOff('mixed-0'),false);
+  }
+});
+
+test('mixed paired Round robin uses its first paired carrier and retains the other saved sounds in both models',async t=>{
+  for(const model of ['6581','8580']){
+    const {instrument,core}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=instrument.read().channelSettings;
+    for(const [channel,waveform]of ['noise','triangle','pulse'].entries()){
+      settings=selectChannelTarget(settings,channel);const value=structuredClone(settings.channels[channel]);
+      Object.assign(value.voice,{waveform,attack:0,decay:channel+1,sustain:15});value.name=`Keep ${channel+1}`;
+      if(channel>0)value.modulation={sync:channel===1,ring:channel===2,ratio:channel===1?1.5:2};
+      settings=applyChannelPreset(settings,value);
+    }
+    const stored=structuredClone(settings.channels),mixed=selectChannelTarget(settings,'round-robin');instrument.loadChannelSettings(mixed);
+    assert.deepEqual(instrument.read().channelSettings.channels,stored);assert.equal(instrument.read().capacity,1);
+    assert.equal(instrument.read().preset.voice.waveform,'noise','the editable Round robin reference remains CH1');
+    assert.deepEqual(instrument.noteOn('paired-one',60),{channel:1,stolenId:null});
+    assert.equal(core.registers[11]&7,3);assert.equal(core.registers[4],16,'CH1 is temporarily a silent Triangle source');
+    assert.equal(core.registers[18]&7,0,'later stored pairs do not create a second competing carrier');
+    assert.equal(core.registers[24]&128,0);assert.equal(core.registers[0]|core.registers[1]<<8,frequency(hz(60)*1.5));
+    render(instrument,6000);instrument.setPitch(-2);
+    assert.equal(core.registers[7]|core.registers[8]<<8,frequency(hz(58)));assert.equal(core.registers[0]|core.registers[1]<<8,frequency(hz(58)*1.5));
+    const edit=instrument.read().channelSettings;edit.channels[1].modulation.ratio=2;
+    instrument.setChannelSettings(edit);assert.equal(core.registers[0]|core.registers[1]<<8,frequency(hz(58)*2));
+    assert.equal(instrument.read().voices[0].id,'paired-one');
+    const inactive=instrument.read().channelSettings;inactive.channels[2].voice.attack=9;instrument.setChannelSettings(inactive);
+    assert.equal(instrument.read().voices[0].id,'paired-one','an unrelated saved patch edit does not reset the active pair');
+    const keep=instrument.read().channelSettings;instrument.stop();assert.deepEqual(instrument.read().channelSettings,keep);
+    instrument.loadChannelSettings(JSON.stringify(keep));assert.deepEqual(instrument.read().channelSettings,keep);
+    const lastPair=instrument.read().channelSettings;lastPair.channels[1].modulation.sync=false;
+    instrument.setChannelSettings(lastPair);assert.equal(instrument.read().capacity,1);
+    assert.deepEqual(instrument.noteOn('last-pair',64),{channel:2,stolenId:null});
+    assert.equal(core.registers[18]&7,5);assert.equal(core.registers[11],16);
+    assert.equal(core.registers[7]|core.registers[8]<<8,frequency(hz(64)*2));
+    instrument.setChannelSettings(selectChannelTarget(keep,0));
+    assert.equal(instrument.read().preset.voice.waveform,'noise');assert.equal(core.registers[4]&0xf0,128,'stored source sound returns unchanged when selected');
+    assert.equal(instrument.noteOff('paired-one'),false);
+  }
+});
+
+test('each fixed Sync/Ring carrier tunes its physical predecessor without replacing that channel stored patch',async t=>{
+  for(const model of ['6581','8580'])for(const carrier of [0,1,2]){
+    const {instrument,core}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=selectChannelTarget(instrument.read().channelSettings,carrier);
+    const originalSource=structuredClone(settings.channels[(carrier+2)%3]),patch=structuredClone(settings.channels[carrier]);
+    patch.voice.waveform='triangle';patch.voice.attack=0;patch.modulation={sync:true,ring:true,ratio:1.5};patch.filter.enabled=true;
+    settings=applyChannelPreset(settings,patch);instrument.loadChannelSettings(settings);instrument.noteOn('paired',60);
+    const source=(carrier+2)%3,registers=instrument.read().registers;
+    assert.equal(registers[carrier*7+4]&7,7);assert.equal(registers[source*7+4],16);
+    assert.equal(registers[source*7+5],0);assert.equal(registers[source*7+6],0);
+    assert.equal(registers[source*7]|registers[source*7+1]<<8,frequency(hz(60)*1.5));
+    assert.equal(registers[23]&7,1<<carrier);assert.equal(Boolean(registers[24]&128),source===2);
+    assert.deepEqual(instrument.read().channelSettings.channels[source].voice,originalSource.voice);
+    assert.deepEqual(instrument.read().channelSettings.channels[source].modulation,originalSource.modulation);
+    render(instrument,6000);instrument.setPitch(-2);
+    assert.equal(core.registers[carrier*7]|core.registers[carrier*7+1]<<8,frequency(hz(58)));
+    assert.equal(core.registers[source*7]|core.registers[source*7+1]<<8,frequency(hz(58)*1.5));
+    const next=instrument.read().preset;next.modulation.ratio=2;instrument.setPreset(next);
+    assert.equal(core.registers[source*7]|core.registers[source*7+1]<<8,frequency(hz(58)*2));
+    assert.equal(instrument.read().voices[0].id,'paired');assert.equal(instrument.noteOff('paired'),true);
+    instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,source));
+    assert.equal(instrument.read().preset.voice.waveform,originalSource.voice.waveform);
+    assert.equal(core.registers[source*7+4]&0xf0,32,'the stored Saw returns when its own channel is selected');
+    assert.equal(instrument.read().pitch,0);assert.equal(instrument.noteOff('paired'),false);
+  }
+});
+
+test('invalid channel setups leave the active bank and real chip unchanged',async t=>{
+  const {instrument,core}=await setup(t);instrument.noteOn('held',60);render(instrument,2000);
+  const snapshot=instrument.read(),hardware=core.getState();
+  const invalidTarget={...snapshot.channelSettings,target:3};
+  const invalidPatch=structuredClone(snapshot.channelSettings);invalidPatch.channels[0].voice.attack=16;
+  const wrongModel=structuredClone(snapshot.channelSettings);for(const p of wrongModel.channels)p.model='8580';
+  for(const value of [null,invalidTarget,invalidPatch,wrongModel])for(const method of ['setChannelSettings','loadChannelSettings']){
+    assert.throws(()=>instrument[method](value));assert.deepEqual(instrument.read(),snapshot);assert.deepEqual(core.getState(),hardware);
+  }
 });
 
 test('allocation prefers unused or envelope-zero slots, then hardware release tails before held keys',async t=>{

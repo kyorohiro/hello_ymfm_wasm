@@ -80,10 +80,12 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-import-status[data-error="true"],.sid-import-preview[data-unavailable="true"] { color:#a1392c; }
 .sid-import-preview { white-space:pre-line; overflow-wrap:anywhere; }
 #sidImportInfo { overflow-wrap:anywhere; }
-.sid-live-tools { margin:0 0 14px; }
+.sid-live-tools { margin:0 0 14px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:#f7f1e3b8; }
 .sid-live-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
-.sid-live-controls .sid-check { display:flex; flex:1 1 220px; margin:0; font-size:.75rem; }
-.sid-live-controls .sid-choice-group { flex:0 1 230px; }
+.sid-live-controls .sid-check { display:flex; flex:0 1 auto; margin:0; font-size:.75rem; }
+.sid-live-channels { display:flex; flex:0 1 440px; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+.sid-live-channel-label { font-size:.7rem; font-weight:700; color:#4f5d4a; }
+.sid-live-channels .sid-choice-group { flex:1 1 250px; }
 #sidLiveView { margin-top:12px; min-width:0; }
 #sidLiveView[hidden] { display:none; }
 .sid-editor[data-observing="true"] button:disabled,.sid-editor[data-observing="true"] input:disabled { opacity:1; cursor:default; }

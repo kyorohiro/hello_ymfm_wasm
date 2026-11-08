@@ -166,7 +166,12 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
     await page.waitForFunction(()=>!document.getElementById('sidImportPlay').disabled);
     await play();
     for(const file of ['/synth-sid/synth.js','/synth-sid/sid_import.js','/sid-player/audio.js'])
-      assert(requests.includes(`${file}?sid-transport=2`),`Current graph did not version ${file}`);
+      assert(requests.some(request=>{
+        const url=new URL(request,origin);return url.pathname===file&&url.searchParams.get('sid-transport')==='2';
+      }),`Current graph did not version ${file}`);
+    assert(requests.some(request=>{
+      const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-channels')==='2';
+    }),'Current Synth entry did not request the paired channel-controls revision');
     // Worklet fetches do not consistently appear in Playwright's page routes.
     // Observe the API invocation on this exact context, including when a browser
     // can reuse a compiled response fetched by the earlier legacy probe.
@@ -181,6 +186,10 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
 
     check('Pause visibly becomes Resume, paused Capture matches the frozen core and Resume reuses its instance');
     const before=await identity(),held=await pause();
+    // Auto update now adopts the playable song sound into the keyboard. The
+    // fixed authored fixture keeps this paused snapshot stable across Resume;
+    // the untouched authoring preset above remains the legacy-probe baseline.
+    const songPreset=await savedPreset();
     assert.equal(held.paused,true);assert.equal(held.playing,false);
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'true');
     await page.waitForTimeout(200);assert.deepEqual(frozen(await read()),frozen(held));
@@ -192,7 +201,7 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
     if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-upgrade-resume-visible.png`),fullPage:true});
     await page.locator('#sidImportPause').click();
     await waitState(state=>state.playing&&!state.paused&&state.positionFrames>held.positionFrames);await sound();
-    assert.deepEqual(await identity(),before);assert.deepEqual(await savedPreset(),authored);
+    assert.deepEqual(await identity(),before);assert.deepEqual(await savedPreset(),songPreset);
     await page.locator('#sidImportStop').click();await closed();
 
     check('an incompatible versioned Worklet ready message is rejected before load/start and closes its context');
@@ -208,14 +217,14 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
     },contextCount);
     assert.equal(rejected.created,1);assert.equal(rejected.state,'closed');assert.equal(rejected.connected,false);
     assert.equal(rejected.messages.some(value=>value.method==='load'||value.method==='start'),false);
-    assert.deepEqual(await savedPreset(),authored);
+    assert.deepEqual(await savedPreset(),songPreset);
 
     check('retrying current transport recovers the same accepted file/instrument and Pause/Resume works again');
     sources.legacyReadyEnabled=false;await play();const recovered=await pause();
     assert.equal(recovered.paused,true);await page.locator('#sidImportPause').click();
     await waitState(state=>state.playing&&state.positionFrames>recovered.positionFrames);await sound();
     assert.match(await page.locator('#sidImportInfo').textContent(),/transport-upgrade\.sid/);
-    assert.deepEqual(await savedPreset(),authored);
+    assert.deepEqual(await savedPreset(),songPreset);
     await page.locator('#sidImportStop').click();await closed();
     const audit=await page.evaluate(()=>({muted:__sidUpgradeAudit.sinks.every(value=>value.mute.gain.value===0),
       processorErrors:__sidUpgradeAudit.processorErrors,contexts:__sidUpgradeAudit.contexts.map(value=>value.state)}));

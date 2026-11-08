@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 export const SID_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('SID Master must be from 0 to 3.8');
@@ -80,7 +80,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=2', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });

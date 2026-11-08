@@ -11,9 +11,10 @@ read-only at this stage; edit the code to change the sound. The primary `sid`
 defaults to **6581**. An independent **8580 Preview** can be created in Main or
 Worker code with `createSoundChip('sid', {model:'8580'})`; it requires PAL timing.
 
-For keyboard playing, open [Tetorica SID Synth](synth-sid/index.html): three-voice
-allocation, hardware ADSR, Pulse width and shared filter, with a one-note Sync /
-Ring pair, 6581 / 8580 Preview selection, portable presets and readable JavaScript export. See its
+For keyboard playing, open [Tetorica SID Synth](synth-sid/index.html): fixed CH 1 / 2 / 3
+or three-voice Round robin, preserved channel patches, hardware ADSR, Pulse width
+and shared filter, with a one-note Sync / Ring pair, 6581 / 8580 Preview selection,
+portable voice presets / channel setups and readable JavaScript export. See its
 [guide](synth-sid/README.md). The standalone
 [SID Register Lab](playground/sid-lab/index.html) remains available for register
 experiments. An offline [PSID reference comparison CLI](sid-reference.md) now

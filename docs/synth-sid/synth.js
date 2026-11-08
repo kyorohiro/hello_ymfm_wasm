@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js';
+import {createAudio} from './audio.js?sid-channels=2';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
+import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=2';
+import {captureSidVoices} from '../sid-player/voice_snapshot.js';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
 import {createSidImport} from './sid_import.js?sid-transport=2';
-import {createSidImportPanel} from './sid_import_panel.js';
+import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2';
 import {createSidLiveView} from './sid_live_view.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
@@ -12,10 +14,12 @@ import {createFretboardState,createFretboardLayout,renderFretboardControls,build
 
 const $=id=>document.getElementById(id), notes=new Map(), fret=createFretboardState();
 let audio=null, opening=null, disposed=false, generation=0, noteEpoch=0, sequence=0;
-let preset=createDefaultPreset(), appliedPreset=readPreset(preset), revision=0, importSequence=0, octave=0, pitch=0;
+let channelSettings=createChannelSettings(),appliedChannelSettings=readChannelSettings(channelSettings);
+let preset=selectedChannelPreset(channelSettings), appliedPreset=readPreset(preset), revision=0, manualRevision=0, importSequence=0, octave=0, pitch=0;
 let appliedPitch=0,pitchIntent=0,commandSequence=0,pitchAckSequence=0;
 let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
+let adoptedObservation=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
 const visualizer=createSpuOutputVisualizer({canvas:$('outputCanvas')});visualizer.setMode('waveform');
@@ -24,12 +28,14 @@ function status(text,error=false){if(disposed)return;$('audioStatus').textConten
 function report(error){if(!cancelled(error))status(error?.message??String(error),true);}
 function patchStatus(text,busy=false){$('patchStatus').textContent=text;$('patchStatus').dataset.busy=String(busy);$('voiceEditor').setAttribute('aria-busy',String(busy));}
 function enqueue(action){const task=queue.then(action);queue=task.catch(report);return task;}
-const paired=()=>preset.modulation.sync||preset.modulation.ring;
-const capacity=()=>paired()?1:3;
+const paired=()=>channelPlaybackPlan(channelSettings).source!==null;
+const capacity=()=>channelPlaybackPlan(channelSettings).channels.length;
 function updateCapacity(){
+  const {carrier,source}=channelPlaybackPlan(channelSettings);
   $('voiceCapacity').textContent=paired()
-    ?`Voice 3 → voice 1 · silent Triangle modulator · maximum 1 note · ${notes.size} held`
-    :`3 hardware voices · round robin · ${notes.size} held`;
+    ?`CH ${source+1} → CH ${carrier+1} · silent Triangle modulator · maximum 1 note · ${notes.size} held`
+    :channelSettings.target==='round-robin'?`3 hardware voices · round robin · ${notes.size} held`
+      :`CH ${carrier+1} · fixed channel · maximum 1 note · ${notes.size} held`;
   if(preset.voice.test)$('voiceCapacity').textContent+=' · TEST held';
 }
 function updateKeys(){
@@ -52,7 +58,15 @@ function updatePresetUi(){
   editor.update(preset);if(document.activeElement!==$('instrumentName'))$('instrumentName').value=preset.name;
   $('sidModelBadge').textContent=preset.model;
   $('sidModelStatus').textContent=preset.model==='8580'?'PAL · PREVIEW':'PAL · APPROXIMATION';
-  if(!$('codeOutput').hidden)$('codeOutput').value=presetToCode(preset);
+  if(!$('codeOutput').hidden)$('codeOutput').value=channelSettingsToCode(channelSettings);
+  for(const button of document.querySelectorAll('[data-sid-live-voice]')){
+    const selected=button.dataset.sidLiveVoice===String(channelSettings.target);
+    button.setAttribute('aria-pressed',String(selected));
+  }
+  const mixed=channelSettings.target==='round-robin'&&channelSettings.channels.some(value=>JSON.stringify([value.voice,value.modulation])!==JSON.stringify([preset.voice,preset.modulation]));
+  $('sidChannelState').hidden=!mixed;
+  const song=sidImporter?.read();
+  if(!song?.liveEnabled||!(song.playing||song.paused||song.pausing||song.resuming))$('voiceHeading').textContent=channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
   updateCapacity();refreshPlayableKeys();
 }
 function audioFailed(error,owner){
@@ -74,11 +88,11 @@ async function ensureAudio(){
         let applied,snapshotPitch,appliedSnapshot,snapshotReset;
         do{
           owner.controller.signal.throwIfAborted();applied=revision;snapshotPitch=pitch;snapshotReset=resetIntent;
-          appliedSnapshot=readPreset(preset);await engine.command('loadPreset',[appliedSnapshot]);
+          appliedSnapshot=readChannelSettings(channelSettings);await engine.command('loadChannelSettings',[appliedSnapshot]);
           await engine.command('setPitch',[snapshotPitch]);
         }while(applied!==revision||snapshotPitch!==pitch);
         if(disposed||opening!==owner||generation!==owner.generation)throw new DOMException('Audio preparation cancelled','AbortError');
-        engine.setVolume(Number($('masterVolume').value));audio=engine;appliedPreset=appliedSnapshot;
+        engine.setVolume(Number($('masterVolume').value));audio=engine;appliedChannelSettings=appliedSnapshot;appliedPreset=selectedChannelPreset(appliedSnapshot);
         appliedPitch=snapshotPitch;pitchAckSequence=++commandSequence;appliedResetIntent=snapshotReset;
         visualizer.connect(engine.context,engine.outputNode);$('startAudio').textContent='Audio ready';patchStatus('Applied · edits are live.');
         status('Audio ready · play the keyboard. Explore the shared filter.');return engine;
@@ -93,32 +107,39 @@ async function ensureAudio(){
 function clearNotes(){noteEpoch++;notes.clear();updateKeys();}
 function topology(value){return `${value.model}/${value.modulation.sync}/${value.modulation.ring}/${value.voice.test}`;}
 function applyPreset(value,{load=false,message}={}){
-  const next=readPreset(value),previous=preset,changedTopology=load||topology(previous)!==topology(next);
+  return applySettings((load?applyChannelPreset:editChannelPreset)(channelSettings,readPreset(value)),{load,message});
+}
+function applySettings(value,{load=false,message,fromSong=false}={}){
+  const nextSettings=readChannelSettings(value),next=selectedChannelPreset(nextSettings),previous=preset;
+  if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve();
+  const changedTopology=load||channelSettings.target!==nextSettings.target||topology(previous)!==topology(next);
   if(changedTopology){clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
-  preset=next;const editRevision=++revision;updatePresetUi();
-  if(!audio){patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');return Promise.resolve();}
-  const target=audio;patchStatus('Applying latest edit…',true);
+  if(!fromSong)manualRevision++;
+  channelSettings=nextSettings;preset=next;const editRevision=++revision;updatePresetUi();
+  if(!audio){if(!fromSong){patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return Promise.resolve();}
+  const target=audio;if(!fromSong)patchStatus('Applying latest edit…',true);
   return enqueue(async()=>{
     if(disposed||audio!==target||editRevision!==revision)return;
     try{
       // Coalescing a draft must preserve any earlier load/topology reset.
       const hardReset=resetIntent>appliedResetIntent,resetAtDispatch=resetIntent;
       const pitchAtDispatch=resetPitchIntent,order=++commandSequence;
-      const state=await target.command(hardReset?'loadPreset':'setPreset',[next]);
+      const state=await target.command(hardReset?'loadChannelSettings':'setChannelSettings',[nextSettings]);
       if(disposed||audio!==target)return;
       if(hardReset)appliedResetIntent=Math.max(appliedResetIntent,resetAtDispatch);
-      appliedPreset=readPreset(state?.preset??next);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
-      if(editRevision===revision){patchStatus('Applied · edits are live.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));}
+      appliedChannelSettings=readChannelSettings(state?.channelSettings??nextSettings);appliedPreset=selectedChannelPreset(appliedChannelSettings);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
+      if(editRevision===revision&&!fromSong){patchStatus('Applied · edits are live.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));}
     }catch(error){
       // A failed model allocation may already have stopped the previous core.
       // Recover its actual Pitch/owners rather than restoring the pre-swap bend.
       const recoveryOrder=++commandSequence,recoveryIntent=pitchIntent;
       const current=await target.read().catch(()=>null);
       if(audio===target&&current){
-        appliedPreset=readPreset(current.preset??appliedPreset);
+        appliedChannelSettings=readChannelSettings(current.channelSettings??applyChannelPreset(appliedChannelSettings,current.preset??appliedPreset));
+        appliedPreset=selectedChannelPreset(appliedChannelSettings);
         acceptPitch(current,recoveryOrder,recoveryIntent);readVoices(current);
       }
-      if(audio===target&&editRevision===revision){preset=readPreset(appliedPreset);revision++;updatePresetUi();patchStatus('Edit rejected · previous preset kept.');}
+      if(audio===target&&editRevision===revision){channelSettings=readChannelSettings(appliedChannelSettings);preset=selectedChannelPreset(channelSettings);revision++;updatePresetUi();patchStatus('Edit rejected · previous settings kept.');}
       throw error;
     }
   });
@@ -132,9 +153,18 @@ sidImporter=createSidImport({
   onUpdate(state){
     sidImportPanel.update(state);const observation=sidLiveView.update(state);
     const observing=Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
+    const fresh=state.liveActive||state.paused&&!state.loading&&!state.starting&&!state.choosingFile&&!state.applying&&!state.liveError&&!state.liveWaiting&&!state.pausing&&!state.resuming;
+    if(!state.liveEnabled||state.starting||!state.playing&&!state.paused&&!state.pausing&&!state.resuming)adoptedObservation=null;
+    if(observing&&fresh&&observation?.importable.available&&state.liveState){
+      const candidate=captureSidVoices(state.liveState,{name:state.liveSource?.name??state.selection?.name,subtune:state.liveSource?.subtune??1}).voices[state.liveVoice??0];
+      const observationKey=JSON.stringify([state.liveSource,state.liveVoice,candidate?.preset]);
+      if(candidate?.available&&observationKey!==adoptedObservation){adoptedObservation=observationKey;void applySettings(applyChannelPreset(channelSettings,candidate.preset),{fromSong:true}).catch(report);}
+    }
     editor.observe(observing?observation:null,{active:observing});
+    $('instrumentName').disabled=observing;
     $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
-    $('voiceHeading').textContent=observing?`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`:'Your sound';
+    $('voiceHeading').textContent=observing?`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`
+      :channelSettings.target==='round-robin'?'Your sound · Round robin':`Your sound · CH ${channelSettings.target+1}`;
     if(previewEngine)visualizer.setRunning(Boolean(state.playing));
   },
   async onPreviewStart(engine,{isCurrent=()=>true}={}){
@@ -152,6 +182,15 @@ sidImporter=createSidImport({
   },
   onUsePreset(value){importSequence++;return applyPreset(value,{load:true,message:'SID voice imported · play this keyboard, edit it or save a preset.'});},
 });
+function chooseChannel(target){
+  const changed=applySettings(selectChannelTarget(channelSettings,target),{message:target==='round-robin'?'Round robin · channel settings kept. Edits apply to all three.':`CH ${target+1} · edit and play this channel.`});
+  if(target!=='round-robin')sidImporter.setLiveVoice(target);
+  return changed;
+}
+for(const button of document.querySelectorAll('[data-sid-live-voice]'))button.addEventListener('click',()=>{
+  button.blur();const target=button.dataset.sidLiveVoice==='round-robin'?'round-robin':Number(button.dataset.sidLiveVoice);
+  void chooseChannel(target).catch(report);
+});
 function stopSongForKeyboard(){
   const state=sidImporter?.read();
   return state&&(state.playing||state.starting||state.paused||state.pausing||state.resuming)?sidImporter.stop({cancelLoad:false}):Promise.resolve();
@@ -161,7 +200,8 @@ const keyboard=document.createElement('div');keyboard.className='keyboard';$('ke
 const tools=Object.fromEntries(['instrument','position','fret','strings','window'].map(name=>{const node=document.createElement('div');node.className=`fretboard-${name} ${['fret','strings'].includes(name)?'fret-display':'toolbar-group'}`;return[name,node];}));
 const toolbar=document.createElement('div');toolbar.className='fretboard-toolbar';const summary=document.createElement('div');summary.className='fretboard-row fretboard-summary';summary.append(tools.fret,tools.strings);const choices=document.createElement('div');choices.className='fretboard-row';for(const name of ['instrument','position','window'])choices.append(tools[name]);toolbar.append(summary,choices);$('keyboardFretboard').append(toolbar);
 function canPlay(midi){
-  const hz=440*2**((midi-69+pitch)/12),source=paired()?hz*preset.modulation.ratio:hz;
+  const plan=channelPlaybackPlan(channelSettings),sound=channelSettings.channels[plan.carrier];
+  const hz=440*2**((midi-69+pitch)/12),source=plan.source!==null?hz*sound.modulation.ratio:hz;
   return midi>=0&&midi<=127&&hz>0&&Math.max(hz,source)<=65535*985248/16777216;
 }
 function refreshPlayableKeys(){if(!layout)return;const held=new Set([...notes.values()].map(note=>note.key));for(const button of keyboard.querySelectorAll('.key')){const entry=layout.entries.find(item=>item.key===button.dataset.key);button.disabled=!held.has(button.dataset.key)&&!canPlay(entry.midi+octave*12);button.title=button.disabled?'Outside this SID oscillator range. Lower the octave, Pitch or modulator ratio.':'';}}
@@ -243,17 +283,27 @@ $('instrumentName').addEventListener('change',commitName);$('instrumentName').ad
 $('savePreset').addEventListener('click',()=>{
   $('savePreset').blur();try{const url=URL.createObjectURL(new Blob([JSON.stringify(readPreset(preset),null,2)+'\n'],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='tetorica-sid-voice.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('SID voice preset saved.');}catch(error){report(error);}
 });
+$('saveChannelSettings').addEventListener('click',()=>{
+  $('saveChannelSettings').blur();try{const url=URL.createObjectURL(new Blob([JSON.stringify(readChannelSettings(channelSettings),null,2)+'\n'],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='tetorica-sid-channels.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('SID channel setup saved.');}catch(error){report(error);}
+});
 $('loadPreset').addEventListener('click',()=>{$('loadPreset').blur();$('presetFileInput').click();});
 $('presetFileInput').addEventListener('cancel',()=>{$('presetFileInput').blur();status('Preset selection cancelled. Current preset kept.');});
 $('presetFileInput').addEventListener('change',async()=>{
   const file=$('presetFileInput').files?.[0];$('presetFileInput').value='';$('presetFileInput').blur();if(!file){status('Preset selection cancelled. Current preset kept.');return;}
-  const token=++importSequence,draftRevision=revision;
-  try{if(file.size>65536)throw new Error('SID preset must be at most 64 KiB');const next=readPreset(await file.text());if(disposed||token!==importSequence||draftRevision!==revision)return;await applyPreset(next,{load:true,message:'SID preset loaded · play the keyboard.'});}
+  const token=++importSequence,draftRevision=manualRevision;
+  try{
+    if(file.size>65536)throw new Error('SID preset must be at most 64 KiB');const value=JSON.parse(await file.text());
+    const setup=value?.format==='tetorica-sid-channels',next=setup?readChannelSettings(value):readPreset(value);
+    if(disposed||token!==importSequence||draftRevision!==manualRevision)return;
+    sidImporter.setLiveEnabled(false);
+    await (setup?applySettings:applyPreset)(next,{load:true,message:setup?'SID channel setup loaded · play the selected channel.':'SID preset loaded · play the keyboard.'});
+    if(setup&&next.target!=='round-robin')sidImporter.setLiveVoice(next.target);
+  }
   catch(error){if(!disposed&&token===importSequence)status(`${error.message??error} Current preset kept.`,true);}
 });
-$('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();void applyPreset(createDefaultPreset(),{load:true,message:'Reset · Saw ready.'}).catch(()=>{});});
+$('resetPreset').addEventListener('click',()=>{$('resetPreset').blur();sidImporter.setLiveEnabled(false);void applySettings(createChannelSettings(),{load:true,message:'Reset · Saw ready on all three channels.'}).catch(()=>{});});
 $('copyCode').addEventListener('click',async()=>{
-  $('copyCode').blur();try{const code=presetToCode(preset);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
+  $('copyCode').blur();try{const code=channelSettingsToCode(channelSettings);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted){void sidImporter.stop().catch(report);void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});

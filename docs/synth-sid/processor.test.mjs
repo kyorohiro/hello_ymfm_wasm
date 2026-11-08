@@ -17,9 +17,13 @@ function fixture({model='6581'}={}) {
     if(!value||!Number.isInteger(value.value)||value.model!==undefined&&!['6581','8580'].includes(value.model))throw new RangeError('Invalid preset');
     return {...value,model:value.model??'6581'};
   };
+  const validateChannels=value=>{
+    if(!value||!['round-robin',0,1,2].includes(value.target)||!Array.isArray(value.channels)||value.channels.length!==3)throw new RangeError('Invalid channel setup');
+    return {...value,channels:value.channels.map(validate)};
+  };
   class Instrument {
     constructor(chip) { this.core = chip; this.calls = []; this.preset = {value: 0,model:chip.model};this.voices=[]; }
-    read() { return {preset: {...this.preset}, voices: [...this.voices]}; }
+    read() { return {preset: {...this.preset}, voices: [...this.voices],...(this.channelSettings?{channelSettings:this.channelSettings}:{})}; }
     noteOn(...args) { this.calls.push(['noteOn', ...args]);this.voices.push(args[0]); return {channel: 0, stolenId: null}; }
     setPreset(value) {
       if (!value || !Number.isInteger(value.value)) throw new RangeError('Invalid preset');
@@ -28,13 +32,21 @@ function fixture({model='6581'}={}) {
       this.preset = value; return this.read();
     }
     loadPreset(value) { this.calls.push(['loadPreset', value.value]); return this.setPreset(value); }
+    setChannelSettings(value) { this.calls.push(['setChannelSettings',value.target]);this.channelSettings=value;this.preset=value.channels[value.target==='round-robin'?0:value.target];return this.read(); }
+    loadChannelSettings(value) { this.calls.push(['loadChannelSettings',value.target]);return this.setChannelSettings(value); }
     stop() { this.calls.push(['stop']);this.voices=[];return this.read(); }
     renderInto(output) { output.fill(.125); }
     dispose() { this.core.dispose(); }
   }
   vm.runInNewContext(source.replace(/^import .*;\n/gm, ''), {
     SidCore: {create: value =>create('6581',value)}, Sid8580Core:{create:value=>create('8580',value)},
-    SidInstrument: Instrument,readPreset:validate,sampleRate: 48000,
+    SidInstrument: Instrument,readPreset:validate,readChannelSettings:validateChannels,
+    applyChannelPreset:(settings,preset)=>({...settings,channels:settings.channels.map((old,index)=>settings.target==='round-robin'||index===settings.target?preset:{...old,model:preset.model})}),
+    editChannelPreset:(settings,preset)=>{
+      const previous=settings.channels[settings.target==='round-robin'?0:settings.target];
+      return {...settings,channels:settings.channels.map((old,index)=>settings.target==='round-robin'
+        ?{...old,model:preset.model,...(preset.value!==previous.value?{value:preset.value}:{})}:index===settings.target?preset:{...old,model:preset.model})};
+    },sampleRate: 48000,
     AudioWorkletProcessor: class { constructor() { this.port = {postMessage: value => messages.push(value)}; } },
     registerProcessor(name, value) { assert.equal(name, 'tetorica-sid-synth'); Constructor = value; },
   });
@@ -114,6 +126,50 @@ test('Stop preempts a pending model change, disposes its stale candidate and acc
   f.processor.dispose();assert.equal(f.core.disposed,1);
 });
 
+test('channel setup commands validate before mutation and atomically preserve the selected bank through model replacement',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  const bank=(model,target=2)=>({target,channels:[0,1,2].map(value=>({value,model}))});
+  f.processor.receive({id:1,method:'setChannelSettings',args:[bank('6581')]});await f.processor.commands;
+  assert.equal(f.messages.find(m=>m.id===1).value.preset.value,2);assert.equal(f.processor.instrument.channelSettings.target,2);
+  f.processor.receive({id:2,method:'noteOn',args:['held',60]});await f.processor.commands;
+  const original=f.processor.instrument;
+  f.processor.receive({id:3,method:'loadChannelSettings',args:[bank('6581',3)]});await f.processor.commands;
+  assert.equal(f.messages.find(m=>m.id===3).name,'RangeError');assert.deepEqual(original.voices,['held']);assert.equal(f.requests.length,1);
+  f.processor.receive({id:4,method:'loadChannelSettings',args:[bank('8580',1)]});await flush();
+  assert.equal(original.voices.length,0);assert.equal(f.processor.instrument,original);
+  f.resolveNext();await f.processor.commands;
+  assert.equal(f.messages.find(m=>m.id===4).value.preset.model,'8580');assert.equal(f.processor.instrument.channelSettings.target,1);
+  assert.deepEqual(f.processor.instrument.channelSettings.channels.map(p=>p.value),[0,1,2]);assert.equal(f.core.disposed,1);
+  f.processor.receive({id:5,method:'setPreset',args:[{value:9,model:'6581'}]});await flush();f.resolveNext();await f.processor.commands;
+  assert.equal(f.processor.instrument.channelSettings.target,1);assert.deepEqual(f.processor.instrument.channelSettings.channels.map(p=>p.value),[0,9,2]);
+  assert(f.processor.instrument.channelSettings.channels.every(p=>p.model==='6581'));f.processor.dispose();
+});
+
+test('Stop fences a channel-bank model candidate without adopting its later mode or patches',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  const current={target:1,channels:[0,1,2].map(value=>({value,model:'6581'}))};
+  f.processor.receive({id:1,method:'setChannelSettings',args:[current]});await f.processor.commands;const original=f.processor.instrument;
+  const next={target:2,channels:[3,4,5].map(value=>({value,model:'8580'}))};
+  f.processor.receive({id:2,method:'loadChannelSettings',args:[next]});await flush();
+  f.processor.receive({id:3,method:'stop'});f.resolveNext();await f.processor.commands;
+  assert.equal(f.messages.find(m=>m.id===2).name,'AbortError');assert.equal(f.processor.instrument,original);
+  assert.equal(original.channelSettings.target,1);assert.deepEqual(original.channelSettings.channels.map(p=>p.value),[0,1,2]);
+  assert.equal(f.requests[1].core.disposed,1);assert.equal(f.core.disposed,0);f.processor.dispose();
+});
+
+test('a legacy Round robin model edit preserves mixed sounds while an explicit preset load replaces them',async()=>{
+  const f=fixture();f.resolve();await f.processor.ready;
+  const bank={target:'round-robin',channels:[0,1,2].map(value=>({value,model:'6581'}))};
+  f.processor.receive({id:1,method:'setChannelSettings',args:[bank]});await f.processor.commands;
+  f.processor.receive({id:2,method:'setPreset',args:[{value:0,model:'8580'}]});await flush();f.resolveNext();await f.processor.commands;
+  assert.equal(f.messages.find(m=>m.id===2).error,undefined);
+  assert.deepEqual(f.processor.instrument.channelSettings.channels.map(value=>value.value),[0,1,2]);
+  assert(f.processor.instrument.channelSettings.channels.every(value=>value.model==='8580'));
+  f.processor.receive({id:3,method:'loadPreset',args:[{value:9,model:'6581'}]});await flush();f.resolveNext();await f.processor.commands;
+  assert.deepEqual(f.processor.instrument.channelSettings.channels.map(value=>value.value),[9,9,9]);
+  assert.equal(f.processor.instrument.channelSettings.target,'round-robin');f.processor.dispose();
+});
+
 test('invalid model/Stop edits do not stop held notes and disposal fences a late prepared model',async()=>{
   const f=fixture();f.resolve();await f.processor.ready;
   f.processor.receive({id:1,method:'noteOn',args:['held',60]});await f.processor.commands;const original=f.processor.instrument;
@@ -152,11 +208,21 @@ test('real dual-model SID Synth processor renders and replaces models without No
     assert(left.every(Number.isFinite));assert(left.some(value=>Math.abs(value)>.001));assert.deepEqual(left,right);
     processor.receive({id:2,method:'read'});await processor.commands;assert.equal(processor.last.value.voices.length,1);
     const before=processor.last.value.preset;assert.equal(before.model,model);assert.equal(before.version,2);
+    const {selectChannelTarget,applyChannelPreset}=await import(${JSON.stringify(new URL('./channel_settings.js', import.meta.url).href)});
+    let bank=selectChannelTarget(processor.last.value.channelSettings,2),third={...before,name:'Third channel',voice:{...before.voice,pulseWidth:911,waveform:'pulse'}};
+    bank=applyChannelPreset(bank,third);
+    processor.receive({id:20,method:'loadChannelSettings',args:[bank]});await processor.commands;assert.equal(processor.last.error,undefined);
+    processor.receive({id:21,method:'noteOn',args:['fixed',67]});await processor.commands;assert.equal(processor.last.value.channel,2);
+    processor.receive({id:22,method:'read'});await processor.commands;
+    assert.equal(processor.last.value.channelSettings.target,2);assert.equal(processor.last.value.voices[0].channel,2);
+    assert.equal(processor.last.value.registers[18]&1,1);assert.equal(processor.last.value.registers[4]&1,0);
+    assert.equal(processor.last.value.preset.voice.pulseWidth,911);
     processor.receive({id:3,method:'setPreset',args:[{waveform:'invalid'}]});await processor.commands;assert(processor.last.error);
-    processor.receive({id:4,method:'read'});await processor.commands;assert.deepEqual(processor.last.value.preset,before);
+    processor.receive({id:4,method:'read'});await processor.commands;assert.deepEqual(processor.last.value.preset,third);
     const other=model==='6581'?'8580':'6581';
     processor.receive({id:5,method:'loadPreset',args:[{...before,model:other}]});await processor.commands;
     assert.equal(processor.last.error,undefined);assert.equal(processor.last.value.preset.model,other);assert.equal(processor.last.value.voices.length,0);
+    assert.equal(processor.last.value.channelSettings.target,2);assert.equal(processor.last.value.channelSettings.channels[0].voice.waveform,'saw');
     processor.receive({id:6,method:'noteOn',args:['other',64]});await processor.commands;
     processor.process([],[[left,right]]);assert(left.every(Number.isFinite));assert(left.some(value=>Math.abs(value)>.001));assert.deepEqual(left,right);
     processor.receive({id:7,method:'stop'});await processor.commands;left.fill(9);right.fill(9);processor.process([],[[left,right]]);

@@ -38,6 +38,29 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の修正: Round robin選択だけでCH設定を揃えない（2026-11-08）
+
+ユーザー指摘: Round robinを押しただけで個別設定が失われる。選択時は保持し、編集して初めて3CHへ反映したい。
+
+- [x] Round robin選択・保存／復元では異なるCH設定を保持する。通常の編集は変更した項目だけを3CHへ反映し、明示的な音色loadは音色全体を反映する。
+- [x] 各CHの音色でRound robin発音できるようにした。Sync／Ringは先頭の該当CHと物理的な前段sourceの1pair制限とし、他の保存設定を保持する。自動採用は実際の値が変わった時だけ行う。
+- [x] unit162件、source／最終ZIPのChromium／WebKit計172項目とZIP更新互換10項目が成功。異なる実register・編集項目だけの反映・保存復元・Auto／Pause選択時の保持を確認し、指定フォルダーを更新した。
+
+結果・配布候補: [Round robin選択時の設定保持](sid_synth_round_robin_preserve_result_01.md)。同じURLを再読み込みして試せる。commit／push／公開は未実行。
+
+### 今回の続き: 設定と鍵盤のCHを統一する（2026-11-08）
+
+ユーザー確認: CH 1／2／3では設定・鍵盤・発音先をその物理CHへ統一する。
+Round robinでは設定を3CHすべてへ反映し、鍵盤を3CHへ順番に割り当てる。
+従来のLive専用CH選択は置き換え、チェックは「再生中の設定を自動反映」とする。
+
+- [x] CH別の設定を保持し、固定CHの編集・単音発音、Round robinの全CH反映・3声割当を実装した。model／filterの共有とSync／Ringの物理的な前段CHを維持する。
+- [x] CH選択を常時使用可能にし、Auto update from song・Pauseの設定保持・曲から鍵盤への切替を接続した。Round robin時は直前の明示CHを観察元とし、古い観察や明示loadとの競合を防ぐ。
+- [x] 従来のvoice Presetを維持し、3CHとtargetを保存するchannel setup・復元・選択した物理CHのCopy JavaScriptを追加した。
+- [x] unit154件、source／独立ZIPのimport・Pause・更新互換と既存鍵盤のChromium／WebKit計224項目が成功。35可読module／196原入力の一致、263ファイルの配布と指定の確認用フォルダー更新を確認した。
+
+結果・配布候補: [CH設定・発音先とRound robin](sid_synth_channel_settings_result_01.md)。同じ `localhost:8793/itch_sid_synth_dev-wVDGAN/` を再読み込みして試せる。commit／push／公開は未実行。
+
 ### 今回の続き: 実SafariでLive中のPauseクリックが反応しない（2026-11-08）
 
 ユーザー指定の `localhost:8793/itch_sid_synth_dev-wVDGAN/` で再現した。

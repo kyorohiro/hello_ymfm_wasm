@@ -28,7 +28,6 @@ export function createSidImportPanel({root,liveRoot,getController}) {
   for(const button of root.querySelectorAll('[data-sid-import-voice]'))act(button,()=>getController().selectVoice(Number(button.dataset.sidImportVoice)));
   const follow=liveRoot.querySelector('#sidLiveEnabled');
   listen(follow,'change',()=>{getController().setLiveEnabled(follow.checked);follow.blur();});
-  for(const button of liveRoot.querySelectorAll('[data-sid-live-voice]'))act(button,()=>getController().setLiveVoice(Number(button.dataset.sidLiveVoice)));
   // Opening/closing a disclosure with the pointer must not retain performance focus.
   listen(root.querySelector('summary'),'click',event=>{if(event.detail)event.currentTarget.blur();});
   return {
@@ -63,7 +62,6 @@ export function createSidImportPanel({root,liveRoot,getController}) {
         label(button,`Voice ${voice+1}${candidate?candidate.available?' · '+candidate.preset.voice.waveform:' · unavailable':''}`);
       }
       follow.checked=state.liveEnabled;
-      for(const button of liveRoot.querySelectorAll('[data-sid-live-voice]'))button.setAttribute('aria-pressed',String(Number(button.dataset.sidLiveVoice)===(state.liveVoice??0)));
       $('sidImportVoicePreview').dataset.unavailable=String(Boolean(row&&!row.available));
       if(!row)label($('sidImportVoicePreview'),'No snapshot captured.');
       else if(!row.available)label($('sidImportVoicePreview'),row.reason);

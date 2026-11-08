@@ -7,12 +7,12 @@ const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture({resumeError = false, fetchFailure = false, failedModel, stalledFetch = false, ready = true, rate = 48000, fallbackRamp = false} = {}) {
   let createAudio, context, node, nextTimer = 0, mode = 'reply';
-  const timers = new Map(), errors = [], events = [], messages = [], fetchSignals = [],fetchUrls=[],releases=[];
+  const timers = new Map(), errors = [], events = [], messages = [], fetchSignals = [],fetchUrls=[],moduleUrls=[],releases=[];
   class Context {
     constructor() {
       context = this; this.sampleRate = rate; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
       this.destination = {}; this.listeners = new Map(); this.closeCount = 0; this.rejectResume = resumeError;
-      this.audioWorklet = {addModule: async () => { events.push('module'); }};
+      this.audioWorklet = {addModule: async url => { events.push('module');moduleUrls.push(String(url)); }};
     }
     addEventListener(name, listener) { this.listeners.set(name, listener); }
     removeEventListener(name) { this.listeners.delete(name); }
@@ -58,7 +58,7 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
     clearTimeout(id) { timers.delete(id); }, provide: value => { createAudio = value; },
   });
   return {create: options => createAudio({onError: error => errors.push(error), ...options}),
-    get context() { return context; }, get node() { return node; }, errors, timers, events, messages, fetchSignals,fetchUrls,
+    get context() { return context; }, get node() { return node; }, errors, timers, events, messages, fetchSignals,fetchUrls,moduleUrls,
     mode(value) { mode = value; }, releaseFetch() { for(const release of releases.splice(0))release(); },
     expire() { const [id, timer] = timers.entries().next().value; assert.equal(timer.ms, 15000); timers.delete(id); timer.fn(); }};
 }
@@ -106,6 +106,16 @@ test('SID command posts preserve FIFO preset contents and rejected edits keep th
   await assert.rejects(audio.command('constructor'), /Unknown SID command/); await assert.rejects(audio.command('noteOn', {}), /arguments must be an array/);
   assert.equal(f.timers.size, 0); assert.equal(f.errors.length, 0); assert.equal(f.context.state, 'running');
   f.mode('reply'); assert.equal((await audio.read()).method, 'read'); await audio.dispose();
+});
+
+test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
+  const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=2'));
+  const begin=f.messages.length;
+  const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
+  assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);
+  assert.equal(replies[0].args[0],setup);assert.equal(replies[1].args[0],setup);
+  assert.equal(f.timers.size,0);await audio.dispose();
 });
 
 test('SID startup cancellation is silent before fetch, while loading and while awaiting readiness', async () => {

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
-import {SidInstrument} from './instrument.js';
+import {SidInstrument} from './instrument.js?sid-channels=2';
 import {readPreset} from './preset.js';
+import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=2';
 
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop']);
 const cancelled=message=>{const error=new Error(message);error.name='AbortError';return error;};
 
 class SidSynthProcessor extends AudioWorkletProcessor {
@@ -19,7 +20,7 @@ class SidSynthProcessor extends AudioWorkletProcessor {
     }).catch(error => this.fail(error));
     this.commands = this.ready;
   }
-  async createInstrument(model,preset) {
+  async createInstrument(model,preset,channels=false) {
     if(!['6581','8580'].includes(model))throw new RangeError('SID model must be 6581 or 8580');
     const binary=this.binaries[model];if(!binary)throw new Error(`SID ${model} WASM is unavailable`);
     const Core=model==='8580'?Sid8580Core:SidCore;
@@ -27,19 +28,26 @@ class SidSynthProcessor extends AudioWorkletProcessor {
     let instrument;
     try{
       instrument=new SidInstrument(core);
-      if(preset)instrument.loadPreset(preset);
+      if(preset)instrument[channels?'loadChannelSettings':'loadPreset'](preset);
       return instrument;
     }catch(error){if(instrument)instrument.dispose();else core.dispose();throw error;}
   }
   async applyPreset(method,value,epoch) {
-    const preset=readPreset(value),previous=this.instrument;
-    if(preset.model===previous.preset.model)return previous[method](preset);
+    const channels=method==='setChannelSettings'||method==='loadChannelSettings';
+    const preset=channels?readChannelSettings(value):readPreset(value),previous=this.instrument;
+    const model=channels?preset.channels[0].model:preset.model;
+    if(model===previous.preset.model)return previous[method](preset);
+    // A legacy single-voice edit still targets the selected channel. Retain
+    // its other stored patches and allocation mode when changing the model.
+    const replacement=channels?preset:previous.channelSettings
+      ?(method==='setPreset'?editChannelPreset:applyChannelPreset)(previous.channelSettings,preset):preset;
+    const channelReplacement=channels||Boolean(previous.channelSettings);
     // A requested model change is a hard note/Pitch reset. Keep the old patch
     // available if allocation fails, but do not leave its old Gate sounding.
     previous.stop();
     let candidate;
     try{
-      candidate=await this.createInstrument(preset.model,preset);
+      candidate=await this.createInstrument(model,replacement,channelReplacement);
       if(this.dead||epoch!==this.modelEpoch)throw cancelled('SID model change cancelled');
       this.instrument=candidate;candidate=null;previous.dispose();
       return this.instrument.read();
@@ -69,7 +77,7 @@ class SidSynthProcessor extends AudioWorkletProcessor {
         if(data.method==='stop'&&!validStop)throw new TypeError('SID Stop takes no arguments');
         if(!['read','stop'].includes(data.method)&&epoch!==this.modelEpoch)throw cancelled('SID command cancelled by Stop');
         const args=data.args??[];
-        const value = await (['setPreset','loadPreset'].includes(data.method)
+        const value = await (['setPreset','loadPreset','setChannelSettings','loadChannelSettings'].includes(data.method)
           ?this.applyPreset(data.method,args[0],epoch):this.instrument[data.method](...args));
         if (!this.dead && data.id !== undefined) this.port.postMessage({id: data.id, value});
       } catch (error) {

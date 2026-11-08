@@ -131,7 +131,7 @@ function instrument(){
 async function checkBrowser(name,engine,origin,helpers){
   const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
-  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[],pointerHoldObservations=[];
+  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[],pointerHoldObservations=[],channelObservations=[];
   let page,stage='startup',holdNextPlayerWasm=false,releaseWasm;
   const check=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
@@ -159,9 +159,30 @@ async function checkBrowser(name,engine,origin,helpers){
     const openImports=async()=>{if(!await imports().evaluate(n=>n.open))await page.locator('#sidImportTools>summary').click();};
     const openPresets=async()=>{if(!await page.locator('#presetTools').evaluate(n=>n.open))await page.locator('#presetTools>summary').click();};
     const stopSynth=async()=>{await page.locator('#stopAudio').click();await silent('synth');await silent('player');};
-    async function savedPreset(){
-      await openPresets();const downloading=page.waitForEvent('download');await page.locator('#savePreset').click();
-      const bytes=await fs.readFile(await(await downloading).path()),value=JSON.parse(bytes.toString());assert.deepEqual(helpers.readPreset(value),value);return {bytes,value};
+    let lastExportFinished=0;
+    async function savedJson(button,validate){
+      await openPresets();
+      // Snapshot assertions exercise the real Save buttons repeatedly. Pace
+      // this synthetic export burst so it does not trip browser multi-download
+      // limits; every click still requires its own completed, valid download.
+      // This is gesture pacing, never a retry after a lost download event.
+      const remaining=150-(Date.now()-lastExportFinished);
+      if(remaining>0)await page.waitForTimeout(remaining);
+      const downloading=page.waitForEvent('download');await page.locator(button).click();
+      const download=await downloading;assert.equal(await download.failure(),null,'The exported file download failed');
+      const bytes=await fs.readFile(await download.path()),value=JSON.parse(bytes.toString());assert.deepEqual(validate(value),value);
+      lastExportFinished=Date.now();return {bytes,value};
+    }
+    const savedPreset=()=>savedJson('#savePreset',helpers.readPreset);
+    const savedChannels=()=>savedJson('#saveChannelSettings',helpers.readChannelSettings);
+    async function chooseTarget(target){
+      const button=page.locator(`[data-sid-live-voice="${target}"]`);assert.equal(await button.isDisabled(),false);
+      await button.click();await page.waitForFunction(target=>document.querySelector(`[data-sid-live-voice="${target}"]`).getAttribute('aria-pressed')==='true',String(target));
+    }
+    async function loadPortable(value){
+      await openPresets();await page.locator('#presetFileInput').setInputFiles({name:'channel-patch.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))});
+      await page.waitForFunction(name=>document.getElementById('instrumentName').value===name&&document.getElementById('patchStatus').dataset.busy!=='true',value.name);
+      assert.deepEqual((await savedPreset()).value,value);
     }
     async function load(bytes,filename){
       await openImports();await page.locator('#sidSoundFileInput').setInputFiles({name:filename,mimeType:'application/octet-stream',buffer:Buffer.from(bytes)});
@@ -269,9 +290,10 @@ async function checkBrowser(name,engine,origin,helpers){
       const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
       await page.keyboard.down(key);await sound('synth');const state=await waitState('synth',s=>s.voices.length>0);
       assert.deepEqual(state.preset,expected);assert.equal(state.model,expected.model);
-      if(expected.modulation.sync||expected.modulation.ring){assert.equal(state.capacity,1);assert.equal(state.registers[4]&6,(expected.modulation.sync?2:0)|(expected.modulation.ring?4:0));}
+      if(expected.modulation.sync||expected.modulation.ring){const carrier=state.channelSettings.target==='round-robin'?0:state.channelSettings.target;assert.equal(state.capacity,1);assert.equal(state.registers[carrier*7+4]&6,(expected.modulation.sync?2:0)|(expected.modulation.ring?4:0));}
       await page.keyboard.up(key);await stopSynth();
-      await page.locator('#copyCode').click();assert.equal(await page.locator('#codeOutput').inputValue(),helpers.presetToCode(expected));
+      const channels=(await savedChannels()).value;
+      await page.locator('#copyCode').click();assert.equal(await page.locator('#codeOutput').inputValue(),helpers.channelSettingsToCode(channels));
       await page.locator('#presetFileInput').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:saved.bytes});
       await page.waitForFunction(()=>document.getElementById('audioStatus').textContent.includes('preset loaded'));
       assert.deepEqual((await savedPreset()).value,expected);return saved;
@@ -281,6 +303,11 @@ async function checkBrowser(name,engine,origin,helpers){
     await openImports();assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),0);
     assert.equal(await page.locator('#sidImportCapture').isDisabled(),true);assert.equal(await page.locator('#sidImportUse').count(),0);
     assert.equal(await page.locator('#sidLiveEnabled').isChecked(),true);
+    assert.match(await page.locator('#sidLiveEnabled').locator('..').textContent(),/Auto update from song/);
+    assert.equal(await page.locator('[data-sid-live-voice="round-robin"]').getAttribute('aria-pressed'),'true');
+    // The following lifecycle checks deliberately use authored settings. Auto
+    // adoption is exercised separately with real observed channel candidates.
+    await setLive(false);
     assert.match(await imports().textContent(),/SID/);const original=(await savedPreset()).value;
 
     check('question-mark explanations are closed by default and open without folding the card or starting audio');
@@ -420,6 +447,83 @@ async function checkBrowser(name,engine,origin,helpers){
     await page.evaluate(()=>__sidImportAudit.releasePlayerClose());await page.waitForTimeout(100);
     assert.deepEqual((await savedPreset()).value,edited);
 
+    check('fixed CH selection retains three independent patches and both keyboard attacks use the selected physical channel');
+    const fixedBase={...edited,modulation:{sync:false,ring:false,ratio:1},filter:{...edited.filter,enabled:false,mode:'lowpass'}};
+    const authoredChannels=[
+      {...fixedBase,name:'Authored CH 1',voice:{...edited.voice,waveform:'triangle',attack:3}},
+      {...fixedBase,name:'Authored CH 2',voice:{...edited.voice,waveform:'pulse',pulseWidth:713,attack:5}},
+      {...fixedBase,name:'Authored CH 3',voice:{...edited.voice,waveform:'saw',attack:7}},
+    ];
+    for(let target=0;target<3;target++){await chooseTarget(target);await loadPortable(authoredChannels[target]);}
+    await chooseTarget(1);assert.deepEqual((await savedPreset()).value,authoredChannels[1]);
+    const keyEntries=await page.locator('#keyboard .key:not([disabled])').evaluateAll(nodes=>nodes.slice(0,3).map(n=>n.dataset.key));assert.equal(keyEntries.length,3);
+    await page.keyboard.down(keyEntries[0]);await sound('synth');
+    const firstFixed=await waitState('synth',s=>s.voices.length===1&&s.voices[0].channel===1);
+    await page.keyboard.down(keyEntries[1]);
+    const secondFixed=await waitState('synth',s=>s.voices.length===1&&s.voices[0].id!==firstFixed.voices[0].id);
+    assert.equal(secondFixed.channelSettings.target,1);assert.equal(secondFixed.capacity,1);assert.equal(secondFixed.voices[0].channel,1);
+    assert.deepEqual(secondFixed.channelSettings.channels,authoredChannels);
+    await page.keyboard.up(keyEntries[0]);assert.equal((await read('synth')).voices[0].id,secondFixed.voices[0].id,'Releasing the stolen fixed-CH key stopped its replacement');
+    await page.keyboard.up(keyEntries[1]);await stopSynth();
+    for(let target=0;target<3;target++){await chooseTarget(target);assert.deepEqual((await savedPreset()).value,authoredChannels[target]);}
+    channelObservations.push({check:stage,target:1,firstId:firstFixed.voices[0].id,replacementId:secondFixed.voices[0].id,physicalChannels:secondFixed.voices.map(v=>v.channel),independentPatches:true});
+
+    check('Round robin preserves distinct patches, shares the filter and broadcasts only the field that was edited');
+    await chooseTarget(1);
+    const sharedPatch={...authoredChannels[1],filter:{enabled:true,mode:'lowpass',cutoff:1100,resonance:7,volume:10}};
+    await loadPortable(sharedPatch);
+    const shared=(await savedChannels()).value;assert.equal(shared.target,1);
+    for(let target=0;target<3;target++){
+      assert.deepEqual(shared.channels[target].filter,sharedPatch.filter);
+      assert.deepEqual(shared.channels[target].voice,authoredChannels[target].voice);
+      assert.deepEqual(shared.channels[target].modulation,authoredChannels[target].modulation);
+    }
+    await chooseTarget('round-robin');
+    const mixedRoundRobin=await savedChannels();assert.equal(mixedRoundRobin.value.target,'round-robin');
+    assert.deepEqual(mixedRoundRobin.value.channels,shared.channels,'Selecting Round robin overwrote a channel patch');
+    assert.equal(await page.locator('#sidChannelState').isVisible(),true);
+    assert.equal(await page.locator('#sidChannelState').textContent(),'CH settings differ · edits apply to all.');
+    for(const key of keyEntries)await page.keyboard.down(key);
+    await sound('synth');const rotating=await waitState('synth',s=>s.voices.length===3);
+    assert.equal(rotating.channelSettings.target,'round-robin');assert.equal(rotating.capacity,3);
+    assert.deepEqual(rotating.voices.map(v=>v.channel).sort(),[0,1,2]);
+    assert.deepEqual(rotating.channelSettings.channels,shared.channels);
+    assert.deepEqual([0,1,2].map(channel=>rotating.registers[channel*7+4]&0xf0),[0x10,0x40,0x20]);
+    assert.deepEqual([0,1,2].map(channel=>rotating.registers[channel*7+5]>>4),[3,5,7]);
+    for(const key of keyEntries)await page.keyboard.up(key);await stopSynth();
+    // Round robin is part of a saved channel setup, including the three
+    // different patches. Restoring it must not collapse them to the first CH.
+    await chooseTarget(0);await loadPortable({...shared.channels[0],name:'Temporary mixed bank edit',voice:{...shared.channels[0].voice,waveform:'noise'}});
+    await page.locator('#presetFileInput').setInputFiles({name:'mixed-round-robin.json',mimeType:'application/json',buffer:mixedRoundRobin.bytes});
+    await page.waitForFunction(()=>document.querySelector('[data-sid-live-voice="round-robin"]').getAttribute('aria-pressed')==='true'&&document.getElementById('instrumentName').value==='Authored CH 1');
+    assert.deepEqual((await savedChannels()).value,mixedRoundRobin.value);
+    const restoredMixed=await waitState('synth',s=>s.channelSettings?.target==='round-robin'&&s.channelSettings.channels[0].name==='Authored CH 1');
+    assert.deepEqual(restoredMixed.channelSettings,mixedRoundRobin.value);
+    const attackBefore=Number(await page.locator('#attack').getAttribute('data-value'));assert.equal(attackBefore,3);
+    await page.locator('[data-stepper-for="attack"][data-stepper-delta="1"]').click();
+    await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
+    const fieldEdited=(await savedChannels()).value,expectedFieldEdit=shared.channels.map(patch=>({...patch,voice:{...patch.voice,attack:attackBefore+1}}));
+    assert.equal(fieldEdited.target,'round-robin');assert.deepEqual(fieldEdited.channels,expectedFieldEdit,'A Round robin Attack edit overwrote unrelated per-CH settings');
+    const appliedFieldEdit=await waitState('synth',s=>s.channelSettings?.channels.every(patch=>patch.voice.attack===attackBefore+1));
+    assert.deepEqual(appliedFieldEdit.channelSettings,fieldEdited);
+    const roundRobinPatch={...sharedPatch,name:'All CH edit',voice:{...sharedPatch.voice,waveform:'triangle',attack:9}};
+    await loadPortable(roundRobinPatch);assert.deepEqual((await savedChannels()).value.channels,[roundRobinPatch,roundRobinPatch,roundRobinPatch],'An explicit Round robin preset load did not replace all three patches');
+    channelObservations.push({check:stage,target:'round-robin',physicalChannels:rotating.voices.map(v=>v.channel),hardwareWaveforms:[0x10,0x40,0x20],hardwareAttacks:[3,5,7],sharedFilter:true,mixedRoundtrip:true,fieldEdited:'attack',broadcastAttack:attackBefore+1,otherFieldsPreserved:true,explicitPresetLoadReplacesAll:true});
+
+    check('channel setup save and load restore distinct patches, the shared filter and the selected physical target');
+    await chooseTarget(2);const restoredThird={...roundRobinPatch,name:'Saved CH 3',voice:{...roundRobinPatch.voice,waveform:'pulse',pulseWidth:1301}};
+    await loadPortable(restoredThird);const setupSaved=await savedChannels();assert.equal(setupSaved.value.target,2);
+    assert.notDeepEqual(setupSaved.value.channels[0].voice,setupSaved.value.channels[2].voice);
+    await chooseTarget(0);await loadPortable({...roundRobinPatch,name:'Temporary CH 1',voice:{...roundRobinPatch.voice,waveform:'noise'}});
+    await page.locator('#presetFileInput').setInputFiles({name:'channel-setup-roundtrip.json',mimeType:'application/json',buffer:setupSaved.bytes});
+    await page.waitForFunction(()=>document.querySelector('[data-sid-live-voice="2"]').getAttribute('aria-pressed')==='true'&&document.getElementById('instrumentName').value==='Saved CH 3');
+    const restoredSetup=(await savedChannels()).value;assert.deepEqual(restoredSetup,setupSaved.value);
+    const appliedSetup=await waitState('synth',s=>s.channelSettings?.target===2&&s.channelSettings.channels[2].name==='Saved CH 3');
+    assert.deepEqual(appliedSetup.channelSettings,setupSaved.value);
+    await page.locator('#copyCode').click();assert.equal(await page.locator('#codeOutput').inputValue(),helpers.channelSettingsToCode(setupSaved.value));
+    channelObservations.push({check:stage,target:2,restored:true});
+    await chooseTarget('round-robin');await loadPortable(edited);
+
     const liveValue=field=>page.locator(`#sidLiveView [data-live-field="${field}"]`).getAttribute('data-value');
     const liveFrame=()=>page.locator('#sidLiveView').getAttribute('data-live-frames');
     const applicationReadCount=()=>page.evaluate(()=>__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method==='read'&&m.id>0).length);
@@ -470,8 +574,8 @@ async function checkBrowser(name,engine,origin,helpers){
     await page.evaluate(()=>{for(const id of ['filterCard','voiceCard','modulationCard'])document.getElementById(id).open=true;});
     await rememberEditor();
 
-    check('live CH observation follows real changing registers with one read in flight and keeps the authored preset');
-    await load(helpers.live.bytes,'authored-live-ch.sid');await setLive(true);
+    check('Auto update follows real changing registers in the selected CH bank with one read in flight');
+    await chooseTarget(0);await load(helpers.live.bytes,'authored-live-ch.sid');await setLive(true);
     await page.evaluate(()=>{__sidImportAudit.playerReadsMax=0;__sidImportAudit.playerReadsPending=0;});
     await preview();await waitLive();
     const liveContextCount=await page.evaluate(()=>__sidImportAudit.contexts.length),values=[];
@@ -485,7 +589,9 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual([...new Set(values.map(v=>v.waveforms))].sort(),['16','80'],'Live view must retain combined waveform flags');
     assert.equal(await page.evaluate(()=>__sidImportAudit.playerReadsMax),1,'Observer/capture reads overlapped');
     assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),liveContextCount,'Observation allocated another audio context');
-    assert.deepEqual((await savedPreset()).value,edited);liveObservations.push({model:'6581',voice:0,values,maxReadConcurrency:1});
+    const observedBank=(await savedChannels()).value;assert.equal(observedBank.target,0);
+    assert.deepEqual(observedBank.channels[1].voice,edited.voice);assert.deepEqual(observedBank.channels[2].voice,edited.voice);
+    liveObservations.push({model:'6581',voice:0,values,maxReadConcurrency:1,unselectedPatchesPreserved:true});
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'true');
     await checkEditorIdentity({layout:true});
 
@@ -507,38 +613,46 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.equal(await page.locator('#voiceCard').evaluate(node=>node.open),false,'A Live update reopened the folded section');
     await page.locator('#voiceCard>summary').click();
     assert.equal(await page.evaluate(()=>__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method!=='read').length),playerCommands,'A Live help/fold action wrote to the tune');
-    assert.deepEqual((await savedPreset()).value,edited);
+    const helpBank=(await savedChannels()).value;assert.equal(helpBank.target,0);assert.deepEqual(helpBank.channels[1].voice,edited.voice);assert.deepEqual(helpBank.channels[2].voice,edited.voice);
     await checkEditorIdentity({layout:true});
 
-    check('live CH selection immediately shows the chosen combined-waveform channel without changing the song or instrument');
-    await page.locator('[data-sid-live-voice="1"]').click();
+    check('fixed CH selection also selects its song observation while unsupported combined settings preserve its playable patch');
+    await chooseTarget(1);
     await page.waitForFunction(()=>document.getElementById('sidLiveView').dataset.liveVoice==='1');
     const combinedValues=await editorValues();
     assert.equal(combinedValues.waveforms,'48');assert.equal(await liveValue('frequencyRegister'),String(0x2030));
     assert.equal(combinedValues.adsr,'5/8/9/3');assert.match(await liveValue('import'),/Combined waveforms/i);
-    assert((await read('player')).playing);assert.deepEqual((await savedPreset()).value,edited);
+    assert((await read('player')).playing);const unsupportedRetained=(await savedPreset()).value;assert.deepEqual(unsupportedRetained.voice,edited.voice);
     assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-sid-live-voice]')),false);
     await checkEditorIdentity();
 
-    check('disabling live observation freezes its values and stops periodic reads while the real song continues');
+    check('disabling Auto update freezes observations, restores editable settings and leaves every CH target available');
     await setLive(false);await page.waitForTimeout(100);
+    assert.equal(await page.locator('#sidLiveChannelLabel').textContent(),'Edit & play');
+    assert.notEqual(await page.locator('#sidLiveChannels').getAttribute('aria-disabled'),'true');
+    assert.equal(await page.locator('[data-sid-live-voice]').count(),4);assert.equal(await page.locator('[data-sid-live-voice]:disabled').count(),0);
+    assert.equal(await page.locator('[data-sid-live-voice="1"]').getAttribute('aria-pressed'),'true');
+    if(config.screenshots)await page.locator('#sidLiveTools').screenshot({path:path.join(config.screenshots,`${name}-sid-live-controls-off.png`)});
     const frozen=await liveFrame(),reads=await applicationReadCount(),positionBefore=(await read('player')).positionFrames;
     await page.waitForTimeout(240);
     assert.equal(await liveFrame(),frozen);assert.equal(await applicationReadCount(),reads);
     assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
     assert((await read('player')).positionFrames>positionBefore);await sound('player');
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'false');
-    assert.equal(await page.locator('#attack').getAttribute('data-value'),String(edited.voice.attack));
-    assert.equal(await page.locator('#pulseWidth').getAttribute('data-value'),String(edited.voice.pulseWidth));
+    assert.equal(await page.locator('#attack').getAttribute('data-value'),String(unsupportedRetained.voice.attack));
+    assert.equal(await page.locator('#pulseWidth').getAttribute('data-value'),String(unsupportedRetained.voice.pulseWidth));
     assert.equal(await page.locator('[data-choice-for="waveform"][data-value="noise"]').getAttribute('aria-checked'),'true');
     assert.equal(await page.locator('#attack').isDisabled(),false);
     await checkEditorIdentity({layout:true});
 
     check('an unavailable captured Voice click preserves the preset and live raw settings remain observable');
     await setLive(true);await waitLive();
+    assert.notEqual(await page.locator('#sidLiveChannels').getAttribute('aria-disabled'),'true');
+    assert.equal(await page.locator('[data-sid-live-voice]:disabled').count(),0);
+    assert.equal(await page.locator('[data-sid-live-voice="1"]').getAttribute('aria-pressed'),'true');
     await capture();await page.locator('[data-sid-import-voice="1"]').click();await page.waitForTimeout(50);
     assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
-    assert.deepEqual((await savedPreset()).value,edited);assert((await read('player')).playing);
+    assert.deepEqual((await savedPreset()).value,unsupportedRetained);assert((await read('player')).playing);
     await setLive(true);await waitLive();assert.equal((await editorValues()).waveforms,'48');
 
     check('Stop fences a delayed observer reply and leaves a visibly frozen last CH frame');
@@ -548,7 +662,7 @@ async function checkBrowser(name,engine,origin,helpers){
     await stopPreview();const stoppedFrame=await liveFrame();
     await page.evaluate(()=>__sidImportAudit.releaseCaptureReply());await page.waitForTimeout(120);
     assert.equal(await liveFrame(),stoppedFrame);assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
-    assert.deepEqual((await savedPreset()).value,edited);
+    assert.deepEqual((await savedPreset()).value,unsupportedRetained);
 
     check('8580 live observation uses its real preview model and labels unavailable envelope observation');
     await load(helpers.pair8580.bytes,'live-8580.sid');await page.locator('[data-sid-live-voice="0"]').click();
@@ -556,7 +670,7 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-model'),'8580');
     assert.equal(await liveValue('envelope'),'unavailable');assert.equal((await editorValues()).waveforms,'16');
     assert.equal(await page.locator('#syncEnabled').isChecked(),true);assert.equal(await page.locator('#ringEnabled').isChecked(),true);
-    assert.deepEqual((await savedPreset()).value,edited);
+    const adopted8580=(await savedPreset()).value;assert.equal(adopted8580.model,'8580');assert.equal(adopted8580.voice.waveform,'triangle');assert.equal(adopted8580.modulation.sync,true);assert.equal(adopted8580.modulation.ring,true);
     liveObservations.push({model:'8580',voice:0,frame:await liveFrame(),envelope:'unavailable'});
 
     check('holding Pause across real Live updates preserves its text node and delivers Pause/Resume with the same engine');
@@ -568,6 +682,31 @@ async function checkBrowser(name,engine,origin,helpers){
     await waitState('player',state=>state.positionFrames>heldPointerState.positionFrames);
     assert.deepEqual(await playerIdentity(),heldPointerIdentity);
 
+    check('Auto update adopts the paused physical CH settings for keyboard audition and Round robin broadcasts the remembered song CH');
+    const autoPaused=await pausePreview(),autoParsed=helpers.validatePlayerSid(helpers.pair8580.bytes);
+    const autoExpected=helpers.captureSidVoices(autoPaused,{name:autoParsed.metadata.name,subtune:1}).voices[0].preset;assert(autoExpected);
+    assert.deepEqual((await savedPreset()).value,autoExpected);
+    const beforeAutoModeChange=(await savedChannels()).value;
+    assert.notDeepEqual(beforeAutoModeChange.channels[0].voice,beforeAutoModeChange.channels[1].voice);
+    await chooseTarget('round-robin');
+    assert.deepEqual((await savedChannels()).value.channels,beforeAutoModeChange.channels,'A target change reapplied the same observed settings to all CH');
+    assert.equal(await page.locator('#sidChannelState').isVisible(),true);
+    await resumePreview();await waitLive();await page.waitForTimeout(180);
+    assert.deepEqual((await savedChannels()).value.channels,beforeAutoModeChange.channels,'Unchanged song settings were broadcast again merely because playback advanced');
+    await pausePreview();await chooseTarget(0);
+    await setLive(false);assert.equal(await page.locator('#attack').isDisabled(),false);assert.deepEqual((await savedPreset()).value,autoExpected);
+    await page.keyboard.down(firstKey);await sound('synth');await page.waitForFunction(()=>__sidImportAudit.active('player').length===0);
+    const autoAudition=await waitState('synth',s=>s.voices.length===1);
+    assert.equal(autoAudition.voices[0].channel,0);assert.equal(autoAudition.channelSettings.target,0);assert.deepEqual(autoAudition.preset,autoExpected);
+    await page.keyboard.up(firstKey);await stopSynth();
+    await chooseTarget('round-robin');await load(helpers.pair6581.bytes,'auto-round-robin.sid');await setLive(true);await preview();await waitLive();
+    const broadcastPaused=await pausePreview(),broadcastParsed=helpers.validatePlayerSid(helpers.pair6581.bytes);
+    const broadcastExpected=helpers.captureSidVoices(broadcastPaused,{name:broadcastParsed.metadata.name,subtune:1}).voices[0].preset;assert(broadcastExpected);
+    const broadcastSetup=(await savedChannels()).value;assert.equal(broadcastSetup.target,'round-robin');
+    assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-voice'),'0');
+    assert.deepEqual(broadcastSetup.channels,[broadcastExpected,broadcastExpected,broadcastExpected]);
+    await stopPreview();channelObservations.push({check:stage,fixedTarget:0,auditionChannel:autoAudition.voices[0].channel,autoOffKeepsPatch:true,broadcastTarget:'round-robin',observedSongChannel:0});
+
     for(const entry of [
       {label:'6581 VBI',fixture:helpers.pair6581},
       {label:'6581 CIA',fixture:helpers.cia,subtune:2},
@@ -578,14 +717,16 @@ async function checkBrowser(name,engine,origin,helpers){
       await load(entry.fixture.bytes,`pause-${entry.label.replaceAll(' ','-')}.sid`);
       if(entry.subtune){await page.locator('#sidImportSubtuneUp').click();await page.waitForFunction(()=>/2\s*\/\s*2/.test(document.getElementById('sidImportSubtuneValue').textContent));}
       await page.locator('[data-sid-live-voice="0"]').click();await setLive(true);await preview();await waitLive();
-      const identity=await playerIdentity(),beforePausePreset=(await savedPreset()).value;
+      const identity=await playerIdentity();
       const paused=await pausePreview();await checkPausedUi(paused);
       const expected=frozenCore(paused),firstRead=await read('player');assert.deepEqual(frozenCore(firstRead),expected);
       await page.waitForTimeout(200);const later=await read('player');
       assert.equal(later.paused,true);assert.equal(later.playing,false);assert.deepEqual(frozenCore(later),expected);
       assert.deepEqual(await playerIdentity(),identity,'Pause replaced or reloaded the C64 engine');
       const captured=await capture();assert.deepEqual(frozenCore(captured),expected,'Capture did not read the stopped state');
-      await setLive(true);await checkPausedUi(paused);assert.deepEqual((await savedPreset()).value,beforePausePreset);
+      await setLive(true);await checkPausedUi(paused);
+      const parsedPause=helpers.validatePlayerSid(entry.fixture.bytes),pausedCandidate=helpers.captureSidVoices(paused,{name:parsedPause.metadata.name,subtune:entry.subtune?2:1}).voices[0].preset;
+      if(pausedCandidate)assert.deepEqual((await savedPreset()).value,pausedCandidate);
       await resumePreview();const resumed=await waitState('player',state=>state.positionFrames>paused.positionFrames);
       assert.equal(resumed.paused,false);assert.deepEqual(await playerIdentity(),identity,'Resume replaced or reloaded the C64 engine');
       pauseObservations.push({case:entry.label,model:paused.model,subtune:paused.subtune,pauseFrames:paused.positionFrames,
@@ -657,18 +798,19 @@ async function checkBrowser(name,engine,origin,helpers){
     for(const width of [1180,390]){
       await page.setViewportSize({width,height:width===390?844:1000});
       assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+      if(config.screenshots)await page.locator('#sidLiveTools').screenshot({path:path.join(config.screenshots,`${name}-sid-live-controls-${width}.png`)});
       if(config.screenshots)await page.screenshot({path:path.join(config.screenshots,`${name}-sid-import-${width}.png`),fullPage:true});
     }
     await stopSynth();
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
     assert.deepEqual(await page.evaluate(()=>__sidImportAudit.processorErrors),[]);
     const muted=await page.evaluate(()=>__sidImportAudit.sinks.every(s=>s.mute.gain.value===0));assert(muted);
-    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,pauseObservations,pointerHoldObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
+    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,pauseObservations,pointerHoldObservations,channelObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
     console.log(`PASS ${name}: ${checks.length} direct SID import checks; every physical output muted.`);
   }catch(error){
     if(config.screenshots&&page)await page.screenshot({path:path.join(config.screenshots,`${name}-failed.png`),fullPage:true}).catch(()=>{});
     const state=await page?.evaluate(()=>({status:document.getElementById('sidImportStatus')?.textContent,info:document.getElementById('sidImportInfo')?.textContent,preview:document.getElementById('sidImportVoicePreview')?.textContent,audio:document.getElementById('audioStatus')?.textContent,live:document.getElementById('sidLiveView')?.dataset,liveText:document.getElementById('sidLiveView')?.textContent})).catch(()=>null);
-    report.results.push({browser:name,passed:false,stage,error:error.message,state,checks,pointerHoldObservations,errors,consoleErrors,failures,external});
+    report.results.push({browser:name,passed:false,stage,error:error.message,state,checks,pointerHoldObservations,channelObservations,errors,consoleErrors,failures,external});
     throw new Error(`${name} (${stage}): ${error.message}; ${JSON.stringify(state)}`,{cause:error});
   }finally{if(releaseWasm)releaseWasm();await context.close();await browser.close();}
 }
@@ -680,11 +822,12 @@ async function checkBrowser(name,engine,origin,helpers){
   const {captureSidVoices}=await import('../docs/sid-player/voice_snapshot.js');
   const {validatePlayerSid}=await import('../docs/sid-player/models.js');
   const {readPreset,presetToCode}=await import('../docs/synth-sid/preset.js');
+  const {readChannelSettings,channelSettingsToCode}=await import('../docs/synth-sid/channel_settings.js');
   const options={sync:true,ring:true,sourceControl:0,voice3off:true,carrierFrequency:0x1800,sourceFrequency:0x2003};
   const helpers={pair6581:createSidPairFixture({model:'6581',...options}),pair8580:createSidPairFixture({model:'8580',...options}),
     cia:createPsidCiaFixture(),rsid:createRsidFixture('cia-irq'),combined:createSidPairFixture({sync:false,ring:false,voice3off:true,overrides:[[4,0x31]]}),
     live:createLiveFixture(createSidPairFixture({sync:false,ring:false,sourceControl:0,thirdControl:0x31,voice3off:true,overrides:[[7,0x30],[8,0x20],[12,0x58],[13,0x93]]})),
-    captureSidVoices,validatePlayerSid,readPreset,presetToCode};
+    captureSidVoices,validatePlayerSid,readPreset,presetToCode,readChannelSettings,channelSettingsToCode};
   report.inputs=Object.fromEntries(await Promise.all(['scripts/check_sid_synth_import_browser.cjs','test/helpers/sid_voice_pair_fixtures.mjs','test/helpers/psid_cia_fixtures.mjs','test/helpers/rsid_fixtures.mjs'].map(async file=>[file,digest(await fs.readFile(path.resolve(__dirname,'..',file)))])));
   report.fixtureInputs=Object.fromEntries(Object.entries(helpers).filter(([,value])=>value?.bytes).map(([key,value])=>[key,digest(value.bytes)]));
   if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});

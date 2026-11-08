@@ -66,8 +66,18 @@
     <section class="sid-workspace" aria-labelledby="voiceHeading">
       <div class="section-heading"><h2 id="voiceHeading">Your sound</h2><p id="patchStatus" role="status">Ready · edits apply automatically.</p></div>
       <div id="sidLiveTools" class="sid-live-tools">
-        <div class="sid-live-controls"><label class="sid-check"><input id="sidLiveEnabled" type="checkbox" checked> Live CH view while playing</label><div class="sid-choice-group" role="group" aria-label="Song channel to observe"><button type="button" data-sid-live-voice="0" aria-pressed="true">CH 1</button><button type="button" data-sid-live-voice="1" aria-pressed="false">CH 2</button><button type="button" data-sid-live-voice="2" aria-pressed="false">CH 3</button></div></div>
-        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About Live and edit mode">?</summary><div class="sid-help-panel"><p class="sid-help">The same controls follow the selected song channel during playback. Live controls are read-only. Turn off Live view to edit your keyboard instrument. Capture voices, then select a captured Voice to load its fixed settings.</p></div></details>
+        <div class="sid-live-controls" role="group" aria-label="Channel settings and automatic song updates">
+          <div id="sidLiveChannels" class="sid-live-channels" role="group" aria-labelledby="sidLiveChannelLabel">
+            <span id="sidLiveChannelLabel" class="sid-live-channel-label">Edit &amp; play</span>
+            <div class="sid-choice-group"><button type="button" data-sid-live-voice="0" aria-pressed="false">CH 1</button><button type="button" data-sid-live-voice="1" aria-pressed="false">CH 2</button><button type="button" data-sid-live-voice="2" aria-pressed="false">CH 3</button><button type="button" data-sid-live-voice="round-robin" aria-pressed="true">Round robin</button></div>
+          </div>
+          <label class="sid-check"><input id="sidLiveEnabled" type="checkbox" checked> Auto update from song</label>
+        </div>
+        <p id="sidChannelState" class="sid-help" hidden>CH settings differ · edits apply to all.</p>
+        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About channel selection and automatic updates">?</summary><div class="sid-help-panel">
+          <p class="sid-help">CH 1 / 2 / 3 selects both the settings to edit and the physical channel played by the keyboard. Round robin keeps each channel's sound and allocates keys between them. When values differ, editing uses CH 1 as a reference. Changing a setting applies that setting to all three channels. Loading a voice preset replaces the complete sound on all three. Filter and model are shared hardware settings.</p>
+          <p class="sid-help">Auto update follows the selected SID song channel during playback or Pause. Playable settings are also kept for this keyboard; turn Auto update off to edit them. Round robin follows the last explicitly selected song CH and applies its playable settings to all three channels. Unsupported raw settings remain visible without replacing the last playable sound.</p>
+        </div></details>
       </div>
       <div id="voiceEditor" class="sid-editor"></div>
       <div id="sidLiveView" hidden></div>
@@ -77,10 +87,10 @@
     <details id="presetTools" class="sid-card preset-tools"><summary>Preset · save, load and JavaScript</summary>
       <div class="sid-card-content preset-actions">
         <label class="instrument-name-control" for="instrumentName">Name <input id="instrumentName" type="text" maxlength="80" value="Saw" autocomplete="off"></label>
-        <button id="savePreset" type="button">Save preset…</button><button id="loadPreset" type="button">Load preset…</button><button id="resetPreset" type="button">Reset</button><button id="copyCode" type="button">Copy JavaScript</button>
+        <button id="savePreset" type="button">Save voice preset…</button><button id="saveChannelSettings" type="button">Save channel setup…</button><button id="loadPreset" type="button">Load preset / setup…</button><button id="resetPreset" type="button">Reset</button><button id="copyCode" type="button">Copy JavaScript</button>
         <input id="presetFileInput" class="file-input" type="file" accept=".json,application/json" aria-label="Choose a SID voice preset">
         <textarea id="codeOutput" readonly hidden spellcheck="false" aria-label="Readable SID voice JavaScript"></textarea>
-        <p class="sid-help">Portable SID voice JSON, up to 64 KiB. Loading resets held notes and Pitch. JavaScript opens the same sound in Playground C64 mode.</p>
+        <p class="sid-help">Voice preset saves the current sound. Channel setup also saves all three channels and Edit &amp; play selection. JSON up to 64 KiB; loading resets held notes and Pitch. JavaScript uses the selected physical channel in Playground C64 mode.</p>
       </div>
     </details>
 
@@ -94,6 +104,6 @@
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>
-<script type="module" src="./synth.js?sid-transport=2"></script>
+<script type="module" src="./synth.js?sid-transport=2&amp;sid-channels=2"></script>
 </body>
 </html>
