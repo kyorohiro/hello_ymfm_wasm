@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
-import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js';
+import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js';
 import {captureSidVoices} from '../sid-player/voice_snapshot.js';
 import {readSidLiveVoice} from './sid_live_view.js';
 
@@ -127,7 +127,7 @@ test('an imported fractional ratio retains its exact value across display, range
 });
 
 test('ratio buttons, drag and both keyboard surfaces step from the exact imported basis and clamp only at bounds',async t=>{
-  const f=editorFixture(t),ratio=12139/9113,preset=createDefaultPreset();preset.modulation.ratio=ratio;f.editor.update(preset);
+  const f=editorFixture(t),ratio=12139/9113,preset=createDefaultPreset();preset.modulation={...preset.modulation,sync:true,ratio};f.editor.update(preset);
   const value=find(f.root,'modulationRatio'),range=find(f.root,'modulationRatioRange');
   await step(f.root,'modulationRatio',1).fire('click');assert.equal(f.editor.getPreset().modulation.ratio,ratio+.125);
   await step(f.root,'modulationRatio',-1).fire('click');assert.equal(f.editor.getPreset().modulation.ratio,ratio);
@@ -158,11 +158,11 @@ test('invalid external patches keep the editor, and disposal ignores late callba
   const retained=f.editor.getPreset();await step(f.root,'decay',1).fire('click');assert.deepEqual(f.editor.getPreset(),retained);
 });
 
-function liveObservation({waveformMask=0x70,frequency=0x1200,sourceFrequency=0x2400,modeMask=5,routed=true,voice=0}={}){
+function liveObservation({waveformMask=0x70,frequency=0x1200,sourceFrequency=0x2400,modeMask=5,routed=true,voice=0,sync=true,ring=true}={}){
   const registers=Array(32).fill(0),base=voice*7,source=((voice+2)%3)*7;
   registers[base]=frequency&255;registers[base+1]=frequency>>8;
   registers[base+2]=0x34;registers[base+3]=0xa;
-  registers[base+4]=waveformMask|15;registers[base+5]=0x98;registers[base+6]=0x76;
+  registers[base+4]=waveformMask|9|Number(sync)<<1|Number(ring)<<2;registers[base+5]=0x98;registers[base+6]=0x76;
   registers[source]=sourceFrequency&255;registers[source+1]=sourceFrequency>>8;
   registers[21]=4;registers[22]=187;registers[23]=0xb0|(routed?1<<voice:0);registers[24]=0x80|(modeMask<<4)|13;
   return readSidLiveVoice({model:'6581',clockHz:985248,sampleRate:48000,positionFrames:9600,registers,voices:[{envelope:77},{envelope:88},{envelope:99}]},voice);
@@ -222,7 +222,31 @@ test('out-of-keyboard-range and undefined observed ratios are displayed without 
   assert.equal(value.textContent,'65535');assert.equal(value.getAttribute('aria-valuenow'),'65535');assert.equal(value.dataset.outOfRange,'true');assert.equal(range.dataset.unavailable,'true');
   assert.match(find(f.root,'modulationHelp').textContent,/outside the keyboard tuning range/);
   f.editor.observe(liveObservation({frequency:0}));assert.equal(value.textContent,'—');assert.equal(value.getAttribute('aria-valuenow'),undefined);assert.equal(range.dataset.unavailable,'true');
-  f.editor.observe(null);assert.equal(value.textContent,'1');assert.equal(range.dataset.unavailable,'false');assert.equal(range.disabled,false);
+  f.editor.observe(null);assert.equal(value.textContent,'1');assert.equal(range.dataset.unavailable,'false');assert.equal(range.disabled,true);
+});
+
+test('inactive Pulse width and ratio retain their values without accepting edits, including read-only Live observations',async t=>{
+  const f=editorFixture(t),before=f.editor.getPreset(),nodes=walk(f.root);
+  const field=id=>walk(f.root).find(node=>node.children.some(child=>child.id===`${id}Label`));
+  const width=find(f.root,'pulseWidth'),ratio=find(f.root,'modulationRatio'),range=find(f.root,'modulationRatioRange');
+  for(const id of ['pulseWidth','modulationRatio'])assert.equal(field(id).dataset.disabled,'true');
+  find(f.root,'pulseWidthRange').value='1';await find(f.root,'pulseWidthRange').fire('input');
+  range.value='8';await range.fire('input');await ratio.fire('keydown',{key:'End'});
+  assert.deepEqual(f.editor.getPreset(),before);assert.equal(f.changes.length,0);
+  f.editor.observe(liveObservation({waveformMask:0x10,sync:false,ring:false,frequency:1,sourceFrequency:65535}));
+  assert.equal(width.dataset.value,String(0xa34));assert.equal(ratio.dataset.value,'65535');
+  assert.equal(find(f.root,'modulationRatioLabel').textContent,'Observed frequency ratio');
+  assert.match(ratio.getAttribute('aria-description'),/calculated value, not a SID register/);
+  assert.match(width.getAttribute('aria-description'),/Pulse is off/);
+  for(const id of ['pulseWidth','modulationRatio'])assert.equal(field(id).dataset.disabled,'true','an unused Live value remains visually inactive');
+  f.editor.observe(liveObservation({waveformMask:0x10,sync:false,ring:false,frequency:2,sourceFrequency:100}));
+  assert.equal(ratio.dataset.value,'50','even an inactive ratio continues to show its raw observation');
+  f.editor.observe(liveObservation({waveformMask:0x40,sync:true,ring:false}));
+  for(const id of ['pulseWidth','modulationRatio'])assert.equal(field(id).dataset.disabled,'false');
+  assert.equal(width.disabled,true);assert.equal(ratio.disabled,true,'active Live values are still read-only');
+  f.editor.observe(null);assert.equal(find(f.root,'modulationRatioLabel').textContent,'Modulator ratio');
+  const playable=readPreset(before);playable.voice.waveform='pulse';playable.modulation.sync=true;f.editor.update(playable);
+  assert.equal(width.disabled,false);assert.equal(ratio.disabled,false);assert.deepEqual(walk(f.root),nodes);
 });
 
 test('live and waiting controls reject edits without changing the instrument or callbacks, then return to editing',async t=>{
@@ -264,23 +288,28 @@ function appFixture({stall=false}={}){
   doc.getElementById('codeOutput').hidden=true;
   const modes=['waveform','spectrum'].map(mode=>{const node=new Element(doc,'button');node.dataset.visualMode=mode;node.setAttribute('aria-pressed',String(mode==='waveform'));return node;});
   const channels=['0','1','2','round-robin'].map(value=>{const node=new Element(doc,'button');node.dataset.sidLiveVoice=value;return node;});
-  doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
+  const keyboardModes=['retrigger','legato'].map(value=>{const node=new Element(doc,'button');node.dataset.sidKeyboardMode=value;return node;});
+  doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
-    let settings=createChannelSettings(createDefaultPreset({model})),value=selectedChannelPreset(settings),pitch=0,voices=new Map();const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,
+    let settings=createChannelSettings(createDefaultPreset({model})),value=selectedChannelPreset(settings),pitch=0,voices=new Map(),cursor=0;const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,reads:0,
       async resume(){},setVolume(){},async dispose(){this.disposed=true;},
-      async read(){return{preset:readPreset(value),channelSettings:readChannelSettings(settings),pitch,capacity:value.modulation.sync||value.modulation.ring||settings.target!=='round-robin'?1:3,voices:[...voices.values()]};},
+      async read(){engine.reads++;return{preset:readPreset(value),channelSettings:readChannelSettings(settings),pitch,capacity:channelPlaybackPlan(settings).channels.length,voices:[...voices.values()]};},
       async command(method,args=[]){calls.push([engine.id,method,...args]);
-        if(method==='noteOn'){if(voices.size>=(value.modulation.sync||value.modulation.ring?1:3))voices.delete(voices.keys().next().value);voices.set(args[0],{id:args[0],midi:args[1],channel:0});return{};}
-        if(method==='noteOff')return voices.delete(args[0]);
-        if(method==='stop'){voices.clear();pitch=0;const state=await engine.read();if(engine.holdStop)await engine.holdStop;return state;}
+        if(method==='noteOn'){
+          const plan=channelPlaybackPlan(settings),keepHeld=settings.target!=='round-robin'&&settings.keyboardMode==='legato';
+          if(!keepHeld&&voices.size>=plan.channels.length)voices.delete(voices.keys().next().value);
+          voices.set(args[0],{id:args[0],midi:args[1],channel:plan.channels[cursor++%plan.channels.length]});return{};
+        }
+        if(method==='noteOff'){const released=voices.delete(args[0]);if(engine.holdNoteOff)await engine.holdNoteOff;return released;}
+        if(method==='stop'){voices.clear();pitch=0;cursor=0;const state=await engine.read();if(engine.holdStop)await engine.holdStop;return state;}
         if(method==='setPitch'){if(engine.rejectPositivePitch&&args[0]>0)throw new Error('Pitch outside SID range');pitch=args[0];return engine.read();}
         if(method==='loadChannelSettings'||method==='setChannelSettings'){
           const nextSettings=readChannelSettings(args[0]),next=selectedChannelPreset(nextSettings);if(next.model!==value.model){voices.clear();pitch=0;}
           if(engine.rejectPatch){engine.rejectPatch=false;throw new Error('Tuning outside SID range');}
-          const previous=value,previousTarget=settings.target;settings=nextSettings;value=next;if(method==='loadChannelSettings'||previousTarget!==settings.target||previous.model!==value.model||previous.modulation.sync!==value.modulation.sync||previous.modulation.ring!==value.modulation.ring||previous.voice.test!==value.voice.test){voices.clear();pitch=0;}
+          const previous=value,previousTarget=settings.target,previousMode=settings.keyboardMode;settings=nextSettings;value=next;if(method==='loadChannelSettings'||previousTarget!==settings.target||previousMode!==settings.keyboardMode||previous.model!==value.model||previous.modulation.sync!==value.modulation.sync||previous.modulation.ring!==value.modulation.ring||previous.voice.test!==value.voice.test){voices.clear();pitch=0;cursor=0;}
           if(engine.holdNext){const wait=engine.holdNext;engine.holdNext=null;await wait;}
           return engine.read();
         }
@@ -293,12 +322,12 @@ function appFixture({stall=false}={}){
     setLiveVoice(voice){importState.liveVoice=voice;importer.hooks.onUpdate(importer.read());},
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
     createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
-  vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,press,release,setPitch,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
+  vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
   return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,unstall(){isStalled=false;}};
 }
 
@@ -368,6 +397,68 @@ test('Round robin selection preserves independent drafts and only an edited fiel
     assert.equal(f.ui.getSettings().channels[channel].voice.waveform,before[channel].voice.waveform);
   }
   assert.equal(f.engines.length,0,'choosing or editing channels never starts audio');
+});
+
+test('software keyboard mode is available on fixed channels, keeps its choice in Round robin and never starts audio',async()=>{
+  const f=appFixture(),button=mode=>f.doc.querySelectorAll('[data-sid-keyboard-mode]').find(node=>node.dataset.sidKeyboardMode===mode);
+  assert.equal(button('retrigger').getAttribute('aria-pressed'),'true');assert.equal(button('legato').disabled,true);
+  await button('legato').fire('click');assert.equal(f.ui.getSettings().keyboardMode,'retrigger');
+  await f.ui.chooseChannel(0);const patches=f.ui.getSettings().channels;
+  button('legato').focus();await button('legato').fire('click');await flush();
+  assert.equal(f.ui.getSettings().keyboardMode,'legato');assert.deepEqual(f.ui.getSettings().channels,patches);assert.equal(f.doc.activeElement,null);
+  await f.ui.chooseChannel('round-robin');assert.equal(button('legato').disabled,true);assert.equal(button('legato').getAttribute('aria-pressed'),'true');
+  await f.ui.chooseKeyboardMode('retrigger');assert.equal(f.ui.getSettings().keyboardMode,'legato','disabled Round robin controls retain the fixed-CH choice');
+  await f.ui.chooseChannel(2);assert.equal(button('legato').disabled,false);assert.equal(button('legato').getAttribute('aria-pressed'),'true');
+  f.importer.hooks.onUpdate({playing:true,liveEnabled:true,liveVoice:2});
+  assert.equal(button('retrigger').disabled,false,'the performance setting remains available while Auto displays read-only sound controls');
+  await button('retrigger').fire('click');await flush();assert.equal(f.ui.getSettings().keyboardMode,'retrigger');assert.equal(f.engines.length,0);
+});
+
+test('changing keyboard mode resets held ownership and Pitch without losing channel settings',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(1);await f.ui.ensureAudio();
+  f.ui.press('old',f.entries[0]);await flush();await flush();f.ui.setPitch(1);await flush();
+  const patches=f.ui.getSettings().channels;await f.ui.chooseKeyboardMode('legato');
+  assert.deepEqual(f.ui.getSettings().channels,patches);assert.equal(f.ui.getNotes().length,0);assert.equal((await f.engines[0].read()).voices.length,0);
+  assert.equal((await f.engines[0].read()).pitch,0);for(const id of ['pitchBend','keyboardPitchBend'])assert.equal(f.doc.getElementById(id).value,'0');
+  assert.equal(f.calls.at(-1)[1],'loadChannelSettings');
+  f.ui.press('new',f.entries[1]);await flush();await flush();f.ui.release('old');await flush();
+  assert.equal((await f.engines[0].read()).voices.length,1,'an old mode key release cannot remove a new owner');
+  f.ui.release('new');await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+});
+
+test('Legato keeps all held key indicators, reads the acknowledged release and reports the returning note',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(1);await f.ui.chooseKeyboardMode('legato');await f.ui.ensureAudio();
+  f.ui.press('first',f.entries[0]);await flush();await flush();f.ui.press('second',f.entries[1]);await flush();await flush();
+  assert.equal(f.ui.getNotes().length,2);assert.equal((await f.engines[0].read()).voices.length,2);
+  assert.match(f.doc.getElementById('audioStatus').textContent,/note64.*Legato.*2 keys held.*1 voice/);
+  assert.match(f.doc.getElementById('voiceCapacity').textContent,/Legato.*2 keys held/);
+  const reads=f.engines[0].reads;f.ui.release('second');await flush();await flush();
+  assert(f.engines[0].reads>reads,'a release must consume current endpoint ownership, including a returned held key');
+  assert.equal(f.ui.getNotes().length,1);assert.equal(f.ui.getNotes()[0].midi,60);assert.match(f.doc.getElementById('audioStatus').textContent,/note60.*Legato.*1 key held/);
+  const keys=f.doc.getElementById('keyboard').querySelectorAll('.key');assert.equal(keys.find(node=>node.dataset.key==='a').getAttribute('aria-pressed'),'true');assert.equal(keys.find(node=>node.dataset.key==='s').getAttribute('aria-pressed'),'false');
+  f.ui.release('first');await flush();await flush();assert.equal(f.ui.getNotes().length,0);assert.match(f.doc.getElementById('audioStatus').textContent,/Legato.*0 keys held/);
+});
+
+test('a delayed Legato release cannot erase a key created after a keyboard mode change',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(0);await f.ui.chooseKeyboardMode('legato');await f.ui.ensureAudio();
+  f.ui.press('old',f.entries[0]);await flush();await flush();let finish;
+  f.engines[0].holdNoteOff=new Promise(resolve=>{finish=resolve;});f.ui.release('old');await flush();
+  const changing=f.ui.chooseKeyboardMode('retrigger');f.ui.press('new',f.entries[1]);
+  finish();await changing;await flush();await flush();
+  assert.equal(f.ui.getNotes().length,1);assert.equal(f.ui.getNotes()[0].midi,64);assert.equal((await f.engines[0].read()).voices.length,1);
+  f.engines[0].holdNoteOff=null;f.ui.release('new');await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+});
+
+test('voice loads and Auto preserve keyboard mode while channel setup files restore it or migrate an old setup',async()=>{
+  const f=appFixture();await f.ui.chooseChannel(0);await f.ui.chooseKeyboardMode('legato');
+  const voice=readPreset(f.ui.getPreset());voice.voice.waveform='triangle';await f.ui.applyPreset(voice,{load:true});assert.equal(f.ui.getSettings().keyboardMode,'legato');
+  f.importer.hooks.onUpdate({playing:true,liveEnabled:true,liveActive:true,liveVoice:0,liveState:autoState(),liveSource:{name:'Auto source',subtune:1}});
+  assert.equal(f.ui.getPreset().voice.waveform,'pulse');assert.equal(f.ui.getSettings().keyboardMode,'legato');
+  const setup=selectKeyboardMode(selectChannelTarget(createChannelSettings(),2),'legato'),input=f.doc.getElementById('presetFileInput');
+  input.files=[{size:1000,text:async()=>JSON.stringify(setup)}];await input.fire('change');assert.deepEqual(f.ui.getSettings(),setup);
+  const legacy={...setup,version:1};delete legacy.keyboardMode;input.files=[{size:1000,text:async()=>JSON.stringify(legacy)}];await input.fire('change');
+  assert.equal(f.ui.getSettings().version,2);assert.equal(f.ui.getSettings().keyboardMode,'retrigger');assert.equal(f.ui.getSettings().target,2);
+  assert.deepEqual(f.ui.getSettings().channels,setup.channels);
 });
 
 function autoState(){

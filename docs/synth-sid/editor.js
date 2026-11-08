@@ -101,31 +101,36 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       group.append(button);
     }
   }
-  function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true,rangeStep=step,format=String}={}) {
-    const row=field(parent,label,id,slider?'sid-slider':''),control=createParamControl({label,min,max,step,value:get(preset),showLabel:false,wheelAdjust:false,onChange:value=>commit(next=>set(next,value))});
+  function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true,inactiveReason='',observedLabel=label,observedDescription='',rangeStep=step,format=String}={}) {
+    const change=value=>{if(observing||!enabled(preset)){render();return;}commit(next=>set(next,value));};
+    const row=field(parent,label,id,slider?'sid-slider':''),control=createParamControl({label,min,max,step,value:get(preset),showLabel:false,wheelAdjust:false,onChange:change});
+    const title=row.children[0];
     const [minus,value,plus]=control.element.children;value.id=id;value.setAttribute('role','spinbutton');value.setAttribute('aria-labelledby',`${id}Label`);value.setAttribute('aria-valuemin',String(min));value.setAttribute('aria-valuemax',String(max));
     for(const [button,delta] of [[minus,-1],[plus,1]]){button.dataset.stepperFor=id;button.dataset.stepperDelta=String(delta);button.setAttribute('aria-label',`${delta<0?'Decrease':'Increase'} ${label}`);pointerFocus(button);}
     pointerFocus(value);row.append(control.element);
     const keyAdjust=event=>{
-      if(observing){event.preventDefault();event.stopPropagation();render();return;}
+      if(observing||!enabled(preset)){event.preventDefault();event.stopPropagation();render();return;}
       const current=get(preset);let next;
       if(['ArrowRight','ArrowUp'].includes(event.key))next=current+step;else if(['ArrowLeft','ArrowDown'].includes(event.key))next=current-step;
       else if(event.key==='PageUp')next=current+step*10;else if(event.key==='PageDown')next=current-step*10;
       else if(event.key==='Home')next=min;else if(event.key==='End')next=max;else return;
-      event.preventDefault();event.stopPropagation();commit(value=>set(value,Math.max(min,Math.min(max,next))));
+      event.preventDefault();event.stopPropagation();change(Math.max(min,Math.min(max,next)));
     };
     listen(value,'keydown',keyAdjust);
     let range;
-    if(slider){range=make('input');Object.assign(range,{id:`${id}Range`,type:'range',min:String(min),max:String(max),step:String(rangeStep)});range.setAttribute('aria-labelledby',`${id}Label`);row.append(range);listen(range,'input',()=>commit(next=>set(next,Number(range.value))));if(rangeStep==='any')listen(range,'keydown',keyAdjust);for(const event of ['pointerup','pointercancel','change'])listen(range,event,()=>range.blur());}
+    if(slider){range=make('input');Object.assign(range,{id:`${id}Range`,type:'range',min:String(min),max:String(max),step:String(rangeStep)});range.setAttribute('aria-labelledby',`${id}Label`);row.append(range);listen(range,'input',()=>change(Number(range.value)));if(rangeStep==='any')listen(range,'keydown',keyAdjust);for(const event of ['pointerup','pointercancel','change'])listen(range,event,()=>range.blur());}
     controls.push(()=>{
-      const current=get(display),finite=Number.isFinite(current),inRange=finite&&current>=min&&current<=max,active=observing||enabled(display);
-      control.updateVisual(finite?current:0);value.textContent=finite?format(current):'—';value.title=finite?String(current):'Undefined: carrier frequency is zero';
+      const current=get(display),finite=Number.isFinite(current),inRange=finite&&current>=min&&current<=max,active=Boolean(enabled(display)),live=observing&&observation!==null;
+      const description=[!active?inactiveReason:'',live?observedDescription:''].filter(Boolean).join(' ');
+      title.textContent=live?observedLabel:label;row.title=description;
+      control.updateVisual(finite?current:0);value.textContent=finite?format(current):'—';value.title=[finite?String(current):'Undefined: carrier frequency is zero',description].filter(Boolean).join(' · ');
+      if(description)value.setAttribute('aria-description',description);else value.removeAttribute('aria-description');
       value.dataset.value=finite?String(current):'unavailable';markChanged(value,value.dataset.value);value.dataset.outOfRange=String(observing&&!inRange);
       value.setAttribute('aria-valuetext',finite?format(current):'Unavailable: carrier frequency is zero');
       if(finite){value.setAttribute('aria-valuenow',String(current));value.setAttribute('aria-valuemin',String(observing?Math.min(min,current):min));value.setAttribute('aria-valuemax',String(observing?Math.max(max,current):max));}
       else{value.removeAttribute('aria-valuenow');value.removeAttribute('aria-valuemin');value.removeAttribute('aria-valuemax');}
       value.disabled=observing||!active;minus.disabled=observing||!active||current<=min;plus.disabled=observing||!active||current>=max;row.dataset.disabled=String(!active);
-      if(range){range.dataset.unavailable=String(observing&&!inRange);range.value=String(inRange?current:min);if(rangeStep==='any'){if(finite)range.setAttribute('aria-valuenow',String(current));else range.removeAttribute('aria-valuenow');}range.disabled=observing||!active;}
+      if(range){range.dataset.unavailable=String(observing&&!inRange);range.value=String(inRange?current:min);range.title=description;if(description)range.setAttribute('aria-description',description);else range.removeAttribute('aria-description');if(rangeStep==='any'){if(finite)range.setAttribute('aria-valuenow',String(current));else range.removeAttribute('aria-valuenow');}range.disabled=observing||!active;}
     });
   }
 
@@ -142,10 +147,10 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
 
   const voice=card('Sound source · SID oscillator','voiceCard'),voiceFields=fields(voice);
   waveforms(voiceFields);
-  number(voiceFields,'Pulse width · 0–4095','pulseWidth',0,4095,1,p=>p.voice.pulseWidth,(p,value)=>p.voice.pulseWidth=value,{slider:true,enabled:p=>Boolean(waveformBits(p.voice.waveform)&4)});
+  number(voiceFields,'Pulse width · 0–4095','pulseWidth',0,4095,1,p=>p.voice.pulseWidth,(p,value)=>p.voice.pulseWidth=value,{slider:true,enabled:p=>Boolean(waveformBits(p.voice.waveform)&4),inactiveReason:'Inactive: Pulse is off; this value does not affect the current sound.'});
   const envelope=fields(voice);
   for(const [key,label]of [['attack','Attack'],['decay','Decay'],['sustain','Sustain'],['release','Release']])number(envelope,`${label} · 0–15`,key,0,15,1,p=>p.voice[key],(p,value)=>p.voice[key]=value);
-  help(voice,'Select one or several waveform buttons to combine them inside this SID oscillator. All waveforms off is silent. ADSR uses hardware codes; Gate release follows the selected Release.');
+  help(voice,'Select one or several waveform buttons to combine them inside this SID oscillator. All waveforms off is silent. Pulse width is dimmed while Pulse is off; Live still shows its changing register value. ADSR uses hardware codes; Gate release follows the selected Release.');
   const advanced=make('details','sid-advanced');advanced.append(make('summary','','Advanced · oscillator TEST'));voice.append(advanced);
   toggle(advanced,'Hold TEST · reset oscillator','oscillatorTest',p=>p.voice.test,(p,value)=>p.voice.test=value);
   const testHelp=help(voice,'Changing TEST stops held notes and resets Pitch. Leave it off for ordinary playing.');testHelp.id='testHelp';
@@ -153,9 +158,9 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   const modulation=card('Sync / Ring','modulationCard',{wide:true,open:false}),modFields=fields(modulation);
   toggle(modFields,'Hardware oscillator Sync','syncEnabled',p=>p.modulation.sync,(p,value)=>p.modulation.sync=value);
   toggle(modFields,'Hardware Ring modulation · Triangle only','ringEnabled',p=>p.modulation.ring,(p,value)=>p.modulation.ring=value);
-  number(modFields,'Modulator ratio','modulationRatio',.125,8,.125,p=>p.modulation.ratio,(p,value)=>p.modulation.ratio=value,{slider:true,rangeStep:'any',format:ratioText});
+  number(modFields,'Modulator ratio','modulationRatio',.125,8,.125,p=>p.modulation.ratio,(p,value)=>p.modulation.ratio=value,{slider:true,enabled:p=>p.modulation.sync||p.modulation.ring,inactiveReason:'Inactive: Sync and Ring are off; this ratio does not affect the current sound.',observedLabel:'Observed frequency ratio',observedDescription:'Source frequency divided by carrier frequency; this is a calculated value, not a SID register.',rangeStep:'any',format:ratioText});
   const modHelp=help(modulation,'');modHelp.id='modulationHelp';
-  help(modulation,'Sync and Ring use the selected carrier and its physical preceding oscillator as a silent Triangle source. The ratio follows your note in software. Switching Sync or Ring stops held notes and resets Pitch.');
+  help(modulation,'Sync and Ring use the selected carrier and its physical preceding oscillator as a silent Triangle source. The ratio follows your note in software. When both are off, the dimmed ratio has no effect. Live shows the calculated source / carrier frequency ratio even while modulation is off. Switching Sync or Ring stops held notes and resets Pitch.');
   for(const content of [filter,voice,modulation])content.append(helpPanels.get(content));
 
   function render() {

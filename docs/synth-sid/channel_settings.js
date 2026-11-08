@@ -3,13 +3,18 @@
 import {createDefaultPreset,readPreset,presetToCode,waveformBits,waveformFromBits} from './preset.js?sid-waves=1';
 
 /** @typedef {'round-robin'|0|1|2} SidChannelTarget */
-/** @typedef {{format:'tetorica-sid-channels',version:1,target:SidChannelTarget,
+/** @typedef {'retrigger'|'legato'} SidKeyboardMode */
+/** @typedef {{format:'tetorica-sid-channels',version:2,target:SidChannelTarget,keyboardMode:SidKeyboardMode,
  * channels:[import('./preset.js').SidPreset,import('./preset.js').SidPreset,import('./preset.js').SidPreset]}} SidChannelSettings */
 
 export const CHANNEL_SETTINGS_MAX_BYTES=64*1024;
 const targets=['round-robin',0,1,2];
 const target=value=>{
   if(!targets.includes(value))throw new RangeError('SID channel target must be round-robin, 0, 1 or 2');
+  return value;
+};
+const keyboardMode=value=>{
+  if(!['retrigger','legato'].includes(value))throw new RangeError('SID keyboard mode must be retrigger or legato');
   return value;
 };
 const own=(value,keys,label)=>{
@@ -21,7 +26,7 @@ const own=(value,keys,label)=>{
 const copies=preset=>[readPreset(preset),readPreset(preset),readPreset(preset)];
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const selected=settings=>settings.channels[settings.target==='round-robin'?0:settings.target];
-const bank=(choice,channels)=>({format:'tetorica-sid-channels',version:1,target:choice,channels});
+const bank=(choice,channels,mode='retrigger')=>({format:'tetorica-sid-channels',version:2,target:choice,keyboardMode:mode,channels});
 
 // AudioWorklet does not need TextEncoder to validate an imported JSON string.
 function boundedJson(value){
@@ -47,9 +52,11 @@ export function createChannelSettings(preset=createDefaultPreset()){
  * @param {unknown} value @returns {SidChannelSettings} */
 export function readChannelSettings(value){
   if(typeof value==='string')value=boundedJson(value);
-  own(value,['format','version','target','channels'],'SID channel settings');
-  if(value.format!=='tetorica-sid-channels'||value.version!==1)throw new TypeError('Unsupported SID channel settings format/version');
-  const choice=target(value.target),input=value.channels;
+  // Inspect the schema version without invoking an untrusted accessor.
+  const legacy=value&&typeof value==='object'&&Object.getOwnPropertyDescriptor(value,'version')?.value===1;
+  own(value,legacy?['format','version','target','channels']:['format','version','target','keyboardMode','channels'],'SID channel settings');
+  if(value.format!=='tetorica-sid-channels'||![1,2].includes(value.version))throw new TypeError('Unsupported SID channel settings format/version');
+  const choice=target(value.target),mode=legacy?'retrigger':keyboardMode(value.keyboardMode),input=value.channels;
   if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype||input.length!==3)throw new TypeError('SID channel settings require exactly three voice presets in a plain array');
   const keys=Reflect.ownKeys(input);
   if(keys.length!==4||keys.some(key=>!['0','1','2','length'].includes(key))||[0,1,2].some(index=>!Object.hasOwn(input,index)))throw new TypeError('SID channel presets must be a dense array without extra properties');
@@ -60,7 +67,7 @@ export function readChannelSettings(value){
     return preset;
   });
   if(channels.some(preset=>preset.model!==channels[0].model||!equal(preset.filter,channels[0].filter)))throw new RangeError('SID channels share one model and one filter');
-  return bank(choice,channels);
+  return bank(choice,channels,mode);
 }
 
 /** @param {unknown} settings @returns {import('./preset.js').SidPreset} */
@@ -70,7 +77,15 @@ export function selectedChannelPreset(settings){return readPreset(selected(readC
  * @param {unknown} settings @param {SidChannelTarget} choice @returns {SidChannelSettings} */
 export function selectChannelTarget(settings,choice){
   const current=readChannelSettings(settings);target(choice);
-  return bank(choice,current.channels);
+  return bank(choice,current.channels,current.keyboardMode);
+}
+
+/** Choose a software keyboard policy without replacing any sound settings.
+ * The choice is retained in round robin, where it is inactive.
+ * @param {unknown} settings @param {SidKeyboardMode} mode @returns {SidChannelSettings} */
+export function selectKeyboardMode(settings,mode){
+  const current=readChannelSettings(settings);
+  return bank(current.target,current.channels,keyboardMode(mode));
 }
 
 /** Replace the selected voice, sharing model/filter with the other channels.
@@ -78,8 +93,8 @@ export function selectChannelTarget(settings,choice){
  * @param {unknown} settings @param {unknown} value @returns {SidChannelSettings} */
 export function applyChannelPreset(settings,value){
   const current=readChannelSettings(settings),preset=readPreset(value);
-  if(current.target==='round-robin')return bank(current.target,copies(preset));
-  return bank(current.target,current.channels.map((previous,index)=>readPreset(index===current.target?preset:{...previous,model:preset.model,filter:preset.filter})));
+  if(current.target==='round-robin')return bank(current.target,copies(preset),current.keyboardMode);
+  return bank(current.target,current.channels.map((previous,index)=>readPreset(index===current.target?preset:{...previous,model:preset.model,filter:preset.filter})),current.keyboardMode);
 }
 
 /** Apply an editor's full value while broadcasting only fields that changed.
@@ -97,7 +112,7 @@ export function editChannelPreset(settings,value){
   return bank(current.target,current.channels.map(previous=>readPreset({
     ...previous,model:next.model,filter:next.filter,name:baseline.name!==next.name?next.name:previous.name,
     voice:{...previous.voice,...voice,waveform:waveformFromBits((waveformBits(previous.voice.waveform)&~changedWaves)|(nextWaves&changedWaves))},modulation:{...previous.modulation,...modulation},
-  })));
+  })),current.keyboardMode);
 }
 
 /** Resolve the software allocator without rewriting channel authoring data.
@@ -128,6 +143,7 @@ export function channelSettingsToCode(settings){
     current.target==='round-robin'?'// Software: round robin retains each stored channel sound; this snippet auditions C4 once.':'// Software: fixed keyboard channel selection; this snippet auditions C4 once.',
     '// The core also has its documented 12 Hz software output DC blocker.'];
   if(preset.model==='8580')lines.push("const sid8580 = await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'});");
+  if(current.target!=='round-robin'&&current.keyboardMode==='legato')lines.push('// Software keyboard mode: Legato keeps Gate on while keys overlap. This one-note snippet starts a new Gate.');
   if(current.target==='round-robin'&&paired)lines.push(`// Sync/Ring keeps the one-pair limit: CH ${carrier+1} is the first configured carrier. Other saved pairs are inactive.`);
   lines.push(`${chip}.initialize();`);
   for(let channel=0;channel<3;channel++){

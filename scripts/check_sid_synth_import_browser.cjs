@@ -591,6 +591,17 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(await liveValue('frequencyRegister'),String(registers[base]|registers[base+1]<<8));
       assert.equal(await liveValue('gate'),String(Boolean(registers[base+4]&1)));
       assert.equal(await page.locator('#attack').isDisabled(),true);
+      const inactive=await page.evaluate(()=>{
+        const row=id=>document.getElementById(id).closest('.sid-field');
+        return Object.fromEntries(['pulseWidth','modulationRatio'].map(id=>[id,{
+          inactive:row(id).dataset.disabled==='true',opacity:Number(getComputedStyle(row(id)).opacity),
+          title:row(id).title,value:document.getElementById(id).dataset.value,
+        }]));
+      });
+      assert.equal(inactive.pulseWidth.inactive,!(registers[base+4]&64));
+      assert.equal(inactive.modulationRatio.inactive,!(registers[base+4]&6));
+      for(const field of Object.values(inactive))if(field.inactive){assert(field.opacity<1);assert.match(field.title,/does not affect/i);}
+      assert.equal(await page.locator('#modulationRatioLabel').textContent(),'Observed frequency ratio');
     }
     const rememberEditor=()=>page.evaluate(()=>{
       const root=document.getElementById('voiceEditor'),box=root.getBoundingClientRect();
@@ -675,6 +686,16 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual(adoptedCombinedBank.channels[1].voice,adoptedCombined.voice);
     assert.deepEqual(adoptedCombinedBank.channels[1].modulation,adoptedCombined.modulation);
     assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-sid-live-voice]')),false);
+    check('inactive Live pulse width and frequency ratio stay observable while the same rows are visibly dimmed');
+    const inactiveLive=await page.evaluate(()=>{
+      const row=id=>document.getElementById(id).closest('.sid-field');
+      return {pulseInactive:row('pulseWidth').dataset.disabled,ratioInactive:row('modulationRatio').dataset.disabled,
+        pulseOpacity:getComputedStyle(row('pulseWidth')).opacity,ratioLabel:document.getElementById('modulationRatioLabel').textContent,
+        ratioDescription:document.getElementById('modulationRatio').getAttribute('aria-description')};
+    });
+    assert.equal(inactiveLive.pulseInactive,'true');assert.equal(inactiveLive.ratioInactive,'true');
+    assert(Number(inactiveLive.pulseOpacity)<1);assert.equal(inactiveLive.ratioLabel,'Observed frequency ratio');
+    assert.match(inactiveLive.ratioDescription,/does not affect/i);
     await checkEditorIdentity();
 
     check('disabling Auto update freezes observations, restores editable settings and leaves every CH target available');

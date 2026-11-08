@@ -149,6 +149,11 @@ Frequency, Gate, Envelope and other observation-only readouts appear in a compac
 strip below the shared controls. Combined waveform flags can light multiple
 waveform buttons; raw filter routing and out-of-range ratios are not narrowed
 to a valid keyboard preset for display.
+Pulse width remains observable but is dimmed when the Pulse flag is off.
+The Live **Observed frequency ratio** is the preceding oscillator's frequency
+divided by this channel's frequency, not a separate SID register. It is dimmed
+when both Sync and Ring are off. These values can continue changing even while
+they do not affect the current sound; the tooltip explains the inactive state.
 
 This uses the existing player's coherent Worklet read at up to 20 updates per
 second, with one read at a time. It never writes the song or starts keyboard
@@ -159,8 +164,27 @@ still reads one fixed batch, and the captured Voice buttons load that batch.
 ## Three voices and oscillator modulation
 
 **Round robin** uses the three physical SID voices in round-robin order.
-**CH 1 / CH 2 / CH 3** plays only that selected physical channel, with one held
-note at a time; a later key replaces the earlier one on that CH.
+**CH 1 / CH 2 / CH 3** plays only that selected physical channel, with one
+sounding note at a time. **Keyboard · software** selects its overlapping-key
+behavior:
+
+- **Retrigger** (default) replaces the old key and restarts the hardware Gate / ADSR.
+- **Legato** keeps Gate on while keys overlap and changes pitch without restarting
+  ADSR. The last key pressed wins; releasing it returns to the most recently
+  pressed key still held. Releasing the final key lowers Gate and starts hardware
+  Release. It also retunes the silent source when Sync / Ring is enabled.
+
+Legato is software key allocation, not an additional SID hardware mode. It is
+inactive in Round robin, which keeps its existing allocation; the choice is
+retained for the next fixed-channel selection. Changing keyboard mode stops
+held keys and resets Pitch. Voice preset imports and automatic song updates
+preserve this separate performance setting.
+
+The SID envelope can wrap from 255 to zero and freeze when Gate is retriggered
+before Release has reduced a full envelope (especially Sustain 15). Retrigger
+keeps that chip behavior. Legato avoids that Gate cycle for overlapping keys;
+it does not replace the hardware envelope or change SID song playback.
+
 Allocation prefers a silent voice, then an older released tail, then the oldest
 held voice. Releasing an old key cannot release its replacement. Key release
 lowers the hardware Gate and leaves the hardware release envelope running.
@@ -235,12 +259,15 @@ order. The API and **Copy JavaScript** use the same values, for example
 their format and values. The selected core approximates the chip's combined
 waveform behavior; it does not mix extra software voices.
 
-The separate `tetorica-sid-channels`, **version 1**, setup contains three portable
-version-2 voice presets and `target` (`0`, `1`, `2` or `'round-robin'`). All three
+The separate `tetorica-sid-channels`, **version 2**, setup contains three portable
+version-2 voice presets, `target` (`0`, `1`, `2` or `'round-robin'`) and
+`keyboardMode` (`'retrigger'` or `'legato'`). Existing version-1 channel setups
+load with Retrigger; new saves use version 2. All three
 share their model and filter. Round robin can retain three different patches.
 **Load preset / setup…** accepts either format. A voice preset
 loads into the selected CH (all three in Round robin); a setup restores the
-complete bank and target. Both formats contain settings only, never song bytes.
+complete bank, target and keyboard mode. A voice preset leaves keyboard mode
+unchanged. Both formats contain settings only, never song bytes.
 
 To try a voice from [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html),
 capture a supported voice in **Voice snapshot → SID Synth** and save its preset,

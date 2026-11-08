@@ -3,7 +3,7 @@
 import {SidSynth} from '../js/sidsynth.js?sid-waves=1';
 import {SID_PAL_CLOCK,sidFrequency} from '../js/sid.js';
 import {createDefaultPreset,readPreset} from './preset.js?sid-waves=1';
-import {createChannelSettings,readChannelSettings,applyChannelPreset,editChannelPreset,channelPlaybackPlan} from './channel_settings.js?sid-channels=2&sid-waves=1';
+import {createChannelSettings,readChannelSettings,applyChannelPreset,editChannelPreset,channelPlaybackPlan} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 
 const pair=preset=>preset.modulation.sync||preset.modulation.ring;
 // Internal settings have already passed the boundary validator. Reuse their
@@ -11,7 +11,7 @@ const pair=preset=>preset.modulation.sync||preset.modulation.ring;
 const selected=settings=>settings.channels[settings.target==='round-robin'?0:settings.target];
 const topology=settings=>{
   const plan=channelPlaybackPlan(settings);
-  return `${settings.target}/${plan.channels.map(channel=>{const preset=settings.channels[channel];return `${channel}:${preset.modulation.sync}/${preset.modulation.ring}/${preset.voice.test}`;}).join(',')}`;
+  return `${settings.target}/${settings.keyboardMode}/${plan.channels.map(channel=>{const preset=settings.channels[channel];return `${channel}:${preset.modulation.sync}/${preset.modulation.ring}/${preset.voice.test}`;}).join(',')}`;
 };
 const noteHz=midi=>440*2**((midi-69)/12);
 const changes=(next,previous)=>Object.fromEntries(Object.entries(next).filter(([key,value])=>!previous||previous[key]!==value));
@@ -31,6 +31,7 @@ export class SidInstrument{
     this._replace(createChannelSettings(this.preset));
   }
   _open(){if(this.disposed)throw new Error('SID instrument is disposed');}
+  _legato(){return this.channelSettings.target!=='round-robin'&&this.channelSettings.keyboardMode==='legato';}
   _channels(){return channelPlaybackPlan(this.channelSettings).channels;}
   _voice(settings,channel,plan){
     const {carrier,source}=plan,preset=settings.channels[carrier];
@@ -69,8 +70,8 @@ export class SidInstrument{
       return !voice.released||!Number.isFinite(envelope)||envelope>0;});
   }
   _prepareTuning(settings=this.channelSettings,pitch=this.pitch){
-    const state=this.core.getState(),tuning=[];
-    for(const voice of this._live(state)){
+    const state=this.core.getState(),tuning=[],live=this._live(state);
+    for(const voice of live){
       try{tuning.push({voice,tuning:this._tuning(voice.midi,settings.channels[voice.channel],pitch)});}
       catch(error){
         // Unknown released tails may already be silent. They keep their last
@@ -79,6 +80,11 @@ export class SidInstrument{
         if(!(error instanceof RangeError)||!voice.released||Number.isFinite(state.voices?.[voice.channel]?.envelope))throw error;
       }
     }
+    // A fixed-channel Legato stack can return to any still-held key. Validate
+    // those fallback notes too, without retuning their shared physical slot.
+    // This keeps a later key release from discovering an invalid Pitch/ratio.
+    if(this._legato())for(const voice of this.voices.values())if(!live.includes(voice))
+      this._tuning(voice.midi,settings.channels[voice.channel],pitch);
     return tuning;
   }
   read(){
@@ -118,17 +124,30 @@ export class SidInstrument{
     // Choose the physical voice first, then validate its stored patch and source
     // ratio before retiring an old key or changing any hardware register.
     const tuning=this._tuning(midi,this.channelSettings.channels[channel]);
-    const previous=this.slots[channel],stolenId=previous&&!previous.released?previous.id:null;
-    if(previous&&!previous.released)this.synth.keyOff(channel);
+    const previous=this.slots[channel],overlap=this._legato()&&previous&&!previous.released&&this.voices.get(previous.id)===previous;
+    const stolenId=previous&&!previous.released&&!overlap?previous.id:null;
+    if(previous&&!previous.released&&!overlap)this.synth.keyOff(channel);
     this.synth.setFrequency(channel,tuning.carrier);
     if(tuning.source!==null)this.synth.setFrequency(plan.source,tuning.source);
-    this.synth.keyOn(channel);
-    if(previous&&this.voices.get(previous.id)===previous)this.voices.delete(previous.id);
+    if(!overlap)this.synth.keyOn(channel);
+    if(previous&&!overlap&&this.voices.get(previous.id)===previous)this.voices.delete(previous.id);
     const voice={id,midi,channel,order:++this.sequence,released:false};this.slots[channel]=voice;this.voices.set(id,voice);this.cursor=(channels.indexOf(channel)+1)%channels.length;
     return {channel,stolenId};
   }
   noteOff(id){
-    this._open();const voice=this.voices.get(id);if(!voice||this.slots[voice.channel]!==voice)return false;
+    this._open();const voice=this.voices.get(id);if(!voice)return false;
+    if(this._legato()){
+      if(this.slots[voice.channel]!==voice){this.voices.delete(id);return true;}
+      const fallback=[...this.voices.values()].filter(value=>value!==voice&&value.channel===voice.channel)
+        .reduce((last,value)=>!last||value.order>last.order?value:last,null);
+      if(fallback){
+        const plan=channelPlaybackPlan(this.channelSettings),tuning=this._tuning(fallback.midi,this.channelSettings.channels[fallback.channel]);
+        this.synth.setFrequency(fallback.channel,tuning.carrier);
+        if(tuning.source!==null)this.synth.setFrequency(plan.source,tuning.source);
+        this.voices.delete(id);this.slots[voice.channel]=fallback;return true;
+      }
+    }
+    if(this.slots[voice.channel]!==voice)return false;
     this.synth.keyOff(voice.channel);this.voices.delete(id);voice.released=true;return true;
   }
   setPitch(semitones){

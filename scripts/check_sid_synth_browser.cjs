@@ -169,6 +169,19 @@ async function checkEngine(name, engine, origin) {
       }
     }
 
+    check('software keyboard mode is lazy, is inactive in round robin and survives channel selection');
+    const modeButton=mode=>page.locator(`[data-sid-keyboard-mode="${mode}"]`);
+    const targetButton=target=>page.locator(`[data-sid-live-voice="${target}"]`);
+    assert.equal(await modeButton('retrigger').getAttribute('aria-pressed'),'true');
+    assert.equal(await modeButton('legato').isDisabled(),true);
+    await targetButton(0).click();await modeButton('legato').click();
+    assert.equal(await modeButton('legato').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-sid-keyboard-mode]')),false);
+    await targetButton('round-robin').click();assert.equal(await modeButton('legato').isDisabled(),true);
+    assert.equal(await modeButton('legato').getAttribute('aria-pressed'),'true');
+    await targetButton(0).click();await modeButton('retrigger').click();await targetButton('round-robin').click();
+    assert.equal(await page.evaluate(()=>__sidSynthAudit.contexts.length),0);
+
     check('lazy local UI and first keyboard press/release during delayed WASM loading');
     assert.match(await page.title(), /Tetorica SID Synth/); assert.equal(await page.evaluate(() => __sidSynthAudit.contexts.length), 0);
     const keys = await page.locator('#keyboard .key:not([disabled])').evaluateAll(nodes => [...new Set(nodes.map(node => node.dataset.key))].slice(0, 4));
@@ -436,6 +449,56 @@ async function checkEngine(name, engine, origin) {
     await page.keyboard.down(keys[0]); await wait(value => value.voices.length === 1); await sound();
     await page.locator('[data-stepper-for="attack"][data-stepper-delta="1"]').click();
     await page.keyboard.down(keys[1]); await wait(value => value.voices.length === 2); await page.keyboard.up(keys[0]); await page.keyboard.up(keys[1]); await stopped();
+
+    const beforeLegato=(await read()).channelSettings;
+    for(const model of ['8580','6581']){
+      check(`${model} fixed-channel Legato keeps Sustain 15 audible, returns held notes and saves its software mode`);
+      const scene=structuredClone(beforeLegato);scene.version=1;delete scene.keyboardMode;scene.target=0;
+      for(const patch of scene.channels){
+        patch.model=model;patch.name='Authored Triangle Sustain 15';
+        Object.assign(patch.voice,{waveform:'triangle',attack:2,decay:0,sustain:15,release:3,test:false});
+        patch.modulation={sync:false,ring:false,ratio:1};patch.filter={enabled:false,mode:'off',cutoff:600,resonance:0,volume:15};
+      }
+      const loadSetup=async(value,name)=>{
+        await page.locator('#presetFileInput').setInputFiles({name,mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))});
+        await settle();
+      };
+      await loadSetup(scene,'legacy-channel-setup-v1.json');
+      state=await wait(value=>value.model===model&&value.channelSettings.target===0&&value.channelSettings.keyboardMode==='retrigger');
+      assert.equal(state.channelSettings.version,2);await modeButton('legato').click();
+      await wait(value=>value.channelSettings.keyboardMode==='legato');
+      await page.keyboard.down(keys[0]);state=await wait(value=>value.voices.length===1);const first=state.voices[0];
+      await sound();await page.waitForTimeout(150);
+      await page.keyboard.down(keys[1]);state=await wait(value=>value.voices.length===2);const second=state.voices.find(v=>v.id!==first.id);
+      assert.equal(state.registers[4]&1,1);assert.equal(registerFrequency(state,0),frequency(second.midi));
+      const overlap=await measure();assert(overlap.rms>.00001,'Legato must not enter the full-sustain retrigger silence');
+      await page.keyboard.up(keys[1]);state=await wait(value=>value.voices.length===1);
+      assert.equal(state.voices[0].id,first.id);assert.equal(registerFrequency(state,0),frequency(first.midi));assert.equal(state.registers[4]&1,1);await sound();
+      await page.keyboard.down(keys[1]);state=await wait(value=>value.voices.length===2);const newest=state.voices.find(v=>v.id!==first.id);
+      await page.keyboard.up(keys[0]);state=await wait(value=>value.voices.length===1);
+      assert.equal(state.voices[0].id,newest.id);assert.equal(registerFrequency(state,0),frequency(newest.midi));assert.equal(state.registers[4]&1,1);
+      await range('pitchBend',1);await wait(value=>value.pitch===1);await modeButton('retrigger').click();
+      state=await wait(value=>value.voices.length===0&&value.pitch===0&&value.channelSettings.keyboardMode==='retrigger');
+      await page.keyboard.up(keys[1]);assert.equal((await read()).registers[4]&1,0);await silent();
+      await modeButton('legato').click();await wait(value=>value.channelSettings.keyboardMode==='legato');
+      const downloadMode=page.waitForEvent('download');await page.locator('#saveChannelSettings').click();const file=await downloadMode;
+      assert.equal(await file.failure(),null);const savedMode=JSON.parse(await fs.readFile(await file.path(),'utf8'));
+      assert.equal(savedMode.version,2);assert.equal(savedMode.keyboardMode,'legato');assert.equal(savedMode.target,0);
+      await modeButton('retrigger').click();await wait(value=>value.channelSettings.keyboardMode==='retrigger');
+      await loadSetup(savedMode,'legato-channel-setup-v2.json');await wait(value=>value.channelSettings.keyboardMode==='legato');
+      await loadSetup(scene.channels[0],'portable-voice-keeps-keyboard-mode.json');
+      state=await wait(value=>value.preset.name===scene.channels[0].name);assert.equal(state.channelSettings.keyboardMode,'legato');
+      await page.keyboard.down(keys[0]);await wait(value=>value.voices.length===1);
+      await page.keyboard.up(keys[0]);state=await wait(value=>value.voices.length===0);assert.equal(state.registers[4]&1,0);await stopped();
+      await targetButton('round-robin').click();await wait(value=>value.channelSettings.target==='round-robin');
+      assert.equal(await modeButton('legato').isDisabled(),true);assert.equal((await read()).channelSettings.keyboardMode,'legato');
+      for(const key of keys.slice(0,3))await page.keyboard.down(key);
+      state=await wait(value=>value.voices.length===3);assert.equal(new Set(state.voices.map(v=>v.channel)).size,3);
+      for(const key of keys.slice(0,3))await page.keyboard.up(key);await stopped();
+      measurements[`legato${model}`]={overlapRms:overlap.rms,restoredMode:savedMode.keyboardMode,legacyMode:'retrigger'};
+    }
+    await page.locator('#presetFileInput').setInputFiles({name:'restore-before-legato.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeLegato))});
+    await wait(value=>value.model==='6581'&&value.channelSettings.target==='round-robin'&&value.channelSettings.keyboardMode==='retrigger');
 
     check('render failure is visible; Stop cancels a delayed retry and explicit Enable recovers the same preset');
     const beforeFailure = (await read()).preset;

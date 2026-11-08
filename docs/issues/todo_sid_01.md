@@ -38,6 +38,19 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: 固定CHのRetrigger／Legatoと未使用値の表示（2026-11-08）
+
+ユーザー承認: 固定CHの鍵盤へRetrigger／Legato選択を追加し、その後にLive表示の未使用項目を分かりやすくする。
+`8Bit_Goblin_Preview.sid`から取り込んだTriangle・ADSR 2／0／15／3では、固定CHの押し替えが実機由来の255→0 wrap／freezeを起こすことを確認した。SID曲再生と音源coreのバグ互換は維持する。
+
+- [x] 再発音・キー所有権・保存互換の仕様を整理した。既定Retriggerは従来の動作、Legatoは固定CHで重なった鍵盤のGateを維持するソフトウェア機能とした。
+- [x] 固定CHのLegatoで最後に押した鍵を優先し、その鍵を離すと直近の保持鍵へ戻る。最終離鍵・Stop／mode切り替え・Pitch・Sync／Ringのsource tuningを検証し、Round robinの従来割当を保持した。
+- [x] CH操作の隣にKeyboard · softwareのRetrigger／Legatoを表示した。channel setup v2でmodeを保存し、旧v1はRetriggerへ移行する。voice presetやSID取り込み・Autoは演奏modeを上書きしない。
+- [x] 実値を更新しつつ未使用Pulse幅／比率を淡色表示し、tooltip／ARIAで未使用理由を示した。Liveの比率はObserved frequency ratioと表示し、2CHの周波数からの計算値だと明記した。
+- [x] unit180件、source／最終ZIPのChromium／WebKit計182項目が成功した。可読ソース・receiptと現行正本の一致、確認用フォルダーの全265ファイル一致も確認した。
+
+結果・配布候補: [ソフトウェアLegatoと未使用値の表示](sid_synth_legato_result_01.md)。commit／push／公開は未実行。
+
 ### 今回の続き: 複数波形をSynthへ取り込む（2026-11-08）
 
 ユーザー承認: Combined waveformsの取り込み制限を外し、複数波形の選択・API・Preset・取り込みを対応させる。

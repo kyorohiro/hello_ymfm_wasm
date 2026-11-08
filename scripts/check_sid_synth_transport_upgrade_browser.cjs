@@ -170,11 +170,14 @@ async function checkBrowser(name,engine,origin,fixture,loadOptions,sources){
         const url=new URL(request,origin);return url.pathname===file&&url.searchParams.get('sid-transport')==='2';
       }),`Current graph did not version ${file}`);
     assert(requests.some(request=>{
-      const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-channels')==='2';
+      const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-channels')==='3';
     }),'Current Synth entry did not request the paired channel-controls revision');
     assert(requests.some(request=>{
       const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-waves')==='1';
     }),'Current Synth entry did not request the waveform-controls revision');
+    assert(requests.some(request=>{
+      const url=new URL(request,origin);return url.pathname==='/synth-sid/synth.js'&&url.searchParams.get('sid-keys')==='1';
+    }),'Current Synth entry did not request the software keyboard revision');
     // Worklet fetches do not consistently appear in Playwright's page routes.
     // Observe the API invocation on this exact context, including when a browser
     // can reuse a compiled response fetched by the earlier legacy probe.

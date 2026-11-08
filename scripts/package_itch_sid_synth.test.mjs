@@ -166,8 +166,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     const scriptUrl=new URL(scriptSource.replaceAll('&amp;','&'),new URL(entry,'https://zip.invalid/'));
     assert.equal(scriptUrl.pathname,'/synth-sid/synth.js',`${entry}: executable entry location`);
     assert.equal(scriptUrl.searchParams.get('sid-transport'),'2',`${entry}: keep the paired transport revision after root-entry rewriting`);
-    assert.equal(scriptUrl.searchParams.get('sid-channels'),'2',`${entry}: keep the paired channel-controls revision`);
+    assert.equal(scriptUrl.searchParams.get('sid-channels'),'3',`${entry}: keep the paired channel-controls revision`);
     assert.equal(scriptUrl.searchParams.get('sid-waves'),'1',`${entry}: keep the paired multi-waveform revision`);
+    assert.equal(scriptUrl.searchParams.get('sid-keys'),'1',`${entry}: keep the paired software keyboard revision`);
     const iconPath = entry === 'index.html' ? './tetorica_sid_synth.webp' : '../tetorica_sid_synth.webp';
     const iconLinks = [...html.matchAll(/<link\b[^>]*rel="(?:icon|apple-touch-icon)"[^>]*>/g)];
     assert.equal(iconLinks.length, 2, `${entry}: favicon and apple-touch icon`);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
-import {SidInstrument} from './instrument.js?sid-channels=2&sid-waves=1';
+import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys=1';
 import {readPreset} from './preset.js?sid-waves=1';
-import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=2&sid-waves=1';
+import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 
 const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop']);
 const cancelled=message=>{const error=new Error(message);error.name='AbortError';return error;};

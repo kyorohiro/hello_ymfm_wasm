@@ -86,10 +86,11 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-live-channels { display:flex; flex:0 1 440px; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
 .sid-live-channel-label { font-size:.7rem; font-weight:700; color:#4f5d4a; }
 .sid-live-channels .sid-choice-group { flex:1 1 250px; }
+.sid-keyboard-mode { display:flex; flex:0 1 255px; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+.sid-keyboard-mode .sid-choice-group { flex:1 1 155px; }
 #sidLiveView { margin-top:12px; min-width:0; }
 #sidLiveView[hidden] { display:none; }
 .sid-editor[data-observing="true"] button:disabled,.sid-editor[data-observing="true"] input:disabled { opacity:1; cursor:default; }
-.sid-editor[data-observing="true"] .sid-field[data-disabled="true"] { opacity:1; }
 .sid-editor[data-observing="true"] .param-value[data-changed="true"] { color:#ffd194; }
 .sid-editor[data-observing="true"] [data-changed="true"] { outline:1px solid #c58e4e; outline-offset:1px; }
 #voiceEditor input[type="range"][data-unavailable="true"] { opacity:0; }

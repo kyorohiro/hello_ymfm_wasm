@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createDefaultPreset,presetToCode} from './preset.js';
-import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,
+import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,
   channelSettingsToCode,CHANNEL_SETTINGS_MAX_BYTES} from './channel_settings.js';
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
@@ -24,7 +24,7 @@ function distinctChannels(){
 
 test('channel setups round-trip detached voice data and start with the existing round-robin sound',()=>{
   const preset=createDefaultPreset(),settings=createChannelSettings(preset);
-  assert.deepEqual(settings,{format:'tetorica-sid-channels',version:1,target:'round-robin',channels:[preset,preset,preset]});
+  assert.deepEqual(settings,{format:'tetorica-sid-channels',version:2,target:'round-robin',keyboardMode:'retrigger',channels:[preset,preset,preset]});
   const restored=readChannelSettings(JSON.stringify(settings));assert.deepEqual(restored,settings);
   restored.channels[0].voice.attack=13;restored.channels[0].filter.cutoff=2;
   assert.equal(settings.channels[0].voice.attack,2);assert.equal(preset.voice.attack,2);
@@ -33,6 +33,24 @@ test('channel setups round-trip detached voice data and start with the existing 
   assert.equal(settings.channels[0].modulation.ratio,1);
   const legacy=copy(preset);legacy.version=1;delete legacy.model;
   assert.deepEqual(createChannelSettings(legacy),settings,'legacy single-voice imports migrate through the existing preset reader');
+});
+
+test('legacy channel files migrate to Retrigger while Legato survives selection, edits and sound replacement',()=>{
+  const original=distinctChannels(),legacy=copy(original);legacy.version=1;delete legacy.keyboardMode;
+  assert.deepEqual(readChannelSettings(legacy),original);
+  assert.deepEqual(readChannelSettings(JSON.stringify(legacy)),original);
+  const chosen=selectKeyboardMode(original,'legato');assert.equal(original.keyboardMode,'retrigger');
+  assert.equal(chosen.keyboardMode,'legato');assert.deepEqual(chosen.channels,original.channels);
+  assert.deepEqual(readChannelSettings(JSON.stringify(chosen)),chosen);
+  for(const target of [0,1,2,'round-robin']){
+    const selected=selectChannelTarget(chosen,target),edited=selectedChannelPreset(selected);edited.voice.attack=14;
+    assert.equal(selected.keyboardMode,'legato');assert.equal(editChannelPreset(selected,edited).keyboardMode,'legato');
+    assert.equal(applyChannelPreset(selected,createDefaultPreset()).keyboardMode,'legato');
+    assert.deepEqual(channelPlaybackPlan(selected),channelPlaybackPlan(selectKeyboardMode(selected,'retrigger')),'the keyboard policy does not replace the hardware allocation plan');
+  }
+  assert.match(channelSettingsToCode(chosen),/Software keyboard mode: Legato keeps Gate on/);
+  for(const value of ['',null,undefined,1,'Legato',true])assert.throws(()=>selectKeyboardMode(chosen,value));
+  const noncanonical=copy(legacy);noncanonical.keyboardMode='legato';assert.throws(()=>readChannelSettings(noncanonical));
 });
 
 test('fixed channel edits preserve each sound while sharing model and filter across the chip',()=>{
@@ -101,7 +119,8 @@ test('round-robin waveform toggles broadcast only changed bits and preserve othe
 });
 
 test('channel setups reject mismatched shared hardware and malformed data',()=>{
-  const mutations=[value=>value.extra=1,value=>delete value.target,value=>value.format='sid',value=>value.version=2,value=>value.version='1',
+  const mutations=[value=>value.extra=1,value=>delete value.target,value=>value.format='sid',value=>value.version=3,value=>value.version='1',
+    value=>delete value.keyboardMode,value=>value.keyboardMode='Legato',value=>value.keyboardMode=null,
     value=>value.target='0',value=>value.target=3,value=>value.target=-1,value=>value.target=1.5,value=>value.target=null,
     value=>value.channels=[],value=>value.channels.pop(),value=>value.channels.push(value.channels[0]),value=>delete value.channels[1],
     value=>value.channels.extra=1,value=>value.channels[Symbol('extra')]=1,value=>value.channels[0].voice.attack=16,
@@ -128,7 +147,7 @@ test('playback planning preserves mixed voices and retains the one-pair Sync/Rin
 
 test('channel data accessors are rejected without executing caller code',()=>{
   let reads=0;
-  for(const field of ['format','version','target','channels']){
+  for(const field of ['format','version','target','keyboardMode','channels']){
     const settings=createChannelSettings();Object.defineProperty(settings,field,{enumerable:true,get(){reads++;throw Error('Unexpected getter');}});
     assert.throws(()=>readChannelSettings(settings),/accessors/);
   }
