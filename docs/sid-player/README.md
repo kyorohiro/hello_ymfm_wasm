@@ -42,9 +42,8 @@ Carrier ADSR, waveform, Pulse width, model and filter settings stay the same.
 In the Synth, every imported pair uses **silent Triangle oscillator 3 → carrier
 1**, with one keyboard note. SID Sync / Ring uses oscillator phase rather than
 the source's audible waveform or envelope, so that oscillator supplies the
-captured relative tuning. The current **6581 approximation** changes phase when
-the source has no waveform selected, so that case is unavailable for pair
-import; an **8580** source with no waveform selected remains supported.
+captured relative tuning. A source with no selected waveform is supported in
+both **6581** and **8580**: waveform selection and Gate do not stop its phase.
 The original source's audible song part and the third voice are not
 copied. Ring affects Triangle carriers; Sync can also affect other supported
 carrier waveforms. Captured oscillator phases are not restored.

@@ -367,18 +367,26 @@ async function checkBrowser(name, engine, origin, helpers) {
       assert.equal(await player.locator('#saveVoicePreset').isDisabled(),true);assert.match(await player.locator('#captureVoicePreview').textContent(),reason);await stop();
     }
 
-    check('a no-waveform source is rejected for the 6581 phase approximation and accepted by the 8580 model');
-    for (const model of ['6581','8580']) {
-      await loadBytes(helpers.createSidPairFixture({model,sourceControl:0}).bytes,`no-wave-source-${model}.sid`);
+    for (const model of ['6581','8580']) for (const sourceGate of [false,true]) {
+      check(`${model} no-waveform source with Gate ${sourceGate ? 'on' : 'off'} captures and auditions a Sync+Ring pair`);
+      await loadBytes(helpers.createSidPairFixture({model,sourceControl:Number(sourceGate),sync:true,ring:true,voice3off:true}).bytes,`no-wave-source-${model}-${sourceGate}.sid`);
       await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state==='playing');await progressed();
-      await player.locator('[data-snapshot-voice="0"]').click();await capture();
-      if (model==='6581') {
-        assert.equal(await player.locator('#saveVoicePreset').isDisabled(),true);assert.match(await player.locator('#captureVoicePreview').textContent(),/6581.*phase/i);
+      await player.locator('[data-snapshot-voice="0"]').click();
+      const applied=await capture(), metadata={name:await player.locator('#title').textContent(),subtune:Number(await player.locator('#subtune').inputValue())};
+      const expected=helpers.captureSidVoices(applied,metadata).voices[0].preset;assert(expected);
+      assert.equal(await player.locator('#saveVoicePreset').isDisabled(),false);
+      const saved=await downloadPreset(player,'saveVoicePreset');assert.deepEqual(saved.value,expected);
+      assert.equal(expected.model,model);assert.deepEqual(expected.modulation,{sync:true,ring:true,ratio:1.5});
+      let synth;
+      if (!packaged) {
+        const opened=context.waitForEvent('page');await player.locator('#openSnapshotSynth').click();synth=await opened;
+        await synth.waitForFunction(() => document.getElementById('audioStatus')?.textContent.includes('snapshot loaded'));
       } else {
-        assert.equal(await player.locator('#saveVoicePreset').isDisabled(),false);
-        const saved=await downloadPreset(player,'saveVoicePreset');assert.equal(saved.value.model,'8580');assert.equal(saved.value.modulation.sync,true);
+        synth=await context.newPage();await synth.goto(origin+synthEntry);await synth.waitForSelector('#presetFileInput',{state:'attached'});
+        await synth.locator('#presetFileInput').setInputFiles({name:'captured-no-wave-pair.json',mimeType:'application/json',buffer:saved.data});
+        await synth.waitForFunction(name => document.getElementById('instrumentName').value===name,expected.name);
       }
-      await stop();
+      await stop();await auditionSynth(synth,expected);await synth.close();
     }
 
     assert.deepEqual(errors, []);assert.deepEqual(consoleErrors, []);assert.deepEqual(failures, []);assert.deepEqual(external, []);

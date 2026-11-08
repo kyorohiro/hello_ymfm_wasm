@@ -30,6 +30,20 @@ are then silent; use `routing: 0` for dry output, or e.g.
 `{mode:'lowpass', routing:7}` for a shared filtered signal. This follows the
 register routing rather than hiding it behind an automatic bypass.
 
+The marked no-wave helper keeps the oscillator's 24-bit phase/MSB sequence
+running while the waveform selector is off. Gate continues to control the
+envelope, while TEST and oscillator Sync retain their own reset/hold behavior.
+Deselected-wave output uses the previous 12-bit output latch, halved per tick;
+this is a simple digital fade rather than measured floating-DAC timing. See
+patch 7 for the distinct phase and DAC/OSC3 effects and startup differences.
+
+The repository's independent
+[phase/Native/WASM checker](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/scripts/check_sid_waveoff.mjs)
+uses an observation-only Native probe and a separate 24-bit arithmetic oracle.
+It compares ordinary wave-first fixtures byte for byte and explicitly classifies
+frequency-before-wave and waveform-off history changes. It opens no audio device
+and uses no third-party music, firmware or GPL reference-engine code.
+
 Build from the repository root with an installed Emscripten SDK:
 
 ```sh

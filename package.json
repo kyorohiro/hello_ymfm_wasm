@@ -25,6 +25,7 @@
     "build:sid": "sh scripts/build_sid_wasm.sh",
     "test:sid": "node --test test/runtime/sid.test.mjs && node scripts/sid_artifacts.mjs --check",
     "test:sid:native": "node scripts/check_sid_native.mjs",
+    "test:sid:waveoff": "node --test test/sid_waveoff.test.mjs",
     "test:sid:browser": "node scripts/check_sid_lab_browser.cjs",
     "test:sid-synth": "node --test docs/synth-sid/*.test.mjs scripts/package_itch_sid_synth.test.mjs",
     "test:sid-synth:browser": "node scripts/check_sid_synth_browser.cjs",

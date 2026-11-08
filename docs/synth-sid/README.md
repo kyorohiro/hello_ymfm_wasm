@@ -107,9 +107,8 @@ An isolated Sync / Ring pair also retains both carrier modulation flags and
 the unrounded source/carrier frequency-register ratio. The original physical
 connection is remapped to this Synth's **silent Triangle voice 3 → carrier 1**
 pair, using one keyboard note. SID Sync / Ring uses oscillator phase rather
-than the source's audible waveform / Gate / ADSR. In the current 6581
-approximation, an unselected source waveform changes phase, so pair import
-rejects that case; 8580 allows a source with no waveform selected.
+than the source's audible waveform / Gate / ADSR. Both 6581 and 8580 allow a
+source with no waveform selected; its phase continues while Gate is off too.
 The original source's audible part and the third song
 voice are not copied. Pairs with source / carrier TEST, zero frequencies, ratios
 outside 0.125×..8× or three-voice modulation chains remain unavailable in the

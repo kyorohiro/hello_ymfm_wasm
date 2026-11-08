@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "scope": "6581 waveform-off phase and matching application build receipts; unchanged fixed SDK and calibration",
+  "baselineCommit": "554ad4f2b4646d97ffde14468d5bcd26e9dd9b13",
+  "unchangedFiles": [
+    {
+      "path": "docs/issues/ps1_state_restore_chip_levels_01.json",
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    {
+      "path": "docs/issues/wonderswan_state_restore_chip_levels_01.json",
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    {
+      "path": "docs/issues/pokey_state_restore_chip_levels_01.json",
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    {
+      "path": "docs/issues/scsp_state_restore_chip_levels_01.json",
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    },
+    {
+      "path": "docs/issues/sid_playground_source_revision_01.json",
+      "bytes": 17583,
+      "sha256": "3b13b29e60153fc623cc89b753bf79dc900616198fe81c4e0b44f7259a1984f4"
+    },
+    {
+      "path": "docs/issues/sid_playground_source_revision_02.json",
+      "bytes": 17827,
+      "sha256": "2079b7b4863071c28bcd62abfdb8adfffe8e609f3fac08f5f3d167ff3d33ff4c"
+    },
+    {
+      "path": "scripts/mixer_calibration_sid_revision.mjs",
+      "bytes": 4804,
+      "sha256": "724884e3bc3fe763cf5e7f165de49aa906c466b26288d403a0d0690a11108400"
+    },
+    {
+      "path": "docs/playground/playground_mixer_defaults.js",
+      "bytes": 13458,
+      "sha256": "3b65402cf2305f84a89e77895a99b6285279d2dea1356f4701710073b30b0ecf"
+    },
+    {
+      "path": "tetorica_src/runtime/soundchip_mixer_presets.js",
+      "bytes": 3276,
+      "sha256": "c5e3330fe214f1e2b5beecc08f0f5bbacf62396c0b2cb869b088d07b3cf79420"
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "bytes": 3295,
+      "sha256": "a43c6bacc2f7d2d180002fce7965f9938a7b435db34bcb2a499554f34f14d8b4"
+    },
+    {
+      "path": "third_party/chips-m6581/upstream/m6581.h",
+      "bytes": 26332,
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    },
+    {
+      "path": "third_party/tetorica-soundchip-native/RELEASE-MANIFEST.json",
+      "bytes": 72110,
+      "sha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365"
+    }
+  ],
+  "runtimeCatalog": {
+    "path": "tetorica_src/runtime/generated/runtime-artifacts.json",
+    "changedArtifactIds": [
+      "sid"
+    ],
+    "otherOutputsAndMirrorsMatchPriorCatalog": true,
+    "untouchedOutputs": 66,
+    "sdkPinUnchanged": true,
+    "metadataUnchanged": true
+  },
+  "checks": [
+    {
+      "command": "npm run check:runtime-artifacts",
+      "exitCode": 0,
+      "result": "33 SDK builds, 68 outputs, 75 mirrors"
+    },
+    {
+      "command": "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+      "exitCode": 0
+    }
+  ],
+  "calibrationMeasurementsRewritten": false,
+  "additionalSourceRevisionRequired": false,
+  "reason": "The changed application-only SID WASM is explicitly unmeasured; none of the four measured chip report or approved shared-source bytes changed."
+}

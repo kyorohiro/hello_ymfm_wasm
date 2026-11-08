@@ -1,0 +1,927 @@
+{
+  "format": "tetorica-psid-vbi-waveoff-baseline",
+  "version": 1,
+  "purpose": "Corrected startup phase with no selected waveform; independently captured Native PCM exactly matches currentWASM, while historical005 remains immutable",
+  "historicalBaseline": {
+    "path": "test/fixtures/sid-player/vbi_baseline_005.json",
+    "bytes": 14740,
+    "sha256": "dca5233ecb0871b15b272dffa59700483b56c160163ebd44ca11cdb7e256d915"
+  },
+  "currentWasm": {
+    "path": "docs/generated/sid-player/sid-player.wasm",
+    "bytes": 74312,
+    "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+  },
+  "nativeInputs": [
+    {
+      "path": "test/helpers/sid_waveoff_player_reference.cpp",
+      "bytes": 4518,
+      "sha256": "3a01a82cc1f86824b56812fff3b4d041c7936a0647be29dc81622734692f83cd"
+    },
+    {
+      "path": "tetorica_src/wasm/sid_player_core.h",
+      "bytes": 13501,
+      "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+    },
+    {
+      "path": "third_party/chips-m6502/upstream/m6502.h",
+      "bytes": 144215,
+      "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+    },
+    {
+      "path": "third_party/chips-m6581/m6581.h",
+      "bytes": 27353,
+      "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
+    }
+  ],
+  "cases": [
+    {
+      "sampleRate": 44100,
+      "profile": "tone",
+      "frames": 22050,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "historicalPcmSha256": "57227ccc96e61bb2c0322dbeea33833368aa735f7071b1247153ebcadfeb83ef",
+      "pcmSha256": "b79a9284f61a29d56b7080be9886a9ddc0684921488ef26873c768573513a0ef",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15365789
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.029146370844678526,
+      "peak": 0.0946786031126976
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "pulse",
+      "frames": 22050,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "historicalPcmSha256": "adb22d69d658d0821531b1e94fc887641f9ddd597d4c342154d0e59295ba367a",
+      "pcmSha256": "9372719dd2601f3560a3249277eac2d2c812b886797a2af9f5834e0567473d63",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.03664495181644495,
+      "peak": 0.09881501644849777
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "noise",
+      "frames": 22050,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "historicalPcmSha256": "4f993839e6cb2ba04574377096f42dba304239be8f7b38503092dfdf2c1687a1",
+      "pcmSha256": "d292dbccd6604d6c42e6d047074fd4fdec39dcccd9883e14b0c8b8ef590cf53f",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.025116585012319885,
+      "peak": 0.09054102003574371
+    },
+    {
+      "sampleRate": 44100,
+      "profile": "melody-filter",
+      "frames": 22050,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "historicalPcmSha256": "094c9410b62ad8466b8fa4373692a06a2c670b0e5916d33ab987a9e969ed7955",
+      "pcmSha256": "cf82a71fab4a2bdc8d887447cc934c38bb37ab801bd98aea2efae37528a56d6a",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.02461047119444806,
+      "peak": 0.09327834844589233
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "tone",
+      "frames": 24000,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "historicalPcmSha256": "8ed23ecf4f68967e44dd56e01f3177bc866f6d0fc2ed3345630dc57d554d6f84",
+      "pcmSha256": "b5edcb37e4e4de19c2d6b34238217eeb18d88114d6475e7c6ac0306db2e05cc1",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15365789
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.029145346079641404,
+      "peak": 0.09453064948320389
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "pulse",
+      "frames": 24000,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "historicalPcmSha256": "cbfb394dcee1905fd480c97ed8958786c07ae58ef77f143943d59a4840cbf16e",
+      "pcmSha256": "b127d6f837800d7fe20c008960a9992e59db28caa6701c18921d4e31d9cb85de",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.03666413321402814,
+      "peak": 0.09881909936666489
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "noise",
+      "frames": 24000,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "historicalPcmSha256": "56b621a9ebf224f3ecdc8834be2435bd9e5a04e608c4011b36a6c6f33c023177",
+      "pcmSha256": "d4cb46e997a08026da8cddcf70a25e3a914ff2ef5bc5eca12f30fcc3bda061b3",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.02513723897511235,
+      "peak": 0.09057660400867462
+    },
+    {
+      "sampleRate": 48000,
+      "profile": "melody-filter",
+      "frames": 24000,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "historicalPcmSha256": "e8589b83a6f25729931ae6f7a770b978e453f6c2f5fe1548432b2cfd965f51f6",
+      "pcmSha256": "5f23b241a38cac0c81f1c8a4dd0c3a7c79f75b5b0e913b436c50b9ae8f188e70",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.024618509386915056,
+      "peak": 0.09441936016082764
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "tone",
+      "frames": 48000,
+      "fixtureSha256": "617c4b611974b1625384091f933bef91d7a4981b794bfb9b666becd591117b28",
+      "historicalPcmSha256": "3dd6f7494a7d341baf287003fb608f3c2e08d2941409230f9708a7d052f86220",
+      "pcmSha256": "2ab594774b7f13f4804183292a2d1c80edd91e484408885653f51b4386400ad8",
+      "traceSha256": "365e53ffb3f70b81f4f4bf5acd7fb42d30da16ef0949790842059183691f2280",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          69,
+          29,
+          0,
+          8,
+          17,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 15365789
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.02913743942261545,
+      "peak": 0.09494815021753311
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "pulse",
+      "frames": 48000,
+      "fixtureSha256": "98bb7307362badd74ef73ae76400fa37ec9b1b603b0135305bb1e137598d93ea",
+      "historicalPcmSha256": "8f95b1da793c55433d05502595806ba212d59e6294b67c31307f242694aa2365",
+      "pcmSha256": "f56c29124bc3809030fb02028e51130084343b621f108710339c6beb44811527",
+      "traceSha256": "acbc8b58e5533f66ccbef2acb54cbdfea736d751881bc7a9ba622b2e3ab18ca0",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          14,
+          65,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.03676656779228006,
+      "peak": 0.09890033304691315
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "noise",
+      "frames": 48000,
+      "fixtureSha256": "494317ab653118ad5c44f470724ce09744bc9f440d57e2c90ded43e5a20f37e7",
+      "historicalPcmSha256": "e62b68bcf6dba5fb7685f7fe120968473114a2ad541f98b8f27f38f62459797c",
+      "pcmSha256": "0dcdae7e4a9957d8f0c081a2df5e3d43e70bc7b1d6762a02d4e2dda612c68f51",
+      "traceSha256": "22ebd959ee955d363de3a06e56e57ad22720acc23c75018348a3d8ea7d6efca7",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          129,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 49,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.025333135674303647,
+      "peak": 0.09057871252298355
+    },
+    {
+      "sampleRate": 96000,
+      "profile": "melody-filter",
+      "frames": 48000,
+      "fixtureSha256": "23190ea315c11a8e370ec105d3605df75479f84d211ada9a2fe0877b0881d7a0",
+      "historicalPcmSha256": "4b107758bed646560ea63ff96fee51284ec24806e8b87971827b460635cd735d",
+      "pcmSha256": "f6fe0d90aac0cdeb692cb10c955f8fc3f08601d724cf37dcfe19e95a23db0e01",
+      "traceSha256": "7c58812d748d2048a7d889e2de4da1ada2d56a448d528df96579252e162b8470",
+      "state": {
+        "cycles": 492624,
+        "initCycles": 234,
+        "playCalls": 25,
+        "skippedVbis": 0,
+        "registers": [
+          137,
+          19,
+          0,
+          8,
+          33,
+          38,
+          197,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          125,
+          113,
+          24,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 19,
+            "phase": 1286697
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      },
+      "pcmChanged": true,
+      "phaseChanged": true,
+      "oldCheckpointMatchesHistorical": true,
+      "nativeWasmPcmAndStateExact": true,
+      "nativeChunks": [
+        128,
+        37
+      ],
+      "cpuTraceAndNonPhaseStateUnchanged": true,
+      "rms": 0.02464901177465515,
+      "peak": 0.10123798996210098
+    }
+  ]
+}

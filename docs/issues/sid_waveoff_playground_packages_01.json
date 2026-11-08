@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "packages": [
+    {
+      "archive": "release/hello_ymfm_wasm_waveoff-20261108_itch_playground.zip",
+      "bytes": 38127648,
+      "sha256": "6cfc3a1bf02d331844a0db3c6585f08496860872cbff7493168fe9b5523e72c3",
+      "crcVerified": true,
+      "files": 1307,
+      "entries": 1490,
+      "runtimeWasmAndReceiptsMatchCurrent": true,
+      "sourceInputCounts": {
+        "sid": 13,
+        "sid8580-machine": 99
+      },
+      "everySourceInputHashVerified": true,
+      "compressedSourceCrcVerified": false
+    },
+    {
+      "archive": "release/hello_ymfm_wasm_waveoff-20261108_itch_playground_for_run.zip",
+      "bytes": 38559351,
+      "sha256": "21457819fe2d9e20ed966a4ce3c875422b7ea7b3d22458fdc78c5ea5ec334511",
+      "crcVerified": true,
+      "files": 1000,
+      "entries": 1000,
+      "runtimeWasmAndReceiptsMatchCurrent": true,
+      "sourceInputCounts": {
+        "sid": 13,
+        "sid8580-machine": 99
+      },
+      "everySourceInputHashVerified": true,
+      "compressedSourceCrcVerified": true
+    }
+  ],
+  "calibrationCheck": "docs/issues/sid_waveoff_scope_01.json",
+  "sourceBrowser": "docs/issues/sid_waveoff_playground_browser_01.json",
+  "zipBrowser": "docs/issues/sid_waveoff_playground_zip_browser_01.json"
+}

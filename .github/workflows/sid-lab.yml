@@ -51,6 +51,8 @@ jobs:
           python3 scripts/prepare_sid_core.py --check
           npm run test:sid
           node scripts/check_sid_native.mjs --work-dir release/sid-validation
+          node --test test/sid_waveoff.test.mjs
+          node scripts/check_sid_waveoff.mjs --work-dir release/sid-waveoff-validation --out release/sid-waveoff-native.json
       - name: Play the source lab and the independent source package
         run: |
           node scripts/check_sid_lab_browser.cjs --out release/sid-source-browser.json
@@ -74,6 +76,8 @@ jobs:
           name: sid-lab-validation
           path: |
             release/sid-validation/
+            release/sid-waveoff-validation/
+            release/sid-waveoff-native.json
             release/sid-source-browser.json
             release/sid-package-browser.json
             release/sid-lab-preview.zip

@@ -8,6 +8,7 @@ import {createPsidCiaFixture} from './helpers/psid_cia_fixtures.mjs';
 import {createRsidFixture} from './helpers/rsid_fixtures.mjs';
 import {createRsidTestRoms} from './helpers/rsid_test_roms.mjs';
 import {createSidPlayerTestFixture} from './helpers/sid_player_fixtures.mjs';
+import {loadSidWaveoffC64Baseline} from './helpers/sid_waveoff_c64_baselines.mjs';
 
 const sha = input => createHash('sha256').update(input).digest('hex');
 let RsidPlayerCore, SidPlayerCore, wasmBinary, vbiBinary;
@@ -260,10 +261,14 @@ test('a mixed FF/0 tune keeps its playing VBI song when the CIA song has no viab
   }
 });
 
-test('relocatable drivers preserve all legacy 0/0 CIA PCM, bus traces and machine state from the 0.0.4 binary', async () => {
-  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/psid_cia_baseline_004.json', import.meta.url)));
-  assert.equal(baseline.wasmSha256, '188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00');
-  for (const item of baseline.cases) {
+test('CIA keeps its historical CPU trace/non-phase state while no-wave startup uses the independently verified corrected PCM/phase', async () => {
+  const {historical, baseline} = await loadSidWaveoffC64Baseline('cia');
+  assert.equal(historical.wasmSha256, '188bfbf25383233ca6cf820fa1fb753016969c1e76220ab06b3ed7a5c929fe00');
+  assert.equal(baseline.cases.length, historical.cases.length);
+  const nonPhase = state => ({...state, voices: state.voices.map(({phase, ...voice}) => voice)});
+  for (const [index, item] of baseline.cases.entries()) {
+    const original = historical.cases[index];assert.deepEqual(nonPhase(item.state), nonPhase(original.state));
+    assert.equal(item.traceSha256, original.traceSha256);assert.equal(item.fixtureSha256, original.fixtureSha256);assert.equal(item.counter, original.counter);
     const fixture = createPsidCiaFixture(item.options), core = await create(item.sampleRate);
     try {
       assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes, {subtune: 2});
@@ -275,10 +280,14 @@ test('relocatable drivers preserve all legacy 0/0 CIA PCM, bus traces and machin
   }
 });
 
-test('adding PSID CIA playback preserves existing RSID PCM, trace, counters and voice state from the 0.0.3 native binary', async () => {
-  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/rsid_baseline_003.json', import.meta.url)));
-  assert.equal(baseline.wasmSha256, '496f32f4bbdf2d788f42124c385da033861852b738147f59b61a338580b91a18');
-  for (const item of baseline.cases) {
+test('RSID keeps its historical CPU trace/counters/envelope while no-wave startup uses corrected Native/WASM PCM and phase', async () => {
+  const {historical, baseline} = await loadSidWaveoffC64Baseline('rsid');
+  assert.equal(historical.wasmSha256, '496f32f4bbdf2d788f42124c385da033861852b738147f59b61a338580b91a18');
+  assert.equal(baseline.cases.length, historical.cases.length);
+  const nonPhase = state => ({...state, voices: state.voices.map(({phase, ...voice}) => voice)});
+  for (const [index, item] of baseline.cases.entries()) {
+    const original = historical.cases[index];assert.deepEqual(nonPhase(item.state), nonPhase(original.state));
+    assert.equal(item.traceSha256, original.traceSha256);assert.equal(item.fixtureSha256, original.fixtureSha256);assert.equal(item.counter, original.counter);
     const fixture = createRsidFixture(item.profile), core = await create(item.sampleRate);
     try {
       assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes);

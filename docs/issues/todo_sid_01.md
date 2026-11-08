@@ -137,7 +137,32 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 検証で判明したmodel差: 現在の6581近似coreは`_m6581_wavnone`で`wav_accum >>= 1`を行うため、無波形sourceとTriangle sourceの位相挙動が一致しない。sourceを完全muteして同じCPU write timingで比べても、Triangleへ置換するとcarrier PCMが変わる。今回は6581のsource波形nibble0を理由付きで拒否し、8580では引き続き許可する。native／WASM修正を混ぜず、既存の音を保持する。
 
-- [ ] 別段階: 6581の無波形sourceのphase／MSB挙動を独立fixture・一次資料／参照と照合し、core修正・WASM再build／source receipt・既存PCM／校正の更新範囲を検討する。今回の取り込みで黙ってTriangleへ置換しない。
+- [x] 別段階: 6581の無波形sourceのphase／MSB挙動を独立fixture・一次資料／参照と照合し、core修正・WASM再build／source receipt・既存PCM／校正の更新範囲を検討する。下記の続きでphaseを修正し、検証後に専用guardを外した。上の記述は修正前の調査記録として残す。
+
+### 今回の続き: 6581の無波形sourceと位相の修正（2026-11-08）
+
+ユーザー承認: 既存6581 coreの無波形sourceを一次資料・独立参照と比較し、必要な修正とNative／WASM再build・検証を行い、Sync／Ring取り込みのmodel限定guardを外す。先にTODOへ範囲を記録する。
+
+- [x] MOS SIDの資料・独立参照実装で、波形選択・Gate／TESTとoscillator accumulator／MSB・Sync／Ringの関係を確認する。無波形DACの保持／減衰とphase更新を区別し、実機一致の主張を限定する。
+- [x] 変更前のordinary wave／filter／ADSR／Sync／Ring・無波形source fixturesを固定し、修正対象で変わるPCMと不変であるべきPCM／registerを分類する。変調元の出力を完全muteし、cycleごとのphase／MSBも比較する。
+- [x] pristine upstreamを保持し、生成scriptから作るmarked6581 headerのみへ最小修正を加える。無波形の処理がphaseを変更しないようにし、DACの簡略表現・限界は明示する。ABI・gain／filter係数等を変更しない。
+- [x] 依存するSID単体／Direct PSID／C64のNative・WASMとmatching receipts／source kitを再生成する。8580とfixed SDKを不用意に更新せず、共有inputのclosureに必要な再build／receipt更新は独立一致で検証する。
+- [x] 6581の無波形source専用取り込みguardを、修正済み実coreでphase／PCM一致を確認してから外す。両model・全3接続・Sync／Ring／併用、Gate／ADSR・再発音・旧Preset・Copy JavaScriptを検証する。
+- [x] Playground Main／Worker、Player／Synthのsource／実ZIPをChromium／WebKitで確認する。既存校正・SDK認証を保持し、必要なSID-only source revisionは範囲限定で記録する。
+- [x] 一次資料・before／after・再build／package proof・CI・README en／ja／英語AI・再開情報を保存する。元曲／ROM／PCMは配布せず、commit／push／tag／公開は別とする。
+
+今回の結果:
+
+- 無波形処理を`wav_accum`の減衰から`wav_output >> 1`へ変更。phaseを進めたまま、出力latchだけを簡略減衰させる。Gateは位相を止めず、TEST／Syncは既存のreset／hold経路を維持する。出力latchの半減は実機floating DACの保持時間を再現したものではない。[一次資料・独立参照](sid_waveoff_reference_01.json)は6581／8580の12ケース・66実行でphaseと出力の区別を確認し、GPL参照engineは配布runtimeへ含めていない。
+- [変更前記録](sid_waveoff_before_01.json)と[独立phase oracle／Native・WASM比較](sid_waveoff_native_01.json): 32 rawケースでphase不一致は変更前406観測→変更後0。32／44.1／48／96kHz×PAL／NTSCの280ケースでNativeとWASMはbyte一致。waveを先に設定する192ケースは変更前のPCM・stateとも一致。無波形の変調元・周波数を先に書く初期化・DAC履歴を含む88ケースは修正対象として分離した。[既存18場面](sid_waveoff_existing_native_01.json)も1,881,000 framesで最大誤差0。
+- [Direct VBIの12ケース](sid_waveoff_player_regression_01.json)では旧baselineを保持し、変更前binaryが旧PCM／trace／stateに一致することを確認。修正後は別のNative captureとWASMがPCM／phaseまで一致し、旧CPU trace・register・Envelope・実行状態も維持する。新baselineは別名でhash固定し、旧記録の上書きで差を隠していない。
+- [C64の27ケース](sid_waveoff_c64_01.json)も旧CIA9／RSID12／再配置CIA6のbaselineを保持し、変更前Native・WASMで旧PCM／trace／state・counter／sentinelを再現した。修正後は別名の3baselineとNative capture・WASMが一致。phase以外のCPU／register／Envelope／RAMを保持し、各programの周波数先行write区間も記録した。新baseline・proof・WASM・header・Native helperを独立hashで固定し、CIでNative比較を再実行する。
+- 6581のsource無波形専用guardを削除。両modelでWaveなし・Gate On／OffのSync／Ringペアを読み込み可能。TEST・三声の依存・carrierの合成波・範囲外ratio等の拒否は維持。source／第三声の音や元の位相・曲automationは取り込まない。
+- [sourceの取り込み・Synth試奏](sid_waveoff_voice_browser_01.json)はChromium／WebKit各20項目、[実ZIP間の保存・読込・試奏](sid_waveoff_voice_zip_browser_01.json)は各19項目成功。[Player全体](sid_waveoff_player_browser_01.json)は各35項目成功。[Playground source](sid_waveoff_playground_browser_01.json)と[実ZIP](sid_waveoff_playground_zip_browser_01.json)は各Main／Worker×2browserの32項目成功。physical outputはmuteで、実聴とは区別する。
+- [実ZIPからの隔離再build](sid_waveoff_packages_01.json): SID13／Direct14／C6429入力を同梱recipeでbuildし、3組のWASMとreceipt全文が配布物にbyte一致。[8580の99入力closure](sid_waveoff_closure_01.json)も実buildと独立source kitの再buildを実施し、8580の2WASMとNative binaryは変更前とbyte一致。共有4入力のreceiptのみ更新。[Playground ZIP](sid_waveoff_playground_packages_01.json)も同じSID／8580 artifactと全入力hashを検証し、browser用は1000files以内。
+- [変更範囲](sid_waveoff_scope_01.json): Runtime検証33 SDK builds／68 outputs／75 mirrors成功。固定SDKのbytes、4音源の測定report・既存source revision・Mixer gainを保持。SIDは未校正のapplication instrumentのため新しい測定値やsource revisionの例外を作っていない。
+- 再確認: `npm run test:sid:waveoff`、`npm run test:sid-player`、`npm run test:sid-synth`。CIのSID labへphase回帰を追加し、Player CIは独立captureの新baselineと旧CPU不変条件を検証する。新規ZIPは`waveoff-20261108`名で作成済み。commit／push／tag／公開、人の実聴と長時間／background／実機比較は未実施。
+- 最終unit結果: Player131／Synth79／Core12／新phase7／Main・Worker runtime30／参照・corpus39／校正revision7すべて成功。全Playground mode型・C64 exampleのcheckJs、CI YAML構文、`git diff --check`も成功。GitHub上のActions実行は未実施で、上記はlocal検証。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

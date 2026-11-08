@@ -82,12 +82,6 @@ export function captureSidVoices(state, {name = '', subtune = 1} = {}) {
       // three-voice dependency is outside the Synth's independent fixed pair.
       if (sourceControl & 6 || registers[thirdVoice * 7 + 4] & 6) row.reason = 'Sync / Ring has an additional three-voice dependency. Only an independent carrier/source pair can be imported.';
       else if (sourceControl & 8) row.reason = 'The Sync / Ring source holds TEST, so its stopped oscillator cannot supply a running Synth modulator.';
-      else if (model === '6581' && (sourceControl & 0xf0) === 0) {
-        // The pinned m6581 model's no-wave helper damps its accumulator. Do not
-        // replace that phase behavior with the Synth's running Triangle source.
-        row.pair = null;
-        row.reason = 'The 6581 core changes phase for a source with no waveform; its modulation cannot be preserved by this Synth\'s Triangle source.';
-      }
       else if (frequency === 0 || sourceFrequency === 0) row.reason = 'Sync / Ring pair capture requires nonzero carrier and source frequency registers.';
       else if (row.pair.ratio < .125 || row.pair.ratio > 8) row.reason = 'Sync / Ring source/carrier ratio is outside the Synth range 0.125 to 8.';
     }

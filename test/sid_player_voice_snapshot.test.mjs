@@ -135,10 +135,6 @@ test('independent Sync/Ring/Both pairs retain all three physical source position
       const {state} = pairScene({model, carrier, ...flags, carrierGate, sourceControl: sourceWave << 4 | Number(sourceGate),
         overrides: [[source * 7 + 5, sourceWave * 17], [source * 7 + 6, sourceGate ? 0xff : 0]]});
       const before = structuredClone(state), row = captureSidVoices(state).voices[carrier];
-      if (model === '6581' && sourceWave === 0) {
-        assert.equal(row.available, false);assert.equal(row.preset, null);assert.equal(row.pair, null);assert.match(row.reason, /6581 core changes phase.*no waveform/);
-        assert.deepEqual(state, before);continue;
-      }
       assert.equal(row.available, true); assert.equal(row.reason, null); assert.equal(row.gate, carrierGate);
       assert.deepEqual(row.pair, {carrierVoice: carrier, sourceVoice: source, sourceFrequencyRegister: 0x2400,
         carrierFrequencyRegister: 0x1800, sourceFrequencyHz: 0x2400 * 985248 / 16777216, ratio: 1.5, ...flags});
@@ -314,8 +310,7 @@ test('real CPU pair snapshots retain every source/carrier position without advan
 test('supported real source waveforms, Gate and ADSR do not change isolated Sync/Ring carrier PCM', async () => {
   for (const backend of ['direct6581', 'c648580']) for (const flags of modulationModes) {
     const {Core, model, options} = playerOptions(backend);let expected, expectedPreset;
-    const controls = Array.from({length: 16}, (_, waveform) => [waveform << 4, waveform << 4 | 1]).flat()
-      .filter(control => model === '8580' || (control & 0xf0) !== 0);
+    const controls = Array.from({length: 16}, (_, waveform) => [waveform << 4, waveform << 4 | 1]).flat();
     for (const [index, sourceControl] of controls.entries()) {
       // The original source dry branch is muted so the comparison isolates
       // its oscillator phase dependency rather than an audible second voice.
@@ -334,8 +329,8 @@ test('supported real source waveforms, Gate and ADSR do not change isolated Sync
   }
 });
 
-test('the pinned6581 no-wave accumulator behavior is rejected without changing Native/WASM;8580 permits its independent no-wave source', async () => {
-  for (const backend of ['direct6581', 'c648580']) for (const flags of modulationModes) {
+test('6581 and8580 keep no-wave source phase running and capture it without changing playback', async () => {
+  for (const backend of ['direct6581', 'c646581', 'c648580']) for (const flags of modulationModes) {
     const {Core, model, options} = playerOptions(backend), results = [];
     for (const sourceControl of [0x10, 0x00, 0x01]) {
       const fixture = createSidPairFixture({model, ...flags, sourceControl, voice3off: true});
@@ -345,15 +340,13 @@ test('the pinned6581 no-wave accumulator behavior is rejected without changing N
         current.load(fixture.bytes, load);reference.load(fixture.bytes, load);
         const output = current.render(16384);assert(pcm(output).equals(pcm(reference.render(16384))));
         const before = current.getState(), row = captureSidVoices(before).voices[0];
-        assert.deepEqual(current.getState(), before);assert(pcm(current.render(2048)).equals(pcm(reference.render(2048))), 'even an unavailable model-specific candidate never changes playback');
+        assert.deepEqual(current.getState(), before);assert(pcm(current.render(2048)).equals(pcm(reference.render(2048))), 'capturing a no-wave source never changes playback');
         results.push(Buffer.from(pcm(output)));
-        if (model === '6581' && sourceControl !== 0x10) {
-          assert.equal(row.available, false);assert.equal(row.preset, null);assert.equal(row.pair, null);assert.match(row.reason, /6581 core changes phase.*no waveform/);
-        } else {assert.equal(row.available, true);assert.equal(row.pair.ratio, 1.5);}
+        assert.equal(row.available, true);assert.equal(row.reason, null);assert.equal(row.pair.ratio, 1.5);
       } finally {current.dispose();reference.dispose();}
     }
     for (const noWave of results.slice(1)) {
-      assert.equal(noWave.equals(results[0]), model === '8580', '6581 no-wave damps the accumulator, while8580 no-wave leaves source phase running');
+      assert(noWave.equals(results[0]), `${backend}: an unselected source waveform must not change oscillator phase or isolated carrier PCM`);
     }
   }
 });

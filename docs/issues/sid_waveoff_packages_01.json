@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Actual ZIP integrity, authored browser-module preservation and isolated13/14/29-input WASM rebuilds",
+  "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "packages": [
+    {
+      "kind": "player",
+      "archive": "release/tetorica_sid_player_waveoff-20261108_itch.zip",
+      "bytes": 2700698,
+      "sha256": "1087f90caa0147f9a838d2b3f9ac175f55ba3246612179d46df473940d02c7b3",
+      "files": 223,
+      "crcAndAllExtractedBytesVerified": true,
+      "readableModules": 20,
+      "authoredBytesAndImportRemappingExact": true,
+      "originalInputs": 176,
+      "allOriginalInputHashesMatchCurrentSource": true,
+      "sourceArchiveCrc": true,
+      "nativeOrGplReferenceOrUserAudioIncluded": false,
+      "sidData": "Self-authored demo programs only",
+      "sourceCopy": {
+        "name": "source-copy",
+        "minify": false,
+        "bundle": false,
+        "dependencyAnalyzer": {
+          "name": "esbuild",
+          "version": "0.28.2"
+        }
+      }
+    },
+    {
+      "kind": "synth",
+      "archive": "release/tetorica_sid_synth_waveoff-20261108_itch.zip",
+      "bytes": 2518421,
+      "sha256": "b9ee90c5c451d83abd95d7fd53593c9ae01ebe23d6b894d97bf1dd4731b9c799",
+      "files": 194,
+      "crcAndAllExtractedBytesVerified": true,
+      "readableModules": 16,
+      "authoredBytesAndImportRemappingExact": true,
+      "originalInputs": 160,
+      "allOriginalInputHashesMatchCurrentSource": true,
+      "sourceArchiveCrc": true,
+      "nativeOrGplReferenceOrUserAudioIncluded": false,
+      "sidData": "Self-authored demo programs only",
+      "sourceCopy": {
+        "name": "source-copy",
+        "minify": false,
+        "bundle": false,
+        "dependencyAnalyzer": {
+          "name": "esbuild",
+          "version": "0.28.2"
+        }
+      }
+    }
+  ],
+  "rebuilds": [
+    {
+      "component": "sid",
+      "compiledInputs": 13,
+      "sourceKit": "build/validation/sid-waveoff-synth-zip/sources/sid",
+      "isolatedCopy": "build/validation/sid-waveoff-sourcekits-WNsh32/sid",
+      "output": "build/validation/sid-waveoff-sourcekits-WNsh32/sid/isolated-output",
+      "command": [
+        "sh",
+        "scripts/build_sid_wasm.sh",
+        "<isolated-copy>/isolated-output"
+      ],
+      "elapsedMilliseconds": 717,
+      "wasm": {
+        "bytes": 14488,
+        "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
+      },
+      "completeBuildReceipt": {
+        "bytes": 2438,
+        "sha256": "bd0ef00a2fb3c64d10c158c97dd975224a24fb9e880b6ec6f945c9bbc4997c14"
+      },
+      "matchesActualZipWasm": true,
+      "matchesActualZipEntireReceipt": true,
+      "originalCopiedInputsUnchanged": true,
+      "explicitOutputSkippedPublicSync": true,
+      "log": "SID prototype artifacts verified."
+    },
+    {
+      "component": "sid-player",
+      "compiledInputs": 14,
+      "sourceKit": "build/validation/sid-waveoff-player-zip/sources/sid-player",
+      "isolatedCopy": "build/validation/sid-waveoff-sourcekits-WNsh32/sid-player",
+      "output": "build/validation/sid-waveoff-sourcekits-WNsh32/sid-player/isolated-output",
+      "command": [
+        "sh",
+        "scripts/build_sid_player_wasm.sh",
+        "<isolated-copy>/isolated-output"
+      ],
+      "elapsedMilliseconds": 1879,
+      "wasm": {
+        "bytes": 74312,
+        "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+      },
+      "completeBuildReceipt": {
+        "bytes": 3357,
+        "sha256": "f9103ec1d13c07d8b4a6182247933709c6b0e585468e2fbee589cb57dbf5fff0"
+      },
+      "matchesActualZipWasm": true,
+      "matchesActualZipEntireReceipt": true,
+      "originalCopiedInputsUnchanged": true,
+      "explicitOutputSkippedPublicSync": true,
+      "log": "Bounded PSID player artifacts verified."
+    },
+    {
+      "component": "sid-rsid",
+      "compiledInputs": 29,
+      "sourceKit": "build/validation/sid-waveoff-player-zip/sources/sid-rsid",
+      "isolatedCopy": "build/validation/sid-waveoff-sourcekits-WNsh32/sid-rsid",
+      "output": "build/validation/sid-waveoff-sourcekits-WNsh32/sid-rsid/isolated-output",
+      "command": [
+        "sh",
+        "scripts/build_sid_rsid_wasm.sh",
+        "<isolated-copy>/isolated-output"
+      ],
+      "elapsedMilliseconds": 2690,
+      "wasm": {
+        "bytes": 116117,
+        "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+      },
+      "completeBuildReceipt": {
+        "bytes": 6749,
+        "sha256": "9946dcfa85a8654aa6f0c69e0de1e344f43546df0aed19001de9cac63e13963d"
+      },
+      "matchesActualZipWasm": true,
+      "matchesActualZipEntireReceipt": true,
+      "originalCopiedInputsUnchanged": true,
+      "explicitOutputSkippedPublicSync": true,
+      "log": "RSID machine artifacts verified."
+    }
+  ],
+  "sdkOrApplicationArtifactsWritten": false,
+  "checker": {
+    "path": "scripts/check_sid_waveoff_packages.mjs",
+    "bytes": 9073,
+    "sha256": "ad3b5e5eaccd34dae387897eb1aa62cf9bad7417776eeaa4fde109857fc56bca"
+  }
+}

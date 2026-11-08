@@ -1,0 +1,754 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Independent primary-source and external-engine evidence for oscillator phase with no selected waveform; not an analog DAC timing fit",
+  "datasheet": {
+    "title": "MOS Technology 6581 Sound Interface Device",
+    "url": "https://myoldcomputer.nl/Files/mos_6581_sid.pdf",
+    "bytes": 8293183,
+    "sha256": "0039abf5407b1725b72b0a6418efd37ed2b36577e00035438753754af11f1730",
+    "pdfPages": [
+      4,
+      5
+    ],
+    "facts": [
+      "Page4: Gate controls the envelope attack/release sequence. TEST resets and holds the oscillator at zero.",
+      "Page4: source oscillator frequency drives Sync and Ring; the remaining source-voice parameters do not determine these effects.",
+      "Page5: the oscillator dependency rotates 3→1, 1→2 and 2→3."
+    ],
+    "limit": "The datasheet does not specify a waveform-off DAC floating-decay curve or per-cycle phase implementation."
+  },
+  "externalSource": {
+    "project": "libresidfp",
+    "version": "1.2.3",
+    "revision": "32c8525418a643eaed8dfafa3d7039e250050cfa",
+    "release": "https://github.com/libsidplayfp/libresidfp/releases/tag/v1.2.3",
+    "archive": {
+      "path": "build/sid-reference/cache/libresidfp-1.2.3.tar.gz",
+      "bytes": 538314,
+      "sha256": "e9b53a984ca708c3e8d9139eb6aad6141f73ffc22d70a020f7966803f4e2f76d"
+    },
+    "sourceFiles": {
+      "src/WaveformGenerator.h": {
+        "bytes": 13020,
+        "sha256": "d99c1c82f643400beffb39676365e8e4db05247f0de23a603d63a63b9d292cdf",
+        "url": "https://github.com/libsidplayfp/libresidfp/blob/32c8525418a643eaed8dfafa3d7039e250050cfa/src/WaveformGenerator.h",
+        "matchesPinnedOfficialArchive": true
+      },
+      "src/WaveformGenerator.cpp": {
+        "bytes": 15560,
+        "sha256": "c959bae5d1844df1b9d9ee5b2e964058c3ad527fff07122774ca88dd7bc34ec2",
+        "url": "https://github.com/libsidplayfp/libresidfp/blob/32c8525418a643eaed8dfafa3d7039e250050cfa/src/WaveformGenerator.cpp",
+        "matchesPinnedOfficialArchive": true
+      },
+      "src/Voice.h": {
+        "bytes": 3657,
+        "sha256": "47b5c84addbd6eb40d3365838add509ba31ba85304bf97279ce3ba4d7111870e",
+        "url": "https://github.com/libsidplayfp/libresidfp/blob/32c8525418a643eaed8dfafa3d7039e250050cfa/src/Voice.h",
+        "matchesPinnedOfficialArchive": true
+      }
+    },
+    "observations": [
+      {
+        "file": "src/WaveformGenerator.h",
+        "lines": [
+          315,
+          374
+        ],
+        "fact": "Clocking advances phase and the noise pipeline whenever TEST is clear; waveform selection and Gate do not gate that clock."
+      },
+      {
+        "file": "src/WaveformGenerator.h",
+        "lines": [
+          379,
+          425
+        ],
+        "fact": "Ring uses the preceding accumulator MSB. Waveform-off aging affects a separate output latch."
+      },
+      {
+        "file": "src/WaveformGenerator.cpp",
+        "lines": [
+          338,
+          345
+        ],
+        "fact": "Hard Sync follows a source MSB edge, including the simultaneous source-sync suppression case."
+      },
+      {
+        "file": "src/WaveformGenerator.cpp",
+        "lines": [
+          354,
+          422
+        ],
+        "fact": "Selecting no waveform starts model-dependent output decay. TEST resets phase separately; latch fading does not rewrite phase."
+      },
+      {
+        "file": "src/Voice.h",
+        "lines": [
+          67,
+          76
+        ],
+        "fact": "Oscillator DAC output and envelope output enter the amplitude path separately."
+      }
+    ]
+  },
+  "execution": {
+    "referenceBinary": {
+      "bytes": 126688,
+      "sha256": "602f7eef58d542007f622a9c04ad1db41d44c75e0789eb990d209a1d7fc54dd0"
+    },
+    "manifest": "build/sid-reference/sid8580-reference-build.json",
+    "license": "GPL-2.0-or-later, separate verification executable only",
+    "initialization": "Existing pinned serial-filter-table initialization; no oscillator or DSP patch",
+    "sampleRate": 48000,
+    "clockHz": 985248,
+    "sampling": "DECIMATE",
+    "accessTiming": "Explicit completed-clock boundaries; accesses consume no implicit ticks",
+    "phaseCases": [
+      {
+        "model": 6581,
+        "freeCycles": 137,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 9,
+            "env3": 154,
+            "protocolSha256": "c390cef1f68fc62b06ca4d99f8b8c343a5e167765ad042332bc2817c24ccf6ee",
+            "cycles": 147
+          },
+          "wave-off-gate-off": {
+            "osc3": 9,
+            "env3": 154,
+            "protocolSha256": "0097b0108a784cf169f6f6cb9035b59a8d0154144f3afa015b66aacba98066d6",
+            "cycles": 147
+          },
+          "saw-gate-on": {
+            "osc3": 9,
+            "env3": 184,
+            "protocolSha256": "07e518b1f9f4e73e300dc6bc82e63d1365528c3c63c58468fa4afc555f11f6ec",
+            "cycles": 147
+          },
+          "wave-off-gate-on": {
+            "osc3": 9,
+            "env3": 184,
+            "protocolSha256": "aa439be47a959e69e2d8c387502b7dec32194ac3713b1ada703b4f3ad0f60a84",
+            "cycles": 147
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 154,
+            "protocolSha256": "4c60f53e93c8a3a3cb007f5443f45c30cc2081f1cfcc51f594f260f4ebd7f4bd",
+            "cycles": 147
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 6581,
+        "freeCycles": 1234,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 87,
+            "env3": 63,
+            "protocolSha256": "15fcc4e0211fdd8f4bf5bdb36d86a4527087dbb4cb9c6c02b603c4b5a8b1e364",
+            "cycles": 1244
+          },
+          "wave-off-gate-off": {
+            "osc3": 87,
+            "env3": 63,
+            "protocolSha256": "fff621b6e6fb9171b056a50795dded4b3d04076e1e477811e5253bfdd2ba4d82",
+            "cycles": 1244
+          },
+          "saw-gate-on": {
+            "osc3": 87,
+            "env3": 255,
+            "protocolSha256": "6a8954165027b5d38d66640d88bfe49eaf4458c507de70014a9c46a8d8473c66",
+            "cycles": 1244
+          },
+          "wave-off-gate-on": {
+            "osc3": 87,
+            "env3": 255,
+            "protocolSha256": "16b4a6b4ef069093bb86f8fd7c64dd33967497a8faa7eaa401e1977007a8ad5c",
+            "cycles": 1244
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 63,
+            "protocolSha256": "43e555eded1793a48e2fb37962b31a6cc5c99f7a88837f57b03a845040d37057",
+            "cycles": 1244
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 6581,
+        "freeCycles": 8193,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 70,
+            "env3": 0,
+            "protocolSha256": "477318f9494faf689c33dcd23e2cefd77fe36a863d1fe2e606eebcd87a07c5c3",
+            "cycles": 8203
+          },
+          "wave-off-gate-off": {
+            "osc3": 70,
+            "env3": 0,
+            "protocolSha256": "b4efcbeb0ca3e4b46a64e8a4b50909f59a954140a9e95acbb081c2be0c0fbc1b",
+            "cycles": 8203
+          },
+          "saw-gate-on": {
+            "osc3": 70,
+            "env3": 255,
+            "protocolSha256": "a1799d365e30a2adf55a44f3ba775815f14c3ea4fb0549bae61fe515a1b780cd",
+            "cycles": 8203
+          },
+          "wave-off-gate-on": {
+            "osc3": 70,
+            "env3": 255,
+            "protocolSha256": "a7cce4356b7a01256c36c37596c8b4a625cf5a1d64f9de3e22da07996dbf9c36",
+            "cycles": 8203
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 0,
+            "protocolSha256": "974d0b35ff544679b714dc5ea105a6c1cc2c7346b50159393d37ed5bb1079a7f",
+            "cycles": 8203
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "freeCycles": 137,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 9,
+            "env3": 154,
+            "protocolSha256": "59d783ba21cf63fc24f3a19cb4ded24ebd60d92bff4c2ea90262ed0dfd2bc0f1",
+            "cycles": 147
+          },
+          "wave-off-gate-off": {
+            "osc3": 9,
+            "env3": 154,
+            "protocolSha256": "cdc3ab0177f2c1367309194b359ec4ae05f9de38a23fd4fdc8455a3024a5e730",
+            "cycles": 147
+          },
+          "saw-gate-on": {
+            "osc3": 9,
+            "env3": 184,
+            "protocolSha256": "8afe14435134d68ce1889b3ce0d4a97be2d9f28a50aaa7031beb9281fd1b9ae2",
+            "cycles": 147
+          },
+          "wave-off-gate-on": {
+            "osc3": 9,
+            "env3": 184,
+            "protocolSha256": "fcd14a989d955c9b610160edeb9b59c495391d56ba16f4212eedf9cfdab24070",
+            "cycles": 147
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 154,
+            "protocolSha256": "aab7fc85f0efe970b3d186cee469c14273d9d9e306362a4878971f94ec49d743",
+            "cycles": 147
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "freeCycles": 1234,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 87,
+            "env3": 63,
+            "protocolSha256": "fbbc88fa5261f14faa341bf0a9def81ed81603cf864e6dc28d98c3ee15f265ed",
+            "cycles": 1244
+          },
+          "wave-off-gate-off": {
+            "osc3": 87,
+            "env3": 63,
+            "protocolSha256": "5432931d99529df56803d39d950b7ec980f3fddd9c7e04c1cb8742878d3402ee",
+            "cycles": 1244
+          },
+          "saw-gate-on": {
+            "osc3": 87,
+            "env3": 255,
+            "protocolSha256": "86a9ac11f1d94a9c60a293e412f04b77c465e7ea8572c126059339d1054ac592",
+            "cycles": 1244
+          },
+          "wave-off-gate-on": {
+            "osc3": 87,
+            "env3": 255,
+            "protocolSha256": "51a3dd72df93a643ab359c5a870a909e66226b3aa614e8b11f4467b1018f637e",
+            "cycles": 1244
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 63,
+            "protocolSha256": "59971221c9358641c4e56bd741aab367a2844ba335cb099675b38dfcb95fed8f",
+            "cycles": 1244
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "freeCycles": 8193,
+        "frequencyRegister": 4660,
+        "variants": {
+          "saw-gate-off": {
+            "osc3": 70,
+            "env3": 0,
+            "protocolSha256": "095b2d7c852e2e6c791437a4bddbd00a1d0c78cd4061b108090f498faefc9974",
+            "cycles": 8203
+          },
+          "wave-off-gate-off": {
+            "osc3": 70,
+            "env3": 0,
+            "protocolSha256": "08f2f5dc00e5e40006386bd7c042ea6053a4047f3f878d00b0ee73e1239ac675",
+            "cycles": 8203
+          },
+          "saw-gate-on": {
+            "osc3": 70,
+            "env3": 255,
+            "protocolSha256": "c499c4505d5b4e648d592389d1b187cd10a0a1a92c6c1f4b3de7677e7948f889",
+            "cycles": 8203
+          },
+          "wave-off-gate-on": {
+            "osc3": 70,
+            "env3": 255,
+            "protocolSha256": "b872e1ae673cfc6d1a44bd9287e7cb2c9176a2b9a4affd491593f288d93cf4f7",
+            "cycles": 8203
+          },
+          "test-held": {
+            "osc3": 0,
+            "env3": 0,
+            "protocolSha256": "d335dd54f8a398323cda1d3a7095afa7750a074ae1a0f76bb354830c5b676bde",
+            "cycles": 8203
+          }
+        },
+        "freePhaseEquivalent": true,
+        "testHeldDifferent": true
+      }
+    ],
+    "modulationCases": [
+      {
+        "model": 6581,
+        "mode": "sync",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "4ec306b4a10a1671db678c1753506db6c379dbb56332a68cb26833e0ad45861e",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.13574794017046896,
+            "peak": 0.23834228515625,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "f245ad494c908b2749885f76551ad4edf58f5d99b1b69a71e73c2d869de4ecb5"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "4ec306b4a10a1671db678c1753506db6c379dbb56332a68cb26833e0ad45861e",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.13574794017046896,
+            "peak": 0.23834228515625,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "b59b0a9a37a79f59f126c232187e54a7c8ec2265a5bdf3a6b1cdcc8e5c758ed8"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "4ec306b4a10a1671db678c1753506db6c379dbb56332a68cb26833e0ad45861e",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.13574794017046896,
+            "peak": 0.23834228515625,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "d4900258df9aefc11a4be61e4ab511d5d70ed1e5302bce24efe1729f020e00c3"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "4ec306b4a10a1671db678c1753506db6c379dbb56332a68cb26833e0ad45861e",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.13574794017046896,
+            "peak": 0.23834228515625,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "520d9c863c493d1c72a93508d7259e9ab2761b292e5a22ab47449678cd518b71"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "4ec306b4a10a1671db678c1753506db6c379dbb56332a68cb26833e0ad45861e",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.13574794017046896,
+            "peak": 0.23834228515625,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "ac1612cac99777ff95222fe6ee5562a4fce9ba027ee4301bba0b68e7fca9ffe1"
+          },
+          "test-held": {
+            "pcmSha256": "08136abcc689acb4118e4962179b04984a7335db757805330044e2c743b0a50e",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.13142226285563754,
+            "peak": 0.238800048828125,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "6963d12b3863b5d519e0aebef3a75868152fb62719c26b4468c4a4213fcf3098"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 6581,
+        "mode": "ring",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "ee03038ffc324a5d811e6926c8c872e5b92f966cc2a07a814136f9a0f940caa8",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.13144465579216122,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "66dfac47ced96c285ca1bac19b736fb9a1818619e94d10022654ee66f111a36a"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "ee03038ffc324a5d811e6926c8c872e5b92f966cc2a07a814136f9a0f940caa8",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.13144465579216122,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "3c0ea62e5cdd9ebb51e9d62b2f5d7fafec06ae62e0055378dd61821efe8d0c87"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "ee03038ffc324a5d811e6926c8c872e5b92f966cc2a07a814136f9a0f940caa8",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.13144465579216122,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "2e0738a687b6126329198a2303084a6f9ce5cb6c2c6c83435ef87ecda72706cc"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "ee03038ffc324a5d811e6926c8c872e5b92f966cc2a07a814136f9a0f940caa8",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.13144465579216122,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "ce7b9a1d448596c110c30482846106187ecf0fcfd45ae9ad93a17531bb567b92"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "ee03038ffc324a5d811e6926c8c872e5b92f966cc2a07a814136f9a0f940caa8",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.13144465579216122,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "68a6edc8233277d1e42d59175caaea47f3ad1429953e2281aec14bf3230e4283"
+          },
+          "test-held": {
+            "pcmSha256": "34d014dc9e2289ec44ff6c2503c72b8035503eee528b7cc4a319d9fe7b834899",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.1310312959393393,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "3cba72ab822c9317caf3d4079c77ad1501e25734f827608e26e00f5b4a59f1ac"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 6581,
+        "mode": "sync+ring",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "ca785e13044340eb81ba8ff08ba2669d73cd966b3ce6ced8c01ca632d309042b",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.11326164799183852,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "32e401ba5b731321160b3a798602fcd721e7b68bad4a5881f904a4e1580e32ca"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "ca785e13044340eb81ba8ff08ba2669d73cd966b3ce6ced8c01ca632d309042b",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.11326164799183852,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "6cf9e491c42a06c56ef16c4125a11bc0ee0dee5917261c05b780db445b4a2f9e"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "ca785e13044340eb81ba8ff08ba2669d73cd966b3ce6ced8c01ca632d309042b",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.11326164799183852,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "9370783431f01312f58b766567468e7fe7821d312be8fb08544b427fa6798de6"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "ca785e13044340eb81ba8ff08ba2669d73cd966b3ce6ced8c01ca632d309042b",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.11326164799183852,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "3cd338a383f6cb4d47a06ad96ef3c7d49d76a0012bc4d8b98fff0c26bdeeffea"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "ca785e13044340eb81ba8ff08ba2669d73cd966b3ce6ced8c01ca632d309042b",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.11326164799183852,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "d7d524ba3a7d9dae668a410135d70ad6dc0db1d349df2619f77e0b8184eab0ce"
+          },
+          "test-held": {
+            "pcmSha256": "34d014dc9e2289ec44ff6c2503c72b8035503eee528b7cc4a319d9fe7b834899",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.1310312959393393,
+            "peak": 0.242889404296875,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "ad8647535fc52c7802cc3f95020a7cde6283ddc2c8e98361652c9d189b069742"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "mode": "sync",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "9759bb0d7786fb7f2eeca592d4e19a7c4b2567b2a02e1da38dd030b8cb56f229",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.18245801974849812,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "6b5805217f6e1fb4f07e9ea5e4f83ec31e53d757e8f04c572abb2a0fb38c3cbd"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "9759bb0d7786fb7f2eeca592d4e19a7c4b2567b2a02e1da38dd030b8cb56f229",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.18245801974849812,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "6c0e4734ee47db8a2823fffc66794dce65b958b266a6894085df11d018387d3c"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "9759bb0d7786fb7f2eeca592d4e19a7c4b2567b2a02e1da38dd030b8cb56f229",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.18245801974849812,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "79bfa21e68da806d44b4bbbad6190e95a4d4d4b5acd48aae5a0f26c7880ce24f"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "9759bb0d7786fb7f2eeca592d4e19a7c4b2567b2a02e1da38dd030b8cb56f229",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.18245801974849812,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "fe660bcd11ad54708a64b586f0474e79e12487d383ae5e3daeb2aec6aa129157"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "9759bb0d7786fb7f2eeca592d4e19a7c4b2567b2a02e1da38dd030b8cb56f229",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.18245801974849812,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "8e6ef119fdbf9ecdd285ef584c6bafb6a34b8012e453d18effa5302e982ee348"
+          },
+          "test-held": {
+            "pcmSha256": "e8cfd2fa11c481eb2738c48b0226be80a223d0fd98ee6ddeb929b25d23c24fc4",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.1789232541210213,
+            "peak": 0.2921142578125,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "702539a84783d7bd58da4277fb9a3d86bf57838ea8bc71518417ed959234cfb1"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "mode": "ring",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "66ded885b130a58b86d4a4eaaaf5d14bd888222f4fbbdeb42dcd09252a3a5575",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.17905318996615383,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "dad35d4820bf436668546352b784a1424b6e3c3f7d71b1836c13322945e1f12a"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "66ded885b130a58b86d4a4eaaaf5d14bd888222f4fbbdeb42dcd09252a3a5575",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.17905318996615383,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "93df1b147bb404d09de00806763e293cd987cad0eb0cebf09d91afb3c7b9dedf"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "66ded885b130a58b86d4a4eaaaf5d14bd888222f4fbbdeb42dcd09252a3a5575",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.17905318996615383,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "06f087a7ca880aa047f54d64a9c5d44a57ec258167288914f574e98f391e73c1"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "66ded885b130a58b86d4a4eaaaf5d14bd888222f4fbbdeb42dcd09252a3a5575",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.17905318996615383,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "07d22e9ef1f4ea0ba3a5dd9cb2b195dc5e3fc0fea4edc68300f607e9ba6b6aaf"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "66ded885b130a58b86d4a4eaaaf5d14bd888222f4fbbdeb42dcd09252a3a5575",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.17905318996615383,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "798070da6b2c19877437b624b4284f33b50528b67cce5f0696c934c270fde3fc"
+          },
+          "test-held": {
+            "pcmSha256": "c7ccb9d6149fc2bc48198b89e5f750182948096c329d39808be7149d2833d6ff",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.17866509382981047,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "ffd3a882da35f0387c5af34d5fc5bd6c26828eadafa41a284f34bd1deca91a79"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      },
+      {
+        "model": 8580,
+        "mode": "sync+ring",
+        "sourceFrequencyRegister": 6844,
+        "carrierFrequencyRegister": 9029,
+        "sourceDryOutputDisabled": true,
+        "sharedFilterRouting": 0,
+        "variants": {
+          "wave-off-gate-off": {
+            "pcmSha256": "f670419365c7e5fc06d1c1b5f6f315a54f5890d1982e7b7cf5f7feda18a1d772",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.16622424578586645,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "f75c207c9da7b034417ce0eecf26cde34e707cfe4c0ef4a6d2887aad8d8f48be"
+          },
+          "saw-gate-off": {
+            "pcmSha256": "f670419365c7e5fc06d1c1b5f6f315a54f5890d1982e7b7cf5f7feda18a1d772",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.16622424578586645,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "be0138cae97370448520efea306cd8a037644a435866f607396d4fc45ab8016b"
+          },
+          "triangle-gate-off": {
+            "pcmSha256": "f670419365c7e5fc06d1c1b5f6f315a54f5890d1982e7b7cf5f7feda18a1d772",
+            "frames": 2924,
+            "osc3": 243,
+            "rms": 0.16622424578586645,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "d5bdfacb2823becfc0b3e224a013034e1aeee0f3ad6b1ee03480f12d8cf88c10"
+          },
+          "wave-off-gate-on": {
+            "pcmSha256": "f670419365c7e5fc06d1c1b5f6f315a54f5890d1982e7b7cf5f7feda18a1d772",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.16622424578586645,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "310e19be3e13d593ab5b8cac8572a66f6433228e1fceab98c414e0c93ddd84bf"
+          },
+          "saw-gate-on": {
+            "pcmSha256": "f670419365c7e5fc06d1c1b5f6f315a54f5890d1982e7b7cf5f7feda18a1d772",
+            "frames": 2924,
+            "osc3": 121,
+            "rms": 0.16622424578586645,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": true,
+            "protocolSha256": "98638f03cea78552d6536f7d0dd33a5cb542053b4c5931481654f6491d6f7969"
+          },
+          "test-held": {
+            "pcmSha256": "c7ccb9d6149fc2bc48198b89e5f750182948096c329d39808be7149d2833d6ff",
+            "frames": 2924,
+            "osc3": 0,
+            "rms": 0.17866509382981047,
+            "peak": 0.2933349609375,
+            "equalsWaveOffGateOff": false,
+            "protocolSha256": "4fb1324d771ff7644abb874cea05c0bddade1c81cd7f509ce5122647c007b165"
+          }
+        },
+        "waveAndGateIndependent": true,
+        "testHeldDifferent": true
+      }
+    ],
+    "cases": 12,
+    "individualRuns": 66,
+    "retainedData": "Metadata and hashes only. No PCM, downloaded PDF, GPL source/library or reference executable is copied to the repository/package."
+  },
+  "minimalFixPolicy": {
+    "phase": "Advance the 24-bit oscillator and noise-clock state with TEST clear even when all waveform bits or Gate are zero.",
+    "output": "Keep waveform-off decay on a separate waveform-output latch. Per-cycle halving of that latch remains Tetorica approximation, not measured MOS decay timing.",
+    "avoid": "Do not preserve the previous phase-halving bug to emulate DAC decay. Do not import GPL implementation or claim reference PCM equality with the Tetorica core."
+  },
+  "checker": {
+    "path": "scripts/check_sid_waveoff_reference.mjs",
+    "bytes": 8419,
+    "sha256": "2fd48422ec60df53814a4567d4820eccdb339fd35681ef636af00281fb400e21"
+  }
+}

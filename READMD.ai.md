@@ -49,11 +49,11 @@ introduced. Ratio must be within 0.125..8 with nonzero carrier/source registers.
 Source or third Sync/Ring flags (any `control & 6`), carrier/source TEST, unsupported
 carrier waveforms and silent carrier routing reject with reasons; an arbitrary
 three-voice graph is never flattened. SID Sync/Ring uses oscillator phase rather
-than source waveform/Gate/ADSR output. The current 6581 approximation has a
-model-specific exception: `_m6581_wavnone` shifts `wav_accum` when source
-`control & 0xf0` is zero. Reject that 6581 source-wave-off pair instead of
-replacing its changed phase with Triangle; 8580 source-wave-off stays supported.
-This import guard does not change the DSP/WASM. In the Synth the source becomes
+than source waveform/Gate/ADSR output. Both models accept source-wave-off pairs:
+the marked 6581 adaptation keeps `wav_accum` running when `control & 0xf0` is
+zero. `_m6581_wavnone` halves only the prior output latch, an explicitly simple
+digital fade rather than accurate floating-DAC decay timing. TEST still holds
+the oscillator at zero. In the Synth the source becomes
 silent Triangle voice 3 → carrier 1, while source/third audible music and captured phases are not
 copied. The Player preview discloses original connection and ratio. Ring affects
 Triangle only; preserve the flag even when another supported carrier waveform

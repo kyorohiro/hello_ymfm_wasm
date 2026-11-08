@@ -1,0 +1,1402 @@
+{
+  "schemaVersion": 1,
+  "checker": "scripts/check_sid_native.mjs",
+  "deviceOpened": false,
+  "reference": "Pinned chips/m6581 with marked Tetorica adaptations and the same SidCore host in Native/WASM.",
+  "limits": "Self-authored register sequences; this verifies the port, not 6581 hardware fidelity or .sid playback. WAV is PCM16 export of mono core output, including its software 12 Hz DC blocker.",
+  "tolerance": 0.000001,
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "clocks": {
+    "PAL": 985248,
+    "NTSC": 1022727
+  },
+  "cases": [
+    {
+      "name": "waveforms-sync-ring",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 44100,
+      "monoFrames": 88200,
+      "commandsSha256": "9641cf2a9cd5cf2cbc8e1e65b24576ba7ba344a211448391dc813b8af929ad01",
+      "nativePcmSha256": "38396e60f31eb297c3e77fe5b89817df270eebe1612613125d356925e72bcac2",
+      "wasmPcmSha256": "38396e60f31eb297c3e77fe5b89817df270eebe1612613125d356925e72bcac2",
+      "maximumDifference": 0,
+      "peak": 0.21505163609981537,
+      "rms": 0.054824733154119565,
+      "finalState": {
+        "frames": 88200,
+        "cycles": 1970499,
+        "registers": [
+          162,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          236,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14478770
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12932472
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 44100,
+      "monoFrames": 88200,
+      "commandsSha256": "6f694e20863645c458e7b6d2936ca80bbd4e11ad57ee4e629f90bbca00ca2b68",
+      "nativePcmSha256": "acade05e44c6b7ca06bfae439157ae6d811e398d541d9b06ad6cc95373868971",
+      "wasmPcmSha256": "acade05e44c6b7ca06bfae439157ae6d811e398d541d9b06ad6cc95373868971",
+      "maximumDifference": 0,
+      "peak": 0.5075871348381042,
+      "rms": 0.07208965006629371,
+      "finalState": {
+        "frames": 88200,
+        "cycles": 1970498,
+        "registers": [
+          180,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          247,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          10,
+          13,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 11411892
+          },
+          {
+            "envelope": 0,
+            "phase": 11458806
+          },
+          {
+            "envelope": 0,
+            "phase": 800254
+          }
+        ],
+        "reads": [
+          12,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 44100,
+      "monoFrames": 44100,
+      "commandsSha256": "12fbdd8402467db5935e27cc1a16411a9ef3fc00d5b521fd6078471e14e1220d",
+      "nativePcmSha256": "5148f0a863b81159ce615c193b623cb7b403be02d1220d437a623f8f0d8b07fd",
+      "wasmPcmSha256": "5148f0a863b81159ce615c193b623cb7b403be02d1220d437a623f8f0d8b07fd",
+      "maximumDifference": 0,
+      "peak": 0.19962681829929352,
+      "rms": 0.06072920220639087,
+      "finalState": {
+        "frames": 44100,
+        "cycles": 246312,
+        "registers": [
+          243,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8314955
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "name": "waveforms-sync-ring",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 44100,
+      "monoFrames": 88200,
+      "commandsSha256": "4a731849e954efb469a4c7c33244e7b38e71cae80096bf148e8bb07fe93cffea",
+      "nativePcmSha256": "af98f3d14eef46c1b566945788bf2650e7eac83138381217f2542821fbdc8753",
+      "wasmPcmSha256": "af98f3d14eef46c1b566945788bf2650e7eac83138381217f2542821fbdc8753",
+      "maximumDifference": 0,
+      "peak": 0.21991947293281555,
+      "rms": 0.05480981573379091,
+      "finalState": {
+        "frames": 88200,
+        "cycles": 2045457,
+        "registers": [
+          25,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          180,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14351280
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12591084
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 44100,
+      "monoFrames": 88200,
+      "commandsSha256": "2536dae4c7c3addb4672647743b4975166a6e3907ab9edd376997e96b71d08fe",
+      "nativePcmSha256": "90e4297692ce879bf8c4de7e38b5de0263f44423aa679e76246f36c24591a86a",
+      "wasmPcmSha256": "90e4297692ce879bf8c4de7e38b5de0263f44423aa679e76246f36c24591a86a",
+      "maximumDifference": 0,
+      "peak": 0.5034274458885193,
+      "rms": 0.07193916322502888,
+      "finalState": {
+        "frames": 88200,
+        "cycles": 2045456,
+        "registers": [
+          98,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          144,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          143,
+          12,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 10691006
+          },
+          {
+            "envelope": 0,
+            "phase": 11184768
+          },
+          {
+            "envelope": 0,
+            "phase": 16198287
+          }
+        ],
+        "reads": [
+          247,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 44100,
+      "monoFrames": 44100,
+      "commandsSha256": "d12b6d459f8f8834c121b5176da28d1eac151a7d216d24da7adf4264a15103e0",
+      "nativePcmSha256": "dcf461914e6bff0879e29c0cdcdccaddfff16c8ed0c141997380b6dcab6d0403",
+      "wasmPcmSha256": "dcf461914e6bff0879e29c0cdcdccaddfff16c8ed0c141997380b6dcab6d0403",
+      "maximumDifference": 0,
+      "peak": 0.19963310658931732,
+      "rms": 0.06074134484215321,
+      "finalState": {
+        "frames": 44100,
+        "cycles": 255682,
+        "registers": [
+          37,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8303131
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "name": "waveforms-sync-ring",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 48000,
+      "monoFrames": 96000,
+      "commandsSha256": "c3cca7354fcae9348b6362f0f39e7c5b4c36eadf50096af4d2aa4d42b18b0886",
+      "nativePcmSha256": "b6719611532d6cdb2739d20af08f50ca1ac353f49d4c8f21707b48a4aac2090c",
+      "wasmPcmSha256": "b6719611532d6cdb2739d20af08f50ca1ac353f49d4c8f21707b48a4aac2090c",
+      "maximumDifference": 0,
+      "peak": 0.215131014585495,
+      "rms": 0.05484441523364767,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 1970499,
+        "registers": [
+          162,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          236,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14478770
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12932472
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 48000,
+      "monoFrames": 96000,
+      "commandsSha256": "ab690c0ec2fde61cb8463d890655b723900a33b76a21f611d26fb245a3197591",
+      "nativePcmSha256": "b43caf6ea649ff3973abd8103f1a2e98145ce3081d045ad0bc095768e204772c",
+      "wasmPcmSha256": "b43caf6ea649ff3973abd8103f1a2e98145ce3081d045ad0bc095768e204772c",
+      "maximumDifference": 0,
+      "peak": 0.5087416768074036,
+      "rms": 0.07212453784956291,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 1970498,
+        "registers": [
+          180,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          247,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          10,
+          13,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 11411892
+          },
+          {
+            "envelope": 0,
+            "phase": 11458806
+          },
+          {
+            "envelope": 0,
+            "phase": 800254
+          }
+        ],
+        "reads": [
+          12,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 48000,
+      "monoFrames": 48000,
+      "commandsSha256": "466c26c6737f01058eced098856732be5bfd78b7883a9dd78a702904a1814a6b",
+      "nativePcmSha256": "c5374bd68d02b2342aac4cacab90a6dd98fd2a8da2dfa4f424b10eb537739fc1",
+      "wasmPcmSha256": "c5374bd68d02b2342aac4cacab90a6dd98fd2a8da2dfa4f424b10eb537739fc1",
+      "maximumDifference": 0,
+      "peak": 0.19989606738090515,
+      "rms": 0.060743975584172986,
+      "finalState": {
+        "frames": 48000,
+        "cycles": 246312,
+        "registers": [
+          243,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8314955
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "name": "waveforms-sync-ring",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 48000,
+      "monoFrames": 96000,
+      "commandsSha256": "fd8bb25578abdce06949f39e5a0a02ba279243a4b55a2e9c828a134604b82fdf",
+      "nativePcmSha256": "518f7bd9f4e4f3a3dbec0408820d22d564a52d8800a6ed418a327391d949e8c3",
+      "wasmPcmSha256": "518f7bd9f4e4f3a3dbec0408820d22d564a52d8800a6ed418a327391d949e8c3",
+      "maximumDifference": 0,
+      "peak": 0.21979886293411255,
+      "rms": 0.05482533528372886,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 2045457,
+        "registers": [
+          25,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          180,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14351280
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12591084
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 48000,
+      "monoFrames": 96000,
+      "commandsSha256": "b31d89cba735a92b3b84d0738997ac23c196989ed43967b51408cdd224926279",
+      "nativePcmSha256": "87829dc622e6b7856ce57cb771cc4d34c8df2f0fecf523bc13fe049f3605b6a3",
+      "wasmPcmSha256": "87829dc622e6b7856ce57cb771cc4d34c8df2f0fecf523bc13fe049f3605b6a3",
+      "maximumDifference": 0,
+      "peak": 0.5046350955963135,
+      "rms": 0.0719699542964914,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 2045456,
+        "registers": [
+          98,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          144,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          143,
+          12,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 10691006
+          },
+          {
+            "envelope": 0,
+            "phase": 11184768
+          },
+          {
+            "envelope": 0,
+            "phase": 16198287
+          }
+        ],
+        "reads": [
+          247,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 48000,
+      "monoFrames": 48000,
+      "commandsSha256": "4c4f68d2cea06a932a7819a7cdcd51c620aa78c2de7d1f1936c1934d07fc33b7",
+      "nativePcmSha256": "950396c4ef276cc7f95eb0dd4080085eded056c75faa00904ce76c36d0b8b0b9",
+      "wasmPcmSha256": "950396c4ef276cc7f95eb0dd4080085eded056c75faa00904ce76c36d0b8b0b9",
+      "maximumDifference": 0,
+      "peak": 0.1998903751373291,
+      "rms": 0.060755600106483294,
+      "finalState": {
+        "frames": 48000,
+        "cycles": 255682,
+        "registers": [
+          37,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8303131
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "name": "waveforms-sync-ring",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 96000,
+      "monoFrames": 192000,
+      "commandsSha256": "ba48036ee8ff09dbf79c83b1cd134dcad2eaa2b03e2303424fe3a644b7abc635",
+      "nativePcmSha256": "46def316d0e46a7010ab0df10ca6055c2b9bb77ba990ea090875d633ea8bb562",
+      "wasmPcmSha256": "46def316d0e46a7010ab0df10ca6055c2b9bb77ba990ea090875d633ea8bb562",
+      "maximumDifference": 0,
+      "peak": 0.21506081521511078,
+      "rms": 0.05492675794357321,
+      "finalState": {
+        "frames": 192000,
+        "cycles": 1970499,
+        "registers": [
+          162,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          236,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14478770
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12932472
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 96000,
+      "monoFrames": 192000,
+      "commandsSha256": "a6395a8c0de82a514fbcc539f29dbe6c7baefd7ecaff8b5dd7e2fb9d2e1e4f6a",
+      "nativePcmSha256": "12f707fdd261196a34b441ab78737f01f7c6b940991b7ca593a069caf6e31775",
+      "wasmPcmSha256": "12f707fdd261196a34b441ab78737f01f7c6b940991b7ca593a069caf6e31775",
+      "maximumDifference": 0,
+      "peak": 0.5099946856498718,
+      "rms": 0.07225240244295779,
+      "finalState": {
+        "frames": 192000,
+        "cycles": 1970498,
+        "registers": [
+          180,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          247,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          10,
+          13,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 11411892
+          },
+          {
+            "envelope": 0,
+            "phase": 11458806
+          },
+          {
+            "envelope": 0,
+            "phase": 800254
+          }
+        ],
+        "reads": [
+          12,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "PAL",
+      "clockHz": 985248,
+      "rate": 96000,
+      "monoFrames": 96000,
+      "commandsSha256": "c171f099c5c700023843ab442f0a98f3915a7cadc5c0b1639b45cd35dab069a1",
+      "nativePcmSha256": "aabbf8ac18b617265d686c6732012c1fa3f95cc54da7147b4fa6c631c71818d1",
+      "wasmPcmSha256": "aabbf8ac18b617265d686c6732012c1fa3f95cc54da7147b4fa6c631c71818d1",
+      "maximumDifference": 0,
+      "peak": 0.19998647272586823,
+      "rms": 0.06083156142509249,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 246312,
+        "registers": [
+          243,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8314955
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    },
+    {
+      "name": "waveforms-sync-ring",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 96000,
+      "monoFrames": 192000,
+      "commandsSha256": "648911e88c098c1fca9dc5bd0cda14c23cc9cf3bead0643c8baa9df5f6362dec",
+      "nativePcmSha256": "50c9195f98de0c19da239b563f027bfeb5583ad20099464fc278492fddc8fe6b",
+      "wasmPcmSha256": "50c9195f98de0c19da239b563f027bfeb5583ad20099464fc278492fddc8fe6b",
+      "maximumDifference": 0,
+      "peak": 0.2202455848455429,
+      "rms": 0.05490855200765332,
+      "finalState": {
+        "frames": 192000,
+        "cycles": 2045457,
+        "registers": [
+          25,
+          14,
+          52,
+          8,
+          20,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          180,
+          5,
+          52,
+          8,
+          16,
+          5,
+          198,
+          0,
+          0,
+          0,
+          143,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 14351280
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 12591084
+          }
+        ],
+        "reads": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          165,
+          0
+        ]
+      }
+    },
+    {
+      "name": "cutoff-resonance-routing",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 96000,
+      "monoFrames": 192000,
+      "commandsSha256": "b96d4be358030db011225ffcb75fa83ad7fb7cfdabcbf77ca027f5f1b3b0895f",
+      "nativePcmSha256": "449bc026f10439b90c8af38f69a44a2fe5c1e69b938f6824e55d91b7372ced1f",
+      "wasmPcmSha256": "449bc026f10439b90c8af38f69a44a2fe5c1e69b938f6824e55d91b7372ced1f",
+      "maximumDifference": 0,
+      "peak": 0.5059033632278442,
+      "rms": 0.07210315087346089,
+      "finalState": {
+        "frames": 192000,
+        "cycles": 2045456,
+        "registers": [
+          98,
+          8,
+          52,
+          8,
+          32,
+          5,
+          198,
+          144,
+          10,
+          52,
+          8,
+          32,
+          5,
+          198,
+          143,
+          12,
+          52,
+          8,
+          32,
+          5,
+          198,
+          0,
+          0,
+          245,
+          79,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 0,
+            "phase": 10691006
+          },
+          {
+            "envelope": 0,
+            "phase": 11184768
+          },
+          {
+            "envelope": 0,
+            "phase": 16198287
+          }
+        ],
+        "reads": [
+          247,
+          0
+        ]
+      }
+    },
+    {
+      "name": "retrigger-reset",
+      "region": "NTSC",
+      "clockHz": 1022727,
+      "rate": 96000,
+      "monoFrames": 96000,
+      "commandsSha256": "4c569fe2dee755e955404d17e334d24a9ef0e258bfcbd7382b2575f51259c9c4",
+      "nativePcmSha256": "77aac0bf40c76ba1702b4042d6f460daf33c78bfd594aa2823678f382bd7cde0",
+      "wasmPcmSha256": "77aac0bf40c76ba1702b4042d6f460daf33c78bfd594aa2823678f382bd7cde0",
+      "maximumDifference": 0,
+      "peak": 0.2000110149383545,
+      "rms": 0.06084544114913618,
+      "finalState": {
+        "frames": 96000,
+        "cycles": 255682,
+        "registers": [
+          37,
+          21,
+          52,
+          8,
+          17,
+          5,
+          198,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          15,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 204,
+            "phase": 8303131
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ],
+        "reads": [
+          255,
+          0,
+          255
+        ]
+      }
+    }
+  ],
+  "totalMonoFrames": 1881000,
+  "maximumDifference": 0,
+  "wav": [
+    {
+      "file": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/validation/sid-waveoff-native-20261108/wav/waveforms-sync-ring.wav",
+      "sha256": "f69689ad092e6e7fbd4be8a31b5a7e1a170b6d3b119d65bb926d98cecbcd8369",
+      "rate": 48000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "frames": 96000,
+      "clippedFrames": 0
+    },
+    {
+      "file": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/validation/sid-waveoff-native-20261108/wav/cutoff-resonance-routing.wav",
+      "sha256": "1227f1e0c7ee095ef467661258ca4feedeaab426382a7d8b49b90765f8d13541",
+      "rate": 48000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "frames": 96000,
+      "clippedFrames": 0
+    }
+  ],
+  "sources": [
+    {
+      "file": "scripts/check_sid_native.mjs",
+      "sha256": "4d251c48d8515e86a129e647e525df8e7dd73342cb4e37fbe1e1242c50443bbc"
+    },
+    {
+      "file": "test/helpers/sid_reference.cpp",
+      "sha256": "cbe941dc9956cfec50a2e074e1054516b055c741e17f28e4f94baabc0372a643"
+    },
+    {
+      "file": "tetorica_src/wasm/sid_core.h",
+      "sha256": "e25105c0966a3decf0b78e50f45680d501f8e3f961bf1539a346605b293beecc"
+    },
+    {
+      "file": "tetorica_src/wasm/sid_wasm.cpp",
+      "sha256": "b810e6d1bfb70fa76107d7a620bc840baddc5dc547f7e84727114fddd5cc2066"
+    },
+    {
+      "file": "tetorica_src/runtime/sid.js",
+      "sha256": "62225755b0b01471b85313be7992a464f8b501e5ad81a6c86c1ce425c941d870"
+    },
+    {
+      "file": "scripts/prepare_sid_core.py",
+      "sha256": "d488927cdf6bb9b3a0c75513b0bd2ac2a51b7d588a868a53800575144b01bfa8"
+    },
+    {
+      "file": "third_party/chips-m6581/m6581.h",
+      "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
+    },
+    {
+      "file": "third_party/chips-m6581/upstream/m6581.h",
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    },
+    {
+      "file": "third_party/chips-m6581/PATCHES.md",
+      "sha256": "f1984c366a00284a909cc3a774dd2bebbaee9deb7bbe11a06ff964bebbb0ed31"
+    },
+    {
+      "file": "third_party/chips-m6581/LICENSE",
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    }
+  ],
+  "nativeCompiler": "Apple clang version 17.0.0 (clang-1700.4.4.1)",
+  "nativeFlags": [
+    "-std=c++17",
+    "-O2",
+    "-ffp-contract=off"
+  ],
+  "nativeSelfTest": "SID self-test passed: 20 rational-clock cases, I/O queues, reset, sync, TEST and 8-bit retrigger.",
+  "wasm": {
+    "file": "/Users/kyorohiro/development8/wfm/hello_ymfm/tetorica_src/runtime/generated/sid/sid.wasm",
+    "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
+  }
+}

@@ -336,16 +336,61 @@ test('the dummy-read exception never hides a real VIC read or mirrored collision
   } finally {core.dispose();}
 });
 
-test('environment and diagnostic fixes preserve the four unaffected VBI fixture PCMs and traces at three rates', async () => {
-  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/vbi_baseline_005.json', import.meta.url)));
+async function historicalVbiBaseline() {
+  const bytes = await readFile(new URL('./fixtures/sid-player/vbi_baseline_005.json', import.meta.url));
+  assert.equal(sha(bytes), 'dca5233ecb0871b15b272dffa59700483b56c160163ebd44ca11cdb7e256d915', 'Historical005 must remain immutable');
+  const baseline = JSON.parse(bytes);
   assert.equal(baseline.wasmSha256, 'a47d619195117e2b4b0a43de06cd99eaa3da05e25364c9b070aa92b48a920491');
+  assert.equal(baseline.cases.length, 12);
+  return {baseline, bytes};
+}
+
+test('waveform-off phase correction preserves historical VBI CPU traces, registers and envelope/execution state at three rates', async () => {
+  const {baseline} = await historicalVbiBaseline();
   for (const item of baseline.cases) {
     const fixture = createSidReferenceFixture(item.profile), core = await create(item.sampleRate);
     try {
       assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes);
-      const pcm = render(core, item.frames, 128), state = core.getState();
+      render(core, item.frames, 128); const state = core.getState();
+      assert.equal(sha(JSON.stringify(core.readTrace())), item.traceSha256);
+      for (const [key, value] of Object.entries(item.state)) {
+        if (key === 'voices') assert.deepEqual(state.voices.map(voice => voice.envelope), value.map(voice => voice.envelope));
+        else assert.deepEqual(state[key], value, `Historical non-phase field ${key} changed`);
+      }
+    } finally {core.dispose();}
+  }
+});
+
+test('corrected VBI PCM and phase match the separately authenticated Native/WASM waveform-off capture', async () => {
+  const {baseline: historical, bytes: historicalBytes} = await historicalVbiBaseline();
+  const correctedBytes = await readFile(new URL('./fixtures/sid-player/vbi_waveoff_baseline_01.json', import.meta.url));
+  assert.equal(sha(correctedBytes), 'e0236964a3f86e32f1ce755ae1f513ea598ec4a3a43b875142a1493fba521615', 'The independently captured waveform-off baseline needs explicit review before changing');
+  const corrected = JSON.parse(correctedBytes);
+  assert.equal(corrected.format, 'tetorica-psid-vbi-waveoff-baseline'); assert.equal(corrected.version, 1);
+  assert.deepEqual(corrected.historicalBaseline, {path: 'test/fixtures/sid-player/vbi_baseline_005.json', bytes: historicalBytes.length, sha256: sha(historicalBytes)});
+  assert.deepEqual(corrected.currentWasm, {path: 'docs/generated/sid-player/sid-player.wasm', bytes: wasmBinary.length, sha256: sha(wasmBinary)});
+  assert.deepEqual(corrected.nativeInputs.map(source => source.path).sort(), ['test/helpers/sid_waveoff_player_reference.cpp', 'tetorica_src/wasm/sid_player_core.h',
+    'third_party/chips-m6502/upstream/m6502.h', 'third_party/chips-m6581/m6581.h'].sort());
+  for (const source of corrected.nativeInputs) {
+    const bytes = await readFile(new URL('../' + source.path, import.meta.url));
+    assert.deepEqual({bytes: source.bytes, sha256: source.sha256}, {bytes: bytes.length, sha256: sha(bytes)}, 'Native capture source changed: ' + source.path);
+  }
+  assert.equal(corrected.nativeInputs.length, 4); assert.equal(corrected.cases.length, historical.cases.length);
+  const key = item => `${item.profile}/${item.sampleRate}`;
+  assert.deepEqual(corrected.cases.map(key).sort(), historical.cases.map(key).sort());
+  assert(corrected.cases.some(item => item.pcmChanged)); assert(corrected.cases.some(item => item.phaseChanged));
+  for (const item of corrected.cases) {
+    const old = historical.cases.find(previous => key(previous) === key(item)), fixture = createSidReferenceFixture(item.profile), core = await create(item.sampleRate);
+    try {
+      assert.equal(item.frames, old.frames); assert.equal(item.fixtureSha256, old.fixtureSha256); assert.equal(sha(fixture.bytes), item.fixtureSha256);
+      assert.equal(item.historicalPcmSha256, old.pcmSha256); assert.equal(item.traceSha256, old.traceSha256);
+      assert.equal(item.oldCheckpointMatchesHistorical, true); assert.equal(item.nativeWasmPcmAndStateExact, true); assert.equal(item.cpuTraceAndNonPhaseStateUnchanged, true);
+      assert.deepEqual(item.nativeChunks, [128, 37]);
+      core.load(fixture.bytes); const pcm = render(core, item.frames, 128), state = core.getState();
       assert.equal(sha(new Uint8Array(pcm.buffer)), item.pcmSha256); assert.equal(sha(JSON.stringify(core.readTrace())), item.traceSha256);
-      const exact = {}; for (const key of Object.keys(item.state)) exact[key] = state[key]; assert.deepEqual(exact, item.state);
+      const exact = {}; for (const name of Object.keys(item.state)) exact[name] = state[name]; assert.deepEqual(exact, item.state);
+      assert.equal(item.pcmChanged, item.pcmSha256 !== old.pcmSha256);
+      assert.equal(item.phaseChanged, JSON.stringify(item.state.voices) !== JSON.stringify(old.state.voices));
     } finally {core.dispose();}
   }
 });

@@ -1,0 +1,1320 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "physicalOutputOpened": false,
+  "historicalFilesKept": true,
+  "cases": [
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 0,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "459415348525ad9ff643fe184b8281b450f6f0418f6ea58bc94fe3c6dd77b1fd",
+      "historicalPcmSha256": "58977ba8ddf048d8e27b23aba8d8f32ea59b18742c6f07ffdde1ac81a9c217ff",
+      "currentPcmSha256": "cf28c6e6c7c16f9746c77ffb87ccc9f43739bc291946c717640a34feb7a3de7f",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "64af8dcad17a98b5fa05db6f023b844e2420edb3e9d0f6e575f9ee56c113c45c",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 1,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "111ed4b45924bc3eab584968860887c42b64e6af94bd097ffcf86d890cb9c9d6",
+      "historicalPcmSha256": "dca59f48d8801578d692317f2844304deb00801895163ca2c825970486857de3",
+      "currentPcmSha256": "d7f68b7a4a4fc1144738f8bfd4055dbf6cf5b7cb5db8acd72b5f3ce76ea66db1",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "90c24f7ccc0fcb6851716f741f8f73081d3fbf651a766ce51d9705665f6edcb1",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 2,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "fc67ee68bce5fc1df80f7c47e0311b9239c1180433acbddd208445d56714466f",
+      "historicalPcmSha256": "58977ba8ddf048d8e27b23aba8d8f32ea59b18742c6f07ffdde1ac81a9c217ff",
+      "currentPcmSha256": "37aeb636093526527d988ff24c55eca7b01a8846c6183df32d30748fc5448ede",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "1d35b70dacf66538aa131360c34e384244d0bea64015377961340f24a9813023",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 3,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "459415348525ad9ff643fe184b8281b450f6f0418f6ea58bc94fe3c6dd77b1fd",
+      "historicalPcmSha256": "eb7d58b1c0da229544a862dc559bb4c9d86bfa9d244da5215fa59b3b6b44add5",
+      "currentPcmSha256": "cf18b980df94f71581821e27176584f6a63a6ae5c6ec593283d65b35c15815d5",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "64af8dcad17a98b5fa05db6f023b844e2420edb3e9d0f6e575f9ee56c113c45c",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 4,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "111ed4b45924bc3eab584968860887c42b64e6af94bd097ffcf86d890cb9c9d6",
+      "historicalPcmSha256": "4174a1502d83b906abc117a2994b63d713a2e86f0ab9e1df99d1df16e8943cb4",
+      "currentPcmSha256": "e3e41ba9cb2222881cc31103b86b38c30cf151ce0a22ae42a94689aa92ca25fe",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "90c24f7ccc0fcb6851716f741f8f73081d3fbf651a766ce51d9705665f6edcb1",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 5,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "fc67ee68bce5fc1df80f7c47e0311b9239c1180433acbddd208445d56714466f",
+      "historicalPcmSha256": "eb7d58b1c0da229544a862dc559bb4c9d86bfa9d244da5215fa59b3b6b44add5",
+      "currentPcmSha256": "a684728e45fb5a82b93adb53eb866e7fe577bb1cc756df9200e575fde908e697",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "1d35b70dacf66538aa131360c34e384244d0bea64015377961340f24a9813023",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 6,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "459415348525ad9ff643fe184b8281b450f6f0418f6ea58bc94fe3c6dd77b1fd",
+      "historicalPcmSha256": "4cd8b9c6a0d60007db7b38524357344fdd620f3acd81629cf8d96e33859ab06d",
+      "currentPcmSha256": "687e870734c7c3cac1520a6857a7fb05cf1be1983a04dc24b71c077ca588ed64",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "64af8dcad17a98b5fa05db6f023b844e2420edb3e9d0f6e575f9ee56c113c45c",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 7,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "111ed4b45924bc3eab584968860887c42b64e6af94bd097ffcf86d890cb9c9d6",
+      "historicalPcmSha256": "f6faf4e49624374c98f1d1a3e024b299f620a84157de1acaa00d1d7114aa34ae",
+      "currentPcmSha256": "978fe0233aa25685db80fab0b04d3170ce4a79f10ee29c99b76146347afa4683",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "90c24f7ccc0fcb6851716f741f8f73081d3fbf651a766ce51d9705665f6edcb1",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/psid_cia_baseline_004.json",
+      "case": 8,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "fc67ee68bce5fc1df80f7c47e0311b9239c1180433acbddd208445d56714466f",
+      "historicalPcmSha256": "4cd8b9c6a0d60007db7b38524357344fdd620f3acd81629cf8d96e33859ab06d",
+      "currentPcmSha256": "d0ed05f521820f97fa7e1f7c70b7bc3b2a4fe93232b547d92fd4f87c98aa9a02",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "1d35b70dacf66538aa131360c34e384244d0bea64015377961340f24a9813023",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 0,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "historicalPcmSha256": "021c60f840627509541d723f2a670330b0d5b5a7cb64f9d8d23c9525d75ecc7a",
+      "currentPcmSha256": "ebab201fc54c19b25adf6f126dfcf11daa4068e36081a0465e17586e48f62755",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 1,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "historicalPcmSha256": "a5b2394ff9a2f581a166bb8467684c64b7ff1cc79b435dd9d4e8aef02ba62e60",
+      "currentPcmSha256": "e78d130d12275f6def0eccf16ea742b8447b788ffbbf8b0c2f62767914783789",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          25
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 2,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "historicalPcmSha256": "021c60f840627509541d723f2a670330b0d5b5a7cb64f9d8d23c9525d75ecc7a",
+      "currentPcmSha256": "ebab201fc54c19b25adf6f126dfcf11daa4068e36081a0465e17586e48f62755",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 3,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "historicalPcmSha256": "d84e81e9a677da2d5e8710f66b505e5ec6c8f8fac9df5934aee52b9b60d7c23d",
+      "currentPcmSha256": "51a2ab5d5a208e907f79661ba5c3dafe0cddc254645e48a558fe67cb4d2c84e6",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 4,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "historicalPcmSha256": "549d8457416dce75f9b5f98f436a70b87bc459dcf327a4197e0248006e4f0b36",
+      "currentPcmSha256": "5a58c697ad335f2b8f16cee067432679f61178f2a83fe180f1620b241b1eaf29",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 5,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "historicalPcmSha256": "289d09ab0ceea7402c2a163de672e4d7bfbaf4f40a1dd570fc7b098ad5ebb33f",
+      "currentPcmSha256": "e2a75deee7de39d2b4a9e7ce770273175437baac247769d0f4cb9da8f82e2dac",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          25
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 6,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "historicalPcmSha256": "549d8457416dce75f9b5f98f436a70b87bc459dcf327a4197e0248006e4f0b36",
+      "currentPcmSha256": "5a58c697ad335f2b8f16cee067432679f61178f2a83fe180f1620b241b1eaf29",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 7,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "historicalPcmSha256": "d83947ff4ca51290c0d60cff61d4b204a579dcb15168b3627c9819e086c55ca0",
+      "currentPcmSha256": "b985158604ae962efe931f90db2081368056df9edf27fbc1971903d3b1812d1a",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 8,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "historicalPcmSha256": "7cb9f23fe8f817c65ae894f04eb6051bb69312fde1a4da0bdd52f3edf596f61b",
+      "currentPcmSha256": "34244b516646d34b65d263443875f598518a38bfb44c17e1f7c719e6d48b0fb8",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 9,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "historicalPcmSha256": "d88dfca9ef8dcd0282187182835a4f14425aa057326790466876aa4ae17dad81",
+      "currentPcmSha256": "5bcf030fd925e318fa6ff5249f3388b82acedcef66fe85770e04d8b81bec7697",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          25
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 10,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "historicalPcmSha256": "7cb9f23fe8f817c65ae894f04eb6051bb69312fde1a4da0bdd52f3edf596f61b",
+      "currentPcmSha256": "34244b516646d34b65d263443875f598518a38bfb44c17e1f7c719e6d48b0fb8",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          237
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/rsid_baseline_003.json",
+      "case": 11,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "historicalPcmSha256": "906d5c2ee13b7763f63d476d9b401a21b441a7d88ae6743e94fa8cdc1678da74",
+      "currentPcmSha256": "e923c24c5f21c490fd6f574772b7eff29cab727157c5b7a9f0dee8f376f140b9",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13739393,
+        0,
+        0
+      ],
+      "currentPhase": [
+        14002063,
+        0,
+        0
+      ],
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 396,
+          "frequency": 69,
+          "waveformSelectedCycle": 438,
+          "clocks": 42
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 0,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "historicalPcmSha256": "e98dc6c7168b73bf9f9feb0bc830cdb100ecce9e1a7d75e6bc0a4dbed2dbe4ca",
+      "currentPcmSha256": "d7f68b7a4a4fc1144738f8bfd4055dbf6cf5b7cb5db8acd72b5f3ce76ea66db1",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 1,
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "historicalPcmSha256": "e98dc6c7168b73bf9f9feb0bc830cdb100ecce9e1a7d75e6bc0a4dbed2dbe4ca",
+      "currentPcmSha256": "d7f68b7a4a4fc1144738f8bfd4055dbf6cf5b7cb5db8acd72b5f3ce76ea66db1",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 2,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "historicalPcmSha256": "527d77cbcc59ae70bea198576b4ff2c7f480a1a4871607de44916b5d36e5ab68",
+      "currentPcmSha256": "e3e41ba9cb2222881cc31103b86b38c30cf151ce0a22ae42a94689aa92ca25fe",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 3,
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "historicalPcmSha256": "527d77cbcc59ae70bea198576b4ff2c7f480a1a4871607de44916b5d36e5ab68",
+      "currentPcmSha256": "e3e41ba9cb2222881cc31103b86b38c30cf151ce0a22ae42a94689aa92ca25fe",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 4,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "f5dbff398d4c3a72901b6b84ea2e60536dfd3d9ce7448370e279b4a2adbb7984",
+      "historicalPcmSha256": "1a625d8d37057719658a00a3fce4a4e11acf08bb78ae17c4d767d183e4d76570",
+      "currentPcmSha256": "978fe0233aa25685db80fab0b04d3170ce4a79f10ee29c99b76146347afa4683",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    },
+    {
+      "historicalFile": "test/fixtures/sid-player/cia_relocated_baseline_006.json",
+      "case": 5,
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "c98f4241032a30ff8a3d6d4438daf2d0af4ae707b87c6c98eff3499ccd1331fa",
+      "historicalPcmSha256": "1a625d8d37057719658a00a3fce4a4e11acf08bb78ae17c4d767d183e4d76570",
+      "currentPcmSha256": "978fe0233aa25685db80fab0b04d3170ce4a79f10ee29c99b76146347afa4683",
+      "pcmChanged": true,
+      "historicalPhase": [
+        13833413,
+        0,
+        0
+      ],
+      "currentPhase": [
+        13909680,
+        0,
+        0
+      ],
+      "traceSha256": "cd6ce89d500ed5b7c4ced22c8728b75dfc7d6f3c74c01c55d25e13e8d3af709f",
+      "cpuTraceUnchanged": true,
+      "nonPhaseStateUnchanged": true,
+      "ram": [
+        [
+          816,
+          243
+        ],
+        [
+          1024,
+          164
+        ],
+        [
+          1279,
+          180
+        ],
+        [
+          1536,
+          166
+        ],
+        [
+          1791,
+          182
+        ],
+        [
+          1792,
+          167
+        ],
+        [
+          2047,
+          183
+        ]
+      ],
+      "startupIntervals": [
+        {
+          "voice": 0,
+          "firstNonzeroFrequencyCycle": 215,
+          "frequency": 138,
+          "waveformSelectedCycle": 229,
+          "clocks": 14
+        }
+      ],
+      "nativeWasmExact": true,
+      "preChangeCheckpointMatchesHistorical": true,
+      "preChangeNativeWasmExact": true
+    }
+  ],
+  "baseline": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/validation/sid-waveoff-before-20261108-3hxrot69",
+  "currentWasm": {
+    "bytes": 116117,
+    "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+  },
+  "nativeCompiler": "Apple clang version 17.0.0 (clang-1700.4.4.1)",
+  "sources": {
+    "scripts/check_sid_waveoff_c64.mjs": {
+      "bytes": 14088,
+      "sha256": "1769e60074ed42beed02189bd558047944aa28796401fc34171a3cf60a992cae"
+    },
+    "test/helpers/sid_waveoff_c64_reference.cpp": {
+      "bytes": 5058,
+      "sha256": "5b5af344ab004614e9caca801d34751d100718e3ac7df2f7082c235b2b47c0d9"
+    },
+    "tetorica_src/wasm/sid_rsid_core.h": {
+      "bytes": 25178,
+      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+    },
+    "tetorica_src/wasm/sid_rsid_machine.c": {
+      "bytes": 1050,
+      "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
+    },
+    "tetorica_src/wasm/sid_rsid_chip.cpp": {
+      "bytes": 191,
+      "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+    },
+    "third_party/chips-m6581/m6581.h": {
+      "bytes": 27353,
+      "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
+    },
+    "test/helpers/psid_cia_fixtures.mjs": {
+      "bytes": 6539,
+      "sha256": "fd6e8722f0858c27b691b7fd24ee3026d1846da62dff6ab6d7f2aa32853a520f"
+    },
+    "test/helpers/rsid_fixtures.mjs": {
+      "bytes": 7299,
+      "sha256": "19e34e374a072a84632aec26a750df490ebec84cd5f1d25ec325f67d7b828c3d"
+    }
+  },
+  "beforeWasm": {
+    "bytes": 116131,
+    "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+  },
+  "correctedBaselines": [
+    {
+      "path": "test/fixtures/sid-player/psid_cia_waveoff_baseline_01.json",
+      "bytes": 13465,
+      "sha256": "023cd359a985f60c60bbf4653322020537ae3ba1646b8111dcc949b1a7f777d4"
+    },
+    {
+      "path": "test/fixtures/sid-player/rsid_waveoff_baseline_01.json",
+      "bytes": 17064,
+      "sha256": "f7e245babaad03f622674b463fbb45d1929fd3eec0bd1f582ed5afedabb48357"
+    },
+    {
+      "path": "test/fixtures/sid-player/cia_relocated_waveoff_baseline_01.json",
+      "bytes": 12231,
+      "sha256": "e05641853d549df5bd0c0d76b1b9ce4a8f1af53f1420a29acde3a1c40a54b9e6"
+    }
+  ]
+}

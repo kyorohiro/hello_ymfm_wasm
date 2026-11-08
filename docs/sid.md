@@ -68,6 +68,10 @@ Voice controls are waveform, 12-bit pulse width (`0..4095`), four ADSR codes
 physical oscillator: **3 → 1 → 2 → 3**. Ring affects Triangle. To silence a
 third-voice modulator, use `voice3off:true` and keep that voice out of filter
 routing. TEST resets/holds an oscillator; it is not a musical mute.
+Waveform selection and Gate do not stop oscillator phase: an unselected
+waveform can still supply Sync / Ring in either model. The marked 6581 core
+separates this phase from its simplified output-latch fade. That fade does not
+model the physical floating-DAC decay time.
 
 The chip has **one shared filter**. `routing` is a mask: `1`, `2`, `4` select
 voices 1, 2, 3. `cutoff` is an 11-bit register code (`0..2047`), not Hz;

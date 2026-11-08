@@ -13,6 +13,20 @@ def prepared():
     # Avoid rounding the chip/output rate ratio to 1/16th of a cycle. The
     # accumulator stays in integer Hz units, with the original averaging intact.
     replacements = [
+        ('''static inline uint32_t _m6581_wavnone(m6581_voice_t* v) {
+    if (v->wav_accum) {
+        uint32_t sm = (v->wav_accum >> 12);
+        v->wav_accum >>= 1;
+        return sm;
+    }
+    else {
+        return 0;
+    }
+}''', '''static inline uint32_t _m6581_wavnone(m6581_voice_t* v) {
+    /* Tetorica: waveform selection does not stop or discharge oscillator phase.
+       Retain a simple digital output-latch decay, not measured DAC hold timing. */
+    return v->wav_output >> 1;
+}'''),
         ('m6581_voice_t* v = &sid->voice[voice_index];\n\n    /* waveform generator */',
          'm6581_voice_t* v = &sid->voice[voice_index];\n    v->sync = false; /* Tetorica: TEST cannot retain a rising-edge pulse */\n\n    /* waveform generator */'),
         ('sid->sample_period = (desc->tick_hz * M6581_FIXEDPOINT_SCALE) / desc->sound_hz;',

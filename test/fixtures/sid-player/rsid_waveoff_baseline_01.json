@@ -1,0 +1,832 @@
+{
+  "format": "tetorica-c64-waveoff-corrected-baseline",
+  "version": 1,
+  "source": "Current Native C64 host and checked WASM after the no-wave phase fix; the unmodified earlier record is identified below.",
+  "wasmSha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8",
+  "seconds": 0.5,
+  "cases": [
+    {
+      "profile": "cia-irq",
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "pcmSha256": "ebab201fc54c19b25adf6f126dfcf11daa4068e36081a0465e17586e48f62755",
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 493,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "raster-irq",
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "pcmSha256": "e78d130d12275f6def0eccf16ea742b8447b788ffbbf8b0c2f62767914783789",
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "counter": 25,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 25,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 33,
+        "pc": 1804,
+        "registers": [
+          69,
+          29,
+          25,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "cia-nmi",
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "pcmSha256": "ebab201fc54c19b25adf6f126dfcf11daa4068e36081a0465e17586e48f62755",
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": false,
+        "irqCount": 0,
+        "nmiCount": 493,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 4213,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "multispeed",
+      "sampleRate": 44100,
+      "frames": 22050,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "pcmSha256": "51a2ab5d5a208e907f79661ba5c3dafe0cddc254645e48a558fe67cb4d2c84e6",
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "counter": 243,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 251,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "cia-irq",
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "pcmSha256": "5a58c697ad335f2b8f16cee067432679f61178f2a83fe180f1620b241b1eaf29",
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 493,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "raster-irq",
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "pcmSha256": "e2a75deee7de39d2b4a9e7ce770273175437baac247769d0f4cb9da8f82e2dac",
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "counter": 25,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 25,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 33,
+        "pc": 1804,
+        "registers": [
+          69,
+          29,
+          25,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "cia-nmi",
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "pcmSha256": "5a58c697ad335f2b8f16cee067432679f61178f2a83fe180f1620b241b1eaf29",
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": false,
+        "irqCount": 0,
+        "nmiCount": 493,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 4213,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "multispeed",
+      "sampleRate": 48000,
+      "frames": 24000,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "pcmSha256": "b985158604ae962efe931f90db2081368056df9edf27fbc1971903d3b1812d1a",
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "counter": 243,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 251,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "cia-irq",
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "f19d5686b07f995e5ed58fcb0283d14bde380d6b66f8a41ceaad1467ba1cf10b",
+      "pcmSha256": "34244b516646d34b65d263443875f598518a38bfb44c17e1f7c719e6d48b0fb8",
+      "traceSha256": "ea9c6633564264767c7b250ea54df8c53a8f719ebde63570159ff27202e77159",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 493,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "raster-irq",
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "415b100293a97eacd0ae56087578e3822f968337675cb4d8f13339fbacc928b9",
+      "pcmSha256": "5bcf030fd925e318fa6ff5249f3388b82acedcef66fe85770e04d8b81bec7697",
+      "traceSha256": "bb11f37a0bf8146488e0fb85c27f0f2fd6310ca5428df1de74769a48a471df10",
+      "counter": 25,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 25,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 33,
+        "pc": 1804,
+        "registers": [
+          69,
+          29,
+          25,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "cia-nmi",
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "609fe6a1cad8a16622daab0aa200c3be48082ed53fe6b29521a3e03ec7540c07",
+      "pcmSha256": "34244b516646d34b65d263443875f598518a38bfb44c17e1f7c719e6d48b0fb8",
+      "traceSha256": "b3f7c3ca7ba1006d4ac385b3ca69fc09ac5b0973c1897d20e96bf79ae6c83604",
+      "counter": 237,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": false,
+        "irqCount": 0,
+        "nmiCount": 493,
+        "readCount": 0,
+        "writeCount": 501,
+        "pc": 4213,
+        "registers": [
+          69,
+          29,
+          237,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    },
+    {
+      "profile": "multispeed",
+      "sampleRate": 96000,
+      "frames": 48000,
+      "fixtureSha256": "34c3cdec580507b86bceb04baceb94dd8e759706f8974cd2fba945745e8b7801",
+      "pcmSha256": "e923c24c5f21c490fd6f574772b7eff29cab727157c5b7a9f0dee8f376f140b9",
+      "traceSha256": "0cfeece9db7c92ca43c6a943e7d188e0f1fe58d59d138d9709a8a9c3d8e9ebe5",
+      "counter": 243,
+      "state": {
+        "cycles": 492624,
+        "initCycles": 100000,
+        "bootCycles": 0,
+        "initReturned": true,
+        "irqCount": 243,
+        "nmiCount": 0,
+        "readCount": 0,
+        "writeCount": 251,
+        "pc": 1802,
+        "registers": [
+          69,
+          29,
+          243,
+          8,
+          65,
+          0,
+          240,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "voices": [
+          {
+            "envelope": 255,
+            "phase": 14002063
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          },
+          {
+            "envelope": 0,
+            "phase": 0
+          }
+        ]
+      }
+    }
+  ],
+  "historicalBaseline": {
+    "path": "test/fixtures/sid-player/rsid_baseline_003.json",
+    "sha256": "55624da353a718ff5566cb27cc4956469209c53a82defe6b4b3f7c6a8fc4a45d",
+    "wasmSha256": "496f32f4bbdf2d788f42124c385da033861852b738147f59b61a338580b91a18"
+  },
+  "change": "No-wave oscillator phase now advances during frequency-before-wave startup; historical CPU trace, envelope and all non-phase state are unchanged.",
+  "nativeProof": "docs/issues/sid_waveoff_c64_01.json"
+}

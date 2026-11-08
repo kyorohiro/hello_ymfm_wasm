@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {validateBrowserPsid} from '../docs/js/sid_psid.js';
 import {createPsidVbiMachineFixture} from './helpers/psid_vbi_machine_fixtures.mjs';
 import {createPsidCiaFixture} from './helpers/psid_cia_fixtures.mjs';
+import {loadSidWaveoffC64Baseline} from './helpers/sid_waveoff_c64_baselines.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 let RsidPlayerCore, SidPlayerCore, wasmBinary, directBinary;
@@ -166,10 +167,14 @@ test('missing machine-VBI exports fail before allocation and preserve a previous
   } finally {a.dispose(); b.dispose();}
 });
 
-test('new machine VBI preserves relocated CIA PCM, trace and state from the pre-VBI machine binary', async () => {
-  const baseline = JSON.parse(await readFile(new URL('./fixtures/sid-player/cia_relocated_baseline_006.json', import.meta.url)));
-  assert.equal(baseline.wasmSha256, 'ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e');
-  for (const item of baseline.cases) {
+test('relocated CIA preserves historical CPU trace/RAM while no-wave startup follows the corrected Native/WASM PCM and phase', async () => {
+  const {historical, baseline} = await loadSidWaveoffC64Baseline('relocated');
+  assert.equal(historical.wasmSha256, 'ef6ae771513cea3ec2f6bd6af90c2074c96ac733c5466fdc165a0b5c3480dc4e');
+  assert.equal(baseline.cases.length, historical.cases.length);
+  const nonPhase = state => ({...state, voices: state.voices.map(({phase, ...voice}) => voice)});
+  for (const [index, item] of baseline.cases.entries()) {
+    const original = historical.cases[index];assert.deepEqual(nonPhase(item.state), nonPhase(original.state));
+    assert.equal(item.traceSha256, original.traceSha256);assert.equal(item.fixtureSha256, original.fixtureSha256);assert.deepEqual(item.sentinels, original.sentinels);
     const fixture = createPsidCiaFixture(item.options), core = await create(item.sampleRate);
     try {
       assert.equal(sha(fixture.bytes), item.fixtureSha256); core.load(fixture.bytes, {subtune: 2});

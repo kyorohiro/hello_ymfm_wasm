@@ -442,14 +442,9 @@ static inline void _m6581_set_ctrl(m6581_voice_t* v, uint8_t data) {
 }
 
 static inline uint32_t _m6581_wavnone(m6581_voice_t* v) {
-    if (v->wav_accum) {
-        uint32_t sm = (v->wav_accum >> 12);
-        v->wav_accum >>= 1;
-        return sm;
-    }
-    else {
-        return 0;
-    }
+    /* Tetorica: waveform selection does not stop or discharge oscillator phase.
+       Retain a simple digital output-latch decay, not measured DAC hold timing. */
+    return v->wav_output >> 1;
 }
 
 static inline uint32_t _m6581_triangle(m6581_voice_t* v, m6581_voice_t* v_sync) {

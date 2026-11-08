@@ -26,6 +26,34 @@ The original zlib notice is retained.
    data read by another instance. The fallback C header path retains upstream
    initialization behavior; the supplied Native/WASM host is C++17.
 
+7. Separate a deselected waveform's output decay from the oscillator phase.
+   The pinned upstream `_m6581_wavnone` shifted `wav_accum` right on each tick,
+   so a frequency-register value stopped producing its expected phase/MSB
+   sequence when no waveform was selected. This also changed Sync and Triangle
+   Ring driven by that oscillator. The marked helper instead returns
+   `wav_output >> 1`; the existing output assignment retains the halved value.
+   The 24-bit accumulator continues adding frequency and wrapping with no
+   dependency on waveform or Gate. TEST reset/hold and hardware Sync still act
+   on phase through their existing paths.
+
+   The output-latch halving is an explicitly simplified digital approximation.
+   It is not a measured 6581 floating-DAC lifetime, capacitor model, reSID decay
+   curve or accuracy claim. Its first deselected-wave output is half the previous
+   latched 12-bit output. Waveform-none DAC/OSC3 values and history can change,
+   independently of the oscillator-phase correction. Starting with nonzero
+   frequency while waveform selection is still off also now advances phase;
+   a later ordinary tone may therefore have a different initial phase/PCM.
+   Comparisons that require unchanged ordinary PCM select the waveform before
+   assigning nonzero frequency, or hold TEST during matched setup.
+
+   The [MOS 6581 datasheet](https://myoldcomputer.nl/Files/mos_6581_sid.pdf),
+   printed page 4, describes Gate as envelope control, TEST as oscillator reset /
+   hold, and the preceding oscillator as the Sync/Ring source independently of
+   its other parameters. An optional external
+   [libresidfp 1.2.3 comparison](https://github.com/libsidplayfp/libresidfp/tree/32c8525418a643eaed8dfafa3d7039e250050cfa)
+   separately checks phase continuity and floating-output behavior. No code or
+   dependency from that GPL reference is included in this adaptation.
+
 The wrapper also applies a **software 12 Hz DC blocker** after the core's mono
 output. It is a host output stage, not an extra programmable SID filter.
 Register reads/writes each consume one emulated clock cycle. Samples generated

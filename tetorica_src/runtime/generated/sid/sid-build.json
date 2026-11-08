@@ -18,20 +18,20 @@
       "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
     },
     "third_party/chips-m6581/README.md": {
-      "bytes": 2306,
-      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+      "bytes": 3222,
+      "sha256": "509acf62b8f6393f1625f5d5efc3e3f0937bd223cc782e0968f9dbb1cc99af57"
     },
     "third_party/chips-m6581/PATCHES.md": {
-      "bytes": 2239,
-      "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+      "bytes": 4144,
+      "sha256": "f1984c366a00284a909cc3a774dd2bebbaee9deb7bbe11a06ff964bebbb0ed31"
     },
     "third_party/chips-m6581/upstream/m6581.h": {
       "bytes": 26332,
       "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
     },
     "third_party/chips-m6581/m6581.h": {
-      "bytes": 27313,
-      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+      "bytes": 27353,
+      "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
     },
     "tetorica_src/wasm/sid_core.h": {
       "bytes": 2770,
@@ -46,8 +46,8 @@
       "sha256": "ee1040e32f9021efe31a013dcf10ae388b0b0129d6eb6d4921853c2eadf37c71"
     },
     "scripts/prepare_sid_core.py": {
-      "bytes": 3625,
-      "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+      "bytes": 4121,
+      "sha256": "d488927cdf6bb9b3a0c75513b0bd2ac2a51b7d588a868a53800575144b01bfa8"
     },
     "scripts/sid_artifacts.mjs": {
       "bytes": 5710,
@@ -63,7 +63,7 @@
     }
   },
   "output": {
-    "bytes": 14502,
-    "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+    "bytes": 14488,
+    "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
   }
 }

@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "baseline": "build/validation/sid-waveoff-before-20261108-3hxrot69",
+  "receipts": [
+    "tetorica_src/runtime/generated/sid/sid-build.json",
+    "tetorica_src/runtime/generated/sid-player/sid-player-build.json",
+    "tetorica_src/runtime/generated/sid-rsid/sid-rsid-build.json",
+    "docs/generated/sid8580-machine/sid8580-machine-build.json"
+  ],
+  "files": {
+    "LICENSE": {
+      "bytes": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    "docs/generated/sid8580-machine/sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine-build.json": {
+      "bytes": 20404,
+      "sha256": "919522e2443abdc70368c70b231b08cd88a3c915b38d1829055e25054db29ed6"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "docs/sid-player/core.js": {
+      "bytes": 7432,
+      "sha256": "5de26ddf095d1d50473e369e2a6c6f132dfe12f454d6308a0138a84c1f90c865"
+    },
+    "docs/sid-player/core8580.js": {
+      "bytes": 2729,
+      "sha256": "75f53e8215b6368ff7e0784b780beffa4037545fe9118345694a54a046987942"
+    },
+    "docs/sid-player/model_policy.js": {
+      "bytes": 4220,
+      "sha256": "8534913a609fdceb3e6e288cfe5395d330cc59c88b990f2208f6aadafe9bf75f"
+    },
+    "docs/sid-player/models.js": {
+      "bytes": 2302,
+      "sha256": "876bda5bdf4429be0eec29725072e5b8b0101ddb244b34426da4f73ef371b398"
+    },
+    "docs/sid-player/rsid_core.js": {
+      "bytes": 10462,
+      "sha256": "3af43c1ba3c71951dcdf4f318d80c0b6812355a7e0a0317462f5de43b50e99c5"
+    },
+    "docs/synth-sid/instrument.js": {
+      "bytes": 8435,
+      "sha256": "7d0fbbc905d722a52dba98bb7e53e0485db98e1825706de411aa05c0a4302cff"
+    },
+    "docs/synth-sid/preset.js": {
+      "bytes": 8101,
+      "sha256": "cd5fdb2f3b2364be08ec95b20183de3622623ceef6fb4261ee619bc246b4dd85"
+    },
+    "scripts/build_sid8580_machine.sh": {
+      "bytes": 3363,
+      "sha256": "222e723a04de8380bcb878d921dd6133eeadf5494f9cd755553456d516dc6e23"
+    },
+    "scripts/build_sid8580_probe.sh": {
+      "bytes": 3343,
+      "sha256": "1a440a6ca35fabdc0b25dcef3801f090cb52227044019adc126f7191eb2d924a"
+    },
+    "scripts/build_sid_player_wasm.sh": {
+      "bytes": 721,
+      "sha256": "200b717b5eb8f7580ccbb26d6ea4932649600f4ad39f0d703481cb5df3628ddc"
+    },
+    "scripts/build_sid_rsid_wasm.sh": {
+      "bytes": 1020,
+      "sha256": "16fabf25f3602fa823ae6545b4d5a223327910a6d19457ca30c6f29daa6836cf"
+    },
+    "scripts/build_sid_wasm.sh": {
+      "bytes": 653,
+      "sha256": "ee1040e32f9021efe31a013dcf10ae388b0b0129d6eb6d4921853c2eadf37c71"
+    },
+    "scripts/check_sid_native.mjs": {
+      "bytes": 11503,
+      "sha256": "4d251c48d8515e86a129e647e525df8e7dd73342cb4e37fbe1e1242c50443bbc"
+    },
+    "scripts/prepare_sid8580_machine_core.mjs": {
+      "bytes": 7034,
+      "sha256": "b71d6cb44ffccd797504a98ebfd0192b95c7dbf3d1a1c8c38488df7f66ad9dde"
+    },
+    "scripts/prepare_sid_core.py": {
+      "bytes": 3625,
+      "sha256": "295139fcfcc497956e6f55759e0026a96b11ea34d1666f0bed34e60e456895d8"
+    },
+    "scripts/sid8580_machine_artifacts.mjs": {
+      "bytes": 8892,
+      "sha256": "b6f35ca078385fab9f067e0e9d448f21d2d05b25e296eca71923a71c32af02ac"
+    },
+    "scripts/sid8580_probe_artifacts.mjs": {
+      "bytes": 6114,
+      "sha256": "3b65c7b08adc135dca01b54947f1b457c84e99e2ba68775d46770c24b17cff53"
+    },
+    "scripts/sid_artifacts.mjs": {
+      "bytes": 5710,
+      "sha256": "aed183c1a49413490a30308ac15fd4dc607f0e19c3de94ceeea7492437c4f897"
+    },
+    "scripts/sid_player_artifacts.mjs": {
+      "bytes": 6146,
+      "sha256": "c1ca5f704d8fad3bbd0612085ee0753c4ec58cd9ad904132898ddd9a35f3b155"
+    },
+    "scripts/sid_rsid_artifacts.mjs": {
+      "bytes": 7593,
+      "sha256": "83aab4cfc0ccda73bac874b488128b071ec23c259bb9888d1c106193538b89ee"
+    },
+    "test/fixtures/sid-reference/fixture.mjs": {
+      "bytes": 5578,
+      "sha256": "17781a8a2c40041a5879a6623d20a81764331234a53a79480a65cb63bb3a21db"
+    },
+    "test/helpers/sid_reference.cpp": {
+      "bytes": 10666,
+      "sha256": "cbe941dc9956cfec50a2e074e1054516b055c741e17f28e4f94baabc0372a643"
+    },
+    "test/helpers/sid_voice_pair_fixtures.mjs": {
+      "bytes": 5676,
+      "sha256": "b397c96b22e41e31afbffa98e4caf6de90f05910d3b02d5c09ba033846b96c4b"
+    },
+    "tetorica_src/runtime/generated/sid-player/sid-player-build.json": {
+      "bytes": 3357,
+      "sha256": "8b874fdb783d802866d6bf99cb3a93583a0fc6b791a42e59f0a88f12725bbf88"
+    },
+    "tetorica_src/runtime/generated/sid-player/sid-player.wasm": {
+      "bytes": 74326,
+      "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76"
+    },
+    "tetorica_src/runtime/generated/sid-rsid/sid-rsid-build.json": {
+      "bytes": 6749,
+      "sha256": "c8976d3352b104cb7dc4177dd77f42619cd2e64b17bc1297fe5bba8c085376ff"
+    },
+    "tetorica_src/runtime/generated/sid-rsid/sid-rsid.wasm": {
+      "bytes": 116131,
+      "sha256": "d05d625d863c434e6992a2b553019b4a261c00d484faeff7633bc357ac5b5c9c"
+    },
+    "tetorica_src/runtime/generated/sid/sid-build.json": {
+      "bytes": 2438,
+      "sha256": "d5840562a2a3a7cefebb066759a157debfe23964064ead5a7b1f88f25c52903c"
+    },
+    "tetorica_src/runtime/generated/sid/sid.wasm": {
+      "bytes": 14502,
+      "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+    },
+    "tetorica_src/runtime/sid.js": {
+      "bytes": 4846,
+      "sha256": "62225755b0b01471b85313be7992a464f8b501e5ad81a6c86c1ce425c941d870"
+    },
+    "tetorica_src/runtime/sidsynth.js": {
+      "bytes": 14349,
+      "sha256": "4816bb92dac16ffc30e99f890fe2b2bd05609e16faef21ef071724f3f500b44a"
+    },
+    "tetorica_src/wasm/sid8580-machine/endpoint.rs": {
+      "bytes": 4624,
+      "sha256": "0ab38fba23549b57f8770d4174fdcbb2e17f0e9111e5023ab29523928e47ddb3"
+    },
+    "tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h": {
+      "bytes": 26966,
+      "sha256": "81eccc2619316b1056497785b2126271f497cdeb4085aad32fa68c5804d33ffb"
+    },
+    "tetorica_src/wasm/sid8580-machine/generated/source-manifest.json": {
+      "bytes": 2382,
+      "sha256": "35c776b620b95cba0db8246f7e5e158f34e06c57a0d6257f7d750fa339b5c8d9"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine.c": {
+      "bytes": 981,
+      "sha256": "5860f9393b056927524487833642b57c8f15e454faa158510bdfa9a74c7db6f0"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine_native.cpp": {
+      "bytes": 6807,
+      "sha256": "bb925b4819691fa8da7b1c02c038d177f0bb763785482b250db307053f48a6b1"
+    },
+    "tetorica_src/wasm/sid8580-machine/machine_wasm.cpp": {
+      "bytes": 4712,
+      "sha256": "8eb58dcbf0301030618281b72158dfb80e9d3d22d96e670e3e3f702d685c37ef"
+    },
+    "tetorica_src/wasm/sid8580-machine/sid_endpoint.cpp": {
+      "bytes": 3584,
+      "sha256": "9518f70534ef44e3d893c188c0aff7bc7c0a5b0047223cd1f81f714abeec1787"
+    },
+    "tetorica_src/wasm/sid8580-machine/sid_endpoint.h": {
+      "bytes": 1230,
+      "sha256": "8eba120c98a86cbfbaa048902f5b5856652ef0dbd526e845935a95d220a0c7d8"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu.rs": {
+      "bytes": 19700,
+      "sha256": "ea54eeaba78498ae730771d0d0e5b60c95734d6809cf7c0260ad19cd122ac440"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu_bridge.c": {
+      "bytes": 1923,
+      "sha256": "aea25ca482f8db7c43ed6deea27f0ff847e5dc134eb602304c6933896612b79c"
+    },
+    "tetorica_src/wasm/sid8580-probe/cpu_native.rs": {
+      "bytes": 6377,
+      "sha256": "3d0a0724afb095eda570e4d6472f9fe95b20164ba739b4fd628e7eb2ef39ba84"
+    },
+    "tetorica_src/wasm/sid8580-probe/lib.rs": {
+      "bytes": 14402,
+      "sha256": "91228187132d85a9040f6d566484599a8870485e232a1a97e8587d8b4cc555ed"
+    },
+    "tetorica_src/wasm/sid8580-probe/native.rs": {
+      "bytes": 6864,
+      "sha256": "77287af31fa78f77a99031daae1e1faa3ad23935709d1780895fcd96e692f39e"
+    },
+    "tetorica_src/wasm/sid8580-probe/quality.rs": {
+      "bytes": 6948,
+      "sha256": "b0029731b7cae2815e9bbd16dd9dd11b5b7a76597b98152e7d0a49d22daf9170"
+    },
+    "tetorica_src/wasm/sid8580-probe/quality_native.rs": {
+      "bytes": 8869,
+      "sha256": "b499ff639f1702b2f443879ff8aec4141ee714ac9e626bb7aff5eca6f1b07fad"
+    },
+    "tetorica_src/wasm/sid_core.h": {
+      "bytes": 2770,
+      "sha256": "e25105c0966a3decf0b78e50f45680d501f8e3f961bf1539a346605b293beecc"
+    },
+    "tetorica_src/wasm/sid_player_core.h": {
+      "bytes": 13501,
+      "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+    },
+    "tetorica_src/wasm/sid_player_wasm.cpp": {
+      "bytes": 2262,
+      "sha256": "424eeed0598f2129b6f0e37fa5740b64e7e5b03b6fdce5b45de2db0f1f253982"
+    },
+    "tetorica_src/wasm/sid_rsid_chip.cpp": {
+      "bytes": 191,
+      "sha256": "0bfa1b8b99d0e0e0005dd1092375cefdc3aed649564a1b00be6e120cbfb63f27"
+    },
+    "tetorica_src/wasm/sid_rsid_core.h": {
+      "bytes": 25178,
+      "sha256": "1de69a5fcb1cc4b7284c12c7f8de52f4c2109a4c8944396c94072a3f49f9ece1"
+    },
+    "tetorica_src/wasm/sid_rsid_machine.c": {
+      "bytes": 1050,
+      "sha256": "6f6d92e687b81ecf0b314335d9532da4a7d1b2ebd4289c5a4412aca2071be5d8"
+    },
+    "tetorica_src/wasm/sid_rsid_wasm.cpp": {
+      "bytes": 3751,
+      "sha256": "99a4cefb9979922f5f1fec32416c0d85582432e9dd96f4e2b29cab77d06549b9"
+    },
+    "tetorica_src/wasm/sid_wasm.cpp": {
+      "bytes": 1631,
+      "sha256": "b810e6d1bfb70fa76107d7a620bc840baddc5dc547f7e84727114fddd5cc2066"
+    },
+    "third_party/chips-c64/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-c64/README.md": {
+      "bytes": 9970,
+      "sha256": "c07fa8929cce27aef62dd564443c6a151320a328345ee5575202dc3ebc0de8aa"
+    },
+    "third_party/chips-c64/SOURCES.json": {
+      "bytes": 1619,
+      "sha256": "00489de8a017b799c96c28395c113f2048c7f48c0cfb7ebb4c269993db63ddc8"
+    },
+    "third_party/chips-c64/upstream/chips/chips_common.h": {
+      "bytes": 3477,
+      "sha256": "f5992674dc6ddecd88a19b146d2259ba1142e4d2fce9b0620b14c7783965bb7b"
+    },
+    "third_party/chips-c64/upstream/chips/clk.h": {
+      "bytes": 2037,
+      "sha256": "17b8791dbfcbe9d17203ea0b481f7674a8a3558cf4546c3196b6fb6e2736dcd1"
+    },
+    "third_party/chips-c64/upstream/chips/kbd.h": {
+      "bytes": 15708,
+      "sha256": "18f16af06fa483eebb1a7f6fdcac6299ef6b025198f8623e5b1a2de00218c364"
+    },
+    "third_party/chips-c64/upstream/chips/m6522.h": {
+      "bytes": 28897,
+      "sha256": "85ae4f49779b7e909a41fd979a6eb6afb5738e4a0c24ce1c76a8f4b376f218bd"
+    },
+    "third_party/chips-c64/upstream/chips/m6526.h": {
+      "bytes": 26154,
+      "sha256": "327a362b9b2235af55c0af712c527bce068633c98f76cdc0c8c4bb35e1d47393"
+    },
+    "third_party/chips-c64/upstream/chips/m6569.h": {
+      "bytes": 66024,
+      "sha256": "8ba7e2296e34eb486b8cd9f3488814ab1af22c418b2e06a7716e01cbed820d29"
+    },
+    "third_party/chips-c64/upstream/chips/mem.h": {
+      "bytes": 16608,
+      "sha256": "451a9c9c0545bfe724a164f655df2f255e4741bba1d7e0e7e980af865e9fbb49"
+    },
+    "third_party/chips-c64/upstream/systems/c1530.h": {
+      "bytes": 8475,
+      "sha256": "fe90f38b06b3b9388ee39c1bb92db02ad120ffe81e528c1e6f97449484d83fbc"
+    },
+    "third_party/chips-c64/upstream/systems/c1541.h": {
+      "bytes": 5364,
+      "sha256": "597511b00e9ee8d8c32b529b47eab26a8dbf675d42d314c0235ec9f040ac9890"
+    },
+    "third_party/chips-c64/upstream/systems/c64.h": {
+      "bytes": 41974,
+      "sha256": "a0e30d76798bbe2463e99814ddcd890640d0d808e904cf9b47f8294462543a6c"
+    },
+    "third_party/chips-m6502/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6502/README.md": {
+      "bytes": 5077,
+      "sha256": "500ec456790a8c1a1a2236cc08ed576c86af4c59a90dcd09c70d2ea9f627d59c"
+    },
+    "third_party/chips-m6502/upstream/m6502.h": {
+      "bytes": 144215,
+      "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+    },
+    "third_party/chips-m6581/LICENSE": {
+      "bytes": 893,
+      "sha256": "0c692ece632a8ec6d2a566c9234fdabda655644e6abc70027da9ff7c35e48634"
+    },
+    "third_party/chips-m6581/PATCHES.md": {
+      "bytes": 2239,
+      "sha256": "b75fd02ae67900a208e55abc779df1ed83e8c2c2bf56d59c2f89c6933204a78c"
+    },
+    "third_party/chips-m6581/README.md": {
+      "bytes": 2306,
+      "sha256": "d69d3daabdcfba4decb36d3bdab7c2400eb1c8ceb23f564b8c60871698078879"
+    },
+    "third_party/chips-m6581/m6581.h": {
+      "bytes": 27313,
+      "sha256": "495840c2b29f27ff07bb12a56ea1407693faa74f75809df9bdbe22b83d889052"
+    },
+    "third_party/chips-m6581/upstream/m6581.h": {
+      "bytes": 26332,
+      "sha256": "a793225ee69b91e0ea8c91b221d06ee024e45e6c8179176980abfa95d5a54cdf"
+    },
+    "third_party/sidera/8580-cutoff-calibration.json": {
+      "bytes": 7556,
+      "sha256": "f9c78e2dfef767aaf2317e7f21cebeff17b0ddf3225d83e9cbca890953b89a0a"
+    },
+    "third_party/sidera/8580-resonance-calibration.json": {
+      "bytes": 2431,
+      "sha256": "8c8e835be3d14a1c5ce063439436bc76de5b6f9035be399535085a9d8a67ddf5"
+    },
+    "third_party/sidera/LICENSE": {
+      "bytes": 1075,
+      "sha256": "4516b79c625d728704f7e189e676e528077fdb0388a2c819c9d583e214fef9b6"
+    },
+    "third_party/sidera/PATCHES.json": {
+      "bytes": 955,
+      "sha256": "841ef5bae4d8cc01f6b4a43a24946a2b8717e3cae49e76584092417107b66568"
+    },
+    "third_party/sidera/README.md": {
+      "bytes": 6150,
+      "sha256": "503cf96915f1df27f1e707f08ce6be606620f95892f3d0634ec8525175f38ad6"
+    },
+    "third_party/sidera/SOURCES.json": {
+      "bytes": 4569,
+      "sha256": "5a174a68d26fbd82e80c34a52d976916de14addf2789e770cfd0a7ca332a9275"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/bus.rs": {
+      "bytes": 2238,
+      "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/diag.rs": {
+      "bytes": 2402,
+      "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/main.rs": {
+      "bytes": 5629,
+      "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/output.rs": {
+      "bytes": 4341,
+      "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/player.rs": {
+      "bytes": 10189,
+      "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+    },
+    "third_party/sidera/adapted/src/bin/sidplay/psid.rs": {
+      "bytes": 4262,
+      "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+    },
+    "third_party/sidera/adapted/src/envelope.rs": {
+      "bytes": 5403,
+      "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+    },
+    "third_party/sidera/adapted/src/extfilt.rs": {
+      "bytes": 1946,
+      "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+    },
+    "third_party/sidera/adapted/src/filter.rs": {
+      "bytes": 10281,
+      "sha256": "2bfea93993ef97539c966b97519e72983dd45f667d8c456b8eabea860360859b"
+    },
+    "third_party/sidera/adapted/src/high.rs": {
+      "bytes": 18128,
+      "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+    },
+    "third_party/sidera/adapted/src/lib.rs": {
+      "bytes": 4153,
+      "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+    },
+    "third_party/sidera/adapted/src/noise.rs": {
+      "bytes": 2128,
+      "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+    },
+    "third_party/sidera/adapted/src/oscillator.rs": {
+      "bytes": 2582,
+      "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+    },
+    "third_party/sidera/adapted/src/registers.rs": {
+      "bytes": 2759,
+      "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+    },
+    "third_party/sidera/adapted/src/sid.rs": {
+      "bytes": 14966,
+      "sha256": "f80ebc570bb1e0e207c3b9b2aaa1639ebfa1f7646583cd63608505e7b8a93946"
+    },
+    "third_party/sidera/adapted/src/voice.rs": {
+      "bytes": 8899,
+      "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+    },
+    "third_party/sidera/upstream/.cargo_vcs_info.json": {
+      "bytes": 94,
+      "sha256": "4e547473ff03990b7d6b2fece426e3b4e56baff4cc3a6323cf751ce445c6d4d8"
+    },
+    "third_party/sidera/upstream/.gitignore": {
+      "bytes": 8,
+      "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d"
+    },
+    "third_party/sidera/upstream/Cargo.lock": {
+      "bytes": 25543,
+      "sha256": "ecec7919601412406b44a2e7615278b4a35fe0194b50dc8783f7488eefc61e9b"
+    },
+    "third_party/sidera/upstream/Cargo.toml": {
+      "bytes": 1846,
+      "sha256": "6f596633e56a0a25603014de6dafaa204c081734b9a57a3143e99f6a55db6443"
+    },
+    "third_party/sidera/upstream/Cargo.toml.orig": {
+      "bytes": 1037,
+      "sha256": "98015f5b2e7198e314245cd41eda7dca43392a8d0a3c49b63ec5d65da6cc6b8d"
+    },
+    "third_party/sidera/upstream/LICENSE": {
+      "bytes": 1075,
+      "sha256": "4516b79c625d728704f7e189e676e528077fdb0388a2c819c9d583e214fef9b6"
+    },
+    "third_party/sidera/upstream/README.md": {
+      "bytes": 13156,
+      "sha256": "35ae0865b06b12d43a02df962d5cb2afb762c6e3ab472052b17bf805a4c6ddd7"
+    },
+    "third_party/sidera/upstream/SID_ANALOG_SPEC.md": {
+      "bytes": 26732,
+      "sha256": "0a90da2eb550761c60b3b40d4afca21d236a8daa68fe07ef1af80311bad4cca3"
+    },
+    "third_party/sidera/upstream/examples/bench.rs": {
+      "bytes": 1964,
+      "sha256": "3d6f27fc2b3d0651af84e735d3b05a2d43c480770311d7b0facf58644d6686c2"
+    },
+    "third_party/sidera/upstream/examples/render.rs": {
+      "bytes": 3188,
+      "sha256": "c4731c1000b95526f98b0244de45eff9d80d9fb53c40a8a0f588b40c7b553a8a"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/bus.rs": {
+      "bytes": 2238,
+      "sha256": "bd5e50ab618c9d9c79ccfb32805c7d45ec2085df819a8d15226aac80bcb8a22c"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/diag.rs": {
+      "bytes": 2402,
+      "sha256": "231bbda78b1a77f8bb6c5af47a5426e3855286a79cc9ff2d50bbcf099b0039cc"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/main.rs": {
+      "bytes": 5629,
+      "sha256": "239dda150ba7dcd778087b98762a994608079685c9bbbe353b40775375d5c4f0"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/output.rs": {
+      "bytes": 4341,
+      "sha256": "09463ac699b07e8101201482539ae4d0cafd30022605c30af2288f7c4ecdca88"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/player.rs": {
+      "bytes": 10189,
+      "sha256": "33437154b41c7549a29728050c03c6c681725747de0322f5ab4235fd086347a1"
+    },
+    "third_party/sidera/upstream/src/bin/sidplay/psid.rs": {
+      "bytes": 4262,
+      "sha256": "54d3192ff0aceb3f717c1ea82d9e4ad0cfd72115157508bfaec03ef6db8f158c"
+    },
+    "third_party/sidera/upstream/src/envelope.rs": {
+      "bytes": 5403,
+      "sha256": "3eeac3c86949f5de108c246a328e4b65821454e21cafe3f3489b776975528542"
+    },
+    "third_party/sidera/upstream/src/extfilt.rs": {
+      "bytes": 1946,
+      "sha256": "3b99352cfde30de6c8b5398a420a8c79586f89749054940a3d1973b2dc03c8ec"
+    },
+    "third_party/sidera/upstream/src/filter.rs": {
+      "bytes": 7711,
+      "sha256": "877d6c523bd55da84faf21fe8d7b8c190a8d7c8719e46125d2dc5a5d9c11e0e5"
+    },
+    "third_party/sidera/upstream/src/high.rs": {
+      "bytes": 18128,
+      "sha256": "7fe336f554c20770e91632ff82068dbe13d80dafcf280879a5ea1686d578851d"
+    },
+    "third_party/sidera/upstream/src/lib.rs": {
+      "bytes": 4153,
+      "sha256": "5ca8acf382ca2c9a344ab97837336a6fbd0e7a7d24af06b8d973b3d31cbce392"
+    },
+    "third_party/sidera/upstream/src/noise.rs": {
+      "bytes": 2128,
+      "sha256": "1b9c9994f608979dfdb697b80e2af2019cedd255be1e5612cdd9e62e533372ff"
+    },
+    "third_party/sidera/upstream/src/oscillator.rs": {
+      "bytes": 2582,
+      "sha256": "522ef1700129dddd4835fb8f7ace74f88af79e9b7dba800a764804f1feac1d38"
+    },
+    "third_party/sidera/upstream/src/registers.rs": {
+      "bytes": 2759,
+      "sha256": "3f8d75e4a438b77a60bedc0b8acb191e2be8a26f57d74493756ea660724f773d"
+    },
+    "third_party/sidera/upstream/src/sid.rs": {
+      "bytes": 13227,
+      "sha256": "0f9771b90452b89b1c16b53607607b6cbcd1ac60635329355033eef9fb420587"
+    },
+    "third_party/sidera/upstream/src/voice.rs": {
+      "bytes": 8899,
+      "sha256": "676b02f2e67f9f27111b60ace6064f05935885d68825b30c43e9273c48ac7b7c"
+    },
+    "third_party/sidera/upstream/tests/golden.rs": {
+      "bytes": 8170,
+      "sha256": "1c560531f4dcbbb5d8c47a6705786cb832210c42aaf724274ae1fca543b54bae"
+    },
+    "third_party/sidera/upstream/tests/integration.rs": {
+      "bytes": 29431,
+      "sha256": "6ea83bee56a03887fc7246a578ec6ea641a64b6468b546553c8761d71c61e8da"
+    }
+  },
+  "containsUserMusicRomOrPcm": false,
+  "passed": true
+}

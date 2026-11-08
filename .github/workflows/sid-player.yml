@@ -34,6 +34,8 @@ on:
       - 'scripts/*sid_corpus*'
       - 'scripts/*sid8580*'
       - 'scripts/check_sid_voice_capture_browser.cjs'
+      - 'scripts/check_sid_waveoff_players.mjs'
+      - 'scripts/check_sid_waveoff_c64.mjs'
       - 'scripts/package_itch_sid_synth.*'
       - 'scripts/sid_model_artifacts.mjs'
       - 'scripts/sid_artifacts.mjs'
@@ -48,6 +50,9 @@ on:
       - 'test/psid_vbi*'
       - 'test/helpers/sid_player*'
       - 'test/helpers/sid_voice_pair_fixtures.mjs'
+      - 'test/helpers/sid_waveoff_player_reference.cpp'
+      - 'test/helpers/sid_waveoff_c64_reference.cpp'
+      - 'test/helpers/sid_waveoff_c64_baselines.mjs'
       - 'test/helpers/rsid*'
       - 'test/helpers/psid_cia*'
       - 'test/helpers/psid_vbi*'
@@ -87,6 +92,8 @@ on:
       - 'scripts/*sid_corpus*'
       - 'scripts/*sid8580*'
       - 'scripts/check_sid_voice_capture_browser.cjs'
+      - 'scripts/check_sid_waveoff_players.mjs'
+      - 'scripts/check_sid_waveoff_c64.mjs'
       - 'scripts/package_itch_sid_synth.*'
       - 'scripts/sid_model_artifacts.mjs'
       - 'scripts/sid_artifacts.mjs'
@@ -101,6 +108,9 @@ on:
       - 'test/psid_vbi*'
       - 'test/helpers/sid_player*'
       - 'test/helpers/sid_voice_pair_fixtures.mjs'
+      - 'test/helpers/sid_waveoff_player_reference.cpp'
+      - 'test/helpers/sid_waveoff_c64_reference.cpp'
+      - 'test/helpers/sid_waveoff_c64_baselines.mjs'
       - 'test/helpers/rsid*'
       - 'test/helpers/psid_cia*'
       - 'test/helpers/psid_vbi*'
@@ -130,6 +140,7 @@ jobs:
           node scripts/sid_rsid_artifacts.mjs --check
           node --test docs/synth-sid/handoff.test.mjs
           npm run test:sid-player
+          node scripts/check_sid_waveoff_c64.mjs --check --out release/sid-waveoff-c64-native.json
           npm run test:sid-corpus
           npm run test:sid-reference
           npm run check:runtime-artifacts
@@ -158,6 +169,7 @@ jobs:
             release/sid-player-zip-browser.json
             release/sid-voice-source-browser.json
             release/sid-voice-zip-browser.json
+            release/sid-waveoff-c64-native.json
             release/sid-player-source-images/
             release/sid-player-zip-images/
             release/sid-voice-source-images/

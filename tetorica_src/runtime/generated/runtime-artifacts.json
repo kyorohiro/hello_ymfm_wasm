@@ -1691,8 +1691,8 @@
           "mirrors": [
             "docs/generated/sid/sid.wasm"
           ],
-          "size": 14502,
-          "sha256": "7069bfb865d51c4b7493560561f42f1f1541555c867c79d969d234ee634b9025"
+          "size": 14488,
+          "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
         },
         {
           "path": "sid/sid-build.json",
@@ -1701,7 +1701,7 @@
             "docs/generated/sid/sid-build.json"
           ],
           "size": 2438,
-          "sha256": "d5840562a2a3a7cefebb066759a157debfe23964064ead5a7b1f88f25c52903c"
+          "sha256": "bd0ef00a2fb3c64d10c158c97dd975224a24fb9e880b6ec6f945c9bbc4997c14"
         }
       ],
       "sourceFiles": [

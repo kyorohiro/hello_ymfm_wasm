@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "historicalBaseline": {
+    "path": "test/fixtures/sid-player/vbi_baseline_005.json",
+    "bytes": 14740,
+    "sha256": "dca5233ecb0871b15b272dffa59700483b56c160163ebd44ca11cdb7e256d915"
+  },
+  "oldCheckpoint": {
+    "path": "build/validation/sid-waveoff-before-20261108-3hxrot69/tetorica_src/runtime/generated/sid-player/sid-player.wasm",
+    "bytes": 74326,
+    "sha256": "467a893714280a9830bb421dd255aac4ad7956fa8fd2895359a5e056cb98ab76",
+    "allHistoricalPcmTraceStateMatched": true
+  },
+  "currentWasm": {
+    "path": "docs/generated/sid-player/sid-player.wasm",
+    "bytes": 74312,
+    "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+  },
+  "native": {
+    "inputs": [
+      {
+        "path": "test/helpers/sid_waveoff_player_reference.cpp",
+        "bytes": 4518,
+        "sha256": "3a01a82cc1f86824b56812fff3b4d041c7936a0647be29dc81622734692f83cd"
+      },
+      {
+        "path": "tetorica_src/wasm/sid_player_core.h",
+        "bytes": 13501,
+        "sha256": "e6d9a324ae6610548e37023d719b8f1748324186cc5061a1ae6d4cc58084ff16"
+      },
+      {
+        "path": "third_party/chips-m6502/upstream/m6502.h",
+        "bytes": 144215,
+        "sha256": "b3fc32a01f1f7cdc62f919ccba06cc20c2a333e7ca30c38189e31aa65868d46e"
+      },
+      {
+        "path": "third_party/chips-m6581/m6581.h",
+        "bytes": 27353,
+        "sha256": "a13132ce5083e707611ac65e6e37c799a19ce18a8df4dcbb9e60292cb9520aa8"
+      }
+    ],
+    "compiler": "c++",
+    "compilerVersion": "Apple clang version 17.0.0 (clang-1700.4.4.1)\nTarget: arm64-apple-darwin24.6.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "flags": [
+      "-std=c++17",
+      "-O2",
+      "-ffp-contract=off"
+    ],
+    "binary": {
+      "path": "build/validation/sid-waveoff-vbi-d98XGN/sid-waveoff-player",
+      "bytes": 142896,
+      "sha256": "f68b88ea654f388862358d54c7b7a2946690fa7727d0e640cee4e4508ac4d532"
+    },
+    "chunks": [
+      128,
+      37
+    ]
+  },
+  "baseline": {
+    "path": "test/fixtures/sid-player/vbi_waveoff_baseline_01.json",
+    "bytes": 20790,
+    "sha256": "e0236964a3f86e32f1ce755ae1f513ea598ec4a3a43b875142a1493fba521615"
+  },
+  "cases": 12,
+  "pcmChanges": 12,
+  "phaseChanges": 12,
+  "invariants": [
+    "All12 old checkpoint PCM/trace/state match immutablehistorical005",
+    "All12 currentCPU trace/registers/envelopes/execution match historical005",
+    "All12 newNative/WASM fullFloat32 PCM/trace/state exact",
+    "Native render chunk128/37 exact"
+  ],
+  "applicationWasmNotBuiltHere": true,
+  "firmwareOrGameDataIncluded": false,
+  "pcmSaved": false,
+  "checker": {
+    "path": "scripts/check_sid_waveoff_players.mjs",
+    "bytes": 8799,
+    "sha256": "b73d64023173feaa3f19395b91fa274466185b3e9560a9b9754837c138b6362a"
+  }
+}
