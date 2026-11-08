@@ -37,7 +37,8 @@ Player page:
 1. Choose **Load SID…**. Loading checks a disposable C64 candidate and keeps
    your keyboard instrument; it does not start audio.
 2. Choose a subtune with the − / + buttons and press **Play song**.
-3. When you hear the sound you want, press **Capture voices**.
+3. When you hear the sound you want, press **Capture voices**, or **Pause** to
+   inspect the held settings before capturing.
 4. Select **Voice 1**, **Voice 2** or **Voice 3**. The selected captured voice is
    loaded immediately: the preview closes and the preset becomes this keyboard's
    instrument. An unavailable voice shows its reason and keeps your instrument.
@@ -72,12 +73,33 @@ captured batch; an accepted replacement stops its previous preview only after
 validation succeeds. Opening a SID alone never replaces the keyboard instrument.
 No song, ROM or PCM bytes are stored in a voice preset.
 
+### Pause, inspect and resume
+
+**Pause** holds the current song position and CPU / SID state. Its button becomes
+**Resume**, which continues the same preview without reloading the file.
+With Live view on, **Your sound** keeps the same read-only controls at the
+acknowledged pause point. Switch **CH 1 / CH 2 / CH 3** to inspect that held
+state, or turn Live off to view your authored keyboard instrument and on again
+to return to it. No periodic reads are needed while paused.
+
+**Capture voices** works while paused and reads that same fixed machine state.
+You can Resume after capture, or select a captured Voice to stop the preview
+and load it into the keyboard. A Synth key and **Stop all sound** also close
+a paused preview. File cancellation or a failed replacement keeps it paused;
+a successful file / model / subtune replacement starts ready for a new Play.
+
+Pause is acknowledged at an audio-processing boundary. A short 5 ms host-output
+bridge softens Pause / Resume edges while the paused chip remains completely
+unclocked. It changes no CPU / SID state, pitch, envelope or filter history;
+ordinary playback is unaffected. This is transport smoothing, not a chip effect.
+
 ### Follow a playing channel
 
 **Live CH view while playing** is on by default. During song preview, **Your
 sound** displays the selected **CH 1 / CH 2 / CH 3** as it changes. Channel
 selection affects observation only; the song continues and your keyboard preset
 is preserved. Turn off Live view to return to the keyboard's normal editor.
+While paused, the same controls show the held channel state until Resume.
 Selecting a captured Voice closes the preview and returns to that editor with
 the imported sound.
 

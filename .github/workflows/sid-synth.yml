@@ -97,6 +97,7 @@ jobs:
           node scripts/sid_model_artifacts.mjs --check
           node --test test/runtime/sid8580.test.mjs test/runtime/sidsynth.test.mjs
           node --test test/sid_player_voice_snapshot.test.mjs
+          node --test test/sid_player_audio.test.mjs test/sid_player_processor.test.mjs
           npm run test:sid-synth
           node scripts/check_sid_synth_browser.cjs --out release/sid-synth-source-browser.json --screenshots release/sid-synth-source-images
           node scripts/check_sid_synth_import_browser.cjs --out release/sid-synth-import-source-browser.json --screenshots release/sid-synth-import-source-images

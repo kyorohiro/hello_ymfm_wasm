@@ -131,10 +131,10 @@ sidImporter=createSidImport({
   getInstrumentRevision:()=>`${revision}/${importSequence}`,
   onUpdate(state){
     sidImportPanel.update(state);const observation=sidLiveView.update(state);
-    const observing=Boolean(state.liveEnabled&&state.playing);
+    const observing=Boolean(state.liveEnabled&&(state.playing||state.paused||state.pausing||state.resuming));
     editor.observe(observing?observation:null,{active:observing});
     $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
-    $('voiceHeading').textContent=observing?`Your sound · Live CH ${(state.liveVoice??0)+1}`:'Your sound';
+    $('voiceHeading').textContent=observing?`Your sound · ${state.paused?'Paused':'Live'} CH ${(state.liveVoice??0)+1}`:'Your sound';
     if(previewEngine)visualizer.setRunning(Boolean(state.playing));
   },
   async onPreviewStart(engine,{isCurrent=()=>true}={}){
@@ -154,7 +154,7 @@ sidImporter=createSidImport({
 });
 function stopSongForKeyboard(){
   const state=sidImporter?.read();
-  return state&&(state.playing||state.starting)?sidImporter.stop({cancelLoad:false}):Promise.resolve();
+  return state&&(state.playing||state.starting||state.paused||state.pausing||state.resuming)?sidImporter.stop({cancelLoad:false}):Promise.resolve();
 }
 
 const keyboard=document.createElement('div');keyboard.className='keyboard';$('keyboard').append(keyboard);

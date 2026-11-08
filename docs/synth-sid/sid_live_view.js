@@ -145,11 +145,13 @@ export function createSidLiveView({root}) {
     const voice = Number.isInteger(state.liveVoice) && state.liveVoice >= 0 && state.liveVoice <= 2 ? state.liveVoice : 0;
     const enabled = state.liveEnabled !== false;
     const waiting = Boolean(state.liveWaiting && enabled);
+    const paused = Boolean(state.paused && !state.resuming);
     const active = Boolean(state.liveActive && enabled && !waiting);
     root.dataset.liveEnabled = String(enabled);
     root.dataset.liveVoice = String(voice);
     root.dataset.liveActive = String(active);
     root.dataset.liveWaiting = String(waiting);
+    root.dataset.livePaused = String(paused);
     let observation = null;
     try {
       if (state.liveState) observation = readSidLiveVoice(state.liveState, voice);
@@ -163,14 +165,17 @@ export function createSidLiveView({root}) {
     const liveSource = state.liveSource;
     const sourceLabel = liveSource && typeof liveSource.name === 'string'
       ? ` from ${liveSource.name}${Number.isInteger(liveSource.subtune) ? ` · subtune ${liveSource.subtune}` : ''}` : '';
-    heading.textContent = `${active ? 'Live ' : ''}CH ${voice + 1}${observation ? ` · ${waiting ? 'last observed ' : ''}${observation.model}${observation.model === '8580' ? ' Preview' : ''}` : ''}`;
+    heading.textContent = `${paused ? 'Paused ' : active ? 'Live ' : ''}CH ${voice + 1}${observation ? ` · ${waiting ? 'last observed ' : ''}${observation.model}${observation.model === '8580' ? ' Preview' : ''}` : ''}`;
     root.dataset.liveFrames = observation ? String(observation.positionFrames) : '';
     root.dataset.liveModel = observation?.model ?? '';
     root.dataset.liveSourceName = observation && liveSource ? String(liveSource.name ?? '') : '';
     root.dataset.liveSourceSubtune = observation && Number.isInteger(liveSource?.subtune) ? String(liveSource.subtune) : '';
-    root.dataset.state = state.liveError ? 'error' : waiting ? 'waiting' : active && observation ? 'live' : observation ? 'frozen' : 'idle';
+    root.dataset.state = state.liveError ? 'error' : state.pausing ? 'pausing' : state.resuming ? 'resuming' : paused && observation ? 'paused' : waiting ? 'waiting' : active && observation ? 'live' : observation ? 'frozen' : 'idle';
     status.textContent = state.liveError
       ? state.liveMessage || 'Live observation failed. Last display kept.'
+      : state.pausing ? 'Pausing the song. Waiting for its held channel state…'
+      : state.resuming ? 'Resuming the same song position…'
+      : paused && observation ? `Paused · channel state${sourceLabel} is held. Inspect channels, Capture voices or Resume.`
       : waiting ? `Waiting for current playback observation.${observation ? ` Previous observation${sourceLabel} remains shown.` : ''}`
       : active && observation ? `Live · selected CH follows the playing SID${sourceLabel}.`
       : observation ? `Frozen · ${enabled ? 'playback observation stopped' : 'Live display off'}. Last observed values${sourceLabel} are shown.`

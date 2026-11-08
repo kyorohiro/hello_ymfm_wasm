@@ -38,7 +38,7 @@ function createLiveFixture(base){
 
 function instrument(){
   const audit=window.__sidImportAudit={contexts:[],nodes:[],sinks:[],messages:[],processorErrors:[],
-    captureRequests:[],captureReplies:[],nextId:0,canvasDraws:0,playerReadsPending:0,playerReadsMax:0};
+    captureRequests:[],captureReplies:[],transportReplies:[],nextId:0,canvasDraws:0,playerReadsPending:0,playerReadsMax:0};
   const Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode;
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,ports=new WeakMap();
   const clearRect=CanvasRenderingContext2D.prototype.clearRect;
@@ -67,6 +67,15 @@ function instrument(){
       this.port.addEventListener('message',event=>{
         const request=requests.get(event.data?.id);if(!request||request.received)return;
         request.received=true;if(request.read)audit.playerReadsPending--;
+        if(ownerTransport(request.method)){
+          audit.transportReplies.push({id:event.data.id,method:request.method,state:event.data.value,error:event.data.error??null});
+          const flag=request.method==='pause'?'holdPauseReply':'holdResumeReply';
+          if(audit[flag]){
+            audit[flag]=false;event.stopImmediatePropagation();
+            const release=request.method==='pause'?'releasePauseReply':'releaseResumeReply';
+            audit[release]=()=>{audit[release]=null;this.port.dispatchEvent(new MessageEvent('message',{data:event.data}));};
+          }
+        }
         if(!request.capture)return;
         audit.captureReplies.push({id:event.data.id,state:event.data.value,error:event.data.error??null});
         if(audit.holdCaptureReply){
@@ -84,10 +93,11 @@ function instrument(){
       if(capture){audit.markCapture=false;audit.captureRequests.push(data.id);}
       const read=owner.kind==='player'&&data.method==='read';
       if(read){audit.playerReadsPending++;audit.playerReadsMax=Math.max(audit.playerReadsMax,audit.playerReadsPending);}
-      owner.requests.set(data.id,{capture,read,received:false});
+      owner.requests.set(data.id,{capture,read,method:data.method,received:false});
     }
     return post.call(this,data,...args);
   };
+  function ownerTransport(method){return method==='pause'||method==='resume';}
   AudioNode.prototype.connect=function(destination,...args){
     if(destination===this.context.destination){
       const analyser=this.context.createAnalyser(),mute=this.context.createGain();analyser.fftSize=8192;mute.gain.value=0;
@@ -121,7 +131,7 @@ function instrument(){
 async function checkBrowser(name,engine,origin,helpers){
   const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
-  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[];
+  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[],pauseObservations=[];
   let page,stage='startup',holdNextPlayerWasm=false,releaseWasm;
   const check=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
@@ -164,6 +174,34 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(await page.locator('#sidImportCapture').isDisabled(),false);if(audible)await sound('player');
     }
     async function stopPreview(){await page.locator('#sidImportStop').click();await page.waitForFunction(()=>__sidImportAudit.active('player').length===0);await silent('player');}
+    const frozenCore=state=>Object.fromEntries([
+      'model','backend','clockHz','sampleRate','positionFrames','cycles','sidCycles','bootCycles','initCycles',
+      'initReturned','initPending','playCalls','irqCount','nmiCount','writeCount','readCount','pc','registers','voices',
+      'hostDcHz','lastCpuReads','format','timing','subtune','environment','targetSelection','relocation',
+    ].filter(key=>key in state).map(key=>[key,state[key]]));
+    const playerIdentity=()=>page.evaluate(()=>{
+      const node=__sidImportAudit.active('player').at(-1);
+      return {node:__sidImportAudit.nodes.indexOf(node),context:__sidImportAudit.contexts.indexOf(node?.context),
+        contexts:__sidImportAudit.contexts.length,loads:__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method==='load').length};
+    });
+    async function pausePreview(){
+      const count=await page.evaluate(()=>__sidImportAudit.transportReplies.filter(reply=>reply.method==='pause').length);
+      await page.locator('#sidImportPause').click();
+      await page.waitForFunction(()=>document.getElementById('sidImportStatus').dataset.state==='paused');
+      const reply=await page.evaluate(count=>__sidImportAudit.transportReplies.filter(reply=>reply.method==='pause')[count],count);
+      assert(reply&&!reply.error,'Pause did not return a coherent Worklet ACK');
+      assert.equal(reply.state.playing,false);assert.equal(reply.state.paused,true);
+      assert.match(await page.locator('#sidImportPause').textContent(),/Resume/);
+      assert.equal(await page.locator('#sidImportPlay').isDisabled(),true);
+      assert.equal(await page.locator('#sidImportCapture').isDisabled(),false);
+      await silent('player');return reply.state;
+    }
+    async function resumePreview(){
+      await page.locator('#sidImportPause').click();
+      await page.waitForFunction(()=>document.getElementById('sidImportStatus').dataset.state==='playing');
+      assert.match(await page.locator('#sidImportPause').textContent(),/Pause/);
+      await waitState('player',state=>state.playing&&!state.paused);await sound('player');
+    }
     async function setLive(value){
       await page.locator('#sidLiveEnabled').evaluate((input,value)=>{input.checked=value;input.dispatchEvent(new Event('change',{bubbles:true}));},value);
       await page.waitForFunction(value=>document.getElementById('sidLiveView').dataset.liveEnabled===String(value),value);
@@ -351,6 +389,19 @@ async function checkBrowser(name,engine,origin,helpers){
         mask|(document.querySelector(`[data-choice-for="waveform"][data-value="${wave}"]`).getAttribute('aria-pressed')==='true'?bit:0),0);
       return {waveforms:String(mask),pulseWidth:field('pulseWidth'),adsr:['attack','decay','sustain','release'].map(field).join('/')};
     });
+    async function checkPausedUi(state,voice=0){
+      await page.waitForFunction(frame=>Number(document.getElementById('sidLiveView').dataset.liveFrames)===frame,state.positionFrames);
+      const base=voice*7,registers=state.registers,values=await editorValues();
+      assert.equal(await page.locator('#sidLiveView').isVisible(),true);
+      assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'true');
+      assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-voice'),String(voice));
+      assert.equal(values.waveforms,String(registers[base+4]&0xf0));
+      assert.equal(values.pulseWidth,String(registers[base+2]|(registers[base+3]&15)<<8));
+      assert.equal(values.adsr,[registers[base+5]>>4,registers[base+5]&15,registers[base+6]>>4,registers[base+6]&15].join('/'));
+      assert.equal(await liveValue('frequencyRegister'),String(registers[base]|registers[base+1]<<8));
+      assert.equal(await liveValue('gate'),String(Boolean(registers[base+4]&1)));
+      assert.equal(await page.locator('#attack').isDisabled(),true);
+    }
     const rememberEditor=()=>page.evaluate(()=>{
       const root=document.getElementById('voiceEditor'),box=root.getBoundingClientRect();
       const ids=['filterCard','voiceCard','modulationCard','filterCutoff','pulseWidth','attack','modulationRatio'];
@@ -467,6 +518,90 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual((await savedPreset()).value,edited);
     liveObservations.push({model:'8580',voice:0,frame:await liveFrame(),envelope:'unavailable'});
 
+    for(const entry of [
+      {label:'6581 VBI',fixture:helpers.pair6581},
+      {label:'6581 CIA',fixture:helpers.cia,subtune:2},
+      {label:'6581 RSID',fixture:helpers.rsid},
+      {label:'8580 VBI',fixture:helpers.pair8580},
+    ]){
+      check(`${entry.label} Pause freezes the real CPU/SID state for Capture and Resume continues the same engine`);
+      await load(entry.fixture.bytes,`pause-${entry.label.replaceAll(' ','-')}.sid`);
+      if(entry.subtune){await page.locator('#sidImportSubtuneUp').click();await page.waitForFunction(()=>/2\s*\/\s*2/.test(document.getElementById('sidImportSubtuneValue').textContent));}
+      await page.locator('[data-sid-live-voice="0"]').click();await setLive(true);await preview();await waitLive();
+      const identity=await playerIdentity(),beforePausePreset=(await savedPreset()).value;
+      const paused=await pausePreview();await checkPausedUi(paused);
+      const expected=frozenCore(paused),firstRead=await read('player');assert.deepEqual(frozenCore(firstRead),expected);
+      await page.waitForTimeout(200);const later=await read('player');
+      assert.equal(later.paused,true);assert.equal(later.playing,false);assert.deepEqual(frozenCore(later),expected);
+      assert.deepEqual(await playerIdentity(),identity,'Pause replaced or reloaded the C64 engine');
+      const captured=await capture();assert.deepEqual(frozenCore(captured),expected,'Capture did not read the stopped state');
+      await setLive(true);await checkPausedUi(paused);assert.deepEqual((await savedPreset()).value,beforePausePreset);
+      await resumePreview();const resumed=await waitState('player',state=>state.positionFrames>paused.positionFrames);
+      assert.equal(resumed.paused,false);assert.deepEqual(await playerIdentity(),identity,'Resume replaced or reloaded the C64 engine');
+      pauseObservations.push({case:entry.label,model:paused.model,subtune:paused.subtune,pauseFrames:paused.positionFrames,
+        resumedFrames:resumed.positionFrames,cycles:paused.cycles,sidCycles:paused.sidCycles,exactPausedReads:2,captureMatches:true,identity});
+      await stopPreview();
+    }
+
+    check('paused CH switching and Live toggling inspect the fixed ACK without advancing the song or unmuting on Master changes');
+    await load(helpers.live.bytes,'paused-live-ch.sid');await setLive(true);await preview();await waitLive();
+    const pausedChannels=await pausePreview(),pausedExpected=frozenCore(pausedChannels),pausedIdentity=await playerIdentity();
+    await page.locator('[data-sid-live-voice="1"]').click();await checkPausedUi(pausedChannels,1);
+    const channelsCapture=await capture();assert.deepEqual(frozenCore(channelsCapture),pausedExpected);
+    await setLive(true);await checkPausedUi(pausedChannels,1);
+    await page.waitForTimeout(100);const pausedReadCount=await applicationReadCount();
+    await setLive(false);assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'false');
+    await setLive(true);await checkPausedUi(pausedChannels,1);
+    await page.locator('#masterVolume').evaluate(input=>{input.value='3.8';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    await page.waitForTimeout(240);await silent('player');assert.equal(await applicationReadCount(),pausedReadCount,'Paused observation kept polling');
+    assert.deepEqual(frozenCore(await read('player')),pausedExpected);assert.deepEqual(await playerIdentity(),pausedIdentity);
+    await page.locator('#masterVolume').evaluate(input=>{input.value='.7';input.dispatchEvent(new Event('input',{bubbles:true}));});
+
+    check('cancelled and invalid file selection retain the accepted paused instance and exact stopped state');
+    const pausedInfo=await page.locator('#sidImportInfo').textContent(),pausedAuthored=(await savedPreset()).value;
+    await page.locator('#sidSoundFileInput').dispatchEvent('cancel');
+    await page.locator('#sidSoundFileInput').setInputFiles({name:'bad-paused.sid',mimeType:'application/octet-stream',buffer:Buffer.from([1,2,3])});
+    await page.waitForFunction(()=>document.getElementById('sidImportStatus').dataset.error==='true');
+    assert.equal(await page.locator('#sidImportInfo').textContent(),pausedInfo);
+    const keptPause=await read('player');assert.equal(keptPause.paused,true);assert.deepEqual(frozenCore(keptPause),pausedExpected);
+    assert.deepEqual(await playerIdentity(),pausedIdentity);assert.deepEqual((await savedPreset()).value,pausedAuthored);
+    assert.equal(await page.locator('#sidImportPause').isDisabled(),false);await stopPreview();
+
+    check('selecting a supported Voice captured while paused closes its preview and imports that fixed instrument');
+    await load(helpers.pair6581.bytes,'paused-capture-use.sid');await page.locator('[data-sid-live-voice="0"]').click();
+    await setLive(true);await preview();const pausedImport=await pausePreview(),pausedCapture=await capture();
+    assert.deepEqual(frozenCore(pausedCapture),frozenCore(pausedImport));
+    const pausedParsed=helpers.validatePlayerSid(helpers.pair6581.bytes);
+    const pausedPreset=helpers.captureSidVoices(pausedCapture,{name:pausedParsed.metadata.name,subtune:1}).voices[0].preset;assert(pausedPreset);
+    await usePreset(pausedPreset);
+
+    check('Stop fences a delayed Pause ACK and cannot leave a stale paused or playing context');
+    await preview();
+    const pauseRacePreset=(await savedPreset()).value;
+    await page.evaluate(()=>{__sidImportAudit.holdPauseReply=true;document.getElementById('sidImportPause').click();});
+    await page.waitForFunction(()=>typeof __sidImportAudit.releasePauseReply==='function');
+    await stopPreview();await page.evaluate(()=>__sidImportAudit.releasePauseReply());await page.waitForTimeout(100);
+    assert.equal(await page.evaluate(()=>__sidImportAudit.active('player').length),0);
+    assert.equal(await page.locator('#sidImportPause').isDisabled(),true);assert.equal(await page.locator('#sidImportPlay').isDisabled(),false);
+    assert.deepEqual((await savedPreset()).value,pauseRacePreset);
+
+    check('Stop fences a delayed Resume ACK and an explicit new Play owns the next preview');
+    await preview();await pausePreview();
+    await page.evaluate(()=>{__sidImportAudit.holdResumeReply=true;document.getElementById('sidImportPause').click();});
+    await page.waitForFunction(()=>typeof __sidImportAudit.releaseResumeReply==='function');
+    await stopPreview();await page.evaluate(()=>__sidImportAudit.releaseResumeReply());await page.waitForTimeout(100);
+    assert.equal(await page.evaluate(()=>__sidImportAudit.active('player').length),0);
+    assert.deepEqual((await savedPreset()).value,pauseRacePreset);
+    await preview();await pausePreview();await resumePreview();await pausePreview();
+
+    check('a keyboard attack retires a paused preview before the authored Synth note sounds');
+    const pausedKeyboardPreset=(await savedPreset()).value;
+    await page.keyboard.down(firstKey);await sound('synth');
+    await page.waitForFunction(()=>__sidImportAudit.active('player').length===0);
+    assert.deepEqual((await read('synth')).preset,pausedKeyboardPreset);await page.keyboard.up(firstKey);await stopSynth();
+    // Leave a paused preview visible for both responsive screenshots.
+    await setLive(true);await preview();await pausePreview();
+
     check('desktop/mobile import controls stay in one page without horizontal overflow or remote assets');
     await openImports();
     for(const width of [1180,390]){
@@ -478,7 +613,7 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
     assert.deepEqual(await page.evaluate(()=>__sidImportAudit.processorErrors),[]);
     const muted=await page.evaluate(()=>__sidImportAudit.sinks.every(s=>s.mute.gain.value===0));assert(muted);
-    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
+    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,pauseObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
     console.log(`PASS ${name}: ${checks.length} direct SID import checks; every physical output muted.`);
   }catch(error){
     if(config.screenshots&&page)await page.screenshot({path:path.join(config.screenshots,`${name}-failed.png`),fullPage:true}).catch(()=>{});

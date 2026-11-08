@@ -214,3 +214,17 @@ test('a pending first observation identifies retained values as previous rather 
   assert.match(f.status(), /Live.*from New tune · subtune 1/);
   assert.doesNotMatch(f.status(), /Previous tune|last observed/);
 });
+
+test('Pause labels the held coherent frame and CH selection inspects it without changing its position', () => {
+  const f=fixture(),raw=playerState(),before=structuredClone(raw);
+  f.view.update({liveEnabled:true,liveActive:false,paused:true,liveVoice:0,liveState:raw,
+    liveSource:{name:'Held tune',subtune:2,model:'6581'}});
+  assert.equal(f.root.dataset.state,'paused');assert.equal(f.root.dataset.livePaused,'true');
+  assert.equal(f.root.dataset.liveFrames,String(raw.positionFrames));assert.match(f.status(),/^Paused.*Held tune/);
+  f.view.update({liveEnabled:true,liveActive:false,paused:true,liveVoice:1,liveState:raw});
+  assert.equal(f.field('frequencyRegister').dataset.value,'8000');
+  assert.equal(f.root.dataset.liveFrames,String(raw.positionFrames));assert.deepEqual(raw,before);
+  f.view.update({liveEnabled:true,liveActive:false,paused:true,resuming:true,liveVoice:1,liveState:raw});
+  assert.equal(f.root.dataset.state,'resuming');assert.equal(f.root.dataset.livePaused,'false');
+  assert.match(f.status(),/^Resuming/);
+});

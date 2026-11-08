@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 export const SID_PLAYER_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['load', 'start', 'stop', 'read']);
+const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read']);
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('SID player Master must be from 0 to 3.8');

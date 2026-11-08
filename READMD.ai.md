@@ -50,6 +50,16 @@ serializes Capture with these reads and fences old responses on lifecycle change
 Turning Live mode off returns to the normal editor. This sampled display can
 miss fast writes, and the 8580 live Envelope remains unavailable. Captured
 Voice buttons still use one fixed capture batch, not a continuously changing preset.
+SID Synth preview also supports `sid_import.pause()` / `resume()` with explicit
+paused / pausing / resuming state. Shared Player audio/processor commands `pause`
+and `resume` retain the same core; Pause never calls core.stop/load or advances
+its CPU/SID after acknowledgement. The Pause ACK supplies the held Live state,
+paused Capture reads it coherently, and CH selection/toggles do not poll or clock
+the core. Resume activates the existing AudioContext in the original gesture
+before continuing that same engine. Stop, keyboard attacks, disposal and accepted
+replacements retire paused/transitioning ownership as well. A 5 ms processor
+post-mix bridge softens transport edges only; initial ordinary Play PCM and all
+DSP/WASM/SDK inputs remain unchanged. The regular Player page keeps its existing UI.
 A separate
 browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
 v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64

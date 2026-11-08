@@ -38,6 +38,18 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: SID試聴のPause／Resume（2026-11-08）
+
+ユーザー承認: 変化の速い音色を狙って取り込めるよう、再生を一時停止し、同じUIでCHを確認・Captureして続きから再開する。
+
+- [x] 専用Pause／Resumeを追加し、Pause ACK以降は同じC64／SID instanceの進行を止め、Resumeで続きから再生する。Stop／再loadと区別し、Native DSP／WASM／固定SDKは変更しない。
+- [x] 一時停止時の一貫したWorklet状態を共通UIへ固定表示する。停止中のCH切替・Live On／Off・Captureを可能にし、Capture結果と止めた時点の状態を一致させる。
+- [x] Pause／Resume中のStop・file／subtune／model変更・古い応答・previewエラー・dispose・鍵盤への切替で所有権を守る。Master変更で停止中の出力が復帰しないようにする。
+- [x] 一時停止／再開に限る5msのhost出力bridgeを加えた。Pause中はchipをclockせず、通常再生・元のchip状態や進行は変更しない。
+- [x] 実6581／8580・VBI／CIA／RSIDの保持・再開PCMを確認した。unitはSynth135＋Player136＝271件、Chromium／WebKitのsource／独立ZIPと通常Player回帰は計286項目が成功。README・CI・可読配布・再開記録を更新した。
+
+結果と再開手順: [Pause／Resume](sid_synth_pause_result_01.md)。`Play song → Pause → CH確認／Capture → Resume`。CaptureしたVoiceを選ぶと試聴を閉じて鍵盤へ取り込む。実聴・長時間・実Safari／WKWebView、commit／push／公開は後続。
+
 ### 今回の続き: Liveも編集と同じUIで表示する（2026-11-08）
 
 ユーザー指摘: Live時に別の表へ切り替わると、どの項目が変わったか把握しにくい。同じ配置のつまみ・ボタンを使って追従表示する。

@@ -36,7 +36,7 @@
 
     <details id="sidImportTools" class="sid-card sid-import-tools" open><summary>Sounds from SID</summary>
       <div class="sid-card-content">
-        <div class="sid-import-actions"><button id="loadSidSound" class="primary" type="button">Load SID…</button><button id="sidImportPlay" type="button" disabled>Play song</button><button id="sidImportStop" type="button" disabled>Stop song</button><button id="sidImportCapture" type="button" disabled>Capture voices</button></div>
+        <div class="sid-import-actions"><button id="loadSidSound" class="primary" type="button">Load SID…</button><button id="sidImportPlay" type="button" disabled>Play song</button><button id="sidImportPause" type="button" disabled>Pause</button><button id="sidImportStop" type="button" disabled>Stop song</button><button id="sidImportCapture" type="button" disabled>Capture voices</button></div>
         <input id="sidSoundFileInput" class="file-input" type="file" accept=".sid,audio/prs.sid,application/octet-stream" aria-label="Choose a SID song for voice capture">
         <p id="sidImportInfo" class="sid-help">Open a SID file, play the song, then capture a voice for this keyboard.</p>
         <div class="sid-import-options">
@@ -49,6 +49,7 @@
         <p id="sidImportVoicePreview" class="sid-help sid-import-preview">No snapshot captured.</p>
         <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About SID voice import">?</summary><div class="sid-help-panel">
           <p class="sid-help">An instantaneous voice snapshot. Playing a Synth key restarts pitch and ADSR; elapsed Envelope, phase and later song automation are not restored. Independent Sync / Ring pairs retain their frequency ratio. Some waveforms and connections are unavailable with a reason.</p>
+          <p class="sid-help">Pause holds the song and its current channel settings. Inspect CH 1 / 2 / 3 or Capture voices while paused, then Resume to continue from that position. Selecting a captured Voice stops the preview and loads the keyboard instrument.</p>
           <p class="sid-help">PAL · one SID · supported PSID / RSID v2 · built-in C64 environment. Unknown/either hints use PAL / 6581 in Auto. For Direct VBI or your C64 ROMs, use <a href="../sid-player/index.html">SID Player</a> and save a preset.</p>
         </div></details>
       </div>

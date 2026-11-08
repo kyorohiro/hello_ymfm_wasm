@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Verify the final Pause/Resume SID Synth distribution against current authored sources; unchanged Native kits reuse previously measured package evidence.",
+  "archive": {
+    "path": "release/tetorica_sid_synth_20261108-pause_itch.zip",
+    "bytes": 2944552,
+    "sha256": "476d63d95cc95990d0062618df3944dbceb52842f0533cf92843a2fef4fee1cc",
+    "files": 262,
+    "crcVerified": true,
+    "allEntriesAndBytesMatchDirectories": [
+      "release/itch_sid_synth_20261108-pause-luH3n8",
+      "build/validation/sid-synth-pause-zip"
+    ]
+  },
+  "originalInputs": {
+    "count": 195,
+    "allCurrentHashesAndBytesMatch": true,
+    "nestedArchiveCrcAndInventoryVerified": true,
+    "sourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1175991,
+      "sha256": "6cd789f186ddacc63a37bd3a872b4c0df160cec320d9d22f12b06e8be314a6af"
+    }
+  },
+  "readableModules": {
+    "count": 34,
+    "allAuthoredBytesMatch": true,
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "liveObserverModuleIncluded": true,
+    "localImportTargetsVerified": 55,
+    "staticAssetUrlsVerified": 8,
+    "workletIncluded": true,
+    "bothIndependentEntryAssetsResolve": true,
+    "liveViewPresentAndExtraUseButtonAbsent": true
+  },
+  "nativeKits": [
+    {
+      "component": "sid",
+      "compiledInputs": 13,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid/": 29,
+        "generated/sid/": 2
+      }
+    },
+    {
+      "component": "sid-player",
+      "compiledInputs": 14,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-player/": 15,
+        "generated/sid-player/": 2
+      }
+    },
+    {
+      "component": "sid-rsid",
+      "compiledInputs": 29,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-rsid/": 30,
+        "generated/sid-rsid/": 2
+      }
+    },
+    {
+      "component": "sid8580-machine",
+      "compiledInputs": 99,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid8580-machine/": 130,
+        "generated/sid8580-machine/": 3
+      }
+    }
+  ],
+  "wasmAssets": [
+    {
+      "path": "generated/sid-player/sid-player.wasm",
+      "bytes": 74312,
+      "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid/sid.wasm",
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce",
+      "equalsPreviouslyVerifiedWasm": true
+    }
+  ],
+  "priorPackageEvidence": {
+    "path": "docs/issues/sid_synth_shared_live_ui_package_01.json",
+    "bytes": 7376,
+    "sha256": "5a905961bacb0a28e69add7b765bf60fa055b21053c3179ea6d4893c40988261",
+    "validatedEarlierInThisSession": true,
+    "matchesCommittedHead": true,
+    "priorReleaseArchiveAvailableThisRun": false,
+    "passed": true,
+    "previouslyVerifiedExtraction": "build/validation/sid-synth-shared-live-ui-zip",
+    "priorOriginalSourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1173873,
+      "sha256": "6a75597fd3b5c463ace4a452a16adc367640548994d37de1b2b5550a470c48bd"
+    },
+    "priorOriginalSourceArchiveHashAndCrcVerified": true,
+    "previousReleaseZipAvailableThisRun": false
+  },
+  "compilerInvocationPerformedThisRun": false,
+  "nativeEvidencePolicy": "No Native compiler run or deep rebuild-chain repetition in this verification. All four Native source/generated trees were compared byte-for-byte with its previously verified extraction. Every compiled input also matches the prior original-source ZIP authenticated by the prior proof; all five WASM hashes match that proof. Previous independent-build and ABI evidence is reused only for these unchanged bytes.",
+  "musicUserRomOrNativeBinaryIncluded": false,
+  "pauseResumeUiAndCommandsIncluded": true,
+  "hostTransport": {
+    "changedBrowserModules": [
+      {
+        "path": "sid-player/audio.js",
+        "current": {
+          "bytes": 8045,
+          "sha256": "8e1e1257a675aac4389416154dc124215cf93077df2c26272746becf48056a5d"
+        },
+        "prior": {
+          "bytes": 8026,
+          "sha256": "6146144688bdff27026497ec8d062df16baa77bb92acd7b5fdc07d16ad885c74"
+        },
+        "changed": true
+      },
+      {
+        "path": "sid-player/processor.js",
+        "current": {
+          "bytes": 5279,
+          "sha256": "9429a0d7f9b633a56b9f7af97a0e1ea38d030aa81806a13da3cc1c06815c6a14"
+        },
+        "prior": {
+          "bytes": 3460,
+          "sha256": "663755c8159fc4fc8861a6404bfcdf56f6502a5a63a0bd29d5e3ffb411224dde"
+        },
+        "changed": true
+      }
+    ],
+    "description": "The shared browser Player command allowlist and AudioWorklet transport output changed for Pause/Resume, including a 5 ms output bridge. The Native source kits and WASMs remain byte-identical; this proof does not claim the whole browser processor is unchanged."
+  },
+  "browserEvidence": [
+    {
+      "path": "docs/issues/sid_synth_pause_browser_01.json",
+      "bytes": 28883,
+      "sha256": "ee32862bd491004c089ced0d9b888ea5e47bdfbc1ea84c40cbbce9b3ab2683fe",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 38
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 38
+        }
+      ],
+      "checks": 76
+    },
+    {
+      "path": "docs/issues/sid_synth_pause_zip_browser_01.json",
+      "bytes": 28864,
+      "sha256": "9a360f7606074daf89dbc05278cf4acc0995cbf758c4f0a64ef0a622917030d8",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 38
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 38
+        }
+      ],
+      "checks": 76
+    },
+    {
+      "path": "docs/issues/sid_synth_pause_regression_01.json",
+      "bytes": 22514,
+      "sha256": "9e2634a64768315a61b3b581cac478b9517b5fc5ec68dc7284a77dc197bc934b",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 16
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 16
+        }
+      ],
+      "checks": 32
+    },
+    {
+      "path": "docs/issues/sid_synth_pause_zip_regression_01.json",
+      "bytes": 21293,
+      "sha256": "8d21a040986e24db9516a00f35c0a6d2e18b9d0f2e0164ff80d8f1e1d9bb70cf",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 16
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 16
+        }
+      ],
+      "checks": 32
+    },
+    {
+      "path": "docs/issues/sid_synth_pause_player_regression_01.json",
+      "bytes": 995445,
+      "sha256": "b24df7b4c08b18347b95028e4f38aff3c9ec42b281e9c408333a7dfe44e3d812",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 35
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 35
+        }
+      ],
+      "checks": 70
+    }
+  ],
+  "browserChecks": 286
+}

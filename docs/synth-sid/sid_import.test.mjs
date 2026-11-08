@@ -40,9 +40,15 @@ function harness(){
         async command(method,args=[]){
           this.messages.push({method,args});events.push([method,this]);
           const wait=config[method+'Wait'];config[method+'Wait']=null;if(wait)await wait.promise;
+          const cause=config[method+'Error'];config[method+'Error']=null;if(cause)throw cause;
           if(method==='load')this.loaded={bytes:Uint8Array.from(args[0]),options:{...args[1]}};
-          return snapshot(model);
+          const state=config[method+'State']??snapshot(model);
+          if(method==='pause')return {...state,playing:false,paused:true};
+          if(method==='resume')return {...state,playing:true,paused:false};
+          return state;
         },
+        resume(){events.push(['contextResume',this]);const cause=config.contextResumeError;config.contextResumeError=null;
+          if(cause)throw cause;const wait=config.contextResumeWait;config.contextResumeWait=null;return wait?wait.promise:Promise.resolve();},
         read(){this.messages.push({method:'read'});const wait=config.readWait,cause=config.readError;config.readWait=null;config.readError=null;
           return wait?wait.promise:cause?Promise.reject(cause):Promise.resolve(config.readState??snapshot(model));},
         setVolume(value){this.volumes.push(value);},
@@ -360,4 +366,126 @@ test('restart and accepted replacement retain a frozen old source until the new 
   assert.deepEqual(h.controller.read().liveSource,oldSource);assert.equal(h.controller.read().liveActive,false);assert.equal(h.controller.read().liveWaiting,true);
   await h.tick();assert.equal(h.controller.read().liveSource.model,'8580');assert.equal(h.controller.read().liveState.model,'8580');assert.equal(h.controller.read().liveActive,true);
   await h.controller.dispose();
+});
+
+
+test('Pause publishes its exact coherent ACK, freezes polling and supports CH selection and Capture without another engine',async()=>{
+  for(const model of ['6581','8580']){
+    const h=harness();await h.controller.loadFile(file(authored(model)));await h.controller.play();await h.tick();
+    const before=h.controller.read().liveState,ack=snapshot(model);ack.positionFrames=32768;ack.registers[2]=83;ack.voices[0].envelope=model==='8580'?null:91;
+    h.config.pauseState=ack;const wait=deferred();h.config.pauseWait=wait;
+    const pending=h.controller.pause();assert(h.controller.read().pausing);assert(h.controller.read().busy);assert(!h.controller.read().canCapture);assert.equal(h.timers.size,0);
+    assert.equal(await h.controller.pause(),false);assert.equal(await h.controller.resume(),false);assert.equal(await h.controller.play(),false);
+    wait.resolve();assert.equal(await pending,true);const view=h.controller.read();
+    assert(view.paused);assert(!view.playing);assert(!view.pausing);assert(view.canResume);assert(view.canCapture);assert(view.canStop);assert(!view.canPlay);assert(!view.liveActive);assert(!view.liveWaiting);
+    assert.notDeepEqual(view.liveState,before);assert.deepEqual(view.liveState,{...ack,playing:false,paused:true});assert.equal(h.timers.size,0);
+    view.liveState.registers[2]=0;assert.equal(h.controller.read().liveState.registers[2],83);
+    const messages=h.engines[0].messages.length;h.controller.setLiveVoice(2);h.controller.setLiveEnabled(false);h.controller.setLiveEnabled(true);
+    assert.equal(h.controller.read().liveVoice,2);assert.equal(h.engines[0].messages.length,messages);assert.equal(h.timers.size,0);assert.equal(h.controller.read().liveState.positionFrames,32768);
+    h.config.readState={...ack,playing:false,paused:true};assert.equal(await h.controller.capture(),true);
+    assert.equal(h.controller.read().snapshot.positionFrames,32768);assert.equal(h.controller.read().snapshot.model,model);assert(h.controller.read().paused);
+    assert.equal(h.engines.length,1);assert.equal(h.engines[0].messages.filter(x=>x.method==='load').length,1);assert.equal(h.used.length,0);
+    await h.controller.dispose();
+  }
+});
+
+test('Resume activates its original gesture and continues the same engine without load or capture mutation',async()=>{
+  const h=harness();await captured(h);const snapshotBefore=h.controller.read().snapshot;await h.controller.pause();const engine=h.engines[0];
+  h.setMaster(3.8);const wait=deferred();h.config.contextResumeWait=wait;
+  const pending=h.controller.resume();assert.equal(h.events.at(-1)[0],'contextResume');assert(h.controller.read().resuming);assert(h.controller.read().paused);assert.equal(h.timers.size,0);
+  assert.equal(await h.controller.resume(),false);assert.equal(await h.controller.play(),false);
+  assert.equal(engine.messages.filter(x=>x.method==='resume').length,0);wait.resolve();assert.equal(await pending,true);
+  assert(h.controller.read().playing);assert(!h.controller.read().paused);assert(!h.controller.read().resuming);assert(h.controller.read().canPause);assert.equal(h.timers.size,1);
+  assert.equal(h.engines.length,1);assert.equal(engine.disposeCount,0);assert.equal(engine.messages.filter(x=>x.method==='load').length,1);assert.equal(engine.messages.filter(x=>x.method==='resume').length,1);assert.equal(engine.volumes.at(-1),3.8);
+  assert.deepEqual(h.controller.read().snapshot,snapshotBefore);await h.controller.dispose();
+});
+
+test('a late observer reply cannot replace the exact Pause ACK while a paused Capture gets its own fixed read',async()=>{
+  const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();await h.tick();
+  const read=deferred();h.config.readWait=read;await h.tick();const ack=snapshot();ack.positionFrames=65536;h.config.pauseState=ack;
+  assert.equal(await h.controller.pause(),true);assert.equal(h.controller.read().liveState.positionFrames,65536);assert.equal(h.timers.size,0);
+  const capturing=h.controller.capture();await flush();assert(h.controller.read().capturing);
+  const old=snapshot();old.positionFrames=12;h.config.readState={...ack,paused:true,playing:false};read.resolve(old);
+  assert.equal(await capturing,true);await flush();assert.equal(h.controller.read().liveState.positionFrames,65536);assert.equal(h.controller.read().snapshot.positionFrames,65536);assert.equal(h.timers.size,0);
+  await h.controller.dispose();
+});
+
+test('Stop, keyboard retirement, disposal and replacement fence delayed Pause or Resume ACKs',async()=>{
+  for(const kind of ['pause','resume'])for(const action of ['stop','keyboard','dispose','replacement']){
+    const h=harness();await captured(h);if(kind==='resume')await h.controller.pause();const old=h.engines[0],wait=deferred();h.config[kind+'Wait']=wait;
+    const pending=h.controller[kind]();await flush();assert(h.controller.read()[kind==='pause'?'pausing':'resuming']);
+    if(action==='replacement')assert.equal(await h.controller.loadFile(file(authored('8580'),'new.sid')),true);
+    else if(action==='dispose')await h.controller.dispose();else await h.controller.stop({cancelLoad:action!=='keyboard'});
+    const updates=h.updates.length;wait.resolve();assert.equal(await pending,false);await flush();assert.equal(h.updates.length,updates);
+    assert.equal(old.disposeCount,1);assert(!h.controller.read().paused);assert(!h.controller.read().playing);assert(!h.controller.read().pausing);assert(!h.controller.read().resuming);
+    if(action!=='dispose')await h.controller.dispose();
+  }
+});
+
+test('cancelled and invalid file/model selections retain an accepted paused session and its freeze frame',async()=>{
+  const h=harness();await captured(h);await h.controller.pause();const engine=h.engines[0],frozen=h.controller.read().liveState,saved=h.controller.read().snapshot;
+  const token=h.controller.beginFileSelection();assert(h.controller.read().paused);h.controller.cancelFileSelection(token);
+  assert.equal(await h.controller.loadFile(file(new Uint8Array([1,2,3]),'bad.sid')),false);
+  assert.equal(await h.controller.setModel('8580'),false);assert(h.controller.read().paused);assert.deepEqual(h.controller.read().liveState,frozen);assert.deepEqual(h.controller.read().snapshot,saved);assert.equal(engine.disposeCount,0);assert.equal(h.timers.size,0);
+  assert.equal(await h.controller.resume(),true);assert(h.controller.read().playing);assert.equal(h.engines.length,1);await h.controller.dispose();
+});
+
+test('file selection during a dispatched transport preserves its actual ACK while failed candidates keep that accepted session',async()=>{
+  for(const kind of ['pause','resume']){
+    const h=harness();await captured(h);if(kind==='resume')await h.controller.pause();const wait=deferred();h.config[kind+'Wait']=wait;
+    const pending=h.controller[kind]();await flush();const token=h.controller.beginFileSelection();
+    assert.equal(await h.controller.loadFile(file(new Uint8Array([1]),'bad.sid'),{selectionToken:token}),false);
+    wait.resolve();assert.equal(await pending,true);assert.equal(h.controller.read().paused,kind==='pause');assert.equal(h.controller.read().playing,kind==='resume');assert.equal(h.engines[0].disposeCount,0);
+    await h.controller.dispose();
+  }
+});
+
+test('transport failures close an uncertain preview once and preserve the file, captured instrument and authored preset',async()=>{
+  for(const phase of ['pause','resume','contextResume']){
+    const h=harness();await captured(h);const saved=h.controller.read().snapshot,selection=h.controller.read().selection;
+    if(phase!=='pause')await h.controller.pause();h.config[phase+'Error']=Error('Transport unavailable');
+    assert.equal(await h.controller[phase==='pause'?'pause':'resume'](),false);await flush();
+    assert.equal(h.engines[0].disposeCount,1);assert(!h.controller.read().paused);assert(!h.controller.read().playing);assert(h.controller.read().canPlay);assert.equal(h.used.length,0);
+    assert.deepEqual(h.controller.read().snapshot,saved);assert.deepEqual(h.controller.read().selection,selection);assert.match(h.controller.read().message,/failed.*Transport unavailable.*kept/);
+    await h.controller.dispose();assert.equal(h.engines[0].disposeCount,1);
+  }
+});
+
+test('selecting a captured voice from a paused session closes it before applying that fixed instrument',async()=>{
+  const h=harness();await captured(h);await h.controller.pause();const expected=h.controller.read().selected.preset;
+  assert.equal(await h.controller.selectVoice(0),true);assert.deepEqual(h.used,[expected]);assert.equal(h.engines[0].disposeCount,1);assert(!h.controller.read().paused);assert(!h.controller.read().playing);assert(h.controller.read().canPlay);
+  await h.controller.dispose();
+});
+
+test('accepted subtune or model replacement retires a stable paused engine while retaining its captured batch',async()=>{
+  for(const change of ['subtune','model']){
+    const h=harness(),bytes=createSidPlayerTestFixture();new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).setUint16(118,0);
+    await captured(h,bytes);await h.controller.pause();const saved=h.controller.read().snapshot,engine=h.engines[0];
+    assert.equal(await h.controller[change==='subtune'?'setSubtune':'setModel'](change==='subtune'?2:'8580'),true);
+    assert.equal(engine.disposeCount,1);assert(!h.controller.read().paused);assert(!h.controller.read().playing);assert(h.controller.read().canPlay);
+    assert.deepEqual(h.controller.read().snapshot,saved);assert.equal(h.engines.length,1);assert.equal(h.timers.size,0);
+    assert.equal(await h.controller.play(),true);assert.equal(h.engines.length,2);
+    assert.equal(h.engines[1].loaded.options.subtune,change==='subtune'?2:1);assert.equal(h.engines[1].model,change==='model'?'8580':'6581');
+    await h.controller.dispose();
+  }
+});
+
+test('Stop while context activation is pending prevents the later Resume command from reaching the retired engine',async()=>{
+  const h=harness();await captured(h);await h.controller.pause();const wait=deferred();h.config.contextResumeWait=wait;
+  const pending=h.controller.resume();assert(h.controller.read().resuming);const engine=h.engines[0];await h.controller.stop();
+  const updates=h.updates.length;wait.resolve();assert.equal(await pending,false);assert.equal(h.updates.length,updates);
+  assert.equal(engine.messages.filter(x=>x.method==='resume').length,0);assert.equal(engine.disposeCount,1);assert(!h.controller.read().paused);assert(!h.controller.read().playing);
+  await h.controller.dispose();
+});
+
+test('a transport ACK delivered under an open chooser preserves the dialog status and accepted engine state',async()=>{
+  for(const kind of ['pause','resume']){
+    const h=harness();await captured(h);if(kind==='resume')await h.controller.pause();const wait=deferred();h.config[kind+'Wait']=wait;
+    const pending=h.controller[kind]();await flush();const token=h.controller.beginFileSelection();assert.match(h.controller.read().message,/Choose a SID/);
+    wait.resolve();assert.equal(await pending,true);assert(h.controller.read().choosingFile);assert.match(h.controller.read().message,/Choose a SID/);
+    assert.equal(h.controller.read().paused,kind==='pause');assert.equal(h.controller.read().playing,kind==='resume');
+    assert.equal(h.controller.cancelFileSelection(token),true);assert.equal(h.engines[0].disposeCount,0);
+    assert.equal(h.controller.read().canResume,kind==='pause');assert.equal(h.controller.read().canPause,kind==='resume');
+    await h.controller.dispose();
+  }
 });

@@ -1,5 +1,7 @@
 # SID Synth: Live／編集の共通UIと「？」ヘルプ（2026-11-08）
 
+後続変更: [Pause／Resume](sid_synth_pause_result_01.md)で試聴の一時停止と、保持した状態のCH確認／Captureを追加した。
+
 ユーザー指摘に従い、Liveの別一覧表を廃止した。**Your sound** はLiveでも編集でも、同じ波形ボタン・Pulse width・ADSR・Filter・Sync／Ring／TEST・ratio操作部を同じ場所で使う。
 
 ## 表示と操作

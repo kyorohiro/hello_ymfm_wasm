@@ -269,9 +269,9 @@ function appFixture({stall=false}={}){
   };
   const createAudio=({signal,model})=>{audioOptions.push({model});const engine=makeEngine(model);if(!isStalled)return Promise.resolve(engine);return new Promise((resolve,reject)=>{const item={resolve:()=>resolve(engine),reject,engine};pending.push(item);signal.addEventListener('abort',()=>{engine.disposed=true;reject(new DOMException('cancelled','AbortError'));},{once:true});});};
   const entries=[{key:'a',label:'A',midi:60},{key:'s',label:'S',midi:64},{key:'d',label:'D',midi:67},{key:'f',label:'F',midi:71}];
-  const importState={playing:false,starting:false},importCalls=[];
+  const importState={playing:false,starting:false,paused:false,pausing:false,resuming:false},importCalls=[];
   const importer={state:importState,calls:importCalls,read:()=>({...importState}),setVolume(){},dispose:async()=>{},
-    async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;if(importer.holdStop)await importer.holdStop;}};
+    async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
   const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
     createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(){},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
@@ -292,6 +292,17 @@ test('a keyboard gesture fences song preview immediately and waits for its close
   assert.equal(f.importer.calls.length,2,'global Stop also retires the song');assert.equal(f.ui.getNotes().length,0);
 });
 
+test('keyboard attacks retire paused or changing preview ownership before sounding the Synth',async()=>{
+  for(const mode of ['paused','pausing','resuming']){
+    const f=appFixture();let finish;f.importer.state[mode]=true;
+    f.importer.holdStop=new Promise(resolve=>{finish=resolve;});
+    f.ui.press('pointer:1',f.entries[0]);
+    assert.equal(f.importer.state[mode],false);assert.equal(f.audioOptions.length,1);
+    await flush();assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);
+    finish();await flush();await flush();assert.equal(f.calls.filter(call=>call[1]==='noteOn').length,1);
+  }
+});
+
 test('stopping Synth notes preserves the live song monitor, while global Stop still stops it',async()=>{
   const f=appFixture();await f.ui.ensureAudio();
   const preview={context:{state:'running'},outputNode:{}};
@@ -306,6 +317,11 @@ test('Live CH observation shares the visible editor without changing the authore
   assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
   assert.equal(f.doc.getElementById('sidLiveView').hidden,false);
   assert.match(f.doc.getElementById('voiceHeading').textContent,/Live CH 3/);
+  assert.deepEqual(f.ui.getPreset(),before);assert.equal(f.engines.length,0);
+  f.importer.hooks.onUpdate({playing:false,paused:true,liveEnabled:true,liveVoice:1});
+  assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
+  assert.equal(f.doc.getElementById('sidLiveView').hidden,false);
+  assert.match(f.doc.getElementById('voiceHeading').textContent,/Paused CH 2/);
   assert.deepEqual(f.ui.getPreset(),before);assert.equal(f.engines.length,0);
   f.importer.hooks.onUpdate({playing:true,liveEnabled:false,liveVoice:2});
   assert.equal(f.doc.getElementById('voiceEditor').hidden,false);

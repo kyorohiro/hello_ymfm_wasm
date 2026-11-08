@@ -45,6 +45,8 @@ Open a SID directly in the Synth's **Sounds from SID** section with
 **Load SID… → Play song → Capture voices → Voice 1/2/3**.
 Selecting a captured Voice loads it immediately. During preview, the Synth's
 **Your sound** can follow **CH 1 / CH 2 / CH 3** with **Live CH view while playing**.
+**Pause** holds the current state for CH inspection and Capture; **Resume**
+continues the same CPU / SID instance and song position.
 This passive view shows sampled register changes, including states that cannot
 be imported as presets; switch it off to return to the keyboard editor.
 This compact preview uses the built-in PAL C64 environment, without user ROMs

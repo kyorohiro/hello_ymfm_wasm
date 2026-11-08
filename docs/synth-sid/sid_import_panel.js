@@ -17,6 +17,7 @@ export function createSidImportPanel({root,liveRoot,getController}) {
     void getController().loadFile(file,token===null?undefined:{selectionToken:token}).catch(error=>message(error?.message??String(error),true));
   });
   for(const [id,method]of [['sidImportPlay','play'],['sidImportStop','stop'],['sidImportCapture','capture']])act($(id),()=>getController()[method]());
+  act($('sidImportPause'),()=>{const control=getController();return control.read().paused?control.resume():control.pause();});
   for(const [id,delta]of [['sidImportSubtuneDown',-1],['sidImportSubtuneUp',1]])act($(id),()=>{
     const selection=getController().read().selection;if(selection)return getController().setSubtune(selection.subtune+delta);
   });
@@ -33,6 +34,8 @@ export function createSidImportPanel({root,liveRoot,getController}) {
       $('sidImportPlay').disabled=state.canPlay===undefined?!selection||busy||state.playing:!state.canPlay;
       $('sidImportStop').disabled=state.canStop===undefined?!state.playing&&!state.starting&&!state.loading&&!busy:!state.canStop;
       $('sidImportCapture').disabled=state.canCapture===undefined?!state.playing||busy:!state.canCapture;
+      $('sidImportPause').disabled=!(state.canPause||state.canResume);
+      $('sidImportPause').textContent=state.pausing?'Pausing…':state.resuming?'Resuming…':state.paused?'Resume':'Pause';
       $('sidImportSubtuneDown').disabled=!selection||busy||selection.subtune<=1;
       $('sidImportSubtuneUp').disabled=!selection||busy||selection.subtune>=selection.songs;
       $('sidImportSubtuneValue').textContent=selection?`${selection.subtune} / ${selection.songs}`:'—';
@@ -45,7 +48,7 @@ export function createSidImportPanel({root,liveRoot,getController}) {
         ?`${selection.name} · ${selection.title||selection.name} · ${selection.format} · ${selection.timing} · PAL / ${selection.model}${selection.model==='8580'?' Preview':''}`
         :'Open a SID file, play the song, then capture a voice for this keyboard.';
       message(state.message??'Choose a local SID file.',Boolean(state.error));
-      $('sidImportStatus').dataset.state=state.error?'error':state.loading?'loading':state.starting?'starting':state.playing?'playing':state.snapshot?'captured':selection?'ready':'idle';
+      $('sidImportStatus').dataset.state=state.error?'error':state.loading?'loading':state.starting?'starting':state.pausing?'pausing':state.resuming?'resuming':state.paused?'paused':state.playing?'playing':state.snapshot?'captured':selection?'ready':'idle';
       for(const button of root.querySelectorAll('[data-sid-import-model]')){
         button.setAttribute('aria-pressed',String(button.dataset.sidImportModel===(selection?.modelSelection??state.modelSelection??'auto')));
         button.disabled=busy;

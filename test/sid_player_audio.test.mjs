@@ -123,6 +123,20 @@ test('SID player RPC preserves load/start FIFO and explicit disposal rejects a p
   assert.equal(f.timers.size, 0); assert.equal(f.errors.length, 0); assert.equal(f.context.closeCount, 1);
 });
 
+test('Pause/Resume use the same owned Worklet and Master never changes transport commands',async()=>{
+  const f=fixture(),audio=await f.create({volume:.7});
+  await audio.command('load',[Uint8Array.of(1),{}]);await audio.command('start');
+  const paused=await audio.command('pause');assert.equal(paused.method,'pause');
+  const gains=f.context.gains.slice(),node=f.node;
+  audio.setVolume(3.8);assert.equal(f.context.gains[1].gain.value,3.8);
+  assert.deepEqual(f.messages.map(message=>message.method),['load','start','pause'],'Master cannot restart paused playback');
+  await audio.resume();const resumed=await audio.command('resume');assert.equal(resumed.method,'resume');
+  assert.equal(f.node,node);assert.deepEqual(f.context.gains,gains);assert.equal(f.context.closeCount,0);
+  await assert.rejects(audio.command('pause',{}),/arguments/);assert.equal(f.messages.length,4);
+  f.mode('drop');const pending=audio.command('pause'),rejected=assert.rejects(pending,/disposed/);
+  await audio.dispose();await rejected;assert.equal(f.node.disposed,1);assert.equal(f.context.closeCount,1);
+});
+
 test('SID player deadlines and fatal processor failure retire sound and reject every pending RPC once', async () => {
   for (const trigger of ['deadline', 'processor', 'fatal']) {
     const f = fixture(), audio = await f.create(); f.mode('drop');

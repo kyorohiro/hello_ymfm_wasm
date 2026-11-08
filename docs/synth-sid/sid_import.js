@@ -41,14 +41,14 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   validate=validatePlayerSid,createCore=createPlayerCore,createAudio=createPlayerAudio,
   preflight=preflightSidImport,createCapture=createVoiceCapture,
   schedule=(callback,delay)=>setTimeout(callback,delay),unschedule=timer=>clearTimeout(timer)}={}){
-  let dead=false,selection=null,modelChoice='auto',loading=null,starting=null,audio=null,playing=false;
+  let dead=false,selection=null,modelChoice='auto',loading=null,starting=null,audio=null,playing=false,paused=false,transport=null,transportSerial=0;
   let choosingFile=false,applying=false,loadSerial=0,playSerial=0,useSerial=0,captureSerial=0,master=.7;
   let message='Open a SID, play the song, then capture its voices.',error=false,captureControl=null;
   let captureState={busy:false,voice:0,snapshot:null,selected:null,message:'',error:false};
   let liveEnabled=true,liveVoice=0,liveState=null,liveSource=null,liveMessage='Play a SID to follow its live channel settings.',liveError=false;
   let liveSerial=0,liveTimer=null,livePending=null,liveFresh=false;
   const closing=new Set(),disposals=new WeakMap(),reads=new WeakMap();
-  const canObserve=()=>!dead&&liveEnabled&&!!audio&&playing&&!loading&&!starting&&!choosingFile&&!applying;
+  const canObserve=()=>!dead&&liveEnabled&&!!audio&&playing&&!transport&&!loading&&!starting&&!choosingFile&&!applying;
   const publicSelection=()=>selection?{
     name:selection.name,title:selection.parsed.metadata?.name||selection.name,
     author:selection.parsed.metadata?.author||'',released:selection.parsed.metadata?.released||'',
@@ -58,15 +58,16 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     songs:selection.parsed.songs,fileSize:selection.bytes.length,
   }:null;
   function read(){
-    const busy=!!loading||!!starting||choosingFile||captureState.busy||applying;
+    const busy=!!loading||!!starting||!!transport||choosingFile||captureState.busy||applying;
     return clone({selection:publicSelection(),modelSelection:modelChoice,busy,loading:!!loading,
-      starting:!!starting,playing,choosingFile,applying,capturing:captureState.busy,voice:captureState.voice,
+      starting:!!starting,playing,paused,pausing:transport?.kind==='pause',resuming:transport?.kind==='resume',choosingFile,applying,capturing:captureState.busy,voice:captureState.voice,
       snapshot:captureState.snapshot,selected:captureState.selected,message,error,
       liveEnabled,liveVoice,liveState,liveSource,liveActive:canObserve()&&liveFresh&&!liveError,
       liveWaiting:canObserve()&&!liveFresh&&!liveError,liveMessage,liveError,
-      captureMessage:captureState.message,canPlay:!!selection&&!busy&&!playing,
-      canCapture:!!audio&&playing&&!busy,canUse:!!captureState.selected?.preset&&!busy,
-      canStop:!!loading||!!starting||playing||choosingFile||captureState.busy||applying});
+      captureMessage:captureState.message,canPlay:!!selection&&!busy&&!playing&&!paused,
+      canPause:!!audio&&playing&&!busy,canResume:!!audio&&paused&&!busy,
+      canCapture:!!audio&&(playing||paused)&&!busy,canUse:!!captureState.selected?.preset&&!busy,
+      canStop:!!loading||!!starting||playing||paused||!!transport||choosingFile||captureState.busy||applying});
   }
   const emit=()=>{if(!dead)onUpdate(read());};
   const say=(text,bad=false)=>{message=text;error=bad;emit();};
@@ -110,7 +111,9 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   function setLiveEnabled(value){
     if(typeof value!=='boolean')throw new TypeError('SID live display mode must be a boolean');
     if(dead)return;
-    liveEnabled=value;invalidateLive(value?'Waiting for the next live channel observation…':'Live view frozen. Last observed state kept.');
+    const frozen=paused&&!!audio&&!!liveState;
+    liveEnabled=value;invalidateLive(value?(frozen?'Paused channel state kept.':'Waiting for the next live channel observation…'):'Live view frozen. Last observed state kept.');
+    if(frozen)liveFresh=true;
     emit();scheduleLive();
   }
   function setLiveVoice(value){
@@ -130,7 +133,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     return done;
   }
   function retirePreview(){
-    playSerial++;invalidateCapture();invalidateLive();playing=false;
+    playSerial++;transportSerial++;transport=null;invalidateCapture();invalidateLive();playing=false;paused=false;
     const pending=starting,previous=audio;starting=null;audio=null;pending?.controller.abort();
     const tasks=[...closing];
     if(previous)tasks.push(closeEngine(previous));
@@ -213,7 +216,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     say(`SID preview stopped: ${cause.message}. Selected file and current instrument kept.`,true);
   }
   function play(){
-    if(dead||!selection||loading||starting||playing||choosingFile||applying||captureState.busy)return Promise.resolve(false);
+    if(dead||!selection||loading||starting||playing||paused||transport||choosingFile||applying||captureState.busy)return Promise.resolve(false);
     cancelUse();const tune=selection,owner={serial:++playSerial,controller:new AbortController(),engine:null};starting=owner;
     const current=()=>!dead&&starting===owner&&playSerial===owner.serial&&selection===tune;
     const previousClosing=Promise.all([...closing]);void previousClosing.catch(()=>{});
@@ -234,7 +237,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
         await engine.command('load',[tune.bytes.slice(),{...tune.options}]);
         if(!current())throw aborted();engine.setVolume(currentVolume());
         await engine.command('start');if(!current())throw aborted();
-        audio=engine;starting=null;playing=true;
+        audio=engine;starting=null;playing=true;paused=false;
         invalidateLive('Waiting for the first live channel observation…');
         say(`Playing ${tune.parsed.selectedModel} · subtune ${tune.parsed.subtune} / ${tune.parsed.songs}. Capture voices when you hear the sound you want.`);
         scheduleLive();
@@ -246,18 +249,58 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
       }
     })();
   }
+  // Transport commands own the accepted engine without replacing or reloading
+  // it. Their ACK is the fixed observation boundary, not a preceding UI poll.
+  function changeTransport(kind){
+    if(dead||!audio||loading||starting||transport||choosingFile||applying||captureState.busy||
+      (kind==='pause'?!playing:!paused))return Promise.resolve(false);
+    invalidateCapture();invalidateLive(kind==='pause'?'Waiting for the paused channel state…':'Waiting for playback to resume…');
+    const owner={kind,engine:audio,tune:selection,play:playSerial,serial:++transportSerial};transport=owner;
+    const current=()=>!dead&&transport===owner&&audio===owner.engine&&selection===owner.tune&&playSerial===owner.play&&transportSerial===owner.serial;
+    say(kind==='pause'?'Pausing the SID preview…':'Resuming the SID preview…');
+    let prepared;
+    try{
+      // Context activation must occur in Resume's original user gesture.
+      prepared=kind==='resume'?owner.engine.resume():owner.engine.command('pause');
+    }catch(cause){prepared=Promise.reject(cause);}
+    return (async()=>{
+      try{
+        let state=await prepared;if(!current())return false;
+        if(kind==='resume'){
+          owner.engine.setVolume(currentVolume());
+          state=await owner.engine.command('resume');if(!current())return false;
+        }
+        transport=null;paused=kind==='pause';playing=!paused;
+        if(paused){
+          liveState=clone(state);liveSource={name:owner.tune.parsed.metadata?.name||owner.tune.name,subtune:owner.tune.parsed.subtune,model:owner.tune.parsed.selectedModel};
+          liveFresh=true;liveError=false;liveMessage='Paused · the channel state is fixed. Inspect another CH or capture it before resuming.';
+        }else invalidateLive('Waiting for the next resumed channel observation…');
+        // A file dialog/candidate may coexist with an already dispatched
+        // transport. Complete its actual state without overwriting load status.
+        if(loading||choosingFile)emit();
+        else say(paused?'Paused. Inspect a CH, Capture voices, or Resume from this position.':'Playing from the paused position. Capture voices when you hear the sound you want.');
+        scheduleLive();return true;
+      }catch(cause){
+        if(!current())return false;
+        const done=retirePreview();void done.catch(()=>{});
+        say(`SID ${kind} failed: ${cause.message}. Preview closed; selected file, snapshot and current instrument kept.`,true);
+        return false;
+      }
+    })();
+  }
+  const pause=()=>changeTransport('pause'),resume=()=>changeTransport('resume');
   captureControl=createCapture({
     getSource:()=>{
-      if(dead||!audio||!playing||loading||starting||choosingFile||applying)return null;
-      const ownerEngine=audio,tune=selection,serial=playSerial;
-      const current=()=>!dead&&audio===ownerEngine&&selection===tune&&playing&&playSerial===serial&&!loading&&!starting&&!choosingFile;
-      return {engine:{read:()=>readApplied(ownerEngine,current)},ownerEngine,tune,serial,name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune};
+      if(dead||!audio||!(playing||paused)||transport||loading||starting||choosingFile||applying)return null;
+      const ownerEngine=audio,tune=selection,serial=playSerial,transportAtRead=transportSerial;
+      const current=()=>!dead&&audio===ownerEngine&&selection===tune&&(playing||paused)&&!transport&&playSerial===serial&&transportSerial===transportAtRead&&!loading&&!starting&&!choosingFile;
+      return {engine:{read:()=>readApplied(ownerEngine,current)},ownerEngine,tune,serial,transportAtRead,name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune};
     },
-    isCurrent:source=>!dead&&audio===source.ownerEngine&&selection===source.tune&&playing&&playSerial===source.serial&&!loading&&!starting&&!choosingFile,
+    isCurrent:source=>!dead&&audio===source.ownerEngine&&selection===source.tune&&(playing||paused)&&!transport&&playSerial===source.serial&&transportSerial===source.transportAtRead&&!loading&&!starting&&!choosingFile,
     onUpdate:state=>{captureState=state;emit();},
   });
   async function capture(){
-    if(dead||loading||starting||choosingFile||applying||captureState.busy)return false;
+    if(dead||loading||starting||transport||choosingFile||applying||captureState.busy)return false;
     const request=++captureSerial;
     message='Reading the current SID voice settings…';error=false;
     const ok=await captureControl.capture();if(dead||captureSerial!==request)return false;
@@ -267,7 +310,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   }
   function selectVoice(value){if(dead)return Promise.resolve(false);cancelUse();captureControl.selectVoice(value);return useVoice();}
   async function useVoice(){
-    if(dead||loading||starting||choosingFile||applying||captureState.busy)return false;
+    if(dead||loading||starting||transport||choosingFile||applying||captureState.busy)return false;
     const row=captureState.selected;
     if(!row?.preset){say(row?.reason||'Capture a supported voice before using it.',true);return false;}
     const next=readPreset(row.preset),request=++useSerial,instrument=getInstrumentRevision();applying=true;
@@ -287,6 +330,6 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     if(dead)return Promise.all([...closing]).then(()=>undefined);
     dead=true;cancelLoading();cancelUse();choosingFile=false;captureControl.dispose();return retirePreview();
   }
-  const control={read,loadFile,setSubtune,setModel,play,stop,capture,selectVoice,useVoice,setLiveEnabled,setLiveVoice,setVolume,beginFileSelection,cancelFileSelection,dispose};
+  const control={read,loadFile,setSubtune,setModel,play,pause,resume,stop,capture,selectVoice,useVoice,setLiveEnabled,setLiveVoice,setVolume,beginFileSelection,cancelFileSelection,dispose};
   emit();return control;
 }
