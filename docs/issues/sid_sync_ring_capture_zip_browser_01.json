@@ -1,0 +1,715 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "packaged": true,
+  "playerEntry": "/index.html",
+  "synthEntry": "/synth-dist/index.html",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "fixtures": "Original Tetorica register scenes and tiny PSID programs; no game tune, ROM dump or recorded audio",
+  "results": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "snapshot controls are folded and audio-free until explicit playback and capture",
+        "Capture now uses a fresh coherent real Worklet read and saves exactly its selected voice",
+        "Stop and new-file selection cancel delayed real capture replies while preserving the accepted snapshot",
+        "6581 real playback captures its applied model, shared filter route and hardware codes",
+        "6581 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+        "8580 real playback captures its applied model, shared filter route and hardware codes",
+        "8580 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+        "6581 physical source → carrier 1 captures Sync and exact fractional tuning",
+        "6581 physical source → carrier 2 captures Ring and exact fractional tuning",
+        "6581 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+        "8580 physical source → carrier 1 captures Sync and exact fractional tuning",
+        "8580 physical source → carrier 2 captures Ring and exact fractional tuning",
+        "8580 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+        "unsupported combined / three-voice chains / TEST and routed-all-off controls report reasons from actual authored CPU programs",
+        "dependent sources, held source TEST, zero frequencies and unsupported ratio have explicit reasons and cannot export",
+        "a no-waveform source is rejected for the 6581 phase approximation and accepted by the 8580 model"
+      ],
+      "captures": [
+        {
+          "model": "6581",
+          "capturePositionFrames": 512,
+          "captureReadId": 3,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica tone · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 2048,
+              "attack": 2,
+              "decay": 6,
+              "sustain": 12,
+              "release": 5,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": false,
+              "ratio": 1
+            },
+            "filter": {
+              "enabled": false,
+              "mode": "off",
+              "cutoff": 0,
+              "resonance": 0,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+          "model": "6581",
+          "audition": {
+            "rms": 0.006617111129910255,
+            "peak": 0.055224113166332245,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "8580 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+          "model": "8580",
+          "audition": {
+            "rms": 0.01607217561854365,
+            "peak": 0.11963029950857162,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 1 captures Sync and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.014475434372202261,
+            "peak": 0.08390121906995773,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 0,
+          "source": 2,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": false,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 3-1 · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": false,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 2 captures Ring and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.010671761461396449,
+            "peak": 0.0873340517282486,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 1,
+          "source": 0,
+          "ratio": 1.3338216145833333,
+          "sync": false,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 1-2 · Song 1 · Voice 2",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.011269535407870299,
+            "peak": 0.07559289783239365,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 2,
+          "source": 1,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 2-3 · Song 1 · Voice 3",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 1 captures Sync and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.01285775991147601,
+            "peak": 0.07431288063526154,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 0,
+          "source": 2,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": false,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 3-1 · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": false,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 2 captures Ring and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.014908463385413216,
+            "peak": 0.08628106117248535,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 1,
+          "source": 0,
+          "ratio": 1.3338216145833333,
+          "sync": false,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 1-2 · Song 1 · Voice 2",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.010939198987423352,
+            "peak": 0.05869470536708832,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 2,
+          "source": 1,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 2-3 · Song 1 · Voice 3",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failures": [],
+      "external": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "snapshot controls are folded and audio-free until explicit playback and capture",
+        "Capture now uses a fresh coherent real Worklet read and saves exactly its selected voice",
+        "Stop and new-file selection cancel delayed real capture replies while preserving the accepted snapshot",
+        "6581 real playback captures its applied model, shared filter route and hardware codes",
+        "6581 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+        "8580 real playback captures its applied model, shared filter route and hardware codes",
+        "8580 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+        "6581 physical source → carrier 1 captures Sync and exact fractional tuning",
+        "6581 physical source → carrier 2 captures Ring and exact fractional tuning",
+        "6581 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+        "8580 physical source → carrier 1 captures Sync and exact fractional tuning",
+        "8580 physical source → carrier 2 captures Ring and exact fractional tuning",
+        "8580 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+        "unsupported combined / three-voice chains / TEST and routed-all-off controls report reasons from actual authored CPU programs",
+        "dependent sources, held source TEST, zero frequencies and unsupported ratio have explicit reasons and cannot export",
+        "a no-waveform source is rejected for the 6581 phase approximation and accepted by the 8580 model"
+      ],
+      "captures": [
+        {
+          "model": "6581",
+          "capturePositionFrames": 896,
+          "captureReadId": 3,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica tone · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 2048,
+              "attack": 2,
+              "decay": 6,
+              "sustain": 12,
+              "release": 5,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": false,
+              "ratio": 1
+            },
+            "filter": {
+              "enabled": false,
+              "mode": "off",
+              "cutoff": 0,
+              "resonance": 0,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+          "model": "6581",
+          "audition": {
+            "rms": 0.005857464737263743,
+            "peak": 0.055224113166332245,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "8580 standalone cross-origin link uses portable preset download / Synth Load preset without external navigation",
+          "model": "8580",
+          "audition": {
+            "rms": 0.016045210181081595,
+            "peak": 0.1232091560959816,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 1 captures Sync and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.012731445154582495,
+            "peak": 0.064960777759552,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 0,
+          "source": 2,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": false,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 3-1 · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": false,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 2 captures Ring and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.01043477604541648,
+            "peak": 0.07812189310789108,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 1,
+          "source": 0,
+          "ratio": 1.3338216145833333,
+          "sync": false,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 1-2 · Song 1 · Voice 2",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "6581 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+          "model": "6581",
+          "audition": {
+            "rms": 0.010968256756867665,
+            "peak": 0.070252925157547,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "6581",
+          "carrier": 2,
+          "source": 1,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "6581",
+            "name": "Tetorica 6581 pair 2-3 · Song 1 · Voice 3",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 1 captures Sync and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.014238210455264194,
+            "peak": 0.07436028867959976,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 0,
+          "source": 2,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": false,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 3-1 · Song 1 · Voice 1",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": false,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 2 captures Ring and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.015738888525268918,
+            "peak": 0.0743054673075676,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 1,
+          "source": 0,
+          "ratio": 1.3338216145833333,
+          "sync": false,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 1-2 · Song 1 · Voice 2",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": false,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        },
+        {
+          "check": "8580 physical source → carrier 3 captures Sync+Ring and exact fractional tuning",
+          "model": "8580",
+          "audition": {
+            "rms": 0.006584510266079366,
+            "peak": 0.06534210592508316,
+            "finite": true,
+            "muted": true
+          }
+        },
+        {
+          "model": "8580",
+          "carrier": 2,
+          "source": 1,
+          "ratio": 1.3338216145833333,
+          "sync": true,
+          "ring": true,
+          "preset": {
+            "format": "tetorica-sid-voice",
+            "version": 2,
+            "model": "8580",
+            "name": "Tetorica 8580 pair 2-3 · Song 1 · Voice 3",
+            "voice": {
+              "waveform": "triangle",
+              "pulseWidth": 1844,
+              "attack": 0,
+              "decay": 0,
+              "sustain": 12,
+              "release": 7,
+              "test": false
+            },
+            "modulation": {
+              "sync": true,
+              "ring": true,
+              "ratio": 1.3338216145833333
+            },
+            "filter": {
+              "enabled": true,
+              "mode": "lowpass+bandpass",
+              "cutoff": 700,
+              "resonance": 6,
+              "volume": 8
+            }
+          }
+        }
+      ],
+      "errors": [],
+      "consoleErrors": [],
+      "failures": [],
+      "external": []
+    }
+  ],
+  "checkerSha256": "ae11f364501c9794ed389987b01f07beadb4745dedc9eba6de39ab5f49193081"
+}

@@ -102,6 +102,51 @@ test('Sync/Ring keep hardware waveform choice, explain capacity and expose softw
   f.editor.dispose();
 });
 
+test('an imported fractional ratio retains its exact value across display, range and unrelated authoring edits',async t=>{
+  const f=editorFixture(t),ratio=4/3,preset=createDefaultPreset();
+  preset.modulation={sync:true,ring:true,ratio};preset.voice.waveform='triangle';preset.name='Captured pair';f.editor.update(preset);
+  const value=find(f.root,'modulationRatio'),range=find(f.root,'modulationRatioRange');
+  assert.equal(f.changes.length,0,'rendering an imported ratio never writes a rounded draft');
+  assert.equal(value.textContent,'≈ 1.33333');assert.equal(value.title,String(ratio));
+  assert.equal(value.getAttribute('aria-valuenow'),String(ratio));assert.equal(value.getAttribute('aria-valuetext'),'≈ 1.33333');
+  assert.equal(range.step,'any','the HTML range must not sanitize the ratio onto a .125 grid');assert.equal(range.value,String(ratio));
+  assert.equal(range.getAttribute('aria-valuenow'),String(ratio));
+  await range.fire('input');assert.equal(f.editor.getPreset().modulation.ratio,ratio,'even an unchanged range input retains the imported ratio');
+  await find(f.root,'filterLowpass').fire('click');await step(f.root,'attack',1).fire('click');await choice(f.root,'waveform','pulse').fire('click');await choice(f.root,'sidModel','8580').fire('click');
+  for(const changed of f.changes)assert.equal(changed.modulation.ratio,ratio);
+  const renamed={...f.editor.getPreset(),name:'Renamed pair'};f.editor.update(renamed);
+  assert.equal(f.editor.getPreset().modulation.ratio,ratio);assert.equal(f.editor.getPreset().name,'Renamed pair');
+  const saved=readPreset(JSON.stringify(f.editor.getPreset()));assert.equal(saved.modulation.ratio,ratio);
+  assert.match(presetToCode(saved),new RegExp('carrierHz \\* '+String(ratio).replaceAll('.','\\.')));
+  assert.equal(find(f.root,'modulationCard').open,false,'incoming pairs preserve the existing fold state');
+  assert.equal(f.errors.length,0);f.editor.dispose();
+});
+
+test('ratio buttons, drag and both keyboard surfaces step from the exact imported basis and clamp only at bounds',async t=>{
+  const f=editorFixture(t),ratio=12139/9113,preset=createDefaultPreset();preset.modulation.ratio=ratio;f.editor.update(preset);
+  const value=find(f.root,'modulationRatio'),range=find(f.root,'modulationRatioRange');
+  await step(f.root,'modulationRatio',1).fire('click');assert.equal(f.editor.getPreset().modulation.ratio,ratio+.125);
+  await step(f.root,'modulationRatio',-1).fire('click');assert.equal(f.editor.getPreset().modulation.ratio,ratio);
+  await value.fire('keydown',{key:'ArrowUp'});assert.equal(f.editor.getPreset().modulation.ratio,ratio+.125);
+  const down=await range.fire('keydown',{key:'ArrowDown'});assert.equal(down.defaultPrevented,true);assert.equal(f.editor.getPreset().modulation.ratio,ratio);
+  await range.fire('keydown',{key:'PageUp'});assert.equal(f.editor.getPreset().modulation.ratio,ratio+1.25);
+  await value.fire('keydown',{key:'PageDown'});assert.equal(f.editor.getPreset().modulation.ratio,ratio);
+  const typing=new Element(f.doc,'input');typing.focus();
+  await value.fire('pointerdown',{pointerId:7,clientX:0});assert.equal(f.doc.activeElement,null);
+  await value.fire('pointermove',{pointerId:7,clientX:160*.125/(8-.125)});assert.equal(f.editor.getPreset().modulation.ratio,ratio+.125);
+  await value.fire('pointerup',{pointerId:7});assert.equal(value.hasPointerCapture(7),false);
+  for(const [initial,delta,bound]of [[.125+1e-10,-1,.125],[8-1e-10,1,8]]){
+    f.editor.update({...preset,modulation:{...preset.modulation,ratio:initial}});
+    await step(f.root,'modulationRatio',delta).fire('click');assert.equal(f.editor.getPreset().modulation.ratio,bound);
+    assert.equal(step(f.root,'modulationRatio',delta).disabled,true);
+  }
+  await range.fire('keydown',{key:'Home'});assert.equal(f.editor.getPreset().modulation.ratio,.125);assert.equal(value.textContent,'0.125');
+  await range.fire('keydown',{key:'End'});assert.equal(f.editor.getPreset().modulation.ratio,8);assert.equal(value.textContent,'8');
+  range.focus();await range.fire('pointercancel');assert.equal(f.doc.activeElement,null);
+  f.editor.dispose();const before=f.editor.getPreset();await value.fire('keydown',{key:'Home'});assert.deepEqual(f.editor.getPreset(),before);
+  assert.equal(f.errors.length,0);
+});
+
 test('invalid external patches keep the editor, and disposal ignores late callbacks and edits',async t=>{
   let reject;const f=editorFixture(t,{onChange:()=>new Promise((_resolve,fail)=>{reject=fail;})});
   const before=f.editor.getPreset();assert.throws(()=>f.editor.update({...before,voice:{...before.voice,attack:99}}),/attack/);assert.deepEqual(f.editor.getPreset(),before);

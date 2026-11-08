@@ -29,14 +29,37 @@ Cutoff / Resonance / chip volume. Whether the selected voice is routed through
 the filter controls the Synth's filter enable state. Combined LP / BP / HP
 outputs are retained. A voice routed into an all-off filter is unavailable
 because the Synth's all-off convenience bypass would change that silent case.
-Combined waveforms, Sync / Ring dependencies, held TEST and a muted voice-3 dry
-path also show reasons instead of silently replacing those settings.
+Combined carrier waveforms, held TEST and a muted voice-3 dry path show reasons
+instead of silently replacing those settings.
+
+Selecting a carrier with **Sync / Ring** automatically captures a supported
+isolated pair. The SID connection is the preceding oscillator: voice 3 → 1,
+1 → 2 or 2 → 3. Capture retains the carrier's Sync / Ring flags and the
+unrounded ratio of source frequency register to carrier frequency register,
+within **0.125×..8×**. The preview identifies the original connection and ratio.
+Carrier ADSR, waveform, Pulse width, model and filter settings stay the same.
+
+In the Synth, every imported pair uses **silent Triangle oscillator 3 → carrier
+1**, with one keyboard note. SID Sync / Ring uses oscillator phase rather than
+the source's audible waveform or envelope, so that oscillator supplies the
+captured relative tuning. The current **6581 approximation** changes phase when
+the source has no waveform selected, so that case is unavailable for pair
+import; an **8580** source with no waveform selected remains supported.
+The original source's audible song part and the third voice are not
+copied. Ring affects Triangle carriers; Sync can also affect other supported
+carrier waveforms. Captured oscillator phases are not restored.
+
+Pairs with a held carrier/source TEST, a zero carrier/source frequency or an
+out-of-range ratio remain unavailable. Sync / Ring on the source or third
+oscillator indicates a three-voice chain or cycle and is rejected with a reason;
+capture does not silently reduce that graph to a two-voice pair.
 
 This is an **instantaneous register snapshot**, not a recovered song instrument.
 The Synth follows its keyboard pitch and starts a fresh Gate / ADSR attack;
 original musical pitch, oscillator / envelope phase, elapsed Envelope, noise
 state and later software automation are not restored. A released Gate may still
-be captured, with that restarted-note behavior disclosed. Unavailable Envelope
+be captured, with that restarted-note behavior disclosed. Pair modulation keeps
+its frequency ratio as keyboard pitch changes. Unavailable Envelope
 values in 8580 remain unknown, rather than being interpreted as zero.
 
 The direct handoff stores only a validated preset under a temporary random key

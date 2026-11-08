@@ -4,15 +4,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {captureSidVoices, SNAPSHOT_NOTICE} from '../docs/sid-player/voice_snapshot.js';
-import {readPreset, filterModeBits} from '../docs/synth-sid/preset.js';
+import {readPreset, filterModeBits, presetToCode} from '../docs/synth-sid/preset.js';
 import {SidPlayerCore} from '../docs/sid-player/core.js';
 import {RsidPlayerCore} from '../docs/sid-player/rsid_core.js';
 import {Sid8580PlayerCore} from '../docs/sid-player/core8580.js';
 import {SidCore} from '../docs/js/sid.js';
 import {Sid8580Core} from '../docs/js/sid8580.js';
 import {SidInstrument} from '../docs/synth-sid/instrument.js';
+import {SidSynth} from '../docs/js/sidsynth.js';
+import {sidFrequency} from '../docs/js/sid.js';
 import {createSidReferenceFixture} from './fixtures/sid-reference/fixture.mjs';
 import {createSid8580MachineFixture} from './helpers/sid8580_machine_fixtures.mjs';
+import {createSidPairFixture} from './helpers/sid_voice_pair_fixtures.mjs';
 
 function scene({model = '6581', mask = 3, route = 5, gate = true} = {}) {
   const registers = Array(32).fill(0);
@@ -36,6 +39,7 @@ test('snapshot preserves applied model, exact voice codes and the selected voice
   assert.deepEqual(result.voices.map(row => row.voice), [0, 1, 2]);
   for (const row of result.voices) {
     assert.equal(row.available, true); assert.equal(row.reason, null); assert.equal(row.gate, true);
+    assert.equal(row.pair, null);
     assert.equal(row.envelope, row.voice * 127); assert.equal(row.frequencyHz, (0x1d45 + row.voice) * 985248 / 16777216);
     assert.equal(row.preset.name, `Authored tune · Song 2 · Voice ${row.voice + 1}`);
     assert.deepEqual(row.preset.voice, {waveform: 'saw', pulseWidth: 0xabc, attack: 4, decay: 14, sustain: 11, release: 7, test: false});
@@ -64,9 +68,8 @@ test('all four oscillator selections and all eight shared filter masks retain th
   }
 });
 
-test('unsupported modulation, combined or absent waveforms and held TEST keep explicit unavailable candidates', () => {
-  for (const [control, reason] of [[1, /No oscillator/], [0x31, /Combined/], [0xf1, /Combined/],
-    [0x23, /Sync \/ Ring/], [0x15, /Sync \/ Ring/], [0x27, /Sync \/ Ring/], [0x29, /TEST/]]) {
+test('combined or absent carrier waveforms and held TEST keep explicit unavailable candidates', () => {
+  for (const [control, reason] of [[1, /No oscillator/], [0x31, /Combined/], [0xf1, /Combined/], [0x29, /TEST/]]) {
     const state = scene(); state.registers[4] = control;
     const row = captureSidVoices(state).voices[0];
     assert.equal(row.available, false); assert.equal(row.preset, null); assert.match(row.reason, reason);
@@ -119,6 +122,99 @@ test('invalid applied metadata or register vectors reject before returning parti
   assert.deepEqual(captureSidVoices(typed), captureSidVoices(good));
 });
 
+function pairScene(options = {}) {
+  const fixture = createSidPairFixture(options);
+  return {fixture, state: {...scene({model: fixture.model}), registers: fixture.registers.slice()}};
+}
+const modulationModes = [{sync: true, ring: false}, {sync: false, ring: true}, {sync: true, ring: true}];
+
+test('independent Sync/Ring/Both pairs retain all three physical source positions and either model', () => {
+  for (const model of ['6581', '8580']) for (let carrier = 0; carrier < 3; carrier++) for (const flags of modulationModes) {
+    for (let sourceWave = 0; sourceWave < 16; sourceWave++) for (const sourceGate of [false, true]) for (const carrierGate of [false, true]) {
+      const source = (carrier + 2) % 3;
+      const {state} = pairScene({model, carrier, ...flags, carrierGate, sourceControl: sourceWave << 4 | Number(sourceGate),
+        overrides: [[source * 7 + 5, sourceWave * 17], [source * 7 + 6, sourceGate ? 0xff : 0]]});
+      const before = structuredClone(state), row = captureSidVoices(state).voices[carrier];
+      if (model === '6581' && sourceWave === 0) {
+        assert.equal(row.available, false);assert.equal(row.preset, null);assert.equal(row.pair, null);assert.match(row.reason, /6581 core changes phase.*no waveform/);
+        assert.deepEqual(state, before);continue;
+      }
+      assert.equal(row.available, true); assert.equal(row.reason, null); assert.equal(row.gate, carrierGate);
+      assert.deepEqual(row.pair, {carrierVoice: carrier, sourceVoice: source, sourceFrequencyRegister: 0x2400,
+        carrierFrequencyRegister: 0x1800, sourceFrequencyHz: 0x2400 * 985248 / 16777216, ratio: 1.5, ...flags});
+      assert.deepEqual(row.preset.modulation, {...flags, ratio: 1.5}); assert.equal(row.preset.model, model);
+      assert.deepEqual(row.preset.voice, {waveform: 'triangle', pulseWidth: 0x734, attack: 0, decay: 0, sustain: 12, release: 7, test: false});
+      assert.deepEqual(row.preset.filter, {enabled: true, mode: 'lowpass+bandpass', cutoff: 700, resonance: 6, volume: 8});
+      assert(row.warnings.some(text => text.includes(`Voice ${source + 1} → Voice ${carrier + 1}`)));
+      assert(row.warnings.some(text => /silent Triangle source.*Gate\/ADSR.*audible source/.test(text)));
+      assert.deepEqual(readPreset(JSON.stringify(row.preset)), row.preset);
+      assert.deepEqual(state, before, 'source waveform and Gate/ADSR are observations, never rewritten to silence it');
+    }
+  }
+});
+
+test('pair ratios use literal nonzero frequency-register division and reject only values outside the existing range', () => {
+  for (const [carrierFrequency, sourceFrequency, available] of [
+    [8, 1, true], [4096, 32768, true], [8192, 65535, true], [12007, 19013, true], [65535, 65535, true], [1, 1, true],
+    [65535, 8191, false], [8191, 65535, false], [65535, 1, false], [1, 65535, false],
+  ]) {
+    const {state} = pairScene({carrierFrequency, sourceFrequency}), row = captureSidVoices(state).voices[0];
+    assert.equal(row.pair.ratio, sourceFrequency / carrierFrequency); assert.equal(row.available, available);
+    if (available) assert.equal(row.preset.modulation.ratio, sourceFrequency / carrierFrequency);
+    else {assert.equal(row.preset, null); assert.match(row.reason, /ratio.*0\.125 to 8/);}
+  }
+  for (const [carrierFrequency, sourceFrequency] of [[0, 1], [1, 0], [0, 0]]) {
+    const {state} = pairScene({carrierFrequency, sourceFrequency}), row = captureSidVoices(state).voices[0];
+    assert.equal(row.available, false); assert.equal(row.preset, null); assert.equal(row.pair, null); assert.match(row.reason, /nonzero carrier and source/);
+  }
+  const single = pairScene({sync: false, ring: false, carrierFrequency: 0});
+  assert.equal(captureSidVoices(single.state).voices[0].available, true, 'the earlier single-voice zero-pitch disclosure remains available');
+});
+
+test('additional source/third modulation dependencies and carrier/source TEST never masquerade as independent pairs', () => {
+  for (let carrier = 0; carrier < 3; carrier++) for (const flags of modulationModes) {
+    for (const control of [0x02, 0x04, 0x06, 0x13, 0x15, 0x1f]) for (const which of ['sourceControl', 'thirdControl']) {
+      const {state} = pairScene({carrier, ...flags, [which]: control}), row = captureSidVoices(state).voices[carrier];
+      assert.equal(row.available, false); assert.equal(row.preset, null); assert.match(row.reason, /three-voice dependency/);
+    }
+    for (const extra of [{carrierTest: true}, {sourceControl: 0x18}]) {
+      const {state} = pairScene({carrier, ...flags, ...extra}), row = captureSidVoices(state).voices[carrier];
+      assert.equal(row.available, false); assert.equal(row.preset, null); assert.match(row.reason, /TEST/);
+    }
+    const unrelated = pairScene({carrier, ...flags, thirdControl: 0x18});
+    assert.equal(captureSidVoices(unrelated.state).voices[carrier].available, true, 'an unconnected third oscillator TEST does not change the source pair');
+  }
+});
+
+test('paired carriers retain waveform, inactive Ring flags and selected-voice routing without dropping unsupported cases', () => {
+  for (let carrier = 0; carrier < 3; carrier++) for (const waveform of ['triangle', 'saw', 'pulse', 'noise']) {
+    for (const flags of modulationModes) {
+      const {state} = pairScene({carrier, waveform, ...flags}), row = captureSidVoices(state).voices[carrier];
+      assert.equal(row.available, true); assert.equal(row.preset.voice.waveform, waveform); assert.equal(row.preset.modulation.ring, flags.ring);
+      assert.equal(row.warnings.some(text => /Ring affects Triangle only/.test(text)), flags.ring && waveform !== 'triangle');
+    }
+    for (let mask = 0; mask < 8; mask++) for (const routed of [false, true]) for (const voice3off of [false, true]) {
+      const {state} = pairScene({carrier, waveform, sync: true, ring: true, filterModeMask: mask, filterRouting: routed ? 1 << carrier : 0, voice3off});
+      const row = captureSidVoices(state).voices[carrier], silent = routed && !mask || carrier === 2 && !routed && voice3off;
+      assert.equal(row.available, !silent);
+      if (silent) {assert.equal(row.preset, null); assert.match(row.reason, /no enabled outputs|Voice 3 dry output/);}
+      else {assert.equal(row.preset.filter.enabled, routed); assert.equal(filterModeBits(row.preset.filter.mode), mask);}
+    }
+  }
+  for (const control of [0x03, 0x37, 0xf7]) {
+    const {state} = pairScene({overrides: [[4, control]]}), row = captureSidVoices(state).voices[0];
+    assert.equal(row.available, false); assert.match(row.reason, /No oscillator|Combined/);
+  }
+});
+
+test('single snapshots stay independent of unrelated modulation flags and pair metadata is detached', () => {
+  const {state} = pairScene({sync: false, ring: false, sourceControl: 0x16, thirdControl: 0x16});
+  const first = captureSidVoices(state).voices[0];assert.equal(first.available, true);assert.equal(first.pair, null);
+  assert.deepEqual(first.preset.modulation, {sync: false, ring: false, ratio: 1});
+  const paired = pairScene(), captured = captureSidVoices(paired.state);captured.voices[0].pair.ratio = 7;
+  assert.equal(captureSidVoices(paired.state).voices[0].pair.ratio, 1.5);
+});
+
 const binaries = Object.fromEntries(await Promise.all([
   ['direct', 'sid-player/sid-player.wasm'], ['c64', 'sid-rsid/sid-rsid.wasm'], ['sid', 'sid/sid.wasm'],
   ['endpoint', 'sid8580-machine/sid8580-endpoint.wasm'], ['machine', 'sid8580-machine/sid8580-machine.wasm'],
@@ -154,5 +250,110 @@ test('capturing actual Direct6581, C646581 and8580 states neither advances the m
         assert.equal(instrument.read().preset.model, model);
       } finally {instrument.dispose();}
     } finally {current.dispose(); control.dispose();}
+  }
+});
+
+function playerOptions(backend) {
+  return backend === 'c648580' ? {Core: Sid8580PlayerCore, model: '8580', options: {endpointBinary: binaries.endpoint, machineBinary: binaries.machine}}
+    : backend === 'direct6581' ? {Core: SidPlayerCore, model: '6581', options: {wasmBinary: binaries.direct}}
+      : {Core: RsidPlayerCore, model: '6581', options: {wasmBinary: binaries.c64}};
+}
+const registerFrequency = (registers, voice) => registers[voice * 7] | registers[voice * 7 + 1] << 8;
+const noteHz = midi => 440 * 2 ** ((midi - 69) / 12);
+
+test('real CPU pair snapshots retain every source/carrier position without advancing playback; Synth and Copy JavaScript use the same mono tuning', async () => {
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  for (const backend of ['direct6581', 'c646581', 'c648580']) for (let carrier = 0; carrier < 3; carrier++) for (const flags of modulationModes) {
+    const {Core, model, options} = playerOptions(backend), fixture = createSidPairFixture({model, carrier, ...flags,
+      carrierFrequency: 0x1801, sourceFrequency: 0x2407});
+    const current = await Core.create({sampleRate: 48000, ...options}), control = await Core.create({sampleRate: 48000, ...options});
+    const load = {vbiBackend: backend === 'direct6581' ? 'direct' : 'c64'};
+    let instrument, copyCore, copied;
+    try {
+      current.load(fixture.bytes, load); control.load(fixture.bytes, load);
+      const first = current.render(12000); assert.deepEqual(pcm(first), pcm(control.render(12000))); assert(first.every(Number.isFinite)); assert(first.some(value => Math.abs(value) > .00001));
+      const before = current.getState(); assert.deepEqual(before.registers.slice(0, 25), fixture.registers.slice(0, 25), `${backend}: the real CPU applied every authored pair register`);
+      const captured = captureSidVoices(before, {name: 'Authored pair'}), row = captured.voices[carrier];
+      assert.equal(row.available, true); assert.equal(row.pair.sourceVoice, fixture.source); assert.equal(row.pair.carrierVoice, carrier);
+      assert.equal(row.pair.sourceFrequencyRegister, 0x2407); assert.equal(row.pair.carrierFrequencyRegister, 0x1801);
+      assert.deepEqual(row.preset.modulation, {...flags, ratio: 0x2407 / 0x1801});
+      assert.deepEqual(current.getState(), before, 'reading and converting does not advance CPU, envelope, phase or PCM');
+      assert.deepEqual(pcm(current.render(2048)), pcm(control.render(2048)), 'capture preserves the next original playback PCM');
+
+      const AudioCore = model === '8580' ? Sid8580Core : SidCore, audioOptions = {sampleRate: 48000, wasmBinary: model === '8580' ? binaries.endpoint : binaries.sid};
+      instrument = new SidInstrument(await AudioCore.create(audioOptions));
+      instrument.loadPreset(row.preset); instrument.noteOn('C4', 60);
+      const played = instrument.read(), carrierRegister = sidFrequency(noteHz(60), 985248), sourceRegister = sidFrequency(noteHz(60) * row.pair.ratio, 985248);
+      assert.equal(played.capacity, 1); assert.equal(played.voices.length, 1); assert.equal(played.voices[0].channel, 0);
+      assert.equal(registerFrequency(played.registers, 0), carrierRegister); assert.equal(registerFrequency(played.registers, 2), sourceRegister);
+      assert.equal(played.registers[4] & 6, (Number(flags.sync) << 1) | (Number(flags.ring) << 2));
+      assert.equal(played.registers[18], 0x10, 'the remapped source is Triangle with Gate/Sync/Ring/TEST off');
+      assert.equal(played.registers[19], 0); assert.equal(played.registers[20], 0, 'the source envelope remains silent');
+      assert.equal(played.registers[23] & 7, 1, 'only the remapped carrier is routed to the shared filter');
+      assert.equal(played.registers[24] & 0x80, 0x80, 'the source dry output is also muted');
+
+      copyCore = await AudioCore.create(audioOptions); copied = new SidSynth({core: copyCore});
+      const calls = [], code = presetToCode(row.preset);
+      const primary = model === '6581' ? copied : new Proxy({}, {get() {throw Error('The copied8580 pair cannot modify the6581 primary');}});
+      await new AsyncFunction('sid', 'createSoundChip', code)(primary, async (name, settings) => {calls.push({name, settings});return copied;});
+      assert.deepEqual(copied._getState().registers, played.registers, 'Copy JavaScript uses the same carrier flags/filter and literal ratio');
+      assert.equal(calls.length, model === '8580' ? 1 : 0);
+      if (calls.length) {assert.equal(calls[0].name, 'sid'); assert.equal(calls[0].settings.model, '8580');}
+      const audition = new Float32Array(8192); instrument.renderInto(audition);
+      assert(audition.every(Number.isFinite)); assert(audition.some(value => Math.abs(value) > .00001));
+      assert.deepEqual(pcm(audition), pcm(copyCore.render(8192)), 'fresh Synth and exported code are deterministic; this does not restore the original tune phase or pitch');
+
+      instrument.noteOn('E4', 64); assert.equal(instrument.read().voices.length, 1); assert.equal(instrument.noteOff('C4'), false, 'the old mono owner cannot release its replacement');
+      const next = instrument.read();assert.equal(registerFrequency(next.registers, 0), sidFrequency(noteHz(64), 985248));
+      assert.equal(registerFrequency(next.registers, 2), sidFrequency(noteHz(64) * row.pair.ratio, 985248));
+      instrument.noteOff('E4');instrument.stop();const stopped = new Float32Array(512);instrument.renderInto(stopped);assert(stopped.every(value => value === 0));
+    } finally {instrument?.dispose();copied?.dispose();copyCore?.dispose();current.dispose();control.dispose();}
+  }
+});
+
+test('supported real source waveforms, Gate and ADSR do not change isolated Sync/Ring carrier PCM', async () => {
+  for (const backend of ['direct6581', 'c648580']) for (const flags of modulationModes) {
+    const {Core, model, options} = playerOptions(backend);let expected, expectedPreset;
+    const controls = Array.from({length: 16}, (_, waveform) => [waveform << 4, waveform << 4 | 1]).flat()
+      .filter(control => model === '8580' || (control & 0xf0) !== 0);
+    for (const [index, sourceControl] of controls.entries()) {
+      // The original source dry branch is muted so the comparison isolates
+      // its oscillator phase dependency rather than an audible second voice.
+      const fixture = createSidPairFixture({model, ...flags, sourceControl, voice3off: true,
+        overrides: [[19, index * 43 & 255], [20, 255 - (index * 41 & 255)]]});
+      const core = await Core.create({sampleRate: 48000, ...options});
+      try {
+        core.load(fixture.bytes, {vbiBackend: backend === 'direct6581' ? 'direct' : 'c64'});
+        const output = core.render(16384), row = captureSidVoices(core.getState()).voices[0];
+        assert.equal(row.available, true); assert.equal(row.pair.ratio, 1.5);
+        assert(output.every(Number.isFinite)); assert(output.some(value => Math.abs(value) > .00001));
+        if (!expected) {expected = Buffer.from(pcm(output));expectedPreset = row.preset;}
+        else {assert(pcm(output).equals(expected), `${backend}: source control ${sourceControl.toString(16)} / ADSR variation changed a carrier phase dependency`); assert.deepEqual(row.preset, expectedPreset);}
+      } finally {core.dispose();}
+    }
+  }
+});
+
+test('the pinned6581 no-wave accumulator behavior is rejected without changing Native/WASM;8580 permits its independent no-wave source', async () => {
+  for (const backend of ['direct6581', 'c648580']) for (const flags of modulationModes) {
+    const {Core, model, options} = playerOptions(backend), results = [];
+    for (const sourceControl of [0x10, 0x00, 0x01]) {
+      const fixture = createSidPairFixture({model, ...flags, sourceControl, voice3off: true});
+      const current = await Core.create({sampleRate: 48000, ...options}), reference = await Core.create({sampleRate: 48000, ...options});
+      try {
+        const load = {vbiBackend: backend === 'direct6581' ? 'direct' : 'c64'};
+        current.load(fixture.bytes, load);reference.load(fixture.bytes, load);
+        const output = current.render(16384);assert(pcm(output).equals(pcm(reference.render(16384))));
+        const before = current.getState(), row = captureSidVoices(before).voices[0];
+        assert.deepEqual(current.getState(), before);assert(pcm(current.render(2048)).equals(pcm(reference.render(2048))), 'even an unavailable model-specific candidate never changes playback');
+        results.push(Buffer.from(pcm(output)));
+        if (model === '6581' && sourceControl !== 0x10) {
+          assert.equal(row.available, false);assert.equal(row.preset, null);assert.equal(row.pair, null);assert.match(row.reason, /6581 core changes phase.*no waveform/);
+        } else {assert.equal(row.available, true);assert.equal(row.pair.ratio, 1.5);}
+      } finally {current.dispose();reference.dispose();}
+    }
+    for (const noWave of results.slice(1)) {
+      assert.equal(noWave.equals(results[0]), model === '8580', '6581 no-wave damps the accumulator, while8580 no-wave leaves source phase running');
+    }
   }
 });

@@ -118,7 +118,7 @@ function authoredUnsupportedScene(kind) {
   for (let voice = 0; voice < 3; ++voice) {
     const base = 0xd400 + voice * 7;
     for (const [reg, value] of [[0, 0x45], [1, 0x1d], [2, 0], [3, 8], [5, 0], [6, 0xf5]]) write(base + reg, value);
-    write(base + 4, kind === 'controls' ? [0x31, 0x23, 0x49][voice] : voice === 0 ? 0x21 : 0);
+    write(base + 4, kind === 'controls' ? [0x31, 0x23, 0x4b][voice] : voice === 0 ? 0x21 : 0);
   }
   write(0xd417, kind === 'controls' ? 0 : 1);write(0xd418, 8);
   program.push(0x60);const play = 0x1000 + program.length;program.push(0x60);
@@ -183,13 +183,48 @@ async function checkBrowser(name, engine, origin, helpers) {
     assert.equal(await page.evaluate(() => __sidVoiceCaptureAudit.contexts.length), 0, 'receiving or loading a preset must not allocate audio');
     assert.equal(await page.locator('#instrumentName').inputValue(), expected.name);
     assert.equal(await page.locator('#sidModelBadge').textContent(), expected.model);
+    const paired = expected.modulation.sync || expected.modulation.ring;
+    if (paired) {
+      assert.equal(await page.locator('#modulationRatio').getAttribute('aria-valuenow'), String(expected.modulation.ratio));
+      const checkRange = async () => {
+        const value = Number(await page.locator('#modulationRatioRange').inputValue());
+        // HTML range values may serialize to 15 significant digits. The
+        // accepted preset / ARIA value / export below must retain the complete
+        // Number, while the slider must not snap it to the 0.125 editing grid.
+        assert(Math.abs(value - expected.modulation.ratio) <= 32 * Number.EPSILON * Math.max(1,Math.abs(expected.modulation.ratio)));
+      };
+      await checkRange();
+      // A passive re-render/name commit must not quantize a captured fraction.
+      await page.locator('#instrumentName').dispatchEvent('change');
+      await checkRange();
+    }
     const key = await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.keyboard.down(key);await page.waitForFunction(() => document.getElementById('startAudio').textContent.includes('ready'));await sound(page);
     const state = await page.evaluate(() => __sidVoiceCaptureAudit.read());assert.deepEqual(state.preset, expected);assert.equal(state.model, expected.model);assert.equal(state.voices.length, 1);
+    if (paired) {
+      assert.equal(state.capacity, 1);assert.equal(state.registers[4] & 6, (expected.modulation.sync ? 2 : 0) | (expected.modulation.ring ? 4 : 0));
+      assert.equal(state.registers[18] & 1, 0);assert.equal(state.registers[24] & 0x80, 0x80);
+      assert.equal(state.registers[23] & 7, expected.filter.enabled ? 1 : 0);
+      const nextKey = await page.locator('#keyboard .key:not([disabled])').nth(1).getAttribute('data-key');
+      await page.keyboard.down(nextKey);
+      let replacement;
+      for (let count = 0; count < 120; ++count) {
+        replacement = await page.evaluate(() => __sidVoiceCaptureAudit.read());
+        if (replacement.voices.length === 1 && replacement.voices[0].id !== state.voices[0].id) break;
+        await page.waitForTimeout(25);
+      }
+      assert.equal(replacement.voices.length, 1);assert.notEqual(replacement.voices[0].id, state.voices[0].id);
+      await page.keyboard.up(key);assert.equal((await page.evaluate(() => __sidVoiceCaptureAudit.read())).voices.length, 1);
+      await page.keyboard.up(nextKey);
+    }
     captures.push({check: stage, model: state.model, audition: await sample(page)});
     await page.keyboard.up(key);await page.locator('#stopAudio').click();await silent(page);
     if (!await page.locator('#presetTools').evaluate(node => node.open)) await page.locator('#presetTools > summary').click();
     const saved = await downloadPreset(page, 'savePreset');assert.deepEqual(saved.value, expected);
+    if (paired) {
+      await page.locator('#copyCode').click();const code = await page.locator('#codeOutput').inputValue();
+      assert(code.includes(`carrierHz * ${expected.modulation.ratio});`), 'Copy JavaScript retains the captured ratio without UI rounding');
+    }
     return saved;
   }
   try {
@@ -280,15 +315,71 @@ async function checkBrowser(name, engine, origin, helpers) {
       await synth.close();
     }
 
-    check('unsupported combined / Sync / TEST and routed-all-off controls report reasons from actual authored CPU programs');
+    for (const model of ['6581', '8580']) for (const carrier of [0, 1, 2]) {
+      const sync = carrier !== 1, ring = carrier !== 0;
+      check(`${model} physical source → carrier ${carrier + 1} captures ${sync ? 'Sync' : ''}${sync && ring ? '+' : ''}${ring ? 'Ring' : ''} and exact fractional tuning`);
+      const fixture = helpers.createSidPairFixture({model,carrier,sync,ring,carrierFrequency:0x1800,sourceFrequency:0x2003});
+      await loadBytes(fixture.bytes, `pair-${model}-${carrier}.sid`);await play();
+      await player.locator(`[data-snapshot-voice="${carrier}"]`).click();
+      const applied = await capture(), metadata = {name:await player.locator('#title').textContent(),subtune:Number(await player.locator('#subtune').inputValue())};
+      const row = helpers.captureSidVoices(applied,metadata).voices[carrier], expected = row.preset;assert(expected && row.pair);
+      assert.equal(expected.modulation.ratio, 0x2003 / 0x1800);assert.equal(expected.modulation.sync,sync);assert.equal(expected.modulation.ring,ring);
+      assert.equal(row.pair.sourceVoice,(carrier + 2) % 3);assert.equal(row.pair.carrierVoice,carrier);
+      assert.match(await player.locator('#captureVoicePreview').textContent(),new RegExp(`Voice ${row.pair.sourceVoice + 1} → Voice ${carrier + 1}`));
+      const saved = await downloadPreset(player,'saveVoicePreset');assert.deepEqual(saved.value,expected);
+      let synth;
+      if (!packaged) {
+        const opened = context.waitForEvent('page');await player.locator('#openSnapshotSynth').click();synth = await opened;
+        await synth.waitForFunction(() => document.getElementById('audioStatus')?.textContent.includes('snapshot loaded'));
+      } else {
+        synth = await context.newPage();await synth.goto(origin + synthEntry);await synth.waitForSelector('#presetFileInput',{state:'attached'});
+        await synth.locator('#presetFileInput').setInputFiles({name:'captured-pair.json',mimeType:'application/json',buffer:saved.data});
+        await synth.waitForFunction(name => document.getElementById('instrumentName').value === name,expected.name);
+      }
+      await stop();await auditionSynth(synth,expected);
+      captures.push({model,carrier,source:row.pair.sourceVoice,ratio:expected.modulation.ratio,sync,ring,preset:expected});
+      if (carrier === 2 && config.screenshots) {
+        await player.setViewportSize({width:390,height:844});assert.equal(await player.evaluate(() => Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+        await player.screenshot({path:path.join(config.screenshots,`${name}-${model}-pair-player-390.png`),fullPage:true});await player.setViewportSize({width:1180,height:1000});
+        await synth.setViewportSize({width:390,height:844});await synth.locator('#modulationCard').evaluate(node=>{node.open=true;});
+        await synth.screenshot({path:path.join(config.screenshots,`${name}-${model}-pair-synth-390.png`),fullPage:true});
+      }
+      await synth.close();
+    }
+
+    check('unsupported combined / three-voice chains / TEST and routed-all-off controls report reasons from actual authored CPU programs');
     await loadBytes(authoredUnsupportedScene('controls'), 'unsupported-controls.sid');
     await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state === 'playing');await progressed();await capture();
-    for (const [voice, reason] of [[0, /Combined waveforms/], [1, /Sync \/ Ring/], [2, /TEST is held/]]) {
+    for (const [voice, reason] of [[0, /Combined waveforms/], [1, /three|chain/i], [2, /TEST is held/]]) {
       await player.locator(`[data-snapshot-voice="${voice}"]`).click();assert.equal(await player.locator('#saveVoicePreset').isDisabled(), true);assert.match(await player.locator('#captureVoicePreview').textContent(), reason);
     }
     await stop();await loadBytes(authoredUnsupportedScene('silent-route'), 'unsupported-filter-route.sid');
     await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state === 'playing');await progressed();await capture();
     await player.locator('[data-snapshot-voice="0"]').click();assert.match(await player.locator('#captureVoicePreview').textContent(), /filter with no enabled outputs/);assert.equal(await player.locator('#saveVoicePreset').isDisabled(), true);await stop();
+
+    check('dependent sources, held source TEST, zero frequencies and unsupported ratio have explicit reasons and cannot export');
+    for (const [options,reason] of [[{sourceControl:0x12},/three|chain/i],[{thirdControl:0x14},/three|chain/i],
+      [{sourceControl:0x18},/TEST/],[{sourceFrequency:0},/zero|frequency/i],[{carrierFrequency:0},/zero|frequency/i],
+      [{carrierFrequency:1000,sourceFrequency:8001},/ratio|range/i]]) {
+      await loadBytes(helpers.createSidPairFixture(options).bytes,'unsupported-pair.sid');
+      await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state==='playing');await progressed();
+      await player.locator('[data-snapshot-voice="0"]').click();await capture();
+      assert.equal(await player.locator('#saveVoicePreset').isDisabled(),true);assert.match(await player.locator('#captureVoicePreview').textContent(),reason);await stop();
+    }
+
+    check('a no-waveform source is rejected for the 6581 phase approximation and accepted by the 8580 model');
+    for (const model of ['6581','8580']) {
+      await loadBytes(helpers.createSidPairFixture({model,sourceControl:0}).bytes,`no-wave-source-${model}.sid`);
+      await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state==='playing');await progressed();
+      await player.locator('[data-snapshot-voice="0"]').click();await capture();
+      if (model==='6581') {
+        assert.equal(await player.locator('#saveVoicePreset').isDisabled(),true);assert.match(await player.locator('#captureVoicePreview').textContent(),/6581.*phase/i);
+      } else {
+        assert.equal(await player.locator('#saveVoicePreset').isDisabled(),false);
+        const saved=await downloadPreset(player,'saveVoicePreset');assert.equal(saved.value.model,'8580');assert.equal(saved.value.modulation.sync,true);
+      }
+      await stop();
+    }
 
     assert.deepEqual(errors, []);assert.deepEqual(consoleErrors, []);assert.deepEqual(failures, []);assert.deepEqual(external, []);
     for (const page of context.pages()) assert.deepEqual(await page.evaluate(() => __sidVoiceCaptureAudit.processorErrors), []);
@@ -307,8 +398,9 @@ async function checkBrowser(name, engine, origin, helpers) {
   const {createSidReferenceFixture} = await import('../test/fixtures/sid-reference/fixture.mjs');
   const {captureSidVoices} = await import('../docs/sid-player/voice_snapshot.js');
   const {readPreset} = await import('../docs/synth-sid/preset.js');
+  const {createSidPairFixture} = await import('../test/helpers/sid_voice_pair_fixtures.mjs');
   const helpers = {tone: createSidReferenceFixture('tone').bytes,
-    filtered8580: createSid8580MachineFixture('bus-immediate', {filter: true}).bytes, captureSidVoices, readPreset};
+    filtered8580: createSid8580MachineFixture('bus-immediate', {filter: true}).bytes, captureSidVoices, readPreset, createSidPairFixture};
   if (config.screenshots) await fs.mkdir(config.screenshots, {recursive: true});
   report.checkerSha256 = createHash('sha256').update(await fs.readFile(__filename)).digest('hex');
   const server = http.createServer(async (request, response) => {

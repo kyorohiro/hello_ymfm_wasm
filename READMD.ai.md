@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player, voice snapshots and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player, single-voice / isolated Sync-Ring snapshots and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -39,8 +39,25 @@ snapshot. `voice_capture.js` owns this UI lifecycle, and pure
 `voice_snapshot.js` maps supported settings through the existing preset validator.
 Both are authored source under `docs/sid-player/`.
 
-Capture initially supports one Triangle/Saw/Pulse/Noise waveform without
-Sync/Ring dependencies or held TEST. It preserves Pulse width, hardware ADSR
+Capture supports one Triangle/Saw/Pulse/Noise carrier waveform and automatically
+captures an isolated two-voice pair when the carrier has Sync/Ring flags.
+With zero-based physical indices, `source = (carrier + 2) % 3` and
+`third = (carrier + 1) % 3`.
+Carrier flags and the unrounded source-frequency-register / carrier-register
+ratio map to existing preset v2 modulation fields; no new preset format is
+introduced. Ratio must be within 0.125..8 with nonzero carrier/source registers.
+Source or third Sync/Ring flags (any `control & 6`), carrier/source TEST, unsupported
+carrier waveforms and silent carrier routing reject with reasons; an arbitrary
+three-voice graph is never flattened. SID Sync/Ring uses oscillator phase rather
+than source waveform/Gate/ADSR output. The current 6581 approximation has a
+model-specific exception: `_m6581_wavnone` shifts `wav_accum` when source
+`control & 0xf0` is zero. Reject that 6581 source-wave-off pair instead of
+replacing its changed phase with Triangle; 8580 source-wave-off stays supported.
+This import guard does not change the DSP/WASM. In the Synth the source becomes
+silent Triangle voice 3 → carrier 1, while source/third audible music and captured phases are not
+copied. The Player preview discloses original connection and ratio. Ring affects
+Triangle only; preserve the flag even when another supported carrier waveform
+makes it inaudible. Capture preserves Pulse width, hardware ADSR
 codes, model, shared cutoff/resonance/chip volume and whether the selected
 physical voice uses that filter. All eight LP/BP/HP masks are interpreted; a
 routed all-off filter cannot silently become Synth bypass. Muted voice-3 dry

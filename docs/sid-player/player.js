@@ -80,8 +80,12 @@ function showCapture(state) {
     const seconds = snapshot.positionFrames / snapshot.sampleRate;
     $('captureVoiceInfo').textContent = `${snapshot.name} · Subtune ${snapshot.subtune} · ${snapshot.model}${snapshot.model === '8580' ? ' Preview' : ''} · ${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(2).padStart(5, '0')} · Voice ${state.voice + 1}`;
     const preset = row.preset;
+    const pair = row.pair;
+    const connection = pair
+      ? `Voice ${pair.sourceVoice + 1} → Voice ${pair.carrierVoice + 1} · ${[pair.sync && 'Sync',pair.ring && 'Ring'].filter(Boolean).join(' + ')} · Ratio ≈${Number(pair.ratio.toPrecision(8))}×\nFrequency-code ratio ${pair.sourceFrequencyRegister} / ${pair.carrierFrequencyRegister} · Synth remaps to silent voice 3 → carrier 1 (one note)\n`
+      : '';
     $('captureVoicePreview').textContent = preset
-      ? `${preset.voice.waveform} · Pulse width ${preset.voice.pulseWidth} · ADSR ${[preset.voice.attack,preset.voice.decay,preset.voice.sustain,preset.voice.release].join(' / ')}\nFilter ${preset.filter.enabled ? preset.filter.mode : 'bypassed for this voice'} · Cutoff ${preset.filter.cutoff} · Resonance ${preset.filter.resonance} · Volume ${preset.filter.volume}\nRecorded pitch ${row.frequencyHz.toFixed(1)} Hz (reference only)${row.warnings.length ? '\n' + row.warnings.join(' ') : ''}`
+      ? `${connection}${preset.voice.waveform} · Pulse width ${preset.voice.pulseWidth} · ADSR ${[preset.voice.attack,preset.voice.decay,preset.voice.sustain,preset.voice.release].join(' / ')}\nFilter ${preset.filter.enabled ? preset.filter.mode : 'bypassed for this voice'} · Cutoff ${preset.filter.cutoff} · Resonance ${preset.filter.resonance} · Volume ${preset.filter.volume}\nRecorded pitch ${row.frequencyHz.toFixed(1)} Hz (reference only)${row.warnings.length ? '\n' + row.warnings.join(' ') : ''}`
       : row.reason;
   }
   updateCaptureAvailability();

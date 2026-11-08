@@ -2,6 +2,10 @@
 import {createParamControl} from '../synth/synth_controls.js';
 import {createDefaultPreset,readPreset,filterModeBits,filterModeFromBits} from './preset.js';
 
+// Imported oscillator-register ratios need not lie on the authoring step grid.
+// Keep the actual Number intact; an abbreviated label explicitly says approx.
+const ratioText=value=>{const display=Number(value.toPrecision(6));return display===value?String(value):`≈ ${display}`;};
+
 /** Passive patch editor. It never creates or resumes an audio device. */
 export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   const doc=root.ownerDocument, cleanups=[], controls=[];
@@ -57,21 +61,22 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       group.append(button);
     }
   }
-  function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true}={}) {
+  function number(parent,label,id,min,max,step,get,set,{slider=false,enabled=()=>true,rangeStep=step,format=String}={}) {
     const row=field(parent,label,id,slider?'sid-slider':''),control=createParamControl({label,min,max,step,value:get(preset),showLabel:false,wheelAdjust:false,onChange:value=>commit(next=>set(next,value))});
     const [minus,value,plus]=control.element.children;value.id=id;value.setAttribute('role','spinbutton');value.setAttribute('aria-labelledby',`${id}Label`);value.setAttribute('aria-valuemin',String(min));value.setAttribute('aria-valuemax',String(max));
     for(const [button,delta] of [[minus,-1],[plus,1]]){button.dataset.stepperFor=id;button.dataset.stepperDelta=String(delta);button.setAttribute('aria-label',`${delta<0?'Decrease':'Increase'} ${label}`);pointerFocus(button);}
     pointerFocus(value);row.append(control.element);
-    listen(value,'keydown',event=>{
+    const keyAdjust=event=>{
       const current=get(preset);let next;
       if(['ArrowRight','ArrowUp'].includes(event.key))next=current+step;else if(['ArrowLeft','ArrowDown'].includes(event.key))next=current-step;
       else if(event.key==='PageUp')next=current+step*10;else if(event.key==='PageDown')next=current-step*10;
       else if(event.key==='Home')next=min;else if(event.key==='End')next=max;else return;
       event.preventDefault();event.stopPropagation();commit(value=>set(value,Math.max(min,Math.min(max,next))));
-    });
+    };
+    listen(value,'keydown',keyAdjust);
     let range;
-    if(slider){range=make('input');Object.assign(range,{id:`${id}Range`,type:'range',min:String(min),max:String(max),step:String(step)});range.setAttribute('aria-labelledby',`${id}Label`);row.append(range);listen(range,'input',()=>commit(next=>set(next,Number(range.value))));for(const event of ['pointerup','pointercancel','change'])listen(range,event,()=>range.blur());}
-    controls.push(()=>{const current=get(preset),active=enabled(preset);control.updateVisual(current);value.setAttribute('aria-valuenow',String(current));value.disabled=!active;minus.disabled=!active||current<=min;plus.disabled=!active||current>=max;row.dataset.disabled=String(!active);if(range){range.value=String(current);range.disabled=!active;}});
+    if(slider){range=make('input');Object.assign(range,{id:`${id}Range`,type:'range',min:String(min),max:String(max),step:String(rangeStep)});range.setAttribute('aria-labelledby',`${id}Label`);row.append(range);listen(range,'input',()=>commit(next=>set(next,Number(range.value))));if(rangeStep==='any')listen(range,'keydown',keyAdjust);for(const event of ['pointerup','pointercancel','change'])listen(range,event,()=>range.blur());}
+    controls.push(()=>{const current=get(preset),active=enabled(preset);control.updateVisual(current);if(format!==String){value.textContent=format(current);value.title=String(current);value.setAttribute('aria-valuetext',format(current));}value.setAttribute('aria-valuenow',String(current));value.disabled=!active;minus.disabled=!active||current<=min;plus.disabled=!active||current>=max;row.dataset.disabled=String(!active);if(range){range.value=String(current);if(rangeStep==='any')range.setAttribute('aria-valuenow',String(current));range.disabled=!active;}});
   }
 
   const filter=card('Shared SID filter','filterCard'),filterFields=fields(filter);
@@ -98,7 +103,7 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   const modulation=card('Sync / Ring · voice 3 → voice 1','modulationCard',{wide:true,open:false}),modFields=fields(modulation);
   toggle(modFields,'Hardware oscillator Sync','syncEnabled',p=>p.modulation.sync,(p,value)=>p.modulation.sync=value);
   toggle(modFields,'Hardware Ring modulation · Triangle only','ringEnabled',p=>p.modulation.ring,(p,value)=>p.modulation.ring=value);
-  number(modFields,'Modulator ratio · software','modulationRatio',.125,8,.125,p=>p.modulation.ratio,(p,value)=>p.modulation.ratio=value,{slider:true});
+  number(modFields,'Modulator ratio · software','modulationRatio',.125,8,.125,p=>p.modulation.ratio,(p,value)=>p.modulation.ratio=value,{slider:true,rangeStep:'any',format:ratioText});
   const modHelp=help(modulation,'');modHelp.id='modulationHelp';
   help(modulation,'Sync and Ring use real SID oscillator coupling. This synth assigns silent Triangle voice 3 to carrier voice 1. The ratio follows your note in software. Switching Sync or Ring stops held notes and resets Pitch.');
 

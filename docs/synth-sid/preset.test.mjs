@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {createDefaultPreset,readPreset,presetToCode,filterModeBits,filterModeFromBits} from './preset.js';
+import {SidCore} from '../js/sid.js';
+import {Sid8580Core} from '../js/sid8580.js';
+import {SidInstrument} from './instrument.js';
 
 const filterModes=['off','lowpass','bandpass','lowpass+bandpass','highpass','notch','bandpass+highpass','lowpass+bandpass+highpass'];
 
@@ -116,4 +120,66 @@ test('readable JavaScript identifies software allocation/ratio and uses the phys
   assert(code.includes('"routing":1'));assert(code.includes('"voice3off":true'));assert(code.includes('sid.keyOn(0);'));
   assert(!code.includes('sid.keyOn(2)'));assert(!code.includes('sid.noteOn(2'));
   assert(code.includes('sid.setVoice(2, {"waveform":"triangle"'));assert(code.includes('Gate OFF'));
+});
+
+test('fractional and boundary ratios survive v1/v2 JSON and exact JavaScript export in either model and modulation combination',async()=>{
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  for(const ratio of [4/3,12139/9113,.125,8])for(const model of ['6581','8580'])for(const [sync,ring]of [[false,false],[true,false],[false,true],[true,true]]){
+    const preset=createDefaultPreset({model});preset.modulation={sync,ring,ratio};
+    const restored=readPreset(JSON.stringify(preset));assert.equal(restored.modulation.ratio,ratio);assert.deepEqual(restored,preset);
+    const legacy={...preset,version:1};delete legacy.model;assert.equal(readPreset(JSON.stringify(legacy)).modulation.ratio,ratio);
+    const frequencies=[],created=[],target={initialize(){},setVoice(){},setFilter(){},setFrequency(...args){frequencies.push(args);},keyOn(){},noteOn(){}};
+    const code=presetToCode(restored);
+    await new AsyncFunction('sid','createSoundChip',code)(target,async(...args)=>{created.push(args);return target;});
+    assert.equal(created.length,model==='8580'?1:0);
+    if(sync||ring){
+      const carrier=440*2**((60-69)/12);
+      assert(code.includes('carrierHz * '+String(ratio)), 'export retains the exact imported Number literal');
+      assert.deepEqual(frequencies,[[0,carrier],[2,carrier*ratio]]);
+    }else assert.deepEqual(frequencies,[],'dormant ratios remain data while independent voices use normal note tuning');
+  }
+});
+
+function rawPair(core,preset){
+  const write=(reg,value)=>core.writeRegister(reg,value),frequency=(channel,hz)=>{
+    const value=Math.round(hz*16777216/985248);write(channel*7,value&255);write(channel*7+1,value>>8);
+  };
+  const voice=(channel,value,sync=false,ring=false)=>{
+    const base=channel*7;
+    write(base+2,value.pulseWidth&255);write(base+3,value.pulseWidth>>8);
+    write(base+5,value.attack<<4|value.decay);write(base+6,value.sustain<<4|value.release);
+    write(base+4,({triangle:16,saw:32,pulse:64,noise:128})[value.waveform]|(value.test?8:0)|(sync?2:0)|(ring?4:0));
+  };
+  // An independent bus sequence: each register access clocks one chip cycle.
+  // Follow the documented reset/write order so phase and queued samples can
+  // be compared, rather than merely comparing the final authored parameters.
+  core.reset();const initial=createDefaultPreset();
+  for(let channel=0;channel<3;channel++){voice(channel,initial.voice);frequency(channel,440);}
+  write(21,0);write(22,0);write(23,0);write(24,8);
+  for(let channel=0;channel<3;channel++)voice(channel,channel===2
+    ?{waveform:'triangle',pulseWidth:2048,attack:0,decay:0,sustain:0,release:0,test:false}:preset.voice,
+    channel===0&&preset.modulation.sync,channel===0&&preset.modulation.ring);
+  write(21,preset.filter.cutoff&7);write(22,preset.filter.cutoff>>3);write(23,preset.filter.resonance<<4|1);write(24,128|16|preset.filter.volume);
+  const note=midi=>{const hz=440*2**((midi-69)/12);frequency(0,hz);frequency(2,hz*preset.modulation.ratio);write(4,core.registers[4]|1);};
+  note(60);return {note,release(){write(4,core.registers[4]&254);}};
+}
+
+test('real 6581/8580 arbitrary-ratio pairs, releases and mono retriggers match independent raw register PCM',async()=>{
+  const binaries=await Promise.all(['../generated/sid/sid.wasm','../generated/sid8580-machine/sid8580-endpoint.wasm'].map(path=>readFile(new URL(path,import.meta.url))));
+  for(const [index,Core]of [SidCore,Sid8580Core].entries())for(const ratio of [12139/9113,.125,8])for(const [sync,ring]of [[true,false],[false,true],[true,true]]){
+    const options={sampleRate:48000,wasmBinary:binaries[index]},core=await Core.create(options),reference=await Core.create(options),instrument=new SidInstrument(core);
+    try{
+      const preset=createDefaultPreset({model:index?'8580':'6581'});preset.modulation={sync,ring,ratio};
+      Object.assign(preset.voice,{waveform:'triangle',attack:0,sustain:15,release:15});preset.filter.enabled=true;
+      instrument.loadPreset(preset);instrument.noteOn('first',60);const manual=rawPair(reference,preset);
+      const compare=()=>{
+        const actual=instrument.renderInto(new Float32Array(4096)),expected=reference.render(4096);
+        assert(actual.every(Number.isFinite));assert.deepEqual(actual,expected,'full PCM retains exact fraction, phase and access timing');assert.deepEqual(Array.from(core.registers),Array.from(reference.registers));
+      };
+      assert.equal(instrument.read().preset.modulation.ratio,ratio);assert.equal(instrument.read().capacity,1);compare();
+      assert.equal(instrument.noteOff('first'),true);manual.release();compare();
+      instrument.noteOn('second',62);manual.note(62);const before=core.getState();
+      assert.equal(instrument.noteOff('first'),false);assert.deepEqual(core.getState(),before,'stale release never changes the new pair');compare();
+    }finally{instrument.dispose();reference.dispose();}
+  }
 });

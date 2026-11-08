@@ -112,7 +112,32 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [配布proof](sid_voice_capture_packages_01.json): Player `release/tetorica_sid_player_20261108-voice-snapshot.1_itch.zip` は **223files／20 readable modules／2,691,350bytes**、SHA `0e7774f190c269832d22a657a5383e9120cef2ea912d6ed888dee886eb5c57f2`。Synth `release/tetorica_sid_synth_20261108-voice-snapshot.1_itch.zip` は **194files／16 readable modules／2,511,075bytes**、SHA `158ec2021606911d4d5765f330f66dcd2b979dbb65480b9401100a80c3715764`。実展開byte・CRC・各176／160 original inputsのnested ZIP／hash、全authored moduleの原本byte、99 compiled inputsを含む127 native source／notice hashを確認した。初回の無印ZIPは途中snapshotとして保持。
 - fixed SDK **33 builds／68 outputs／75 mirrors**、PSID／C64 source receiptのcheckは成功。既存WASM・DSP・gain・preset v2形式は不変。両CIを更新し、SID Player workflowはsourceとPlayer／Synth両ZIPの結合検証・artifact保存を行う。GitHub Actions実行・commit／push／tag／公開はしていない。
 - 再実行は`npm run test:sid-voice:browser`。ZIPは`node scripts/check_sid_voice_capture_browser.cjs --player-root <Player展開先> --synth-root <Synth展開先> --out <JSON>`。packageは`node scripts/package_sid_player.mjs <new-version>`／`sh scripts/package_itch_sid_synth.sh <new-version>`。
-- [ ] 手動の次: 手元のSIDを再生し、`Voice snapshot → SID Synth`を開いてCapture now→Voice選択→Save preset／Open in SID Synthを試す。音の時間変化・元pitch・elapsed Envelopeは復元対象外。Sync／Ring pair・複合波形・時変instrument取り込みは別段階で検討する。
+- [ ] 手動の次: 手元のSIDを再生し、`Voice snapshot → SID Synth`を開いてCapture now→Voice選択→Save preset／Open in SID Synthを試す。音の時間変化・元pitch・elapsed Envelopeは復元対象外。独立Sync／Ring pairは下の段階で対応済み。複合波形・時変instrument取り込みは別段階で検討する。
+
+### 今回の続き: Sync／Ringペアの音色取り込み（2026-11-08）
+
+ユーザー承認: Playerで選んだcarrierとその変調元を同じsnapshotから取得し、既存SynthのSync／Ringと周波数比・共有Filterを使って試奏・編集・保存できるようにする。先にTODOへ範囲を記録し、2声で成立する接続を初版の対象とする。
+
+- [x] 固定のSID接続（Voice 3→1／1→2／2→3）と既存両modelのphase／Sync／Ring参照を確認し、現在のSynthで表現できる独立ペアだけを判定した。変調元／第三声の依存、TEST、zero frequency、範囲外ratio、非対応wave／routing等は理由付きで対象外とする。
+- [x] pure snapshot変換でcarrier・sourceの周波数registerからratioを求め、Sync／Ring flags・carrier波形／ADSR・model・選択voiceの共有filter設定を既存Preset v2へ保存する。変調元のGate／ADSR／出力波形は通常phase／MSBを供給せず、Synthではsilent sourceを使うことを明示した。6581の無波形source例外は下記のとおり拒否する。
+- [x] Playerの既存Voice snapshot UIへsource→carrierの接続・captured ratio・1音試奏の説明を加えた。single snapshot互換、古いreadの破棄、Save／Load・同一origin handoffとkeyboard focusを維持する。
+- [x] 両model・3つのcarrier位置・Sync／Ring／併用・境界ratio・shared filterをunitと実WASMで検証した。取得で元Playerの次PCMを変えず、import後のratio・既存一音割当・再保存・Copy JavaScriptを確認した。
+- [x] source／実Player・Synth ZIPのChromium／WebKitで取得→Preset保存／直接受信→試奏を確認し、chain／zero／TEST等の拒否を実programで確認した。位相／元pitch／elapsed Envelope・software時間変化の復元とは区別する。
+- [x] 可読ZIP・source／license provenance・CIとREADME en／ja／英語AI・再開記録を更新した。Rust／DSP／WASM・fixed SDK・既存gainを変更せず、commit／push／公開は別とする。
+
+検証と配布:
+
+- `npm run test:sid-player` **130件**、`npm run test:sid-synth` **79件成功**。snapshot変換16件では全3carrier位置×Sync／Ring／併用×Direct6581／C646581／8580の27実CPUケース、旧single互換・境界／小数ratio・全filter mask・chain／TEST／zero拒否を含む。取得前後の状態・次PCMは不変。fresh SynthとCopy JavaScriptのPCMが一致し、元曲の位相再現とは区別した。
+- source waveform／Gate／ADSRを変えた完全mute sourceの実比較で、対応sourceのphase挙動を検証。6581の波形nibble0だけはTriangle置換でcarrier PCMが変わり、専用guardと両model差の回帰を追加した。
+- ratioスライダーは`step="any"`で0.125刻みへの丸めを避ける。ボタン／キーは現在の値から0.125ずつ動かし、短縮表示には`≈`、title／ARIA・preset・再保存・Copy JavaScriptは完全なNumberを保持する。HTML rangeの文字列はbrowser側で15桁程度に直列化される場合があるため、表示表現のみ32EPS以内を確認し、保存値・実音声側presetは厳密一致で検証した。
+- [Source browser](sid_sync_ring_capture_browser_01.json)はChromium／WebKit各17、[実Player／Synth ZIP](sid_sync_ring_capture_zip_browser_01.json)は各16、[既存Synth回帰](sid_sync_ring_synth_regression_01.json)は各16、**計98項目成功**。各modelで3物理接続・Sync／Ring／併用を取得→保存／受信→実PCM試奏し、source mute・filter routing・mono steal／古い離鍵・非grid ratioの再保存／コード出力・1180／390pxを確認。全タブ物理出力gain0、実聴・長時間保証とは区別する。
+- [配布proof](sid_sync_ring_capture_packages_01.json): Player `release/tetorica_sid_player_20261108-sync-ring.1_itch.zip` は **223files／20 readable modules／2,694,707bytes**、SHA `423151e2abeabe1def235f8fed0b905eadcad7aa8d97e4e5b11220ed0bc37cc6`。Synth `release/tetorica_sid_synth_20261108-sync-ring.1_itch.zip` は **194files／16 readable modules／2,512,362bytes**、SHA `03b3c8846e921a3db547504416cdf3751cbdb3b2694157aebb057b24d303cdab`。実展開全byte・CRC・各176／160 original inputsのnested ZIP／hash、99 compiled inputsを含む127 native source／notice hashを確認した。無印ZIPは追加guard前の途中snapshotとして保持する。
+- fixed SDK **33 builds／68 outputs／75 mirrors** は成功。WASM／native source receipt・DSP・gain・Preset v2の形式は不変。両CIへ新しい自作pair fixtureの監視を追加済み。GitHub Actions実行・commit／push／tag／公開はしていない。
+- 再確認は`npm run test:sid-voice:browser`。既存`Voice snapshot → SID Synth`から取り込み、対応ペアなら接続・frequency-code ratioが表示される。元sourceの音・第三声は取り込まず、Synthでは無音Triangle Voice 3→carrier Voice 1の1音として試奏する。
+
+検証で判明したmodel差: 現在の6581近似coreは`_m6581_wavnone`で`wav_accum >>= 1`を行うため、無波形sourceとTriangle sourceの位相挙動が一致しない。sourceを完全muteして同じCPU write timingで比べても、Triangleへ置換するとcarrier PCMが変わる。今回は6581のsource波形nibble0を理由付きで拒否し、8580では引き続き許可する。native／WASM修正を混ぜず、既存の音を保持する。
+
+- [ ] 別段階: 6581の無波形sourceのphase／MSB挙動を独立fixture・一次資料／参照と照合し、core修正・WASM再build／source receipt・既存PCM／校正の更新範囲を検討する。今回の取り込みで黙ってTriangleへ置換しない。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

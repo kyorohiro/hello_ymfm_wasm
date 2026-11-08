@@ -101,9 +101,19 @@ temporary handoff expires after five minutes and is consumed once. Invalid or
 expired requests keep the current preset and show a diagnostic. Standalone
 packages on different origins use the portable JSON file workflow.
 
-Snapshots retain the model, one waveform, Pulse width, ADSR register codes and
-the selected voice's shared-filter routing / settings and chip volume. They
-restart as a keyboard-controlled instrument: the original musical pitch,
+Snapshots retain the model, one carrier waveform, Pulse width, ADSR register
+codes and the selected voice's shared-filter routing / settings and chip volume.
+An isolated Sync / Ring pair also retains both carrier modulation flags and
+the unrounded source/carrier frequency-register ratio. The original physical
+connection is remapped to this Synth's **silent Triangle voice 3 → carrier 1**
+pair, using one keyboard note. SID Sync / Ring uses oscillator phase rather
+than the source's audible waveform / Gate / ADSR. In the current 6581
+approximation, an unselected source waveform changes phase, so pair import
+rejects that case; 8580 allows a source with no waveform selected.
+The original source's audible part and the third song
+voice are not copied. Pairs with source / carrier TEST, zero frequencies, ratios
+outside 0.125×..8× or three-voice modulation chains remain unavailable in the
+Player. Snapshots restart as a keyboard-controlled instrument: the original musical pitch,
 elapsed envelope, oscillator / noise phase and later song automation are not
 recreated. Combined waveforms and unsupported modulation / silent-routing cases
 are rejected with reasons in the Player. The source modules remain readable in
