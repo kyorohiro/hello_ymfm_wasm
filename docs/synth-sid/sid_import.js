@@ -6,8 +6,8 @@ import {validatePlayerSid,createPlayerCore} from '../sid-player/models.js';
 // Keep the preview transport graph paired across an app update. Unversioned
 // browser modules from before Pause/Resume may still be present in the cache.
 import {createAudio as createPlayerAudio} from '../sid-player/audio.js?sid-transport=2';
-import {createVoiceCapture} from '../sid-player/voice_capture.js';
-import {readPreset} from './preset.js';
+import {createVoiceCapture} from '../sid-player/voice_capture.js?sid-waves=1';
+import {readPreset} from './preset.js?sid-waves=1';
 
 const aborted=()=>new DOMException('SID import was cancelled','AbortError');
 const isAbort=error=>error?.name==='AbortError';

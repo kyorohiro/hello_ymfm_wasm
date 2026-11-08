@@ -63,6 +63,7 @@ jobs:
         run: |
           node --test test/runtime/sidsynth.test.mjs test/runtime/playground_sid.test.mjs test/runtime/playground_sid_audio.test.mjs test/runtime/playground_sid_performance.test.mjs test/runtime/playground_sid_worker.test.mjs
           node scripts/check_playground_mode_types.mjs
+          node node_modules/typescript/bin/tsc --noEmit --strict --allowJs --checkJs false --target ES2022 --module NodeNext --moduleResolution NodeNext --lib ES2022,DOM --types node test/types/sid-waveforms.mts
           npm run check:runtime-artifacts
           node scripts/check_playground_sid_browser.cjs --out release/sid-playground-source.json
       - name: Package and play the C64 mode independently

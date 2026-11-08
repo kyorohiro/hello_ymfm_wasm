@@ -9,7 +9,7 @@ import {createHash} from 'node:crypto';
 import {copySid8580MachineSources} from './copy_sid8580_machine_sources.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
-export const SID_MODEL_RUNTIME_MODULES=Object.freeze(['sid8580.js','sid8580.d.ts']);
+export const SID_MODEL_RUNTIME_MODULES=Object.freeze(['sid8580.js','sid8580.d.ts','sid_waveforms.js']);
 const record=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
 const exportsRequired=['create','destroy','reset','run','output','output_frames','write','read','model','rate','cycles_lo','cycles_hi','calibration','cutoff_calibration'].map(n=>'sid8p_'+n);
 export async function checkSidModelEndpoint(){
@@ -27,6 +27,12 @@ export async function syncSidModelModules({check=false}={}){
     if(check)assert(source.equals(await readFile(target)),`SID model mirror differs: ${target}`);
     else {await mkdir(dirname(target),{recursive:true});await writeFile(target,source);}
   }
+  // sidsynth.js in the readable SID source kit also imports this pure helper.
+  // These are browser sources, outside the thirteen compiled native inputs.
+  const helper=await readFile(join(root,'tetorica_src/runtime/sid_waveforms.js'));
+  const kitTarget=join(root,'docs/sources/sid/tetorica_src/runtime/sid_waveforms.js');
+  if(check)assert(helper.equals(await readFile(kitTarget)),'SID source-kit waveform helper differs');
+  else {await mkdir(dirname(kitTarget),{recursive:true});await writeFile(kitTarget,helper);}
 }
 export async function copySidModelSources(stage){
   await syncSidModelModules({check:true});const kit=await copySid8580MachineSources(stage);

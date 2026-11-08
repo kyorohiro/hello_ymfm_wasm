@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Worker,MessageChannel} from 'node:worker_threads';
-import {SidSynth} from '../../tetorica_src/runtime/sidsynth.js';
+import {SidSynth,sidWaveformFromBits} from '../../tetorica_src/runtime/sidsynth.js';
 import {createProcessorPerformance} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 const workerUrl=new URL('../../tetorica_src/runtime/playground_logic_worker.js',import.meta.url).href;
@@ -88,6 +88,29 @@ function assertLoopOwnership(device){
   assert.notEqual(gate(2).owner,gate(0).owner,'a sibling loop keeps its independent note owner');
   assert(gate(0).time>=.5);assert.equal(device.registers[4]&1,1);assert.equal(device.registers[11]&1,1);assert.equal(device.registers[18]&1,1);
 }
+
+for(const model of ['6581','8580'])test(`actual logic Worker ${model} accepts every waveform mask and rejects a partial invalid edit`,{timeout:10000},async t=>{
+  const f=await fixture(t,{primary:false}),names=Array.from({length:16},(_,bits)=>sidWaveformFromBits(bits));
+  await f.run(`
+    const extra=await createSoundChip('sid',{id:'sid:waveforms',model:${JSON.stringify(model)}});
+    extra.initialize();extra.keyOn(0);
+    const names=${JSON.stringify(names)};
+    for(let bits=0;bits<16;bits++){
+      extra.setVoice(0,{waveform:names[bits]});
+      if(await extra.readRegister(4)!==((bits<<4)|1))throw Error('Wrong combined waveform register '+bits);
+    }
+    const before=await extra.readRegister(4);
+    let rejected=false;try{extra.setVoice(0,{attack:15,waveform:'triangle+triangle'});}catch{rejected=true;}
+    if(!rejected||await extra.readRegister(4)!==before)throw Error('Invalid waveform edit changed the chip');
+    log('all-waveforms-ready');
+  `);
+  await until(()=>f.logged('all-waveforms-ready'),'all waveform writes');
+  const device=f.devices[0];assert.equal(device.model,model);
+  const controls=device.commands.filter(command=>command.method==='writeRegister'&&command.args[0]===4).map(command=>command.args[1]);
+  assert.deepEqual(controls.slice(-16),Array.from({length:16},(_,bits)=>(bits<<4)|1));
+  assert.equal(device.registers[5],0x26,'invalid mixed patch did not write its otherwise valid Attack');
+  await f.stop();assert.deepEqual(f.errors,[]);
+});
 
 test('actual SID primary Worker shares globals/pg/livePrepare and restores loop ownership after register RPC', {timeout:10000},async t=>{
   const f=await fixture(t);

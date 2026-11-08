@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=2';
-import {createEditor} from './editor.js';
-import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
-import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=2';
-import {captureSidVoices} from '../sid-player/voice_snapshot.js';
-import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
-import {createSidImport} from './sid_import.js?sid-transport=2';
+import {createAudio} from './audio.js?sid-channels=2&sid-waves=1';
+import {createEditor} from './editor.js?sid-waves=1';
+import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
+import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=2&sid-waves=1';
+import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
+import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js?sid-waves=1';
+import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2';
-import {createSidLiveView} from './sid_live_view.js';
+import {createSidLiveView} from './sid_live_view.js?sid-waves=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';

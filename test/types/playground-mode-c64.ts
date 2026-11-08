@@ -5,6 +5,9 @@ async function checkC64ModeTypes() {
   sid.initialize();
   sid.setVoice(0, {waveform:'pulse',pulseWidth:2048,attack:2,decay:6,sustain:12,release:5});
   sid.setVoice(1, {sync:true,ring:true,test:false});
+  sid.setVoice(0, {waveform:'triangle+saw'});
+  sid.setVoice(1, {waveform:'triangle+saw+pulse+noise'});
+  sid.setVoice(2, {waveform:'off'});
   sid.setFilter({mode:'bandpass',cutoff:1000,resonance:6,routing:7,volume:8,voice3off:false});
   sid.setFilter({mode:'lowpass+bandpass'});
   sid.setFilter({mode:'bandpass+highpass'});
@@ -16,6 +19,8 @@ async function checkC64ModeTypes() {
   (await sid.readRegister(27)).toFixed();
   const state:PlaygroundSidState = await sid.getState();
   state.channels[0].waveforms.includes('triangle');
+  const legacyWaveform:PlaygroundSidWaveformName|'off'|'combined'=state.channels[0].waveform;
+  void legacyWaveform;
   const primary = await useSoundChip('sid');
   const acknowledged:boolean = await primary.setClock(985248);
   void acknowledged;
@@ -30,6 +35,10 @@ async function checkC64ModeTypes() {
   await createSoundChip('sid', {model:'8581'});
   // @ts-expect-error The waveform API uses explicit hardware waveform names.
   sid.setVoice(0, {waveform:'sine'});
+  // @ts-expect-error Duplicate hardware flags are invalid.
+  sid.setVoice(0, {waveform:'triangle+triangle'});
+  // @ts-expect-error Type completion uses the canonical flag order.
+  sid.setVoice(0, {waveform:'saw+triangle'});
   // @ts-expect-error A borrowed mode primary has no disposal method.
   primary.dispose();
   // @ts-expect-error C64 mode has no implicit FM convenience.

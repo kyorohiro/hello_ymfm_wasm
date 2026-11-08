@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
+import {sidWaveformBits as waveformBits,sidWaveformFromBits as waveformFromBits} from '../js/sid_waveforms.js?sid-waves=1';
+
+export {waveformBits,waveformFromBits};
 
 /** @typedef {'off'|'lowpass'|'bandpass'|'lowpass+bandpass'|'highpass'|'notch'|'bandpass+highpass'|'lowpass+bandpass+highpass'} SidPresetFilterMode */
+/** @typedef {'off'|'triangle'|'saw'|'triangle+saw'|'pulse'|'triangle+pulse'|'saw+pulse'|'triangle+saw+pulse'|'noise'|'triangle+noise'|'saw+noise'|'triangle+saw+noise'|'pulse+noise'|'triangle+pulse+noise'|'saw+pulse+noise'|'triangle+saw+pulse+noise'} SidPresetWaveform */
 /** @typedef {{format:'tetorica-sid-voice',version:2,model:'6581'|'8580',name:string,
- * voice:{waveform:'triangle'|'saw'|'pulse'|'noise',pulseWidth:number,attack:number,decay:number,sustain:number,release:number,test:boolean},
+ * voice:{waveform:SidPresetWaveform,pulseWidth:number,attack:number,decay:number,sustain:number,release:number,test:boolean},
  * modulation:{sync:boolean,ring:boolean,ratio:number},
  * filter:{enabled:boolean,mode:SidPresetFilterMode,cutoff:number,resonance:number,volume:number}}} SidPreset */
 
@@ -61,7 +65,7 @@ export function readPreset(value){
   const filterMode=filterModeFromBits(filterModeBits(value.filter.mode));
   const filterEnabled=boolean(value.filter.enabled,'SID filter enabled');
   return {format:'tetorica-sid-voice',version:2,model,name:value.name.trim(),
-    voice:{waveform:choice(value.voice.waveform,['triangle','saw','pulse','noise'],'SID waveform'),
+    voice:{waveform:waveformFromBits(waveformBits(value.voice.waveform)),
       pulseWidth:integer(value.voice.pulseWidth,4095,'SID pulse width'),attack:integer(value.voice.attack,15,'SID attack'),
       decay:integer(value.voice.decay,15,'SID decay'),sustain:integer(value.voice.sustain,15,'SID sustain'),release:integer(value.voice.release,15,'SID release'),test:boolean(value.voice.test,'SID TEST')},
     modulation:{sync:boolean(value.modulation.sync,'SID Sync'),ring:boolean(value.modulation.ring,'SID Ring'),ratio},

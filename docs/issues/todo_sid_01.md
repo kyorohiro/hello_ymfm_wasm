@@ -38,6 +38,19 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: 複数波形をSynthへ取り込む（2026-11-08）
+
+ユーザー承認: Combined waveformsの取り込み制限を外し、複数波形の選択・API・Preset・取り込みを対応させる。
+追加指摘: 固定CHのNote On→Note Onで再発音できず、一度Offにする必要があるように感じる。後にユーザーが再確認して「今試したら大丈夫」と回答したため、再発音の挙動は維持する。
+
+- [x] 高級API／型で全16通り（Offを含む）の波形maskを扱い、単一波形のregister／PCM互換と可読runtime／配布mirrorを維持した。
+- [x] 旧Preset互換のまま組み合わせを保存・復元する。SID snapshot／Auto反映では全15通りの非zero maskを受理し、TESTや依存関係の制限は保持した。
+- [x] 同じWaveformボタンを独立On／Offへ変更した。Pulseを含めばPulse widthが有効になり、Triangleを含むRingにも対応する。Round robinでは編集した波形bitだけを全CHへ反映する。
+- [x] 固定CHの再発音で既存のGate Off→Onと発音所有権を確認した。通常ADSRで両model・全CHが再発音するため、ADSR／音源coreは変更していない。
+- [x] Synth unit167件、Player unit139件、API／Main／Worker30件が成功。source／ZIPのChromium／WebKitで取り込み・保存・全mask・既存CH／Pause・更新互換・Player受け渡しを検証し、確認用フォルダーを最終ZIPと全265ファイル一致へ更新した。
+
+結果・配布候補: [複合波形の編集・取り込み](sid_synth_combined_waveforms_result_01.md)。commit／push／公開は未実行。
+
 ### 今回の修正: Round robin選択だけでCH設定を揃えない（2026-11-08）
 
 ユーザー指摘: Round robinを押しただけで個別設定が失われる。選択時は保持し、編集して初めて3CHへ反映したい。

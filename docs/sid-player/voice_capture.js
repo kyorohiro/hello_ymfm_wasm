@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {captureSidVoices} from './voice_snapshot.js';
+import {captureSidVoices} from './voice_snapshot.js?sid-waves=1';
 
 /** One explicit read per capture. The owner is the accepted audio/tune, never a
  * display-poll snapshot or a draft model. A captured instrument is independent

@@ -23,14 +23,16 @@ later moment. Stop, load/subtune/model changes and late reads cannot replace an
 accepted snapshot with an obsolete result. Capturing sends no register writes,
 does not stop the tune and never copies its program or audio.
 
-The preset retains the running **6581 / 8580 Preview** model, one Triangle,
-Saw, Pulse or Noise waveform, Pulse width, hardware ADSR codes and shared
+The preset retains the running **6581 / 8580 Preview** model, the selected
+Triangle / Saw / Pulse / Noise flags and their combinations, Pulse width,
+hardware ADSR codes and shared
 Cutoff / Resonance / chip volume. Whether the selected voice is routed through
 the filter controls the Synth's filter enable state. Combined LP / BP / HP
 outputs are retained. A voice routed into an all-off filter is unavailable
 because the Synth's all-off convenience bypass would change that silent case.
-Combined carrier waveforms, held TEST and a muted voice-3 dry path show reasons
-instead of silently replacing those settings.
+A carrier with no waveform, held TEST and a muted voice-3 dry path show reasons
+instead of silently replacing those settings. Combined flags use the selected
+chip model's combined waveform behavior, rather than mixing separate voices.
 
 Selecting a carrier with **Sync / Ring** automatically captures a supported
 isolated pair. The SID connection is the preceding oscillator: voice 3 → 1,
@@ -39,13 +41,16 @@ unrounded ratio of source frequency register to carrier frequency register,
 within **0.125×..8×**. The preview identifies the original connection and ratio.
 Carrier ADSR, waveform, Pulse width, model and filter settings stay the same.
 
-In the Synth, every imported pair uses **silent Triangle oscillator 3 → carrier
-1**, with one keyboard note. SID Sync / Ring uses oscillator phase rather than
+In the Synth, fixed **CH 1 / CH 2 / CH 3** selection uses that carrier and its
+physical preceding voice as a **silent Triangle source**, with one keyboard note.
+Round robin uses the first channel with Sync / Ring enabled as its carrier.
+SID Sync / Ring uses oscillator phase rather than
 the source's audible waveform or envelope, so that oscillator supplies the
 captured relative tuning. A source with no selected waveform is supported in
 both **6581** and **8580**: waveform selection and Gate do not stop its phase.
 The original source's audible song part and the third voice are not
-copied. Ring affects Triangle carriers; Sync can also affect other supported
+copied. Ring affects the Triangle flag, including combined selections that
+contain Triangle; Sync can also affect other supported
 carrier waveforms. Captured oscillator phases are not restored.
 
 Pairs with a held carrier/source TEST, a zero carrier/source frequency or an

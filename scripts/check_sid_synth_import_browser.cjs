@@ -23,7 +23,7 @@ const report={schemaVersion:1,passed:false,entry:config.entry,physicalOutputMute
 
 // A small PAL VBI program changes the real chip's pulse width, ADSR and
 // waveform flags on every play call. CH2 intentionally keeps a combined
-// waveform, so an unsupported portable preset still has observable registers.
+// waveform so observation, automatic adoption and capture retain every flag.
 function createLiveFixture(base){
   const init=[...base.program.slice(0,-2),0xa9,0,0x8d,0x30,0x03,0x60];
   const play=[0xee,0x30,0x03,0xad,0x30,0x03,0x8d,0x02,0xd4,
@@ -280,7 +280,7 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(observed.requests.length,count+1);assert.equal(observed.reply.id,observed.requests.at(-1));assert.equal(observed.reply.error,null);assert(observed.reply.state.positionFrames>0);
       return observed.reply.state;
     }
-    async function usePreset(expected,voice=0){
+    async function usePreset(expected,voice=0,{audible=true}={}){
       const button=page.locator(`[data-sid-import-voice="${voice}"]`);
       assert.equal(await button.isDisabled(),false);await button.click();
       await page.waitForFunction(expected=>document.getElementById('instrumentName').value===expected.name&&document.getElementById('sidModelBadge').textContent===expected.model,expected);
@@ -288,8 +288,9 @@ async function checkBrowser(name,engine,origin,helpers){
       const saved=await savedPreset();assert.deepEqual(saved.value,expected);
       assert.equal(await page.evaluate(()=>document.activeElement?.matches('select,input[type=file]')),false);
       const key=await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
-      await page.keyboard.down(key);await sound('synth');const state=await waitState('synth',s=>s.voices.length>0);
+      await page.keyboard.down(key);if(audible)await sound('synth');const state=await waitState('synth',s=>s.voices.length>0);
       assert.deepEqual(state.preset,expected);assert.equal(state.model,expected.model);
+      const output=await sample('synth');assert(output.finite&&output.muted);
       if(expected.modulation.sync||expected.modulation.ring){const carrier=state.channelSettings.target==='round-robin'?0:state.channelSettings.target;assert.equal(state.capacity,1);assert.equal(state.registers[carrier*7+4]&6,(expected.modulation.sync?2:0)|(expected.modulation.ring?4:0));}
       await page.keyboard.up(key);await stopSynth();
       const channels=(await savedChannels()).value;
@@ -421,10 +422,22 @@ async function checkBrowser(name,engine,origin,helpers){
     const rsidCapture=await capture();
     const rsidParsed=helpers.validatePlayerSid(helpers.rsid.bytes),rsidPreset=helpers.captureSidVoices(rsidCapture,{name:rsidParsed.metadata.name,subtune:1}).voices[0].preset;assert(rsidPreset);await usePreset(rsidPreset);
 
-    check('unsupported combined carrier settings show their reason and cannot replace the current instrument');
+    check('combined carrier waveforms capture, import, save, reload and export in both SID models');
+    const beforeCombined=(await savedPreset()).value;
+    for(const [model,fixture]of [['6581',helpers.combined],['8580',helpers.combined8580]]){
+      await load(fixture.bytes,`combined-${model}.sid`);await preview({audible:false});const observed=await capture();
+      const parsed=helpers.validatePlayerSid(fixture.bytes),row=helpers.captureSidVoices(observed,{name:parsed.metadata.name,subtune:1}).voices[0];
+      assert.equal(row.available,true);assert.equal(helpers.waveformBits(row.preset.voice.waveform),3);
+      await usePreset(row.preset,0,{audible:false});
+      assert.equal((await read('synth')).registers[4]&0xf0,0x30);
+      captures.push({model,combinedWaveform:row.preset.voice.waveform,mask:3,positionFrames:observed.positionFrames,imported:true,finiteOutput:true});
+    }
+    await loadPortable(beforeCombined);
+
+    check('a carrier holding TEST retains its rejection reason and cannot replace the current instrument');
     const beforeUnsupported=(await savedPreset()).value;
-    await load(helpers.combined.bytes,'combined-carrier.sid');await preview();await capture();
-    await page.locator('[data-sid-import-voice="0"]').click();await page.waitForTimeout(50);assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
+    await load(helpers.testHeld.bytes,'test-held-carrier.sid');await preview({audible:false});await capture();
+    await page.locator('[data-sid-import-voice="0"]').click();await page.waitForTimeout(50);assert.match(await page.locator('#sidImportVoicePreview').textContent(),/TEST/i);
     assert.deepEqual((await savedPreset()).value,beforeUnsupported);await stopPreview();
 
     check('Stop during delayed preview WASM startup cannot create a stale playing context');
@@ -439,11 +452,12 @@ async function checkBrowser(name,engine,origin,helpers){
 
     check('editing the Synth while a captured Voice selection waits for disposal cancels the late replacement');
     await preview();await capture();
+    const beforeRaceEdit=(await savedPreset()).value;
     await page.evaluate(()=>{__sidImportAudit.holdNextPlayerClose=true;document.querySelector('[data-sid-import-voice="0"]').click();});
     await page.waitForFunction(()=>typeof __sidImportAudit.releasePlayerClose==='function');
     await page.locator('[data-choice-for="waveform"][data-value="noise"]').click();
     await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
-    const edited=(await savedPreset()).value;assert.equal(edited.voice.waveform,'noise');
+    const edited=(await savedPreset()).value;assert.equal(helpers.waveformBits(edited.voice.waveform),helpers.waveformBits(beforeRaceEdit.voice.waveform)^8);
     await page.evaluate(()=>__sidImportAudit.releasePlayerClose());await page.waitForTimeout(100);
     assert.deepEqual((await savedPreset()).value,edited);
 
@@ -506,6 +520,18 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.equal(fieldEdited.target,'round-robin');assert.deepEqual(fieldEdited.channels,expectedFieldEdit,'A Round robin Attack edit overwrote unrelated per-CH settings');
     const appliedFieldEdit=await waitState('synth',s=>s.channelSettings?.channels.every(patch=>patch.voice.attack===attackBefore+1));
     assert.deepEqual(appliedFieldEdit.channelSettings,fieldEdited);
+    const expectedNoiseBits=fieldEdited.channels.map(patch=>helpers.waveformBits(patch.voice.waveform)|8);
+    await page.locator('[data-choice-for="waveform"][data-value="noise"]').click();
+    await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
+    const noiseAdded=(await savedChannels()).value;
+    assert.deepEqual(noiseAdded.channels.map(patch=>helpers.waveformBits(patch.voice.waveform)),expectedNoiseBits,'Adding Noise in Round robin changed other waveform flags');
+    assert.deepEqual(noiseAdded.channels.map(patch=>patch.voice.attack),fieldEdited.channels.map(patch=>patch.voice.attack));
+    await page.locator('[data-choice-for="waveform"][data-value="triangle"]').click();
+    await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
+    const triangleRemoved=(await savedChannels()).value;
+    assert.deepEqual(triangleRemoved.channels.map(patch=>helpers.waveformBits(patch.voice.waveform)),expectedNoiseBits.map(bits=>bits&~1),'Removing Triangle in Round robin replaced per-CH waveform combinations');
+    const appliedBits=await waitState('synth',s=>s.channelSettings.channels.every((patch,index)=>helpers.waveformBits(patch.voice.waveform)===(expectedNoiseBits[index]&~1)));
+    assert.deepEqual([0,1,2].map(channel=>appliedBits.registers[channel*7+4]>>4),expectedNoiseBits.map(bits=>bits&~1));
     const roundRobinPatch={...sharedPatch,name:'All CH edit',voice:{...sharedPatch.voice,waveform:'triangle',attack:9}};
     await loadPortable(roundRobinPatch);assert.deepEqual((await savedChannels()).value.channels,[roundRobinPatch,roundRobinPatch,roundRobinPatch],'An explicit Round robin preset load did not replace all three patches');
     channelObservations.push({check:stage,target:'round-robin',physicalChannels:rotating.voices.map(v=>v.channel),hardwareWaveforms:[0x10,0x40,0x20],hardwareAttacks:[3,5,7],sharedFilter:true,mixedRoundtrip:true,fieldEdited:'attack',broadcastAttack:attackBefore+1,otherFieldsPreserved:true,explicitPresetLoadReplacesAll:true});
@@ -522,6 +548,25 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual(appliedSetup.channelSettings,setupSaved.value);
     await page.locator('#copyCode').click();assert.equal(await page.locator('#codeOutput').inputValue(),helpers.channelSettingsToCode(setupSaved.value));
     channelObservations.push({check:stage,target:2,restored:true});
+
+    check('all fifteen waveform flag combinations and manual Off reach the selected real Worklet channel');
+    await loadPortable({...restoredThird,name:'Waveform flag audit',voice:{...restoredThird.voice,waveform:'off'},modulation:{sync:false,ring:false,ratio:1}});
+    for(const mask of [...Array.from({length:15},(_,index)=>index+1),0]){
+      for(const [wave,bit]of [['triangle',1],['saw',2],['pulse',4],['noise',8]]){
+        const button=page.locator(`[data-choice-for="waveform"][data-value="${wave}"]`);
+        const pressed=await button.getAttribute('aria-pressed')==='true';
+        if(pressed!==Boolean(mask&bit))await button.click();
+      }
+      await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
+      const patch=(await savedPreset()).value;assert.equal(helpers.waveformBits(patch.voice.waveform),mask);
+      assert.equal(patch.voice.waveform,helpers.waveformFromBits(mask));
+      const state=await waitState('synth',value=>(value.registers[18]>>4)===mask);
+      assert.equal(state.channelSettings.target,2);assert.equal(helpers.waveformBits(state.channelSettings.channels[2].voice.waveform),mask);
+      const output=await sample('synth');assert(output.finite&&output.muted);
+    }
+    // Noise combinations can intentionally lock the physical noise generator;
+    // clear that history before later cases that require a sounding oscillator.
+    await stopSynth();
     await chooseTarget('round-robin');await loadPortable(edited);
 
     const liveValue=field=>page.locator(`#sidLiveView [data-live-field="${field}"]`).getAttribute('data-value');
@@ -616,13 +661,19 @@ async function checkBrowser(name,engine,origin,helpers){
     const helpBank=(await savedChannels()).value;assert.equal(helpBank.target,0);assert.deepEqual(helpBank.channels[1].voice,edited.voice);assert.deepEqual(helpBank.channels[2].voice,edited.voice);
     await checkEditorIdentity({layout:true});
 
-    check('fixed CH selection also selects its song observation while unsupported combined settings preserve its playable patch');
+    check('fixed CH selection observes and automatically adopts the combined waveform into the same playable channel');
     await chooseTarget(1);
     await page.waitForFunction(()=>document.getElementById('sidLiveView').dataset.liveVoice==='1');
     const combinedValues=await editorValues();
     assert.equal(combinedValues.waveforms,'48');assert.equal(await liveValue('frequencyRegister'),String(0x2030));
-    assert.equal(combinedValues.adsr,'5/8/9/3');assert.match(await liveValue('import'),/Combined waveforms/i);
-    assert((await read('player')).playing);const unsupportedRetained=(await savedPreset()).value;assert.deepEqual(unsupportedRetained.voice,edited.voice);
+    assert.equal(combinedValues.adsr,'5/8/9/3');assert.equal(await liveValue('import'),'available');
+    assert((await read('player')).playing);const adoptedCombined=(await savedPreset()).value;
+    assert.equal(helpers.waveformBits(adoptedCombined.voice.waveform),3);assert.equal(adoptedCombined.voice.attack,5);
+    const adoptedCombinedBank=(await savedChannels()).value;assert.equal(adoptedCombinedBank.target,1);
+    // CH2's voice is fixed, but this authored tune changes the shared cutoff
+    // while these two downloads run. Compare the stable per-CH fields here.
+    assert.deepEqual(adoptedCombinedBank.channels[1].voice,adoptedCombined.voice);
+    assert.deepEqual(adoptedCombinedBank.channels[1].modulation,adoptedCombined.modulation);
     assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-sid-live-voice]')),false);
     await checkEditorIdentity();
 
@@ -639,30 +690,37 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
     assert((await read('player')).positionFrames>positionBefore);await sound('player');
     assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'false');
-    assert.equal(await page.locator('#attack').getAttribute('data-value'),String(unsupportedRetained.voice.attack));
-    assert.equal(await page.locator('#pulseWidth').getAttribute('data-value'),String(unsupportedRetained.voice.pulseWidth));
-    assert.equal(await page.locator('[data-choice-for="waveform"][data-value="noise"]').getAttribute('aria-checked'),'true');
+    assert.equal(await page.locator('#attack').getAttribute('data-value'),String(adoptedCombined.voice.attack));
+    assert.equal(await page.locator('#pulseWidth').getAttribute('data-value'),String(adoptedCombined.voice.pulseWidth));
+    for(const [wave,bit]of [['triangle',1],['saw',2],['pulse',4],['noise',8]])
+      assert.equal(await page.locator(`[data-choice-for="waveform"][data-value="${wave}"]`).getAttribute('aria-pressed'),String(Boolean(helpers.waveformBits(adoptedCombined.voice.waveform)&bit)));
     assert.equal(await page.locator('#attack').isDisabled(),false);
     await checkEditorIdentity({layout:true});
 
-    check('an unavailable captured Voice click preserves the preset and live raw settings remain observable');
+    check('a captured voice with no oscillator waveform remains unavailable without changing the adopted combined patch');
     await setLive(true);await waitLive();
     assert.notEqual(await page.locator('#sidLiveChannels').getAttribute('aria-disabled'),'true');
     assert.equal(await page.locator('[data-sid-live-voice]:disabled').count(),0);
     assert.equal(await page.locator('[data-sid-live-voice="1"]').getAttribute('aria-pressed'),'true');
-    await capture();await page.locator('[data-sid-import-voice="1"]').click();await page.waitForTimeout(50);
-    assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
-    assert.deepEqual((await savedPreset()).value,unsupportedRetained);assert((await read('player')).playing);
+    await capture();
+    // Capture disables Auto update first. Freeze the comparison baseline now,
+    // after any valid observation received since the earlier combined sample.
+    const beforeUnavailableVoice=(await savedPreset()).value;
+    assert.equal(helpers.waveformBits(beforeUnavailableVoice.voice.waveform),3);
+    await page.locator('[data-sid-import-voice="2"]').click();await page.waitForTimeout(50);
+    assert.match(await page.locator('#sidImportVoicePreview').textContent(),/No oscillator waveform/i);
+    assert.deepEqual((await savedPreset()).value,beforeUnavailableVoice);assert((await read('player')).playing);
     await setLive(true);await waitLive();assert.equal((await editorValues()).waveforms,'48');
 
     check('Stop fences a delayed observer reply and leaves a visibly frozen last CH frame');
     await setLive(true);await waitLive();
     await page.evaluate(()=>{__sidImportAudit.markCapture=true;__sidImportAudit.holdCaptureReply=true;});
     await page.waitForFunction(()=>typeof __sidImportAudit.releaseCaptureReply==='function');
+    const beforeObserverStop=(await savedPreset()).value;
     await stopPreview();const stoppedFrame=await liveFrame();
     await page.evaluate(()=>__sidImportAudit.releaseCaptureReply());await page.waitForTimeout(120);
     assert.equal(await liveFrame(),stoppedFrame);assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
-    assert.deepEqual((await savedPreset()).value,unsupportedRetained);
+    assert.deepEqual((await savedPreset()).value,beforeObserverStop);
 
     check('8580 live observation uses its real preview model and labels unavailable envelope observation');
     await load(helpers.pair8580.bytes,'live-8580.sid');await page.locator('[data-sid-live-voice="0"]').click();
@@ -821,13 +879,15 @@ async function checkBrowser(name,engine,origin,helpers){
   const {createRsidFixture}=await import('../test/helpers/rsid_fixtures.mjs');
   const {captureSidVoices}=await import('../docs/sid-player/voice_snapshot.js');
   const {validatePlayerSid}=await import('../docs/sid-player/models.js');
-  const {readPreset,presetToCode}=await import('../docs/synth-sid/preset.js');
+  const {readPreset,presetToCode,waveformBits,waveformFromBits}=await import('../docs/synth-sid/preset.js');
   const {readChannelSettings,channelSettingsToCode}=await import('../docs/synth-sid/channel_settings.js');
   const options={sync:true,ring:true,sourceControl:0,voice3off:true,carrierFrequency:0x1800,sourceFrequency:0x2003};
   const helpers={pair6581:createSidPairFixture({model:'6581',...options}),pair8580:createSidPairFixture({model:'8580',...options}),
     cia:createPsidCiaFixture(),rsid:createRsidFixture('cia-irq'),combined:createSidPairFixture({sync:false,ring:false,voice3off:true,overrides:[[4,0x31]]}),
+    combined8580:createSidPairFixture({model:'8580',sync:false,ring:false,voice3off:true,overrides:[[4,0x31]]}),
+    testHeld:createSidPairFixture({sync:false,ring:false,voice3off:true,carrierTest:true}),
     live:createLiveFixture(createSidPairFixture({sync:false,ring:false,sourceControl:0,thirdControl:0x31,voice3off:true,overrides:[[7,0x30],[8,0x20],[12,0x58],[13,0x93]]})),
-    captureSidVoices,validatePlayerSid,readPreset,presetToCode,readChannelSettings,channelSettingsToCode};
+    captureSidVoices,validatePlayerSid,readPreset,presetToCode,waveformBits,waveformFromBits,readChannelSettings,channelSettingsToCode};
   report.inputs=Object.fromEntries(await Promise.all(['scripts/check_sid_synth_import_browser.cjs','test/helpers/sid_voice_pair_fixtures.mjs','test/helpers/psid_cia_fixtures.mjs','test/helpers/rsid_fixtures.mjs'].map(async file=>[file,digest(await fs.readFile(path.resolve(__dirname,'..',file)))])));
   report.fixtureInputs=Object.fromEntries(Object.entries(helpers).filter(([,value])=>value?.bytes).map(([key,value])=>[key,digest(value.bytes)]));
   if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});

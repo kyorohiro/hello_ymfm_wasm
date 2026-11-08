@@ -234,6 +234,29 @@ test('each fixed Sync/Ring carrier tunes its physical predecessor without replac
   }
 });
 
+test('combined waveform edits retain a held fixed-channel Ring pair and live Pitch in both models',async t=>{
+  for(const model of ['6581','8580']){
+    const {instrument,core}=await (model==='6581'?setup(t):setup8580(t));
+    let settings=selectChannelTarget(instrument.read().channelSettings,1),value=structuredClone(settings.channels[1]);
+    value.voice.waveform='triangle+saw';value.modulation={sync:false,ring:true,ratio:1.25};
+    settings=applyChannelPreset(settings,value);instrument.loadChannelSettings(settings);
+    instrument.noteOn('combined-held',60);render(instrument,6000);const owners=instrument.read().voices;
+    assert.equal(core.registers[11],0x35);assert.equal(core.registers[4],0x10);
+    const edit=instrument.read().preset;edit.voice.waveform='triangle+pulse';edit.voice.pulseWidth=731;edit.modulation.ratio=1.5;
+    instrument.setPreset(edit);
+    assert.deepEqual(instrument.read().voices,owners);assert.equal(core.registers[11],0x55);
+    assert.equal(core.registers[9]|(core.registers[10]&15)<<8,731);
+    instrument.setPitch(-2);
+    assert.equal(core.registers[7]|core.registers[8]<<8,frequency(hz(58)));
+    assert.equal(core.registers[0]|core.registers[1]<<8,frequency(hz(58)*1.5));
+    assert.equal(core.registers[11]&7,5);assert.deepEqual(instrument.read().voices,owners);
+    const off=instrument.read().preset;off.voice.waveform='off';instrument.setPreset(off);
+    assert.equal(core.registers[11],5);assert.deepEqual(instrument.read().voices,owners);
+    const combined=instrument.read().preset;combined.voice.waveform='triangle+saw+pulse';instrument.setPreset(combined);
+    assert.equal(core.registers[11],0x75);assert.equal(instrument.read().pitch,-2);assert.equal(instrument.noteOff('combined-held'),true);
+  }
+});
+
 test('invalid channel setups leave the active bank and real chip unchanged',async t=>{
   const {instrument,core}=await setup(t);instrument.noteOn('held',60);render(instrument,2000);
   const snapshot=instrument.read(),hardware=core.getState();

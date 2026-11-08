@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import {createParamControl} from '../synth/synth_controls.js';
-import {createDefaultPreset,readPreset,filterModeBits,filterModeFromBits} from './preset.js';
+import {createDefaultPreset,readPreset,filterModeBits,filterModeFromBits,waveformBits,waveformFromBits} from './preset.js?sid-waves=1';
 
 // Imported oscillator-register ratios need not lie on the authoring step grid.
 // Keep the actual Number intact; an abbreviated label explicitly says approx.
@@ -55,14 +55,9 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       event.preventDefault();event.stopPropagation();commit(value=>set(value,buttons[next].dataset.value));buttons[next].focus();
     });
     controls.push(()=>{
-      const rawWaves=observing&&observation&&id==='waveform';group.setAttribute('role',rawWaves?'group':'radiogroup');
       for(const button of buttons){
-        const mask={triangle:16,saw:32,pulse:64,noise:128}[button.dataset.value];
-        const active=rawWaves?Boolean(observation.waveformMask&mask):button.dataset.value===get(display);
-        button.disabled=observing;button.tabIndex=observing?-1:active?0:-1;button.setAttribute('role',rawWaves?'button':'radio');
-        if(rawWaves){button.removeAttribute('aria-checked');button.setAttribute('aria-pressed',String(active));}
-        else{button.removeAttribute('aria-pressed');button.setAttribute('aria-checked',String(active));}
-        markChanged(button,active);
+        const active=button.dataset.value===get(display);
+        button.disabled=observing;button.tabIndex=observing?-1:active?0:-1;button.setAttribute('aria-checked',String(active));markChanged(button,active);
       }
     });
   }
@@ -70,6 +65,28 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
     const row=make('label','sid-field sid-check'),input=make('input');input.type='checkbox';input.id=id;row.append(input,make('span','',label));parent.append(row);
     listen(input,'change',()=>{commit(next=>set(next,input.checked));input.blur();});
     controls.push(()=>{input.checked=Boolean(get(display));input.disabled=observing;markChanged(input,input.checked);});return input;
+  }
+  function waveforms(parent){
+    const row=field(parent,'Waveforms · combine','waveform','sid-choice-field'),group=make('div','sid-choice-group');
+    group.id='waveform';group.setAttribute('role','group');group.setAttribute('aria-labelledby','waveformLabel');row.append(group);
+    const buttons=[];
+    for(const [bit,name,label]of [[1,'triangle','Triangle'],[2,'saw','Saw'],[4,'pulse','Pulse'],[8,'noise','Noise']]){
+      const button=make('button','',label);button.type='button';button.dataset.choiceFor='waveform';button.dataset.value=name;pointerFocus(button);
+      listen(button,'click',()=>commit(next=>{next.voice.waveform=waveformFromBits(waveformBits(next.voice.waveform)^bit);}));
+      controls.push(()=>{
+        const bits=observing&&observation?observation.waveformMask>>4:waveformBits(display.voice.waveform);
+        const active=Boolean(bits&bit);button.disabled=observing;button.tabIndex=observing?-1:0;button.setAttribute('aria-pressed',String(active));markChanged(button,active);
+      });
+      buttons.push(button);group.append(button);
+    }
+    listen(group,'keydown',event=>{
+      if(observing){event.preventDefault();event.stopPropagation();return;}
+      const current=Math.max(0,buttons.indexOf(doc.activeElement));let next;
+      if(['ArrowRight','ArrowDown'].includes(event.key))next=(current+1)%buttons.length;
+      else if(['ArrowLeft','ArrowUp'].includes(event.key))next=(current+buttons.length-1)%buttons.length;
+      else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;
+      event.preventDefault();event.stopPropagation();buttons[next].focus();
+    });
   }
   function filterOutputs(parent) {
     const row=field(parent,'Filter outputs · combine','filterMode','sid-choice-field'),group=make('div','sid-choice-group');
@@ -124,11 +141,11 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   help(filter,'One shared hardware filter: selected LP, BP and HP outputs are added together with a common Cutoff and Resonance. LP + HP is Notch. With all outputs off, this synth bypasses the filter. Cutoff is a chip code, not Hz.');
 
   const voice=card('Sound source · SID oscillator','voiceCard'),voiceFields=fields(voice);
-  choice(voiceFields,'Waveform','waveform',[['triangle','Triangle'],['saw','Saw'],['pulse','Pulse'],['noise','Noise']],p=>p.voice.waveform,(p,value)=>p.voice.waveform=value);
-  number(voiceFields,'Pulse width · 0–4095','pulseWidth',0,4095,1,p=>p.voice.pulseWidth,(p,value)=>p.voice.pulseWidth=value,{slider:true,enabled:p=>p.voice.waveform==='pulse'});
+  waveforms(voiceFields);
+  number(voiceFields,'Pulse width · 0–4095','pulseWidth',0,4095,1,p=>p.voice.pulseWidth,(p,value)=>p.voice.pulseWidth=value,{slider:true,enabled:p=>Boolean(waveformBits(p.voice.waveform)&4)});
   const envelope=fields(voice);
   for(const [key,label]of [['attack','Attack'],['decay','Decay'],['sustain','Sustain'],['release','Release']])number(envelope,`${label} · 0–15`,key,0,15,1,p=>p.voice[key],(p,value)=>p.voice[key]=value);
-  help(voice,'ADSR uses hardware codes. Gate release follows the selected Release. Noise is a SID oscillator waveform, not a recorded sample.');
+  help(voice,'Select one or several waveform buttons to combine them inside this SID oscillator. All waveforms off is silent. ADSR uses hardware codes; Gate release follows the selected Release.');
   const advanced=make('details','sid-advanced');advanced.append(make('summary','','Advanced · oscillator TEST'));voice.append(advanced);
   toggle(advanced,'Hold TEST · reset oscillator','oscillatorTest',p=>p.voice.test,(p,value)=>p.voice.test=value);
   const testHelp=help(voice,'Changing TEST stops held notes and resets Pitch. Leave it off for ordinary playing.');testHelp.id='testHelp';
@@ -138,17 +155,17 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   toggle(modFields,'Hardware Ring modulation · Triangle only','ringEnabled',p=>p.modulation.ring,(p,value)=>p.modulation.ring=value);
   number(modFields,'Modulator ratio','modulationRatio',.125,8,.125,p=>p.modulation.ratio,(p,value)=>p.modulation.ratio=value,{slider:true,rangeStep:'any',format:ratioText});
   const modHelp=help(modulation,'');modHelp.id='modulationHelp';
-  help(modulation,'Sync and Ring use real SID oscillator coupling. This synth assigns silent Triangle voice 3 to carrier voice 1. The ratio follows your note in software. Switching Sync or Ring stops held notes and resets Pitch.');
+  help(modulation,'Sync and Ring use the selected carrier and its physical preceding oscillator as a silent Triangle source. The ratio follows your note in software. Switching Sync or Ring stops held notes and resets Pitch.');
   for(const content of [filter,voice,modulation])content.append(helpPanels.get(content));
 
   function render() {
     if(disposed)return;
-    // A raw observation deliberately bypasses readPreset: multiple/no waveform,
-    // silent filter routing and a ratio outside the keyboard range are valid
+    // A raw observation deliberately bypasses readPreset: silent filter routing
+    // and a ratio outside the keyboard range are valid
     // hardware states even when they cannot become an authored instrument.
     display=observing&&observation?{
       model:observation.model,
-      voice:{waveform:({16:'triangle',32:'saw',64:'pulse',128:'noise'})[observation.waveformMask]??'none',
+      voice:{waveform:waveformFromBits(observation.waveformMask>>4),
         pulseWidth:observation.pulseWidth,attack:observation.attack,decay:observation.decay,
         sustain:observation.sustain,release:observation.release,test:observation.test},
       filter:{enabled:observation.filter.routed,mode:filterModeFromBits(observation.filter.modeMask),
@@ -175,7 +192,7 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
       filterHelp.textContent=display.filter.enabled?`Filter on · ${outputs}${display.filter.mode==='notch'?' (Notch)':''} · shared cutoff and resonance for every sounding voice.`:'Filter bypassed · dry routing. Turn on LP, BP or HP to enable the filter automatically.';
       const paired=display.modulation.sync||display.modulation.ring;
       modHelp.textContent=paired?'One carrier + one silent modulator · maximum 1 note.':'Sync / Ring off · 3 independent voices with round robin.';
-      if(display.modulation.ring&&display.voice.waveform!=='triangle'){modHelp.textContent+=' Ring affects Triangle only; select Triangle to hear it.';modHelp.dataset.warning='true';}else delete modHelp.dataset.warning;
+      if(display.modulation.ring&&!(waveformBits(display.voice.waveform)&1)){modHelp.textContent+=' Ring affects Triangle only; enable Triangle to hear it.';modHelp.dataset.warning='true';}else delete modHelp.dataset.warning;
       testHelp.dataset.warning=String(display.voice.test);testHelp.textContent=display.voice.test?'TEST is held: the oscillator is reset. Turn TEST off for ordinary playing.':'Changing TEST stops held notes and resets Pitch. Leave it off for ordinary playing.';
     }
   }

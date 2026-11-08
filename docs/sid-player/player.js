@@ -3,9 +3,9 @@ import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
 import {validatePlayerSid, createPlayerCore} from './models.js';
 import {copyRomSet, readRomFile} from './roms.js';
 import {createAudio} from './audio.js';
-import {createVoiceCapture} from './voice_capture.js';
-import {SNAPSHOT_NOTICE} from './voice_snapshot.js';
-import {prepareSidPresetHandoff} from '../synth-sid/handoff.js';
+import {createVoiceCapture} from './voice_capture.js?sid-waves=1';
+import {SNAPSHOT_NOTICE} from './voice_snapshot.js?sid-waves=1';
+import {prepareSidPresetHandoff} from '../synth-sid/handoff.js?sid-waves=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 
 const $ = id => document.getElementById(id);

@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {SidCore} from '../../tetorica_src/runtime/sid.js';
 import {Sid8580Core} from '../../tetorica_src/runtime/sid8580.js';
-import {SidSynth, validateSidClock, SID_PAL_CLOCK} from '../../tetorica_src/runtime/sidsynth.js';
+import {SidSynth, validateSidClock, SID_PAL_CLOCK, sidWaveformFromBits} from '../../tetorica_src/runtime/sidsynth.js';
 import {SidVoiceInspector, receiveSidInspector} from '../../tetorica_src/runtime/playground_sid_inspector.js';
 import {createSidClient, createSidRegisterClient} from '../../tetorica_src/runtime/playground_sid.js';
 import {createProcessorPerformance, performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
@@ -51,6 +51,15 @@ for (const model of ['6581','8580']) for (const rate of [44100, 48000, 96000]) t
     assert.equal(filter.mode, mode); assert.equal(filter.modeBits, bits); assert.equal(filter.cutoff, 950);
     assert.equal(filter.resonance, 10); assert.equal(filter.routing, 7);
   }
+  for(let bits=0;bits<16;bits++){
+    const waveform=sidWaveformFromBits(bits);
+    p.client.setVoice(0,{waveform});synth.setVoice(0,{waveform});
+    assert.deepEqual(p.render(128).left,core.render(128),`${model} client waveform ${waveform}`);
+    const voice=(await p.client.getState()).channels[0];assert.equal(voice.waveformBits,bits);assert.equal(voice.gate,true);
+  }
+  const count=p.commands.length;
+  assert.throws(()=>p.client.setVoice(0,{attack:15,waveform:'triangle+triangle'}));
+  assert.equal(p.commands.length,count,'rejected combined waveform sends no earlier partial register writes');
   const cycles = p.processor.core.getState().cycles; assert.equal(await p.client.readRegister(28), core.readRegister(28)); assert.equal(p.processor.core.getState().cycles, cycles + 1);
 });
 

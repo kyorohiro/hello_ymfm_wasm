@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026 kyorohiro.
-import {SidSynth} from '../js/sidsynth.js';
+import {SidSynth} from '../js/sidsynth.js?sid-waves=1';
 import {SID_PAL_CLOCK,sidFrequency} from '../js/sid.js';
-import {createDefaultPreset,readPreset} from './preset.js';
-import {createChannelSettings,readChannelSettings,applyChannelPreset,editChannelPreset,channelPlaybackPlan} from './channel_settings.js?sid-channels=2';
+import {createDefaultPreset,readPreset} from './preset.js?sid-waves=1';
+import {createChannelSettings,readChannelSettings,applyChannelPreset,editChannelPreset,channelPlaybackPlan} from './channel_settings.js?sid-channels=2&sid-waves=1';
 
 const pair=preset=>preset.modulation.sync||preset.modulation.ring;
 // Internal settings have already passed the boundary validator. Reuse their

@@ -1,9 +1,13 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {sidFrequency, SID_PAL_CLOCK} from './sid.js';
+import {sidWaveformBits} from './sid_waveforms.js?sid-waves=1';
 export {SID_PAL_CLOCK, SID_NTSC_CLOCK} from './sid.js';
+export {SID_WAVEFORMS, sidWaveformBits, sidWaveformFromBits} from './sid_waveforms.js?sid-waves=1';
 
+/** @typedef {'triangle'|'saw'|'pulse'|'noise'} SidWaveformName */
+/** @typedef {'off'|'triangle'|'saw'|'triangle+saw'|'pulse'|'triangle+pulse'|'saw+pulse'|'triangle+saw+pulse'|'noise'|'triangle+noise'|'saw+noise'|'triangle+saw+noise'|'pulse+noise'|'triangle+pulse+noise'|'saw+pulse+noise'|'triangle+saw+pulse+noise'} SidWaveform */
 /** @typedef {Object} SidVoiceOptions
- * @property {'triangle'|'saw'|'pulse'|'noise'} [waveform]
+ * @property {SidWaveform} [waveform] Hardware waveform flags; combined outputs retain the core's chip behavior. Off clears the four flags without changing Gate.
  * @property {number} [pulseWidth] Twelve-bit pulse comparator, 0..4095.
  * @property {number} [attack] 0..15.
  * @property {number} [decay] 0..15.
@@ -124,13 +128,13 @@ export class SidSynth {
     for (const key of ['attack', 'decay', 'sustain', 'release']) if (key in value) integer(value[key], 15, key);
     for (const key of ['sync', 'ring', 'test']) if (key in value) boolean(value[key], key);
     if ('pulseWidth' in value) integer(value.pulseWidth, 4095, 'pulse width');
-    if ('waveform' in value && (typeof value.waveform !== 'string' || !Object.hasOwn(waves, value.waveform))) throw new RangeError('SID waveform must be triangle, saw, pulse or noise');
+    const waveformBits = 'waveform' in value ? sidWaveformBits(value.waveform) : 0;
     const base = channel * 7, registers = this.#registers;
     if ('pulseWidth' in value) { this.#send(base + 2, value.pulseWidth & 255); this.#send(base + 3, (registers[base + 3] & 240) | (value.pulseWidth >> 8)); }
     if ('attack' in value || 'decay' in value) this.#send(base + 5, ((value.attack ?? (registers[base + 5] >> 4)) << 4) | (value.decay ?? (registers[base + 5] & 15)));
     if ('sustain' in value || 'release' in value) this.#send(base + 6, ((value.sustain ?? (registers[base + 6] >> 4)) << 4) | (value.release ?? (registers[base + 6] & 15)));
     let control = registers[base + 4];
-    if ('waveform' in value) control = (control & 15) | waves[value.waveform];
+    if ('waveform' in value) control = (control & 15) | (waveformBits << 4);
     for (const [key, mask] of [['sync', 2], ['ring', 4], ['test', 8]]) if (key in value) control = (control & ~mask) | (value[key] ? mask : 0);
     if (['waveform', 'sync', 'ring', 'test'].some(key => key in value)) this.#send(base + 4, control);
   }

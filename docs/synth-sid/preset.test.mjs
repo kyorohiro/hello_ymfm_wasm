@@ -2,12 +2,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createDefaultPreset,readPreset,presetToCode,filterModeBits,filterModeFromBits} from './preset.js';
+import {createDefaultPreset,readPreset,presetToCode,filterModeBits,filterModeFromBits,waveformBits,waveformFromBits} from './preset.js';
 import {SidCore} from '../js/sid.js';
 import {Sid8580Core} from '../js/sid8580.js';
 import {SidInstrument} from './instrument.js';
+import {SidSynth} from '../js/sidsynth.js';
 
 const filterModes=['off','lowpass','bandpass','lowpass+bandpass','highpass','notch','bandpass+highpass','lowpass+bandpass+highpass'];
+const waveformNames=['off','triangle','saw','triangle+saw','pulse','triangle+pulse','saw+pulse','triangle+saw+pulse',
+  'noise','triangle+noise','saw+noise','triangle+saw+noise','pulse+noise','triangle+pulse+noise','saw+pulse+noise','triangle+saw+pulse+noise'];
 
 test('SID v2 default is portable, detached and keeps dormant filter settings',()=>{
   const preset=createDefaultPreset(),copy=readPreset(JSON.stringify(preset));assert.deepEqual(copy,preset);
@@ -21,7 +24,7 @@ test('SID v2 default is portable, detached and keeps dormant filter settings',()
 test('SID preset fields reject unknown keys, coercions, unsafe names and unsupported versions',()=>{
   const mutations=[p=>p.extra=1,p=>delete p.voice,p=>p.format='sid',p=>p.version=3,p=>p.version='2',p=>p.model='8581',p=>p.model=8580,p=>delete p.model,
     p=>p.name=1,p=>p.name='a'.repeat(81),p=>p.name='bad\nname',p=>p.name='bad\u2028name',p=>p.name='bad\u0085name',
-    p=>p.voice.extra=true,p=>delete p.voice.test,p=>p.voice.waveform='combined',p=>p.voice.waveform='off',
+    p=>p.voice.extra=true,p=>delete p.voice.test,...['combined','Triangle','triangle+triangle','off+saw','saw+','+saw','saw++noise','saw +noise','',15,null,['triangle']].map(waveform=>p=>p.voice.waveform=waveform),
     p=>p.voice.pulseWidth=-1,p=>p.voice.pulseWidth=4096,p=>p.voice.pulseWidth=1.5,p=>p.voice.pulseWidth='2048',
     p=>p.voice.attack=16,p=>p.voice.decay=-1,p=>p.voice.sustain=NaN,p=>p.voice.release=Infinity,p=>p.voice.test=1,
     p=>p.modulation.sync='true',p=>p.modulation.ring=0,p=>p.modulation.ratio=.124,p=>p.modulation.ratio=8.001,
@@ -69,13 +72,52 @@ test('8580 copied JavaScript creates a dedicated model instance and never edits 
   }
 });
 
-test('all four waveforms and eight filter output masks retain exact register parameter boundaries',()=>{
-  for(const waveform of ['triangle','saw','pulse','noise'])for(const mode of filterModes){
+test('all sixteen waveform masks and eight filter output masks retain exact register parameter boundaries',()=>{
+  for(const waveform of waveformNames)for(const mode of filterModes){
     const preset=createDefaultPreset();Object.assign(preset.voice,{waveform,pulseWidth:4095,attack:15,decay:15,sustain:15,release:15,test:true});
     Object.assign(preset.modulation,{sync:true,ring:true,ratio:8});Object.assign(preset.filter,{enabled:mode!=='off',mode,cutoff:2047,resonance:15,volume:15});
     assert.deepEqual(readPreset(preset),preset);
     Object.assign(preset.voice,{pulseWidth:0,attack:0,decay:0,sustain:0,release:0});preset.modulation.ratio=.125;
     Object.assign(preset.filter,{cutoff:0,resonance:0,volume:0});assert.deepEqual(readPreset(preset),preset);
+  }
+});
+
+test('waveform helpers and v1/v2 JSON preserve all hardware masks with a canonical combined string',()=>{
+  for(let bits=0;bits<16;bits++){
+    assert.equal(waveformBits(waveformNames[bits]),bits);assert.equal(waveformFromBits(bits),waveformNames[bits]);
+    for(const model of ['6581','8580']){
+      const preset=createDefaultPreset({model});preset.voice.waveform=waveformNames[bits];
+      assert.deepEqual(readPreset(JSON.stringify(preset)),preset);
+      const legacy={...preset,version:1};delete legacy.model;
+      const migrated=readPreset(JSON.stringify(legacy));assert.equal(migrated.model,'6581');assert.equal(migrated.voice.waveform,waveformNames[bits]);
+    }
+  }
+  for(const waveform of ['saw+triangle','noise+pulse+triangle+saw']){
+    const preset=createDefaultPreset();preset.voice.waveform=waveform;
+    const expected=waveform==='saw+triangle'?'triangle+saw':'triangle+saw+pulse+noise';
+    assert.equal(readPreset(preset).voice.waveform,expected);assert.equal(preset.voice.waveform,waveform,'canonicalization never changes the imported object');
+    assert(presetToCode(preset).includes(`"waveform":"${expected}"`));
+  }
+  for(const bits of [-1,16,1.5,NaN,Infinity,'3',null])assert.throws(()=>waveformFromBits(bits));
+});
+
+test('all waveform masks execute exported JavaScript with exact control bits and the same real PCM in either model',async()=>{
+  const binaries=await Promise.all(['../generated/sid/sid.wasm','../generated/sid8580-machine/sid8580-endpoint.wasm'].map(path=>readFile(new URL(path,import.meta.url))));
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  for(const [index,Core]of [SidCore,Sid8580Core].entries())for(let bits=0;bits<16;bits++){
+    const model=index?'8580':'6581',options={sampleRate:48000,wasmBinary:binaries[index]};
+    const core=await Core.create(options),copyCore=await Core.create(options),instrument=new SidInstrument(core),copied=new SidSynth({core:copyCore});
+    try{
+      const preset=createDefaultPreset({model});preset.voice={...preset.voice,waveform:waveformNames[bits],attack:0,decay:0,sustain:15};
+      instrument.loadPreset(preset);instrument.noteOn('combined',60);
+      await new AsyncFunction('sid','createSoundChip',presetToCode(preset))(copied,async(name,configuration)=>{
+        assert.equal(name,'sid');assert.deepEqual(configuration,{id:'sid:8580-voice',model:'8580'});return copied;
+      });
+      assert.equal(instrument.read().registers[4]&0xf0,bits<<4);assert.equal(copied._getState().registers[4]&0xf0,bits<<4);
+      assert.deepEqual(copied._getState().registers,instrument.read().registers);
+      const actual=instrument.renderInto(new Float32Array(2048)),exported=copyCore.render(2048);
+      assert(actual.every(Number.isFinite));assert.deepEqual(actual,exported,`${model}: mask ${bits} uses the chip's combined output in both paths`);
+    }finally{instrument.dispose();copied.dispose();copyCore.dispose();}
   }
 });
 

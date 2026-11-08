@@ -2,15 +2,68 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {SidCore, SID_PAL_CLOCK} from '../../tetorica_src/runtime/sid.js';
-import {SidSynth} from '../../tetorica_src/runtime/sidsynth.js';
+import {Sid8580Core} from '../../tetorica_src/runtime/sid8580.js';
+import {SidSynth,SID_WAVEFORMS,sidWaveformBits,sidWaveformFromBits} from '../../tetorica_src/runtime/sidsynth.js';
 import {SidVoiceInspector, receiveSidInspector} from '../../tetorica_src/runtime/playground_sid_inspector.js';
 
 const wasmBinary = await readFile(new URL('../../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url));
+const previewBinary = await readFile(new URL('../../docs/generated/sid8580-machine/sid8580-endpoint.wasm', import.meta.url));
 const peak = samples => samples.reduce((maximum, sample) => Math.max(maximum, Math.abs(sample)), 0);
 async function setup(t) {
   const core = await SidCore.create({wasmBinary}), synth = new SidSynth({core});
   t.after(() => { synth.dispose(); core.dispose(); }); return {core, synth};
 }
+
+test('all sixteen waveform masks have canonical names, accept permutations and reject duplicate/unknown flags',()=>{
+  const names=['off','triangle','saw','triangle+saw','pulse','triangle+pulse','saw+pulse','triangle+saw+pulse',
+    'noise','triangle+noise','saw+noise','triangle+saw+noise','pulse+noise','triangle+pulse+noise','saw+pulse+noise','triangle+saw+pulse+noise'];
+  assert.deepEqual(SID_WAVEFORMS,['triangle','saw','pulse','noise']);assert(Object.isFrozen(SID_WAVEFORMS));
+  for(let bits=0;bits<16;bits++){
+    assert.equal(sidWaveformFromBits(bits),names[bits]);assert.equal(sidWaveformBits(names[bits]),bits);
+    assert.equal(sidWaveformBits(names[bits].split('+').reverse().join('+')),bits);
+  }
+  for(const value of ['', 'combined','triangle+triangle','noise+pulse+noise','off+triangle','triangle+off','triangle+',
+    '+saw','triangle++saw','saw pulse','triangle +saw','Pulse','sine','triangle+sine',null,0,[],{}])assert.throws(()=>sidWaveformBits(value));
+  for(const value of [-1,16,.5,NaN,Infinity,'3',null,undefined])assert.throws(()=>sidWaveformFromBits(value));
+});
+
+for(const model of ['6581','8580'])test(`all ${model} waveform selections match raw control writes and preserve Gate/Sync/Ring`,async t=>{
+  const Core=model==='8580'?Sid8580Core:SidCore,binary=model==='8580'?previewBinary:wasmBinary;
+  for(let bits=0;bits<16;bits++){
+    const authorCore=await Core.create({sampleRate:48000,wasmBinary:binary}),rawCore=await Core.create({sampleRate:48000,wasmBinary:binary});
+    const author=new SidSynth({core:authorCore}),raw=new SidSynth({core:rawCore});
+    try{
+      for(const synth of [author,raw]){
+        synth.initialize();synth.setVoice(0,{waveform:'pulse',attack:0,decay:1,sustain:12,release:8,sync:true,ring:true,test:false});
+        synth.setVoice(2,{waveform:'triangle'});synth.setFrequency(2,199);synth.noteOn(0,'C4');
+      }
+      const before=Array.from(author.getRegisterSnapshot()),cycles=authorCore.getState().cycles;
+      author.setVoice(0,{waveform:sidWaveformFromBits(bits)});raw.writeRegister(4,(bits<<4)|7);
+      const state=author._getState(),expectedNames=SID_WAVEFORMS.filter((name,index)=>bits&(1<<index));
+      assert.equal(state.registers[4],(bits<<4)|7);
+      assert.deepEqual(state.registers.filter((value,index)=>index!==4),before.filter((value,index)=>index!==4));
+      assert.equal(state.channels[0].gate,true);assert.equal(state.channels[0].sync,true);assert.equal(state.channels[0].ring,true);assert.equal(state.channels[0].test,false);
+      assert.equal(state.channels[0].waveformBits,bits);assert.deepEqual(state.channels[0].waveforms,expectedNames);
+      assert.equal(state.channels[0].waveform,expectedNames.length===1?expectedNames[0]:bits?'combined':'off');
+      assert.equal(authorCore.getState().cycles,cycles+1,'waveform edit is exactly one control-register write');
+      const pcm=authorCore.render(4096);assert(pcm.every(Number.isFinite));assert.deepEqual(pcm,rawCore.render(4096),`${model} mask ${bits} PCM`);
+      assert.deepEqual(Array.from(authorCore.registers),Array.from(rawCore.registers));
+      author.setVoice(0,{test:true});author.setVoice(0,{waveform:'off'});assert.equal(author.getRegisterSnapshot()[4],15,'off leaves Gate/Sync/Ring/TEST untouched');
+    }finally{author.dispose();raw.dispose();authorCore.dispose();rawCore.dispose();}
+  }
+});
+
+for(const model of ['6581','8580'])test(`invalid ${model} combined-wave patches leave all registers and held state unchanged`,async()=>{
+  const Core=model==='8580'?Sid8580Core:SidCore,core=await Core.create({wasmBinary:model==='8580'?previewBinary:wasmBinary}),synth=new SidSynth({core});
+  try{
+    synth.initialize();synth.noteOn(1,'E4');core.render(3000);
+    for(const waveform of ['','combined','triangle+triangle','noise+off','pulse+unknown',null,[],{}]){
+      const before=synth._getState(),cycles=core.getState().cycles;
+      assert.throws(()=>synth.setVoice(1,{attack:15,pulseWidth:1234,waveform}));
+      assert.deepEqual(synth._getState(),before);assert.equal(core.getState().cycles,cycles);
+    }
+  }finally{synth.dispose();core.dispose();}
+});
 
 test('SID defaults are silent, helpers address three physical voices, and borrowed cores remain caller-owned', async t => {
   const {core, synth} = await setup(t);

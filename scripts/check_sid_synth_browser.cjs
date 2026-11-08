@@ -97,7 +97,14 @@ async function checkEngine(name, engine, origin) {
     const sound = () => page.waitForFunction(() => { const value = __sidSynthAudit.sample(); return value.finite && value.muted && value.rms > .00001; });
     const silent = () => page.waitForFunction(() => { const value = __sidSynthAudit.sample(); return value.finite && value.muted && value.peak < 1e-8; });
     const measure = async () => { await page.waitForTimeout(260); const value = await page.evaluate(() => __sidSynthAudit.sample()); assert(value.finite && value.muted); return value; };
-    const choice = (group, value) => page.locator(`[data-choice-for="${group}"][data-value="${value}"]`).click();
+    const choice = async (group, value) => {
+      if(group==='waveform'){
+        for(const waveform of ['triangle','saw','pulse','noise']){
+          const button=page.locator(`[data-choice-for="waveform"][data-value="${waveform}"]`);
+          if((await button.getAttribute('aria-pressed')==='true')!==(waveform===value))await button.click();
+        }
+      }else await page.locator(`[data-choice-for="${group}"][data-value="${value}"]`).click();
+    };
     const range = (id, value) => page.locator('#' + id).evaluate((input, next) => { input.value = String(next); input.dispatchEvent(new Event('input', {bubbles: true})); }, value);
     const settle = () => page.waitForFunction(() => document.querySelector('#patchStatus').dataset.busy !== 'true');
     const filterModes = ['off', 'lowpass', 'bandpass', 'lowpass+bandpass', 'highpass', 'notch', 'bandpass+highpass', 'lowpass+bandpass+highpass'];
@@ -206,6 +213,18 @@ async function checkEngine(name, engine, origin) {
     assert(lowSustain.rms < highSustain.rms * .8, 'lower Sustain changes the held hardware envelope');
     measurements.waveforms = Object.fromEntries(Object.entries(waves).map(([wave, {rms, peak}]) => [wave, {rms, peak}]));
     measurements.pulseSpectrumDifference = difference(narrow.spectrum, square.spectrum);
+
+    check('combined waveform toggles preserve the held Gate and enable Pulse width when Pulse joins Triangle and Saw');
+    await choice('waveform','triangle');
+    await page.locator('[data-choice-for="waveform"][data-value="saw"]').click();
+    state=await wait(value=>value.preset.voice.waveform==='triangle+saw');
+    assert.equal(state.voices[0].id,owner);assert.equal(state.registers[state.voices[0].channel*7+4]&0xf1,0x31);
+    await page.locator('[data-choice-for="waveform"][data-value="pulse"]').click();
+    state=await wait(value=>value.preset.voice.waveform==='triangle+saw+pulse');assert.equal(state.voices[0].id,owner);
+    assert.equal(await page.locator('#pulseWidthRange').isDisabled(),false);
+    await page.locator('[data-choice-for="waveform"][data-value="saw"]').click();
+    await wait(value=>value.preset.voice.waveform==='triangle+pulse');
+    await choice('waveform','saw');
 
     check('shared LP/BP/HP, live cutoff/resonance and chip volume reach held real output');
     measurements.filters = {};

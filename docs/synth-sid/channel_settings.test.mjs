@@ -72,7 +72,7 @@ test('complete voice replacement is distinct from an ordinary round-robin parame
   const settings=selectChannelTarget(distinctChannels(),'round-robin'),edit=selectedChannelPreset(settings);edit.voice.waveform='noise';
   const patched=editChannelPreset(settings,edit),loaded=applyChannelPreset(settings,edit);
   for(let channel=0;channel<3;channel++){
-    assert.equal(patched.channels[channel].voice.waveform,'noise');
+    assert.equal(patched.channels[channel].voice.waveform,['noise','pulse+noise','triangle+noise'][channel]);
     assert.equal(patched.channels[channel].voice.pulseWidth,settings.channels[channel].voice.pulseWidth);
     assert.deepEqual(loaded.channels[channel],edit,'an explicit voice load replaces the whole sound on all three');
   }
@@ -83,6 +83,21 @@ test('complete voice replacement is distinct from an ordinary round-robin parame
     assert.equal(renamed.channels[channel].filter.cutoff,1000);assert.equal(renamed.channels[channel].voice.pulseWidth,settings.channels[channel].voice.pulseWidth);
   }
   const fixed=selectChannelTarget(settings,1);assert.deepEqual(editChannelPreset(fixed,edit),applyChannelPreset(fixed,edit));
+});
+
+test('round-robin waveform toggles broadcast only changed bits and preserve other channel waveform selections',()=>{
+  const original=selectChannelTarget(distinctChannels(),'round-robin');
+  const add=selectedChannelPreset(original);add.voice.waveform='saw+pulse';
+  const added=editChannelPreset(original,add);
+  assert.deepEqual(added.channels.map(p=>p.voice.waveform),['saw+pulse','pulse','triangle+pulse']);
+  const remove=selectedChannelPreset(added);remove.voice.waveform='pulse';
+  const removed=editChannelPreset(added,remove);
+  assert.deepEqual(removed.channels.map(p=>p.voice.waveform),['pulse','pulse','triangle+pulse']);
+  for(let i=0;i<3;i++){
+    assert.equal(removed.channels[i].voice.attack,original.channels[i].voice.attack);
+    assert.equal(removed.channels[i].voice.pulseWidth,original.channels[i].voice.pulseWidth);
+  }
+  const full=applyChannelPreset(original,add);assert(full.channels.every(p=>p.voice.waveform==='saw+pulse'),'an explicit preset load still replaces the full waveform selection');
 });
 
 test('channel setups reject mismatched shared hardware and malformed data',()=>{

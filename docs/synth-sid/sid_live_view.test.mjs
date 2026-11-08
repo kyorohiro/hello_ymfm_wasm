@@ -38,7 +38,7 @@ test('live decoding retains all hardware flags and shared filter outputs without
   assert.deepEqual(value.filter, {cutoff: 2047, resonance: 15, modeMask: 7, outputs: ['LP', 'BP', 'HP'],
     routed: true, routingMask: 7, volume: 15, voice3off: true});
   assert.equal(value.importable.available, false);
-  assert.match(value.importable.reason, /Combined waveforms/);
+  assert.match(value.importable.reason, /TEST is held/);
   assert.deepEqual(state, before);
   assert(Object.isFrozen(value)); assert(Object.isFrozen(value.filter)); assert(Object.isFrozen(value.registers));
   r[0] = 0;
@@ -151,7 +151,7 @@ test('passive live DOM updates persist, CH changes reuse the same observation, a
   assert.equal(field.dataset.value, '8000', 'disposed view ignores late updates');
 });
 
-test('unsupported settings reach the common editor unchanged, and compact readouts keep the previous display on a malformed update', () => {
+test('combined settings reach the common editor unchanged and become importable, while malformed updates retain the previous display', () => {
   const f = fixture(), raw = playerState({model: '8580'});
   raw.registers[4] = 0x71; raw.voices = [];
   const observed = f.view.update({liveEnabled: true, liveActive: true, liveVoice: 0, liveState: raw});
@@ -160,7 +160,7 @@ test('unsupported settings reach the common editor unchanged, and compact readou
   assert.equal(f.field('waveforms'), undefined, 'waveforms use the same buttons in the editor');
   assert.equal(f.field('envelope').dataset.value, 'unavailable');
   assert.match(f.field('envelope').textContent, /Unavailable/);
-  assert.match(f.field('import').textContent, /Observable here.*Combined waveforms/);
+  assert.equal(observed.importable.available,true);assert.match(f.field('import').textContent, /Available/);
   f.view.update({liveEnabled: true, liveActive: true, liveVoice: 0, liveState: {...raw, registers: []}});
   assert.equal(f.root.dataset.state, 'error'); assert.equal(f.root.dataset.liveActive, 'false');
   assert.equal(f.root.dataset.liveFrames, '48000');

@@ -110,7 +110,7 @@ test('SID command posts preserve FIFO preset contents and rejected edits keep th
 
 test('channel settings use the paired processor revision and preserve FIFO request data',async()=>{
   const f=fixture(),audio=await f.create(),setup={format:'tetorica-sid-channels',version:1,target:2,channels:[1,2,3]};
-  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=2'));
+  assert(f.moduleUrls[0].endsWith('/processor.js?sid-channels=2&sid-waves=1'));
   const begin=f.messages.length;
   const replies=await Promise.all([audio.command('loadChannelSettings',[setup]),audio.command('setChannelSettings',[setup]),audio.read()]);
   assert.deepEqual(f.messages.slice(begin).map(value=>value.method),['loadChannelSettings','setChannelSettings','read']);

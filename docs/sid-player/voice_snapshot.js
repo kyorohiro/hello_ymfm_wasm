@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Passive conversion only. Read a current AudioWorklet state before calling;
 // this module never reads a device, clocks a chip or modifies the playing tune.
-import {createDefaultPreset, filterModeFromBits, readPreset} from '../synth-sid/preset.js';
+import {createDefaultPreset, filterModeFromBits, readPreset, waveformFromBits} from '../synth-sid/preset.js?sid-waves=1';
 
 export const SNAPSHOT_NOTICE = 'Instantaneous register settings only. Playing a Synth key restarts Gate and the hardware envelope at keyboard pitch. The tune\'s original notes, elapsed Envelope, oscillator phase, filter history and song automation are not copied.';
 
 const PAL_CLOCK = 985248;
-const waves = new Map([[0x10, 'triangle'], [0x20, 'saw'], [0x40, 'pulse'], [0x80, 'noise']]);
 const integer = (value, min, max, label) => {
   if (!Number.isInteger(value) || value < min || value > max) throw new RangeError(`${label} must be an integer ${min}..${max}`);
   return value;
@@ -71,7 +70,7 @@ export function captureSidVoices(state, {name = '', subtune = 1} = {}) {
         ratio: sourceFrequency / frequency, sync, ring};
     }
 
-    if (!waves.has(wave)) row.reason = wave ? 'Combined waveforms are not supported by this Synth snapshot import.' : 'No oscillator waveform is selected.';
+    if (!wave) row.reason = 'No oscillator waveform is selected.';
     else if (control & 8) row.reason = 'Oscillator TEST is held; its stopped oscillator cannot be auditioned as a normal voice.';
     else if (routed && modeMask === 0) row.reason = 'This voice is routed into a filter with no enabled outputs. The Synth bypass would change that silent routing.';
     else if (voice === 2 && !routed && registers[24] & 0x80) row.reason = 'Voice 3 dry output is disabled by the hardware Voice 3 off control.';
@@ -89,7 +88,7 @@ export function captureSidVoices(state, {name = '', subtune = 1} = {}) {
 
     const preset = createDefaultPreset({model});
     preset.name = presetName(name, subtune, voice);
-    preset.voice = {waveform: waves.get(wave), pulseWidth: registers[base + 2] | (registers[base + 3] & 15) << 8,
+    preset.voice = {waveform: waveformFromBits(wave >> 4), pulseWidth: registers[base + 2] | (registers[base + 3] & 15) << 8,
       attack: registers[base + 5] >> 4, decay: registers[base + 5] & 15,
       sustain: registers[base + 6] >> 4, release: registers[base + 6] & 15, test: false};
     if (paired) preset.modulation = {sync, ring, ratio: row.pair.ratio};
@@ -103,9 +102,9 @@ export function captureSidVoices(state, {name = '', subtune = 1} = {}) {
     if (frequency === 0) row.warnings.push('The captured frequency is zero. Synth tuning follows the keyboard.');
     if (filter.volume === 0) row.warnings.push('Chip volume is zero; raise Chip volume in the Synth to hear this preset.');
     if (paired) {
-      row.warnings.push(`Captured connection: Voice ${sourceVoice + 1} → Voice ${voice + 1}. The Synth remaps it to Voice 3 → Voice 1 and uses one keyboard note.`);
+      row.warnings.push(`Captured connection: Voice ${sourceVoice + 1} → Voice ${voice + 1}. The Synth uses the selected carrier and its physical preceding voice for one keyboard note.`);
       row.warnings.push('The Synth uses a silent Triangle source. Its original waveform, Gate/ADSR and any audible source contribution are not copied.');
-      if (ring && wave !== 0x10) row.warnings.push('Ring affects Triangle only. The captured Ring flag is retained for this other carrier waveform.');
+      if (ring && !(wave & 0x10)) row.warnings.push('Ring affects Triangle only. The captured Ring flag is retained for this other carrier waveform.');
     }
     return row;
   });

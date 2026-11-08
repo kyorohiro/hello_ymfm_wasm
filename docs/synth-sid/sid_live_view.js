@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // A passive view of one coherent Player observation. Reading this view never
 // clocks a chip, changes the tune, or applies a keyboard instrument.
-import {captureSidVoices} from '../sid-player/voice_snapshot.js';
+import {captureSidVoices} from '../sid-player/voice_snapshot.js?sid-waves=1';
 
 const waveformFlags = [[0x10, 'Triangle'], [0x20, 'Saw'], [0x40, 'Pulse'], [0x80, 'Noise']];
 const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];

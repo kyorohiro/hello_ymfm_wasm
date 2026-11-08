@@ -2754,10 +2754,16 @@ declare function createSoundChip(name:'scsp',options?:PlaygroundCreateSoundChipO
 
 /** SID physical voice indices; three oscillators share one chip-wide filter. */
 type PlaygroundSidChannel = 0 | 1 | 2;
-type PlaygroundSidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
+type PlaygroundSidWaveformName = 'triangle' | 'saw' | 'pulse' | 'noise';
+/** Canonical hardware waveform flags; combined/noise behavior follows the selected chip model. */
+type PlaygroundSidWaveform = 'off' | 'triangle' | 'saw' | 'triangle+saw' | 'pulse'
+  | 'triangle+pulse' | 'saw+pulse' | 'triangle+saw+pulse' | 'noise'
+  | 'triangle+noise' | 'saw+noise' | 'triangle+saw+noise' | 'pulse+noise'
+  | 'triangle+pulse+noise' | 'saw+pulse+noise' | 'triangle+saw+pulse+noise';
 /** Selected LP / BP / HP outputs are summed with shared cutoff and resonance. */
 type PlaygroundSidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'lowpass+bandpass' | 'highpass' | 'notch' | 'bandpass+highpass' | 'lowpass+bandpass+highpass';
 interface PlaygroundSidVoiceOptions {
+  /** Set four waveform flags without changing Gate; off clears those flags. */
   waveform?:PlaygroundSidWaveform;
   /** Pulse duty code, 0..4095. */
   pulseWidth?:number;
@@ -2782,9 +2788,9 @@ interface PlaygroundSidFilterOptions {
 interface PlaygroundSidVoiceState {
   readonly frequency:number;
   readonly frequencyRegister:number;
-  readonly waveform:PlaygroundSidWaveform|'off'|'combined';
+  readonly waveform:PlaygroundSidWaveformName|'off'|'combined';
   readonly waveformBits:number;
-  readonly waveforms:readonly PlaygroundSidWaveform[];
+  readonly waveforms:readonly PlaygroundSidWaveformName[];
   readonly pulseWidth:number;
   readonly attack:number; readonly decay:number; readonly sustain:number; readonly release:number;
   readonly sync:boolean; readonly ring:boolean; readonly test:boolean; readonly gate:boolean;

@@ -182,7 +182,7 @@ test('Live samples update the same controls and folds while preserving the autho
   const next=readPreset(before);next.voice.attack=3;next.voice.waveform='noise';f.editor.update(next);
   assert.equal(find(f.root,'attack').textContent,'9','an authored update does not replace the selected live observation');
   f.editor.observe(null);
-  assert.deepEqual(f.editor.getPreset(),next);assert.equal(find(f.root,'attack').textContent,'3');assert.equal(choice(f.root,'waveform','noise').getAttribute('aria-checked'),'true');
+  assert.deepEqual(f.editor.getPreset(),next);assert.equal(find(f.root,'attack').textContent,'3');assert.equal(choice(f.root,'waveform','noise').getAttribute('aria-pressed'),'true');
   assert.deepEqual(walk(f.root),nodes);assert.equal(find(f.root,'voiceCard').open,false);assert.equal(f.changes.length,0);
 });
 
@@ -197,7 +197,23 @@ test('Live controls faithfully show combined/no waveforms, unrouted outputs and 
   f.editor.observe(liveObservation({waveformMask:0,modeMask:0,routed:true}));
   for(const name of ['triangle','saw','pulse','noise'])assert.equal(choice(f.root,'waveform',name).getAttribute('aria-pressed'),'false');
   assert.equal(find(f.root,'filterEnabled').checked,true);assert.match(find(f.root,'filterHelp').textContent,/all outputs off \(silent routing\)/);
-  f.editor.observe(null);assert.equal(wave.getAttribute('role'),'radiogroup');assert.equal(choice(f.root,'waveform','saw').getAttribute('aria-checked'),'true');
+  f.editor.observe(null);assert.equal(wave.getAttribute('role'),'group');assert.equal(choice(f.root,'waveform','saw').getAttribute('aria-pressed'),'true');
+});
+
+test('waveform toggles combine independently, allow silence and keep Pulse width and Ring tied to their waveform bits',async t=>{
+  const f=editorFixture(t),wave=find(f.root,'waveform');assert.equal(wave.getAttribute('role'),'group');
+  await choice(f.root,'waveform','triangle').fire('click');assert.equal(f.editor.getPreset().voice.waveform,'triangle+saw');
+  for(const name of ['triangle','saw'])assert.equal(choice(f.root,'waveform',name).getAttribute('aria-pressed'),'true');
+  await choice(f.root,'waveform','pulse').fire('click');assert.equal(f.editor.getPreset().voice.waveform,'triangle+saw+pulse');
+  assert.equal(find(f.root,'pulseWidthRange').disabled,false);
+  const ring=find(f.root,'ringEnabled');ring.checked=true;await ring.fire('change');assert.equal(find(f.root,'modulationHelp').dataset.warning,undefined);
+  await choice(f.root,'waveform','triangle').fire('click');assert.equal(f.editor.getPreset().voice.waveform,'saw+pulse');
+  assert.equal(find(f.root,'modulationHelp').dataset.warning,'true');
+  await choice(f.root,'waveform','saw').fire('click');await choice(f.root,'waveform','pulse').fire('click');
+  assert.equal(f.editor.getPreset().voice.waveform,'off');assert.equal(find(f.root,'pulseWidthRange').disabled,true);
+  for(const name of ['triangle','saw','pulse','noise'])assert.equal(choice(f.root,'waveform',name).getAttribute('aria-pressed'),'false');
+  const before=f.changes.length;choice(f.root,'waveform','triangle').focus();await wave.fire('keydown',{key:'ArrowRight'});
+  assert.equal(f.doc.activeElement,choice(f.root,'waveform','saw'));assert.equal(f.changes.length,before,'arrow navigation does not toggle waveforms');
 });
 
 test('out-of-keyboard-range and undefined observed ratios are displayed without clamping to an editable value',t=>{

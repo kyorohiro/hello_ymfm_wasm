@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // A one-time, same-origin bridge for an explicitly selected Player preset.
 // Only authoring parameters enter storage; no tune, firmware or audio is sent.
-import {readPreset} from './preset.js';
+import {readPreset} from './preset.js?sid-waves=1';
 
 export const SID_PRESET_HANDOFF_PARAMETER = 'sid-voice';
 export const SID_PRESET_HANDOFF_TTL_MS = 5 * 60 * 1000;

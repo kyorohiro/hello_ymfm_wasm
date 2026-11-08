@@ -201,6 +201,8 @@ async function checkBrowser(name, engine, origin, helpers) {
     const key = await page.locator('#keyboard .key:not([disabled])').first().getAttribute('data-key');assert(key);
     await page.keyboard.down(key);await page.waitForFunction(() => document.getElementById('startAudio').textContent.includes('ready'));await sound(page);
     const state = await page.evaluate(() => __sidVoiceCaptureAudit.read());assert.deepEqual(state.preset, expected);assert.equal(state.model, expected.model);assert.equal(state.voices.length, 1);
+    const expectedWaveMask=expected.voice.waveform==='off'?0:expected.voice.waveform.split('+').reduce((mask,wave)=>mask|({triangle:16,saw:32,pulse:64,noise:128})[wave],0);
+    assert.equal(state.registers[4]&0xf0,expectedWaveMask,'The Synth did not retain every captured waveform flag');
     if (paired) {
       assert.equal(state.capacity, 1);assert.equal(state.registers[4] & 6, (expected.modulation.sync ? 2 : 0) | (expected.modulation.ring ? 4 : 0));
       assert.equal(state.registers[18] & 1, 0);assert.equal(state.registers[24] & 0x80, 0x80);
@@ -347,10 +349,34 @@ async function checkBrowser(name, engine, origin, helpers) {
       await synth.close();
     }
 
-    check('unsupported combined / three-voice chains / TEST and routed-all-off controls report reasons from actual authored CPU programs');
+    for(const model of ['6581','8580']){
+      check(`${model} combined carrier flags capture, save and open in SID Synth with the same hardware mask`);
+      const fixture=helpers.createSidPairFixture({model,sync:false,ring:false,overrides:[[4,0x31]]});
+      await loadBytes(fixture.bytes,`combined-${model}.sid`);await play();await player.locator('[data-snapshot-voice="0"]').click();
+      const applied=await capture(),metadata={name:await player.locator('#title').textContent(),subtune:Number(await player.locator('#subtune').inputValue())};
+      const expected=helpers.captureSidVoices(applied,metadata).voices[0].preset;assert(expected);
+      assert.equal(expected.voice.waveform,'triangle+saw');assert.equal(expected.model,model);
+      assert.equal(await player.locator('#saveVoicePreset').isDisabled(),false);
+      const saved=await downloadPreset(player,'saveVoicePreset');assert.deepEqual(saved.value,expected);
+      let synth;
+      if(!packaged){
+        const opened=context.waitForEvent('page');await player.locator('#openSnapshotSynth').click();synth=await opened;
+        await synth.waitForFunction(()=>document.getElementById('audioStatus')?.textContent.includes('snapshot loaded'));
+      }else{
+        synth=await context.newPage();await synth.goto(origin+synthEntry);await synth.waitForSelector('#presetFileInput',{state:'attached'});
+        await synth.locator('#presetFileInput').setInputFiles({name:'captured-combined.json',mimeType:'application/json',buffer:saved.data});
+        await synth.waitForFunction(name=>document.getElementById('instrumentName').value===name,expected.name);
+      }
+      await stop();await auditionSynth(synth,expected);await synth.close();
+      captures.push({model,combinedWaveform:expected.voice.waveform,hardwareMask:0x30,preset:expected});
+    }
+
+    check('combined flags remain exportable while three-voice chains, TEST and routed-all-off controls retain explicit reasons');
     await loadBytes(authoredUnsupportedScene('controls'), 'unsupported-controls.sid');
     await player.locator('#play').click();await player.waitForFunction(() => document.getElementById('status').dataset.state === 'playing');await progressed();await capture();
-    for (const [voice, reason] of [[0, /Combined waveforms/], [1, /three|chain/i], [2, /TEST is held/]]) {
+    await player.locator('[data-snapshot-voice="0"]').click();assert.equal(await player.locator('#saveVoicePreset').isDisabled(),false);
+    assert.equal((await downloadPreset(player,'saveVoicePreset')).value.voice.waveform,'triangle+saw');
+    for (const [voice, reason] of [[1, /three|chain/i], [2, /TEST is held/]]) {
       await player.locator(`[data-snapshot-voice="${voice}"]`).click();assert.equal(await player.locator('#saveVoicePreset').isDisabled(), true);assert.match(await player.locator('#captureVoicePreview').textContent(), reason);
     }
     await stop();await loadBytes(authoredUnsupportedScene('silent-route'), 'unsupported-filter-route.sid');

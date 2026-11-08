@@ -80,7 +80,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
         if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
-      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=2', import.meta.url)), resumed,
+      context.audioWorklet.addModule(new URL('./processor.js?sid-channels=2&sid-waves=1', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });

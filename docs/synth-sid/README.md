@@ -19,8 +19,9 @@ foldable sections and controls that leave computer keys available for playing.
 
 1. Select **Enable audio**, or play a key to prepare audio.
 2. Choose **CH 1 / CH 2 / CH 3** to edit and play one physical channel, or
-   **Round robin** to play across all three while keeping their sounds. Choose Triangle,
-   Saw, Pulse or Noise and change the hardware ADSR codes.
+   **Round robin** to play across all three while keeping their sounds. Toggle
+   Triangle, Saw, Pulse and Noise independently to use one or several waveforms
+   in the same oscillator, and change the hardware ADSR codes. All four off is silent.
 3. Enable the shared filter and move Cutoff / Resonance while holding notes.
 4. Compare **6581** and **8580 · Preview** using the SID model buttons in the
    filter section. A model change stops held notes and resets Pitch.
@@ -34,6 +35,8 @@ patches. Editing a parameter there applies only that changed parameter to all
 three, preserving their other differences. When editing mixed settings, the
 controls use CH 1 as a reference and a short notice identifies the differences.
 While Auto update is on, they show its observed song CH instead.
+Each waveform button applies only its changed selection bit across the channels;
+enabling Pulse does not clear their other waveforms.
 Loading a voice preset in Round robin deliberately replaces the complete sound
 on all three. Model and filter settings are shared.
 Switching the target stops held notes and resets Pitch.
@@ -175,7 +178,8 @@ a silent Triangle oscillator; its saved channel patch is kept for a later target
 selection. It is not an extra emulated chip.
 Its Gate/envelope and selected output waveform do not control the modulation:
 hardware Sync resets phase, and Ring changes the Triangle oscillator's sign.
-Choose **Triangle** to hear Ring. Other carrier waveforms can still use Sync.
+Enable **Triangle**, alone or combined with other waveforms, to hear Ring.
+Other carrier waveforms can still use Sync.
 
 **Modulator ratio** is a software tuning control for the physical preceding
 oscillator. It follows the played note and Pitch, from 0.125× to 8×. It does not
@@ -223,6 +227,14 @@ filter bypassed. It does not contain a SID tune or C64 program. Invalid
 files, cancelled selection and rejected edits retain the accepted instrument.
 Preset files are limited to 64 KiB.
 
+`voice.waveform` keeps its existing string field. It accepts the four single
+names, `off`, or canonical combinations such as `triangle+saw` and
+`triangle+saw+pulse`. Names are normalized in Triangle / Saw / Pulse / Noise
+order. The API and **Copy JavaScript** use the same values, for example
+`sid.setVoice(0, {waveform:'triangle+saw'})`. Existing single-wave presets retain
+their format and values. The selected core approximates the chip's combined
+waveform behavior; it does not mix extra software voices.
+
 The separate `tetorica-sid-channels`, **version 1**, setup contains three portable
 version-2 voice presets and `target` (`0`, `1`, `2` or `'round-robin'`). All three
 share their model and filter. Round robin can retain three different patches.
@@ -252,8 +264,9 @@ voice are not copied. Pairs with source / carrier TEST, zero frequencies, ratios
 outside 0.125×..8× or three-voice modulation chains remain unavailable in the
 Player. Snapshots restart as a keyboard-controlled instrument: the original musical pitch,
 elapsed envelope, oscillator / noise phase and later song automation are not
-recreated. Combined waveforms and unsupported modulation / silent-routing cases
-are rejected with reasons in the Player. The source modules remain readable in
+recreated. Combined waveform flags are retained. No-waveform snapshots, TEST,
+unsupported modulation dependencies and silent-routing cases still show reasons
+when they cannot become a playable keyboard preset. The source modules remain readable in
 [voice_snapshot.js](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/sid-player/voice_snapshot.js)
 and [handoff.js](handoff.js).
 

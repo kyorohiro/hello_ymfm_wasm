@@ -13,6 +13,7 @@ import {copyReadableModules} from './copy_readable_modules.mjs';
 import {syncSidPlayerArtifacts,SID_PLAYER_BUILD_INPUTS} from './sid_player_artifacts.mjs';
 import {syncSidRsidArtifacts,SID_RSID_BUILD_INPUTS} from './sid_rsid_artifacts.mjs';
 import {copySid8580MachineSources} from './copy_sid8580_machine_sources.mjs';
+import {syncSidModelModules} from './sid_model_artifacts.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const record=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -92,6 +93,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
   validateSidPlayerVersion(version);
   await syncSidPlayerArtifacts({check:true});
   await syncSidRsidArtifacts({check:true});
+  await syncSidModelModules({check:true});
   assert.deepEqual(await readFile(join(root,'docs/js/sid_psid.js')),await readFile(join(root,'tetorica_src/runtime/sid_psid.js')),'Served PSID parser differs from canonical source');
   assert.deepEqual(await readFile(join(root,'docs/js/sid_rsid.js')),await readFile(join(root,'tetorica_src/runtime/sid_rsid.js')),'Served RSID parser differs from canonical source');
   releaseDir=resolve(releaseDir);await mkdir(releaseDir,{recursive:true});
@@ -146,7 +148,7 @@ export async function packageSidPlayer({version='dev',releaseDir=join(root,'rele
   await writeFile(join(stage,'index.html'),'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=sid-player/index.html"><title>Tetorica SID Player</title><a href="sid-player/index.html">Open Tetorica SID Player</a></html>\n');
   for(const source of ['docs/sid-player/index.html','docs/sid-player/README.md','tetorica_src/runtime/sid_psid.js','tetorica_src/runtime/sid_rsid.js',
     'tetorica_src/cli/sid_psid.mjs','test/fixtures/sid-reference/fixture.mjs','test/helpers/rsid_fixtures.mjs','package.json','package-lock.json',
-    'scripts/package_sid_player.mjs','scripts/copy_readable_modules.mjs',...SID_PLAYER_BUILD_INPUTS,...SID_RSID_BUILD_INPUTS])inputs.add(source);
+    'scripts/package_sid_player.mjs','scripts/copy_readable_modules.mjs','scripts/sid_model_artifacts.mjs','tetorica_src/runtime/sid_waveforms.js',...SID_PLAYER_BUILD_INPUTS,...SID_RSID_BUILD_INPUTS])inputs.add(source);
   const names=[...inputs].sort(),sourceArchive='sources/sid-player-browser-inputs.zip';
   assert(!names.some(name=>/\.(?:bin|rom)$/i.test(name)),'Firmware images must never be package source inputs');
   zip(root,join(stage,sourceArchive),names);

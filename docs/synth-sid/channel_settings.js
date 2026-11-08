@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Three preserved voice patches, one hardware model/filter and one keyboard target.
-import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
+import {createDefaultPreset,readPreset,presetToCode,waveformBits,waveformFromBits} from './preset.js?sid-waves=1';
 
 /** @typedef {'round-robin'|0|1|2} SidChannelTarget */
 /** @typedef {{format:'tetorica-sid-channels',version:1,target:SidChannelTarget,
@@ -92,9 +92,11 @@ export function editChannelPreset(settings,value){
   if(current.target!=='round-robin')return applyChannelPreset(current,next);
   const baseline=selected(current),changed=(before,after)=>Object.fromEntries(Object.entries(after).filter(([key,value])=>before[key]!==value));
   const voice=changed(baseline.voice,next.voice),modulation=changed(baseline.modulation,next.modulation);
+  const nextWaves=waveformBits(next.voice.waveform),changedWaves=waveformBits(baseline.voice.waveform)^nextWaves;
+  delete voice.waveform;
   return bank(current.target,current.channels.map(previous=>readPreset({
     ...previous,model:next.model,filter:next.filter,name:baseline.name!==next.name?next.name:previous.name,
-    voice:{...previous.voice,...voice},modulation:{...previous.modulation,...modulation},
+    voice:{...previous.voice,...voice,waveform:waveformFromBits((waveformBits(previous.voice.waveform)&~changedWaves)|(nextWaves&changedWaves))},modulation:{...previous.modulation,...modulation},
   })));
 }
 

@@ -4,11 +4,23 @@ export {SID_PAL_CLOCK,SID_NTSC_CLOCK} from './sid.js';
 
 export type SidChannel = 0 | 1 | 2;
 export type SidModel = '6581' | '8580';
-export type SidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
+export type SidWaveformName = 'triangle' | 'saw' | 'pulse' | 'noise';
+/** Canonical combinations of the four hardware flags, ordered triangle/saw/pulse/noise. */
+export type SidWaveform = 'off' | 'triangle' | 'saw' | 'triangle+saw' | 'pulse'
+  | 'triangle+pulse' | 'saw+pulse' | 'triangle+saw+pulse' | 'noise'
+  | 'triangle+noise' | 'saw+noise' | 'triangle+saw+noise' | 'pulse+noise'
+  | 'triangle+pulse+noise' | 'saw+pulse+noise' | 'triangle+saw+pulse+noise';
+/** Hardware flag names in low-to-high bit order. */
+export const SID_WAVEFORMS:readonly SidWaveformName[];
+/** Decode '+' combinations, accepting reordered names but rejecting duplicates/unknowns. Off is zero. */
+export function sidWaveformBits(value:string):number;
+/** Canonical waveform spelling for an integer four-bit mask, 0..15. */
+export function sidWaveformFromBits(bits:number):SidWaveform;
 /** Outputs of one shared filter are added. Notch selects LP + HP. */
 export type SidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'lowpass+bandpass'
   | 'highpass' | 'notch' | 'bandpass+highpass' | 'lowpass+bandpass+highpass';
 export interface SidVoiceOptions {
+  /** Four hardware output flags. Off clears them without changing Gate/Sync/Ring/TEST. */
   waveform?:SidWaveform;
   /** Twelve-bit pulse comparator, 0..4095. */
   pulseWidth?:number;
@@ -31,8 +43,9 @@ export interface SidFilterOptions {
 }
 export interface SidVoiceState {
   frequency:number; frequencyRegister:number;
-  waveform:SidWaveform|'off'|'combined';
-  waveformBits:number; waveforms:SidWaveform[];
+  /** Legacy observation labels remain off/single/combined; waveformBits preserves every flag. */
+  waveform:SidWaveformName|'off'|'combined';
+  waveformBits:number; waveforms:SidWaveformName[];
   pulseWidth:number;
   attack:number; decay:number; sustain:number; release:number;
   sync:boolean; ring:boolean; test:boolean; gate:boolean;
