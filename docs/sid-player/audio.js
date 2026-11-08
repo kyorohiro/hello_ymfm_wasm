@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 export const SID_PLAYER_BALANCE = 1;
+export const SID_PLAYER_TRANSPORT_PROTOCOL = 2;
 const DEADLINE_MS = 15000;
 const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read']);
+const OUTDATED_AUDIO = 'SID audio files are out of date. Reload the page.';
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('SID player Master must be from 0 to 3.8');
@@ -20,7 +22,7 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint: 'interactive'}), controller = new AbortController(), pending = new Map();
   let node = null, balance = null, master = null, disposed = false, closing = null, fatalError = null;
-  let nextId = 0, startupTimer, rejectStartup, resolveReady;
+  let nextId = 0, startupTimer, rejectStartup, resolveReady, supportedCommands;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   void startupFailure.catch(() => {});
   const report = error => { try { onError(error); } catch {} };
@@ -77,7 +79,8 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       })),
-      context.audioWorklet.addModule(new URL('./processor.js', import.meta.url)), resumed,
+      // Keep transport UI/facade and Worklet on the same cache generation.
+      context.audioWorklet.addModule(new URL('./processor.js?sid-transport=2', import.meta.url)), resumed,
     ]));
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
@@ -90,7 +93,16 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
     node.port.onmessageerror = () => fail(new Error('SID player audio reply could not be read. Press Play to restart.'));
     node.port.onmessage = ({data}) => {
       if (data?.fatal) { fail(new Error(data.error ?? 'SID player audio processor failed')); return; }
-      if (data?.ready) { resolveReady(); return; }
+      if (data?.ready) {
+        const commands = data.supportedCommands;
+        if (data.ready !== true || data.transportProtocol !== SID_PLAYER_TRANSPORT_PROTOCOL ||
+          !Array.isArray(commands) || commands.some(value => typeof value !== 'string') ||
+          [...COMMANDS].some(command => !commands.includes(command))) {
+          fail(new Error(OUTDATED_AUDIO)); return;
+        }
+        supportedCommands = Object.freeze([...commands]);
+        resolveReady(); return;
+      }
       const request = pending.get(data?.id); if (!request) return;
       pending.delete(data.id); clearTimeout(request.timer);
       if (data.error) { const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error); }
@@ -114,7 +126,9 @@ export async function createAudio({volume = .7, backend = 'psid', onError = () =
       });
     }
     return {
-      context, outputNode: master, sampleRate: context.sampleRate, command, read: () => command('read'),
+      context, outputNode: master, sampleRate: context.sampleRate,
+      transportProtocol: SID_PLAYER_TRANSPORT_PROTOCOL, supportedCommands,
+      command, read: () => command('read'),
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); } catch (error) { fail(error); throw error; }

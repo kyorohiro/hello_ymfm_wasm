@@ -3,7 +3,7 @@ import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
-import {createSidImport} from './sid_import.js';
+import {createSidImport} from './sid_import.js?sid-transport=2';
 import {createSidImportPanel} from './sid_import_panel.js';
 import {createSidLiveView} from './sid_live_view.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';

@@ -4,6 +4,7 @@ import {RsidPlayerCore} from './rsid_core.js';
 import {Sid8580PlayerCore} from './core8580.js';
 
 const COMMANDS = new Set(['load', 'start', 'pause', 'resume', 'stop', 'read']);
+const TRANSPORT_PROTOCOL = 2;
 class SidPlayerProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
     super(); this.dead = false; this.core = null; this.playing = false; this.paused = false; this.startEpoch = 0;
@@ -21,7 +22,8 @@ class SidPlayerProcessor extends AudioWorkletProcessor {
       : {sampleRate, wasmBinary: processorOptions.wasmBinary};
     this.ready = Core.create(options).then(core => {
       if (this.dead) {core.dispose(); return;}
-      this.core = core; this.port.postMessage({ready: true});
+      this.core = core;
+      this.port.postMessage({ready: true, transportProtocol: TRANSPORT_PROTOCOL, supportedCommands: [...COMMANDS]});
     }).catch(error => this.fail(error));
     this.commands = this.ready;
   }

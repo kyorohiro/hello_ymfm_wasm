@@ -34,6 +34,9 @@ function fixture({backend='8580',stall=false,reject=false}={}){
 test('SID processor selects its model-specific core and preserves the legacy single-WASM creation options',async()=>{
   for(const backend of ['psid','psid-cia','psid-vbi','rsid','8580']){
     const f=fixture({backend});await f.processor.ready;const created=f.creates[0];
+    const ready=f.messages.find(message=>message.ready);
+    assert.equal(ready.transportProtocol,2);
+    assert.deepEqual(Array.from(ready.supportedCommands),['load','start','pause','resume','stop','read']);
     assert.equal(created.name,backend==='8580'?'c648580':backend==='psid'?'direct6581':'c646581');
     assert.equal(created.options.sampleRate,48000);
     if(backend==='8580'){

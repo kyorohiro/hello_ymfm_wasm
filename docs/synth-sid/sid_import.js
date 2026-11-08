@@ -3,7 +3,9 @@
 // A selected program is private and stays separate from the authored preset.
 import {PSID_MAX_FILE_BYTES} from '../js/sid_psid.js';
 import {validatePlayerSid,createPlayerCore} from '../sid-player/models.js';
-import {createAudio as createPlayerAudio} from '../sid-player/audio.js';
+// Keep the preview transport graph paired across an app update. Unversioned
+// browser modules from before Pause/Resume may still be present in the cache.
+import {createAudio as createPlayerAudio} from '../sid-player/audio.js?sid-transport=2';
 import {createVoiceCapture} from '../sid-player/voice_capture.js';
 import {readPreset} from './preset.js';
 

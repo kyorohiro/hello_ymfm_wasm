@@ -161,6 +161,11 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     const html = await readFile(join(a.stage, entry), 'utf8');
     assert.match(html, /<title>Tetorica SID Synth<\/title>/);
     assert.match(html, /Sounds from SID/);
+    const scriptSource=/<script\b[^>]*type="module"[^>]*src="([^"]+)"/.exec(html)?.[1];
+    assert(scriptSource,`${entry}: module entry`);
+    const scriptUrl=new URL(scriptSource,new URL(entry,'https://zip.invalid/'));
+    assert.equal(scriptUrl.pathname,'/synth-sid/synth.js',`${entry}: executable entry location`);
+    assert.equal(scriptUrl.searchParams.get('sid-transport'),'2',`${entry}: keep the paired transport revision after root-entry rewriting`);
     const iconPath = entry === 'index.html' ? './tetorica_sid_synth.webp' : '../tetorica_sid_synth.webp';
     const iconLinks = [...html.matchAll(/<link\b[^>]*rel="(?:icon|apple-touch-icon)"[^>]*>/g)];
     assert.equal(iconLinks.length, 2, `${entry}: favicon and apple-touch icon`);

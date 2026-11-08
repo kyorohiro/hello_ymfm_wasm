@@ -60,6 +60,15 @@ before continuing that same engine. Stop, keyboard attacks, disposal and accepte
 replacements retire paused/transitioning ownership as well. A 5 ms processor
 post-mix bridge softens transport edges only; initial ordinary Play PCM and all
 DSP/WASM/SDK inputs remain unchanged. The regular Player page keeps its existing UI.
+The Synth's HTML entry, `sid_import.js`, shared audio facade and Worklet are
+paired by `?sid-transport=2` URLs to avoid legacy unversioned browser modules.
+The Worklet ready message declares `transportProtocol:2` and `supportedCommands`;
+audio validates the protocol and all six load/start/pause/resume/stop/read commands
+before connecting output. A mismatch closes the context and asks for a reload.
+When changing that contract, update all four graph links and both protocol ends;
+standalone root HTML rewriting must retain the query. The focused
+`check_sid_synth_transport_upgrade_browser.cjs` simulates stale unversioned code
+and an old ready response; it does not claim to measure a browser's HTTP cache.
 A separate
 browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
 v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64

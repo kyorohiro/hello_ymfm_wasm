@@ -1,5 +1,7 @@
 # SID Synth: Pause／Resume（2026-11-08）
 
+後続修正: 実画面で旧audio module混在によるPause拒否を確認し、[transport更新不整合](sid_synth_transport_upgrade_result_01.md)へ対応した。最初の新規contextだけの検証に加え、旧module残存のケースを追加している。
+
 SID試聴へ **Pause／Resume** を追加した。変化の速い音色を止め、同じYour soundの操作部でCHの設定を確認してCaptureできる。
 
 ## 操作と保持する状態

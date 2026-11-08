@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "entry": "/synth-sid/index.html",
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "fixture": "Newly authored PAL PSID only; no game music, ROM or recorded PCM",
+  "simulation": "Routed stale unversioned facade retained in the same document, plus an injected legacy Worklet ready response; not a real HTTP-cache experiment",
+  "servedInputs": {
+    "/synth-sid/index.html": {
+      "bytes": 11415,
+      "sha256": "c25784c974feb58e25d6f203a8100bfb2416d98bdc73959ded22cc860d39be55"
+    },
+    "/synth-sid/synth.css": {
+      "bytes": 10575,
+      "sha256": "fa076a7e57528bfab69d9fa71a8db1aeda3f9187f861bef37829d49abaf66e36"
+    },
+    "/synth-sid/synth.js": {
+      "bytes": 23132,
+      "sha256": "5e00f3642660d7668c98c5c2ecfd9d04f2a617d71d1b7723f8d8fd5d6f1a23fa"
+    },
+    "/tetorica_sid_synth.webp": {
+      "bytes": 544322,
+      "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+    },
+    "/synth-spu/synth.css": {
+      "bytes": 23333,
+      "sha256": "8e45689b279e52db21c5ed6b29e26bd5d10896abcd8c834a1d77bc6950dcd0ad"
+    },
+    "/synth-sid/audio.js": {
+      "bytes": 7993,
+      "sha256": "e6a7effe92f03294ddcc258b60fec34acc796a9db1429401062ff06fb944dec9"
+    },
+    "/synth-sid/editor.js": {
+      "bytes": 17878,
+      "sha256": "0e19eae91c825a26b1a1eb8065c281473059cb603f527731957cdac9dd92580c"
+    },
+    "/synth-sid/preset.js": {
+      "bytes": 8101,
+      "sha256": "cd5fdb2f3b2364be08ec95b20183de3622623ceef6fb4261ee619bc246b4dd85"
+    },
+    "/synth-sid/handoff.js": {
+      "bytes": 5693,
+      "sha256": "b6b7218d74de0ef928c68a07171115f22d544df362f6b3d35fbb06fe2d6a5703"
+    },
+    "/synth-sid/sid_live_view.js": {
+      "bytes": 12298,
+      "sha256": "e09fb127e12b4d9450bed06f6bd2eb12e8d0e0bd4d6512501c2825edaa1e03ec"
+    },
+    "/synth-sid/sid_import_panel.js": {
+      "bytes": 7189,
+      "sha256": "d9b1c7c7335edd0b6816d281b4edc8563b93d313aaeedae232f52788d1f922fa"
+    },
+    "/synth/synth_keyboard.js": {
+      "bytes": 10010,
+      "sha256": "b7dc1daea64aa6e061bfdb2295010ee24eddaba51ab7ab6cf87c0f751be7c795"
+    },
+    "/synth-spu/spu_synth_visualizer.js": {
+      "bytes": 10421,
+      "sha256": "0e4cba8d283d728579e592b28a87f008165b5d5d00d1cb4956e90b06f84d6b47"
+    },
+    "/synth-sid/sid_import.js": {
+      "bytes": 22633,
+      "sha256": "4a26c5fd64a571fc8def1bc289163307462148532eec2a2fc9db968717c8264a"
+    },
+    "/synth/synth_controls.js": {
+      "bytes": 10018,
+      "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+    },
+    "/sid-player/voice_snapshot.js": {
+      "bytes": 8482,
+      "sha256": "c402348b6fa6f6c6409afb354da8c8ceb6904531626f9b30d13e479db7143ee7"
+    },
+    "/js/soundchip_pitch.js": {
+      "bytes": 2854,
+      "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+    },
+    "/js/sid_psid.js": {
+      "bytes": 11445,
+      "sha256": "0e88cc343c295507c18db9a591c9f320f6bc0e47ae87f71ffb9a6853d6de2fff"
+    },
+    "/sid-player/models.js": {
+      "bytes": 2302,
+      "sha256": "876bda5bdf4429be0eec29725072e5b8b0101ddb244b34426da4f73ef371b398"
+    },
+    "/sid-player/audio.js": {
+      "bytes": 8801,
+      "sha256": "9b738f6fd6903d358a1923f9399e994227cced922a4f1c5356cf766f64d77017"
+    },
+    "/sid-player/voice_capture.js": {
+      "bytes": 2401,
+      "sha256": "aebde4ee32d4ce9cd40bba0803ac6d0f3d1fad6e8e3f5b4bc3f1faa30dffbd77"
+    },
+    "/js/sid_rsid.js": {
+      "bytes": 9114,
+      "sha256": "7b23f899dd5ee7094b74a2407557cfd3071ef040e53fa11ff678ce2f138e12f7"
+    },
+    "/sid8580-lab/parser.js": {
+      "bytes": 2789,
+      "sha256": "96df3c5c8d593ce6a92cea9b48ca1bf252a4a9dede116154e7f28cabff127b17"
+    },
+    "/sid-player/core.js": {
+      "bytes": 7432,
+      "sha256": "5de26ddf095d1d50473e369e2a6c6f132dfe12f454d6308a0138a84c1f90c865"
+    },
+    "/sid-player/rsid_core.js": {
+      "bytes": 10462,
+      "sha256": "3af43c1ba3c71951dcdf4f318d80c0b6812355a7e0a0317462f5de43b50e99c5"
+    },
+    "/sid-player/model_policy.js": {
+      "bytes": 4220,
+      "sha256": "8534913a609fdceb3e6e288cfe5395d330cc59c88b990f2208f6aadafe9bf75f"
+    },
+    "/sid-player/core8580.js": {
+      "bytes": 2729,
+      "sha256": "75f53e8215b6368ff7e0784b780beffa4037545fe9118345694a54a046987942"
+    },
+    "/sid8580-lab/psid_structure.js": {
+      "bytes": 11616,
+      "sha256": "78049365ea0ce2a8302317814d124e91e9aa445e938e1e5624d65b036232b63c"
+    },
+    "/sid-player/roms.js": {
+      "bytes": 1869,
+      "sha256": "fabc907de5b2fdf14710ae2669914e8905f20b1b1078d47b147804bbdb556d81"
+    },
+    "/sid8580-lab/core.js": {
+      "bytes": 9248,
+      "sha256": "b640da2230f2e2c13776b77e13773125508a291c356bc2f9f08b2740a4dcb0b2"
+    },
+    "/sid-player/processor.js": {
+      "bytes": 5388,
+      "sha256": "fa65c46d1fbf9bf1178dc44d353b7fb0127a825f7222b4fca27506ca4b5bb9c1"
+    },
+    "/generated/sid-rsid/sid-rsid.wasm": {
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+    }
+  },
+  "results": [
+    {
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "a resident legacy unversioned facade reproduces Unknown SID command: pause and closes its muted probe",
+        "the current Synth entry/controller/facade/Worklet graph uses the versioned transport beside that legacy module",
+        "Pause visibly becomes Resume, paused Capture matches the frozen core and Resume reuses its instance",
+        "an incompatible versioned Worklet ready message is rejected before load/start and closes its context",
+        "retrying current transport recovers the same accepted file/instrument and Pause/Resume works again"
+      ],
+      "legacy": {
+        "error": "Unknown SID command: pause",
+        "playingBeforeRejection": true
+      },
+      "pause": {
+        "positionFrames": 3072,
+        "model": "6581",
+        "identity": {
+          "node": 1,
+          "context": 1,
+          "contexts": 2,
+          "loads": 2
+        }
+      },
+      "rejected": {
+        "created": 1,
+        "state": "closed",
+        "messages": [
+          {
+            "node": 2,
+            "method": "dispose",
+            "id": null
+          }
+        ],
+        "connected": false
+      },
+      "requests": [
+        "/synth-sid/index.html",
+        "/synth-sid/synth.css",
+        "/tetorica_sid_synth.webp",
+        "/synth-sid/synth.js?sid-transport=2",
+        "/synth-spu/synth.css",
+        "/synth-sid/audio.js",
+        "/synth-sid/editor.js",
+        "/synth-sid/preset.js",
+        "/synth-sid/handoff.js",
+        "/synth-sid/sid_import.js?sid-transport=2",
+        "/synth-sid/sid_import_panel.js",
+        "/synth-sid/sid_live_view.js",
+        "/synth-spu/spu_synth_visualizer.js",
+        "/synth/synth_keyboard.js",
+        "/synth/synth_controls.js",
+        "/sid-player/voice_snapshot.js",
+        "/js/soundchip_pitch.js",
+        "/js/sid_psid.js",
+        "/sid-player/models.js",
+        "/sid-player/audio.js?sid-transport=2",
+        "/sid-player/voice_capture.js",
+        "/js/sid_rsid.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid-player/audio.js",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/generated/sid-rsid/sid-rsid.wasm"
+      ],
+      "moduleLoads": [
+        {
+          "context": 0,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 1,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 2,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 3,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        }
+      ],
+      "injections": [
+        {
+          "kind": "legacy-facade",
+          "url": "/sid-player/audio.js",
+          "bytes": 8782,
+          "sha256": "4e653712ecd19f6c553d3e182cecd82a62b1b9b45b3a659e3c343c79b80befe8"
+        },
+        {
+          "kind": "legacy-ready",
+          "url": "/sid-player/processor.js?sid-transport=2",
+          "bytes": 5314,
+          "sha256": "5ea5c85cfcb17816720cdbb64d438025c178156d977ff128743423691533eb0e"
+        }
+      ],
+      "audit": {
+        "muted": true,
+        "processorErrors": [],
+        "contexts": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "external": []
+    },
+    {
+      "browser": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "a resident legacy unversioned facade reproduces Unknown SID command: pause and closes its muted probe",
+        "the current Synth entry/controller/facade/Worklet graph uses the versioned transport beside that legacy module",
+        "Pause visibly becomes Resume, paused Capture matches the frozen core and Resume reuses its instance",
+        "an incompatible versioned Worklet ready message is rejected before load/start and closes its context",
+        "retrying current transport recovers the same accepted file/instrument and Pause/Resume works again"
+      ],
+      "legacy": {
+        "error": "Unknown SID command: pause",
+        "playingBeforeRejection": true
+      },
+      "pause": {
+        "positionFrames": 4096,
+        "model": "6581",
+        "identity": {
+          "node": 1,
+          "context": 1,
+          "contexts": 2,
+          "loads": 2
+        }
+      },
+      "rejected": {
+        "created": 1,
+        "state": "closed",
+        "messages": [
+          {
+            "node": 2,
+            "method": "dispose",
+            "id": null
+          }
+        ],
+        "connected": false
+      },
+      "requests": [
+        "/synth-sid/index.html",
+        "/synth-sid/synth.css",
+        "/tetorica_sid_synth.webp",
+        "/synth-sid/synth.js?sid-transport=2",
+        "/synth-spu/synth.css",
+        "/synth-sid/audio.js",
+        "/synth-sid/editor.js",
+        "/synth-sid/preset.js",
+        "/synth-sid/handoff.js",
+        "/synth-sid/sid_import.js?sid-transport=2",
+        "/synth-sid/sid_import_panel.js",
+        "/synth-sid/sid_live_view.js",
+        "/synth-spu/spu_synth_visualizer.js",
+        "/synth/synth_keyboard.js",
+        "/synth/synth_controls.js",
+        "/js/sid_psid.js",
+        "/sid-player/models.js",
+        "/sid-player/audio.js?sid-transport=2",
+        "/sid-player/voice_capture.js",
+        "/sid-player/voice_snapshot.js",
+        "/js/soundchip_pitch.js",
+        "/js/sid_rsid.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid-player/audio.js",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/sid-player/processor.js?sid-transport=2",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/js/sid_psid.js",
+        "/js/sid_rsid.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/sid-player/processor.js?sid-transport=2",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/js/sid_psid.js",
+        "/js/sid_rsid.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/sid-player/processor.js?sid-transport=2",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/js/sid_psid.js",
+        "/js/sid_rsid.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js",
+        "/generated/sid-rsid/sid-rsid.wasm",
+        "/sid-player/processor.js?sid-transport=2",
+        "/sid-player/core.js",
+        "/sid-player/rsid_core.js",
+        "/sid-player/core8580.js",
+        "/js/sid_psid.js",
+        "/js/sid_rsid.js",
+        "/sid-player/roms.js",
+        "/sid8580-lab/core.js",
+        "/sid8580-lab/parser.js",
+        "/sid-player/model_policy.js",
+        "/sid8580-lab/psid_structure.js"
+      ],
+      "moduleLoads": [
+        {
+          "context": 0,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 1,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 2,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        },
+        {
+          "context": 3,
+          "url": "http://127.0.0.1:57412/sid-player/processor.js?sid-transport=2"
+        }
+      ],
+      "injections": [
+        {
+          "kind": "legacy-facade",
+          "url": "/sid-player/audio.js",
+          "bytes": 8782,
+          "sha256": "4e653712ecd19f6c553d3e182cecd82a62b1b9b45b3a659e3c343c79b80befe8"
+        },
+        {
+          "kind": "legacy-ready",
+          "url": "/sid-player/processor.js?sid-transport=2",
+          "bytes": 5314,
+          "sha256": "5ea5c85cfcb17816720cdbb64d438025c178156d977ff128743423691533eb0e"
+        }
+      ],
+      "audit": {
+        "muted": true,
+        "processorErrors": [],
+        "contexts": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "external": []
+    }
+  ],
+  "fixtureInput": {
+    "bytes": 376,
+    "sha256": "0df2b8c0360c544eabb53745af4f7ef57e221e81219c6bb20e4cadae3206095f"
+  },
+  "inputs": {
+    "scripts/check_sid_synth_transport_upgrade_browser.cjs": {
+      "bytes": 19782,
+      "sha256": "2674361b378613119406c6087f15f80370e66356ee8a2358441447a59c054f91"
+    },
+    "test/helpers/sid_voice_pair_fixtures.mjs": {
+      "bytes": 5676,
+      "sha256": "b397c96b22e41e31afbffa98e4caf6de90f05910d3b02d5c09ba033846b96c4b"
+    }
+  }
+}

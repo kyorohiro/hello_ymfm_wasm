@@ -38,6 +38,17 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: SynthでPauseが拒否されResumeが出ない更新不整合（2026-11-08）
+
+実画面 `localhost:8791/synth-sid/index.html` で `SID pause failed: Unknown SID command: pause` を確認した。配信中audio.jsにはpauseがあるため、ブラウザー内の旧audio moduleと新UIが混在している可能性が高い。表示があると断定せず、実画面で成功を確認する。
+
+- [x] Synth entry／controller／共有audio facade／Workletを同じ`sid-transport=2`で読む。独立ZIPのroot HTMLもqueryを保持するよう修正し、WASM／Native資産は変更しない。
+- [x] Workletの起動時にprotocol 2と全6commandを確認し、不一致は再生前にReload案内を出してcontextを終了する。
+- [x] 旧facade残存と旧ready応答を再現するfocused検証がsource／ZIP・両engineで20項目成功。既存の読み込み／Pause等152＋通常Player70＝合計242 browser項目、Synth135＋Player138＝273 unitが成功した。可読配布とCIも更新。
+- [x] 実際のChromeで同じFroehn.sidを開き、Pause→Resume表示→再開と位置進行→再Pauseを確認した。元のタブを残し、修正版を別タブ・Master70%・Pausedで保持した。
+
+結果と再開手順: [更新不整合の修正](sid_synth_transport_upgrade_result_01.md)。起動済みの旧ページは再読込が必要。実測したHTTP cacheの挙動と、制御した旧URL／旧ready応答のシミュレーションは区別する。
+
 ### 今回の続き: SID試聴のPause／Resume（2026-11-08）
 
 ユーザー承認: 変化の速い音色を狙って取り込めるよう、再生を一時停止し、同じUIでCHを確認・Captureして続きから再開する。

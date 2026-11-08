@@ -101,12 +101,14 @@ jobs:
           npm run test:sid-synth
           node scripts/check_sid_synth_browser.cjs --out release/sid-synth-source-browser.json --screenshots release/sid-synth-source-images
           node scripts/check_sid_synth_import_browser.cjs --out release/sid-synth-import-source-browser.json --screenshots release/sid-synth-import-source-images
+          node scripts/check_sid_synth_transport_upgrade_browser.cjs --out release/sid-synth-transport-source-browser.json --screenshots release/sid-synth-transport-source-images
       - name: Package and play the standalone SID Synth
         run: |
           sh scripts/package_itch_sid_synth.sh ci
           python3 -m zipfile -e release/tetorica_sid_synth_ci_itch.zip release/sid-synth-browser
           node scripts/check_sid_synth_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-zip-browser.json --screenshots release/sid-synth-zip-images
           node scripts/check_sid_synth_import_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-import-zip-browser.json --screenshots release/sid-synth-import-zip-images
+          node scripts/check_sid_synth_transport_upgrade_browser.cjs --root release/sid-synth-browser --entry /index.html --out release/sid-synth-transport-zip-browser.json --screenshots release/sid-synth-transport-zip-images
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -117,8 +119,12 @@ jobs:
             release/sid-synth-zip-browser.json
             release/sid-synth-import-source-browser.json
             release/sid-synth-import-zip-browser.json
+            release/sid-synth-transport-source-browser.json
+            release/sid-synth-transport-zip-browser.json
             release/sid-synth-source-images/
             release/sid-synth-zip-images/
             release/sid-synth-import-source-images/
             release/sid-synth-import-zip-images/
+            release/sid-synth-transport-source-images/
+            release/sid-synth-transport-zip-images/
           if-no-files-found: ignore

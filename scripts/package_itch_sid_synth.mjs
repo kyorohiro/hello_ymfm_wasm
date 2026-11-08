@@ -93,7 +93,7 @@ export async function packageSidSynth({version = 'dev', releaseDir = join(root, 
   await writeFile(join(stage, 'synth-sid/index.html'), html);
   await writeFile(join(stage, 'index.html'), html
     .replace(/\b(href|src)="\.\.\/tetorica_sid_synth\.webp"/g, '$1="./tetorica_sid_synth.webp"')
-    .replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g, '$1="./synth-sid/$2"'));
+    .replace(/\b(href|src)="\.\/(synth\.(?:css|js))([?#][^"]*)?"/g, '$1="./synth-sid/$2$3"'));
   await copyRuntimeArtifacts({root, destination:join(stage, 'generated'), ids:['sid'], includeMetadata:false});
   await copySidSources(stage);
   const models=await copySidModelSources(stage);

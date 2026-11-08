@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Verify the final transport-protocol cache-upgrade SID Synth distribution against current authored sources; unchanged Native kits reuse previously measured package evidence.",
+  "archive": {
+    "path": "release/tetorica_sid_synth_20261108-transport2_itch.zip",
+    "bytes": 2945963,
+    "sha256": "00c61091bf37baf8b48afd8c6dc116c33ba375fa709507a63de16cae3d88aea9",
+    "files": 262,
+    "crcVerified": true,
+    "allEntriesAndBytesMatchDirectories": [
+      "release/itch_sid_synth_20261108-transport2-b2ZvzC",
+      "build/validation/sid-synth-transport-upgrade-zip"
+    ]
+  },
+  "originalInputs": {
+    "count": 195,
+    "allCurrentHashesAndBytesMatch": true,
+    "nestedArchiveCrcAndInventoryVerified": true,
+    "sourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1176601,
+      "sha256": "0b24537cba5b45a933ce18bdf12c61d88cd39188f21eb4eab730727c33f41037"
+    }
+  },
+  "readableModules": {
+    "count": 34,
+    "allAuthoredBytesMatch": true,
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "liveObserverModuleIncluded": true,
+    "localImportTargetsVerified": 55,
+    "staticAssetUrlsVerified": 8,
+    "workletIncluded": true,
+    "bothIndependentEntryAssetsResolve": true,
+    "liveViewPresentAndExtraUseButtonAbsent": true
+  },
+  "nativeKits": [
+    {
+      "component": "sid",
+      "compiledInputs": 13,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid/": 29,
+        "generated/sid/": 2
+      }
+    },
+    {
+      "component": "sid-player",
+      "compiledInputs": 14,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-player/": 15,
+        "generated/sid-player/": 2
+      }
+    },
+    {
+      "component": "sid-rsid",
+      "compiledInputs": 29,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-rsid/": 30,
+        "generated/sid-rsid/": 2
+      }
+    },
+    {
+      "component": "sid8580-machine",
+      "compiledInputs": 99,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid8580-machine/": 130,
+        "generated/sid8580-machine/": 3
+      }
+    }
+  ],
+  "wasmAssets": [
+    {
+      "path": "generated/sid-player/sid-player.wasm",
+      "bytes": 74312,
+      "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid/sid.wasm",
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce",
+      "equalsPreviouslyVerifiedWasm": true
+    }
+  ],
+  "priorPackageEvidence": {
+    "path": "docs/issues/sid_synth_pause_package_01.json",
+    "bytes": 8630,
+    "sha256": "8807c65a373ac46a89db6bb059132d69b0c96e887d9abd57da9c71020b1aa4a7",
+    "validatedEarlierInThisSession": true,
+    "matchesCommittedHead": true,
+    "priorReleaseArchiveAvailableThisRun": true,
+    "passed": true,
+    "previouslyVerifiedExtraction": "build/validation/sid-synth-pause-zip",
+    "priorOriginalSourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1175991,
+      "sha256": "6cd789f186ddacc63a37bd3a872b4c0df160cec320d9d22f12b06e8be314a6af"
+    },
+    "priorOriginalSourceArchiveHashAndCrcVerified": true,
+    "previousReleaseZipAvailableThisRun": false
+  },
+  "compilerInvocationPerformedThisRun": false,
+  "nativeEvidencePolicy": "No Native compiler run or deep rebuild-chain repetition in this verification. All four Native source/generated trees were compared byte-for-byte with its previously verified extraction. Every compiled input also matches the prior original-source ZIP authenticated by the prior proof; all five WASM hashes match that proof. Previous independent-build and ABI evidence is reused only for these unchanged bytes.",
+  "musicUserRomOrNativeBinaryIncluded": false,
+  "transportUpgrade": {
+    "protocol": 2,
+    "versionedGraphEdges": [
+      {
+        "source": "index.html",
+        "specifier": "./synth-sid/synth.js?sid-transport=2"
+      },
+      {
+        "source": "synth-sid/index.html",
+        "specifier": "./synth.js?sid-transport=2"
+      },
+      {
+        "source": "synth-sid/synth.js",
+        "specifier": "./sid_import.js?sid-transport=2"
+      },
+      {
+        "source": "synth-sid/sid_import.js",
+        "specifier": "../sid-player/audio.js?sid-transport=2"
+      },
+      {
+        "source": "sid-player/audio.js",
+        "specifier": "./processor.js?sid-transport=2"
+      }
+    ],
+    "rootAndNestedEntryQueriesPreserved": true,
+    "readyProtocolAndRequiredCommandValidationIncluded": true,
+    "processorDifferenceFromCommittedHead": "Protocol constant and ready-message metadata only.",
+    "processorRenderAndOutputCodeEqualsCommittedHead": true,
+    "currentProcessor": {
+      "bytes": 5388,
+      "sha256": "fa65c46d1fbf9bf1178dc44d353b7fb0127a825f7222b4fca27506ca4b5bb9c1"
+    },
+    "committedHeadProcessor": {
+      "bytes": 5279,
+      "sha256": "9429a0d7f9b633a56b9f7af97a0e1ea38d030aa81806a13da3cc1c06815c6a14"
+    },
+    "wholeBrowserProcessorUnchanged": false
+  },
+  "browserEvidence": [
+    {
+      "path": "docs/issues/sid_synth_transport_upgrade_browser_01.json",
+      "bytes": 14848,
+      "sha256": "5cbd46ae2d241b98c13b2e6084132f467d3f8fb1b4cdad337774b9348cd2ff31",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 5
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 5
+        }
+      ],
+      "checks": 10
+    },
+    {
+      "path": "docs/issues/sid_synth_transport_upgrade_zip_browser_01.json",
+      "bytes": 14808,
+      "sha256": "41a1b5bf52940d91c9d4ebb8360551d470a8bcdf5951374558e9b156143e4a9a",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 5
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 5
+        }
+      ],
+      "checks": 10
+    },
+    {
+      "path": "docs/issues/sid_synth_transport_upgrade_regression_01.json",
+      "bytes": 28885,
+      "sha256": "ff439ce57f61bbbc2ce9a2c3c9bca5597649452326c67f6f60612b75bcd54e9a",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 38
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 38
+        }
+      ],
+      "checks": 76
+    },
+    {
+      "path": "docs/issues/sid_synth_transport_upgrade_zip_regression_01.json",
+      "bytes": 28864,
+      "sha256": "9ef4f9489e18412a8d1ddce7b3c8d542dda94bd3cb956240dde444aaf6553477",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 38
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 38
+        }
+      ],
+      "checks": 76
+    },
+    {
+      "path": "docs/issues/sid_synth_transport_upgrade_player_regression_01.json",
+      "bytes": 995438,
+      "sha256": "6e0afb979a3183995aca1ae23c33bfedf3c69fef7373da3de12a1cf1c3a55254",
+      "passed": true,
+      "browsers": [
+        {
+          "passed": true,
+          "checks": 35
+        },
+        {
+          "passed": true,
+          "checks": 35
+        }
+      ],
+      "checks": 70
+    }
+  ],
+  "browserChecks": 242,
+  "browserEvidencePendingAtPackageVerification": [],
+  "nativeUiEvidence": {
+    "path": "docs/issues/sid_synth_transport_upgrade_native_ui_01.json",
+    "bytes": 1067,
+    "sha256": "97cf6ced712244ec011495340f8acefc259a0d399c7e040b61061cea2fe84cce"
+  }
+}

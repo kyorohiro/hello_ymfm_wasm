@@ -93,6 +93,12 @@ bridge softens Pause / Resume edges while the paused chip remains completely
 unclocked. It changes no CPU / SID state, pitch, envelope or filter history;
 ordinary playback is unaffected. This is transport smoothing, not a chip effect.
 
+The app entry, import controller, preview audio module and its Worklet use a
+paired transport revision in their URLs. Startup checks the Worklet's protocol
+and Pause / Resume support before playing. This prevents an updated Synth from
+silently using an older cached audio module. If an already-open older page shows
+`Unknown SID command: pause`, reload the page to load the paired modules.
+
 ### Follow a playing channel
 
 **Live CH view while playing** is on by default. During song preview, **Your
