@@ -282,7 +282,7 @@ test('question-mark help starts closed, toggles independently, preserves focus/f
 });
 
 const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?from\s*['"][^'"]+['"];\n/gm,'');
-function appFixture({stall=false}={}){
+function appFixture({stall=false,desktop=false}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
   doc.getElementById('codeOutput').hidden=true;
@@ -292,6 +292,8 @@ function appFixture({stall=false}={}){
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
+  const desktopEvents=[];
+  if(desktop){win.top=win;win.location={protocol:'tauri:',hostname:'localhost'};win.__TAURI_INTERNALS__={};win.dispatchEvent=event=>{desktopEvents.push(event.type);return true;};}
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
     let settings=createChannelSettings(createDefaultPreset({model})),value=selectedChannelPreset(settings),pitch=0,voices=new Map(),cursor=0;const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,reads:0,
@@ -326,10 +328,45 @@ function appFixture({stall=false}={}){
     createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
-    setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
+    setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,Event,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
 }
+
+test('desktop bridge is absent on normal sites, lazy on desktop and awaits output routing before Note On',async()=>{
+  assert.equal(appFixture().bridge,undefined);
+  const f=appFixture({desktop:true});assert.deepEqual(f.desktopEvents,['tetorica-synth-ready']);
+  assert.equal(f.audioOptions.length,0);assert.equal(f.bridge.getOutput(),null);assert(Object.isFrozen(f.bridge));
+  const routes=[];let complete;
+  f.bridge.setOutputHandler((output,{isCurrent})=>{routes.push({output,isCurrent});return new Promise(resolve=>{complete=resolve;});});
+  const output=await f.bridge.ensureReady();assert.equal(routes.length,0,'explicit output selection must not recurse into the routing callback');
+  assert.equal(output.context,f.engines[0].context);assert.equal(output.output,f.engines[0].outputNode);
+  f.ui.press('desktop-key',f.entries[0]);await flush();await flush();
+  assert.equal(routes.length,1);assert.equal(routes[0].isCurrent(),true);assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);
+  complete();await flush();await flush();assert.equal(f.calls.filter(call=>call[1]==='noteOn').length,1);
+  await f.bridge.stopPlayback();assert.equal(f.ui.getNotes().length,0);assert.equal((await f.engines[0].read()).pitch,0);
+  assert.throws(()=>f.bridge.setOutputHandler({}),/function or null/);f.bridge.setOutputHandler(null);
+});
+
+test('Stop fences a delayed desktop route and output switching blocks new keyboard gestures',async()=>{
+  const f=appFixture({desktop:true});let complete,current;
+  f.bridge.setSwitching(true);f.ui.press('blocked',f.entries[0]);assert.equal(f.audioOptions.length,0);assert.equal(f.ui.getNotes().length,0);
+  f.bridge.setSwitching(false);f.bridge.setOutputHandler((_,options)=>{current=options.isCurrent;return new Promise(resolve=>{complete=resolve;});});
+  f.ui.press('pending-route',f.entries[0]);await flush();await flush();assert.equal(current(),true);
+  const stopped=f.ui.stopNotes();assert.equal(current(),false);complete();await stopped;await flush();
+  assert.equal(f.calls.some(call=>call[1]==='noteOn'),false);assert.equal(f.ui.getNotes().length,0);
+});
+
+test('desktop preview routing selects its separate graph before playback and preserves keyboard allocation',async()=>{
+  const f=appFixture({desktop:true});let complete,observed;
+  f.bridge.setOutputHandler((output,options)=>{observed={output,...options};return new Promise(resolve=>{complete=resolve;});});
+  const preview={context:{state:'running'},outputNode:{name:'preview-master'}};let current=true;
+  const starting=f.importer.hooks.onPreviewStart(preview,{isCurrent:()=>current});await flush();await flush();
+  assert.equal(observed.output.context,preview.context);assert.equal(observed.isCurrent(),true);
+  assert.equal((await f.bridge.ensureReady()).output,preview.outputNode);assert.equal(f.audioOptions.length,0,'preview routing must not create a keyboard engine');
+  current=false;assert.equal(observed.isCurrent(),false);complete();await starting;
+  f.importer.hooks.onPreviewStop(preview);assert.equal(f.bridge.getOutput(),null);
+});
 
 test('a keyboard gesture fences song preview immediately and waits for its close before sounding the Synth',async()=>{
   const f=appFixture();let finish;f.importer.holdStop=new Promise(resolve=>{finish=resolve;});f.importer.state.playing=true;

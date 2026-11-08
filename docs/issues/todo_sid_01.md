@@ -536,6 +536,23 @@ CIA／C64 VBI対応後、独立試作の移植一致と外部差分を確認し�
 
 ## 4. Synth／配布
 
+### 今回の続き: Native SDKへのSID統合（2026-11-09）
+
+ユーザー承認: `w/tetorica-soundchip-native`へCPU-free 6581／8580を追加する。SDK公開C/C++ API、CMake、catalog、source／WASM配布と一致検証を整える。
+8580のRust依存は明示的なopt-inとし、C64曲再生環境は別段階にする。
+再開状況はNative SDKの`docs/todo_sid_20261109.md`へ記録する。
+
+- [x] 6581の公開C ABI／CMake target、8580のopt-in Rust static library／C ABI／Web互換C++ hostを追加した。
+- [x] 原本・可読source・license／toolchain notices・catalog・両WASM recipe・独立source ZIPの検証を追加した。
+- [x] macOS ARM全体33／34 CTest（Rust Off／On）、Python122 tests、独立ZIPの34 CTest／24 WAV例を確認した。6581／8580ともNative・WASM・元Web版とのPCM一致を確認し、8580はIntelでも検証した。
+- [ ] SDK差分のcommit／pushとGitHub Actions、公開version／tagを確認して公開する。現在の開発版0.1.7候補はSDKの`build/sid-sdk-candidate/`。公開済み0.1.6とconsumerのpinは維持する。
+
+### 今回の続き: SID SynthのTauri版（2026-11-08）
+
+ユーザー指定: `w/tetorica-sid-synth-tauri`。空の別repositoryへ、既存S-DSP版と同じMenu／Pin・Web Audio／Native出力・可読ソース付き配布を接続する。
+Desktop0.0.1の初期実装・両macOS app build・Menu／Pin／Native切り替えまで確認した。Web Audioを既定とし、鍵盤とSID曲の別contextへNativeが発音前に追従する。元Webソースは改変せず配布し、親にlocal Tauri専用のbridgeを追加した。
+実装・中断時の再開状況は[desktop repository](https://github.com/kyorohiro/tetorica-sid-synth-tauri)の`docs/todo_20261108.md`／`docs/verification_20261108.md`へ記録した。commit／push・Actions・署名・公開は次の工程。
+
 ### 独立Synthの今回の作業（2026-11-06）
 
 ユーザーの「進めて」により、通常Playgroundの検証済みSidCore／SidSynthを使う独立Synthを開始する。
@@ -557,7 +574,7 @@ CIA／C64 VBI対応後、独立試作の移植一致と外部差分を確認し�
 - [ ] 人が実聴し、和音／Pulse幅／ADSR／filter／Sync／Ringを確認する。
 - [x] 専用iconを作成する（2026-11-07追記）。[1254px WebP](../tetorica_sid_synth.webp)・[元PNG](../tetorica_sid_synth.png)・[生成プロンプト](tetorica_sid_icon_prompt_20261107.txt)。既存シリーズと同じ寸法、C64のbeige／brownとfilter波形を使った。
 - [x] 選択済みiconを採用する（2026-11-07、ユーザー「これでお願い」）。Synth header／favicon／Apple touch icon、home en／ja、配布ZIPとsource receiptへ同じWebPを反映した。既存音声コードを保持し、source／実ZIPのdesktop／390px表示とlocal画像読込を確認した。
-- [ ] Webの実聴後にTauri版を検討する。
+- [x] Tauri版を検討し、ユーザー指定の別repositoryへ初期実装した（2026-11-08～09）。自動検証と未署名macOS app・実UI確認まで完了し、実聴／長時間・各OSの配布確認はdesktop TODOへ残す。
 
 ## 再開メモ
 

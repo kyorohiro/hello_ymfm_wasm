@@ -19,6 +19,7 @@ let preset=selectedChannelPreset(channelSettings), appliedPreset=readPreset(pres
 let appliedPitch=0,pitchIntent=0,commandSequence=0,pitchAckSequence=0;
 let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
+let switchingAudioOutput=false,desktopOutputHandler=null;
 let adoptedObservation=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
@@ -28,6 +29,9 @@ function status(text,error=false){if(disposed)return;$('audioStatus').textConten
 function report(error){if(!cancelled(error))status(error?.message??String(error),true);}
 function patchStatus(text,busy=false){$('patchStatus').textContent=text;$('patchStatus').dataset.busy=String(busy);$('voiceEditor').setAttribute('aria-busy',String(busy));}
 function enqueue(action){const task=queue.then(action);queue=task.catch(report);return task;}
+async function prepareDesktopOutput(engine,isCurrent){
+  if(desktopOutputHandler&&isCurrent())await desktopOutputHandler({context:engine.context,output:engine.outputNode},{isCurrent});
+}
 const paired=()=>channelPlaybackPlan(channelSettings).source!==null;
 const capacity=()=>channelPlaybackPlan(channelSettings).channels.length;
 const legato=()=>channelSettings.target!=='round-robin'&&channelSettings.keyboardMode==='legato';
@@ -185,6 +189,7 @@ sidImporter=createSidImport({
     await stopNotes();
     if(disposed||!isCurrent()||engine.context.state==='closed')return;
     previewEngine=engine;visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);visualizer.setRunning(false);
+    await prepareDesktopOutput(engine,()=>!disposed&&previewEngine===engine&&isCurrent()&&engine.context.state!=='closed');
   },
   onPreviewStop(engine){
     if(previewEngine!==engine)return;
@@ -240,15 +245,18 @@ function renderKeyboard(){
   refreshPlayableKeys();updateKeys();
 }
 function press(source,entry){
-  if(disposed||notes.has(source)||!canPlay(entry.midi))return;
+  if(disposed||switchingAudioOutput||notes.has(source)||!canPlay(entry.midi))return;
   // Fence a pending song start synchronously, preserving this key's gesture.
   const songClosing=stopSongForKeyboard();
   const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false};notes.set(source,note);updateKeys();
   const ready=ensureAudio();ready.catch(()=>{});
   void enqueue(async()=>{
-    if(notes.get(source)!==note||note.epoch!==noteEpoch)return;
+    if(switchingAudioOutput||notes.get(source)!==note||note.epoch!==noteEpoch)return;
     await songClosing;
-    const engine=await ready;if(disposed||audio!==engine||notes.get(source)!==note||note.epoch!==noteEpoch)return;
+    const engine=await ready;
+    const current=()=>!disposed&&audio===engine&&notes.get(source)===note&&note.epoch===noteEpoch&&engine.context.state!=='closed';
+    if(switchingAudioOutput||!current())return;
+    await prepareDesktopOutput(engine,current);if(!current())return;
     note.started=true;await engine.command('noteOn',[note.id,note.midi]);
     if(audio!==engine||note.epoch!==noteEpoch)return;
     const state=await engine.read();if(audio!==engine||note.epoch!==noteEpoch)return;
@@ -352,3 +360,24 @@ function receivePlayerSnapshot(){
   }catch{status('SID Player snapshot loaded. The URL token could not be cleared; it cannot import a second time.');}
 }
 renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);receivePlayerSnapshot();
+
+// Desktop adapters select the final Master output before a keyboard attack or
+// SID preview starts. Normal websites expose no bridge. The desktop host keeps
+// these readable assets unchanged and supplies device output / window controls.
+const desktopLocation=window.location;
+const localDesktop=desktopLocation&&((desktopLocation.protocol==='tauri:'&&desktopLocation.hostname==='localhost')||
+  (['http:','https:'].includes(desktopLocation.protocol)&&desktopLocation.hostname==='tauri.localhost'));
+if(window.top===window&&localDesktop&&window.__TAURI_INTERNALS__){
+  const output=engine=>engine&&engine.context.state!=='closed'?{context:engine.context,output:engine.outputNode}:null;
+  Object.defineProperty(window,'tetoricaSynthAudio',{value:Object.freeze({
+    getOutput(){return output(previewEngine)??output(audio);},
+    async ensureReady(){return output(previewEngine)??output(await ensureAudio());},
+    setSwitching(value){switchingAudioOutput=value===true;},
+    setOutputHandler(handler){
+      if(handler!==null&&typeof handler!=='function')throw new TypeError('Desktop output handler must be a function or null');
+      desktopOutputHandler=handler;
+    },
+    async stopPlayback(){await sidImporter.stop({cancelLoad:false});await stopNotes();},
+  })});
+  window.dispatchEvent(new Event('tetorica-synth-ready'));
+}
