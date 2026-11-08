@@ -20,7 +20,9 @@ foldable sections and controls that leave computer keys available for playing.
 1. Select **Enable audio**, or play a key to prepare audio.
 2. Choose Triangle, Saw, Pulse or Noise and change the hardware ADSR codes.
 3. Enable the shared filter and move Cutoff / Resonance while holding notes.
-4. Save the instrument as JSON, or copy its readable Playground JavaScript.
+4. Compare **6581** and **8580 · Preview** using the SID model buttons in the
+   filter section. A model change stops held notes and resets Pitch.
+5. Save the instrument as JSON, or copy its readable Playground JavaScript.
 
 Opening the page and editing a preset start no audio device. Master is a
 software output gain; values above 100% use the orange boost color. The
@@ -33,6 +35,8 @@ Normal playback uses the three physical SID voices in round-robin order.
 Allocation prefers a silent voice, then an older released tail, then the oldest
 held voice. Releasing an old key cannot release its replacement. Key release
 lowers the hardware Gate and leaves the hardware release envelope running.
+The 8580 model has no per-voice envelope observation, so released slots are
+treated as possible tails until reused; they are preferred over held voices.
 **Stop all sound** flushes voices, queued PCM and output tails while retaining
 the instrument. Stop, preset load and topology changes also reset Pitch.
 
@@ -46,7 +50,9 @@ Choose **Triangle** to hear Ring. Other carrier waveforms can still use Sync.
 oscillator. It follows the played note and Pitch, from 0.125× to 8×. It does not
 add a hardware modulation-depth parameter. Ratios / notes / Pitch that exceed
 the SID's frequency-register range are rejected before changing the current
-sound. The hardware TEST control holds/resets an oscillator; topology changes
+sound. An unobservable, released 8580 tail retains its last valid tuning if it
+would otherwise block a valid held-note Pitch / ratio edit. The hardware TEST
+control holds/resets an oscillator; topology changes
 such as TEST or Sync / Ring stop currently held keys before reconfiguration.
 
 ADSR parameters are four-bit **hardware codes**, not seconds. The emulation
@@ -72,39 +78,52 @@ voices into an all-off filter, which makes those routed voices silent.
 Pulse width is `0..4095`. Chip volume is the shared hardware `0..15` volume;
 the separate Master control changes the host output gain. Live waveform,
 pulse width, ADSR, filter, volume, ratio and Pitch edits preserve active voice
-ownership. Sync / Ring / TEST topology changes, preset load and Stop clear it.
+ownership. Model / Sync / Ring / TEST changes, preset load and Stop clear it.
 
 ## Presets and code reuse
 
-The portable format is `tetorica-sid-voice`, version 1. It contains the carrier
-waveform / pulse width / ADSR / TEST, Sync / Ring / software ratio and shared
-filter / chip volume, including the combined filter outputs. Existing version-1
-presets remain supported; Notch loads as LP + HP. All-off mode saves with the
+The portable format is `tetorica-sid-voice`, **version 2**. It records `model`
+(`'6581'` or `'8580'`), carrier waveform / pulse width / ADSR / TEST,
+Sync / Ring / software ratio and shared filter / chip volume, including the
+combined filter outputs. Existing version-1 presets load as **6581** and are
+saved as version 2; Notch loads as LP + HP. Loading a preset selects its recorded
+model. All-off mode saves with the
 filter bypassed. It does not contain a SID tune or C64 program. Invalid
 files, cancelled selection and rejected edits retain the accepted instrument.
 Preset files are limited to 64 KiB.
 
-**Copy JavaScript** produces code for the initialized `sid` API in C64 mode.
-The code describes the fixed physical voices, routing and frequency ratio;
+**Copy JavaScript** targets C64 mode in the Playground. A 6581 preset uses the
+primary `sid`; an 8580 preset creates a separate `sid8580` instance with
+`await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'})`, supported in
+Main and Worker execution. The code describes the fixed physical voices, routing and frequency ratio;
 standalone keyboard allocation remains host software. The modules
 [preset.js](preset.js), [instrument.js](instrument.js), [audio.js](audio.js),
 [processor.js](processor.js), [editor.js](editor.js) and [synth.js](synth.js)
 retain comments and imports for modification. The engine reuses
-[SidCore](../js/sid.js) and [SidSynth](../js/sidsynth.js).
+[SidCore](../js/sid.js), [Sid8580Core](../js/sid8580.js) and [SidSynth](../js/sidsynth.js).
 
 ## Model and distribution
 
-This first Synth uses the **6581 approximation** from chips/m6581 at a fixed
-PAL clock of **985,248 Hz**. Output follows the audio device (8–96 kHz).
-The programmable filter is a simplified model; 8580 and analog chip variation
-are not modeled. A software 12 Hz output DC blocker follows the chip.
+Choose the **6581 approximation** from chips/m6581 or the separate
+**8580 Preview** from sidera. Both use a fixed PAL clock of **985,248 Hz** in
+this Synth. Output follows the audio device (8–96 kHz). The 8580 adapter uses
+the existing endpoint WASM's standalone batch API, without running a C64 CPU;
+the research cutoff and resonance fit profiles remain off. Switching models
+replaces the instrument within the same audio engine and clears held notes,
+tails and Pitch. A software 12 Hz output DC blocker follows each chip.
+Filters and combined waveforms are approximations; neither model promises
+real-chip fidelity or covers analog unit variation.
 `.sid` song playback, sound extraction, Native audio output, software LFOs and
 arbitrary modulation routing are separate work; none is implied by this UI.
 
-The chip is **zlib**, the Tetorica wrapper / UI are **BSD-3-Clause**. The
-[matching source kit](../sources/sid/README.md) contains the pinned original,
+The 6581 chip is **zlib**, the 8580 [sidera core](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/sidera/README.md)
+is **MIT**, and the Tetorica wrapper / UI are **BSD-3-Clause**. The
+[6581 source kit](../sources/sid/README.md) contains its pinned original,
 marked adaptation, Native host, WASM bridge, licenses and standalone rebuild
-recipe. It is separate from the fixed sound-chip SDK snapshot.
+recipe. The ZIP also includes the unchanged 8580 matching C/C++/Rust sources,
+licenses, toolchain notices and rebuild receipt. Its shared source kit retains
+both machine WASMs for rebuilding, although the Synth loads only
+`sid8580-endpoint.wasm`. It is separate from the fixed sound-chip SDK snapshot.
 
 From the repository root:
 

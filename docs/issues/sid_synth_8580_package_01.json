@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "archive": "release/tetorica_sid_synth_20261108-8580.1_itch.zip",
+  "bytes": 2504611,
+  "sha256": "6f9b305f011345554096ae99a499da2d088ef3a6e7b3813f6009912bbfc8a540",
+  "files": 193,
+  "extracted": "release/verify_sid_synth_20261108-8580.1",
+  "outerCrc": true,
+  "allExtractedBytesMatchStage": true,
+  "published": false,
+  "browserAssetsByteEqualToTestedArchive": {
+    "archive": "release/tetorica_sid_synth_20261108-8580_itch.zip",
+    "sha256": "f5f4e7fccec34b71e2ca149bfc3f50cbc564a8419dec9c8c7db66075104df27d",
+    "excludedDocumentationPaths": [
+      "README.md",
+      "sources/**"
+    ]
+  },
+  "sourceArchiveCrc": true,
+  "originalInputCount": 159,
+  "allOriginalInputHashesMatch": true,
+  "nativeCompiledInputs": 99,
+  "models": [
+    "6581",
+    "8580"
+  ],
+  "readableRuntimeModules": true,
+  "physicalOutputMutedInBrowserChecks": true
+}

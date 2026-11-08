@@ -2,6 +2,7 @@
 // Copyright (c) 2026, kyorohiro.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,readFile,writeFile,access,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -63,6 +64,73 @@ test('browser stage keeps complete source ZIP and original runtime/licenses/rece
   const restored=join(scratch,'restored');
   execFileSync(process.env.PYTHON||'python3',['-c','import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:z.extractall(sys.argv[2])',join(run,'sources/corresponding-source.zip'),restored]);
   for(const[name,value]of Object.entries(payload)){assert.deepEqual(await readFile(join(full,name)),Buffer.from(value),'Full stage unchanged '+name);if(name.startsWith('sources/'))assert.deepEqual(await readFile(join(restored,name.slice(8))),Buffer.from(value),'Complete original archive '+name);}
+ }finally{await rm(scratch,{recursive:true,force:true});}
+});
+test('1102-entry distribution archives the entire matching 8580 kit and retains readable audio assets and download guides',async()=>{
+ const scratch=await mkdtemp(join(tmpdir(),'itch-8580-source-bundle-')),full=join(scratch,'full'),run=join(scratch,'run'),kit='sources/sid8580-machine/';
+ const digest=value=>{const bytes=Buffer.from(value);return{bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};};
+ const payload={
+  'index.html':'<script type="module" src="js/app.js"></script>',
+  'LICENSE':'Original root license\n',
+  'js/app.js':"import {Sid8580Core} from './sid8580.js';\n// Readable browser module\n",
+  'js/sid8580.js':'// Original CPU-free adapter\nexport class Sid8580Core {}\n',
+  'js/sid8580.d.ts':'export declare class Sid8580Core {}\n',
+  'generated/sid8580-machine/sid8580-endpoint.wasm':Buffer.from([0,97,115,109,1,0,0,0]),
+  'generated/sid8580-machine/sid8580-machine.wasm':Buffer.from([0,97,115,109,1,0,0,0]),
+  'sources/SID8580.md':'# CPU-free SID 8580 Preview\nNative sources: [matching kit](sid8580-machine/README.md).\n',
+  [kit+'README.md']:'# Matching native source kit\nRun sh scripts/build_sid8580_machine.sh build/rebuild from this directory.\n',
+ };
+ const compiled={
+  'tetorica_src/wasm/sid8580-machine/endpoint.rs':'// Original Rust batch endpoint\n',
+  'tetorica_src/wasm/sid8580-probe/lib.rs':'// Original Rust adapter\n',
+  'tetorica_src/wasm/sid8580-machine/machine_wasm.cpp':'// Original native wrapper\n',
+  'tetorica_src/wasm/sid8580-machine/machine.c':'/* Original C host */\n',
+  'tetorica_src/wasm/sid8580-machine/generated/sid8580_machine_core.h':'/* Original generated host */\n',
+  'third_party/sidera/upstream/Cargo.toml':'[package]\nname="sidera"\n',
+  'third_party/sidera/upstream/Cargo.lock':'# Original Cargo dependency lock\n',
+  'third_party/sidera/upstream/.cargo_vcs_info.json':'{"git":{"sha1":"original"}}\n',
+  'third_party/sidera/LICENSE':'MIT License\n',
+  'third_party/chips-c64/LICENSE':'Original zlib notice\n',
+  'scripts/build_sid8580_machine.sh':'#!/bin/sh\n# Original native build recipe\n',
+  'scripts/sid8580_machine_artifacts.mjs':'// Original hash verifier\n',
+ };
+ for(let i=Object.keys(compiled).length;i<99;i++)compiled[`third_party/sidera/upstream/src/module-${i}.rs`]=`// Original Rust source ${i}\n`;
+ for(const[name,value]of Object.entries(compiled))payload[kit+name]=value;
+ for(const root of ['third_party/sidera/toolchain-notices','third_party/sid8580-machine-toolchain-notices']){
+  payload[kit+root+'/LICENSE-MIT']='Original MIT toolchain license\n';
+  payload[kit+root+'/LICENSE-APACHE']='Original Apache toolchain notice\n';
+  payload[kit+root+'/README.md']='Original toolchain provenance guide\n';
+  payload[kit+root+'/SOURCES.json']='{"copiedUnmodified":true}\n';
+ }
+ // Match the real source kit's entry pressure. Unknown notice extensions and
+ // metadata also belong in the complete kit, beyond C/C++/Rust source suffixes.
+ for(let i=0;Object.keys(payload).filter(name=>name.startsWith(kit)).length<147;i++)payload[kit+`third_party/sidera/toolchain-notices/component-${i}.txt`]=`Original standard-library notice ${i}\n`;
+ const compiledInputs=Object.fromEntries(Object.entries(compiled).map(([name,value])=>[name,digest(value)]));
+ const receipt=JSON.stringify({model:'8580',inputs:compiledInputs,outputs:{'sid8580-endpoint.wasm':digest(payload['generated/sid8580-machine/sid8580-endpoint.wasm'])}})+'\n';
+ payload[kit+'sid8580-machine-build.json']=receipt;payload['generated/sid8580-machine/sid8580-machine-build.json']=receipt;
+ payload[kit+'source-kit.json']=JSON.stringify({compiledInputCount:99,compiledInputs,buildReceipt:{path:'sid8580-machine-build.json',...digest(receipt)}})+'\n';
+ for(let i=0;Object.keys(payload).length<1102;i++)payload[`data/asset-${i}.txt`]=`Original browser asset ${i}\n`;
+ try{
+  for(const[name,value]of Object.entries(payload)){await mkdir(dirname(join(full,name)),{recursive:true});await writeFile(join(full,name),value);}
+  assert.throws(()=>validateItchZipEntries(Object.entries(payload).map(([name,value])=>file(name,Buffer.byteLength(value)))),/1102 > 1000/);
+  const result=await prepareItchPlaygroundRun(full,run);assert.equal(result.inputFiles,1102);assert.equal(result.predictedZip.entryCount,956);assert.equal(result.fullStageUnchanged,true);
+  const kitNames=Object.keys(payload).filter(name=>name.startsWith(kit));assert.equal(kitNames.length,149);
+  assert.deepEqual(result.removedCompilationFiles.sort(),kitNames.filter(name=>name!==kit+'README.md').sort());
+  for(const name of result.removedCompilationFiles)await assert.rejects(access(join(run,name)),{code:'ENOENT'});
+  for(const[name,value]of Object.entries(payload)){
+   assert.deepEqual(await readFile(join(full,name)),Buffer.from(value),'Full download unchanged: '+name);
+   if(!name.startsWith('sources/'))assert.deepEqual(await readFile(join(run,name)),Buffer.from(value),'Readable browser asset unchanged: '+name);
+  }
+  for(const[name,link]of [[kit+'README.md','../corresponding-source.zip'],['sources/SID8580.md','corresponding-source.zip']]){
+   const guide=await readFile(join(run,name),'utf8');assert(guide.endsWith(payload[name]));assert(guide.includes(`](${link})`));assert(guide.includes(result.sourceArchive.sha256));assert(result.prefacedGuides.includes(name));
+  }
+  const explanation=await readFile(join(run,'sources/README-for-run.md'),'utf8');assert.match(explanation,/complete `sid8580-machine\/` native source kit/);assert.match(explanation,/Rust\/Cargo/);assert.match(explanation,/toolchain licenses\/notices/);
+  const restored=join(scratch,'restored');
+  execFileSync(process.env.PYTHON||'python3',['-c','import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:z.extractall(sys.argv[2])',join(run,'sources/corresponding-source.zip'),restored]);
+  for(const[name,value]of Object.entries(payload))if(name.startsWith('sources/'))assert.deepEqual(await readFile(join(restored,name.slice(8))),Buffer.from(value),'Complete byte-exact archived source/license/receipt: '+name);
+  const restoredKit=JSON.parse(await readFile(join(restored,'sid8580-machine/source-kit.json'))),restoredReceipt=JSON.parse(await readFile(join(restored,'sid8580-machine/sid8580-machine-build.json')));
+  assert.equal(Object.keys(restoredReceipt.inputs).length,99);assert.deepEqual(restoredKit.compiledInputs,restoredReceipt.inputs);
+  for(const[name,expected]of Object.entries(restoredReceipt.inputs))assert.deepEqual(digest(await readFile(join(restored,'sid8580-machine',name))),expected,name);
  }finally{await rm(scratch,{recursive:true,force:true});}
 });
 test('overlap, existing destinations and symlink inputs cannot overwrite files',async()=>{

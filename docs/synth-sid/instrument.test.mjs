@@ -7,8 +7,10 @@ import {SidCore,SID_PAL_CLOCK} from '../js/sid.js';
 import {SidSynth} from '../js/sidsynth.js';
 import {SidInstrument} from './instrument.js';
 import {createDefaultPreset,presetToCode} from './preset.js';
+import {Sid8580Core} from '../../tetorica_src/runtime/sid8580.js';
 
 const wasmBinary=await readFile(new URL('../generated/sid/sid.wasm',import.meta.url));
+const wasm8580Binary=await readFile(new URL('../generated/sid8580-machine/sid8580-endpoint.wasm',import.meta.url));
 const make=sampleRate=>SidCore.create({wasmBinary,sampleRate:sampleRate??48000,clockHz:SID_PAL_CLOCK});
 const hz=midi=>440*2**((midi-69)/12),frequency=value=>Math.round(value*16777216/SID_PAL_CLOCK);
 const peak=pcm=>pcm.reduce((max,value)=>Math.max(max,Math.abs(value)),0);
@@ -16,6 +18,10 @@ const exact=(actual,expected,label)=>assert.equal(actual.findIndex((value,index)
 async function setup(t,rate=48000){
   const core=await make(rate),writes=[],write=core.writeRegister.bind(core);core.writeRegister=(reg,value)=>{writes.push([reg,value]);write(reg,value);};
   const instrument=new SidInstrument(core);t.after(()=>instrument.dispose());return {core,instrument,writes};
+}
+async function setup8580(t,rate=48000){
+  const core=await Sid8580Core.create({sampleRate:rate,wasmBinary:wasm8580Binary}),instrument=new SidInstrument(core);
+  t.after(()=>instrument.dispose());return {core,instrument};
 }
 const render=(instrument,frames=4096)=>instrument.renderInto(new Float32Array(frames));
 
@@ -167,4 +173,67 @@ test('render partitioning preserves real PCM and disposal owns exactly one core'
   let disposed=0;const dispose=a.core.dispose.bind(a.core);a.core.dispose=()=>{disposed++;dispose();};a.instrument.dispose();a.instrument.dispose();assert.equal(disposed,1);assert.equal(a.core.handle,0);
   for(const invoke of [()=>a.instrument.read(),()=>a.instrument.noteOn('x',60),()=>a.instrument.noteOff('x'),()=>a.instrument.setPitch(0),()=>a.instrument.stop(),()=>render(a.instrument)])assert.throws(invoke,/disposed/);
   assert.throws(()=>new SidInstrument({}),/SidCore/);
+});
+
+test('8580 instruments use their own model and reuse unknown released slots conservatively',async t=>{
+  const {core,instrument}=await setup8580(t),preset=instrument.read().preset;
+  assert.equal(preset.version,2);assert.equal(preset.model,'8580');assert.equal(instrument.read().model,'8580');
+  Object.assign(preset.voice,{attack:0,decay:0,sustain:15,release:15});instrument.loadPreset(preset);
+  assert.equal(instrument.noteOn('a',60).channel,0);render(instrument,6000);instrument.noteOff('a');
+  assert(peak(render(instrument,3000))>.001,'release remains in the real core after Gate off');
+  assert.equal(core.getState().voices[0].envelope,null);
+  assert.equal(instrument.noteOn('b',64).channel,1,'unknown released envelope is not mistaken for an idle zero');
+  assert.equal(instrument.noteOn('c',67).channel,2);assert.equal(instrument.noteOn('d',69).channel,0,'old released tail is preferred over held keys');
+  assert.equal(instrument.noteOff('a'),false,'stale release cannot take the reused slot');
+  assert.equal(instrument.noteOn('e',71).stolenId,'b');assert.equal(instrument.read().voices.length,3);
+  for(const {id}of instrument.read().voices)instrument.noteOff(id);
+  for(let i=0;i<40;i++){instrument.noteOn('repeat-'+i,60);instrument.noteOff('repeat-'+i);}
+  assert.equal(instrument.read().voices.length,0);assert.equal(instrument.slots.filter(Boolean).length,3,'tail metadata is bounded by physical slots');
+});
+
+test('unknown 8580 tails follow valid Pitch while out-of-range tails cannot block current held notes',async t=>{
+  const {core,instrument}=await setup8580(t),preset=instrument.read().preset;
+  Object.assign(preset.voice,{attack:0,decay:0,sustain:15,release:15});instrument.loadPreset(preset);
+  instrument.noteOn('high-tail',100);render(instrument,6000);instrument.noteOff('high-tail');instrument.noteOn('held-low',60);
+  instrument.setPitch(-12);let registers=instrument.read().registers;
+  assert.equal(registers[0]|registers[1]<<8,frequency(hz(88)),'unobserved release follows representable tuning');
+  const tailFrequency=registers.slice(0,2);instrument.setPitch(24);registers=instrument.read().registers;
+  assert.equal(registers[7]|registers[8]<<8,frequency(hz(84)),'held voice still follows valid requested Pitch');
+  assert.deepEqual(registers.slice(0,2),tailFrequency,'unknown unrepresentable tail retains its last valid tuning');
+  assert.equal(instrument.read().pitch,24);assert.deepEqual(instrument.read().voices.map(v=>v.id),['held-low']);
+  assert(peak(render(instrument,2000))>.001);assert(core.getState().voices.every(v=>v.envelope===null));
+  instrument.stop();instrument.noteOn('held-high',100);const before=instrument.read(),hardware=core.getState();
+  assert.throws(()=>instrument.setPitch(24),/frequency register/);assert.deepEqual(instrument.read(),before);assert.deepEqual(core.getState(),hardware);
+});
+
+test('8580 patch/filter/Sync/Ring and Stop operate on the real CPU-free core at three rates',async t=>{
+  const modes=['off','lowpass','bandpass','lowpass+bandpass','highpass','notch','bandpass+highpass','lowpass+bandpass+highpass'];
+  for(const rate of [44100,48000,96000]){
+    const {core,instrument}=await setup8580(t,rate);let preset=instrument.read().preset;
+    Object.assign(preset.voice,{attack:0,decay:0,sustain:15,release:12});instrument.loadPreset(preset);instrument.noteOn('one',60);
+    for(const [bits,mode]of modes.entries()){
+      preset=instrument.read().preset;Object.assign(preset.filter,{enabled:bits!==0,mode,cutoff:700,resonance:5});
+      instrument.setPreset(preset);const state=instrument.read();assert.equal(state.voices[0].id,'one');
+      assert.equal(state.registers[24]&0x70,bits<<4);assert.equal(state.registers[23]&7,bits?7:0);
+      assert(render(instrument,512).every(Number.isFinite));
+    }
+    preset=instrument.read().preset;preset.voice.waveform='triangle';preset.modulation={sync:false,ring:true,ratio:1.75};
+    instrument.loadPreset(preset);instrument.noteOn('pair',60);const state=instrument.read();assert.equal(state.capacity,1);
+    assert.equal(state.registers[18],0x10);assert.equal(state.registers[23]&7,1);assert(state.registers[24]&128);
+    assert(peak(render(instrument,4000))>.001);instrument.noteOff('pair');instrument.setPitch(1);
+    assert.equal(instrument.read().registers[0]|instrument.read().registers[1]<<8,frequency(hz(61)));
+    instrument.stop();assert.equal(instrument.read().preset.model,'8580');assert.equal(peak(render(instrument,512)),0);
+    assert.equal(instrument.read().pitch,0);assert.deepEqual(instrument.read().voices,[]);assert.equal(core.getState().model,'8580');
+  }
+});
+
+test('cross-model preset attempts never mutate an existing 8580 instrument or its next PCM',async t=>{
+  const a=await setup8580(t),b=await setup8580(t);a.instrument.noteOn('a',60);b.instrument.noteOn('b',60);
+  exact(render(a.instrument,5000),render(b.instrument,5000));const preset=a.instrument.read().preset;
+  const snapshot=a.instrument.read(),hardware=a.core.getState();
+  for(const method of ['setPreset','loadPreset']){
+    assert.throws(()=>a.instrument[method]({...preset,model:'6581'}),/model must match/);
+    assert.deepEqual(a.instrument.read(),snapshot);assert.deepEqual(a.core.getState(),hardware);
+  }
+  exact(render(a.instrument,3000),render(b.instrument,3000),'failed cross-model edits keep future samples');
 });

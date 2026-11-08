@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [AI/SI](READMD.ai.md)
 
-Updated: 2026-11-08 (English handoff; readable distributions, C64 Playground, SID Synth and dual-model browser SID Player). This is an entry point for AI agents investigating the repository and resuming work.
+Updated: 2026-11-08 (English handoff; readable distributions, dual-model SID Synth / browser SID Player and additional 8580 Preview Playground instances). This is an entry point for AI agents investigating the repository and resuming work.
 
 ## C64 SID work in progress
 
@@ -12,14 +12,17 @@ selection / Playground integration notes. The standalone 6581 register lab is
 at `docs/playground/sid-lab/index.html`. Regular **C64**
 mode (`?mode=c64`, chip/global `sid`), Main / Worker clients, additional
 instances, typed note / voice / shared-filter helpers and a read-only SID tab
-are implemented. See [the guide](docs/sid.md). The standalone keyboard Synth is
-at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)). A separate
+are implemented. The primary `sid` remains 6581; Main / Worker can create an
+independent PAL 8580 Preview via `createSoundChip('sid', {model:'8580'})`.
+See [the guide](docs/sid.md). The standalone keyboard Synth is
+at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)) and offers
+6581 / 8580 Preview selection. A separate
 browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
 v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64
 machine; CIA uses CIA1 interrupts. Direct VBI is an explicit legacy option.
 RSID v2 uses that machine for its
 own interrupt or continuous code. Player targets PAL / one SID, with Auto / 6581 /
-8580 Preview selection. Synth and Playground remain 6581. Auto follows known
+8580 Preview selection. Auto follows known
 header models; missing/either models default to 6581 through the checked fallback,
 or use a manual model choice. Known-model conflicts are rejected. The declared
 model and chosen playback target stay separate; original bytes are never patched.
@@ -143,7 +146,8 @@ Pinned zlib chips headers compile unmodified as C11; the existing adapted SID
 and original host/shim compile as C++17. `scripts/sid_rsid_artifacts.mjs --check`
 authenticates the C64 RSID / PSID VBI/CIA WASM and matching source kit; `build:sid-rsid`
 rebuilds it. The bounded VBI host has its own separate WASM/source receipt; the
-SID Synth/Playground chip core and calibrated SDK remain unchanged. No GPL
+compiled SID chip artifacts and calibrated SDK remain unchanged. The new
+Synth/Playground 8580 adapter reuses the existing endpoint batch API. No GPL
 reference player, Commodore ROM or game data is linked or bundled. A valid
 header does not prove driver compatibility. No npm release / Native SDK is published.
 The original zlib-licensed chips/m6581 header is pinned and retained alongside
@@ -158,8 +162,11 @@ kit. The full runtime artifact catalog includes SID as an application instrument
 with its separate receipt, while the fixed SDK remains unchanged.
 `node scripts/package_sid_lab.mjs` creates a readable standalone lab package;
 `sh scripts/package_itch_playground.sh` also ships the regular C64 mode.
-6581 filter / combined waves remain approximations; Synth / Playground / SDK APIs
-still provide no 8580 model. Player's separate application adapter supports it.
+6581 filter / combined waves remain approximations. Synth and additional
+Playground instances now support the separate PAL 8580 Preview; the fixed
+Native SDK remains unchanged. `scripts/sid_model_artifacts.mjs --check` verifies
+the supplementary `sid8580.js` / `.d.ts` mirrors and existing endpoint export
+contract without rewriting compiled source receipts.
 Native / WASM equality verifies port consistency, not real-hardware fidelity.
 
 The initial 8580 research/prototype milestone (phase 13) is a historical snapshot;
@@ -493,8 +500,11 @@ ROM dumps, game data, instrument import and real-hardware fidelity are outside
 this milestone. Browser playback uses the selected VBI or C64 backend described
 above, with different driver scheduling from libsidplayfp. The Node CLI is repository tooling,
 outside the published CLI/runtime entry-point closures. Native SDK / audio
-integration remains subsequent work. The Playground creation
-clock is fixed (PAL default, optional NTSC); only model '6581' is supported.
+integration remains subsequent work. Playground model and clock are fixed at
+creation. Primary `sid` defaults to 6581; an additional
+`await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'})` works in Main
+and Worker. The 6581 accepts PAL, NTSC or another validated clock; the 8580
+Preview requires exactly PAL 985248 Hz. Native audio output remains unsupported.
 Filter mode 'off' disables filter outputs; dry playback requires routing:0.
 The high-level API and types accept all eight output masks: off, lowpass,
 bandpass, lowpass+bandpass, highpass, notch (LP+HP), bandpass+highpass and
@@ -507,25 +517,55 @@ freshness checks. It never changes measurement reports or permits arbitrary
 future renderer/gain edits. Do not regenerate that receipt without reviewing
 the complete change and rerunning the focused rejection tests.
 
-`docs/synth-sid/` uses the unchanged core / SidSynth, fixed PAL 985248 Hz and
-strict `tetorica-sid-voice` v1 presets. Normal allocation uses three physical
+`docs/synth-sid/` uses SidCore / Sid8580Core through SidSynth at fixed PAL
+985248 Hz. Strict `tetorica-sid-voice` v2 presets include `model:'6581'|'8580'`;
+v1 migrates to v2 / 6581 on load and subsequent save. Loading a preset selects
+its recorded model. Normal allocation uses three physical
 voices; Sync / Ring switches to one carrier (voice 1) and silent oscillator
 source (voice 3), with software ratio and Pitch. Live edits preserve ownership;
-topology / TEST changes, preset load and Stop clear held notes, tails and Pitch.
+model / topology / TEST changes, preset load and Stop clear held notes, tails and Pitch.
 Hardware ADSR / rapid Gate quirks remain unmodified. The shared filter is
 register based. Independent LP/BP/HP toggle buttons enable and combine its
 outputs; changing them preserves held notes. Turning off the last output or
 disabling the master filter toggle routes carriers dry as a Synth convenience.
 Re-enabling restores the stored outputs, or starts with LP if mode is off.
-Strict v1 presets retain all combined mode strings; legacy notch loads as LP+HP.
+Strict v2 presets retain all combined mode strings; legacy v1 notch loads as LP+HP.
 An imported modeoff normalizes enabled to false after boolean validation.
-Copy JavaScript preserves the combined mode. Master is separate software gain 0..3.8. Audio creation is lazy and startup
+Copy JavaScript preserves the model and combined mode: 6581 uses primary `sid`,
+8580 creates a distinct `sid8580` instance instead of shadowing the primary
+binding. Master is separate software gain 0..3.8. Audio creation is lazy and startup
 cancel / fatal retry retire old engines. Preset JSON, code export, two Pitch
 wheels, focus handling, passive post-Master visualization and readable source
 distribution follow the other Synths. Use `npm run test:sid-synth`,
 `npm run test:sid-synth:browser`, and `sh scripts/package_itch_sid_synth.sh dev`.
 The independent ZIP includes original browser modules / CSS, matching native
 sources, licenses, rebuild instructions and hash-checked source inputs.
+The 8580 CPU-free adapter is `tetorica_src/runtime/sid8580.js` with matching
+TypeScript declarations. It owns a `sid8p_*` handle from the unchanged
+`docs/generated/sid8580-machine/sid8580-endpoint.wasm`, not a C64 machine.
+Each public read/write advances one chip cycle before access; access-generated
+samples are queued, then drained before new batch rendering. Batch clocking,
+integer phase and the original 12 Hz software DC blocker are chunk invariant;
+there is no per-chip-cycle JavaScript loop. Both research filter-fit profiles
+remain Off. Live per-voice envelope/phase are unavailable (`null`), never zero
+or invented debug readback. Actual OSC3/ENV3 bus reads work; POT reads fail
+explicitly. The Synth retains at most three potentially live released-slot
+records, steals released slots before held slots, and keeps an unknown released
+tail's last valid tuning when it would otherwise block a valid held-key edit.
+
+The Synth processor creates model candidates in the existing audio engine,
+stops old Gates for a requested model change and disposes the old core only
+after successful adoption. A failed model allocation preserves the stopped
+old patch; Stop's epoch fence and disposal retire late candidates. The
+Playground uses the same CPU-free core in its existing Worklet scheduler.
+`scripts/sid_model_artifacts.mjs` copies the unchanged 8580 WASMs, 99 compiled
+source inputs, licenses, notices and receipt into readable Synth/Playground
+packages; only the endpoint WASM is loaded by these chip instruments. This
+browser implementation does not publish npm or change the fixed Native SDK.
+Use `node --test test/runtime/sid8580.test.mjs` for standalone queue / timing /
+reference-PCM checks and `node scripts/sid_model_artifacts.mjs --check` for
+supplementary mirrors. Long-session, listening and real-chip acceptance remain
+separate from automated finite-duration checks.
 The user selected the beige / brown SID icon on 2026-11-07:
 `docs/tetorica_sid_synth.webp` (1254 square), with the original PNG and prompt
 receipt beside the other Synth assets. Header, favicon / Apple touch icon and

@@ -41,7 +41,17 @@ test('raw combined or absent waveforms and combined filter bits retain their mea
   const panel = createPlaygroundSidVoicePanel({root}); panel.setConnected(true); panel.update(sid._getState());
   assert.equal(output(root,'0-waveform'),'Combined: triangle + saw');
   assert.equal(output(root,'1-waveform'),'off');
-  assert.equal(output(root,'filter-mode'),'Combined · mode bits 0x3');
+  assert.equal(output(root,'filter-mode'),'lowpass+bandpass');
   const previous = output(root,'0-waveform'); panel.dispose(); sid.setVoice(0,{waveform:'noise'}); panel.update(sid._getState());
   assert.equal(output(root,'0-waveform'),previous,'disposed panels ignore late snapshots'); sid.dispose();
+});
+
+test('8580 Preview observations retain their model and unavailable envelope is not shown as zero', () => {
+  const doc = {createElement:tag => new Element(doc,tag)}, root = new Element(doc,'div');
+  const sid = new SidSynth({model:'8580',transport:{reset(){},writeRegister(){}}}); sid.initialize();
+  const state=sid._getState();for(const voice of state.channels)voice.envelope=null;
+  const panel=createPlaygroundSidVoicePanel({root});panel.setConnected(true);panel.update(state);
+  assert.match(output(root,'status'),/^8580 approximation/);
+  for(let channel=0;channel<3;channel++)assert.equal(output(root,`${channel}-envelope`),'—');
+  panel.dispose();sid.dispose();
 });

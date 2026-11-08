@@ -9,7 +9,7 @@ const topology=preset=>`${preset.modulation.sync}/${preset.modulation.ring}/${pr
 const noteHz=midi=>440*2**((midi-69)/12);
 const changes=(next,previous)=>Object.fromEntries(Object.entries(next).filter(([key,value])=>!previous||previous[key]!==value));
 
-/** Software key allocation over three real PAL 6581 voices. Sync/Ring use the
+/** Software key allocation over three physical PAL SID voices. Sync/Ring use the
  * physical oscillator 3 -> 1 connection: one carrier and one silent Triangle
  * source, with no hidden voice, added gain or software envelope.
  * Core ownership transfers to this object, including disposal.
@@ -17,8 +17,8 @@ const changes=(next,previous)=>Object.fromEntries(Object.entries(next).filter(([
 export class SidInstrument{
   constructor(core){
     if(!core||typeof core.writeRegister!=='function'||typeof core.reset!=='function'||typeof core.renderInto!=='function'||typeof core.getState!=='function'||typeof core.dispose!=='function')throw new TypeError('Expected a SidCore');
-    if(core.model!=='6581'||core.clockHz!==SID_PAL_CLOCK)throw new RangeError('SID Synth requires model 6581 at PAL 985248 Hz');
-    this.core=core;this.synth=new SidSynth({core});this.preset=createDefaultPreset();
+    if(!['6581','8580'].includes(core.model)||core.clockHz!==SID_PAL_CLOCK)throw new RangeError('SID Synth requires model 6581 or 8580 at PAL 985248 Hz');
+    this.core=core;this.synth=new SidSynth({core});this.preset=createDefaultPreset({model:core.model});
     this.disposed=false;this.pitch=0;this.cursor=0;this.sequence=0;this.voices=new Map();this.slots=Array(3).fill(null);
     this._replace(this.preset);
   }
@@ -39,6 +39,7 @@ export class SidInstrument{
     if(Object.keys(filter).length)this.synth.setFilter(filter);
   }
   _replace(preset){
+    if(preset.model!==this.core.model)throw new RangeError('SID preset model must match its core; replace the instrument to change model');
     // initialize resets the owned core, including its access queue and software
     // DC history. Reapplying the silent patch preserves authored parameters.
     this.synth.initialize();this.preset=preset;this.pitch=0;this.cursor=0;this.sequence=0;this.voices.clear();this.slots.fill(null);this._apply(null);
@@ -50,17 +51,32 @@ export class SidInstrument{
     if(source!==null&&sidFrequency(source,SID_PAL_CLOCK)===0)throw new RangeError('SID modulator frequency is below the register range');
     return {carrier,source};
   }
-  _live(){
-    const state=this.core.getState();
-    return this.slots.filter(voice=>voice&&(!voice.released||(state.voices[voice.channel]?.envelope??0)>0));
+  _live(state=this.core.getState()){
+    // An unavailable envelope is not evidence of silence. Retain at most one
+    // metadata record per physical slot until that slot is actually reused.
+    return this.slots.filter(voice=>{if(!voice)return false;const envelope=state.voices?.[voice.channel]?.envelope;
+      return !voice.released||!Number.isFinite(envelope)||envelope>0;});
   }
-  _prepareTuning(preset=this.preset,pitch=this.pitch){return this._live().map(voice=>({voice,tuning:this._tuning(voice.midi,preset,pitch)}));}
+  _prepareTuning(preset=this.preset,pitch=this.pitch){
+    const state=this.core.getState(),tuning=[];
+    for(const voice of this._live(state)){
+      try{tuning.push({voice,tuning:this._tuning(voice.midi,preset,pitch)});}
+      catch(error){
+        // Unknown released tails may already be silent. They keep their last
+        // valid frequency when a new tuning is out of range, instead of making
+        // a valid held-key edit fail. Known/audible and held voices stay strict.
+        if(!(error instanceof RangeError)||!voice.released||Number.isFinite(state.voices?.[voice.channel]?.envelope))throw error;
+      }
+    }
+    return tuning;
+  }
   read(){
-    this._open();return {preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel})=>({id,midi,channel})),
+    this._open();return {model:this.core.model,preset:readPreset(this.preset),voices:[...this.voices.values()].map(({id,midi,channel})=>({id,midi,channel})),
       capacity:this._channels().length,pitch:this.pitch,registers:Array.from(this.synth.getRegisterSnapshot())};
   }
   setPreset(value){
     this._open();const next=readPreset(value);
+    if(next.model!==this.core.model)throw new RangeError('SID preset model must match its core; replace the instrument to change model');
     if(topology(next)!==topology(this.preset)){this._replace(next);return this.read();}
     const tuning=this._prepareTuning(next),previous=this.preset;this.preset=next;this._apply(previous);
     if(pair(next)&&previous.modulation.ratio!==next.modulation.ratio)for(const item of tuning)this.synth.setFrequency(2,item.tuning.source);
@@ -76,7 +92,8 @@ export class SidInstrument{
     const tuning=this._tuning(midi),channels=this._channels(),state=this.core.getState();let channel;
     for(let offset=0;offset<channels.length;offset++){
       const candidate=channels[(this.cursor+offset)%channels.length],voice=this.slots[candidate];
-      if(!voice||voice.released&&(state.voices[candidate]?.envelope??0)===0){channel=candidate;break;}
+      const envelope=state.voices?.[candidate]?.envelope;
+      if(!voice||voice.released&&Number.isFinite(envelope)&&envelope===0){channel=candidate;break;}
     }
     if(channel===undefined){
       const released=channels.filter(candidate=>this.slots[candidate].released),eligible=released.length?released:channels;

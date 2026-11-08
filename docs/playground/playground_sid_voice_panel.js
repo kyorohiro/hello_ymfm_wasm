@@ -28,7 +28,7 @@ export function createPlaygroundSidVoicePanel({root} = {}) {
   };
   const status = make('p', 'subtext', 'Waiting for an applied SID state.');
   status.dataset.chipOutput = 'sid-status'; status.setAttribute('role', 'status'); root.appendChild(status);
-  root.appendChild(make('p', 'subtext', 'SID 6581 approximation · Web Audio prototype. Edit voices and the shared filter in Code. This inspector has no audition or keyboard controls.'));
+  root.appendChild(make('p', 'subtext', 'SID approximation · 6581 or 8580 Preview. Edit voices and the shared filter in Code. Unavailable observations are shown as a dash. This inspector has no audition or keyboard controls.'));
   const voices = Array.from({length:3}, (_, index) => {
     const node = section(`Voice ${index + 1} · channel ${index}`), values = fields(node);
     node.dataset.sidVoice = String(index);

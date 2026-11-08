@@ -24,8 +24,10 @@ async function checkC64ModeTypes() {
   await livePrepare('sid-types', ({sid}) => sid.allNotesOff());
   // @ts-expect-error Only three physical voices.
   sid.keyOn(3);
-  // @ts-expect-error The initial prototype models only 6581.
-  await createSoundChip('sid', {model:'8580'});
+  const preview = await createSoundChip('sid', {model:'8580',clock:985248});
+  preview.initialize(); preview.noteOn(0,'C4'); preview.dispose();
+  // @ts-expect-error Only the explicit SID models are supported.
+  await createSoundChip('sid', {model:'8581'});
   // @ts-expect-error The waveform API uses explicit hardware waveform names.
   sid.setVoice(0, {waveform:'sine'});
   // @ts-expect-error A borrowed mode primary has no disposal method.

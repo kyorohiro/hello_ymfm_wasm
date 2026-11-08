@@ -485,6 +485,8 @@ perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
+node "${ROOT_DIR}/scripts/sid_artifacts.mjs" --sync
+node "${ROOT_DIR}/scripts/sid_model_artifacts.mjs" --sync
 node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_msm5205_sources.mjs" "${ROOT_DIR}/docs"
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/msm5205_pcm.js" "${DOCS_JS_DIR}/msm5205_audio.js"

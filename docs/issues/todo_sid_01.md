@@ -47,7 +47,7 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] 実WASMとブラウザーで各組み合わせ・live edit・既存Preset互換・演奏keyboardへのfocus影響・可読配布を確認した。Synth46＋runtime20件、ソース／実ZIPのChromium・WebKit計52項目、Playground型検証が成功。[結果](sid_synth_filter_result_01.md)。
 - [x] 8580の代表実曲を実AudioWorkletでVBI／CIA／RSID・複数subtune・停止／再開まで確認した。3曲×2subtune×Chromium／WebKitの12ケースを各30秒完走。[結果](sid8580_real_worklet_result_01.md)。実聴・長時間・音切れ判定は別確認。
 - [x] 通常SID PlayerのAuto／6581／8580 Preview選択と稼働model表示へ接続した。元header宣言と選択modelを分けて保持。[結果](sid_player_models_result_01.md)。
-- [ ] SID Synthの単体8580 core・model選択・Presetのmodel保存・API／型／Copy JavaScriptへ反映する。旧Presetは6581互換とし、未提供のvoice envelopeを0扱いしてreleaseを切らない。
+- [x] SID Synthの単体8580 core・model選択・Presetのmodel保存・API／型／Copy JavaScriptへ反映した。旧Presetは6581互換とし、未提供のvoice envelopeを0扱いしてreleaseを切らない。下の今回の続きに検証・配布記録を保存した。
 
 ### 今回の続き: 8580代表実曲のAudioWorklet検証（2026-11-08）
 
@@ -68,6 +68,28 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] Main preflight／AudioWorklet／停止・subtune・失敗時の旧再生保持／ROM snapshotを接続した。8580の未提供Envelopeはdash表示。失敗したmodel draftは成功したsubtune選択／Stop時にaccepted表示へ復元する。
 - [x] unit110件、ソース／実ZIPのChromium／WebKit各35項目・計140項目、通常Playerでの実曲pilot6ケースが成功。既存corpus10／reference29件も成功。[結果](sid_player_models_result_01.md)。
 - [x] 可読ZIPへmatching 4WASM／99入力の8580 source／生成器／license・toolchain noticesを同梱。配布7項目照合成功、README en／ja／英語AI・home・guideとCI監視pathを更新した。[配布proof](sid_player_models_package_01.json)。
+
+### 今回の続き: SID Synthの8580選択（2026-11-08）
+
+ユーザー承認: 通常Player対応の次として、Synthの6581／8580選択・Preset保存・API／型・Copy JavaScriptを進める。
+
+- [x] 既存endpoint WASMにある`sid8p_*`の単体chip batch APIを再利用してCPU不要の8580 Coreを追加した。C64 machineやchip-cycleごとのJS loopをSynthへ持ち込まず、既存Rust／DSP／Player WASMは維持した。
+- [x] 不明Envelopeを0と判定せず、release尾のPitch追従と3voice割当を保守的に扱う。metadataは最大3slotsに限定し、不明な離鍵済みvoiceの音域外チューニングが現在の演奏を不当に妨げないようにした。
+- [x] model選択を既存Shared SID filter内のボタン形式へ追加し、切り替え時は保持音とPitchをリセットする。準備失敗・Stop・古いACKを検証し、失敗後も実際の旧coreをreadしてPitch表示を復元する。
+- [x] Preset v2へmodelを保存し、v1は6581として読み込む。Copy JavaScriptは8580の追加instanceを実際に作成できるようにし、対応する高級API・型・Main／Worker／Worklet接続を揃えた。
+- [x] 既存6581のPCMと操作を維持し、8580の実WASM・全Filter組み合わせ・Sync／Ring・release／再発音・切替／取消・Preset／コード出力をunitと実browserで確認した。
+- [x] 可読Synth ZIPへmatching source／WASM／license noticesを同梱し、Playground配布の必要資産と型・calibration freshnessも確認してREADME／AI引継ぎと再開記録を更新した。
+
+検証と再開情報:
+
+- `npm run test:sid-synth` **62件成功**。runtime／Main／Worker／Worklet／実WASM／Playground配布準備の関連テストは **217件成功**。独立`sid8e_tick`とのPCM一致、44.1／48／96kHz、frame分割・access時のsample保持、全8filter mask、null観測、未知release尾、model交換・取消を含む。Playgroundのモード別型チェックも成功。
+- Synthの[Source](sid_synth_8580_browser_01.json)／[実ZIP](sid_synth_8580_zip_browser_01.json)はChromium／WebKit各16項目、**計64項目成功**。1180px／390pxでmodelボタン・表示も目視確認した。Playgroundの[Source](sid_synth_8580_playground_browser_01.json)／[実ZIP](sid_synth_8580_playground_zip_browser_01.json)は両browser×Main／Workerの各8項目、**計64項目成功**。Copy JavaScriptの8580追加instanceが実PCMを出し、primary6581を変更しないことを確認した。物理出力はgain0で、実聴・長時間・音切れの合格とは区別する。
+- [Synth配布proof](sid_synth_8580_package_01.json): `release/tetorica_sid_synth_20261108-8580.1_itch.zip`、**193files／2,504,611bytes**、SHA `6f9b305f011345554096ae99a499da2d088ef3a6e7b3813f6009912bbfc8a540`。159 original inputs、readable JS／型、99 compiled inputsのmatching native kit・2WASM・license／toolchain noticesを同梱。ZIP CRC・全展開byte・原本hashを確認。
+- [Playground配布proof](sid_synth_8580_playground_package_01.json): `release/hello_ymfm_wasm_20261108-sid8580.2_itch_playground_for_run.zip`、**1000files／directory記録0**、SHA `875cc1b02fedb9f420a3435784fa32229ab0d31b12d2e36591f92e1385302573`。itch.io上限以内。matching8580 kitは既存`corresponding-source.zip`へ全体を保持し、303 sourcefilesの原本byte・127 source／notice hashを確認。JS音源module・WASM・型は個別の可読fileを保持し、通常download用ZIPではnative sourceも展開状態。full ZIPのCRC・全byte一致も成功。
+- 最終ZIPは案内・sourceリンクとlicense概要だけを整えて再梱包した。上記browser検証済みZIPと全実行assetのbyte一致を両配布proofに記録し、変更はREADME／source案内・archiveに限定した。以前のZIP・検証記録は保持している。
+- measured共通sourceの変更はSID model validation／Worker metadata・JSDocのみ。[新しいexact receipt](sid_playground_source_revision_02.json)で20 source pairsを認証し、旧`_01`と4つの測定reportは保持。校正／source拒否の関連340テスト・4validatorが成功し、既存gain／DSP値は不変。fixed SDK **33 builds／68 outputs／75 mirrors** も成功。
+- `sh scripts/package_itch_sid_synth.sh <new-version>`と`sh scripts/package_itch_playground.sh <new-version>`で再生成可能。新module同期は`node scripts/sid_model_artifacts.mjs --sync`。CI監視pathと検証を更新済みだが、今回のGitHub Actions実行・commit／push／tag／公開はしていない。
+- [ ] 手動の次: 同じPresetを6581／8580へ切り替え、Cutoff／Resonance・LP／BP／HP、Pulse／Ring、短い連打と長いReleaseを聴き比べる。8580はPAL専用Previewで、Native出力・NTSC・実機精度／長時間検証は別作業。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

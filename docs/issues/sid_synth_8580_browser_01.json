@@ -1,0 +1,769 @@
+{
+  "schemaVersion": 1,
+  "entry": "/synth-sid/index.html",
+  "passed": true,
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "results": [
+    {
+      "engine": "chromium",
+      "version": "153.0.8010.12",
+      "passed": true,
+      "checks": [
+        "adopted 1254px header icon, favicon and Apple touch icon load from the same local asset",
+        "lazy local UI and first keyboard press/release during delayed WASM loading",
+        "three-voice round robin, fourth-note steal and harmless stale key release",
+        "hardware release continues after Gate off; Stop flushes the tail without discarding the patch",
+        "held waveform, pulse width and hardware sustain edits alter actual PCM and retain the owner",
+        "shared LP/BP/HP, live cutoff/resonance and chip volume reach held real output",
+        "independent LP/BP/HP buttons cover every hardware output combination, preserve held notes and release keyboard focus",
+        "Sync/Ring reserve one carrier with silent unrouted voice 3; ratio and both Pitch wheels act live",
+        "portable preset save, cancel/invalid retention, load reset and readable executable Playground JavaScript",
+        "8580 model switch keeps the patch in one AudioContext, resets held owners/Pitch and releases keyboard focus",
+        "8580 three-voice allocation, release tails and all shared filter combinations reach real PCM",
+        "8580 preset save/load and Copy JavaScript retain its actual core; v1 migrates to 6581",
+        "rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels",
+        "post-Master gain ratios, 380% orange boost, octave/focus and preserved collapsed sections",
+        "render failure is visible; Stop cancels a delayed retry and explicit Enable recovers the same preset",
+        "one post-Master Waveform/Spectrum canvas, readable source and 1180px/390px icon header layout"
+      ],
+      "measurements": {
+        "icons": [
+          {
+            "role": "header",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "role": "favicon",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "role": "appleTouch",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          }
+        ],
+        "homepages": [
+          {
+            "page": "/index.html",
+            "title": "Tetorica SID Synth",
+            "href": "/synth-sid/index.html",
+            "src": "/tetorica_sid_synth.webp",
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "page": "/index-ja.html",
+            "title": "Tetorica SID Synth",
+            "href": "/synth-sid/index.html",
+            "src": "/tetorica_sid_synth.webp",
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          }
+        ],
+        "waveforms": {
+          "triangle": {
+            "rms": 0.020130617230074404,
+            "peak": 0.03464397415518761
+          },
+          "saw": {
+            "rms": 0.019937703469910372,
+            "peak": 0.036939818412065506
+          },
+          "pulse": {
+            "rms": 0.034709977006686786,
+            "peak": 0.03818301111459732
+          },
+          "noise": {
+            "rms": 0.019162032073947136,
+            "peak": 0.040273960679769516
+          }
+        },
+        "pulseSpectrumDifference": 0.6538960449807811,
+        "filters": {
+          "lowpass": {
+            "cutoffSpectrumDifference": 0.11088102425493569,
+            "resonanceSpectrumDifference": 0.06876009841342588
+          },
+          "bandpass": {
+            "cutoffSpectrumDifference": 0.9794789063440578,
+            "resonanceSpectrumDifference": 0.5916097399055716
+          },
+          "highpass": {
+            "cutoffSpectrumDifference": 0.9539286625538355,
+            "resonanceSpectrumDifference": 0.6335012515779085
+          }
+        },
+        "filterCombinations": {
+          "lowpass": {
+            "mask": 1,
+            "rms": 0.010211703061381713,
+            "peak": 0.02631070837378502,
+            "routing": 7
+          },
+          "lowpass+bandpass": {
+            "mask": 3,
+            "rms": 0.0104157488218494,
+            "peak": 0.029028424993157387,
+            "routing": 7
+          },
+          "bandpass": {
+            "mask": 2,
+            "rms": 0.0024467028671482493,
+            "peak": 0.02081385999917984,
+            "routing": 7
+          },
+          "bandpass+highpass": {
+            "mask": 6,
+            "rms": 0.0033598866838293632,
+            "peak": 0.027360232546925545,
+            "routing": 7
+          },
+          "lowpass+bandpass+highpass": {
+            "mask": 7,
+            "rms": 0.010098377528848634,
+            "peak": 0.02695559896528721,
+            "routing": 7
+          },
+          "notch": {
+            "mask": 5,
+            "rms": 0.00982013977928093,
+            "peak": 0.021497363224625587,
+            "routing": 7
+          },
+          "highpass": {
+            "mask": 4,
+            "rms": 0.002287546759696234,
+            "peak": 0.027206890285015106,
+            "routing": 7
+          },
+          "off": {
+            "mask": 0,
+            "rms": 0.010067366827261401,
+            "peak": 0.01847224123775959,
+            "routing": 0
+          }
+        },
+        "ringRatioSpectrumDifference": 0.9999950622828282,
+        "copiedCode": {
+          "lines": 17,
+          "peak": 0.11857474595308304,
+          "finite": true,
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            21,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            16,
+            0,
+            111,
+            116,
+            30,
+            0,
+            8,
+            16,
+            0,
+            0,
+            4,
+            87,
+            65,
+            184,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "ring8580SpectrumDifference": 0.9448052176436391,
+        "filters8580": {
+          "lowpass": {
+            "rms": 0.02444690429154022,
+            "peak": 0.0835769772529602
+          },
+          "lowpass+bandpass": {
+            "rms": 0.026196208645814133,
+            "peak": 0.07970786094665527
+          },
+          "bandpass": {
+            "rms": 0.00529645372497479,
+            "peak": 0.048317499458789825
+          },
+          "bandpass+highpass": {
+            "rms": 0.007215126820182568,
+            "peak": 0.06735676527023315
+          },
+          "lowpass+bandpass+highpass": {
+            "rms": 0.02607203714356079,
+            "peak": 0.08068659901618958
+          },
+          "notch": {
+            "rms": 0.02454286887615883,
+            "peak": 0.07152789831161499
+          },
+          "highpass": {
+            "rms": 0.004889529953672165,
+            "peak": 0.05320318788290024
+          },
+          "off": {
+            "rms": 0.02426411386011903,
+            "peak": 0.08139949291944504
+          }
+        },
+        "copied8580Code": {
+          "calls": [
+            {
+              "name": "sid",
+              "options": {
+                "id": "sid:8580-voice",
+                "model": "8580"
+              }
+            }
+          ],
+          "model": "8580",
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            33,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            32,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            32,
+            0,
+            111,
+            4,
+            87,
+            71,
+            56,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "peak": 0.06442657113075256,
+          "finite": true
+        },
+        "coalescedOwnerReset": true,
+        "masterRatio": 2.000005934806315,
+        "layouts": [
+          {
+            "viewport": 1180,
+            "overflow": 0,
+            "icon": {
+              "x": 59,
+              "y": -52,
+              "width": 112,
+              "height": 112,
+              "right": 171,
+              "bottom": 60
+            },
+            "copy": {
+              "x": 189,
+              "y": -42.828125,
+              "width": 363.03125,
+              "height": 93.65625,
+              "right": 552.03125,
+              "bottom": 50.828125
+            },
+            "title": {
+              "x": 189,
+              "y": -21.828125,
+              "width": 363.03125,
+              "height": 46.65625,
+              "right": 552.03125,
+              "bottom": 24.828125
+            },
+            "badge": {
+              "x": 962.078125,
+              "y": -30.5,
+              "width": 158.921875,
+              "height": 69,
+              "right": 1121,
+              "bottom": 38.5
+            },
+            "closedFilterHeight": 44
+          },
+          {
+            "viewport": 390,
+            "overflow": 0,
+            "icon": {
+              "x": 23,
+              "y": -8,
+              "width": 72,
+              "height": 72,
+              "right": 95,
+              "bottom": 64
+            },
+            "copy": {
+              "x": 107,
+              "y": -8,
+              "width": 221.5,
+              "height": 111.171875,
+              "right": 328.5,
+              "bottom": 103.171875
+            },
+            "title": {
+              "x": 107,
+              "y": 13.71875,
+              "width": 221.5,
+              "height": 65.65625,
+              "right": 328.5,
+              "bottom": 79.375
+            },
+            "badge": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "closedFilterHeight": 40
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 3,
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "running",
+          "destinationConnections": 1
+        }
+      ],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    },
+    {
+      "engine": "webkit",
+      "version": "26.6",
+      "passed": true,
+      "checks": [
+        "adopted 1254px header icon, favicon and Apple touch icon load from the same local asset",
+        "lazy local UI and first keyboard press/release during delayed WASM loading",
+        "three-voice round robin, fourth-note steal and harmless stale key release",
+        "hardware release continues after Gate off; Stop flushes the tail without discarding the patch",
+        "held waveform, pulse width and hardware sustain edits alter actual PCM and retain the owner",
+        "shared LP/BP/HP, live cutoff/resonance and chip volume reach held real output",
+        "independent LP/BP/HP buttons cover every hardware output combination, preserve held notes and release keyboard focus",
+        "Sync/Ring reserve one carrier with silent unrouted voice 3; ratio and both Pitch wheels act live",
+        "portable preset save, cancel/invalid retention, load reset and readable executable Playground JavaScript",
+        "8580 model switch keeps the patch in one AudioContext, resets held owners/Pitch and releases keyboard focus",
+        "8580 three-voice allocation, release tails and all shared filter combinations reach real PCM",
+        "8580 preset save/load and Copy JavaScript retain its actual core; v1 migrates to 6581",
+        "rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels",
+        "post-Master gain ratios, 380% orange boost, octave/focus and preserved collapsed sections",
+        "render failure is visible; Stop cancels a delayed retry and explicit Enable recovers the same preset",
+        "one post-Master Waveform/Spectrum canvas, readable source and 1180px/390px icon header layout"
+      ],
+      "measurements": {
+        "icons": [
+          {
+            "role": "header",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "role": "favicon",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "role": "appleTouch",
+            "reference": "../tetorica_sid_synth.webp",
+            "path": "/tetorica_sid_synth.webp",
+            "width": 1254,
+            "height": 1254,
+            "bytes": 544322,
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          }
+        ],
+        "homepages": [
+          {
+            "page": "/index.html",
+            "title": "Tetorica SID Synth",
+            "href": "/synth-sid/index.html",
+            "src": "/tetorica_sid_synth.webp",
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          },
+          {
+            "page": "/index-ja.html",
+            "title": "Tetorica SID Synth",
+            "href": "/synth-sid/index.html",
+            "src": "/tetorica_sid_synth.webp",
+            "sha256": "91a24ffb32e797fe5a459f3250282d8476b98159a5e32472255145408b73695b"
+          }
+        ],
+        "waveforms": {
+          "triangle": {
+            "rms": 0.020130463532365275,
+            "peak": 0.03464090824127197
+          },
+          "saw": {
+            "rms": 0.019934821213801624,
+            "peak": 0.03694278001785278
+          },
+          "pulse": {
+            "rms": 0.034714325141246595,
+            "peak": 0.03818589448928833
+          },
+          "noise": {
+            "rms": 0.019365144718494567,
+            "peak": 0.040253616869449615
+          }
+        },
+        "pulseSpectrumDifference": 0.6538114521944595,
+        "filters": {
+          "lowpass": {
+            "cutoffSpectrumDifference": 0.11101763122897372,
+            "resonanceSpectrumDifference": 0.06869069700423938
+          },
+          "bandpass": {
+            "cutoffSpectrumDifference": 0.9794899961241715,
+            "resonanceSpectrumDifference": 0.5911012078491943
+          },
+          "highpass": {
+            "cutoffSpectrumDifference": 0.9510708255564776,
+            "resonanceSpectrumDifference": 0.6706112138511
+          }
+        },
+        "filterCombinations": {
+          "lowpass": {
+            "mask": 1,
+            "rms": 0.010121480482934467,
+            "peak": 0.02631082572042942,
+            "routing": 7
+          },
+          "lowpass+bandpass": {
+            "mask": 3,
+            "rms": 0.010408913131874588,
+            "peak": 0.029054246842861176,
+            "routing": 7
+          },
+          "bandpass": {
+            "mask": 2,
+            "rms": 0.002457411494021212,
+            "peak": 0.02078056149184704,
+            "routing": 7
+          },
+          "bandpass+highpass": {
+            "mask": 6,
+            "rms": 0.0033599095267549672,
+            "peak": 0.027318280190229416,
+            "routing": 7
+          },
+          "lowpass+bandpass+highpass": {
+            "mask": 7,
+            "rms": 0.010081406195965537,
+            "peak": 0.026947621256113052,
+            "routing": 7
+          },
+          "notch": {
+            "mask": 5,
+            "rms": 0.009782124088416624,
+            "peak": 0.02149457298219204,
+            "routing": 7
+          },
+          "highpass": {
+            "mask": 4,
+            "rms": 0.0023161743081901,
+            "peak": 0.027138231322169304,
+            "routing": 7
+          },
+          "off": {
+            "mask": 0,
+            "rms": 0.009970650652986137,
+            "peak": 0.01846994273364544,
+            "routing": 0
+          }
+        },
+        "ringRatioSpectrumDifference": 0.9999904748307276,
+        "copiedCode": {
+          "lines": 17,
+          "peak": 0.11857474595308304,
+          "finite": true,
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            21,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            16,
+            0,
+            111,
+            116,
+            30,
+            0,
+            8,
+            16,
+            0,
+            0,
+            4,
+            87,
+            65,
+            184,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "ring8580SpectrumDifference": 0.9433361434543012,
+        "filters8580": {
+          "lowpass": {
+            "rms": 0.024398289292468643,
+            "peak": 0.08466090261936188
+          },
+          "lowpass+bandpass": {
+            "rms": 0.0253871104769728,
+            "peak": 0.07880287617444992
+          },
+          "bandpass": {
+            "rms": 0.005389854983377198,
+            "peak": 0.04965636506676674
+          },
+          "bandpass+highpass": {
+            "rms": 0.007124904930804388,
+            "peak": 0.05850857123732567
+          },
+          "lowpass+bandpass+highpass": {
+            "rms": 0.026568706601256993,
+            "peak": 0.09423399716615677
+          },
+          "notch": {
+            "rms": 0.025285069689721343,
+            "peak": 0.06851190328598022
+          },
+          "highpass": {
+            "rms": 0.0047717285130169955,
+            "peak": 0.04780947417020798
+          },
+          "off": {
+            "rms": 0.02434547861752717,
+            "peak": 0.07804196327924728
+          }
+        },
+        "copied8580Code": {
+          "calls": [
+            {
+              "name": "sid",
+              "options": {
+                "id": "sid:8580-voice",
+                "model": "8580"
+              }
+            }
+          ],
+          "model": "8580",
+          "registers": [
+            103,
+            17,
+            0,
+            8,
+            33,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            32,
+            0,
+            111,
+            69,
+            29,
+            0,
+            8,
+            32,
+            0,
+            111,
+            4,
+            87,
+            71,
+            56,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "peak": 0.06442657113075256,
+          "finite": true
+        },
+        "coalescedOwnerReset": true,
+        "masterRatio": 2.0000817343178707,
+        "layouts": [
+          {
+            "viewport": 1180,
+            "overflow": 0,
+            "icon": {
+              "x": 59,
+              "y": -52,
+              "width": 112,
+              "height": 112,
+              "right": 171,
+              "bottom": 60
+            },
+            "copy": {
+              "x": 189,
+              "y": -42.828125,
+              "width": 363.015625,
+              "height": 93.640625,
+              "right": 552.015625,
+              "bottom": 50.8125
+            },
+            "title": {
+              "x": 189,
+              "y": -21.828125,
+              "width": 363.015625,
+              "height": 46.640625,
+              "right": 552.015625,
+              "bottom": 24.8125
+            },
+            "badge": {
+              "x": 961.90625,
+              "y": -30.5,
+              "width": 159.09375,
+              "height": 69,
+              "right": 1121,
+              "bottom": 38.5
+            },
+            "closedFilterHeight": 44
+          },
+          {
+            "viewport": 390,
+            "overflow": 0,
+            "icon": {
+              "x": 23,
+              "y": -8,
+              "width": 72,
+              "height": 72,
+              "right": 95,
+              "bottom": 64
+            },
+            "copy": {
+              "x": 107,
+              "y": -8,
+              "width": 221.765625,
+              "height": 111.109375,
+              "right": 328.765625,
+              "bottom": 103.109375
+            },
+            "title": {
+              "x": 107,
+              "y": 13.703125,
+              "width": 221.765625,
+              "height": 65.625,
+              "right": 328.765625,
+              "bottom": 79.328125
+            },
+            "badge": {
+              "x": 0,
+              "y": 0,
+              "width": 0,
+              "height": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "closedFilterHeight": 40
+          }
+        ]
+      },
+      "errors": [],
+      "consoleErrors": [],
+      "failed": [],
+      "external": [],
+      "contexts": 3,
+      "outputBranches": [
+        {
+          "state": "closed",
+          "destinationConnections": 1
+        },
+        {
+          "state": "closed",
+          "destinationConnections": 0
+        },
+        {
+          "state": "running",
+          "destinationConnections": 1
+        }
+      ],
+      "sample": {
+        "rms": 0,
+        "peak": 0,
+        "finite": true,
+        "muted": true
+      }
+    }
+  ],
+  "checkerSha256": "88e7cd2b1796f4105138fb9e884f49665bf7a274a4ee4a023e7d60535b89cf26",
+  "homepagesAvailable": true
+}

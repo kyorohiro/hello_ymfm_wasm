@@ -25,21 +25,23 @@ async function harness(run, {fetcher = async () => ({ok: true, arrayBuffer: asyn
 
 test('SID endpoints share module registration but own clock/model/WASM state and disposal', async () => {
   await harness(async ({createSidAudio, context, nodes, modules, requests}) => {
-    const a = await createSidAudio(context, {}), b = await createSidAudio(context, null, {clock: 1022727, model: '6581'});
+    const a = await createSidAudio(context, {}), b = await createSidAudio(context, null, {clock: 1022727, model: '6581'}), preview = await createSidAudio(context, null, {model:'8580'});
     try {
       assert.equal(nodes[0].name, 'tetorica-sid'); assert.equal(nodes[0].options.outputChannelCount[0], 2);
       assert.equal(nodes[0].options.processorOptions.clock, 985248); assert.equal(nodes[1].options.processorOptions.clock, 1022727);
       assert.equal(nodes[0].options.processorOptions.model, '6581'); assert.equal(a.chip, 'sid');
+      assert.equal(nodes[2].options.processorOptions.model, '8580'); assert.equal(preview.model, '8580'); assert.equal(preview.clock,985248);
       assert.match(requests[0].url, /generated\/sid\/sid\.wasm$/); assert.match(modules[0], /playground_sid_worklet\.js$/);
+      assert.match(requests[2].url,/generated\/sid8580-machine\/sid8580-endpoint\.wasm$/);
       assert.equal(modules.length, 1); assert.notEqual(a.port, b.port); assert(nodes[0].connected); assert(!nodes[1].connected);
       a.dispose(); a.dispose(); assert(nodes[0].closed && nodes[0].disconnected); assert(!nodes[1].closed);
-    } finally { a.dispose(); b.dispose(); }
+    } finally { a.dispose(); b.dispose(); preview.dispose(); }
   });
 });
 
 test('SID unsupported clocks/models/rates reject before fetching and audio allocation', async () => {
   await harness(async ({createSidAudio, context, requests, nodes}) => {
-    for (const options of [{clock: 1}, {clock: 985248.5}, {model: '8580'}]) await assert.rejects(createSidAudio(context, null, options));
+    for (const options of [{clock: 1}, {clock: 985248.5}, {model: '8581'}, {model:'8580',clock:1022727}]) await assert.rejects(createSidAudio(context, null, options));
     for (const rate of [7999, 96001, 192000]) { context.sampleRate = rate; await assert.rejects(createSidAudio(context, null), /sample rate/); }
     context.sampleRate = 48000; context.state = 'closed'; await assert.rejects(createSidAudio(context, null), /open AudioContext/);
     assert.equal(requests.length, 0); assert.equal(nodes.length, 0);

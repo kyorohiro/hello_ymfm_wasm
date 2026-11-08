@@ -5,9 +5,9 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
-function fixture({resumeError = false, fetchFailure = false, stalledFetch = false, ready = true, rate = 48000, fallbackRamp = false} = {}) {
-  let createAudio, context, node, nextTimer = 0, mode = 'reply', releaseFetch;
-  const timers = new Map(), errors = [], events = [], messages = [], fetchSignals = [];
+function fixture({resumeError = false, fetchFailure = false, failedModel, stalledFetch = false, ready = true, rate = 48000, fallbackRamp = false} = {}) {
+  let createAudio, context, node, nextTimer = 0, mode = 'reply';
+  const timers = new Map(), errors = [], events = [], messages = [], fetchSignals = [],fetchUrls=[],releases=[];
   class Context {
     constructor() {
       context = this; this.sampleRate = rate; this.state = 'suspended'; this.currentTime = 1; this.gains = [];
@@ -49,17 +49,17 @@ function fixture({resumeError = false, fetchFailure = false, stalledFetch = fals
   const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
   vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
     AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,
-    fetch: async (_url, options) => {
-      events.push('fetch'); fetchSignals.push(options.signal);
-      if (stalledFetch) return new Promise(resolve => { releaseFetch = () => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(0)}); });
-      return fetchFailure ? {ok: false, status: 503} : {ok: true, arrayBuffer: async () => new ArrayBuffer(0)};
+    fetch: async (url, options) => {
+      events.push('fetch'); fetchSignals.push(options.signal);fetchUrls.push(String(url));
+      if (stalledFetch) return new Promise(resolve => { releases.push(() => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(0)})); });
+      return fetchFailure||failedModel&&String(url).includes(failedModel==='8580'?'sid8580-endpoint':'/sid/sid.wasm') ? {ok: false, status: 503} : {ok: true, arrayBuffer: async () => new ArrayBuffer(0)};
     },
     setTimeout(fn, ms) { const id = ++nextTimer; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide: value => { createAudio = value; },
   });
   return {create: options => createAudio({onError: error => errors.push(error), ...options}),
-    get context() { return context; }, get node() { return node; }, errors, timers, events, messages, fetchSignals,
-    mode(value) { mode = value; }, releaseFetch() { releaseFetch?.(); },
+    get context() { return context; }, get node() { return node; }, errors, timers, events, messages, fetchSignals,fetchUrls,
+    mode(value) { mode = value; }, releaseFetch() { for(const release of releases.splice(0))release(); },
     expire() { const [id, timer] = timers.entries().next().value; assert.equal(timer.ms, 15000); timers.delete(id); timer.fn(); }};
 }
 
@@ -75,6 +75,19 @@ test('SID audio stays lazy, resumes in the gesture and routes unity balance befo
   assert.equal((await audio.read()).method, 'read'); assert.equal(f.timers.size, 0);
   const closing = audio.dispose(); assert.equal(audio.dispose(), closing); await closing;
   assert.equal(f.context.closeCount, 1); assert.equal(f.node.disposed, 1); assert(f.node.port.closed); assert.equal(f.context.listeners.size, 0);
+});
+
+test('both model binaries are preloaded for same-context swaps and initial model is explicit',async()=>{
+  for(const model of ['6581','8580']){
+    const f=fixture(),audio=await f.create({model});
+    assert.equal(f.node.options.processorOptions.model,model);
+    assert(f.node.options.processorOptions.wasmBinary instanceof ArrayBuffer);
+    assert(f.node.options.processorOptions.wasm8580Binary instanceof ArrayBuffer);
+    assert.equal(f.fetchUrls.length,2);assert(f.fetchUrls.some(u=>u.endsWith('/generated/sid/sid.wasm')));assert(f.fetchUrls.some(u=>u.endsWith('/generated/sid8580-machine/sid8580-endpoint.wasm')));
+    assert.equal(new Set(f.fetchSignals).size,1);await audio.dispose();
+  }
+  const invalid=fixture();await assert.rejects(invalid.create({model:'8581'}),/model/);assert.equal(invalid.context,undefined);
+  const failed=fixture({failedModel:'8580'});await assert.rejects(failed.create(),/8580 WASM/);assert.equal(failed.context.state,'closed');assert.equal(failed.errors.length,1);assert(failed.fetchSignals.every(s=>s.aborted));
 });
 
 test('SID Master smoothing has a fallback for AudioParams without cancelAndHoldAtTime', async () => {

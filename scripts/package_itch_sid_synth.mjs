@@ -10,6 +10,7 @@ import {version as esbuildVersion} from 'esbuild';
 import {checkRuntimeArtifacts, copyRuntimeArtifacts} from './runtime_artifacts.mjs';
 import {copySidSources} from './copy_sid_sources.mjs';
 import {copyReadableModules} from './copy_readable_modules.mjs';
+import {copySidModelSources,syncSidModelModules} from './sid_model_artifacts.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const record = bytes => ({bytes:bytes.length, sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -41,6 +42,7 @@ export function validateSidSynthVersion(value) {
 export async function packageSidSynth({version = 'dev', releaseDir = join(root, 'release')} = {}) {
   validateSidSynthVersion(version);
   await checkRuntimeArtifacts({root, ids:['sid'], mirrors:true});
+  await syncSidModelModules({check:true});
   releaseDir = resolve(releaseDir); await mkdir(releaseDir, {recursive:true});
   const archive = join(releaseDir, `tetorica_sid_synth_${version}_itch.zip`);
   try { await readFile(archive); throw new Error(`Archive already exists: ${archive}`); }
@@ -62,6 +64,7 @@ export async function packageSidSynth({version = 'dev', releaseDir = join(root, 
     .replace(/\b(href|src)="\.\/(synth\.(?:css|js))"/g, '$1="./synth-sid/$2"'));
   await copyRuntimeArtifacts({root, destination:join(stage, 'generated'), ids:['sid'], includeMetadata:false});
   await copySidSources(stage);
+  const models=await copySidModelSources(stage);
   await copyFile(join(root, 'LICENSE'), join(stage, 'LICENSE'));
   await copyFile(join(root, 'docs/tetorica_sid_synth.webp'), join(stage, 'tetorica_sid_synth.webp'));
   const guide = (await readFile(join(root, 'docs/synth-sid/README.md'), 'utf8')).replace(/\]\(([^)]+)\)/g, (match, target) => {
@@ -75,11 +78,13 @@ export async function packageSidSynth({version = 'dev', releaseDir = join(root, 
     'LICENSE', 'package.json', 'package-lock.json', 'scripts/package_itch_sid_synth.mjs',
     'scripts/package_itch_sid_synth.sh', 'scripts/copy_sid_sources.mjs', 'scripts/copy_readable_modules.mjs',
     'scripts/runtime_artifacts.mjs', 'scripts/sid_artifacts.mjs']) inputs.add(path);
+  for(const path of models.inputPaths)inputs.add(path);
   const names = [...inputs].sort(), sourceArchive = 'sources/sid-synth-browser-inputs.zip';
   zip(root, join(stage, sourceArchive), names);
   const receipt = {schemaVersion:1, product:'Tetorica SID Synth', productId:'tetorica-sid-synth', version,
     builder:{name:'source-copy', minify:false, bundle:false, dependencyAnalyzer:{name:'esbuild', version:esbuildVersion}},
     bundles, modules:browser.modules,
+    previewArtifacts:models.artifacts,previewSourceKit:models.sourceKit,
     originalInputs:await Promise.all(names.map(async path => ({path, ...record(await readFile(join(root, path)))}))),
     sourceArchive:{path:sourceArchive, ...record(await readFile(join(stage, sourceArchive)))}};
   await writeFile(join(stage, 'sources/sid-synth-browser.json'), JSON.stringify(receipt, null, 2) + '\n');

@@ -75,6 +75,8 @@ export function createEditor({root,onChange=()=>{},onError=()=>{}}) {
   }
 
   const filter=card('Shared SID filter','filterCard'),filterFields=fields(filter);
+  choice(filterFields,'SID model','sidModel',[['6581','6581'],['8580','8580 · Preview']],p=>p.model,(p,value)=>p.model=value);
+  help(filter,'Compare the models with the same sound settings. Switching model stops held notes and resets Pitch.');
   toggle(filterFields,'Enable filter','filterEnabled',p=>p.filter.enabled,(p,value)=>{p.filter.enabled=value;if(value&&p.filter.mode==='off')p.filter.mode='lowpass';});
   filterOutputs(filterFields);
   number(filterFields,'Cutoff · hardware code','filterCutoff',0,2047,1,p=>p.filter.cutoff,(p,value)=>p.filter.cutoff=value,{slider:true});

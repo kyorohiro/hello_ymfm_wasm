@@ -21,6 +21,19 @@ const receipt=JSON.parse(await read(receiptPath));
 // this independent of Git makes the audit work in shallow CI/source ZIPs too.
 const PRE_SID_POLICY_OBJECT_SHA256='779a3c0106e5c4b9e1e9921601eb759f1f680b38bd1a719c33edfc9cf9d55453';
 
+test('SID 8580 revision preserves the first receipt, all pre-SID source bodies and the four measurements',async()=>{
+  const previous=JSON.parse(await read('docs/issues/sid_playground_source_revision_01.json'));
+  assert.equal(sha(JSON.stringify(previous)),'2d4cbe13e301e1629f6cce281b0013f40235432ebf8080ae5d8166ed370256db');
+  assert.deepEqual(receipt.reports,previous.reports);assert.equal(receipt.baseCommit,previous.baseCommit);
+  const changed=[];
+  for(const path of paths){
+    assert.deepEqual(receipt.sources[path].before,previous.sources[path].before,path);
+    if(JSON.stringify(receipt.sources[path].after)!==JSON.stringify(previous.sources[path].after))changed.push(path);
+    else assert.deepEqual(receipt.sources[path],previous.sources[path],path);
+  }
+  assert.deepEqual(changed,['js/playground_runtime.js','js/playground_soundchip_options.js']);
+});
+
 test('SID receipt authenticates all 20 complete source pairs and reconstructs the pinned pre-SID commit',async()=>{
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());

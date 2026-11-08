@@ -14,12 +14,14 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const slash=value=>value.split(sep).join('/');
 const inside=(parent,child)=>{const rel=relative(parent,child);return rel===''||!rel.startsWith('..'+sep)&&rel!=='..'&&!isAbsolute(rel);};
 const safeName=name=>typeof name==='string'&&name.length>0&&!name.includes('\\')&&!name.includes('\0')&&!name.startsWith('/')&&!/^[A-Za-z]:/.test(name)&&!name.split('/').some(part=>part==='..'||part==='.')&&name.replace(/\/$/,'').split('/').every(Boolean);
-// SID's source kit duplicates the runtime modules already shipped readably in
-// js/. Keep the complete original kit in the existing corresponding-source ZIP,
-// rather than spending itch's limited file entries on the same code twice.
+// SID's older source kit duplicates runtime modules already shipped readably in
+// js/. The 8580 matching native kit also includes Rust/Cargo sources, licenses,
+// toolchain notices and receipts. Preserve that whole kit in the existing source
+// ZIP, retaining its README as a navigation guide in the browser upload.
 const codeFile=name=>/\.(?:c|cc|cpp|cxx|h|hh|hpp|hxx|sh)$/i.test(name)
  || /^sid\/.*\.(?:js|mjs|py|ts)$/i.test(name);
-const guideFile=name=>! /^(?:LICENSE|COPYING|NOTICE|AUTHORS|UPSTREAM)(?:[.\-_]|$)/i.test(basename(name))&&(/^[^/]+\.md$/i.test(name)||/^native\/[^/]+\/README\.md$/.test(name)||/^sid\/(?:README\.md|third_party\/chips-m6581\/(?:README|PATCHES)\.md)$/.test(name));
+const archivedFile=name=>codeFile(name)||name.startsWith('sid8580-machine/')&&name!=='sid8580-machine/README.md';
+const guideFile=name=>! /^(?:LICENSE|COPYING|NOTICE|AUTHORS|UPSTREAM)(?:[.\-_]|$)/i.test(basename(name))&&(/^[^/]+\.md$/i.test(name)||/^native\/[^/]+\/README\.md$/.test(name)||/^sid\/(?:README\.md|third_party\/chips-m6581\/(?:README|PATCHES)\.md)$/.test(name)||name==='sid8580-machine/README.md');
 
 /** Count every central-directory entry, including directory records. */
 export function validateItchZipEntries(entries,limits=ITCH_ZIP_LIMITS){
@@ -71,7 +73,7 @@ async function walk(directory,prefix=''){
 }
 function preface(name,archiveSha){
  const link=slash(relative(dirname(name),archiveName));
- return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root contains \`native/\`, \`third_party/\`, \`wasm/\` and \`scripts/\` at their original paths. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface.\n\n`;
+ return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root matches the complete downloadable distribution's \`sources/\` tree, including the original \`sid/\` and \`sid8580-machine/\` kit paths where provided. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface.\n\n`;
 }
 
 export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}={}){
@@ -84,7 +86,7 @@ export async function prepareItchPlaygroundRun(fullStage,runStage,{bundle=false}
  if(!inputFiles.includes('index.html')||!inputFiles.includes('LICENSE'))throw Error('Full stage needs index.html and LICENSE');
  const sourceNames=inputFiles.filter(name=>name.startsWith('sources/')).map(name=>name.slice(8));
  if(!sourceNames.length||sourceNames.includes(archiveName)||sourceNames.includes('README-for-run.md'))throw Error('Expected an original, unpacked sources/ tree');
- const removed=sourceNames.filter(codeFile);if(!removed.length)throw Error('No corresponding compilation sources found');
+ const removed=sourceNames.filter(archivedFile);if(!removed.length)throw Error('No corresponding compilation sources found');
  const temporary=await mkdtemp(join(parent,'.itch-run-prepare-')),original=new Map();
  let committed=false;
  try{
@@ -105,9 +107,9 @@ with zipfile.ZipFile(sys.argv[2],"w",compression=zipfile.ZIP_DEFLATED,compressle
   for(const entry of inner){assert(!entry.directory&&!entry.symlink,'Only regular source files');assert.deepEqual({bytes:entry.bytes,sha256:entry.sha256},original.get('sources/'+entry.name),'Archived original source bytes: '+entry.name);}
   const archiveBytes=await readFile(sourceArchive),archiveSha=sha(archiveBytes);
   for(const name of removed)await unlink(join(temporary,'sources',name));
-  const guides=sourceNames.filter(name=>!codeFile(name)&&guideFile(name));
+  const guides=sourceNames.filter(name=>!archivedFile(name)&&guideFile(name));
   for(const name of guides){const file=join(temporary,'sources',name);await writeFile(file,preface(name,archiveSha)+await readFile(file,'utf8'));}
-  await writeFile(join(temporary,'sources/README-for-run.md'),`# Corresponding source for this browser upload\n\n[Download all corresponding sources](${archiveName}) (SHA-256: \`${archiveSha}\`). The ZIP contains all ${sourceNames.length} original source files, standalone build recipes, licenses, notices, provenance and receipts, without changes. Extract into a new directory and follow the included chip guides. The extracted source root retains every original relative path; with Emscripten installed, for example, run \`sh scripts/build_cdda_wasm.sh ../generated\`.\n\nThe complete downloadable Playground distribution also retains the expanded source tree. This browser upload keeps user-facing source guides, license/notice/provenance files and receipts accessible, and moves C/C++/header/shell build files plus the duplicate SID source-kit scripts into the source ZIP to stay within [itch.io HTML upload limits](https://itch.io/docs/creators/html5#zip-file-requirements). Audio modules, WASM, samples, examples and declarations retain their original files. ${bundle?'Page UI modules are bundled and minified; the bundle receipt and original UI inputs are included separately under sources/.':'Page UI modules also retain their original files.'} Guide copies have a download preface; receipt hashes refer to the unmodified files inside the source ZIP.\n`);
+  await writeFile(join(temporary,'sources/README-for-run.md'),`# Corresponding source for this browser upload\n\n[Download all corresponding sources](${archiveName}) (SHA-256: \`${archiveSha}\`). The ZIP contains all ${sourceNames.length} original source files, standalone build recipes, licenses, notices, provenance and receipts, without changes. Extract into a new directory and follow the included chip guides. The extracted source root retains every original relative path; with Emscripten installed, for example, run \`sh scripts/build_cdda_wasm.sh ../generated\`.\n\nThe complete downloadable Playground distribution also retains the expanded source tree. This browser upload moves C/C++/header/shell build files, duplicate SID source-kit scripts and the complete \`sid8580-machine/\` native source kit into that same source ZIP to stay within [itch.io HTML upload limits](https://itch.io/docs/creators/html5#zip-file-requirements). The archived 8580 kit includes its Rust/Cargo and native sources, toolchain licenses/notices, matching build receipt and source manifest. Its README and the top-level SID8580 guide remain accessible with source-download navigation. Other retained source guides, license/notice/provenance files and receipts remain accessible individually. Audio modules, WASM, samples, examples and declarations retain their original files. ${bundle?'Page UI modules are bundled and minified; the bundle receipt and original UI inputs are included separately under sources/.':'Page UI modules also retain their original files.'} Guide copies have a download preface; receipt hashes refer to the unmodified files inside the source ZIP.\n`);
   const guidePaths=new Set(guides.map(name=>'sources/'+name)),removedPaths=new Set(removed.map(name=>'sources/'+name));
   let unchanged=0;
   for(const name of inputFiles){

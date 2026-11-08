@@ -2788,11 +2788,12 @@ interface PlaygroundSidVoiceState {
   readonly pulseWidth:number;
   readonly attack:number; readonly decay:number; readonly sustain:number; readonly release:number;
   readonly sync:boolean; readonly ring:boolean; readonly test:boolean; readonly gate:boolean;
-  readonly envelope?:number;
+  /** Unavailable in the 8580 Preview model; no hardware read is synthesized. */
+  readonly envelope?:number|null;
 }
 interface PlaygroundSidState {
   readonly clock:number;
-  readonly model:'6581';
+  readonly model:'6581'|'8580';
   readonly initialized:boolean;
   /** Authored write-side register shadow; most SID hardware read addresses differ. */
   readonly registers:readonly number[];
@@ -2804,7 +2805,7 @@ interface PlaygroundSid {
   readonly channels:3;
   readonly id:string;
   readonly clock:number;
-  readonly model:'6581';
+  readonly model:'6581'|'8580';
   /** Reset the SID and authored state. initialize() establishes the silent defaults. */
   reset():void;
   /** Silent saw voices, ADSR 2/6/12/5; filter off and hardware volume 8. */
@@ -2831,6 +2832,6 @@ interface PlaygroundSid {
   dispose():void;
 }
 type PlaygroundPrimarySid = Omit<PlaygroundSid,'dispose'>;
-/** Browser-only CPU-free SID 6581 approximation. No C64 CPU or .sid song player.
- * Clock is fixed at creation (900000..1100000 Hz); only model '6581' is available. */
-declare function createSoundChip(name:'sid',options?:PlaygroundCreateSoundChipOptions & {clock?:number;model?:'6581'}):Promise<PlaygroundSid>;
+/** Browser-only CPU-free SID approximation. No C64 CPU or .sid song player.
+ * Creation-fixed clock: 6581 supports 900000..1100000 Hz; 8580 Preview requires PAL 985248 Hz. */
+declare function createSoundChip(name:'sid',options?:PlaygroundCreateSoundChipOptions & {clock?:number;model?:'6581'|'8580'}):Promise<PlaygroundSid>;

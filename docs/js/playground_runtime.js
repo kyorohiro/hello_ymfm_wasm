@@ -122,7 +122,7 @@ const SCALE_INTERVALS = {
  *   megaDrive?: object | null,
  *   chip?: PlaygroundChip,
  *   clock?: number,
- *   model?: '6581',
+ *   model?: '6581'|'8580',
  *   type?: number,
  *   flags?: number,
  *   stereoEnabled?: boolean,
@@ -1870,7 +1870,7 @@ export function createPlaygroundRuntime(
         await awaitNativeCreation(performanceHost.attach(device.node?.port),pending);
         pending?.controller.signal.throwIfAborted();
         if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running')throw new Error('Run stopped');
-        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.()??device.state,clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};
+        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.()??device.state,clock:device.clock,model:device.model,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};
       }catch(error){if(device)performanceHost.detach(device.node?.port);device?.dispose();throw error;}
       finally{if(pending)pendingNativeExtraCreations.delete(pending);}
     }

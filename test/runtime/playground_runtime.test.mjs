@@ -155,7 +155,7 @@ function sidRuntimeFixture(){
       else if(command.method==='stopVoices')for(let ch=0;ch<3;ch++)registers[ch*7+4]&=254;
       if(command.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:command.id,value:command.method==='readRegister'?registers[command.args[0]]:true}}));
     }};
-    return Object.assign(entry,{port,clock:options.clock??985248,model:'6581',node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){entry.disposed=true;}});
+    return Object.assign(entry,{port,clock:options.clock??985248,model:options.model??'6581',node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){entry.disposed=true;}});
   };
   return {factory,devices};
 }
@@ -2142,4 +2142,21 @@ test('SID Native output rejects before allocating or falling back to another sou
   for(const operation of ['createSoundChip','useSoundChip'])await assert.rejects(runtime.playSource(`await ${operation}('sid');`),/SID requires Web Audio/);
   assert.equal(allocations,0);
   assert.throws(()=>createPlaygroundRuntime({megaDrive:{capabilities:{chip:'sid',backend:'native-genesis'}}}),/SID requires Web Audio/);
+});
+
+test('Main additional SID preserves the selected 8580 model and rejects unsupported clocks before allocation',async t=>{
+  const f=sidRuntimeFixture(),createRuntime=await runtimeWithOpnAudio(f.factory,'createSidAudio');
+  const {runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  await runtime.playSource(`
+    const preview=await createSoundChip('sid',{id:'sid:8580-voice',model:'8580'});
+    context.previewModel=preview.model;context.previewClock=preview.clock;
+    preview.setVoice(0,{waveform:'triangle'});preview.setFilter({mode:'lowpass+bandpass',routing:7});
+    preview.noteOn(0,'C4');
+  `);
+  assert.equal(runtime.context.previewModel,'8580');assert.equal(runtime.context.previewClock,985248);assert.equal(f.devices.length,1);
+  assert.equal(f.devices[0].client.model,'8580');assert.equal(f.devices[0].registers[24]>>4&7,3);
+  await runtime.finalize();assert(f.devices[0].disposed);
+  const count=f.devices.length;
+  await assert.rejects(runtime.playSource(`await createSoundChip('sid',{model:'8580',clock:1022727});`),/PAL/);
+  assert.equal(f.devices.length,count);
 });

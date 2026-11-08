@@ -1,4 +1,5 @@
 import {SidCore} from './sid.js';
+import {Sid8580Core} from './sid8580.js';
 import {SidSynth, validateSidClock, SID_PAL_CLOCK} from './sidsynth.js';
 import {createProcessorPerformance, performanceNoteRelease} from './playground_performance_processor.js';
 import {SidVoiceInspector, receiveSidInspector} from './playground_sid_inspector.js';
@@ -24,13 +25,15 @@ class SidProcessor extends AudioWorkletProcessor {
       else this.receive(data, this.port);
     };
     Promise.resolve().then(() => {
-      if (model !== '6581') throw new RangeError('Only SID model 6581 is supported');
-      return SidCore.create({sampleRate, clockHz: this.clock, wasmBinary});
+      if (!['6581','8580'].includes(model)) throw new RangeError('SID model must be 6581 or 8580');
+      if (model === '8580' && this.clock !== SID_PAL_CLOCK) throw new RangeError('SID 8580 Preview requires PAL 985248 Hz');
+      const Core = model === '8580' ? Sid8580Core : SidCore;
+      return Core.create({sampleRate, clockHz: this.clock, wasmBinary});
     }).then(core => {
       if (this.dead) { core.dispose(); return; }
       this.core = core; this.synth = new SidSynth({core});
       this.inspector = new SidVoiceInspector({synth: this.synth, sampleRate});
-      this.port.postMessage({ready: true, clock: this.clock, model: '6581'});
+      this.port.postMessage({ready: true, clock: this.clock, model});
     }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   attachPort(name, port) {

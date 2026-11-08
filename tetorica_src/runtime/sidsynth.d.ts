@@ -1,7 +1,9 @@
 import type {SidCore} from './sid.js';
+import type {Sid8580Core} from './sid8580.js';
 export {SID_PAL_CLOCK,SID_NTSC_CLOCK} from './sid.js';
 
 export type SidChannel = 0 | 1 | 2;
+export type SidModel = '6581' | '8580';
 export type SidWaveform = 'triangle' | 'saw' | 'pulse' | 'noise';
 /** Outputs of one shared filter are added. Notch selects LP + HP. */
 export type SidFilterMode = 'off' | 'lowpass' | 'bandpass' | 'lowpass+bandpass'
@@ -34,11 +36,11 @@ export interface SidVoiceState {
   pulseWidth:number;
   attack:number; decay:number; sustain:number; release:number;
   sync:boolean; ring:boolean; test:boolean; gate:boolean;
-  /** Present when a live core supplied the observation. */
-  envelope?:number; phase?:number;
+  /** Null when the model does not expose this observation. */
+  envelope?:number|null; phase?:number|null;
 }
 export interface SidState {
-  clock:number; model:'6581'; initialized:boolean;
+  clock:number; model:SidModel; initialized:boolean;
   /** Last applied write-side settings, not hardware readback. */
   registers:number[];
   channels:SidVoiceState[];
@@ -47,6 +49,7 @@ export interface SidState {
 }
 export interface SidTransport {
   clock?:number;
+  model?:SidModel;
   writeRegister(register:number,value:number,channel?:SidChannel):void;
   reset():void;
   readRegister?(register:number):number;
@@ -54,11 +57,12 @@ export interface SidTransport {
 }
 export interface SidSynthOptions {
   /** Borrowed core: the caller owns and disposes it. */
-  core?:SidCore;
+  core?:SidCore|Sid8580Core;
   /** Supply either core or transport. */
   transport?:SidTransport;
   /** Creation-fixed integer clock in Hz, 900000..1100000. */
   clock?:number;
+  model?:SidModel;
 }
 export interface SidWriteEvent {
   method:'writeRegister'|'reset';
@@ -67,18 +71,19 @@ export interface SidWriteEvent {
 }
 export function validateSidClock(clock:number):number;
 export class SidDirectTransport implements SidTransport {
-  constructor(core:SidCore);
-  readonly core:SidCore;
+  constructor(core:SidCore|Sid8580Core);
+  readonly core:SidCore|Sid8580Core;
   readonly clock:number;
+  readonly model:SidModel;
   writeRegister(register:number,value:number):void;
   readRegister(register:number):number;
   reset():void;
 }
-/** CPU-free 6581 approximation; this prototype has no C64 CPU or .sid player. */
+/** CPU-free SID approximation; 8580 Preview requires PAL. No C64 CPU/.sid player. */
 export class SidSynth {
   constructor(options:SidSynthOptions);
   readonly chip:'sid';
-  readonly model:'6581';
+  readonly model:SidModel;
   readonly channels:3;
   readonly clock:number;
   _beforeWrite?: (register:number,value:number,channel?:SidChannel)=>boolean|void;
@@ -104,6 +109,6 @@ export class SidSynth {
   setClock(clock:number):Promise<boolean>;
   _getState():SidState;
   /** Adopt a validated shadow without replaying any hardware writes. */
-  _adoptState(state:{initialized:boolean;registers:ArrayLike<number>;clock?:number;model?:'6581'}):void;
+  _adoptState(state:{initialized:boolean;registers:ArrayLike<number>;clock?:number;model?:SidModel}):void;
   dispose():void;
 }

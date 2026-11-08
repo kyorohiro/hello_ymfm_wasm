@@ -7,11 +7,13 @@ Choose a C64 example and press **Run**. Main and Worker execution use the same
 real WASM core in an AudioWorklet. The **SID** tab shows the three applied voices,
 their Gate / ADSR / oscillator settings, shared filter and written register
 shadow. Opening the tab alone does not create an audio device. The tab is
-read-only at this stage; edit the code to change the sound.
+read-only at this stage; edit the code to change the sound. The primary `sid`
+defaults to **6581**. An independent **8580 Preview** can be created in Main or
+Worker code with `createSoundChip('sid', {model:'8580'})`; it requires PAL timing.
 
 For keyboard playing, open [Tetorica SID Synth](synth-sid/index.html): three-voice
 allocation, hardware ADSR, Pulse width and shared filter, with a one-note Sync /
-Ring pair, portable presets and readable JavaScript export. See its
+Ring pair, 6581 / 8580 Preview selection, portable presets and readable JavaScript export. See its
 [guide](synth-sid/README.md). The standalone
 [SID Register Lab](playground/sid-lab/index.html) remains available for register
 experiments. An offline [PSID reference comparison CLI](sid-reference.md) now
@@ -22,7 +24,6 @@ press Play. PSID v2 uses the C64 machine's VBI or CIA interrupts per subtune,
 with Direct VBI available as an explicit legacy option. RSID v2 runs its own
 interrupt or continuous code in that machine. Player targets PAL / one SID,
 with Auto / 6581 / 8580 Preview selection. Direct VBI is a 6581-only option.
-The Synth and Playground APIs described below still use the 6581 core.
 The C64 backend has a limited original IRQ environment and an optional user-ROM mode;
 no C64 firmware is bundled. See [the ROM, timing and digi limits](sid-player/README.md).
 The Synth and Playground APIs remain
@@ -76,7 +77,10 @@ gain 1 and marks it unmeasured; there is no claimed loudness calibration yet.
 `0..255`. `await sid.readRegister(address)` is a real bus read (OSC3 = 27,
 ENV3 = 28); most SID registers are write-only. `await sid.getState()` and the
 SID tab expose written-value shadows and debug fields, not invented hardware
-readback. Inspection does not advance the core.
+readback. Inspection does not advance the core. The 8580 Preview does not expose
+per-voice envelope or phase observations: these fields are `null`, shown as a
+dash in the SID tab. Actual OSC3 / ENV3 bus reads remain available; POT reads
+are explicitly unsupported by that model.
 
 The Main / Worker scheduler tracks Gate ownership. Loop replacement and Stop
 release owned notes; a retired loop cannot release a newer owner's voice.
@@ -85,6 +89,26 @@ while preserving the patch for the next Run. `allNotesOff()` only lowers Gates,
 so hardware release can continue.
 
 ## Additional instances and creation settings
+
+Create a separate 8580 Preview while retaining the default 6581 `sid`:
+
+```js
+const sid8580 = await createSoundChip('sid', {
+  id: 'sid:8580-preview', model: '8580',
+});
+sid8580.setVoice(0, {waveform:'saw', attack:2, decay:6, sustain:12, release:5});
+sid8580.noteOn(0, 'C4');
+await sleep(1);
+sid8580.keyOff(0);
+// await sid8580.dispose(); // Retire this instance when it is no longer needed.
+```
+
+The same musical and register helpers apply to both models. Each instance owns
+its three voices, shared filter and Mixer entry. Creating an 8580 does not
+replace the primary `sid`. Model selection is fixed at creation; create another
+instance to change it. This is a CPU-free chip instrument, not a C64 song player.
+
+The 6581 also supports a separately selected clock, for example NTSC:
 
 ```js
 const otherSid = await createSoundChip('sid', {
@@ -98,37 +122,51 @@ await otherSid.dispose();
 ```
 
 `await useSoundChip('sid')` reuses the current primary or a cached independent
-instance. Created instances have their own state and Mixer entry. Only model
-`'6581'` is accepted. PAL default is 985,248 Hz, NTSC is 1,022,727 Hz; creation
-accepts integer clocks from 900,000 to 1,100,000 Hz. The clock stays fixed after
+instance. Model defaults to `'6581'`. For 6581, PAL default is 985,248 Hz, NTSC
+is 1,022,727 Hz; creation accepts integer clocks from 900,000 to 1,100,000 Hz.
+Model `'8580'` requires exactly **985,248 Hz**. The clock stays fixed after
 creation. `setClock()` acknowledges the same value and rejects a change; create
 a new instance for another clock. Output uses the AudioContext rate, 8–96 kHz.
 
 This browser implementation rejects Native audio output. The package-root raw
 `createSoundChip()` has different chip coverage and does not accept SID.
-Explicit modules `sid.js`, `sidsynth.js` and `playground_sid.js` are included in
-the full runtime / npm distribution, with TypeScript contracts for the new
-Synth and clients. This work does not publish a new npm version or add SID to
-the authenticated Native SDK snapshot.
+The checked-in runtime provides explicit `sid.js`, `sid8580.js`, `sidsynth.js`
+and `playground_sid.js` modules with TypeScript contracts. This browser change
+does not publish a new npm version or add SID to the authenticated Native SDK
+snapshot; confirm a package version's contents before using these new modules
+from npm.
 
 ## Core, license and verification
 
-The core is a **6581 approximation** from zlib-licensed
+The default core is a **6581 approximation** from zlib-licensed
 [chips/m6581](https://github.com/floooh/chips/tree/9e88298ce56319953ac7a43213a1120359f7a3a6).
 The original pinned header, marked adaptations, BSD-3-Clause Tetorica host,
 licenses and rebuild recipe are in the [matching source kit](sources/sid/README.md).
-It uses a simplified filter; 8580 and analog chip variation are not modeled.
-A software 12 Hz output DC blocker follows the chip. Musical note helpers,
-Loop scheduling and display are software around the emulated registers.
+It retains its simplified filter. The **8580 Preview** uses the separately
+pinned MIT [sidera model](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/sidera/README.md) through
+[Sid8580Core](js/sid8580.js). That adapter reuses the existing
+endpoint WASM's standalone batch API; it instantiates no C64 CPU and calls no
+JavaScript callback per chip cycle. The research cutoff and resonance fit
+profiles remain off. A software 12 Hz output DC blocker follows each chip.
+Neither model promises real-chip fidelity or covers analog unit variation.
+Musical note helpers, Loop scheduling and display are software around the
+emulated registers.
+
+The standalone Playground package includes readable browser modules and the
+8580's unchanged WASM, matching C/C++/Rust sources, licenses, notices and
+rebuild receipt alongside the original 6581 kit. The shared rebuild kit retains
+both 8580 machine artifacts; this instrument loads only `sid8580-endpoint.wasm`.
+The fixed Native SDK snapshot remains separate.
 
 Useful checks from the repository root:
 
 ```sh
 npm run test:sid
-node --test test/runtime/sidsynth.test.mjs test/runtime/playground_sid*.test.mjs
+node --test test/runtime/sid8580.test.mjs test/runtime/sidsynth.test.mjs test/runtime/playground_sid*.test.mjs
 node scripts/check_playground_mode_types.mjs
 node scripts/check_playground_sid_browser.cjs
 node scripts/sid_artifacts.mjs --check
+node scripts/sid_model_artifacts.mjs --check
 npm run check:runtime-artifacts
 ```
 

@@ -4,6 +4,7 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 node "${ROOT_DIR}/scripts/runtime_artifact_profiles.mjs" playground --check
+node "${ROOT_DIR}/scripts/sid_model_artifacts.mjs" --check
 node "${ROOT_DIR}/scripts/generate_playground_mixer_defaults.mjs" \
   --report="${ROOT_DIR}/docs/issues/playground_chip_levels_01.json" --check
 node "${ROOT_DIR}/scripts/generate_soundchip_mixer_presets.mjs" --check
@@ -292,6 +293,8 @@ huc6280synth.js
 huc6280audioengine.js
 pokey.js
 sid.js
+sid8580.js
+sid8580.d.ts
 sidsynth.js
 sidsynth.d.ts
 playground_sid.d.ts
@@ -531,6 +534,7 @@ mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAG
 node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_msm5205_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_sid_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/sid_model_artifacts.mjs" --copy-sources "${STAGE_DIR}"
 cp "${ROOT_DIR}/docs/vgm_analyzer/spc_brr_candidates.js" "${STAGE_DIR}/vgm_analyzer/spc_brr_candidates.js"
 
 for file in ${PLAYGROUND_FILES}; do
@@ -650,7 +654,7 @@ Atari POKEY sound: BSD-labeled libvgm/MAME POKEY adaptation, BSD-3-Clause. See l
 CD-DA PCM: original Tetorica C11 implementation, BSD-3-Clause, distributed by the fixed sound-chip SDK. See licenses/tetorica-cdda/ and sources/CDDA.md for copyright, complete source and standalone rebuilding.
 MSM5205 PCM and PC Engine ADPCM RAM helper: BSD-3-Clause, adapted from the existing libvgm-based JavaScript renderer and distributed by the fixed sound-chip SDK. See licenses/tetorica-msm5205/ and sources/MSM5205.md for copyright, complete source and standalone rebuilding.
 
-C64 SID: experimental 6581 approximation from chips/m6581 under zlib. Tetorica host and helpers are BSD-3-Clause. See licenses/chips-m6581/ and sources/SID.md for pinned original source, marked patches and the independent WASM rebuild recipe. This application-local component is separate from the fixed SDK; it does not include C64 ROMs or SID song data.
+C64 SID: experimental 6581 approximation from chips/m6581 under zlib; additional instances may select the MIT sidera 8580 Preview. Tetorica host and helpers are BSD-3-Clause. See licenses/chips-m6581/, sources/SID.md and sources/SID8580.md for original sources, licenses, notices and independent WASM rebuild recipes. These application-local components are separate from the fixed SDK; they do not include C64 ROMs or SID song data.
 WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.

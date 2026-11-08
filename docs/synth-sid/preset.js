@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 
 /** @typedef {'off'|'lowpass'|'bandpass'|'lowpass+bandpass'|'highpass'|'notch'|'bandpass+highpass'|'lowpass+bandpass+highpass'} SidPresetFilterMode */
-/** @typedef {{format:'tetorica-sid-voice',version:1,name:string,
+/** @typedef {{format:'tetorica-sid-voice',version:2,model:'6581'|'8580',name:string,
  * voice:{waveform:'triangle'|'saw'|'pulse'|'noise',pulseWidth:number,attack:number,decay:number,sustain:number,release:number,test:boolean},
  * modulation:{sync:boolean,ring:boolean,ratio:number},
  * filter:{enabled:boolean,mode:SidPresetFilterMode,cutoff:number,resonance:number,volume:number}}} SidPreset */
@@ -31,8 +31,9 @@ export function filterModeFromBits(bits){return /** @type {SidPresetFilterMode} 
 /** Portable authoring data only. Allocation and the modulator ratio are software
  * features; waveforms, ADSR, Sync/Ring, TEST and the shared filter are hardware.
  * @returns {SidPreset} */
-export function createDefaultPreset(){
-  return {format:'tetorica-sid-voice',version:1,name:'Saw',
+export function createDefaultPreset({model='6581'}={}){
+  choice(model,['6581','8580'],'SID model');
+  return {format:'tetorica-sid-voice',version:2,model,name:'Saw',
     voice:{waveform:'saw',pulseWidth:2048,attack:2,decay:6,sustain:12,release:5,test:false},
     modulation:{sync:false,ring:false,ratio:1},
     filter:{enabled:false,mode:'lowpass',cutoff:600,resonance:4,volume:8}};
@@ -44,8 +45,13 @@ export function readPreset(value){
   if(typeof value==='string'){
     try{value=JSON.parse(value);}catch{throw new TypeError('Invalid SID preset JSON');}
   }
-  own(value,['format','version','name','voice','modulation','filter'],'SID preset');
-  if(value.format!=='tetorica-sid-voice'||value.version!==1)throw new TypeError('Unsupported SID preset format/version');
+  // Read descriptors before branching so a version getter cannot execute.
+  if(!value||typeof value!=='object'||!Object.hasOwn(value,'version'))throw new TypeError('Unsupported SID preset format/version');
+  const version=Object.getOwnPropertyDescriptor(value,'version');
+  if(!Object.hasOwn(version,'value'))throw new TypeError('SID preset: accessors are not preset data');
+  own(value,version.value===1?['format','version','name','voice','modulation','filter']:['format','version','model','name','voice','modulation','filter'],'SID preset');
+  if(value.format!=='tetorica-sid-voice'||![1,2].includes(value.version))throw new TypeError('Unsupported SID preset format/version');
+  const model=value.version===1?'6581':choice(value.model,['6581','8580'],'SID model');
   if(typeof value.name!=='string'||value.name.length>80||/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value.name))throw new TypeError('SID name must be at most 80 characters without control characters');
   own(value.voice,['waveform','pulseWidth','attack','decay','sustain','release','test'],'SID voice');
   own(value.modulation,['sync','ring','ratio'],'SID modulation');
@@ -54,7 +60,7 @@ export function readPreset(value){
   if(!Number.isFinite(ratio)||ratio<.125||ratio>8)throw new RangeError('Software modulator ratio must be .125–8');
   const filterMode=filterModeFromBits(filterModeBits(value.filter.mode));
   const filterEnabled=boolean(value.filter.enabled,'SID filter enabled');
-  return {format:'tetorica-sid-voice',version:1,name:value.name.trim(),
+  return {format:'tetorica-sid-voice',version:2,model,name:value.name.trim(),
     voice:{waveform:choice(value.voice.waveform,['triangle','saw','pulse','noise'],'SID waveform'),
       pulseWidth:integer(value.voice.pulseWidth,4095,'SID pulse width'),attack:integer(value.voice.attack,15,'SID attack'),
       decay:integer(value.voice.decay,15,'SID decay'),sustain:integer(value.voice.sustain,15,'SID sustain'),release:integer(value.voice.release,15,'SID release'),test:boolean(value.voice.test,'SID TEST')},
@@ -65,31 +71,32 @@ export function readPreset(value){
       cutoff:integer(value.filter.cutoff,2047,'SID cutoff'),resonance:integer(value.filter.resonance,15,'SID resonance'),volume:integer(value.filter.volume,15,'SID chip volume')}};
 }
 
-/** Self-contained setup for the existing C64 Playground's initialized `sid` API.
- * This auditions C4; it does not install the Synth's software keyboard allocator.
+/** C64 Playground setup: 6581 uses its primary `sid`; 8580 creates a separate
+ * instance. This auditions C4 without installing the Synth's keyboard allocator.
  * @param {unknown} value @returns {string} */
 export function presetToCode(value){
-  const preset=readPreset(value),pair=preset.modulation.sync||preset.modulation.ring;
-  const lines=['// Select Mode: C64 (SID 6581) in Playground, then Run.',`// ${preset.name||'Untitled SID voice'}`,
+  const preset=readPreset(value),pair=preset.modulation.sync||preset.modulation.ring,target=preset.model==='8580'?'sid8580':'sid';
+  const lines=[preset.model==='8580'?'// Select Mode: C64 in Playground; this creates a separate 8580 Preview instance.':'// Select Mode: C64 (SID 6581) in Playground, then Run.',`// ${preset.name||'Untitled SID voice'}`,
     '// Hardware: three oscillators, ADSR and one shared filter; PAL 985248 Hz.',
     '// Software: Synth keyboard round robin and pitch-wheel allocation are not installed by this snippet.',
-    '// The core also has its documented 12 Hz software output DC blocker.',
-    'sid.initialize();'];
+    '// The core also has its documented 12 Hz software output DC blocker.'];
+  if(preset.model==='8580')lines.push("const sid8580 = await createSoundChip('sid', {id:'sid:8580-voice', model:'8580'});");
+  lines.push(`${target}.initialize();`);
   for(let channel=0;channel<3;channel++){
     const source=pair&&channel===2,voice=source
       ?{waveform:'triangle',pulseWidth:2048,attack:0,decay:0,sustain:0,release:0,test:false,sync:false,ring:false}
       :{...preset.voice,sync:pair&&channel===0&&preset.modulation.sync,ring:pair&&channel===0&&preset.modulation.ring};
-    lines.push(`sid.setVoice(${channel}, ${JSON.stringify(voice)});`);
+    lines.push(`${target}.setVoice(${channel}, ${JSON.stringify(voice)});`);
   }
-  lines.push(`sid.setFilter(${JSON.stringify({mode:preset.filter.enabled?preset.filter.mode:'off',cutoff:preset.filter.cutoff,
+  lines.push(`${target}.setFilter(${JSON.stringify({mode:preset.filter.enabled?preset.filter.mode:'off',cutoff:preset.filter.cutoff,
     resonance:preset.filter.resonance,routing:preset.filter.enabled?(pair?1:7):0,volume:preset.filter.volume,voice3off:pair})});`);
   if(pair){
     lines.push('// Hardware connection: oscillator 3 -> carrier 1. Ring affects Triangle only.',
       '// Software tuning ratio; the fixed Triangle modulator has Gate OFF and is not routed to the filter.',
       'const carrierHz = 440 * 2 ** ((60 - 69) / 12);',
-      'sid.setFrequency(0, carrierHz);',`sid.setFrequency(2, carrierHz * ${preset.modulation.ratio});`,
-      'sid.keyOn(0);');
-  }else lines.push("sid.noteOn(0, 'C4');");
-  lines.push('// Release with sid.keyOff(0); hardware release continues. Playground Stop clears tails.');
+      `${target}.setFrequency(0, carrierHz);`,`${target}.setFrequency(2, carrierHz * ${preset.modulation.ratio});`,
+      `${target}.keyOn(0);`);
+  }else lines.push(`${target}.noteOn(0, 'C4');`);
+  lines.push(`// Release with ${target}.keyOff(0); hardware release continues. Playground Stop clears tails.`);
   return lines.join('\n');
 }

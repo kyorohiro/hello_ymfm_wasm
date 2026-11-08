@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "archive": "release/hello_ymfm_wasm_20261108-sid8580.2_itch_playground_for_run.zip",
+  "bytes": 38553485,
+  "sha256": "875cc1b02fedb9f420a3435784fa32229ab0d31b12d2e36591f92e1385302573",
+  "files": 1000,
+  "directories": 0,
+  "extracted": "release/verify_playground_20261108-sid8580.2",
+  "outerCrc": true,
+  "allExtractedBytesMatchStage": true,
+  "published": false,
+  "browserAssetsByteEqualToTestedArchive": {
+    "archive": "release/hello_ymfm_wasm_20261108-sid8580.1_itch_playground_for_run.zip",
+    "sha256": "2e01e0cf762dcb571b4c5100b0be874061d7862d22913206ef9107de6745e587",
+    "excludedDocumentationPaths": [
+      "README.md",
+      "THIRD_PARTY_LICENSES.txt",
+      "sources/**"
+    ],
+    "changedDocumentationPaths": [
+      "THIRD_PARTY_LICENSES.txt",
+      "sources/NES-FDS.md",
+      "sources/SID.md",
+      "sources/SNES-SPC.md",
+      "sources/corresponding-source.zip",
+      "sources/SegaPSG.md",
+      "sources/native/cdda/README.md",
+      "sources/native/msm5205/README.md",
+      "sources/native/ps1/README.md",
+      "sources/sid8580-machine/README.md",
+      "sources/POKEY.md",
+      "sources/CDDA.md",
+      "sources/MSM5205.md",
+      "sources/PWM32X.md",
+      "sources/browser-bundle-inputs.zip",
+      "sources/PS1-SPU.md",
+      "sources/README-for-run.md",
+      "sources/sid/README.md",
+      "sources/sid/third_party/chips-m6581/PATCHES.md",
+      "sources/sid/third_party/chips-m6581/README.md",
+      "sources/browser-bundle.json",
+      "sources/SCSP.md",
+      "sources/Nuked-OPN2.md",
+      "sources/SID8580.md"
+    ]
+  },
+  "correspondingSourceCrc": true,
+  "sourceFiles": 303,
+  "allOriginalSourceBytesPreserved": true,
+  "matching8580SourceHashesVerified": 127,
+  "nativeCompiledInputs": 99,
+  "runtimeAudioModulesReadableAndUnchanged": true,
+  "models": [
+    "6581",
+    "8580"
+  ],
+  "fullDownload": {
+    "archive": "release/hello_ymfm_wasm_20261108-sid8580.2_itch_playground.zip",
+    "bytes": 38123176,
+    "sha256": "71ba14f2275148355bce231647e5ee19b1a78a3cd256dce82289d12d6bb5f1a0",
+    "crcAndStageBytesVerified": true
+  }
+}

@@ -49,6 +49,11 @@ function instrument() {
   });
 }
 async function checkEngine(name, engine, origin, prefix) {
+  const {createDefaultPreset, presetToCode} = await import('../docs/synth-sid/preset.js');
+  const exportedPreset = createDefaultPreset({model: '8580'});
+  exportedPreset.voice.attack = 0; exportedPreset.voice.sustain = 15;
+  exportedPreset.filter = {enabled: true, mode: 'lowpass+bandpass', cutoff: 700, resonance: 8, volume: 8};
+  const exportedCode = presetToCode(exportedPreset);
   const browser = await engine.launch({headless: true});
   try {
     for (const execution of ['main', 'worker']) {
@@ -185,6 +190,19 @@ extra.noteOn(2,'A4');const state=await extra.getState();if(state.clock!==1022727
 liveLoop('sid-browser-extra',async()=>{await sleep(60);});`);
         await marker('SID_EXTRA_READY'); await sound();
         assert(await page.evaluate(() => __sidAudit.worklets.filter(value => value.name === 'tetorica-sid').length >= 2)); await stop();
+
+        check('Synth Copy JavaScript creates a real 8580 extra instance and leaves the C64 primary at 6581');
+        await run(exportedCode + `\nconst observed=await sid8580.getState();const primary=await sid.getState();
+if(observed.model!=='8580'||observed.clock!==985248||primary.model!=='6581')throw Error('SID copied model');
+if(observed.channels[0].envelope!==null)throw Error('8580 Envelope is unknown');
+log('SID_8580_COPY_READY');liveLoop('sid-browser-8580',async()=>{await sleep(60);});`);
+        await marker('SID_8580_COPY_READY'); await sound();
+        const extra8580 = await page.evaluate(() => __sidPlaygroundCheck.runtime.chipInspector.read('sid:8580-voice'));
+        assert.equal(extra8580.model, '8580'); assert.equal(extra8580.channels[0].gate, true);
+        assert.equal(extra8580.filter.mode, 'lowpass+bandpass');
+        captures.push({copiedSynthModel: extra8580.model, primaryModel: (await state()).model,
+          codeSha256: createHash('sha256').update(exportedCode).digest('hex')});
+        await stop();
         if (execution === 'worker') assert(await page.evaluate(() => __sidAudit.workers.some(url => /playground_logic_worker\.js/.test(url))));
         await page.locator('#sidTab').click(); await page.setViewportSize({width: 390, height: 844}); await page.waitForTimeout(100);
         if (config.screenshots) await page.screenshot({path: path.join(config.screenshots, `${name}-${execution}-390.png`)});

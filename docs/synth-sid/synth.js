@@ -45,6 +45,8 @@ function readVoices(state){
 }
 function updatePresetUi(){
   editor.update(preset);if(document.activeElement!==$('instrumentName'))$('instrumentName').value=preset.name;
+  $('sidModelBadge').textContent=preset.model;
+  $('sidModelStatus').textContent=preset.model==='8580'?'PAL · PREVIEW':'PAL · APPROXIMATION';
   if(!$('codeOutput').hidden)$('codeOutput').value=presetToCode(preset);
   updateCapacity();refreshPlayableKeys();
 }
@@ -63,7 +65,7 @@ async function ensureAudio(){
     owner.promise=(async()=>{
       let engine;
       try{
-        engine=await createAudio({volume:Number($('masterVolume').value),signal:owner.controller.signal,onError:error=>audioFailed(error,owner.engine??owner)});owner.engine=engine;
+        engine=await createAudio({model:preset.model,volume:Number($('masterVolume').value),signal:owner.controller.signal,onError:error=>audioFailed(error,owner.engine??owner)});owner.engine=engine;
         let applied,snapshotPitch,appliedSnapshot,snapshotReset;
         do{
           owner.controller.signal.throwIfAborted();applied=revision;snapshotPitch=pitch;snapshotReset=resetIntent;
@@ -84,7 +86,7 @@ async function ensureAudio(){
   await engine.resume();return engine;
 }
 function clearNotes(){noteEpoch++;notes.clear();updateKeys();}
-function topology(value){return `${value.modulation.sync}/${value.modulation.ring}/${value.voice.test}`;}
+function topology(value){return `${value.model}/${value.modulation.sync}/${value.modulation.ring}/${value.voice.test}`;}
 function applyPreset(value,{load=false,message}={}){
   const next=readPreset(value),previous=preset,changedTopology=load||topology(previous)!==topology(next);
   if(changedTopology){clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
@@ -103,6 +105,14 @@ function applyPreset(value,{load=false,message}={}){
       appliedPreset=readPreset(state?.preset??next);acceptPitch(state,order,hardReset?pitchAtDispatch:null);readVoices(state);visualizer.wake();
       if(editRevision===revision){patchStatus('Applied · edits are live.');status(message??(hardReset?'Instrument updated · held notes and Pitch reset.':'Instrument updated · changes are live.'));}
     }catch(error){
+      // A failed model allocation may already have stopped the previous core.
+      // Recover its actual Pitch/owners rather than restoring the pre-swap bend.
+      const recoveryOrder=++commandSequence,recoveryIntent=pitchIntent;
+      const current=await target.read().catch(()=>null);
+      if(audio===target&&current){
+        appliedPreset=readPreset(current.preset??appliedPreset);
+        acceptPitch(current,recoveryOrder,recoveryIntent);readVoices(current);
+      }
       if(audio===target&&editRevision===revision){preset=readPreset(appliedPreset);revision++;updatePresetUi();patchStatus('Edit rejected · previous preset kept.');}
       throw error;
     }

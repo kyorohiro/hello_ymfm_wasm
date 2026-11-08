@@ -3,25 +3,27 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {SidCore} from '../../tetorica_src/runtime/sid.js';
+import {Sid8580Core} from '../../tetorica_src/runtime/sid8580.js';
 import {SidSynth, validateSidClock, SID_PAL_CLOCK} from '../../tetorica_src/runtime/sidsynth.js';
 import {SidVoiceInspector, receiveSidInspector} from '../../tetorica_src/runtime/playground_sid_inspector.js';
 import {createSidClient, createSidRegisterClient} from '../../tetorica_src/runtime/playground_sid.js';
 import {createProcessorPerformance, performanceNoteRelease} from '../../tetorica_src/runtime/playground_performance_processor.js';
 
 const wasmBinary = await readFile(new URL('../../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url));
+const previewBinary = await readFile(new URL('../../docs/generated/sid8580-machine/sid8580-endpoint.wasm', import.meta.url));
 const source = (await readFile(new URL('../../tetorica_src/runtime/playground_sid_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
 const peak = samples => samples.reduce((maximum, sample) => Math.max(maximum, Math.abs(sample)), 0);
-async function setup(t, {rate = 48000, clock = SID_PAL_CLOCK} = {}) {
+async function setup(t, {rate = 48000, clock = SID_PAL_CLOCK, model='6581'} = {}) {
   let Processor, frame = 0, resolveReady; const messages = [], commands = [];
   const ready = new Promise(resolve => { resolveReady = resolve; });
   const port = {postMessage(message) { messages.push(message); if (message.ready || message.error) resolveReady(message); }};
-  vm.runInNewContext(source, {SidCore, SidSynth, validateSidClock, SID_PAL_CLOCK, SidVoiceInspector, receiveSidInspector, performanceNoteRelease, sampleRate: rate,
+  vm.runInNewContext(source, {SidCore, Sid8580Core, SidSynth, validateSidClock, SID_PAL_CLOCK, SidVoiceInspector, receiveSidInspector, performanceNoteRelease, sampleRate: rate,
     createProcessorPerformance: options => createProcessorPerformance({...options, rate, nowFrame: () => frame}),
     AudioWorkletProcessor: class { constructor() { this.port = port; } }, registerProcessor(name, Type) { assert.equal(name, 'tetorica-sid'); Processor = Type; }});
-  const processor = new Processor({processorOptions: {clock, wasmBinary}}); assert.equal((await ready).ready, true, JSON.stringify(messages));
+  const processor = new Processor({processorOptions: {clock, model, wasmBinary:model==='8580'?previewBinary:wasmBinary}}); assert.equal((await ready).ready, true, JSON.stringify(messages));
   const replies = {postMessage: data => clientPort.onmessage?.({data})};
   const clientPort = {start() {}, close() { this.closed = true; }, postMessage(data) { commands.push(data); processor.receive(data, replies); }};
-  const client = createSidClient(clientPort, {clock}); client.initialize();
+  const client = createSidClient(clientPort, {clock,model}); client.initialize();
   const fixture = {processor, client, port, messages, commands, rate, clock,
     render(frames = 128) { const left = new Float32Array(frames), right = new Float32Array(frames); const active = processor.process([], [[left, right]]); frame += frames; return {left, right, active}; },
     receive: data => processor.receive(data, port), now: () => frame / rate};
@@ -29,8 +31,9 @@ async function setup(t, {rate = 48000, clock = SID_PAL_CLOCK} = {}) {
 }
 const raw = (reg, value) => ({method: 'writeRegister', args: [reg, value]});
 
-for (const rate of [44100, 48000, 96000]) test(`SID client/Worklet matches direct core through split renders at ${rate} Hz`, async t => {
-  const p = await setup(t, {rate}), core = await SidCore.create({sampleRate: rate, wasmBinary}), synth = new SidSynth({core});
+for (const model of ['6581','8580']) for (const rate of [44100, 48000, 96000]) test(`SID ${model} client/Worklet matches direct core through split renders at ${rate} Hz`, async t => {
+  const Core=model==='8580'?Sid8580Core:SidCore;
+  const p = await setup(t, {rate,model}), core = await Core.create({sampleRate: rate, wasmBinary:model==='8580'?previewBinary:wasmBinary}), synth = new SidSynth({core});
   t.after(() => { synth.dispose(); core.dispose(); }); synth.initialize();
   for (const api of [p.client, synth]) { api.setVoice(0, {waveform: 'pulse', pulseWidth: 1200, attack: 0}); api.setFilter({mode: 'lowpass', cutoff: 950, resonance: 10, routing: 7}); api.noteOn(0, 'A3'); api.noteOn(2, 'E4'); }
   let maximum = 0;
@@ -38,7 +41,8 @@ for (const rate of [44100, 48000, 96000]) test(`SID client/Worklet matches direc
     const actual = p.render(frames), expected = core.render(frames);
     assert.deepEqual(actual.left, expected); assert.deepEqual(actual.right, expected); assert(actual.active); maximum = Math.max(maximum, peak(expected));
   }
-  assert(maximum > .01); const state = await p.client.getState(); assert.equal(state.channels[0].gate, true); assert.equal(state.clock, SID_PAL_CLOCK);
+  assert(maximum > .01); const state = await p.client.getState(); assert.equal(state.channels[0].gate, true); assert.equal(state.clock, SID_PAL_CLOCK); assert.equal(state.model,model); assert.equal(p.client.model,model);
+  if(model==='8580')for(const ch of state.channels){assert.equal(ch.envelope,null);assert.equal(ch.phase,null);}
   for (const [bits, mode] of ['off', 'lowpass', 'bandpass', 'lowpass+bandpass', 'highpass', 'notch',
     'bandpass+highpass', 'lowpass+bandpass+highpass'].entries()) {
     p.client.setFilter({mode}); synth.setFilter({mode});
@@ -48,6 +52,16 @@ for (const rate of [44100, 48000, 96000]) test(`SID client/Worklet matches direc
     assert.equal(filter.resonance, 10); assert.equal(filter.routing, 7);
   }
   const cycles = p.processor.core.getState().cycles; assert.equal(await p.client.readRegister(28), core.readRegister(28)); assert.equal(p.processor.core.getState().cycles, cycles + 1);
+});
+
+test('8580 inspection remains read-only and model adoption cannot cross a fixed-model client',async t=>{
+  const p=await setup(t,{model:'8580'}),cycles=p.processor.core.getState().cycles;
+  p.receive({type:'chip-inspector',action:'read',id:'preview-inspect'});
+  const observed=p.messages.find(m=>m.id==='preview-inspect').value;
+  assert.equal(observed.model,'8580');for(const channel of observed.channels)assert.equal(channel.envelope,null);
+  assert.equal(p.processor.core.getState().cycles,cycles);
+  const state=p.client._getState();assert.throws(()=>p.client._adoptState({...state,model:'6581'}),/model/);
+  assert.throws(()=>createSidRegisterClient(()=>{},{model:'8580',clock:1022727}),/PAL/);
 });
 
 test('SID scheduled Gates apply on their output frame and old owner cancellation preserves replacement notes', async t => {
@@ -63,8 +77,8 @@ test('SID scheduled Gates apply on their output frame and old owner cancellation
   p.receive({type: 'performance-cancel-owner', session: 1, owner: 'new'}); assert(!p.processor.synth._getState().channels[0].gate);
 });
 
-test('SID Stop flushes release tails and future notes, preserves patch and acknowledges physical silence', async t => {
-  const p = await setup(t); p.client.setVoice(0, {waveform: 'triangle', attack: 0, release: 15}); p.client.noteOn(0, 'C4');
+for(const model of ['6581','8580'])test(`SID ${model} Stop flushes release tails and future notes, preserves patch and acknowledges physical silence`, async t => {
+  const p = await setup(t,{model}); p.client.setVoice(0, {waveform: 'triangle', attack: 0, release: 15}); p.client.noteOn(0, 'C4');
   assert(peak(p.render(4096).left) > .01); const before = p.processor.synth._getState();
   p.receive({type: 'performance-start', session: 2});
   p.receive({performance: {session: 2, owner: 'future', time: 1}, commands: [raw(4, 0x11)]});

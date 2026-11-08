@@ -62,8 +62,8 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | [HuC6280 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-huc6280/index.html) | PC Engineの波形メモリーPSG、Noise、LFOペア、波形描画、音声の5bit DDA PCM再生、ソフトウェアADSR、VGM／VGZのWave／Noise／LFO／DACストリーム・直接DAC PCM抽出、プリセット／JavaScript出力。英語UI。[ガイド](docs/synth-huc6280/README.md)。 |
 | [S-DSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-snes/index.html) | SNESの8声BRR／hardware Noise、ADSR／GAIN、共有Echo／FIRを操作。最大4音のhardware PMONはWave／BRR変調音源と独立tuning／Envelopeに対応し、同じcanvasで編集・previewできます。SPC音色と任意の単純PMON pair／Echo取り込み、両sample対象へのWAV／raw BRR読込、両音源を含むv5保存（strict v1〜v4移行）・既存APIのJavaScript出力に対応。[ガイド](docs/synth-snes/README.md)。 |
 | [SCSP Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-scsp/index.html) | 実験的なSaturn PCM音源、波形描画／読込、エンベロープ、LFO。 |
-| [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | 実験的なC64 6581の3声鍵盤、Pulse幅、hardware ADSR、共有filter、1音のSync／Ringペア。portable preset保存・可読JavaScript出力に対応。[ガイド](docs/synth-sid/README.md)。 |
-| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 6581の実験的な3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作。SIDタブで適用済み状態を確認できます。[ガイド](docs/sid.md)・[独立filterラボ](docs/playground/sid-lab/README.md)。 |
+| [SID Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-sid/index.html) | 6581／PALの8580 Previewを切り替えて、3声鍵盤、Pulse幅、hardware ADSR、共有filter、1音のSync／Ringペアを試奏。v2 presetはモデルを保存し、従来のv1は6581として読み込みます。可読JavaScriptも出力できます。[ガイド](docs/synth-sid/README.md)。 |
+| [C64 SID Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html?mode=c64) | 3声・ADSR・Sync／Ring・共有filterをMain／Workerの可読コードから操作し、SIDタブで適用済み状態を確認。標準SIDは6581で、PALの8580 Previewを独立した追加インスタンスとして作成できます。[ガイド](docs/sid.md)・[6581の独立filterラボ](docs/playground/sid-lab/README.md)。 |
 | [SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html) | 対応するPALのPSID v2・RSID v2を、Auto／6581／8580 Previewで再生し、3声と共有filter設定を表示。VBI／CIA割り込みをC64機械で動かし、安全なdriver RAMと限定内蔵環境または手元のROMを使用します。Direct VBIは6581で選択可能。自作デモ・可読ソース付きです。[使い方・制限](docs/sid-player/README.md)。 |
 | [VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html) | 再生、音源／チャンネルの観察、対応するサンプル／FM音色の抽出、参考採譜。 |
 | [MIDI Playground](https://kyorohiro.github.io/tetorica-midi-playground/index.html) | 別プロジェクトのmacOS MIDIライブコーディングアプリ。[ソースと配布版](https://github.com/kyorohiro/tetorica-midi-playground)。 |
@@ -90,7 +90,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
 | PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
-| Commodore 64 | 実験的な6581音色、共有filter、Main／Worker API。[ブラウザーSID Player](docs/sid-player/README.md)はPAL・単一SIDのPSID VBI／CIA・RSID v2を**6581／8580 Preview**で再生。Direct VBIは6581で選択可能です。既存[参照CLI](docs/sid-reference.md)は変更せず比較WAVを出力。Synth／Playgroundは6581のまま。NTSC／複数SID・正確なvolume-DAC digiはPlayerの対応範囲外です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
+| Commodore 64 | 実験的な6581／PALの8580 Preview音色、共有filter、Main／Worker API。Playgroundの標準SIDは6581で、8580は独立した追加インスタンスを作成します。[ブラウザーSID Player](docs/sid-player/README.md)はPAL・単一SIDのPSID VBI／CIA・RSID v2を**6581／8580 Preview**で再生。Direct VBIは6581で選択可能です。既存[参照CLI](docs/sid-reference.md)は変更せず比較WAVを出力。NTSC／複数SID・正確なvolume-DAC digiはPlayerの対応範囲外です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
 | 入力 | 対応する使い方 |
@@ -115,7 +115,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | Yamaha OPLL／OPL | YM2413、YM3526、YM3812、Y8950、YMF262、YMF278B |
 | PSG・波形メモリー・ゲーム機音源 | AY-3-8910／YM2149、Sega PSG、Game Boy APU、NES APU＋FDS、HuC6280、K051649／K052539、POKEY、WonderSwan |
 | PCM／ADPCM | RF5C164、Sega PCM、OKIM6258、OKIM6295、MSM5205 |
-| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7、[実験的なSID 6581](docs/sid.md) |
+| 独立した音源／プレイヤー | [PS1 SPU](docs/ps1_spu.md)、[Saturn SCSP](docs/scsp.md)、SNES S-DSP／SPC700、MSFA DX7、[実験的なSID 6581／8580 Preview](docs/sid.md) |
 
 npmルートの`createSoundChip()`、Playgroundの`createSoundChip()`／`useSoundChip()`、
 独立したクラス、高水準Synth APIは、入口と対応範囲が異なります。

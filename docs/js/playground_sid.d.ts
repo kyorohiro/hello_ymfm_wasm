@@ -7,13 +7,14 @@ export interface SidClientLifecycle {
 }
 export interface SidClientOptions {
   clock?:number;
-  /** Only the 6581 approximation is available. */
-  model?:'6581';
+  /** Creation-fixed model. 8580 Preview requires PAL 985248 Hz. */
+  model?:'6581'|'8580';
   /** Existing authoring shadow; applying it does not replay hardware writes. */
   state?:SidState;
 }
 export interface SidRegisterClientOptions {
   clock?:number;
+  model?:'6581'|'8580';
   close?():void;
   request?(method:string,args:unknown[]):unknown|Promise<unknown>;
   lifecycle?:SidClientLifecycle;

@@ -22,11 +22,12 @@ export {SID_PAL_CLOCK, SID_NTSC_CLOCK} from './sid.js';
  * @property {boolean} [voice3off] Mute the dry voice 3; its routed filter path remains active.
  */
 /** @typedef {Object} SidSynthOptions
- * @property {import('./sid.js').SidCore} [core] Borrowed, synchronous core.
- * @property {{clock?:number,writeRegister:(register:number,value:number,channel?:number)=>void,reset:()=>void,readRegister?:(register:number)=>number,dispose?:()=>void}} [transport]
+ * @property {import('./sid.js').SidCore|import('./sid8580.js').Sid8580Core} [core] Borrowed, synchronous core.
+ * @property {{clock?:number,model?:'6581'|'8580',writeRegister:(register:number,value:number,channel?:number)=>void,reset:()=>void,readRegister?:(register:number)=>number,dispose?:()=>void}} [transport]
  * @property {number} [clock] Creation-fixed integer Hz, 900000..1100000.
+ * @property {'6581'|'8580'} [model] Creation-fixed model; defaults to the core/transport, then 6581.
  */
-/** @typedef {{clock:number,model:'6581',initialized:boolean,registers:number[],channels:Array<{frequency:number,frequencyRegister:number,waveform:string,waveformBits:number,waveforms:string[],pulseWidth:number,attack:number,decay:number,sustain:number,release:number,sync:boolean,ring:boolean,test:boolean,gate:boolean,envelope?:number,phase?:number}>,filter:{mode:string,modeBits:number,cutoff:number,resonance:number,routing:number,volume:number,voice3off:boolean},cycles?:number}} SidState */
+/** @typedef {{clock:number,model:'6581'|'8580',initialized:boolean,registers:number[],channels:Array<{frequency:number,frequencyRegister:number,waveform:string,waveformBits:number,waveforms:string[],pulseWidth:number,attack:number,decay:number,sustain:number,release:number,sync:boolean,ring:boolean,test:boolean,gate:boolean,envelope?:number|null,phase?:number|null}>,filter:{mode:string,modeBits:number,cutoff:number,resonance:number,routing:number,volume:number,voice3off:boolean},cycles?:number}} SidState */
 
 const waves = Object.freeze({triangle: 0x10, saw: 0x20, pulse: 0x40, noise: 0x80});
 const modes = Object.freeze({off: 0, lowpass: 1, bandpass: 2, 'lowpass+bandpass': 3,
@@ -52,14 +53,14 @@ export function validateSidClock(clock) {
 export class SidDirectTransport {
   constructor(core) {
     if (!core || typeof core.writeRegister !== 'function' || typeof core.reset !== 'function') throw new TypeError('Expected a SID core');
-    this.core = core; this.clock = core.clockHz;
+    this.core = core; this.clock = core.clockHz; this.model = core.model;
   }
   writeRegister(register, value) { this.core.writeRegister(register, value); }
   readRegister(register) { return this.core.readRegister(register); }
   reset() { this.core.reset(); }
 }
 
-/** Three physical 6581 voices and one shared filter. Sync/Ring use the preceding
+/** Three physical SID voices and one shared filter. Sync/Ring use the preceding
  * oscillator (voice 3 -> 1 -> 2 -> 3); they do not allocate a hidden voice.
  * This is an authoring shadow, not hardware register readback. The core's
  * software 12 Hz output DC blocker is separate from this programmable filter.
@@ -68,15 +69,17 @@ export class SidSynth {
   #transport; #core; #disposed = false; #initialized = false;
   #registers = new Uint8Array(32);
   /** @param {SidSynthOptions} [options] */
-  constructor({core, transport, clock = core?.clockHz ?? transport?.clock ?? SID_PAL_CLOCK} = {}) {
+  constructor({core, transport, clock = core?.clockHz ?? transport?.clock ?? SID_PAL_CLOCK, model = core?.model ?? transport?.model ?? '6581'} = {}) {
     if (core && transport) throw new TypeError('Specify SID core or transport, not both');
     transport ??= core ? new SidDirectTransport(core) : null;
     if (!transport || typeof transport.writeRegister !== 'function' || typeof transport.reset !== 'function') throw new TypeError('Expected SID core or transport');
     validateSidClock(clock);
     if (transport.clock !== undefined && transport.clock !== clock) throw new RangeError('SID synth and transport clocks must match');
-    if (core?.model !== undefined && core.model !== '6581') throw new RangeError('Only SID model 6581 is supported');
+    if (!['6581', '8580'].includes(model)) throw new RangeError('SID model must be 6581 or 8580');
+    if (core?.model !== undefined && core.model !== model || transport.model !== undefined && transport.model !== model) throw new RangeError('SID synth and transport models must match');
+    if (model === '8580' && clock !== SID_PAL_CLOCK) throw new RangeError('8580 Preview requires the PAL clock 985248 Hz');
     Object.defineProperty(this, 'clock', {value: clock, configurable: true, enumerable: true});
-    this.chip = 'sid'; this.model = '6581'; this.channels = 3;
+    this.chip = 'sid'; this.model = model; this.channels = 3;
     this.#transport = transport; this.#core = core;
     this._beforeWrite = undefined; this._observe = undefined;
   }
@@ -176,7 +179,7 @@ export class SidSynth {
         ...(live?.voices?.[channel] ? {envelope: live.voices[channel].envelope, phase: live.voices[channel].phase} : {})};
     });
     const filterBits = (registers[24] >> 4) & 7;
-    return {clock: this.clock, model: '6581', initialized: this.#initialized, registers: Array.from(registers), channels,
+    return {clock: this.clock, model: this.model, initialized: this.#initialized, registers: Array.from(registers), channels,
       ...(live ? {cycles: live.cycles} : {}), filter: {mode: Object.keys(modes).find(name => modes[name] === filterBits) ?? 'combined', modeBits: filterBits,
         cutoff: (registers[21] & 7) | (registers[22] << 3), resonance: registers[23] >> 4, routing: registers[23] & 7, volume: registers[24] & 15, voice3off: !!(registers[24] & 128)}};
   }
@@ -184,7 +187,7 @@ export class SidSynth {
   _adoptState(state) {
     this.#alive();
     if (!state || typeof state.initialized !== 'boolean' || !state.registers || state.registers.length !== 32) throw new TypeError('Invalid SID authoring state');
-    if (state.model !== undefined && state.model !== '6581') throw new RangeError('Only SID model 6581 is supported');
+    if (state.model !== undefined && state.model !== this.model) throw new RangeError('SID state model must match its instance');
     if (validateSidClock(state.clock ?? this.clock) !== this.clock) throw new RangeError('SID state clock must match its instance');
     const registers = Uint8Array.from(state.registers, value => integer(value, 255, 'state byte'));
     this.#registers.set(registers); this.#initialized = state.initialized;

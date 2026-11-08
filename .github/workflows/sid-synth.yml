@@ -11,6 +11,8 @@ on:
       - 'docs/index-ja.html'
       - 'docs/js/sid*'
       - 'docs/generated/sid/**'
+      - 'docs/generated/sid8580-machine/**'
+      - 'docs/sid8580-lab/psid_structure.js'
       - 'docs/sources/sid/**'
       - 'docs/synth/synth_keyboard.js'
       - 'docs/synth/synth_controls.js'
@@ -19,7 +21,16 @@ on:
       - 'tetorica_src/runtime/sid*'
       - 'tetorica_src/runtime/generated/sid/**'
       - 'tetorica_src/wasm/sid*'
+      - 'tetorica_src/wasm/sid8580-machine/**'
+      - 'tetorica_src/wasm/sid8580-probe/**'
       - 'third_party/chips-m6581/**'
+      - 'third_party/chips-c64/**'
+      - 'third_party/chips-m6502/**'
+      - 'third_party/sidera/**'
+      - 'third_party/sid8580-machine-toolchain-notices/**'
+      - 'test/runtime/sid*'
+      - 'test/helpers/sid*'
+      - 'LICENSE'
       - 'scripts/*sid*'
       - 'scripts/copy_readable_modules.mjs'
       - 'scripts/runtime_artifacts.mjs'
@@ -35,13 +46,19 @@ on:
       - 'docs/index-ja.html'
       - 'docs/js/**'
       - 'docs/generated/**'
+      - 'docs/sid8580-lab/psid_structure.js'
       - 'docs/sources/sid/**'
       - 'docs/synth/**'
       - 'docs/synth-spu/synth.css'
       - 'docs/synth-spu/spu_synth_visualizer.js'
       - 'tetorica_src/runtime/**'
       - 'tetorica_src/wasm/sid*'
+      - 'tetorica_src/wasm/sid8580-machine/**'
+      - 'tetorica_src/wasm/sid8580-probe/**'
       - 'third_party/**'
+      - 'test/runtime/sid*'
+      - 'test/helpers/sid*'
+      - 'LICENSE'
       - 'scripts/**'
       - 'package*.json'
       - '.github/workflows/sid-synth.yml'
@@ -63,6 +80,8 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - name: Test the source application
         run: |
+          node scripts/sid_model_artifacts.mjs --check
+          node --test test/runtime/sid8580.test.mjs test/runtime/sidsynth.test.mjs
           npm run test:sid-synth
           node scripts/check_sid_synth_browser.cjs --out release/sid-synth-source-browser.json --screenshots release/sid-synth-source-images
       - name: Package and play the standalone SID Synth

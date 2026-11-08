@@ -8,7 +8,9 @@ const nativeFetch = globalThis.fetch?.bind(globalThis), modules = new WeakMap();
 export async function createSidAudio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const clock = validateSidClock(options.clock ?? SID_PAL_CLOCK);
-  if (options.model !== undefined && options.model !== '6581') throw new RangeError('Only SID model 6581 is supported');
+  const model = options.model ?? '6581';
+  if (!['6581','8580'].includes(model)) throw new RangeError('SID model must be 6581 or 8580');
+  if (model === '8580' && clock !== SID_PAL_CLOCK) throw new RangeError('SID 8580 Preview requires PAL 985248 Hz');
   if (!Number.isInteger(context?.sampleRate) || context.sampleRate < 8000 || context.sampleRate > 96000) throw new RangeError('SID output sample rate must be 8000..96000 Hz');
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('SID requires an open AudioContext with AudioWorklet');
   const workletUrl = String(options.workletUrl ?? new URL('./playground_sid_worklet.js', import.meta.url));
@@ -23,13 +25,15 @@ export async function createSidAudio(context, destination, options = {}) {
     });
   };
   const [wasmBinary] = await wait(Promise.all([
-    (options.fetch ?? nativeFetch)(options.wasmUrl ?? new URL('../generated/sid/sid.wasm', import.meta.url), {signal: options.signal})
+    (options.fetch ?? nativeFetch)(options.wasmUrl ?? (model === '8580'
+      ? new URL('../generated/sid8580-machine/sid8580-endpoint.wasm', import.meta.url)
+      : new URL('../generated/sid/sid.wasm', import.meta.url)), {signal: options.signal})
       .then(response => { if (!response.ok) throw new Error(`SID WASM HTTP ${response.status}`); return response.arrayBuffer(); }), module,
   ]));
   options.signal?.throwIfAborted();
   if (context.state === 'closed') throw new Error('SID AudioContext was closed');
   const node = new AudioWorkletNode(context, 'tetorica-sid', {numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
-    processorOptions: {wasmBinary, clock, model: '6581'}});
+    processorOptions: {wasmBinary, clock, model}});
   const channel = new MessageChannel(); let disposed = false, rejectReady, timer;
   const dispose = () => {
     if (disposed) return; disposed = true;
@@ -54,7 +58,7 @@ export async function createSidAudio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('SID AudioContext was closed');
     node.port.postMessage({port: channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return watchAudioEndpoint({node, port: channel.port2, clock, model: '6581', chip: 'sid', dispose}, {context, label: 'SID', onError: options.onError});
+    return watchAudioEndpoint({node, port: channel.port2, clock, model, chip: 'sid', dispose}, {context, label: 'SID', onError: options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

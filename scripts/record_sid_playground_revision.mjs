@@ -57,7 +57,7 @@ export async function createSidPlaygroundRevisionReceipt(){
   }
   if(Object.keys(sources).length!==allowed.length||allowed.some(name=>!Object.hasOwn(sources,name)))throw new Error('SID revision must retain the exact reviewed source inventory');
   return {schemaVersion:1,scope:'sid-playground-routing-only',baseCommit,
-    review:'SID-only register routing, explicit chip names, mode/tab/type/completion and self-authored examples. Existing chip DSP, measured PCM, target and source/listening gains are unchanged.',
+    review:'SID-only register routing, explicit chip names, mode/tab/type/completion and self-authored examples. Revision 02 additionally permits SID 8580 model/PAL validation, the model type annotation and additional-chip Worker creation metadata. Existing chip DSP, measured PCM, target and source/listening gains are unchanged.',
     reports:reportRecords,sources};
 }
 

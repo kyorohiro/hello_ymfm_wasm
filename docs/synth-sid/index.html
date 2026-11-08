@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tetorica SID Synth: explore three 6581 voices, pulse width, ADSR and the shared SID filter. Play, edit and take the readable code.">
+  <meta name="description" content="Tetorica SID Synth: explore 6581 and 8580 Preview models, three voices, pulse width, ADSR and the shared SID filter. Play, edit and take the readable code.">
   <meta name="theme-color" content="#e5dbc4">
   <meta name="application-name" content="Tetorica SID Synth">
   <meta name="apple-mobile-web-app-title" content="Tetorica SID Synth">
@@ -23,9 +23,9 @@
       <div class="title-row">
         <div class="product-identity">
           <img class="product-icon" src="../tetorica_sid_synth.webp" width="112" height="112" alt="" decoding="async">
-          <div class="product-copy"><p class="eyebrow">THREE VOICES · ONE SHARED FILTER</p><h1 id="synthTitle">Tetorica <span class="product-name">SID Synth</span></h1><p class="description">Play the 6581. Shape the filter. Take the code.</p></div>
+          <div class="product-copy"><p class="eyebrow">THREE VOICES · ONE SHARED FILTER</p><h1 id="synthTitle">Tetorica <span class="product-name">SID Synth</span></h1><p class="description">Play the SID. Shape the filter. Take the code.</p></div>
         </div>
-        <span class="engine-badge">6581 <span>PAL · APPROXIMATION</span></span>
+        <span class="engine-badge"><b id="sidModelBadge">6581</b> <span id="sidModelStatus">PAL · APPROXIMATION</span></span>
       </div>
       <div class="audio-toolbar">
         <div class="transport-actions"><button id="startAudio" class="primary" type="button">Enable audio</button><button id="stopAudio" type="button">Stop all sound</button></div>
@@ -64,7 +64,7 @@
       <div id="keyboardFretboard"></div>
       <div class="performance-keyboard"><label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center."><span>Pitch</span><input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones"><output id="keyboardPitchValue" for="keyboardPitchBend">+0.00</output></label><div id="keyboard" class="keyboard-mount"></div></div>
     </section>
-    <footer><p>CPU-free 6581 approximation · PAL 985,248 Hz · chips/m6581 core. Waveforms, ADSR, Sync, Ring and the shared filter are SID controls. Round robin, note mapping, Pitch and modulator ratio are software performance tools. The core includes a software DC blocker. No 8580, PSID/RSID song playback or Native output.</p><div><a href="../playground/index.html?mode=c64">Open Playground</a> · <a href="../sid.md">SID guide</a> · <a href="./synth.js">Application source</a> · <a href="../js/sidsynth.js">SID API source</a></div></footer>
+    <footer><p>CPU-free SID approximations · PAL 985,248 Hz · chips/m6581 and sidera 8580 Preview. Waveforms, ADSR, Sync, Ring and the shared filter are SID controls. Round robin, note mapping, Pitch and modulator ratio are software performance tools. A software DC blocker follows the core. PSID/RSID song playback is in SID Player. Native output is separate work.</p><div><a href="../playground/index.html?mode=c64">Open Playground</a> · <a href="../sid.md">SID guide</a> · <a href="./synth.js">Application source</a> · <a href="../js/sidsynth.js">SID API source</a></div></footer>
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>

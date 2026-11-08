@@ -275,7 +275,7 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#presetTools > summary').click();
     await filterMode('lowpass+bandpass');
     const downloadPromise = page.waitForEvent('download'); await page.locator('#savePreset').click(); const download = await downloadPromise;
-    const saved = JSON.parse(await fs.readFile(await download.path(), 'utf8')); assert.equal(saved.format, 'tetorica-sid-voice'); assert.equal(saved.version, 1); assert(saved.modulation.ring);
+    const saved = JSON.parse(await fs.readFile(await download.path(), 'utf8')); assert.equal(saved.format, 'tetorica-sid-voice'); assert.equal(saved.version, 2); assert.equal(saved.model, '6581'); assert(saved.modulation.ring);
     assert.equal(saved.filter.mode, 'lowpass+bandpass');
     await page.keyboard.down(keys[0]); state = await wait(value => value.voices.length === 1); const savedOwner = state.voices[0].id;
     await page.locator('#presetFileInput').dispatchEvent('cancel'); assert.deepEqual((await read()).preset, saved); assert.equal((await read()).voices[0].id, savedOwner);
@@ -284,9 +284,10 @@ async function checkEngine(name, engine, origin) {
     await page.locator('#resetPreset').click(); await wait(value => value.capacity === 3 && value.voices.length === 0); await page.keyboard.up(keys[0]);
     await page.locator('#presetFileInput').setInputFiles({name: 'voice.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved))});
     state = await wait(value => value.capacity === 1 && value.preset.modulation.ring); assert.deepEqual(state.preset, saved); assert.equal(state.pitch, 0);
-    const legacyNotch = {...saved, filter: {...saved.filter, mode: 'notch'}};
+    const legacyNotch = {...saved, version: 1, filter: {...saved.filter, mode: 'notch'}}; delete legacyNotch.model;
     await page.locator('#presetFileInput').setInputFiles({name: 'legacy-notch-v1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(legacyNotch))});
     state = await wait(value => value.preset.filter.mode === 'notch'); assert.equal(state.registers[24] & 0x70, 0x50);
+    assert.equal(state.preset.version, 2); assert.equal(state.preset.model, '6581');
     for (const [bit, pressed] of [[1, true], [2, false], [4, true]]) assert.equal(await page.locator(`[data-filter-bit="${bit}"]`).getAttribute('aria-pressed'), String(pressed));
     await page.locator('#presetFileInput').setInputFiles({name: 'combined-voice.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved))});
     state = await wait(value => value.preset.filter.mode === 'lowpass+bandpass'); assert.deepEqual(state.preset, saved);
@@ -300,6 +301,84 @@ async function checkEngine(name, engine, origin) {
     }, {code});
     assert(measurements.copiedCode.finite && measurements.copiedCode.peak > .0001);
     assert.equal(measurements.copiedCode.registers[24] & 0x70, 0x30, 'exported JavaScript retains LP + BP in the real SID core');
+
+    check('8580 model switch keeps the patch in one AudioContext, resets held owners/Pitch and releases keyboard focus');
+    const contextCount = await page.evaluate(() => __sidSynthAudit.contexts.length);
+    await page.keyboard.down(keys[0]); await wait(value => value.voices.length === 1);
+    await range('pitchBend', 1.25); await wait(value => value.pitch === 1.25);
+    await choice('sidModel', '8580');
+    state = await wait(value => value.model === '8580' && value.voices.length === 0 && value.pitch === 0);
+    assert.deepEqual(state.preset, {...saved, model: '8580'}); await silent();
+    assert.equal(await page.evaluate(() => __sidSynthAudit.contexts.length), contextCount);
+    assert.equal(await page.locator('#sidModelBadge').textContent(), '8580');
+    assert.match(await page.locator('#sidModelStatus').textContent(), /PREVIEW/);
+    assert.equal(await page.locator('#pitchBend').inputValue(), '0'); assert.equal(await page.locator('#keyboardPitchBend').inputValue(), '0');
+    if (config.screenshots) {
+      for (const width of [1180, 390]) {
+        await page.setViewportSize({width, height: width === 390 ? 844 : 1000});
+        assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - innerWidth)), 0);
+        await page.screenshot({path: path.join(config.screenshots, `${name}-8580-${width}.png`), fullPage: true});
+      }
+      await page.setViewportSize({width: 1180, height: 1000});
+    }
+    await page.keyboard.up(keys[0]); await page.keyboard.down(keys[1]); await wait(value => value.voices.length === 1); await sound();
+    const ring8580A = await measure();
+    await range('modulationRatioRange', 2.25); await wait(value => value.preset.modulation.ratio === 2.25);
+    const ring8580B = await measure();
+    measurements.ring8580SpectrumDifference = difference(ring8580A.spectrum, ring8580B.spectrum);
+    assert(measurements.ring8580SpectrumDifference > .01);
+    await page.keyboard.up(keys[1]); await stopped();
+
+    check('8580 three-voice allocation, release tails and all shared filter combinations reach real PCM');
+    await page.locator('#ringEnabled').uncheck(); await wait(value => !value.preset.modulation.ring && value.capacity === 3);
+    await page.locator('#attack').press('Home'); await page.locator('#decay').press('Home'); await page.locator('#release').press('End');
+    await wait(value => value.preset.voice.attack === 0 && value.preset.voice.decay === 0 && value.preset.voice.release === 15);
+    await choice('waveform', 'saw');
+    for (const key of keys.slice(0, 3)) await page.keyboard.down(key);
+    state = await wait(value => value.voices.length === 3); assert.equal(new Set(state.voices.map(voice => voice.channel)).size, 3); await sound();
+    const first8580Owner = state.voices[0].id;
+    await page.keyboard.down(keys[3]); await wait(value => value.voices.length === 3 && !value.voices.some(voice => voice.id === first8580Owner));
+    await page.keyboard.up(keys[0]); assert.equal((await read()).voices.length, 3);
+    measurements.filters8580 = {};
+    for (const mask of [1, 3, 2, 6, 7, 5, 4, 0]) {
+      state = await filterMode(filterModes[mask]);
+      assert.equal(state.registers[24] & 0x70, mask << 4); assert.equal(state.registers[23] & 7, mask ? 7 : 0);
+      const value = await measure(); measurements.filters8580[filterModes[mask]] = {rms: value.rms, peak: value.peak};
+      assert(value.rms > .000001, `8580 ${filterModes[mask]} produces PCM`);
+    }
+    for (const key of keys.slice(1)) await page.keyboard.up(key);
+    await wait(value => value.voices.length === 0); assert((await measure()).rms > .00001, '8580 hardware release continues with unknown Envelope');
+    await stopped();
+
+    check('8580 preset save/load and Copy JavaScript retain its actual core; v1 migrates to 6581');
+    await filterMode('lowpass+bandpass');
+    const download8580Promise = page.waitForEvent('download'); await page.locator('#savePreset').click(); const download8580 = await download8580Promise;
+    const saved8580 = JSON.parse(await fs.readFile(await download8580.path(), 'utf8')); assert.equal(saved8580.version, 2); assert.equal(saved8580.model, '8580');
+    await page.locator('#copyCode').click(); const code8580 = await page.locator('#codeOutput').inputValue();
+    assert.match(code8580, /await createSoundChip\('sid', .*model:'8580'/); assert.match(code8580, /sid8580\.setVoice/);
+    measurements.copied8580Code = await page.evaluate(async ({code}) => {
+      const {Sid8580Core} = await import(new URL('../js/sid8580.js', location.href).href), {SidSynth} = await import(new URL('../js/sidsynth.js', location.href).href);
+      const wasmBinary = await (await fetch(new URL('../generated/sid8580-machine/sid8580-endpoint.wasm', location.href))).arrayBuffer();
+      const core = await Sid8580Core.create({wasmBinary}), extra = new SidSynth({core});
+      const calls = [];
+      try {
+        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+        await new AsyncFunction('createSoundChip', code)(async (name, options) => { calls.push({name, options}); return extra; });
+        const pcm = core.render(8192), state = extra._getState();
+        return {calls, model: state.model, registers: state.registers, peak: pcm.reduce((p, value) => Math.max(p, Math.abs(value)), 0), finite: pcm.every(Number.isFinite)};
+      } finally { extra.dispose(); core.dispose(); }
+    }, {code: code8580});
+    assert.equal(measurements.copied8580Code.model, '8580'); assert.equal(measurements.copied8580Code.calls[0].options.model, '8580');
+    assert.equal(measurements.copied8580Code.registers[24] & 0x70, 0x30);
+    assert(measurements.copied8580Code.finite && measurements.copied8580Code.peak > .0001);
+    await page.locator('#presetFileInput').setInputFiles({name: 'legacy-v1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(legacyNotch))});
+    state = await wait(value => value.model === '6581' && value.preset.filter.mode === 'notch'); assert.equal(state.preset.version, 2);
+    assert.equal(await page.locator('#sidModelBadge').textContent(), '6581');
+    await page.locator('#presetFileInput').setInputFiles({name: '8580.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved8580))});
+    state = await wait(value => value.model === '8580'); assert.deepEqual(state.preset, saved8580);
+    // Restore the paired reference for the existing queue/owner checks below.
+    await page.locator('#presetFileInput').setInputFiles({name: 'combined-voice.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved))});
+    await wait(value => value.model === '6581' && value.preset.modulation.ring);
 
     check('rapid topology edits and a coalesced preset load still reset held owners and both Pitch wheels');
     await page.keyboard.down(keys[0]); await wait(value => value.voices.length === 1);

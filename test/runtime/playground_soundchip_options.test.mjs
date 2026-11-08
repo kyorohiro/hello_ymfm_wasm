@@ -21,8 +21,9 @@ test('engine selection belongs only to additional YM2612 and rejects options bef
 });
 
 test('SID creation validates the supported model and physical clock before allocation',()=>{
-  for(const options of [{},{id:'lead'},{clock:985248,model:'6581'},{clock:900000},{clock:1100000}])assert.doesNotThrow(()=>validateSoundChipOptions('sid',options));
+  for(const options of [{},{id:'lead'},{clock:985248,model:'6581'},{model:'8580'},{clock:985248,model:'8580'},{clock:900000},{clock:1100000}])assert.doesNotThrow(()=>validateSoundChipOptions('sid',options));
   for(const clock of [null,899999,1100001,985248.5,NaN,Infinity,'985248'])assert.throws(()=>validateSoundChipOptions('sid',{clock}),/SID clock/);
-  for(const model of [null,6581,'8580','6581R4',''])assert.throws(()=>validateSoundChipOptions('sid',{model}),/SID model/);
+  for(const model of [null,6581,'8581','6581R4',''])assert.throws(()=>validateSoundChipOptions('sid',{model}),/SID model/);
+  for(const clock of [900000,1022727,1100000])assert.throws(()=>validateSoundChipOptions('sid',{model:'8580',clock}),/PAL/);
   for(const options of [{sampleRate:48000},{engine:'chips'},{fds:false}])assert.throws(()=>validateSoundChipOptions('sid',options),/createSoundChip supports/);
 });

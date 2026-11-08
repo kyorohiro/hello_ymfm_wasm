@@ -25,9 +25,9 @@ async function fixture(t,{primary=true,clock=985248}={}){
       parentPort.postMessage({readyForTest:true});
     });
   `,{eval:true});
-  function endpoint(id,physicalClock=clock){
+  function endpoint(id,physicalClock=clock,model='6581'){
     const channel=new MessageChannel(),registers=new Uint8Array(32),commands=[];
-    const synth=new SidSynth({clock:physicalClock,transport:{reset(){registers.fill(0);},writeRegister(reg,value){registers[reg]=value;}}});
+    const synth=new SidSynth({clock:physicalClock,model,transport:{reset(){registers.fill(0);},writeRegister(reg,value){registers[reg]=value;}}});
     synth.initialize();const state=synth._getState();synth.dispose();
     const port=channel.port1;
     const apply=command=>{
@@ -37,11 +37,12 @@ async function fixture(t,{primary=true,clock=985248}={}){
       else if(command.method==='forceKeyOff')registers[args[0]*7+4]&=254;
       else if(command.method==='stopVoices')for(let ch=0;ch<3;ch++)registers[ch*7+4]&=254;
       else if(command.method==='readRegister')value=registers[args[0]];
+      else if(command.method==='getState')value={...state,registers:Array.from(registers)};
       if(command.id!==undefined)port.postMessage({id:command.id,value});
     };
     const performance=createProcessorPerformance({chip:'sid',rate:48000,nowFrame:()=>0,apply});
     performance.receive({type:'performance-start',session:1},port);
-    const device={id,clock:physicalClock,registers,commands,port,state};devices.push(device);
+    const device={id,clock:physicalClock,model,registers,commands,port,state};devices.push(device);
     port.onmessage=({data})=>{
       if(data.performance){
         for(const command of data.commands){commands.push({...command,owner:data.performance.owner,time:data.performance.time});performance.applyImmediate(command,port,data.performance);}
@@ -56,8 +57,8 @@ async function fixture(t,{primary=true,clock=985248}={}){
     messages.push(message);
     if(message.type==='request'){
       if(message.command==='pcm.create'){
-        assert.equal(message.args[0],'sid');const options=message.args[1]??{},device=endpoint(options.id??'sid:extra',options.clock??985248);
-        worker.postMessage({type:'response',id:message.id,value:{port:device.clientPort,id:device.id,instance:devices.length,clock:device.clock,model:'6581'}},[device.clientPort]);
+        assert.equal(message.args[0],'sid');const options=message.args[1]??{},device=endpoint(options.id??'sid:extra',options.clock??985248,options.model??'6581');
+        worker.postMessage({type:'response',id:message.id,value:{port:device.clientPort,id:device.id,instance:devices.length,clock:device.clock,model:device.model}},[device.clientPort]);
       }else worker.postMessage({type:'response',id:message.id,value:true});
     }
     if(message.type==='log'&&message.level==='error')errors.push(message.message);
@@ -121,4 +122,20 @@ for(const allocation of ['useSoundChip','createSoundChip'])test(`actual Worker $
   await f.run(`liveLoop('new',async()=>{await sleep(60);});`);
   await until(()=>!(device.registers[4]&1)&&!(device.registers[11]&1),'extra retired loop release');
   assert.equal(device.registers[18]&1,1);await f.stop();assert.deepEqual(f.errors,[]);
+});
+
+test('actual logic Worker preserves the additional 8580 model, clock and performance ownership', {timeout:10000},async t=>{
+  const f=await fixture(t,{primary:false});
+  await f.run(`
+    const extra=await createSoundChip('sid',{id:'sid:8580-voice',model:'8580'});
+    if(extra.model!=='8580'||extra.clock!==985248)throw Error('Wrong8580 creation metadata');
+    const observed=await extra.getState();if(observed.model!=='8580')throw Error('Wrong8580 state');
+    liveLoop('old',async()=>{extra.noteOn(0,'C4');await extra.readRegister(27);extra.noteOn(1,'E4');log('old-ready');await sleep(60);});
+    liveLoop('new',async()=>{extra.noteOn(2,'G4');log('new-ready');await sleep(60);});
+  `);
+  await until(()=>f.logged('old-ready')&&f.logged('new-ready'),'8580 owners');
+  assert.equal(f.devices.length,1);assert.equal(f.devices[0].model,'8580');assert.equal(f.devices[0].clock,985248);assertLoopOwnership(f.devices[0]);
+  await f.stop();
+  await until(()=>f.messages.some(message=>message.type==='command'&&message.command==='pcm.dispose'&&message.args[0]==='sid:8580-voice'),'8580 endpoint disposal');
+  assert.deepEqual(f.errors,[]);
 });

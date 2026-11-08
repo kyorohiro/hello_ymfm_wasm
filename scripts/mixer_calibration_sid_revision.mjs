@@ -7,8 +7,8 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
 export const SID_PLAYGROUND_REVISION_BASE_COMMIT='fa0d4521a75694cc8e950424d7aeb83f1724b25e';
-export const SID_PLAYGROUND_REVISION_RECEIPT_PATH='docs/issues/sid_playground_source_revision_01.json';
-export const SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256='2d4cbe13e301e1629f6cce281b0013f40235432ebf8080ae5d8166ed370256db';
+export const SID_PLAYGROUND_REVISION_RECEIPT_PATH='docs/issues/sid_playground_source_revision_02.json';
+export const SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256='b9a25aa970a0731be49fe494bb11c26c6cea164182b035b2f2a3c24f6d33b128';
 export const SID_PLAYGROUND_REVISION_REPORT_PATHS=Object.freeze([
   'docs/issues/ps1_state_restore_chip_levels_01.json',
   'docs/issues/wonderswan_state_restore_chip_levels_01.json',

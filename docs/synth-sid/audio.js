@@ -10,10 +10,11 @@ function validateVolume(value) {
 /** User-gesture-created mono SID, duplicated to stereo by the processor.
  * outputNode is after the user Master. Attach visualizers as passive branches;
  * do not connect their output to destination a second time.
- * @param {{volume?:number,onError?:(error:Error)=>void,signal?:AbortSignal}} [options]
+ * @param {{volume?:number,model?:'6581'|'8580',onError?:(error:Error)=>void,signal?:AbortSignal}} [options]
  */
-export async function createAudio({volume = .7, onError = () => {}, signal} = {}) {
+export async function createAudio({volume = .7, model = '6581', onError = () => {}, signal} = {}) {
   validateVolume(volume);
+  if(!['6581','8580'].includes(model))throw new RangeError('SID model must be 6581 or 8580');
   if (signal?.aborted) throw new DOMException('SID audio startup cancelled', 'AbortError');
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
@@ -68,9 +69,15 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
     startupTimer = setTimeout(() => fail(new Error('SID audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
     // Resume inside the user gesture, before awaiting either asset load.
     const resumed = context.resume();
-    const [wasmBinary] = await boundedStartup(Promise.all([
+    // Cache both model binaries for atomic model swaps in this same Worklet.
+    // Neither binary is instantiated until its model is selected.
+    const [wasmBinary,wasm8580Binary] = await boundedStartup(Promise.all([
       fetch(new URL('../generated/sid/sid.wasm', import.meta.url), {signal: controller.signal}).then(response => {
         if (!response.ok) throw new Error(`SID WASM could not load (HTTP ${response.status})`);
+        return response.arrayBuffer();
+      }),
+      fetch(new URL('../generated/sid8580-machine/sid8580-endpoint.wasm', import.meta.url), {signal: controller.signal}).then(response => {
+        if (!response.ok) throw new Error(`SID 8580 WASM could not load (HTTP ${response.status})`);
         return response.arrayBuffer();
       }),
       context.audioWorklet.addModule(new URL('./processor.js', import.meta.url)), resumed,
@@ -78,7 +85,7 @@ export async function createAudio({volume = .7, onError = () => {}, signal} = {}
     assertOpen();
     const ready = new Promise(resolve => { resolveReady = resolve; });
     node = new AudioWorkletNode(context, 'tetorica-sid-synth', {
-      numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},
+      numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {model,wasmBinary,wasm8580Binary},
     });
     node.onprocessorerror = () => fail(new Error('SID audio processor failed. Enable audio to restart.'));
     node.port.onmessageerror = () => fail(new Error('SID audio reply could not be read. Enable audio to restart.'));

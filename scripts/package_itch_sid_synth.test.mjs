@@ -54,6 +54,48 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     assert.equal(bytes.length, input.bytes); assert.equal(sha(bytes), input.sha256, path);
   }
   assert.equal(sha(await readFile(join(a.stage, 'generated/sid/sid.wasm'))), native.output.sha256);
+  // The Preview must be rebuildable from the exact sources that produced its
+  // endpoint, without assuming Rust or Emscripten is installed at package time.
+  const previewRoot='generated/sid8580-machine',kit=info.receipt.previewSourceKit;
+  assert.equal(kit.path,'sources/sid8580-machine');assert.equal(kit.manifest,'source-kit.json');
+  const previewReceiptBytes=await readFile(join(a.stage,previewRoot,'sid8580-machine-build.json'));
+  const previewReceipt=JSON.parse(previewReceiptBytes),sourceKit=JSON.parse(await readFile(join(a.stage,kit.path,kit.manifest)));
+  assert.equal(previewReceipt.model,'8580');assert.equal(previewReceipt.fixedSdkArtifact,false);assert.equal(previewReceipt.clockHz,985248);
+  assert.deepEqual(previewReceipt.profileDefaults,{resonance:false,cutoff:false});
+  assert.deepEqual(sourceKit.compiledInputs,previewReceipt.inputs);assert.equal(sourceKit.compiledInputCount,99);assert.equal(kit.compiledInputCount,sourceKit.compiledInputCount);
+  assert.equal(sourceKit.compilerInvocationPerformed,false);assert.equal(sourceKit.preview,true);
+  assert.deepEqual(sourceKit.artifacts,info.receipt.previewArtifacts);assert.deepEqual(sourceKit.buildReceipt,kit.buildReceipt);
+  assert.equal(sourceKit.buildReceipt.bytes,previewReceiptBytes.length);assert.equal(sourceKit.buildReceipt.sha256,sha(previewReceiptBytes));
+  assert.deepEqual(await readFile(join(a.stage,kit.path,sourceKit.buildReceipt.path)),previewReceiptBytes);
+  for(const artifact of sourceKit.artifacts){
+    assert(artifact.path.startsWith(previewRoot+'/'));const bytes=await readFile(join(a.stage,artifact.path));
+    assert.equal(bytes.length,artifact.bytes);assert.equal(sha(bytes),artifact.sha256);
+    assert.deepEqual({bytes:artifact.bytes,sha256:artifact.sha256},previewReceipt.outputs[artifact.path.slice(previewRoot.length+1)]);
+  }
+  assert.deepEqual(sourceKit.artifacts.map(item=>item.path).sort(),[previewRoot+'/sid8580-endpoint.wasm',previewRoot+'/sid8580-machine.wasm']);
+  for(const [path,input] of Object.entries(sourceKit.sources)){
+    assert(!path.startsWith('/')&&!path.split('/').includes('..'));const bytes=await readFile(join(a.stage,kit.path,path));
+    assert.equal(bytes.length,input.bytes);assert.equal(sha(bytes),input.sha256,path);
+    assert.deepEqual(bytes,await readFile(new URL('../'+path,import.meta.url)));
+    assert(info.receipt.originalInputs.some(item=>item.path===path&&item.sha256===input.sha256),`Missing browser source provenance: ${path}`);
+  }
+  for(const [path,input] of Object.entries(previewReceipt.inputs))assert.deepEqual(sourceKit.sources[path],input,`Missing compiled source: ${path}`);
+  assert.deepEqual(sourceKit.noticeRoots,['third_party/sidera/toolchain-notices','third_party/sid8580-machine-toolchain-notices']);
+  for(const root of sourceKit.noticeRoots){
+    const notices=JSON.parse(await readFile(join(a.stage,kit.path,root,'SOURCES.json')));
+    for(const [name,{bytes,sha256}]of Object.entries(notices.files))assert.deepEqual(sourceKit.sources[root+'/'+name],{bytes,sha256});
+  }
+  assert.match(await readFile(join(a.stage,kit.path,'third_party/sidera/LICENSE'),'utf8'),/MIT License/);
+  assert.match(await readFile(join(a.stage,'sources/SID8580.md'),'utf8'),/CPU-free SID 8580 Preview/);
+  assert(!info.names.some(name=>/\.(?:sid|psid|rsid|rom|wav|pcm|f32le|exe|dylib|rlib|o|a)$/i.test(name)),'No native binaries, user firmware or music belong in the distribution');
+  const endpoint=await WebAssembly.compile(await readFile(join(a.stage,previewRoot,'sid8580-endpoint.wasm')));
+  assert.deepEqual(WebAssembly.Module.imports(endpoint),[]);const endpointExports=new Map(WebAssembly.Module.exports(endpoint).map(item=>[item.name,item.kind]));
+  for(const name of ['create','destroy','run','output','output_frames','write','read','model','calibration','cutoff_calibration'])assert.equal(endpointExports.get('sid8p_'+name),'function',name);
+  for(const name of ['sid8580.js','sid8580.d.ts']){
+    const bytes=await readFile(join(a.stage,'js',name));assert.deepEqual(bytes,await readFile(new URL('../tetorica_src/runtime/'+name,import.meta.url)));
+  }
+  assert.match(await readFile(join(a.stage,'js/sid8580.js'),'utf8'),/export class Sid8580Core/);
+  assert(info.receipt.modules.some(module=>module.path==='js/sid8580.js'),'The 8580 adapter must remain an authored readable module');
   assert.equal(info.receipt.builder.minify, false); assert.equal(info.receipt.builder.bundle, false);
   assert(info.receipt.modules.length > info.receipt.bundles.length);
   for (const module of info.receipt.modules) {

@@ -13,9 +13,12 @@ import {attachChipClock} from './playground_chip_clock.js';
 /** Main/Worker authoring client. Only accepted low-level writes cross the port;
  * applied snapshots are adopted without replaying them into the processor.
  * @returns {SidClient} */
-export function createSidRegisterClient(send, {clock = SID_PAL_CLOCK, close = () => {}, request, lifecycle = {}} = {}) {
-  validateSidClock(clock); let disposed = false;
-  const api = new SidSynth({clock, transport: {
+export function createSidRegisterClient(send, {clock = SID_PAL_CLOCK, model = '6581', close = () => {}, request, lifecycle = {}} = {}) {
+  validateSidClock(clock);
+  if (!['6581','8580'].includes(model)) throw new RangeError('SID model must be 6581 or 8580');
+  if (model === '8580' && clock !== SID_PAL_CLOCK) throw new RangeError('SID 8580 Preview requires PAL 985248 Hz');
+  let disposed = false;
+  const api = new SidSynth({clock, model, transport: {
     writeRegister(register, value, channel) { if (disposed) throw new Error('SID client is disposed'); send('writeRegister', [register, value], channel); },
     reset() { if (disposed) throw new Error('SID client is disposed'); send('reset', []); },
   }});
@@ -62,10 +65,10 @@ export function createSidRegisterClient(send, {clock = SID_PAL_CLOCK, close = ()
 
 /** @returns {SidClient} */
 export function createSidClient(port, options = {}, lifecycle = {}) {
-  if (options.model !== undefined && options.model !== '6581') throw new RangeError('Only SID model 6581 is supported');
+  const model = options.model ?? '6581';
   const clock = validateSidClock(options.clock ?? SID_PAL_CLOCK);
   const api = createSidRegisterClient((method, args, channel) => port.postMessage({method, args, ...(channel === undefined ? {} : {channel})}),
-    {clock, close: () => port.close(), lifecycle});
+    {clock, model, close: () => port.close(), lifecycle});
   const setClock = api.setClock.bind(api), client = attachChipClock(api, port, clock);
   client.setClock = setClock;
   if (options.state) api._adoptState(options.state);

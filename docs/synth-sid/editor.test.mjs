@@ -48,6 +48,21 @@ test('passive SID editor uses compact stepper/buttons, keeps folds and enables a
   f.editor.dispose();
 });
 
+test('SID model choices preserve the sound settings, return pointer focus and support keyboard navigation',async t=>{
+  const f=editorFixture(t),group=find(f.root,'sidModel'),old=choice(f.root,'sidModel','6581'),preview=choice(f.root,'sidModel','8580');
+  assert.equal(group.getAttribute('role'),'radiogroup');assert.match(preview.textContent,/8580.*Preview/);
+  assert.equal(old.getAttribute('aria-checked'),'true');assert.equal(preview.getAttribute('aria-checked'),'false');
+  const patch=createDefaultPreset();patch.voice.waveform='pulse';patch.voice.attack=7;patch.modulation.ring=true;patch.filter={enabled:true,mode:'notch',cutoff:1234,resonance:11,volume:6};f.editor.update(patch);
+  const typing=new Element(f.doc,'input');typing.focus();const event=await preview.fire('pointerdown');
+  assert.equal(event.defaultPrevented,true);assert.equal(f.doc.activeElement,null,'model buttons must leave performance keys available');
+  await preview.fire('click');assert.deepEqual(f.changes.at(-1),{...patch,model:'8580'});
+  assert.equal(old.getAttribute('aria-checked'),'false');assert.equal(preview.getAttribute('aria-checked'),'true');assert.equal(preview.tabIndex,0);assert.equal(old.tabIndex,-1);
+  const left=await group.fire('keydown',{key:'ArrowLeft'});assert.equal(left.defaultPrevented,true);assert.equal(f.editor.getPreset().model,'6581');assert.equal(f.doc.activeElement,old);
+  await group.fire('keydown',{key:'End'});assert.equal(f.editor.getPreset().model,'8580');assert.equal(f.doc.activeElement,preview);
+  f.editor.update(patch);assert.equal(old.getAttribute('aria-checked'),'true','a rejected model ACK can restore the actual model');assert.equal(preview.getAttribute('aria-checked'),'false');
+  assert.equal(f.errors.length,0);f.editor.dispose();
+});
+
 test('independent filter outputs combine, preserve shared settings and bypass when the last output turns off',async t=>{
   const f=editorFixture(t),lp=find(f.root,'filterLowpass'),bp=find(f.root,'filterBandpass'),hp=find(f.root,'filterHighpass');
   const shared=f.editor.getPreset().filter;
@@ -101,10 +116,10 @@ function appFixture({stall=false}={}){
   doc.getElementById('codeOutput').hidden=true;
   const modes=['waveform','spectrum'].map(mode=>{const node=new Element(doc,'button');node.dataset.visualMode=mode;node.setAttribute('aria-pressed',String(mode==='waveform'));return node;});
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
-  const win=new Element(doc,'window'),calls=[],engines=[],pending=[],visual={setMode(){},setRunning(){},connect(){},disconnect(){},stop(){},wake(){},dispose(){}};
+  const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(){},connect(){},disconnect(){},stop(){},wake(){},dispose(){}};
   let isStalled=stall,engineCount=0;
-  const makeEngine=()=>{
-    let value=createDefaultPreset(),pitch=0,voices=new Map();const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,
+  const makeEngine=model=>{
+    let value=createDefaultPreset({model}),pitch=0,voices=new Map();const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,
       async resume(){},setVolume(){},async dispose(){this.disposed=true;},
       async read(){return{preset:readPreset(value),pitch,capacity:value.modulation.sync||value.modulation.ring?1:3,voices:[...voices.values()]};},
       async command(method,args=[]){calls.push([engine.id,method,...args]);
@@ -113,22 +128,57 @@ function appFixture({stall=false}={}){
         if(method==='stop'){voices.clear();pitch=0;const state=await engine.read();if(engine.holdStop)await engine.holdStop;return state;}
         if(method==='setPitch'){if(engine.rejectPositivePitch&&args[0]>0)throw new Error('Pitch outside SID range');pitch=args[0];return engine.read();}
         if(method==='loadPreset'||method==='setPreset'){
+          const next=readPreset(args[0]);if(next.model!==value.model){voices.clear();pitch=0;}
           if(engine.rejectPatch){engine.rejectPatch=false;throw new Error('Tuning outside SID range');}
-          const previous=value;value=readPreset(args[0]);if(method==='loadPreset'||previous.modulation.sync!==value.modulation.sync||previous.modulation.ring!==value.modulation.ring||previous.voice.test!==value.voice.test){voices.clear();pitch=0;}
+          const previous=value;value=next;if(method==='loadPreset'||previous.model!==value.model||previous.modulation.sync!==value.modulation.sync||previous.modulation.ring!==value.modulation.ring||previous.voice.test!==value.voice.test){voices.clear();pitch=0;}
           if(engine.holdNext){const wait=engine.holdNext;engine.holdNext=null;await wait;}
           return engine.read();
         }
       }};engines.push(engine);return engine;
   };
-  const createAudio=({signal})=>{const engine=makeEngine();if(!isStalled)return Promise.resolve(engine);return new Promise((resolve,reject)=>{const item={resolve:()=>resolve(engine),reject,engine};pending.push(item);signal.addEventListener('abort',()=>{engine.disposed=true;reject(new DOMException('cancelled','AbortError'));},{once:true});});};
+  const createAudio=({signal,model})=>{audioOptions.push({model});const engine=makeEngine(model);if(!isStalled)return Promise.resolve(engine);return new Promise((resolve,reject)=>{const item={resolve:()=>resolve(engine),reject,engine};pending.push(item);signal.addEventListener('abort',()=>{engine.disposed=true;reject(new DOMException('cancelled','AbortError'));},{once:true});});};
   const entries=[{key:'a',label:'A',midi:60},{key:'s',label:'S',midi:64},{key:'d',label:'D',midi:67},{key:'f',label:'F',midi:71}];
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(){},dispose(){}}),
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,press,release,setPitch,getPreset:()=>preset,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,calls,engines,pending,entries,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,unstall(){isStalled=false;}};
 }
+
+test('selecting 8580 before enabling audio initializes that model and exposes Preview without an audio side effect',async()=>{
+  const f=appFixture(),preview=createDefaultPreset({model:'8580'});preview.voice.waveform='triangle';
+  await f.ui.applyPreset(preview);assert.equal(f.engines.length,0);assert.equal(f.doc.getElementById('sidModelBadge').textContent,'8580');assert.equal(f.doc.getElementById('sidModelStatus').textContent,'PAL · PREVIEW');
+  await f.ui.ensureAudio();assert.deepEqual(f.audioOptions,[{model:'8580'}]);assert.equal((await f.engines[0].read()).preset.model,'8580');assert.equal((await f.engines[0].read()).preset.voice.waveform,'triangle');
+});
+
+test('model replacement resets held owners and both Pitch wheels in the same audio context',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.ui.press('old',f.entries[0]);await flush();await flush();f.ui.setPitch(1);await flush();
+  const preview=createDefaultPreset({model:'8580'});await f.ui.applyPreset(preview);
+  const state=await f.engines[0].read();assert.equal(state.preset.model,'8580');assert.equal(state.voices.length,0);assert.equal(state.pitch,0);assert.equal(f.ui.getNotes().length,0);assert.equal(f.engines.length,1);
+  assert.equal(f.calls.at(-1)[1],'loadPreset');for(const id of ['pitchBend','keyboardPitchBend'])assert.equal(f.doc.getElementById(id).value,'0');
+  f.ui.press('new',f.entries[1]);await flush();await flush();f.ui.release('old');await flush();assert.equal((await f.engines[0].read()).voices.length,1,'a release owned by the old model cannot cut the new note');
+  f.ui.release('new');await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+});
+
+test('a rejected model replacement restores acknowledged model controls and preserves a stopped playable old patch',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();const applied=createDefaultPreset();applied.voice.waveform='pulse';applied.filter.cutoff=1200;await f.ui.applyPreset(applied);
+  f.ui.press('old',f.entries[0]);await flush();await flush();f.ui.setPitch(1);await flush();f.engines[0].rejectPatch=true;
+  await assert.rejects(f.ui.applyPreset({...applied,model:'8580'}),/Tuning/);
+  assert.deepEqual(f.ui.getPreset(),applied);assert.deepEqual(f.editorUpdates.at(-1),applied);assert.equal(f.doc.getElementById('sidModelBadge').textContent,'6581');assert.equal(f.doc.getElementById('sidModelStatus').textContent,'PAL · APPROXIMATION');
+  assert.match(f.doc.getElementById('patchStatus').textContent,/rejected.*previous preset kept/);assert.equal(f.ui.getNotes().length,0);assert.equal((await f.engines[0].read()).voices.length,0);assert.equal((await f.engines[0].read()).pitch,0);
+  f.engines[0].rejectPositivePitch=true;f.ui.setPitch(2);await flush();await flush();
+  for(const id of ['pitchBend','keyboardPitchBend'])assert.equal(f.doc.getElementById(id).value,'0','a later rejected Pitch must restore the stopped instrument, not its pre-switch bend');
+  f.ui.press('retry',f.entries[1]);await flush();await flush();assert.equal((await f.engines[0].read()).voices.length,1);f.ui.release('retry');await flush();assert.equal((await f.engines[0].read()).voices.length,0);
+});
+
+test('an earlier model ACK cannot replace a newer model draft and both transitions keep the reset',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.ui.press('held',f.entries[0]);await flush();await flush();let acknowledge;f.engines[0].holdNext=new Promise(resolve=>{acknowledge=resolve;});
+  const first=f.ui.applyPreset(createDefaultPreset({model:'8580'}));await flush();const latest=createDefaultPreset();latest.voice.waveform='triangle';const last=f.ui.applyPreset(latest);
+  assert.equal(f.doc.getElementById('sidModelBadge').textContent,'6581');acknowledge();await first;await last;
+  assert.deepEqual(f.ui.getPreset(),latest);assert.deepEqual((await f.engines[0].read()).preset,latest);assert.equal(f.ui.getNotes().length,0);assert.equal((await f.engines[0].read()).voices.length,0);
+  assert.deepEqual(f.calls.filter(call=>call[1]==='loadPreset').slice(-2).map(call=>call[2].model),['8580','6581']);assert.equal(f.engines.length,1);
+});
 
 test('startup Stop cancels pending ownership and a later key retries with a fresh silent engine',async()=>{
   const f=appFixture({stall:true});f.ui.press('first',f.entries[0]);await flush();assert.equal(f.engines.length,1);
