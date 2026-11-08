@@ -36,6 +36,14 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
 .sid-card { min-width:0; border:1px solid var(--line); border-radius:9px; background:#f7f1e3b8; }
 .sid-card>summary { cursor:pointer; padding:12px 14px; font-size:.83rem; font-weight:800; color:#5a4a37; }
+.sid-card>summary { position:relative; padding-right:50px; }
+.sid-help-button { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; min-width:26px; min-height:26px; padding:0; border:1px solid #9d9c85; border-radius:50%; background:#f3efdf; color:#526d64; font-size:.78rem; font-weight:800; cursor:pointer; }
+.sid-card>summary>.sid-help-button { position:absolute; right:11px; top:8px; }
+.sid-help-panel { margin-top:8px; padding:0 10px 10px; border-left:2px solid #93a393; }
+.sid-help-panel[hidden] { display:none; }
+.sid-inline-help { margin-top:8px; }
+.sid-inline-help>.sid-help-button { list-style:none; }
+.sid-inline-help>.sid-help-button::-webkit-details-marker { display:none; }
 .sid-card-content { min-width:0; padding:2px 14px 14px; }
 .sid-wide { grid-column:1/-1; }
 .sid-fields { display:flex; flex-wrap:wrap; align-items:end; gap:12px 14px; }
@@ -72,7 +80,28 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-import-status[data-error="true"],.sid-import-preview[data-unavailable="true"] { color:#a1392c; }
 .sid-import-preview { white-space:pre-line; overflow-wrap:anywhere; }
 #sidImportInfo { overflow-wrap:anywhere; }
-#sidImportUse { margin-top:10px; }
+.sid-live-tools { margin:0 0 14px; }
+.sid-live-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+.sid-live-controls .sid-check { display:flex; flex:1 1 220px; margin:0; font-size:.75rem; }
+.sid-live-controls .sid-choice-group { flex:0 1 230px; }
+#sidLiveView { margin-top:12px; min-width:0; }
+#sidLiveView[hidden] { display:none; }
+.sid-editor[data-observing="true"] button:disabled,.sid-editor[data-observing="true"] input:disabled { opacity:1; cursor:default; }
+.sid-editor[data-observing="true"] .sid-field[data-disabled="true"] { opacity:1; }
+.sid-editor[data-observing="true"] .param-value[data-changed="true"] { color:#ffd194; }
+.sid-editor[data-observing="true"] [data-changed="true"] { outline:1px solid #c58e4e; outline-offset:1px; }
+#voiceEditor input[type="range"][data-unavailable="true"] { opacity:0; }
+.sid-live-view { padding:10px 2px; border-top:1px solid var(--line); }
+.sid-live-heading { margin:0 0 6px; font-size:.8rem; color:#316b62; }
+.sid-live-state,.sid-live-notice { font-size:.71rem; line-height:1.5; color:var(--muted); overflow-wrap:anywhere; }
+.sid-live-readouts { display:flex; flex-wrap:wrap; gap:8px 16px; margin:8px 0; }
+.sid-live-readout { min-width:0; flex:1 1 140px; }
+.sid-live-readout.sid-live-wide { flex-basis:100%; }
+.sid-live-readout dt { color:var(--muted); font-size:.65rem; }
+.sid-live-readout dd { margin:3px 0 0; color:#274f48; font-size:.72rem; font-weight:700; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.sid-live-readout dd[data-changed="true"] { color:#a24e16; }
+.sid-live-help>summary { display:inline-flex; align-items:center; justify-content:center; list-style:none; width:26px; height:26px; border:1px solid #9d9c85; border-radius:50%; font-size:.78rem; font-weight:800; color:#526d64; cursor:pointer; }
+.sid-live-help>summary::-webkit-details-marker { display:none; }
 .preset-actions .sid-help { flex-basis:100%; margin:0; }
 .instrument-name-control { flex:1 1 210px; }.instrument-name-control input { min-width:80px; width:150px; flex:1; border-color:var(--line); background:#fffaf0; }
 #codeOutput { flex:1 0 100%; width:100%; min-width:0; max-height:260px; padding:12px; border:1px solid #758076; border-radius:7px; background:#202b28; color:#d5eadc; font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; }

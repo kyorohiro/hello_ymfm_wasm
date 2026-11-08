@@ -5,6 +5,7 @@ import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
 import {createSidImport} from './sid_import.js';
 import {createSidImportPanel} from './sid_import_panel.js';
+import {createSidLiveView} from './sid_live_view.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -123,11 +124,19 @@ function applyPreset(value,{load=false,message}={}){
   });
 }
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onError:report});
-const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),getController:()=>sidImporter});
+const sidLiveView=createSidLiveView({root:$('sidLiveView')});
+const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),liveRoot:$('sidLiveTools'),getController:()=>sidImporter});
 sidImporter=createSidImport({
   getVolume:()=>Number($('masterVolume').value),
   getInstrumentRevision:()=>`${revision}/${importSequence}`,
-  onUpdate(state){sidImportPanel.update(state);if(previewEngine)visualizer.setRunning(Boolean(state.playing));},
+  onUpdate(state){
+    sidImportPanel.update(state);const observation=sidLiveView.update(state);
+    const observing=Boolean(state.liveEnabled&&state.playing);
+    editor.observe(observing?observation:null,{active:observing});
+    $('sidLiveView').hidden=!observing;$('voiceCapacity').hidden=observing;$('patchStatus').hidden=observing;
+    $('voiceHeading').textContent=observing?`Your sound · Live CH ${(state.liveVoice??0)+1}`:'Your sound';
+    if(previewEngine)visualizer.setRunning(Boolean(state.playing));
+  },
   async onPreviewStart(engine,{isCurrent=()=>true}={}){
     if(disposed||!isCurrent())return;
     await stopNotes();
@@ -247,7 +256,7 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=presetToCode(preset);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void sidImporter.stop().catch(report);void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
+  if(event.persisted){void sidImporter.stop().catch(report);void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
 function receivePlayerSnapshot(){
   const fragment=window.location?.hash;

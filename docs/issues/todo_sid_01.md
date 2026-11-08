@@ -38,6 +38,30 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: Liveも編集と同じUIで表示する（2026-11-08）
+
+ユーザー指摘: Live時に別の表へ切り替わると、どの項目が変わったか把握しにくい。同じ配置のつまみ・ボタンを使って追従表示する。
+
+- [x] 同じeditor DOMをLive／編集で共有し、波形・Pulse width・ADSR・Filter・Sync／Ring／TESTの値をその場で更新する。折りたたみ状態と要素の位置を保持する。
+- [x] Liveでは観察専用にし、曲や作成中Presetへ書き込まない。合成波形・無音routing・範囲外ratioも偽のPresetへ丸めず表示し、編集へ戻すと元の楽器を復元する。
+- [x] 周波数・Gate・観測Envelope等の補助情報は同じ操作部の下へ簡潔に残し、変化が分かる表示にした。
+- [x] 長い操作説明は各セクションの「？」から開く。初期状態では閉じ、Live更新やモード切替で勝手に開閉しない。閉じたカードの「？」でも説明を確実に開く。
+- [x] unit 122件、Chromium／WebKitのsource／独立ZIP計176項目が成功した。同一DOM／相対配置・追従値・編集復帰・非対応状態・既存操作と可読配布を確認し、READMEと再開記録を更新した。
+
+結果と再開手順: [共通のLive UIと「？」ヘルプ](sid_synth_shared_live_ui_result_01.md)。配布候補も更新済み。実聴・実Safari／WKWebView、commit／push／公開は後続。
+
+### 今回の続き: Voice選択で即反映と再生CHのLive表示（2026-11-08）
+
+ユーザー指摘: Use Voiceの追加操作は不要。曲は波形・ADSR等を頻繁に変えるため、瞬間のCaptureだけでは音作りの動きが分かりにくい。
+
+- [x] Use Voiceボタンを除き、CaptureしたVoiceを選ぶとそのまま楽器へ反映する。非対応Voiceは理由を表示して現在の楽器を保持する。
+- [x] 再生中の指定CHを継続観察するLive表示を用意した。波形の全flag・周波数・Pulse width・ADSR code・Gate・Sync／Ring／TEST・観測可能なEnvelope・共有Filterとroutingを表示する。
+- [x] 観察は既存Workletのreadだけを用い、楽器・曲・DSPへ書き込まない。50ms以上の間隔と1 read待ちで通信を制限し、Stop・曲変更・取消・切替・dispose後の古い応答を反映しない。
+- [x] ユーザーの配置選択に従い、Your soundをLive表示／編集で切り替える。追従On／Off・CH切替・snapshot選択の意味とCapture時刻を表示し、Presetへ変換できない合成波形等も観察できる。
+- [x] unit 116件とChromium／WebKitのsource／独立ZIP計160項目が成功した。選択即反映・変動CH・追従停止・非対応候補・既存導線と可読配布を確認し、README／記録を更新した。
+
+結果と再開手順: [Live CH表示・Voice選択](sid_synth_live_ch_result_01.md)。Liveは最大20回／秒のsample表示で、書き込み全履歴の記録や時変音色の再構築ではない。実曲の実聴・長時間確認、commit／push／公開は後続。
+
 ### 今回の続き: SID SynthからSIDを直接開いて音色を取り込む（2026-11-08）
 
 ユーザー指摘: SynthにはSIDファイルの入口がなく、PlayerでPresetを保存してから読み込む別画面の手順しかない。Tauri化の前にSynth内の導線を追加する。

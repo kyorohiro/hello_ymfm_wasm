@@ -1,5 +1,7 @@
 # SID SynthのSID直接読み込み（2026-11-08）
 
+後続変更: [Voice選択で即反映／Live CH表示](sid_synth_live_ch_result_01.md)でUse Voiceボタンを廃止し、Your soundの再生CH追従表示を追加した。以下は最初の直接読み込み実装時点の記録。
+
 Synth上部の折りたためる **Sounds from SID** から、SID曲を試聴し、その瞬間の音色を同じ鍵盤へ取り込めるようにした。
 
 ## 使い方

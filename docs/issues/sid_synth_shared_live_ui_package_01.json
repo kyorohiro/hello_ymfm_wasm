@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Verify the final shared-editor Live CH Synth distribution against current authored sources; unchanged Native kits reuse previously measured package evidence.",
+  "archive": {
+    "path": "release/tetorica_sid_synth_20261108-shared-live-ui_itch.zip",
+    "bytes": 2939681,
+    "sha256": "5d6677c7d5c8edbb826ed7a08670f292bacbbb00e6d7845222d29c66e059d88e",
+    "files": 262,
+    "crcVerified": true,
+    "allEntriesAndBytesMatchDirectories": [
+      "release/itch_sid_synth_20261108-shared-live-ui-GlQhXx",
+      "build/validation/sid-synth-shared-live-ui-zip"
+    ]
+  },
+  "originalInputs": {
+    "count": 195,
+    "allCurrentHashesAndBytesMatch": true,
+    "nestedArchiveCrcAndInventoryVerified": true,
+    "sourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1173873,
+      "sha256": "6a75597fd3b5c463ace4a452a16adc367640548994d37de1b2b5550a470c48bd"
+    }
+  },
+  "readableModules": {
+    "count": 34,
+    "allAuthoredBytesMatch": true,
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "liveObserverModuleIncluded": true,
+    "localImportTargetsVerified": 55,
+    "staticAssetUrlsVerified": 8,
+    "workletIncluded": true,
+    "bothIndependentEntryAssetsResolve": true,
+    "liveViewPresentAndExtraUseButtonAbsent": true,
+    "sharedEditorLiveHookIncluded": true,
+    "longExplanationsBehindInitiallyClosedHelpDisclosures": true
+  },
+  "nativeKits": [
+    {
+      "component": "sid",
+      "compiledInputs": 13,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid/": 29,
+        "generated/sid/": 2
+      }
+    },
+    {
+      "component": "sid-player",
+      "compiledInputs": 14,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-player/": 15,
+        "generated/sid-player/": 2
+      }
+    },
+    {
+      "component": "sid-rsid",
+      "compiledInputs": 29,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid-rsid/": 30,
+        "generated/sid-rsid/": 2
+      }
+    },
+    {
+      "component": "sid8580-machine",
+      "compiledInputs": 99,
+      "entireSourceAndGeneratedDirectoriesEqualToPreviouslyVerifiedExtraction": true,
+      "allCompiledInputsEqualAuthenticatedPriorSourceArchive": true,
+      "equalFileCounts": {
+        "sources/sid8580-machine/": 130,
+        "generated/sid8580-machine/": 3
+      }
+    }
+  ],
+  "wasmAssets": [
+    {
+      "path": "generated/sid-player/sid-player.wasm",
+      "bytes": 74312,
+      "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid/sid.wasm",
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d",
+      "equalsPreviouslyVerifiedWasm": true
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce",
+      "equalsPreviouslyVerifiedWasm": true
+    }
+  ],
+  "priorPackageEvidence": {
+    "path": "docs/issues/sid_synth_live_ch_package_01.json",
+    "bytes": 7004,
+    "sha256": "ca1dcb5f3fb7898239376d1ded9b1154903d3d890b85598e920d836897048525",
+    "validatedEarlierInThisSession": true,
+    "actualPriorArchiveHashVerified": true,
+    "passed": true,
+    "previouslyVerifiedExtraction": "build/validation/sid-synth-live-ch-zip",
+    "priorOriginalSourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1171758,
+      "sha256": "fed196fe63b060147ea0f4d84b02a00862e64c023f804864c1733ba24cfc94b9"
+    },
+    "priorOriginalSourceArchiveHashAndCrcVerified": true,
+    "previousReleaseZipAvailableThisRun": false,
+    "actualPriorArchive": {
+      "path": "release/tetorica_sid_synth_20261108-live-ch_itch.zip",
+      "bytes": 2935085,
+      "sha256": "b954c692174e9d14140ae6427970a1e85273d37349fb7c66fa79b1a9356976b3"
+    }
+  },
+  "compilerInvocationPerformedThisRun": false,
+  "nativeEvidencePolicy": "No Native compiler run or deep rebuild-chain repetition in this verification. All four Native source/generated trees were compared byte-for-byte with its previously verified extraction. Every compiled input also matches the prior original-source ZIP authenticated by the prior proof; all five WASM hashes match that proof. Previous independent-build and ABI evidence is reused only for these unchanged bytes.",
+  "musicUserRomOrNativeBinaryIncluded": false,
+  "browserEvidence": [
+    {
+      "path": "docs/issues/sid_synth_shared_live_ui_browser_01.json",
+      "bytes": 23441,
+      "sha256": "5a89d78fde24ab537160319365d83e042da37d6d13d358aa6dc8d8f3c4d94f36",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 28
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 28
+        }
+      ],
+      "checks": 56
+    },
+    {
+      "path": "docs/issues/sid_synth_shared_live_ui_zip_browser_01.json",
+      "bytes": 23423,
+      "sha256": "aadb056d0868cdc285a6696121972eabc6660a6178bd5d2283187bc3853f6aa2",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 28
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 28
+        }
+      ],
+      "checks": 56
+    },
+    {
+      "path": "docs/issues/sid_synth_shared_live_ui_regression_01.json",
+      "bytes": 22525,
+      "sha256": "0fb2467731a6e9b43fdf9b910338eb2da892963c7805142520e493e0aac1733d",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 16
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 16
+        }
+      ],
+      "checks": 32
+    },
+    {
+      "path": "docs/issues/sid_synth_shared_live_ui_zip_regression_01.json",
+      "bytes": 21291,
+      "sha256": "acf91c0ba24d8d6ef5d02a2e0f06aa98f1ffb43c9208d11e990fa39297c32cd7",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "checks": 16
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "checks": 16
+        }
+      ],
+      "checks": 32
+    }
+  ],
+  "browserChecks": 176
+}

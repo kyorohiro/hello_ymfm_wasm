@@ -44,11 +44,13 @@
           <div class="sid-choice-group sid-import-models" role="group" aria-label="SID song model"><button type="button" data-sid-import-model="auto" aria-pressed="true">Auto · file</button><button type="button" data-sid-import-model="6581" aria-pressed="false">6581</button><button type="button" data-sid-import-model="8580" aria-pressed="false">8580 · Preview</button></div>
         </div>
         <p id="sidImportStatus" class="sid-help sid-import-status" role="status" aria-live="polite" data-state="idle" data-error="false">Choose a local SID file. Loading alone does not start audio or replace your sound.</p>
-        <div class="sid-choice-group sid-import-voices" role="group" aria-label="Captured SID voice"><button type="button" data-sid-import-voice="0" aria-pressed="true" disabled>Voice 1</button><button type="button" data-sid-import-voice="1" aria-pressed="false" disabled>Voice 2</button><button type="button" data-sid-import-voice="2" aria-pressed="false" disabled>Voice 3</button></div>
+        <p id="sidImportCaptureInfo" class="sid-help">No snapshot yet. Capture voices, then select a Voice to load it into this keyboard.</p>
+        <div class="sid-choice-group sid-import-voices" role="group" aria-label="Captured SID voice, select to load"><button type="button" data-sid-import-voice="0" aria-pressed="true" disabled>Voice 1</button><button type="button" data-sid-import-voice="1" aria-pressed="false" disabled>Voice 2</button><button type="button" data-sid-import-voice="2" aria-pressed="false" disabled>Voice 3</button></div>
         <p id="sidImportVoicePreview" class="sid-help sid-import-preview">No snapshot captured.</p>
-        <button id="sidImportUse" type="button" disabled>Use this voice</button>
-        <p class="sid-help">An instantaneous voice snapshot. Playing a Synth key restarts pitch and ADSR; elapsed Envelope, phase and later song automation are not restored. Independent Sync / Ring pairs retain their frequency ratio. Some waveforms and connections are unavailable with a reason.</p>
-        <p class="sid-help">PAL · one SID · supported PSID / RSID v2 · built-in C64 environment. Unknown/either hints use PAL / 6581 in Auto. For Direct VBI or your C64 ROMs, use <a href="../sid-player/index.html">SID Player</a> and save a preset.</p>
+        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About SID voice import">?</summary><div class="sid-help-panel">
+          <p class="sid-help">An instantaneous voice snapshot. Playing a Synth key restarts pitch and ADSR; elapsed Envelope, phase and later song automation are not restored. Independent Sync / Ring pairs retain their frequency ratio. Some waveforms and connections are unavailable with a reason.</p>
+          <p class="sid-help">PAL · one SID · supported PSID / RSID v2 · built-in C64 environment. Unknown/either hints use PAL / 6581 in Auto. For Direct VBI or your C64 ROMs, use <a href="../sid-player/index.html">SID Player</a> and save a preset.</p>
+        </div></details>
       </div>
     </details>
 
@@ -62,7 +64,12 @@
 
     <section class="sid-workspace" aria-labelledby="voiceHeading">
       <div class="section-heading"><h2 id="voiceHeading">Your sound</h2><p id="patchStatus" role="status">Ready · edits apply automatically.</p></div>
+      <div id="sidLiveTools" class="sid-live-tools">
+        <div class="sid-live-controls"><label class="sid-check"><input id="sidLiveEnabled" type="checkbox" checked> Live CH view while playing</label><div class="sid-choice-group" role="group" aria-label="Song channel to observe"><button type="button" data-sid-live-voice="0" aria-pressed="true">CH 1</button><button type="button" data-sid-live-voice="1" aria-pressed="false">CH 2</button><button type="button" data-sid-live-voice="2" aria-pressed="false">CH 3</button></div></div>
+        <details class="sid-inline-help"><summary class="sid-help-button" aria-label="About Live and edit mode">?</summary><div class="sid-help-panel"><p class="sid-help">The same controls follow the selected song channel during playback. Live controls are read-only. Turn off Live view to edit your keyboard instrument. Capture voices, then select a captured Voice to load its fixed settings.</p></div></details>
+      </div>
       <div id="voiceEditor" class="sid-editor"></div>
+      <div id="sidLiveView" hidden></div>
       <p id="voiceCapacity" class="sid-capacity">3 voices · round robin · 0 held</p>
     </section>
 

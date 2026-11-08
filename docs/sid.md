@@ -42,7 +42,11 @@ and [the TODO](issues/todo_sid_01.md). The Synth and Playground remain independe
 instruments; capturing does not change the playing tune.
 
 Open a SID directly in the Synth's **Sounds from SID** section with
-**Load SID… → Play song → Capture voices → Voice 1/2/3 → Use Voice**.
+**Load SID… → Play song → Capture voices → Voice 1/2/3**.
+Selecting a captured Voice loads it immediately. During preview, the Synth's
+**Your sound** can follow **CH 1 / CH 2 / CH 3** with **Live CH view while playing**.
+This passive view shows sampled register changes, including states that cannot
+be imported as presets; switch it off to return to the keyboard editor.
 This compact preview uses the built-in PAL C64 environment, without user ROMs
 or Direct VBI choices. File selection preserves the keyboard preset; using a
 captured voice stops the preview and applies that preset. The same snapshot

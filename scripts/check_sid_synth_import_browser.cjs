@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// Direct SID file -> preview -> coherent capture -> Synth keyboard. Every
+// Direct SID file -> live CH observation / coherent capture -> Synth keyboard. Every
 // physical output is intercepted and muted before application code runs.
 const {chromium, webkit} = require('playwright');
 const assert = require('node:assert/strict');
@@ -21,9 +21,24 @@ const digest=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(byte
 const report={schemaVersion:1,passed:false,entry:config.entry,physicalOutputMuted:true,listeningPerformed:false,
   fixtures:'Newly authored PSID/RSID programs only; no game music, firmware or recorded PCM',servedInputs:{},results:[]};
 
+// A small PAL VBI program changes the real chip's pulse width, ADSR and
+// waveform flags on every play call. CH2 intentionally keeps a combined
+// waveform, so an unsupported portable preset still has observable registers.
+function createLiveFixture(base){
+  const init=[...base.program.slice(0,-2),0xa9,0,0x8d,0x30,0x03,0x60];
+  const play=[0xee,0x30,0x03,0xad,0x30,0x03,0x8d,0x02,0xd4,
+    0x49,0xa5,0x8d,0x05,0xd4,0xad,0x30,0x03,0x29,0x10,
+    0x0a,0x0a,0x09,0x11,0x8d,0x04,0xd4,0xad,0x30,0x03,
+    0x8d,0x15,0xd4,0x60];
+  const bytes=new Uint8Array(124+init.length+play.length);bytes.set(base.bytes.subarray(0,124));
+  new DataView(bytes.buffer).setUint16(12,base.loadAddress+init.length);
+  bytes.fill(0,22,54);bytes.set(new TextEncoder().encode('Tetorica live CH observation'),22);
+  bytes.set(init,124);bytes.set(play,124+init.length);return {bytes};
+}
+
 function instrument(){
   const audit=window.__sidImportAudit={contexts:[],nodes:[],sinks:[],messages:[],processorErrors:[],
-    captureRequests:[],captureReplies:[],nextId:0,canvasDraws:0};
+    captureRequests:[],captureReplies:[],nextId:0,canvasDraws:0,playerReadsPending:0,playerReadsMax:0};
   const Context=window.AudioContext??window.webkitAudioContext,Worklet=window.AudioWorkletNode;
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,ports=new WeakMap();
   const clearRect=CanvasRenderingContext2D.prototype.clearRect;
@@ -50,8 +65,10 @@ function instrument(){
       audit.nodes.push(this);const requests=new Map();ports.set(this.port,{kind:kind(this),requests});
       this.addEventListener('processorerror',()=>audit.processorErrors.push(args[1]));
       this.port.addEventListener('message',event=>{
-        const request=requests.get(event.data?.id);if(!request?.capture||request.received)return;
-        request.received=true;audit.captureReplies.push({id:event.data.id,state:event.data.value,error:event.data.error??null});
+        const request=requests.get(event.data?.id);if(!request||request.received)return;
+        request.received=true;if(request.read)audit.playerReadsPending--;
+        if(!request.capture)return;
+        audit.captureReplies.push({id:event.data.id,state:event.data.value,error:event.data.error??null});
         if(audit.holdCaptureReply){
           audit.holdCaptureReply=false;event.stopImmediatePropagation();
           audit.releaseCaptureReply=()=>{audit.releaseCaptureReply=null;this.port.dispatchEvent(new MessageEvent('message',{data:event.data}));};
@@ -65,7 +82,9 @@ function instrument(){
     if(data?.id>0&&owner){
       const capture=owner.kind==='player'&&data.method==='read'&&audit.markCapture;
       if(capture){audit.markCapture=false;audit.captureRequests.push(data.id);}
-      owner.requests.set(data.id,{capture,received:false});
+      const read=owner.kind==='player'&&data.method==='read';
+      if(read){audit.playerReadsPending++;audit.playerReadsMax=Math.max(audit.playerReadsMax,audit.playerReadsPending);}
+      owner.requests.set(data.id,{capture,read,received:false});
     }
     return post.call(this,data,...args);
   };
@@ -102,7 +121,7 @@ function instrument(){
 async function checkBrowser(name,engine,origin,helpers){
   const browser=await engine.launch({headless:true}),context=await browser.newContext({acceptDownloads:true,viewport:{width:1180,height:1000}});
   await context.addInitScript(instrument);
-  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[];
+  const errors=[],consoleErrors=[],failures=[],external=[],checks=[],captures=[],liveObservations=[];
   let page,stage='startup',holdNextPlayerWasm=false,releaseWasm;
   const check=label=>{stage=label;checks.push(label);console.log(`CHECK ${name}: ${label}`);};
   try{
@@ -145,7 +164,14 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(await page.locator('#sidImportCapture').isDisabled(),false);if(audible)await sound('player');
     }
     async function stopPreview(){await page.locator('#sidImportStop').click();await page.waitForFunction(()=>__sidImportAudit.active('player').length===0);await silent('player');}
+    async function setLive(value){
+      await page.locator('#sidLiveEnabled').evaluate((input,value)=>{input.checked=value;input.dispatchEvent(new Event('change',{bubbles:true}));},value);
+      await page.waitForFunction(value=>document.getElementById('sidLiveView').dataset.liveEnabled===String(value),value);
+    }
     async function capture(){
+      // Keep the next explicitly marked read owned by this capture, rather than
+      // a periodic observer read. There is no polling backlog after disabling.
+      await setLive(false);await page.waitForTimeout(100);
       const count=await page.evaluate(()=>__sidImportAudit.captureRequests.length);
       await page.evaluate(()=>{__sidImportAudit.markCapture=true;document.getElementById('sidImportCapture').click();});
       await page.waitForFunction(count=>__sidImportAudit.captureReplies.length>count,count);
@@ -154,8 +180,9 @@ async function checkBrowser(name,engine,origin,helpers){
       assert.equal(observed.requests.length,count+1);assert.equal(observed.reply.id,observed.requests.at(-1));assert.equal(observed.reply.error,null);assert(observed.reply.state.positionFrames>0);
       return observed.reply.state;
     }
-    async function usePreset(expected){
-      assert.equal(await page.locator('#sidImportUse').isDisabled(),false);await page.locator('#sidImportUse').click();
+    async function usePreset(expected,voice=0){
+      const button=page.locator(`[data-sid-import-voice="${voice}"]`);
+      assert.equal(await button.isDisabled(),false);await button.click();
       await page.waitForFunction(expected=>document.getElementById('instrumentName').value===expected.name&&document.getElementById('sidModelBadge').textContent===expected.model,expected);
       await page.waitForFunction(()=>__sidImportAudit.active('player').length===0);await silent('player');
       const saved=await savedPreset();assert.deepEqual(saved.value,expected);
@@ -173,8 +200,39 @@ async function checkBrowser(name,engine,origin,helpers){
     await page.goto(origin+config.entry);await page.waitForSelector('#sidImportTools');
     check('direct SID import is discoverable without allocating audio, and opening it keeps the current Synth preset');
     await openImports();assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),0);
-    assert.equal(await page.locator('#sidImportCapture').isDisabled(),true);assert.equal(await page.locator('#sidImportUse').isDisabled(),true);
+    assert.equal(await page.locator('#sidImportCapture').isDisabled(),true);assert.equal(await page.locator('#sidImportUse').count(),0);
+    assert.equal(await page.locator('#sidLiveEnabled').isChecked(),true);
     assert.match(await imports().textContent(),/SID/);const original=(await savedPreset()).value;
+
+    check('question-mark explanations are closed by default and open without folding the card or starting audio');
+    for(const card of ['filterCard','voiceCard','modulationCard']){
+      assert.equal(await page.locator(`#${card}HelpButton`).getAttribute('aria-expanded'),'false');
+      assert.equal(await page.locator(`#${card}HelpPanel`).isVisible(),false);
+    }
+    assert.equal(await page.locator('#filterHelp').isVisible(),false);
+    await page.locator('#filterCardHelpButton').click();
+    assert.equal(await page.locator('#filterCard').evaluate(node=>node.open),true);
+    assert.equal(await page.locator('#filterCardHelpButton').getAttribute('aria-expanded'),'true');
+    assert.equal(await page.locator('#filterCardHelpPanel').isVisible(),true);
+    assert.equal(await page.locator('#filterHelp').isVisible(),true);
+    assert.equal(await page.evaluate(()=>document.activeElement===document.getElementById('filterCardHelpButton')),false);
+    assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),0);
+    assert.deepEqual((await savedPreset()).value,original);
+    await page.locator('#filterCardHelpButton').click();
+    assert.equal(await page.locator('#filterCardHelpPanel').isVisible(),false);
+
+    check('question-mark help opens a closed section, and closing help leaves that section open');
+    assert.equal(await page.locator('#modulationCard').evaluate(node=>node.open),false);
+    await page.locator('#modulationCardHelpButton').click();
+    assert.equal(await page.locator('#modulationCard').evaluate(node=>node.open),true);
+    assert.equal(await page.locator('#modulationCardHelpButton').getAttribute('aria-expanded'),'true');
+    assert.equal(await page.locator('#modulationCardHelpPanel').isVisible(),true);
+    await page.locator('#modulationCardHelpButton').click();
+    assert.equal(await page.locator('#modulationCardHelpPanel').isVisible(),false);
+    assert.equal(await page.locator('#modulationCard').evaluate(node=>node.open),true);
+    assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),0);
+    assert.deepEqual((await savedPreset()).value,original);
+    await page.locator('#modulationCard').evaluate(node=>{node.open=false;});
 
     check('file preflight preserves the current instrument and creates no AudioContext');
     await load(helpers.pair6581.bytes,'pair-6581.sid');assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),0);
@@ -206,7 +264,7 @@ async function checkBrowser(name,engine,origin,helpers){
     for(const [model,fixture]of [['6581',helpers.pair6581],['8580',helpers.pair8580]]){
       check(`${model} captures a real no-wave Sync+Ring source and applies it directly in the same Synth`);
       if(model==='8580'){await load(fixture.bytes,'pair-8580.sid');await preview();}
-      const observed=await capture();await page.locator('[data-sid-import-voice="0"]').click();
+      const observed=await capture();
       const parsed=helpers.validatePlayerSid(fixture.bytes),expected=helpers.captureSidVoices(observed,{name:parsed.metadata.name,subtune:1}).voices[0].preset;assert(expected);
       assert.equal(expected.model,model);assert.deepEqual(expected.modulation,{sync:true,ring:true,ratio:0x2003/0x1800});
       assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Sync|Ring/);
@@ -232,7 +290,7 @@ async function checkBrowser(name,engine,origin,helpers){
     await page.locator('#sidImportSubtuneUp').click();await page.waitForFunction(()=>/2\s*\/\s*2/.test(document.getElementById('sidImportSubtuneValue').textContent));
     await preview();const cia=await waitState('player',s=>s.subtune===2&&s.timing==='cia'&&s.playCalls>0);assert.equal(cia.model,'6581');
     assert.equal(await page.evaluate(()=>document.activeElement===document.getElementById('sidImportSubtuneUp')),false);
-    await page.locator('[data-sid-import-voice="0"]').click();await capture();
+    await capture();
 
     check('Stop fences a delayed actual capture reply and keeps the previously accepted snapshot');
     const beforeLate=await page.locator('#sidImportVoicePreview').textContent();
@@ -254,13 +312,13 @@ async function checkBrowser(name,engine,origin,helpers){
     check('ROM-free authored RSID hardware interrupts preview and capture through the same direct import panel');
     await load(helpers.rsid.bytes,'authored-rsid.sid');await preview();
     const rsid=await waitState('player',s=>s.format==='RSID'&&s.irqCount>0);assert.equal(rsid.model,'6581');
-    await page.locator('[data-sid-import-voice="0"]').click();const rsidCapture=await capture();
+    const rsidCapture=await capture();
     const rsidParsed=helpers.validatePlayerSid(helpers.rsid.bytes),rsidPreset=helpers.captureSidVoices(rsidCapture,{name:rsidParsed.metadata.name,subtune:1}).voices[0].preset;assert(rsidPreset);await usePreset(rsidPreset);
 
     check('unsupported combined carrier settings show their reason and cannot replace the current instrument');
     const beforeUnsupported=(await savedPreset()).value;
-    await load(helpers.combined.bytes,'combined-carrier.sid');await preview();await page.locator('[data-sid-import-voice="0"]').click();await capture();
-    assert.equal(await page.locator('#sidImportUse').isDisabled(),true);assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
+    await load(helpers.combined.bytes,'combined-carrier.sid');await preview();await capture();
+    await page.locator('[data-sid-import-voice="0"]').click();await page.waitForTimeout(50);assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
     assert.deepEqual((await savedPreset()).value,beforeUnsupported);await stopPreview();
 
     check('Stop during delayed preview WASM startup cannot create a stale playing context');
@@ -273,15 +331,141 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual((await savedPreset()).value,beforeUnsupported);
     await preview();await stopPreview();
 
-    check('editing the Synth while Use waits for preview disposal cancels the late instrument replacement');
-    await preview();await page.locator('[data-sid-import-voice="0"]').click();await capture();
-    await page.evaluate(()=>{__sidImportAudit.holdNextPlayerClose=true;document.getElementById('sidImportUse').click();});
+    check('editing the Synth while a captured Voice selection waits for disposal cancels the late replacement');
+    await preview();await capture();
+    await page.evaluate(()=>{__sidImportAudit.holdNextPlayerClose=true;document.querySelector('[data-sid-import-voice="0"]').click();});
     await page.waitForFunction(()=>typeof __sidImportAudit.releasePlayerClose==='function');
     await page.locator('[data-choice-for="waveform"][data-value="noise"]').click();
     await page.waitForFunction(()=>document.getElementById('patchStatus').dataset.busy!=='true');
     const edited=(await savedPreset()).value;assert.equal(edited.voice.waveform,'noise');
     await page.evaluate(()=>__sidImportAudit.releasePlayerClose());await page.waitForTimeout(100);
     assert.deepEqual((await savedPreset()).value,edited);
+
+    const liveValue=field=>page.locator(`#sidLiveView [data-live-field="${field}"]`).getAttribute('data-value');
+    const liveFrame=()=>page.locator('#sidLiveView').getAttribute('data-live-frames');
+    const applicationReadCount=()=>page.evaluate(()=>__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method==='read'&&m.id>0).length);
+    const waitLive=()=>page.waitForFunction(()=>document.getElementById('sidLiveView').dataset.liveActive==='true'&&Number(document.getElementById('sidLiveView').dataset.liveFrames)>0);
+    const editorValues=()=>page.evaluate(()=>{
+      const field=id=>document.getElementById(id).dataset.value;
+      const mask=[['triangle',16],['saw',32],['pulse',64],['noise',128]].reduce((mask,[wave,bit])=>
+        mask|(document.querySelector(`[data-choice-for="waveform"][data-value="${wave}"]`).getAttribute('aria-pressed')==='true'?bit:0),0);
+      return {waveforms:String(mask),pulseWidth:field('pulseWidth'),adsr:['attack','decay','sustain','release'].map(field).join('/')};
+    });
+    const rememberEditor=()=>page.evaluate(()=>{
+      const root=document.getElementById('voiceEditor'),box=root.getBoundingClientRect();
+      const ids=['filterCard','voiceCard','modulationCard','filterCutoff','pulseWidth','attack','modulationRatio'];
+      window.__sidSharedEditorNodes=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
+      window.__sidSharedEditorOffsets=Object.fromEntries(['filterCutoff','pulseWidth','attack','modulationRatio'].map(id=>{
+        const r=document.getElementById(id).getBoundingClientRect();return [id,{x:r.x-box.x,y:r.y-box.y}];
+      }));
+    });
+    const checkEditorIdentity=async({layout=false}={})=>{
+      const state=await page.evaluate(()=>{
+        const root=document.getElementById('voiceEditor'),box=root.getBoundingClientRect();
+        return {same:Object.entries(window.__sidSharedEditorNodes).every(([id,node])=>document.getElementById(id)===node&&document.querySelectorAll(`#${id}`).length===1),
+          offsets:Object.fromEntries(Object.keys(window.__sidSharedEditorOffsets).map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [id,{x:r.x-box.x,y:r.y-box.y}];})),
+          expected:window.__sidSharedEditorOffsets};
+      });
+      assert(state.same,'Live mode rebuilt or duplicated the authored editor controls');
+      assert.equal(await page.locator('#voiceEditor').isVisible(),true);
+      if(layout)for(const [id,offset]of Object.entries(state.offsets)){
+        const expected=state.expected[id];
+        assert(Math.abs(offset.x-expected.x)<1&&Math.abs(offset.y-expected.y)<1,`${id} moved within the shared editor: ${JSON.stringify({expected,actual:offset})}`);
+      }
+    };
+
+    check('Live and edit reuse the same control nodes and preserve their relative layout');
+    await page.evaluate(()=>{for(const id of ['filterCard','voiceCard','modulationCard'])document.getElementById(id).open=true;});
+    await rememberEditor();
+
+    check('live CH observation follows real changing registers with one read in flight and keeps the authored preset');
+    await load(helpers.live.bytes,'authored-live-ch.sid');await setLive(true);
+    await page.evaluate(()=>{__sidImportAudit.playerReadsMax=0;__sidImportAudit.playerReadsPending=0;});
+    await preview();await waitLive();
+    const liveContextCount=await page.evaluate(()=>__sidImportAudit.contexts.length),values=[];
+    for(let i=0;i<14;i++){
+      values.push({frame:await liveFrame(),...await editorValues()});
+      await page.waitForTimeout(80);
+    }
+    assert(new Set(values.map(v=>v.frame)).size>5,'Live observation frames did not advance');
+    assert(new Set(values.map(v=>v.pulseWidth)).size>5,'Real per-play pulse-width writes were not displayed');
+    assert(new Set(values.map(v=>v.adsr)).size>5,'Real per-play ADSR writes were not displayed');
+    assert.deepEqual([...new Set(values.map(v=>v.waveforms))].sort(),['16','80'],'Live view must retain combined waveform flags');
+    assert.equal(await page.evaluate(()=>__sidImportAudit.playerReadsMax),1,'Observer/capture reads overlapped');
+    assert.equal(await page.evaluate(()=>__sidImportAudit.contexts.length),liveContextCount,'Observation allocated another audio context');
+    assert.deepEqual((await savedPreset()).value,edited);liveObservations.push({model:'6581',voice:0,values,maxReadConcurrency:1});
+    assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'true');
+    await checkEditorIdentity({layout:true});
+
+    check('the shared Live controls are read-only while question-mark help and folds remain usable through polling');
+    for(const id of ['pulseWidth','pulseWidthRange','attack','decay','sustain','release','filterCutoff','filterCutoffRange','filterResonance','chipVolume','modulationRatio'])
+      assert.equal(await page.locator(`#${id}`).isDisabled(),true,id);
+    assert.equal(await page.locator('[data-choice-for="waveform"][data-value="pulse"]').isDisabled(),true);
+    const playerCommands=await page.evaluate(()=>__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method!=='read').length);
+    await page.locator('#filterCardHelpButton').click();
+    assert.equal(await page.locator('#filterCard').evaluate(node=>node.open),true);
+    assert.equal(await page.locator('#filterCardHelpPanel').isVisible(),true);
+    const helpFrame=await liveFrame();await page.waitForFunction(frame=>document.getElementById('sidLiveView').dataset.liveFrames!==frame,helpFrame);
+    assert.equal(await page.locator('#filterCardHelpButton').getAttribute('aria-expanded'),'true');
+    assert.equal(await page.locator('#filterCardHelpPanel').isVisible(),true);
+    await page.locator('#filterCardHelpButton').click();
+    await page.locator('#voiceCard>summary').click();
+    assert.equal(await page.locator('#voiceCard').evaluate(node=>node.open),false);
+    const foldFrame=await liveFrame();await page.waitForFunction(frame=>document.getElementById('sidLiveView').dataset.liveFrames!==frame,foldFrame);
+    assert.equal(await page.locator('#voiceCard').evaluate(node=>node.open),false,'A Live update reopened the folded section');
+    await page.locator('#voiceCard>summary').click();
+    assert.equal(await page.evaluate(()=>__sidImportAudit.messages.filter(m=>m.kind==='player'&&m.method!=='read').length),playerCommands,'A Live help/fold action wrote to the tune');
+    assert.deepEqual((await savedPreset()).value,edited);
+    await checkEditorIdentity({layout:true});
+
+    check('live CH selection immediately shows the chosen combined-waveform channel without changing the song or instrument');
+    await page.locator('[data-sid-live-voice="1"]').click();
+    await page.waitForFunction(()=>document.getElementById('sidLiveView').dataset.liveVoice==='1');
+    const combinedValues=await editorValues();
+    assert.equal(combinedValues.waveforms,'48');assert.equal(await liveValue('frequencyRegister'),String(0x2030));
+    assert.equal(combinedValues.adsr,'5/8/9/3');assert.match(await liveValue('import'),/Combined waveforms/i);
+    assert((await read('player')).playing);assert.deepEqual((await savedPreset()).value,edited);
+    assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-sid-live-voice]')),false);
+    await checkEditorIdentity();
+
+    check('disabling live observation freezes its values and stops periodic reads while the real song continues');
+    await setLive(false);await page.waitForTimeout(100);
+    const frozen=await liveFrame(),reads=await applicationReadCount(),positionBefore=(await read('player')).positionFrames;
+    await page.waitForTimeout(240);
+    assert.equal(await liveFrame(),frozen);assert.equal(await applicationReadCount(),reads);
+    assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
+    assert((await read('player')).positionFrames>positionBefore);await sound('player');
+    assert.equal(await page.locator('#voiceEditor').getAttribute('data-observing'),'false');
+    assert.equal(await page.locator('#attack').getAttribute('data-value'),String(edited.voice.attack));
+    assert.equal(await page.locator('#pulseWidth').getAttribute('data-value'),String(edited.voice.pulseWidth));
+    assert.equal(await page.locator('[data-choice-for="waveform"][data-value="noise"]').getAttribute('aria-checked'),'true');
+    assert.equal(await page.locator('#attack').isDisabled(),false);
+    await checkEditorIdentity({layout:true});
+
+    check('an unavailable captured Voice click preserves the preset and live raw settings remain observable');
+    await setLive(true);await waitLive();
+    await capture();await page.locator('[data-sid-import-voice="1"]').click();await page.waitForTimeout(50);
+    assert.match(await page.locator('#sidImportVoicePreview').textContent(),/Combined waveforms/i);
+    assert.deepEqual((await savedPreset()).value,edited);assert((await read('player')).playing);
+    await setLive(true);await waitLive();assert.equal((await editorValues()).waveforms,'48');
+
+    check('Stop fences a delayed observer reply and leaves a visibly frozen last CH frame');
+    await setLive(true);await waitLive();
+    await page.evaluate(()=>{__sidImportAudit.markCapture=true;__sidImportAudit.holdCaptureReply=true;});
+    await page.waitForFunction(()=>typeof __sidImportAudit.releaseCaptureReply==='function');
+    await stopPreview();const stoppedFrame=await liveFrame();
+    await page.evaluate(()=>__sidImportAudit.releaseCaptureReply());await page.waitForTimeout(120);
+    assert.equal(await liveFrame(),stoppedFrame);assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-active'),'false');
+    assert.deepEqual((await savedPreset()).value,edited);
+
+    check('8580 live observation uses its real preview model and labels unavailable envelope observation');
+    await load(helpers.pair8580.bytes,'live-8580.sid');await page.locator('[data-sid-live-voice="0"]').click();
+    await setLive(true);await preview();await waitLive();
+    assert.equal(await page.locator('#sidLiveView').getAttribute('data-live-model'),'8580');
+    assert.equal(await liveValue('envelope'),'unavailable');assert.equal((await editorValues()).waveforms,'16');
+    assert.equal(await page.locator('#syncEnabled').isChecked(),true);assert.equal(await page.locator('#ringEnabled').isChecked(),true);
+    assert.deepEqual((await savedPreset()).value,edited);
+    liveObservations.push({model:'8580',voice:0,frame:await liveFrame(),envelope:'unavailable'});
 
     check('desktop/mobile import controls stay in one page without horizontal overflow or remote assets');
     await openImports();
@@ -294,11 +478,11 @@ async function checkBrowser(name,engine,origin,helpers){
     assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);assert.deepEqual(failures,[]);assert.deepEqual(external,[]);
     assert.deepEqual(await page.evaluate(()=>__sidImportAudit.processorErrors),[]);
     const muted=await page.evaluate(()=>__sidImportAudit.sinks.every(s=>s.mute.gain.value===0));assert(muted);
-    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
+    report.results.push({browser:name,version:browser.version(),passed:true,checks,captures,liveObservations,errors,consoleErrors,failures,external,allPhysicalOutputsMuted:muted});
     console.log(`PASS ${name}: ${checks.length} direct SID import checks; every physical output muted.`);
   }catch(error){
     if(config.screenshots&&page)await page.screenshot({path:path.join(config.screenshots,`${name}-failed.png`),fullPage:true}).catch(()=>{});
-    const state=await page?.evaluate(()=>({status:document.getElementById('sidImportStatus')?.textContent,info:document.getElementById('sidImportInfo')?.textContent,preview:document.getElementById('sidImportVoicePreview')?.textContent,audio:document.getElementById('audioStatus')?.textContent})).catch(()=>null);
+    const state=await page?.evaluate(()=>({status:document.getElementById('sidImportStatus')?.textContent,info:document.getElementById('sidImportInfo')?.textContent,preview:document.getElementById('sidImportVoicePreview')?.textContent,audio:document.getElementById('audioStatus')?.textContent,live:document.getElementById('sidLiveView')?.dataset,liveText:document.getElementById('sidLiveView')?.textContent})).catch(()=>null);
     report.results.push({browser:name,passed:false,stage,error:error.message,state,checks,errors,consoleErrors,failures,external});
     throw new Error(`${name} (${stage}): ${error.message}; ${JSON.stringify(state)}`,{cause:error});
   }finally{if(releaseWasm)releaseWasm();await context.close();await browser.close();}
@@ -313,7 +497,9 @@ async function checkBrowser(name,engine,origin,helpers){
   const {readPreset,presetToCode}=await import('../docs/synth-sid/preset.js');
   const options={sync:true,ring:true,sourceControl:0,voice3off:true,carrierFrequency:0x1800,sourceFrequency:0x2003};
   const helpers={pair6581:createSidPairFixture({model:'6581',...options}),pair8580:createSidPairFixture({model:'8580',...options}),
-    cia:createPsidCiaFixture(),rsid:createRsidFixture('cia-irq'),combined:createSidPairFixture({sync:false,ring:false,voice3off:true,overrides:[[4,0x31]]}),captureSidVoices,validatePlayerSid,readPreset,presetToCode};
+    cia:createPsidCiaFixture(),rsid:createRsidFixture('cia-irq'),combined:createSidPairFixture({sync:false,ring:false,voice3off:true,overrides:[[4,0x31]]}),
+    live:createLiveFixture(createSidPairFixture({sync:false,ring:false,sourceControl:0,thirdControl:0x31,voice3off:true,overrides:[[7,0x30],[8,0x20],[12,0x58],[13,0x93]]})),
+    captureSidVoices,validatePlayerSid,readPreset,presetToCode};
   report.inputs=Object.fromEntries(await Promise.all(['scripts/check_sid_synth_import_browser.cjs','test/helpers/sid_voice_pair_fixtures.mjs','test/helpers/psid_cia_fixtures.mjs','test/helpers/rsid_fixtures.mjs'].map(async file=>[file,digest(await fs.readFile(path.resolve(__dirname,'..',file)))])));
   report.fixtureInputs=Object.fromEntries(Object.entries(helpers).filter(([,value])=>value?.bytes).map(([key,value])=>[key,digest(value.bytes)]));
   if(config.screenshots)await fs.mkdir(config.screenshots,{recursive:true});

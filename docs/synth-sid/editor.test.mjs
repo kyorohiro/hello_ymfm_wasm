@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
+import {readSidLiveVoice} from './sid_live_view.js';
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 class Element {
@@ -14,6 +15,7 @@ class Element {
   append(...nodes){for(const node of nodes)this.appendChild(node);}
   appendChild(node){this.children.push(node);return node;}
   setAttribute(key,value){this.attributes[key]=String(value);}
+  removeAttribute(key){delete this.attributes[key];}
   getAttribute(key){return this.attributes[key];}
   addEventListener(type,fn){if(!this.listeners.has(type))this.listeners.set(type,new Set());this.listeners.get(type).add(fn);}
   removeEventListener(type,fn){this.listeners.get(type)?.delete(fn);}
@@ -154,6 +156,89 @@ test('invalid external patches keep the editor, and disposal ignores late callba
   const retained=f.editor.getPreset();await step(f.root,'decay',1).fire('click');assert.deepEqual(f.editor.getPreset(),retained);
 });
 
+function liveObservation({waveformMask=0x70,frequency=0x1200,sourceFrequency=0x2400,modeMask=5,routed=true,voice=0}={}){
+  const registers=Array(32).fill(0),base=voice*7,source=((voice+2)%3)*7;
+  registers[base]=frequency&255;registers[base+1]=frequency>>8;
+  registers[base+2]=0x34;registers[base+3]=0xa;
+  registers[base+4]=waveformMask|15;registers[base+5]=0x98;registers[base+6]=0x76;
+  registers[source]=sourceFrequency&255;registers[source+1]=sourceFrequency>>8;
+  registers[21]=4;registers[22]=187;registers[23]=0xb0|(routed?1<<voice:0);registers[24]=0x80|(modeMask<<4)|13;
+  return readSidLiveVoice({model:'6581',clockHz:985248,sampleRate:48000,positionFrames:9600,registers,voices:[{envelope:77},{envelope:88},{envelope:99}]},voice);
+}
+
+test('Live samples update the same controls and folds while preserving the authored preset beneath them',t=>{
+  const f=editorFixture(t),before=f.editor.getPreset(),nodes=walk(f.root);
+  find(f.root,'voiceCard').open=false;find(f.root,'modulationCard').open=true;
+  const o=liveObservation();f.editor.observe(o);
+  assert.deepEqual(walk(f.root),nodes,'observation never rebuilds the control tree');
+  assert.equal(find(f.root,'voiceCard').open,false);assert.equal(find(f.root,'modulationCard').open,true);
+  assert.equal(f.root.dataset.observing,'true');assert.equal(find(f.root,'pulseWidth').textContent,String(0xa34));
+  for(const [id,value]of [['attack',9],['decay',8],['sustain',7],['release',6],['filterCutoff',1500],['filterResonance',11],['chipVolume',13]])assert.equal(find(f.root,id).getAttribute('aria-valuenow'),String(value));
+  assert.equal(find(f.root,'filterEnabled').checked,true);assert.equal(find(f.root,'oscillatorTest').checked,true);
+  assert.equal(find(f.root,'syncEnabled').checked,true);assert.equal(find(f.root,'ringEnabled').checked,true);
+  assert.deepEqual(f.editor.getPreset(),before);assert.equal(f.changes.length,0);
+  const next=readPreset(before);next.voice.attack=3;next.voice.waveform='noise';f.editor.update(next);
+  assert.equal(find(f.root,'attack').textContent,'9','an authored update does not replace the selected live observation');
+  f.editor.observe(null);
+  assert.deepEqual(f.editor.getPreset(),next);assert.equal(find(f.root,'attack').textContent,'3');assert.equal(choice(f.root,'waveform','noise').getAttribute('aria-checked'),'true');
+  assert.deepEqual(walk(f.root),nodes);assert.equal(find(f.root,'voiceCard').open,false);assert.equal(f.changes.length,0);
+});
+
+test('Live controls faithfully show combined/no waveforms, unrouted outputs and silent filter routing',t=>{
+  const f=editorFixture(t),wave=find(f.root,'waveform');f.editor.observe(liveObservation({routed:false,modeMask:7}));
+  assert.equal(wave.getAttribute('role'),'group');
+  for(const [name,on]of [['triangle',true],['saw',true],['pulse',true],['noise',false]]){
+    const node=choice(f.root,'waveform',name);assert.equal(node.getAttribute('aria-pressed'),String(on));assert.equal(node.getAttribute('aria-checked'),undefined);
+  }
+  assert.equal(find(f.root,'filterEnabled').checked,false);
+  for(const id of ['filterLowpass','filterBandpass','filterHighpass'])assert.equal(find(f.root,id).getAttribute('aria-pressed'),'true','the shared output flags are observed even for a dry voice');
+  f.editor.observe(liveObservation({waveformMask:0,modeMask:0,routed:true}));
+  for(const name of ['triangle','saw','pulse','noise'])assert.equal(choice(f.root,'waveform',name).getAttribute('aria-pressed'),'false');
+  assert.equal(find(f.root,'filterEnabled').checked,true);assert.match(find(f.root,'filterHelp').textContent,/all outputs off \(silent routing\)/);
+  f.editor.observe(null);assert.equal(wave.getAttribute('role'),'radiogroup');assert.equal(choice(f.root,'waveform','saw').getAttribute('aria-checked'),'true');
+});
+
+test('out-of-keyboard-range and undefined observed ratios are displayed without clamping to an editable value',t=>{
+  const f=editorFixture(t),value=find(f.root,'modulationRatio'),range=find(f.root,'modulationRatioRange');
+  f.editor.observe(liveObservation({frequency:1,sourceFrequency:65535}));
+  assert.equal(value.textContent,'65535');assert.equal(value.getAttribute('aria-valuenow'),'65535');assert.equal(value.dataset.outOfRange,'true');assert.equal(range.dataset.unavailable,'true');
+  assert.match(find(f.root,'modulationHelp').textContent,/outside the keyboard tuning range/);
+  f.editor.observe(liveObservation({frequency:0}));assert.equal(value.textContent,'—');assert.equal(value.getAttribute('aria-valuenow'),undefined);assert.equal(range.dataset.unavailable,'true');
+  f.editor.observe(null);assert.equal(value.textContent,'1');assert.equal(range.dataset.unavailable,'false');assert.equal(range.disabled,false);
+});
+
+test('live and waiting controls reject edits without changing the instrument or callbacks, then return to editing',async t=>{
+  const f=editorFixture(t),before=f.editor.getPreset();
+  f.editor.observe(null,{active:true});assert.equal(f.root.dataset.observing,'true');assert.equal(find(f.root,'attack').disabled,true);
+  const input=find(f.root,'filterEnabled');input.checked=true;await input.fire('change');
+  find(f.root,'pulseWidthRange').value='4095';await find(f.root,'pulseWidthRange').fire('input');
+  await find(f.root,'waveform').fire('keydown',{key:'End'});
+  assert.deepEqual(f.editor.getPreset(),before);assert.equal(f.changes.length,0);assert.equal(input.checked,false);
+  f.editor.observe(liveObservation());const liveWidth=find(f.root,'pulseWidth').textContent;
+  find(f.root,'pulseWidthRange').value='1';await find(f.root,'pulseWidthRange').fire('input');assert.equal(find(f.root,'pulseWidth').textContent,liveWidth);
+  assert.deepEqual(f.editor.getPreset(),before);assert.equal(f.changes.length,0);
+  f.editor.observe(null);await step(f.root,'attack',1).fire('click');assert.equal(f.changes.length,1);assert.equal(f.editor.getPreset().voice.attack,before.voice.attack+1);
+});
+
+test('question-mark help starts closed, toggles independently, preserves focus/folds and survives Live updates',async t=>{
+  const f=editorFixture(t);
+  for(const id of ['filterCard','voiceCard','modulationCard']){
+    assert.equal(find(f.root,`${id}HelpPanel`).hidden,true);assert.equal(find(f.root,`${id}HelpButton`).getAttribute('aria-expanded'),'false');
+  }
+  const card=find(f.root,'filterCard'),button=find(f.root,'filterCardHelpButton'),panel=find(f.root,'filterCardHelpPanel');let stopped=false;
+  button.focus();const click=await button.fire('click',{stopPropagation(){stopped=true;}});
+  assert.equal(click.defaultPrevented,true);assert.equal(stopped,true);assert.equal(panel.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');assert.equal(card.open,true);assert.equal(f.doc.activeElement,null);
+  f.editor.observe(liveObservation());f.editor.observe(liveObservation({modeMask:0}));f.editor.observe(null);
+  assert.equal(panel.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');assert.equal(card.open,true);assert.equal(f.changes.length,0);
+  await button.fire('click');assert.equal(panel.hidden,true);assert.equal(f.changes.length,0);
+  const folded=find(f.root,'modulationCard'),foldedHelp=find(f.root,'modulationCardHelpButton');
+  assert.equal(folded.open,false);await foldedHelp.fire('click');
+  assert.equal(folded.open,true,'requesting help reveals a collapsed section');assert.equal(find(f.root,'modulationCardHelpPanel').hidden,false);
+  folded.open=false;await foldedHelp.fire('click');
+  assert.equal(folded.open,true,'help reveals a section collapsed after its help was opened');assert.equal(find(f.root,'modulationCardHelpPanel').hidden,false);
+  await foldedHelp.fire('click');assert.equal(folded.open,true,'closing help never closes the section');assert.equal(find(f.root,'modulationCardHelpPanel').hidden,true);
+});
+
 const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?from\s*['"][^'"]+['"];\n/gm,'');
 function appFixture({stall=false}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
@@ -187,8 +272,8 @@ function appFixture({stall=false}={}){
   const importState={playing:false,starting:false},importCalls=[];
   const importer={state:importState,calls:importCalls,read:()=>({...importState}),setVolume(){},dispose:async()=>{},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;if(importer.holdStop)await importer.holdStop;}};
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},dispose(){}}),
-    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
+    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(){},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,console});
@@ -213,6 +298,21 @@ test('stopping Synth notes preserves the live song monitor, while global Stop st
   await f.importer.hooks.onPreviewStart(preview,{isCurrent:()=>true});f.importer.state.playing=true;f.visualEvents.length=0;
   await f.ui.stopNotes();assert.deepEqual(f.visualEvents.at(-1),['running',true]);assert.equal(f.visualEvents.some(event=>event[0]==='stop'),false);
   await f.doc.getElementById('stopAudio').fire('click');await flush();assert.deepEqual(f.visualEvents.at(-1),['stop']);
+});
+
+test('Live CH observation shares the visible editor without changing the authored instrument or opening Synth audio',()=>{
+  const f=appFixture(),before=f.ui.getPreset();
+  f.importer.hooks.onUpdate({playing:true,liveEnabled:true,liveVoice:2});
+  assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
+  assert.equal(f.doc.getElementById('sidLiveView').hidden,false);
+  assert.match(f.doc.getElementById('voiceHeading').textContent,/Live CH 3/);
+  assert.deepEqual(f.ui.getPreset(),before);assert.equal(f.engines.length,0);
+  f.importer.hooks.onUpdate({playing:true,liveEnabled:false,liveVoice:2});
+  assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
+  assert.equal(f.doc.getElementById('sidLiveView').hidden,true);
+  f.importer.hooks.onUpdate({playing:false,liveEnabled:true,liveVoice:2});
+  assert.equal(f.doc.getElementById('voiceEditor').hidden,false);
+  assert.equal(f.doc.getElementById('patchStatus').hidden,false);
 });
 
 test('selecting 8580 before enabling audio initializes that model and exposes Preview without an audio side effect',async()=>{

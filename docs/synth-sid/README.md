@@ -38,9 +38,9 @@ Player page:
    your keyboard instrument; it does not start audio.
 2. Choose a subtune with the − / + buttons and press **Play song**.
 3. When you hear the sound you want, press **Capture voices**.
-4. Select **Voice 1**, **Voice 2** or **Voice 3**, inspect its settings, and press
-   **Use Voice**. The preview closes and the captured preset becomes this
-   keyboard's instrument.
+4. Select **Voice 1**, **Voice 2** or **Voice 3**. The selected captured voice is
+   loaded immediately: the preview closes and the preset becomes this keyboard's
+   instrument. An unavailable voice shows its reason and keeps your instrument.
 5. Play, edit, **Save preset…**, or **Copy JavaScript** as usual.
 
 **Auto · file** follows a known 6581 / 8580 declaration. Unknown/either hints
@@ -71,6 +71,37 @@ Master controls both. Cancelled/bad reads retain the preset, accepted SID and
 captured batch; an accepted replacement stops its previous preview only after
 validation succeeds. Opening a SID alone never replaces the keyboard instrument.
 No song, ROM or PCM bytes are stored in a voice preset.
+
+### Follow a playing channel
+
+**Live CH view while playing** is on by default. During song preview, **Your
+sound** displays the selected **CH 1 / CH 2 / CH 3** as it changes. Channel
+selection affects observation only; the song continues and your keyboard preset
+is preserved. Turn off Live view to return to the keyboard's normal editor.
+Selecting a captured Voice closes the preview and returns to that editor with
+the imported sound.
+
+Live and editing use the **same controls in the same positions**: waveform
+buttons, Pulse width, ADSR, filter and modulation controls update in place.
+Live values are read-only and changes are highlighted. Switching back restores
+the authored instrument, retaining the same control nodes and folded sections.
+Long explanations are behind each section's **?** button, closed by default.
+
+The passive display shows the actual waveform flags (including combined or no
+waveform), frequency register / Hz, Pulse width, ADSR codes, Gate, Sync / Ring /
+TEST, observable Envelope and shared filter routing / settings. A sound that
+cannot be converted to a portable Synth preset can still be observed here.
+The 8580 backend does not expose a live Envelope value; it is shown as unavailable.
+Frequency, Gate, Envelope and other observation-only readouts appear in a compact
+strip below the shared controls. Combined waveform flags can light multiple
+waveform buttons; raw filter routing and out-of-range ratios are not narrowed
+to a valid keyboard preset for display.
+
+This uses the existing player's coherent Worklet read at up to 20 updates per
+second, with one read at a time. It never writes the song or continually reloads
+the authored instrument. Fast register changes between observations can be
+missed; this is a sampled view, not a complete register-write recording. Capture
+still reads one fixed batch, and the captured Voice buttons load that batch.
 
 ## Three voices and oscillator modulation
 

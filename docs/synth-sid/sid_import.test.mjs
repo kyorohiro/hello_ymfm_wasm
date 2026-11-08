@@ -22,8 +22,9 @@ function snapshot(model='6581'){
     voices:[{envelope:255,phase:123},{envelope:0,phase:0},{envelope:0,phase:456}]};
 }
 function harness(){
-  const updates=[],cores=[],engines=[],events=[],used=[],config={};let revision=0,master=.7;
+  const updates=[],cores=[],engines=[],events=[],used=[],config={},timers=new Map();let revision=0,master=.7,nextTimer=0;
   const controller=createSidImport({
+    schedule(callback,delay){const id=++nextTimer;timers.set(id,{callback,delay});return id;},unschedule:id=>timers.delete(id),
     onUpdate:state=>updates.push(state),getInstrumentRevision:()=>revision,getVolume:()=>master,
     createCore:async options=>{
       const core={options,loads:[],disposeCount:0,load(bytes,load){this.loads.push({bytes:Uint8Array.from(bytes),options:{...load}});},dispose(){this.disposeCount++;}};
@@ -42,7 +43,8 @@ function harness(){
           if(method==='load')this.loaded={bytes:Uint8Array.from(args[0]),options:{...args[1]}};
           return snapshot(model);
         },
-        read(){this.messages.push({method:'read'});const wait=config.readWait;config.readWait=null;return wait?wait.promise:Promise.resolve(snapshot(model));},
+        read(){this.messages.push({method:'read'});const wait=config.readWait,cause=config.readError;config.readWait=null;config.readError=null;
+          return wait?wait.promise:cause?Promise.reject(cause):Promise.resolve(config.readState??snapshot(model));},
         setVolume(value){this.volumes.push(value);},
         dispose(){this.disposeCount++;events.push(['dispose',this]);const wait=config.closeWait;config.closeWait=null;
           if(wait)return wait.promise.then(()=>{this.closed=true;});this.closed=true;return Promise.resolve();},
@@ -54,7 +56,9 @@ function harness(){
     onPreviewStop:engine=>events.push(['previewStop',engine]),
     onUsePreset:async preset=>{events.push(['use',preset]);used.push(preset);if(config.ownRevisionChange)revision++;if(config.useError)throw config.useError;},
   });
-  return {controller,updates,cores,engines,events,used,config,edit(){revision++;},setMaster(value){master=value;controller.setVolume(value);}};
+  return {controller,updates,cores,engines,events,used,config,timers,
+    async tick(){const next=timers.entries().next().value;assert(next,'A live observation must be scheduled');timers.delete(next[0]);assert.equal(next[1].delay,50);next[1].callback();await flush();},
+    edit(){revision++;},setMaster(value){master=value;controller.setVolume(value);}};
 }
 async function captured(h,bytes=authored()){
   assert.equal(await h.controller.loadFile(file(bytes)),true);assert.equal(await h.controller.play(),true);
@@ -180,7 +184,7 @@ test('capture reads one coherent Worklet state and exposes detached candidates w
   h.controller.selectVoice(0);wait.resolve(snapshot());assert.equal(await pending,true);
   const view=h.controller.read();assert.equal(view.snapshot.name,'Tetorica 6581 pair 3-1');assert.equal(view.snapshot.subtune,1);
   assert.equal(view.snapshot.voices.length,3);assert.equal(view.selected.available,true);assert.equal(view.canUse,true);
-  assert.deepEqual(view.selected.preset.modulation,{sync:true,ring:true,ratio:1.5});assert.match(view.message,/Use this voice/);
+  assert.deepEqual(view.selected.preset.modulation,{sync:true,ring:true,ratio:1.5});assert.match(view.message,/Select a voice.*immediately/);
   view.snapshot.voices[0].preset.name='external mutation';view.selected.preset.modulation.ratio=8;
   assert.notEqual(h.controller.read().selected.preset.name,'external mutation');assert.equal(h.controller.read().selected.preset.modulation.ratio,1.5);
   assert.equal(h.engines[0].messages.filter(m=>m.method==='read').length,1);assert.equal(h.used.length,0);await h.controller.dispose();
@@ -214,9 +218,9 @@ test('instrument edits, Stop or a new voice choice fence Use while preview dispo
 });
 
 test('unsupported candidate reasons prevent Use and a failed preset apply preserves the captured voice',async()=>{
-  const h=harness();await captured(h);h.controller.selectVoice(2);assert.equal(h.controller.read().canUse,false);
+  const h=harness();await captured(h);assert.equal(await h.controller.selectVoice(2),false);assert.equal(h.controller.read().canUse,false);
   assert.equal(await h.controller.useVoice(),false);assert.match(h.controller.read().message,/Voice 3|waveform/);assert.equal(h.used.length,0);
-  h.controller.selectVoice(0);h.config.useError=Error('Preset rejected');assert.equal(await h.controller.useVoice(),false);
+  h.config.useError=Error('Preset rejected');assert.equal(await h.controller.selectVoice(0),false);
   assert.match(h.controller.read().message,/Preset rejected.*Current preset kept/);assert(h.controller.read().selected.preset);assert(!h.controller.read().playing);await h.controller.dispose();
 });
 
@@ -264,7 +268,96 @@ test('real C64 preflight and capture reuse unchanged 6581/8580 VBI, CIA and RSID
     assert.equal(await controller.play(),true);assert.equal(await controller.capture(),true);
     const expected=controller.read().snapshot;assert.equal(expected.model,validatePlayerSid(item.bytes,{subtune:item.subtune}).selectedModel);
     assert(expected.positionFrames>0);assert(expected.voices.some(row=>row.available));
-    const choice=expected.voices.find(row=>row.available);controller.selectVoice(choice.voice);
-    assert.equal(await controller.useVoice(),true);assert.deepEqual(commits,[choice.preset]);await controller.dispose();
+    const choice=expected.voices.find(row=>row.available);
+    assert.equal(await controller.selectVoice(choice.voice),true);assert.deepEqual(commits,[choice.preset]);await controller.dispose();
   }
+});
+
+test('selecting a captured voice applies immediately after closing preview without an extra Use action',async()=>{
+  const h=harness();await captured(h);const expected=h.controller.read().snapshot.voices[0].preset;
+  assert.equal(await h.controller.selectVoice(0),true);assert.deepEqual(h.used,[expected]);assert(!h.controller.read().playing);
+  assert.equal(h.engines[0].disposeCount,1);assert.equal(h.timers.size,0);
+  assert(h.events.findIndex(e=>e[0]==='previewStop')<h.events.findIndex(e=>e[0]==='use'));
+  await h.controller.dispose();
+});
+
+test('live view follows one coherent state without adopting presets, writing registers or allocating another engine',async()=>{
+  const h=harness();assert.equal(h.controller.read().liveEnabled,true);assert.equal(h.controller.read().liveVoice,0);
+  assert.equal(h.controller.read().liveState,null);assert.equal(h.controller.read().liveActive,false);assert.equal(h.timers.size,0);
+  await h.controller.loadFile(file(authored()));assert.equal(h.timers.size,0);await h.controller.play();assert(!h.controller.read().liveActive);assert(h.controller.read().liveWaiting);
+  assert.equal(h.timers.size,1);const first=snapshot();first.registers[4]=0xf1;first.voices[0].envelope=null;h.config.readState=first;
+  await h.tick();const state=h.controller.read();assert(state.liveActive);assert(!state.liveWaiting);assert.deepEqual(state.liveState,first);assert.deepEqual(state.liveSource,{name:'Tetorica 6581 pair 3-1',subtune:1,model:'6581'});
+  assert.equal(state.snapshot,null);assert.equal(h.used.length,0);assert.equal(h.engines.length,1);
+  assert.deepEqual(h.engines[0].messages.map(row=>row.method),['load','start','read']);
+  state.liveState.registers[4]=0;state.liveState.voices[0].envelope=255;state.liveSource.name='external mutation';
+  assert.equal(h.controller.read().liveState.registers[4],0xf1);assert.equal(h.controller.read().liveState.voices[0].envelope,null);
+  assert.equal(h.controller.read().liveSource.name,'Tetorica 6581 pair 3-1');
+  h.controller.setLiveVoice(2);assert.equal(h.controller.read().liveVoice,2);assert.equal(h.engines[0].messages.length,3);assert(h.controller.read().playing);
+  assert.throws(()=>h.controller.setLiveVoice(3),RangeError);assert.throws(()=>h.controller.setLiveVoice('1'),RangeError);
+  assert.throws(()=>h.controller.setLiveEnabled('true'),TypeError);await h.controller.dispose();assert.equal(h.timers.size,0);
+});
+
+test('slow live reads never create interval backlogs and an explicit capture waits for its own newer read',async()=>{
+  const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();const wait=deferred();h.config.readWait=wait;
+  await h.tick();assert.equal(h.engines[0].messages.filter(row=>row.method==='read').length,1);assert.equal(h.timers.size,0);
+  const capturing=h.controller.capture();await flush();assert(h.controller.read().capturing);assert.equal(h.engines[0].messages.filter(row=>row.method==='read').length,1);
+  const next=snapshot();next.positionFrames=16384;h.config.readState=next;wait.resolve(snapshot());assert.equal(await capturing,true);await flush();
+  assert.equal(h.engines[0].messages.filter(row=>row.method==='read').length,2);assert.equal(h.controller.read().snapshot.positionFrames,16384);
+  assert.equal(h.controller.read().liveState.positionFrames,8192);assert.equal(h.used.length,0);assert.equal(h.timers.size,1);
+  await h.controller.dispose();
+});
+
+test('Stop, disposal, file selection and mode changes fence late live observations and retain the last frozen frame',async()=>{
+  for(const action of ['stop','dispose','file','disable']){
+    const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();await h.tick();const saved=h.controller.read().liveState;
+    const wait=deferred();h.config.readWait=wait;await h.tick();
+    if(action==='stop')await h.controller.stop();else if(action==='dispose')await h.controller.dispose();
+    else if(action==='file')h.controller.beginFileSelection();else h.controller.setLiveEnabled(false);
+    const updates=h.updates.length;const late=snapshot('8580');late.positionFrames=99999;wait.resolve(late);await flush();
+    assert.equal(h.updates.length,updates);assert.deepEqual(h.controller.read().liveState,saved);assert.equal(h.controller.read().liveActive,false);assert.equal(h.timers.size,0);
+    if(action!=='dispose')await h.controller.dispose();
+  }
+});
+
+test('a resumed live mode waits for an outstanding read to settle and cannot publish an older toggle generation',async()=>{
+  const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();await h.tick();
+  const saved=h.controller.read().liveState,wait=deferred();h.config.readWait=wait;await h.tick();
+  h.controller.setLiveEnabled(false);h.controller.setLiveEnabled(true);assert.equal(h.timers.size,0);assert(!h.controller.read().liveActive);assert(h.controller.read().liveWaiting);
+  const late=snapshot();late.positionFrames=20000;wait.resolve(late);await flush();assert.deepEqual(h.controller.read().liveState,saved);assert.equal(h.timers.size,1);
+  const next=snapshot();next.positionFrames=30000;h.config.readState=next;await h.tick();assert.equal(h.controller.read().liveState.positionFrames,30000);
+  assert.equal(h.used.length,0);await h.controller.dispose();
+});
+
+test('cancelled and failed candidate loads resume only the accepted live source; replacement and subtune keep it frozen',async()=>{
+  const h=harness();await h.controller.loadFile(file(createSidPlayerTestFixture()));await h.controller.play();await h.tick();const saved=h.controller.read().liveState;
+  const chooser=h.controller.beginFileSelection();assert.equal(h.controller.read().liveActive,false);assert.equal(h.timers.size,0);
+  h.controller.cancelFileSelection(chooser);assert.equal(h.timers.size,1);await h.tick();assert(h.controller.read().liveActive);
+  assert.equal(await h.controller.loadFile(file(new Uint8Array([1]),'bad.sid')),false);assert.equal(h.timers.size,1);await h.tick();
+  assert.equal(h.controller.read().liveSource.subtune,1);assert(h.controller.read().playing);
+  assert.equal(await h.controller.setSubtune(2),true);assert.deepEqual(h.controller.read().liveState,saved);assert(!h.controller.read().liveActive);assert.equal(h.timers.size,0);
+  await h.controller.play();await h.tick();assert.equal(h.controller.read().liveSource.subtune,2);
+  assert.equal(await h.controller.loadFile(file(authored('8580'))),true);assert(!h.controller.read().liveActive);assert.equal(h.timers.size,0);
+  await h.controller.play();await h.tick();assert.equal(h.controller.read().liveState.model,'8580');await h.controller.dispose();
+});
+
+test('an observer read failure pauses live sampling with a diagnostic while leaving song and authored preset unchanged',async()=>{
+  const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();await h.tick();const saved=h.controller.read().liveState;
+  h.config.readError=Error('Observation unavailable');await h.tick();assert(h.controller.read().playing);assert.equal(h.engines[0].disposeCount,0);
+  assert.deepEqual(h.controller.read().liveState,saved);assert.equal(h.controller.read().liveError,true);assert.equal(h.controller.read().liveActive,false);
+  assert.match(h.controller.read().liveMessage,/Observation unavailable.*song playback is unchanged/);assert.equal(h.timers.size,0);assert.equal(h.used.length,0);
+  h.controller.setLiveEnabled(true);await h.tick();assert.equal(h.controller.read().liveError,false);assert(h.controller.read().liveActive);
+  await h.controller.dispose();
+});
+
+test('restart and accepted replacement retain a frozen old source until the new owner publishes its first frame',async()=>{
+  const h=harness();await h.controller.loadFile(file(authored()));await h.controller.play();await h.tick();
+  const saved=h.controller.read().liveState,oldSource=h.controller.read().liveSource;
+  await h.controller.stop();await h.controller.play();
+  assert.deepEqual(h.controller.read().liveState,saved);assert.deepEqual(h.controller.read().liveSource,oldSource);
+  assert.equal(h.controller.read().liveActive,false);assert.equal(h.controller.read().liveWaiting,true);
+  await h.tick();assert.equal(h.controller.read().liveActive,true);assert.equal(h.controller.read().liveWaiting,false);
+  await h.controller.loadFile(file(authored('8580'),'new.sid'));await h.controller.play();
+  assert.deepEqual(h.controller.read().liveSource,oldSource);assert.equal(h.controller.read().liveActive,false);assert.equal(h.controller.read().liveWaiting,true);
+  await h.tick();assert.equal(h.controller.read().liveSource.model,'8580');assert.equal(h.controller.read().liveState.model,'8580');assert.equal(h.controller.read().liveActive,true);
+  await h.controller.dispose();
 });

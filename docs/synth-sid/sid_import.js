@@ -39,12 +39,16 @@ export async function preflightSidImport(core,signal){
 export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreviewStop=()=>{},
   onUsePreset=()=>{},getInstrumentRevision=()=>0,getVolume,
   validate=validatePlayerSid,createCore=createPlayerCore,createAudio=createPlayerAudio,
-  preflight=preflightSidImport,createCapture=createVoiceCapture}={}){
+  preflight=preflightSidImport,createCapture=createVoiceCapture,
+  schedule=(callback,delay)=>setTimeout(callback,delay),unschedule=timer=>clearTimeout(timer)}={}){
   let dead=false,selection=null,modelChoice='auto',loading=null,starting=null,audio=null,playing=false;
   let choosingFile=false,applying=false,loadSerial=0,playSerial=0,useSerial=0,captureSerial=0,master=.7;
   let message='Open a SID, play the song, then capture its voices.',error=false,captureControl=null;
   let captureState={busy:false,voice:0,snapshot:null,selected:null,message:'',error:false};
-  const closing=new Set(),disposals=new WeakMap();
+  let liveEnabled=true,liveVoice=0,liveState=null,liveSource=null,liveMessage='Play a SID to follow its live channel settings.',liveError=false;
+  let liveSerial=0,liveTimer=null,livePending=null,liveFresh=false;
+  const closing=new Set(),disposals=new WeakMap(),reads=new WeakMap();
+  const canObserve=()=>!dead&&liveEnabled&&!!audio&&playing&&!loading&&!starting&&!choosingFile&&!applying;
   const publicSelection=()=>selection?{
     name:selection.name,title:selection.parsed.metadata?.name||selection.name,
     author:selection.parsed.metadata?.author||'',released:selection.parsed.metadata?.released||'',
@@ -58,6 +62,8 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     return clone({selection:publicSelection(),modelSelection:modelChoice,busy,loading:!!loading,
       starting:!!starting,playing,choosingFile,applying,capturing:captureState.busy,voice:captureState.voice,
       snapshot:captureState.snapshot,selected:captureState.selected,message,error,
+      liveEnabled,liveVoice,liveState,liveSource,liveActive:canObserve()&&liveFresh&&!liveError,
+      liveWaiting:canObserve()&&!liveFresh&&!liveError,liveMessage,liveError,
       captureMessage:captureState.message,canPlay:!!selection&&!busy&&!playing,
       canCapture:!!audio&&playing&&!busy,canUse:!!captureState.selected?.preset&&!busy,
       canStop:!!loading||!!starting||playing||choosingFile||captureState.busy||applying});
@@ -66,6 +72,51 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
   const say=(text,bad=false)=>{message=text;error=bad;emit();};
   const currentVolume=()=>volume(getVolume?getVolume():master);
   const cancelUse=()=>{useSerial++;applying=false;};
+  // Capture and display reads share one queue for each actual Worklet. A slow
+  // observation cannot build an interval backlog or overlap an explicit read.
+  function readApplied(engine,isCurrent){
+    const previous=reads.get(engine)??Promise.resolve();
+    const result=previous.catch(()=>{}).then(()=>{if(!isCurrent())throw aborted();return engine.read();});
+    reads.set(engine,result);
+    void result.then(()=>{if(reads.get(engine)===result)reads.delete(engine);},()=>{if(reads.get(engine)===result)reads.delete(engine);});
+    return result;
+  }
+  function invalidateLive(text='Live view paused. Last observed state kept.'){
+    liveSerial++;liveFresh=false;if(liveTimer!==null){unschedule(liveTimer);liveTimer=null;}
+    liveMessage=text;liveError=false;
+  }
+  function scheduleLive(){
+    if(!canObserve()||liveError||liveTimer!==null||livePending)return;
+    liveTimer=schedule(()=>{
+      liveTimer=null;if(!canObserve()||liveError)return;
+      const engine=audio,tune=selection,serial=liveSerial,play=playSerial;
+      const current=()=>canObserve()&&liveSerial===serial&&audio===engine&&selection===tune&&playSerial===play;
+      const task=(async()=>{
+        try{
+          const state=await readApplied(engine,current);if(!current())return;
+          liveState=clone(state);liveSource={name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune,model:tune.parsed.selectedModel};
+          liveFresh=true;liveMessage='Following the selected channel · sampled at up to 20 updates per second.';liveError=false;emit();
+        }catch(cause){
+          if(!current()||isAbort(cause))return;
+          liveFresh=false;liveMessage=`Live view paused: ${cause.message}. Last observed state kept; song playback is unchanged.`;liveError=true;emit();
+        }
+      })();
+      livePending=task;
+      void task.finally(()=>{if(livePending===task)livePending=null;scheduleLive();});
+    },50);
+    // Browser timers are numeric; a Node timer should not keep a test alive.
+    liveTimer?.unref?.();
+  }
+  function setLiveEnabled(value){
+    if(typeof value!=='boolean')throw new TypeError('SID live display mode must be a boolean');
+    if(dead)return;
+    liveEnabled=value;invalidateLive(value?'Waiting for the next live channel observation…':'Live view frozen. Last observed state kept.');
+    emit();scheduleLive();
+  }
+  function setLiveVoice(value){
+    if(!Number.isInteger(value)||value<0||value>2)throw new RangeError('SID live channel must be 0, 1 or 2');
+    if(dead)return;liveVoice=value;emit();
+  }
   function invalidateCapture(){captureSerial++;captureControl?.invalidate();}
   function cancelLoading(){loadSerial++;const previous=loading;loading=null;previous?.controller.abort();}
   function closeEngine(engine){
@@ -79,7 +130,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     return done;
   }
   function retirePreview(){
-    playSerial++;invalidateCapture();playing=false;
+    playSerial++;invalidateCapture();invalidateLive();playing=false;
     const pending=starting,previous=audio;starting=null;audio=null;pending?.controller.abort();
     const tasks=[...closing];
     if(previous)tasks.push(closeEngine(previous));
@@ -94,15 +145,15 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     return done.catch(cause=>{if(!dead&&useSerial===serial)say(`Preview could not close: ${cause.message}. Current instrument kept.`,true);});
   }
   function beginFileSelection(){
-    if(dead)return null;cancelLoading();cancelUse();invalidateCapture();choosingFile=true;
+    if(dead)return null;cancelLoading();cancelUse();invalidateCapture();invalidateLive();choosingFile=true;
     say('Choose a SID file. Current instrument and accepted preview kept.');return loadSerial;
   }
   function cancelFileSelection(token){
     if(dead||token!==undefined&&token!==loadSerial)return false;
-    cancelLoading();choosingFile=false;say('SID selection cancelled. Current instrument, file and captured voices kept.');return true;
+    cancelLoading();choosingFile=false;say('SID selection cancelled. Current instrument, file and captured voices kept.');scheduleLive();return true;
   }
   async function loadSource(getBytes,name,options){
-    cancelLoading();cancelUse();choosingFile=false;invalidateCapture();
+    cancelLoading();cancelUse();choosingFile=false;invalidateCapture();invalidateLive();
     // An already playing accepted preview remains audible until commit. A
     // startup is retired so a speculative candidate cannot acquire its sound.
     if(starting){const done=retirePreview();void done.catch(()=>{});}
@@ -126,7 +177,7 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     }catch(cause){
       if(current()&&!isAbort(cause))say(`SID load failed: ${cause.message}. Current instrument, accepted file and snapshot kept. Use SID Player for ROM or other playback options.`,true);
       return false;
-    }finally{try{candidate?.dispose();}finally{if(loading===owner){loading=null;emit();}}}
+    }finally{try{candidate?.dispose();}finally{if(loading===owner){loading=null;emit();scheduleLive();}}}
   }
   function loadFile(file,{selectionToken}={}){
     if(dead||selectionToken!==undefined&&selectionToken!==loadSerial)return Promise.resolve(false);
@@ -184,7 +235,9 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
         if(!current())throw aborted();engine.setVolume(currentVolume());
         await engine.command('start');if(!current())throw aborted();
         audio=engine;starting=null;playing=true;
+        invalidateLive('Waiting for the first live channel observation…');
         say(`Playing ${tune.parsed.selectedModel} · subtune ${tune.parsed.subtune} / ${tune.parsed.songs}. Capture voices when you hear the sound you want.`);
+        scheduleLive();
         return true;
       }catch(cause){
         if(owner.engine)void closeEngine(owner.engine).catch(()=>{});
@@ -194,9 +247,13 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     })();
   }
   captureControl=createCapture({
-    getSource:()=>!dead&&audio&&playing&&!loading&&!starting&&!choosingFile&&!applying
-      ?{engine:audio,tune:selection,serial:playSerial,name:selection.parsed.metadata?.name||selection.name,subtune:selection.parsed.subtune}:null,
-    isCurrent:source=>!dead&&audio===source.engine&&selection===source.tune&&playing&&playSerial===source.serial&&!loading&&!starting&&!choosingFile,
+    getSource:()=>{
+      if(dead||!audio||!playing||loading||starting||choosingFile||applying)return null;
+      const ownerEngine=audio,tune=selection,serial=playSerial;
+      const current=()=>!dead&&audio===ownerEngine&&selection===tune&&playing&&playSerial===serial&&!loading&&!starting&&!choosingFile;
+      return {engine:{read:()=>readApplied(ownerEngine,current)},ownerEngine,tune,serial,name:tune.parsed.metadata?.name||tune.name,subtune:tune.parsed.subtune};
+    },
+    isCurrent:source=>!dead&&audio===source.ownerEngine&&selection===source.tune&&playing&&playSerial===source.serial&&!loading&&!starting&&!choosingFile,
     onUpdate:state=>{captureState=state;emit();},
   });
   async function capture(){
@@ -204,11 +261,11 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     const request=++captureSerial;
     message='Reading the current SID voice settings…';error=false;
     const ok=await captureControl.capture();if(dead||captureSerial!==request)return false;
-    if(ok)captureControl.notify('Snapshot captured. Choose a voice, then Use this voice.');
+    if(ok)captureControl.notify('Snapshot captured. Select a voice to load it immediately.');
     if(!captureState.busy)say(captureState.message,captureState.error);
     return ok;
   }
-  function selectVoice(value){if(dead)return;cancelUse();captureControl.selectVoice(value);}
+  function selectVoice(value){if(dead)return Promise.resolve(false);cancelUse();captureControl.selectVoice(value);return useVoice();}
   async function useVoice(){
     if(dead||loading||starting||choosingFile||applying||captureState.busy)return false;
     const row=captureState.selected;
@@ -230,6 +287,6 @@ export function createSidImport({onUpdate=()=>{},onPreviewStart=()=>{},onPreview
     if(dead)return Promise.all([...closing]).then(()=>undefined);
     dead=true;cancelLoading();cancelUse();choosingFile=false;captureControl.dispose();return retirePreview();
   }
-  const control={read,loadFile,setSubtune,setModel,play,stop,capture,selectVoice,useVoice,setVolume,beginFileSelection,cancelFileSelection,dispose};
+  const control={read,loadFile,setSubtune,setModel,play,stop,capture,selectVoice,useVoice,setLiveEnabled,setLiveVoice,setVolume,beginFileSelection,cancelFileSelection,dispose};
   emit();return control;
 }
