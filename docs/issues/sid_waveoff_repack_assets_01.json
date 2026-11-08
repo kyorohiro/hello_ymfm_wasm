@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Metadata-only ZIP refresh after final package.json test-command edit",
+  "baselineProof": {
+    "path": "docs/issues/sid_waveoff_packages_01.json",
+    "bytes": 5292,
+    "sha256": "c1aaed72244684dc3a08f735224022073fa87f8332822c2927f08576e92aeb1c"
+  },
+  "packages": [
+    {
+      "kind": "player",
+      "oldArchive": "release/tetorica_sid_player_waveoff-20261108_itch.zip",
+      "oldArchiveRecord": {
+        "bytes": 2700698,
+        "sha256": "1087f90caa0147f9a838d2b3f9ac175f55ba3246612179d46df473940d02c7b3"
+      },
+      "newArchive": "release/tetorica_sid_player_waveoff-20261108.1_itch.zip",
+      "newArchiveRecord": {
+        "bytes": 2700687,
+        "sha256": "af8f29968dacb79043c811cbd233dbe76403b2b34459a16f11e7569ff7ce1d70"
+      },
+      "changedPaths": [
+        "sources/sid-player-browser-inputs.zip",
+        "sources/sid-player-browser.json"
+      ],
+      "allOtherPathsByteIdentical": true,
+      "runtimeFiles": 34,
+      "nativeSourceKitFiles": 175,
+      "runtimeAndNativeSourceKitsByteIdentical": true,
+      "crcVerified": true
+    },
+    {
+      "kind": "synth",
+      "oldArchive": "release/tetorica_sid_synth_waveoff-20261108_itch.zip",
+      "oldArchiveRecord": {
+        "bytes": 2518421,
+        "sha256": "b9ee90c5c451d83abd95d7fd53593c9ae01ebe23d6b894d97bf1dd4731b9c799"
+      },
+      "newArchive": "release/tetorica_sid_synth_waveoff-20261108.1_itch.zip",
+      "newArchiveRecord": {
+        "bytes": 2518422,
+        "sha256": "8dddca38046955351bbb73139967c6916ad8b7342f16b9783db1861e052abe4c"
+      },
+      "changedPaths": [
+        "sources/sid-synth-browser-inputs.zip",
+        "sources/sid-synth-browser.json"
+      ],
+      "allOtherPathsByteIdentical": true,
+      "runtimeFiles": 40,
+      "nativeSourceKitFiles": 159,
+      "runtimeAndNativeSourceKitsByteIdentical": true,
+      "crcVerified": true
+    }
+  ],
+  "browserVerificationReused": {
+    "source": "docs/issues/sid_waveoff_voice_browser_01.json",
+    "zip": "docs/issues/sid_waveoff_voice_zip_browser_01.json",
+    "basis": "Every runtime asset is byte-identical to the previously validated ZIP; only browser-input archive and its receipt changed."
+  }
+}

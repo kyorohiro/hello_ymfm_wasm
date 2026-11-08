@@ -36,6 +36,12 @@ on:
       - 'scripts/check_sid_voice_capture_browser.cjs'
       - 'scripts/check_sid_waveoff_players.mjs'
       - 'scripts/check_sid_waveoff_c64.mjs'
+      - 'scripts/sid_worklet_metrics.mjs'
+      - 'scripts/sid_worklet_perf_plan.mjs'
+      - 'scripts/check_sid_worklet_performance.mjs'
+      - 'scripts/summarize_sid_worklet_performance.mjs'
+      - 'test/sid_worklet_metrics.test.mjs'
+      - 'test/sid_worklet_summary.test.mjs'
       - 'scripts/package_itch_sid_synth.*'
       - 'scripts/sid_model_artifacts.mjs'
       - 'scripts/sid_artifacts.mjs'
@@ -94,6 +100,12 @@ on:
       - 'scripts/check_sid_voice_capture_browser.cjs'
       - 'scripts/check_sid_waveoff_players.mjs'
       - 'scripts/check_sid_waveoff_c64.mjs'
+      - 'scripts/sid_worklet_metrics.mjs'
+      - 'scripts/sid_worklet_perf_plan.mjs'
+      - 'scripts/check_sid_worklet_performance.mjs'
+      - 'scripts/summarize_sid_worklet_performance.mjs'
+      - 'test/sid_worklet_metrics.test.mjs'
+      - 'test/sid_worklet_summary.test.mjs'
       - 'scripts/package_itch_sid_synth.*'
       - 'scripts/sid_model_artifacts.mjs'
       - 'scripts/sid_artifacts.mjs'
@@ -139,6 +151,9 @@ jobs:
           node scripts/sid_player_artifacts.mjs --check
           node scripts/sid_rsid_artifacts.mjs --check
           node --test docs/synth-sid/handoff.test.mjs
+          node --test test/sid_worklet_metrics.test.mjs test/sid_worklet_summary.test.mjs
+          node --check scripts/check_sid_worklet_performance.mjs
+          node --check scripts/sid_worklet_perf_plan.mjs
           npm run test:sid-player
           node scripts/check_sid_waveoff_c64.mjs --check --out release/sid-waveoff-c64-native.json
           npm run test:sid-corpus

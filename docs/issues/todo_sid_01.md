@@ -57,7 +57,34 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [x] Chromium／WebKitで各代表caseを30秒再生し、全12ケースの有限・非zero出力、CPU／SID進行・Worklet処理時間を記録した。物理出力はgain0、ゲーム曲／PCM／ROMの保存・配布なし。[Report](sid8580_real_worklet_01.json)。
 - [x] 3曲すべてで2subtuneの切り替えを確認し、停止／再開と不正候補時に旧実曲再生を保持する確認も3曲×2engineの6組で成功した。
 - [x] 実行失敗0・無音0として全caseを保持し、再開手順・人の実聴用候補を[結果](sid8580_real_worklet_result_01.md)へまとめた。通常Playerへの採用・全曲互換・音質の合格とは区別する。
-- [ ] 後続: WebKitのcapture内予算超過248／62,016blocks（約0.40%、最大9ms）を、通常の無計測再生・観測負荷・timer／schedulerと切り分ける。人の実聴・長時間／background／device切替・高負荷確認も残す。
+- [x] 後続: WebKitのcapture内予算超過248／62,016blocks（約0.40%、instance最大9ms）を、通常の無計測再生・観測負荷・timerと分けて比較した。下記80条件の結果は[別記録](sid_worklet_perf_result_01.md)。旧9msの原因や実際のdevice underrunを確定したとは扱わない。
+- [ ] 人の実聴・長時間／background／device切替・高負荷・実Safari／WKWebView確認は残す。
+
+### 今回の続き: WebKitの通常再生と観測負荷の切り分け（2026-11-08）
+
+ユーザー承認: 6581／8580の通常再生と計測ありの負荷を比較し、以前の研究Labで観測した処理時間超過の原因を調べる。先にTODOへ範囲を記録し、計測値から実際のdevice underrunや実聴の合格を推定しない。
+
+- [x] 旧Labのtimer／PCM scanと通常Playerのprocessor／画面poll・visualizerの差を確認する。`Date.now`の粗さ・非単調性、wall timeとCPU時間、audio論理clockと実時間を区別する。
+- [x] 通常Playerを使う再現可能な比較tool・固定planを用意する。processor無改変の通常再生／軽い時間計測／同じ計測＋旧方式のPCM全frame scan／画面監視を抑えた計測を比較し、通常再生にはper-block timerやscanを混ぜない。実行順・warmup・sample rate・反復・入力hashを実行前に固定する。
+- [x] 自作の同一programを元から6581／8580として生成して比較し、実曲は旧planの元PAL／8580宣言を保持する。header書き換え・成功曲への差し替え・曲／ROM／PCMの保存・配布はしない。
+- [x] WebKitを中心に、Chromiumを対照として実AudioWorkletで有限・非zero出力／停止／状態進行と測定の負荷を確認する。無計測baselineには処理時間の数値を付けず、timer source／量子化の不確かさ・warmup／測定区間・観測回数を保存する。ブラウザーは逐次実行して相互負荷を避ける。
+- [x] 実測で原因が特定できた範囲だけ改善し、関連unit・source／必要なら実ZIPを検証する。実装を変える根拠がなければ診断tool・根拠・残る限界を整理する。DSP／WASM／固定SDK／校正値を不用意に変更しない。
+- [x] 結果・再実行手順・次の人の実聴項目を保存し、旧reportを保持する。commit／push／公開は別とする。
+
+実行前に固定した範囲:
+
+- [Plan `_02`](sid_worklet_perf_plan_02.json): 自作2model＋旧8580 planのVBI／CIA／RSIDの計5入力、4モード、正順・逆順の2反復、WebKit→Chromium逐次の80実行。全3実曲は元のpath／hash／model／subtuneを保持する。旧`_01` planはpilot履歴として残す。
+- 計測3モードのwarmupは345blocks／44,160frames、測定は1,723blocks／220,544frames。通常再生はWorkletを無改変に保つため約1秒＋5秒のmain-thread待機と実際のRPC境界を記録する進行対照であり、同一PCM窓や処理時間を測ったとは扱わない。captureのPCM集計はwarmupを含む264,704frames、時間histogramは測定窓だけと明記する。
+- `scripts/check_sid_worklet_performance.mjs`はHTTP応答だけに計測subclassを加え、原本processor／DSP／WASMを変更しない。ケースごとにcheckpointを保存し、`--resume`で入力・source一致を確認する。quiet-uiのpilotではtool自身のRAF待機が停止する問題を見つけ、startup待機を明示polling、測定完了を単一Worklet eventに直した。新pilot4条件は全成功。
+- [再実行・解釈のガイド](../sid-worklet-performance.md)。本測定は`docs/issues/sid_worklet_perf_01.json`へ保存。`record()`は固定配列へ集計し、粗い時計と不正値を分ける。metrics unit7件成功。性能の実行中は別browser／compilerを並列起動しない。
+
+結果と再開情報:
+
+- [全80実行](sid_worklet_perf_01.json)が完走。無計測20件は時間`null`、計測60件は13,232,640frames、全frame scanはwarmup込み5,294,080frames。終了境界の80標本は有限・非zero、全context終了・error／HTTP失敗／外部request0。10組×6計測の固定境界で、再生位置・cycle／IRQ／NMI／play counter・target metadataの観測subsetが一致。完全なCPU／RAM／SID内部状態やPCMの一致とは扱わない。
+- [厳密集計](sid_worklet_perf_summary_01.json)と[独立再計算](sid_worklet_perf_verification_01.json)が一致。WebKitのtimerのみ平均0.586ms／目安2.902ms、窓内最大3ms。全計測モードを合わせた生閾値超過31blocksのうち24は名目1msの分類で境界が変わり、残る7もdevice underrunではない。Chromiumの生閾値超過は0だが、音切れなしの保証にはしない。
+- quiet-uiは同じcase・反復のtimedより20組すべてで平均wall spanが高く、画面を消せば改善する結果は得られなかった。全frame scanを加えたprocess()平均の差は正負が混在。2反復・制御外のOS／JIT／電力状態から因果は断定せず、旧Labの0.40%との率差を改善率にしない。[結論と測定表](sid_worklet_perf_result_01.md)。
+- 製品DSP／WASM／UIを変更すべき不具合は特定できなかったため、製品へ常時計測や監視無効化を追加していない。[変更範囲](sid_worklet_perf_scope_01.json)で27製品assetのHEAD／実行中hash一致と、既存Player176／Synth160原本の一致を確認。既存`waveoff-20261108.1`のZIPを再生成する必要はない。
+- 診断unit12件、CLI構文、CI YAML、diff check、SDK33 builds／68 outputs／75 mirrors・両Mixer freshness check成功。CIにはarchive不要の純粋テストと構文確認を追加し、実曲performance閾値をCIの合否にしていない。commit／push／GitHub Actions実行／公開は未実施。実聴、長時間・background・device切替・実Safari／Tauri実環境は別の確認項目。
 
 ### 今回の続き: 通常SID Playerの6581／8580選択（2026-11-08）
 
@@ -163,6 +190,13 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 - [変更範囲](sid_waveoff_scope_01.json): Runtime検証33 SDK builds／68 outputs／75 mirrors成功。固定SDKのbytes、4音源の測定report・既存source revision・Mixer gainを保持。SIDは未校正のapplication instrumentのため新しい測定値やsource revisionの例外を作っていない。
 - 再確認: `npm run test:sid:waveoff`、`npm run test:sid-player`、`npm run test:sid-synth`。CIのSID labへphase回帰を追加し、Player CIは独立captureの新baselineと旧CPU不変条件を検証する。新規ZIPは`waveoff-20261108`名で作成済み。commit／push／tag／公開、人の実聴と長時間／background／実機比較は未実施。
 - 最終unit結果: Player131／Synth79／Core12／新phase7／Main・Worker runtime30／参照・corpus39／校正revision7すべて成功。全Playground mode型・C64 exampleのcheckJs、CI YAML構文、`git diff --check`も成功。GitHub上のActions実行は未実施で、上記はlocal検証。
+
+配布記録の追補（2026-11-08）:
+
+- [x] 最終レビューで、`waveoff-20261108`のPlayer／Synth ZIP作成後に`package.json`のテストcommandを整理したため、ZIPのoriginal-input receiptが現在の原本と1fileだけ異なることを確認した。旧`_01` proofは変更前の記録として保持する。
+- [x] 現在の原本からPlayer／Synthを`waveoff-20261108.1`へ再梱包した。Playgroundのbrowser-bundle入力にはrootの`package.json`は含まれず、同じ変更による再梱包は不要。
+- [x] [新ZIP検証](sid_waveoff_packages_02.json): Player176／Synth160のoriginal inputが現在の原本と一致し、outer／nested ZIPのCRC・全展開byteも成功。[独立byte比較](sid_waveoff_repack_assets_01.json)でも各ZIPの変更はbrowser-input archiveとreceiptの2fileだけで、実行assets／native source kitは旧検証ZIPと同一。browser検証と13／14／29入力の再build証拠を明示的に引き継ぎ、今回compilerを再実行したとは扱わない。
+- 配布用は`release/tetorica_sid_player_waveoff-20261108.1_itch.zip`（SHA `af8f29968dacb79043c811cbd233dbe76403b2b34459a16f11e7569ff7ce1d70`）、`release/tetorica_sid_synth_waveoff-20261108.1_itch.zip`（SHA `8dddca38046955351bbb73139967c6916ad8b7342f16b9783db1861e052abe4c`）を使用する。旧ZIP・旧proofは履歴として保持。commit／push／公開はしていない。
 
 ### PAL／6581補完設定の初期値（2026-11-07）
 

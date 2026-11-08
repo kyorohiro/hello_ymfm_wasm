@@ -1,0 +1,1058 @@
+{
+  "format": "tetorica-sid-worklet-performance-plan",
+  "version": 2,
+  "frozenOn": "2026-11-08",
+  "scope": "Metadata-only pre-execution plan for optional local SID performance comparisons. No browser, CPU or SID is executed while creating or checking this plan.",
+  "corpus": {
+    "root": "ww/C64Music"
+  },
+  "sources": {
+    "scripts/sid_worklet_perf_plan.mjs": {
+      "bytes": 15233,
+      "sha256": "6ab9aa84b85338cdba071fe543d2bddb90948ec4a550278c35abb9ae1bf8d38d"
+    },
+    "docs/issues/sid8580_worklet_cases_plan_01.json": {
+      "bytes": 8688,
+      "sha256": "fa964e69a200043a0cdf0d05740ec74d28978d964f439ba8043a1b11175a5629"
+    },
+    "test/helpers/sid_voice_pair_fixtures.mjs": {
+      "bytes": 5676,
+      "sha256": "b397c96b22e41e31afbffa98e4caf6de90f05910d3b02d5c09ba033846b96c4b"
+    }
+  },
+  "historicalPlan": {
+    "path": "docs/issues/sid8580_worklet_cases_plan_01.json",
+    "bytes": 8688,
+    "sha256": "fa964e69a200043a0cdf0d05740ec74d28978d964f439ba8043a1b11175a5629",
+    "frozenInputHashesValidated": true,
+    "selectedLocalFilesValidated": true,
+    "fullCorpusRescanned": false
+  },
+  "measurement": {
+    "sampleRate": 44100,
+    "quantumFrames": 128,
+    "requestedWarmupSeconds": 1,
+    "requestedWindowSeconds": 5,
+    "rounding": "Round each interval up independently to complete 128-frame producer blocks.",
+    "warmupBlocks": 345,
+    "windowBlocks": 1723,
+    "warmupFrames": 44160,
+    "windowFrames": 220544,
+    "windowStartFrame": 44160,
+    "windowEndFrame": 264704,
+    "actualWarmupSeconds": 1.0013605442176872,
+    "actualWindowSeconds": 5.0009977324263035,
+    "exactLogicalWindowModes": [
+      "timed",
+      "capture",
+      "quiet-ui"
+    ],
+    "instrumentedArmBeforeStart": true,
+    "ordinaryBaseline": {
+      "exactLogicalWindow": false,
+      "warmupWaitMs": 1000,
+      "windowWaitMs": 5000,
+      "boundaryMethod": "Approximate main-thread wall waits with RPC bookends after Play; record actual producer position and main-thread monotonic times at every boundary.",
+      "interpretation": "Untimed progress control only. Its RPC boundaries do not identify the same logical PCM or processing-cost window as the three instrumented modes."
+    },
+    "ordinaryTiming": "Unmodified product processor. No per-block elapsed metrics or full PCM scan: unavailable is not zero.",
+    "captureScan": {
+      "modes": [
+        "capture"
+      ],
+      "includesWarmup": true,
+      "frames": 264704,
+      "scope": "Every emitted stereo frame during warmup plus the measured window; scalar finite/stereo/RMS/peak aggregates only.",
+      "distinction": "Scan aggregates cover 264704 frames, while render/total timing histograms cover only the 220544-frame measured window. Ordinary, timed and quiet-ui do not compute full PCM aggregates."
+    },
+    "interpretation": "Wall-clock render spans include scheduling. Date.now quantization is reported, not interpreted as an audible underrun. Audio currentTime/currentFrame are logical progress, not elapsed CPU time."
+  },
+  "modes": [
+    {
+      "id": "ordinary",
+      "workletTiming": false,
+      "fullPcmScan": false,
+      "normalUi": true,
+      "productProcessorUnchanged": true
+    },
+    {
+      "id": "timed",
+      "workletTiming": true,
+      "fullPcmScan": false,
+      "normalUi": true,
+      "productProcessorUnchanged": false
+    },
+    {
+      "id": "capture",
+      "workletTiming": true,
+      "fullPcmScan": true,
+      "normalUi": true,
+      "productProcessorUnchanged": false
+    },
+    {
+      "id": "quiet-ui",
+      "workletTiming": true,
+      "fullPcmScan": false,
+      "normalUi": false,
+      "productProcessorUnchanged": false
+    }
+  ],
+  "controls": {
+    "ordinaryUiPollHz": 5,
+    "ordinaryVisualizerMaxHz": 30,
+    "quietUiSuppression": "HTTP-only test instrumentation suppresses normal read polling and rAF; no product file edit.",
+    "timingAndCaptureInjection": "HTTP-only test instrumentation; product runtime hashes belong in the execution report.",
+    "sampleWindow": "Only timed, capture and quiet-ui use the identical complete logical producer-frame window, pre-armed before Start. Ordinary uses approximate wall waits and records actual RPC bookend positions; no identical PCM/cost-window comparison is claimed. Init PCM remains in the original core queue.",
+    "contexts": "Fresh context per run; exactly one running page and one audio context; engines execute sequentially.",
+    "modelComparison": "Both synthetic files are authored with their original model declaration and byte-identical program payloads. Original real-file headers are never rewritten.",
+    "profiles": {
+      "resonance": false,
+      "cutoff": false
+    }
+  },
+  "cases": [
+    {
+      "id": "synthetic-pair-filter-6581",
+      "source": "generated",
+      "model": "6581",
+      "declaredModel": "6581",
+      "clock": "pal",
+      "environment": "minimal",
+      "format": "PSID",
+      "timing": "vbi",
+      "subtune": 1,
+      "input": {
+        "bytes": 376,
+        "sha256": "f2c5b41103c5f4ec3c00ee16c0c532f85b22dc13b39110ed710d420b9156b6e5"
+      },
+      "metadata": {
+        "name": "Tetorica 6581 pair 3-1",
+        "author": "Tetorica contributors",
+        "released": "2026 BSD-3-Clause"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 20,
+        "clock": "pal",
+        "model": "6581",
+        "sidCount": 1,
+        "songs": 1,
+        "startSong": 1,
+        "speed": 0,
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4347,
+        "basic": false,
+        "relocation": {
+          "startPage": 0,
+          "pageLength": 0
+        }
+      },
+      "generated": {
+        "module": "test/helpers/sid_voice_pair_fixtures.mjs",
+        "export": "createSidPairFixture",
+        "options": {
+          "model": "6581",
+          "sync": true,
+          "ring": true,
+          "voice3off": true
+        },
+        "program": {
+          "bytes": 252,
+          "sha256": "8d6e9d7e757344f4cd152a009f3ff8d7f505a1493a7f147920e60b4364e8e404"
+        }
+      }
+    },
+    {
+      "id": "synthetic-pair-filter-8580",
+      "source": "generated",
+      "model": "8580",
+      "declaredModel": "8580",
+      "clock": "pal",
+      "environment": "minimal",
+      "format": "PSID",
+      "timing": "vbi",
+      "subtune": 1,
+      "input": {
+        "bytes": 376,
+        "sha256": "0a0767d40bb1b9339baf287ebdaaada667e667328ce53dd158e7913210baeac0"
+      },
+      "metadata": {
+        "name": "Tetorica 8580 pair 3-1",
+        "author": "Tetorica contributors",
+        "released": "2026 BSD-3-Clause"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 1,
+        "startSong": 1,
+        "speed": 0,
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4347,
+        "basic": false,
+        "relocation": {
+          "startPage": 0,
+          "pageLength": 0
+        }
+      },
+      "generated": {
+        "module": "test/helpers/sid_voice_pair_fixtures.mjs",
+        "export": "createSidPairFixture",
+        "options": {
+          "model": "8580",
+          "sync": true,
+          "ring": true,
+          "voice3off": true
+        },
+        "program": {
+          "bytes": 252,
+          "sha256": "8d6e9d7e757344f4cd152a009f3ff8d7f505a1493a7f147920e60b4364e8e404"
+        }
+      }
+    },
+    {
+      "id": "psid-vbi-song-1",
+      "source": "corpus",
+      "fileId": "psid-vbi",
+      "path": "DEMOS/A-F/Bach4Xmas.sid",
+      "model": "8580",
+      "declaredModel": "8580",
+      "clock": "pal",
+      "environment": "minimal",
+      "format": "PSID",
+      "timing": "vbi",
+      "subtune": 1,
+      "input": {
+        "bytes": 4952,
+        "sha256": "f90a8473ac4dbb915e971c4a2106deead02a227b61f773b37e766a798a0cd639"
+      },
+      "metadata": {
+        "name": "Bach4Xmas",
+        "author": "Kaszi75 & András Kövér (Slyspy)",
+        "released": "2025 Kaszi75"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 2,
+        "startSong": 1,
+        "speed": 0,
+        "loadAddress": 4096,
+        "initAddress": 4096,
+        "playAddress": 4102,
+        "basic": false,
+        "relocation": {
+          "startPage": 0,
+          "pageLength": 0
+        }
+      },
+      "origin": {
+        "plan": "docs/issues/sid8580_worklet_cases_plan_01.json",
+        "caseId": "psid-vbi-song-1",
+        "selectionRole": "default",
+        "rule": "First already-frozen case for each group; no new selection or execution-based replacement."
+      }
+    },
+    {
+      "id": "psid-cia-song-1",
+      "source": "corpus",
+      "fileId": "psid-cia",
+      "path": "GAMES/M-R/Mastermind.sid",
+      "model": "8580",
+      "declaredModel": "8580",
+      "clock": "pal",
+      "environment": "minimal",
+      "format": "PSID",
+      "timing": "cia",
+      "subtune": 1,
+      "input": {
+        "bytes": 17240,
+        "sha256": "0371f3a7e4243de1c598ddca71a3bc9dd2af7e6a4013317d69340fc56d76e05f"
+      },
+      "metadata": {
+        "name": "Mastermind",
+        "author": "Peter Segschneider",
+        "released": "1991 Magic Disk 64/CP Verlag"
+      },
+      "header": {
+        "format": "PSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 3,
+        "startSong": 1,
+        "speed": 3,
+        "loadAddress": 35104,
+        "initAddress": 40906,
+        "playAddress": 40864,
+        "basic": false,
+        "relocation": {
+          "startPage": 8,
+          "pageLength": 88
+        }
+      },
+      "origin": {
+        "plan": "docs/issues/sid8580_worklet_cases_plan_01.json",
+        "caseId": "psid-cia-song-1",
+        "selectionRole": "default",
+        "rule": "First already-frozen case for each group; no new selection or execution-based replacement."
+      }
+    },
+    {
+      "id": "rsid-song-4",
+      "source": "corpus",
+      "fileId": "rsid",
+      "path": "MUSICIANS/F/Fanta/Desert_Dream.sid",
+      "model": "8580",
+      "declaredModel": "8580",
+      "clock": "pal",
+      "environment": "minimal",
+      "format": "RSID",
+      "timing": "c64-irq",
+      "subtune": 4,
+      "input": {
+        "bytes": 30974,
+        "sha256": "7a353e4f2fa9f84bac8a92193bfe20c00163a1687986f9c82d5bc2b6cee07db7"
+      },
+      "metadata": {
+        "name": "Desert Dream",
+        "author": "Alexander Rotzsch (Fanta)",
+        "released": "2007 Chorus & Resource"
+      },
+      "header": {
+        "format": "RSID",
+        "version": 2,
+        "flags": 36,
+        "clock": "pal",
+        "model": "8580",
+        "sidCount": 1,
+        "songs": 4,
+        "startSong": 4,
+        "speed": 0,
+        "loadAddress": 16384,
+        "initAddress": 16384,
+        "playAddress": 0,
+        "basic": false,
+        "relocation": {
+          "startPage": 192,
+          "pageLength": 16
+        }
+      },
+      "origin": {
+        "plan": "docs/issues/sid8580_worklet_cases_plan_01.json",
+        "caseId": "rsid-song-4",
+        "selectionRole": "default",
+        "rule": "First already-frozen case for each group; no new selection or execution-based replacement."
+      }
+    }
+  ],
+  "order": {
+    "engines": [
+      "webkit",
+      "chromium"
+    ],
+    "caseIds": [
+      "synthetic-pair-filter-6581",
+      "synthetic-pair-filter-8580",
+      "psid-vbi-song-1",
+      "psid-cia-song-1",
+      "rsid-song-4"
+    ],
+    "repetitions": 2,
+    "nesting": [
+      "engine",
+      "case",
+      "repetition",
+      "mode"
+    ],
+    "repetitionModeOrders": [
+      [
+        "ordinary",
+        "timed",
+        "capture",
+        "quiet-ui"
+      ],
+      [
+        "quiet-ui",
+        "capture",
+        "timed",
+        "ordinary"
+      ]
+    ]
+  },
+  "runs": [
+    {
+      "index": 1,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 2,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 3,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 4,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 5,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 6,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 7,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 8,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 9,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 10,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 11,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 12,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 13,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 14,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 15,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 16,
+      "engine": "webkit",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 17,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 18,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 19,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 20,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 21,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 22,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 23,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 24,
+      "engine": "webkit",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 25,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 26,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 27,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 28,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 29,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 30,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 31,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 32,
+      "engine": "webkit",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 33,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 34,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 35,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 36,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 37,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 38,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 39,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 40,
+      "engine": "webkit",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 41,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 42,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 43,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 44,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 45,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 46,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 47,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 48,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-6581",
+      "model": "6581",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 49,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 50,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 51,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 52,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 53,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 54,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 55,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 56,
+      "engine": "chromium",
+      "caseId": "synthetic-pair-filter-8580",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 57,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 58,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 59,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 60,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 61,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 62,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 63,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 64,
+      "engine": "chromium",
+      "caseId": "psid-vbi-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 65,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 66,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 67,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 68,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 69,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 70,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 71,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 72,
+      "engine": "chromium",
+      "caseId": "psid-cia-song-1",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    },
+    {
+      "index": 73,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "ordinary"
+    },
+    {
+      "index": 74,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "timed"
+    },
+    {
+      "index": 75,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "capture"
+    },
+    {
+      "index": 76,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 0,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 77,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "quiet-ui"
+    },
+    {
+      "index": 78,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "capture"
+    },
+    {
+      "index": 79,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "timed"
+    },
+    {
+      "index": 80,
+      "engine": "chromium",
+      "caseId": "rsid-song-4",
+      "model": "8580",
+      "repetition": 1,
+      "mode": "ordinary"
+    }
+  ],
+  "summary": {
+    "inputs": 5,
+    "generatedInputs": 2,
+    "originalLocalInputs": 3,
+    "runsPerEngine": 40,
+    "totalRuns": 80,
+    "instrumentedRuns": 60,
+    "ordinaryUntimedRuns": 20,
+    "framesPerInstrumentedRunIncludingWarmup": 264704,
+    "totalInstrumentedProducerFrames": 15882240,
+    "ordinaryApproximateWaitMsPerRun": 6000
+  },
+  "dataPolicy": {
+    "musicCopiedOrWritten": false,
+    "pcmSaved": false,
+    "firmwareUsed": false,
+    "syntheticProgramPersisted": false,
+    "savedData": "Metadata, source/input hashes, execution order and later scalar measurements only."
+  },
+  "interpretation": "A frozen plan is not playback success, real-time or glitch-free approval, listening, whole-song compatibility or hardware fidelity. Failed or silent runs are retained; no execution-based substitution."
+}

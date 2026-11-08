@@ -1,0 +1,341 @@
+{
+  "format": "tetorica-sid-worklet-performance-independent-verification",
+  "version": 1,
+  "passed": true,
+  "readOnlyReview": true,
+  "evidence": {
+    "report": {
+      "path": "docs/issues/sid_worklet_perf_01.json",
+      "bytes": 2147219,
+      "sha256": "1e7eb582aac7ba93d5da7cf04ae55d65af4e60afe1a5a00bcf07de8a9f87c172"
+    },
+    "summary": {
+      "path": "docs/issues/sid_worklet_perf_summary_01.json",
+      "bytes": 260966,
+      "sha256": "e9b5bdbe88915e77680292b67f628c65814ca4e7bdfe28d3b017f67032771f3b"
+    },
+    "plan": {
+      "path": "docs/issues/sid_worklet_perf_plan_02.json",
+      "bytes": 26200,
+      "sha256": "d0510034a2b30076a1b4e75da023a79e6ef9f841b7bd10a9d5bdc49476dd68f7"
+    },
+    "scope": {
+      "path": "docs/issues/sid_worklet_perf_scope_01.json",
+      "bytes": 6022,
+      "sha256": "2e08568c8c8e6ec024f1e2759ab213a17ceac3bf1ad2bfde209b65a588f884c1"
+    }
+  },
+  "currentTools": [
+    {
+      "path": "scripts/check_sid_worklet_performance.mjs",
+      "bytes": 21975,
+      "sha256": "d56ffb4e471ddde28620e5af8cce2e1bf5b6faf2d6a3335df750d981c8690b4f"
+    },
+    {
+      "path": "scripts/sid_worklet_metrics.mjs",
+      "bytes": 6365,
+      "sha256": "f4090441f9360d5fcbea38311152e5047a260ba45ef9c7670e022688c36edcfc"
+    },
+    {
+      "path": "scripts/sid_worklet_perf_plan.mjs",
+      "bytes": 15233,
+      "sha256": "6ab9aa84b85338cdba071fe543d2bddb90948ec4a550278c35abb9ae1bf8d38d"
+    },
+    {
+      "path": "scripts/summarize_sid_worklet_performance.mjs",
+      "bytes": 21063,
+      "sha256": "967a4fd97496e0f7252e79be200d3c1680b74ebe66a9c25163909b5ad813d42b"
+    },
+    {
+      "path": "test/helpers/sid_voice_pair_fixtures.mjs",
+      "bytes": 5676,
+      "sha256": "b397c96b22e41e31afbffa98e4caf6de90f05910d3b02d5c09ba033846b96c4b"
+    }
+  ],
+  "sourceHashes": {
+    "allReportInputsMatchCurrentFiles": true,
+    "inputCount": 17,
+    "allServedAssetsMatchCurrentFiles": true,
+    "servedAssetCount": 24,
+    "ordinaryProcessorIsOriginalByteForByte": true,
+    "ordinaryProcessor": {
+      "bytes": 3460,
+      "sha256": "663755c8159fc4fc8861a6404bfcdf56f6502a5a63a0bd29d5e3ffb411224dde"
+    }
+  },
+  "inventory": {
+    "exactPlanOrderAndIdentity": true,
+    "passedRuns": 80,
+    "failedRuns": 0,
+    "abandonedRuns": 0,
+    "ordinaryUntimedRuns": 20,
+    "instrumentedRuns": 60,
+    "fixedWindowFrames": 220544,
+    "fixedWindowBlocks": 1723,
+    "warmupFrames": 44160,
+    "totalMeasuredFrames": 13232640,
+    "captureFramesIncludingWarmup": 5294080
+  },
+  "fixedBoundaryChecks": {
+    "groups": 10,
+    "runsPerGroup": 6,
+    "everyInstrumentedBoundaryCounterSubsetMatches": true,
+    "startProducerFrame": 44160,
+    "endProducerFrame": 264704,
+    "fields": [
+      "positionFrames",
+      "cycles",
+      "sidCycles when supplied",
+      "irqCount",
+      "nmiCount",
+      "playCalls",
+      "model",
+      "format",
+      "timing"
+    ],
+    "scope": "This subset is not full CPU registers/RAM, SID registers, envelope/noise/phase state or full PCM equality."
+  },
+  "runtimeChecks": {
+    "ordinaryMetricsRemainNull": true,
+    "allInstrumentedTimingSources": "Date.now",
+    "invalidMeasuredDurations": 0,
+    "negativeWindowCallbackStartDeltas": 0,
+    "inconsistentMeasuredSpans": 0,
+    "allContextsClosed": true,
+    "allBrowserConsoleHttpExternalErrorsZero": true,
+    "allBoundarySamplesFiniteAndAtLeastOneNonzero": true,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "independentlyRecomputedModes": [
+    {
+      "engine": "webkit",
+      "mode": "ordinary",
+      "runs": 10,
+      "timing": null,
+      "producerFramesPerWallSecond": {
+        "minimum": 44085.81406951605,
+        "maximum": 44114.4377910845
+      }
+    },
+    {
+      "engine": "webkit",
+      "mode": "timed",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.585780615206036,
+          "maxMs": 3,
+          "rawThreshold": 9,
+          "nominal1msSensitive": 9,
+          "beyondNominal1ms": 0
+        },
+        "total": {
+          "meanMs": 0.585780615206036,
+          "maxMs": 3,
+          "rawThreshold": 9,
+          "nominal1msSensitive": 9,
+          "beyondNominal1ms": 0
+        },
+        "observedExtraCaptureSpanMeanMs": 0
+      }
+    },
+    {
+      "engine": "webkit",
+      "mode": "capture",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.5707486941381311,
+          "maxMs": 4,
+          "rawThreshold": 5,
+          "nominal1msSensitive": 3,
+          "beyondNominal1ms": 2
+        },
+        "total": {
+          "meanMs": 0.5899013348810215,
+          "maxMs": 4,
+          "rawThreshold": 5,
+          "nominal1msSensitive": 3,
+          "beyondNominal1ms": 2
+        },
+        "observedExtraCaptureSpanMeanMs": 0.01915264074289036
+      }
+    },
+    {
+      "engine": "webkit",
+      "mode": "quiet-ui",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.7405107370864771,
+          "maxMs": 4,
+          "rawThreshold": 17,
+          "nominal1msSensitive": 12,
+          "beyondNominal1ms": 5
+        },
+        "total": {
+          "meanMs": 0.7405107370864771,
+          "maxMs": 4,
+          "rawThreshold": 17,
+          "nominal1msSensitive": 12,
+          "beyondNominal1ms": 5
+        },
+        "observedExtraCaptureSpanMeanMs": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "mode": "ordinary",
+      "runs": 10,
+      "timing": null,
+      "producerFramesPerWallSecond": {
+        "minimum": 44083.588446757974,
+        "maximum": 44121.39378038738
+      }
+    },
+    {
+      "engine": "chromium",
+      "mode": "timed",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.5842716192687174,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "total": {
+          "meanMs": 0.5842716192687174,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "observedExtraCaptureSpanMeanMs": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "mode": "capture",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.5951828206616366,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "total": {
+          "meanMs": 0.5991294254207777,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "observedExtraCaptureSpanMeanMs": 0.0039466047591411035
+      }
+    },
+    {
+      "engine": "chromium",
+      "mode": "quiet-ui",
+      "runs": 10,
+      "blocks": 17230,
+      "timing": {
+        "timerSource": "Date.now",
+        "render": {
+          "meanMs": 0.7262333139872316,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "total": {
+          "meanMs": 0.7262333139872316,
+          "maxMs": 2,
+          "rawThreshold": 0,
+          "nominal1msSensitive": 0,
+          "beyondNominal1ms": 0
+        },
+        "observedExtraCaptureSpanMeanMs": 0
+      }
+    }
+  ],
+  "independentlyRecomputedPairs": [
+    {
+      "engine": "webkit",
+      "comparison": "capture minus timed",
+      "pairedSamples": 10,
+      "renderMeanDeltaMs": {
+        "minimum": -0.12942542077771335,
+        "maximum": 0.09228090539756245,
+        "positive": 3,
+        "negative": 7,
+        "zero": 0
+      }
+    },
+    {
+      "engine": "webkit",
+      "comparison": "quiet-ui minus timed",
+      "pairedSamples": 10,
+      "renderMeanDeltaMs": {
+        "minimum": 0.08009286128845039,
+        "maximum": 0.2675565873476494,
+        "positive": 10,
+        "negative": 0,
+        "zero": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "comparison": "capture minus timed",
+      "pairedSamples": 10,
+      "renderMeanDeltaMs": {
+        "minimum": -0.06790481717933838,
+        "maximum": 0.11491584445734182,
+        "positive": 5,
+        "negative": 5,
+        "zero": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "comparison": "quiet-ui minus timed",
+      "pairedSamples": 10,
+      "renderMeanDeltaMs": {
+        "minimum": 0.015089959373186357,
+        "maximum": 0.28786999419616943,
+        "positive": 10,
+        "negative": 0,
+        "zero": 0
+      }
+    }
+  ],
+  "summaryAggregatesMatchIndependentArithmetic": true,
+  "conclusions": {
+    "groundedProductionDspOrUiBugIdentified": false,
+    "productionOptimizationJustifiedByThisStudy": false,
+    "ordinaryCostOrOverrunAbsenceClaimed": false,
+    "confirmedDeviceUnderrunsClaimed": false
+  },
+  "limitations": [
+    "Ordinary mode uses unmodified product processor bytes and approximate main-thread/RPC bookends. Its cost is unmeasured, not zero, and its PCM/cost window is not identical to instrumented modes.",
+    "Instrumented render means cover original process() including renderInto and stereo copy, not pure WASM or CPU time. Total adds the scan; aggregate updates and boundary state reads remain outside both timers.",
+    "All measured clocks were Date.now. The nominal 1ms allowance is an assumption, not a timer precision guarantee. Observed 3ms deltas can straddle the 2.902ms budget; beyond-allowance spans can still include descheduling and do not establish audible or device underruns.",
+    "quiet-ui minus timed means were positive in all ten pairs per engine, while capture minus timed render differences had both signs. Two reversed-order repetitions, fresh contexts and uncontrolled OS/power/JIT activity do not isolate causation or prove UI benefit or a capture slowdown.",
+    "The old 248/62016 WebKit observation used the research Lab, six subtunes, 30-second captures, a different UI and capture trigger, and lifetime maxima. This study uses the ordinary Player, three original primary tunes plus two synthetic model fixtures, one-second warmup and five-second fixed windows. Rates and maxima are not a direct speedup comparison.",
+    "Finite sparse analyser bookends and scalar capture scans do not establish uninterrupted device playback. No human listening, long/background/device/high-load stability or whole-song compatibility is proved."
+  ]
+}
