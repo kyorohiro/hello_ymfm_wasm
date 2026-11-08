@@ -3,6 +3,8 @@ import {createAudio} from './audio.js';
 import {createEditor} from './editor.js';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js';
 import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.js';
+import {createSidImport} from './sid_import.js';
+import {createSidImportPanel} from './sid_import_panel.js';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -12,6 +14,7 @@ let audio=null, opening=null, disposed=false, generation=0, noteEpoch=0, sequenc
 let preset=createDefaultPreset(), appliedPreset=readPreset(preset), revision=0, importSequence=0, octave=0, pitch=0;
 let appliedPitch=0,pitchIntent=0,commandSequence=0,pitchAckSequence=0;
 let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
+let sidImporter=null,previewEngine=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
 const visualizer=createSpuOutputVisualizer({canvas:$('outputCanvas')});visualizer.setMode('waveform');
@@ -31,7 +34,7 @@ function updateCapacity(){
 function updateKeys(){
   const active=new Set([...notes.values()].map(note=>note.key));
   for(const button of $('keyboard').querySelectorAll('.key')){const on=active.has(button.dataset.key);button.classList.toggle('is-active',on);button.setAttribute('aria-pressed',String(on));}
-  visualizer.setRunning(notes.size>0);updateCapacity();refreshPlayableKeys();
+  visualizer.setRunning(notes.size>0||Boolean(sidImporter?.read().playing));updateCapacity();refreshPlayableKeys();
 }
 function setPitchUi(value){pitch=value;for(const[wheel,output]of pitchWheels){wheel.value=String(value);output.textContent=`${value>=0?'+':''}${value.toFixed(2)}`;}}
 function acceptPitch(state,order,intent=null){
@@ -120,6 +123,30 @@ function applyPreset(value,{load=false,message}={}){
   });
 }
 const editor=createEditor({root:$('voiceEditor'),onChange:value=>applyPreset(value),onError:report});
+const sidImportPanel=createSidImportPanel({root:$('sidImportTools'),getController:()=>sidImporter});
+sidImporter=createSidImport({
+  getVolume:()=>Number($('masterVolume').value),
+  getInstrumentRevision:()=>`${revision}/${importSequence}`,
+  onUpdate(state){sidImportPanel.update(state);if(previewEngine)visualizer.setRunning(Boolean(state.playing));},
+  async onPreviewStart(engine,{isCurrent=()=>true}={}){
+    if(disposed||!isCurrent())return;
+    await stopNotes();
+    if(disposed||!isCurrent()||engine.context.state==='closed')return;
+    previewEngine=engine;visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);visualizer.setRunning(false);
+  },
+  onPreviewStop(engine){
+    if(previewEngine!==engine)return;
+    previewEngine=null;if(disposed)return;
+    visualizer.setRunning(false);visualizer.disconnect();
+    if(audio)visualizer.connect(audio.context,audio.outputNode);
+    visualizer.setRunning(notes.size>0);
+  },
+  onUsePreset(value){importSequence++;return applyPreset(value,{load:true,message:'SID voice imported · play this keyboard, edit it or save a preset.'});},
+});
+function stopSongForKeyboard(){
+  const state=sidImporter?.read();
+  return state&&(state.playing||state.starting)?sidImporter.stop({cancelLoad:false}):Promise.resolve();
+}
 
 const keyboard=document.createElement('div');keyboard.className='keyboard';$('keyboard').append(keyboard);
 const tools=Object.fromEntries(['instrument','position','fret','strings','window'].map(name=>{const node=document.createElement('div');node.className=`fretboard-${name} ${['fret','strings'].includes(name)?'fret-display':'toolbar-group'}`;return[name,node];}));
@@ -145,10 +172,13 @@ function renderKeyboard(){
 }
 function press(source,entry){
   if(disposed||notes.has(source)||!canPlay(entry.midi))return;
+  // Fence a pending song start synchronously, preserving this key's gesture.
+  const songClosing=stopSongForKeyboard();
   const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false};notes.set(source,note);updateKeys();
   const ready=ensureAudio();ready.catch(()=>{});
   void enqueue(async()=>{
     if(notes.get(source)!==note||note.epoch!==noteEpoch)return;
+    await songClosing;
     const engine=await ready;if(disposed||audio!==engine||notes.get(source)!==note||note.epoch!==noteEpoch)return;
     note.started=true;await engine.command('noteOn',[note.id,note.midi]);
     if(audio!==engine||note.epoch!==noteEpoch)return;
@@ -166,12 +196,16 @@ async function stopNotes(message){
   try{
     if(target){const order=++commandSequence,state=await target.command('stop');if(audio===target){acceptPitch(state,order,stopPitchIntent);if(noteEpoch===stoppedEpoch&&!notes.size)readVoices(state);}}
     // A Stop ACK belongs to the notes cleared above, never a later key press.
-    if((!target||audio===target)&&noteEpoch===stoppedEpoch&&!notes.size){visualizer.stop();if(message)status(message);}
+    if((!target||audio===target)&&noteEpoch===stoppedEpoch&&!notes.size){
+      if(previewEngine&&sidImporter?.read().playing)visualizer.setRunning(true);
+      else visualizer.stop();
+      if(message)status(message);
+    }
   }
   catch(error){report(error);}
 }
-$('startAudio').addEventListener('click',()=>{$('startAudio').blur();void ensureAudio().catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopNotes('Stopped · preset kept. Play to resume.');});
+$('startAudio').addEventListener('click',()=>{$('startAudio').blur();const closing=stopSongForKeyboard(),ready=ensureAudio();void Promise.all([closing,ready]).catch(report);});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void sidImporter.stop().catch(report);void stopNotes('Stopped · preset kept. Play to resume.');});
 for(const[id,delta]of [['octaveDown',-1],['octaveUp',1]])$(id).addEventListener('click',()=>{$(id).blur();void stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();});
 function editing(target){const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"]');}
 window.addEventListener('keydown',event=>{
@@ -191,7 +225,7 @@ function setPitch(value){
   }).catch(()=>{});
 }
 for(const[wheel]of pitchWheels){wheel.addEventListener('input',()=>setPitch(Number(wheel.value)));for(const event of ['pointerup','pointercancel','lostpointercapture','change'])wheel.addEventListener(event,()=>{setPitch(0);wheel.blur();});wheel.addEventListener('keydown',event=>{if(event.key==='Home'||event.key==='Escape'){event.preventDefault();setPitch(0);wheel.blur();}});}
-function setVolume(){const value=Number($('masterVolume').value),boosted=value>1;$('masterVolumeValue').textContent=`${Math.round(value*100)}%`;$('masterVolume').dataset.boosted=String(boosted);$('masterVolumeValue').dataset.boosted=String(boosted);audio?.setVolume(value);visualizer.wake();}
+function setVolume(){const value=Number($('masterVolume').value),boosted=value>1;$('masterVolumeValue').textContent=`${Math.round(value*100)}%`;$('masterVolume').dataset.boosted=String(boosted);$('masterVolumeValue').dataset.boosted=String(boosted);audio?.setVolume(value);sidImporter?.setVolume(value);visualizer.wake();}
 $('masterVolume').addEventListener('input',setVolume);$('masterVolume').addEventListener('change',()=>$('masterVolume').blur());
 for(const button of document.querySelectorAll('[data-visual-mode]'))button.addEventListener('click',()=>{visualizer.setMode(button.dataset.visualMode);for(const peer of document.querySelectorAll('[data-visual-mode]'))peer.setAttribute('aria-pressed',String(peer===button));button.blur();});
 const monitorResize=new ResizeObserver(()=>{const canvas=$('outputCanvas');if(!canvas.clientWidth||!canvas.clientHeight)return;canvas.width=Math.max(240,Math.round(canvas.clientWidth));canvas.height=Math.max(140,Math.round(canvas.clientHeight));visualizer.setMode(document.querySelector('[data-visual-mode][aria-pressed="true"]').dataset.visualMode);});monitorResize.observe($('outputCanvas'));
@@ -213,7 +247,7 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=presetToCode(preset);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
+  if(event.persisted){void sidImporter.stop().catch(report);void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
 function receivePlayerSnapshot(){
   const fragment=window.location?.hash;

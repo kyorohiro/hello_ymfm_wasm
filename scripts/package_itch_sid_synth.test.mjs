@@ -20,7 +20,7 @@ test('SID ZIP preserves editable modules, independent entry points and matching 
   const a = await packageSidSynth({version:'test', releaseDir:join(directory, 'a')});
   const b = await packageSidSynth({version:'test', releaseDir:join(directory, 'b')});
   assert.deepEqual(await readFile(a.archive), await readFile(b.archive));
-  assert(a.files < 1000); assert.equal(a.bundles, 3);
+  assert(a.files < 1000); assert.equal(a.bundles, 4);
   const info = JSON.parse(execFileSync('python3', ['-c', String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -38,7 +38,8 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert(!JSON.stringify(info.receipt).includes('/Users/'));
   assert.equal(info.receipt.product, 'Tetorica SID Synth');
   assert.equal(info.receipt.productId, 'tetorica-sid-synth');
-  for(const path of ['synth-sid/handoff.js','synth-sid/preset.js']){
+  for(const path of ['synth-sid/handoff.js','synth-sid/preset.js','synth-sid/sid_import.js',
+    'sid-player/audio.js','sid-player/processor.js','sid-player/models.js','sid-player/voice_snapshot.js']){
     assert(info.names.includes(path),`Missing readable preset handoff module: ${path}`);
     const module=info.receipt.modules.find(item=>item.path===path);assert(module,`Missing module receipt: ${path}`);
     assert.equal(module.sourcePath,'docs/'+path);
@@ -59,8 +60,46 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for (const [path, input] of Object.entries(native.inputs)) {
     const bytes = await readFile(join(a.stage, 'sources/sid', path));
     assert.equal(bytes.length, input.bytes); assert.equal(sha(bytes), input.sha256, path);
+    assert(info.receipt.originalInputs.some(item => item.path === path && item.sha256 === input.sha256),
+      'Missing original standalone SID native input: ' + path);
   }
   assert.equal(sha(await readFile(join(a.stage, 'generated/sid/sid.wasm'))), native.output.sha256);
+  // Importing a SID executes its program in the same checked preview player.
+  // Every shared module's fallback asset URL must resolve in the standalone
+  // ZIP, even when the compact import UI chooses only the C64 playback route.
+  assert.deepEqual(info.receipt.songPreviewNativeKits.map(kit => [kit.component, kit.compiledInputCount]),
+    [['sid-player', 14], ['sid-rsid', 29]]);
+  for (const kit of info.receipt.songPreviewNativeKits) {
+    const wasm = await readFile(join(a.stage, kit.artifact.path));
+    const receiptBytes = await readFile(join(a.stage, kit.buildReceipt.path)), receipt = JSON.parse(receiptBytes);
+    assert.equal(kit.sourceRoot, 'sources/' + kit.component);
+    assert.deepEqual({bytes:wasm.length,sha256:sha(wasm)}, {bytes:kit.artifact.bytes,sha256:kit.artifact.sha256});
+    assert.deepEqual({bytes:receiptBytes.length,sha256:sha(receiptBytes)}, {bytes:kit.buildReceipt.bytes,sha256:kit.buildReceipt.sha256});
+    assert.equal(receipt.component, kit.component); assert.equal(receipt.fixedSdkArtifact, false);
+    assert.equal(Object.keys(receipt.inputs).length, kit.compiledInputCount);
+    assert.deepEqual(receipt.output, {bytes:wasm.length,sha256:sha(wasm)});
+    assert.deepEqual(wasm, await readFile(new URL('../docs/' + kit.artifact.path, import.meta.url)));
+    assert.deepEqual(receiptBytes, await readFile(new URL('../docs/' + kit.buildReceipt.path, import.meta.url)));
+    for (const [path, expected] of Object.entries(receipt.inputs)) {
+      const bytes = await readFile(join(a.stage, kit.sourceRoot, path));
+      assert.deepEqual({bytes:bytes.length,sha256:sha(bytes)}, expected, kit.component + ': ' + path);
+      assert.deepEqual(bytes, await readFile(new URL('../' + path, import.meta.url)));
+      assert(info.receipt.originalInputs.some(input => input.path === path && input.sha256 === expected.sha256),
+        'Missing original input for song-preview native kit: ' + path);
+    }
+    const guide = await readFile(join(a.stage, kit.sourceRoot, 'README.md'));
+    assert.deepEqual(guide, await readFile(new URL('../docs/' + kit.sourceRoot + '/README.md', import.meta.url)));
+    const module = await WebAssembly.compile(wasm), exports = new Map(WebAssembly.Module.exports(module).map(item => [item.name, item.kind]));
+    const prefix = kit.component === 'sid-player' ? 'sidp_' : 'sidr_';
+    for (const method of ['create', 'destroy', 'input', 'render', 'output', 'stop', 'state', 'register', 'trace']) {
+      assert.equal(exports.get(prefix + method), 'function', kit.component + ': ' + method);
+    }
+    for (const method of kit.component === 'sid-player' ? ['load'] : ['load', 'load_psid', 'load_psid_vbi']) {
+      assert.equal(exports.get(prefix + method), 'function', kit.component + ': ' + method);
+    }
+  }
+  assert.match(await readFile(join(a.stage, 'sources/SID-SONG-PREVIEW.md'), 'utf8'), /29 compiled inputs/);
+  assert.match(await readFile(join(a.stage, 'sources/SID8580.md'), 'utf8'), /SID-file preview additionally loads sid8580-machine\.wasm/);
   // The Preview must be rebuildable from the exact sources that produced its
   // endpoint, without assuming Rust or Emscripten is installed at package time.
   const previewRoot='generated/sid8580-machine',kit=info.receipt.previewSourceKit;
@@ -121,6 +160,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   for (const entry of ['index.html', 'synth-sid/index.html']) {
     const html = await readFile(join(a.stage, entry), 'utf8');
     assert.match(html, /<title>Tetorica SID Synth<\/title>/);
+    assert.match(html, /Sounds from SID/);
     const iconPath = entry === 'index.html' ? './tetorica_sid_synth.webp' : '../tetorica_sid_synth.webp';
     const iconLinks = [...html.matchAll(/<link\b[^>]*rel="(?:icon|apple-touch-icon)"[^>]*>/g)];
     assert.equal(iconLinks.length, 2, `${entry}: favicon and apple-touch icon`);

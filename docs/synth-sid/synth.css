@@ -59,6 +59,20 @@ button[aria-pressed="true"] { background:#167f82; border-color:#126b6e; }
 .sid-advanced { padding-top:10px; }.sid-advanced>summary { font-size:.7rem; color:var(--muted); cursor:pointer; margin-bottom:8px; }
 .sid-capacity { font-size:.71rem; font-weight:750; color:#276f67; margin:10px 2px 12px; overflow-wrap:anywhere; }
 .preset-tools { margin:12px 0; }.preset-actions { align-items:center; gap:9px; }
+.sid-import-tools { margin:0 0 16px; }
+.sid-import-actions,.sid-import-options { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.sid-import-actions button { min-height:36px; padding:7px 13px; font-size:.76rem; }
+.sid-import-options { margin-top:10px; justify-content:space-between; }
+.sid-import-subtune { display:flex; align-items:center; gap:8px; font-size:.74rem; color:var(--muted); }
+.sid-import-subtune button { min-width:32px; min-height:32px; padding:3px 9px; }
+.sid-import-subtune output { min-width:48px; text-align:center; font-weight:750; }
+.sid-import-models { flex:1 1 230px; max-width:390px; }
+.sid-import-voices { margin-top:12px; }
+.sid-import-voices button[data-available="false"] { border-style:dashed; }
+.sid-import-status[data-error="true"],.sid-import-preview[data-unavailable="true"] { color:#a1392c; }
+.sid-import-preview { white-space:pre-line; overflow-wrap:anywhere; }
+#sidImportInfo { overflow-wrap:anywhere; }
+#sidImportUse { margin-top:10px; }
 .preset-actions .sid-help { flex-basis:100%; margin:0; }
 .instrument-name-control { flex:1 1 210px; }.instrument-name-control input { min-width:80px; width:150px; flex:1; border-color:var(--line); background:#fffaf0; }
 #codeOutput { flex:1 0 100%; width:100%; min-width:0; max-height:260px; padding:12px; border:1px solid #758076; border-radius:7px; background:#202b28; color:#d5eadc; font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; }

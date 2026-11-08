@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "purpose": "Verify the final direct-SID-import Synth distribution against current authored sources and previously independently rebuilt identical native kits.",
+  "archive": {
+    "path": "release/tetorica_sid_synth_20261108-sid-import_itch.zip",
+    "bytes": 2920948,
+    "sha256": "51aea31ca3d04a0aa63be7f19b9ae8370b9b6274ff775fe62448781f19f2a52b",
+    "files": 261,
+    "crcVerified": true,
+    "everyExtractedByteVerified": true,
+    "extractedDirectory": "build/validation/sid-synth-direct-import-zip"
+  },
+  "originalInputs": {
+    "count": 194,
+    "allHashesAndBytesMatchCurrentSource": true,
+    "nestedArchiveCrcAndInventoryVerified": true,
+    "sourceArchive": {
+      "path": "sources/sid-synth-browser-inputs.zip",
+      "bytes": 1164938,
+      "sha256": "ec88c80e664db5d888077edf3ba426ce7197e09a07e0e6959b33ff58014b9737"
+    }
+  },
+  "nativeKits": [
+    {
+      "component": "sid",
+      "compiledInputs": 13,
+      "allCurrentCompiledInputsMatch": true,
+      "entireSourceKitAndGeneratedDirectoryEqualToPriorActualZip": true,
+      "equalFiles": {
+        "sources/sid/": 29,
+        "generated/sid/": 2
+      },
+      "priorArchive": "release/tetorica_sid_synth_waveoff-20261108_itch.zip",
+      "priorArchiveSha256": "b9ee90c5c451d83abd95d7fd53593c9ae01ebe23d6b894d97bf1dd4731b9c799",
+      "priorIndependentBuildEvidence": "docs/issues/sid_waveoff_packages_01.json"
+    },
+    {
+      "component": "sid-player",
+      "compiledInputs": 14,
+      "allCurrentCompiledInputsMatch": true,
+      "entireSourceKitAndGeneratedDirectoryEqualToPriorActualZip": true,
+      "equalFiles": {
+        "sources/sid-player/": 15,
+        "generated/sid-player/": 2
+      },
+      "priorArchive": "release/tetorica_sid_player_waveoff-20261108_itch.zip",
+      "priorArchiveSha256": "1087f90caa0147f9a838d2b3f9ac175f55ba3246612179d46df473940d02c7b3",
+      "priorIndependentBuildEvidence": "docs/issues/sid_waveoff_packages_01.json"
+    },
+    {
+      "component": "sid-rsid",
+      "compiledInputs": 29,
+      "allCurrentCompiledInputsMatch": true,
+      "entireSourceKitAndGeneratedDirectoryEqualToPriorActualZip": true,
+      "equalFiles": {
+        "sources/sid-rsid/": 30,
+        "generated/sid-rsid/": 2
+      },
+      "priorArchive": "release/tetorica_sid_player_waveoff-20261108_itch.zip",
+      "priorArchiveSha256": "1087f90caa0147f9a838d2b3f9ac175f55ba3246612179d46df473940d02c7b3",
+      "priorIndependentBuildEvidence": "docs/issues/sid_waveoff_packages_01.json"
+    },
+    {
+      "component": "sid8580-machine",
+      "compiledInputs": 99,
+      "allCurrentCompiledInputsMatch": true,
+      "entireSourceKitAndGeneratedDirectoryEqualToPriorActualZip": true,
+      "equalFiles": {
+        "sources/sid8580-machine/": 130,
+        "generated/sid8580-machine/": 3
+      },
+      "priorArchive": "release/tetorica_sid_synth_waveoff-20261108_itch.zip",
+      "priorArchiveSha256": "b9ee90c5c451d83abd95d7fd53593c9ae01ebe23d6b894d97bf1dd4731b9c799",
+      "priorIndependentBuildEvidence": "docs/issues/sid_waveoff_closure_01.json",
+      "all127SourcesAndNoticesMatchCurrentRoot": true,
+      "toolchainNoticeMapsVerified": true,
+      "authenticatedPriorIndependentSourceArchive": {
+        "path": "release/tetorica_sid8580_machine_20261108-waveoff-closure.1_research.zip",
+        "bytes": 858378,
+        "sha256": "b4f783457689134927f3145280e77ee3f9e63c996de3e9c227a64a7511d0c594",
+        "crcVerified": true,
+        "all127SourcesAndNoticesByteIdentical": true,
+        "bothWasmAndCompleteReceiptByteIdentical": true
+      }
+    }
+  ],
+  "wasmAssets": [
+    {
+      "path": "generated/sid-player/sid-player.wasm",
+      "bytes": 74312,
+      "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6",
+      "compiles": true,
+      "requiredAbiVerified": true,
+      "imports": [
+        {
+          "module": "env",
+          "name": "emscripten_notify_memory_growth",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "generated/sid-rsid/sid-rsid.wasm",
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8",
+      "compiles": true,
+      "requiredAbiVerified": true,
+      "imports": [
+        {
+          "module": "env",
+          "name": "emscripten_notify_memory_growth",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "generated/sid/sid.wasm",
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e",
+      "compiles": true,
+      "requiredAbiVerified": true,
+      "imports": [
+        {
+          "module": "env",
+          "name": "emscripten_notify_memory_growth",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-endpoint.wasm",
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d",
+      "compiles": true,
+      "requiredAbiVerified": true,
+      "imports": []
+    },
+    {
+      "path": "generated/sid8580-machine/sid8580-machine.wasm",
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce",
+      "compiles": true,
+      "requiredAbiVerified": true,
+      "imports": [
+        {
+          "module": "env",
+          "name": "sid8e_create",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_reset",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_error",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_stop",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_destroy",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_set_profiles",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "sid8e_tick",
+          "kind": "function"
+        },
+        {
+          "module": "env",
+          "name": "emscripten_notify_memory_growth",
+          "kind": "function"
+        }
+      ]
+    }
+  ],
+  "priorIndependentBuildEvidence": [
+    {
+      "path": "docs/issues/sid_waveoff_packages_01.json",
+      "bytes": 5292,
+      "sha256": "c1aaed72244684dc3a08f735224022073fa87f8332822c2927f08576e92aeb1c",
+      "matchesCommittedHead": true
+    },
+    {
+      "path": "docs/issues/sid_waveoff_closure_01.json",
+      "bytes": 46301,
+      "sha256": "9bf685445091abbe530bb30df14d4e66acc61d5824fd5a55dbae800d2f1f4b59",
+      "matchesCommittedHead": true
+    }
+  ],
+  "compilerInvocationPerformedThisRun": false,
+  "nativeBuildEvidencePolicy": "No compiler invoked in this verification. Prior independently rebuilt results are reused only after authenticating the committed proof files, their actual prior ZIP hashes and byte equality of every corresponding source-kit and generated file.",
+  "licensesAndToolchainNoticesVerified": true,
+  "nativeBinaryOrUserFirmwareOrMusicIncluded": false,
+  "readableModules": {
+    "count": 33,
+    "entryPoints": [
+      "synth-sid/synth.js",
+      "synth-sid/processor.js",
+      "synth-sid/synth.css",
+      "sid-player/processor.js"
+    ],
+    "builder": {
+      "name": "source-copy",
+      "minify": false,
+      "bundle": false,
+      "dependencyAnalyzer": {
+        "name": "esbuild",
+        "version": "0.28.2"
+      }
+    },
+    "allAuthoredBytesAndCurrentDependencyGraphExact": true,
+    "allLocalImportsAndStaticAssetUrlsResolve": true,
+    "workletIncluded": true,
+    "commentsAndModuleLayoutPreserved": true
+  },
+  "independentEntryPointsAndImportPanelVerified": true,
+  "browserEvidence": [
+    {
+      "path": "docs/issues/sid_synth_direct_import_browser_01.json",
+      "bytes": 15824,
+      "sha256": "89f90cb451afab85661d609531382ca1da0b0d09e8af14c31c3a850417064c2a",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": 18,
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "checks": 18,
+          "passed": true
+        }
+      ],
+      "checks": 36
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_zip_browser_01.json",
+      "bytes": 15805,
+      "sha256": "9fef8be675eb1c6516729efe6e4d5575bb791a08d2e12d0917845fed2bcc4808",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": 18,
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "checks": 18,
+          "passed": true
+        }
+      ],
+      "checks": 36
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_regression_01.json",
+      "bytes": 22514,
+      "sha256": "d3b8f4d7985ad0b340c5aaa095de1e6989330c43e2e6ccc6e09d48cb4d2ab368",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": 16,
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "checks": 16,
+          "passed": true
+        }
+      ],
+      "checks": 32
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_zip_regression_01.json",
+      "bytes": 21295,
+      "sha256": "f6a9fbd5aa11dbb14bdd2c4a3361d5dc7c3e5cc87d759d0cfec58f49d8ca372c",
+      "passed": true,
+      "browsers": [
+        {
+          "browser": "chromium",
+          "checks": 16,
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "checks": 16,
+          "passed": true
+        }
+      ],
+      "checks": 32
+    }
+  ],
+  "checker": "Read-only actual-ZIP/current-source verification and readable dependency graph reconstruction; no package rebuild or compiler invocation."
+}

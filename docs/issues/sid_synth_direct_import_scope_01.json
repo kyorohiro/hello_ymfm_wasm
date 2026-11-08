@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "baselineCommit": "e0b2e3d4b79229607d13ffcc143579816d654dfb",
+  "unchangedInputs": {
+    "docs/generated/sid/sid.wasm": {
+      "bytes": 14488,
+      "sha256": "02634459953013378028171978d855e1841a55bb4493efe59f2ac07541949c7e"
+    },
+    "docs/generated/sid/sid-build.json": {
+      "bytes": 2438,
+      "sha256": "bd0ef00a2fb3c64d10c158c97dd975224a24fb9e880b6ec6f945c9bbc4997c14"
+    },
+    "docs/generated/sid-player/sid-player.wasm": {
+      "bytes": 74312,
+      "sha256": "da542bd98994e4a6e7dc65100ab3bd3764c7736e8853bfe4f563dd1a4af5add6"
+    },
+    "docs/generated/sid-player/sid-player-build.json": {
+      "bytes": 3357,
+      "sha256": "f9103ec1d13c07d8b4a6182247933709c6b0e585468e2fbee589cb57dbf5fff0"
+    },
+    "docs/generated/sid-rsid/sid-rsid.wasm": {
+      "bytes": 116117,
+      "sha256": "660b379ce5dd6ac5dcbf76929389e43be583b9d92fb44216bbfdfb25bad444e8"
+    },
+    "docs/generated/sid-rsid/sid-rsid-build.json": {
+      "bytes": 6749,
+      "sha256": "9946dcfa85a8654aa6f0c69e0de1e344f43546df0aed19001de9cac63e13963d"
+    },
+    "docs/generated/sid8580-machine/sid8580-endpoint.wasm": {
+      "bytes": 1401752,
+      "sha256": "9a86886ae550a087bdac3395ed638356eb3df4b26ca88f45dbac528af49c633d"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine.wasm": {
+      "bytes": 112827,
+      "sha256": "9b2f897be5891bd9b7f0a6179d9d7834c1bf88e3977356ed1828e582a511b0ce"
+    },
+    "docs/generated/sid8580-machine/sid8580-machine-build.json": {
+      "bytes": 20404,
+      "sha256": "6e8c0380a59528aa0aff5fecb14e7cce89e993618cd25b6addf84bfc1c49bc8a"
+    },
+    "tetorica_src/runtime/generated/runtime-artifacts.json": {
+      "bytes": 84253,
+      "sha256": "991833fe0c02a87c72606d9d38daaeaa00af7c981fc2d2a87a8be9d614f0b678"
+    },
+    "third_party/tetorica-soundchip-native/RELEASE-MANIFEST.json": {
+      "bytes": 72110,
+      "sha256": "b5e4c75230c32c66aa2ba4248830af7e7587a5977529973c346063afd2d2f365"
+    },
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    },
+    "docs/issues/sid_playground_source_revision_02.json": {
+      "bytes": 17827,
+      "sha256": "2079b7b4863071c28bcd62abfdb8adfffe8e609f3fac08f5f3d167ff3d33ff4c"
+    }
+  },
+  "compiledInputInventories": [
+    13,
+    14,
+    29,
+    99
+  ],
+  "dspOrWasmChanged": false,
+  "compilerInvoked": false,
+  "sdkOrCalibrationRewritten": false,
+  "sourceBrowserAssetsMatchCurrentTree": true,
+  "browserReports": [
+    {
+      "path": "docs/issues/sid_synth_direct_import_browser_01.json",
+      "bytes": 15824,
+      "sha256": "89f90cb451afab85661d609531382ca1da0b0d09e8af14c31c3a850417064c2a"
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_zip_browser_01.json",
+      "bytes": 15805,
+      "sha256": "9fef8be675eb1c6516729efe6e4d5575bb791a08d2e12d0917845fed2bcc4808"
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_regression_01.json",
+      "bytes": 22514,
+      "sha256": "d3b8f4d7985ad0b340c5aaa095de1e6989330c43e2e6ccc6e09d48cb4d2ab368"
+    },
+    {
+      "path": "docs/issues/sid_synth_direct_import_zip_regression_01.json",
+      "bytes": 21295,
+      "sha256": "f6a9fbd5aa11dbb14bdd2c4a3361d5dc7c3e5cc87d759d0cfec58f49d8ca372c"
+    }
+  ],
+  "browserChecks": 136,
+  "checks": [
+    {
+      "command": "npm run test:sid-synth",
+      "tests": 100,
+      "passed": 100
+    },
+    {
+      "command": "npm run check:runtime-artifacts",
+      "result": "33 SDK builds / 68 outputs / 75 mirrors",
+      "exitCode": 0
+    },
+    {
+      "command": "node scripts/generate_playground_mixer_defaults.mjs --report=docs/issues/playground_chip_levels_01.json --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+      "exitCode": 0
+    }
+  ],
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "realGameSidListeningPerformed": false
+}

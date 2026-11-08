@@ -161,7 +161,8 @@ function appFixture({stall=false}={}){
   doc.getElementById('codeOutput').hidden=true;
   const modes=['waveform','spectrum'].map(mode=>{const node=new Element(doc,'button');node.dataset.visualMode=mode;node.setAttribute('aria-pressed',String(mode==='waveform'));return node;});
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
-  const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(){},connect(){},disconnect(){},stop(){},wake(){},dispose(){}};
+  const visualEvents=[];
+  const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
     let value=createDefaultPreset({model}),pitch=0,voices=new Map();const engine={id:++engineCount,context:{},outputNode:{},sampleRate:48000,disposed:false,holdNext:null,
@@ -183,13 +184,36 @@ function appFixture({stall=false}={}){
   };
   const createAudio=({signal,model})=>{audioOptions.push({model});const engine=makeEngine(model);if(!isStalled)return Promise.resolve(engine);return new Promise((resolve,reject)=>{const item={resolve:()=>resolve(engine),reject,engine};pending.push(item);signal.addEventListener('abort',()=>{engine.disposed=true;reject(new DOMException('cancelled','AbortError'));},{once:true});});};
   const entries=[{key:'a',label:'A',midi:60},{key:'s',label:'S',midi:64},{key:'d',label:'D',midi:67},{key:'f',label:'F',midi:71}];
+  const importState={playing:false,starting:false},importCalls=[];
+  const importer={state:importState,calls:importCalls,read:()=>({...importState}),setVolume(){},dispose:async()=>{},
+    async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;if(importer.holdStop)await importer.holdStop;}};
   const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},dispose(){}}),
+    createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,console});
   vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,press,release,setPitch,getPreset:()=>preset,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,unstall(){isStalled=false;}};
+  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,unstall(){isStalled=false;}};
 }
+
+test('a keyboard gesture fences song preview immediately and waits for its close before sounding the Synth',async()=>{
+  const f=appFixture();let finish;f.importer.holdStop=new Promise(resolve=>{finish=resolve;});f.importer.state.playing=true;
+  f.ui.press('pointer:1',f.entries[0]);
+  assert.equal(f.importer.state.playing,false,'song ownership is retired synchronously');
+  assert.equal(f.audioOptions.length,1,'Synth audio still opens in the original gesture');
+  await flush();assert.equal(f.calls.some(call=>call[1]==='noteOn'),false,'song close gates the new audible note');
+  finish();await flush();await flush();assert.equal(f.calls.filter(call=>call[1]==='noteOn').length,1);
+  await f.doc.getElementById('stopAudio').fire('click');await flush();
+  assert.equal(f.importer.calls.length,2,'global Stop also retires the song');assert.equal(f.ui.getNotes().length,0);
+});
+
+test('stopping Synth notes preserves the live song monitor, while global Stop still stops it',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();
+  const preview={context:{state:'running'},outputNode:{}};
+  await f.importer.hooks.onPreviewStart(preview,{isCurrent:()=>true});f.importer.state.playing=true;f.visualEvents.length=0;
+  await f.ui.stopNotes();assert.deepEqual(f.visualEvents.at(-1),['running',true]);assert.equal(f.visualEvents.some(event=>event[0]==='stop'),false);
+  await f.doc.getElementById('stopAudio').fire('click');await flush();assert.deepEqual(f.visualEvents.at(-1),['stop']);
+});
 
 test('selecting 8580 before enabling audio initializes that model and exposes Preview without an audio side effect',async()=>{
   const f=appFixture(),preview=createDefaultPreset({model:'8580'});preview.voice.waveform='triangle';

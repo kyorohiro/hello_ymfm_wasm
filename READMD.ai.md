@@ -16,7 +16,27 @@ are implemented. The primary `sid` remains 6581; Main / Worker can create an
 independent PAL 8580 Preview via `createSoundChip('sid', {model:'8580'})`.
 See [the guide](docs/sid.md). The standalone keyboard Synth is
 at `docs/synth-sid/index.html` ([guide](docs/synth-sid/README.md)) and offers
-6581 / 8580 Preview selection. A separate
+6581 / 8580 Preview selection. Its **Sounds from SID** panel also opens a local
+SID directly: Load SID → Play song → Capture voices → Voice 1/2/3 → Use Voice,
+then ordinary keyboard edits / JSON / readable JavaScript. `sid_import.js` owns
+file/preflight/audio/capture/use generations; `sid_import_panel.js` is its DOM
+view, both under `docs/synth-sid/`. Validation, C64 preview audio and snapshot
+conversion reuse the Player modules. Initial direct import uses PAL single-SID
+PSID/RSID v2, Auto/6581/8580 with unknown/either fallback, C64 VBI/CIA/RSID and
+the built-in environment. User ROMs and Direct VBI remain in the separate Player.
+No tune/header is rewritten. Passive file preflight creates no AudioContext and
+does not alter the keyboard preset. Bad/cancel/stale candidates preserve the
+accepted file/capture/instrument. A successful candidate retires the old preview.
+Explicit Play creates/resumes audio in its original gesture, clears Synth notes,
+then loads/starts its owned preview. Keyboard attacks synchronously fence that
+preview and wait for its disposal before sounding. Use Voice closes preview
+first, rejects a stale commit if the instrument changed during that await, then
+applies the strict v2 preset. It does not reconstruct a song's time-varying
+instrument. Synth ZIPs include five WASMs, matching 13/14/29/99-input source kits,
+an explicit Player processor entry and editable original browser inputs.
+Keyboard voices remain CPU-free; C64 execution belongs to requested preview.
+SDK, DSP, gain and calibration remain unchanged.
+A separate
 browser [SID Player](docs/sid-player/index.html) selects a backend from each PSID
 v2 subtune's speed bit: VBI defaults to actual VIC raster interrupts in the C64
 machine; CIA uses CIA1 interrupts. Direct VBI is an explicit legacy option.

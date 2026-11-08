@@ -29,6 +29,49 @@ software output gain; values above 100% use the orange boost color. The
 oscilloscope and spectrum observe the final Master-scaled output without
 adding another speaker connection.
 
+## Open a SID and use its sound
+
+Open a local `.sid` directly in **Sounds from SID**, without visiting a separate
+Player page:
+
+1. Choose **Load SID…**. Loading checks a disposable C64 candidate and keeps
+   your keyboard instrument; it does not start audio.
+2. Choose a subtune with the − / + buttons and press **Play song**.
+3. When you hear the sound you want, press **Capture voices**.
+4. Select **Voice 1**, **Voice 2** or **Voice 3**, inspect its settings, and press
+   **Use Voice**. The preview closes and the captured preset becomes this
+   keyboard's instrument.
+5. Play, edit, **Save preset…**, or **Copy JavaScript** as usual.
+
+**Auto · file** follows a known 6581 / 8580 declaration. Unknown/either hints
+use PAL / 6581 by default; manual selection can resolve an unknown/either model.
+A known conflicting model or NTSC declaration is rejected without rewriting
+the file. Song model selection does not change the keyboard model until you
+use a captured voice.
+
+Preview supports PAL, single-SID PSID / RSID v2 through the existing C64
+machine's limited built-in environment. It does not accept user ROMs or offer
+Direct VBI here. For those choices, use the separate
+[SID Player](https://kyorohiro.github.io/hello_ymfm_wasm/sid-player/index.html)
+and transfer its preset. Header acceptance and initial preflight do not prove
+whole-song compatibility; a later CPU/ROM error stops the preview and retains
+the selected file and keyboard instrument.
+
+Capture reads one coherent current Worklet state. The captured batch stays
+fixed while the song continues, and an unavailable voice shows its reason.
+This is an instantaneous register setting, not a recovered time-varying game
+instrument: the keyboard restarts musical pitch and Gate / ADSR, without the
+original phase, elapsed Envelope or later song automation. Independent
+Sync / Ring pairs retain their frequency-register ratio; the source's audible
+part is not imported. The same limits as Player snapshots below apply.
+
+Playing the song clears Synth notes; playing a Synth key stops a pending or
+active preview before the key sounds. **Stop all sound** stops both paths.
+Master controls both. Cancelled/bad reads retain the preset, accepted SID and
+captured batch; an accepted replacement stops its previous preview only after
+validation succeeds. Opening a SID alone never replaces the keyboard instrument.
+No song, ROM or PCM bytes are stored in a voice preset.
+
 ## Three voices and oscillator modulation
 
 Normal playback uses the three physical SID voices in round-robin order.
@@ -134,14 +177,15 @@ retain comments and imports for modification. The engine reuses
 Choose the **6581 approximation** from chips/m6581 or the separate
 **8580 Preview** from sidera. Both use a fixed PAL clock of **985,248 Hz** in
 this Synth. Output follows the audio device (8–96 kHz). The 8580 adapter uses
-the existing endpoint WASM's standalone batch API, without running a C64 CPU;
+the existing endpoint WASM's standalone batch API for keyboard voices, without running a C64 CPU;
 the research cutoff and resonance fit profiles remain off. Switching models
 replaces the instrument within the same audio engine and clears held notes,
 tails and Pitch. A software 12 Hz output DC blocker follows each chip.
 Filters and combined waveforms are approximations; neither model promises
 real-chip fidelity or covers analog unit variation.
-`.sid` song playback, time-varying instrument reconstruction, Native audio output, software LFOs and
-arbitrary modulation routing are separate work; none is implied by this UI.
+The separate SID-file preview runs a C64 CPU only when requested. Time-varying
+instrument reconstruction, Native audio output, software LFOs and arbitrary
+modulation routing remain separate work.
 
 The 6581 chip is **zlib**, the 8580 [sidera core](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/sidera/README.md)
 is **MIT**, and the Tetorica wrapper / UI are **BSD-3-Clause**. The
@@ -149,8 +193,12 @@ is **MIT**, and the Tetorica wrapper / UI are **BSD-3-Clause**. The
 marked adaptation, Native host, WASM bridge, licenses and standalone rebuild
 recipe. The ZIP also includes the unchanged 8580 matching C/C++/Rust sources,
 licenses, toolchain notices and rebuild receipt. Its shared source kit retains
-both machine WASMs for rebuilding, although the Synth loads only
-`sid8580-endpoint.wasm`. It is separate from the fixed sound-chip SDK snapshot.
+both machine WASMs for rebuilding and song preview; keyboard voices load only
+`sid8580-endpoint.wasm`. The ZIP also includes the checked 6581 Direct Player
+and C64 Player WASMs with their complete 14 / 29-input Native source kits,
+licenses and rebuild recipes. Shared Player modules retain their default asset
+URLs, including Direct VBI, although this panel uses the C64 path. These
+application cores are separate from the fixed sound-chip SDK snapshot.
 
 From the repository root:
 

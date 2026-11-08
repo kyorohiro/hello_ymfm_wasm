@@ -38,6 +38,19 @@ mode idは `c64`、chip名／global APIは `sid` とする。6581専用・creati
 
 ## 3. SID曲の比較／解析
 
+### 今回の続き: SID SynthからSIDを直接開いて音色を取り込む（2026-11-08）
+
+ユーザー指摘: SynthにはSIDファイルの入口がなく、PlayerでPresetを保存してから読み込む別画面の手順しかない。Tauri化の前にSynth内の導線を追加する。
+
+- [x] 既存Playerのmodel選択・PAL single-SID PSID／RSID検証・C64再生・snapshot変換を再利用する。最初はROM不要のC64経路に限定し、非対応候補の理由と既存Playerへの案内を出す。元headerや曲を自動で書き換えない。
+- [x] 折りたためる「Sounds from SID」へLoad SID／subtune・model選択／曲の試聴・停止／Capture voices／3voice候補とUse Voiceを追加した。同じSynth画面から試奏・編集・Preset保存・Copy JavaScriptまで使える。
+- [x] ファイル選択・失敗・取消・subtune／model変更・古いread／起動中Stopで現在の楽器や確定済みsnapshotを壊さない。既存のSynth鍵盤と試聴曲が意図せず重ならないようにし、pointer操作後は演奏focusを返す。
+- [x] file loadは音声を開始せず、明示Playで試聴する。Captureは現在のregister設定であり、曲の時変instrument／元pitch・elapsed Envelope／phaseを完全復元したとは表示しない。Sync／Ring・TEST／合成波形・無音routing等の既存対応範囲と理由を維持する。
+- [x] 制御の競合・bounded input・実6581／8580のPSID／CIA／RSID・bad file／cancel／Stop／古い応答・取り込んだ音の保存復元をunitとChromium／WebKit・source／独立ZIPで検証した。unit 100件、browser計136項目が成功。
+- [x] 追加Player WASMとmatching source／license・再build kitをSynth ZIPへ同梱し、可読moduleを保った。README en／ja／英語AI・guide／CI／再開記録を更新し、固定SDK／既存校正は保持した。commit／push／公開は未実行。
+
+結果と再開手順: [SID直接読み込み](sid_synth_direct_import_result_01.md)。`Sounds from SID → Load SID… → Play song → Capture voices → Voice選択 → Use Voice`で使う。実ゲームSIDの実聴・長時間・実Safari／WKWebViewと、Tauriへの取り込み・公開は後続。
+
 ### 次の実装順序とFilter組み合わせ（2026-11-07）
 
 ユーザー承認: まずSID SynthのLP／BP／HPを独立On／Offにし、その後に8580代表実曲のAudioWorklet検証、通常Playerの6581／8580切り替え、Synthのモデル選択・Preset／API対応の順で進める。

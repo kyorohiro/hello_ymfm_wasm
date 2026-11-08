@@ -34,6 +34,24 @@
       <p id="audioStatus" class="audio-status" role="status" aria-live="polite">Enable audio, then play the keyboard. Editing does not start audio.</p>
     </header>
 
+    <details id="sidImportTools" class="sid-card sid-import-tools" open><summary>Sounds from SID</summary>
+      <div class="sid-card-content">
+        <div class="sid-import-actions"><button id="loadSidSound" class="primary" type="button">Load SID…</button><button id="sidImportPlay" type="button" disabled>Play song</button><button id="sidImportStop" type="button" disabled>Stop song</button><button id="sidImportCapture" type="button" disabled>Capture voices</button></div>
+        <input id="sidSoundFileInput" class="file-input" type="file" accept=".sid,audio/prs.sid,application/octet-stream" aria-label="Choose a SID song for voice capture">
+        <p id="sidImportInfo" class="sid-help">Open a SID file, play the song, then capture a voice for this keyboard.</p>
+        <div class="sid-import-options">
+          <div class="sid-import-subtune" role="group" aria-label="SID subtune"><span>Subtune</span><button id="sidImportSubtuneDown" type="button" aria-label="Previous SID subtune" disabled>−</button><output id="sidImportSubtuneValue">—</output><button id="sidImportSubtuneUp" type="button" aria-label="Next SID subtune" disabled>+</button></div>
+          <div class="sid-choice-group sid-import-models" role="group" aria-label="SID song model"><button type="button" data-sid-import-model="auto" aria-pressed="true">Auto · file</button><button type="button" data-sid-import-model="6581" aria-pressed="false">6581</button><button type="button" data-sid-import-model="8580" aria-pressed="false">8580 · Preview</button></div>
+        </div>
+        <p id="sidImportStatus" class="sid-help sid-import-status" role="status" aria-live="polite" data-state="idle" data-error="false">Choose a local SID file. Loading alone does not start audio or replace your sound.</p>
+        <div class="sid-choice-group sid-import-voices" role="group" aria-label="Captured SID voice"><button type="button" data-sid-import-voice="0" aria-pressed="true" disabled>Voice 1</button><button type="button" data-sid-import-voice="1" aria-pressed="false" disabled>Voice 2</button><button type="button" data-sid-import-voice="2" aria-pressed="false" disabled>Voice 3</button></div>
+        <p id="sidImportVoicePreview" class="sid-help sid-import-preview">No snapshot captured.</p>
+        <button id="sidImportUse" type="button" disabled>Use this voice</button>
+        <p class="sid-help">An instantaneous voice snapshot. Playing a Synth key restarts pitch and ADSR; elapsed Envelope, phase and later song automation are not restored. Independent Sync / Ring pairs retain their frequency ratio. Some waveforms and connections are unavailable with a reason.</p>
+        <p class="sid-help">PAL · one SID · supported PSID / RSID v2 · built-in C64 environment. Unknown/either hints use PAL / 6581 in Auto. For Direct VBI or your C64 ROMs, use <a href="../sid-player/index.html">SID Player</a> and save a preset.</p>
+      </div>
+    </details>
+
     <section class="spu-monitor sid-monitor" aria-label="Live output monitor">
       <div class="visual-mode-controls" role="group" aria-label="Audio visualization"><button type="button" data-visual-mode="waveform" aria-pressed="true">Waveform</button><button type="button" data-visual-mode="spectrum" aria-pressed="false">Spectrum</button></div>
       <p>Live output after Master volume.</p>
@@ -64,7 +82,7 @@
       <div id="keyboardFretboard"></div>
       <div class="performance-keyboard"><label class="monitor-pitch keyboard-wheel" for="keyboardPitchBend" title="Software pitch bend, ±2 semitones. Release to return to center."><span>Pitch</span><input id="keyboardPitchBend" type="range" min="-2" max="2" step="0.01" value="0" orient="vertical" aria-label="Keyboard pitch bend, minus two to plus two semitones"><output id="keyboardPitchValue" for="keyboardPitchBend">+0.00</output></label><div id="keyboard" class="keyboard-mount"></div></div>
     </section>
-    <footer><p>CPU-free SID approximations · PAL 985,248 Hz · chips/m6581 and sidera 8580 Preview. Waveforms, ADSR, Sync, Ring and the shared filter are SID controls. Round robin, note mapping, Pitch and modulator ratio are software performance tools. A software DC blocker follows the core. PSID/RSID song playback is in SID Player. Native output is separate work.</p><div><a href="../playground/index.html?mode=c64">Open Playground</a> · <a href="../sid.md">SID guide</a> · <a href="./synth.js">Application source</a> · <a href="../js/sidsynth.js">SID API source</a></div></footer>
+    <footer><p>CPU-free keyboard SID approximations · PAL 985,248 Hz · chips/m6581 and sidera 8580 Preview. SID song preview runs a separate C64 program only while requested. Waveforms, ADSR, Sync, Ring and the shared filter are SID controls. Round robin, note mapping, Pitch and modulator ratio are software performance tools. A software DC blocker follows the core. Native output is separate work.</p><div><a href="../playground/index.html?mode=c64">Open Playground</a> · <a href="../sid.md">SID guide</a> · <a href="./synth.js">Application source</a> · <a href="../js/sidsynth.js">SID API source</a></div></footer>
   </article>
   <noscript><p>Enable JavaScript to play this synthesizer.</p></noscript>
 </main>

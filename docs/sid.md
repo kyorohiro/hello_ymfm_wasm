@@ -41,6 +41,13 @@ See [the capture workflow and limits](sid-player/README.md#capture-a-voice-for-s
 and [the TODO](issues/todo_sid_01.md). The Synth and Playground remain independent
 instruments; capturing does not change the playing tune.
 
+Open a SID directly in the Synth's **Sounds from SID** section with
+**Load SID… → Play song → Capture voices → Voice 1/2/3 → Use Voice**.
+This compact preview uses the built-in PAL C64 environment, without user ROMs
+or Direct VBI choices. File selection preserves the keyboard preset; using a
+captured voice stops the preview and applies that preset. The same snapshot
+limits apply. See [the direct import workflow](synth-sid/README.md#open-a-sid-and-use-its-sound).
+
 ## Musical and register controls
 
 The primary API is `sid`. Channels are the three **physical** voices `0`, `1`,
