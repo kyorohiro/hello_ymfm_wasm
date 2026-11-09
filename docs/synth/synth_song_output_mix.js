@@ -104,6 +104,27 @@ export function installSynthSongOutputMix(engine) {
   if (original.pwmOutput) engine.pwm.output = pwmOutput;
 
   return {
+    saveState() {
+      if(disposed)throw new Error('Reference output mixer is disposed');
+      return {version:1,ymPan:ymPan.slice(),pcmPan:pcmPan.slice(),pcmChannel,pcmControl};
+    },
+    loadState(state) {
+      if(disposed)throw new Error('Reference output mixer is disposed');
+      if(state?.version!==1)throw new TypeError('Invalid reference output state');
+      const bytes=(value,length)=>{
+        if((!Array.isArray(value)&&!ArrayBuffer.isView(value))||value.length!==length)throw new TypeError('Invalid reference output pan state');
+        return Array.from(value,item=>{
+          if(!Number.isInteger(item)||item<0||item>255)throw new RangeError('Invalid reference output pan byte');
+          return item;
+        });
+      };
+      const nextYm=bytes(state.ymPan,6),nextPcm=bytes(state.pcmPan,8);
+      if(!Number.isInteger(state.pcmChannel)||state.pcmChannel<0||state.pcmChannel>7||!Number.isInteger(state.pcmControl)||state.pcmControl<0||state.pcmControl>255)throw new RangeError('Invalid reference PCM selection state');
+      // The native checkpoint already contains the masked hardware pan. Only
+      // restore original source shadows here; writing registers would create
+      // false Live events or replace the saved native channel/bank selection.
+      ymPan.set(nextYm);pcmPan.set(nextPcm);pcmChannel=state.pcmChannel;pcmControl=state.pcmControl;
+    },
     setGroupVolume(id, gain) {
       if (disposed) throw new Error('Reference output mixer is disposed');
       if (!VOLUME_GROUPS.has(id)) throw new RangeError(`Invalid playback volume group: ${id}`);

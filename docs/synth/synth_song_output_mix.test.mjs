@@ -9,6 +9,7 @@ import {PWM32X} from '../js/pwm32x.js';
 import {installSynthSongOutputMix} from './synth_song_output_mix.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 import {installPlaybackMixer} from '../vgm_analyzer/playback_mixer.js';
+import {createYm2612SongTimeline} from './synth_song_state.js';
 
 const bytes = Object.fromEntries(await Promise.all(['ym2612','segapsg','rf5c164'].map(async id =>
   [id, await readFile(new URL(`../generated/${id}_wasm.wasm`, import.meta.url))])));
@@ -214,6 +215,68 @@ test('volume validation is atomic, emits no source writes and dispose restores o
   mix.dispose();
   for(const chip of ['ym2612','psg','pcm'])assert.equal(engine[chip].generateStereo,generate);
   assert.throws(()=>mix.setGroupVolume('ym2612',1),/disposed/);
+});
+
+test('output shadow checkpoints are cloneable, atomic and preserve current host volume/mute without writes', () => {
+  const writes=[],generate=()=>({left:new Float32Array([.25]),right:new Float32Array([-.25])});
+  const engine={ym2612:{generateStereo:generate},writeYm2612:(...args)=>writes.push(['ym',...args]),
+    writeRf5c164:(...args)=>writes.push(['pcm',...args]),reset(){}};
+  const mix=installSynthSongOutputMix(engine);
+  try {
+    engine.writeYm2612(0,0xb4,0xc7);engine.writeRf5c164(7,0xc3);engine.writeRf5c164(1,0xf0);engine.writeRf5c164(7,0x81);
+    const saved=structuredClone(mix.saveState());
+    mix.setGroupVolume('ym2612',2);mix.setMutedChannels(['ym2612:0']);
+    engine.writeYm2612(0,0xb4,0x87);engine.writeRf5c164(7,0xc2);engine.writeRf5c164(1,0x0f);
+    const count=writes.length;mix.loadState(saved);
+    assert.equal(writes.length,count,'restoring the original source shadows emits no hardware or Live writes');
+    assert.deepEqual(mix.saveState(),saved);
+    saved.ymPan[0]=0;saved.pcmPan[3]=0;
+    assert.equal(mix.saveState().ymPan[0],0xc7);assert.equal(mix.saveState().pcmPan[3],0xf0);
+    engine.writeYm2612(0,0xb4,0xc7);assert.deepEqual(writes.at(-1),['ym',0,0xb4,7],'the current mute was not restored from the checkpoint');
+    assert.deepEqual(engine.ym2612.generateStereo(1).left,new Float32Array([.25*2/.9]),'the current source volume was not restored from the checkpoint');
+    const before=mix.saveState();
+    for(const change of [value=>{value.ymPan=new Uint8Array(5);},value=>{value.pcmPan=[0,0,0,0,0,0,0,256];},value=>{value.pcmChannel=8;},value=>{value.pcmControl=-1;}]) {
+      const bad=structuredClone(before);change(bad);assert.throws(()=>mix.loadState(bad));assert.deepEqual(mix.saveState(),before);
+      assert.equal(writes.length,count+1,'invalid restore also emits no writes');
+    }
+  } finally {mix.dispose();}
+  assert.throws(()=>mix.saveState(),/disposed/);assert.throws(()=>mix.loadState({}),/disposed/);
+});
+
+test('native checkpoint plus Live/output shadows rewinds exact PCM, latches and later mute/pan/PCM bank writes', async () => {
+  const engine=await createEngine(),reference=await createEngine(),mix=installSynthSongOutputMix(engine),referenceMix=installSynthSongOutputMix(reference);
+  const timeline=createYm2612SongTimeline(engine),referenceTimeline=createYm2612SongTimeline(reference);
+  try {
+    for(const e of [engine,reference])programAll(e);
+    for(const m of [mix,referenceMix])m.setMutedChannels(['ym2612:0','pcm:3']);
+    nearStereo(engine.processFrames(701),reference.processFrames(701));
+    timeline.read(400);referenceTimeline.read(400);
+    for(const e of [engine,reference]) {
+      // Keep both hardware high-byte latches dangling at this checkpoint.
+      e.writeYm2612(0,0xa5,0x29);e.writeYm2612(0,0xad,0x19);e.writeYm2612(0,0x28,0xa0);
+    }
+    nearStereo(engine.processFrames(300),reference.processFrames(300));
+    const checkpoint={native:engine.saveState(),mix:structuredClone(mix.saveState()),timeline:structuredClone(timeline.saveState())};
+    assert(checkpoint.timeline.events.some(event=>event.frame===701),'render-ahead source events remain pending at the audible checkpoint');
+    engine.writeYm2612(0,0xb4,0x87);engine.writeYm2612(0,0xa4,0x11);engine.writeYm2612(0,0xac,0x3f);
+    engine.writeRf5c164(7,0xc2);engine.writeRf5c164(1,0x1f);engine.writeRf5c164(7,0x83);engine.writeRf5c164Memory(2,0x27);
+    engine.processFrames(700);timeline.read(1701);
+    engine.loadState(checkpoint.native);mix.loadState(checkpoint.mix);timeline.loadState(checkpoint.timeline);
+    assert.deepEqual(timeline.saveState(),checkpoint.timeline,'shadow restore adds no artificial source writes');
+    assert.deepEqual(timeline.read(850),referenceTimeline.read(850),'the same audible frame has the same key count, committed pitch and revision');
+    for(const m of [mix,referenceMix])m.setMutedChannels([]);
+    for(const e of [engine,reference]) {
+      e.writeYm2612(1,0xa1,0x88);e.writeYm2612(0,0xa9,0x55);
+      e.writeYm2612(0,0xb4,0x47);e.writeYm2612(0,0x28,0xf0);
+      e.writeRf5c164(1,0x80);e.writeRf5c164(0,140);e.writeRf5c164Memory(2,0x55);
+    }
+    assert.equal(engine.pcm.api.bank(engine.pcm.handle),4096,'unmute restores the saved independent RAM bank');
+    assert.equal(engine.pcm.readMemory(4098),0x55);assert.equal(engine.pcm.readMemory(2),reference.pcm.readMemory(2));
+    nearStereo(engine.processFrames(3331),reference.processFrames(3331));
+    const actual=timeline.read(4332),expected=referenceTimeline.read(4332);assert.deepEqual(actual,expected);
+    assert.equal(actual.channels[4].block,5);assert.equal(actual.channels[4].fnum,0x188);
+    assert.equal(actual.channels[2].specialFrequencies[0].fnum,0x155);
+  } finally {timeline.dispose();referenceTimeline.dispose();mix.dispose();referenceMix.dispose();engine.dispose();reference.dispose();}
 });
 
 test('default output follows calibration; muted FM keeps feedback, EG, pitch and source pan writes advancing', async () => {

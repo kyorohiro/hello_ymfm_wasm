@@ -31,6 +31,7 @@ synth_project.js
 synth_files.js
 synth_recovery.js
 synth_song_controls.js
+synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_state.js
 synth_song_voice.js
@@ -177,6 +178,7 @@ mkdir -p "${STAGE_DIR}/vgm_analyzer"
 for file in opm_export.js opm_tfi.js opm_monitor.js stored_zip.js; do
   cp "${ROOT_DIR}/docs/vgm_analyzer/${file}" "${STAGE_DIR}/vgm_analyzer/${file}"
 done
+cp "${ROOT_DIR}/docs/vgm_analyzer/seek_playback.js" "${STAGE_DIR}/vgm_analyzer/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/wonderswan_vgm_import.js" "${STAGE_DIR}/playground/"
@@ -267,7 +269,7 @@ EOF
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
-perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g' \
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' \
   "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_state.js" \
   "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \
   "${STAGE_DIR}/synth_song_mix_defaults.js"

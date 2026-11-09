@@ -5,14 +5,14 @@ import {readFile} from 'node:fs/promises';
 import {createSynthSongPreview, inspectGenesisPreview} from './synth_song_preview.js';
 import {SYNTH_SONG_MIX_DEFAULTS as defaults} from './synth_song_mix_defaults.js';
 
-function vgm({clock=7670454, psg=3579545, otherClock=0, rf=0, pwm=0, command=0x52, commands:providedCommands}={}) {
+function vgm({clock=7670454, psg=3579545, otherClock=0, rf=0, pwm=0, command=0x52, commands:providedCommands,durationSamples=44100}={}) {
   const commands = providedCommands ?? [command,0xb0,4,0x61,0x44,0xac,0x66];
   const bytes = new Uint8Array(256 + commands.length), view = new DataView(bytes.buffer);
   bytes.set([86,103,109,32]);
   view.setUint32(4, bytes.length-4, true);
   view.setUint32(8, 0x171, true);
   view.setUint32(0x34, 204, true);
-  view.setUint32(0x18, 44100, true);
+  view.setUint32(0x18, durationSamples, true);
   view.setUint32(0x2c, clock, true);
   view.setUint32(0xc, psg, true);
   view.setUint32(0x30, otherClock, true);
@@ -112,8 +112,9 @@ test('Pause freezes consumed frames and Resume preserves the exact unconsumed bu
     assert(Math.abs(resumed.offset-(consumed-cumulativeFrames)/44100)<1e-12);
     f.host.context.currentTime=5.05;assert(f.preview.getState().consumedFrames>consumed);
     f.preview.stop();assert.equal(f.preview.getState().positionFrames,0);
-    assert.equal(f.engines[0].disposed,1);assert(f.host.starts.every(node=>node.stopped||node.disconnected));
+    assert.equal(f.engines[0].disposed,0,'Stop retains the same-source engine and bounded checkpoints');assert(f.host.starts.every(node=>node.stopped||node.disconnected));
   }finally{f.preview.dispose();}
+  assert.equal(f.engines[0].disposed,1);
 });
 
 test('Resume requests its trusted audio context before waiting for recorder shutdown and Stop cancels a waiting resume',async()=>{
@@ -147,11 +148,12 @@ test('Resume requests its trusted audio context before waiting for recorder shut
     assert.equal(await cancelled,false,'Stop invalidates the pending Resume generation');
     assert.equal(f.preview.getState().playback,'stopped');assert.equal(f.preview.getState().consumedFrames,0);
     assert.equal(f.host.starts.length,beforeCancel,'a late shutdown completion cannot schedule another buffer');
-    assert.equal(f.engines[0].disposed,1);assert(f.host.starts.every(node=>node.stopped||node.disconnected));
+    assert.equal(f.engines[0].disposed,0,'a cancelled Resume retains the source cache without scheduling audio');assert(f.host.starts.every(node=>node.stopped||node.disconnected));
   } finally {f.preview.dispose();}
+  assert.equal(f.engines[0].disposed,1);
 });
 
-test('natural EOF drains scheduled samples before releasing the engine',async()=>{
+test('natural EOF drains scheduled samples and retains the source engine until disposal',async()=>{
   const f=fixture();
   try{
     f.preview.load(vgm(),'song.vgm');await f.preview.play();
@@ -161,8 +163,9 @@ test('natural EOF drains scheduled samples before releasing the engine',async()=
     }
     const state=f.preview.getState();assert.equal(state.playback,'ended');
     assert.equal(state.positionFrames,44100);assert.equal(state.positionSeconds,1);
-    assert.equal(f.engines[0].disposed,1);assert.equal(f.preview.getState().hasSource,true);
+    assert.equal(f.engines[0].disposed,0);assert.equal(f.preview.getState().hasSource,true);
   }finally{f.preview.dispose();}
+  assert.equal(f.engines[0].disposed,1);
 });
 
 test('Stop during shared audio preparation cannot create a late song engine',async()=>{
@@ -396,4 +399,139 @@ test('group gain never changes the written-register Live snapshot, channel mutes
     assert.equal(preview.getState().mix.channels[0].muted,false);
     assert.deepEqual(bytes,original);
   } finally {preview.dispose();}
+});
+
+function waitCommands(seconds) {
+  const commands=[];
+  for(let remaining=Math.round(seconds*44100);remaining>0;) {
+    const samples=Math.min(65535,remaining);commands.push(0x61,samples&255,samples>>8);remaining-=samples;
+  }
+  return commands;
+}
+function longPsgSong(seconds=20) {
+  return vgm({clock:0,commands:[0x50,0x8c,0x50,0x1f,0x50,0x90,...waitCommands(seconds),0x66],durationSamples:seconds*44100});
+}
+test('loading VGM and VGZ prepares a known duration without audio; stale metadata and unknown durations stay safe',async()=>{
+  let requests=0;const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>{requests++;return host;}});
+  try {
+    const first=preview.load(new Uint8Array(gzipSync(longPsgSong(20))),'old.vgz');
+    const latest=preview.load(longPsgSong(12),'new.vgm');
+    assert.equal(await first,false);assert.equal(await latest,true);
+    assert.equal(requests,0);assert.equal(host.starts.length,0);
+    assert.equal(preview.getState().durationSeconds,12);assert.equal(preview.getState().seekable,true);
+    assert.equal(preview.getState().name,'new.vgm');assert.deepEqual(preview.getState().cache,
+      {enabled:true,supported:false,count:0,bytes:0,maxBytes:32*1024*1024,maxCount:120,lastRestoreFrame:0});
+    const unknown=longPsgSong(2);new DataView(unknown.buffer).setUint32(0x18,0,true);
+    await preview.load(unknown,'unknown.vgm');assert.equal(preview.getState().seekable,false);
+    assert.equal(await preview.seek(10),true,'an API seek with no declared duration stops at actual EOF');
+    assert.equal(preview.getState().playback,'paused');assert(Math.abs(preview.getState().positionSeconds-2)<.001);
+    assert.equal(preview.getState().durationKnown,true);
+  } finally {preview.dispose();}
+});
+
+test('seeks at time zero and exact event boundaries show the next sample settings without scheduling audio; EOF and invalid targets clamp safely',async()=>{
+  const f=fixture();
+  const bytes=vgm({psg:0,commands:[0x52,0xb0,7,0x52,0xb4,0xc0,0x52,0xa4,0x24,0x52,0xa0,0x40,
+    0x52,0x28,0x80,...waitCommands(6),0x52,0xa0,0x80,0x52,0x28,0x40,...waitCommands(1),0x66],durationSamples:7*44100});
+  try {
+    await f.preview.load(bytes,'boundaries.vgm');await f.preview.seek(0);
+    let state=f.preview.getState();
+    assert.equal(state.playback,'paused');assert.equal(state.positionFrames,0);
+    assert.equal(state.liveState.channels[0].keyMask,8,'zero-time initialization is visible before the first audible sample');
+    assert.equal(f.host.starts.length,0);assert.equal(state.cache.supported,false,'unsupported engines retain a correct cold-replay fallback');
+    await f.preview.seek(6);state=f.preview.getState();
+    assert.equal(state.positionFrames,6*44100);assert.equal(state.liveState.channels[0].keyMask,4);
+    assert.equal(state.liveState.channels[0].fnum,0x480);assert.equal(state.liveState.channels[0].keyOnCount,2);
+    assert.equal(f.host.starts.length,0);
+    for(const invalid of [-1,NaN,Infinity,'2',null])await assert.rejects(f.preview.seek(invalid),/finite nonnegative/);
+    assert.equal(f.preview.getState().positionFrames,6*44100,'invalid seeks do not cancel or move the current voice');
+    await f.preview.seek(999);state=f.preview.getState();
+    assert.equal(state.playback,'paused');assert.equal(state.positionSeconds,7);
+    await f.preview.play();const old=[...f.host.starts];await f.preview.seek(999);
+    assert.equal(f.preview.getState().playback,'ended','a playing seek to actual EOF has no audio left to resume');
+    assert(old.every(node=>node.stopped));assert.equal(f.preview.getState().positionSeconds,7);
+  } finally {f.preview.dispose();}
+});
+
+function statefulEngine({rate=1000,stateBytes=128,slow=false}={}) {
+  let phase=0;const saved=new WeakMap();
+  return {disposed:0,reset(){phase=0;},sampleRate:()=>rate,writeYm2612(){},writePsg(){},supportsState:()=>true,stateSettingsKey:()=>String(rate),
+    saveState(){const state=Object.freeze({byteLength:stateBytes});saved.set(state,phase);return state;},
+    validateState(state){if(!saved.has(state))throw new Error('foreign state');},
+    loadState(state){this.validateState(state);phase=saved.get(state);},
+    processFrames(frames){
+      if(slow){const until=performance.now()+.15;while(performance.now()<until){}}
+      const left=Float32Array.from({length:frames},()=>((phase++%100)/100-.5)*.1);return {left,right:left.slice()};
+    },dispose(){this.disposed++;}};
+}
+
+test('seek cache stays inside count and byte budgets and Off retains no hidden snapshots',async()=>{
+  for(const stateBytes of [128,8*1024*1024]) {
+    const host=audioHost(),engine=statefulEngine({stateBytes}),preview=createSynthSongPreview({getAudio:()=>host,createEngine:async()=>engine});
+    try {
+      await preview.load(longPsgSong(1300),'long.vgm');await preview.seek(1250);
+      const stats=preview.getState().cache;
+      assert(stats.bytes<=stats.maxBytes&&stats.count<=stats.maxCount);
+      if(stateBytes===128)assert.equal(stats.count,120,'a long source evicts its oldest checkpoints at the count bound');
+      else assert(stats.count>0&&stats.count<5,'large snapshots reach the byte budget before the count budget');
+      preview.stop();assert.equal(preview.getState().cache.count,stats.count);
+      await preview.play();assert.equal(preview.getState().cache.count,stats.count,'same-source Play resets playback without dropping compatible checkpoints');
+      assert.equal(engine.disposed,0,'the same source keeps its checkpoint-owning engine');
+      preview.setSeekCacheEnabled(false);assert.equal(preview.getState().cache.bytes,0);
+      await preview.seek(900);assert.equal(preview.getState().cache.count,0);
+      preview.setSeekCacheEnabled(true);await preview.seek(10);assert(preview.getState().cache.count>0);
+      assert.throws(()=>preview.setSeekCacheEnabled(1),/boolean/);
+      preview.clear();assert.equal(engine.disposed,1);assert.equal(preview.getState().cache.count,0);
+    } finally {preview.dispose();}
+  }
+});
+
+test('seek requests its trusted context before recorder shutdown, and a newer seek bypasses stale pending engine creation',async()=>{
+  const host=audioHost(),order=[],old=statefulEngine({rate:44100}),latest=statefulEngine({rate:44100});
+  let resolveOld,calls=0;
+  host.context.resume=async()=>{order.push('context');};
+  const preview=createSynthSongPreview({getAudio:()=>{order.push('audio');return host;},
+    beforeResume:async()=>{order.push('shutdown');},
+    createEngine:async()=>++calls===1?new Promise(resolve=>{resolveOld=resolve;}):latest});
+  try {
+    await preview.load(longPsgSong(10),'pending.vgm');const obsolete=preview.seek(3);
+    assert.deepEqual(order.slice(0,3),['audio','context','shutdown']);
+    while(!resolveOld)await new Promise(resolve=>setTimeout(resolve,0));
+    assert.equal(await preview.seek(1.25),true,'a delayed old constructor does not block a newer source operation');
+    assert.equal(preview.getState().positionSeconds,1.25);assert.equal(preview.getState().playback,'paused');
+    resolveOld(old);assert.equal(await obsolete,false);assert.equal(old.disposed,1);assert.equal(latest.disposed,0);
+    assert.equal(host.starts.length,0);
+  } finally {preview.dispose();}
+  assert.equal(latest.disposed,1);
+});
+
+test('seek cancellation covers waiting audio, latest in-place target, Stop, source replacement and disposal',async()=>{
+  let resolveAudio;const delayed=fixture({getAudio:()=>new Promise(resolve=>{resolveAudio=resolve;})});
+  try {
+    await delayed.preview.load(longPsgSong(10),'delayed.vgm');const pending=delayed.preview.seek(3);
+    delayed.preview.stop();resolveAudio(delayed.host);assert.equal(await pending,false);
+    assert.equal(delayed.engines.length,0);assert.equal(delayed.preview.getState().playback,'stopped');
+  } finally {delayed.preview.dispose();}
+  for(const action of ['latest','stop','load','dispose']) {
+    const host=audioHost(),engine=statefulEngine({slow:true});let preview,interrupted=false,next;
+    preview=createSynthSongPreview({getAudio:()=>host,createEngine:async()=>engine,onState:state=>{
+      if(!interrupted&&state.seeking&&state.seekProgress>0&&state.seekProgress<1) {
+        interrupted=true;
+        if(action==='latest')next=preview.seek(1.25);
+        else if(action==='stop')preview.stop();
+        else if(action==='load')next=preview.load(longPsgSong(2),'new.vgm');
+        else preview.dispose();
+      }
+    }});
+    try {
+      await preview.load(longPsgSong(1300),'old.vgm');const first=preview.seek(1200);
+      assert.equal(await first,false,'an interrupted seek cannot commit its old target');if(next)await next;
+      assert(interrupted,'the long silent renderer yielded for user input');
+      assert.equal(host.starts.length,0,'a cancelled stopped-song seek cannot start audio');
+      if(action==='latest'){assert.equal(preview.getState().playback,'paused');assert.equal(preview.getState().positionSeconds,1.25);}
+      else {assert.equal(preview.getState().playback,'stopped');assert.equal(preview.getState().positionSeconds,0);}
+      if(action==='load')assert.equal(preview.getState().name,'new.vgm');
+      if(action==='load'||action==='dispose')assert.equal(engine.disposed,1);
+    } finally {preview.dispose();}
+  }
 });

@@ -1,6 +1,6 @@
 import {createSynthProject} from './synth_project.js?v=op-gates-1';
 import {setupSynthFiles} from './synth_files.js?v=op-gates-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=mix-source-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=song-seek-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';
@@ -556,11 +556,11 @@ function applyMasterVolume() {
 }
 
 function isSongChannelTarget() {
-  return songTargetState.target !== 'synth' && ['loading','playing','paused'].includes(songTargetState.playback);
+  return songTargetState.target !== 'synth' && ['loading','playing','paused','seeking'].includes(songTargetState.playback);
 }
 
 function isPerformanceInputEnabled() {
-  return !switchingAudioOutput && !referenceRecordingStop && (!isSongChannelTarget() || Boolean(songAuditionVoice));
+  return !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
 function getCurrentPerformanceVoice() {
@@ -571,7 +571,7 @@ function getCurrentPerformanceVoice() {
 
 function recordingBlocked() {
   return switchingAudioOutput||Boolean(referenceRecordingStop)||
-    ['loading','playing'].includes(songTargetState.playback)||isSongChannelTarget();
+    ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget();
 }
 
 function recordingOperationCurrent(epoch) {return epoch===recordingEpoch&&!recordingBlocked();}
@@ -639,15 +639,16 @@ function ensureSongAuditionReady() {
 }
 
 function setSongTargetState(next) {
-  const wasPlaying=['loading','playing'].includes(songTargetState.playback);
+  const wasPlaying=['loading','playing','seeking'].includes(songTargetState.playback);
+  const startingSeek=next.playback==='seeking'&&songTargetState.playback!=='seeking';
   const recordingStateChanged=next.playback!==songTargetState.playback||next.target!==songTargetState.target;
   const leavingEditor=songTargetState.target==='synth'&&next.target!=='synth'&&next.playback==='paused';
-  const channelTarget = next.target !== 'synth' && ['loading','playing','paused'].includes(next.playback);
+  const channelTarget = next.target !== 'synth' && ['loading','playing','paused','seeking'].includes(next.playback);
   const audition = channelTarget && next.playback === 'paused' ? next.view : null;
   const signature = JSON.stringify([channelTarget ? next.target : 'synth', channelTarget && next.playback,
     audition?.snapshot.revision, audition?.snapshot.frame]);
   songTargetState = next;
-  if(!wasPlaying&&['loading','playing'].includes(next.playback)||leavingEditor)void stopRecordingForReference();
+  if(startingSeek||!wasPlaying&&['loading','playing'].includes(next.playback)||leavingEditor)void stopRecordingForReference();
   if(recordingStateChanged){updateLooperUi();updateEventRecordUi();}
   if (signature === songAuditionSignature) return;
   songAuditionSignature = signature;

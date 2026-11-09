@@ -7,6 +7,10 @@ const integer = (value, maximum, label) => {
   if (!Number.isInteger(value) || value < 0 || value > maximum) throw new RangeError(`${label} must be 0..${maximum}`);
   return value;
 };
+const stateArray = (value, length, maximum, label) => {
+  if ((!Array.isArray(value) && !ArrayBuffer.isView(value)) || value.length !== length) throw new TypeError(`Invalid ${label}`);
+  return Array.from(value, item => integer(item, maximum, label));
+};
 
 function frequency(low, high, clockHz) {
   const block = (high >> 3) & 7, fnum = ((high & 7) << 8) | low;
@@ -91,8 +95,32 @@ export function createYm2612RegisterState(clockHz=DEFAULT_CLOCK) {
     }
     return Object.freeze({...cached, frame});
   }
+  function saveState() {
+    return {version:1,clockHz,revision,registers:registers.map(values=>values.slice()),
+      highLatches:[...highLatches],low:low.slice(),high:high.slice(),specialLow:specialLow.slice(),specialHigh:specialHigh.slice(),
+      keys:keys.slice(),lastKeys:lastKeys.slice(),keyOnCounts:keyOnCounts.slice()};
+  }
+  function loadState(state) {
+    if (state?.version !== 1 || state.clockHz !== clockHz || !Array.isArray(state.registers) || state.registers.length !== 2) throw new TypeError('Invalid YM2612 decoder state');
+    // Validate every field before touching the current decoder or its cache.
+    const nextRevision=integer(state.revision,Number.MAX_SAFE_INTEGER,'YM2612 revision');
+    const nextRegisters=state.registers.map(values=>stateArray(values,256,255,'YM2612 registers'));
+    const fields=[
+      [highLatches,stateArray(state.highLatches,2,63,'YM2612 high latches')],
+      [low,stateArray(state.low,6,255,'YM2612 low frequencies')],
+      [high,stateArray(state.high,6,63,'YM2612 high frequencies')],
+      [specialLow,stateArray(state.specialLow,3,255,'YM2612 special low frequencies')],
+      [specialHigh,stateArray(state.specialHigh,3,63,'YM2612 special high frequencies')],
+      [keys,stateArray(state.keys,6,15,'YM2612 keys')],
+      [lastKeys,stateArray(state.lastKeys,6,15,'YM2612 last keys')],
+      [keyOnCounts,stateArray(state.keyOnCounts,6,0xffffffff,'YM2612 key-on counts')],
+    ];
+    nextRegisters.forEach((values,index)=>registers[index].set(values));
+    for(const [target,values] of fields)values.forEach((value,index)=>{target[index]=value;});
+    revision=nextRevision;cached=null;
+  }
   reset();
-  return {write, reset, snapshot};
+  return {write, reset, snapshot, saveState, loadState};
 }
 
 /**
@@ -134,6 +162,27 @@ export function createYm2612SongTimeline(engine, clockHz=DEFAULT_CLOCK) {
   }
   return {
     read,
+    saveState() {
+      if(disposed)throw new Error('YM2612 timeline is disposed');
+      return {version:1,generatedFrames,lastReadFrame,decoder:shadow.saveState(),events:events.slice(head).map(event=>({...event}))};
+    },
+    loadState(state) {
+      if(disposed)throw new Error('YM2612 timeline is disposed');
+      if(state?.version!==1||!Array.isArray(state.events))throw new TypeError('Invalid YM2612 timeline state');
+      const nextGenerated=integer(state.generatedFrames,Number.MAX_SAFE_INTEGER,'YM2612 generated frames');
+      const nextRead=integer(state.lastReadFrame,nextGenerated,'YM2612 audible frame');
+      let preceding=nextRead;
+      const pending=state.events.map(event=>{
+        const frame=integer(event?.frame,nextGenerated,'YM2612 event frame');
+        const port=integer(event?.port,1,'YM2612 event port'),register=integer(event?.register,255,'YM2612 event register');
+        const value=integer(event?.value,255,'YM2612 event value');
+        if(frame<preceding||!isYm2612ViewRegister(port,register))throw new TypeError('Invalid YM2612 pending event');
+        preceding=frame;
+        return {frame,port,register,value};
+      });
+      shadow.loadState(state.decoder);
+      generatedFrames=nextGenerated;lastReadFrame=nextRead;events=pending;head=0;
+    },
     get pendingEvents() {return events.length - head;},
     dispose() {
       if (disposed) return;

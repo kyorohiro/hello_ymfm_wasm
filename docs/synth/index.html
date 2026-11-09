@@ -158,7 +158,22 @@
       #synthSongSelect { flex: 1 1 120px; width: 180px; min-width: 0; max-width: 300px; font: inherit; color: #e4eee8; border: 1px solid #41615b; border-radius: 999px; padding: 4px 8px; background: #1b2929; }
       .synth-song-player .toolbar-button { min-height: 26px; padding: 3px 9px; font-size: inherit; }
       #synthSongPlayButton { min-width: 64px; }
-      #synthSongTime { color: #a8bfba; font-variant-numeric: tabular-nums; }
+      #synthSongTime { color: #a8bfba; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      #synthSongSeek {
+        flex: 1 1 90px; min-width: 64px; max-width: 140px; height: 6px; margin: 7px 0;
+        appearance: none; -webkit-appearance: none; cursor: ew-resize;
+        border: 1px solid #586965; border-radius: 999px;
+        background: linear-gradient(to right, #7bcfc1 0%, #7bcfc1 var(--seek-position, 0%), #33413f var(--seek-position, 0%), #33413f 100%);
+      }
+      #synthSongSeek::-webkit-slider-runnable-track { height: 6px; background: transparent; border: 0; }
+      #synthSongSeek::-webkit-slider-thumb {
+        appearance: none; -webkit-appearance: none; width: 13px; height: 13px; margin-top: -3.5px;
+        border: 1px solid #d5e5dc; border-radius: 50%; background: #7bcfc1;
+      }
+      #synthSongSeek::-moz-range-track { height: 6px; background: transparent; border: 0; }
+      #synthSongSeek::-moz-range-thumb { width: 13px; height: 13px; border: 1px solid #d5e5dc; border-radius: 50%; background: #7bcfc1; }
+      #synthSongSeek:focus-visible { outline: 2px solid #b7d9d1; outline-offset: 4px; }
+      #synthSongSeek:disabled { opacity: .4; cursor: default; }
       #synthSongStatus { color: #a8bfba; min-width: 0; overflow-wrap: anywhere; }
       #synthSongStatus[data-state="error"] { color: #ffbdad; flex-basis: 100%; }
       .synth-song-live-controls { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 5px; }
@@ -1370,7 +1385,8 @@
                 <select id="synthSongSelect" aria-label="Reference VGM"></select>
                 <button id="synthSongPlayButton" class="toolbar-button" type="button" disabled>Play</button>
                 <button id="synthSongStopButton" class="toolbar-button" type="button" disabled>Stop</button>
-                <output id="synthSongTime" aria-label="Reference playback time">0:00</output>
+                <input id="synthSongSeek" type="range" min="0" max="0" step="any" value="0" aria-label="Reference playback position in seconds" disabled>
+                <output id="synthSongTime" aria-label="Reference playback time">0:00 / 0:00</output>
                 <span id="synthSongStatus" role="status">Stopped.</span>
                 <span class="synth-song-live-controls">
                   <label title="Automatically follow the song settings. Turn off to freeze the current view. Choose Synth to edit your instrument."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
@@ -1386,6 +1402,7 @@
                 <div id="synthSongMixPanel" role="group" aria-label="Reference playback mixer" hidden>
                   <div class="synth-song-mix-heading"><strong>Playback mixer</strong><button id="synthSongMixReset" class="toolbar-button" type="button" title="Restore shared System levels and unmute channels.">Reset</button></div>
                   <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
+                  <label class="synth-song-display-option"><input id="synthSongSeekCacheToggle" type="checkbox" checked>Seek cache</label>
                   <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
                 </div>
               </div>
@@ -1557,7 +1574,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-mix-source-1";
+      import "./synth.js?v=synth-song-seek-1";
     </script>
   </body>
 </html>

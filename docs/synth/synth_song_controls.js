@@ -1,13 +1,10 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=mix-source-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=song-seek-1';
+import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
 import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=mix-source-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 
 const isSong = path => path.startsWith('/vgm/') && /\.(vgm|vgz)$/i.test(path);
-const displayTime = seconds => {
-  const whole = Math.max(0, Math.floor(seconds || 0));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-};
 
 /** Keep reference-song selection separate from the instrument editor. */
 export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume}) {
@@ -16,7 +13,6 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   const play = document.getElementById('synthSongPlayButton');
   const stop = document.getElementById('synthSongStopButton');
   const status = document.getElementById('synthSongStatus');
-  const time = document.getElementById('synthSongTime');
   const live = document.getElementById('synthSongLiveToggle');
   const channel = document.getElementById('synthSongChannelSelect');
   const liveStatus = document.getElementById('synthSongLiveStatus');
@@ -24,27 +20,29 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   const formatInfo = document.querySelector('.synth-file-format-note');
   let selectedPath = null, selectedRevision = -1, listRevision = '', disposed = false;
   let frozenSnapshot = null;
-  let copying=false, mixControls=null;
+  let copying=false, mixControls=null, seekControls=null;
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
 
   function showState(state) {
     root.dataset.state = status.dataset.state = state.playback;
     root.dataset.consumedFrames = String(state.consumedFrames ?? 0);
     text(play, state.playback === 'playing' ? 'Pause' : state.playback === 'paused' ? 'Resume' : 'Play');
-    play.disabled = copying || !selectedPath || state.playback === 'loading';
-    stop.disabled = copying || !['loading', 'playing', 'paused'].includes(state.playback);
+    const seeking = state.playback === 'seeking';
+    play.disabled = copying || !selectedPath || state.playback === 'loading' || seeking;
+    stop.disabled = copying || !['loading', 'playing', 'paused', 'seeking'].includes(state.playback);
     select.disabled=copying;
-    const messages = {stopped:'Stopped.', loading:'Loading…', playing:'Playing.', paused:'Paused.', ended:'Finished.'};
+    const messages = {stopped:'Stopped.', loading:'Loading…', playing:'Playing.', paused:'Paused.', ended:'Finished.',
+      seeking:'Seeking… ' + Math.round((state.seekProgress ?? 0) * 100) + '%'};
     // Progress is frequent; announce transport changes, not an identical status
     // on every render refill, to keep the live region quiet while playing.
     text(status, state.errorMessage ? `${state.name}: ${state.errorMessage}` : messages[state.playback] ?? 'Ready.');
     status.title = status.textContent;
-    text(time, displayTime(state.positionSeconds));
+    seekControls?.update(state);
     const running = ['playing', 'paused'].includes(state.playback);
     // Keep all channels at the same observation instant. Live Off freezes the
     // current settings instead of sending the user back to the editor. Pause
     // always captures its exact audible position, including when Live is Off.
-    if (state.playback === 'loading') frozenSnapshot = null;
+    if (state.playback === 'loading' || seeking) frozenSnapshot = null;
     if (running && state.liveState && (live.checked || !frozenSnapshot || state.playback === 'paused')) {
       frozenSnapshot = state.liveState;
     }
@@ -55,12 +53,15 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     const view = voice ? {snapshot, channel:selectedChannel, paused:state.playback === 'paused', following:live.checked} : null;
     root.dataset.live = String(Boolean(voice));
     root.dataset.target = String(target);
-    channel.disabled = copying;
+    channel.disabled = copying || seeking;
+    live.disabled = seeking;
     const description=voice?describeSynthSongVoice(snapshot,selectedChannel):null;
     copy.disabled=copying||state.playback!=='paused'||!description?.playable;
     copy.title=copying?'Copying…':description&&!description.playable?description.reason:
       state.playback==='paused'&&voice?'Copy this CH into a new editable Synth instrument. Your previous instrument is kept.':'Pause and select an FM channel to copy its sound to Synth.';
     mixControls?.update(state.mix);
+    document.getElementById('synthSongMixButton').disabled = seeking;
+    if (seeking) mixControls?.close();
     if (voice) {
       const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
       const midi = Number.isFinite(voice.midi) ? Math.round(voice.midi) : null;
@@ -86,6 +87,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   }
   const preview = createSynthSongPreview({getAudio, onState:showState, onStatus, beforeResume});
   mixControls=setupSynthSongMixControls({preview});
+  seekControls=setupSynthSongSeekControls({preview,onStatus});
   preview.setVolume(getVolume());
 
   function choose(path) {
@@ -94,6 +96,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     selectedPath = path;
     selectedRevision = revision;
     frozenSnapshot = null;
+    seekControls.cancelDraft();
     if (path) {
       const file = project.fs.get(path);
       // Non-binary VGM files from other tools still produce a useful load error.
@@ -168,6 +171,6 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     stop: () => preview.stop(),
     setVolume: value => preview.setVolume(value),
     reset() {preview.stop();selectedRevision=-1;mixControls.close();refresh();},
-    dispose() {disposed = true; unsubscribe(); preview.dispose();mixControls.dispose();},
+    dispose() {disposed = true; unsubscribe(); seekControls.dispose();preview.dispose();mixControls.dispose();},
   };
 }

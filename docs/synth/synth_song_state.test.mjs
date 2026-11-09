@@ -74,6 +74,33 @@ test('CH3 special pitches are reported in logical OP order with a separate latch
   assert.equal(state.snapshot().channels[2].specialMode,true);
 });
 
+test('decoder snapshots preserve uncommitted frequency latches, keys, counters and revision atomically', () => {
+  const state=createYm2612RegisterState(8000000);
+  for(const [port,register,value] of [[0,0xb0,7],[0,0xa4,0x22],[0,0xa0,0x44],
+    [0,0xac,0x17],[0,0xa9,0x56],[0,0x28,0xf2],[0,0x28,2],[0,0x28,0xa2],
+    [1,0xa5,0x29],[0,0xae,0x2a]])state.write(port,register,value);
+  const expected=state.snapshot(42),saved=structuredClone(state.saveState());
+  const detached=state.saveState();detached.registers[0][0xb0]=0;detached.keyOnCounts[2]=99;
+  assert.deepEqual(state.snapshot(42),expected,'saving returns independent buffers');
+  state.reset();state.write(0,0x28,0x10);state.loadState(saved);
+  assert.deepEqual(state.snapshot(42),expected,'restore replaces cached decoded state, counters and revision');
+  saved.registers[0][0xb0]=0;saved.highLatches[0]=0;
+  state.write(1,0xa1,0x88);state.write(0,0xaa,0x55);
+  const snapshot=state.snapshot();
+  assert.equal(snapshot.channels[4].block,5);assert.equal(snapshot.channels[4].fnum,0x188,'cross-port normal high latch survives independently of saved capsule edits');
+  assert.equal(snapshot.channels[2].specialFrequencies[1].block,5);
+  assert.equal(snapshot.channels[2].specialFrequencies[1].fnum,0x255,'special high latch survives separately');
+  assert.equal(snapshot.channels[2].keyOnCount,2);assert.equal(snapshot.channels[2].lastKeyMask,10);
+  const before=state.saveState();
+  for(const change of [
+    value=>{value.clockHz=7670454;},value=>{value.registers[1]=new Uint8Array(3);},
+    value=>{value.keys[5]=16;},value=>{value.highLatches[1]=64;},value=>{value.revision=-1;},
+  ]) {
+    const bad=structuredClone(before);change(bad);assert.throws(()=>state.loadState(bad));
+    assert.deepEqual(state.saveState(),before,'invalid capsules do not partially restore fields');
+  }
+});
+
 test('timeline exposes the audible prefix, discards consumed events and ignores DAC sample traffic', () => {
   const engine={reset(){},writeYm2612(){},processFrames(frames){return {left:new Float32Array(frames),right:new Float32Array(frames)};}};
   const original={...engine},timeline=createYm2612SongTimeline(engine);
@@ -91,6 +118,41 @@ test('timeline exposes the audible prefix, discards consumed events and ignores 
   assert.equal(engine.writeYm2612,original.writeYm2612);
   assert.equal(engine.processFrames,original.processFrames);
   assert.equal(engine.reset,original.reset);
+});
+
+test('timeline checkpoints restore the audible decoder and only pending future events for backward seek', () => {
+  const engine={reset(){},writeYm2612(){},processFrames(frames){return {left:new Float32Array(frames),right:new Float32Array(frames)};}};
+  const timeline=createYm2612SongTimeline(engine);
+  try {
+    engine.reset();
+    for(const [register,value] of [[0xb0,1],[0xa4,0x22],[0xa0,0x44],[0x28,0xf0],[0xa5,0x29],[0xad,0x19]])engine.writeYm2612(0,register,value);
+    engine.processFrames(100);engine.writeYm2612(1,0xa1,0x88);engine.writeYm2612(0,0x28,0);
+    engine.processFrames(100);engine.writeYm2612(0,0xb0,5);engine.writeYm2612(0,0xa9,0x55);engine.writeYm2612(0,0x28,0xa0);
+    engine.processFrames(100);
+    const at50=timeline.read(50),saved=structuredClone(timeline.saveState());
+    assert.equal(saved.generatedFrames,300);assert.equal(saved.lastReadFrame,50);
+    assert(saved.events.every(event=>event.frame>=100),'consumed source writes are absent from the capsule');
+    const at100=timeline.read(100),at250=timeline.read(250);
+    assert.equal(at100.channels[4].fnum,0x188);assert.equal(at100.channels[4].block,5);
+    assert.equal(at250.channels[0].keyOnCount,2);assert.equal(at250.channels[2].specialFrequencies[0].fnum,0x155);
+    engine.writeYm2612(0,0xb0,7);engine.processFrames(100);timeline.read(400);
+    timeline.loadState(saved);
+    assert.deepEqual(timeline.read(50),at50);
+    assert.deepEqual(timeline.read(100),at100);
+    assert.deepEqual(timeline.read(250),at250);
+    timeline.loadState(saved);saved.events[0].value=0;
+    assert.deepEqual(timeline.read(100),at100,'pending events are detached from the restore argument');
+    const before=timeline.saveState();
+    for(const change of [
+      value=>{value.generatedFrames=-1;},value=>{value.lastReadFrame=301;},
+      value=>{value.events[0].frame=99;},value=>{value.events[0].register=0x2a;},
+      value=>{value.decoder.keys[0]=16;},
+    ]) {
+      const bad=structuredClone(before);change(bad);assert.throws(()=>timeline.loadState(bad));
+      assert.deepEqual(timeline.saveState(),before,'all timeline state stays unchanged on validation failure');
+    }
+  } finally {timeline.dispose();}
+  assert.throws(()=>timeline.saveState(),/disposed/);assert.throws(()=>timeline.loadState({}),/disposed/);
 });
 
 function song(ymClock=7670454) {

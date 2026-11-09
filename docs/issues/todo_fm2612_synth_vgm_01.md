@@ -1,5 +1,33 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: 模範演奏のシークバーとメモリ内Seek cache（2026-11-10）
+
+ユーザー指示：seekbarを追加し、一旦Web版をreleaseする。VGM Analyzerのようなcacheも使えるか確認する。
+
+- [x] 既存のVGM欄へコンパクトなシークバーと現在位置／全長を追加する。ドラッグ中は移動先の時刻を表示し、指を離した時に移動する。focus中も演奏用の文字キーを維持する。
+- [x] 再生中は移動後も再生し、Pause中はPauseを維持する。停止状態からの移動も扱い、移動先でCHの観察・試奏・Copyができる。先読み音を止め、実際に聴こえる位置とLive表示を合わせる。
+- [x] VGM Analyzerの既存seek処理／VgmPlayer checkpoint APIを再利用する。RAM上限32MiB・最大120件・約5秒間隔を基準とし、未cache区間は無音で進めながらUIへ制御を返す。
+- [x] chipだけでなく、Liveのregister shadow／latch／KON・output mixerのsource pan／PCM bank選択も復元する。FM・PSG・DAC・Mega CD PCM・32X PWMでcold／cached seekの音と状態を照合する。
+- [x] cacheは既定OnでMix内からOffにできるようにする。未対応engineは通常seekへ戻す。同曲でcacheを再利用し、曲変更・必要なMix設定変更で無効化する。元VGM・Cassette・音色へcacheを保存しない。
+- [x] Stop／新しいseek／曲変更／pagehideで処理を取り消し、古い処理の遅延再生を防ぐ。移動中は録音・Looper・試奏を適切に停止／制限し、Mixの共通補正とMasterを維持する。
+- [x] 実WASM・Node・Chromium／WebKitで前後移動・端点・連続操作・Pause／Resume・cache hit／Off／上限・Live／Copy・既存Mix／録音の回帰を確認する。
+- [x] README／TODO・cache keyを更新し、配布ZIPだけで確認してWebリリース用ZIPを用意する。commit／push／itch.io公開はこの作業では行わない。
+
+### 実装と検証
+
+- 既存VGM欄へ現在／全長と小さなシークバーを追加。input中は時刻だけをpreviewし、release／changeで移動する。矢印は1秒、Shift／Pageは10秒、Home／Endは曲頭／正確な曲末。focus中の文字キーは演奏に使える。常設パネルは追加しない。
+- `synth_song_seek_controls.js`がUIとcache設定を担当し、既存`vgm_analyzer/seek_playback.js`／`VgmPlayer`を再利用する。cacheは既定On・約5秒間隔・32MiB／最大120件。MixのSeek cacheでOffにするとcheckpointを即解放し、通常seekへ戻す。localStorageへ保存するのはOn／Offの好みだけで、checkpointやPCMをVGM／音色／Cassetteへ書かない。
+- 同曲のStop／再開・曲末後もnative engineとcacheを保持し、再利用する。曲変更・clear・dispose・audio bus変更では旧engineを解放する。Mute／音源Volume変更はcacheを無効化し、Masterは外側GainNodeなのでcacheを維持する。未対応engineはsnapshot無しの通常seekへ戻す。
+- native chip stateに加え、Live decoderのregister・frequency latch・確定FNUM・KON／回数、先読みtimeline、output mixerの元pan・PCM bank／channel shadowを復元する。Mixerのユーザー設定を巻き戻さず、native復元時に余計なregister writeをしない。
+- 実WASM検証で、ymfmの通常resetがglobal EG counter位相を残すことを発見した。Synthの模範演奏engine内だけで同一instanceのpower-on YM stateを保持し、cold seek時に復元する。共有core／SDK／WASMは変えない。cache Off時もcold resetの基準としてこの小さな固定stateを使う。
+- shared seekの正確なイベント境界では、移動先の時刻0／同フレームのwriteを次の未送信PCM chunkへ適用し、そのchunkをResumeまで保持する。表示だけ次へ進めたり、1sample bufferを挟んだりせず、Liveと実際の出力を同じ位置へ揃える。
+- generation／AbortControllerと直列workでStop・最新seek・曲変更・pagehideを取り消す。seek中はLooper／Event Rec／手動演奏を止め、CH選択・Copyを制限する。再生中のseekは再生を続け、Pause／停止からは無音のPauseへ移る。停止位置でも選択CHを試奏・Copyできる。
+- `node --test docs/synth/*.test.mjs`：179件成功。FM／PSG／DAC／RF5C164／MAME PWMのcold／cached／再生中seekについて、続く4096サンプルを独立した連続再生とbyte照合した。時刻0・音色変更境界・曲末、dangling latch／bank、cache hit／Off／上限／Mix無効化、Stop保持、取消・遅延AudioContext／engine初期化も検証した。Liveのローカルrevision番号だけを除き、source設定・frame・KON回数は一致する。
+- 新しい`check_synth_song_seek_browser.cjs`が配布stageのChromium／WebKitで成功。再生前の全長、input preview／commit、前後seek、実PCMとLive／発音OPの一致、実cache hit（復元frame 270336）、Offの0件／0bytes、再On、Pause／Resume／端点、seek focus中の試奏、移動先Copy、元VFS不変、Stop／曲変更の即時取消、Off設定のreloadを確認した。cacheは両browserとも2件・1,272,980 bytesで上限内。fixtureは自己作成し、音程同士の倍音が重ならない330／733／1171Hzで独立した実WASM照合も行った。閾値を緩めていない。
+- 既存`check_synth_song_mix_browser.cjs`も最終stageのChromium／WebKitで成功。共通補正・source Volume・全CH Mute・Master・focus・Pause／Stop保持・Live／保存不変・Copy／CH3特殊を再確認した。`check_synth_captured_recording_browser.cjs`もChromium／WebKitで成功し、部分OP／CH3特殊のLooper・Event Rec・実音声・書出／再読込・VGM再生との排他を確認した。
+- 1240／390pxの配置とWebKit描画を画像で確認。receiptは`/private/tmp/fm2612-song-seek-browser.json`（96 assets）、`/private/tmp/fm2612-song-seek-mix-browser.json`（100 assets）、`/private/tmp/fm2612-song-seek-recording-browser.json`（96 assets）。全asset hashが最終stageと一致。音声は出力端で物理muteした自動計測で、人の実聴とは区別する。
+- `sh scripts/package_itch_synth.sh song-seek-check-20261110`と266個のlocal module／asset参照チェックが成功。README英語／日本語とcache keyを更新し、新helperとshared seekを配布へ含めた。最終ZIP：`release/hello_ymfm_wasm_song-seek-check-20261110_itch_synth.zip`（249 entries／221 files、837,555 bytes、SHA-256 `d0b0bedc3b7a37df78a038421d9d97d05436566758b5c39da29a8a859829da4a`）。全fileがstageとbyte一致し、shared seekもsourceと一致。receipt：`/private/tmp/fm2612-song-seek-package.json`。公開・commit／push・Tauri更新はしていない。
+
 ## 完了: FM2612 SynthのMixを共通補正・source倍率へ統一（2026-11-10）
 
 ユーザー指示：FM2612 Synthだけ他のTetoricaアプリと異なるVolume基準を、Playground／VGM Analyzerに揃える。

@@ -8,14 +8,18 @@ import {Rf5c164} from '../js/rf5c164.js';
 import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
-import {createYm2612SongTimeline} from './synth_song_state.js?v=vgm-audition-1';
+import {createYm2612SongTimeline} from './synth_song_state.js?v=song-seek-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=mix-source-1';
-import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=mix-source-1';
+import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=song-seek-1';
+import {seekPlayback} from '../vgm_analyzer/seek_playback.js';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;
 const REFILL_MILLISECONDS = 25;
 const CHUNK_FRAMES = 2048;
+const CACHE_INTERVAL_SECONDS = 5;
+const CACHE_MAX_BYTES = 32 * 1024 * 1024;
+const CACHE_MAX_COUNT = 120;
 
 /** Reject unsupported songs before creating the reference-song engine. */
 export function inspectGenesisPreview(bytes) {
@@ -100,7 +104,7 @@ async function createPreviewEngine(header) {
 }
 
 /**
- * An independent reference-song player. Loading merely copies selected bytes;
+ * An independent reference-song player. Loading prepares bytes and metadata;
  * Play prepares a separate Genesis engine and borrows the Synth's audio bus.
  * The host owns that AudioContext: this controller never closes it.
  *
@@ -109,27 +113,37 @@ async function createPreviewEngine(header) {
  * PCM, including the exact offset into the current buffer; the parser is never
  * advanced again to reconstruct Pause. Master gain is outside those buffers.
  */
-export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine, beforeResume=()=>{}}={}) {
+export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine, beforeResume=()=>{},seekCacheEnabled=true}={}) {
   if (typeof getAudio !== 'function') throw new TypeError('getAudio is required');
+  if (typeof seekCacheEnabled !== 'boolean') throw new TypeError('Seek cache enabled must be a boolean');
   let source = null, name = '', active = null, generation = 0, disposed = false;
   let volume = 1, playback = 'stopped', errorMessage = null;
   let positionFrames = 0, sampleRate = 0, totalSamples = 0;
-  let lastLiveState = null;
+  let lastLiveState = null, metadata = null, metadataReady = null;
+  let seekProgress = 0, seekTargetSeconds = null, seekResumePlaying = false, lastSeekCacheFrame = 0;
+  let abortSeek = null, work = Promise.resolve();
   const mix = createSynthSongMix();
 
   function currentPosition(run=active) {
     if (!run) return positionFrames;
+    if (!['playing','paused','seeking'].includes(playback)) return positionFrames;
     if (playback !== 'playing') return run.basePosition;
     const elapsed = Math.max(0, run.context.currentTime - run.clockStart);
     return Math.min(run.renderedFrames, run.basePosition + Math.floor(elapsed * run.sampleRate));
   }
   function getState() {
     const consumedFrames = currentPosition();
-    const liveState = active?.timeline ? active.timeline.read(consumedFrames) : lastLiveState;
+    const liveState = playback === 'seeking' ? null :
+      active?.timeline && ['playing','paused'].includes(playback) ? active.timeline.read(consumedFrames) : lastLiveState;
+    const stats = active?.player.checkpointStats() ?? {count:0,bytes:0};
+    const durationKnown = totalSamples > 0;
     return {playback, hasSource:Boolean(source), name, errorMessage,
       sampleRate, positionFrames:consumedFrames, consumedFrames,
       positionSeconds:sampleRate ? consumedFrames / sampleRate : 0,
       totalSamples, durationSeconds:totalSamples / 44100, liveState,
+      durationKnown,seekable:durationKnown,seeking:playback==='seeking',seekProgress,seekTargetSeconds,
+      lastSeekCacheFrame,cache:{enabled:seekCacheEnabled,supported:Boolean(active?.player.supportsState()),
+        ...stats,maxBytes:CACHE_MAX_BYTES,maxCount:CACHE_MAX_COUNT,lastRestoreFrame:lastSeekCacheFrame},
       mix:mix.getState()};
   }
   function emit() { onState(getState()); }
@@ -147,6 +161,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   function release(run) {
     if (!run || run.released) return;
     run.released = true;
+    run.player.clearCheckpoints();
     clearInterval(run.timer);
     cancelNodes(run);
     run.segments.length = 0;
@@ -155,35 +170,63 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     run.outputMix?.dispose();
     run.engine.dispose();
   }
+  function suspend(run) {
+    if (!run) return;
+    run.basePosition = currentPosition(run);
+    positionFrames = run.basePosition;
+    clearInterval(run.timer);run.timer=null;
+    cancelNodes(run);
+    run.player.pause();
+  }
+  function cancelOperation() {abortSeek?.abort();abortSeek=null;return ++generation;}
   function stop() {
-    generation++;
-    const run = active;
-    active = null;
-    release(run);
+    cancelOperation();
+    suspend(active);
+    if(active)active.segments=[];
     positionFrames = 0;
     lastLiveState = null;
     playback = 'stopped';
     errorMessage = null;
+    seekProgress=0;seekTargetSeconds=null;
     emit();
   }
+  function discard() {stop();release(active);active=null;lastSeekCacheFrame=0;}
   function load(bytes, nextName='') {
     checkOpen();
     const next = bytes instanceof Uint8Array ? new Uint8Array(bytes) :
       bytes instanceof ArrayBuffer ? new Uint8Array(bytes.slice(0)) : null;
     if (!next) throw new TypeError('Choose a binary VGM or VGZ file.');
-    stop();
+    discard();
     source = next;
     name = String(nextName);
     sampleRate = totalSamples = 0;
+    metadata=null;
     mix.clear();
     emit();
+    // Header preparation enables the position bar before Play without creating
+    // an AudioContext or chip. Stale metadata cannot replace a newer source.
+    const selected=source;
+    metadataReady=Promise.resolve().then(async()=>{
+      try {
+        const decoded=new Uint8Array(await maybeDecodeVgmFile(selected));
+        const header=new Ym2612VGM(decoded,{logger:null}).header;
+        if(disposed||source!==selected)return false;
+        metadata={bytes:decoded,header,validated:false};
+        totalSamples=header.totalSamples;emit();return true;
+      } catch(error) {
+        if(!disposed&&source===selected)metadata={error};
+        return false;
+      }
+    });
+    return metadataReady;
   }
   function clear() {
     checkOpen();
-    stop();
+    discard();
     source = null;
     name = '';
     sampleRate = totalSamples = 0;
+    metadata=metadataReady=null;
     mix.clear();
     emit();
   }
@@ -198,30 +241,61 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     active.outputMix.setMutedChannels(mix.getMutedChannels());
     for (const [id,value] of Object.entries(mix.getGroupVolumes())) active.outputMix.setGroupVolume(id,value);
   }
+  function updateCachePolicy(run) {
+    run.player.checkpointIntervalSeconds=seekCacheEnabled&&
+      run.player.renderedPositionFrames()>=run.cacheResumeFrame?CACHE_INTERVAL_SECONDS:0;
+  }
+  function invalidateCache() {
+    lastSeekCacheFrame=0;
+    if(!active)return;
+    active.player.clearCheckpoints();
+    // The already queued prefix remains audible. Do not snapshot it under the
+    // new mix settings until those old-gain parser frames have drained.
+    active.cacheResumeFrame=active.player.renderedPositionFrames()+active.player.queuedFrames;
+    updateCachePolicy(active);
+  }
+  function restartChangedSeek() {
+    if(playback==='seeking')void seekAt(seekTargetSeconds,seekResumePlaying).catch(()=>{});
+  }
   function setChannelMuted(id, value) {
     checkOpen();
     if (!mix.setChannelMuted(id,value)) return;
     if (active) active.outputMix.setMutedChannels(mix.getMutedChannels());
+    invalidateCache();restartChangedSeek();
     emit();
   }
   function setGroupVolume(id, value) {
     checkOpen();
     if (!mix.setGroupVolume(id,value)) return;
     if (active) active.outputMix.setGroupVolume(id,value);
+    invalidateCache();restartChangedSeek();
     emit();
   }
   function resetMix() {
     checkOpen();
     if (!mix.reset()) return;
     applyMix();
+    invalidateCache();restartChangedSeek();
+    emit();
+  }
+  function setSeekCacheEnabled(value) {
+    checkOpen();
+    if(typeof value!=='boolean')throw new TypeError('Seek cache enabled must be a boolean');
+    if(value===seekCacheEnabled)return;
+    seekCacheEnabled=value;lastSeekCacheFrame=0;
+    if(active){active.player.clearCheckpoints();updateCachePolicy(active);}
     emit();
   }
   function fail(error, run) {
     if (run && active !== run) return;
-    positionFrames = currentPosition(run);
-    lastLiveState = run?.timeline?.read(positionFrames) ?? null;
+    positionFrames = playback==='seeking'&&run?run.player.renderedPositionFrames():currentPosition(run);
+    // An error may occur mid-replay, when the former audible position no
+    // longer belongs to this native state. Cleanup must still release it.
+    try {lastLiveState = run?.timeline?.read(positionFrames) ?? null;}
+    catch {lastLiveState=null;}
     if (run) { active = null; release(run); }
     playback = 'error';
+    seekTargetSeconds=null;
     errorMessage = error?.message ?? String(error);
     onStatus(`VGM playback failed: ${errorMessage}`);
     emit();
@@ -260,6 +334,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
         const queuedSeconds = (run.renderedFrames - currentPosition(run)) / run.sampleRate;
         if (queuedSeconds >= LOOKAHEAD_SECONDS) break;
         const left = new Float32Array(CHUNK_FRAMES), right = new Float32Array(CHUNK_FRAMES);
+        updateCachePolicy(run);
         const frames = run.player.process(left, right, CHUNK_FRAMES, {budgetMs:4});
         if (frames) {
           const buffer = run.context.createBuffer(2, frames, run.sampleRate);
@@ -276,8 +351,8 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       if (run.eof && currentPosition(run) >= run.renderedFrames) {
         positionFrames = run.renderedFrames;
         lastLiveState = run.timeline?.read(positionFrames) ?? null;
-        active = null;
-        release(run);
+        clearInterval(run.timer);run.timer=null;
+        totalSamples=Math.round(positionFrames*44100/run.sampleRate);
         playback = 'ended';
         emit();
         return;
@@ -285,32 +360,53 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       emit();
     } catch (error) { fail(error, run); }
   }
-  async function play() {
-    checkOpen();
-    if (!source) throw new Error('Choose a VGM file first.');
-    stop();
-    const ticket = generation, selected = source;
-    let engine = null, timeline = null, outputMix = null, run = null;
-    playback = 'loading';
-    emit();
+  function requestAudio() {
+    // Start inside the trusted action, even if header decoding or a previous
+    // cancelled seek must finish before this operation can touch the engine.
     try {
-      // Preserve Safari's trusted click: the host must create/resume its shared
-      // AudioContext now, before VGZ decoding or WASM setup yields control.
-      const audioReady = Promise.resolve(getAudio());
-      audioReady.catch(() => {});
-      const bytes = new Uint8Array(await maybeDecodeVgmFile(selected));
-      if (!isCurrent(ticket)) return false;
-      const header = inspectGenesisPreview(bytes);
+      const audio=getAudio();
+      const context=active?.context??(typeof audio?.then!=='function'?audio?.context:null);
+      const resumed=context?Promise.resolve(context.resume()):Promise.resolve();
+      const ready=Promise.all([Promise.resolve(audio),resumed]).then(([value])=>value);
+      ready.catch(()=>{});return ready;
+    }
+    catch(error) {const failed=Promise.reject(error);failed.catch(()=>{});return failed;}
+  }
+  function enqueue(ticket,perform) {
+    const task=work.catch(()=>{}).then(()=>isCurrent(ticket)?perform():false);
+    work=task.catch(()=>{});
+    return task;
+  }
+  async function prepare(ticket,audioReady,hostReady=Promise.resolve()) {
+    let engine=null,timeline=null,outputMix=null;
+    try {
+      await metadataReady;
+      if(!isCurrent(ticket))return null;
+      if(metadata?.error)throw metadata.error;
+      const {bytes}=metadata;
+      const header=metadata.validated?metadata.header:inspectGenesisPreview(bytes);
+      metadata.header=header;metadata.validated=true;
       mix.configure(header);
       emit();
       const audio = await audioReady;
-      if (!isCurrent(ticket)) return false;
+      await hostReady;
+      if (!isCurrent(ticket)) return null;
       const {context, output} = audio;
       if (!context || !output || output.context !== context) throw new Error('Reference output must belong to the Synth AudioContext.');
       await context.resume();
-      if (!isCurrent(ticket)) return false;
+      if (!isCurrent(ticket)) return null;
+      if(active&&!active.released&&active.context===context&&active.output===output)return active;
+      release(active);active=null;
       engine = await createEngine(header);
-      if (!isCurrent(ticket)) { engine.dispose(); return false; }
+      if (!isCurrent(ticket)) { engine.dispose(); return null; }
+      // ymfm reset preserves its global EG sequencer phase. A deterministic
+      // cold replay must restore this fresh-instance baseline as well as the
+      // ordinary register reset. This fixed power-on state is independent of
+      // optional seek checkpoints, and the outer mix adapter reapplies mutes.
+      if(engine.ym2612?.supportsState?.()) {
+        const origin=engine.ym2612.saveState(),reset=engine.reset;
+        engine.reset=function(...args){const result=reset.apply(this,args);this.ym2612.loadState(origin);return result;};
+      }
       // Filter only native output routing. Install before the Live observer so
       // it still records the VGM's original register values, including pan.
       outputMix = installSynthSongOutputMix(engine);
@@ -324,31 +420,123 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       // delay listening changes further; retain only one requested chunk.
       player.setPrefetchFactor(1);
       player.setLoopEnabled(false);
+      player.checkpointMaxBytes=CACHE_MAX_BYTES;player.checkpointMaxCount=CACHE_MAX_COUNT;
+      player.seekSettingsKey=()=>JSON.stringify([mix.getMutedChannels(),mix.getGroupVolumes()]);
+      player.captureSeekState=()=>({timeline:timeline?.saveState(),outputMix:outputMix.saveState()});
+      player.restoreSeekState=state=>{
+        if(state.timeline)timeline?.loadState(state.timeline);
+        outputMix.loadState(state.outputMix);
+      };
+      const restoreCheckpoint=player.restoreCheckpoint.bind(player);
+      player.restoreCheckpoint=target=>{
+        lastSeekCacheFrame=restoreCheckpoint(target);return lastSeekCacheFrame;
+      };
       player.load(bytes, {logger:{warn:message=>onStatus(String(message))}});
-      player.play();
       sampleRate = engine.sampleRate();
       totalSamples = header.totalSamples;
       const gain = context.createGain();
       gain.gain.value = volume;
       gain.connect(output);
-      run = {engine, timeline, outputMix, player, context, gain, sampleRate, basePosition:0, renderedFrames:0,
+      const run = {engine, timeline, outputMix, player, context, output, gain, sampleRate,basePosition:0,renderedFrames:0,cacheResumeFrame:0,
         clockStart:context.currentTime + START_DELAY_SECONDS, segments:[], eof:false, timer:null, released:false};
       active = run;
       engine = null; // Ownership has moved to run/release.
-      timeline = null;
-      outputMix = null;
-      playback = 'playing';
-      pump(run);
-      if (active === run) run.timer = setInterval(() => pump(run), REFILL_MILLISECONDS);
-      return true;
+      // The snapshot hooks retain these adapters for the life of this run.
+      return run;
     } catch (error) {
       timeline?.dispose();
       outputMix?.dispose();
       engine?.dispose();
-      if (!isCurrent(ticket)) return false;
-      fail(error, run);
       throw error;
     }
+  }
+  function startRun(run) {
+    run.clockStart=run.context.currentTime+START_DELAY_SECONDS;
+    playback='playing';run.player.play();
+    for(const segment of run.segments)schedule(run,segment);
+    pump(run);
+    if(active===run&&playback==='playing')run.timer=setInterval(()=>pump(run),REFILL_MILLISECONDS);
+  }
+  async function play() {
+    checkOpen();
+    if(!source)throw new Error('Choose a VGM file first.');
+    const audioReady=requestAudio(),ticket=cancelOperation();
+    suspend(active);if(active)active.segments=[];
+    playback='loading';errorMessage=null;seekTargetSeconds=null;emit();
+    try {
+      const run=await prepare(ticket,audioReady);
+      if(!run||!isCurrent(ticket))return false;
+      return await enqueue(ticket,()=>{
+        run.player.reset();run.basePosition=run.renderedFrames=positionFrames=0;run.eof=false;run.cacheResumeFrame=0;
+        updateCachePolicy(run);lastLiveState=null;lastSeekCacheFrame=0;
+        startRun(run);return true;
+      });
+    } catch(error) {if(!isCurrent(ticket))return false;fail(error,active);throw error;}
+  }
+  async function seekAt(seconds,resumeAfter) {
+    checkOpen();
+    if(!source)throw new Error('Choose a VGM file first.');
+    if(typeof seconds!=='number'||!Number.isFinite(seconds)||seconds<0)throw new RangeError('Seek seconds must be a finite nonnegative number');
+    const requested=totalSamples>0?Math.min(seconds,totalSamples/44100):seconds;
+    const audioReady=requestAudio(),ticket=cancelOperation(),controller=new AbortController();abortSeek=controller;
+    suspend(active);if(active)active.segments=[];
+    seekResumePlaying=resumeAfter;seekTargetSeconds=requested;seekProgress=0;playback='seeking';errorMessage=null;emit();
+    let hostReady;
+    try {hostReady=Promise.resolve(beforeResume());hostReady.catch(()=>{});}
+    catch(error) {hostReady=Promise.reject(error);hostReady.catch(()=>{});}
+    try {
+      const run=await prepare(ticket,audioReady,hostReady);
+      if(!run||!isCurrent(ticket))return false;
+      return await enqueue(ticket,async()=>{
+        const player=run.player,process=player.process;
+        // Fast-forward consumes every chunk, keeping only a bounded pending
+        // Live window. Normal playback retains its audible-prefix observer.
+        player.process=function(...args){
+          const frames=process.apply(this,args);
+          run.timeline?.read(this.renderedPositionFrames());
+          return frames;
+        };
+        run.cacheResumeFrame=0;updateCachePolicy(run);lastSeekCacheFrame=0;
+        try {
+          await seekPlayback(player,requested*44100,{signal:controller.signal,
+            onProgress:value=>{if(isCurrent(ticket)){seekProgress=value;emit();}}});
+        } finally {player.process=process;}
+        if(!isCurrent(ticket)||controller.signal.aborted)return false;
+        const frame=player.renderedPositionFrames();
+        run.basePosition=run.renderedFrames=positionFrames=frame;
+        // Prime only the next bounded chunk, without scheduling any sound.
+        // This applies zero-time writes at the target (including time zero)
+        // and preserves their first sample for Resume, just like normal Pause.
+        const left=new Float32Array(CHUNK_FRAMES),right=new Float32Array(CHUNK_FRAMES);
+        let frames=0;player.play();
+        try {
+          do {
+            if(controller.signal.aborted||!isCurrent(ticket))return false;
+            frames=player.process(left,right,CHUNK_FRAMES,{budgetMs:4});
+            if(!frames&&player.isPlaying())await new Promise(resolve=>setTimeout(resolve,0));
+          } while(!frames&&player.isPlaying());
+        } finally {player.pause();}
+        if(controller.signal.aborted||!isCurrent(ticket))return false;
+        if(frames) {
+          const buffer=run.context.createBuffer(2,frames,run.sampleRate);
+          buffer.copyToChannel(left.subarray(0,frames),0);buffer.copyToChannel(right.subarray(0,frames),1);
+          run.segments.push({buffer,frames,firstFrame:frame,node:null});run.renderedFrames+=frames;
+        }
+        run.eof=Boolean(player.parser.ended)&&player.queuedFrames===0;
+        if(run.eof)totalSamples=Math.round((frame+frames)*44100/run.sampleRate);
+        lastLiveState=run.timeline?.read(frame)??null;
+        seekProgress=1;seekTargetSeconds=null;abortSeek=null;
+        if(resumeAfter&&!run.eof)startRun(run);
+        else {playback=resumeAfter&&run.eof?'ended':'paused';emit();}
+        return true;
+      });
+    } catch(error) {
+      if(!isCurrent(ticket)||controller.signal.aborted||error?.name==='AbortError')return false;
+      fail(error,active);throw error;
+    }
+  }
+  function seek(seconds) {
+    return seekAt(seconds,playback==='playing'||playback==='seeking'&&seekResumePlaying);
   }
   function pause() {
     if (!active || playback !== 'playing') return;
@@ -372,16 +560,19 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     if (!isCurrent(ticket) || active !== run || playback !== 'paused') return false;
     run.clockStart = run.context.currentTime + START_DELAY_SECONDS;
     playback = 'playing';
+    run.player.play();
     for (const segment of run.segments) schedule(run, segment);
     pump(run);
+    if(active===run&&playback==='playing'&&!run.timer)run.timer=setInterval(()=>pump(run),REFILL_MILLISECONDS);
     return true;
   }
   function dispose() {
     if (disposed) return;
-    stop();
+    discard();
     source = null;
+    metadata=metadataReady=null;
     disposed = true;
   }
   return {load, clear, play, pause, resume, stop, setVolume,
-    setChannelMuted, setGroupVolume, resetMix, dispose, getState};
+    setChannelMuted, setGroupVolume, resetMix,seek,setSeekCacheEnabled,dispose,getState};
 }
