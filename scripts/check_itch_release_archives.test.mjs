@@ -22,7 +22,7 @@ with zipfile.ZipFile(sys.argv[2],'w',compression=zipfile.ZIP_STORED) as z:
 `;
 async function put(stage,name,bytes){await mkdir(dirname(join(stage,name)),{recursive:true});await writeFile(join(stage,name),bytes);}
 function zip(release,id,{dirs=false}={}) {const item=ITCH_RELEASE_ARTIFACTS.find(value=>value.id===id);execFileSync(python,['-c',zipWriter,join(release,item.stage),join(release,item.archive),dirs?'dirs':'files']);}
-async function fixture(t,{fullDirectories=0}={}) {
+async function fixture(t,{fullDirectories=0,sidKits=false}={}) {
   const release=await mkdtemp(join(tmpdir(),'itch four archives '));t.after(()=>rm(release,{recursive:true,force:true}));
   for(const item of ITCH_RELEASE_ARTIFACTS.filter(item=>item.id!=='playground-run')) {
     const stage=join(release,item.stage);
@@ -39,6 +39,7 @@ async function fixture(t,{fullDirectories=0}={}) {
       'licenses/chip/NOTICE.md':'Original sound-chip notice\n',
       'sources/Chip.md':'# Original standalone source guide\n',
       'sources/native/chip/core.c':'int core(void){return 1;}\n',
+      'sources/sdk/scripts/record_wasm_build.mjs':'// Original SDK build-only receipt tool\n',
     });
     if(item.id==='playground-full')for(const id of ['cdda','msm5205']) {
       for(const suffix of [`${id}_pcm.c`,`${id}_pcm.h`,`${id}_wasm.c`,'LICENSE','NOTICE.md'])files[`sources/native/${id}/${suffix}`]=`Original ${id}/${suffix}\n`;
@@ -46,6 +47,31 @@ async function fixture(t,{fullDirectories=0}={}) {
       files[`licenses/tetorica-${id}/LICENSE`]=files[`sources/native/${id}/LICENSE`];
       files[`licenses/tetorica-${id}/NOTICE.md`]=files[`sources/native/${id}/NOTICE.md`];
     }
+    if(item.id==='playground-full'&&sidKits)Object.assign(files,{
+      'js/sid.js':'export const readableSid=true;\n',
+      'js/sid8580.js':'export const readableSid8580=true;\n',
+      'js/sid8580.d.ts':'export declare const readableSid8580:true;\n',
+      'sources/SID8580.md':'# SID8580 source guide\nSee sid8580-machine/README.md.\n',
+      'sources/sid/README.md':'# Original SID source kit\nBuild from this directory.\n',
+      'sources/sid/tetorica_src/runtime/sid.js':'// Original duplicated runtime source\n',
+      'sources/sid/tetorica_src/runtime/sidsynth.d.ts':'// Original declaration source\n',
+      'sources/sid/scripts/sid_artifacts.mjs':'// Original SID source verifier\n',
+      'sources/sid/scripts/prepare_sid_core.py':'# Original SID source preparation\n',
+      'sources/sid/third_party/chips-m6581/README.md':'# Original upstream guide\n',
+      'sources/sid/third_party/chips-m6581/PATCHES.md':'# Original patch provenance\n',
+      'sources/sid/third_party/chips-m6581/LICENSE':'Original SID upstream license\n',
+      'sources/sid8580-machine/README.md':'# Original matching native source kit\nBuild from this directory.\n',
+      'sources/sid8580-machine/tetorica_src/wasm/endpoint.rs':'// Original Rust endpoint\n',
+      'sources/sid8580-machine/tetorica_src/wasm/machine.cpp':'// Original C++ machine\n',
+      'sources/sid8580-machine/third_party/sidera/Cargo.toml':'[package]\nname="fixture"\n',
+      'sources/sid8580-machine/third_party/sidera/Cargo.lock':'# Original dependency lock\n',
+      'sources/sid8580-machine/third_party/sidera/.cargo_vcs_info.json':'{"git":"original"}\n',
+      'sources/sid8580-machine/third_party/sidera/LICENSE':'Original archived kit license\n',
+      'sources/sid8580-machine/third_party/toolchain-notices/NOTICE.txt':'Original archived toolchain notice\n',
+      'sources/sid8580-machine/source-kit.json':'{"originalSourceKit":true}\n',
+      'sources/sid8580-machine/sid8580-machine-build.json':'{"originalBuildReceipt":true}\n',
+      'generated/sid8580-machine/sid8580-machine-build.json':'{"originalBuildReceipt":true}\n',
+    });
     for(const [name,bytes]of Object.entries(files))await put(stage,name,bytes);
   }
   const full=join(release,'itch_playground_dev'),run=join(release,'itch_playground_dev_for_run');
@@ -102,6 +128,37 @@ test('conservative URL candidates need not exist at the root when their real bas
   assert(artifact.files.some(item=>item.path==='js/audio-worklet.js'),'the real unmodified audio asset is present');
   assert(!artifact.files.some(item=>item.path==='audio-worklet.js'),'no artificial root copy is required');
 });
+
+test('SID kits follow the current source-only archive policy while guides and readable runtime remain accessible',async t=>{
+  const f=await fixture(t,{sidKits:true}),manifest=await check(f);
+  assert(manifest.playgroundRun.correspondingSource.archivedFiles>manifest.playgroundRun.correspondingSource.compilationFiles,
+    'the archive includes duplicate SID scripts and complete Rust/Cargo/notice/receipt kit members beyond C/header/shell');
+  for(const name of ['js/sid.js','js/sid8580.js','js/sid8580.d.ts','sources/sid/third_party/chips-m6581/LICENSE','generated/sid8580-machine/sid8580-machine-build.json'])
+    assert.deepEqual(await readFile(join(f.run,name)),await readFile(join(f.full,name)),'Retained byte-exact runtime/license/receipt '+name);
+  for(const name of ['sources/sid/scripts/sid_artifacts.mjs','sources/sid/tetorica_src/runtime/sidsynth.d.ts',
+    'sources/sid8580-machine/tetorica_src/wasm/endpoint.rs','sources/sid8580-machine/third_party/sidera/Cargo.lock',
+    'sources/sid8580-machine/third_party/sidera/LICENSE','sources/sid8580-machine/third_party/toolchain-notices/NOTICE.txt','sources/sid8580-machine/source-kit.json'])
+    await assert.rejects(readFile(join(f.run,name)),{code:'ENOENT'},'Kit member is preserved in the complete archive without a duplicate '+name);
+  for(const [name,link]of [['sources/SID8580.md','corresponding-source.zip'],['sources/sid/README.md','../corresponding-source.zip'],
+    ['sources/sid/third_party/chips-m6581/PATCHES.md','../../../corresponding-source.zip'],['sources/sid8580-machine/README.md','../corresponding-source.zip']]){
+    const guide=await readFile(join(f.run,name),'utf8');
+    assert(guide.includes(`](${link})`),'Navigation uses the retained guide directory: '+name);
+    assert(guide.endsWith(await readFile(join(f.full,name),'utf8')),'Only the navigation preface is added: '+name);
+  }
+});
+
+test('source-download navigation cannot be edited even when the outer archive is repacked',async t=>{
+  const f=await fixture(t,{sidKits:true}),name='sources/sid8580-machine/README.md';
+  await writeFile(join(f.run,name),(await readFile(join(f.run,name),'utf8')).replace('](../corresponding-source.zip)','](wrong-source.zip)'));
+  zip(f.release,'playground-run');
+  await assert.rejects(check(f),/Only source download preface changed: sources\/sid8580-machine\/README.md/);
+});
+
+for(const name of ['sid8580-machine/tetorica_src/wasm/endpoint.rs','sid8580-machine/third_party/sidera/LICENSE','sid8580-machine/source-kit.json','sdk/scripts/record_wasm_build.mjs'])
+  test(`complete SID kit archive rejects changed ${name}`,async t=>{
+    const f=await fixture(t,{sidKits:true});changeInner(join(f.run,'sources/corresponding-source.zip'),name,'Changed original kit member');zip(f.release,'playground-run');
+    await assert.rejects(check(f),error=>error.message.includes('Complete original audio/build/license source archive: file bytes '+name));
+  });
 
 test('archive/stage byte mismatch fails before replacing existing outputs',async t=>{
   const f=await fixture(t),out=join(f.release,'itch-web-release.json'),checksums=join(f.release,'SHA256SUMS');

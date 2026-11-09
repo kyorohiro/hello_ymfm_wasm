@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "scope": "fm2612-shared-controls-ui-only",
+  "feature": "Live text refresh and optional Synth OP gate buttons",
+  "beforeCommit": "4a38654c4c91e02a05612b6a7b8f0fcf5b8c4dac",
+  "afterCommit": "d6d722449487e3abd64e8a539eac6f7370afd8d4",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "source": {
+    "path": "synth/synth_controls.js",
+    "before": {
+      "bytes": 10018,
+      "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+    },
+    "after": {
+      "bytes": 11276,
+      "sha256": "2316f603e46c3b58314759bf59385827202ec5eabbaed0b6c550ad0451877349"
+    },
+    "reverseHunks": [
+      {
+        "afterOffset": 1893,
+        "afterBytes": 119,
+        "beforeText": "        valueElement.textContent =\n          nextValue ? \"ON\" : \"OFF\";\n"
+      },
+      {
+        "afterOffset": 2134,
+        "afterBytes": 108,
+        "beforeText": "      valueElement.textContent =\n        String(nextValue);\n"
+      },
+      {
+        "afterOffset": 8771,
+        "afterBytes": 94,
+        "beforeText": ""
+      },
+      {
+        "afterOffset": 9056,
+        "afterBytes": 143,
+        "beforeText": "    const name =\n      document.createElement(\"div\");\n"
+      },
+      {
+        "afterOffset": 9220,
+        "afterBytes": 83,
+        "beforeText": "      `operator-name op-color-${operator}`;\n"
+      },
+      {
+        "afterOffset": 9350,
+        "afterBytes": 940,
+        "beforeText": ""
+      }
+    ]
+  },
+  "review": [
+    "Only unchanged textContent assignments are skipped; displayed values, edit basis and parameter callbacks are preserved.",
+    "OP gate controls are optional and disabled unless onOperatorGateChange is a function. The measured Playground caller does not supply it, so its operator headings remain div elements and no gate handlers are installed.",
+    "Every byte outside these reviewed UI edits reconstructs the complete measured source. This receipt changes no PCM measurement, gain, DSP, chip renderer, transport or WASM and authorizes no future source revision."
+  ]
+}

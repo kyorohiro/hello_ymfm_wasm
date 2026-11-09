@@ -8,7 +8,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildScspCalibrationReference} from './soundchip_calibration_scsp.mjs';
-import {restoreMixerCalibrationScspPolicyCacheRevision,restoreMixerCalibrationKeyboardOctaveRevision,isMixerCalibrationVirtualFilesRevision} from './mixer_calibration_sources.mjs';
+import {restoreMixerCalibrationScspPolicyCacheRevision,restoreMixerCalibrationKeyboardOctaveRevision,restoreMixerCalibrationSynthControlsRevision,isMixerCalibrationVirtualFilesRevision} from './mixer_calibration_sources.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -192,7 +192,7 @@ export async function validateScspMixerCalibrationSources({reportPath,scspReport
     let current=await readFile(absolute);
     if(current.length!==record.bytes||sha(current)!==record.sha256)current=restoreMixerCalibrationSidRevision(path,current);
     if(isMixerCalibrationVirtualFilesRevision(path,current,record))continue;
-    const bytes=current.length===record.bytes&&sha(current)===record.sha256?current:restoreMixerCalibrationKeyboardOctaveRevision(path,restoreMixerCalibrationScspPolicyCacheRevision(path,current));if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served source changed; remeasure: '+path);
+    const bytes=current.length===record.bytes&&sha(current)===record.sha256?current:restoreMixerCalibrationSynthControlsRevision(path,restoreMixerCalibrationKeyboardOctaveRevision(path,restoreMixerCalibrationScspPolicyCacheRevision(path,current)));if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served source changed; remeasure: '+path);
   }
   return result;
 }

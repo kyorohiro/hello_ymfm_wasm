@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkItchPlaygroundZip, validateItchZipEntries} from './prepare_itch_playground_run.mjs';
+import {checkItchPlaygroundZip, validateItchZipEntries, isItchRunArchivedSource, isItchRunSourceGuide, itchRunSourcePreface} from './prepare_itch_playground_run.mjs';
 
 export const ITCH_RELEASE_ARTIFACTS = Object.freeze([
   {id:'synth', stage:'itch_synth_dev', archive:'hello_ymfm_wasm_dev_itch_synth.zip', browserPlayable:true,
@@ -20,10 +20,8 @@ export const ITCH_RELEASE_ARTIFACTS = Object.freeze([
     required:['playground.js','sources/browser-bundle.json','sources/browser-bundle-inputs.zip','sources/corresponding-source.zip','sources/README-for-run.md']},
 ].map(item=>Object.freeze({...item, required:Object.freeze(item.required)})));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-const slash=value=>value.split(sep).join('/');
 const safe=name=>typeof name==='string'&&name.length>0&&!name.includes('\\')&&!/[\0-\x1f\x7f]/.test(name)&&!name.startsWith('/')&&!/^[A-Za-z]:/.test(name)&&name.replace(/\/$/,'').split('/').every(part=>part!==''&&part!=='.'&&part!=='..');
 const sourceCode=name=>/\.(?:c|cc|cpp|cxx|h|hh|hpp|hxx|sh)$/i.test(name);
-const sourceGuide=name=>! /^(?:LICENSE|COPYING|NOTICE|AUTHORS|UPSTREAM)(?:[.\-_]|$)/i.test(basename(name))&&(/^[^/]+\.md$/i.test(name)||/^native\/[^/]+\/README\.md$/.test(name));
 const rootNotice=name=>!name.includes('/')&&/^(?:LICENSE|COPYING|NOTICE|THIRD_PARTY_LICENSES)(?:[.\-_]|$)/.test(name);
 const record=bytes=>({bytes:bytes.length,sha256:hash(bytes)});
 const metadata=entries=>new Map(entries.filter(entry=>!entry.directory).map(entry=>[entry.name,{bytes:entry.bytes,sha256:entry.sha256}]));
@@ -80,10 +78,6 @@ function checkedPaths(values,label,{rootJs=false}={}) {
   for(const name of values) {assert(safe(name)&&!name.endsWith('/'),label+': unsafe path '+JSON.stringify(name));assert(!names.has(name),label+': duplicate '+name);names.add(name);if(rootJs)assert(!name.includes('/')&&name.endsWith('.js'),label+': only root JavaScript inputs');}
   return names;
 }
-function guidePreface(name,archiveSha) {
-  const link=slash(relative(dirname(name),'corresponding-source.zip'));
-  return `> Browser upload source bundle: [Download the complete corresponding source](${link}) (SHA-256: \`${archiveSha}\`).\n> Extract that ZIP into a new directory before following the build instructions below. Its root contains \`native/\`, \`third_party/\`, \`wasm/\` and \`scripts/\` at their original paths. The ZIP preserves every original source, guide, license, notice and receipt byte. Hashes in receipts describe those extracted originals; this browser-facing guide has only this navigation preface.\n\n`;
-}
 async function checkPlaygroundRun(full,run) {
   const fullFiles=full.snapshot.files,runFiles=run.snapshot.files;
   const read=name=>readFile(join(run.stage,name));
@@ -128,31 +122,32 @@ async function checkPlaygroundRun(full,run) {
   exactFiles(metadata(sources),fullSources,'Complete original audio/build/license source archive');
   const code=[...fullSources.keys()].filter(sourceCode);
   assert(code.length>0,'Corresponding compilation sources are present');
+  const archived=[...fullSources.keys()].filter(isItchRunArchivedSource);
   for(const id of ['cdda','msm5205'])requiredFiles(fullSources,[`native/${id}/${id}_pcm.c`,`native/${id}/${id}_pcm.h`,`native/${id}/${id}_wasm.c`,`native/${id}/LICENSE`,`native/${id}/NOTICE.md`,`scripts/build_${id}_wasm.sh`],id+' source closure');
   const expected=new Set(fullFiles.keys());
-  for(const name of code) {expected.delete('sources/'+name);assert(!runFiles.has('sources/'+name),'Compilation source is archived rather than duplicated: '+name);}
+  for(const name of archived) {expected.delete('sources/'+name);assert(!runFiles.has('sources/'+name),'Build source or complete kit member is archived rather than duplicated: '+name);}
   for(const name of removed)expected.delete(name);
   const added=['sources/corresponding-source.zip','sources/README-for-run.md','sources/browser-bundle-inputs.zip','sources/browser-bundle.json'];
   for(const name of added)expected.add(name);
   if(runFiles.has('playground.js.LEGAL.txt'))expected.add('playground.js.LEGAL.txt');
   same([...runFiles.keys()].sort(),[...expected].sort(),'Only documented Run transformations change the file set');
-  const changed=new Set(['index.html','playground.js',...removed,...code.map(name=>'sources/'+name)]);
-  const guides=new Set([...fullSources.keys()].filter(name=>!sourceCode(name)&&sourceGuide(name)).map(name=>'sources/'+name));
+  const changed=new Set(['index.html','playground.js',...removed,...archived.map(name=>'sources/'+name)]);
+  const guides=new Set([...fullSources.keys()].filter(name=>!isItchRunArchivedSource(name)&&isItchRunSourceGuide(name)).map(name=>'sources/'+name));
   let unchanged=0,notices=0;
   for(const [name,value]of fullFiles) {
     if(changed.has(name))continue;
-    if(guides.has(name)){const original=await readFile(join(full.stage,name));same(await read(name),Buffer.concat([Buffer.from(guidePreface(name.slice(8),sourceSha)),original]),'Only source download preface changed: '+name);}
+    if(guides.has(name)){const original=await readFile(join(full.stage,name));same(await read(name),Buffer.concat([Buffer.from(itchRunSourcePreface(name.slice(8),sourceSha)),original]),'Only source download preface changed: '+name);}
     else {same(runFiles.get(name),value,'Unaltered runtime/audio/asset/source/notice: '+name);unchanged++;if(/(?:^|\/)(?:LICENSE|COPYING|NOTICE|AUTHORS|UPSTREAM)(?:[.\-_]|$)/i.test(name)||name==='THIRD_PARTY_LICENSES.txt')notices++;}
   }
   const sourceGuideText=(await read('sources/README-for-run.md')).toString();
   assert(sourceGuideText.includes(sourceSha)&&sourceGuideText.includes('corresponding-source.zip'),'Run source guide identifies the complete source archive');
   const entryText=(await read('playground.js')).toString();
   if(/playground\.js\.LEGAL\.txt/.test(entryText))assert(runFiles.has('playground.js.LEGAL.txt'),'Linked bundle legal comments are included');
-  assert.equal(receipt.inputFileCount,fullFiles.size-code.length+2,'Bundle input file count');
+  assert.equal(receipt.inputFileCount,fullFiles.size-archived.length+2,'Bundle input file count');
   assert.equal(receipt.outputFileCount,runFiles.size,'Bundle output file count');
   assert.equal(receipt.originalFilesUnchanged,receipt.inputFileCount-removed.size-2,'Bundle preserves every other pre-bundle file');
   return {entry:receipt.entry,originalUI:{path:receipt.sourceArchive.path,files:uiFiles.size,...record(uiArchive)},
-    correspondingSource:{path:sourcePath,files:fullSources.size,compilationFiles:code.length,...record(sourceBytes)},
+    correspondingSource:{path:sourcePath,files:fullSources.size,compilationFiles:code.length,archivedFiles:archived.length,...record(sourceBytes)},
     removedRootModules:removed.size,unalteredFiles:unchanged,preservedNotices:notices};
 }
 function sourceCommit(value) {

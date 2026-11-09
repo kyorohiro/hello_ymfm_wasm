@@ -295,6 +295,7 @@ pokey.js
 sid.js
 sid8580.js
 sid8580.d.ts
+sid_waveforms.js
 sidsynth.js
 sidsynth.d.ts
 playground_sid.d.ts

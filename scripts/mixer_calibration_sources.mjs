@@ -9,6 +9,8 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
+import {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
+export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const digest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
@@ -266,6 +268,8 @@ export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
   const preSid=restoreMixerCalibrationSidRevision(path,bytes),sidRevision=preSid!==bytes;bytes=preSid;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return sidRevision?'sid-playground-routing':'raw';
+  const controls=restoreMixerCalibrationSynthControlsRevision(path,bytes);
+  if(controls!==bytes&&controls.length===record?.bytes&&sha(controls)===record.sha256)return 'ui-synth-controls';
   if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';
   const keyboard=restoreMixerCalibrationKeyboardOctaveRevision(path,bytes);
   if(keyboard!==bytes&&keyboard.length===record?.bytes&&sha(keyboard)===record.sha256)return 'ui-keyboard-octave';
