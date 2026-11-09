@@ -5,12 +5,11 @@ const integer=(name,value,max)=>{
   return value;
 };
 
-/** A detached, validated description of the copied voice's performance rules. */
+/** Detached, validated OP gates and optional CH3 tuning for an editable voice. */
 export function normalizeCapturedVoice(value) {
   if(value==null)return null;
   if(typeof value!=='object')throw new TypeError('Captured voice must be an object');
   const keyMask=integer('Captured keyMask',value.keyMask,15);
-  if(!keyMask)throw new RangeError('Captured keyMask must enable at least one operator');
   if(typeof value.specialMode!=='boolean')throw new TypeError('Captured specialMode must be a boolean');
   const specialMode=value.specialMode;
   if(!Array.isArray(value.specialFrequencies)||value.specialFrequencies.length!==(specialMode?4:0))throw new Error('Invalid captured special frequencies');
@@ -22,11 +21,12 @@ export function normalizeCapturedVoice(value) {
 }
 
 export function normalizeCapturedCommand(command) {
-  if(!command||!['capturedNoteOn','capturedFrequency'].includes(command.type))throw new Error('Unknown captured performance command');
+  if(!command||!['capturedNoteOn','capturedFrequency','capturedKeyMask'].includes(command.type))throw new Error('Unknown captured performance command');
   const voice=normalizeCapturedVoice(command.voice);
   if(!voice)throw new Error('A captured performance command requires voice settings');
   const channel=integer('Captured channel',command.channel,5);
   if(voice.specialMode&&channel!==2)throw new Error('Captured CH3 performance must use channel 3');
+  if(command.type==='capturedKeyMask')return {type:command.type,channel,voice};
   return {type:command.type,channel,block:integer('Captured note block',command.block,7),
     fnum:integer('Captured note fnum',command.fnum,2047),voice};
 }
@@ -34,19 +34,25 @@ export function normalizeCapturedCommand(command) {
 /** Apply already-validated captured performance without changing its FM patch. */
 export function applyCapturedCommand(synth,command) {
   const {channel,block,fnum,voice}=command;
+  const operators=[0,1,2,3].filter(operator=>voice.keyMask&(1<<operator));
+  if(command.type==='capturedKeyMask') {
+    // A key register write leaves operators whose bits stay On running. Do
+    // not retrigger the channel or touch pitch while editing a held note.
+    return operators.length?synth.keyOn(channel,operators):synth.noteOff(channel);
+  }
   // CH3 special is a property of CH3 alone. Other FM channels must not turn
   // off an independently playing CH3 unit when they receive a normal note.
   if(voice.specialMode||channel===2)synth.setChannel3SpecialMode(voice.specialMode);
   if(command.type==='capturedNoteOn')synth.noteOff(channel);
   setSynthSongVoiceFrequency(synth,channel,block,fnum,voice.specialMode?voice.specialFrequencies:null);
-  if(command.type==='capturedNoteOn')synth.keyOn(channel,[0,1,2,3].filter(operator=>voice.keyMask&(1<<operator)));
+  if(command.type==='capturedNoteOn'&&operators.length)synth.keyOn(channel,operators);
 }
 
 /**
- * A keyboard/looper target with the copied voice's OP mask and CH3 tuning.
- * An explicit fourth argument overrides getVoice(); null means normal FM.
+ * A keyboard/looper target with the edited voice's OP mask and CH3 tuning.
+ * A voice override replaces getVoice(); null means normal FM with all OPs On.
  * The recorder may wrap perform() to keep one musical command rather than
- * recording the internal note-off and four frequency writes a second time.
+ * recording internal key/frequency writes a second time.
  */
 export function createSynthPerformanceTarget({getSynth,getVoice=()=>null,onCapturedCommand=(_command,perform)=>perform()}) {
   if(typeof getSynth!=='function'||typeof getVoice!=='function'||typeof onCapturedCommand!=='function')throw new TypeError('Performance target callbacks must be functions');
@@ -64,6 +70,13 @@ export function createSynthPerformanceTarget({getSynth,getVoice=()=>null,onCaptu
   return {
     noteOn:(channel,block,fnum,voice)=>perform('capturedNoteOn',channel,block,fnum,voice),
     setFrequency:(channel,block,fnum,voice)=>perform('capturedFrequency',channel,block,fnum,voice),
+    setKeyMask(channel,override) {
+      const synth=getSynth();
+      if(!synth)return;
+      const voice=select(override)??{keyMask:15,specialMode:false,specialFrequencies:[]};
+      const command=normalizeCapturedCommand({type:'capturedKeyMask',channel:voice.specialMode?2:channel,voice});
+      return onCapturedCommand(command,()=>applyCapturedCommand(synth,command));
+    },
     noteOff(channel,override) {
       const voice=select(override);
       return getSynth()?.noteOff(voice?.specialMode?2:channel);

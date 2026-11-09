@@ -43,7 +43,8 @@ function unit(id,voice,{channel=2,at=0,off=.4,audio=null}={}) {
 function fixture(options={}) {
   const time=clock(),live=[],playback=[],states=[];
   let currentPatch=patch();
-  const target=log=>({noteOn:(...args)=>log.push(['on',...args]),noteOff:(...args)=>log.push(['off',...args])});
+  const target=log=>({noteOn:(...args)=>log.push(['on',...args]),noteOff:(...args)=>log.push(['off',...args]),
+    setKeyMask:(...args)=>log.push(['mask',...args])});
   const looper=new SynthLooper({synth:{start:async()=>{}},...time,
     liveTarget:target(live),playbackTarget:target(playback),getPatch:()=>currentPatch,
     onStateChange:state=>states.push(state),...options});
@@ -66,6 +67,52 @@ test('partial masks keep ordinary channel routing and frozen patch/event metadat
   await state.looper.stop();assert.equal(state.time.timers.size,0);
 });
 
+test('held gate edits record all-Off, full normal and latest per-note masks without additional note-ons',async()=>{
+  const state=fixture();await state.looper.start();await state.looper.startRecording();
+  state.looper.noteOn(4,4,1000);
+  const silent={...partial,keyMask:0};
+  state.time.set(.1);state.looper.setKeyMask(4,silent);silent.keyMask=3;
+  assert.equal(state.looper._liveNotes.get(4).voice.keyMask,0,'caller mutations cannot change the held voice');
+  assert(state.looper._activeChannels.has(4),'all-Off retains the held channel');
+  state.time.set(.2);state.looper.setKeyMask(4,null);
+  state.setPatch(patch(partial));state.time.set(.3);state.looper.setKeyMask(4);
+  state.time.set(.4);state.looper.noteOff(4);state.time.set(.5);
+  const saved=await state.looper.finishRecording();
+  assert.deepEqual(saved.events.map(event=>event.type),['noteOn','keyMask','keyMask','keyMask','noteOff']);
+  assert.equal(saved.events[1].capturedVoice.keyMask,0);
+  assert.equal(saved.events[2].capturedVoice,null,'an explicit normal mask overrides earlier patch metadata');
+  assert.equal(saved.events[3].capturedVoice.keyMask,10);
+  assert.equal(saved.events[4].capturedVoice.keyMask,10,'note-off uses the most recently selected mask');
+  assert.equal(state.live.filter(event=>event[0]==='on').length,1);
+  assert.deepEqual(state.live.filter(event=>event[0]==='mask').map(event=>event[2]?.keyMask??15),[0,15,10]);
+  const exported=state.looper.getUnits();exported[0].events[1].capturedVoice.keyMask=2;
+  assert.equal(saved.events[1].capturedVoice.keyMask,0);
+  state.time.advance(.91);
+  assert.equal(state.playback.filter(event=>event[0]==='on').length,1);
+  assert.deepEqual(state.playback.filter(event=>event[0]==='mask').map(event=>event[2]?.keyMask??15),[0,15,10]);
+  assert(state.playback.filter(event=>event[0]==='mask').every(event=>event[1]===4));
+  await state.looper.stop();
+});
+
+test('an initially silent note can open its gates, and gate edits without a held note do not create events',async()=>{
+  const state=fixture();state.setPatch(patch({...partial,keyMask:0}));
+  await state.looper.start();await state.looper.startRecording();
+  state.looper.setKeyMask(1,partial);
+  assert.equal(state.looper.currentUnit.events.length,0);
+  state.looper.noteOn(1,4,1000);
+  assert.equal(state.looper._liveNotes.get(1).voice.keyMask,0);
+  state.time.set(.1);state.looper.setKeyMask(1,partial);
+  assert.equal(state.looper._liveNotes.get(1).voice.keyMask,10);
+  state.time.set(.2);state.looper.noteOff(1);
+  state.looper.setKeyMask(1,{...partial,keyMask:0});
+  assert.equal(state.looper.currentUnit.events.length,3);
+  state.time.set(.4);const saved=await state.looper.finishRecording();state.time.advance(.51);
+  assert.equal(saved.events[0].capturedVoice.keyMask,0);
+  assert.equal(state.playback.find(event=>event[0]==='on')[4].keyMask,0);
+  assert.equal(state.playback.find(event=>event[0]==='mask')[2].keyMask,10);
+  await state.looper.stop();
+});
+
 test('special event units stay on CH3, reserve it from normal units, and ignore an older stolen note-off',async()=>{
   const state=fixture();
   const normal=unit('normal',null,{channel:2,off:.9}),first=unit('first',special,{at:0,off:.4}),second=unit('second',special,{at:.2,off:.6});
@@ -76,6 +123,23 @@ test('special event units stay on CH3, reserve it from normal units, and ignore 
   assert.equal(state.playback.filter(item=>item[0]==='off'&&item[1]===2).length,0,'first unit cannot key-off the newer CH3 note');
   state.time.advance(.65);
   assert.equal(state.playback.filter(item=>item[0]==='off'&&item[1]===2).length,1);
+  await state.looper.stop();
+});
+
+test('a stolen CH3 owner cannot change newer gates, while all-Off preserves the current owner for reopening',async()=>{
+  const state=fixture(),first=unit('first',special,{off:.4}),second=unit('second',special,{at:.2,off:.7});
+  first.events.splice(1,0,{type:'keyMask',channel:2,capturedVoice:{...special,keyMask:15},time:.3});
+  second.events.splice(1,0,
+    {type:'keyMask',channel:2,capturedVoice:{...special,keyMask:0},time:.35},
+    {type:'keyMask',channel:2,capturedVoice:{...special,keyMask:8},time:.5});
+  state.looper.units=[first,second];state.looper.loopLength=1;state.looper._rebuildPlaybackChannelMaps();
+  await state.looper.start();state.time.advance(.45);
+  assert.equal(state.looper._playbackOwners.get(2).unit,second);
+  assert.deepEqual(state.playback.filter(event=>event[0]==='mask').map(event=>event[2].keyMask),[0]);
+  assert.equal(state.playback.filter(event=>event[0]==='off'&&event[1]===2).length,0);
+  state.time.advance(.75);
+  assert.deepEqual(state.playback.filter(event=>event[0]==='mask').map(event=>event[2].keyMask),[0,8]);
+  assert.equal(state.playback.filter(event=>event[0]==='off'&&event[1]===2).length,1);
   await state.looper.stop();
 });
 
@@ -171,6 +235,43 @@ test('real WASM event playback preserves partial KON and all four CH3 ratios wit
       const before=played.getState().modeRegister;
       applySynthLooperPatch(played,patch(partial),0);
       assert.equal(played.getState().modeRegister,before,'programming another channel does not disable CH3');
+      await looper.stop();
+    }
+  } finally {for(const chip of chips)chip.dispose();}
+});
+
+test('real WASM event-only loops reproduce initially silent notes and held gate changes byte-exactly',async()=>{
+  const wasmBinary=await readFile(new URL('../generated/ym2612_wasm.wasm',import.meta.url)),chips=[];
+  try {
+    for(const base of [partial,special]) {
+      const first=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}}),second=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}});
+      chips.push(first,second);
+      const reference=new YM2612Synth({transport:new YM2612DirectTransport(first)}),played=new YM2612Synth({transport:new YM2612DirectTransport(second)});
+      const initial={...base,keyMask:0},tone=patch(initial),channel=base.specialMode?2:4,time=clock();
+      const events=[{type:'noteOn',channel,block:4,fnum:1088,time:0},
+        ...[8,10,0,15].map((keyMask,index)=>({type:'keyMask',channel,capturedVoice:{...base,keyMask},time:(index+1)*.02})),
+        {type:'noteOff',channel,time:.12}];
+      const looper=new SynthLooper({synth:{},...time,liveTarget:{noteOn(){},noteOff(){},setKeyMask(){}},
+        playbackTarget:createSynthPerformanceTarget({getSynth:()=>played}),
+        applyPatch:(tone,channel)=>applySynthLooperPatch(played,tone,channel)});
+      looper.units=[{...unit('gates',initial,{channel}),patch:tone,events,playbackChannelMap:{}}];
+      looper.loopLength=1;looper._rebuildPlaybackChannelMaps();await looper.start();
+      applySynthLooperPatch(reference,tone,channel);
+      const target=createSynthPerformanceTarget({getSynth:()=>reference,getVoice:()=>initial});
+      let pitch=null;
+      for(const [index,event] of events.entries()) {
+        if(event.type==='noteOn')target.noteOn(channel,event.block,event.fnum);
+        else if(event.type==='keyMask')target.setKeyMask(channel,event.capturedVoice);
+        else target.noteOff(channel);
+        time.advance(event.time);
+        const current=played.getState().channels[channel];
+        const actualPitch={block:current.block,fnum:current.fnum,specialFrequencies:structuredClone(current.specialFrequencies)};
+        if(!pitch)pitch=actualPitch;
+        assert.deepEqual(actualPitch,pitch,'gate edits leave the original frequency registers alone');
+        const expected=first.generateStereo(1600),actual=second.generateStereo(1600);
+        assert.deepEqual(actual.left,expected.left,`left PCM at gate event ${index}`);
+        assert.deepEqual(actual.right,expected.right,`right PCM at gate event ${index}`);
+      }
       await looper.stop();
     }
   } finally {for(const chip of chips)chip.dispose();}

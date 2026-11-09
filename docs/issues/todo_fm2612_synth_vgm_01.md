@@ -1,5 +1,30 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: 通常音色を含むOP1〜OP4の発音On／Off
+
+ユーザー指示：コピー音色に限らず、通常の音色でも発音するOPを指定できるようにする。既定は全OP On。
+
+- [x] 既存OP行の番号を小さな発音切り替えにし、行・パネルを増やさない。Live中は元のOP gate状態を読み取り専用で表示する。
+- [x] 通常・import・コピー音色のいずれもOP1〜4を選べるようにし、全Offも扱う。発音のKey On／Offであり、TLやalgorithmは変更しない。OffではRRに沿ってreleaseする。
+- [x] 押しっぱなしで変更した場合、保持中のvoiceへOP maskだけを反映し、変えていないOPのADSRやpitchを再開始しない。
+- [x] preset／sidecar・Sync／Revert・Cassette・復旧で指定を保持し、旧データは従来どおり全OP Onにする。
+- [x] Looper／Event Recでも全Off・途中のOP切り替えを保持する。通常／部分OPはround robin、CH3特殊は固定単音を維持する。
+- [x] 実WASMとNode／Chromium／WebKitで発音OP、全Off、途中切替、保存、録音往復、Liveの読み取り専用、狭幅配置を確認する。
+- [x] 配布ZIPで動作を確認し、READMEとTODOを更新する。公開・commit／pushはしない。
+
+### 実装と検証
+
+- 通常音色のOP番号を小さなKey On／Offボタンにし、既存の行・列を維持した。Liveでは現在のmask（全Offも含む）を読み取り専用で表示する。共有controlsの既定は従来の番号表示とし、Playgroundは変更しない。
+- `node --test docs/synth/*.test.mjs docs/playground/playground_operator_tab.test.mjs`：171件成功。実WASMで変更していないOPのEG／PCMがbyte一致し、全Off・途中切替のEvent Rec／Looperイベント再生もbyte一致。TFI／VGI sidecar・Sync／Revert・Cassette・復旧を確認した。
+- OP選択の情報は既存version 1の任意`capturedVoice`へ保持し、旧データは全OP On。通常音色の読み直しでglobal DACが変わらないようにし、Copy成功時だけFM試奏用にDACをOffへ戻す。
+- 検証用の複数carrier `[3,5,7,2]` では、OffのOPのEGが0でも既存coreのDAC非線形処理から別帯域へ小さな成分が出ることを実WASMで確認した。診断波形を`[1,2,4,8]`へ変更し、停止する低いcarrierと混合成分を分離した。exact A2（BLOCK 2／FNUM 1083）で各maskの16 FFT窓を検証し、Off帯域最大5.57e-6、On帯域最小0.00469。音源実装・音量・判定閾値は変更していない。
+- 配布stageの`check_synth_operator_gates_browser.cjs`がChromium／WebKitで成功。通常VGIの全OP Onとround robin、保持中の15→14→12→8→0→8、全Offで押した鍵盤の再有効化を確認した。各操作のwriteは0x28の1回だけで、途中の全Offや周波数writeを挟まない。TL／algorithm／ADSRは変更しない。実PCMの停止bandと有効bandを測定し、全Offでは検出値が0になった。
+- 同checkerで全Offの自動保存・Reload・Cassette、Sync／Revert、独立したsession DACの保持、旧presetの全OP Onを確認した。Looperの実録音音声に全OP／無音／OP4だけの各区間があり、Event RecのJSON往復は各gate変更を保持し、再生も各maskを出力する。不正16のimportは直前のtakeを保持する。Liveは現在の8→0を読み取り専用で表示し、離鍵中のCopyは直前の8を取り込む。recording用app commandを追加し、共通SDK／runtime／core／WASM／npm packageは変更していない。
+- 同じstageで`check_synth_captured_recording_browser.cjs`も両browserで成功。既存の部分OP／特殊CH3の実音声、固定単音とround robin、CH3の4周波数比、Looper／Event Recの記録・再生・元設定への復帰、VGM Play／Resumeでの録音排他と初期化待ちの取り消しを確認した。既存checkerの「0は不正」というケースは、全Offの有効化に合わせて16へ更新した。
+- 1240pxではOPボタン32×22px・既存行24px、390pxでは28×22px・既存行22px。新しい行・列は追加しない。Onは色付き枠、Offは薄い点線で表示し、hoverの説明にKey On／OffとRRによるReleaseを記載。pointer操作で演奏keyboardのfocusを奪わず、Space／Enterによるbutton操作が録音shortcutへ届かない。狭幅でOP2／OP3をOffにした画面も確認した。
+- 記録：`/private/tmp/fm2612-op-gates-browser.json`（92 assets）、`/private/tmp/fm2612-op-gates-captured-regression.json`（92 assets）。両receiptの全asset hashは最終stageと一致。物理音声出力はmuteした計測であり、人の実聴とは区別する。
+- `sh scripts/package_itch_synth.sh op-gates-check-20261109`と261個のlocal module／asset参照チェックが成功。最終ZIP：`release/hello_ymfm_wasm_op-gates-check-20261109_itch_synth.zip`（245 entries／217 files、825,846 bytes、SHA-256 `37c459aa4cc77314537d843a074ffbbc96c4f82ee57b26afa0481e25293ef7d4`）。全fileがstageと一致。receipt：`/private/tmp/fm2612-op-gates-package.json`。README英語／日本語とcache keyを更新。未公開・未commit・未push。
+
 ## 完了: コピー音色のLooper／Event Rec対応
 
 ユーザー指示：partial KON／CH3特殊モードのコピー音色を録音・再生へ対応する。CH3特殊時はCH3固定・単音。VGMのPlay中はLooper／録音をOffにする。

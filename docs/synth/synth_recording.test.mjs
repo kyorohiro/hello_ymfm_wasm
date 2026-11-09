@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import createModule from '../generated/ym2612_wasm.js';
 import {Ym2612} from '../js/ym2612.js';
 import {YM2612Synth,YM2612DirectTransport} from '../js/ym2612synth.js';
-import {createSynthPerformanceTarget,normalizeCapturedVoice} from './synth_performance.js';
+import {createSynthPerformanceTarget,normalizeCapturedVoice,normalizeCapturedCommand} from './synth_performance.js';
 import {SynthRecordingManager,SYNTH_RECORDING_FORMAT} from './synth_recording.js';
 
 const specialVoice=()=>({keyMask:10,specialMode:true,specialFrequencies:[
@@ -119,6 +119,45 @@ test('explicit playback voice overrides do not reuse the currently edited captur
   assert.equal(synth._modeRegister&0x40,0x40,'a normal non-CH3 channel does not disable another CH3 voice');
 });
 
+test('all-Off notes retain pitch and CH3 mode, and gate edits only write key bits', () => {
+  for(const selected of [normalVoice(),specialVoice()]) {
+    const voice={...selected,keyMask:0},{synth,writes,target,manager,time}=fixture({voice});
+    manager.start();target.noteOn(4,4,1000);
+    const channel=voice.specialMode?2:4,code=voice.specialMode?2:5;
+    const pitch=voice.specialMode?synth.channels[channel].specialFrequencies[3]:synth.channels[channel];
+    assert.equal(pitch.fnum*2**pitch.block,1000*2**4);
+    assert.deepEqual(writes.filter(write=>write.register===0x28).slice(-1),[{port:0,register:0x28,value:code}]);
+    const state=structuredClone(synth.getState());
+    for(const mask of [8,0,15]) {
+      const before=writes.length;time.advance(time.now()+.1);
+      target.setKeyMask(4,{...voice,keyMask:mask});
+      assert.deepEqual(writes.slice(before),[{port:0,register:0x28,value:(mask<<4)|code}],`mask ${mask} only changes KON`);
+      assert.deepEqual(synth.getState(),state,'gate edits leave patch, frequency and special mode untouched');
+    }
+    time.advance(time.now()+.1);
+    const recorded=manager.stop();
+    assert.deepEqual(recorded.commands.map(command=>command.type),['capturedNoteOn','capturedKeyMask','capturedKeyMask','capturedKeyMask']);
+    assert.deepEqual(recorded.commands.slice(1).map(command=>command.voice.keyMask),[8,0,15]);
+    assert(recorded.commands.slice(1).every(command=>!('block'in command)&&!('fnum'in command)));
+    assert.deepEqual(normalizeCapturedVoice(voice),voice);
+  }
+});
+
+test('held normal notes upgrade the take when OP gates change, including a return to all On', () => {
+  const {manager,target,time,writes}=fixture({voice:null});
+  manager.start();target.noteOn(5,4,1000);
+  assert.equal(manager.exportRecording().format,'megasynth-recording-v1');
+  time.advance(.1);target.setKeyMask(5,partialVoice());
+  time.advance(.2);target.setKeyMask(5,null);
+  time.advance(.3);const recording=manager.stop();
+  assert.equal(recording.format,SYNTH_RECORDING_FORMAT);
+  assert.deepEqual(recording.commands.map(command=>command.type),['noteOn','capturedKeyMask','capturedKeyMask']);
+  assert.deepEqual(recording.commands.slice(1).map(command=>command.voice.keyMask),[8,15]);
+  assert.deepEqual(writes.filter(write=>write.register===0x28).slice(-2).map(write=>write.value),[0x86,0xf6]);
+  assert.deepEqual(normalizeCapturedCommand({type:'capturedKeyMask',channel:5,voice:normalVoice()}),
+    {type:'capturedKeyMask',channel:5,voice:normalVoice()});
+});
+
 test('legacy files import/play; malformed captured or standard data keep active playback and export unchanged', () => {
   const {synth,time,manager}=fixture();
   const legacy={format:'megasynth-recording-v1',version:1,durationSeconds:.3,initialState:structuredClone(synth.getState()),commands:[
@@ -127,7 +166,9 @@ test('legacy files import/play; malformed captured or standard data keep active 
   assert.equal(manager.importRecording(legacy).format,'megasynth-recording-v1');
   manager.play(null,{loop:true});const before=manager.exportRecording(),timers=[...time.timers.keys()];
   for(const invalid of [
-    {...legacy,format:SYNTH_RECORDING_FORMAT,commands:[{time:0,type:'capturedNoteOn',channel:0,block:4,fnum:1000,voice:{...partialVoice(),keyMask:0}}]},
+    {...legacy,format:SYNTH_RECORDING_FORMAT,commands:[{time:0,type:'capturedNoteOn',channel:0,block:4,fnum:1000,voice:{...partialVoice(),keyMask:16}}]},
+    {...legacy,format:SYNTH_RECORDING_FORMAT,commands:[{time:0,type:'capturedKeyMask',channel:0,voice:{...partialVoice(),keyMask:-1}}]},
+    {...legacy,commands:[{time:0,type:'capturedKeyMask',channel:0,voice:partialVoice()}]},
     {...legacy,format:SYNTH_RECORDING_FORMAT,commands:[{time:0,type:'capturedNoteOn',channel:0,block:4,fnum:1000,voice:specialVoice()}]},
     {...legacy,format:SYNTH_RECORDING_FORMAT,commands:[{time:0,type:'capturedFrequency',channel:2,block:4,fnum:1000,voice:{...specialVoice(),specialFrequencies:specialVoice().specialFrequencies.map((pitch,i)=>i===3?{...pitch,fnum:0}:pitch)}}]},
     {...legacy,commands:[{time:NaN,type:'noteOn',channel:0,block:4,fnum:1000}]},
@@ -159,6 +200,9 @@ test('invalid voice descriptions reject before any chip operation', () => {
   assert.throws(()=>target.noteOn(0,4,1000),/frequencies/);
   assert.equal(writes.length,before);
   assert.throws(()=>normalizeCapturedVoice({...partialVoice(),keyMask:16}),/keyMask/);
+  assert.throws(()=>normalizeCapturedVoice({...partialVoice(),keyMask:-1}),/keyMask/);
+  assert.throws(()=>target.setKeyMask(0,{...partialVoice(),keyMask:16}),/keyMask/);
+  assert.equal(writes.length,before);
 });
 
 test('real WASM captured partial/CH3 recording replays identical PCM and release', async () => {
@@ -188,4 +232,74 @@ test('real WASM captured partial/CH3 recording replays identical PCM and release
       playback.stopPlayback();
     } finally {source.dispose();replay.dispose();}
   }
+});
+
+test('real WASM gate edits preserve an unchanged operator envelope and oscillator phase', async () => {
+  const wasmBinary=await readFile(new URL('../generated/ym2612_wasm.wasm',import.meta.url));
+  const changed=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}});
+  const control=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}});
+  try {
+    const synths=[changed,control].map(chip=>new YM2612Synth({transport:new YM2612DirectTransport(chip)}));
+    for(const synth of synths) {
+      program(synth);
+      // Keep other operators inaudible so byte equality also checks the
+      // running carrier phase. Its decaying envelope would reveal re-keying.
+      for(let op=0;op<3;op++)synth.setOperator(0,op,{tl:127,ar:0});
+      synth.setOperator(0,3,{tl:0,ar:24,d1r:10,d2r:3,sl:10,rr:15});
+    }
+    const targets=synths.map(synth=>createSynthPerformanceTarget({getSynth:()=>synth,getVoice:partialVoice}));
+    targets.forEach(target=>target.noteOn(0,4,1000));
+    changed.generateStereo(1024);control.generateStereo(1024);
+    for(const mask of [9,8,15,8]) {
+      targets[0].setKeyMask(0,{...partialVoice(),keyMask:mask});
+      const actual=changed.generateStereoWithInternalEnvelope(1024,0),expected=control.generateStereoWithInternalEnvelope(1024,0);
+      assert.deepEqual(actual.envelopes[3],expected.envelopes[3],`OP4 envelope stays running at mask ${mask}`);
+      assert.deepEqual(actual.left,expected.left,`OP4 phase stays running at mask ${mask}`);
+      assert.deepEqual(actual.right,expected.right);
+      assert(actual.left.some(value=>value!==0),'the unchanged carrier is audible');
+    }
+    targets[0].setKeyMask(0,{...partialVoice(),keyMask:0});
+    const release=changed.generateStereoWithInternalEnvelope(12000,0);
+    assert(release.envelopes[3].slice(-1024).every(value=>value===0),'all-Off permits the hardware release to finish');
+    targets[0].setKeyMask(0,partialVoice());
+    assert(changed.generateStereo(1024).left.some(value=>value!==0),'a held all-Off note can enable an operator again');
+  } finally {changed.dispose();control.dispose();}
+});
+
+test('real WASM normal-to-partial/all-Off/full held-note edits survive JSON and replay byte exactly', async () => {
+  const wasmBinary=await readFile(new URL('../generated/ym2612_wasm.wasm',import.meta.url));
+  const source=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}});
+  const replay=await Ym2612.create({moduleFactory:createModule,moduleOptions:{wasmBinary}});
+  try {
+    const synth=new YM2612Synth({transport:new YM2612DirectTransport(source)}),player=new YM2612Synth({transport:new YM2612DirectTransport(replay)});
+    program(synth,null);
+    const sourceTime=clock(),replayTime=clock(),manager=new SynthRecordingManager({synth,now:sourceTime.now,setTimer:sourceTime.setTimer,clearTimer:sourceTime.clearTimer});
+    hook(synth,manager);
+    const target=createSynthPerformanceTarget({getSynth:()=>synth,onCapturedCommand:(command,action)=>manager.perform(command,action)});
+    const rate=source.sampleRate(),zero={...normalVoice(),keyMask:0},segments=[],actions=[
+      ()=>target.noteOn(5,4,1000),()=>target.setKeyMask(5,partialVoice()),()=>target.setKeyMask(5,zero),
+      ()=>target.setFrequency(5,4,1120,zero),()=>target.setKeyMask(5,{...partialVoice(),keyMask:9}),
+      ()=>target.setKeyMask(5,null),()=>target.noteOff(5),
+    ];
+    manager.start();let frames=0;
+    actions.forEach((action,index)=>{
+      action();const count=index===actions.length-1?12000:768;
+      segments.push({frames:count,pcm:source.generateStereo(count),start:frames/rate});
+      frames+=count;sourceTime.advance(frames/rate);
+    });
+    const recording=JSON.parse(JSON.stringify(manager.stop()));
+    assert.equal(recording.format,SYNTH_RECORDING_FORMAT);
+    assert.deepEqual(recording.commands.map(command=>command.type),[
+      'noteOn','capturedKeyMask','capturedKeyMask','capturedFrequency','capturedKeyMask','capturedKeyMask','noteOff',
+    ]);
+    const playback=new SynthRecordingManager({synth:player,now:replayTime.now,setTimer:replayTime.setTimer,clearTimer:replayTime.clearTimer});
+    playback.importRecording(recording);playback.play(null,{loop:false});
+    for(const [index,segment] of segments.entries()) {
+      replayTime.advance(segment.start);
+      const actual=replay.generateStereo(segment.frames);
+      assert.deepEqual(actual.left,segment.pcm.left,`left held-gate segment ${index}`);
+      assert.deepEqual(actual.right,segment.pcm.right,`right held-gate segment ${index}`);
+    }
+    playback.stopPlayback();
+  } finally {source.dispose();replay.dispose();}
 });

@@ -683,6 +683,26 @@
         text-shadow: 0 1px 0 #171f20;
       }
 
+      .operator-gate {
+        padding: 3px 0;
+        min-height: 22px;
+        width: 100%;
+        font-family: inherit;
+        background: #263c3c;
+        border: 1px solid currentColor;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .operator-gate[aria-pressed="false"] {
+        background: transparent;
+        border-style: dashed;
+        opacity: .48;
+      }
+
+      .operator-gate:focus-visible { outline: 2px solid #dce8cd; outline-offset: 2px; }
+      .operator-gate:disabled { cursor: default; }
+
       .param-strip {
         display: flex;
         gap: 6px;
@@ -1416,7 +1436,7 @@
                   <div class="param-strip" id="commonControls"></div>
                 </div>
                 <div class="operator-header-row">
-                <div class="operator-header-spacer operator-corner-label">OP</div>
+                <div class="operator-header-spacer operator-corner-label" title="Click OP1–OP4 to select Key On / Off. Off releases that operator using RR.">OP</div>
                   <div class="operator-header-strip" id="operatorHeader"></div>
                 </div>
                 <div id="operatorControls" class="operator-stack"></div>
@@ -1515,7 +1535,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-captured-record-1";
+      import "./synth.js?v=synth-op-gates-1";
     </script>
   </body>
 </html>

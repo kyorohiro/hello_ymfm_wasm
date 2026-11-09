@@ -1,11 +1,11 @@
-import {createSynthProject} from './synth_project.js?v=vgm-mix-copy-1';
-import {setupSynthFiles} from './synth_files.js?v=vgm-mix-copy-1';
+import {createSynthProject} from './synth_project.js?v=op-gates-1';
+import {setupSynthFiles} from './synth_files.js?v=op-gates-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=captured-record-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
-import {createSynthPerformanceTarget} from './synth_performance.js';
-import {SynthRecordingManager} from './synth_recording.js';
-import {SynthLooper,applySynthLooperPatch} from './synth_looper.js';
+import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';
+import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
+import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -40,7 +40,7 @@ import {
   createParamControl,
   buildOperatorControls as buildOperatorControlsView,
   displayOperatorToApiOperator,
-} from "./synth_controls.js?v=live-highlight-1";
+} from "./synth_controls.js?v=op-gates-1";
 import {
   attachOutputEnvelopeTap,
   chooseVoice,
@@ -356,7 +356,7 @@ let currentPresetName =
 let importedTfiName = "";
 let currentPresetPan = {left:true, right:true};
 let currentPresetB4 = 0xc0;
-let currentCapturedVoice = null;
+let currentPerformanceVoice = null;
 let activeHelpId = "";
 let masterVolume = 1;
 let songLiveView = null;
@@ -403,6 +403,7 @@ const operatorStates = Object.fromEntries(
 
 const commonControls = new Map();
 const operatorControls = new Map();
+const operatorGateControls = new Map();
 let envelopeSelectionRevision = 0;
 const operatorEnvelopeRoot = document.getElementById('synthEnvelopeEditor');
 const operatorEnvelopeView = createOperatorEnvelopeView({
@@ -563,8 +564,8 @@ function isPerformanceInputEnabled() {
 }
 
 function getCurrentPerformanceVoice() {
-  if(!currentCapturedVoice&&!channel3SpecialState.enabled)return null;
-  return {keyMask:currentCapturedVoice?.keyMask??15,specialMode:channel3SpecialState.enabled,
+  if(!currentPerformanceVoice&&!channel3SpecialState.enabled)return null;
+  return {keyMask:currentPerformanceVoice?.keyMask??15,specialMode:channel3SpecialState.enabled,
     specialFrequencies:channel3SpecialState.enabled?channel3SpecialState.frequencies:[]};
 }
 
@@ -1639,6 +1640,7 @@ function syncControlsFromState() {
       currentPresetName;
   }
 
+  syncOperatorGates();
   syncChannel3SpecialControls();
 }
 
@@ -1679,13 +1681,12 @@ function applyPresetData(preset, presetName) {
   importedTfiName = presetName.startsWith('vfs:') ? presetName.split('/').pop() : '';
   currentPresetPan = {...(preset.pan ?? {left:true, right:true})};
   currentPresetB4 = preset.b4 ?? 0xc0;
-  const wasCaptured=Boolean(currentCapturedVoice);
-  currentCapturedVoice=preset.capturedVoice?structuredClone(preset.capturedVoice):null;
-  if(currentCapturedVoice) {
-    commonState.dacEnabled=false;
-    channel3SpecialState.enabled=currentCapturedVoice.specialMode;
-    if(currentCapturedVoice.specialMode)channel3SpecialState.frequencies=structuredClone(currentCapturedVoice.specialFrequencies);
-  } else if(wasCaptured)channel3SpecialState.enabled=false;
+  const hadPerformanceVoice=Boolean(currentPerformanceVoice);
+  currentPerformanceVoice=preset.capturedVoice?structuredClone(preset.capturedVoice):null;
+  if(currentPerformanceVoice) {
+    channel3SpecialState.enabled=currentPerformanceVoice.specialMode;
+    if(currentPerformanceVoice.specialMode)channel3SpecialState.frequencies=structuredClone(currentPerformanceVoice.specialFrequencies);
+  } else if(hadPerformanceVoice)channel3SpecialState.enabled=false;
   commonState.algorithm =
     preset.algorithm ?? 7;
   commonState.feedback =
@@ -1744,7 +1745,7 @@ function buildCurrentPresetState() {
     },
     operators: {},
   };
-  if(currentCapturedVoice)preset.capturedVoice={keyMask:currentCapturedVoice.keyMask,
+  if(currentPerformanceVoice)preset.capturedVoice={keyMask:currentPerformanceVoice.keyMask,
     specialMode:channel3SpecialState.enabled,
     specialFrequencies:channel3SpecialState.enabled?structuredClone(channel3SpecialState.frequencies):[]};
 
@@ -1858,7 +1859,7 @@ function renderChannel3SpecialMonitor() {
     syncChannel3SpecialControls();
     return;
   }
-  if(currentCapturedVoice||channel3SpecialState.enabled||megaSynth?.isRecordingPlaybackActive()) {
+  if(currentPerformanceVoice||channel3SpecialState.enabled||megaSynth?.isRecordingPlaybackActive()) {
     channel3SpecialModePill.textContent=channel3SpecialState.enabled?'Special On':'Special Off';
     syncChannel3SpecialControls();
     return;
@@ -1970,7 +1971,7 @@ function buildChannel3SpecialControls() {
           );
         }
         renderChannel3SpecialMonitor();
-        if(currentCapturedVoice){markPresetEdited();updateLooperUi();updateEventRecordUi();}
+        if(currentPerformanceVoice){markPresetEdited();updateLooperUi();updateEventRecordUi();}
       },
     });
   channel3SpecialControls.set(
@@ -2025,7 +2026,7 @@ function buildChannel3SpecialControls() {
             }
           }
           renderChannel3SpecialMonitor();
-          if(currentCapturedVoice)markPresetEdited();
+          if(currentPerformanceVoice)markPresetEdited();
         },
       });
     channel3SpecialControls.set(
@@ -2077,7 +2078,7 @@ function buildChannel3SpecialControls() {
             }
           }
           renderChannel3SpecialMonitor();
-          if(currentCapturedVoice)markPresetEdited();
+          if(currentPerformanceVoice)markPresetEdited();
         },
       });
     channel3SpecialControls.set(
@@ -2188,6 +2189,9 @@ function buildOperatorControls() {
     defs: OPERATOR_PARAM_DEFS,
     operatorStates,
     controlsMap: operatorControls,
+    gateControls: operatorGateControls,
+    getOperatorEnabled: operator => Boolean((currentPerformanceVoice?.keyMask ?? 15) & (1 << (operator - 1))),
+    onOperatorGateChange: setOperatorGate,
     onChange: (
       operator,
       id,
@@ -2196,6 +2200,36 @@ function buildOperatorControls() {
       applyOperatorParams(operator, {[id]: nextValue});
     },
   });
+}
+
+function syncOperatorGates() {
+  // During Live observation show the actual current key bits, including all
+  // Off between notes. lastKeyMask is only useful for copying/auditioning.
+  const mask = songLiveView
+    ? songLiveView.snapshot.channels[songLiveView.channel].keyMask
+    : currentPerformanceVoice?.keyMask ?? 15;
+  for (const [operator, button] of operatorGateControls) {
+    const pressed = String(Boolean(mask & (1 << (operator - 1))));
+    if (button.getAttribute('aria-pressed') !== pressed) button.setAttribute('aria-pressed', pressed);
+    button.disabled = Boolean(songLiveView);
+  }
+}
+
+function setOperatorGate(operator, enabled) {
+  if (songLiveView) return;
+  const voice = getCurrentPerformanceVoice() ?? {keyMask:15, specialMode:false, specialFrequencies:[]};
+  const bit = 1 << (operator - 1);
+  const keyMask = enabled ? voice.keyMask | bit : voice.keyMask & ~bit;
+  if (keyMask === voice.keyMask) return;
+  // The optional sidecar field also describes authored OP selections. Keeping
+  // its existing name preserves saved copied instruments and old Cassettes.
+  currentPerformanceVoice = {...voice, keyMask};
+  syncOperatorGates();
+  markPresetEdited();
+  if (!isSongChannelTarget()) {
+    const target = getPlayableSynth();
+    for (const held of voices) if (held.held) target?.setKeyMask(held.channel);
+  }
 }
 
 // Numeric and graphical edits share persistence and update only this operator.
@@ -2317,8 +2351,8 @@ function getPlayableSynth() {
   return getEditorPlayableSynth();
 }
 
-// Captured OP masks and CH3 pitch ratios remain editable Synth settings. This
-// adapter changes Note On only; the existing controls still program the chip.
+// OP gates and CH3 pitch ratios share the keyboard and recording path.
+// The existing parameter controls still program the chip directly.
 function getEditorPlayableSynth() {
   return synth?editorPerformanceTarget:null;
 }
@@ -3024,7 +3058,18 @@ songControls = setupSynthSongControls({
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
   onTargetState:setSongTargetState,
-  onCopyToSynth:(preset,name)=>synthFiles.createFromPreset(preset,name),
+  async onCopyToSynth(preset,name) {
+    const copied = await synthFiles.createFromPreset(preset,name);
+    // Copy auditions an FM instrument. OP metadata on an ordinary saved tone
+    // must not otherwise change the chip-wide DAC switch when it is opened.
+    if (copied) {
+      commonState.dacEnabled = false;
+      synth?.setDacEnabled(false);
+      loopSynth?.setDacEnabled(false);
+      syncControlsFromState();
+    }
+    return copied;
+  },
   onStatus:setStatus,
 });
 window.addEventListener('pagehide',event=>{

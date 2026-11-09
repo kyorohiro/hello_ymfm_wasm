@@ -270,7 +270,7 @@ async function importAndReplay(browser,origin,recording,{special=false}={}) {
     const importedBefore=await exportEvent(page);
     await drainWrites(page);await page.locator('#eventRecordPlayButton').click();await sounding(page,hz*(special?1:2));await replayFingerprint(page,hz,{special});
     await pause(550);const writes=await drainWrites(page);assertKeys(writes,{special});if(special)assertSpecialPitches(writes);
-    const malformed=structuredClone(recording);malformed.commands.find(command=>command.type==='capturedNoteOn').voice.keyMask=0;
+    const malformed=structuredClone(recording);malformed.commands.find(command=>command.type==='capturedNoteOn').voice.keyMask=16;
     await page.locator('#eventRecordImportInput').setInputFiles({name:'bad-captured.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(malformed))});
     await until(page,async()=>(await transport(page)).status.includes('Failed to import'),'Malformed captured JSON rejects');
     // The previous valid imported take remains playable/exportable.

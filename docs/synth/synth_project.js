@@ -28,7 +28,6 @@ function range(name,value,maximum) {
 function boolean(name,value) {if(typeof value!=='boolean')throw Error(`${name} must be a boolean`);return value;}
 function capturedVoiceState(value) {
   const keyMask=range('capturedVoice.keyMask',value.keyMask,15);
-  if(!keyMask)throw Error('capturedVoice.keyMask must enable at least one operator');
   const specialMode=boolean('capturedVoice.specialMode',value.specialMode);
   if(!Array.isArray(value.specialFrequencies)||value.specialFrequencies.length!==(specialMode?4:0))throw Error('Invalid capturedVoice special frequencies');
   const specialFrequencies=value.specialFrequencies.map(pitch=>({block:range('capturedVoice.block',pitch.block,7),fnum:range('capturedVoice.fnum',pitch.fnum,2047)}));

@@ -128,11 +128,38 @@ test('metadata-only edits participate in checkpoints, Revert and crash recovery 
   assert.equal(project.isToneModified(tone.path),false);
 });
 
+test('all-Off OP settings survive TFI/VGI, Sync/Revert, Cassette and crash recovery',async()=>{
+  for(const special of [false,true]) {
+    const project=createSynthProject(),preset=capture(special?2:0,{special});
+    preset.capturedVoice.keyMask=0;
+    const tone=project.createTone(preset,special?'Silent CH3':'Silent FM');
+    project.writeTone('/presets/silent.tfi',preset);
+    project.syncTone(tone.path);
+    const edited=project.readTone(tone.path).preset;edited.capturedVoice.keyMask=15;
+    project.writeTone(tone.path,edited);
+    assert.equal(project.readTone(tone.path).preset.capturedVoice.keyMask,15);
+    assert.equal(project.revertTone(tone.path).preset.capturedVoice.keyMask,0);
+    project.syncTone(tone.path);
+    project.writeTone(tone.path,edited);
+    const recovery=parseToneRecovery(createToneRecovery(project,tone.path,'all-Off-workspace',1));
+    const recovered=createSynthProject();recovered.fs.writeFiles(recovery.entries,{checkpointChanges:false});
+    assert.equal(recovered.readTone(tone.path).preset.capturedVoice.keyMask,15);
+    assert.equal(recovered.revertTone(tone.path).preset.capturedVoice.keyMask,0,'the silent checkpoint survives recovery');
+    project.revertTone(tone.path);
+    const restored=createSynthProject();await restored.importCassette(project.exportCassette());
+    for(const path of [tone.path,'/presets/silent.tfi']) {
+      assert.deepEqual(restored.readTone(path).preset.capturedVoice,preset.capturedVoice);
+      const sidecar=restored.fs.get(synthStatePath(path)).data;
+      assert.equal(JSON.parse(typeof sidecar==='string'?sidecar:new TextDecoder().decode(sidecar)).version,1);
+    }
+  }
+});
+
 test('malformed captured metadata is rejected before changing tone, selection, snapshots or Cassette',async()=>{
   const project=createSynthProject(),tone=project.createTone(capture(2,{special:true}),'Valid');
   project.syncTone(tone.path);const before=project.snapshot(),good=project.readTone(tone.path).preset;
   const badStates=[null,{},
-    {...good.capturedVoice,keyMask:0},{...good.capturedVoice,keyMask:16},{...good.capturedVoice,keyMask:1.5},
+    {...good.capturedVoice,keyMask:-1},{...good.capturedVoice,keyMask:16},{...good.capturedVoice,keyMask:1.5},
     {...good.capturedVoice,specialMode:'true'},
     {...good.capturedVoice,specialMode:false},
     {...good.capturedVoice,specialFrequencies:good.capturedVoice.specialFrequencies.slice(1)},

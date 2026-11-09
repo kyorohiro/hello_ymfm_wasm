@@ -1,7 +1,7 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {isSynthTonePath, isSynthStatePath} from './synth_project.js?v=vgm-mix-copy-1';
+import {isSynthTonePath, isSynthStatePath} from './synth_project.js?v=op-gates-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
-import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=vgm-mix-copy-1';
+import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=op-gates-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';

@@ -1,5 +1,5 @@
 import {MegaSynthLooper} from '../js/looper.js';
-import {normalizeCapturedVoice} from './synth_performance.js';
+import {normalizeCapturedVoice} from './synth_performance.js?v=op-gates-1';
 
 const CHANNELS=[0,1,2,3,4,5];
 const CANCEL_CAPTURE=Symbol('cancelled Synth loop capture');
@@ -172,23 +172,36 @@ export class SynthLooper extends MegaSynthLooper {
     return super.getUnits().map(unit=>({...unit,events:unit.events.map(clone)}));
   }
 
+  /** Change a held note's OP gates without restarting its pitch or envelopes. */
+  setKeyMask(channel,voiceOverride) {
+    this._dispatchPerformanceEvent({type:'keyMask',channel,
+      ...(voiceOverride!==undefined?{capturedVoice:voiceOverride}:{})},true);
+  }
+
   _dispatchPerformanceEvent(event,shouldRecord,patch=null,playbackChannelMap=null) {
     const target=shouldRecord?this.liveTarget:this.playbackTarget;
     const sourcePatch=shouldRecord?this.getPatch():patch;
     let voice=voiceFor(event,sourcePatch);
     const live=this._liveNotes.get(event.channel);
     if(shouldRecord&&event.type==='noteOff'&&live)voice=live.voice;
-    const channel=voice?.specialMode?2:shouldRecord?event.channel:
+    // A silent (all-Off) mask is still a held note. Keep its ownership so a
+    // later mask can open its gates without another key press.
+    if(event.type==='keyMask'&&shouldRecord&&!live)return;
+    const channel=event.type==='keyMask'&&shouldRecord?live.channel:voice?.specialMode?2:shouldRecord?event.channel:
       this._resolvePlaybackChannel(event.channel,playbackChannelMap);
     const unit=this._mapUnits.get(playbackChannelMap)??playbackChannelMap;
     const owner=this._playbackOwners.get(channel);
-    if(event.type==='noteOff'&&!shouldRecord&&(!owner||owner.unit!==unit||owner.source!==event.channel))return;
+    if((event.type==='noteOff'||event.type==='keyMask')&&!shouldRecord&&
+      (!owner||owner.unit!==unit||owner.source!==event.channel))return;
     if(event.type==='noteOn') {
       if(!shouldRecord&&patch)this.applyPatch({...this._clonePatch(patch),capturedVoice:voice},channel,event);
       target.noteOn(channel,event.block,event.fnum,voice);
       if(shouldRecord)this._liveNotes.set(event.channel,{channel,voice});
       else this._playbackOwners.set(channel,{unit,source:event.channel});
       this._activeChannels.add(channel);
+    } else if(event.type==='keyMask') {
+      target.setKeyMask(channel,voice);
+      if(shouldRecord)this._liveNotes.set(event.channel,{...live,voice});
     } else if(event.type==='noteOff') {
       target.noteOff(channel,voice);
       if(shouldRecord)this._liveNotes.delete(event.channel);

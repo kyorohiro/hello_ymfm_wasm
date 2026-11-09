@@ -426,6 +426,9 @@ export function buildOperatorControls({
   operatorStates,
   controlsMap,
   onChange,
+  gateControls = new Map(),
+  getOperatorEnabled = () => true,
+  onOperatorGateChange = null,
   wheelAdjust = true,
 }) {
   root.innerHTML = "";
@@ -436,12 +439,30 @@ export function buildOperatorControls({
     row.className =
       "operator-row";
 
-    const name =
-      document.createElement("div");
+    const editableGate = typeof onOperatorGateChange === 'function';
+    const name = document.createElement(editableGate ? 'button' : 'div');
     name.className =
-      `operator-name op-color-${operator}`;
+      `operator-name${editableGate ? ' operator-gate' : ''} op-color-${operator}`;
     name.textContent =
       String(operator);
+    if (editableGate) {
+      name.type = 'button';
+      name.dataset.operatorGate = String(operator);
+      name.setAttribute('aria-label', `OP${operator} Key On`);
+      name.setAttribute('aria-pressed', String(getOperatorEnabled(operator)));
+      name.title = `OP${operator} Key On / Off. Off releases this operator at its RR; it does not change TL or the algorithm.`;
+      // Pointer edits must leave letter keys available for playing. Keyboard
+      // activation still works without reaching the global record shortcut.
+      name.addEventListener('pointerdown', event => event.preventDefault());
+      name.addEventListener('keydown', event => {
+        if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+      });
+      name.addEventListener('click', () => {
+        onOperatorGateChange(operator, !getOperatorEnabled(operator));
+        name.blur();
+      });
+      gateControls.set(operator, name);
+    }
 
     const strip =
       document.createElement("div");

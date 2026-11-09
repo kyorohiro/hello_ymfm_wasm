@@ -1,10 +1,10 @@
 import {MegaSynthRecordingManager} from '../js/megasynth_recording.js';
 import {YM2612Synth} from '../js/ym2612synth.js';
-import {applyCapturedCommand,normalizeCapturedCommand} from './synth_performance.js';
+import {applyCapturedCommand,normalizeCapturedCommand} from './synth_performance.js?v=op-gates-1';
 
 export const SYNTH_RECORDING_FORMAT='tetorica-fm2612-synth-recording-v1';
 const LEGACY_FORMAT='megasynth-recording-v1';
-const CAPTURED_TYPES=new Set(['capturedNoteOn','capturedFrequency']);
+const CAPTURED_TYPES=new Set(['capturedNoteOn','capturedFrequency','capturedKeyMask']);
 const LEGACY_TYPES=new Set(['reset','setOperator','setAlgo','setPan','setLfo','setDacEnabled','writeDac',
   'setChannel3SpecialMode','setChannel3SpecialFrequency','noteOn','noteOff']);
 const MAX_TIMER_SECONDS=(0x7fffffff-1000)/1000;
@@ -14,7 +14,7 @@ const finiteTime=(value,label)=>{
 };
 
 /**
- * App recording extension for copied voice performance. Ordinary recordings
+ * App recording extension for operator gates and copied CH3 tuning. Ordinary recordings
  * retain the shared v1 format. Captured commands use a distinct format so an
  * older player refuses them instead of silently replaying all operators.
  */
