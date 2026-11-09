@@ -1,6 +1,7 @@
 import {createSynthProject} from './synth_project.js?v=vgm-storage-1';
 import {setupSynthFiles} from './synth_files.js?v=vgm-live-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-live-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-audition-1';
+import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -8,6 +9,7 @@ import {applyPitchBend, bendPitch} from './synth_pitch_bend.js';
 import {
   FM_PRESETS,
   FM_PRESET_ORDER,
+  MegaDriveSynth,
   MegaSynthLooper,
 } from "../js/megasynth.js";
 import { YM2612_CLOCK } from "../js/ym2612.js";
@@ -46,7 +48,7 @@ import {
 } from "./synth_runtime.js";
 import {
   createSynthInputController,
-} from "./synth_input.js";
+} from "./synth_input.js?v=vgm-audition-1";
 
 const status = document.getElementById("status");
 
@@ -218,7 +220,7 @@ for (const modulationWheel of modulationWheels) {
     modulationWheelValue = Number(modulationWheel.value);
     for (const wheel of modulationWheels) wheel.value = String(modulationWheelValue);
     for (const readout of modulationValues) readout.textContent = `${Math.round(modulationWheelValue / 127 * 100)}%`;
-    if (synth) applyModulation(synth, commonState, modulationWheelValue, VOICE_COUNT);
+    if (synth && !songLiveView) applyModulation(synth, commonState, modulationWheelValue, VOICE_COUNT);
   });
   // Keep range-keyboard controls separate from the fretboard's arrow shortcuts.
   modulationWheel.addEventListener('keydown', event => {
@@ -247,8 +249,8 @@ function updatePitchBend(value) {
   for (const wheel of pitchBendWheels) wheel.value = String(value);
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
   if (synth) {
-    applyPitchBend(synth, voices, pitchBendSemitones);
-    if (channel3SpecialState.enabled) {
+    applyPitchBend(songAuditionVoice ?? synth, voices, pitchBendSemitones);
+    if (!songAuditionVoice && channel3SpecialState.enabled) {
       channel3SpecialState.frequencies.forEach((basePitch, operator) => {
         const pitch = bendPitch(basePitch, pitchBendSemitones);
         synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
@@ -361,6 +363,9 @@ let activeHelpId = "";
 let masterVolume = 1;
 let songLiveView = null;
 let songLiveSignature = '';
+let songTargetState = {target:'synth', playback:'stopped', view:null};
+let songAuditionVoice = null, songAuditionMegaSynth = null, songAuditionReady = null;
+let songAuditionBus = null, songAuditionSignature = '', songAuditionGeneration = 0;
 
 const DEFAULT_OPERATOR_STATE = Object.freeze({
   dt: 0,
@@ -529,11 +534,79 @@ function applyMasterVolume() {
     masterVolume
   );
   songControls?.setVolume(masterVolume);
+  songAuditionMegaSynth?.setMasterVolume(masterVolume);
+}
+
+function isSongChannelTarget() {
+  return songTargetState.target !== 'synth' && ['loading','playing','paused'].includes(songTargetState.playback);
+}
+
+function isPerformanceInputEnabled() {
+  return !switchingAudioOutput && (!isSongChannelTarget() || Boolean(songAuditionVoice));
+}
+
+// A third, lazy keyboard chip keeps audition notes out of the song engine,
+// original editor chip, and looper/event recorder. It shares the final output
+// and Master level, but has its own mute for release tails at mode changes.
+function ensureSongAuditionReady() {
+  if (songAuditionReady) return songAuditionReady;
+  if (!songAuditionBus) {
+    songAuditionBus = audioContext.createGain();
+    songAuditionBus.gain.value = 0;
+    songAuditionBus.connect(finalOutputBus);
+  }
+  const candidate = new MegaDriveSynth({audioContext, workletUrl:activeWorkletUrl,
+    ym2612WasmUrl:activeYm2612WasmUrl, outputNode:songAuditionBus, masterVolume});
+  songAuditionMegaSynth = candidate;
+  songAuditionReady = candidate.start().then(() => candidate.fm).catch(error => {
+    void candidate.close();
+    if (songAuditionMegaSynth === candidate) {
+      songAuditionReady = null;
+      songAuditionMegaSynth = null;
+    }
+    throw error;
+  });
+  return songAuditionReady;
+}
+
+function setSongTargetState(next) {
+  const channelTarget = next.target !== 'synth' && ['loading','playing','paused'].includes(next.playback);
+  const audition = channelTarget && next.playback === 'paused' ? next.view : null;
+  const signature = JSON.stringify([channelTarget ? next.target : 'synth', channelTarget && next.playback,
+    audition?.snapshot.revision, audition?.snapshot.frame]);
+  songTargetState = next;
+  if (signature === songAuditionSignature) return;
+  songAuditionSignature = signature;
+  const generation = ++songAuditionGeneration;
+  stopAllNotes();
+  songAuditionVoice = null;
+  if (songAuditionBus) songAuditionBus.gain.value = 0;
+  songAuditionMegaSynth?.fm?.reset();
+  // The wheels are performance state, not part of a captured instrument.
+  updatePitchBend(0);
+  updateKeyboardAvailability();
+  if (!audition) return;
+  const description = describeSynthSongVoice(audition.snapshot, audition.channel);
+  if (!description.playable) return;
+  keyboard.dataset.songAudition = 'loading';
+  void ensureSongAuditionReady().then(chip => {
+    if (generation !== songAuditionGeneration) return;
+    const voice = createSynthSongVoice(chip, audition.snapshot, audition.channel);
+    songAuditionVoice = {...voice, noteOn(...args) {
+      songAuditionBus.gain.value = 1;
+      voice.noteOn(...args);
+    }};
+    updateKeyboardAvailability();
+  }).catch(error => {
+    if (generation !== songAuditionGeneration) return;
+    keyboard.dataset.songAudition = 'unavailable';
+    setStatus(`CH${audition.channel + 1} audition failed: ${error.message}`);
+  });
 }
 
 function refreshVisualizerDescription() {
   visualizerDescription.textContent = visualMode === 'envelope' && songLiveView
-    ? `Live CH${songLiveView.channel + 1} · written settings · envelope guides · read-only.`
+    ? `${songLiveView.paused ? 'Paused' : songLiveView.following ? 'Live' : 'Frozen'} CH${songLiveView.channel + 1} · written settings · envelope guides · read-only.`
     : visualDescriptions[visualMode];
 }
 
@@ -550,6 +623,7 @@ function setSongLiveView(next) {
     document.querySelector('.synth-editor').dataset.liveView = String(active);
     operatorEnvelopeRoot.querySelector('.operator-envelope-plot').inert = active;
     exportTfiButton.disabled = exportVgiButton.disabled = active;
+    for (const wheel of modulationWheels) wheel.disabled = active;
     synthFiles?.refresh();
   }
   if (signature !== songLiveSignature) {
@@ -1291,6 +1365,14 @@ function updateKeyboardAvailability() {
     "aria-hidden",
     String(!isInitializing)
   );
+  const channel = isSongChannelTarget();
+  const enabled = isPerformanceInputEnabled();
+  keyboard.dataset.songAudition = !channel ? 'off' : songAuditionVoice ? 'ready' : 'unavailable';
+  keyboard.setAttribute('aria-disabled', String(!enabled));
+  keyboard.setAttribute('aria-label', channel
+    ? `CH${songTargetState.target + 1} keyboard${songAuditionVoice ? ' audition' : ' unavailable; pause the song to audition an FM channel'}`
+    : 'Synth keyboard');
+  keyboard.classList.toggle('is-song-unavailable', !enabled);
 }
 
 function rebuildFretboardLayout() {
@@ -2119,6 +2201,8 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  songAuditionVoice?.noteOff(songAuditionVoice.channel);
+  if (songAuditionBus) songAuditionBus.gain.value = 0;
   stopAllRuntimeNotes({
     synth,
     voices,
@@ -2133,6 +2217,7 @@ function stopAllNotes() {
 }
 
 function getPlayableSynth() {
+  if (isSongChannelTarget()) return songAuditionVoice;
   if (looper?.running) {
     return looper;
   }
@@ -2315,6 +2400,10 @@ function clearLooper() {
 }
 
 function togglePrimaryRecordAction() {
+  if (isSongChannelTarget()) {
+    setStatus('Choose Synth to record your edited instrument.');
+    return;
+  }
   if (eventRecordSessionActive) {
     void toggleEventTakeRecording();
     return;
@@ -2666,11 +2755,11 @@ inputController =
     getAudioReadyPromise:
       () => audioReadyPromise,
     getPitchBend: () => pitchBendSemitones,
-    isInputEnabled: () => !switchingAudioOutput,
+    isInputEnabled: isPerformanceInputEnabled,
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
-    chooseVoice,
+    chooseVoice: available => songAuditionVoice ? available[songAuditionVoice.channel] : chooseVoice(available),
     updateKeyboardVisuals,
     setStatus,
     stopAllNotes,
@@ -2800,10 +2889,17 @@ songControls = setupSynthSongControls({
   getVolume:()=>masterVolume,
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
+  onTargetState:setSongTargetState,
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted)songControls.stop();
-  else songControls.dispose();
+  else {
+    songControls.dispose();
+    ++songAuditionGeneration;
+    if (songAuditionBus) songAuditionBus.gain.value = 0;
+    void songAuditionMegaSynth?.close();
+    songAuditionBus?.disconnect();
+  }
 });
 updateKeyboardAvailability();
 updateMasterVolumeUi();

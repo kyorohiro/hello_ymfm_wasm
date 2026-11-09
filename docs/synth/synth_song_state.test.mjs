@@ -32,12 +32,15 @@ test('register observation preserves logical operators, six channels and global 
   }
   assert.equal(snapshot.channels[5].preset.algorithm,3);
   assert.equal(snapshot.channels[5].keyMask,2);
+  assert.equal(snapshot.channels[5].lastKeyMask,2);
   assert.deepEqual(snapshot.channels[5].preset.pan,{left:false,right:true});
   state.write(0,0x4c,99);state.write(0,0x28,0);
   assert.equal(snapshot.channels[0].preset.operators[4].tl,40,'old snapshots remain independent');
   assert.equal(snapshot.channels[0].gate,true);
   assert.equal(state.snapshot().channels[0].gate,false);
+  assert.equal(state.snapshot().channels[0].lastKeyMask,15,'key-off keeps the last voiced operator mask for frozen audition');
   assert(Object.isFrozen(first.preset.operators[4]));
+  state.reset();assert.equal(state.snapshot().channels[0].lastKeyMask,0,'source reset forgets the preceding song mask');
 });
 
 test('normal frequency highs latch across ports and only low writes commit', () => {

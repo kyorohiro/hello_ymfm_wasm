@@ -78,7 +78,7 @@ export function createSynthInputController({
 
     // The key may have been released while waiting for audio initialization.
     if (
-      heldKeys.has(key) === false
+      heldKeys.has(key) === false || !isInputEnabled() || activeKeys.has(key)
     ) {
       return;
     }

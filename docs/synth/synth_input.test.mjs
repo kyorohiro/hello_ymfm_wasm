@@ -26,6 +26,24 @@ test('native shortcuts pass through and output switching does not start new note
   controller.releaseKey('a');assert.equal(activeKeys.size,0);
 });
 
+test('a transport mode change while audio is resuming cannot start a late note', async () => {
+  let enabled=true, resume;
+  const notes=[], heldKeys=new Set();
+  const controller=createSynthInputController({
+    getKeyLayout:()=>[],findLayoutEntry:()=>({pitch:{block:4,fnum:553},noteName:'D4'}),
+    heldKeys,activePointers:new Map(),activeKeys:new Map(),voices:[{channel:0}],
+    getAudioReadyPromise:()=>null,getSynth:()=>({noteOn:(...args)=>notes.push(args)}),
+    ensureAudioReady:()=>new Promise(resolve=>{resume=resolve;}),
+    chooseVoice:()=>({channel:0}),isInputEnabled:()=>enabled,
+    updateKeyboardVisuals:()=>{},setStatus:()=>{},
+  });
+  const press=controller.pressKey('a');
+  enabled=false;
+  resume();
+  await press;
+  assert.deepEqual(notes,[]);
+});
+
 function inputFixture(t, { ensureAudioReady = async () => {} } = {}) {
   const previousWindow = globalThis.window;
   const handlers = new Map();

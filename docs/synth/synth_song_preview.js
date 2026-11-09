@@ -8,7 +8,7 @@ import {Rf5c164} from '../js/rf5c164.js';
 import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
-import {createYm2612SongTimeline} from './synth_song_state.js';
+import {createYm2612SongTimeline} from './synth_song_state.js?v=vgm-audition-1';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;

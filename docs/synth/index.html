@@ -865,7 +865,7 @@
         accent-color: #7be0d6; cursor: ns-resize;
       }
 
-      .keyboard.is-loading {
+      .keyboard.is-loading, .keyboard.is-song-unavailable {
         opacity: 0.38;
         pointer-events: none;
         filter: saturate(0.75);
@@ -1316,13 +1316,14 @@
                 <output id="synthSongTime" aria-label="Reference playback time">0:00</output>
                 <span id="synthSongStatus" role="status">Stopped.</span>
                 <span class="synth-song-live-controls">
-                  <label title="Show the selected YM2612 channel in the existing controls. Live is read-only; turn it off to edit your instrument."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
-                  <select id="synthSongChannelSelect" aria-label="Live YM2612 channel">
-                    <option value="0">CH1</option><option value="1">CH2</option><option value="2">CH3</option>
+                  <label title="Automatically follow the song settings. Turn off to freeze the current view. Choose Synth to edit your instrument."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
+                  <select id="synthSongChannelSelect" aria-label="View and keyboard sound" title="Synth: edit and play your sound. CH1–CH6: view that song channel; Pause to play its sound on the keyboard.">
+                    <option value="synth">Synth</option>
+                    <option value="0" selected>CH1</option><option value="1">CH2</option><option value="2">CH3</option>
                     <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
                   </select>
                 </span>
-                <output id="synthSongLiveStatus">Live when playing</output>
+                <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
               </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
@@ -1492,7 +1493,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-vgm-live-1";
+      import "./synth.js?v=synth-vgm-audition-1";
     </script>
   </body>
 </html>

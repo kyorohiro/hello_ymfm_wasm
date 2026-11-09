@@ -33,6 +33,7 @@ synth_recovery.js
 synth_song_controls.js
 synth_song_preview.js
 synth_song_state.js
+synth_song_voice.js
 "
 RUNTIME_FILES="
 pwm32x.js

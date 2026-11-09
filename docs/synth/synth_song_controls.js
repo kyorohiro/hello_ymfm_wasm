@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-live-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-audition-1';
 
 const isSong = path => path.startsWith('/vgm/') && /\.(vgm|vgz)$/i.test(path);
 const displayTime = seconds => {
@@ -7,7 +7,7 @@ const displayTime = seconds => {
 };
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}}) {
+export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
   const play = document.getElementById('synthSongPlayButton');
@@ -19,6 +19,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   const liveStatus = document.getElementById('synthSongLiveStatus');
   const formatInfo = document.querySelector('.synth-file-format-note');
   let selectedPath = null, selectedRevision = -1, listRevision = '', disposed = false;
+  let frozenSnapshot = null;
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
 
   function showState(state) {
@@ -34,11 +35,21 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     status.title = status.textContent;
     text(time, displayTime(state.positionSeconds));
     const running = ['playing', 'paused'].includes(state.playback);
-    const snapshot = running && live.checked ? state.liveState : null;
-    const selectedChannel = Number(channel.value);
-    const voice = snapshot?.channels[selectedChannel];
+    // Keep all channels at the same observation instant. Live Off freezes the
+    // current settings instead of sending the user back to the editor. Pause
+    // always captures its exact audible position, including when Live is Off.
+    if (state.playback === 'loading') frozenSnapshot = null;
+    if (running && state.liveState && (live.checked || !frozenSnapshot || state.playback === 'paused')) {
+      frozenSnapshot = state.liveState;
+    }
+    const target = !selectedPath || channel.value === 'synth' ? 'synth' : Number(channel.value);
+    const selectedChannel = target === 'synth' ? null : target;
+    const snapshot = running ? frozenSnapshot : null;
+    const voice = selectedChannel === null ? null : snapshot?.channels[selectedChannel];
+    const view = voice ? {snapshot, channel:selectedChannel, paused:state.playback === 'paused', following:live.checked} : null;
     root.dataset.live = String(Boolean(voice));
-    channel.disabled = !live.checked || running && !state.liveState;
+    root.dataset.target = String(target);
+    channel.disabled = false;
     if (voice) {
       const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
       const midi = Number.isFinite(voice.midi) ? Math.round(voice.midi) : null;
@@ -47,12 +58,20 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
       const pan = voice.preset.pan;
       const gate = selectedChannel === 5 && snapshot.dacEnabled ? 'PCM' :
         selectedChannel === 2 && snapshot.csmEnabled ? 'CSM' : `Gate ${voice.gate ? 'On' : 'Off'}`;
-      text(liveStatus, `${state.playback === 'paused' ? 'Paused' : 'Live'} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · read-only`);
-      onLiveView({snapshot, channel:selectedChannel, paused:state.playback === 'paused'});
+      const audition = selectedChannel === 5 && snapshot.dacEnabled ? 'DAC / PCM · FM keyboard unavailable' :
+        selectedChannel === 2 && snapshot.csmEnabled ? 'CSM · keyboard unavailable' :
+        selectedChannel === 2 && voice.specialMode && !voice.specialFrequencies[3]?.fnum ? 'No base pitch · keyboard unavailable' :
+        state.playback === 'paused' ? 'Keyboard: this CH' : 'Pause to play this CH';
+      const mode = state.playback === 'paused' ? 'Paused' : live.checked ? 'Live' : 'Frozen';
+      text(liveStatus, `${mode} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · ${audition} · read-only`);
     } else {
-      text(liveStatus, running && live.checked && !state.liveState ? 'No YM2612 in this VGM' : live.checked ? 'Live when playing' : 'Edit');
-      onLiveView(null);
+      text(liveStatus, target === 'synth' ? 'Synth · edit and play' :
+        running && !state.liveState ? 'No YM2612 in this VGM · choose Synth to play' : 'Synth keyboard · Play, then Pause to play this CH');
     }
+    // The keyboard owner needs transport/target changes even before a YM2612
+    // snapshot exists. Notify it first so stale held notes cannot cross modes.
+    onTargetState({target, playback:state.playback, view});
+    onLiveView(view);
   }
   const preview = createSynthSongPreview({getAudio, onState:showState});
   preview.setVolume(getVolume());
@@ -62,6 +81,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     if (path === selectedPath && revision === selectedRevision) return;
     selectedPath = path;
     selectedRevision = revision;
+    frozenSnapshot = null;
     if (path) {
       const file = project.fs.get(path);
       // Non-binary VGM files from other tools still produce a useful load error.

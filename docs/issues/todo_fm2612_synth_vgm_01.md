@@ -1,5 +1,31 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: Synth／CH選択とPause中の鍵盤試奏
+
+ユーザー指示：Synth／CH1〜CH6を選択し、Pause中は選んだCHの停止位置の音色を鍵盤で弾けるようにする。
+
+- [x] 選択欄をSynth／CH1〜CH6とし、Synthでは元の編集音色、CHではそのCHの表示と試奏対象を一致させる。
+- [x] Liveは自動追従のOn／Offとする。Offでは最後の観測状態を保持し、Pause中のCH変更は同じ停止位置から取得する。
+- [x] Pause中の試奏は独立した鍵盤音源を使い、曲のengine／再開位置と編集音色／Filesを変えない。対象変更・Resume／Stopで試奏音を止める。
+- [x] CH3特殊周波数・partial key mask・CH6 DACを適切に扱い、試奏できない場合は理由を表示する。
+- [x] 実WASMとChromium／WebKitで選択、Pause試奏、Live Off、Resume、音色／保存不変、通常Synthの鍵盤を検証する。
+- [x] 配布ZIPの必要assetと実動作を確認し、README／検証記録を更新する。公開・commit／pushはしない。
+
+### Pause試奏の実装と検証
+
+- Synthを選ぶと元の編集音色を表示・演奏する。CH選択中の演奏操作はPause中だけ有効。Stop／曲末尾では元のSynth鍵盤へ戻り、状態文にも表示する。既定はCH1／Live Onを維持する。
+- Live Offは全CHの観測状態を同じ時点で固定する。Pauseするとその停止位置の全CHを取得し直し、CHを切り替えて試奏できる。Synthを選んでも元音色を観測値で上書きしない。
+- 試奏用の3つ目のMegaDriveSynthを必要時だけ初期化し、独立したbusからfinalOutputBusへ接続する。曲用engine・元の鍵盤用chip・Looper／Event録音の音源を変更しない。Masterを1回適用し、対象変更・Resume／Stopでbusをmuteしてrelease tailも止める。初期化中の対象変更は世代番号で無効化し、Pagehideでcloseする。
+- `synth_song_voice.js`が停止位置のpresetを選択した実CHへ適用し、そのCHを単音で鳴らす。ADSRは鍵盤で新しく発音する。離鍵後も最後の非zero KON maskを使い、部分OPの発音を保つ。CH3 specialはOP4を鍵盤の基準とし、全OPの周波数比を保って移調・Pitch bendする。
+- CH6がDAC／PCMの場合、CH3がCSM timer発音の場合、CH3 specialでOP4の基準周波数がない場合は、試奏不可の理由を表示する。通常のFM presetと誤認させない。
+- `node --test docs/synth/*.test.mjs`：104件成功。新規の試奏helper検証と、音声resume待ちの間にモード変更した際の遅延Note On防止を含む。実WASMでも離鍵済みCH6のpartial maskで発音・離鍵を確認した。
+- sourceのLive checkerはChromium／WebKitで成功。選択CH4のMULTI 2による実PCM周波数、KONの実CH／mask、CH3の4周波数、Pause位置の不変、Live固定、Synth復帰、VFS hashの不変を確認。記録：`/private/tmp/fm2612-paused-live-browser.json`。
+- `sh scripts/package_itch_synth.sh vgm-audition-check-20261109`：成功。245個のlocal module／asset参照を確認。新しいhelperとstate helperは可読sourceとbyte一致し、ZIP全entryもstageと一致する。
+- 配布stage内のLive checkerはChromium／WebKitで成功。試奏のMaster 0／100／200／380%は実測で0／1／2／3.8倍となり、二重適用なし。記録：`/private/tmp/fm2612-paused-live-package.json`（84 assetのhashが最終stageと一致）。
+- 既存の演奏checkerは編集モードの検証にSynthを選択するよう更新。FM／PSG／DAC・RF／PWM・混在、Cave／Virtua Fighter実曲を含む全10ケースが配布stageの両browserで成功。記録：`/private/tmp/fm2612-paused-playback-package.json`（88 assetのhashが最終stageと一致）。音声の物理出力はmuteした計測で、実聴ではない。
+- 1240／390pxの画面を確認した。最終ZIP：`release/hello_ymfm_wasm_vgm-audition-check-20261109_itch_synth.zip`（237 entries、806,060 bytes、SHA-256 `5b14c59c36e9c9a533003658a8dde41bad7a60d8449e6273d2fed92e01b30160`）。receipt：`/private/tmp/fm2612-paused-package.json`。
+- README英語／日本語と変更moduleのcache keyを更新。未公開・未commit・未push。
+
 ユーザー指示：importしたVGMをFilesの`vgm/`フォルダー配下へ置く。
 
 - [x] VGM／VGZの元バイトを`/vgm/<filename>`へ保存する。VGZは圧縮された元データを保持する。

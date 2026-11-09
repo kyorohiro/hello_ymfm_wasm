@@ -28,11 +28,11 @@ export function createYm2612RegisterState(clockHz=DEFAULT_CLOCK) {
   const registers = [new Uint8Array(256), new Uint8Array(256)];
   const highLatches = [0, 0], low = new Uint8Array(6), high = new Uint8Array(6);
   const specialLow = new Uint8Array(3), specialHigh = new Uint8Array(3);
-  const keys = new Uint8Array(6), keyOnCounts = new Uint32Array(6);
+  const keys = new Uint8Array(6), lastKeys = new Uint8Array(6), keyOnCounts = new Uint32Array(6);
   let revision = 0, cached = null;
 
   function reset() {
-    for (const values of [...registers, highLatches, low, high, specialLow, specialHigh, keys, keyOnCounts]) values.fill(0);
+    for (const values of [...registers, highLatches, low, high, specialLow, specialHigh, keys, lastKeys, keyOnCounts]) values.fill(0);
     revision++; cached = null;
   }
   function write(port, register, value) {
@@ -50,7 +50,7 @@ export function createYm2612RegisterState(clockHz=DEFAULT_CLOCK) {
     } else if (port === 0 && register === 0x28 && (value & 3) !== 3) {
       const channel = (value & 3) + (value & 4 ? 3 : 0);
       keys[channel] = value >> 4;
-      if (keys[channel]) keyOnCounts[channel]++;
+      if (keys[channel]) {lastKeys[channel] = keys[channel]; keyOnCounts[channel]++;}
     }
     revision++; cached = null;
     return true;
@@ -78,7 +78,7 @@ export function createYm2612RegisterState(clockHz=DEFAULT_CLOCK) {
           ...SPECIAL_LOW.map(address => frequency(specialLow[address - 0xa8], specialHigh[address - 0xa8], clockHz)), pitch,
         ].map(Object.freeze) : [];
         return Object.freeze({channel, ...pitch, gate:keys[channel] !== 0,
-          keyMask:keys[channel], keyOnCount:keyOnCounts[channel], specialMode:channel === 2 && Boolean(modeRegister & 0xc0),
+          keyMask:keys[channel], lastKeyMask:lastKeys[channel], keyOnCount:keyOnCounts[channel], specialMode:channel === 2 && Boolean(modeRegister & 0xc0),
           specialFrequencies:Object.freeze(specialFrequencies),
           preset:Object.freeze({algorithm:bank[0xb0 + offset] & 7, feedback:(bank[0xb0 + offset] >> 3) & 7,
             ams:(b4 >> 4) & 3, pms:b4 & 7, b4,
