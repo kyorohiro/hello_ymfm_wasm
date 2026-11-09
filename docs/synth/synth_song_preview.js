@@ -9,8 +9,8 @@ import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=vgm-audition-1';
-import {createSynthSongMix} from './synth_song_mix.js?v=vgm-mix-1';
-import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=vgm-mix-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=mix-volume-1';
+import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=mix-volume-1';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;
@@ -194,18 +194,20 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     if (active) active.gain.gain.value = next;
   }
   function applyMix() {
-    if (active) active.outputMix.setMutedChannels(mix.getMutedChannels());
+    if (!active) return;
+    active.outputMix.setMutedChannels(mix.getMutedChannels());
+    for (const [id,value] of Object.entries(mix.getGroupVolumes())) active.outputMix.setGroupVolume(id,value);
   }
   function setChannelMuted(id, value) {
     checkOpen();
     if (!mix.setChannelMuted(id,value)) return;
-    applyMix();
+    if (active) active.outputMix.setMutedChannels(mix.getMutedChannels());
     emit();
   }
-  function setChannelSolo(id, value) {
+  function setGroupVolume(id, value) {
     checkOpen();
-    if (!mix.setChannelSolo(id,value)) return;
-    applyMix();
+    if (!mix.setGroupVolume(id,value)) return;
+    if (active) active.outputMix.setGroupVolume(id,value);
     emit();
   }
   function resetMix() {
@@ -313,6 +315,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       // it still records the VGM's original register values, including pan.
       outputMix = installSynthSongOutputMix(engine);
       outputMix.setMutedChannels(mix.getMutedChannels());
+      for (const [id,value] of Object.entries(mix.getGroupVolumes())) outputMix.setGroupVolume(id,value);
       // Track source writes against native generated frames before the player
       // resets / prefetches. The UI later reads only the audible prefix.
       timeline = header.ym2612Clock ? createYm2612SongTimeline(engine, header.ym2612Clock) : null;
@@ -380,5 +383,5 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     disposed = true;
   }
   return {load, clear, play, pause, resume, stop, setVolume,
-    setChannelMuted, setChannelSolo, resetMix, dispose, getState};
+    setChannelMuted, setGroupVolume, resetMix, dispose, getState};
 }

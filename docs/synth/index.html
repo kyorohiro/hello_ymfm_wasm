@@ -176,6 +176,28 @@
       .synth-song-mix-channel.is-muted > span { opacity: .45; }
       .synth-song-mix-channel .toolbar-button { padding: 2px 5px; min-height: 24px; }
       .synth-song-mix-channel .is-selected { background: #47776b; color: #fff; }
+      .synth-song-mix-volume { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 2px 0 5px; }
+      .synth-song-mix-volume input {
+        --mix-volume-color: #7cadd8;
+        flex: 1; min-width: 0; height: 6px; margin: 7px 0;
+        appearance: none; -webkit-appearance: none;
+        border: 1px solid #586965; border-radius: 999px;
+        background: linear-gradient(to right, var(--mix-volume-color) 0%, var(--mix-volume-color) var(--mix-volume-position, 26.3158%), #33413f var(--mix-volume-position, 26.3158%), #33413f 100%);
+        cursor: ew-resize;
+      }
+      .synth-song-mix-volume input[data-boosted="true"] { --mix-volume-color: #e8953d; }
+      .synth-song-mix-volume input::-webkit-slider-runnable-track { height: 6px; background: transparent; border: 0; }
+      .synth-song-mix-volume input::-webkit-slider-thumb {
+        appearance: none; -webkit-appearance: none; width: 13px; height: 13px; margin-top: -3.5px;
+        border: 1px solid #d5e5dc; border-radius: 50%; background: var(--mix-volume-color);
+      }
+      .synth-song-mix-volume input::-moz-range-track { height: 6px; background: transparent; border: 0; }
+      .synth-song-mix-volume input::-moz-range-thumb {
+        width: 13px; height: 13px; border: 1px solid #d5e5dc; border-radius: 50%; background: var(--mix-volume-color);
+      }
+      .synth-song-mix-volume input:focus-visible { outline: 2px solid #b7d9d1; outline-offset: 4px; }
+      .synth-song-mix-volume input[data-boosted="true"] + output { color: #e8953d; }
+      .synth-song-mix-volume output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
       .synth-song-display-option { display: flex; align-items: center; gap: 6px; margin: 7px 0; color: #b8cac6; }
       .synth-song-display-option input { margin: 0; accent-color: #7be0d6; }
       @keyframes synth-live-change { from { background-color: #ffdb9788; color: #fff5c3; } }
@@ -1358,11 +1380,11 @@
                     <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
                   </select>
                   <button id="synthSongCopyButton" class="toolbar-button" type="button" aria-label="Copy selected channel to Synth" title="Pause to copy the selected FM channel into a new editable Synth instrument." disabled>Copy</button>
-                  <button id="synthSongMixButton" class="toolbar-button" type="button" aria-expanded="false" aria-controls="synthSongMixPanel" title="Choose which reference-song channels to hear. M: Mute. S: Solo. Changes take about 0.2 seconds.">Mix</button>
+                  <button id="synthSongMixButton" class="toolbar-button" type="button" aria-expanded="false" aria-controls="synthSongMixPanel" title="Adjust reference-song chip volumes and mute individual channels. Changes take about 0.2 seconds.">Mix</button>
                 </span>
                 <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
-                <div id="synthSongMixPanel" role="group" aria-label="Reference playback channels" hidden>
-                  <div class="synth-song-mix-heading"><strong>Playback channels</strong><button id="synthSongMixReset" class="toolbar-button" type="button">Reset</button></div>
+                <div id="synthSongMixPanel" role="group" aria-label="Reference playback mixer" hidden>
+                  <div class="synth-song-mix-heading"><strong>Playback mixer</strong><button id="synthSongMixReset" class="toolbar-button" type="button">Reset</button></div>
                   <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
                   <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
                 </div>
@@ -1535,7 +1557,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-op-gates-1";
+      import "./synth.js?v=synth-mix-volume-1";
     </script>
   </body>
 </html>

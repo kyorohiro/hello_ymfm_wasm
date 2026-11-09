@@ -15,46 +15,74 @@ test('reference mix exposes only the song chips, including physical DAC and ster
     ...Array.from({length:8},(_,i)=>`pcm:${i}`),'pwm:0','pwm:1']);
   assert.equal(state.channels.find(channel=>channel.id==='ym2612:5').label,'CH6 / DAC');
   assert.match(state.channels.find(channel=>channel.id==='pwm:0').label,/output/);
-  assert(state.channels.every(channel=>!channel.muted&&!channel.solo&&!channel.effectiveMuted));
+  assert(state.channels.every(channel=>!channel.muted&&!channel.effectiveMuted));
+  assert.deepEqual(state.groups,[{id:'ym2612',label:'YM2612',volume:1},
+    {id:'psg',label:'Sega PSG',volume:1},{id:'pcm',label:'Mega CD PCM',volume:1},{id:'pwm',label:'32X PWM'}]);
+  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1});
   assert.equal(state.changed,false);
   assert(Object.isFrozen(state.channels[0]));
+  assert(Object.isFrozen(state.groups[0]));
+  assert(Object.isFrozen(state.groups));
   mix.configure({psgClock:3579545});
   assert.deepEqual(mix.getState().channels.map(channel=>channel.id),['psg:0','psg:1','psg:2','psg:3']);
   assert.equal(mix.getMutedChannels().length,16,'undeclared endpoints stay silent too');
+  assert.deepEqual(mix.getState().groups,[{id:'psg',label:'Sega PSG',volume:1}]);
+  assert.deepEqual(mix.getGroupVolumes(),{psg:1});
   assert(mix.getMutedChannels().includes('ym2612:5'),'undeclared YM2612 cannot leak DAC discontinuity');
   assert(!mix.getMutedChannels().includes('psg:3'));
 });
 
-test('multiple solos combine globally and explicit mute wins without erasing either choice', () => {
+test('channel mutes remain independent from source volumes; Reset restores both', () => {
   const mix = createSynthSongMix();mix.configure(fullHeader);
   const audible = () => mix.getState().channels.filter(channel=>!channel.effectiveMuted).map(channel=>channel.id);
-  mix.setChannelSolo('ym2612:1',true);
-  assert.deepEqual(audible(),['ym2612:1']);
-  mix.setChannelSolo('pcm:6',true);mix.setChannelSolo('pwm:1',true);
-  assert.deepEqual(audible(),['ym2612:1','pcm:6','pwm:1']);
+  mix.setChannelMuted('ym2612:1',true);mix.setChannelMuted('pwm:1',true);
   mix.setChannelMuted('pcm:6',true);
-  assert.deepEqual(audible(),['ym2612:1','pwm:1']);
-  assert.equal(mix.getState().channels.find(channel=>channel.id==='pcm:6').solo,true);
-  mix.setChannelSolo('ym2612:1',false);mix.setChannelSolo('pcm:6',false);mix.setChannelSolo('pwm:1',false);
-  assert.equal(mix.getState().hasSolo,false);
-  assert.equal(audible().length,19);
+  mix.setGroupVolume('ym2612',3.8);mix.setGroupVolume('psg',0);mix.setGroupVolume('pcm',.25);
+  assert.equal(audible().length,17,'group gain does not rewrite per-channel mute choices');
+  assert.deepEqual(mix.getGroupVolumes(),{ym2612:3.8,psg:0,pcm:.25});
+  assert.equal(mix.getState().changed,true);
+  mix.setChannelMuted('ym2612:1',false);
+  assert.equal(audible().length,18);
+  assert.equal(mix.getState().groups[0].volume,3.8);
   assert.equal(mix.reset(),true);assert.equal(audible().length,20);
+  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1});
+  mix.setGroupVolume('psg',.5);
+  assert.equal(mix.getState().changed,true,'a gain-only edit enables Reset');
+  assert.equal(mix.reset(),true);
   assert.equal(mix.reset(),false);
 });
 
 test('same-song configuration retains choices; source clearing and unavailable channels remove them', () => {
   const mix = createSynthSongMix();mix.configure(fullHeader);
-  mix.setChannelMuted('psg:3',true);mix.setChannelSolo('pwm:0',true);
+  mix.setChannelMuted('psg:3',true);mix.setGroupVolume('psg',2);mix.setGroupVolume('pcm',0);
   const previous = mix.getState();
   mix.configure({...fullHeader});
   assert.equal(mix.getState(),previous,'same header does not discard stopped-song mix');
   mix.configure({psgClock:3579545});
-  assert.equal(mix.getState().hasSolo,false,'a missing source cannot leave every visible channel solo-muted');
   assert.equal(mix.getState().channels.at(-1).muted,true);
+  assert.deepEqual(mix.getGroupVolumes(),{psg:2},'remaining sources keep their gain; absent sources are forgotten');
   assert.throws(()=>mix.setChannelMuted('pwm:0',true),/Unknown reference channel/);
   assert.throws(()=>mix.setChannelMuted('psg:0',1),/boolean/);
   assert.equal(mix.setChannelMuted('psg:3',true),false);
   mix.clear();mix.configure(fullHeader);
   assert.equal(mix.getState().changed,false,'a new file starts with all outputs enabled');
+  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1},'new source gains start at 100%');
   assert.equal(previous.channels.find(channel=>channel.id==='psg:3').muted,true,'old snapshots remain immutable');
+  assert.equal(previous.groups.find(group=>group.id==='psg').volume,2);
+});
+
+test('group volume validation is atomic and externally returned maps cannot change playback choices',()=>{
+  const mix=createSynthSongMix();mix.configure(fullHeader);mix.setGroupVolume('psg',.6);
+  const original=mix.getState();
+  for(const gain of [-1,3.80001,NaN,Infinity,'1',null]) {
+    assert.throws(()=>mix.setGroupVolume('psg',gain),/0\.\.3\.8/);
+    assert.equal(mix.getState(),original);
+  }
+  for(const id of ['pwm','ym2612:0','missing'])assert.throws(()=>mix.setGroupVolume(id,1),/Unknown reference volume group/);
+  const detached=mix.getGroupVolumes();detached.psg=3.8;
+  assert.equal(mix.getState().groups[1].volume,.6);
+  assert.equal(mix.setGroupVolume('psg',.6),false);
+  mix.configure({pwmClock:23011361});
+  assert.deepEqual(mix.getGroupVolumes(),{});
+  assert.deepEqual(mix.getState().groups,[{id:'pwm',label:'32X PWM'}]);
 });

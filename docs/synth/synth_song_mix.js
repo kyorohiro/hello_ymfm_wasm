@@ -1,52 +1,65 @@
 // Session-only listening choices for a reference song. These settings never
 // change the instrument editor, source VGM or the written-register Live view.
 const GROUPS = [
-  {clock:'ym2612Clock', prefix:'ym2612', group:'YM2612', labels:['CH1','CH2','CH3','CH4','CH5','CH6 / DAC']},
-  {clock:'psgClock', prefix:'psg', group:'Sega PSG', labels:['Tone 1','Tone 2','Tone 3','Noise']},
-  {clock:'rf5c164Clock', prefix:'pcm', group:'Mega CD PCM', labels:Array.from({length:8},(_,i)=>`PCM ${i+1}`)},
+  {clock:'ym2612Clock', prefix:'ym2612', group:'YM2612', volume:true, labels:['CH1','CH2','CH3','CH4','CH5','CH6 / DAC']},
+  {clock:'psgClock', prefix:'psg', group:'Sega PSG', volume:true, labels:['Tone 1','Tone 2','Tone 3','Noise']},
+  {clock:'rf5c164Clock', prefix:'pcm', group:'Mega CD PCM', volume:true, labels:Array.from({length:8},(_,i)=>`PCM ${i+1}`)},
   {clock:'pwmClock', prefix:'pwm', group:'32X PWM', labels:['L output','R output']},
 ];
 
 export function createSynthSongMix() {
-  let entries = [], settings = new Map(), cached = null;
+  let entries = [], groups = [], settings = new Map(), volumes = new Map(), cached = null;
   const invalidate = () => {cached = null;};
   function getState() {
     if (!cached) {
-      const hasSolo = [...settings.values()].some(setting => setting.solo);
       const channels = entries.map(entry => {
-        const {muted,solo} = settings.get(entry.id);
-        return Object.freeze({...entry, muted, solo, effectiveMuted:muted || hasSolo && !solo});
+        const muted = settings.get(entry.id);
+        return Object.freeze({...entry, muted, effectiveMuted:muted});
       });
-      cached = Object.freeze({channels:Object.freeze(channels), hasSolo,
-        changed:channels.some(channel => channel.muted || channel.solo)});
+      const groupState = groups.map(({prefix,group,volume}) => Object.freeze({id:prefix,label:group,
+        ...(volume?{volume:volumes.get(prefix)}:{})}));
+      cached = Object.freeze({channels:Object.freeze(channels),groups:Object.freeze(groupState),
+        changed:channels.some(channel => channel.muted)||[...volumes.values()].some(value=>value!==1)});
     }
     return cached;
   }
   function configure(header) {
-    const next = GROUPS.filter(group => header[group.clock]).flatMap(({prefix,group,labels}) =>
-      labels.map((label,index) => ({id:`${prefix}:${index}`, group, label})));
+    const nextGroups = GROUPS.filter(group => header[group.clock]);
+    const next = nextGroups.flatMap(({prefix,group,labels}) =>
+      labels.map((label,index) => ({id:`${prefix}:${index}`, groupId:prefix, group, label})));
     if (JSON.stringify(next) === JSON.stringify(entries)) return;
     entries = next;
-    settings = new Map(entries.map(entry => [entry.id, settings.get(entry.id) ?? {muted:false,solo:false}]));
+    groups = nextGroups;
+    settings = new Map(entries.map(entry => [entry.id, settings.get(entry.id) ?? false]));
+    volumes = new Map(groups.filter(group=>group.volume).map(({prefix})=>[prefix,volumes.get(prefix)??1]));
     invalidate();
   }
-  function set(id, property, value) {
-    const setting = settings.get(id);
-    if (!setting) throw new RangeError(`Unknown reference channel: ${id}`);
-    if (typeof value !== 'boolean') throw new TypeError(`${property} must be a boolean`);
-    if (setting[property] === value) return false;
-    settings.set(id, {...setting, [property]:value});
+  function setChannelMuted(id, value) {
+    if (!settings.has(id)) throw new RangeError(`Unknown reference channel: ${id}`);
+    if (typeof value !== 'boolean') throw new TypeError('muted must be a boolean');
+    if (settings.get(id) === value) return false;
+    settings.set(id, value);
+    invalidate();
+    return true;
+  }
+  function setGroupVolume(id, value) {
+    if (!volumes.has(id)) throw new RangeError(`Unknown reference volume group: ${id}`);
+    if (typeof value !== 'number'||!Number.isFinite(value)||value<0||value>3.8) throw new RangeError('Reference group volume must be 0..3.8.');
+    if (volumes.get(id) === value) return false;
+    volumes.set(id, value);
     invalidate();
     return true;
   }
   function reset() {
     const changed = getState().changed;
     if (!changed) return false;
-    settings = new Map(entries.map(entry => [entry.id, {muted:false,solo:false}]));
+    settings = new Map(entries.map(entry => [entry.id, false]));
+    volumes = new Map([...volumes.keys()].map(id=>[id,1]));
     invalidate();
     return true;
   }
-  function clear() {entries = []; settings = new Map(); invalidate();}
+  function clear() {entries = []; groups = []; settings = new Map(); volumes = new Map(); invalidate();}
+  function getGroupVolumes() {return Object.fromEntries(volumes);}
   function getMutedChannels() {
     const audible = new Set(getState().channels.filter(channel => !channel.effectiveMuted).map(channel => channel.id));
     // The Genesis renderer always allocates YM2612/PSG endpoints, even for a
@@ -54,7 +67,6 @@ export function createSynthSongMix() {
     return GROUPS.flatMap(({prefix,labels}) => labels.map((_,i)=>`${prefix}:${i}`))
       .filter(id => !audible.has(id));
   }
-  return {configure, getState, getMutedChannels, clear, reset,
-    setChannelMuted:(id,value) => set(id,'muted',value),
-    setChannelSolo:(id,value) => set(id,'solo',value)};
+  return {configure, getState, getMutedChannels, getGroupVolumes, clear, reset,
+    setChannelMuted, setGroupVolume};
 }

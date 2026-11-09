@@ -35,6 +35,141 @@ const nearStereo = (actual,expected,start=0) => {
   assert.deepEqual(actual.left.subarray(start),expected.left.subarray(start));
   assert.deepEqual(actual.right.subarray(start),expected.right.subarray(start));
 };
+const volumeGroups = ['ym2612','psg','pcm'];
+function psg(engine) {
+  // Tone1 plus Tone3-clocked white noise exercise both PSG generators.
+  for (const value of [0x85,0x12,0x94,0xc4,0x13,0xd6,0xe7,0xf5]) engine.writePsg(value);
+}
+function programAll(engine) {fm(engine);fm(engine,4,{pan:0x80});psg(engine);pcm(engine);}
+function rawMix(engine, frames, gains={ym2612:1,psg:1,pcm:1}) {
+  const ym=engine.ym2612.generateStereo(frames),psg=engine.psg.generateStereo(frames),pcm=engine.pcm.generateStereo(frames);
+  const pwm=engine.pwm.generateStereo?.(frames),held=pwm?null:engine.pwm.output();
+  const result={left:new Float32Array(frames),right:new Float32Array(frames)};
+  for(const side of ['left','right'])for(let frame=0;frame<frames;frame++) {
+    // Chip outputs are Float32 buffers. Each independent gain is rounded at
+    // that chip boundary before the existing engine coefficients/master sum.
+    result[side][frame]=(Math.fround(ym[side][frame]*gains.ym2612)*.9+
+      Math.fround(psg[side][frame]*gains.psg)*.35+
+      (pwm?pwm[side][frame]:held[side==='left'?0:1])+
+      Math.fround(pcm[side][frame]*gains.pcm))*engine.getMasterVolume();
+  }
+  return result;
+}
+
+test('each real WASM chip gain supports 0/50/100/200/380 percent before the engine sum', async () => {
+  for(const group of volumeGroups) {
+    const engine=await createEngine(),reference=await createEngine(),mix=installSynthSongOutputMix(engine);
+    try {
+      for(const e of [engine,reference])({ym2612:fm,psg,pcm}[group])(e);
+      const gains={ym2612:0,psg:0,pcm:0};
+      for(const id of volumeGroups)mix.setGroupVolume(id,0);
+      for(const gain of [0,.5,1,2,3.8]) {
+        gains[group]=gain;assert.equal(mix.setGroupVolume(group,gain),gain);
+        const actual=engine.processFrames(1153),expected=rawMix(reference,1153,gains);
+        nearStereo(actual,expected);
+        if(gain===0)assert(actual.left.every(value=>value===0)&&actual.right.every(value=>value===0));
+        else assert(acRms(actual.left)+acRms(actual.right)>.0001,`${group} remains audible at ${gain}`);
+      }
+    } finally {mix.dispose();engine.dispose();reference.dispose();}
+  }
+});
+
+test('real WASM mixed-source gains are independent and leave 32X PWM and master gain intact', async () => {
+  const engine=await createEngine(),reference=await createEngine(),mix=installSynthSongOutputMix(engine);
+  try {
+    for(const e of [engine,reference]) {
+      programAll(e);e.setMasterVolume(.7);
+      e.writePwm(1,100);e.writePwm(2,54);e.writePwm(3,47);
+    }
+    nearStereo(engine.processFrames(271),reference.processFrames(271));
+    for(const gains of [
+      {ym2612:1,psg:1,pcm:1},{ym2612:0,psg:1,pcm:1},
+      {ym2612:.5,psg:1,pcm:1},{ym2612:1,psg:2,pcm:1},
+      {ym2612:1,psg:1,pcm:3.8},{ym2612:3.8,psg:.5,pcm:2},
+      {ym2612:0,psg:0,pcm:0},{ym2612:1,psg:1,pcm:1},
+    ]) {
+      for(const group of volumeGroups)mix.setGroupVolume(group,gains[group]);
+      const actual=engine.processFrames(997),expected=rawMix(reference,997,gains);
+      nearStereo(actual,expected);
+      if(volumeGroups.every(group=>gains[group]===0)) {
+        assert(actual.left.some(value=>value!==0)&&actual.right.some(value=>value!==0),'PWM output remains independent of all three zero gains');
+      }
+    }
+    mix.dispose();
+    nearStereo(engine.processFrames(1709),reference.processFrames(1709));
+  } finally {mix.dispose();engine.dispose();reference.dispose();}
+});
+
+test('zero output gain keeps every native clock/state advancing and restores byte-exact continuation', async () => {
+  const engine=await createEngine(),reference=await createEngine(),mix=installSynthSongOutputMix(engine);
+  try {
+    for(const e of [engine,reference])programAll(e);
+    nearStereo(engine.processFrames(701),reference.processFrames(701));
+    for(const group of volumeGroups)mix.setGroupVolume(group,0);
+    for(const count of [1,317,2003,557]) {
+      for(const e of [engine,reference]) {
+        e.writeYm2612(0,0xa4,0x24);e.writeYm2612(0,0xa0,0x72);
+        e.writePsg(0x8b);e.writePsg(0x17);
+        e.writeRf5c164(7,0xc3);e.writeRf5c164(2,0x52);e.writeRf5c164(3,4);
+      }
+      const silent=engine.processFrames(count);reference.processFrames(count);
+      assert(silent.left.every(value=>value===0)&&silent.right.every(value=>value===0));
+    }
+    for(const group of volumeGroups)mix.setGroupVolume(group,1);
+    nearStereo(engine.processFrames(4097),reference.processFrames(4097));
+    // Reset starts another song pass while retaining the host's gain settings.
+    for(const group of volumeGroups)mix.setGroupVolume(group,.5);
+    for(const e of [engine,reference]){e.reset();programAll(e);}
+    nearStereo(engine.processFrames(881),rawMix(reference,881,{ym2612:.5,psg:.5,pcm:.5}));
+    mix.dispose();
+    nearStereo(engine.processFrames(1231),reference.processFrames(1231));
+  } finally {mix.dispose();engine.dispose();reference.dispose();}
+});
+
+test('boosted gains obey per-channel/full mute, retain source writes and unmute without restarting cores', async () => {
+  const engine=await createEngine(),reference=await createEngine(),mix=installSynthSongOutputMix(engine),referenceMix=installSynthSongOutputMix(reference);
+  try {
+    for(const e of [engine,reference])programAll(e);
+    const gains={ym2612:3.8,psg:2,pcm:.5};
+    for(const group of volumeGroups)mix.setGroupVolume(group,gains[group]);
+    for(const ids of [
+      ['ym2612:0','psg:2','psg:3','pcm:3'],
+      [...Array.from({length:6},(_,ch)=>`ym2612:${ch}`),...Array.from({length:4},(_,ch)=>`psg:${ch}`),...Array.from({length:8},(_,ch)=>`pcm:${ch}`)],
+      [],
+    ]) {
+      mix.setMutedChannels(ids);referenceMix.setMutedChannels(ids);
+      for(const e of [engine,reference]) {
+        e.writeYm2612(0,0xb4,0x47);e.writePsg(0xc7);e.writePsg(0x15);
+        e.writeRf5c164(7,0xc3);e.writeRf5c164(1,0x80);e.writeRf5c164Memory(22,0x51);
+      }
+      const actual=engine.processFrames(2003),expected=rawMix(reference,2003,gains);
+      nearStereo(actual,expected);
+      if(ids.length===18)assert(actual.left.every(value=>value===0)&&actual.right.every(value=>value===0),'all output mutes remain exact silence with boosts enabled');
+    }
+    for(const group of volumeGroups)mix.setGroupVolume(group,1);
+    nearStereo(engine.processFrames(3001),reference.processFrames(3001));
+  } finally {mix.dispose();referenceMix.dispose();engine.dispose();reference.dispose();}
+});
+
+test('volume validation is atomic, emits no source writes and dispose restores optional wrappers', () => {
+  const writes=[],returned={left:new Float32Array([.25,-.5]),right:new Float32Array([-.5,.25])};
+  const generate=()=>({left:returned.left.slice(),right:returned.right.slice()});
+  const engine={ym2612:{generateStereo:generate},psg:{generateStereo:generate},pcm:{generateStereo:generate},
+    writeYm2612:(...args)=>writes.push(args),writeRf5c164:(...args)=>writes.push(args),reset(){}};
+  const mix=installSynthSongOutputMix(engine);
+  assert.equal(mix.setGroupVolume('ym2612',2),2);
+  assert.equal(writes.length,0,'software gain never rewrites source registers');
+  for(const [id,gain] of [['pwm',1],['unknown',1],['psg',-.1],['pcm',3.81],['ym2612',NaN],['ym2612',Infinity],['psg','2']]) {
+    assert.throws(()=>mix.setGroupVolume(id,gain),/Invalid|range/);
+  }
+  assert.deepEqual(engine.ym2612.generateStereo(2).left,new Float32Array([.5,-1]),'invalid updates leave the accepted gain in place');
+  assert.deepEqual(engine.psg.generateStereo(2).left,returned.left);
+  assert.deepEqual(engine.pcm.generateStereo(2).left,returned.left);
+  assert.deepEqual(returned.left,new Float32Array([.25,-.5]),'no native/retained source buffer is changed');
+  mix.dispose();
+  for(const chip of ['ym2612','psg','pcm'])assert.equal(engine[chip].generateStereo,generate);
+  assert.throws(()=>mix.setGroupVolume('ym2612',1),/disposed/);
+});
 
 test('default output is byte-exact; muted FM keeps feedback, EG, pitch and source pan writes advancing', async () => {
   const engine=await createEngine(), reference=await createEngine(), mix=installSynthSongOutputMix(engine);

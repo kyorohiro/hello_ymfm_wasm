@@ -1,6 +1,6 @@
 import {createSynthProject} from './synth_project.js?v=op-gates-1';
 import {setupSynthFiles} from './synth_files.js?v=op-gates-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=captured-record-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=mix-volume-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';

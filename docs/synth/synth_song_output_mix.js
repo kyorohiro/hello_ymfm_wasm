@@ -3,6 +3,7 @@
 // original song writes. No note-off, envelope, sample address or DAC data is
 // changed to mute a channel. The checked SDK and its WASM ABI stay unchanged.
 const GROUPS = {ym2612:6, psg:4, pcm:8, pwm:2};
+const VOLUME_GROUPS = new Set(['ym2612','psg','pcm']);
 const validId = id => {
   const match = /^(ym2612|psg|pcm|pwm):(\d+)$/.exec(id);
   return match && Number(match[2]) < GROUPS[match[1]];
@@ -11,11 +12,12 @@ const validId = id => {
 // Install on a fresh engine, before playback reset / source writes / timeline.
 export function installSynthSongOutputMix(engine) {
   const original = {ym:engine.writeYm2612, pcm:engine.writeRf5c164, reset:engine.reset,
-    ymGenerate:engine.ym2612?.generateStereo, pcmGenerate:engine.pcm?.generateStereo,
+    ymGenerate:engine.ym2612?.generateStereo, psgGenerate:engine.psg?.generateStereo, pcmGenerate:engine.pcm?.generateStereo,
     pwmGenerate:engine.pwm?.generateStereo, pwmOutput:engine.pwm?.output};
   const initialPsgMask = engine.psg?.muteMask ?? 0;
   const ymPan = new Uint8Array(6), pcmPan = new Uint8Array(8);
   let masks = {ym2612:0, psg:0, pcm:0, pwm:0}, pcmChannel = 0, pcmControl = 0, disposed = false;
+  const volumes = {ym2612:1, psg:1, pcm:1};
   const rawYm = (...args) => original.ym?.call(engine, ...args);
   const rawPcm = (...args) => original.pcm?.call(engine, ...args);
 
@@ -68,13 +70,14 @@ export function installSynthSongOutputMix(engine) {
     const output = original.ymGenerate.call(this, frames);
     // ymfm models the YM2612's DC discontinuity even with both pan bits off.
     // Complete mute suppresses that residual output, while clocking the core.
-    if (masks.ym2612 === 63) {output.left.fill(0); output.right.fill(0);}
-    return output;
+    return scaleOutput(output, volumes.ym2612, masks.ym2612 === 63);
+  }
+  function psgGenerate(frames) {
+    return scaleOutput(original.psgGenerate.call(this, frames), volumes.psg, masks.psg === 15);
   }
   function pcmGenerate(frames) {
     const output = original.pcmGenerate.call(this, frames);
-    if (masks.pcm === 255) {output.left.fill(0); output.right.fill(0);}
-    return output;
+    return scaleOutput(output, volumes.pcm, masks.pcm === 255);
   }
   function pwmGenerate(frames) {
     const output = original.pwmGenerate.call(this, frames);
@@ -90,11 +93,19 @@ export function installSynthSongOutputMix(engine) {
   if (original.pcm) engine.writeRf5c164 = writePcm;
   engine.reset = reset;
   if (original.ymGenerate) engine.ym2612.generateStereo = ymGenerate;
+  if (original.psgGenerate) engine.psg.generateStereo = psgGenerate;
   if (original.pcmGenerate) engine.pcm.generateStereo = pcmGenerate;
   if (original.pwmGenerate) engine.pwm.generateStereo = pwmGenerate;
   if (original.pwmOutput) engine.pwm.output = pwmOutput;
 
   return {
+    setGroupVolume(id, gain) {
+      if (disposed) throw new Error('Reference output mixer is disposed');
+      if (!VOLUME_GROUPS.has(id)) throw new RangeError(`Invalid playback volume group: ${id}`);
+      if (typeof gain !== 'number' || !Number.isFinite(gain) || gain < 0 || gain > 3.8) throw new RangeError('Playback group volume must be a number in range 0..3.8');
+      volumes[id] = gain;
+      return gain;
+    },
     setMutedChannels(ids) {
       if (disposed) throw new Error('Reference output mixer is disposed');
       const next = {ym2612:0, psg:0, pcm:0, pwm:0};
@@ -118,9 +129,24 @@ export function installSynthSongOutputMix(engine) {
       if (engine.writeRf5c164 === writePcm) engine.writeRf5c164 = original.pcm;
       if (engine.reset === reset) engine.reset = original.reset;
       if (engine.ym2612?.generateStereo === ymGenerate) engine.ym2612.generateStereo = original.ymGenerate;
+      if (engine.psg?.generateStereo === psgGenerate) engine.psg.generateStereo = original.psgGenerate;
       if (engine.pcm?.generateStereo === pcmGenerate) engine.pcm.generateStereo = original.pcmGenerate;
       if (engine.pwm?.generateStereo === pwmGenerate) engine.pwm.generateStereo = original.pwmGenerate;
       if (engine.pwm?.output === pwmOutput) engine.pwm.output = original.pwmOutput;
     },
   };
+}
+
+// All three chip generateStereo APIs return owned copies, not native heap
+// views. Scaling these copies cannot change oscillator/sample/resampler state.
+// Keep the unity path untouched so the default mix remains byte-exact.
+function scaleOutput(output, gain, muted) {
+  if (muted || gain === 0) {output.left.fill(0); output.right.fill(0);}
+  else if (gain !== 1) {
+    for (let frame = 0; frame < output.left.length; frame++) output.left[frame] *= gain;
+    if (output.right !== output.left) {
+      for (let frame = 0; frame < output.right.length; frame++) output.right[frame] *= gain;
+    }
+  }
+  return output;
 }

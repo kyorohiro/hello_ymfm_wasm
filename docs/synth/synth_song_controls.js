@@ -1,5 +1,5 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=captured-record-1';
-import {setupSynthSongMixControls} from './synth_song_mix_controls.js';
+import {createSynthSongPreview} from './synth_song_preview.js?v=mix-volume-1';
+import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=mix-volume-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 

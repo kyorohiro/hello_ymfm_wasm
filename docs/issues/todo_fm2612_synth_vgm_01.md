@@ -1,5 +1,32 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: MixのMute表記と音源別Volume
+
+ユーザー指示：MをMuteへ変更し、S／Soloを外す。YM2612・Sega PSG・Mega CD PCMそれぞれの音量を調節できるようにする。
+
+- [x] 各CHの操作はMuteだけにする。既存のMix popup内に音源ごとのVolumeを置き、常時表示のUIは増やさない。
+- [x] Volumeは既定100%、既存Masterと同じ0〜380%にする。100%超をオレンジで示す。32X PWMは既存のL／R Muteを維持する。
+- [x] Volumeは模範演奏の各音源の出力へ作用し、Masterとは独立させる。音色・source VGM・Live表示・発音・再生位置・chip内部処理を変えない。
+- [x] 再生／Pause／Resume、同じ曲のStop後は設定を保持し、曲変更では初期化する。ResetでMute解除とVolume 100%へ戻す。Soloの状態・操作経路を外す。
+- [x] 実WASMで0／50／100／200／380%、複数音源の独立性、Muteとの併用、復帰後の波形継続とdefault 100%の一致を検証する。
+- [x] 配布ZIPのChromium／WebKitで実PCM・keyboard focus・Live／保存不変と1240／390pxの配置を確認し、README／検証記録を更新する。公開・commit／pushはしない。
+
+### 実装と検証
+
+- SoloのUI・state・操作APIを外し、各CHをMute表記にした。YM2612／Sega PSG／Mega CD PCMの見出しの下へ既定100%・0〜380%のsliderを追加。100%超はオレンジ。32X PWMは既存のL／R Muteのみ。
+- 各chipの所有するstereo出力copyを合算前にscaleし、chip register／TL／発音／sample位置は変えない。既定1倍ではscale自体を省略し、PCMのbyte一致を維持する。0%でもcoreを進め、Disposeで元の生成経路を戻す。
+- `node --test docs/synth/*.test.mjs`：166件成功。実WASMの0／50／100／200／380%、3音源の独立性、Master／PWMとの合算、0%から戻した波形継続、Muteとの併用、Reset／Disposeを検証。previewは先読みPCMを捨てず、Pause中のVolume変更でも位置・Live・元fileを変えない。
+- 音量sliderは状態変更中も同じDOMを保持する。各Mix snapshotが同じならUI更新を省略し、Volumeだけの変更ではpopup位置のlayout計測をしない。focus中も文字キーでSynthを演奏でき、矢印／Home／Endはslider、Space／Enterはbutton操作へ渡す。
+- 同曲のStop／Play・Pause／ResumeではMuteとVolumeを保持する。別曲ではMute解除・100%へ戻し、存在しない音源のsliderを除く。ResetもMute解除・100%へ戻す。Mixerはsession用で、音色・元VGM・Cassetteへ設定を書き込まない。
+- 配布stageの`check_synth_song_mix_browser.cjs`がChromium／WebKitで成功。FM 6ch／PSG 4ch／PCM 8ch／PWM左右の全20系統でMute・解除後の実音声継続を確認し、S／SoloのUIがなく全buttonがMute表記であることを確認した。
+- 各groupを単独／複数音源同時で0／50／100／200／380%にし、実PCMの倍率と他音源・PWMの不変を確認。Master 50%は各groupの値を維持したまま全体だけを0.5倍にする。YM2612 VolumeはCH6のDAC音声にも適用される。検証用PWMの大きな左出力が別音源のFFT測定へ漏れないよう、3音源は右側、PWM Lは左側で測り、倍率の判定閾値は変更していない。
+- 同checkerでPause中の音量変更による位置固定、focus中のrangeからの鍵盤入力と実KON、Pause／Resume・同曲Stop／Playの保持、Reset、別曲での初期化、Liveの元register表示と全VFS byteの不変を確認した。既存Copy／部分OP／CH3特殊・編集保存の検証も成功。
+- 1240／390pxでpopupが画面内へ収まり、開閉でeditorの位置・高さが変わらないことを確認。YM2612／Sega PSG／Mega CD PCMのVolumeは各見出し直下、Muteは2列、PWMは既存左右のMuteのみ。狭幅ではpopup内をscrollできる。音源のUIや音色editorへ新しい常設行は追加しない。
+- 記録：`/private/tmp/fm2612-mix-volume-browser.json`（96 assets）。全asset hashは最終stageと一致。物理音声出力はmuteした自動計測で、人の実聴とは区別する。
+- `sh scripts/package_itch_synth.sh mix-volume-check-20261109`と261個のlocal module／asset参照チェックが成功。最終ZIP：`release/hello_ymfm_wasm_mix-volume-check-20261109_itch_synth.zip`（245 entries／217 files、827,463 bytes、SHA-256 `b5b85a812608612cef404623a1601dc37b474886e69529196098ae36cb6254c0`）。全fileがstageと一致。receipt：`/private/tmp/fm2612-mix-volume-package.json`。README英語／日本語・cache keyを更新した。共通SDK／core／WASM／npm packageの変更はない。未公開・未commit・未push。
+
+- WebKitの標準rangeがaccent-colorを描かないことを画面確認で検出し、3つのgroup sliderに共通のcustom track／thumbを使うようにした。最終stageで同じ全checkerをChromium／WebKitとも再実行し、青／オレンジのresolved gradient・fill位置・各音量・入力・状態保持が成功した。YM2612 150%のオレンジ／PSG 80%の青を1240／390pxでも確認。Masterの既存描画には変更しない。
+
 ## 完了: 通常音色を含むOP1〜OP4の発音On／Off
 
 ユーザー指示：コピー音色に限らず、通常の音色でも発音するOPを指定できるようにする。既定は全OP On。
@@ -112,7 +139,7 @@
 
 - [x] Live中に変更されたparameterを短くハイライトする（上記の既定On・切替可能な機能として完了）。
 - [x] コピーしたpartial KON／CH3特殊音色のLooper／Event Rec対応。上記の録音対応で完了し、開始制限を解除した。
-- [ ] コピーした発音OP maskをUIから編集する入口。現在は元のmaskをsidecarへ保持する。
+- [x] コピーした発音OP maskをUIから編集する入口。上記の通常音色を含むOP1〜OP4の発音On／Offとして完了。
 
 ## 完了: Synth／CH選択とPause中の鍵盤試奏
 
