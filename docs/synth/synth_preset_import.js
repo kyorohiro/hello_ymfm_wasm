@@ -9,8 +9,10 @@ import { convertOpmToTfi } from '../vgm_analyzer/opm_tfi.js';
 
 export const OPM_IMPORT_NOTICE = 'YM2151 → YM2612 is an approximate conversion. DT2, LFO/AM, noise, pan and operator key masks are not retained; envelope/detune timing is not compensated for clock differences.';
 
-// Use the same key-on snapshots and deduplication as Playground's VGM import.
-export async function readPresetFile(bytes, filename) {
+// Keep the original recording separately from the decoded bytes used to
+// extract instruments. In particular, a VGZ stays compressed in the Cassette.
+export async function readPresetImport(bytes, filename) {
+  const originalBytes = new Uint8Array(bytes);
   const compressed = looksLikeGzip(bytes);
   if (compressed) {
     try {
@@ -19,7 +21,8 @@ export async function readPresetFile(bytes, filename) {
       throw new Error(`Could not decompress VGZ: ${error.message}`);
     }
   }
-  if (looksLikeS98(bytes) || /\.s98$/i.test(filename)) {
+  const isS98 = looksLikeS98(bytes) || /\.s98$/i.test(filename);
+  if (isS98) {
     bytes = new Uint8Array(convertS98ToVgm(bytes).buffer);
   }
   const isVgm = bytes[0] === 0x56 && bytes[1] === 0x67 &&
@@ -45,7 +48,10 @@ export async function readPresetFile(bytes, filename) {
         });
       }
     }
-    return entries;
+    return { entries, source: isS98 ? null : {
+      data: originalBytes,
+      extension: compressed ? 'vgz' : 'vgm',
+    } };
   }
   if (!/\.(tfi|vgi)$/i.test(filename)) {
     throw new Error('Unsupported file format. Choose VGM, VGZ, S98, TFI, or VGI.');
@@ -54,10 +60,15 @@ export async function readPresetFile(bytes, filename) {
     throw new Error('Invalid TFI/VGI file: expected 42 bytes (TFI) or 43 bytes (VGI).');
   }
   // As in the original loader, size distinguishes TFI from VGI even if renamed.
-  return [{
+  return { entries: [{
     label: filename,
     preset: bytes.length === 43 ? parseVgi(bytes) : parseTfi(bytes),
     bytes: new Uint8Array(bytes),
     format: bytes.length === 43 ? 'vgi' : 'tfi',
-  }];
+  }], source: null };
+}
+
+// Preserve the original array-only API for callers that only need patches.
+export async function readPresetFile(bytes, filename) {
+  return (await readPresetImport(bytes, filename)).entries;
 }

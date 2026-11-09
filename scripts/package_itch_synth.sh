@@ -30,6 +30,8 @@ synth_pitch_bend.js
 synth_project.js
 synth_files.js
 synth_recovery.js
+synth_song_controls.js
+synth_song_preview.js
 "
 RUNTIME_FILES="
 pwm32x.js
@@ -38,6 +40,8 @@ pwm32x_playback.js
 playground_pwm_audio.js
 playground_pwm_worklet.js
 vgm_file.js
+vgmplayer.js
+genesisaudioengine.js
 s98_file.js
 ym2612vgm.js
 opn_fm_vgm.js
@@ -251,6 +255,7 @@ EOF
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"

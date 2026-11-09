@@ -11,7 +11,7 @@ import {
 } from '../playground/playground_cassette.js';
 import { parseTfi, createTfiFromPreset } from '../js/tfi.js';
 import { parseVgi, createVgiFromPreset } from '../js/vgi.js';
-import { readPresetFile } from './synth_preset_import.js';
+import { readPresetImport } from './synth_preset_import.js?v=vgm-storage-1';
 
 const TONE_EXTENSION = /\.(tfi|vgi)$/i;
 const METADATA_PATHS = new Set(['/metadata.json', '/cassette.metadata.js']);
@@ -294,7 +294,9 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       return fs.checkpoints.isModified(path)||fs.checkpoints.isModified(synthStatePath(path));
     },
     /**
-     * Valid input files are appended in one filesystem commit. A bad file does
+     * Valid input files and original VGM/VGZ recordings are appended in one
+     * filesystem commit. `paths` contains tones; `sourcePaths` contains originals.
+     * A bad file does
      * not replace prior imports. Another import/restore cancels an older load.
      * @param {Iterable<{name:string,arrayBuffer?:Function,data?:Uint8Array|ArrayBuffer}>} files
      * @param {{isCurrent?:Function,directory?:string}} [options]
@@ -313,21 +315,36 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
         const name = String(file.name ?? 'instrument.tfi');
         try {
           const bytes = fileBytes(typeof file.arrayBuffer === 'function' ? await file.arrayBuffer() : file.data);
-          const entries = await readPresetFile(bytes, name);
-          if (entries.length) batches.push({ name, entries });
+          const { entries, source } = await readPresetImport(bytes, name);
+          if (source && fs.has('/vgm')) throw new Error('Cannot save the original VGM: /vgm is a file. Rename it or move it before importing.');
+          if (entries.length || source) batches.push({ name, entries, source });
           else failures.push(`${name}: no supported FM instrument snapshots were found.`);
         } catch (error) {
           failures.push(`${name}: ${error.message}`);
         }
-        if (!current()) return { paths: [], failures: [], notices: [], cancelled: true };
+        if (!current()) return { paths: [], sourcePaths: [], failures: [], notices: [], cancelled: true };
       }
       batches.sort((a, b) => comparePaths(a.name, b.name));
       const occupied = new Set(project.listEntries().map(entry => entry.path));
-      const addedFiles = [], addedDirectories = [], notices = new Set();
+      const addedFiles = [], addedDirectories = [], tonePaths = [], sourcePaths = [], notices = new Set();
       for (const batch of batches) {
+        if (batch.source) {
+          const extension = batch.source.extension;
+          let filename = safeName(batch.name, `recording.${extension}`);
+          if (!filename.toLowerCase().endsWith(`.${extension}`)) {
+            filename = filename.replace(/\.(?:vgm|vgz|tfi|vgi)$/i, '') + `.${extension}`;
+          }
+          const path = uniquePath(`/vgm/${filename}`, occupied);
+          occupied.add('/vgm'); occupied.add(path);
+          addedDirectories.push('/vgm');
+          addedFiles.push({path, data:fileBytes(batch.source.data)});
+          sourcePaths.push(path);
+          if (!batch.entries.length) notices.add(`${batch.name}: no supported FM instrument snapshots were found. The original VGM was saved.`);
+        }
+        if (!batch.entries.length) continue;
         let source = safeName(batch.name.replace(/\.(vgm|vgz|s98|tfi|vgi)$/i, ''), 'instrument');
         if (source === '.git') source = '.git-instruments';
-        const directTone = directory !== undefined && TONE_EXTENSION.test(batch.name);
+        const directTone = !batch.source && directory !== undefined && TONE_EXTENSION.test(batch.name);
         const base = `${directory ?? '/presets'}/${source}`.replace(/^\/\//, '/');
         let targetDirectory = directTone ? directory : base, suffix = 2;
         while (!directTone && (occupied.has(targetDirectory) || [...occupied].some(path => path.startsWith(`${targetDirectory}/`)))) {
@@ -342,14 +359,15 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
           const path = uniquePath(`${targetDirectory}/${filename}`, occupied);
           occupied.add(path);
           addedFiles.push({ path, data: fileBytes(entry.bytes ?? createTfiFromPreset(entry.preset)) });
+          tonePaths.push(path);
           if (entry.notice) notices.add(entry.notice);
         }
       }
       if (addedFiles.length) mutate(() => {
         fs.replace([...fs.list(), ...addedFiles], [...fs.listDirectories(), ...addedDirectories]);
-        selectedPath = addedFiles[0].path;
+        selectedPath = tonePaths[0] ?? sourcePaths[0];
       });
-      return { paths: addedFiles.map(file => file.path), failures, notices: [...notices] };
+      return { paths: tonePaths, sourcePaths, failures, notices: [...notices] };
     },
     duplicate(path, destination) {
       path = resolvePath(path);

@@ -1,5 +1,5 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {isSynthTonePath, isSynthStatePath} from './synth_project.js';
+import {isSynthTonePath, isSynthStatePath} from './synth_project.js?v=vgm-storage-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
 import {createToneRecovery, parseToneRecovery} from './synth_recovery.js';
 
@@ -20,7 +20,7 @@ async function openDraftStore() {
   });
 }
 
-export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, applySnapshot, onSaved, onListChanged, stopAllNotes, setStatus}) {
+export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, applySnapshot, onSaved, onListChanged, onWorkspaceReplaced, stopAllNotes, setStatus}) {
   const byId = id => document.getElementById(id);
   const panel = byId('synthFilesPanel'), tree = byId('synthFilesTree');
   const toggle = byId('synthFilesToggle'), workspace = byId('synthWorkspace');
@@ -317,6 +317,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
         if (history.length) {
           const previous = history.pop();
           project.restore(previous.project);
+          onWorkspaceReplaced?.();
           workspaceId = newWorkspaceId(); generation = 0;
           activeTonePath = previous.activeTonePath; selectedPath = previous.selectedPath; dirty = previous.dirty;
           basePresetId=previous.basePresetId;basePreset=previous.basePreset;
@@ -379,16 +380,24 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     busy=true;updateButtons();
     const requestGeneration=++importGeneration;let previous;
     const importError=byId('presetImportError'), notice=byId('presetImportNotice');
-    importError.hidden=true;notice.hidden=true;setStatus('Loading instruments…');
+    importError.hidden=true;notice.hidden=true;setStatus('Importing files…');
     try{
       if(!await flushEdits())return;
       previous=capture();
       const result=await project.importInstrumentFiles(selection,{...(directory?{directory}:{}),isCurrent:()=>requestGeneration===importGeneration});
       if(result.cancelled)return;
-      if(result.paths.length){pushUndo(previous);activeTonePath=selectedPath=result.paths[0];dirty=false;stopAllNotes();applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');}
+      const sourcePaths=result.sourcePaths;
+      if(result.paths.length||sourcePaths.length){
+        pushUndo(previous);
+        if(result.paths.length){activeTonePath=selectedPath=result.paths[0];dirty=false;stopAllNotes();applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);}
+        else{selectedPath=sourcePaths[0];project.select(selectedPath);}
+        for(const path of sourcePaths)reveal(path);
+        byId('synthFileSelectionInfo').textContent=result.paths.length?activeTonePath:`${selectedPath} · Original VGM saved in Cassette`;
+        panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');
+      }
       if(result.failures.length){importError.textContent=`Could not load some files:\n${result.failures.join('\n')}${result.paths.length?'':' Previous presets were kept.'}`;importError.hidden=false;}
       notice.textContent=result.notices.join('\n');notice.hidden=!result.notices.length;
-      setStatus(`Loaded ${result.paths.length} instrument(s).${result.failures.length?' Some files could not be loaded.':''}`);
+      setStatus(`Loaded ${result.paths.length} instrument(s).${sourcePaths.length?` Saved ${sourcePaths.length} original VGM file(s) in /vgm/.`:''}${result.failures.length?' Some files could not be loaded.':''}`);
       render();await remember(true);
     }catch(error){report(error);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
@@ -402,6 +411,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
       const result=await project.importCassette(new Uint8Array(await file.arrayBuffer()),{name:file.name,isCurrent:()=>requestGeneration===importGeneration});
       if(result.cancelled)return;
       workspaceId=newWorkspaceId();generation=0;
+      onWorkspaceReplaced?.();
       pushUndo(previous);dirty=false;selectedPath=project.selectedPath;activeTonePath=isSynthTonePath(selectedPath)?selectedPath:null;
       stopAllNotes();if(activeTonePath){applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}else applyPreset('one-op-basic');setBaseline();
       panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');

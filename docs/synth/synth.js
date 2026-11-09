@@ -1,5 +1,6 @@
-import {createSynthProject} from './synth_project.js?v=auto-sync-1';
-import {setupSynthFiles} from './synth_files.js?v=auto-sync-1';
+import {createSynthProject} from './synth_project.js?v=vgm-storage-1';
+import {setupSynthFiles} from './synth_files.js?v=vgm-preview-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-preview-2';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -113,6 +114,7 @@ const operatorHeaderRoot =
   document.getElementById("operatorHeader");
 const synthProject = createSynthProject();
 let synthFiles = null;
+let songControls = null;
 
 const presetSelect =
   document.getElementById("presetSelect");
@@ -164,8 +166,8 @@ const visualModeButtons = document.querySelectorAll('[data-visual-mode]');
 const visualizerDescription = document.getElementById('visualizerDescription');
 const visualDescriptions = {
   envelope: 'Drag OP1–OP4 points · Cyan: live chip-output RMS.',
-  waveform: 'Final output waveform · live + looper · after FX and volume.',
-  spectrum: 'Final output spectrum · live + looper · after FX and volume · dB.',
+  waveform: 'Final output waveform · live + looper + VGM · after volume.',
+  spectrum: 'Final output spectrum · live + looper + VGM · after volume · dB.',
 };
 for (const button of visualModeButtons) {
   button.addEventListener('keydown', event => {
@@ -524,6 +526,7 @@ function applyMasterVolume() {
   loopMegaSynth?.setMasterVolume(
     masterVolume
   );
+  songControls?.setVolume(masterVolume);
 }
 
 function formatLooperProgress(
@@ -2731,8 +2734,22 @@ synthFiles = setupSynthFiles({
     updateTfiSummary();
   },
   onListChanged:syncFilePresetOptions,
+  onWorkspaceReplaced:()=>songControls?.reset(),
   stopAllNotes,
   setStatus,
+});
+songControls = setupSynthSongControls({
+  project:synthProject,
+  getAudio:async()=>{
+    await ensureAudioReady();
+    return {context:audioContext, output:finalOutputBus};
+  },
+  getVolume:()=>masterVolume,
+  onFileSelected:path=>synthFiles.selectFile(path),
+});
+window.addEventListener('pagehide',event=>{
+  if(event.persisted)songControls.stop();
+  else songControls.dispose();
 });
 updateKeyboardAvailability();
 updateMasterVolumeUi();
@@ -2750,6 +2767,7 @@ if (window.__TAURI_INTERNALS__) {
         return {context: audioContext, output: finalOutputBus};
       },
       async stopPlayback() {
+        songControls?.stop();
         if (megaSynth?.isRecording()) megaSynth.stopRecord();
         megaSynth?.stopRecordingPlayback();
         eventRecordSessionActive = false;

@@ -152,6 +152,15 @@
       .synth-file-format-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
       .synth-file-format-note { color: #a8bfba; font-size: .7rem; margin: 0; flex: 1 1 auto; min-width: 0; }
       .synth-file-format-row .volume-control { flex: none; margin-left: auto; }
+      .synth-song-player { display: flex; flex: 1 1 320px; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: .7rem; }
+      .synth-song-player[hidden] { display: none; }
+      .synth-song-player > label { color: #b8cac6; font-weight: 800; letter-spacing: .04em; }
+      #synthSongSelect { flex: 1 1 120px; width: 180px; min-width: 0; max-width: 300px; font: inherit; color: #e4eee8; border: 1px solid #41615b; border-radius: 999px; padding: 4px 8px; background: #1b2929; }
+      .synth-song-player .toolbar-button { min-height: 26px; padding: 3px 9px; font-size: inherit; }
+      #synthSongPlayButton { min-width: 64px; }
+      #synthSongTime { color: #a8bfba; font-variant-numeric: tabular-nums; }
+      #synthSongStatus { color: #a8bfba; min-width: 0; overflow-wrap: anywhere; }
+      #synthSongStatus[data-state="error"] { color: #ffbdad; flex-basis: 100%; }
       .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
       .synth-file-dialog::backdrop { background: #0009; }
       .synth-file-dialog h2 { margin-bottom: 12px; }
@@ -1292,6 +1301,14 @@
             </div>
             <div class="synth-file-format-row">
               <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Extra Synth settings are stored beside the tone as &lt;tone&gt;.synth.json and included in Cassette export. DAC and CH3 special mode remain session controls.">TFI / VGI + Synth settings · Format info ⓘ</p>
+              <div id="synthSongPlayer" class="synth-song-player" aria-label="Original VGM reference performance" hidden>
+                <label for="synthSongSelect" title="Play the original VGM without replacing the instrument you are editing.">VGM</label>
+                <select id="synthSongSelect" aria-label="Reference VGM"></select>
+                <button id="synthSongPlayButton" class="toolbar-button" type="button" disabled>Play</button>
+                <button id="synthSongStopButton" class="toolbar-button" type="button" disabled>Stop</button>
+                <output id="synthSongTime" aria-label="Reference playback time">0:00</output>
+                <span id="synthSongStatus" role="status">Stopped.</span>
+              </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
                 <input id="masterVolumeRange" type="range" min="0" max="380" value="100" step="1" aria-label="Master volume, 0 to 380 percent">
@@ -1460,7 +1477,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-master-380-1";
+      import "./synth.js?v=synth-vgm-preview-2";
     </script>
   </body>
 </html>

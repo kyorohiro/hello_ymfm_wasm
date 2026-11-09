@@ -55,7 +55,7 @@ loaders are accompanied by their corresponding sources and rebuild instructions.
 | Tool | Use it for |
 | --- | --- |
 | [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) | JavaScript live coding, chip registers, musical APIs, sample editing and FILES / Shell. Select a sound-chip mode. |
-| [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FM operators / envelopes, keyboard audition, VGM instrument import and TFI / VGI editing. |
+| [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FM operators / envelopes, keyboard audition, VGM instrument import and TFI / VGI editing. Files / Cassette retain original VGM / VGZ files; select a Mega Drive / Mega CD / 32X reference song (YM2612 + Sega PSG + DAC + RF5C164 + PWM) to play, pause or resume alongside the editable instrument. |
 | [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStation samples, PCM drawing, ADSR, PMON, noise, SPU reverb and PSF / VAB instrument extraction. |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMG Pulse / Wave / Noise on one APU, round-robin keyboard, waveform drawing, presets and JavaScript export. English UI; [guide](docs/synth-dmg/README.md). |
 | [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Play Pulse / Triangle / Noise / DMC / FDS with hardware envelopes, Pulse / Triangle / Noise counter gates and live chip-state meters, draw DMC target curves or edit bits with DAC preview and Undo / Redo, draw FDS waves / modulation, import voices and samples from VGM / VGZ, then save presets, export DPCM or copy JavaScript. English UI; [guide](docs/synth-2a03/README.md). |
