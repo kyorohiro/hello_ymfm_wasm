@@ -87,3 +87,39 @@ Mega CDのCD-DAはVGM外の音声素材を必要とする場合があるため�
 - 配布stageだけでも上記の全ケースが両browserで成功。記録：`/private/tmp/fm2612-megacd-32x-package-browser.json`。可読JSはURL移設以外に変更せず、RF／PWMの生成済みloader／WASMはdocs元とbyte一致。
 - 最終ZIP：`release/hello_ymfm_wasm_vgm-megacd-32x-check-20261109_itch_synth.zip`（235 entries／798,190 bytes、SHA-256 `b7f1a1f9d01e6350aa6913aa572f4a1ff08d21b566dc4d4dbfc761dfdc15ead3`）。記録：`/private/tmp/fm2612-megacd-32x-package.json`。
 - README英語／日本語の対応音源とbrowser cache keyも更新。未公開・未commit・未push。
+
+## 追加: 今のFM2612 UIで模範演奏のLive状態を表示
+
+ユーザー指示：再生中の実際の状態を既存FM2612 UIで見たい。LiveはcheckboxでOnの時だけ表示し、既定Onとする。
+
+- [x] VGM欄にLive（既定On）とCH1〜CH6の選択を追加する。別のparameter UIは作らず既存operator／共通設定へ反映する。
+- [x] 独立した曲用engineのYM2612書き込み状態を追跡し、先読み位置ではなく実際に聴こえる位置へ合わせて表示する。
+- [x] Liveでは表示を読み取り専用とし、編集音色・鍵盤用音源・Files・Undo／Syncを自動で上書きしない。Off／Stopで編集表示へ戻し、Pause中は表示も固定する。
+- [x] algorithm／feedback／operator／LFO／AMS／PMS／pan、Gate／音程、CH3 special／DACを正しい対応範囲で表示する。書き込みshadowと実機のreadback／内部EGを混同しない。
+- [x] Nodeと実browserで時間合わせ、CH切り替え、Live Off復帰、Pause／Resume、音色保存の不変、鍵盤focus、既存演奏を検証する。
+- [x] 配布に必要な可読モジュールを含め、ZIPの中だけでも検証してREADME／TODOへ記録する。
+
+公開・commit／pushは行わない。
+
+### Live実装の範囲
+
+- `synth_song_state.js`が曲用YM2612の書き込みだけを観測する。native生成frameでイベントを記録し、実際に消費された音声frameまで適用する。VgmPlayer内のprefetchも追跡し、過去イベントを破棄してpending memoryを抑える。
+- 6chのimmutable snapshotを生成し、logical OP1／2／3／4（register offset +0／+8／+4／+12）、全operator設定、LFO、DAC、pan、key mask、BLOCK／FNUM、CH3特殊周波数へ対応する。高位周波数latchと低位writeのcommitも区別する。
+- 音程はBLOCK／FNUMから求める基準音程であり、MULTI／LFO／FMを含む聴感上のpitch検出ではない。Gateは書き込まれたKON状態。CSM／DACは別の表示として扱う。任意registerの実機readbackや内部EGレベルを読んだことにはしない。
+- `synth.js`は表示用overlayから既存controlの`updateVisual()`だけを呼び、`applyPresetData()`や編集stateを使ってLive値を適用しない。Live中の編集control／Sync／Revert／音色exportは読み取り専用とし、Off／Stopで元の表示と編集基準値へ戻す。
+- Envelopeは同じoperator guideを使うが、Live中は鍵盤用engineのcyan RMSを非表示にする。内部EGの追跡と混同しない。OP選択は可能で、数値・curveの編集はできない。
+- Waveform／SpectrumのanalyserをfinalOutputBusへ接続し、模範演奏を含む実際の出力を表示する。スピーカーやLooper録音への接続を増やさない。
+- YM2612を含まないPSG／RF／PWMのみの曲ではFMの架空stateを表示せず、理由を出して編集UIを維持する。
+
+### Live最終検証
+
+- `node --test docs/synth/*.test.mjs`：99件成功。追加6件でoperator／global decode、6ch、周波数latch、CH3順序、先読みと聴こえる位置の分離、Pause／Stop／YMなしの状態を検証した。
+- 最初のbuffer生成はcooperative budgetでyieldする場合があるため、旧backend testの即時生成assertを、上限1秒で実際のrefillを待つ検証へ修正した。生成が必要というassert自体は維持し、音源・gainの変更は行っていない。
+- `node scripts/check_synth_song_live_browser.cjs`：Chromium／WebKitで成功。2秒の音程・ALGO／TL変更に対して、1.8〜1.96秒は古い値、2.08秒以降は新しい値になることを、実PCMと消費frameで確認。CH変更、Pause固定、Resume、Live Off／Stop復帰、全VFS fileのSHA不変、CH3／DAC、鍵盤focus、Waveform／Spectrumの実信号も確認した。
+- 1240／390pxでスクリーンショットを確認。Liveは既定On。物理出力をmuteして計測し、実聴の確認とは区別する。
+- source記録：`/private/tmp/fm2612-synth-song-live-browser.json`。
+- 配布作成：`sh scripts/package_itch_synth.sh vgm-live-check-20261109`。新しい可読helperを含み、244参照の検証に成功。
+- 同じLive checkerを`--root=release/itch_synth_vgm-live-check-20261109 --entry=/index.html`で実行し、両browserで成功。記録：`/private/tmp/fm2612-synth-song-live-package-browser.json`（83個のassetをhash確認）。
+- 旧演奏checkerはLive Offでの編集保持を検証し、Live Onは専用checkerで検証するよう区別した。配布内で旧FM／PSG／DAC・RF／PWM・混在、Cave／Virtua Fighter実曲の全10ケースも成功。記録：`/private/tmp/fm2612-synth-live-playback-regression.json`（87個のassetをhash確認）。
+- 最終ZIP：`release/hello_ymfm_wasm_vgm-live-check-20261109_itch_synth.zip`（236 entries／802,674 bytes、SHA-256 `2b8983be6bd1d8c241af022d34084f9496fc741d8485a3edb2bbdde12cd20345`）。可読helperはURL移設以外に変更せず、両browser検証で読んだ全assetのhashが最終stageと一致する。
+- README英語／日本語にLiveの使い方を反映した。未公開・未commit・未push。

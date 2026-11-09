@@ -68,6 +68,10 @@ test('selection stays silent; Play borrows the existing output and requests its 
     assert.equal(await playing,true);assert.equal(f.engines.length,1);
     assert.equal(f.engines[0].header.ym2612Clock,7670454);
     assert.equal(host.gains[0].connected,host.output);assert.equal(host.gains[0].gain.value,3.8);
+    // Cooperative rendering can yield before its first buffer under parallel
+    // test load. It must still schedule audio on a bounded subsequent refill.
+    const deadline=Date.now()+1000;
+    while(!host.starts.length&&Date.now()<deadline)await tick();
     assert(host.starts.length>0);assert(host.starts.every(node=>node.buffer.sampleRate===44100));
     f.preview.setVolume(.5);assert.equal(host.gains[0].gain.value,.5);
     assert.throws(()=>f.preview.setVolume(4),/0\.\.3.8/);

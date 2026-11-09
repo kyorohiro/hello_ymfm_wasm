@@ -161,6 +161,13 @@
       #synthSongTime { color: #a8bfba; font-variant-numeric: tabular-nums; }
       #synthSongStatus { color: #a8bfba; min-width: 0; overflow-wrap: anywhere; }
       #synthSongStatus[data-state="error"] { color: #ffbdad; flex-basis: 100%; }
+      .synth-song-live-controls { display: inline-flex; align-items: center; gap: 5px; }
+      .synth-song-live-controls label { display: inline-flex; align-items: center; gap: 4px; color: #b8cac6; }
+      .synth-song-live-controls input { margin: 0; }
+      #synthSongChannelSelect { font: inherit; border: 1px solid #41615b; border-radius: 999px; color: #e4eee8; background: #1b2929; padding: 4px 6px; }
+      #synthSongLiveStatus { color: #8bd9ca; font-size: .65rem; overflow-wrap: anywhere; }
+      .synth-editor[data-live-view="true"] .param-value, .synth-editor[data-live-view="true"] .param-button { cursor: default; }
+      .synth-editor[data-live-view="true"] .operator-envelope-handle { visibility: hidden; }
       .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
       .synth-file-dialog::backdrop { background: #0009; }
       .synth-file-dialog h2 { margin-bottom: 12px; }
@@ -1308,6 +1315,14 @@
                 <button id="synthSongStopButton" class="toolbar-button" type="button" disabled>Stop</button>
                 <output id="synthSongTime" aria-label="Reference playback time">0:00</output>
                 <span id="synthSongStatus" role="status">Stopped.</span>
+                <span class="synth-song-live-controls">
+                  <label title="Show the selected YM2612 channel in the existing controls. Live is read-only; turn it off to edit your instrument."><input id="synthSongLiveToggle" type="checkbox" checked>Live</label>
+                  <select id="synthSongChannelSelect" aria-label="Live YM2612 channel">
+                    <option value="0">CH1</option><option value="1">CH2</option><option value="2">CH3</option>
+                    <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
+                  </select>
+                </span>
+                <output id="synthSongLiveStatus">Live when playing</output>
               </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
@@ -1477,7 +1492,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-vgm-preview-2";
+      import "./synth.js?v=synth-vgm-live-1";
     </script>
   </body>
 </html>

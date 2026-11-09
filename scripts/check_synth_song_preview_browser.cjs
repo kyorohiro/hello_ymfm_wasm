@@ -214,7 +214,12 @@ async function measure(page){
   return values.reduce((sum,value)=>sum+value,0)/values.length;
 }
 async function setVolume(page,percent){await page.locator('#masterVolumeRange').evaluate((input,value)=>{input.value=String(value);input.dispatchEvent(new Event('input',{bubbles:true}));},percent);await pause(150);}
-async function importFiles(page,files){await page.locator('#tfiFile').setInputFiles(files);await ready(page);}
+async function importFiles(page,files){
+  await page.locator('#tfiFile').setInputFiles(files);await ready(page);
+  // This suite checks playback alongside the unchanged editing UI. The
+  // separate Live suite exercises the default-on observation overlay.
+  await page.locator('#synthSongLiveToggle').uncheck();
+}
 const file=(name,bytes)=>({name,mimeType:'application/octet-stream',buffer:bytes});
 async function openMenu(page){if(!await page.locator('#synthMenu').evaluate(element=>element.open))await page.locator('#synthMenuButton').click();}
 const snapshot=page=>evaluate(page,()=>({path:document.getElementById('synthActiveFilePath').textContent,

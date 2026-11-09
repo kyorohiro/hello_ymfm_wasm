@@ -1,5 +1,5 @@
-// Observe the sum of the live and looper output buses without routing audio
-// through the canvas monitor or adding another connection to the speakers.
+// Observe the supplied output bus (live + looper + reference songs) without
+// routing audio through the canvas monitor or adding another speaker edge.
 export function createSynthOutputVisualizer() {
   let analyser = null;
   let sources = [];

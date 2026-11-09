@@ -1,6 +1,6 @@
 import {createSynthProject} from './synth_project.js?v=vgm-storage-1';
-import {setupSynthFiles} from './synth_files.js?v=vgm-preview-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-preview-2';
+import {setupSynthFiles} from './synth_files.js?v=vgm-live-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-live-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -180,7 +180,7 @@ for (const button of visualModeButtons) {
       item.classList.toggle('is-selected', selected);
       item.setAttribute('aria-pressed', String(selected));
     }
-    visualizerDescription.textContent = visualDescriptions[visualMode];
+    refreshVisualizerDescription();
     const editing = visualMode === 'envelope';
     operatorEnvelopeRoot.hidden = !editing;
     operatorEnvelopeRoot.parentElement.classList.toggle('is-editing-envelope', editing);
@@ -359,6 +359,8 @@ let currentPresetPan = {left:true, right:true};
 let currentPresetB4 = 0xc0;
 let activeHelpId = "";
 let masterVolume = 1;
+let songLiveView = null;
+let songLiveSignature = '';
 
 const DEFAULT_OPERATOR_STATE = Object.freeze({
   dt: 0,
@@ -383,10 +385,10 @@ let envelopeSelectionRevision = 0;
 const operatorEnvelopeRoot = document.getElementById('synthEnvelopeEditor');
 const operatorEnvelopeView = createOperatorEnvelopeView({
   root: operatorEnvelopeRoot,
-  getOperators: () => operatorStates,
+  getOperators: () => songLiveView?.snapshot.channels[songLiveView.channel].preset.operators ?? operatorStates,
   getSelectionKey: () => envelopeSelectionRevision,
   onEdit: applyOperatorParams,
-  getOutputEnvelope: () => ({
+  getOutputEnvelope: () => songLiveView ? null : ({
     history: outputEnvelopeHistory,
     heldVoicePeak: outputEnvelopeHeldVoicePeak,
     silenceFloor: OUTPUT_ENVELOPE_SILENCE_FLOOR,
@@ -527,6 +529,40 @@ function applyMasterVolume() {
     masterVolume
   );
   songControls?.setVolume(masterVolume);
+}
+
+function refreshVisualizerDescription() {
+  visualizerDescription.textContent = visualMode === 'envelope' && songLiveView
+    ? `Live CH${songLiveView.channel + 1} · written settings · envelope guides · read-only.`
+    : visualDescriptions[visualMode];
+}
+
+function setSongLiveView(next) {
+  const active = Boolean(next);
+  const changedMode = active !== Boolean(songLiveView);
+  const voice = next?.snapshot.channels[next.channel];
+  const signature = next ? JSON.stringify([next.channel, next.paused, voice,
+    next.snapshot.lfo, next.snapshot.dacEnabled, next.snapshot.channels[2].specialMode,
+    next.snapshot.channels[2].specialFrequencies]) : '';
+  songLiveView = next;
+  if (changedMode) {
+    envelopeSelectionRevision++;
+    document.querySelector('.synth-editor').dataset.liveView = String(active);
+    operatorEnvelopeRoot.querySelector('.operator-envelope-plot').inert = active;
+    exportTfiButton.disabled = exportVgiButton.disabled = active;
+    synthFiles?.refresh();
+  }
+  if (signature !== songLiveSignature) {
+    songLiveSignature = signature;
+    // updateVisual changes only the control's displayed/edit basis. The actual
+    // instrument state, original files and keyboard synth remain untouched.
+    syncControlsFromState();
+    renderAlgorithmDiagram();
+    renderChannel3SpecialMonitor();
+    operatorEnvelopeView.invalidateOutput();
+    drawEnvelopeGuide();
+  }
+  refreshVisualizerDescription();
 }
 
 function formatLooperProgress(
@@ -1385,11 +1421,15 @@ function applyPatchToVoices() {
 }
 
 function syncControlsFromState() {
+  const preset = songLiveView?.snapshot.channels[songLiveView.channel].preset;
+  const common = preset ? {...preset, lfoEnabled:preset.lfo.enabled, lfoFrequency:preset.lfo.frequency,
+    dacEnabled:songLiveView.snapshot.dacEnabled} : commonState;
+  const operators = preset?.operators ?? operatorStates;
   for (const config of COMMON_PARAM_DEFS) {
     commonControls
       .get(config.id)
       ?.updateVisual(
-        commonState[config.id]
+        common[config.id]
       );
   }
 
@@ -1401,7 +1441,7 @@ function syncControlsFromState() {
       rowControls
         ?.get(config.id)
         ?.updateVisual(
-          operatorStates[operator][
+          operators[operator][
             config.id
           ]
         );
@@ -1626,10 +1666,9 @@ function renderAlgorithmDiagram() {
     return;
   }
 
-  const algorithm =
-    commonState.algorithm;
-  const feedback =
-    commonState.feedback;
+  const view = songLiveView?.snapshot.channels[songLiveView.channel].preset ?? commonState;
+  const algorithm = view.algorithm;
+  const feedback = view.feedback;
   const description =
     ALGORITHM_DESCRIPTIONS[
       algorithm
@@ -1657,6 +1696,12 @@ function renderChannel3SpecialMonitor() {
     !channel3SpecialMonitor ||
     !channel3SpecialModePill
   ) {
+    return;
+  }
+
+  if (songLiveView) {
+    channel3SpecialModePill.textContent = songLiveView.snapshot.channels[2].specialMode ? 'Special On' : 'Special Off';
+    syncChannel3SpecialControls();
     return;
   }
 
@@ -1701,10 +1746,13 @@ function renderChannel3SpecialMonitor() {
 }
 
 function syncChannel3SpecialControls() {
+  const live = songLiveView?.snapshot.channels[2];
+  const enabled = live ? live.specialMode : channel3SpecialState.enabled;
+  const frequencies = live ? live.specialFrequencies : channel3SpecialState.frequencies;
   channel3SpecialControls
     .get("enabled")
     ?.updateVisual(
-      channel3SpecialState.enabled
+      enabled
     );
 
   for (
@@ -1713,8 +1761,7 @@ function syncChannel3SpecialControls() {
     operator += 1
   ) {
     const frequency =
-      channel3SpecialState
-        .frequencies[operator];
+      frequencies[operator];
     channel3SpecialControls
       .get(`op${operator}-block`)
       ?.updateVisual(
@@ -1749,6 +1796,7 @@ function buildChannel3SpecialControls() {
       value:
         channel3SpecialState.enabled,
       onChange: (nextValue) => {
+        if (songLiveView) return;
         channel3SpecialState.enabled =
           Boolean(nextValue);
         if (synth) {
@@ -1784,6 +1832,7 @@ function buildChannel3SpecialControls() {
             .frequencies[operator]
             .block,
         onChange: (nextValue) => {
+          if (songLiveView) return;
           channel3SpecialState
             .frequencies[operator]
             .block = nextValue;
@@ -1829,6 +1878,7 @@ function buildChannel3SpecialControls() {
             .frequencies[operator]
             .fnum,
         onChange: (nextValue) => {
+          if (songLiveView) return;
           channel3SpecialState
             .frequencies[operator]
             .fnum = nextValue;
@@ -1928,6 +1978,7 @@ function buildCommonControls() {
     gapPx: 4,
     onHelpToggle: toggleParamHelp,
     onChange: (id, nextValue) => {
+      if (songLiveView) return;
       commonState[id] = nextValue;
       if (id !== 'dacEnabled') markPresetEdited();
       renderAlgorithmDiagram();
@@ -1977,6 +2028,7 @@ function buildOperatorControls() {
 // Numeric and graphical edits share persistence and update only this operator.
 // Do not reset envelopes, re-key held notes, or rewrite channel frequencies.
 function applyOperatorParams(operator, patch) {
+  if (songLiveView) return;
   Object.assign(operatorStates[operator], patch);
   for (const [id, value] of Object.entries(patch)) operatorControls.get(operator)?.get(id)?.updateVisual(value);
   markPresetEdited();
@@ -2356,7 +2408,7 @@ async function initializeDirectAudio() {
       appendOutputEnvelopePoints,
   });
   megaSynth.setOutputEnvelopeOptions({enabled: visualMode === 'envelope'});
-  outputVisualizer.connect(audioContext, [liveOutputBus, loopOutputBus]);
+  outputVisualizer.connect(audioContext, [finalOutputBus]);
 
   applyPatchToVoices();
   stopAllNotes();
@@ -2735,6 +2787,7 @@ synthFiles = setupSynthFiles({
   },
   onListChanged:syncFilePresetOptions,
   onWorkspaceReplaced:()=>songControls?.reset(),
+  isObserving:()=>Boolean(songLiveView),
   stopAllNotes,
   setStatus,
 });
@@ -2746,6 +2799,7 @@ songControls = setupSynthSongControls({
   },
   getVolume:()=>masterVolume,
   onFileSelected:path=>synthFiles.selectFile(path),
+  onLiveView:setSongLiveView,
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted)songControls.stop();

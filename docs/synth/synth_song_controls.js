@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-preview-2';
+import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-live-1';
 
 const isSong = path => path.startsWith('/vgm/') && /\.(vgm|vgz)$/i.test(path);
 const displayTime = seconds => {
@@ -7,13 +7,16 @@ const displayTime = seconds => {
 };
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected}) {
+export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
   const play = document.getElementById('synthSongPlayButton');
   const stop = document.getElementById('synthSongStopButton');
   const status = document.getElementById('synthSongStatus');
   const time = document.getElementById('synthSongTime');
+  const live = document.getElementById('synthSongLiveToggle');
+  const channel = document.getElementById('synthSongChannelSelect');
+  const liveStatus = document.getElementById('synthSongLiveStatus');
   const formatInfo = document.querySelector('.synth-file-format-note');
   let selectedPath = null, selectedRevision = -1, listRevision = '', disposed = false;
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
@@ -30,6 +33,26 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     text(status, state.errorMessage ? `${state.name}: ${state.errorMessage}` : messages[state.playback] ?? 'Ready.');
     status.title = status.textContent;
     text(time, displayTime(state.positionSeconds));
+    const running = ['playing', 'paused'].includes(state.playback);
+    const snapshot = running && live.checked ? state.liveState : null;
+    const selectedChannel = Number(channel.value);
+    const voice = snapshot?.channels[selectedChannel];
+    root.dataset.live = String(Boolean(voice));
+    channel.disabled = !live.checked || running && !state.liveState;
+    if (voice) {
+      const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+      const midi = Number.isFinite(voice.midi) ? Math.round(voice.midi) : null;
+      const note = selectedChannel === 5 && snapshot.dacEnabled ? 'DAC' :
+        midi === null ? '—' : `${names[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
+      const pan = voice.preset.pan;
+      const gate = selectedChannel === 5 && snapshot.dacEnabled ? 'PCM' :
+        selectedChannel === 2 && snapshot.csmEnabled ? 'CSM' : `Gate ${voice.gate ? 'On' : 'Off'}`;
+      text(liveStatus, `${state.playback === 'paused' ? 'Paused' : 'Live'} CH${selectedChannel + 1} · ${note} · ${gate} · ${pan.left ? 'L' : ''}${pan.right ? 'R' : ''}${!pan.left && !pan.right ? 'Muted' : ''} · read-only`);
+      onLiveView({snapshot, channel:selectedChannel, paused:state.playback === 'paused'});
+    } else {
+      text(liveStatus, running && live.checked && !state.liveState ? 'No YM2612 in this VGM' : live.checked ? 'Live when playing' : 'Edit');
+      onLiveView(null);
+    }
   }
   const preview = createSynthSongPreview({getAudio, onState:showState});
   preview.setVolume(getVolume());
@@ -92,6 +115,9 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   });
   stop.addEventListener('click', () => preview.stop());
   select.addEventListener('keydown', event => event.stopPropagation());
+  live.addEventListener('change', () => {showState(preview.getState()); live.blur();});
+  channel.addEventListener('change', () => {showState(preview.getState()); channel.blur();});
+  for (const control of [live, channel]) control.addEventListener('keydown', event => event.stopPropagation());
 
   refresh();
   showState(preview.getState());

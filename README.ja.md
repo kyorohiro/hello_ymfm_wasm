@@ -55,7 +55,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | ツール | できること |
 | --- | --- |
 | [Playground](https://kyorohiro.github.io/hello_ymfm_wasm/playground/index.html) | JavaScriptライブコーディング、レジスター操作、音楽API、サンプル編集、FILES／Shell。音源modeを選んで使います。 |
-| [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FMオペレーター／エンベロープ編集、鍵盤試奏、VGM音色取込、TFI／VGI編集。元のVGM／VGZをFiles／Cassetteに保存し、メガドライブ／Mega CD／32Xの模範演奏（YM2612＋Sega PSG＋DAC＋RF5C164＋PWM）を選択・再生・一時停止・再開できます。 |
+| [FM2612 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth/index.html) | FMオペレーター／エンベロープ編集、鍵盤試奏、VGM音色取込、TFI／VGI編集。元のVGM／VGZをFiles／Cassetteに保存し、メガドライブ／Mega CD／32Xの模範演奏（YM2612＋Sega PSG＋DAC＋RF5C164＋PWM）を再生できます。Live（既定On）はCH1〜CH6の状態を聴こえる位置に合わせて同じUIへ表示し、Offで元の音色編集へ戻れます。 |
 | [SPU Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-spu/index.html) | PlayStationのサンプル音源、PCMお絵描き、ADSR、PMON、Noise、SPU Reverb、PSF／VAB音色抽出。 |
 | [DMG Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-dmg/index.html) | Game Boy DMGの1台のAPUでPulse／Wave／Noiseを演奏。ラウンドロビン鍵盤、波形描画、プリセット、JavaScript出力。英語UI。[ガイド](docs/synth-dmg/README.md)。 |
 | [2A03 Synth](https://kyorohiro.github.io/hello_ymfm_wasm/synth-2a03/index.html) | Pulse／Triangle／Noise／DMC／FDSを鍵盤で試奏。実機EnvelopeとPulse／Triangle／Noiseのcounter gate・内部状態表示、DMC目標波形の描画・bit編集・DAC可視化・Undo／Redo、FDS波形・変調table編集、VGM／VGZ音色・サンプル抽出、DPCM書出・プリセット保存・JavaScriptコピー。英語UI。[ガイド](docs/synth-2a03/README.md)。 |

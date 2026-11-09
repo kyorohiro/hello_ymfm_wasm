@@ -20,7 +20,7 @@ async function openDraftStore() {
   });
 }
 
-export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, applySnapshot, onSaved, onListChanged, onWorkspaceReplaced, stopAllNotes, setStatus}) {
+export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, applySnapshot, onSaved, onListChanged, onWorkspaceReplaced, isObserving=()=>false, stopAllNotes, setStatus}) {
   const byId = id => document.getElementById(id);
   const panel = byId('synthFilesPanel'), tree = byId('synthFilesTree');
   const toggle = byId('synthFilesToggle'), workspace = byId('synthWorkspace');
@@ -118,25 +118,26 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     syncFeedbackTimer = setTimeout(clearSyncFeedback, 1800);
   }
   function updateButtons() {
+    const readOnly = isObserving();
     const modified = Boolean(activeTonePath && project.isToneModified(activeTonePath));
     if (syncFeedback && (syncFeedback !== activeTonePath || dirty || modified)) clearSyncFeedback();
-    syncButton.disabled = busy;
-    revertButton.disabled = busy || !activeTonePath || !modified;
+    syncButton.disabled = busy || readOnly;
+    revertButton.disabled = busy || readOnly || !activeTonePath || !modified;
     byId('synthFileDirty').textContent = dirty ? 'Not recorded' : unprotectedChanges ? 'Recording…' : modified ? 'Modified' :
       activeTonePath ? (project.fs.checkpoints.has(activeTonePath) ? 'Synced' : 'Current') : '';
     byId('synthActiveFilePath').textContent = !draftLoaded ? 'Restoring local project…' : activeTonePath || 'Built-in instrument';
     byId('synthFileUndoButton').disabled = busy || !history.length;
     document.querySelector('.synth-editor').setAttribute('aria-busy', String(busy));
-    for (const id of ['commonControls','operatorControls','channel3SpecialControls']) byId(id).inert = busy;
+    for (const id of ['commonControls','operatorControls','channel3SpecialControls']) byId(id).inert = busy || readOnly;
     for (const id of ['synthFileDuplicateButton','synthFileRenameButton','synthFileDeleteButton']) {
       byId(id).disabled = busy || !selectedPath || selectedPath === '/';
     }
-    byId('synthFileNewButton').disabled = busy;
+    byId('synthFileNewButton').disabled = busy || readOnly;
     byId('synthFileNewFolderButton').disabled = busy;
     byId('importPresetButton').disabled=busy;
     byId('importCassetteButton').disabled=busy;
     byId('exportCassetteButton').disabled=busy;
-    byId('presetSelect').disabled=busy;
+    byId('presetSelect').disabled=busy||readOnly;
   }
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
@@ -276,6 +277,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     try {
       // Validate before switching, so a bad file never changes the sound.
       const tone = isSynthTonePath(path) ? project.readTone(path) : null;
+      if (tone && isObserving()) {setStatus('Turn off Live to edit an instrument.'); return false;}
       if (tone && path !== activeTonePath && !await flushEdits()) return false;
       selectedPath = path;
       project.select(path);
@@ -293,6 +295,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     finally {busy=false;updateButtons();}
   }
   async function selectPreset(id) {
+    if (isObserving()) {setStatus('Turn off Live to edit an instrument.'); return false;}
     if (id.startsWith('vfs:')) return selectFile(id.slice(4));
     if (id === 'custom') return true;
     if (busy) return false;
@@ -306,6 +309,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
   }
   async function perform(action, path = selectedPath) {
     if (busy) return;
+    if (isObserving() && ['sync','revert','new'].includes(action)) {setStatus('Turn off Live to edit an instrument.'); return;}
     busy=true;updateButtons();
     closeMenu();
     try {

@@ -8,6 +8,7 @@ import {Rf5c164} from '../js/rf5c164.js';
 import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
+import {createYm2612SongTimeline} from './synth_song_state.js';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;
@@ -111,6 +112,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   let source = null, name = '', active = null, generation = 0, disposed = false;
   let volume = 1, playback = 'stopped', errorMessage = null;
   let positionFrames = 0, sampleRate = 0, totalSamples = 0;
+  let lastLiveState = null;
 
   function currentPosition(run=active) {
     if (!run) return positionFrames;
@@ -120,10 +122,11 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   }
   function getState() {
     const consumedFrames = currentPosition();
+    const liveState = active?.timeline ? active.timeline.read(consumedFrames) : lastLiveState;
     return {playback, hasSource:Boolean(source), name, errorMessage,
       sampleRate, positionFrames:consumedFrames, consumedFrames,
       positionSeconds:sampleRate ? consumedFrames / sampleRate : 0,
-      totalSamples, durationSeconds:totalSamples / 44100};
+      totalSamples, durationSeconds:totalSamples / 44100, liveState};
   }
   function emit() { onState(getState()); }
   function checkOpen() { if (disposed) throw new Error('Reference player is disposed'); }
@@ -144,6 +147,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     cancelNodes(run);
     run.segments.length = 0;
     run.gain.disconnect();
+    run.timeline?.dispose();
     run.engine.dispose();
   }
   function stop() {
@@ -152,6 +156,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     active = null;
     release(run);
     positionFrames = 0;
+    lastLiveState = null;
     playback = 'stopped';
     errorMessage = null;
     emit();
@@ -184,6 +189,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   function fail(error, run) {
     if (run && active !== run) return;
     positionFrames = currentPosition(run);
+    lastLiveState = run?.timeline?.read(positionFrames) ?? null;
     if (run) { active = null; release(run); }
     playback = 'error';
     errorMessage = error?.message ?? String(error);
@@ -239,6 +245,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       }
       if (run.eof && currentPosition(run) >= run.renderedFrames) {
         positionFrames = run.renderedFrames;
+        lastLiveState = run.timeline?.read(positionFrames) ?? null;
         active = null;
         release(run);
         playback = 'ended';
@@ -253,7 +260,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     if (!source) throw new Error('Choose a VGM file first.');
     stop();
     const ticket = generation, selected = source;
-    let engine = null, run = null;
+    let engine = null, timeline = null, run = null;
     playback = 'loading';
     emit();
     try {
@@ -272,6 +279,9 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       if (!isCurrent(ticket)) return false;
       engine = await createEngine(header);
       if (!isCurrent(ticket)) { engine.dispose(); return false; }
+      // Track source writes against native generated frames before the player
+      // resets / prefetches. The UI later reads only the audible prefix.
+      timeline = header.ym2612Clock ? createYm2612SongTimeline(engine, header.ym2612Clock) : null;
       const player = new VgmPlayer(engine);
       player.setLoopEnabled(false);
       player.load(bytes, {logger:{warn:message=>onStatus(String(message))}});
@@ -281,15 +291,17 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       const gain = context.createGain();
       gain.gain.value = volume;
       gain.connect(output);
-      run = {engine, player, context, gain, sampleRate, basePosition:0, renderedFrames:0,
+      run = {engine, timeline, player, context, gain, sampleRate, basePosition:0, renderedFrames:0,
         clockStart:context.currentTime + START_DELAY_SECONDS, segments:[], eof:false, timer:null, released:false};
       active = run;
       engine = null; // Ownership has moved to run/release.
+      timeline = null;
       playback = 'playing';
       pump(run);
       if (active === run) run.timer = setInterval(() => pump(run), REFILL_MILLISECONDS);
       return true;
     } catch (error) {
+      timeline?.dispose();
       engine?.dispose();
       if (!isCurrent(ticket)) return false;
       fail(error, run);
