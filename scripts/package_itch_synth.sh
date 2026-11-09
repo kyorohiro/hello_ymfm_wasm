@@ -36,6 +36,7 @@ synth_song_state.js
 synth_song_voice.js
 synth_song_copy.js
 synth_song_mix.js
+synth_song_mix_defaults.js
 synth_song_mix_controls.js
 synth_song_output_mix.js
 synth_live_highlight.js
@@ -59,6 +60,7 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 soundchip_mixer.js
+soundchip_mixer_presets.js
 playground_audio_endpoint.js
 playground_chip_inspector_state.js
 playground_native_voice_inspector.js
@@ -267,7 +269,8 @@ perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/i
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./generated/#g' "${STAGE_DIR}/synth.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_state.js" \
-  "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js"
+  "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \
+  "${STAGE_DIR}/synth_song_mix_defaults.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"

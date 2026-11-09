@@ -1,5 +1,29 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: FM2612 SynthのMixを共通補正・source倍率へ統一（2026-11-10）
+
+ユーザー指示：FM2612 Synthだけ他のTetoricaアプリと異なるVolume基準を、Playground／VGM Analyzerに揃える。
+
+- [x] 共通の`SOUNDCHIP_MIXER_PRESETS.calibrated`を参照し、YM2612・Sega PSG・Mega CD PCMの初期値／Reset値を取得する。数値をSynthへ重複定義しない。
+- [x] 100%をraw音源出力の1倍とし、Genesis engineの従来のYM 0.9／PSG 0.35を描画境界で相殺する。共通SDK・core・WASMは変更しない。
+- [x] 32X PWMの既存L／R Mute UIを維持し、固定の再生基準も共通補正へ揃える。Masterは既定100%のまま独立させる。
+- [x] 補正値の精度を保持する。sliderへ整数%を設定して初期値を丸めない。常時表示は読みやすい約77.6%／35%／28%にし、正確な値も確認できるようにする。矢印キーは実用的な1%刻みを維持する。
+- [x] Mute・0〜380%・色・focus・同曲停止／再開での保持・別曲での初期化・Reset・Live／元file不変を維持する。
+- [x] Node／実WASMで共通補正の一致と100%のsource倍率、二重補正がないこと、Mute・0%からの演奏継続を検証する。
+- [x] 配布ZIPをChromium／WebKitで検証し、README／TODO／cache keyと検証記録を更新する。公開・commit／pushはしない。
+
+### 実装と検証
+
+- `synth_song_mix_defaults.js`が共通のgenerated presetからYM2612／Sega PSG／RF5C164／PWMを取得する。modelの初期値・Reset・変更判定と出力adapterが同じ値を参照する。SDK側の数値や生成スクリプトは変更しない。
+- Volumeはsourceの絶対倍率。Genesis engine内の従来の0.9／0.35をadapterで相殺し、Masterは既存の独立した全体GainNodeのまま。PWMの固定補正も共通tableを参照する。
+- UIは4桁の小数%を保持できるsliderにし、内部の六桁gainを丸めずに保持する。表示だけ1桁へ丸め、title／aria-valuetextに正確な%とgainを示す。矢印は1%、Shift／Pageは10%、Home／Endは0／380%で操作できる。往復時の浮動小数誤差はUI入力境界で揃える。
+- `node --test docs/synth/*.test.mjs`：168件成功。独立した同一native Genesis＋MAME PWM engineにSynth adapterとVGM Analyzerの`installPlaybackMixer`をそれぞれ適用し、同じ演奏write・共有初期値・50／100／200%・独立した音源gainのPCMを直接比較した。Analyzerの5ms rampを越えた同じnative位相で、Float32丸め幅の範囲で一致した。raw source単独合算との比較と0／380%・Mute・0%中のchip進行も検証した。
+- 現在の共有gainはYM2612 `0.775938`／Sega PSG `0.35`／RF5C164 `0.280286`／PWM `0.128818`。常時表示は77.6%／35%／28%、PWMは既存Muteのみ。モデル値は表示桁数へ丸めない。
+- 配布stageの`check_synth_song_mix_browser.cjs`がChromium／WebKitで成功。Synth helperとは独立に共通presetをimportして初期値を照合し、初期状態のReset無効と変更markerなしを確認。1%の矢印往復・Page／Home／Endから正確な補正値へ戻した時にも、浮動小数誤差による余計な変更状態を残さない。正確なslider値・title／aria-valuetext、1桁の読める表示、色・fillも確認した。
+- 実PCMで3音源の補正初期値→source 100%→初期値を測定し、共有倍率が一度だけ適用されることを確認。PWMも自作VGMのduty波形から求めたraw基本波振幅に共有補正を掛けた値と一致した。既存の全20系統Mute・0／50／100／200／380%・複数音源の独立性・Master・DAC・focus中の鍵盤入力・位置継続・Pause／Stop保持・Reset／別曲での共通補正復帰・Live／VFS byte不変・Copy／特殊CH3の検証も成功。
+- 1240／390pxの配置とWebKitの色を確認。新しい常設UIは追加していない。記録：`/private/tmp/fm2612-mix-source-browser.json`（98 assets）。全asset hashが最終stageと一致。音声出力を物理muteした自動計測であり、人の実聴とは区別する。
+- 配布に新helperと共通presetファイルを追加し、URL移設を行う。`sh scripts/package_itch_synth.sh mix-source-check-20261110`と264個のlocal module／asset参照チェックが成功。最終ZIP：`release/hello_ymfm_wasm_mix-source-check-20261110_itch_synth.zip`（247 entries／219 files、829,989 bytes、SHA-256 `a8d54086192ee031a1739fc87b22d140fcce9ffd2e3a254a093766bfe0ee2123`）。全fileがstageと一致し、共通presetはsourceとbyte一致。receipt：`/private/tmp/fm2612-mix-source-package.json`。README英語／日本語・cache keyを更新。共通SDK／core／WASM／npm package自体は変更せず、公開・commit／pushはしていない。
+
 ## 完了: MixのMute表記と音源別Volume
 
 ユーザー指示：MをMuteへ変更し、S／Soloを外す。YM2612・Sega PSG・Mega CD PCMそれぞれの音量を調節できるようにする。

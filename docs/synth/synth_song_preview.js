@@ -9,8 +9,8 @@ import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=vgm-audition-1';
-import {createSynthSongMix} from './synth_song_mix.js?v=mix-volume-1';
-import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=mix-volume-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=mix-source-1';
+import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=mix-source-1';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;

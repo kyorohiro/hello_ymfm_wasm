@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {gzipSync} from 'node:zlib';
 import {readFile} from 'node:fs/promises';
 import {createSynthSongPreview, inspectGenesisPreview} from './synth_song_preview.js';
+import {SYNTH_SONG_MIX_DEFAULTS as defaults} from './synth_song_mix_defaults.js';
 
 function vgm({clock=7670454, psg=3579545, otherClock=0, rf=0, pwm=0, command=0x52, commands:providedCommands}={}) {
   const commands = providedCommands ?? [command,0xb0,4,0x61,0x44,0xac,0x66];
@@ -314,7 +315,7 @@ test('mix choices survive Stop and replay of the same source but clear for a dif
     await preview.play();
     assert.equal(preview.getState().mix.channels.length,6);
     assert.equal(preview.getState().mix.changed,false,'different source starts with all its own channels audible');
-    assert.deepEqual(preview.getState().mix.groups,[{id:'ym2612',label:'YM2612',volume:1}]);
+    assert.deepEqual(preview.getState().mix.groups,[{id:'ym2612',label:'YM2612',volume:defaults.ym2612}]);
     preview.setChannelMuted('ym2612:0',true);preview.setGroupVolume('ym2612',0);preview.resetMix();
     assert.equal(preview.getState().mix.changed,false);
     preview.clear();assert.deepEqual(preview.getState().mix.channels,[]);
@@ -359,12 +360,12 @@ test('source volume changes affect future actual PSG PCM, preserve the queued pr
       'Resume first keeps the exact queued prefix rather than regenerating it at the new gain');
     resumePrefix.forEach((node,index)=>assert.deepEqual(node.buffer.getChannelData(0),retainedPcm[index]));
     host.context.currentTime+=.14;await tick();
-    assert(Math.abs(peak(host.starts.slice(-1))/baseline-.5)<1e-6,'future source PCM receives 50% gain');
+    assert(Math.abs(peak(host.starts.slice(-1))/baseline-.5/defaults.psg)<1e-6,'50% is an absolute source gain relative to the calibrated starting balance');
     const current=preview.getState().consumedFrames;
     preview.setGroupVolume('psg',3.8);
     assert.equal(preview.getState().consumedFrames,current);
     host.context.currentTime+=.14;await tick();
-    assert(Math.abs(peak(host.starts.slice(-1))/baseline-3.8)<1e-5,'future source PCM receives 380% gain');
+    assert(Math.abs(peak(host.starts.slice(-1))/baseline-3.8/defaults.psg)<1e-5,'380% is an absolute source gain');
     assert.deepEqual(bytes,original,'the source VGM is unchanged');
   } finally {preview.dispose();}
 });
@@ -391,7 +392,7 @@ test('group gain never changes the written-register Live snapshot, channel mutes
     assert.equal(preview.getState().consumedFrames,position);assert.equal(host.starts.length,nodes);
     preview.resetMix();
     assert.deepEqual(preview.getState().liveState,before,'Reset changes only listening choices');
-    assert.equal(preview.getState().mix.groups[0].volume,1);
+    assert.equal(preview.getState().mix.groups[0].volume,defaults.ym2612);
     assert.equal(preview.getState().mix.channels[0].muted,false);
     assert.deepEqual(bytes,original);
   } finally {preview.dispose();}

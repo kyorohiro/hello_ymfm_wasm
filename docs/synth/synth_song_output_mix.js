@@ -2,6 +2,9 @@
 // retained here; the Live timeline, installed after this adapter, sees only the
 // original song writes. No note-off, envelope, sample address or DAC data is
 // changed to mute a channel. The checked SDK and its WASM ABI stay unchanged.
+// Volumes use raw-source gain units, including the shared calibrated defaults.
+import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+
 const GROUPS = {ym2612:6, psg:4, pcm:8, pwm:2};
 const VOLUME_GROUPS = new Set(['ym2612','psg','pcm']);
 const validId = id => {
@@ -17,7 +20,7 @@ export function installSynthSongOutputMix(engine) {
   const initialPsgMask = engine.psg?.muteMask ?? 0;
   const ymPan = new Uint8Array(6), pcmPan = new Uint8Array(8);
   let masks = {ym2612:0, psg:0, pcm:0, pwm:0}, pcmChannel = 0, pcmControl = 0, disposed = false;
-  const volumes = {ym2612:1, psg:1, pcm:1};
+  const volumes = {...SYNTH_SONG_MIX_DEFAULTS};
   const rawYm = (...args) => original.ym?.call(engine, ...args);
   const rawPcm = (...args) => original.pcm?.call(engine, ...args);
 
@@ -70,24 +73,26 @@ export function installSynthSongOutputMix(engine) {
     const output = original.ymGenerate.call(this, frames);
     // ymfm models the YM2612's DC discontinuity even with both pan bits off.
     // Complete mute suppresses that residual output, while clocking the core.
-    return scaleOutput(output, volumes.ym2612, masks.ym2612 === 63);
+    // GenesisAudioEngine applies its legacy .9/.35 balance after these
+    // buffers. Cancel it so the controls use the shared raw-source units.
+    return scaleOutput(output, volumes.ym2612 / .9, masks.ym2612 === 63);
   }
   function psgGenerate(frames) {
-    return scaleOutput(original.psgGenerate.call(this, frames), volumes.psg, masks.psg === 15);
+    return scaleOutput(original.psgGenerate.call(this, frames), volumes.psg / .35, masks.psg === 15);
   }
   function pcmGenerate(frames) {
     const output = original.pcmGenerate.call(this, frames);
     return scaleOutput(output, volumes.pcm, masks.pcm === 255);
   }
   function pwmGenerate(frames) {
-    const output = original.pwmGenerate.call(this, frames);
+    const output = scaleOutput(original.pwmGenerate.call(this, frames), volumes.pwm, false);
     if (masks.pwm & 1) output.left.fill(0);
     if (masks.pwm & 2) output.right.fill(0);
     return output;
   }
   function pwmOutput(...args) {
     const output = original.pwmOutput.apply(this, args);
-    return [masks.pwm & 1 ? 0 : output[0], masks.pwm & 2 ? 0 : output[1]];
+    return [masks.pwm & 1 ? 0 : output[0] * volumes.pwm, masks.pwm & 2 ? 0 : output[1] * volumes.pwm];
   }
   engine.writeYm2612 = writeYm;
   if (original.pcm) engine.writeRf5c164 = writePcm;
@@ -139,7 +144,7 @@ export function installSynthSongOutputMix(engine) {
 
 // All three chip generateStereo APIs return owned copies, not native heap
 // views. Scaling these copies cannot change oscillator/sample/resampler state.
-// Keep the unity path untouched so the default mix remains byte-exact.
+// Skip multiplication when this output boundary already has the desired gain.
 function scaleOutput(output, gain, muted) {
   if (muted || gain === 0) {output.left.fill(0); output.right.fill(0);}
   else if (gain !== 1) {

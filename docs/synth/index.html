@@ -1384,7 +1384,7 @@
                 </span>
                 <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
                 <div id="synthSongMixPanel" role="group" aria-label="Reference playback mixer" hidden>
-                  <div class="synth-song-mix-heading"><strong>Playback mixer</strong><button id="synthSongMixReset" class="toolbar-button" type="button">Reset</button></div>
+                  <div class="synth-song-mix-heading"><strong>Playback mixer</strong><button id="synthSongMixReset" class="toolbar-button" type="button" title="Restore shared System levels and unmute channels.">Reset</button></div>
                   <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
                   <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
                 </div>
@@ -1557,7 +1557,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-mix-volume-1";
+      import "./synth.js?v=synth-mix-source-1";
     </script>
   </body>
 </html>

@@ -28,14 +28,28 @@ export function setupSynthSongMixControls({preview}) {
     input.type = 'range';
     input.min = '0';
     input.max = '380';
-    input.step = '1';
+    // Canonical gains carry six decimal places: retain all four fractional
+    // percent digits instead of rounding a freshly loaded System level.
+    input.step = '0.0001';
     input.id = 'synthSongGroupVolume-' + group.id;
     input.dataset.songGroupVolume = group.id;
     input.setAttribute('aria-label', group.label + ' volume, 0 to 380 percent');
     const value = document.createElement('output');
     value.htmlFor = input.id;
     value.dataset.songGroupVolumeValue = group.id;
-    input.addEventListener('input', () => preview.setGroupVolume(group.id, Number(input.value) / 100));
+    input.addEventListener('input', () => preview.setGroupVolume(group.id, Number((Number(input.value) / 100).toFixed(6))));
+    input.addEventListener('keydown', event => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const step = event.shiftKey ? 10 : 1;
+      const deltas = {ArrowLeft:-step, ArrowDown:-step, ArrowRight:step, ArrowUp:step, PageDown:-10, PageUp:10};
+      const value = Number(input.value);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? 380
+        : Object.hasOwn(deltas, event.key) ? Math.max(0, Math.min(380, value + deltas[event.key])) : null;
+      if (next === null) return;
+      event.preventDefault();
+      input.value = next.toFixed(4);
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+    });
     label.append(name, input, value);
     section.append(label);
     volumes.set(group.id, {input, value});
@@ -107,10 +121,13 @@ export function setupSynthSongMixControls({preview}) {
     for (const group of groups) {
       const control = volumes.get(group.id);
       if (!control) continue;
-      const percent = Math.round(group.volume * 100), text = percent + '%';
+      const percent = Number((group.volume * 100).toFixed(4));
+      const text = Number(percent.toFixed(1)) + '%';
       if (Number(control.input.value) !== percent) control.input.value = String(percent);
       control.input.style.setProperty('--mix-volume-position', (percent / 380 * 100) + '%');
       control.input.dataset.boosted = String(percent > 100);
+      control.input.title = group.label + ' source volume: ' + percent + '% (gain ' + group.volume + '; 100% = 1x)';
+      control.input.setAttribute('aria-valuetext', percent + ' percent, source gain ' + group.volume);
       if (control.value.textContent !== text) control.value.textContent = text;
     }
     if (!panel.hidden && (structureChanged || captionChanged)) position();

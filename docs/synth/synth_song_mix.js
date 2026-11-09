@@ -1,5 +1,7 @@
 // Session-only listening choices for a reference song. These settings never
 // change the instrument editor, source VGM or the written-register Live view.
+import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
+
 const GROUPS = [
   {clock:'ym2612Clock', prefix:'ym2612', group:'YM2612', volume:true, labels:['CH1','CH2','CH3','CH4','CH5','CH6 / DAC']},
   {clock:'psgClock', prefix:'psg', group:'Sega PSG', volume:true, labels:['Tone 1','Tone 2','Tone 3','Noise']},
@@ -19,7 +21,7 @@ export function createSynthSongMix() {
       const groupState = groups.map(({prefix,group,volume}) => Object.freeze({id:prefix,label:group,
         ...(volume?{volume:volumes.get(prefix)}:{})}));
       cached = Object.freeze({channels:Object.freeze(channels),groups:Object.freeze(groupState),
-        changed:channels.some(channel => channel.muted)||[...volumes.values()].some(value=>value!==1)});
+        changed:channels.some(channel => channel.muted)||[...volumes].some(([id,value])=>value!==SYNTH_SONG_MIX_DEFAULTS[id])});
     }
     return cached;
   }
@@ -31,7 +33,7 @@ export function createSynthSongMix() {
     entries = next;
     groups = nextGroups;
     settings = new Map(entries.map(entry => [entry.id, settings.get(entry.id) ?? false]));
-    volumes = new Map(groups.filter(group=>group.volume).map(({prefix})=>[prefix,volumes.get(prefix)??1]));
+    volumes = new Map(groups.filter(group=>group.volume).map(({prefix})=>[prefix,volumes.get(prefix)??SYNTH_SONG_MIX_DEFAULTS[prefix]]));
     invalidate();
   }
   function setChannelMuted(id, value) {
@@ -54,7 +56,7 @@ export function createSynthSongMix() {
     const changed = getState().changed;
     if (!changed) return false;
     settings = new Map(entries.map(entry => [entry.id, false]));
-    volumes = new Map([...volumes.keys()].map(id=>[id,1]));
+    volumes = new Map([...volumes.keys()].map(id=>[id,SYNTH_SONG_MIX_DEFAULTS[id]]));
     invalidate();
     return true;
   }

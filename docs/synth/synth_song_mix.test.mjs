@@ -1,8 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSynthSongMix} from './synth_song_mix.js';
+import {SYNTH_SONG_MIX_DEFAULTS as defaults} from './synth_song_mix_defaults.js';
+import {SOUNDCHIP_MIXER_PRESETS} from '../js/soundchip_mixer_presets.js';
 
 const fullHeader = {ym2612Clock:7670454,psgClock:3579545,rf5c164Clock:12500000,pwmClock:23011361};
+const visibleDefaults = {ym2612:defaults.ym2612,psg:defaults.psg,pcm:defaults.pcm};
+
+test('source defaults share the calibrated factory gains exactly, including fixed PWM and fractional percentages',()=>{
+  const kinds=SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds;
+  for(const [id,kind] of Object.entries({ym2612:'ym2612',psg:'segapsg',pcm:'rf5c164',pwm:'pwm'})) {
+    assert.equal(defaults[id],kinds.find(entry=>entry.name===kind).volume);
+  }
+  assert(Object.isFrozen(defaults));
+  assert.notEqual(defaults.ym2612,Math.round(defaults.ym2612*1000)/1000,'display rounding must not replace the measured source gain');
+  assert.notEqual(defaults.pcm,Math.round(defaults.pcm*1000)/1000);
+});
 
 test('reference mix exposes only the song chips, including physical DAC and stereo PWM outputs', () => {
   const mix = createSynthSongMix();
@@ -16,9 +29,9 @@ test('reference mix exposes only the song chips, including physical DAC and ster
   assert.equal(state.channels.find(channel=>channel.id==='ym2612:5').label,'CH6 / DAC');
   assert.match(state.channels.find(channel=>channel.id==='pwm:0').label,/output/);
   assert(state.channels.every(channel=>!channel.muted&&!channel.effectiveMuted));
-  assert.deepEqual(state.groups,[{id:'ym2612',label:'YM2612',volume:1},
-    {id:'psg',label:'Sega PSG',volume:1},{id:'pcm',label:'Mega CD PCM',volume:1},{id:'pwm',label:'32X PWM'}]);
-  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1});
+  assert.deepEqual(state.groups,[{id:'ym2612',label:'YM2612',volume:defaults.ym2612},
+    {id:'psg',label:'Sega PSG',volume:defaults.psg},{id:'pcm',label:'Mega CD PCM',volume:defaults.pcm},{id:'pwm',label:'32X PWM'}]);
+  assert.deepEqual(mix.getGroupVolumes(),visibleDefaults);
   assert.equal(state.changed,false);
   assert(Object.isFrozen(state.channels[0]));
   assert(Object.isFrozen(state.groups[0]));
@@ -26,8 +39,8 @@ test('reference mix exposes only the song chips, including physical DAC and ster
   mix.configure({psgClock:3579545});
   assert.deepEqual(mix.getState().channels.map(channel=>channel.id),['psg:0','psg:1','psg:2','psg:3']);
   assert.equal(mix.getMutedChannels().length,16,'undeclared endpoints stay silent too');
-  assert.deepEqual(mix.getState().groups,[{id:'psg',label:'Sega PSG',volume:1}]);
-  assert.deepEqual(mix.getGroupVolumes(),{psg:1});
+  assert.deepEqual(mix.getState().groups,[{id:'psg',label:'Sega PSG',volume:defaults.psg}]);
+  assert.deepEqual(mix.getGroupVolumes(),{psg:defaults.psg});
   assert(mix.getMutedChannels().includes('ym2612:5'),'undeclared YM2612 cannot leak DAC discontinuity');
   assert(!mix.getMutedChannels().includes('psg:3'));
 });
@@ -45,11 +58,15 @@ test('channel mutes remain independent from source volumes; Reset restores both'
   assert.equal(audible().length,18);
   assert.equal(mix.getState().groups[0].volume,3.8);
   assert.equal(mix.reset(),true);assert.equal(audible().length,20);
-  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1});
+  assert.deepEqual(mix.getGroupVolumes(),visibleDefaults);
   mix.setGroupVolume('psg',.5);
   assert.equal(mix.getState().changed,true,'a gain-only edit enables Reset');
   assert.equal(mix.reset(),true);
   assert.equal(mix.reset(),false);
+  mix.setGroupVolume('ym2612',1);
+  assert.equal(mix.getState().changed,true,'100% is an explicit source gain, not the measured factory balance');
+  assert.equal(mix.reset(),true);
+  assert.equal(mix.getGroupVolumes().ym2612,defaults.ym2612,'Reset preserves the exact fractional calibrated value');
 });
 
 test('same-song configuration retains choices; source clearing and unavailable channels remove them', () => {
@@ -66,7 +83,7 @@ test('same-song configuration retains choices; source clearing and unavailable c
   assert.equal(mix.setChannelMuted('psg:3',true),false);
   mix.clear();mix.configure(fullHeader);
   assert.equal(mix.getState().changed,false,'a new file starts with all outputs enabled');
-  assert.deepEqual(mix.getGroupVolumes(),{ym2612:1,psg:1,pcm:1},'new source gains start at 100%');
+  assert.deepEqual(mix.getGroupVolumes(),visibleDefaults,'new source gains start at the shared measured balance');
   assert.equal(previous.channels.find(channel=>channel.id==='psg:3').muted,true,'old snapshots remain immutable');
   assert.equal(previous.groups.find(group=>group.id==='psg').volume,2);
 });
