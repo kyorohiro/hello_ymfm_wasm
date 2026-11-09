@@ -161,11 +161,21 @@
       #synthSongTime { color: #a8bfba; font-variant-numeric: tabular-nums; }
       #synthSongStatus { color: #a8bfba; min-width: 0; overflow-wrap: anywhere; }
       #synthSongStatus[data-state="error"] { color: #ffbdad; flex-basis: 100%; }
-      .synth-song-live-controls { display: inline-flex; align-items: center; gap: 5px; }
+      .synth-song-live-controls { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 5px; }
       .synth-song-live-controls label { display: inline-flex; align-items: center; gap: 4px; color: #b8cac6; }
       .synth-song-live-controls input { margin: 0; }
       #synthSongChannelSelect { font: inherit; border: 1px solid #41615b; border-radius: 999px; color: #e4eee8; background: #1b2929; padding: 4px 6px; }
       #synthSongLiveStatus { color: #8bd9ca; font-size: .65rem; overflow-wrap: anywhere; }
+      #synthSongMixPanel { position: fixed; z-index: 100; box-sizing: border-box; overflow: auto; padding: 12px; background: #172423; color: #e4eee8; border: 1px solid #7c9d91; border-radius: 12px; box-shadow: 0 8px 30px #0008; font-size: .75rem; }
+      #synthSongMixPanel[hidden] { display: none; }
+      .synth-song-mix-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+      #synthSongMixChannels fieldset { min-width: 0; margin: 8px 0 0; padding: 6px; border: 1px solid #35504b; border-radius: 8px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 8px; }
+      #synthSongMixChannels legend { color: #a8bfba; padding: 0 4px; }
+      .synth-song-mix-channel { display: flex; align-items: center; gap: 4px; }
+      .synth-song-mix-channel > span { flex: 1; min-width: 0; }
+      .synth-song-mix-channel.is-muted > span { opacity: .45; }
+      .synth-song-mix-channel .toolbar-button { padding: 2px 5px; min-height: 24px; }
+      .synth-song-mix-channel .is-selected { background: #47776b; color: #fff; }
       .synth-editor[data-live-view="true"] .param-value, .synth-editor[data-live-view="true"] .param-button { cursor: default; }
       .synth-editor[data-live-view="true"] .operator-envelope-handle { visibility: hidden; }
       .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
@@ -1307,7 +1317,7 @@
               </div>
             </div>
             <div class="synth-file-format-row">
-              <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Extra Synth settings are stored beside the tone as &lt;tone&gt;.synth.json and included in Cassette export. DAC and CH3 special mode remain session controls.">TFI / VGI + Synth settings · Format info ⓘ</p>
+              <p class="synth-file-format-note" title="TFI stores FM operators, algorithm and feedback. VGI also stores pan, AMS and PMS. Extra Synth settings are stored beside the tone as &lt;tone&gt;.synth.json and included in Cassette export. Copied OP masks and CH3 pitch ratios require this sidecar; DAC remains a session control.">TFI / VGI + Synth settings · Format info ⓘ</p>
               <div id="synthSongPlayer" class="synth-song-player" aria-label="Original VGM reference performance" hidden>
                 <label for="synthSongSelect" title="Play the original VGM without replacing the instrument you are editing.">VGM</label>
                 <select id="synthSongSelect" aria-label="Reference VGM"></select>
@@ -1322,8 +1332,14 @@
                     <option value="0" selected>CH1</option><option value="1">CH2</option><option value="2">CH3</option>
                     <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
                   </select>
+                  <button id="synthSongCopyButton" class="toolbar-button" type="button" aria-label="Copy selected channel to Synth" title="Pause to copy the selected FM channel into a new editable Synth instrument." disabled>Copy</button>
+                  <button id="synthSongMixButton" class="toolbar-button" type="button" aria-expanded="false" aria-controls="synthSongMixPanel" title="Choose which reference-song channels to hear. M: Mute. S: Solo. Changes take about 0.2 seconds.">Mix</button>
                 </span>
                 <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
+                <div id="synthSongMixPanel" role="group" aria-label="Reference playback channels" hidden>
+                  <div class="synth-song-mix-heading"><strong>Playback channels</strong><button id="synthSongMixReset" class="toolbar-button" type="button">Reset</button></div>
+                  <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
+                </div>
               </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
@@ -1493,7 +1509,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-vgm-audition-1";
+      import "./synth.js?v=synth-vgm-mix-copy-1";
     </script>
   </body>
 </html>

@@ -83,6 +83,13 @@ test('Pause freezes consumed frames and Resume preserves the exact unconsumed bu
   const f=fixture();
   try{
     f.preview.load(vgm(),'song.vgm');await f.preview.play();
+    // A cooperative refill may initially schedule only part of a chunk under
+    // parallel WASM test load. Wait for audio covering the intended pause point
+    // before advancing the fake audio clock into that unconsumed buffer.
+    const deadline=Date.now()+1000;
+    const scheduledFrames=()=>f.host.starts.reduce((sum,node)=>sum+node.buffer.length,0);
+    while(scheduledFrames()<44100*.2&&Date.now()<deadline)await tick();
+    assert(scheduledFrames()>=44100*.2,'the player schedules enough actual audio for a mid-buffer Pause');
     f.host.context.currentTime=.075;
     const consumed=f.preview.getState().consumedFrames;assert(consumed>0);
     f.preview.pause();const frozen=f.preview.getState();
@@ -92,8 +99,15 @@ test('Pause freezes consumed frames and Resume preserves the exact unconsumed bu
     assert.equal(f.preview.getState().consumedFrames,consumed);
     await f.preview.resume();assert.equal(f.preview.getState().playback,'playing');
     assert.equal(f.engines.length,1,'Resume does not recreate or rewind the engine');
-    const resumed=f.host.starts[initialNodes.length], cumulativeFrames=initialNodes[0].buffer.length;
-    assert.equal(resumed.buffer,initialNodes[1].buffer,'Resume keeps the partially heard PCM buffer');
+    let cumulativeFrames=0;
+    const expected=initialNodes.find(node=>{
+      if(cumulativeFrames+node.buffer.length>consumed)return true;
+      cumulativeFrames+=node.buffer.length;return false;
+    });
+    assert(expected&&consumed>cumulativeFrames,'Pause falls inside a buffer that was scheduled before Pause');
+    const resumed=f.host.starts[initialNodes.length];
+    assert(resumed,'Resume schedules the retained PCM');
+    assert.equal(resumed.buffer,expected.buffer,'Resume keeps the partially heard PCM buffer');
     assert(Math.abs(resumed.offset-(consumed-cumulativeFrames)/44100)<1e-12);
     f.host.context.currentTime=5.05;assert(f.preview.getState().consumedFrames>consumed);
     f.preview.stop();assert.equal(f.preview.getState().positionFrames,0);
@@ -208,3 +222,64 @@ for(const [name,file]of [['Mega CD RF5C164','genesis-pcm'],['32X PWM stream','pw
     }finally{preview.dispose();}
   });
 }
+
+test('reference mix changes future PCM without discarding queued audio, Live state or the paused position',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
+  const bytes=vgm({clock:0,psg:3579545,commands:[
+    0x50,0x8c,0x50,0x1f,0x50,0x90,0x61,0x44,0xac,0x66]});
+  const nonzero=nodes=>nodes.some(node=>node.buffer.getChannelData(0).some(value=>Math.abs(value)>.001));
+  const quiet=nodes=>nodes.length>0&&nodes.every(node=>node.buffer.getChannelData(0).every(value=>value===0));
+  try {
+    preview.load(bytes,'tone.vgm');
+    assert.deepEqual(preview.getState().mix.channels,[],'selection never initializes audio or parses the file');
+    await preview.play();
+    const deadline=Date.now()+1000;
+    while(!host.starts.length&&Date.now()<deadline)await tick();
+    assert(nonzero(host.starts),'actual PSG tone is present before mute');
+    assert.deepEqual(preview.getState().mix.channels.map(channel=>channel.id),['psg:0','psg:1','psg:2','psg:3']);
+    const originalNodes=[...host.starts],position=preview.getState().consumedFrames;
+    preview.setChannelMuted('psg:0',true);
+    assert.equal(preview.getState().consumedFrames,position,'mute does not seek or skip commands');
+    assert(originalNodes.every(node=>!node.stopped),'scheduled PCM is not discarded on mute');
+    assert(nonzero(originalNodes),'already scheduled audio remains the original PCM');
+    host.context.currentTime=.14;
+    const mutedFrom=host.starts.length;await tick();
+    assert(host.starts.length>mutedFrom);
+    assert(quiet(host.starts.slice(-1)),'after the small parser queue drains, newly generated actual PCM is silent, including absent YM2612 DC');
+    preview.pause();
+    const paused=preview.getState().consumedFrames,pausedNodes=[...host.starts];
+    preview.setChannelMuted('psg:0',false);preview.setChannelSolo('psg:1',true);
+    assert.equal(preview.getState().consumedFrames,paused);
+    assert.equal(host.starts.length,pausedNodes.length,'a paused mix edit never renders or starts audio');
+    assert.equal(preview.getState().mix.channels[0].effectiveMuted,true,'global solo suppresses the audible tone');
+    await preview.resume();
+    assert.equal(preview.getState().consumedFrames,paused,'Resume keeps the exact pause position');
+    preview.resetMix();
+    const unmutedFrom=host.starts.length;
+    host.context.currentTime+=.14;await tick();
+    assert(nonzero(host.starts.slice(unmutedFrom)),'unmute resumes the existing oscillator without replaying the source');
+    assert.equal(preview.getState().liveState,null,'PSG mix never fabricates a YM2612 Live snapshot');
+    assert.throws(()=>preview.setChannelMuted('ym2612:0',true),/Unknown reference channel/);
+    assert.throws(()=>preview.setChannelSolo('psg:0',1),/boolean/);
+  } finally {preview.dispose();}
+});
+
+test('mix choices survive Stop and replay of the same source but clear for a different file',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
+  try {
+    preview.load(vgm(),'first.vgm');await preview.play();
+    preview.setChannelMuted('ym2612:5',true);preview.setChannelSolo('psg:3',true);
+    const chosen=preview.getState().mix;
+    preview.stop();assert.equal(preview.getState().mix,chosen);
+    await preview.play();assert.equal(preview.getState().mix,chosen);
+    preview.load(vgm({psg:0}),'second.vgm');
+    assert.deepEqual(preview.getState().mix.channels,[]);
+    await preview.play();
+    assert.equal(preview.getState().mix.channels.length,6);
+    assert.equal(preview.getState().mix.changed,false,'different source starts with all its own channels audible');
+    preview.setChannelMuted('ym2612:0',true);preview.resetMix();
+    assert.equal(preview.getState().mix.changed,false);
+    preview.clear();assert.deepEqual(preview.getState().mix.channels,[]);
+  } finally {preview.dispose();}
+  assert.throws(()=>preview.setChannelMuted('ym2612:0',true),/disposed/);
+});

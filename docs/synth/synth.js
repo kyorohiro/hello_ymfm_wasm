@@ -1,7 +1,7 @@
-import {createSynthProject} from './synth_project.js?v=vgm-storage-1';
-import {setupSynthFiles} from './synth_files.js?v=vgm-live-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-audition-1';
-import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js';
+import {createSynthProject} from './synth_project.js?v=vgm-mix-copy-1';
+import {setupSynthFiles} from './synth_files.js?v=vgm-mix-copy-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-mix-copy-1';
+import {createSynthSongVoice, describeSynthSongVoice, setSynthSongVoiceFrequency} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -249,8 +249,8 @@ function updatePitchBend(value) {
   for (const wheel of pitchBendWheels) wheel.value = String(value);
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
   if (synth) {
-    applyPitchBend(songAuditionVoice ?? synth, voices, pitchBendSemitones);
-    if (!songAuditionVoice && channel3SpecialState.enabled) {
+    applyPitchBend(songAuditionVoice ?? getEditorPlayableSynth(), voices, pitchBendSemitones);
+    if (!songAuditionVoice && !currentCapturedVoice && channel3SpecialState.enabled) {
       channel3SpecialState.frequencies.forEach((basePitch, operator) => {
         const pitch = bendPitch(basePitch, pitchBendSemitones);
         synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
@@ -359,6 +359,7 @@ let currentPresetName =
 let importedTfiName = "";
 let currentPresetPan = {left:true, right:true};
 let currentPresetB4 = 0xc0;
+let currentCapturedVoice = null;
 let activeHelpId = "";
 let masterVolume = 1;
 let songLiveView = null;
@@ -545,6 +546,10 @@ function isPerformanceInputEnabled() {
   return !switchingAudioOutput && (!isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
+function capturedVoiceNeedsKeyboard() {
+  return Boolean(currentCapturedVoice&&(currentCapturedVoice.keyMask!==15||channel3SpecialState.enabled));
+}
+
 // A third, lazy keyboard chip keeps audition notes out of the song engine,
 // original editor chip, and looper/event recorder. It shares the final output
 // and Master level, but has its own mute for release tails at mode changes.
@@ -668,6 +673,12 @@ function formatLooperProgress(
 }
 
 function updateLooperUi() {
+  const captured=capturedVoiceNeedsKeyboard();
+  if(looperStartButton) {
+    looperStartButton.disabled=captured&&!looper?.running;
+    looperStartButton.title=captured?'Captured OP masks and CH3 ratios currently support keyboard audition.':'';
+  }
+  if(looperRecordButton)looperRecordButton.disabled=captured&&!looper?.recording;
   if (!looper) {
     if (looperStateRoot) {
       looperStateRoot.textContent =
@@ -774,6 +785,8 @@ function updateEventRecordUi() {
     recording?.commands?.length ?? 0;
 
   if (eventRecordStartButton) {
+    eventRecordStartButton.disabled=capturedVoiceNeedsKeyboard()&&!eventRecordSessionActive;
+    eventRecordStartButton.title=capturedVoiceNeedsKeyboard()?'Captured OP masks and CH3 ratios currently support keyboard audition.':'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -897,6 +910,7 @@ function handleLooperStateChange(
 }
 
 async function toggleEventRecordSession() {
+  if(capturedVoiceNeedsKeyboard()&&!eventRecordSessionActive)return;
   await ensureAudioReady();
 
   if (!megaSynth) {
@@ -949,6 +963,7 @@ async function toggleEventRecordSession() {
 }
 
 async function toggleEventTakeRecording() {
+  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecording())return;
   await ensureAudioReady();
 
   if (
@@ -987,6 +1002,7 @@ async function toggleEventTakeRecording() {
 }
 
 async function playEventRecording() {
+  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecordingPlaybackActive())return;
   await ensureAudioReady();
 
   if (!megaSynth) {
@@ -1575,6 +1591,13 @@ function applyPresetData(preset, presetName) {
   importedTfiName = presetName.startsWith('vfs:') ? presetName.split('/').pop() : '';
   currentPresetPan = {...(preset.pan ?? {left:true, right:true})};
   currentPresetB4 = preset.b4 ?? 0xc0;
+  const wasCaptured=Boolean(currentCapturedVoice);
+  currentCapturedVoice=preset.capturedVoice?structuredClone(preset.capturedVoice):null;
+  if(currentCapturedVoice) {
+    commonState.dacEnabled=false;
+    channel3SpecialState.enabled=currentCapturedVoice.specialMode;
+    if(currentCapturedVoice.specialMode)channel3SpecialState.frequencies=structuredClone(currentCapturedVoice.specialFrequencies);
+  } else if(wasCaptured)channel3SpecialState.enabled=false;
   commonState.algorithm =
     preset.algorithm ?? 7;
   commonState.feedback =
@@ -1611,6 +1634,8 @@ function applyPresetData(preset, presetName) {
   if (synth) {
     applyPatchToVoices();
   }
+  updateLooperUi();
+  updateEventRecordUi();
 }
 
 function buildCurrentPresetState() {
@@ -1631,6 +1656,9 @@ function buildCurrentPresetState() {
     },
     operators: {},
   };
+  if(currentCapturedVoice)preset.capturedVoice={keyMask:currentCapturedVoice.keyMask,
+    specialMode:channel3SpecialState.enabled,
+    specialFrequencies:channel3SpecialState.enabled?structuredClone(channel3SpecialState.frequencies):[]};
 
   for (const operator of OPERATOR_NUMBERS) {
     // TFI's preset encoder uses logical operator labels 1..4.
@@ -1786,6 +1814,11 @@ function renderChannel3SpecialMonitor() {
     syncChannel3SpecialControls();
     return;
   }
+  if(currentCapturedVoice) {
+    channel3SpecialModePill.textContent=channel3SpecialState.enabled?'Special On':'Special Off';
+    syncChannel3SpecialControls();
+    return;
+  }
 
   if (!synth) {
     channel3SpecialModePill.textContent =
@@ -1879,6 +1912,12 @@ function buildChannel3SpecialControls() {
         channel3SpecialState.enabled,
       onChange: (nextValue) => {
         if (songLiveView) return;
+        if(currentCapturedVoice&&nextValue&&!channel3SpecialState.frequencies[3].fnum) {
+          syncChannel3SpecialControls();
+          setStatus('Set an OP4 base frequency above zero before enabling the captured CH3 mode.');
+          return;
+        }
+        if(currentCapturedVoice)stopAllNotes();
         channel3SpecialState.enabled =
           Boolean(nextValue);
         if (synth) {
@@ -1887,6 +1926,7 @@ function buildChannel3SpecialControls() {
           );
         }
         renderChannel3SpecialMonitor();
+        if(currentCapturedVoice){markPresetEdited();updateLooperUi();updateEventRecordUi();}
       },
     });
   channel3SpecialControls.set(
@@ -1941,6 +1981,7 @@ function buildChannel3SpecialControls() {
             }
           }
           renderChannel3SpecialMonitor();
+          if(currentCapturedVoice)markPresetEdited();
         },
       });
     channel3SpecialControls.set(
@@ -1961,6 +2002,11 @@ function buildChannel3SpecialControls() {
             .fnum,
         onChange: (nextValue) => {
           if (songLiveView) return;
+          if(currentCapturedVoice&&channel3SpecialState.enabled&&operator===3&&!nextValue) {
+            syncChannel3SpecialControls();
+            setStatus('Captured CH3 keyboard transposition needs an OP4 base frequency above zero.');
+            return;
+          }
           channel3SpecialState
             .frequencies[operator]
             .fnum = nextValue;
@@ -1987,6 +2033,7 @@ function buildChannel3SpecialControls() {
             }
           }
           renderChannel3SpecialMonitor();
+          if(currentCapturedVoice)markPresetEdited();
         },
       });
     channel3SpecialControls.set(
@@ -2218,11 +2265,30 @@ function stopAllNotes() {
 
 function getPlayableSynth() {
   if (isSongChannelTarget()) return songAuditionVoice;
+  if(capturedVoiceNeedsKeyboard())return getEditorPlayableSynth();
   if (looper?.running) {
     return looper;
   }
 
-  return synth;
+  return getEditorPlayableSynth();
+}
+
+// Captured OP masks and CH3 pitch ratios remain editable Synth settings. This
+// adapter changes Note On only; the existing controls still program the chip.
+function getEditorPlayableSynth() {
+  if(!synth||!capturedVoiceNeedsKeyboard())return synth;
+  return {
+    setFrequency(channel,block,fnum) {
+      setSynthSongVoiceFrequency(synth,channel,block,fnum,
+        channel===2&&channel3SpecialState.enabled?channel3SpecialState.frequencies:null);
+    },
+    noteOn(channel,block,fnum) {
+      synth.noteOff(channel);
+      this.setFrequency(channel,block,fnum);
+      synth.keyOn(channel,[0,1,2,3].filter(operator=>currentCapturedVoice.keyMask&(1<<operator)));
+    },
+    noteOff:channel=>synth.noteOff(channel),
+  };
 }
 
 async function ensureLooper() {
@@ -2268,6 +2334,7 @@ async function ensureLooper() {
 }
 
 async function toggleLooperStart() {
+  if(capturedVoiceNeedsKeyboard()&&!looper?.running)return;
   if (
     !looper?.running &&
     eventRecordSessionActive
@@ -2400,6 +2467,10 @@ function clearLooper() {
 }
 
 function togglePrimaryRecordAction() {
+  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecording()&&!looper?.recording) {
+    setStatus('This captured OP mask / CH3 voice supports keyboard audition. Choose a regular Synth tone to record.');
+    return;
+  }
   if (isSongChannelTarget()) {
     setStatus('Choose Synth to record your edited instrument.');
     return;
@@ -2759,7 +2830,8 @@ inputController =
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
-    chooseVoice: available => songAuditionVoice ? available[songAuditionVoice.channel] : chooseVoice(available),
+    chooseVoice: available => songAuditionVoice ? available[songAuditionVoice.channel]
+      : currentCapturedVoice&&channel3SpecialState.enabled?available[2]:chooseVoice(available),
     updateKeyboardVisuals,
     setStatus,
     stopAllNotes,
@@ -2890,6 +2962,8 @@ songControls = setupSynthSongControls({
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
   onTargetState:setSongTargetState,
+  onCopyToSynth:(preset,name)=>synthFiles.createFromPreset(preset,name),
+  onStatus:setStatus,
 });
 window.addEventListener('pagehide',event=>{
   if(event.persisted)songControls.stop();

@@ -22,6 +22,17 @@ function ratioPitch(pitch, ratio) {
   return {block, fnum:Math.max(0, Math.min(2047, Math.round(fnum)))};
 }
 
+/** Transpose CH3's four recorded pitches around OP4, or set an ordinary pitch. */
+export function setSynthSongVoiceFrequency(synth,channel,block,fnum,specialFrequencies=null) {
+  if(!specialFrequencies)return synth.setFrequency(channel,block,fnum);
+  const base=specialFrequencies[3];
+  specialFrequencies.forEach((source,operator)=>{
+    const ratio=source.fnum*2**source.block/(base.fnum*2**base.block);
+    const pitch=ratioPitch({block,fnum},ratio);
+    synth.setChannel3SpecialFrequency(operator,pitch.block,pitch.fnum);
+  });
+}
+
 /**
  * Configure one frozen voice on an existing keyboard YM2612Synth and return a
  * note interface compatible with synth_input.js. Configure once per target or
@@ -33,9 +44,6 @@ export function createSynthSongVoice(synth, snapshot, channel) {
   if (!description.playable) throw new Error(description.reason);
   const voice = snapshot.channels[channel];
   const operators = [0,1,2,3].filter(operator => description.keyMask & (1 << operator));
-  const base = voice.specialFrequencies[3];
-  const ratios = voice.specialMode ? voice.specialFrequencies.map(pitch =>
-    pitch.fnum * 2 ** pitch.block / (base.fnum * 2 ** base.block)) : null;
 
   // Reset removes earlier notes/release tails and CSM timers from the keyboard
   // chip. The observed song keeps running/paused on its own engine.
@@ -51,12 +59,7 @@ export function createSynthSongVoice(synth, snapshot, channel) {
   const adapter = {
     ...description,
     setFrequency(_channel, block, fnum) {
-      if (ratios) {
-        ratios.forEach((ratio, operator) => {
-          const pitch = ratioPitch({block, fnum}, ratio);
-          synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
-        });
-      } else synth.setFrequency(channel, block, fnum);
+      setSynthSongVoiceFrequency(synth,channel,block,fnum,voice.specialMode?voice.specialFrequencies:null);
     },
     noteOn(_channel, block, fnum) {
       synth.noteOff(channel);

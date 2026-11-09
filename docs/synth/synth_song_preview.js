@@ -9,6 +9,8 @@ import {PWM32X} from '../js/pwm32x.js';
 import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=vgm-audition-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=vgm-mix-1';
+import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=vgm-mix-1';
 
 const LOOKAHEAD_SECONDS = 0.2;
 const START_DELAY_SECONDS = 0.01;
@@ -113,6 +115,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   let volume = 1, playback = 'stopped', errorMessage = null;
   let positionFrames = 0, sampleRate = 0, totalSamples = 0;
   let lastLiveState = null;
+  const mix = createSynthSongMix();
 
   function currentPosition(run=active) {
     if (!run) return positionFrames;
@@ -126,7 +129,8 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     return {playback, hasSource:Boolean(source), name, errorMessage,
       sampleRate, positionFrames:consumedFrames, consumedFrames,
       positionSeconds:sampleRate ? consumedFrames / sampleRate : 0,
-      totalSamples, durationSeconds:totalSamples / 44100, liveState};
+      totalSamples, durationSeconds:totalSamples / 44100, liveState,
+      mix:mix.getState()};
   }
   function emit() { onState(getState()); }
   function checkOpen() { if (disposed) throw new Error('Reference player is disposed'); }
@@ -148,6 +152,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     run.segments.length = 0;
     run.gain.disconnect();
     run.timeline?.dispose();
+    run.outputMix?.dispose();
     run.engine.dispose();
   }
   function stop() {
@@ -170,6 +175,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     source = next;
     name = String(nextName);
     sampleRate = totalSamples = 0;
+    mix.clear();
     emit();
   }
   function clear() {
@@ -178,6 +184,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     source = null;
     name = '';
     sampleRate = totalSamples = 0;
+    mix.clear();
     emit();
   }
   function setVolume(value) {
@@ -185,6 +192,27 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     if (!Number.isFinite(next) || next < 0 || next > 3.8) throw new RangeError('Master volume must be 0..3.8.');
     volume = next;
     if (active) active.gain.gain.value = next;
+  }
+  function applyMix() {
+    if (active) active.outputMix.setMutedChannels(mix.getMutedChannels());
+  }
+  function setChannelMuted(id, value) {
+    checkOpen();
+    if (!mix.setChannelMuted(id,value)) return;
+    applyMix();
+    emit();
+  }
+  function setChannelSolo(id, value) {
+    checkOpen();
+    if (!mix.setChannelSolo(id,value)) return;
+    applyMix();
+    emit();
+  }
+  function resetMix() {
+    checkOpen();
+    if (!mix.reset()) return;
+    applyMix();
+    emit();
   }
   function fail(error, run) {
     if (run && active !== run) return;
@@ -260,7 +288,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     if (!source) throw new Error('Choose a VGM file first.');
     stop();
     const ticket = generation, selected = source;
-    let engine = null, timeline = null, run = null;
+    let engine = null, timeline = null, outputMix = null, run = null;
     playback = 'loading';
     emit();
     try {
@@ -271,6 +299,8 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       const bytes = new Uint8Array(await maybeDecodeVgmFile(selected));
       if (!isCurrent(ticket)) return false;
       const header = inspectGenesisPreview(bytes);
+      mix.configure(header);
+      emit();
       const audio = await audioReady;
       if (!isCurrent(ticket)) return false;
       const {context, output} = audio;
@@ -279,10 +309,17 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       if (!isCurrent(ticket)) return false;
       engine = await createEngine(header);
       if (!isCurrent(ticket)) { engine.dispose(); return false; }
+      // Filter only native output routing. Install before the Live observer so
+      // it still records the VGM's original register values, including pan.
+      outputMix = installSynthSongOutputMix(engine);
+      outputMix.setMutedChannels(mix.getMutedChannels());
       // Track source writes against native generated frames before the player
       // resets / prefetches. The UI later reads only the audible prefix.
       timeline = header.ym2612Clock ? createYm2612SongTimeline(engine, header.ym2612Clock) : null;
       const player = new VgmPlayer(engine);
+      // The host already buffers ~200 ms. A second speculative queue would
+      // delay listening changes further; retain only one requested chunk.
+      player.setPrefetchFactor(1);
       player.setLoopEnabled(false);
       player.load(bytes, {logger:{warn:message=>onStatus(String(message))}});
       player.play();
@@ -291,17 +328,19 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       const gain = context.createGain();
       gain.gain.value = volume;
       gain.connect(output);
-      run = {engine, timeline, player, context, gain, sampleRate, basePosition:0, renderedFrames:0,
+      run = {engine, timeline, outputMix, player, context, gain, sampleRate, basePosition:0, renderedFrames:0,
         clockStart:context.currentTime + START_DELAY_SECONDS, segments:[], eof:false, timer:null, released:false};
       active = run;
       engine = null; // Ownership has moved to run/release.
       timeline = null;
+      outputMix = null;
       playback = 'playing';
       pump(run);
       if (active === run) run.timer = setInterval(() => pump(run), REFILL_MILLISECONDS);
       return true;
     } catch (error) {
       timeline?.dispose();
+      outputMix?.dispose();
       engine?.dispose();
       if (!isCurrent(ticket)) return false;
       fail(error, run);
@@ -335,5 +374,6 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     source = null;
     disposed = true;
   }
-  return {load, clear, play, pause, resume, stop, setVolume, dispose, getState};
+  return {load, clear, play, pause, resume, stop, setVolume,
+    setChannelMuted, setChannelSolo, resetMix, dispose, getState};
 }

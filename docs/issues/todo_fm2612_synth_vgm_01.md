@@ -1,5 +1,40 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: 模範演奏のCH別Solo／MuteとCopy to Synth
+
+ユーザー指示：どのCHを再生するか選び、YM2612だけでなくPSG・32X PWM・Mega CD PCMも対象にする。
+
+- [x] 既存core／mixerのmute方式を確認し、発音や再生位置・Live観測を変えずに出力だけを切り替える。
+- [x] YM2612 CH1〜CH6（CH6のDACを含む）、PSG Tone 1〜3／Noise、RF5C164 PCM 1〜8、32X PWM L／Rを選べるようにする。PWM L／Rはステレオ出力であり独立した音色voiceとは表示しない。
+- [x] コンパクトに開閉できる再生CH欄へMute／Soloと全解除を追加する。表示・試奏CHの選択とは独立させ、該当音源を持つ曲だけに表示する。
+- [x] 選択したFM CHの停止位置の音色を「Copy to Synth」で新しい編集音色へ取り込み、元の編集中音色とFilesを上書きしない。コピー後はSynthへ切り替え、編集・保存へつなげる。DAC／CSMなどの対応範囲を明示する。
+- [x] 再生中・Pause中の変更、先読みPCMの扱い、Resume／Stop／曲変更での選択保持・初期化を定義し、編集音色・鍵盤・Filesへ影響させない。
+- [x] 実WASMの個別／混合出力、Soloの組み合わせ、Mute解除後の演奏継続、位置とLive状態の整合性をNode／Chromium／WebKitで検証する。
+- [x] 配布ZIPだけで動作を確認し、README／TODOへ検証記録を残す。公開・commit／pushはしない。
+
+### Mix／Copyの実装と検証
+
+- 常時表示の追加は小さなMix／Copyボタンだけ。Mixは画面上に重なる非modal popupとし、音色editorの位置・高さを動かさない。開いた中へ該当音源のM（Mute）／S（Solo）を2列で表示し、狭い画面ではpopup内だけをscrollできる。
+- Mixは曲の音声だけへ作用し、Live／Pauseの観察・鍵盤試奏のCH選択とは独立する。複数Soloは全音源にまたがって合成し、明示したMuteがSoloに優先する。Resetで全解除。同じ曲のStop／再生で選択を保持し、曲変更・workspace交換では解除する。選択肢はPlay時にheaderを検証した後で表示する。
+- `synth_song_output_mix.js`が元のYM2612 B4／RF5C164 panとbank選択を保持して出力をmaskする。ymfmはpan無効時もOP1 feedback・phase・EGを進め、RFもpanに関係なくsample addressを進めることをsourceで確認した。KON／TL／DAC sample／PCM addressを抑える方式は使わない。全YM mute時はcore由来のDCも出力から除く。PSGは既存のnative mute、PWMは生成後のL／R出力maskを使う。SDK・core・WASM・npm packageの変更はない。
+- 元のVGM writeだけをLive timelineへ通し、Mix操作の出力用writeを観察値やCopyへ混ぜない。先読みPCMは捨てずに流し、通常約200〜260msで反映する。VgmPlayerのprefetch factorを1にし、位置を飛ばすqueue flushは行わない。Pause中に変更した場合もResume後の先読み分から順に切り替わる。
+- CopyはPause中のFM CHに限り、`/presets/<曲名>-CHn.vgi`と`.synth.json`を新規作成する。同名の音色／sidecar／folder／orphan checkpointを避ける。元の編集音色をflushして保持し、Undo・復旧journal・IndexedDBへつなぐ。曲はPauseのまま、成功した時にSynthへ切り替える。
+- 任意の`capturedVoice` sidecarへpartial KON maskとCH3 specialの4周波数を保存する。既存version 1 sidecarと互換。鍵盤は元の発音OPとCH3の周波数比を保つ。コピーしたCH3のMODE／周波数編集も自動保存し、試奏による移調で編集基準値を上書きしない。OP4基準周波数0は鍵盤移調できないため、コピーとその編集時に検証する。DAC／CSMはFM音色と偽ってコピーせず理由を表示する。
+- partial KON／CH3比率を持つコピー音色は現在、鍵盤での編集・試奏・保存に対応する。Looper／Event Recへ誤った全OP音を録らないよう、新規開始を無効にしてtitleで範囲を示す。通常の全OP・通常モードのコピーと既存音色では従来の機能を維持する。
+- `node --test docs/synth/*.test.mjs`：123件成功。output helper 7件は実WASMのFM feedback／CSM／DAC・RF addressとbank・PSG noise／PWM FIFOの継続波形も照合。Copyの7件は変更前の入力検証、元音色不変、保存先衝突、Cassette／Sync／Revert／復旧を確認した。
+- 旧Pause testの前提を、最初のpumpで必ずbufferが揃う即時assertから、上限1秒で実際のPCMを待つ方式へ修正。途中bufferの識別も実際のframe長を使い、同じbufferと正確な再開offsetのassertを維持した。
+- 新しいbrowser checkerの自作fixtureでは、FMの11bit FNUMを越える音程をBLOCKで正規化し、RFの高いsample stepが単独end markerを飛び越えないようFFのguard領域を置いた。音源の実装やgainを変えて検証値へ合わせていない。
+- `sh scripts/package_itch_synth.sh vgm-mix-copy-check-20261109`と251個のlocal module／asset参照チェックが成功。新しい4helperは可読sourceとbyte一致し、ZIP全fileもstageと一致する。
+- 配布stageの`check_synth_song_mix_browser.cjs`がChromium／WebKitで成功。各20系統の実PCM Solo／Mute／復帰、複数Solo、PWM左右、DAC、時間の継続、Pause、Copyと元file全byte保持、partial KON、CH3編集／MODE切り替えの保存・試奏を確認した。1240／390pxでMixを開いてもeditorの位置・高さは不変で、両browserの画面を確認済み。記録：`/private/tmp/fm2612-mix-copy-package-browser.json`（92 assets）。
+- 配布stageで旧演奏checkerの全10ケース（Cave／Virtua Fighter実曲を含む）と旧Live／Pause試奏checkerの両browserも成功。記録：`/private/tmp/fm2612-mix-copy-playback-package.json`（92 assets）、`/private/tmp/fm2612-mix-copy-live-package.json`（88 assets）。いずれも最終stageのhashと一致。音声の物理出力はmuteしており、人の実聴とは区別する。
+- 最終ZIP：`release/hello_ymfm_wasm_vgm-mix-copy-check-20261109_itch_synth.zip`（241 entries／213 files、814,475 bytes、SHA-256 `723d82270f09a39f9f8d8b41984e7707a2ece45e957a1a5c843707b34ff527c9`）。receipt：`/private/tmp/fm2612-mix-copy-package.json`。README英語／日本語・cache keyも更新。未公開・未commit・未push。
+
+### 関連する次候補
+
+- [ ] Live中に変更されたparameterを短くハイライトする。
+- [ ] コピーしたpartial KON／CH3特殊音色のLooper／Event Rec対応。録音patch・再生時のCH割当・OP mask・比率を保存し、実音声で照合してから現在の開始制限を外す。
+- [ ] コピーした発音OP maskをUIから編集する入口。現在は元のmaskをsidecarへ保持する。
+
 ## 完了: Synth／CH選択とPause中の鍵盤試奏
 
 ユーザー指示：Synth／CH1〜CH6を選択し、Pause中は選んだCHの停止位置の音色を鍵盤で弾けるようにする。

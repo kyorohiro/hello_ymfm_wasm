@@ -26,12 +26,22 @@ function range(name,value,maximum) {
   return value;
 }
 function boolean(name,value) {if(typeof value!=='boolean')throw Error(`${name} must be a boolean`);return value;}
+function capturedVoiceState(value) {
+  const keyMask=range('capturedVoice.keyMask',value.keyMask,15);
+  if(!keyMask)throw Error('capturedVoice.keyMask must enable at least one operator');
+  const specialMode=boolean('capturedVoice.specialMode',value.specialMode);
+  if(!Array.isArray(value.specialFrequencies)||value.specialFrequencies.length!==(specialMode?4:0))throw Error('Invalid capturedVoice special frequencies');
+  const specialFrequencies=value.specialFrequencies.map(pitch=>({block:range('capturedVoice.block',pitch.block,7),fnum:range('capturedVoice.fnum',pitch.fnum,2047)}));
+  if(specialMode&&!specialFrequencies[3].fnum)throw Error('Captured CH3 requires an OP4 base pitch');
+  return {keyMask,specialMode,specialFrequencies};
+}
 function extraState(preset,format) {
   const operators=preset.operators??{},offset=operators[0]===undefined?1:0;
   const state={version:1,kind:SYNTH_STATE_KIND,
     lfo:{enabled:boolean('lfo.enabled',preset.lfo?.enabled??false),frequency:range('lfo.frequency',preset.lfo?.frequency??0,7)},
     operatorAM:[0,1,2,3].map(index=>boolean('operator AM',operators[index+offset]?.am??false)),
   };
+  if(preset.capturedVoice!==undefined)state.capturedVoice=capturedVoiceState(preset.capturedVoice);
   if(format==='tfi'){
     state.pan={left:boolean('pan.left',preset.pan?.left??true),right:boolean('pan.right',preset.pan?.right??true)};
     state.ams=range('ams',preset.ams??0,3);state.pms=range('pms',preset.pms??0,7);
@@ -46,6 +56,7 @@ function parseState(data,format) {
   catch(error){throw Error(`Invalid Synth state: ${error.message}`);}
   if(state?.version!==1||state.kind!==SYNTH_STATE_KIND||!state.lfo||!Array.isArray(state.operatorAM)||state.operatorAM.length!==4)throw Error('Unsupported Synth state format');
   const preset={lfo:state.lfo,operators:Object.fromEntries(state.operatorAM.map((am,index)=>[index+1,{am}]))};
+  if(state.capturedVoice!==undefined)preset.capturedVoice=capturedVoiceState(state.capturedVoice);
   if(format==='tfi'){
     if(!state.pan||state.b4===undefined||state.ams===undefined||state.pms===undefined)throw Error('TFI Synth state must include pan, B4, AMS and PMS');
     Object.assign(preset,{pan:state.pan,b4:state.b4,ams:state.ams,pms:state.pms});
@@ -55,6 +66,7 @@ function parseState(data,format) {
 function mergeState(preset,state) {
   const merged=structuredClone(preset);
   merged.lfo={...state.lfo};
+  if(state.capturedVoice)merged.capturedVoice=structuredClone(state.capturedVoice);
   for(let op=1;op<=4;op++)merged.operators[op]={...merged.operators[op],am:state.operatorAM[op-1]};
   if(state.pan)Object.assign(merged,{pan:{...state.pan},b4:state.b4,ams:state.ams,pms:state.pms});
   return merged;
@@ -173,6 +185,14 @@ export function createSynthProject({ snapshot: initialSnapshot } = {}) {
       return selectedPath;
     },
     uniquePath,
+    /** Append an editable copy without replacing an existing tone or sidecar. */
+    createTone(preset, name='Captured') {
+      const stem=safeName(String(name).replace(/\.(?:tfi|vgi)$/i,''),'Captured');
+      const occupied=new Set(project.listEntries().map(entry=>entry.path));
+      let path=`/presets/${stem}.vgi`,suffix=2;
+      while([path,synthStatePath(path),CHECKPOINT_ROOT+path,CHECKPOINT_ROOT+synthStatePath(path)].some(candidate=>occupied.has(candidate)))path=`/presets/${stem}-${suffix++}.vgi`;
+      return project.writeTone(path,preset,{overwrite:false});
+    },
     /** File-tree metadata without copying binary samples or Git objects. */
     listEntries() {
       const directories = fs.listDirectories();

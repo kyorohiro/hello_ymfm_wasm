@@ -1,7 +1,7 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {isSynthTonePath, isSynthStatePath} from './synth_project.js?v=vgm-storage-1';
+import {isSynthTonePath, isSynthStatePath} from './synth_project.js?v=vgm-mix-copy-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
-import {createToneRecovery, parseToneRecovery} from './synth_recovery.js';
+import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=vgm-mix-copy-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
@@ -277,7 +277,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     try {
       // Validate before switching, so a bad file never changes the sound.
       const tone = isSynthTonePath(path) ? project.readTone(path) : null;
-      if (tone && isObserving()) {setStatus('Turn off Live to edit an instrument.'); return false;}
+      if (tone && isObserving()) {setStatus('Choose Synth to edit an instrument.'); return false;}
       if (tone && path !== activeTonePath && !await flushEdits()) return false;
       selectedPath = path;
       project.select(path);
@@ -295,7 +295,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     finally {busy=false;updateButtons();}
   }
   async function selectPreset(id) {
-    if (isObserving()) {setStatus('Turn off Live to edit an instrument.'); return false;}
+    if (isObserving()) {setStatus('Choose Synth to edit an instrument.'); return false;}
     if (id.startsWith('vfs:')) return selectFile(id.slice(4));
     if (id === 'custom') return true;
     if (busy) return false;
@@ -307,9 +307,26 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     } catch (error) {report(error);return false;}
     finally {busy=false;updateButtons();}
   }
+  async function createFromPreset(preset,name) {
+    if(busy)return false;
+    busy=true;updateButtons();
+    try {
+      if(!await flushEdits())return false;
+      pushUndo();
+      const tone=project.createTone(preset,name);
+      stopAllNotes();
+      activeTonePath=selectedPath=tone.path;dirty=false;
+      applySnapshot(tone.preset,'vfs:'+tone.path);onSaved(tone.path);
+      setBaseline();protectCurrentTone();reveal(tone.path);render();
+      await remember(true);
+      setStatus(`Copied to ${tone.path}. Edit the sound or Sync to keep a checkpoint.`);
+      return true;
+    } catch(error) {report(error);return false;}
+    finally {busy=false;updateButtons();}
+  }
   async function perform(action, path = selectedPath) {
     if (busy) return;
-    if (isObserving() && ['sync','revert','new'].includes(action)) {setStatus('Turn off Live to edit an instrument.'); return;}
+    if (isObserving() && ['sync','revert','new'].includes(action)) {setStatus('Choose Synth to edit an instrument.'); return;}
     busy=true;updateButtons();
     closeMenu();
     try {
@@ -517,7 +534,7 @@ export function setupSynthFiles({project, getPreset, getPresetId, applyPreset, a
     }catch(error){restoring=false;setStatus(`Local draft unavailable: ${error.message}. Cassette import/export is still available.`);}
     finally{draftLoaded=true;busy=false;if(dirty)persistCurrentTone();render();remember();}
   })();
-  return {ready, selectFile, selectPreset, importInstruments, get activeTonePath(){return activeTonePath;},
+  return {ready, selectFile, selectPreset, importInstruments, createFromPreset, get activeTonePath(){return activeTonePath;},
     get dirty(){return dirty||Boolean(activeTonePath&&project.isToneModified(activeTonePath));},
     markDirty(){dirty=true;clearSyncFeedback();if(draftLoaded&&!busy)persistCurrentTone();else updateButtons();}, refresh:render};
 }

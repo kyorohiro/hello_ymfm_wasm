@@ -1,4 +1,7 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-audition-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-mix-copy-1';
+import {setupSynthSongMixControls} from './synth_song_mix_controls.js';
+import {createSynthSongCopyPreset} from './synth_song_copy.js';
+import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 
 const isSong = path => path.startsWith('/vgm/') && /\.(vgm|vgz)$/i.test(path);
 const displayTime = seconds => {
@@ -7,7 +10,7 @@ const displayTime = seconds => {
 };
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}}) {
+export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
   const play = document.getElementById('synthSongPlayButton');
@@ -17,17 +20,20 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   const live = document.getElementById('synthSongLiveToggle');
   const channel = document.getElementById('synthSongChannelSelect');
   const liveStatus = document.getElementById('synthSongLiveStatus');
+  const copy=document.getElementById('synthSongCopyButton');
   const formatInfo = document.querySelector('.synth-file-format-note');
   let selectedPath = null, selectedRevision = -1, listRevision = '', disposed = false;
   let frozenSnapshot = null;
+  let copying=false, mixControls=null;
   const text = (node, value) => {if (node.textContent !== value) node.textContent = value;};
 
   function showState(state) {
     root.dataset.state = status.dataset.state = state.playback;
     root.dataset.consumedFrames = String(state.consumedFrames ?? 0);
     text(play, state.playback === 'playing' ? 'Pause' : state.playback === 'paused' ? 'Resume' : 'Play');
-    play.disabled = !selectedPath || state.playback === 'loading';
-    stop.disabled = !['loading', 'playing', 'paused'].includes(state.playback);
+    play.disabled = copying || !selectedPath || state.playback === 'loading';
+    stop.disabled = copying || !['loading', 'playing', 'paused'].includes(state.playback);
+    select.disabled=copying;
     const messages = {stopped:'Stopped.', loading:'Loading…', playing:'Playing.', paused:'Paused.', ended:'Finished.'};
     // Progress is frequent; announce transport changes, not an identical status
     // on every render refill, to keep the live region quiet while playing.
@@ -49,7 +55,12 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     const view = voice ? {snapshot, channel:selectedChannel, paused:state.playback === 'paused', following:live.checked} : null;
     root.dataset.live = String(Boolean(voice));
     root.dataset.target = String(target);
-    channel.disabled = false;
+    channel.disabled = copying;
+    const description=voice?describeSynthSongVoice(snapshot,selectedChannel):null;
+    copy.disabled=copying||state.playback!=='paused'||!description?.playable;
+    copy.title=copying?'Copying…':description&&!description.playable?description.reason:
+      state.playback==='paused'&&voice?'Copy this CH into a new editable Synth instrument. Your previous instrument is kept.':'Pause and select an FM channel to copy its sound to Synth.';
+    mixControls?.update(state.mix);
     if (voice) {
       const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
       const midi = Number.isFinite(voice.midi) ? Math.round(voice.midi) : null;
@@ -73,7 +84,8 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     onTargetState({target, playback:state.playback, view});
     onLiveView(view);
   }
-  const preview = createSynthSongPreview({getAudio, onState:showState});
+  const preview = createSynthSongPreview({getAudio, onState:showState, onStatus});
+  mixControls=setupSynthSongMixControls({preview});
   preview.setVolume(getVolume());
 
   function choose(path) {
@@ -121,7 +133,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     select.blur();
   });
   // Pointer operations leave letter keys available to the instrument keyboard.
-  for (const button of [play, stop]) {
+  for (const button of [play, stop, copy]) {
     button.addEventListener('pointerdown', event => event.preventDefault());
     button.addEventListener('keydown', event => {
       if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
@@ -134,6 +146,17 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     else void preview.play().catch(() => showState(preview.getState()));
   });
   stop.addEventListener('click', () => preview.stop());
+  copy.addEventListener('click',async()=>{
+    const state=preview.getState(),number=channel.value==='synth'?null:Number(channel.value);
+    if(copying||state.playback!=='paused'||number===null||!state.liveState)return;
+    copying=true;showState(state);
+    try {
+      const preset=createSynthSongCopyPreset(state.liveState,number);
+      const copied=await onCopyToSynth(preset,`${state.name.replace(/\.(?:vgm|vgz)$/i,'')}-CH${number+1}`);
+      if(copied)channel.value='synth';
+    } catch(error) {onStatus(`Copy failed: ${error.message}`);}
+    finally {copying=false;showState(preview.getState());copy.blur();}
+  });
   select.addEventListener('keydown', event => event.stopPropagation());
   live.addEventListener('change', () => {showState(preview.getState()); live.blur();});
   channel.addEventListener('change', () => {showState(preview.getState()); channel.blur();});
@@ -144,7 +167,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   return {
     stop: () => preview.stop(),
     setVolume: value => preview.setVolume(value),
-    reset() {preview.stop(); refresh();},
-    dispose() {disposed = true; unsubscribe(); preview.dispose();},
+    reset() {preview.stop();selectedRevision=-1;mixControls.close();refresh();},
+    dispose() {disposed = true; unsubscribe(); preview.dispose();mixControls.dispose();},
   };
 }
