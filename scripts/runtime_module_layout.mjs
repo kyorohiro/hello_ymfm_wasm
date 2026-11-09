@@ -30,10 +30,12 @@ export function publicRuntimeModule(source, name) {
   return source;
 }
 
-/** Adapt the three dynamic factories for a flat npm ZIP or nested js/ ZIP. */
+/** Adapt dynamic factory and SID asset URLs for flat npm or nested js/ ZIPs. */
 export function packagedRuntimeModule(source, name, {nested = false} = {}) {
-  if (!nested && ['sid.js', 'playground_sid_audio.js'].includes(name))
+  if (!nested && ['sid.js', 'sid8580.js', 'playground_sid_audio.js'].includes(name)) {
     source = source.replaceAll('../generated/sid/', './generated/sid/');
+    source = source.replaceAll('../generated/sid8580-machine/', './generated/sid8580-machine/');
+  }
   if (name === 'nesapu.js') source = source.replace('../../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   const factory = generatedFactories.get(name);
   if (factory) {

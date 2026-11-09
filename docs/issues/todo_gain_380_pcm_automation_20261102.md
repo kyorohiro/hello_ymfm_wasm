@@ -1,5 +1,16 @@
 # Gain 380%とPCM編集とDAW automation（2026-11-02）
 
+## 追加: FM2612 SynthのVol配置（2026-11-09）
+
+- [x] 既存Vol barを表示コンテナの右上へ移し、Format infoと同じ行に配置する。狭い画面では重ならず右寄せで折り返す。
+- [x] 実ブラウザでFiles表示の有無・狭い画面・表示切り替え・380%の表示を確認する。
+
+Chromium／WebKit × 1240／390／320px × Files表示On／Off × Envelope／Waveform／Spectrumの36ケースが成功。
+Volと表示カードの右端、desktopでのFormat infoとの同一行、380%表示、既存control IDが1個だけであることを確認し、desktop／mobileのスクリーンショットも目視した。
+音声処理は変更せず、検証中の音声初期化・発音も行っていない。実装は`docs/synth/index.html`の配置とCSSのみ。
+
+以下は既存のGain／PCM／automationの実装記録。
+
 ユーザーの指示で実装前にTODOを記録する。開始親repo `09c15144`、Plugin `9a82e5b`。
 
 - [x] FM2612 Synth / SPU Synth / SPU Pluginの最大音量を380%（線形3.8倍）へ揃える。既定FM100% / Web SPU70% / Plugin100%と、100%超orangeの区別を維持する。

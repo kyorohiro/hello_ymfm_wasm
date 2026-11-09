@@ -1,0 +1,39 @@
+{
+  "package": "tetorica-fm2612",
+  "version": "0.2.37",
+  "status": "published and registry tarball verified",
+  "tarball": "build/npm-sid-release-20261109/tetorica-fm2612-0.2.37.tgz",
+  "bytes": 2792889,
+  "files": 1245,
+  "sha256": "5cf99358e57d9662663924e08bf9d1f31e50b76782f3e89c5fa7ab347fb6f216",
+  "shasum": "01e8d9bc83c5be0e2c4870a0909e08b2ce6b0359",
+  "integrity": "sha512-PtfGYfc0QntSHr7fZILSDviTmvked7C0Ji5p3kuoLGcEHiu0cs02HuLciT/hVorTqRupMFoXfi25kDzOUvpACw==",
+  "runtimeTests": 54,
+  "layoutTests": 5,
+  "browserScenarios": 12,
+  "models": [
+    "6581",
+    "8580 Preview"
+  ],
+  "nodeVersion": "22.22.0",
+  "primarySid": "6581",
+  "sid8580Usage": "direct core or independent Playground instance",
+  "sourceInputs6581": 13,
+  "compiledInputs8580": 99,
+  "sourceMetadataRestored": 2,
+  "sourceRestorationIdempotent": true,
+  "defaultCalibrations": "Off",
+  "jsAndWasmDspChanged": false,
+  "registry": {
+    "package": "tetorica-fm2612",
+    "version": "0.2.37",
+    "latest": "0.2.37",
+    "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.37.tgz",
+    "bytes": 2792889,
+    "sha256": "5cf99358e57d9662663924e08bf9d1f31e50b76782f3e89c5fa7ab347fb6f216",
+    "shasum": "01e8d9bc83c5be0e2c4870a0909e08b2ce6b0359",
+    "integrity": "sha512-PtfGYfc0QntSHr7fZILSDviTmvked7C0Ji5p3kuoLGcEHiu0cs02HuLciT/hVorTqRupMFoXfi25kDzOUvpACw==",
+    "matchesTestedTarballByteForByte": true,
+    "verifiedAtUtc": "2026-11-08T22:38:15.732134+00:00"
+  }
+}

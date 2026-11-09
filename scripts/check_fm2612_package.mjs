@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
+import {assertSidPackageFiles,checkInstalledSidNode} from './check_fm2612_sid_package.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = await mkdtemp(join(tmpdir(), 'tetorica-fm2612-check-'));
 try {
@@ -13,6 +14,7 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  assertSidPackageFiles(packedPaths);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
   }
@@ -109,6 +111,7 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await checkInstalledSidNode(consumer);
   await writeFile(join(consumer,'scsp-sample-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -850,6 +853,7 @@ await createSampleInstrument({pg:{},audio,volume:'255'});
   }
   execFileSync(process.execPath, [join(root, 'scripts/check_fm2612_types.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   if(process.argv.includes('--browser')){
+    execFileSync(process.execPath,[join(root,'scripts/check_fm2612_sid_browser.cjs'),'--tarball',join(scratch,packed.filename)],{cwd:consumer,stdio:'inherit'});
     execFileSync(process.execPath,[join(root,'scripts/check_fm2612_dx7_browser.cjs'),installed],{cwd:consumer,stdio:'inherit'});
     execFileSync(process.execPath,[join(root,'scripts/check_playground_huc6280_voice_browser.cjs'),'--package',installed],{cwd:consumer,stdio:'inherit'});
   }

@@ -5,6 +5,12 @@ import {execFileSync} from 'node:child_process';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = join(root, 'dist/fm2612');
+// These public SID contracts describe fixed models/clocks and ordered client
+// reads. Install them before resolving dependent JS modules, and do not emit
+// inferred replacements over declarations that may already be staged.
+const sidDeclarations=['sid.d.ts','sid8580.d.ts','sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts'];
+const explicitSidModules=new Set(sidDeclarations.map(name=>name.replace(/\.d\.ts$/,'.js')));
+for(const name of sidDeclarations)await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
 const files = [];
 async function walk(directory) {
   for (const item of await readdir(directory, {withFileTypes: true})) {
@@ -12,7 +18,8 @@ async function walk(directory) {
     // The pinned DX7 distribution already supplies declarations. Regenerating
     // its JS would overwrite .d.ts files resolved by the Playground worklet.
     if (item.isDirectory() && !['sources', 'licenses', 'assets', 'msfa_dx7'].includes(item.name)) await walk(path);
-    else if (item.isFile() && /\.(?:m?js)$/.test(item.name)) files.push(path);
+    else if (item.isFile() && /\.(?:m?js)$/.test(item.name)
+      && !(directory===stage&&explicitSidModules.has(item.name))) files.push(path);
   }
 }
 await walk(stage);
@@ -33,9 +40,6 @@ await writeFile(join(stage,'generated/ps1_spu_wasm.d.ts'),
 // SCSP has an explicit local PCM contract rather than the broad inferred JS
 // structural types. Keep it when copying the complete runtime payload.
 for(const name of ['scsp.d.ts','scspsynth.d.ts','scsp_sample.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
-// SID keeps creation-fixed clocks and asynchronous client readback. Explicit
-// contracts retain these properties, which dynamic JS assignment cannot infer.
-for(const name of ['sidsynth.d.ts','playground_sid.d.ts','playground_sid_inspector.d.ts'])await writeFile(join(stage,name),await readFile(join(root,'tetorica_src/runtime',name)));
 await writeFile(join(stage,'generated/scsp_wasm.d.ts'),
   "import type {WasmModuleFactory} from '../soundchip.js';\n"+
   'declare const moduleFactory: WasmModuleFactory;\nexport default moduleFactory;\n');

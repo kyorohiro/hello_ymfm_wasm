@@ -160,11 +160,16 @@ a new instance for another clock. Output uses the AudioContext rate, 8–96 kHz.
 
 This browser implementation rejects Native audio output. The package-root raw
 `createSoundChip()` has different chip coverage and does not accept SID.
-The checked-in runtime provides explicit `sid.js`, `sid8580.js`, `sidsynth.js`
-and `playground_sid.js` modules with TypeScript contracts. This browser change
-does not publish a new npm version or add SID to the authenticated Native SDK
-snapshot; confirm a package version's contents before using these new modules
-from npm.
+The npm package provides explicit `tetorica-fm2612/sid`,
+`tetorica-fm2612/sid8580`, `tetorica-fm2612/sidsynth` and
+`tetorica-fm2612/playground_sid` subpaths with TypeScript contracts starting
+with 0.2.37. Both checked WASMs, readable sources and license/toolchain notices
+are included. For direct PCM in Node, load the binary with
+`runtimeAssetUrl()` from `tetorica-fm2612/assets` and pass `wasmBinary`;
+browsers can fetch the default module-relative URL. See the
+[package SID examples](../packages/fm2612/README.md#c64-sid-6581-and-8580-preview).
+This does not replace the authenticated Native SDK snapshot used by existing
+applications. The npm package does not expose a PSID/RSID song-player API.
 
 ## Core, license and verification
 

@@ -90,7 +90,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 | スーパーファミコン／SNES | SPCの曲再生、BRR音色、実験的な音程解析／編集可能なJavaScriptへの変換。 |
 | PlayStation 1 | SPU音源の操作、PSF1／MiniPSFセットからのVAB静的抽出。**PSFの曲再生には未対応**です。 |
 | セガサターン | 実験的なSCSP音源／レジスターAPI。**SSFの曲再生・68000実行には未対応**です。 |
-| Commodore 64 | 実験的な6581／PALの8580 Preview音色、共有filter、Main／Worker API。Playgroundの標準SIDは6581で、8580は独立した追加インスタンスを作成します。[ブラウザーSID Player](docs/sid-player/README.md)はPAL・単一SIDのPSID VBI／CIA・RSID v2を**6581／8580 Preview**で再生。Direct VBIは6581で選択可能です。既存[参照CLI](docs/sid-reference.md)は変更せず比較WAVを出力。NTSC／複数SID・正確なvolume-DAC digiはPlayerの対応範囲外です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
+| Commodore 64 | npm 0.2.37以降は`SidCore`・`Sid8580Core`・`SidSynth`を提供します（[利用例](packages/fm2612/README.md#c64-sid-6581-and-8580-preview)）。実験的な6581／PALの8580 Preview音色、共有filter、Main／Worker API。Playgroundの標準SIDは6581で、8580は独立した追加インスタンスを作成します。[ブラウザーSID Player](docs/sid-player/README.md)はPAL・単一SIDのPSID VBI／CIA・RSID v2を**6581／8580 Preview**で再生。Direct VBIは6581で選択可能です。既存[参照CLI](docs/sid-reference.md)は変更せず比較WAVを出力。NTSC／複数SID・正確なvolume-DAC digiはPlayerの対応範囲外です。ROM依存／BASIC起動はユーザーROMが必要で実firmware互換性は追加確認が必要です。C64 ROMは同梱しません。 |
 | Atari 8-bit、WonderSwan | POKEYとWonderSwan音源。ファイル／解析の制限はAnalyzer対応表を参照してください。 |
 
 | 入力 | 対応する使い方 |

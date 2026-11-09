@@ -1,0 +1,60 @@
+name: Verify npm sound-chip package
+
+on:
+  push:
+    paths:
+      - 'packages/fm2612/**'
+      - 'tetorica_src/**'
+      - 'scripts/**'
+      - 'test/types/**'
+      - 'test/fixtures/fm2612*'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/sources/**'
+      - 'docs/issues/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/fm2612-package.yml'
+  pull_request:
+    paths:
+      - 'packages/fm2612/**'
+      - 'tetorica_src/**'
+      - 'scripts/**'
+      - 'test/types/**'
+      - 'test/fixtures/fm2612*'
+      - 'docs/js/**'
+      - 'docs/generated/**'
+      - 'docs/sources/**'
+      - 'docs/issues/**'
+      - 'third_party/**'
+      - 'package*.json'
+      - '.github/workflows/fm2612-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify source-kit preservation and runtime layouts
+        run: node --test scripts/runtime_staging_paths.test.mjs scripts/sid_model_artifacts.test.mjs
+      - name: Verify the installed tarball, types and browser audio
+        run: node scripts/check_fm2612_package.mjs --browser
