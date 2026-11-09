@@ -1,17 +1,19 @@
 import {createSynthProject} from './synth_project.js?v=vgm-mix-copy-1';
 import {setupSynthFiles} from './synth_files.js?v=vgm-mix-copy-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-mix-copy-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=captured-record-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
-import {createSynthSongVoice, describeSynthSongVoice, setSynthSongVoiceFrequency} from './synth_song_voice.js?v=vgm-mix-copy-1';
+import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
+import {createSynthPerformanceTarget} from './synth_performance.js';
+import {SynthRecordingManager} from './synth_recording.js';
+import {SynthLooper,applySynthLooperPatch} from './synth_looper.js';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
-import {applyPitchBend, bendPitch} from './synth_pitch_bend.js';
+import {applyPitchBend} from './synth_pitch_bend.js';
 import {
   FM_PRESETS,
   FM_PRESET_ORDER,
   MegaDriveSynth,
-  MegaSynthLooper,
 } from "../js/megasynth.js";
 import { YM2612_CLOCK } from "../js/ym2612.js";
 import {
@@ -251,12 +253,6 @@ function updatePitchBend(value) {
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
   if (synth) {
     applyPitchBend(songAuditionVoice ?? getEditorPlayableSynth(), voices, pitchBendSemitones);
-    if (!songAuditionVoice && !currentCapturedVoice && channel3SpecialState.enabled) {
-      channel3SpecialState.frequencies.forEach((basePitch, operator) => {
-        const pitch = bendPitch(basePitch, pitchBendSemitones);
-        synth.setChannel3SpecialFrequency(operator, pitch.block, pitch.fnum);
-      });
-    }
   }
 }
 for (const wheel of pitchBendWheels) {
@@ -379,6 +375,14 @@ songHighlightToggle.addEventListener('change',()=>{
 let songTargetState = {target:'synth', playback:'stopped', view:null};
 let songAuditionVoice = null, songAuditionMegaSynth = null, songAuditionReady = null;
 let songAuditionBus = null, songAuditionSignature = '', songAuditionGeneration = 0;
+let recordingEpoch=0, referenceRecordingStop=null;
+const editorPerformanceTarget=createSynthPerformanceTarget({
+  getSynth:()=>synth,
+  getVoice:getCurrentPerformanceVoice,
+  onCapturedCommand:(command,perform)=>megaSynth?.recordingManager?.perform
+    ?megaSynth.recordingManager.perform(command,perform):perform(),
+});
+const loopPerformanceTarget=createSynthPerformanceTarget({getSynth:()=>loopSynth});
 
 const DEFAULT_OPERATOR_STATE = Object.freeze({
   dt: 0,
@@ -555,11 +559,58 @@ function isSongChannelTarget() {
 }
 
 function isPerformanceInputEnabled() {
-  return !switchingAudioOutput && (!isSongChannelTarget() || Boolean(songAuditionVoice));
+  return !switchingAudioOutput && !referenceRecordingStop && (!isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
-function capturedVoiceNeedsKeyboard() {
-  return Boolean(currentCapturedVoice&&(currentCapturedVoice.keyMask!==15||channel3SpecialState.enabled));
+function getCurrentPerformanceVoice() {
+  if(!currentCapturedVoice&&!channel3SpecialState.enabled)return null;
+  return {keyMask:currentCapturedVoice?.keyMask??15,specialMode:channel3SpecialState.enabled,
+    specialFrequencies:channel3SpecialState.enabled?channel3SpecialState.frequencies:[]};
+}
+
+function recordingBlocked() {
+  return switchingAudioOutput||Boolean(referenceRecordingStop)||
+    ['loading','playing'].includes(songTargetState.playback)||isSongChannelTarget();
+}
+
+function recordingOperationCurrent(epoch) {return epoch===recordingEpoch&&!recordingBlocked();}
+
+function restoreEditorAfterEventPlayback() {
+  stopAllNotes();
+  synth?.reset();
+  applyPatchToVoices();
+  updateEventRecordUi();
+}
+
+// Stop asynchronous recording/capture before reference audio may start. The
+// epoch also invalidates actions that were still waiting for audio readiness.
+function stopRecordingForReference() {
+  ++recordingEpoch;
+  if(referenceRecordingStop)return referenceRecordingStop;
+  stopAllNotes();
+  if(megaSynth?.isRecording())megaSynth.stopRecord();
+  megaSynth?.stopRecordingPlayback();
+  eventRecordSessionActive=false;
+  stopLooperAudioPlayback();
+  if(loopOutputBus)loopOutputBus.gain.value=0;
+  const pending=Promise.resolve().then(()=>looper?.stop()).then(()=>{
+    stopLooperAudioPlayback();
+    loopSynth?.reset();
+    stopAllNotes();
+  }).finally(()=>{
+    if(referenceRecordingStop!==pending)return;
+    stopLooperAudioPlayback();
+    loopSynth?.reset();
+    synth?.reset();
+    applyPatchToVoices();
+    referenceRecordingStop=null;
+    if(loopOutputBus)loopOutputBus.gain.value=1;
+    updateLooperUi();updateEventRecordUi();updateKeyboardAvailability();
+  });
+  referenceRecordingStop=pending;
+  pending.catch(error=>setStatus(`Unable to stop recording: ${error.message}`));
+  updateLooperUi();updateEventRecordUi();updateKeyboardAvailability();
+  return pending;
 }
 
 // A third, lazy keyboard chip keeps audition notes out of the song engine,
@@ -587,11 +638,16 @@ function ensureSongAuditionReady() {
 }
 
 function setSongTargetState(next) {
+  const wasPlaying=['loading','playing'].includes(songTargetState.playback);
+  const recordingStateChanged=next.playback!==songTargetState.playback||next.target!==songTargetState.target;
+  const leavingEditor=songTargetState.target==='synth'&&next.target!=='synth'&&next.playback==='paused';
   const channelTarget = next.target !== 'synth' && ['loading','playing','paused'].includes(next.playback);
   const audition = channelTarget && next.playback === 'paused' ? next.view : null;
   const signature = JSON.stringify([channelTarget ? next.target : 'synth', channelTarget && next.playback,
     audition?.snapshot.revision, audition?.snapshot.frame]);
   songTargetState = next;
+  if(!wasPlaying&&['loading','playing'].includes(next.playback)||leavingEditor)void stopRecordingForReference();
+  if(recordingStateChanged){updateLooperUi();updateEventRecordUi();}
   if (signature === songAuditionSignature) return;
   songAuditionSignature = signature;
   const generation = ++songAuditionGeneration;
@@ -688,12 +744,12 @@ function formatLooperProgress(
 }
 
 function updateLooperUi() {
-  const captured=capturedVoiceNeedsKeyboard();
+  const blocked=recordingBlocked();
   if(looperStartButton) {
-    looperStartButton.disabled=captured&&!looper?.running;
-    looperStartButton.title=captured?'Captured OP masks and CH3 ratios currently support keyboard audition.':'';
+    looperStartButton.disabled=blocked;
+    looperStartButton.title=blocked?'Pause or Stop the VGM and choose Synth to use the looper.':'';
   }
-  if(looperRecordButton)looperRecordButton.disabled=captured&&!looper?.recording;
+  if(looperRecordButton)looperRecordButton.disabled=blocked;
   if (!looper) {
     if (looperStateRoot) {
       looperStateRoot.textContent =
@@ -800,8 +856,8 @@ function updateEventRecordUi() {
     recording?.commands?.length ?? 0;
 
   if (eventRecordStartButton) {
-    eventRecordStartButton.disabled=capturedVoiceNeedsKeyboard()&&!eventRecordSessionActive;
-    eventRecordStartButton.title=capturedVoiceNeedsKeyboard()?'Captured OP masks and CH3 ratios currently support keyboard audition.':'';
+    eventRecordStartButton.disabled=recordingBlocked();
+    eventRecordStartButton.title=recordingBlocked()?'Pause or Stop the VGM and choose Synth to record.':'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -812,7 +868,7 @@ function updateEventRecordUi() {
     eventRecordStopButton.hidden =
       !eventRecordSessionActive;
     eventRecordStopButton.disabled =
-      !eventRecordSessionActive;
+      !eventRecordSessionActive||recordingBlocked();
     eventRecordStopButton.textContent =
       isRecording
         ? "Stop [Space]"
@@ -822,6 +878,7 @@ function updateEventRecordUi() {
   if (eventRecordPlayButton) {
     eventRecordPlayButton.disabled =
       !megaSynth ||
+      recordingBlocked() ||
       isRecording ||
       commandCount === 0;
     eventRecordPlayButton.textContent =
@@ -836,6 +893,7 @@ function updateEventRecordUi() {
       isRecording ||
       commandCount === 0;
   }
+  if(eventRecordImportInput)eventRecordImportInput.disabled=recordingBlocked()||isRecording;
 
   if (eventRecordStateRoot) {
     if (isRecording) {
@@ -925,8 +983,10 @@ function handleLooperStateChange(
 }
 
 async function toggleEventRecordSession() {
-  if(capturedVoiceNeedsKeyboard()&&!eventRecordSessionActive)return;
+  if(recordingBlocked())return;
+  const epoch=recordingEpoch;
   await ensureAudioReady();
+  if(!recordingOperationCurrent(epoch))return;
 
   if (!megaSynth) {
     return;
@@ -942,11 +1002,13 @@ async function toggleEventRecordSession() {
       "Stopping looper..."
     );
     await looper.stop();
+    if(!recordingOperationCurrent(epoch))return;
     stopAllNotes();
   }
 
   if (eventRecordSessionActive) {
     if (megaSynth.isRecording()) {
+      stopAllNotes();
       const recording =
         megaSynth.stopRecord();
       if (
@@ -978,8 +1040,10 @@ async function toggleEventRecordSession() {
 }
 
 async function toggleEventTakeRecording() {
-  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecording())return;
+  if(recordingBlocked())return;
+  const epoch=recordingEpoch;
   await ensureAudioReady();
+  if(!recordingOperationCurrent(epoch))return;
 
   if (
     !megaSynth ||
@@ -992,6 +1056,7 @@ async function toggleEventTakeRecording() {
   }
 
   if (megaSynth.isRecording()) {
+    stopAllNotes();
     const recording =
       megaSynth.stopRecord();
     if (
@@ -1009,6 +1074,7 @@ async function toggleEventTakeRecording() {
     return;
   }
 
+  stopAllNotes();applyPatchToVoices();
   megaSynth.startRecord();
   updateEventRecordUi();
   setStatus(
@@ -1017,8 +1083,10 @@ async function toggleEventTakeRecording() {
 }
 
 async function playEventRecording() {
-  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecordingPlaybackActive())return;
+  if(recordingBlocked())return;
+  const epoch=recordingEpoch;
   await ensureAudioReady();
+  if(!recordingOperationCurrent(epoch))return;
 
   if (!megaSynth) {
     return;
@@ -1093,6 +1161,8 @@ function exportEventRecording() {
 async function importEventRecording(
   event
 ) {
+  if(recordingBlocked()||megaSynth?.isRecording())return;
+  const epoch=recordingEpoch;
   const [file] =
     event.target.files || [];
 
@@ -1102,13 +1172,16 @@ async function importEventRecording(
 
   try {
     await ensureAudioReady();
+    if(!recordingOperationCurrent(epoch))return;
     const text =
       await file.text();
+    if(!recordingOperationCurrent(epoch))return;
     const recording =
       JSON.parse(text);
     megaSynth?.importRecording(
       recording
     );
+    megaSynth?.stopRecordingPlayback();
     updateEventRecordUi();
     setStatus(
       `Imported event recording: ${file.name}.`
@@ -1701,6 +1774,7 @@ function buildLooperPatchSnapshot() {
     dacEnabled:
       commonState.dacEnabled,
     pan: {...currentPresetPan},
+    capturedVoice:getCurrentPerformanceVoice()?structuredClone(getCurrentPerformanceVoice()):null,
     operators: [
       {
         ...operatorStates[1],
@@ -1722,52 +1796,7 @@ function applyLooperPatchToChannel(
   patch,
   channel
 ) {
-  if (!loopSynth || !patch) {
-    return;
-  }
-
-  loopSynth.setLfo(
-    patch.lfoEnabled ?? false,
-    patch.lfoFrequency ?? 0
-  );
-  loopSynth.setDacEnabled(
-    patch.dacEnabled ?? false
-  );
-
-  for (const operator of OPERATOR_NUMBERS) {
-    const operatorPatch =
-      patch.operators?.[operator - 1];
-
-    if (!operatorPatch) {
-      continue;
-    }
-
-    loopSynth.setOperator(
-      channel,
-      displayOperatorToApiOperator(
-        operator
-      ),
-      {
-        ...operatorPatch,
-        am:
-          operatorPatch.am === true,
-      }
-    );
-  }
-
-  loopSynth.setAlgo(
-    channel,
-    patch.algorithm ?? 7,
-    patch.feedback ?? 0
-  );
-
-  loopSynth.setPan(
-    channel,
-    patch.pan?.left ?? true,
-    patch.pan?.right ?? true,
-    patch.ams ?? 0,
-    patch.pms ?? 0
-  );
+  applySynthLooperPatch(loopSynth,patch,channel);
 }
 
 function createTfiExportName() {
@@ -1829,7 +1858,7 @@ function renderChannel3SpecialMonitor() {
     syncChannel3SpecialControls();
     return;
   }
-  if(currentCapturedVoice) {
+  if(currentCapturedVoice||channel3SpecialState.enabled||megaSynth?.isRecordingPlaybackActive()) {
     channel3SpecialModePill.textContent=channel3SpecialState.enabled?'Special On':'Special Off';
     syncChannel3SpecialControls();
     return;
@@ -1927,12 +1956,12 @@ function buildChannel3SpecialControls() {
         channel3SpecialState.enabled,
       onChange: (nextValue) => {
         if (songLiveView) return;
-        if(currentCapturedVoice&&nextValue&&!channel3SpecialState.frequencies[3].fnum) {
+        if(nextValue&&!channel3SpecialState.frequencies[3].fnum) {
           syncChannel3SpecialControls();
-          setStatus('Set an OP4 base frequency above zero before enabling the captured CH3 mode.');
+          setStatus('Set an OP4 base frequency above zero before enabling CH3 keyboard mode.');
           return;
         }
-        if(currentCapturedVoice)stopAllNotes();
+        stopAllNotes();
         channel3SpecialState.enabled =
           Boolean(nextValue);
         if (synth) {
@@ -2017,9 +2046,9 @@ function buildChannel3SpecialControls() {
             .fnum,
         onChange: (nextValue) => {
           if (songLiveView) return;
-          if(currentCapturedVoice&&channel3SpecialState.enabled&&operator===3&&!nextValue) {
+          if(channel3SpecialState.enabled&&operator===3&&!nextValue) {
             syncChannel3SpecialControls();
-            setStatus('Captured CH3 keyboard transposition needs an OP4 base frequency above zero.');
+            setStatus('CH3 keyboard transposition needs an OP4 base frequency above zero.');
             return;
           }
           channel3SpecialState
@@ -2263,6 +2292,7 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  if(looper?.recording)for(const voice of voices)if(voice.held)looper.noteOff(voice.channel);
   songAuditionVoice?.noteOff(songAuditionVoice.channel);
   if (songAuditionBus) songAuditionBus.gain.value = 0;
   stopAllRuntimeNotes({
@@ -2280,7 +2310,6 @@ function stopAllNotes() {
 
 function getPlayableSynth() {
   if (isSongChannelTarget()) return songAuditionVoice;
-  if(capturedVoiceNeedsKeyboard())return getEditorPlayableSynth();
   if (looper?.running) {
     return looper;
   }
@@ -2291,19 +2320,7 @@ function getPlayableSynth() {
 // Captured OP masks and CH3 pitch ratios remain editable Synth settings. This
 // adapter changes Note On only; the existing controls still program the chip.
 function getEditorPlayableSynth() {
-  if(!synth||!capturedVoiceNeedsKeyboard())return synth;
-  return {
-    setFrequency(channel,block,fnum) {
-      setSynthSongVoiceFrequency(synth,channel,block,fnum,
-        channel===2&&channel3SpecialState.enabled?channel3SpecialState.frequencies:null);
-    },
-    noteOn(channel,block,fnum) {
-      synth.noteOff(channel);
-      this.setFrequency(channel,block,fnum);
-      synth.keyOn(channel,[0,1,2,3].filter(operator=>currentCapturedVoice.keyMask&(1<<operator)));
-    },
-    noteOff:channel=>synth.noteOff(channel),
-  };
+  return synth?editorPerformanceTarget:null;
 }
 
 async function ensureLooper() {
@@ -2314,12 +2331,12 @@ async function ensureLooper() {
   }
 
   if (!looper) {
-    looper = new MegaSynthLooper({
+    looper = new SynthLooper({
       synth: loopMegaSynth,
       now: () =>
         audioContext.currentTime,
-      liveTarget: synth,
-      playbackTarget: loopSynth,
+      liveTarget: editorPerformanceTarget,
+      playbackTarget: loopPerformanceTarget,
       getPatch:
         buildLooperPatchSnapshot,
       applyPatch: (
@@ -2349,12 +2366,14 @@ async function ensureLooper() {
 }
 
 async function toggleLooperStart() {
-  if(capturedVoiceNeedsKeyboard()&&!looper?.running)return;
+  if(recordingBlocked())return;
+  const epoch=recordingEpoch;
   if (
     !looper?.running &&
     eventRecordSessionActive
   ) {
     if (megaSynth?.isRecording()) {
+      stopAllNotes();
       megaSynth.stopRecord();
     }
     if (
@@ -2368,6 +2387,7 @@ async function toggleLooperStart() {
 
   const currentLooper =
     await ensureLooper();
+  if(!recordingOperationCurrent(epoch))return;
 
   if (!currentLooper) {
     return;
@@ -2386,6 +2406,7 @@ async function toggleLooperStart() {
   }
 
   await currentLooper.start();
+  if(!recordingOperationCurrent(epoch)){await currentLooper.stop();return;}
   updateLooperUi();
   updateEventRecordUi();
   setStatus(
@@ -2394,8 +2415,11 @@ async function toggleLooperStart() {
 }
 
 async function toggleLooperRecord() {
+  if(recordingBlocked())return;
+  const epoch=recordingEpoch;
   const currentLooper =
     await ensureLooper();
+  if(!recordingOperationCurrent(epoch))return;
 
   if (!currentLooper) {
     return;
@@ -2410,6 +2434,7 @@ async function toggleLooperRecord() {
 
   const wasRecording =
     currentLooper.recording;
+  if(wasRecording)stopAllNotes();
   const pendingToggle =
     currentLooper.toggleRecord();
   updateLooperUi();
@@ -2420,6 +2445,7 @@ async function toggleLooperRecord() {
   );
   const completedUnit =
     await pendingToggle;
+  if(!recordingOperationCurrent(epoch))return;
   updateLooperUi();
 
   if (wasRecording) {
@@ -2482,12 +2508,8 @@ function clearLooper() {
 }
 
 function togglePrimaryRecordAction() {
-  if(capturedVoiceNeedsKeyboard()&&!megaSynth?.isRecording()&&!looper?.recording) {
-    setStatus('This captured OP mask / CH3 voice supports keyboard audition. Choose a regular Synth tone to record.');
-    return;
-  }
-  if (isSongChannelTarget()) {
-    setStatus('Choose Synth to record your edited instrument.');
+  if(recordingBlocked()) {
+    setStatus('Pause or Stop the VGM and choose Synth to record your instrument.');
     return;
   }
   if (eventRecordSessionActive) {
@@ -2525,6 +2547,8 @@ async function initializeDirectAudio() {
 
   megaSynth = runtime.megaSynth;
   synth = runtime.synth;
+  megaSynth.recordingManager=new SynthRecordingManager({synth,now:()=>audioContext.currentTime,
+    onPlaybackStopped:restoreEditorAfterEventPlayback});
   applyMasterVolume();
   setupLooperCaptureTap();
   loopOutputBus =
@@ -2548,12 +2572,12 @@ async function initializeDirectAudio() {
   loopSynth =
     loopRuntime.synth;
   applyMasterVolume();
-  looper = new MegaSynthLooper({
+  looper = new SynthLooper({
     synth: loopMegaSynth,
     now: () =>
       audioContext.currentTime,
-    liveTarget: synth,
-    playbackTarget: loopSynth,
+    liveTarget: editorPerformanceTarget,
+    playbackTarget: loopPerformanceTarget,
     getPatch:
       buildLooperPatchSnapshot,
     applyPatch: (
@@ -2846,7 +2870,7 @@ inputController =
       getPlayableSynth(),
     ensureAudioReady,
     chooseVoice: available => songAuditionVoice ? available[songAuditionVoice.channel]
-      : currentCapturedVoice&&channel3SpecialState.enabled?available[2]:chooseVoice(available),
+      : channel3SpecialState.enabled?available[2]:chooseVoice(available),
     updateKeyboardVisuals,
     setStatus,
     stopAllNotes,
@@ -2992,8 +3016,10 @@ songControls = setupSynthSongControls({
   project:synthProject,
   getAudio:async()=>{
     await ensureAudioReady();
+    await referenceRecordingStop;
     return {context:audioContext, output:finalOutputBus};
   },
+  beforeResume:stopRecordingForReference,
   getVolume:()=>masterVolume,
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
@@ -3002,6 +3028,7 @@ songControls = setupSynthSongControls({
   onStatus:setStatus,
 });
 window.addEventListener('pagehide',event=>{
+  void stopRecordingForReference();
   if(event.persisted)songControls.stop();
   else {
     songControls.dispose();
@@ -3022,6 +3049,8 @@ if (window.__TAURI_INTERNALS__) {
     value: Object.freeze({
       setSwitching(value) {
         switchingAudioOutput = value === true;
+        if(switchingAudioOutput)++recordingEpoch;
+        updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();
       },
       async ensureReady() {
         await ensureAudioReady();
@@ -3029,11 +3058,7 @@ if (window.__TAURI_INTERNALS__) {
       },
       async stopPlayback() {
         songControls?.stop();
-        if (megaSynth?.isRecording()) megaSynth.stopRecord();
-        megaSynth?.stopRecordingPlayback();
-        eventRecordSessionActive = false;
-        if (looper?.running) await looper.stop();
-        stopLooperAudioPlayback();
+        await stopRecordingForReference();
         stopAllNotes();
         // Key-off alone can leave a long release tail playing after switching.
         synth?.reset();

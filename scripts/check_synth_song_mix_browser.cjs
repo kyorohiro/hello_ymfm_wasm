@@ -315,8 +315,8 @@ async function checkBrowser(browser,name,origin) {
     await page.locator('#synthSongCopyButton').click();await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&(await ui(page)).path!==original.path,'Copy switches to a new editable Synth tone');
     const copied=await ui(page);assert.notEqual(copied.path,original.path);assert.notEqual(copied.preset,original.preset);
-    assert.equal(await page.locator('#looperStartButton').isDisabled(),true,'A captured partial OP mask is labelled as keyboard audition rather than recorded with the wrong mask');
-    assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),true,'Event Rec does not silently lose the captured OP mask');
+    assert.equal(await page.locator('#looperStartButton').isDisabled(),false,'A captured partial OP mask supports Looper with its recorded mask');
+    assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),false,'Event Rec retains the captured OP mask');
     assert.equal(copied.common.find(([label])=>label==='ALGO')[1],'7');assert.equal(copied.common.find(([label])=>label==='FB')[1],'3');
     assert.equal(copied.operators[3].find(([label])=>label==='MULTI')[1],'2');assert.equal(copied.operators[3].find(([label])=>label==='TL')[1],'29');
     await pause(650);const copiedFiles=await files(page),byPath=new Map(copiedFiles.map(item=>[item.path,item]));
@@ -377,7 +377,7 @@ async function checkBrowser(browser,name,origin) {
     await page.locator('#synthSongChannelSelect').selectOption('synth');await page.locator('#presetSelect').selectOption(original.preset);await ready(page);
     assert.equal(await page.locator('#looperStartButton').isDisabled(),false,'Returning to an ordinary tone restores Looper');
     assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),false,'Returning to an ordinary tone restores Event Rec');
-    steps.push('CH3 partial mask, canonical ratios and edits survive Mode Off/On; unsupported recording/CSM is explicit and ordinary recording stays available');
+    steps.push('CH3 partial mask, canonical ratios and edits survive Mode Off/On; captured recording is available and timer CSM copy stays unavailable');
     assert.deepEqual(errors,[]);assert((await audit(page)).every(meter=>meter.muted));
     return {browser:name,steps,measured,originalFileCount:originalFiles.length,copiedFileCount:copiedFiles.length,physicalOutputMuted:true};
   } catch(error) {

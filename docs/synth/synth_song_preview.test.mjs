@@ -42,7 +42,7 @@ function audioHost() {
   };
   return {context, output:{context}, starts, gains};
 }
-function fixture({getAudio, createEngine}={}) {
+function fixture({getAudio, createEngine, beforeResume}={}) {
   const host=audioHost(), engines=[], states=[], statuses=[];
   const factory=async header=>{
     let phase=0;
@@ -53,7 +53,7 @@ function fixture({getAudio, createEngine}={}) {
     engines.push(engine);return engine;
   };
   const preview=createSynthSongPreview({getAudio:getAudio??(()=>host),createEngine:createEngine??factory,
-    onState:state=>states.push(state),onStatus:message=>statuses.push(message)});
+    beforeResume,onState:state=>states.push(state),onStatus:message=>statuses.push(message)});
   return {host,engines,states,statuses,preview};
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
@@ -113,6 +113,41 @@ test('Pause freezes consumed frames and Resume preserves the exact unconsumed bu
     f.preview.stop();assert.equal(f.preview.getState().positionFrames,0);
     assert.equal(f.engines[0].disposed,1);assert(f.host.starts.every(node=>node.stopped||node.disconnected));
   }finally{f.preview.dispose();}
+});
+
+test('Resume requests its trusted audio context before waiting for recorder shutdown and Stop cancels a waiting resume',async()=>{
+  const order=[],release=[];
+  const f=fixture({beforeResume:()=>{
+    order.push('shutdown');return new Promise(resolve=>release.push(resolve));
+  }});
+  try {
+    f.preview.load(vgm(),'song.vgm');await f.preview.play();
+    const deadline=Date.now()+1000;
+    while(!f.host.starts.length&&Date.now()<deadline)await tick();
+    assert(f.host.starts.length>0,'the source has real retained PCM before Pause');
+    f.host.context.currentTime=.04;f.preview.pause();
+    const position=f.preview.getState().consumedFrames,initialCount=f.host.starts.length;
+    f.host.context.resume=async()=>{order.push('context');f.host.context.resumeCalls++;};
+    const pending=f.preview.resume();
+    assert.deepEqual(order,['context','shutdown'],'the trusted context request is synchronous and precedes any shutdown yield');
+    f.host.context.currentTime=5;await tick();
+    assert.equal(f.preview.getState().playback,'paused');assert.equal(f.preview.getState().consumedFrames,position);
+    assert.equal(f.host.starts.length,initialCount,'no retained buffer is scheduled before shutdown finishes');
+    assert(f.host.starts.every(node=>node.stopped));
+    release.shift()();assert.equal(await pending,true);
+    assert.equal(f.preview.getState().playback,'playing');assert(f.host.starts.length>initialCount);
+    assert.equal(f.engines.length,1,'shutdown does not recreate the reference engine');
+
+    f.host.context.currentTime=5.05;f.preview.pause();
+    const beforeCancel=f.host.starts.length;
+    const cancelled=f.preview.resume();
+    assert.deepEqual(order,['context','shutdown','context','shutdown']);
+    f.preview.stop();f.host.context.currentTime=10;release.shift()();
+    assert.equal(await cancelled,false,'Stop invalidates the pending Resume generation');
+    assert.equal(f.preview.getState().playback,'stopped');assert.equal(f.preview.getState().consumedFrames,0);
+    assert.equal(f.host.starts.length,beforeCancel,'a late shutdown completion cannot schedule another buffer');
+    assert.equal(f.engines[0].disposed,1);assert(f.host.starts.every(node=>node.stopped||node.disconnected));
+  } finally {f.preview.dispose();}
 });
 
 test('natural EOF drains scheduled samples before releasing the engine',async()=>{

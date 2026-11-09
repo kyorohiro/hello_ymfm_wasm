@@ -109,7 +109,7 @@ async function createPreviewEngine(header) {
  * PCM, including the exact offset into the current buffer; the parser is never
  * advanced again to reconstruct Pause. Master gain is outside those buffers.
  */
-export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine}={}) {
+export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine, beforeResume=()=>{}}={}) {
   if (typeof getAudio !== 'function') throw new TypeError('getAudio is required');
   let source = null, name = '', active = null, generation = 0, disposed = false;
   let volume = 1, playback = 'stopped', errorMessage = null;
@@ -360,7 +360,12 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     checkOpen();
     const run = active, ticket = generation;
     if (!run || playback !== 'paused') return false;
-    await run.context.resume();
+    // Resume the shared context inside the trusted click before asynchronous
+    // recorder shutdown yields. The song stays paused until the host is ready.
+    const contextReady=Promise.resolve(run.context.resume());
+    contextReady.catch(()=>{});
+    await beforeResume();
+    await contextReady;
     if (!isCurrent(ticket) || active !== run || playback !== 'paused') return false;
     run.clockStart = run.context.currentTime + START_DELAY_SECONDS;
     playback = 'playing';

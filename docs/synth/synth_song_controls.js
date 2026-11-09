@@ -1,4 +1,4 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=vgm-mix-copy-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=captured-record-1';
 import {setupSynthSongMixControls} from './synth_song_mix_controls.js';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -10,7 +10,7 @@ const displayTime = seconds => {
 };
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}}) {
+export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
   const play = document.getElementById('synthSongPlayButton');
@@ -84,7 +84,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     onTargetState({target, playback:state.playback, view});
     onLiveView(view);
   }
-  const preview = createSynthSongPreview({getAudio, onState:showState, onStatus});
+  const preview = createSynthSongPreview({getAudio, onState:showState, onStatus, beforeResume});
   mixControls=setupSynthSongMixControls({preview});
   preview.setVolume(getVolume());
 

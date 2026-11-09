@@ -1,5 +1,34 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: コピー音色のLooper／Event Rec対応
+
+ユーザー指示：partial KON／CH3特殊モードのコピー音色を録音・再生へ対応する。CH3特殊時はCH3固定・単音。VGMのPlay中はLooper／録音をOffにする。
+
+- [x] 鍵盤・Looper・Event Recで同じ発音OP maskとCH3の4周波数比を使う。通常FM／partial KONのみはラウンドロビン、CH3特殊はCH3固定・単音にする。
+- [x] Looperの録音patch／イベント再生へコピー音色情報を引き継ぎ、録音したPCMとイベントのどちらでも同じ音になることを確認する。既存の通常音色／loopを維持する。
+- [x] Event Recの保存・読み込み・再生でpartial KON、CH3 mode／4周波数、移調を保持し、再生を止めた時は編集音色へ戻す。
+- [x] VGMのLoading／Play／Resume開始時にLooper・録音・録音再生を停止し、Play中は操作を無効にする。Pause／Stop後は自動再開せず、ユーザー操作で使えるようにする。
+- [x] 録音開始・音声初期化中のVGM開始、停止・取り消し・編集音色変更、通常音色への復帰と保存データ不変を確認する。
+- [x] 実WASMとNode／Chromium／WebKitで通常／partial／特殊CH3の録音と実再生音、VGMとの排他を検証する。
+- [x] 配布ZIPだけの動作、READMEとTODOの記録を更新する。公開・commit／pushはしない。
+
+### 録音対応の実装と検証
+
+- `synth_performance.js`のadapterを鍵盤・Looper・Event Recの共通経路にした。通常FMとpartial KONは6chを使い、CH3特殊時は手動MODEもコピー音色もCH3固定・単音とする。4周波数の比率をOP4基準で移調し、発音OP maskを保持する。MODE切替で古い鍵盤状態を解除し、OP4基準0は変更前に検証する。
+- `synth_looper.js`は既存Looperのapp用拡張。unit.patchだけでなくnote単位でもvoice情報を保持し、event fallbackはCH3を他のCHへ割り当てない。特殊unitが使うCH3を通常event unitの割当から除き、古いunitのNote Offで新しいunitのCH3を消さない。PCM layerは従来どおり独立した録音音声を再生する。
+- 録音開始待ち・capture確定待ちのstopは同期的にtimer／再生を止め、非同期完了を待ってから終了する。完成したtakeは残すが、その後に古いcallbackから録音や音が再開しない。物理全CHのcleanupは現在の特殊voiceに再マップせず、0〜5へ直接Note Offする。
+- `synth_recording.js`が既存Event Recを拡張し、内部のNote Off・4周波数writeを二重録音せず、発音とPitch更新を明示的なperformance commandにする。通常録音／旧fileは`megasynth-recording-v1`のまま。特殊performanceを含むfileは`tetorica-fm2612-synth-recording-v1`を名乗り、古いplayerが全OP音と誤認して再生することを避ける。FM operatorを現在の編集値で試すIgnore Op設定と、発音mask／CH3のperformance情報を区別する。
+- 新旧fileのcommand時刻・値域・初期状態を音の出ないtransportで検証してからimport／playする。不正fileは現在の再生・編集音色を維持する。再生停止時は鍵盤状態を解除してchipをresetし、元の編集設定を戻す。Event再生中はCH3 monitorが再生側の周波数を編集基準へ取り込まない。
+- VGMのLoading／Play／Resumeでは、録音操作の世代を更新して待機中の開始を無効化する。Looper・Event Rec・その再生を止め、録音busとrelease tailを止めてからVGMを開始する。Resumeはtrusted click内でAudioContextをresumeし、hostの停止完了を待って同じ曲の続きへ戻る。Pause／Stopでは録音を自動再開しない。Pause中のCH観察／試奏は独立経路とし、録音にはSynthを選ぶ。
+- ページ移動とTauriの出力切替も同じ停止処理へ接続した。出力切替開始で待機中の操作を無効にし、切替終了時はkeyboard／録音UIを更新する。今回の実行検証はbrowser版であり、Nativeアプリの実機操作は行っていない。
+- 常時表示のUIは追加せず、既存Looper／Event Recの開始制限を解除した。VGM再生中は開始／録音／録音再生ボタンを無効にする。元VGM、編集中音色、Copy／Mix／Liveの保存・表示機能へ録音状態を書き込まない。共有runtime・SDK・WASM・npm packageは変更していない。
+- `node --test docs/synth/*.test.mjs`：149件成功。Event Recの新規8件は実WASMで部分OP／CH3の発音・Pitch更新・離鍵まで録音元とimport再生の左右PCMがbyte一致。Looperの新規10件はevent再生の実PCM、CH割当・古いNote Off・PCM layer・Undo・非同期中断を確認。追加のResume testでcontext resume要求がhost待ちより先に行われ、待ち中の位置／buffer固定とStop時の遅延再開防止を確認した。
+- 自作browser testの発音検出直後はFFT窓にattack前の無音が残るため、live基準音量を200ms待って測るようにした。再生との差の許容範囲は変更せず、音源やgainを検証値へ合わせていない。
+- 配布チェックで新しい録音moduleの`../js/`参照変換漏れを検出し、包装時のURL移設対象へ追加した。`sh scripts/package_itch_synth.sh captured-record-final-20261109`と261個のlocal module／asset参照チェックが成功した。新規3moduleはURL移設だけを行い、可読sourceを維持する。
+- 最終stageの`check_synth_captured_recording_browser.cjs`はChromium／WebKitで成功。通常／部分OP／CH3特殊の実PCM、単音・round robin、Looper録音音声の継続、Event RecのJSON往復・不正JSON保持・停止時の編集設定復帰、VGM Play／Resumeの排他、WASM初期化待ちのLooper開始との競合を確認した。記録：`/private/tmp/fm2612-captured-record-final-browser.json`（92 assets）。1240／390pxの画面も確認した。
+- 同じ最終stageで既存のMix／Copy checkerも両browserで成功。全20系統のSolo／Mute・復帰、複数Solo、DAC／PWM左右、Copyと元file全byte保持、CH3設定編集・保存を確認。以前の「コピー音色は録音不可」というtestは、新しい録音対応を確認するassertへ更新した。記録：`/private/tmp/fm2612-captured-record-final-mix.json`（96 assets）。両記録の全asset hashは最終stageと一致。物理音声出力はmuteし、人の実聴とは区別する。
+- 最終ZIP：`release/hello_ymfm_wasm_captured-record-final-20261109_itch_synth.zip`（245 entries／217 files、824,283 bytes、SHA-256 `01e282afb8deee678064e144d63275ceada01fa10ac78dcf171a320254cb1f2c`）。全fileがstageと一致。receipt：`/private/tmp/fm2612-captured-record-final-package.json`。README英語／日本語、cache key、配布moduleを更新。未公開・未commit・未push。
+
 ## 完了: Liveの変更ハイライト（既定On・切替可能）
 
 ユーザー指示：Liveで変わった値を短くハイライトする。負荷が心配なのでOn／Offを用意し、既定Onにする。
@@ -45,7 +74,7 @@
 - 元のVGM writeだけをLive timelineへ通し、Mix操作の出力用writeを観察値やCopyへ混ぜない。先読みPCMは捨てずに流し、通常約200〜260msで反映する。VgmPlayerのprefetch factorを1にし、位置を飛ばすqueue flushは行わない。Pause中に変更した場合もResume後の先読み分から順に切り替わる。
 - CopyはPause中のFM CHに限り、`/presets/<曲名>-CHn.vgi`と`.synth.json`を新規作成する。同名の音色／sidecar／folder／orphan checkpointを避ける。元の編集音色をflushして保持し、Undo・復旧journal・IndexedDBへつなぐ。曲はPauseのまま、成功した時にSynthへ切り替える。
 - 任意の`capturedVoice` sidecarへpartial KON maskとCH3 specialの4周波数を保存する。既存version 1 sidecarと互換。鍵盤は元の発音OPとCH3の周波数比を保つ。コピーしたCH3のMODE／周波数編集も自動保存し、試奏による移調で編集基準値を上書きしない。OP4基準周波数0は鍵盤移調できないため、コピーとその編集時に検証する。DAC／CSMはFM音色と偽ってコピーせず理由を表示する。
-- partial KON／CH3比率を持つコピー音色は現在、鍵盤での編集・試奏・保存に対応する。Looper／Event Recへ誤った全OP音を録らないよう、新規開始を無効にしてtitleで範囲を示す。通常の全OP・通常モードのコピーと既存音色では従来の機能を維持する。
+- この段階ではpartial KON／CH3比率を持つコピー音色を鍵盤での編集・試奏・保存に限り、Looper／Event Recの開始を制限していた。上記の録音対応でこの制限を解除した。
 - `node --test docs/synth/*.test.mjs`：123件成功。output helper 7件は実WASMのFM feedback／CSM／DAC・RF addressとbank・PSG noise／PWM FIFOの継続波形も照合。Copyの7件は変更前の入力検証、元音色不変、保存先衝突、Cassette／Sync／Revert／復旧を確認した。
 - 旧Pause testの前提を、最初のpumpで必ずbufferが揃う即時assertから、上限1秒で実際のPCMを待つ方式へ修正。途中bufferの識別も実際のframe長を使い、同じbufferと正確な再開offsetのassertを維持した。
 - 新しいbrowser checkerの自作fixtureでは、FMの11bit FNUMを越える音程をBLOCKで正規化し、RFの高いsample stepが単独end markerを飛び越えないようFFのguard領域を置いた。音源の実装やgainを変えて検証値へ合わせていない。
@@ -57,7 +86,7 @@
 ### 関連する次候補
 
 - [x] Live中に変更されたparameterを短くハイライトする（上記の既定On・切替可能な機能として完了）。
-- [ ] コピーしたpartial KON／CH3特殊音色のLooper／Event Rec対応。録音patch・再生時のCH割当・OP mask・比率を保存し、実音声で照合してから現在の開始制限を外す。
+- [x] コピーしたpartial KON／CH3特殊音色のLooper／Event Rec対応。上記の録音対応で完了し、開始制限を解除した。
 - [ ] コピーした発音OP maskをUIから編集する入口。現在は元のmaskをsidecarへ保持する。
 
 ## 完了: Synth／CH選択とPause中の鍵盤試奏
