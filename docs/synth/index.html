@@ -176,6 +176,11 @@
       .synth-song-mix-channel.is-muted > span { opacity: .45; }
       .synth-song-mix-channel .toolbar-button { padding: 2px 5px; min-height: 24px; }
       .synth-song-mix-channel .is-selected { background: #47776b; color: #fff; }
+      .synth-song-display-option { display: flex; align-items: center; gap: 6px; margin: 7px 0; color: #b8cac6; }
+      .synth-song-display-option input { margin: 0; accent-color: #7be0d6; }
+      @keyframes synth-live-change { from { background-color: #ffdb9788; color: #fff5c3; } }
+      .param-value.is-live-changed { animation: synth-live-change 420ms ease-out; }
+      @media (prefers-reduced-motion: reduce) { .param-value.is-live-changed { animation-duration: 1ms; } }
       .synth-editor[data-live-view="true"] .param-value, .synth-editor[data-live-view="true"] .param-button { cursor: default; }
       .synth-editor[data-live-view="true"] .operator-envelope-handle { visibility: hidden; }
       .synth-file-dialog { max-width: min(430px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; color: #e4eee8; background: #172423; border: 1px solid #7c9d91; border-radius: 14px; }
@@ -1338,6 +1343,7 @@
                 <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
                 <div id="synthSongMixPanel" role="group" aria-label="Reference playback channels" hidden>
                   <div class="synth-song-mix-heading"><strong>Playback channels</strong><button id="synthSongMixReset" class="toolbar-button" type="button">Reset</button></div>
+                  <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
                   <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
                 </div>
               </div>
@@ -1509,7 +1515,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-vgm-mix-copy-1";
+      import "./synth.js?v=synth-live-highlight-1";
     </script>
   </body>
 </html>

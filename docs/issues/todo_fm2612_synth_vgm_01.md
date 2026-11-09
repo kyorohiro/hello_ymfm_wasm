@@ -1,5 +1,30 @@
 # FM2612 Synth：importしたVGMの保存（2026-11-09）
 
+## 完了: Liveの変更ハイライト（既定On・切替可能）
+
+ユーザー指示：Liveで変わった値を短くハイライトする。負荷が心配なのでOn／Offを用意し、既定Onにする。
+
+- [x] 既存の数値表示に短い淡い強調を加える。常時表示のUIは増やさず、既存Mix内へLive highlightのOn／Offを置く。
+- [x] 初期値はOn。Offの設定は端末内へ保持し、音色・Cassette・元VGMへ保存しない。Off時は差分比較・アニメーション処理を止める。
+- [x] 既存のLive表示更新で差分を調べる。新しい常駐timer／rAFやレイアウト計測を追加せず、DOM参照を再利用する。
+- [x] 初回表示・CH／曲の変更・Pause／Live Off／Synth復帰では強調を消して基準を取り直す。変化のない項目と通常の編集操作は発光させない。
+- [x] On／Off・再有効化・頻繁な変更・Pause・CH切替・設定保持、実音声／保存データ不変を検証する。
+- [x] 配布ZIPとChromium／WebKitで動作と狭幅レイアウトを確認し、検証記録を更新する。公開・commit／pushはしない。
+
+### ハイライトの実装と検証
+
+- 常時表示のUIは増やさず、既存のMix popup内へ`Live highlight` checkboxを置いた。既定Onで、On／OffをlocalStorageの`tetorica-fm2612-synth-live-highlight`へ保持する。Mix Resetや音色保存とは独立し、操作後はblurして演奏用keyboardへ戻れる。
+- `synth_live_highlight.js`は初期化時に60個の既存数値nodeへの参照とscalar readerを受け取る。既存Live callback内で、選択CHの共通／operator設定・LFO／DAC・CH3 specialの変更だけを比較する。同じregister revisionではreaderも呼ばない。Off時はview参照・比較・DOM更新より前にreturnする。
+- 変更した`.param-value`へ`is-live-changed`を付け、CSSの420ms animationで背景色と文字色を淡く戻す。同じ項目が発光中に何度変化してもanimationを再開せず、終了eventでclassを外す。timer・rAF・Web Animations API・layout計測・filter・shadowは追加しない。reduced motionではdurationを1msにし、終了eventによるcleanupを維持する。
+- 初回／CH切替／Pause／Live Off／Synth復帰／Stopは発光を消し、次の表示を基準にする。再有効化も現在値から取り直す。cooperativeなVGM初期化でframe 0の途中設定が複数届く場合も、初期化を編集と誤認して光らせず、最初の聴こえる状態を基準にする。
+- 既存`createParamControl.updateVisual()`も、表示文字列が同じなら`textContent`を書き直さないようにした。編集の基準値・boolean状態の更新は維持する。
+- `node --test docs/synth/*.test.mjs`：130件成功。新規7件で差分だけの発光、Off時のreader／DOM呼び出し0、同revisionの省略、連続変更の合流、モード切替、初期化frame 0、終了／破棄を検証した。
+- `sh scripts/package_itch_synth.sh live-highlight-check-20261109`と252個のlocal module／asset参照チェックが成功。新しいhelperは可読sourceとbyte一致し、ZIPの全fileもstageと一致する。
+- 配布stageの`check_synth_live_highlight_browser.cjs`がChromium／WebKitで成功。1.5秒のALGO／FB／LFO／OP4 TL・AR／CH3 MODE・FNUM変更を消費frameに合わせて強調し、先読みの時点では光らないことを確認した。48回の連続TL変更は両browserとも3回のclass追加・CSS animationにまとまり、Off中の発光・新しいpolling interval・音程だけが変わる区間の数値text書き換えは0件だった。
+- On／Off保持、再有効化、Pause／CH／曲変更・Live Off／Synth／Stopの解除、全VFS file byte保持、実音声の継続・進行位置の整合性を確認。1240／390pxでMixを開いてもeditorを押し下げず、両browserの画面を確認した。記録：`/private/tmp/fm2612-live-highlight-package-browser.json`（89 assets）。
+- 同じ最終stageで旧Live／Pause試奏checkerも両browserで成功。Master 0〜380%、実CHの発音・部分KON mask、CH3比率、Liveの時間合わせ、元音色保持を確認した。記録：`/private/tmp/fm2612-live-highlight-regression.json`（89 assets）。両記録の全asset hashは最終stageと一致。物理出力はmuteした計測で、人の実聴ではない。
+- 最終ZIP：`release/hello_ymfm_wasm_live-highlight-check-20261109_itch_synth.zip`（242 entries／214 files、816,871 bytes、SHA-256 `7e4bc3ce75350759ac1130ebad39403d268cfc7ce8db08db0991c9a386d378fd`）。receipt：`/private/tmp/fm2612-live-highlight-package.json`。README英語／日本語とcache keyを更新。未公開・未commit・未push。
+
 ## 完了: 模範演奏のCH別Solo／MuteとCopy to Synth
 
 ユーザー指示：どのCHを再生するか選び、YM2612だけでなくPSG・32X PWM・Mega CD PCMも対象にする。
@@ -31,7 +56,7 @@
 
 ### 関連する次候補
 
-- [ ] Live中に変更されたparameterを短くハイライトする。
+- [x] Live中に変更されたparameterを短くハイライトする（上記の既定On・切替可能な機能として完了）。
 - [ ] コピーしたpartial KON／CH3特殊音色のLooper／Event Rec対応。録音patch・再生時のCH割当・OP mask・比率を保存し、実音声で照合してから現在の開始制限を外す。
 - [ ] コピーした発音OP maskをUIから編集する入口。現在は元のmaskをsidecarへ保持する。
 

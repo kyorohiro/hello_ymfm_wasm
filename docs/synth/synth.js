@@ -1,6 +1,7 @@
 import {createSynthProject} from './synth_project.js?v=vgm-mix-copy-1';
 import {setupSynthFiles} from './synth_files.js?v=vgm-mix-copy-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=vgm-mix-copy-1';
+import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice, setSynthSongVoiceFrequency} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
@@ -37,7 +38,7 @@ import {
   createParamControl,
   buildOperatorControls as buildOperatorControlsView,
   displayOperatorToApiOperator,
-} from "./synth_controls.js";
+} from "./synth_controls.js?v=live-highlight-1";
 import {
   attachOutputEnvelopeTap,
   chooseVoice,
@@ -364,6 +365,17 @@ let activeHelpId = "";
 let masterVolume = 1;
 let songLiveView = null;
 let songLiveSignature = '';
+let liveHighlighter=null;
+const songHighlightToggle=document.getElementById('synthSongHighlightToggle');
+const LIVE_HIGHLIGHT_PREFERENCE='tetorica-fm2612-synth-live-highlight';
+try {songHighlightToggle.checked=localStorage.getItem(LIVE_HIGHLIGHT_PREFERENCE)!=='off';} catch {}
+songHighlightToggle.addEventListener('change',()=>{
+  const enabled=songHighlightToggle.checked;
+  try {localStorage.setItem(LIVE_HIGHLIGHT_PREFERENCE,enabled?'on':'off');} catch {}
+  liveHighlighter?.setEnabled(enabled);
+  liveHighlighter?.update(songLiveView);
+  songHighlightToggle.blur();
+});
 let songTargetState = {target:'synth', playback:'stopped', view:null};
 let songAuditionVoice = null, songAuditionMegaSynth = null, songAuditionReady = null;
 let songAuditionBus = null, songAuditionSignature = '', songAuditionGeneration = 0;
@@ -641,6 +653,9 @@ function setSongLiveView(next) {
     operatorEnvelopeView.invalidateOutput();
     drawEnvelopeGuide();
   }
+  // The helper also sees transport/follow changes when parameter values stay
+  // identical, so Pause / Live Off / CH changes cannot leave a stale pulse.
+  liveHighlighter?.update(next);
   refreshVisualizerDescription();
 }
 
@@ -2872,6 +2887,27 @@ buildCommonControls();
 buildOperatorHeader();
 buildOperatorControls();
 buildChannel3SpecialControls();
+// Resolve value nodes once. Live updates read the already-decoded snapshot;
+// they do not query the DOM, scan text, or measure layout to find differences.
+const highlightBindings=[];
+const bindHighlight=(control,read)=>{
+  const element=control?.element.querySelector('.param-value');
+  if(element)highlightBindings.push({element,read});
+};
+for(const {id} of COMMON_PARAM_DEFS)bindHighlight(commonControls.get(id),view=>{
+  if(id==='lfoEnabled')return view.snapshot.lfo.enabled;
+  if(id==='lfoFrequency')return view.snapshot.lfo.frequency;
+  if(id==='dacEnabled')return view.snapshot.dacEnabled;
+  return view.snapshot.channels[view.channel].preset[id];
+});
+for(const operator of OPERATOR_NUMBERS)for(const {id} of OPERATOR_PARAM_DEFS) {
+  bindHighlight(operatorControls.get(operator)?.get(id),view=>view.snapshot.channels[view.channel].preset.operators[operator][id]);
+}
+bindHighlight(channel3SpecialControls.get('enabled'),view=>view.snapshot.channels[2].specialMode);
+for(let operator=0;operator<4;operator++)for(const field of ['block','fnum']) {
+  bindHighlight(channel3SpecialControls.get(`op${operator}-${field}`),view=>view.snapshot.channels[2].specialFrequencies[operator][field]);
+}
+liveHighlighter=createSynthLiveHighlighter({controls:highlightBindings,enabled:songHighlightToggle.checked});
 buildPresetSelect();
 buildTfiExporter();
 buildVgiExporter();
@@ -2969,6 +3005,7 @@ window.addEventListener('pagehide',event=>{
   if(event.persisted)songControls.stop();
   else {
     songControls.dispose();
+    liveHighlighter.dispose();
     ++songAuditionGeneration;
     if (songAuditionBus) songAuditionBus.gain.value = 0;
     void songAuditionMegaSynth?.close();

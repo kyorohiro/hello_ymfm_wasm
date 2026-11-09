@@ -38,6 +38,7 @@ synth_song_copy.js
 synth_song_mix.js
 synth_song_mix_controls.js
 synth_song_output_mix.js
+synth_live_highlight.js
 "
 RUNTIME_FILES="
 pwm32x.js

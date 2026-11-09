@@ -87,16 +87,16 @@ export function createParamControl(config) {
       // Preset / channel / synth updates also change the basis for edits.
       currentValue = nextValue;
       if (booleanMode) {
-        valueElement.textContent =
-          nextValue ? "ON" : "OFF";
+        const text=nextValue ? "ON" : "OFF";
+        if(valueElement.textContent!==text)valueElement.textContent=text;
         valueElement.classList.toggle(
           "is-on",
           Boolean(nextValue)
         );
         return;
       }
-      valueElement.textContent =
-        String(nextValue);
+      const text=String(nextValue);
+      if(valueElement.textContent!==text)valueElement.textContent=text;
     };
 
   let dragStartX = 0;
