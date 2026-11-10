@@ -1,9 +1,9 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=ps1-deferred-release-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=rf5c164-notes-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createScspAudio} from './playground_scsp_audio.js?v=scsp-fm-1';
-import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-deferred-release-1';
+import {createScspAudio} from './playground_scsp_audio.js?v=rf5c164-notes-1';
+import {createPs1Audio} from './playground_ps1_audio.js?v=rf5c164-notes-1';
 import {createPs1Client} from './playground_ps1.js?v=ps1-deferred-release-1';
 import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
@@ -14,48 +14,48 @@ import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=scsp
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=scsp-fm-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {createNesAudio} from './playground_nes_audio.js?v=ps1-deferred-release-1';
+import {createNesAudio} from './playground_nes_audio.js?v=rf5c164-notes-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=ps1-deferred-release-1';
+import {createDx7Audio} from './playground_dx7_audio.js?v=rf5c164-notes-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=ps1-deferred-release-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=rf5c164-notes-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=ps1-deferred-release-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=ps1-deferred-release-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=ps1-deferred-release-1';
-import {createOplAudio} from './playground_opl_audio.js?v=ps1-deferred-release-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=rf5c164-notes-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=rf5c164-notes-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=rf5c164-notes-1';
+import {createOplAudio} from './playground_opl_audio.js?v=rf5c164-notes-1';
 import {OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=pokey-mode-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=pokey-prepare-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=ps1-deferred-release-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=rf5c164-notes-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=pokey-prepare-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=ps1-deferred-release-1';
-import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=rf5c164-notes-1';
+import {createOpnClient} from './playground_opn.js?v=rf5c164-notes-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=scsp-fm-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-pcm-waveform-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-deferred-release-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=rf5c164-notes-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=scsp-fm-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-deferred-release-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=rf5c164-notes-1';
 import {createCddaAudio} from './cdda_audio.js?v=cdda-pcm-1';
 import {createNativeCdda} from './cdda_native.js?v=cdda-pcm-1';
 import {createCddaPlayer} from './cdda_player.js?v=cdda-pcm-1';
 import {createMsm5205Audio} from './msm5205_audio.js?v=pcengine-cd-1';
 import {createNativeMsm5205} from './msm5205_native.js?v=pcengine-cd-1';
 import {createMsm5205Player} from './msm5205_player.js?v=pcengine-cd-1';
-import {createPokeyAudio} from './playground_pokey_audio.js?v=ps1-deferred-release-1';
+import {createPokeyAudio} from './playground_pokey_audio.js?v=rf5c164-notes-1';
 import {createSidAudio} from './playground_sid_audio.js?v=ps1-deferred-release-1';
-import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=ps1-deferred-release-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=ps1-deferred-release-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=ps1-deferred-release-1';
-import {createYm2608Client} from './playground_ym2608.js?v=ps1-mode-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=pokey-prepare-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=ps1-deferred-release-1';
+import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=rf5c164-notes-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=rf5c164-notes-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=rf5c164-notes-1';
+import {createYm2608Client} from './playground_ym2608.js?v=rf5c164-notes-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=rf5c164-notes-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=rf5c164-notes-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -70,8 +70,8 @@ import {parseMidiFile} from './midi_file.js?v=audio-numeric-bindings-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=ps1-deferred-release-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=scsp-fm-1";
+} from "./megasynth.js?v=rf5c164-notes-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=rf5c164-notes-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -179,11 +179,11 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','ps1','scsp','x68000','huc6280','pokey','sid','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=ps1-deferred-release-1', import.meta.url).href
-          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=ps1-mode-1'
-          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=ps1-mode-1'
+        (['nes','snes','ps1','scsp','x68000','huc6280','pokey','sid','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=rf5c164-notes-1', import.meta.url).href
+          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=rf5c164-notes-1'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=rf5c164-notes-1'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=ps1-mode-1" : "./ym2612-worklet.js?v=ps1-mode-1"),
+            ? "./ym2610b-worklet.js?v=rf5c164-notes-1" : "./ym2612-worklet.js?v=rf5c164-notes-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "../generated/ym2612_wasm.wasm",
@@ -277,7 +277,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=scsp-fm-1",
+      "./playground_logic_worker.js?v=rf5c164-notes-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -463,23 +463,49 @@ export function createPlaygroundRuntime(
   // the instrument channels started by another callback in the same binding.
   const voiceOwner = context => context?.keyboard ? context.keyboardOwner : context;
   function silencePrimaryPcm(channels) {
-    const pending = channels.map(channel => Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(() => {}));
+    const previous=currentLoopContext;currentLoopContext=null;
+    let pending;
+    try {pending=channels.map(channel=>Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(()=>{}));}
+    finally {currentLoopContext=previous;}
     // The Main and Worker control ports have independent message order. A new
     // performance must wait until every old Main-port release has been applied.
     primaryPcmSilence = Promise.all([primaryPcmSilence, ...pending]).then(() => {});
     return Promise.all(pending).then(()=>{});
+  }
+  function observeMainPcmOwners(raw,owners) {
+    if(!raw._setNoteLifecycle)return false;
+    raw._setNoteLifecycle({
+      before({method,args}){
+        const loop=currentLoopContext;
+        const cleanupRelease=method==='keyOff'&&liveApi.hasPendingCleanups();
+        if(loop?.stopped&&!cleanupRelease)return false;
+        // A liveCleanup hook may inherit the stopped loop's ambient context
+        // while releasing a top-level voice. It must still leave a newer
+        // loop/Keyboard owner's channel intact.
+        if(loop?.stopped&&cleanupRelease&&owners.get(args[0])===null)return true;
+        return method!=='keyOff'||!loop||!owners.has(args[0])||owners.get(args[0])===voiceOwner(loop);
+      },
+      observe({method,args}){
+        if(method==='keyOn')owners.set(args[0],voiceOwner(currentLoopContext));
+        else if(method==='keyOff')owners.delete(args[0]);
+        else if(method==='reset')owners.clear();
+      },
+    });
+    return true;
   }
   function primaryPcmApi() {
     const raw = megaDrive.pcm;
     if (!raw) return undefined;
     if (sharedPcmClient !== raw) {
       sharedPcmClient = raw;
+      const observesRaw=observeMainPcmOwners(raw,primaryPcmOwners);
       sharedPcm = borrowNativeApi(raw, 'rf5c164', () => {}, (path, args) => {
         const loop = currentLoopContext, method = path.at(-1);
         if (loop?.stopped) return false;
+        if(observesRaw)return true;
         if (method === 'reset') primaryPcmOwners.clear();
-        if (method === 'keyOn') primaryPcmOwners.set(args[0], voiceOwner(loop));
-        if (method === 'keyOff') {
+        if (method === 'keyOn' || method === 'noteOn') primaryPcmOwners.set(args[0], voiceOwner(loop));
+        if (method === 'keyOff' || method === 'noteOff') {
           if (loop && primaryPcmOwners.has(args[0]) && primaryPcmOwners.get(args[0]) !== voiceOwner(loop)) return false;
           primaryPcmOwners.delete(args[0]);
         }
@@ -487,6 +513,30 @@ export function createPlaygroundRuntime(
       });
     }
     return sharedPcm;
+  }
+  function ownedMainPcmApi(device,raw) {
+    const owners=new Map();
+    observeMainPcmOwners(raw,owners);
+    device.releaseOwner=owner=>{
+      for(const[channel,held]of owners)if(held===owner){
+        owners.delete(channel);
+        const previous=currentLoopContext;currentLoopContext=null;
+        try {Promise.resolve(raw.keyOff(channel)).catch(()=>{});}
+        finally {currentLoopContext=previous;}
+      }
+    };
+    const borrowed=borrowNativeApi(raw,device.mixerId,()=>{},path=>!currentLoopContext?.stopped||['keyOff','noteOff'].includes(path.at(-1))&&liveApi.hasPendingCleanups(),result=>{
+      const loop=currentLoopContext,token=currentRunToken;
+      // Cleanup is an explicit retirement fence and may finish while a new
+      // evaluation waits for this old device's disposal.
+      if(liveApi.hasPendingCleanups())return result;
+      // RPC acknowledgements must restore the loop which issued them, rather
+      // than borrowing a concurrently executing Keyboard callback's owner.
+      return result.then(value=>resumeNativeExtraCaller(loop,()=>value,token),error=>resumeNativeExtraCaller(loop,()=>{throw error;},token));
+    });
+    // Independent devices retain their public disposal control; primary
+    // borrowed facades intentionally hide it.
+    return new Proxy(borrowed,{get:(target,key)=>key==='dispose'?raw.dispose.bind(raw):Reflect.get(target,key)});
   }
   let sharedSections = {};
   let sharedSectionSynth;
@@ -2554,7 +2604,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);
+        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);
         if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
         return api;
       },

@@ -16,6 +16,12 @@ async function checkMegaCDCddaEditorTypes() {
   });
   const pcm = await useSoundChip('rf5c164');
   await pcm.setPitch(0, 1000); await pcm.keyOn(0); await pcm.keyOff(0);
+  const root:number=pcm.setRootNote('A4'),step:number=await pcm.setNote(0,'A5');
+  await pcm.noteOn(0,81);await pcm.noteOff(0);pcm.setRootNote(null);void [root,step];
+  // @ts-expect-error Voice helpers keep their physical 0..7 channel bounds.
+  pcm.noteOff(8);
+  // @ts-expect-error Client noteOn has a required note argument.
+  pcm.noteOn(0);
   // @ts-expect-error Mega CD does not expose PC Engine PSG convenience globals
   pce.keyOn(0);
   // @ts-expect-error Mega CD does not expose the PC Engine primary ADPCM global

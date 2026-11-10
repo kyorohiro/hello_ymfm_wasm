@@ -40,6 +40,13 @@ async function until(predicate) {
   }
   assert.fail('Async boundary was not reached');
 }
+async function untilHostTask(predicate) {
+  for(let i=0;i<100;i++){
+    if(predicate())return;
+    await new Promise(resolve=>setTimeout(resolve,1));
+  }
+  assert.fail('Host-task boundary was not reached');
+}
 function setup(t, capabilities, runtimeOptions = {}, createRuntime = createPlaygroundRuntime) {
   const listeners = new Set(), statuses = [], logs = [];
   const previous = globalThis.window;
@@ -162,10 +169,13 @@ function sidRuntimeFixture(){
 function independentRfFixture(gate){
   const events=[],devices=[];
   const factory=async()=>{
-    const entry={id:devices.length,disposed:false,disconnected:false,waiting:false};devices.push(entry);events.push(['create',entry.id]);
+    const entry={id:devices.length,disposed:false,disconnected:false,waiting:false,mask:255,writes:[]};devices.push(entry);events.push(['create',entry.id]);
+    const control=createRf5c164Control({writeRegister(register,value){entry.writes.push([register,value]);if(register===8)entry.mask=value;},loadMemory(){},reset(){entry.mask=255;},dispose(){}});
     const port={start(){},close(){events.push(['port-close',entry.id]);},postMessage(command){
       if(entry.disposed)throw new Error('RF endpoint disposed before cleanup');
       events.push(['command',entry.id,command.method,command.args]);
+      if(command.method==='stopVoices')for(let channel=0;channel<8;channel++)control.keyOff(channel);
+      else if(typeof control[command.method]==='function')control[command.method](...(command.args??[]));
       if(command.id===undefined)return;
       const reply=()=>queueMicrotask(()=>port.onmessage?.({data:{id:command.id}}));
       if(gate&&entry.id===0&&command.method==='keyOff'&&!entry.waiting){entry.waiting=true;gate.promise.then(reply);}else reply();
@@ -304,6 +314,61 @@ test('stopping a Main PCM liveLoop releases its voices without muting a replacem
   await until(()=>writes.slice(before).some(([r,v])=>r===8&&v===253));
   await new Promise(resolve=>setTimeout(resolve,0));
   assert(!writes.slice(before).some(([r,v])=>r===8&&v===255),'retired finally cannot mute the replacement channel');
+});
+
+test('Main independent RF note helpers release a liveLoop when stopped from a keyboard callback',async t=>{
+  const fixture=independentRfFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'rf-notes'});await pcm.setChannel(CH1,{step:1024});
+    keyboard.bind('cancel',{noteOn(){stopLoop('held');},noteOff(){},allNotesOff(){}});
+    liveLoop('held',async()=>{await pcm.noteOn(CH1,'C4');await pcm.setNote(CH1,'C5');await pcm.noteOff(CH1);await pcm.noteOn(CH1,'C4');context.ready=true;await sleep(120);});`);
+  await untilHostTask(()=>runtime.context.ready);assert.equal(fixture.devices[0].mask,254);
+  await runtime.getKeyboardTarget().noteOn({id:'cancel',midi:60});
+  await until(()=>fixture.devices[0].mask===255);
+  assert.equal(fixture.devices[0].disposed,false,'stopLoop retains the independent endpoint');
+  assert.deepEqual(logs,[]);
+});
+
+test('Main independent RF raw gates retain loop ownership and synchronous software Root',async t=>{
+  const fixture=independentRfFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'rf-raw'});
+    if(pcm.setRootNote('A4')!==69||pcm.setRootNote(null)!==60)throw Error('Root must remain synchronous');
+    keyboard.bind('cancel raw',{noteOn(){stopLoop('raw-held');},noteOff(){},allNotesOff(){}});
+    liveLoop('raw-held',async()=>{await pcm.keyOn(CH1);context.ready=true;await sleep(120);});`);
+  await untilHostTask(()=>runtime.context.ready);assert.equal(fixture.devices[0].mask,254);
+  await runtime.getKeyboardTarget().noteOn({id:'cancel',midi:60});
+  await until(()=>fixture.devices[0].mask===255);assert.deepEqual(logs,[]);
+});
+
+for(const independent of [false,true])test(`invalid Main ${independent?'independent':'primary'} RF helper notes cannot steal a liveLoop voice`,async t=>{
+  const fixture=independent?independentRfFixture():null;
+  const createRuntime=independent?await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio'):createPlaygroundRuntime;
+  const {runtime,megaDrive,logs}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true},{},createRuntime);
+  let mask;
+  if(independent){megaDrive.audio={masterInputNode:{}};mask=()=>fixture.devices[0].mask;}
+  else {const {writes}=attachPrimaryPcm(megaDrive);mask=()=>writes.filter(([register])=>register===8).at(-1)?.[1];}
+  await runtime.playSource(`const pcm=await ${independent?"createSoundChip('rf5c164',{id:'invalid-note'})":"useSoundChip('rf5c164')"};await pcm.setChannel(CH1,{step:1024});
+    keyboard.bind('invalid note',{async noteOn(){try{await pcm.noteOn(CH1,'invalid');}catch(error){context.rejected=true;}stopLoop('valid');},noteOff(){},allNotesOff(){}});
+    liveLoop('valid',async()=>{await pcm.noteOn(CH1,'C4');context.ready=true;await sleep(120);});`);
+  await untilHostTask(()=>runtime.context.ready);assert.equal(mask(),254);
+  await runtime.getKeyboardTarget().noteOn({id:'invalid',midi:60});assert.equal(runtime.context.rejected,true);
+  await until(()=>mask()===255);assert.deepEqual(logs,[]);
+});
+
+test('a retired Main independent RF loop cannot release a replacement helper note',async t=>{
+  const fixture=independentRfFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'rf-replacement'});await pcm.setChannel(CH1,{step:1024});await pcm.setChannel(CH2,{step:2048});
+    keyboard.bind('replace',{async noteOn(){await pcm.noteOn(CH2,'D4');stopLoop('held');},noteOff(){},allNotesOff(){}});
+    liveLoop('held',async()=>{await pcm.noteOn(CH1,'C4');await pcm.noteOn(CH2,'C4');context.ready=true;try{await sleep(120);}finally{await pcm.noteOff(CH2);context.retired=true;}});`);
+  await untilHostTask(()=>runtime.context.ready);assert.equal(fixture.devices[0].mask,252);
+  const before=fixture.devices[0].writes.length;
+  await runtime.getKeyboardTarget().noteOn({id:'replace',midi:62});
+  await until(()=>fixture.devices[0].mask===253);
+  await new Promise(resolve=>setTimeout(resolve,10));
+  assert(!fixture.devices[0].writes.slice(before).some(([r,v])=>r===8&&v===255),'retired finally leaves the replacement channel on');
+  assert.equal(fixture.devices[0].mask,253);assert.deepEqual(logs,[]);
 });
 
 test('Main audio input exposes decoded PCM, aborts on Stop and rejects stale completion',async t=>{

@@ -6,7 +6,7 @@ import {Pcm44100Resampler} from './pcm_44100_resampler.js?v=scsp-fm-1';
 import {SCSP_CONTROLS,createScspValidation,scspCommandArgs} from './playground_scsp.js?v=scsp-fm-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {ScspVoiceInspector} from './playground_scsp_inspector.js?v=scsp-fm-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 const METHODS=new Set([...SCSP_CONTROLS,'loadPCM','getState']);
 export class ScspInstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}) {

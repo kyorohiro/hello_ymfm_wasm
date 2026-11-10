@@ -7,6 +7,7 @@ import {encodeRf5c164,sampleBytes} from '../js/rf5c164_pcm.js';
 import {decodeAudioBuffer} from '../js/audio_decode.js';
 import {SEGAPSG_CLOCK} from '../js/segapsg.js';
 import {noteToHz,opnPitchFromHz} from '../js/soundchip_pitch.js';
+import {rf5c164MidiNote,rf5c164NoteStep} from '../js/rf5c164_notes.js?v=shared-notes-1';
 import {PCM_NATIVE_RATE} from './synth_pcm.js?v=pcm-release-1';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 import {createSynthPerformanceTarget,normalizeCapturedVoice} from './synth_performance.js?v=op-gates-1';
@@ -259,17 +260,18 @@ export function createSynthCodeAudio({ensureChip=async()=>{},getContext,getInput
   function setPcmRootNote(note) {
     // Code metadata affects subsequent note helpers, never the editor or an
     // already configured voice. null resumes following the editor Root note.
-    const next=note===null?null:Math.round(69+12*Math.log2(noteToHz(note)/440));
+    const next=note===null?null:rf5c164MidiNote(note);
     const effective=next??settingsPcm().rootNote;
     pcmRootNote=next;
     return effective;
   }
   function setNotePcm(ch,note) {
     integer(ch,7,'PCM channel');
-    const hz=noteToHz(note);
+    const midi=rf5c164MidiNote(note);
     checkPcmNoteTuning();
     const preset=required(getPcmVoice,'PCM').getPreset();
-    const step=clampStep(preset.sample.sampleRate/PCM_NATIVE_RATE*2048*hz/noteToHz(pcmRootNote??preset.settings.rootNote));
+    const step=rf5c164NoteStep(midi,{rootNote:pcmRootNote??preset.settings.rootNote,
+      baseStep:preset.sample.sampleRate/PCM_NATIVE_RATE*2048});
     writePcmChannel(ch,{step});
     if(pcmRootNote===null)pcmCodeRootChannels.delete(ch);else pcmCodeRootChannels.add(ch);
     return step;

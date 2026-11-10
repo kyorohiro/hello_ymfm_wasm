@@ -3,7 +3,7 @@ import factory from '../generated/wonderswan_wasm.js?v=wonderswan-pcm-timeline-1
 import {ChipClockResampler,validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=pokey-prepare-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {prepareWonderSwanTimeline,createWonderSwanTimelineCursor} from './wonderswan_timeline.js?v=pokey-prepare-1';
 
 class Processor extends AudioWorkletProcessor {

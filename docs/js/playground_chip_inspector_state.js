@@ -1,7 +1,7 @@
 /** Applied register snapshots for the Playground editors. No polling or audio allocation. */
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
+import {RF5C164Synth} from './rf5c164synth.js?v=rf5c164-notes-1';
 
 export class PsgInspectorState {
   /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */

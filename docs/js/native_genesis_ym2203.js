@@ -1,5 +1,5 @@
 /** PC-98 YM2203 authoring shares the Web FM/SSG helpers; Native renders mono. */
-import {YM2203Synth} from './ym2203synth.js?v=ps1-mode-1';
+import {YM2203Synth} from './ym2203synth.js?v=rf5c164-notes-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';

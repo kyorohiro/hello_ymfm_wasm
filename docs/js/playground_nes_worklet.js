@@ -3,7 +3,7 @@ import {NesApuWasm} from './nesapu_wasm.js?v=nes-wasm-1';
 import factory from '../generated/nesapu_wasm.js?v=nes-wasm-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-deferred-release-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;this.chip=null;

@@ -2,7 +2,11 @@
 // an explicit audio clock, deterministic deadline timers and fake chip ports.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdtemp,readdir,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
 import {createPlaygroundCodeRuntime,CODE_SOUND_CHIPS} from '../tetorica_src/runtime/playground_code_runtime.js';
 import {createNativeFXController} from '../tetorica_src/runtime/native_fx.js';
 
@@ -269,4 +273,37 @@ test('runtime source and served mirror are byte-identical and do not pull the al
   const source=await readFile(new URL('../tetorica_src/runtime/playground_code_runtime.js',import.meta.url),'utf8');
   assert.equal(source,await readFile(new URL('../docs/js/playground_code_runtime.js',import.meta.url),'utf8'));
   assert(!/from\s+['"]\.\/playground_runtime\.js/.test(source));
+});
+
+test('published declaration keeps required host callbacks and the optional task channel, and type-checks standalone',async()=>{
+  const work=await mkdtemp(join(tmpdir(),'tetorica-code-runtime-types-'));
+  const compiler=fileURLToPath(new URL('../node_modules/typescript/bin/tsc',import.meta.url));
+  const source=fileURLToPath(new URL('../tetorica_src/runtime/playground_code_runtime.js',import.meta.url));
+  try {
+    execFileSync(process.execPath,[compiler,'--allowJs','--declaration','--emitDeclarationOnly','--skipLibCheck',
+      '--module','ESNext','--target','ES2022','--outDir',work,source],{stdio:'pipe'});
+    const emitted=(await readdir(work,{recursive:true})).find(path=>path.endsWith('playground_code_runtime.d.ts'));
+    assert(emitted,'the host declaration was emitted');
+    const declaration=join(work,emitted),text=await readFile(declaration,'utf8');
+    for(const name of ['ensureReady','now','useSoundChip','createTaskChannel'])assert(text.includes(name));
+    const fixture=join(dirname(declaration),'runtime-options.test.mts');
+    await writeFile(fixture,`import {createPlaygroundCodeRuntime,type PlaygroundCodeRuntimeOptions} from './playground_code_runtime.js';
+const options:PlaygroundCodeRuntimeOptions={
+  ensureReady:async()=>{},now:()=>0,useSoundChip:async name=>({name}),
+  createTaskChannel:()=>null,
+  onState:state=>{const running:boolean=state.running;const stopping:boolean=state.stopping;void running;void stopping;},
+  setTimer:(callback,delay)=>setTimeout(callback,delay),clearTimer:handle=>clearTimeout(handle),
+};
+createPlaygroundCodeRuntime(options);
+createPlaygroundCodeRuntime({...options,createTaskChannel:()=>new MessageChannel()});
+// @ts-expect-error the audio preparation callback is required
+createPlaygroundCodeRuntime({now:()=>0,useSoundChip:async()=>({})});
+// @ts-expect-error the injected clock must return seconds as a number
+createPlaygroundCodeRuntime({...options,now:()=>''});
+// @ts-expect-error a task channel factory must return a channel or null
+createPlaygroundCodeRuntime({...options,createTaskChannel:()=>0});
+`);
+    execFileSync(process.execPath,[compiler,'--noEmit','--strict','--skipLibCheck','false',
+      '--module','ESNext','--target','ES2022',fixture],{stdio:'pipe'});
+  } finally {await rm(work,{recursive:true,force:true});}
 });

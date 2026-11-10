@@ -14,6 +14,17 @@ await play('C4', {channel:CH1, duration:0.3});
 fm.loadMemory(new Uint8Array());
 const pcm = await useSoundChip('rf5c164');
 await pcm.setChannel(0, {start:0,volume:255});
+const pcmRoot = pcm.setRootNote('A4');
+pcmRoot.toFixed();
+const pcmStep = await pcm.setNote(CH1, 'A5');
+pcmStep.toFixed();
+await pcm.noteOn(CH1,81);await pcm.noteOff(CH1);pcm.setRootNote(null);
+// @ts-expect-error Root changes are synchronous numbers, not Promises.
+pcm.setRootNote('A4').then(() => {});
+// @ts-expect-error RF5C164 note helpers use physical channels 0..7.
+pcm.noteOn(8,'C4');
+// @ts-expect-error A note is a name or MIDI number rather than an object.
+pcm.setNote(0,{note:'C4'});
 // @ts-expect-error No YM2612 preset API on RF5C164.
 pcm.setPreset(CH1, {});
 const gb = await useSoundChip('gameboy');

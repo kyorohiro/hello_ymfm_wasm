@@ -46,6 +46,26 @@ test('Native Mega-CD opts in, shares RF controls and mixer, and uploads only enc
   f.synth.pcm.dispose();assert.equal(f.synth.isReady(),true);assert.equal(f.synth.node,null);assert.equal(f.synth.audioContext,null);await f.synth.close();
 });
 
+test('Native primary note metadata uses existing gates and is independent of temporary Inspector pitch and raw reset',async()=>{
+  const f=fixture();await f.synth.start();const api=f.synth.pcm;
+  try {
+    await api.loadMemory(new Uint8Array([128,200,64,255]));
+    await api.setChannel(0,{start:0,loopStart:0,step:100,volume:96,pan:{left:15,right:0}});
+    await api.setChannel(1,{start:0,loopStart:0,step:240,volume:96,pan:{left:0,right:15}});
+    const count=f.commands().length;assert.equal(api.setRootNote('A4'),69);assert.equal(f.commands().length,count);
+    assert.equal(await api.setNote(0,'A5'),200);assert(!f.commands().some(command=>command.type==='rf5c164-key-on'));
+    await api.noteOn(0,'A5');await api.noteOn(1,'A4');assert.equal(f.applied.channels[0].step,200);assert.equal(f.applied.channels[1].step,240);assert.equal(f.applied.mask&3,0);
+    await f.synth.chipInspector.invoke('rf5c164','auditionOn',[0,72,'temporary']);
+    await f.synth.chipInspector.invoke('rf5c164','auditionOff',[0,'temporary']);
+    assert.equal(await api.setNote(0,'A4'),100,'temporary native Inspector writes cannot replace the public helper baseline');
+    await api.noteOff(0);assert.equal(f.applied.mask&1,1);assert.equal(f.applied.mask&2,0,'the other physical actor remains held');
+    await api.reset();await assert.rejects(api.setNote(0,'A4'),/step|configur|reference/i);
+    await api.setPitch(0,300);assert.equal(await api.setNote(0,'A4'),300,'raw reset retains the declared root');
+    assert.equal(api.setRootNote(null),60);assert.equal(api.clock,12500000);assert.equal(typeof api._stopVoices,'function');
+    assert(f.commands().filter(command=>command.type.startsWith('rf5c164-')).every(command=>['rf5c164-mix','rf5c164-load-memory','rf5c164-write','rf5c164-key-on','rf5c164-key-off','rf5c164-reset'].includes(command.type)));
+  } finally {await f.synth.close();}
+});
+
 test('plain Native Genesis exposes no RF endpoint or control route',async()=>{
   const f=fixture({megaCD:false});await f.synth.start();assert.equal(f.calls[0].args,undefined);assert.equal(f.synth.pcm,null);assert.equal(f.synth.capabilities.pcm,false);
   await assert.rejects(f.synth.dispatchNativePcmCommand({method:'keyOn',args:[0]}),/requires Native Mega-CD/);

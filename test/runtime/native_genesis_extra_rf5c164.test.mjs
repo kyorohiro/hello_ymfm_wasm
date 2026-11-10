@@ -70,6 +70,35 @@ test('Native additional RF5C164 independently owns RAM, eight channels, clocks a
   await a.setClock(13000000);await b.setClock(12000000);const view=await f.synth.chipInspector.read('a');assert.equal(view.kind,'rf5c164');assert.equal(view.clock,13000000);assert.equal(view.channels.length,8);assert(view.channels.every(ch=>ch.configuredStep===100+ch.channel));assert.equal(view.mask,0);assert.deepEqual(view.memoryRanges,[{address:0,end:5}]);assert.equal(view.memory,undefined);assert.equal((await f.synth.chipInspector.read('b')).mask,255);assert.equal(b.clock,12000000);
   const [one,two]=[...f.rack.values()];assert.equal(one.ram[1],200);assert.equal(two.ram[1],0);assert.equal(two.ram[257],210);f.synth.mixer.set('a',{volume:.3,pan:-.5});await f.synth.flush();assert.equal(one.state.volume,.3);assert.equal(one.state.pan,-.5);assert.equal(f.synth.extraRf5c164Devices.size,2);assert.equal(f.synth.audioContext,null);assert.equal(f.synth.node,null);assert.deepEqual(f.errors,[]);
 });
+
+test('additional Native note facades retain private roots and raw base speeds independently across snapshots and Inspector edits',async t=>{
+  installWorkers(t);const f=fixture(t);await f.runtime.playSource(`context.a=await createSoundChip('rf5c164',{id:'a'});context.b=await createSoundChip('rf5c164',{id:'b'});`);
+  const {a,b}=f.runtime.context;
+  for(const api of [a,b]){await api.loadMemory(new Uint8Array([128,200,64,255]));await api.setChannel(0,{start:0,loopStart:0,step:100,volume:96,pan:{left:15,right:15}});}
+  assert.equal(a.setRootNote('A4'),69);assert.equal(b.setRootNote(null),60);
+  await a.noteOn(0,'A5');await b.noteOn(0,'C3');
+  assert.equal((await f.synth.chipInspector.read('a')).channels[0].step,200);assert.equal((await f.synth.chipInspector.read('b')).channels[0].step,50);
+  await f.synth.chipInspector.invoke('a','auditionOn',[0,72,'temporary']);await f.synth.chipInspector.invoke('a','auditionOff',[0,'temporary']);
+  assert.equal(await a.setNote(0,'A4'),100);assert.equal(await b.setNote(0,'C4'),100);
+  await a.noteOff(0);assert.equal((await f.synth.chipInspector.read('a')).mask&1,1);assert.equal((await f.synth.chipInspector.read('b')).mask&1,0);
+  await a.reset();await assert.rejects(a.setNote(0,'A4'),/step|configur|reference/i);await a.setPitch(0,300);assert.equal(await a.setNote(0,'A4'),300);
+  assert.equal(typeof a._allocateMainOwner,'function','decorating the public client preserves its existing hidden ownership hook');assert.deepEqual(f.errors,[]);
+});
+
+for(const execution of ['main','worker'])test(`Native RF note aliases retain ${execution} loop owners and cancellation releases only that actor`,{timeout:15000},async t=>{
+  installWorkers(t);const f=fixture(t);
+  await f.runtime.playSource(`const a=await createSoundChip('rf5c164',{id:'notes'});await a.loadMemory(new Uint8Array([128,210,64,255]));liveLoop('one',async()=>{const p=await useSoundChip('rf5c164');await p.setChannel(1,{step:100,volume:96,pan:{left:15,right:15}});await p.noteOn(1,'C5');log('one-ready');await beat(100);});liveLoop('two',async()=>{const p=await useSoundChip('rf5c164');await p.setChannel(7,{step:222,volume:96,pan:{left:15,right:15}});await p.noteOn(7,'C3');log('two-ready');await beat(100);});${execution==='main'?"context.cancel=()=>stopLoop('one');":"keyboard.bind('cancel',{noteOn(){stopLoop('one');log('cancelled');},noteOff(){},allNotesOff(){}});"}`,{execution});
+  await until(()=>f.logs.includes('one-ready')&&f.logs.includes('two-ready')&&(execution==='main'||f.runtime.getKeyboardTarget()));
+  const before=await f.synth.chipInspector.read('rf5c164:shared');assert.equal(before.channels[1].step,200);assert.equal(before.channels[7].step,111);
+  const gates=f.commands().filter(command=>command.type==='extra-rf5c164'&&command.message.method==='key-on');assert.equal(new Set(gates.map(command=>execution==='worker'?command.owner:command.message.group)).size,2);
+  if(execution==='main')f.runtime.context.cancel();else {f.runtime.getKeyboardTarget().noteOn({id:'cancel',midi:60});await until(()=>f.logs.includes('cancelled'));}
+  await f.synth.flush();const after=await f.synth.chipInspector.read('rf5c164:shared');assert.equal(after.mask&2,2);assert.equal(after.mask&128,0);
+  const firstGate=gates.find(command=>command.message.channel===1);
+  if(execution==='main')assert(f.commands().some(command=>command.type==='extra-rf5c164'&&command.message.method==='cancel-main-owner'&&command.message.targetGroup===firstGate.message.group),'Main cancellation releases the exact note owner');
+  else assert(f.calls.some(call=>call.command==='native_genesis_performance'&&call.args.op==='cancel-owner'&&call.args.owner===firstGate.owner),'Worker cancellation releases the exact note owner');
+  await f.runtime.stopWithFade();assert.equal(f.rack.size,0);assert.deepEqual(f.errors,[]);
+});
+
 test('Native additional RF5C164 validates full edits before commands and reset retains waveform RAM',async t=>{
   installWorkers(t);const f=fixture(t);await f.runtime.playSource(`context.a=await createSoundChip('rf5c164');`);const a=f.runtime.context.a;
   for(const callback of [()=>a.setChannel(8,{}),()=>a.setChannel(0,{step:70000}),()=>a.setChannel(0,{volume:200,pan:{left:16,right:0}}),()=>a.setPitch(0,-1),()=>a.writeRegister(9,0),()=>a.loadMemory(new Uint8Array(2),65535),()=>a.loadSample(sample(),{address:1}),()=>a.loadSample(sample(),{endGuardBytes:65537})]){const before=f.commands().length;await assert.rejects(callback());assert.equal(f.commands().length,before);}

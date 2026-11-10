@@ -1,0 +1,131 @@
+{
+  "passed": true,
+  "version": "0.2.38",
+  "npmPublished": false,
+  "stages": {
+    "playground": {
+      "candidate": "release/itch_playground_rf5c164-notes-20261111",
+      "default": "release/itch_playground_dev",
+      "files": 1310,
+      "payloadSha256": "3e6c1e2b225c52dd8af9d9c4718fde0f27ecf18b29f807715c5096b5308a73a0",
+      "metadataArrayOrderOnlyDifferences": []
+    },
+    "playground_run": {
+      "candidate": "release/itch_playground_rf5c164-notes-20261111_for_run",
+      "default": "release/itch_playground_dev_for_run",
+      "files": 1000,
+      "payloadSha256": "fea3d8049366e884ba6141a8fae6746d69d5b7a56df945925eb3d03b11077202",
+      "metadataArrayOrderOnlyDifferences": [
+        "sources/browser-bundle.json"
+      ]
+    },
+    "synth": {
+      "candidate": "release/itch_synth_rf5c164-notes-20261111",
+      "default": "release/itch_synth_dev",
+      "files": 282,
+      "payloadSha256": "11f980a19f501d5333fa6f3fdd16ff8b34ca795b77690491a92c0b0d694d9e13",
+      "metadataArrayOrderOnlyDifferences": []
+    }
+  },
+  "browserReceipts": {
+    "playground": {
+      "path": "/private/tmp/rf5c164-shared-notes-playground-browser-20261111.json",
+      "sha256": "37b66ef6dbc3a0e6a387172addb051c1d2186126169d184820e144e2ad377d8d",
+      "verifiedServedAssets": 199
+    },
+    "synth": {
+      "path": "/private/tmp/rf5c164-shared-notes-synth-browser-20261111.json",
+      "sha256": "82241a7f4eec1a53d3419948366f46411a51920de52303661f0a88113ad9096e",
+      "verifiedServedAssets": 162
+    }
+  },
+  "archives": {
+    "release/hello_ymfm_wasm_dev_itch_playground.zip": {
+      "bytes": 38137837,
+      "sha256": "8f501aaa5dfe246e93f6c998d9f3975d787f4e5f56a26f5c2eef807269c54128",
+      "entries": 1493,
+      "files": 1310
+    },
+    "release/hello_ymfm_wasm_dev_itch_playground_for_run.zip": {
+      "bytes": 38541431,
+      "sha256": "1b06a264055f043342783e4317eea80bfaeac095ca9ed0e71cfa6be68651b624",
+      "entries": 1000,
+      "files": 1000
+    },
+    "release/hello_ymfm_wasm_dev_itch_synth.zip": {
+      "bytes": 1062196,
+      "sha256": "79704b4e55f72a251db0ce73c6bccf2223ee7f30afc316481b1e77226169a082",
+      "entries": 310,
+      "files": 282
+    },
+    "tetorica-fm2612-0.2.38.tgz": {
+      "bytes": 2806975,
+      "sha256": "fea7788579576285070dc79319e008e12d1345efa3e5e7c568efedd4bb3c4abd"
+    }
+  },
+  "schemaVersion": 1,
+  "verificationDate": "2026-11-11 Asia/Tokyo",
+  "checks": {
+    "runtimeOwnershipAndNoteHelpers": {
+      "passed": true,
+      "tests": 197,
+      "log": "/private/tmp/rf-main-ownership-regression.log"
+    },
+    "rfClientWasmNativeKeyboard": {
+      "passed": true,
+      "tests": 44,
+      "log": "/private/tmp/rf-main-ownership-native.log"
+    },
+    "strictCalibrationAndRawEquivalence": {
+      "passed": true,
+      "tests": 372,
+      "log": "/private/tmp/rf5c164-note-calibration-guards.log",
+      "receiptObjectSha256": "52ae35e27dde8d08e438c75761c5ea1c3f96a04f25f6397cd117a17867a96e03"
+    },
+    "zipPreparationAndArchiveLimits": {
+      "passed": true,
+      "tests": 33,
+      "log": "/private/tmp/rf5c164-shared-notes-zip-tests-20261111.log"
+    },
+    "installedNpmTypesAndConsumer": {
+      "passed": true,
+      "logs": [
+        "/private/tmp/rf5c164-shared-notes-npm-types-20261111.log",
+        "/private/tmp/rf5c164-shared-notes-npm-consumer-20261111.log"
+      ]
+    }
+  },
+  "browsers": {
+    "playground": [
+      {
+        "engine": "chromium",
+        "passed": true,
+        "cases": 5,
+        "physicallyMuted": true
+      },
+      {
+        "engine": "webkit",
+        "passed": true,
+        "cases": 5,
+        "physicallyMuted": true
+      }
+    ],
+    "synth": {
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false
+    }
+  },
+  "notes": [
+    "No npm publish, commit or push performed.",
+    "Original measured reports and mixer gain values are unchanged.",
+    "Playground Run candidate/default differ only in ordering of an esbuild URL-replacement metadata array; all path/count entries and other receipt fields are identical.",
+    "Each default ZIP was checked against its full uncompressed stage; every browser-served asset hash was checked against the matching default stage.",
+    "Packed RF note/core/client sources match canonical source; playground_runtime.js additionally has exactly the seven pre-existing npm module-relative URL-default rewrites.",
+    "Headless browser tests intercepted all AudioNode destination connections through gain zero before application imports; Chromium also used --mute-audio. No physical listening or OS volume change."
+  ]
+}

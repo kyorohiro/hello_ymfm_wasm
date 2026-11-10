@@ -89,6 +89,8 @@ pcm.setNote(0,{midi:60});
 pcm.noteOn(0);
 // @ts-expect-error setNote returns the raw numeric RF5C164 step
 const incorrectStep:string=pcm.setNote(0,'C4');
+// @ts-expect-error Synth Code conversion stays synchronous when Playground clients gain Promise helpers
+const incorrectStepPromise:Promise<number>=pcm.setNote(0,'C4');
 // @ts-expect-error starting a note does not return a success boolean
 const incorrectStart:boolean=await pcm.noteOn(0,'C4');
 // @ts-expect-error a Root override must be a note name, MIDI number or null
@@ -99,6 +101,8 @@ pcm.setRootNote({note:'A4'});
 pcm.setRootNote();
 // @ts-expect-error setRootNote returns the effective MIDI number rather than a note name
 const incorrectRoot:string=pcm.setRootNote('A4');
+// @ts-expect-error software release returns void, not the Playground client's acknowledgement Promise
+const incorrectReleasePromise:Promise<void>=pcm.noteOff(0);
 // @ts-expect-error no implicit global PSG
 psgTone(0,100);
 // @ts-expect-error CH7 is not a physical FM channel

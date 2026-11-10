@@ -49,7 +49,7 @@ type SynthCodePsg = Omit<PSGApi, 'keyOn'|'keyOff'|'resetAll'> & {
   resetAll():void;
   dispose():void;
 };
-type SynthCodePcm = PlaygroundRf5c164 & {
+type SynthCodePcm = Omit<PlaygroundRf5c164, 'setRootNote'|'setNote'|'noteOn'|'noteOff'> & {
   readonly id:string; readonly clock:number;
   /** Code-only software Root note override: note name or integer MIDI 0..127.
    * null inherits the upper PCM editor's Root note. Returns the effective MIDI

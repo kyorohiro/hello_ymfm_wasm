@@ -133,6 +133,7 @@ nesapuaudioengine.js
 fds_audio.js
 rf5c164.js
 rf5c164synth.js
+rf5c164_notes.js
 rf5c164_pcm.js
 playground_rf5c164.js
 playground_rf5c164_audio.js

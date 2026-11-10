@@ -4,8 +4,34 @@ import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth';
 import {MegaSynth} from 'tetorica-fm2612/megasynth';
 import {Playground} from 'tetorica-fm2612/playground_runtime';
 import {createDeadlineScheduler} from 'tetorica-fm2612/playground_clock';
+import {RF5C164Synth,RF5C164DirectTransport} from 'tetorica-fm2612/rf5c164synth';
+import {Rf5c164} from 'tetorica-fm2612/rf5c164';
+import type {WasmModuleFactory} from 'tetorica-fm2612/soundchip';
+import {createRf5c164Client} from 'tetorica-fm2612/playground_rf5c164';
 import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth';
 import {WonderSwanWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport';
+declare const rfBrowserFactory:WasmModuleFactory;
+const rfBrowserChip=await Rf5c164.create({moduleFactory:rfBrowserFactory,moduleOptions:{wasmBinary:new Uint8Array()}});
+const rfBrowser=new RF5C164Synth({transport:new RF5C164DirectTransport(rfBrowserChip)});
+rfBrowser.setChannel(7,{step:7087});
+const rfBrowserRoot:number=rfBrowser.setRootNote('A4'),rfBrowserStep:number=rfBrowser.setNote(7,81);
+rfBrowser.noteOn(7,'A5');rfBrowser.noteOff(7);rfBrowser.setRootNote(null);
+declare const rfBrowserPort:MessagePort;
+const rfBrowserClient=createRf5c164Client(rfBrowserPort,async()=>({channels:[new Float32Array(32)],sampleRate:16000}));
+const rfBrowserClientRoot:number=rfBrowserClient.setRootNote(69);
+const rfBrowserClientStep:number=await rfBrowserClient.setNote(0,'A4');
+await rfBrowserClient.noteOn(0,81);await rfBrowserClient.noteOff(0);
+void [rfBrowserRoot,rfBrowserStep,rfBrowserClientRoot,rfBrowserClientStep];
+// @ts-expect-error New PCM helpers reject invalid physical channels.
+rfBrowser.setNote(8,'A4');
+// @ts-expect-error Root null is accepted, boolean is not.
+rfBrowserClient.setRootNote(false);
+// @ts-expect-error Direct noteOn is synchronous void, not Promise<void>.
+const rfBrowserWrongStart:Promise<void>=rfBrowser.noteOn(0,'A4');
+// @ts-expect-error RPC noteOn acknowledges asynchronously.
+const rfBrowserWrongClientStart:void=rfBrowserClient.noteOn(0,'A4');
+// @ts-expect-error A note argument is required.
+rfBrowserClient.noteOn(0);
 const wsChip=await createSoundChip('wonderswan',{sampleRate:48000,clock:3072000});
 const wsId:string=wsChip.id;
 wsChip.loadMemory(new Uint8Array([0x10,0x32]),0);
@@ -38,12 +64,18 @@ wsChip.id='other';
 const chip = await createSoundChip('ym2612', {execution: 'worklet'});
 const fm = new YM2612Synth({transport: new YM2612WorkletTransport(chip)});
 fm.noteOn(0, 4, 553);
-const synth = new MegaSynth({mega32X: true});
+const synth = new MegaSynth({mega32X: true,megaCD:true});
 synth.setOutputEnvelopeOptions({samplesPerPoint:128, pointsPerMessage:16});
 synth.setOutputEnvelopeOptions({enabled:false});
 // @ts-expect-error Sample counts are numbers.
 synth.setOutputEnvelopeOptions({samplesPerPoint:'128'});
 await synth.pwm?.read(0);
+if(synth.pcm){
+  const root:number=synth.pcm.setRootNote('A4'),step:Promise<number>=synth.pcm.setNote(0,'A5');
+  await synth.pcm.noteOn(7,81);await synth.pcm.noteOff(7);void [root,step];
+  // @ts-expect-error MegaSynth PCM noteOff is asynchronous.
+  const stopped:void=synth.pcm.noteOff(0);
+}
 const pg = Playground({execution: 'worker', workerLookaheadSeconds: 0.15});
 pg.setTiming({workerLookaheadSeconds: 0});
 pg.getTiming().workerLookaheadSeconds.toFixed(3);

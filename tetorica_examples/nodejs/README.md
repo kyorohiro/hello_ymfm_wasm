@@ -508,21 +508,31 @@ node tetorica_examples/nodejs/main_rf5c164_wave.js /tmp/rf5c164.wav
 ```
 
 [main_rf5c164_wave.js](main_rf5c164_wave.js) は、波形RAMに1周期のサイン波を書き込み、
-約440 Hz → 約660 Hz → 左約440 Hz・右約660 Hzを各1秒、その後0.5秒の無音を生成する。
+A4（約440 Hz）→ E5（約659.3 Hz）→ 左A4・右E5を各1秒、その後0.5秒の無音を生成する。
 出力はスクリプトの隣の `rf5c164.wav`（48 kHz・16 bitステレオ）。同名ファイルは上書きする。
 WASMがない場合は `sh scripts/build_rf5c164_wasm.sh` でビルドする。
 
 `Rf5c164` がチップ本体、`RF5C164Synth` が操作・レジスタ生成を担当する。
 `tetorica_src/runtime/rf5c164synth.js` の `RF5C164DirectTransport(chip)` で接続し、Playgroundと処理を共有する。
-Node.jsでは直接接続するので、`loadMemory` / `setChannel` / `keyOn` / `keyOff` は同期操作。
-Playgroundの通信クライアントが返すPromiseとは異なる。
+Node.jsでは直接接続するので、`loadMemory` / `setChannel` / `setRootNote` / `setNote` /
+`noteOn` / `noteOff` は同期操作。PlaygroundやMegaSynthの通信クライアントでは、
+`setRootNote` だけが同期の数値を返し、他の操作はPromiseを返す。
+
+`setChannel(ch, {step: baseStep, ...})` で元サンプル速度を設定し、
+`setRootNote('A4')` でそのときの音名を宣言する。`noteOn(ch, 'A5')` は2倍速になる。
+`setNote` は保持中の音程だけを変え、`noteOn` は再発音、`noteOff` は停止する。
+音名または整数MIDI 0–127を指定でき、Rootの初期値と `null` は C4。
+rawの `setPitch` / stepレジスタ変更は基準速度を更新する。`reset()` はRootを保つが
+基準stepを消すので、再び `setChannel` で設定する。clock変更の音程差は自動補償しない。
 
 例ではファイルのデコードを使わず、RF5C164固有の符号・振幅表現で波形を作る。
 末尾の `0xff` は `loopStart` へ戻るマーカー。stepによる飛び越しを避けるため、
-この例では8 byte連続配置する。2つの物理CHから同じ波形RAMを読める。
+この例では最大stepでも飛び越さない32 byteを連続配置する。2つの物理CHから同じ波形RAMを読める。
 ループ周期は内部更新単位で丸められるため、音程は指定Hzに対する近似になる。
-`step` を変えると再生速度と音程が変わる。例のHz換算式は1周期の波形用で、
-任意の録音サンプルを音名へ変換する式ではない。
+`step` を変えると再生速度と音程が変わる。例のHz換算式は既知の1周期の波形用で、
+任意の録音サンプルの音程を検出する式ではない。Playground／MegaSynthで録音を扱う場合は、
+`loadSample()` の返り値を `setChannel(ch, {...sample, ...})` へ渡し、
+元のサンプル速度で聞こえる音名をRootに設定する。
 
 ## 名前からチップを生成する
 

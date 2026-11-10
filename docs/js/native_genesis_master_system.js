@@ -1,6 +1,6 @@
 /** Master System borrows one mono PSG and one OPLL authoring endpoint. */
 import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
-import {createNativeGenesisSegaPsg} from './native_genesis_segapsg.js?v=ps1-deferred-release-1';
+import {createNativeGenesisSegaPsg} from './native_genesis_segapsg.js?v=rf5c164-notes-1';
 import {createNativeGenesisOpll} from './native_genesis_opll.js?v=ps1-deferred-release-1';
 
 export function createNativeGenesisMasterSystem(synth) {

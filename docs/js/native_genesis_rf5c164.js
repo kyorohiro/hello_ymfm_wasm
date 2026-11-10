@@ -1,7 +1,8 @@
 /** Native Mega-CD PCM controls. Only commands and one-off RAM uploads cross IPC. */
-import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
+import {RF5C164Synth} from './rf5c164synth.js?v=rf5c164-notes-1';
+import {attachRf5c164NoteControls} from './rf5c164_notes.js?v=rf5c164-notes-1';
 import {sampleBytes,encodeRf5c164} from './rf5c164_pcm.js';
-import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
@@ -84,7 +85,7 @@ export function createNativeGenesisRf5c164(synth,{decodeAudio=createOfflineAudio
       inspector.resetAuditions();inspector.mask=255;control.channelMask=255;
       synth.enqueueMany(Array.from({length:8},(_,channel)=>({type:'rf5c164-key-off',channel,frame:0})));return synth.flush();
     }}});
-  return {client,
+  return {client:attachRf5c164NoteControls(client),
     async dispatch(message,timing={}) {
       const token=capture();
       const method=message.method,args=message.args??[];

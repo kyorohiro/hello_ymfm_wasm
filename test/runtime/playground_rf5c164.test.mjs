@@ -52,6 +52,41 @@ test('guarded sample RPC loads consecutive end markers atomically and retains In
  }finally{await client.reset();client.dispose();await new Promise(resolve=>setTimeout(resolve,20));port1.close();}
 });
 
+test('independent Main/Worker port note facades transpose configured raw speeds on real WASM without new wire methods',async()=>{
+ const chip=await make(),control=createRf5c164Control(chip),messages=[],channels=[];
+ const actor=()=>{
+  const {port1,port2}=new MessageChannel();channels.push(port1,port2);
+  port1.on('message',message=>{messages.push(message);const {id,method,args}=message;if(method==='dispose')return;
+   try{const value=control[method](...args);if(id)port1.postMessage({id,value});}catch(error){if(id)port1.postMessage({id,error:error.message});}
+  });return createRf5c164Client(port2,async source=>source);
+ };
+ const main=actor(),worker=actor(),frequency=values=>{
+  const body=values.subarray(256),mean=body.reduce((sum,value)=>sum+value,0)/body.length,crossings=[];
+  for(let i=1;i<body.length;i++)if(body[i-1]<=mean&&body[i]>mean)crossings.push(i);
+  assert(crossings.length>5,'the held native waveform must keep oscillating');return 48000*(crossings.length-1)/(crossings.at(-1)-crossings[0]);
+ };
+ try {
+  const audio={channels:[Float32Array.from({length:256},(_,i)=>.7*Math.sin(i*2*Math.PI/256))],sampleRate:32768};
+  const sample=await main.loadSample(audio,{loopStart:0,endGuardBytes:32});
+  await main.setChannel(0,{...sample,volume:96,pan:{left:15,right:0}});
+  await worker.setChannel(1,{...sample,step:sample.step*2,volume:96,pan:{left:0,right:15}});
+  const before=messages.length;assert.equal(main.setRootNote('C4'),60);assert.equal(worker.setRootNote('A4'),69);
+  assert.equal(messages.length,before,'Root metadata never goes to the Worklet');
+  assert.equal(await main.setNote(0,'C5'),sample.step*2);assert(!messages.some(message=>message.method==='keyOn'));
+  await main.noteOn(0,'C5');await worker.noteOn(1,'A3');
+  const first=chip.generateStereo(8192);assert(Math.abs(frequency(first.left)-256)<2);assert(Math.abs(frequency(first.right)-128)<2);
+  const gates=messages.filter(message=>message.method==='keyOn').length;
+  assert.equal(await main.setNote(0,'C4'),sample.step,'retuning cannot compound the previous musical step');
+  const tuned=chip.generateStereo(8192);assert(Math.abs(frequency(tuned.left)-128)<2);assert(Math.abs(frequency(tuned.right)-128)<2);
+  assert.equal(messages.filter(message=>message.method==='keyOn').length,gates);
+  await main.noteOff(0);const released=chip.generateStereo(8192);assert(released.left.every(value=>value===0));assert(Math.abs(frequency(released.right)-128)<2);
+  await worker.noteOff(1);assert(chip.generateStereo(1024).left.every(value=>value===0));
+  assert(messages.every(message=>['loadMemory','setChannel','keyOn','keyOff'].includes(message.method)),'only established raw wire operations are used');
+  assert.equal(typeof main._stopVoices,'function');assert.equal(typeof worker._adoptState,'function');assert.equal(main.clock,12500000);
+  await main.reset();await assert.rejects(main.setNote(0,'C4'),/step|configur|reference/i);
+ } finally {main.dispose();worker.dispose();for(const port of channels)port.close();chip.dispose();}
+});
+
 test('Worklet initializes real WASM, accepts direct port and disposes',async()=>{
  let Processor;const ready=new Promise(resolve=>{
  globalThis.sampleRate=48000;
@@ -66,12 +101,15 @@ test('Worklet initializes real WASM, accepts direct port and disposes',async()=>
  const pcm=createRf5c164Client(port2,async()=>({channels:[new Float32Array(32).fill(.5)],sampleRate:32000}));
  const workerChannel=new MessageChannel();processor.port.onmessage({data:{port:workerChannel.port1,primaryWorker:true}});
  const workerPcm=createRf5c164Client(workerChannel.port2,()=>{throw Error('Decoded PCM should not need Main decoder');});
- await workerPcm.loadSample({channels:[new Float32Array(16).fill(-.25)],sampleRate:16000},{address:512});
+ const workerWave=await workerPcm.loadSample({channels:[new Float32Array(16).fill(-.25)],sampleRate:16000},{address:512,loopStart:0});
  await pcm.setPitch(0,1000);await workerPcm.setPitch(1,2000);
+ await workerPcm.setChannel(1,{...workerWave,volume:96,pan:{left:0,right:15}});
+ assert.equal(workerPcm.setRootNote('A4'),69);assert.equal(await workerPcm.setNote(1,'A3'),Math.round(workerWave.step/2));await workerPcm.noteOn(1,'A4');
+ const workerOutput=[[new Float32Array(128),new Float32Array(128)]];assert(processor.process([],workerOutput));assert(workerOutput[0][1].some(value=>value<0));assert(workerOutput[0][0].every(value=>value===0));await workerPcm.noteOff(1);
  processor.port.onmessage({data:{type:'detach-chip-port',primaryWorker:true}});
  workerChannel.port2.close();
  await pcm.setPitch(0,1500);
- const wave=await pcm.loadSample(new ArrayBuffer(0),{loopStart:0});await pcm.setChannel(7,{...wave,volume:255,pan:{left:15,right:15}});await pcm.keyOn(7);
+ const wave=await pcm.loadSample(new ArrayBuffer(0),{loopStart:0});await pcm.setChannel(7,{...wave,volume:255,pan:{left:15,right:15}});await pcm.noteOn(7,'C4');
  const output=[[new Float32Array(128),new Float32Array(128)]];assert.equal(processor.process([],output),true);assert(output[0][0].some(x=>x>0));
  const admin=[];processor.port.postMessage=value=>admin.push(value);
  processor.port.onmessage({data:{type:'chip-inspector',id:'admin-read',action:'read'}});

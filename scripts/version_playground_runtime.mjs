@@ -1,11 +1,13 @@
 import {readdir, readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
+import {SID_RUNTIME_MODULES} from './sid_artifacts.mjs';
 
 // Cache versions belong to the generated website. Keep canonical web/ and npm
 // imports query-free so direct class exports retain their constructor identity.
 const directory=fileURLToPath(new URL('../docs/js/',import.meta.url));
 const version='chip-tabs-2';
+const exactRuntimeModules=new Set(['playground_code_runtime.js',...SID_RUNTIME_MODULES]);
 const nativeFiles=['native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_soundchips.js','playground_performance_processor.js','playground_chip_clock.js',
   'nesapusynth.js','playground_nes.js','playground_nes_audio.js','playground_nes_worklet.js',
@@ -393,8 +395,23 @@ const scspFiles=new Set(['native_genesis_scsp.js','native_genesis_extra_scsp.js'
   'playground_monaco_completion.js','playground_mixer_defaults.js','playground_chip_tabs.js',
   'playground_scsp_voice_panel.js','playground_ui.js','playground.js']);
 const scspEditorFiles=new Set(['playground_scsp_voice_panel.js','playground_scsp_inspector.js','playground_scsp_worklet.js','playground_mode.js','playground_chip_tabs.js','playground_ui.js','playground.js']);
-const revisionFor=name=>(scspFiles.has(name)||name==='playground_workbench.js')&&name!=='playground_mixer_defaults.js'?'scsp-fm-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+// Roll the optional RF note facade and its importers together. Canonical/npm
+// modules stay query-free; existing raw chip commands keep their own policy.
+const rfNoteFiles=new Set(['rf5c164_notes.js','rf5c164synth.js','playground_rf5c164.js',
+  'native_genesis_rf5c164.js','native_genesis_extra_rf5c164.js','playground_runtime.js']);
+do {
+  propagated=false;
+  for(const {name,source} of sources) {
+    if(rfNoteFiles.has(name))continue;
+    const runtimeSource=source.replace(/\/\*[\s\S]*?\*\//g,'');
+    const imports=[...runtimeSource.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>rfNoteFiles.has(match[1]))){rfNoteFiles.add(name);propagated=true;}
+  }
+}while(propagated);
+for(const name of ['playground.js','playground_audio_engine.js','playground_examples.js'])rfNoteFiles.add(name);
+const revisionFor=name=>name==='playground_monaco_definitions.js'?'synth-code-types-1':rfNoteFiles.has(name)?'rf5c164-notes-1':(scspFiles.has(name)||name==='playground_workbench.js')&&name!=='playground_mixer_defaults.js'?'scsp-fm-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'scsp-calibration-1':scspEditorFiles.has(name)?'scsp-editor-1':['playground.js','playground_workbench.js'].includes(name)?'scsp-layout-1':scspFiles.has(name)?'scsp-playground-1':ps1LiveFiles.has(name)?ps1LiveVersion:ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
+  ...rfNoteFiles,
   ...scspFiles,
   ...ps1LiveFiles,
   ...ps1EnvelopeFiles,
@@ -462,6 +479,9 @@ const pageReferences=new RegExp(pageShape.source.replace('TARGET','(?:'+filename
 let changed=0;
 for(const currentDirectory of [directory,join(directory,'../playground')])for(const name of await readdir(currentDirectory)){
   if(!name.endsWith('.js')&&!name.endsWith('.html'))continue;
+  // The small Code host is shared byte-for-byte; generated calibration policy
+  // must also retain the exact module text emitted by its generator.
+  if(currentDirectory===directory&&exactRuntimeModules.has(name)||name==='playground_mixer_defaults.js')continue;
   const path=join(currentDirectory,name),source=await readFile(path,'utf8');
   // Type-only JSDoc imports do not fetch runtime modules. Keep their existing
   // revision policy so a new machine cannot invalidate measured renderer bytes

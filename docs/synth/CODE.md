@@ -60,6 +60,8 @@ These helpers require the upper editor's sample metadata. After Code `loadSample
 
 `setRootNote(note)` overrides Root note for later Code `setNote()` / `noteOn()` calls and returns the effective MIDI number. It accepts a note name or integer MIDI 0–127; `setRootNote(null)` returns to inheriting the upper editor's Root note. It does not retune or restart held notes, change the UI or saved instrument, or affect raw `setPitch()` / `keyOn()`. Apply keeps the override; Stop or selecting a new instrument clears it.
 
+Playground and npm RF5C164 clients also have these note helpers, with C4 as their default and `null` Root. Those clients use the raw step declared through `setChannel()` as the original sample speed; Synth Code uses the upper editor's sample metadata and software release described above.
+
 For a sample whose original pitch is A4, A5 plays at twice its original speed:
 
 ```js

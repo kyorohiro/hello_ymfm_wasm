@@ -1,5 +1,6 @@
 /** @file Browser / Worker / Node.js: RF5C164 register generation. No DOM or audio output. */
 import { sampleBytes } from './rf5c164_pcm.js';
+import {RF5C164NoteTuning} from './rf5c164_notes.js?v=rf5c164-notes-1';
 const integer = (value, max, name) => {
   if (!Number.isInteger(value) || value < 0 || value > max) throw new RangeError(`Invalid ${name}`);
   return value;
@@ -25,7 +26,9 @@ export class RF5C164DirectTransport {
 
 /** Physical-channel controls. A new/reset chip is expected; route raw writes through this Synth. */
 export class RF5C164Synth {
-  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: (bytes:Uint8Array, address:number)=>void|Promise<unknown>, reset: function(): void}}} options
+  #noteTuning=new RF5C164NoteTuning();
+  #musicalWrites=0;
+  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: (bytes:Uint8Array, address:number)=>void|Promise<unknown>, reset:()=>void}}} options
    * Transport writes/reset must be synchronous or FIFO fire-and-forget. Memory transfer may return a completion promise.
    */
   constructor({transport} = {}) {
@@ -47,6 +50,7 @@ export class RF5C164Synth {
     integer(register, 8, 'register');
     integer(value, 255, 'value');
     this.transport.write(register, value);
+    this.#noteTuning.observeRegister(register,value,this.#musicalWrites===0);
     if (register === 8) this.channelMask = value;
   }
   /** @param {number} channel */
@@ -80,6 +84,27 @@ export class RF5C164Synth {
   }
   /** Set raw 16-bit playback step, not a MIDI note. @param {number} channel @param {number} step */
   setPitch(channel, step) { this.setChannel(channel, {step}); }
+  /** Software tuning only: declare the note played by each channel's raw
+   * reference step. null restores C4. Existing voices are not retuned.
+   * @param {string|number|null} note @returns {number} */
+  setRootNote(note) {return this.#noteTuning.setRootNote(note);}
+  /** Transpose the last declared raw speed without changing its reference.
+   * No sample pitch is inferred. Set a positive raw step first.
+   * @param {import('./rf5c164_notes.js?v=chip-tabs-2').RF5C164NoteChannel} channel
+   * @param {string|number} note @returns {number} Raw step, clamped to 1..65535. */
+  setNote(channel,note) {
+    const step=this.#noteTuning.noteStep(channel,note);
+    this.#musicalWrites++;
+    try {this.setPitch(channel,step);}finally {this.#musicalWrites--;}
+    return step;
+  }
+  /** Set a software-tuned note and retrigger this physical channel.
+   * @param {import('./rf5c164_notes.js?v=chip-tabs-2').RF5C164NoteChannel} channel
+   * @param {string|number} note @returns {void} */
+  noteOn(channel,note) {this.setNote(channel,note);this.keyOn(channel);}
+  /** Hardware key off, without a software release envelope.
+   * @param {import('./rf5c164_notes.js?v=chip-tabs-2').RF5C164NoteChannel} channel @returns {void} */
+  noteOff(channel) {this.keyOff(channel);}
   /** Retrigger the selected physical channel; other channels keep playing. @param {number} channel */
   keyOn(channel) {
     this._select(channel);
@@ -94,6 +119,7 @@ export class RF5C164Synth {
   /** Reset registers and mask while retaining waveform RAM. */
   reset() {
     this.transport.reset();
+    this.#noteTuning.reset();
     this.channelMask = 255;
     this.writeRegister(8, 255);
   }

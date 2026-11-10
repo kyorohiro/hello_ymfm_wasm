@@ -9,6 +9,9 @@ import {PWM32XWorkletTransport, PWM32XDirectTransport} from 'tetorica-fm2612/pwm
 import {MegaSynth} from 'tetorica-fm2612/megasynth.js';
 import {Playground} from 'tetorica-fm2612/playground_runtime.js';
 import {GameboySynth} from 'tetorica-fm2612/gameboysynth.js';
+import {RF5C164Synth,RF5C164DirectTransport} from 'tetorica-fm2612/rf5c164synth.js';
+import {Rf5c164} from 'tetorica-fm2612/rf5c164.js';
+import {createRf5c164Client} from 'tetorica-fm2612/playground_rf5c164.js';
 import {GameboyWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
 import {createMegaSynthOffline} from 'tetorica-fm2612/megasynth_offline.js';
 import {MegaSynthNode} from 'tetorica-fm2612/node';
@@ -28,6 +31,36 @@ import ps1Factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
 import {SnesSynth,SNES_ECHO_RESERVED_BYTES,SNES_ECHO_MAX_SAMPLE_BYTES} from 'tetorica-fm2612/snessynth.js';
 import type {SnesEchoOptions,SnesEchoState} from 'tetorica-fm2612/snessynth.js';
 import type {SnesDspCore} from 'tetorica-fm2612/spc.js';
+declare const rfNotesFactory:WasmModuleFactory;
+const rfNotesChip=await Rf5c164.create({moduleFactory:rfNotesFactory,moduleOptions:{wasmBinary:new Uint8Array()}});
+const rfNotes=new RF5C164Synth({transport:new RF5C164DirectTransport(rfNotesChip)});
+rfNotes.setChannel(0,{start:0,loopStart:0,step:7087,volume:80,pan:{left:15,right:15}});
+const rfRoot:number=rfNotes.setRootNote('A4'),rfResetRoot:number=rfNotes.setRootNote(null);
+const rfStep:number=rfNotes.setNote(7,127),rfStarted:void=rfNotes.noteOn(0,'A5');
+rfNotes.noteOff(0);rfNotes.setRootNote(69);
+declare const rfNotePort:MessagePort;
+const rfClient=createRf5c164Client(rfNotePort,async()=>({channels:[new Float32Array(32)],sampleRate:16000}));
+const rfClientRoot:number=rfClient.setRootNote('A4');rfClient.setRootNote(null);
+const rfClientStep:Promise<number>=rfClient.setNote(0,'A5');
+const rfClientStarted:Promise<void>=rfClient.noteOn(7,127),rfClientStopped:Promise<void>=rfClient.noteOff(7);
+const rfClientStepIsAny:0 extends (1 & Awaited<ReturnType<typeof rfClient.setNote>>)?true:false=false;
+void [rfRoot,rfResetRoot,rfStep,rfStarted,rfClientRoot,rfClientStep,rfClientStarted,rfClientStopped,rfClientStepIsAny];
+// @ts-expect-error Direct note conversion is synchronous.
+const rfWrongPromise:Promise<number>=rfNotes.setNote(0,'A4');
+// @ts-expect-error Direct helpers use physical channels 0..7.
+rfNotes.noteOn(8,'C4');
+// @ts-expect-error A Root is a note name, MIDI integer or null.
+rfNotes.setRootNote(true);
+// @ts-expect-error The RPC helper takes a note rather than an options object.
+rfClient.setNote(0,{note:'A4'});
+// @ts-expect-error Client Root changes are synchronous too.
+const rfWrongRootPromise:Promise<number>=rfClient.setRootNote(69);
+// @ts-expect-error The client step is acknowledged asynchronously.
+const rfWrongStep:number=rfClient.setNote(0,'A4');
+// @ts-expect-error RPC note helpers also use physical channels 0..7.
+rfClient.noteOff(-1);
+// @ts-expect-error Starting a client voice acknowledges void, not a boolean.
+const rfWrongStart:boolean=await rfClient.noteOn(0,'A4');
 declare const echoCore:SnesDspCore;
 const sdsp=new SnesSynth({core:echoCore});
 const echoOptions:Partial<SnesEchoOptions>={enabled:true,delay:4,feedback:-32,volumeLeft:32,volumeRight:-32,sendMask:255,fir:[127,0,0,0,0,0,0,0]};
@@ -206,8 +239,17 @@ const frame: number = await pw.scheduleWrites([{frame: 0, register: 0, value: 5}
 void value; void frame;
 // @ts-expect-error A malformed scheduled write must fail type checking.
 await pw.scheduleWrites([{frame: 'later', register: 4, value: 700}]);
-const browser = new MegaSynth({mega32X: true});
+const browser = new MegaSynth({mega32X: true,megaCD:true});
 await browser.pwm?.write(4, 700);
+if(browser.pcm){
+  const root:number=browser.pcm.setRootNote('A4');
+  const step:number=await browser.pcm.setNote(0,'A5');
+  await browser.pcm.noteOn(7,81);await browser.pcm.noteOff(7);void [root,step];
+  // @ts-expect-error MegaSynth's PCM Root setter remains synchronous.
+  const asyncRoot:Promise<number>=browser.pcm.setRootNote(null);
+  // @ts-expect-error MegaSynth's PCM note helpers use physical channels 0..7.
+  browser.pcm.noteOn(8,'A4');
+}
 const node = new MegaSynthNode({mega32X: true, outputModule: null});
 await node.fm.noteOn(0, 4, 553);
 await node.pwm.scheduleWrites([{frame: 0, register: 4, value: 700}]);

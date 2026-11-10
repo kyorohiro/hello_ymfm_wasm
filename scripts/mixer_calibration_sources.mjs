@@ -9,6 +9,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {restoreMixerCalibrationSidRevision} from './mixer_calibration_sid_revision.mjs';
+import {restoreMixerCalibrationRf5c164NoteRevision} from './mixer_calibration_rf5c164_note_revision.mjs';
 import {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 export {restoreMixerCalibrationSynthControlsRevision} from './mixer_calibration_synth_controls_revision.mjs';
 
@@ -344,6 +345,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const notes=restoreMixerCalibrationRf5c164NoteRevision(path,bytes),noteRevision=notes!==bytes;bytes=notes;
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return noteRevision?'rf5c164-note-api':'raw';
   const exported=restoreMixerCalibrationYm2612ExportRevision(path,bytes);
   if(exported!==bytes&&exported.length===record?.bytes&&sha(exported)===record.sha256)return 'ym2612-class-export';
   const codeUi=restoreMixerCalibrationSynthCodeUiRevision(path,bytes);

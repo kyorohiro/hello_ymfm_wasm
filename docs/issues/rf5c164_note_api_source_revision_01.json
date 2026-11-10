@@ -1,0 +1,1100 @@
+{
+  "schemaVersion": 1,
+  "scope": "rf5c164-software-notes-and-cache-routing",
+  "feature": "RF5C164 declared-step note API without DSP changes",
+  "baseCommit": "b82262a480ccee0dc100e1b59ef788d51493576f",
+  "reports": {
+    "docs/issues/ps1_state_restore_chip_levels_01.json": {
+      "bytes": 545549,
+      "sha256": "1257487881afe1bab0a2fdaa2d8fdb2f5c3e163f31a377dc6ba6ebbf6b865119"
+    },
+    "docs/issues/wonderswan_state_restore_chip_levels_01.json": {
+      "bytes": 490078,
+      "sha256": "236de08b8adc5b23e9ed0803fef00ec5bf3511ce734520fbaa7f0f14ed661f25"
+    },
+    "docs/issues/pokey_state_restore_chip_levels_01.json": {
+      "bytes": 1045843,
+      "sha256": "fd359d66cdf1950ba6eb2ce198de773aaf87cd3542df6f1b8c5a179e10286ffd"
+    },
+    "docs/issues/scsp_state_restore_chip_levels_01.json": {
+      "bytes": 623903,
+      "sha256": "6520f73d80604c53bb88258fe814f26c094c9805427a048a841c2d72c7dc242f"
+    }
+  },
+  "sources": {
+    "js/gameboy_runtime_synth.js": {
+      "before": {
+        "bytes": 9730,
+        "sha256": "4cbb5c703ed0335075d2df5376c4a4d6a7c50f6f8c10353b24322821d2b9d6f2"
+      },
+      "after": {
+        "bytes": 9723,
+        "sha256": "753bf6c4178dad7889fa66b77b0ecb390fdb72f1d730538b2be090ccafeca856"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1036,
+          "afterBytes": 139,
+          "beforeText": "    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=ps1-deferred-release-1',import.meta.url),\n"
+        }
+      ]
+    },
+    "js/megasynth.js": {
+      "before": {
+        "bytes": 33454,
+        "sha256": "b96697e497cb41cff0d32689aa6d143b7a35e5d67314d7ce7fe98e0537180529"
+      },
+      "after": {
+        "bytes": 33478,
+        "sha256": "01e4b85c3c7088b24df72e651d919e26d11d8c692228c886bf6eae0df5ca1db4"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 70,
+          "afterBytes": 79,
+          "beforeText": "import {createPWM32XAudio} from './playground_pwm_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 849,
+          "afterBytes": 167,
+          "beforeText": "import { createRf5c164Audio } from \"./playground_rf5c164_audio.js?v=ps1-deferred-release-1\";\nimport { createRf5c164Client } from \"./playground_rf5c164.js?v=pokey-prepare-1\";\n"
+        },
+        {
+          "afterOffset": 8184,
+          "afterBytes": 69,
+          "beforeText": "      options.workletUrl ?? \"./ym2612-worklet.js?v=ps1-mode-1\";\n"
+        },
+        {
+          "afterOffset": 10443,
+          "afterBytes": 89,
+          "beforeText": "      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=ps1-deferred-release-1');\n"
+        },
+        {
+          "afterOffset": 10578,
+          "afterBytes": 127,
+          "beforeText": "    /** RF5C164 API after start() when megaCD is enabled; its methods return promises.\n"
+        }
+      ]
+    },
+    "js/native_runtime_synth.js": {
+      "before": {
+        "bytes": 21066,
+        "sha256": "1cde1fe3986887edc8e3b931c9f09f1f3d9f8914ba6fdb59387f5ae5884923ad"
+      },
+      "after": {
+        "bytes": 20981,
+        "sha256": "d551349d5169ab1e4be7f2b503ecc51ed57d79046dc56e6ac97c2b18f6079df0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 85,
+          "afterBytes": 80,
+          "beforeText": "import {createPokeyAudio} from './playground_pokey_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 394,
+          "afterBytes": 82,
+          "beforeText": "import {createAy8910Audio} from './playground_ay8910_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 638,
+          "afterBytes": 76,
+          "beforeText": "import {createNesAudio} from './playground_nes_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 785,
+          "afterBytes": 78,
+          "beforeText": "import {createSnesAudio} from './playground_snes_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 937,
+          "afterBytes": 78,
+          "beforeText": "import {createScspAudio} from './playground_scsp_audio.js?v=scsp-fm-1';\n"
+        },
+        {
+          "afterOffset": 1082,
+          "afterBytes": 76,
+          "beforeText": "import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1236,
+          "afterBytes": 82,
+          "beforeText": "import {createYm2151Audio} from './playground_ym2151_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1395,
+          "afterBytes": 85,
+          "beforeText": "import {createOki6258Audio} from './playground_okim6258_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1560,
+          "afterBytes": 84,
+          "beforeText": "import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1723,
+          "afterBytes": 90,
+          "beforeText": "import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1898,
+          "afterBytes": 84,
+          "beforeText": "import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 2061,
+          "afterBytes": 82,
+          "beforeText": "import {createYm2413Audio} from './playground_ym2413_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 2220,
+          "afterBytes": 76,
+          "beforeText": "import {createOplAudio} from './playground_opl_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 2378,
+          "afterBytes": 76,
+          "beforeText": "import {createDx7Audio} from './playground_dx7_audio.js?v=ps1-deferred-release-1';\n"
+        }
+      ]
+    },
+    "js/playground_ay8910_audio.js": {
+      "before": {
+        "bytes": 4632,
+        "sha256": "84d0965b96c8534c69491de5366948f425dfcc9387b509fc027f975f9878b724"
+      },
+      "after": {
+        "bytes": 4625,
+        "sha256": "7b75e184484a55a3508b0e82e66fdf88e2b558b5accd6cb8120fb23e899e3a92"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1339,
+          "afterBytes": 129,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_ay8910_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_chip_inspector_state.js": {
+      "before": {
+        "bytes": 13144,
+        "sha256": "926c7852e5e1346ee00ff4418efbd63ebe020bc8d2bcc72fabc55513fca174a0"
+      },
+      "after": {
+        "bytes": 13142,
+        "sha256": "37a95d08cffa26d7ba850cdf11ef9af336ce664e27a48a49abbebae3fbb10f67"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 246,
+          "afterBytes": 66,
+          "beforeText": "import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';\n"
+        }
+      ]
+    },
+    "js/playground_dx7_audio.js": {
+      "before": {
+        "bytes": 5728,
+        "sha256": "d99e6d180a9ca78cb5309a6d72f36a7b2d7ab04f43f95910b5189d97af84358c"
+      },
+      "after": {
+        "bytes": 5721,
+        "sha256": "d1a16d9fa10425dc0c5b9485ad92a307a04c5ff20b1fbb9f9b06ae097ac8bffc"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1782,
+          "afterBytes": 119,
+          "beforeText": "    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_gameboy_audio.js": {
+      "before": {
+        "bytes": 1940,
+        "sha256": "e1e69742cfbeeefe8d0d01522f214360bb046bd8ae92adc474ef54d851534b15"
+      },
+      "after": {
+        "bytes": 1933,
+        "sha256": "aeb2558eaf26a65394dd8f323a6ca8d8ed271b5b75459a8249f689fcaa3f6604"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 682,
+          "afterBytes": 115,
+          "beforeText": "    context.audioWorklet.addModule(new URL('./playground_gameboy_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_huc6280_audio.js": {
+      "before": {
+        "bytes": 4132,
+        "sha256": "edffdc0e890d6dd93458916e923ea8cbea079f53c1cb08865e14244c01d76c35"
+      },
+      "after": {
+        "bytes": 4125,
+        "sha256": "ffc1e8630efc2528322f7c8533ad0385870b75d4f07049a399bbc5817e18fe9e"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 911,
+          "afterBytes": 130,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_logic_worker.js": {
+      "before": {
+        "bytes": 58584,
+        "sha256": "4c398f80c7a2a9e02725649863f95b35459013c3bc209dc32e663ecb3db9352d"
+      },
+      "after": {
+        "bytes": 58599,
+        "sha256": "0985be342e209aa93ef29c79f3fe5dff53cc34a0b02874e50f80d2a01c035830"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1600,
+          "afterBytes": 71,
+          "beforeText": "import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';\n"
+        },
+        {
+          "afterOffset": 2204,
+          "afterBytes": 156,
+          "beforeText": "import {createYm2608Client} from './playground_ym2608.js?v=ps1-mode-1';\nimport {createRf5c164Client} from './playground_rf5c164.js?v=pokey-prepare-1';\n"
+        },
+        {
+          "afterOffset": 3087,
+          "afterBytes": 80,
+          "beforeText": "import {createWorkerChip} from './playground_worker_chip.js?v=ps1-mode-1';\n"
+        }
+      ]
+    },
+    "js/playground_nes_audio.js": {
+      "before": {
+        "bytes": 2831,
+        "sha256": "9fc1cd1a13b6626d42496941202ed78d9932199bf0ed6e43a848f43b73db1c27"
+      },
+      "after": {
+        "bytes": 2824,
+        "sha256": "28590bd6d327cb280addd13dc64f50536ab7b9000897940be45c8b4cf0ec4b93"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 871,
+          "afterBytes": 125,
+          "beforeText": "    context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_okim6258_audio.js": {
+      "before": {
+        "bytes": 4133,
+        "sha256": "b8b61ccb1db331a2beabc507f20738f1aa3717a7f1b0081cac49e4ac138e99e5"
+      },
+      "after": {
+        "bytes": 4126,
+        "sha256": "893aba85e16a8dc07c5c71ea597d4f9fd3f2f7257a7a6ecb0f6fca7767b05a6f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 682,
+          "afterBytes": 143,
+          "beforeText": "  workletUrl = new URL('./playground_okim6258_worklet.js?v=ps1-deferred-release-1', import.meta.url), signal, fetch:fetchBytes = nativeFetch} = {}) {\n"
+        }
+      ]
+    },
+    "js/playground_opl_audio.js": {
+      "before": {
+        "bytes": 4382,
+        "sha256": "fa527616b8a2fcc952c02aa1f101ef2fa66b4097e79d2e6cd1f5fc268b9ea03c"
+      },
+      "after": {
+        "bytes": 4375,
+        "sha256": "9cc0e4b08e55c024f9ac99f17e15e61925c5017e2752f3e2992dc018a3fbc470"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1160,
+          "afterBytes": 126,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_opl_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_opn.js": {
+      "before": {
+        "bytes": 7571,
+        "sha256": "6fbd6dda7832a9436c467f415cbd8ba699e4d10d2e67f6b4b96ea4be83efce2a"
+      },
+      "after": {
+        "bytes": 7581,
+        "sha256": "396905edffaf4bab25b68e5dabaeab0adf90a8ea922c3e890b3d987305ba4a6d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 327,
+          "afterBytes": 145,
+          "beforeText": "import {YM2203Synth} from './ym2203synth.js?v=ps1-mode-1';\nimport {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=ps1-mode-1';\n"
+        }
+      ]
+    },
+    "js/playground_opn_audio.js": {
+      "before": {
+        "bytes": 2638,
+        "sha256": "61249ddce97e425090db3cfa0d2ff073ba79632104071a25d2892d465daee244"
+      },
+      "after": {
+        "bytes": 2631,
+        "sha256": "423c31ad6d1ad36ebd8fe728d588d3ee20d8cfde33b8e1c85c82bc0e874d8427"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1244,
+          "afterBytes": 111,
+          "beforeText": "    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_pokey_audio.js": {
+      "before": {
+        "bytes": 4498,
+        "sha256": "117c246e5bc696947b3defa9e6fa32ebd34d949cc75aad5060347122364fdfe3"
+      },
+      "after": {
+        "bytes": 4491,
+        "sha256": "817b16ae8b026418121918c7ccb485fd425e48a5173003c4268b8a72170190e0"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1262,
+          "afterBytes": 128,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_pokey_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_pokey_worklet.js": {
+      "before": {
+        "bytes": 17808,
+        "sha256": "95868ea7605894417c3b205507581ca1eb25fd368aecd125c8e8511e6c9d2541"
+      },
+      "after": {
+        "bytes": 17808,
+        "sha256": "a5272ec109b3e4013daac5278ab59bb9e90508eb66ab2de58521978ed632f06c"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 381,
+          "afterBytes": 93,
+          "beforeText": "import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';\n"
+        }
+      ]
+    },
+    "js/playground_ps1_audio.js": {
+      "before": {
+        "bytes": 3675,
+        "sha256": "5644730e37fe92f08c94aa5d00ae6fe1e052d24696e27faf94634258531372ce"
+      },
+      "after": {
+        "bytes": 3668,
+        "sha256": "fda709b958183c914a76f475eb550091d2b297434f090657e56c0c3c0709cf47"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 612,
+          "afterBytes": 114,
+          "beforeText": "  const url=String(options.workletUrl??new URL('./playground_ps1_worklet.js?v=ps1-deferred-release-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_ps1_worklet.js": {
+      "before": {
+        "bytes": 7365,
+        "sha256": "6344db32cd0d06a77945a9409cf5bca6ce3145896d964ff753dd7d0bcccbfe73"
+      },
+      "after": {
+        "bytes": 7365,
+        "sha256": "71dfd7b65b0bb39954fb012c51f71e2e56aaafd0c8dada799d9528c259a61f8d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 469,
+          "afterBytes": 93,
+          "beforeText": "import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';\n"
+        }
+      ]
+    },
+    "js/playground_pwm_audio.js": {
+      "before": {
+        "bytes": 2579,
+        "sha256": "fe89ae634d7f115bde66534576e67477182617d4d6e5efff80b15c7b6cb59527"
+      },
+      "after": {
+        "bytes": 2572,
+        "sha256": "acaeb5a6b43c63de10f39397f7ffe154b48ab094049c696978cdae3e5a0db731"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1110,
+          "afterBytes": 111,
+          "beforeText": "    context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_rf5c164.js": {
+      "before": {
+        "bytes": 5149,
+        "sha256": "26cffb8697b813715c1dd9de4a89305a164abcaeaba998945d36eba51d670fcb"
+      },
+      "after": {
+        "bytes": 5254,
+        "sha256": "c2cd1646400fe8211328c322902a4217d958af0b1a7d7af1f0cf4a852a4dd604"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 233,
+          "afterBytes": 172,
+          "beforeText": "import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js?v=audio-stability-2';\n"
+        },
+        {
+          "afterOffset": 4615,
+          "afterBytes": 47,
+          "beforeText": " return controlled;\n"
+        }
+      ]
+    },
+    "js/playground_rf5c164_audio.js": {
+      "before": {
+        "bytes": 2625,
+        "sha256": "42053cc112bc40b578e6af6974b7667bf9c74906fae7a881415247c9d95edfe6"
+      },
+      "after": {
+        "bytes": 2618,
+        "sha256": "ffc97eae046096244724e121c6e512a684ee52b306e64bbcecc15e5be0bf0abd"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1257,
+          "afterBytes": 126,
+          "beforeText": "    context.audioWorklet.addModule(options.workletUrl ?? new URL('./rf5c164-worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_runtime.js": {
+      "before": {
+        "bytes": 159478,
+        "sha256": "2beea9d375b507a250ff1b8ed226f8919b79034db6b595aa32947f2816dccd15"
+      },
+      "after": {
+        "bytes": 162063,
+        "sha256": "6ba30ad274ea1af7649685468e238303478066b00f58f1a089e84d4037f5d302"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 145,
+          "afterBytes": 78,
+          "beforeText": "import {createSnesAudio} from './playground_snes_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 297,
+          "afterBytes": 154,
+          "beforeText": "import {createScspAudio} from './playground_scsp_audio.js?v=scsp-fm-1';\nimport {createPs1Audio} from './playground_ps1_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1290,
+          "afterBytes": 76,
+          "beforeText": "import {createNesAudio} from './playground_nes_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1437,
+          "afterBytes": 76,
+          "beforeText": "import {createDx7Audio} from './playground_dx7_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1585,
+          "afterBytes": 79,
+          "beforeText": "import {createPWM32XAudio} from './playground_pwm_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 1739,
+          "afterBytes": 322,
+          "beforeText": "import {createYm2151Audio} from './playground_ym2151_audio.js?v=ps1-deferred-release-1';\nimport {createAy8910Audio} from './playground_ay8910_audio.js?v=ps1-deferred-release-1';\nimport {createYm2413Audio} from './playground_ym2413_audio.js?v=ps1-deferred-release-1';\nimport {createOplAudio} from './playground_opl_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 2403,
+          "afterBytes": 84,
+          "beforeText": "import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 2632,
+          "afterBytes": 147,
+          "beforeText": "import {createOpnAudio} from './playground_opn_audio.js?v=ps1-deferred-release-1';\nimport {createOpnClient} from './playground_opn.js?v=ps1-mode-1';\n"
+        },
+        {
+          "afterOffset": 3233,
+          "afterBytes": 84,
+          "beforeText": "import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 3582,
+          "afterBytes": 84,
+          "beforeText": "import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 4073,
+          "afterBytes": 80,
+          "beforeText": "import {createPokeyAudio} from './playground_pokey_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 4236,
+          "afterBytes": 497,
+          "beforeText": "import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=ps1-deferred-release-1';\nimport {createOki6258Audio} from './playground_okim6258_audio.js?v=ps1-deferred-release-1';\nimport {createYm2608Audio} from './playground_ym2608_audio.js?v=ps1-deferred-release-1';\nimport {createYm2608Client} from './playground_ym2608.js?v=ps1-mode-1';\nimport {createRf5c164Client} from './playground_rf5c164.js?v=pokey-prepare-1';\nimport {createRf5c164Audio} from './playground_rf5c164_audio.js?v=ps1-deferred-release-1';\n"
+        },
+        {
+          "afterOffset": 5531,
+          "afterBytes": 120,
+          "beforeText": "} from \"./megasynth.js?v=ps1-deferred-release-1\";\nimport { createTetoricaSynth } from \"./tetorica_synth.js?v=scsp-fm-1\";\n"
+        },
+        {
+          "afterOffset": 9766,
+          "afterBytes": 479,
+          "beforeText": "        (['nes','snes','ps1','scsp','x68000','huc6280','pokey','sid','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=ps1-deferred-release-1', import.meta.url).href\n          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=ps1-mode-1'\n          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=ps1-mode-1'\n"
+        },
+        {
+          "afterOffset": 10301,
+          "afterBytes": 99,
+          "beforeText": "            ? \"./ym2610b-worklet.js?v=ps1-mode-1\" : \"./ym2612-worklet.js?v=ps1-mode-1\"),\n"
+        },
+        {
+          "afterOffset": 14836,
+          "afterBytes": 56,
+          "beforeText": "      \"./playground_logic_worker.js?v=scsp-fm-1\",\n"
+        },
+        {
+          "afterOffset": 26973,
+          "afterBytes": 227,
+          "beforeText": "    const pending = channels.map(channel => Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(() => {}));\n"
+        },
+        {
+          "afterOffset": 27491,
+          "afterBytes": 969,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 28620,
+          "afterBytes": 68,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 28870,
+          "afterBytes": 36,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 28964,
+          "afterBytes": 163,
+          "beforeText": "        if (method === 'keyOn') primaryPcmOwners.set(args[0], voiceOwner(loop));\n        if (method === 'keyOff') {\n"
+        },
+        {
+          "afterOffset": 29361,
+          "afterBytes": 1392,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 131969,
+          "afterBytes": 213,
+          "beforeText": "        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);\n"
+        }
+      ]
+    },
+    "js/playground_scsp_audio.js": {
+      "before": {
+        "bytes": 3682,
+        "sha256": "0926871ab237d2c5c5cca05c8b34cd297f04e4c298e2ae52978d9e1ca16ed0f3"
+      },
+      "after": {
+        "bytes": 3688,
+        "sha256": "7e33a783444667cbda41749a89c39afc8990ff1b3b0bf111b05c0c1589c4c7fa"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 621,
+          "afterBytes": 115,
+          "beforeText": "  const url=String(options.workletUrl??new URL('./playground_scsp_worklet.js?v=scsp-fm-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_scsp_worklet.js": {
+      "before": {
+        "bytes": 7684,
+        "sha256": "b690c2e4944f1bb94c7896408ce16c5221f97669f6a7ce4cb1d6b91dbcd73c72"
+      },
+      "after": {
+        "bytes": 7684,
+        "sha256": "7c5724dbbf0941052d9403c000e95734a7ff7db9e9fa317b03efade46a8f54a9"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 555,
+          "afterBytes": 93,
+          "beforeText": "import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';\n"
+        }
+      ]
+    },
+    "js/playground_segapsg_audio.js": {
+      "before": {
+        "bytes": 4281,
+        "sha256": "14da969debdaf1aa450cda2804c36baddb2a06ce9e37fd563e6ed7ef460f9364"
+      },
+      "after": {
+        "bytes": 4274,
+        "sha256": "98ef250cdc55608fddce00bb9c21e75ef28799b6f3c35f5d78f92bb4330202bb"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 937,
+          "afterBytes": 130,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_segapsg_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_snes_audio.js": {
+      "before": {
+        "bytes": 3567,
+        "sha256": "eccc2ed24d9991355d835b59d9733913ac68f8c99008f70ceb6088938ded9312"
+      },
+      "after": {
+        "bytes": 3560,
+        "sha256": "32b0729062438f450a4a8e85b641f752908e3633c5c814bdc1f3e577864641ef"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 578,
+          "afterBytes": 115,
+          "beforeText": "  const url=String(options.workletUrl??new URL('./playground_snes_worklet.js?v=ps1-deferred-release-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_wonderswan_audio.js": {
+      "before": {
+        "bytes": 3619,
+        "sha256": "868e3f83a0a547a771c62fb991195aed76e904f8cf790b7f0d98a1206d6cfabd"
+      },
+      "after": {
+        "bytes": 3612,
+        "sha256": "48ca518ca977f858290f8d4d52034e1cf5de4e7b808c652e5e6609926f8830ac"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 716,
+          "afterBytes": 128,
+          "beforeText": "  const workletUrl=String(options.workletUrl??new URL('./playground_wonderswan_worklet.js?v=ps1-deferred-release-1',import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_wonderswan_worklet.js": {
+      "before": {
+        "bytes": 20295,
+        "sha256": "ebfc320db12a6d45961a201ce71b0a79d95acd9b0d56082b04e7f94f2e182301"
+      },
+      "after": {
+        "bytes": 20295,
+        "sha256": "7b705ff5c039cd78e70b28a3c83eab4a632915f80e3a77e515491748be74d0fb"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 462,
+          "afterBytes": 93,
+          "beforeText": "import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';\n"
+        }
+      ]
+    },
+    "js/playground_worker_chip.js": {
+      "before": {
+        "bytes": 10410,
+        "sha256": "11fd48a02b29c7beb1b53f337e322b119ba9df3f9a1e0190b33d07a0b0b0a1e4"
+      },
+      "after": {
+        "bytes": 10425,
+        "sha256": "ed2740446273b68cd324d6873abe81cf0318e8cdf3c26ae373e448fe03c422da"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 461,
+          "afterBytes": 64,
+          "beforeText": "import {YM2203Synth} from './ym2203synth.js?v=ps1-mode-1';\n"
+        },
+        {
+          "afterOffset": 591,
+          "afterBytes": 130,
+          "beforeText": "import {YM2608Synth} from './ym2608synth.js?v=ps1-mode-1';\nimport {YM2610BSynth} from './ym2610bsynth.js?v=ps1-mode-1';\n"
+        }
+      ]
+    },
+    "js/playground_ym2151_audio.js": {
+      "before": {
+        "bytes": 2858,
+        "sha256": "18e54ef4e11565243ac939bdf900c99bd971b9da56758598d16c8a9ca919990a"
+      },
+      "after": {
+        "bytes": 2851,
+        "sha256": "69033d8c8b6c1ad09438986d3a52957685766f707ec6330e28c7901fc6d27910"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 903,
+          "afterBytes": 145,
+          "beforeText": "    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/playground_ym2413_audio.js": {
+      "before": {
+        "bytes": 4207,
+        "sha256": "2b7bcf6d3bdb5f04059973c6d0f9ab520853a006396bdcdf2d3aa25bbafce978"
+      },
+      "after": {
+        "bytes": 4200,
+        "sha256": "b73969552b3ff8019270e3c11e8a00dd22141ae6c5a754b629e0cd30641c3d8b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 961,
+          "afterBytes": 129,
+          "beforeText": "  const workletUrl = String(options.workletUrl ?? new URL('./playground_ym2413_worklet.js?v=ps1-deferred-release-1', import.meta.url));\n"
+        }
+      ]
+    },
+    "js/playground_ym2608.js": {
+      "before": {
+        "bytes": 5160,
+        "sha256": "8af488fac564c2fd2798476169483807d7d4e6de2222f47874ecfd379584aac3"
+      },
+      "after": {
+        "bytes": 5165,
+        "sha256": "282fdcf209194c2012a78e78432cf30ad3a3c69cd586d3c48b304f39b4486952"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 195,
+          "afterBytes": 81,
+          "beforeText": "import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js?v=ps1-mode-1';\n"
+        }
+      ]
+    },
+    "js/playground_ym2608_audio.js": {
+      "before": {
+        "bytes": 1978,
+        "sha256": "42f687aa148c7a036218a0a2dfebefb2e67f1e691cc89d4936bef281b064885b"
+      },
+      "after": {
+        "bytes": 1971,
+        "sha256": "db6a041438ecf420d6acd2883bb892e3cdd19df6dca3deaeb599828b2aae21eb"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 721,
+          "afterBytes": 114,
+          "beforeText": "    context.audioWorklet.addModule(new URL('./playground_ym2608_worklet.js?v=ps1-deferred-release-1', import.meta.url)),\n"
+        }
+      ]
+    },
+    "js/rf5c164synth.js": {
+      "before": {
+        "bytes": 4836,
+        "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+      },
+      "after": {
+        "bytes": 6332,
+        "sha256": "dff616b61eb9e567e73add6df849f80299426aee4c2897554c3bd9b2263192ef"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 142,
+          "afterBytes": 72,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 1292,
+          "afterBytes": 233,
+          "beforeText": "  /** @param {{transport: {write: (register: number, value: number) => void, loadMemory: (bytes:Uint8Array, address:number)=>void|Promise<unknown>, reset: function(): void}}} options\n"
+        },
+        {
+          "afterOffset": 2675,
+          "afterBytes": 78,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 4433,
+          "afterBytes": 1266,
+          "beforeText": ""
+        },
+        {
+          "afterOffset": 6236,
+          "afterBytes": 30,
+          "beforeText": ""
+        }
+      ]
+    },
+    "js/tetorica_synth.js": {
+      "before": {
+        "bytes": 3185,
+        "sha256": "1875cb088b15403bdfe54f1a8b5e844d94b3074f4da0a6704a86de50a3940322"
+      },
+      "after": {
+        "bytes": 3192,
+        "sha256": "5b8bfb7cf0eb4ff355861d42cd01cecc2cb96daf60686f806e2da9853c6b9c88"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 292,
+          "afterBytes": 462,
+          "beforeText": "import { GameboyRuntimeSynth } from \"./gameboy_runtime_synth.js?v=ps1-deferred-release-1\";\nimport { NativeRuntimeSynth } from \"./native_runtime_synth.js?v=scsp-fm-1\";\nimport { MegaSynth } from \"./megasynth.js?v=ps1-deferred-release-1\";\nimport { YM2203RuntimeSynth } from \"./ym2203synth.js?v=ps1-mode-1\";\nimport { YM2608RuntimeSynth } from \"./ym2608synth.js?v=ps1-mode-1\";\nimport { NeoGeoSynth, YM2610BRuntimeSynth } from \"./ym2610bsynth.js?v=ps1-mode-1\";\n"
+        }
+      ]
+    },
+    "js/ym2203synth.js": {
+      "before": {
+        "bytes": 2526,
+        "sha256": "9a734d075e92dfbab564f21786f33749a38a702d3314efb26daa72b8439dcc49"
+      },
+      "after": {
+        "bytes": 2531,
+        "sha256": "4d851fb530b7b43dc6909e930257c29f526859bd9f3e11c73528cf97f2ef244b"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 2382,
+          "afterBytes": 59,
+          "beforeText": "      workletUrl: \"./ym2203-worklet.js?v=ps1-mode-1\",\n"
+        }
+      ]
+    },
+    "js/ym2608synth.js": {
+      "before": {
+        "bytes": 14450,
+        "sha256": "0aad3c5bf57959ece61690cb0e2b2abb7b7ab581b2570dfc0850b4ea03ef8e7f"
+      },
+      "after": {
+        "bytes": 14455,
+        "sha256": "8c90e5ed6e03acad09e60cc32d555e7e2f20525513c0f4e1d3b0a6861c684da6"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 14225,
+          "afterBytes": 59,
+          "beforeText": "      workletUrl: \"./ym2608-worklet.js?v=ps1-mode-1\",\n"
+        }
+      ]
+    },
+    "js/ym2610bsynth.js": {
+      "before": {
+        "bytes": 14729,
+        "sha256": "8c4ad3ab0139179a88fceaf843302145b59158288639e2fac76e64fae109ee8f"
+      },
+      "after": {
+        "bytes": 14734,
+        "sha256": "934e21dace2f981299926e9432f23e7117373068bc78fede20a41b2ff4caee79"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 11266,
+          "afterBytes": 96,
+          "beforeText": "      processorName: \"ym2610b-processor\", workletUrl: \"./ym2610b-worklet.js?v=ps1-mode-1\",\n"
+        }
+      ]
+    },
+    "js/ym2612-worklet.js": {
+      "before": {
+        "bytes": 25401,
+        "sha256": "c43199a1ab3e4b40d96c5b0788f2f29a493ab4be7e9ca4f1704529e9c6ec6e2e"
+      },
+      "after": {
+        "bytes": 25401,
+        "sha256": "0788694f36ae5ea37d97fc29ee98f5e80a7b111e2f80ff51fbc192f42048ddcc"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 81,
+          "afterBytes": 112,
+          "beforeText": "import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';\n"
+        }
+      ]
+    },
+    "playground/index.html": {
+      "before": {
+        "bytes": 132885,
+        "sha256": "4235828b1be9fa33cf29cd07f1898730242fff66745aa5aba9f6ce3cb4b9c3ce"
+      },
+      "after": {
+        "bytes": 132891,
+        "sha256": "37d9b7e64717851336fab5164104bfc83ccaf728458788ee51ab0aa2a764b6ca"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 132753,
+          "afterBytes": 106,
+          "beforeText": "      import('./playground.js?v=scsp-fm-1').catch(error => window.__playgroundStartup.fail(error));\n"
+        }
+      ]
+    },
+    "playground/playground.js": {
+      "before": {
+        "bytes": 124872,
+        "sha256": "1ad6188b0c7c80e56977c489181ebfded6ab1431ca6f84d0bf5e37f70a50aaf0"
+      },
+      "after": {
+        "bytes": 124895,
+        "sha256": "733c7acbbfb829e0d485a623fe2acba5231920866ba4c3925fb538131460da5f"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 1147,
+          "afterBytes": 130,
+          "beforeText": "  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=scsp-fm-1';\n"
+        },
+        {
+          "afterOffset": 3457,
+          "afterBytes": 47,
+          "beforeText": "} from \"../js/megasynth.js?v=ps1-deferred-release-1\";\n"
+        },
+        {
+          "afterOffset": 3536,
+          "afterBytes": 52,
+          "beforeText": "} from \"../js/tetorica_synth.js?v=scsp-fm-1\";\n"
+        },
+        {
+          "afterOffset": 4172,
+          "afterBytes": 162,
+          "beforeText": "import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from \"./playground_examples.js?v=scsp-fm-1\";\n"
+        },
+        {
+          "afterOffset": 5523,
+          "afterBytes": 56,
+          "beforeText": "} from \"../js/playground_runtime.js?v=scsp-fm-1\";\n"
+        },
+        {
+          "afterOffset": 12894,
+          "afterBytes": 95,
+          "beforeText": "  ? new (await import('../js/native_genesis_synth.js?v=scsp-fm-1')).NativeGenesisSynth({\n"
+        }
+      ]
+    },
+    "playground/playground_examples.js": {
+      "before": {
+        "bytes": 217972,
+        "sha256": "1b0cd18d6709a21ecbd40b03916286608cda724a64a94516bd6d24797e0ca05d"
+      },
+      "after": {
+        "bytes": 218564,
+        "sha256": "278386738c08d7e86717b80d905c0efbe7c3157a7b8eef5f9c20a9881e1329d1"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 122595,
+          "afterBytes": 1524,
+          "beforeText": "    \"data\": \"// RF5C164 physical voices, direct Worker -> Worklet control.\\nconst pcm = await createSoundChip('rf5c164');\\nconst bytes = new Uint8Array(257);\\nfor (let i = 0; i < 256; i++) {\\n  const v = Math.sin(2 * Math.PI * i / 256);\\n  bytes[i] = Math.round(Math.abs(v) * 100) | (v >= 0 ? 128 : 0);\\n}\\nbytes[256] = 255; // Return to loopStart.\\nawait pcm.loadMemory(bytes);\\nawait pcm.setChannel(CH1, { start: 0, loopStart: 0, step: 3543, volume: 160, pan: { left: 15, right: 15 } });\\nsetBpm(120);\\nliveLoop('pcm-sine', async () => {\\n  await pcm.setPitch(CH1, 3543); // approximately A4, for this 256-byte waveform\\n  await pcm.keyOn(CH1);\\n  await beat(1);\\n  await pcm.setPitch(CH1, 5315);\\n  await beat(1);\\n  await pcm.keyOff(CH1);\\n  await beat(1);\\n});\\n// For WAV/FLAC bytes: const wave = await pcm.loadSample(bytes, {address: 0});\\n// await pcm.setChannel(CH1, {...wave, volume: 160, pan: {left: 15, right: 15}});\\n\"\n"
+        }
+      ]
+    },
+    "playground/playground_mode.js": {
+      "before": {
+        "bytes": 13127,
+        "sha256": "99bd78b407eddd4486dc1913e704501db6b16867b68908b2153c989fa1f4a453"
+      },
+      "after": {
+        "bytes": 13046,
+        "sha256": "1524fb7130a2675dd6186b1882e9cd769f6298e70401641970fd611df8b870e2"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 8218,
+          "afterBytes": 84,
+          "beforeText": "    workletUrl:new URL('./playground_scsp_worklet.js?v=scsp-fm-1',base).href,\n"
+        },
+        {
+          "afterOffset": 8456,
+          "afterBytes": 83,
+          "beforeText": "    workletUrl:new URL('./playground_ps1_worklet.js?v=ps1-deferred-release-1',base).href,\n"
+        },
+        {
+          "afterOffset": 8758,
+          "afterBytes": 85,
+          "beforeText": "    workletUrl:new URL('./playground_pokey_worklet.js?v=ps1-deferred-release-1',base).href,\n"
+        },
+        {
+          "afterOffset": 9079,
+          "afterBytes": 486,
+          "beforeText": "    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=ps1-deferred-release-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},\n    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=ps1-deferred-release-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},\n    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=ps1-deferred-release-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),\n"
+        },
+        {
+          "afterOffset": 9646,
+          "afterBytes": 84,
+          "beforeText": "    workletUrl:new URL('./playground_opl_worklet.js?v=ps1-deferred-release-1', base).href,\n"
+        },
+        {
+          "afterOffset": 10056,
+          "afterBytes": 86,
+          "beforeText": "    workletUrl:new URL('./playground_ay8910_worklet.js?v=ps1-deferred-release-1',base).href,\n"
+        },
+        {
+          "afterOffset": 10439,
+          "afterBytes": 88,
+          "beforeText": "      workletUrl:new URL('./playground_ym2413_worklet.js?v=ps1-deferred-release-1',base).href,\n"
+        },
+        {
+          "afterOffset": 10599,
+          "afterBytes": 88,
+          "beforeText": "    workletUrl:new URL('./playground_segapsg_worklet.js?v=ps1-deferred-release-1', base).href,\n"
+        },
+        {
+          "afterOffset": 11047,
+          "afterBytes": 324,
+          "beforeText": "    const worklet = {wonderswan:'./playground_wonderswan_worklet.js?v=ps1-deferred-release-1',nes:'./playground_nes_worklet.js?v=ps1-deferred-release-1',snes:'./playground_snes_worklet.js?v=ps1-deferred-release-1',x68000:'./playground_ym2151_worklet.js?v=ps1-deferred-release-1',huc6280:'./playground_huc6280_worklet.js?v=ps1-deferred-release-1'}[mode.chip];\n"
+        },
+        {
+          "afterOffset": 11659,
+          "afterBytes": 187,
+          "beforeText": "      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=ps1-deferred-release-1',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),\n"
+        },
+        {
+          "afterOffset": 11965,
+          "afterBytes": 88,
+          "beforeText": "    workletUrl:new URL('./playground_gameboy_worklet.js?v=ps1-deferred-release-1', base).href,\n"
+        },
+        {
+          "afterOffset": 12330,
+          "afterBytes": 212,
+          "beforeText": "  const worklets = {ym2612:'./ym2612-worklet.js?v=ps1-mode-1',ym2203:'./ym2203-worklet.js?v=ps1-mode-1',ym2608:'./ym2608-worklet.js?v=ps1-mode-1',ym2610b:'./ym2610b-worklet.js?v=ps1-mode-1'};\n"
+        },
+        {
+          "afterOffset": 12573,
+          "afterBytes": 107,
+          "beforeText": "    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=ps1-mode-1' : worklets[chip], base).href,\n"
+        }
+      ]
+    },
+    "playground/playground_monaco_completion.js": {
+      "before": {
+        "bytes": 45047,
+        "sha256": "5c743830a085756a1325f225fe9b6d6109c4d0b4fa8b898f9f9cf9be966133ea"
+      },
+      "after": {
+        "bytes": 45040,
+        "sha256": "4af2caa8e4420caa111c3a22d73011875c213d4a7258ae7f0ae952abc556fa2d"
+      },
+      "reverseHunks": [
+        {
+          "afterOffset": 23,
+          "afterBytes": 47,
+          "beforeText": "} from \"../js/megasynth.js?v=ps1-deferred-release-1\";\n"
+        }
+      ]
+    }
+  },
+  "relatedSources": {
+    "js/rf5c164_notes.js": {
+      "bytes": 8631,
+      "sha256": "cd10b0abe19000e699edd181b3527edbea8d06ada2dbf34a88c51e12bf9d273f"
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 /** @file Browser / Worker: RF5C164 communication and compatibility facade. */
 import { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
-import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js?v=audio-stability-2';
+import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js?v=rf5c164-notes-1';
+import {attachRf5c164NoteControls} from './rf5c164_notes.js?v=rf5c164-notes-1';
 export { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
 /** Port RPC shared by main and Worker; commands never require main-thread synthesis. */
@@ -46,7 +47,7 @@ export function createRf5c164Client(port,decode,options={}){
  Object.defineProperty(client,'_adoptState',{value:state=>{if(state?.clock!==undefined)client._adoptClock(state.clock);}});
  if(options.native){const setClock=client.setClock.bind(client);client.setClock=hz=>scoped(setClock(hz),options.captureContext?.());}
  Object.defineProperty(client,'_stopVoices',{value:()=>controlled._requestControl('stopVoices')});
- return controlled;
+ return attachRf5c164NoteControls(controlled);
 }
 /** Compatibility facade. New offline code can construct Synth + DirectTransport. */
 /** @param {import('./rf5c164.js?v=audio-stability-2').Rf5c164} chip Native chip owned by the facade.

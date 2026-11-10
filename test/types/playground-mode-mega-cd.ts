@@ -41,10 +41,24 @@ async function checkMegaCDModeTypes() {
   }
   await pcm.loadMemory(new Uint8Array([128, 180, 128, 52, 255]));
   await pcm.setChannel(7, {start: 0, loopStart: 0, step: 1000, volume: 80, pan: {left: 15, right: 15}});
+  const root:number=pcm.setRootNote('A4');pcm.setRootNote(69);pcm.setRootNote(null);
+  const tunedStep:number=await pcm.setNote(7,'A5');
+  const noteStarted:Promise<void>=pcm.noteOn(0,81);await noteStarted;await pcm.noteOff(0);
+  // @ts-expect-error Root changes are local and synchronous.
+  const asyncRoot:Promise<number>=pcm.setRootNote('C4');
+  // @ts-expect-error Pitch conversion waits for the ordered raw write.
+  const immediateStep:number=pcm.setNote(0,'C4');
+  // @ts-expect-error The RF5C164 has eight physical note-helper channels.
+  pcm.noteOn(8,'C4');
+  // @ts-expect-error Root accepts note names/MIDI numbers/null, not booleans.
+  pcm.setRootNote(true);
+  void [root,tunedStep];
   await pcm.keyOn(7);
   await pcm.setClock(12500000);
   // @ts-expect-error the selected mode owns its built-in PCM device
   pcm.dispose();
   const independent = await createSoundChip('rf5c164');
+  const independentRoot:number=independent.setRootNote('A4');
+  await independent.noteOn(0,'A5');await independent.noteOff(0);void independentRoot;
   independent.dispose();
 }

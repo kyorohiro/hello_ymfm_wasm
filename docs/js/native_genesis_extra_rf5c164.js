@@ -1,6 +1,7 @@
-import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
+import {RF5C164Synth} from './rf5c164synth.js?v=rf5c164-notes-1';
+import {attachRf5c164NoteControls} from './rf5c164_notes.js?v=rf5c164-notes-1';
 import {sampleBytes,encodeRf5c164} from './rf5c164_pcm.js';
-import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
@@ -143,7 +144,7 @@ export function createNativeGenesisExtraRf5c164Endpoint(synth,{decodeAudio=creat
     }
     for(const group of groups)send(group);await synth.flush();current(token);if(groups.length){const applied=await read({after:groups.at(-1).id});current(token);if(method==='auditionAllOff')leases.clear();if(method==='reset'&&!applied.held?.length){inspector.resetAuditions();leases.clear();}notify();}return value;
   });serial=result.catch(()=>{});return result;}
-  return {client,dispatch,read,invoke,
+  return {client:attachRf5c164NoteControls(client),dispatch,read,invoke,
     loadSample(source,options){const result=serial.then(()=>sample(source,options,true));serial=result.catch(()=>{});return result;},
     cancelOwner:(performance,owner)=>cancelOperations(op=>op.performance===performance&&op.owner===owner),cancelPerformance:performance=>cancelOperations(op=>op.performance!==undefined&&(performance===null||op.performance===performance)),
     async initialize(){const token=capture();context.enable('rf5c164');if(initialized)return;await synth.flush();current(token);initialized=true;},

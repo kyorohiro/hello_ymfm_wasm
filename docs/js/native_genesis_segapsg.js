@@ -1,6 +1,6 @@
 /** Shared Sega PSG authoring / inspection for Native Master System and Game Gear. */
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
-import {PsgInspectorState} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {PsgInspectorState} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-deferred-release-1';
 const CLOCK=3579545;

@@ -1305,15 +1305,16 @@ const synth = new MegaSynth({megaCD: true});
 await synth.start();
 const wave = Float32Array.from({length: 256}, (_, i) => Math.sin(i * 2 * Math.PI / 256));
 const sample = await synth.pcm.loadSample(
-  {channels: [wave], sampleRate: 32768},
-  {address: 0, loopStart: 0},
+  {channels: [wave], sampleRate: 440 * wave.length},
+  {address: 0, loopStart: 0, endGuardBytes: 32},
 );
 await synth.pcm.setChannel(0, {
   ...sample, volume: 200, pan: {left: 15, right: 15},
 });
-await synth.pcm.keyOn(0);
+synth.pcm.setRootNote('A4'); // This known waveform is A4 at its original speed.
+await synth.pcm.noteOn(0, 'A5'); // Twice the original sample speed.
 // Later:
-await synth.pcm.keyOff(0);
+await synth.pcm.noteOff(0);
 await synth.close();
 ```
 
@@ -1325,6 +1326,24 @@ stereo samples are mixed to mono and encoded for the chip. The shared RAM is
 64 KiB, channel indices are 0..7, starts are 256-byte aligned, volume is 0..255
 and left/right pan levels are 0..15. Reserve non-overlapping RAM regions when
 loading multiple samples. `setPitch` uses the chip's raw playback step.
+
+The software note helpers accept note names or integer MIDI 0..127 on channels
+0..7. First pass the `loadSample()` result to `setChannel(ch, {...sample, ...})`
+to declare the original playback step, then set its known original pitch with
+`setRootNote(note)`. Root defaults to C4; `setRootNote(null)` restores C4. This
+setter returns the effective MIDI number synchronously and does not retune held
+voices. Await `setNote(ch, note)` for a raw step number without retriggering,
+`noteOn(ch, note)` to tune and retrigger, and `noteOff(ch)` to stop the channel.
+The direct `RF5C164Synth` class provides the same four methods synchronously.
+No waveform pitch detection or hardware envelope is added.
+
+Raw `setPitch` or step-register writes replace that channel's reference step.
+`reset()` keeps Root but clears reference steps, so configure `setChannel` again
+before using note helpers. Changing the chip clock changes pitch as with raw
+steps; the helpers do not compensate it. Reference steps belong to each client,
+so another client's temporary register writes do not redefine them. Synth Code
+has a separate editor-based default: its Root inherits the upper PCM editor,
+including when `setRootNote(null)` is used.
 
 `synth.pcm` is available after `start()` and is cleared by `close()`. Await
 `synth.reset()` to reset PCM along with FM while preserving waveform RAM.

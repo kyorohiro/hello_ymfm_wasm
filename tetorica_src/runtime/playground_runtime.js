@@ -463,23 +463,49 @@ export function createPlaygroundRuntime(
   // the instrument channels started by another callback in the same binding.
   const voiceOwner = context => context?.keyboard ? context.keyboardOwner : context;
   function silencePrimaryPcm(channels) {
-    const pending = channels.map(channel => Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(() => {}));
+    const previous=currentLoopContext;currentLoopContext=null;
+    let pending;
+    try {pending=channels.map(channel=>Promise.resolve(megaDrive.pcm?.keyOff(channel)).catch(()=>{}));}
+    finally {currentLoopContext=previous;}
     // The Main and Worker control ports have independent message order. A new
     // performance must wait until every old Main-port release has been applied.
     primaryPcmSilence = Promise.all([primaryPcmSilence, ...pending]).then(() => {});
     return Promise.all(pending).then(()=>{});
+  }
+  function observeMainPcmOwners(raw,owners) {
+    if(!raw._setNoteLifecycle)return false;
+    raw._setNoteLifecycle({
+      before({method,args}){
+        const loop=currentLoopContext;
+        const cleanupRelease=method==='keyOff'&&liveApi.hasPendingCleanups();
+        if(loop?.stopped&&!cleanupRelease)return false;
+        // A liveCleanup hook may inherit the stopped loop's ambient context
+        // while releasing a top-level voice. It must still leave a newer
+        // loop/Keyboard owner's channel intact.
+        if(loop?.stopped&&cleanupRelease&&owners.get(args[0])===null)return true;
+        return method!=='keyOff'||!loop||!owners.has(args[0])||owners.get(args[0])===voiceOwner(loop);
+      },
+      observe({method,args}){
+        if(method==='keyOn')owners.set(args[0],voiceOwner(currentLoopContext));
+        else if(method==='keyOff')owners.delete(args[0]);
+        else if(method==='reset')owners.clear();
+      },
+    });
+    return true;
   }
   function primaryPcmApi() {
     const raw = megaDrive.pcm;
     if (!raw) return undefined;
     if (sharedPcmClient !== raw) {
       sharedPcmClient = raw;
+      const observesRaw=observeMainPcmOwners(raw,primaryPcmOwners);
       sharedPcm = borrowNativeApi(raw, 'rf5c164', () => {}, (path, args) => {
         const loop = currentLoopContext, method = path.at(-1);
         if (loop?.stopped) return false;
+        if(observesRaw)return true;
         if (method === 'reset') primaryPcmOwners.clear();
-        if (method === 'keyOn') primaryPcmOwners.set(args[0], voiceOwner(loop));
-        if (method === 'keyOff') {
+        if (method === 'keyOn' || method === 'noteOn') primaryPcmOwners.set(args[0], voiceOwner(loop));
+        if (method === 'keyOff' || method === 'noteOff') {
           if (loop && primaryPcmOwners.has(args[0]) && primaryPcmOwners.get(args[0]) !== voiceOwner(loop)) return false;
           primaryPcmOwners.delete(args[0]);
         }
@@ -487,6 +513,30 @@ export function createPlaygroundRuntime(
       });
     }
     return sharedPcm;
+  }
+  function ownedMainPcmApi(device,raw) {
+    const owners=new Map();
+    observeMainPcmOwners(raw,owners);
+    device.releaseOwner=owner=>{
+      for(const[channel,held]of owners)if(held===owner){
+        owners.delete(channel);
+        const previous=currentLoopContext;currentLoopContext=null;
+        try {Promise.resolve(raw.keyOff(channel)).catch(()=>{});}
+        finally {currentLoopContext=previous;}
+      }
+    };
+    const borrowed=borrowNativeApi(raw,device.mixerId,()=>{},path=>!currentLoopContext?.stopped||['keyOff','noteOff'].includes(path.at(-1))&&liveApi.hasPendingCleanups(),result=>{
+      const loop=currentLoopContext,token=currentRunToken;
+      // Cleanup is an explicit retirement fence and may finish while a new
+      // evaluation waits for this old device's disposal.
+      if(liveApi.hasPendingCleanups())return result;
+      // RPC acknowledgements must restore the loop which issued them, rather
+      // than borrowing a concurrently executing Keyboard callback's owner.
+      return result.then(value=>resumeNativeExtraCaller(loop,()=>value,token),error=>resumeNativeExtraCaller(loop,()=>{throw error;},token));
+    });
+    // Independent devices retain their public disposal control; primary
+    // borrowed facades intentionally hide it.
+    return new Proxy(borrowed,{get:(target,key)=>key==='dispose'?raw.dispose.bind(raw):Reflect.get(target,key)});
   }
   let sharedSections = {};
   let sharedSectionSynth;
@@ -2554,7 +2604,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);
+        const api=keyboardApi(device.native&&name!=='spc'?ownedNativeExtraApi(device,client):name==='rf5c164'?ownedMainPcmApi(device,client):['wonderswan','sid'].includes(name)?wonderSwanExtraApi(client):client);
         if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
         return api;
       },

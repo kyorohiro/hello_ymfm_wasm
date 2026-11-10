@@ -3,7 +3,7 @@ import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
 import factory from '../generated/gameboy_apu_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-deferred-release-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;

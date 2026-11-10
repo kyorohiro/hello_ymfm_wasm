@@ -1,6 +1,6 @@
 // Verify the installed tarball in an isolated project, not repository imports.
 import {execFileSync} from 'node:child_process';
-import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm, copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -14,6 +14,7 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  for(const file of ['rf5c164_notes.js','rf5c164_notes.d.ts'])assert(packedPaths.has(file),'RF5C164 musical helper payload missing '+file);
   assertSidPackageFiles(packedPaths);
   for (const file of ['adpcm_a_sample.js','adpcm_a_sample.d.ts']) {
     assert.ok(packedPaths.has(file), `ADPCM-A encoder payload missing ${file}`);
@@ -703,6 +704,8 @@ assert.throws(() => runtimeAssetUrl('../outside.js'), TypeError);
 console.log('Installed package verified: module exports, audible Synth PCM, browser entry imports and asset URLs.');
 `);
   execFileSync(process.execPath, [join(consumer, 'check.mjs')], {cwd: consumer, stdio: 'inherit'});
+  await copyFile(join(root,'test/fixtures/fm2612_rf5c164_notes_consumer.mjs'),join(consumer,'rf5c164-notes-check.mjs'));
+  execFileSync(process.execPath,[join(consumer,'rf5c164-notes-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer, 'native-check.mjs'), String.raw`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';

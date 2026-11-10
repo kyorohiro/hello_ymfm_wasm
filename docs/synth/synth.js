@@ -1,9 +1,9 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
 import {setupSynthFiles} from './synth_files.js?v=synth-code-expand-1';
-import {setupSynthCodeControls} from './synth_code_controls.js?v=pcm-root-note-1';
+import {setupSynthCodeControls} from './synth_code_controls.js?v=shared-pcm-notes-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=pcm-root-note-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=shared-pcm-notes-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=synth-code-3';
 import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-release-1';

@@ -248,6 +248,7 @@ playground_ym2608_audio.js
 playground_ym2608_worklet.js
 playground_ym2608_timeline.js
 rf5c164synth.js
+rf5c164_notes.js
 rf5c164_pcm.js
 playground_rf5c164_audio.js
 rf5c164-worklet.js
@@ -284,6 +285,7 @@ playground_opn_audio.js
 playground_opn_worklet.js
 playground_audio_scheduler.js
 playground_clock.js
+playground_code_runtime.js
 playground_execution.js
 playground_live.js
 playground_logic_worker.js

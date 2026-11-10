@@ -354,7 +354,7 @@ export class MegaSynth {
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
       resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js');
     this.rf5c164Fetch = options.rf5c164Fetch;
-    /** RF5C164 API after start() when megaCD is enabled; its methods return promises.
+    /** RF5C164 API after start() when megaCD is enabled; transport methods return promises, while setRootNote is synchronous.
      * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */
     this.pcm = null;
     this.pcmDevice = null;

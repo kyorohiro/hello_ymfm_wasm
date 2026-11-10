@@ -4,7 +4,7 @@ import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import factory from '../generated/okim6258_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=scsp-fm-1';
 import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=pokey-prepare-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

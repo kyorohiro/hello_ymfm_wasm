@@ -1,4 +1,4 @@
-import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=ps1-mode-1';
+import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=rf5c164-notes-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';

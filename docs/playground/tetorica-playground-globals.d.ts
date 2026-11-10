@@ -1443,6 +1443,7 @@ interface PlaygroundMidi {
 declare const midi: PlaygroundMidi;
 
 /** RF5C164 physical channels: CH1..CH8 (0..7), no automatic allocation. */
+type PlaygroundRf5c164Channel = 0|1|2|3|4|5|6|7;
 interface PlaygroundRf5c164 {
   loadMemory(bytes: Uint8Array | ArrayBuffer, address?: number): Promise<void>;
   /** WAV/FLAC URL or encoded file bytes. loopStart is a sample offset; omitted means silence after end.
@@ -1450,6 +1451,18 @@ interface PlaygroundRf5c164 {
   loadSample(source: {channels: Float32Array[]; sampleRate: number} | string | Uint8Array | ArrayBuffer | Blob, options?: {address?: number; loopStart?: number; endGuardBytes?: number}): Promise<{start: number; loopStart: number; step: number}>;
   setChannel(ch: number, options: {start?: number; loopStart?: number; step?: number; volume?: number; pan?: {left: number; right: number}}): Promise<void>;
   setPitch(ch: number, step: number): Promise<void>;
+  /** Software tuning reference for the configured raw step. Note name or integer MIDI 0..127.
+   * Returns the effective MIDI Root synchronously; null restores C4 (60).
+   * Does not retune/retrigger held notes. No waveform pitch is detected. */
+  setRootNote(note:string|number|null):number;
+  /** Set playback step relative to this channel's declared base step and Root note.
+   * Note name or integer MIDI 0..127. Returns the applied raw step (1..65535).
+   * First configure setChannel(ch,{step:sample.step,...}). Raw step edits replace the base. */
+  setNote(ch:PlaygroundRf5c164Channel,note:string|number):Promise<number>;
+  /** Set the tuned step and retrigger this physical channel. No hardware envelope. */
+  noteOn(ch:PlaygroundRf5c164Channel,note:string|number):Promise<void>;
+  /** Stop this physical channel, equivalent to raw keyOff. */
+  noteOff(ch:PlaygroundRf5c164Channel):Promise<void>;
   keyOn(ch: number): Promise<void>;
   keyOff(ch: number): Promise<void>;
   writeRegister(register: number, value: number): Promise<void>;

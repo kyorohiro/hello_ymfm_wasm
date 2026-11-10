@@ -1,6 +1,6 @@
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=rf5c164-notes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js?v=audio-stability-2';
