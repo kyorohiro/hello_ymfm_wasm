@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "verificationDate": "2026-11-11 Asia/Tokyo",
+  "passed": true,
+  "feature": "FM2612 Synth PCM Range/Draw source wave editor",
+  "node": {
+    "passed": true,
+    "tests": 150,
+    "log": "/private/tmp/fm2612-pcm-wave-drawing-node-20261111.log"
+  },
+  "browser": {
+    "passed": true,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "receipt": "/private/tmp/fm2612-pcm-wave-drawing-browser-20261111.json",
+    "receiptSha256": "8a0e573d5a0439f9eac8ed5c3ed4b8b80fa3a0876c8386237859327b342bec04",
+    "verifiedServedAssets": 153,
+    "drawing": [
+      {
+        "browser": "chromium",
+        "drawing": {
+          "frames": 256,
+          "changedFrames": 61,
+          "strokeUploads": 1,
+          "cancellation": [
+            "pointercancel",
+            "lostpointercapture",
+            "Escape",
+            "blur",
+            "visual-mode",
+            "tab",
+            "preset"
+          ],
+          "roundTrip": true,
+          "physicalOutputMuted": true
+        }
+      },
+      {
+        "browser": "webkit",
+        "drawing": {
+          "frames": 256,
+          "changedFrames": 61,
+          "strokeUploads": 1,
+          "cancellation": [
+            "pointercancel",
+            "lostpointercapture",
+            "Escape",
+            "blur",
+            "visual-mode",
+            "tab",
+            "preset"
+          ],
+          "roundTrip": true,
+          "physicalOutputMuted": true
+        }
+      }
+    ]
+  },
+  "sources": {
+    "docs/synth/index.html": {
+      "bytes": 90623,
+      "sha256": "4bcdd6a9bc63e25cdc13cd0d466dc3b4b86de46676ebce15126a173221d8de66"
+    },
+    "docs/synth/synth.js": {
+      "bytes": 132119,
+      "sha256": "4ab099cc343aa4f5adcbae93157279a9f823891d7f4c45b5e12405133c0036bc"
+    },
+    "docs/synth/synth_files.js": {
+      "bytes": 43221,
+      "sha256": "bae47f46cfa3a1138c70393adbb64430ed779d7524fe0d4f4e45de1e7a9ec0e4"
+    },
+    "docs/synth/synth_pcm_controls.js": {
+      "bytes": 19148,
+      "sha256": "dc75d04c9acedfdff34c70ae582370c43f6ce74432103c824e9c97d4253f06f7"
+    },
+    "docs/synth/synth_pcm_wave_edit.js": {
+      "bytes": 3046,
+      "sha256": "85dc9cdaf574fdc21c06d8339521ee3d7ca98b3fbda844fc2c34fd2a0cac0c56"
+    },
+    "docs/synth/synth_pcm_wave_edit.test.mjs": {
+      "bytes": 7820,
+      "sha256": "42180c6dd5be899652e8ac38882d3a62689938687e256e6de86720b539640e90"
+    },
+    "scripts/check_synth_pcm_browser.cjs": {
+      "bytes": 48649,
+      "sha256": "0b5be385f4b127a5fb18657ff0ccede286e834d43268d4895c5c22516d0c2f02"
+    },
+    "scripts/package_itch_synth.sh": {
+      "bytes": 12640,
+      "sha256": "92271c213247930488c916b8cb1498e0823f3c762d58ac083e7ffe8f249fbed7"
+    }
+  },
+  "artifact": {
+    "path": "release/hello_ymfm_wasm_dev_itch_synth.zip",
+    "bytes": 1065592,
+    "sha256": "c70933b22028a2a3e2ee0b2dd23dfabfb7744815ddf040d1994ea391408b1283",
+    "files": 283,
+    "entries": 311,
+    "candidateDefaultPayloadsIdentical": true,
+    "zipStagePayloadsIdentical": true
+  },
+  "published": false,
+  "notes": [
+    "Range remains the initial mode on the same canvas.",
+    "One release commits a software-edited preset through the existing host sample path; held PCM notes stop.",
+    "No shared chip runtime, npm or calibration gain/receipt changes.",
+    "No commit, push, npm publish or itch.io upload performed."
+  ]
+}

@@ -59,6 +59,7 @@ synth_pcm_audio.js
 synth_pcm_worklet.js
 synth_pcm_release.js
 synth_pcm_controls.js
+synth_pcm_wave_edit.js
 synth_pcm_recording.js
 synth_pcm_recording_prepare.js
 synth_pcm_recording_player.js

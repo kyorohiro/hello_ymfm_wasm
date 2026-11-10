@@ -191,6 +191,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     if(byId('synthPsgPresetSelect'))byId('synthPsgPresetSelect').disabled=busy||readOnly;
     if(byId('synthPcmSettings'))byId('synthPcmSettings').inert=busy||readOnly;
     if(byId('synthPcmCanvas'))byId('synthPcmCanvas').inert=busy||readOnly;
+    if(byId('synthPcmEditModeControls'))byId('synthPcmEditModeControls').inert=busy||readOnly;
     if(byId('synthPcmPresetSelect'))byId('synthPcmPresetSelect').disabled=busy||readOnly;
     for (const id of ['synthFileDuplicateButton','synthFileRenameButton','synthFileDeleteButton']) {
       byId(id).disabled = busy || !selectedPath || selectedPath === '/';

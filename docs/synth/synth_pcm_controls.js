@@ -1,18 +1,20 @@
 import {createParamControl} from './synth_controls.js?v=op-gates-1';
 import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-live-end-1';
+import {createPcmWaveDraft} from './synth_pcm_wave_edit.js?v=pcm-wave-draw-1';
 
 /** Compact RF5C164 authoring controls; writes and file decoding belong to the host. */
-export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onVisualModeChange=()=>{}}={}) {
+export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onSampleEdit=()=>{},onVisualModeChange=()=>{}}={}) {
   if(typeof voice?.getState!=='function')throw new TypeError('PCM controls need a voice');
-  for(const callback of [onSettingsChange,onBuiltin,onLoad,onVisualModeChange])if(typeof callback!=='function')throw new TypeError('PCM controls need callbacks');
+  for(const callback of [onSettingsChange,onBuiltin,onLoad,onSampleEdit,onVisualModeChange])if(typeof callback!=='function')throw new TypeError('PCM controls need callbacks');
   const byId=id=>document.getElementById(id),root=byId('synthChipPcm'),canvas=byId('synthPcmCanvas');
   const context=canvas.getContext('2d'),info=byId('synthPcmSampleInfo'),rootName=byId('synthPcmRootName');
   const description=byId('synthPcmVisualizerDescription'),help=byId('synthPcmHelp'),loopButton=byId('synthPcmLoopEnabled');
   const input=byId('synthPcmAudioFile'),loadButton=byId('synthPcmLoadButton');
   const builtinButtons=[...root.querySelectorAll('[data-pcm-builtin]')],visualButtons=[...root.querySelectorAll('[data-pcm-visual-mode]')];
+  const editButtons=[...root.querySelectorAll('[data-pcm-edit-mode]')],editGroup=byId('synthPcmEditModeControls');
   const listeners=[],controls=new Map(),controlButtons=[];
   const builtins=new Map(['sine','triangle','saw','square'].map(shape=>[shape,createPcmBuiltinPreset(shape).sample]));
-  let state=voice.getState(),liveDisplay=null,visualMode='sample',disposed=false,drag=null,decodedData=null,sampleBytes=null,lastDraw=null;
+  let state=voice.getState(),liveDisplay=null,visualMode='sample',editMode='range',disposed=false,drag=null,stroke=null,decodedData=null,sampleBytes=null,lastDraw=null;
   const listen=(node,type,callback)=>{
     if(!node)return;
     node.addEventListener(type,callback);listeners.push(()=>node.removeEventListener(type,callback));
@@ -51,6 +53,17 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     const {id}=drag;drag=null;canvas.classList.remove('is-dragging');
     if(canvas.hasPointerCapture?.(id))canvas.releasePointerCapture(id);
   }
+  const sameSample=(a,b)=>Boolean(a&&b&&['data','name','sampleRate','encoding'].every(key=>a[key]===b[key]));
+  function releaseStroke() {
+    if(!stroke)return;
+    const {id}=stroke;stroke=null;canvas.classList.remove('is-dragging');
+    if(canvas.hasPointerCapture?.(id))canvas.releasePointerCapture(id);
+  }
+  function cancelEdit() {releaseDrag();releaseStroke();drawSample();}
+  function editable() {
+    return !disposed&&!liveDisplay&&visualMode==='sample'&&!canvas.inert&&!root.hidden&&
+      root.closest('.synth-editor')?.getAttribute('aria-busy')!=='true';
+  }
   function dimensions() {return {width:canvas.width,height:canvas.height,left:28,right:12,top:21,bottom:22};}
   function drawSample() {
     if(disposed||visualMode!=='sample'||!context)return;
@@ -65,9 +78,11 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     }
     const {width,height,left,right,top,bottom}=dimensions(),{sample,settings}=state.preset;
     if(lastDraw&&lastDraw.data===sample.data&&lastDraw.start===settings.loopStart&&lastDraw.end===settings.loopEnd&&
-      lastDraw.enabled===settings.loopEnabled&&lastDraw.width===width&&lastDraw.height===height)return;
+      lastDraw.enabled===settings.loopEnabled&&lastDraw.width===width&&lastDraw.height===height&&
+      lastDraw.editMode===editMode&&lastDraw.draftRevision===(stroke?.revision??0))return;
     if(decodedData!==sample.data){sampleBytes=pcmSampleBytes(sample);decodedData=sample.data;}
-    const frames=sampleBytes.length,w=Math.max(1,width-left-right),h=Math.max(1,height-top-bottom),middle=top+h/2;
+    const bytes=stroke?.draft.bytes??sampleBytes;
+    const frames=bytes.length,w=Math.max(1,width-left-right),h=Math.max(1,height-top-bottom),middle=top+h/2;
     const x=frame=>left+frame/frames*w,y=value=>middle-value*h*.45;
     context.fillStyle='#10191a';context.fillRect(0,0,width,height);
     context.strokeStyle='#304647';context.lineWidth=1;
@@ -78,14 +93,14 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     context.strokeStyle='#83c8e6';context.lineWidth=1.5;context.beginPath();
     if(frames<=w) {
       for(let frame=0;frame<frames;frame++) {
-        const px=left+frame/Math.max(1,frames-1)*w,py=y(amplitude(sampleBytes[frame]));
+        const px=left+frame/Math.max(1,frames-1)*w,py=y(amplitude(bytes[frame]));
         if(frame)context.lineTo(px,py);else context.moveTo(px,py);
       }
     } else {
       for(let pixel=0;pixel<Math.ceil(w);pixel++) {
         const start=Math.floor(pixel/w*frames),end=Math.min(frames,Math.max(start+1,Math.floor((pixel+1)/w*frames)));
         let low=1,high=-1;
-        for(let index=start;index<end;index++){const level=amplitude(sampleBytes[index]);low=Math.min(low,level);high=Math.max(high,level);}
+        for(let index=start;index<end;index++){const level=amplitude(bytes[index]);low=Math.min(low,level);high=Math.max(high,level);}
         context.moveTo(left+pixel,y(low));context.lineTo(left+pixel,y(high));
       }
     }
@@ -95,16 +110,17 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     }
     context.font='11px sans-serif';context.fillStyle='#b8cac6';context.textBaseline='top';context.textAlign='left';
     context.fillText('0',left,height-bottom+5);context.textAlign='right';context.fillText(`${frames} frames`,width-right,height-bottom+5);
-    context.textAlign='left';context.fillText('8-bit source PCM',left,4);
+    context.textAlign='left';context.fillText(stroke?'8-bit PCM · drawing':'8-bit source PCM',left,4);
     context.textAlign='right';context.fillStyle='#e7af6e';context.fillText(`End ${settings.loopEnd}`,width-right,4);
-    lastDraw={data:sample.data,start:settings.loopStart,end:settings.loopEnd,enabled:settings.loopEnabled,width,height};
+    lastDraw={data:sample.data,start:settings.loopStart,end:settings.loopEnd,enabled:settings.loopEnabled,width,height,
+      editMode,draftRevision:stroke?.revision??0};
   }
   function update(display=liveDisplay) {
     if(disposed)return state;
     const wasLive=Boolean(liveDisplay);liveDisplay=display;
     const next=display?{preset:display.preset,frames:display.frames,settings:display.preset?.settings??{
       volume:display.volume,panLeft:display.panLeft,panRight:display.panRight,rootNote:60,loopEnabled:false,loopStart:0,loopEnd:0}}:voice.getState();
-    if(next.preset?.sample.data!==state.preset?.sample.data||wasLive!==Boolean(display))releaseDrag();
+    if(!sameSample(next.preset?.sample,state.preset?.sample)||wasLive!==Boolean(display)) {releaseDrag();releaseStroke();}
     state=next;
     for(const [field,control]of controls)control.updateVisual(display&&field==='loopStart'?display.sourceLoopStart:
       display&&field==='loopEnd'?(display.sourceEnd??'—'):state.settings[field]);
@@ -134,11 +150,28 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
       const max=field==='volume'?255:field==='rootNote'?127:field==='loopStart'?state.settings.loopEnd-1:field==='loopEnd'?state.frames:15;
       button.disabled=step<0?value<=min:value>=max;
     }
-    refreshDescription();drawSample();return state;
+    refreshEditMode();refreshDescription();drawSample();return state;
+  }
+  function refreshEditMode() {
+    editGroup.hidden=visualMode!=='sample';
+    for(const button of editButtons) {
+      const selected=button.dataset.pcmEditMode===editMode;
+      button.setAttribute('aria-pressed',String(selected));button.classList.toggle('is-selected',selected);
+      button.disabled=Boolean(liveDisplay)||canvas.inert||!state.preset;
+    }
+    canvas.dataset.pcmTool=visualMode==='sample'&&!liveDisplay?editMode:'readonly';
+    canvas.setAttribute('aria-label',visualMode==='sample'?(liveDisplay?'Recorded PCM sample, read-only':
+      editMode==='draw'?'Draw source PCM waveform; release to apply':'Source PCM with loop start and end markers'):
+      visualMode==='waveform'?'Final output waveform':'Final output frequency spectrum');
   }
   function refreshDescription() {
-    if(description)description.textContent=visualMode==='sample'?(liveDisplay?'Recorded sample RAM · read-only.':'Sample view · drag L / E to set loop start / end.'):
+    if(description)description.textContent=visualMode==='sample'?(liveDisplay?'Recorded sample RAM · read-only.':
+      editMode==='draw'?'Draw · software wave editing · release to apply and stop held notes.':'Sample view · drag L / E to set loop start / end.'):
       visualMode==='waveform'?'Final output waveform · after volume.':'Final output spectrum · after volume · dB.';
+  }
+  function chooseEditMode(mode) {
+    if(!['range','draw'].includes(mode)||editMode===mode||liveDisplay||canvas.inert)return;
+    cancelEdit();editMode=mode;refreshEditMode();refreshDescription();drawSample();
   }
   function chooseVisualMode(mode) {
     if(!['sample','waveform','spectrum'].includes(mode)||visualMode===mode)return;
@@ -148,16 +181,19 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
       button.setAttribute('aria-pressed',String(selected));button.classList.toggle('is-selected',selected);
     }
     refreshDescription();
-    canvas.setAttribute('aria-label',mode==='sample'?'Source PCM with loop start and end markers':mode==='waveform'?'Final output waveform':'Final output frequency spectrum');
-    releaseDrag();lastDraw=null;drawSample();onVisualModeChange(mode);
+    releaseDrag();releaseStroke();refreshEditMode();lastDraw=null;drawSample();onVisualModeChange(mode);
   }
-  for(const button of [...builtinButtons,...visualButtons,...controlButtons,loopButton,loadButton]) {
+  for(const button of [...builtinButtons,...visualButtons,...editButtons,...controlButtons,loopButton,loadButton]) {
     listen(button,'pointerdown',event=>event.preventDefault());
     listen(button,'keydown',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
     listen(button,'keyup',event=>{if(event.key===' '||event.key==='Enter')event.stopPropagation();});
   }
   for(const button of builtinButtons)listen(button,'click',()=>{onBuiltin(button.dataset.pcmBuiltin);update();});
   for(const button of visualButtons)listen(button,'click',()=>chooseVisualMode(button.dataset.pcmVisualMode));
+  for(const button of editButtons) {
+    listen(button,'pointerdown',()=>document.activeElement?.blur());
+    listen(button,'click',()=>chooseEditMode(button.dataset.pcmEditMode));
+  }
   listen(loopButton,'click',()=>change('loopEnabled',!voice.getState().settings.loopEnabled));
   listen(loadButton,'click',()=>{input.value='';input.click();});
   listen(input,'change',()=>{const[file]=input.files??[];input.value='';if(file)onLoad(file);});
@@ -166,16 +202,49 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     const frame=Math.round(((event.clientX-rect.left)*scale-left)/Math.max(1,canvas.width-left-right)*state.frames);
     change(drag.field,frame);
   }
+  function moveStroke(event) {
+    if(stroke?.id!==event.pointerId)return;
+    if(!editable()) {cancelEdit();return;}
+    const rect=canvas.getBoundingClientRect(),{left,right,top,bottom}=dimensions();
+    const x=(event.clientX-rect.left)*canvas.width/Math.max(1,rect.width),y=(event.clientY-rect.top)*canvas.height/Math.max(1,rect.height);
+    const w=Math.max(1,canvas.width-left-right),h=Math.max(1,canvas.height-top-bottom);
+    stroke.draft.setPoint({index:Math.round(Math.max(0,Math.min(1,(x-left)/w))*(stroke.draft.bytes.length-1)),
+      value:Math.max(-1,Math.min(1,(top+h/2-y)/(h*.45)))});
+    stroke.revision++;drawSample();
+  }
   listen(canvas,'pointerdown',event=>{
-    if(liveDisplay||visualMode!=='sample'||drag||event.button!==0)return;
-    event.preventDefault();
+    if(!editable()||drag||stroke||event.button!==0)return;
+    event.preventDefault();document.activeElement?.blur();
+    if(editMode==='draw') {
+      stroke={id:event.pointerId,draft:createPcmWaveDraft(state.preset),source:{...state.preset.sample},revision:0};
+      canvas.setPointerCapture(event.pointerId);canvas.classList.add('is-dragging');moveStroke(event);return;
+    }
     const rect=canvas.getBoundingClientRect(),{left,right}=dimensions(),scale=canvas.width/Math.max(1,rect.width);
     const frame=((event.clientX-rect.left)*scale-left)/Math.max(1,canvas.width-left-right)*state.frames;
     drag={id:event.pointerId,field:Math.abs(frame-state.settings.loopStart)<Math.abs(frame-state.settings.loopEnd)?'loopStart':'loopEnd'};
     canvas.setPointerCapture(event.pointerId);canvas.classList.add('is-dragging');dragMarker(event);
   });
-  listen(canvas,'pointermove',event=>{if(drag?.id===event.pointerId){event.preventDefault();dragMarker(event);}});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])listen(canvas,type,event=>{if(drag?.id===event.pointerId)releaseDrag();});
+  listen(canvas,'pointermove',event=>{
+    if(drag?.id===event.pointerId){event.preventDefault();dragMarker(event);}
+    else if(stroke?.id===event.pointerId){event.preventDefault();moveStroke(event);}
+  });
+  listen(canvas,'pointerup',event=>{
+    if(drag?.id===event.pointerId)releaseDrag();
+    if(stroke?.id!==event.pointerId)return;
+    const current=voice.getState().preset;
+    if(!editable()||!sameSample(stroke.source,current?.sample)){cancelEdit();update();return;}
+    moveStroke(event);
+    const next=stroke.draft.finish(current);releaseStroke();
+    if(next)onSampleEdit(next);
+    update();
+  });
+  for(const type of ['pointercancel','lostpointercapture'])listen(canvas,type,event=>{
+    if(drag?.id===event.pointerId)releaseDrag();
+    if(stroke?.id===event.pointerId){releaseStroke();drawSample();}
+  });
+  listen(window,'blur',cancelEdit);
+  listen(document,'visibilitychange',()=>{if(document.hidden)cancelEdit();});
+  listen(document,'keydown',event=>{if(event.key==='Escape'&&stroke){event.preventDefault();event.stopPropagation();cancelEdit();}});
   const summary=help?.querySelector('summary');
   listen(summary,'keydown',event=>{if([' ','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key))event.stopPropagation();});
   listen(help,'keydown',event=>{if(event.key==='Escape'&&help.open){event.preventDefault();event.stopPropagation();help.open=false;summary.focus();}});
@@ -183,11 +252,16 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
   const resize=typeof ResizeObserver==='undefined'?null:new ResizeObserver(entries=>{
     const {width,height}=entries[0].contentRect;if(width<=0||height<=0)return;
     const w=Math.round(width),h=Math.round(height);if(canvas.width===w&&canvas.height===h)return;
-    canvas.width=w;canvas.height=h;lastDraw=null;drawSample();onVisualModeChange(visualMode);
+    releaseDrag();releaseStroke();canvas.width=w;canvas.height=h;lastDraw=null;drawSample();onVisualModeChange(visualMode);
   });
+  const editObserver=typeof MutationObserver==='undefined'?null:new MutationObserver(()=>{
+    if(canvas.inert||root.hidden)cancelEdit();refreshEditMode();
+  });
+  editObserver?.observe(canvas,{attributes:true,attributeFilter:['inert']});
+  editObserver?.observe(root,{attributes:true,attributeFilter:['hidden']});
   resize?.observe(canvas);update();
-  return {canvas,getVisualMode:()=>visualMode,update,drawSample,dispose(){
-    if(disposed)return;disposed=true;releaseDrag();resize?.disconnect();for(const remove of listeners)remove();
+  return {canvas,getVisualMode:()=>visualMode,getEditMode:()=>editMode,cancelEdit,update,drawSample,dispose(){
+    if(disposed)return;disposed=true;releaseDrag();releaseStroke();resize?.disconnect();editObserver?.disconnect();for(const remove of listeners)remove();
     if(help)help.open=false;
   }};
 }

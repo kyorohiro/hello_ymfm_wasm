@@ -1,6 +1,6 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
-import {setupSynthFiles} from './synth_files.js?v=synth-code-expand-1';
+import {setupSynthFiles} from './synth_files.js?v=pcm-wave-draw-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=shared-pcm-notes-1';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=shared-pcm-notes-1';
@@ -13,7 +13,7 @@ import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-release-1';
 import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-release-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-mixer-1';
-import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-end-1';
+import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-wave-draw-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-release-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=channel-mixer-1';
@@ -471,6 +471,7 @@ window.addEventListener('pagehide', event => {if (!event.persisted) operatorEnve
 
 // This updates the view only. Files owns durable FM/PSG document transitions.
 function showEditorTab(button) {
+  if(button.dataset.synthChip!=='pcm')pcmControls?.cancelEdit();
   for(const tab of editorChipTabs){const selected=tab===button;tab.classList.toggle('is-selected',selected);tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
   for(const panel of editorChipPanels)panel.hidden=panel.id!==button.getAttribute('aria-controls');
 }
@@ -758,6 +759,11 @@ psgControls = setupSynthPsgControls({
 pcmControls=setupSynthPcmControls({voice:pcmVoice,onBuiltin:shape=>{
   if(applyPcmEditPreset(createPcmBuiltinPreset(shape)))setStatus(`PCM ${shape} selected.`);
 },
+  onSampleEdit:preset=>{
+    const applied=applyPcmEditPreset(preset);
+    if(applied)setStatus('PCM waveform drawn. Press a key to hear it.');
+    return applied;
+  },
   onLoad:loadPcmWav,onVisualModeChange:()=>drawEnvelopeGuide(),onSettingsChange:patch=>{
     if(activeInstrumentKind!=='pcm'||isSongChannelTarget()||document.querySelector('.synth-editor').getAttribute('aria-busy')==='true')return;
     const previous=pcmVoice.getSettings();

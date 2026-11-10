@@ -134,9 +134,79 @@ async function marker(page,from,to,frames){const node=page.locator('#synthPcmCan
 async function menu(page){if(!await page.locator('#synthMenu').evaluate(n=>n.open))await page.locator('#synthMenuButton').click();}
 async function download(page,id){await menu(page);const promise=page.waitForEvent('download');await page.locator(id).click();const item=await promise,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return{bytes:Buffer.concat(chunks),name:item.suggestedFilename()};}
 async function exported(page){const file=await download(page,'#exportPcmButton');assert.match(file.name,/\.pcm\.json$/);return JSON.parse(file.bytes.toString());}
+// A DOM click exports without moving the mouse or stealing pointer capture.
+// This observes the committed authoring state while a drawing draft is open.
+async function exportedDuringStroke(page){const promise=page.waitForEvent('download');await evaluate(page,()=>document.getElementById('exportPcmButton').click());const item=await promise,chunks=[];for await(const chunk of await item.createReadStream())chunks.push(chunk);return JSON.parse(Buffer.concat(chunks).toString());}
 let loadCassette,calibratedPcmGain;
 async function cassette(page){const file=await download(page,'#exportCassetteButton');return{...file,value:await loadCassette(file.bytes)};}
 const bytesAt=(archive,p)=>{const bytes=archive.files.get(p.replace(/^\//,''));assert(bytes,'Missing virtual file '+p);return Buffer.from(bytes);};
+async function drawingChecks(page){
+  const canvas=page.locator('#synthPcmCanvas'),modes=page.locator('#synthPcmEditModeControls'),button=mode=>page.locator(`[data-pcm-edit-mode="${mode}"]`);
+  assert.equal(await button('range').getAttribute('aria-pressed'),'true','Range is the default canvas editing mode');
+  assert.equal(await button('draw').getAttribute('aria-pressed'),'false');assert(await modes.isVisible());
+  assert.equal(await page.locator('#synthChipPcm canvas').count(),1,'Range and Draw share one canvas');
+  await builtin(page,'sine');const initial=await exported(page),before=Buffer.from(initial.sample.data,'base64');
+  await page.locator('#synthPcmPresetSelect').focus();await button('draw').click();
+  assert.equal(await button('draw').getAttribute('aria-pressed'),'true');
+  assert(await evaluate(page,()=>document.activeElement!==document.getElementById('synthPcmPresetSelect')),'Draw mode returns mouse-selected controls to musical key input');
+  await page.keyboard.down('a');await sounding(page);const held=(await evaluate(page,()=>__pcmAudit.state())).mask;await drain(page);
+  async function point(frame,value){const box=await canvas.boundingBox(),size=await canvas.evaluate(node=>({width:node.width,height:node.height}));assert(box);return{x:box.x+(28+frame/255*(size.width-40))*box.width/size.width,y:box.y+(21+(size.height-43)/2-value*(size.height-43)*.45)*box.height/size.height};}
+  async function begin(from=40,level=.65){await canvas.scrollIntoViewIfNeeded();const start=await point(from,level);await canvas.evaluate(node=>node.addEventListener('pointerdown',event=>{window.__pcmDrawPointerId=event.pointerId;},{once:true}));await page.mouse.move(start.x,start.y);await page.mouse.down();}
+  async function move(to=100,level=-.65){const next=await point(to,level);await page.mouse.move(next.x,next.y);}
+  await begin();await move();
+  assert.deepEqual(await exportedDuringStroke(page),initial,'Dragging previews a draft without changing exported PCM');
+  assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,held,'Drawing preview retains the sounding physical voices');
+  assert(!(await drain(page)).some(row=>row.kind==='rf-memory'||row.kind==='rf-command'&&['keyOff','releaseNote','reset'].includes(row.method)||row.kind==='rf'&&row.register===8),'Drawing preview does not upload RAM or stop notes');
+  await page.mouse.up();await pcmReady(page);await silence(page);await up(page);
+  const committed=await exported(page),after=Buffer.from(committed.sample.data,'base64'),writes=await drain(page);
+  assert.equal(writes.filter(row=>row.kind==='rf-memory').length,1,'A completed stroke uploads the new source exactly once');
+  assert.equal(after.length,before.length);assert(!after.includes(255),'Draw never emits the reserved RF5C164 marker');
+  assert.deepEqual({...committed.sample,data:initial.sample.data},initial.sample,'Painting preserves source name/rate/encoding');assert.deepEqual(committed.settings,initial.settings,'Painting preserves Root/Loop/Volume/Pan');
+  assert.deepEqual(after.subarray(0,38),before.subarray(0,38));assert.deepEqual(after.subarray(103),before.subarray(103),'Unpainted sample bytes are unchanged');
+  const amplitude=byte=>(byte&127)/126*(byte&128?1:-1);
+  for(let frame=45;frame<=95;frame++){const target=.65-1.3*(frame-40)/60;assert(Math.abs(amplitude(after[frame])-target)<.04,'A fast positive/negative stroke interpolates skipped PCM frames: '+frame);}
+  assert.notDeepEqual(after,before);assert.equal(await page.locator('#keyboard .key.is-active').count(),0,'Releasing the drawing stroke retires held keyboard notes');
+  await begin(220,-.5);await move(172,.5);await page.mouse.up();await pcmReady(page);
+  const painted=await exported(page),reversed=Buffer.from(painted.sample.data,'base64');
+  for(let frame=177;frame<=215;frame++){const target=.5-(frame-172)/48;assert(Math.abs(amplitude(reversed[frame])-target)<.04,'Right-to-left strokes interpolate in sample order: '+frame);}
+  assert(!reversed.includes(255));assert.deepEqual(reversed.subarray(0,170),after.subarray(0,170));assert.deepEqual(reversed.subarray(223),after.subarray(223));
+  // Verify the source format and normal Files/Cassette flow, rather than a
+  // second drawing-only serialization path.
+  await sync(page);const drawnPath=await pathNow(page);await builtin(page,'triangle');await page.locator('#synthFileRevertButton').click();await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),painted,'Revert restores the painted PCM checkpoint');
+  const archive=await cassette(page);assert.deepEqual(JSON.parse(bytesAt(archive.value,drawnPath).toString()),painted,'Cassette contains the painted source bytes');
+  await page.locator('#tfiFile').setInputFiles({name:'Drawn PCM.pcm.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(painted))});await ready(page);await pcmReady(page);assert.deepEqual(await exported(page),painted,'Painted PCM JSON round-trips through normal import');
+  const cancellation=[];
+  for(const reason of ['pointercancel','lostpointercapture','Escape','blur','visual-mode','tab','preset']){
+    await button('draw').click();const kept=await exported(page);
+    if(reason==='pointercancel'){await note(page);await sounding(page);}
+    const cancelHeld=reason==='pointercancel'?(await evaluate(page,()=>__pcmAudit.state())).mask:null;
+    await drain(page);await begin(115,.8);await move(145,-.8);
+    if(reason==='pointercancel'||reason==='lostpointercapture')await canvas.dispatchEvent(reason,{pointerId:await evaluate(page,()=>window.__pcmDrawPointerId)});
+    else if(reason==='Escape')await page.keyboard.press('Escape');
+    else if(reason==='blur')await evaluate(page,()=>window.dispatchEvent(new Event('blur')));
+    else if(reason==='visual-mode')await page.locator('[data-pcm-visual-mode="waveform"]').evaluate(node=>node.click());
+    else if(reason==='tab')await tab(page,'psg').evaluate(node=>node.click());
+    else await page.locator('[data-pcm-builtin="triangle"]').evaluate(node=>node.click());
+    await page.mouse.up();
+    if(reason==='tab')await chip(page,'pcm');
+    if(reason==='visual-mode')await page.locator('[data-pcm-visual-mode="sample"]').click();
+    await ready(page);await pcmReady(page);
+    const actual=await exported(page);
+    if(reason==='preset')assert.equal(actual.sample.name,'Triangle','Old stroke release does not overwrite a replacement preset');
+    else assert.deepEqual(actual,kept,'Cancelled draft keeps committed bytes: '+reason);
+    if(reason==='pointercancel'){assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,cancelHeld,'Cancelling a stroke preserves held hardware voices');await sounding(page);await up(page);await silence(page);}
+    const cancelledWrites=await drain(page);if(!['preset','tab'].includes(reason))assert(!cancelledWrites.some(row=>row.kind==='rf-memory'),'Cancelled draft does not upload RAM: '+reason);
+    cancellation.push(reason);
+  }
+  const protectedSource=await exported(page);
+  for(const mode of ['waveform','spectrum']){
+    await page.locator(`[data-pcm-visual-mode="${mode}"]`).click();assert(await modes.isHidden(),'Output view hides source editing modes');
+    await begin(80,.8);await move(130,-.8);await page.mouse.up();assert.deepEqual(await exported(page),protectedSource,'Output canvas is not a sample editor: '+mode);
+  }
+  await page.locator('[data-pcm-visual-mode="sample"]').click();await button('range').click();
+  await builtin(page,'sine');
+  return{frames:after.length,changedFrames:after.reduce((count,value,index)=>count+Number(value!==before[index]),0),strokeUploads:1,cancellation,roundTrip:true,physicalOutputMuted:true};
+}
 const pathNow=page=>page.locator('#synthActiveFilePath').textContent();
 async function sync(page){await page.locator('#synthFileSaveButton').click();await ready(page);await until(page,()=>page.locator('#synthFileSaveButton').getAttribute('data-feedback').then(v=>v==='success'),'Sync succeeds');}
 async function choose(page,tonePath){if(!await page.locator('#synthFilesPanel').isVisible())await page.locator('#synthFilesToggle').click();for(let i=0;i<20;i++){const closed=page.locator('#synthFilesTree details:not([open]) > summary[data-file-path]');if(!await closed.count())break;await closed.first().click();}
@@ -199,6 +269,7 @@ async function run(browser,name,origin){const{page,errors}=await open(browser,or
   await up(page,heldKeys[1]);await silence(page);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,255,'Releasing the final key really stops both voices');
   result.liveLoopEdits=heldEdits;
   await builtin(page,'sine');steps.push('Builtins, native 8-voice round robin, signal-derived System/Master gain, hardware volume/pan/root/Pitch, visual modes, draggable guarded markers and held-note End shrink / grow continuity');
+  result.drawing=await drawingChecks(page);steps.push('One source canvas defaults to Range; software Draw previews without changing audio, applies one guarded source upload on release, interpolates both directions, cancels stale strokes and round-trips through Files/PCM JSON/Cassette');
   await loadWav(page,'Short authored.wav',wav(.25));assert.equal((await settings(page)).loopEnabled,false);await note(page);await pause(700);await silence(page);assert(await page.locator('#keyboard .key[data-key="a"]').evaluate(n=>n.classList.contains('is-active')),'One shot silences while key stays held');await up(page);await loop(page,true);await note(page);await pause(700);await sounding(page);await up(page);await silence(page);
   await loadWav(page,'Long authored.wav',wav(3,48000));assert.match(await page.locator('#synthPcmLoadStatus').textContent(),/Software resampling/);const fitted=await exported(page),frames=Buffer.from(fitted.sample.data,'base64').length;assert(frames<=65503&&frames>65000);assert(Math.abs(frames/fitted.sample.sampleRate-3)<.002,'Software fit preserves duration');result.wav={frames,rate:fitted.sample.sampleRate,duration:frames/fitted.sample.sampleRate};
   await page.locator('#synthPcmAudioFile').setInputFiles({name:'Bad.wav',mimeType:'audio/wav',buffer:Buffer.from('not wave')});await until(page,()=>page.locator('#status').textContent().then(v=>v.includes('WAV load failed')),'Invalid WAV rejects');assert.deepEqual(await exported(page),fitted,'Invalid WAV preserves current sample/settings');
@@ -213,7 +284,11 @@ async function run(browser,name,origin){const{page,errors}=await open(browser,or
   steps.push('Self-contained PCM JSON export, strict invalid import, Sync/Revert, mixed FM/PSG/PCM Cassette byte preservation and dirty reload recovery');
   await chip(page,'ym2612');await page.locator('#presetSelect').selectOption('sine');await ready(page);await drain(page);for(const k of keys.slice(0,8))await down(page,k);await pause(100);assert.equal(await page.locator('#keyboard .key.is-active').count(),6,'FM allocator remains six voices');const fm=(await drain(page)).filter(w=>w.type==='write'&&w.register===0x28&&(w.value&0xf0));assert(fm.length>=6&&fm.every(w=>[0,1,2,4,5,6].includes(w.value&7)),'FM never writes invalid seventh/eighth hardware channel');for(const k of keys)await up(page,k);await silence(page);
   await chip(page,'psg');await page.locator('[data-psg-source="tone"]').click();await drain(page);for(const k of keys.slice(0,4))await down(page,k);await pause(100);assert.equal(await page.locator('#keyboard .key.is-active').count(),3,'PSG Tone allocator remains three voices');for(const k of keys)await up(page,k);await silence(page);
-  await page.locator('#tfiFile').setInputFiles({name:'Authored reference.vgm',mimeType:'application/octet-stream',buffer:authoredReference()});await ready(page);await page.locator('#synthSongChannelSelect').selectOption('0');await page.locator('#synthSongPlayButton').click();await until(page,()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'Reference VGM starts');assert(!await tab(page,'pcm').isDisabled(),'PCM remains selectable during reference Live');await tab(page,'pcm').click();assert.equal(await page.locator('#synthSongChannelSelect').inputValue(),'pcm:0','Switching chip keeps a reference target');assert.equal(await tab(page,'pcm').getAttribute('aria-selected'),'true');assert.match(await page.locator('#synthSongLiveStatus').textContent(),/No Mega CD PCM in this VGM/);await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await chip(page,'pcm');await pcmReady(page);
+  await chip(page,'pcm');const beforeLive=await exported(page);
+  await page.locator('#tfiFile').setInputFiles({name:'Authored reference.vgm',mimeType:'application/octet-stream',buffer:authoredReference()});await ready(page);await page.locator('#synthSongChannelSelect').selectOption('0');await page.locator('#synthSongPlayButton').click();await until(page,()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'Reference VGM starts');assert(!await tab(page,'pcm').isDisabled(),'PCM remains selectable during reference Live');await tab(page,'pcm').click();assert.equal(await page.locator('#synthSongChannelSelect').inputValue(),'pcm:0','Switching chip keeps a reference target');assert.equal(await tab(page,'pcm').getAttribute('aria-selected'),'true');assert.match(await page.locator('#synthSongLiveStatus').textContent(),/No Mega CD PCM in this VGM/);
+  assert(await page.locator('[data-pcm-edit-mode="range"]').isDisabled()&&await page.locator('[data-pcm-edit-mode="draw"]').isDisabled(),'VGM Live source view disables both editing modes');
+  const liveCanvas=page.locator('#synthPcmCanvas');await liveCanvas.scrollIntoViewIfNeeded();const liveBox=await liveCanvas.boundingBox();assert(liveBox);await page.mouse.move(liveBox.x+liveBox.width*.25,liveBox.y+liveBox.height*.25);await page.mouse.down();await page.mouse.move(liveBox.x+liveBox.width*.65,liveBox.y+liveBox.height*.7);await page.mouse.up();
+  await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await chip(page,'pcm');await pcmReady(page);assert.deepEqual(await exported(page),beforeLive,'Drawing cannot alter the authored source through a Live view');
   steps.push('Eight-slot pool keeps FM at six and PSG Tone at three; switching reference Live to a missing PCM chip preserves its target until Synth is selected');
   await silence(page);result.routeReplacement=await evaluate(page,async()=>{
     const {createSynthPcmAudio}=await import(new URL('./synth_pcm_audio.js?v=pcm-editor-1',location.href).href);

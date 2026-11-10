@@ -391,6 +391,10 @@
       .synth-pcm-number .param-button { width: 26px; height: 26px; }
       .synth-pcm-number .param-value { min-width: 45px; min-height: 26px; font-size: .78rem; touch-action: none; font-variant-numeric: tabular-nums; }
       #synthPcmCanvas { touch-action: none; }
+      #synthPcmCanvas[data-pcm-tool="draw"]:not([inert]) { cursor: crosshair; }
+      .synth-pcm-edit-modes { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+      .synth-pcm-edit-modes[hidden] { display: none; }
+      .synth-pcm-edit-modes > span { font-size: .65rem; color: #a8bfba; margin-right: 2px; }
       #synthPcmLoadStatus { color: #dfbd90; overflow-wrap: anywhere; font-size: .68rem; }
       .synth-pcm-field[hidden] { display: none; }
       .synth-pcm-step { text-align: center; padding: 6px; border: 1.5px solid var(--pill-border); border-radius: 999px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -1653,6 +1657,10 @@
                   <button type="button" class="toolbar-button is-selected" data-pcm-visual-mode="sample" aria-pressed="true">Sample</button>
                   <button type="button" class="toolbar-button" data-pcm-visual-mode="waveform" aria-pressed="false">Waveform</button>
                   <button type="button" class="toolbar-button" data-pcm-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+                  <span id="synthPcmEditModeControls" class="synth-pcm-edit-modes" role="group" aria-label="PCM sample editing mode">
+                    <span>Edit</span><button type="button" class="toolbar-button is-selected" data-pcm-edit-mode="range" aria-pressed="true">Range</button>
+                    <button type="button" class="toolbar-button" data-pcm-edit-mode="draw" aria-pressed="false">Draw</button>
+                  </span>
                 </div>
                 <p id="synthPcmVisualizerDescription" class="synth-psg-description">Sample view · drag L / E to set loop start / end.</p>
                 <canvas id="synthPcmCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="PCM sample and loop range"></canvas>
@@ -1666,6 +1674,7 @@
                     <p>Software release smoothing lowers only the released voice's Volume over 4 ms before stopping it. This is a Synth software feature, shared by keyboard audition, Event Rec and Looper; the RF5C164 has no hardware ADSR envelope. Held voices keep their original sound. Stop and sample changes stop voices immediately.</p>
                     <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
                     <p>Root note plays at the original sample speed. Loop Start and End can change while notes are held. End moves a marker in shared RAM without restarting the voices. Changing the sample stops held notes. Loop Off plays once and then loops silence; extending End can expose more audio to a held voice.</p>
+                    <p>Sample view starts in Range mode. Choose Draw to paint the source waveform on the same canvas. This is software PCM editing: a stroke previews while dragging and applies when released, stopping held notes. Escape, pointer cancellation or leaving the editor discards the unfinished stroke. Drawing keeps the sample length, rate, Root and Loop settings; save it with the existing PCM preset or Files / Cassette controls. Waveform and Spectrum show output only; VGM Live is read-only.</p>
                     <p>VGM Live shows the selected PCM channel's written settings and sample RAM at the audible position. Pause to play that sample on the selected channel; Copy creates a new Synth instrument. C4 is the captured playback speed, not an inferred original note. A snapshot cannot preserve later RAM edits or a game's software envelope.</p>
                     <p>Wrapped samples, unknown RAM or unsafe end markers cannot be copied or auditioned.</p>
                     <p>Software Event Rec records notes, Pitch, PCM settings and sample changes into self-contained JSON. Start Event Rec, then use Record / Stop or Space. Stopping a take starts loop playback on a separate PCM chip. Use current sound captures your current sample and settings when playback starts; later edits do not change that playback. Original note and stop timing is retained. Export / import takes from Menu.</p>
@@ -1814,7 +1823,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=shared-pcm-notes-1";
+      import "./synth.js?v=pcm-wave-draw-1";
     </script>
   </body>
 </html>
