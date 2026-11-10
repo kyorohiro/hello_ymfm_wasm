@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupSynthFiles} from './synth_files.js';
 import {createSynthProject,isPsgPresetPath} from './synth_project.js';
-import {createPsgPreset,isPsgPreset} from './synth_psg_preset.js';
+import {createPsgPreset,isPsgPreset,normalizePsgPreset} from './synth_psg_preset.js';
 
 class Element {
   constructor(tag='div') {this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attributes={};this.style={};this.listeners=new Map();this.hidden=false;this.open=false;this.value='';
@@ -45,7 +45,7 @@ function harness(store={saved:null,journal:new Map()}) {
   globalThis.indexedDB={open(){const request={result:database};queueMicrotask(()=>{request.onupgradeneeded?.();request.onsuccess?.();});return request;}};
   const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({})},ids={fm:'one-op-basic',psg:'psg-default'},messages=[];
   let kind='fm';
-  function applySnapshot(preset,id){kind=isPsgPreset(preset)?'psg':'fm';patches[kind]=structuredClone(preset);ids[kind]=id;}
+  function applySnapshot(preset,id){kind=isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
   const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='psg'?'psg-default':'one-op-basic',
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
     applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='psg-default'?createPsgPreset({}):fm(),id),
@@ -171,4 +171,46 @@ test('awaiting a file or built-in selection makes its editor context durable bef
   h=harness(store);
   try {await h.files.ready;assert.equal(h.kind,'psg');assert.equal(h.files.activeTonePath,null);assert.equal(h.ids.psg,'psg-default');}
   finally {h.cleanup();}
+});
+
+test('software envelope edits retain Sync/Revert and immediate recovery independently from FM',async()=>{
+  const store={saved:null,journal:new Map()},savedEnvelope={enabled:true,attackMs:80,decayMs:270,sustain:40,releaseMs:900};
+  let h=harness(store),fmPath,psgPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:3},'Envelope FM');fmPath=h.files.activeTonePath;
+    await h.files.createFromPreset(createPsgPreset({envelope:savedEnvelope}),'Envelope PSG');psgPath=h.files.activeTonePath;
+    await h.action('sync');h.patches.psg.settings.envelope.releaseMs=1500;h.files.markDirty();
+    assert.deepEqual(h.project.readTone(psgPath).preset.settings.envelope,{...savedEnvelope,releaseMs:1500});
+    await h.files.switchEditor('fm');assert.equal(h.patches.fm.feedback,3);await h.files.switchEditor('psg');
+    assert.equal(h.patches.psg.settings.envelope.releaseMs,1500);await h.action('revert');
+    assert.deepEqual(h.patches.psg.settings.envelope,savedEnvelope);
+    h.patches.psg.settings.envelope.sustain=12;h.files.markDirty();
+  } finally {h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;assert.equal(h.files.activeTonePath,psgPath);
+    assert.deepEqual(h.patches.psg.settings.envelope,{...savedEnvelope,sustain:12});
+    await h.action('revert');assert.deepEqual(h.patches.psg.settings.envelope,savedEnvelope);
+    await h.files.switchEditor('fm');assert.equal(h.files.activeTonePath,fmPath);assert.equal(h.patches.fm.feedback,3);
+  } finally {h.cleanup();}
+});
+
+test('a legacy saved PSG editor context migrates to Envelope Off without rewriting its original file',async()=>{
+  const store={saved:null,journal:new Map()},legacy={version:1,kind:'tetorica-sega-psg',settings:{source:'tone',attenuation:7,noiseType:'white',noiseRate:'medium'}};
+  let h=harness(store),psgPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Legacy context FM');
+    await h.files.createFromPreset(createPsgPreset(legacy.settings),'Legacy context PSG');psgPath=h.files.activeTonePath;
+    await h.files.switchEditor('fm');
+    const saved=store.saved;
+    for(const file of saved.project.files)if(file.path===psgPath||file.path==='/.tet.ss'+psgPath)file.data=JSON.stringify(legacy)+'\n';
+    saved.editorContexts.psg.preset=structuredClone(legacy);saved.editorContexts.psg.basePreset=structuredClone(legacy);
+  } finally {h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;h.patches.psg.settings.envelope.enabled=true;
+    assert.equal(await h.files.switchEditor('psg'),true);assert.equal(h.files.activeTonePath,psgPath);
+    assert.equal(h.patches.psg.version,2);assert.equal(h.patches.psg.settings.envelope.enabled,false);
+    assert.equal(JSON.parse(h.project.fs.get(psgPath).data).version,1,'restoring an old context does not auto-save a migration');
+  } finally {h.cleanup();}
 });

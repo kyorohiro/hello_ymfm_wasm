@@ -1,4 +1,4 @@
-import {createSynthProject,isSynthTonePath,isPsgPresetPath,synthStatePath} from './synth_project.js?v=psg-presets-1';
+import {createSynthProject,isSynthTonePath,isPsgPresetPath,synthStatePath} from './synth_project.js?v=psg-envelope-1';
 import {CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/filesystem.js';
 import {resolvePath} from '../js/tetorica_virtual_files/path.js';
 

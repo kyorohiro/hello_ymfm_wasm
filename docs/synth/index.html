@@ -367,6 +367,18 @@
       .synth-psg-number .param-value { min-width: 32px; min-height: 26px; font-size: .78rem; font-variant-numeric: tabular-nums; touch-action: none; }
       .synth-psg-scale { color: #a8bfba; font-size: .65rem; }
       .synth-psg-noise[hidden] { display: none; }
+      .synth-psg-envelope { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+      .synth-psg-envelope-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .synth-psg-envelope-heading h3 { margin: 0; font-size: .76rem; }
+      .synth-psg-envelope-heading [aria-pressed="true"] { color: #7be0d6; border-color: #6c9b8e; background: #29413d; }
+      .synth-psg-envelope-caption { margin: 4px 0 0; color: #c3af98; font-size: .65rem; line-height: 1.5; }
+      .synth-psg-envelope-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; margin-top: 8px; }
+      .synth-psg-envelope-controls[hidden] { display: none; }
+      .synth-psg-envelope-field { display: grid; gap: 4px; min-width: 0; }
+      .synth-psg-envelope-field > span { color: #b8cac6; font-size: .65rem; }
+      .synth-psg-envelope-number.param-control.no-label { grid-template-columns: 26px minmax(32px, 1fr) 26px; gap: 0; min-width: 0; padding: 0 2px; }
+      .synth-psg-envelope-number .param-button { width: 26px; height: 26px; }
+      .synth-psg-envelope-number .param-value { min-width: 32px; min-height: 26px; font-size: .78rem; font-variant-numeric: tabular-nums; touch-action: none; }
       .synth-psg-hint { margin: 10px 0 0; color: #a8bfba; font-size: .68rem; line-height: 1.5; }
       .synth-psg-help { position: relative; font-size: .7rem; }
       .synth-psg-help summary { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--pill-border); border-radius: 50%; cursor: pointer; list-style: none; }
@@ -1556,6 +1568,7 @@
                       <p>Three hardware tone channels play fixed 50% duty square waves. New notes rotate through them. PSG has no hardware ADSR. Low notes clamp at the 10-bit tone-period limit.</p>
                       <p>Attenuation changes in 2 dB steps: 0 is loudest, 15 is silent. Master volume is shared with the other editors.</p>
                       <p>Noise has one channel. Clock / 512, / 1024 and / 2048 use fixed clocks; keys retrigger the noise without changing its pitch. Tone 3 links its clock to the keyboard and Pitch. The Tone 3 square-wave output stays silent.</p>
+                      <p>Software Envelope is an added software feature, not a hardware PSG envelope. It moves each voice's real attenuation in 2 dB steps. Attack, Decay and Release are milliseconds; Sustain is a level percentage. ADSR edits apply to new notes. Changing On / Off stops held notes and release tails.</p>
                     </div>
                   </details>
                 </div>
@@ -1587,6 +1600,19 @@
                       <button type="button" class="toolbar-button" data-psg-noise-rate="high" aria-pressed="false">Clock / 2048</button>
                       <button type="button" class="toolbar-button" data-psg-noise-rate="tone3" aria-pressed="false">Tone 3</button>
                     </div>
+                  </div>
+                </div>
+                <div class="synth-psg-envelope" aria-labelledby="synthPsgEnvelopeTitle">
+                  <div class="synth-psg-envelope-heading">
+                    <h3 id="synthPsgEnvelopeTitle">Software Envelope</h3>
+                    <button id="synthPsgEnvelopeEnabled" type="button" class="toolbar-button" aria-label="Enable software envelope" aria-pressed="false" aria-expanded="false" aria-controls="synthPsgEnvelopeControls">Off</button>
+                  </div>
+                  <p class="synth-psg-envelope-caption">Software control · not a hardware PSG envelope</p>
+                  <div id="synthPsgEnvelopeControls" class="synth-psg-envelope-controls" hidden>
+                    <div class="synth-psg-envelope-field"><span>Attack · ms</span><div id="synthPsgEnvelopeAttackControl"></div></div>
+                    <div class="synth-psg-envelope-field"><span>Decay · ms</span><div id="synthPsgEnvelopeDecayControl"></div></div>
+                    <div class="synth-psg-envelope-field"><span>Sustain · %</span><div id="synthPsgEnvelopeSustainControl"></div></div>
+                    <div class="synth-psg-envelope-field"><span>Release · ms</span><div id="synthPsgEnvelopeReleaseControl"></div></div>
                   </div>
                 </div>
                 <p id="synthPsgHint" class="synth-psg-hint">Tone · 3 hardware channels · round robin.</p>
@@ -1682,7 +1708,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=psg-presets-1";
+      import "./synth.js?v=psg-envelope-1";
     </script>
   </body>
 </html>

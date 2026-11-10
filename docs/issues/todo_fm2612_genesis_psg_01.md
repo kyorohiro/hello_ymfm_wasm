@@ -1,5 +1,30 @@
 # FM2612 / Genesis Synth：PSG基本演奏（2026-11-10）
 
+## 完了：PSG Software Envelope
+
+ユーザー指示：PSGへSoftware Envelopeを追加し、ソフトウェア機能だと画面から分かるようにする。
+
+- [x] 初期値OffのAttack／Decay／Sustain／Releaseを追加し、Tone／Noiseへ適用する。実機にADSRがないこととソフトウェアによる音量制御であることを明記する。
+- [x] 共通のコンパクトなドラッグ数値UIを使い、鍵盤focus・hardware Attenuationの表示と役割を維持する。
+- [x] AudioWorklet内で時間を進め、実機4bit減衰registerを制御する。Main threadのtimer／描画更新に依存せず、独立した各音のrelease・再発音／voice steal・stop／音源切替／disposeを扱う。DSP／WASM／校正値とFM経路は変更しない。
+- [x] PSG JSONへ保存する。既存version 1音色はEnvelope Offとして読み込める互換性を保ち、Sync／Revert／Cassette／復旧と不正入力拒否を検証する。
+- [x] 実WASMのADSR時間変化、Envelope Off時の従来音一致、Tone／Noise、Release中の再発音と全消音を自動確認する。Chromium／WebKitで操作・実音・保存復旧・狭幅表示とFM回帰を確認する。
+- [x] README／cache key／配布ZIP／再開用記録を更新する。commit／push／公開は行わない。
+
+実装：常時見える`Software Envelope`見出しと`Software control · not a hardware PSG envelope`の説明を追加し、On時だけADSR controlsを展開する。既存FMの数値factoryは変更せず再利用。Attack／Decay／Releaseは0〜5000ms、Sustainは0〜100%。初期値はOff／10ms／180ms／70%／180ms。ADSR編集は次の発音から、On／Off切替はheld notesとrelease tailsを停止する。Attenuationは基準となるhardware値のままで、Envelope中とRelease中にも即時反映する。
+
+音声：Synth専用Workletとpure envelope helperを追加した。約1msのsample-clock単位で線形ADSR levelを実機2dB刻みの減衰値へ変換し、PSG registerへ書く。音量の外付けGainNodeでADSRを作らない。各Note OnのADSRをsnapshotし、独立したRelease・再発音・voice steal・source／tab変更・disposeで旧Envelopeを残さない。音量writeがPSG内部latchを変えるため、継続するfrequency high byteの送信先registerを保持して復元する。Envelope Offは従来のraw writeとPCMを保ち、共有PSG API／Worklet／DSP／WASM／校正値は変更しない。
+
+保存：canonical PSG JSONはversion 2として完全な`envelope`設定を含む。version 1の4設定はOffへ移行して読み込み、元bytesとcheckpointは明示的な編集まで保持する。legacy IndexedDBの直接snapshotにもnormalizerを通し、以前のOn状態を継承しない。JSON／Sync／Revert／Cassette／即時journal復旧、入れ子の不正値・未知fieldの原子的拒否を確認した。
+
+検証：`node --test --test-concurrency=1 docs/synth/*.test.mjs`で229件成功。実WASMでOff PCMの完全一致、Tone／Noise ADSR、127／128等render分割のPCM一致、独立Releaseと全消音、private Workletのlatch復元・reset／disposeを確認。source／配布版のChromium・WebKitでSoftware表記・初期Off・ADSRの実mouse drag／±・focus状態の鍵盤・実音のAttack→Decay→Sustain→Release・独立tone・Noise Release・Off時の尾音停止・v1読込→v2保存・JSON／Cassette／Reload／Sync／Revert・不正Envelopeの不変性・390／1240px表示を確認した。speaker edgeは物理muteした自動計測で、人の実聴とは区別する。
+
+記録：`/private/tmp/fm2612-psg-envelope-node-20261110.log`、`/private/tmp/fm2612-psg-envelope-source-20261110.json`（105 assets）、`/private/tmp/fm2612-psg-envelope-package-browser-20261110.json`（103 assets）。各receiptの全asset hashが最終ファイルに一致。entry／private dependencyのcache keyは`psg-envelope-1`。
+
+FM回帰：最終stageのChromium／WebKitでVGM seek／bounded cache／Live／paused audition／取消・source切替も成功。receipt：`/private/tmp/fm2612-psg-envelope-seek-20261110.json`。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-envelope-check-20261110_itch_synth.zip`（229 files、860,858 bytes、SHA-256 `f3318c5ae5918be0c4a8efdf7199d45af5d979d1c26af5ad39d9fed43969695b`）。全fileがstageとbyte一致、294 local references検査成功。receipt：`/private/tmp/fm2612-psg-envelope-package-20261110.json`。README英語／日本語とpackaging更新済み。未commit／未push／未公開。
+
 ## 完了：PSG音色のFiles／Cassette保存
 
 ユーザー指示：PSG音色の保存・読み込みを進め、Files／Cassetteへ保存して開くとPSGタブへ切り替える。

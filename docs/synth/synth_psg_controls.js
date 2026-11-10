@@ -1,9 +1,10 @@
 import {createParamControl} from './synth_controls.js?v=op-gates-1';
 
-/** Compact session controls for the shared keyboard's Sega PSG voice. */
+/** Compact instrument controls for the shared keyboard's Sega PSG voice. */
 export function setupSynthPsgControls({
   voice,
   onBeforeSourceChange = () => {},
+  onBeforeEnvelopeToggle = () => {},
   onSettingsChange = () => {},
   onVisualModeChange = () => {},
 }) {
@@ -15,6 +16,8 @@ export function setupSynthPsgControls({
   const noiseControls = document.getElementById('synthPsgNoiseControls');
   const hint = document.getElementById('synthPsgHint');
   const help = document.getElementById('synthPsgHelp');
+  const envelopeEnabled = document.getElementById('synthPsgEnvelopeEnabled');
+  const envelopePanel = document.getElementById('synthPsgEnvelopeControls');
   const listeners = [];
   let settings = voice.getSettings(), visualMode = 'waveform', disposed = false;
   const attenuationControl = createParamControl({
@@ -36,6 +39,30 @@ export function setupSynthPsgControls({
   const rateButtons = [...root.querySelectorAll('[data-psg-noise-rate]')];
   const attenuationButtons = [...root.querySelectorAll('[data-psg-attenuation-step]')];
   const visualButtons = [...root.querySelectorAll('[data-psg-visual-mode]')];
+  const envelopeControls = new Map();
+  const envelopeButtons = [];
+  for (const [field, name, max, step] of [
+    ['attackMs', 'Attack', 5000, 10], ['decayMs', 'Decay', 5000, 10],
+    ['sustain', 'Sustain', 100, 1], ['releaseMs', 'Release', 5000, 10],
+  ]) {
+    const control = createParamControl({
+      label:`Software envelope ${name.toLowerCase()}${field === 'sustain' ? ', percent' : ', milliseconds'}`,
+      min:0, max, step, value:settings.envelope[field], showLabel:false, category:'envelope',
+      onChange:value => changeEnvelope(field, value),
+    });
+    control.element.classList.add('synth-psg-envelope-number');
+    document.getElementById(`synthPsgEnvelope${name}Control`).replaceWith(control.element);
+    const value = control.element.querySelector('.param-value');
+    value.id = `synthPsgEnvelope${name}`;
+    value.title = `Drag left/right to adjust. ${field === 'sustain' ? 'Sustain level, 0–100%.' : name + ' time, 0–5000 ms.'} Applies to new notes.`;
+    for (const [index, button] of [...control.element.querySelectorAll('.param-button')].entries()) {
+      button.dataset.psgEnvelopeField = field;
+      button.dataset.psgEnvelopeStep = String(index ? 1 : -1);
+      button.setAttribute('aria-label', `${index ? 'Increase' : 'Decrease'} software envelope ${name.toLowerCase()}`);
+    }
+    envelopeControls.set(field, control);
+    envelopeButtons.push(...control.element.querySelectorAll('button'));
+  }
   const clockLabels = {low:'Clock / 512', medium:'Clock / 1024', high:'Clock / 2048', tone3:'Tone 3'};
   // Match drawing coordinates to the displayed size so axis text keeps its
   // proportions on narrow screens. Resize only on layout changes, not frames.
@@ -52,7 +79,7 @@ export function setupSynthPsgControls({
     node.addEventListener(type, handler);
     listeners.push(() => node.removeEventListener(type, handler));
   };
-  const readState = () => ({...settings});
+  const readState = () => ({...settings, envelope:{...settings.envelope}});
   function selected(buttons, attribute, value) {
     for (const button of buttons) {
       const active = button.dataset[attribute] === value;
@@ -62,7 +89,7 @@ export function setupSynthPsgControls({
   }
   function update(next = voice.getSettings()) {
     if (disposed) return readState();
-    settings = {...next};
+    settings = {...next, envelope:{...next.envelope}};
     selected(sourceButtons, 'psgSource', settings.source);
     selected(typeButtons, 'psgNoiseType', settings.noiseType);
     selected(rateButtons, 'psgNoiseRate', settings.noiseRate);
@@ -73,6 +100,11 @@ export function setupSynthPsgControls({
       button.disabled = delta < 0 ? settings.attenuation === 0 : settings.attenuation === 15;
     }
     noiseControls.hidden = settings.source !== 'noise';
+    envelopeEnabled.setAttribute('aria-pressed', String(settings.envelope.enabled));
+    envelopeEnabled.setAttribute('aria-expanded', String(settings.envelope.enabled));
+    envelopeEnabled.textContent = settings.envelope.enabled ? 'On' : 'Off';
+    envelopePanel.hidden = !settings.envelope.enabled;
+    for (const [field, control] of envelopeControls) control.updateVisual(settings.envelope[field]);
     const text = settings.source === 'tone'
       ? 'Tone · 3 hardware channels · round robin.'
       : settings.noiseRate === 'tone3'
@@ -80,6 +112,15 @@ export function setupSynthPsgControls({
         : `Noise · 1 hardware channel · ${clockLabels[settings.noiseRate]} · keys retrigger the fixed clock.`;
     if (hint.textContent !== text) hint.textContent = text;
     return readState();
+  }
+  function changeEnvelope(field, value) {
+    if (disposed) return;
+    const previous = voice.getSettings();
+    if (previous.envelope[field] === value) return;
+    if (field === 'enabled') onBeforeEnvelopeToggle(value, previous);
+    const patch = {envelope:{...previous.envelope, [field]:value}};
+    voice.setSettings(patch);
+    onSettingsChange(update(), previous, patch);
   }
   function change(field, value) {
     if (disposed) return;
@@ -103,7 +144,7 @@ export function setupSynthPsgControls({
   }
   // These are performance controls, not text fields. Pointer clicks leave
   // letter keys available; keyboard activation stays local instead of Record.
-  for (const button of [...sourceButtons, ...typeButtons, ...rateButtons, ...attenuationButtons, attenuation, ...visualButtons]) {
+  for (const button of [...sourceButtons, ...typeButtons, ...rateButtons, ...attenuationButtons, attenuation, ...visualButtons, envelopeEnabled, ...envelopeButtons]) {
     listen(button, 'pointerdown', event => event.preventDefault());
     listen(button, 'keydown', event => {
       if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
@@ -116,9 +157,14 @@ export function setupSynthPsgControls({
       else if (button.dataset.psgNoiseType) change('noiseType', button.dataset.psgNoiseType);
       else if (button.dataset.psgNoiseRate) change('noiseRate', button.dataset.psgNoiseRate);
       else if (button.dataset.psgVisualMode) chooseVisualMode(button.dataset.psgVisualMode);
+      else if (button === envelopeEnabled) changeEnvelope('enabled', !voice.getSettings().envelope.enabled);
     });
   }
   listen(attenuation, 'lostpointercapture', () => attenuation.classList.remove('is-dragging'));
+  for (const control of envelopeControls.values()) {
+    const value = control.element.querySelector('.param-value');
+    listen(value, 'lostpointercapture', () => value.classList.remove('is-dragging'));
+  }
   const summary = help.querySelector('summary');
   listen(summary, 'keydown', event => {
     if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) event.stopPropagation();

@@ -4,7 +4,8 @@ import {createSynthProject,synthStatePath} from './synth_project.js';
 import {createPsgPreset,serializePsgPreset} from './synth_psg_preset.js';
 import {createToneRecovery,parseToneRecovery} from './synth_recovery.js';
 
-const tone=createPsgPreset(),noise=createPsgPreset({source:'noise',noiseType:'periodic',noiseRate:'tone3',attenuation:4});
+const tone=createPsgPreset(),noise=createPsgPreset({source:'noise',noiseType:'periodic',noiseRate:'tone3',attenuation:4,
+  envelope:{enabled:true,attackMs:25,decayMs:320,sustain:45,releaseMs:700}});
 const path='/presets/Recovery.psg.json';
 function setup(saved=true) {
   const project=createSynthProject();project.writeTone(path,tone);
@@ -41,7 +42,8 @@ test('PSG recovery rejects sidecar injection, missing documents, invalid checkpo
     value=>{value.entries=value.entries.filter(entry=>entry.path!==path);},
     value=>{value.entries.push({path:synthStatePath(path),type:'text',data:'{}'});},
     value=>{value.entries.push({path:'/.tet.ss'+synthStatePath(path),type:'text',data:'{}'});},
-    value=>{value.entries[0].data=serializePsgPreset(tone).replace('"version": 1','"version": 2');},
+    value=>{value.entries[0].data=serializePsgPreset(tone).replace('"version": 2','"version": 3');},
+    value=>{const bad=structuredClone(noise);bad.settings.envelope.releaseMs='700';value.entries[0].data=JSON.stringify(bad);},
     value=>{value.entries[0].data='{"version":1,"kind":"tetorica-fm2612"}';},
     value=>{value.entries.find(entry=>entry.path==='/.tet.ss'+path).data='{}';},
     value=>{value.entries[0]={...value.entries[0],type:'binary',data:[255,254]};},
@@ -64,4 +66,21 @@ test('adding single-file PSG journals does not accept incomplete legacy FM pairs
     const bad=structuredClone(value);bad.entries=bad.entries.filter(entry=>entry.path!==removed);
     assert.throws(()=>parseToneRecovery(JSON.stringify(bad)),/pair/);
   }
+});
+
+test('legacy v1 current/checkpoint recovery preserves original bytes and restores Envelope Off alongside a v2 edit',()=>{
+  const project=createSynthProject(),legacy={version:1,kind:'tetorica-sega-psg',settings:{source:'tone',attenuation:7,noiseType:'white',noiseRate:'medium'}};
+  const original=' '+JSON.stringify(legacy)+'\n';
+  project.fs.writeText(path,original);project.syncTone(path);
+  const legacyJournal=parseToneRecovery(createToneRecovery(project,path,'legacy-psg',1));
+  assert.equal(legacyJournal.entries.find(entry=>entry.path===path).data,original);
+  const restored=createSynthProject();restored.fs.writeFiles(legacyJournal.entries,{checkpointChanges:false});
+  assert.equal(restored.fs.get(path).data,original);assert.equal(restored.readTone(path).preset.version,2);
+  assert.equal(restored.readTone(path).preset.settings.envelope.enabled,false);
+  project.writeTone(path,noise);
+  const mixed=parseToneRecovery(createToneRecovery(project,path,'legacy-psg',2));
+  assert.equal(mixed.entries.find(entry=>entry.path==='/.tet.ss'+path).data,original);
+  restored.fs.writeFiles(mixed.entries,{checkpointChanges:false});
+  assert.deepEqual(restored.readTone(path).preset,noise);
+  assert.equal(restored.revertTone(path).preset.settings.envelope.enabled,false);assert.equal(restored.fs.get(path).data,original);
 });

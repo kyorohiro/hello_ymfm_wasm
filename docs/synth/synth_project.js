@@ -12,8 +12,8 @@ import {
 import { parseTfi, createTfiFromPreset } from '../js/tfi.js';
 import { parseVgi, createVgiFromPreset } from '../js/vgi.js';
 import { readPresetImport } from './synth_preset_import.js?v=vgm-storage-1';
-import {isPsgPreset,isPsgPresetPath,normalizePsgPreset,parsePsgPreset,serializePsgPreset} from './synth_psg_preset.js?v=psg-presets-1';
-export {isPsgPresetPath} from './synth_psg_preset.js?v=psg-presets-1';
+import {isPsgPreset,isPsgPresetPath,normalizePsgPreset,parsePsgPreset,serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
+export {isPsgPresetPath} from './synth_psg_preset.js?v=psg-envelope-1';
 
 const TONE_EXTENSION = /\.(tfi|vgi|psg\.json)$/i;
 const METADATA_PATHS = new Set(['/metadata.json', '/cassette.metadata.js']);

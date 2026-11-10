@@ -1,15 +1,15 @@
-import {createSynthProject, isPsgTonePath} from './synth_project.js?v=psg-presets-1';
-import {setupSynthFiles} from './synth_files.js?v=psg-presets-1';
-import {createPsgPreset, isPsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-presets-1';
+import {createSynthProject, isPsgTonePath} from './synth_project.js?v=psg-envelope-1';
+import {setupSynthFiles} from './synth_files.js?v=psg-envelope-1';
+import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=genesis-psg-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';
 import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
-import {createSynthPsgVoice} from './synth_psg.js?v=genesis-psg-1';
-import {createSynthPsgAudio} from './synth_psg_audio.js?v=genesis-psg-1';
-import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-attenuation-drag-1';
+import {createSynthPsgVoice} from './synth_psg.js?v=psg-envelope-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=psg-envelope-1';
+import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-envelope-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -616,6 +616,7 @@ const psgVoice = createSynthPsgVoice({
 psgControls = setupSynthPsgControls({
   voice:psgVoice,
   onBeforeSourceChange:() => stopAllNotes(),
+  onBeforeEnvelopeToggle:() => stopAllNotes(),
   onVisualModeChange:() => drawEnvelopeGuide(),
   onSettingsChange:() => {
     if (activeInstrumentKind === 'psg') synthFiles?.markDirty();
@@ -1799,11 +1800,12 @@ function applyPresetState(
 
 function applyPresetData(preset, presetName) {
   const kind = isPsgPreset(preset) ? 'psg' : 'fm';
+  const psgPreset = kind === 'psg' ? normalizePsgPreset(preset) : null;
   if (kind !== activeInstrumentKind) stopAllNotes();
   activeInstrumentKind = kind;
   selectEditorChip(document.getElementById(kind === 'psg' ? 'synthChipTabPsg' : 'synthChipTabYm2612'));
   if (kind === 'psg') {
-    psgVoice.setSettings(preset.settings);
+    psgVoice.setSettings(psgPreset.settings);
     currentPsgPresetName = presetName;
     psgPresetSelect.value = presetName;
     psgControls.update();
@@ -3259,6 +3261,7 @@ songControls = setupSynthSongControls({
   onStatus:setStatus,
 });
 window.addEventListener('pagehide',event=>{
+  stopAllNotes();
   void stopRecordingForReference();
   if(event.persisted)songControls.stop();
   else {

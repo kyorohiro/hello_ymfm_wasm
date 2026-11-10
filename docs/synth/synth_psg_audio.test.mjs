@@ -32,6 +32,7 @@ test('PSG allocation is lazy, coalesces the same route, sends ordered real API w
   assert.equal(f.audio.isPreparing(),true);assert.equal(h.gains.length,1);assert.equal(h.gains[0].gain.value,0);
   await turn();const request=f.requests[0];
   assert.equal(request.options.clock,SEGAPSG_CLOCK);assert.equal(request.options.stereoEnabled,false);
+  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-envelope-1$/,'software control uses a private Synth worklet');
   assert.equal(request.destination,h.gains[0]);assert.equal(h.gains[0].output,h.output);
   request.task.resolve(request.device);const psg=await pending;
   assert.equal(f.audio.getPsg(),psg);assert.equal(f.audio.isPreparing(),false);
@@ -112,5 +113,27 @@ test('invalid routes and levels fail before disrupting an existing prepared endp
   await assert.rejects(f.audio.prepare(h.context,{context:{}}),/open AudioContext/);
   await assert.rejects(f.audio.prepare({state:'closed',createGain(){}},{context:{}}),/open AudioContext/);
   assert.equal(f.audio.getPsg(),api);assert.equal(h.gains[0].gain.value,gain);assert.equal(request.device.disposeCalls,0);
+  f.audio.dispose();
+});
+
+test('software envelope commands validate and detach settings, preserve raw latch targets and stop release tails on disable',async()=>{
+  const f=fixture(),h=host(),pending=f.audio.prepare(h.context,h.output);await turn();
+  const request=f.requests[0];request.task.resolve(request.device);const api=await pending;
+  api.stopEnvelopes();api.envelopeNoteOff(0);api.setEnvelopeAttenuation(6);
+  assert.deepEqual(request.writes,offWrites,'unused envelopes do not add commands to the raw Off path');
+  const value={enabled:true,attackMs:20,decayMs:100,sustain:50,releaseMs:200};api.envelopeNoteOn(0,value,4);value.attackMs=500;
+  assert.deepEqual(request.writes.at(-1),{method:'envelopeNoteOn',args:[0,{...value,attackMs:20},4]});
+  api.setFrequency(0,440);
+  assert.equal(request.writes.at(-1).method,'write');assert.equal(request.writes.at(-1).psgRegister,0,'high period byte retains its target across envelope register writes');
+  api.envelopeNoteOff(0);assert.deepEqual(request.writes.at(-1),{method:'envelopeNoteOff',args:[0]});
+  api.setEnvelopeAttenuation(8);assert.deepEqual(request.writes.at(-1),{method:'setEnvelopeAttenuation',args:[8]});
+  const count=request.writes.length;
+  for(const ch of [-1,4,.5]){assert.throws(()=>api.envelopeNoteOn(ch,value,4));assert.throws(()=>api.envelopeNoteOff(ch));}
+  assert.throws(()=>api.envelopeNoteOn(0,{enabled:'yes'},4));assert.throws(()=>api.envelopeNoteOn(0,value,16));assert.throws(()=>api.setEnvelopeAttenuation(-1));
+  assert.equal(request.writes.length,count,'invalid software control never posts partial commands');
+  f.audio.setEnabled(false);
+  assert.deepEqual(request.writes.slice(-5),[{method:'stopEnvelopes',args:[]},...offWrites],'disable stops released envelopes before clearing the hardware');
+  f.audio.setEnabled(true);assert.deepEqual(request.writes.slice(-4),offWrites);
+  api.setFrequency(0,440);assert.equal(Object.hasOwn(request.writes.at(-1),'psgRegister'),false,'cleared software control returns to the original raw transport');
   f.audio.dispose();
 });

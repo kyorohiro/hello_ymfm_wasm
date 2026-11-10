@@ -22,6 +22,49 @@ test('default PSG settings are detached JSON data and preparing controls emits n
   assert.deepEqual(f.voice.getSettings(),SYNTH_PSG_DEFAULTS);
   assert.deepEqual(normalizeSynthPsgSettings(JSON.parse(JSON.stringify(f.voice.getSettings()))),SYNTH_PSG_DEFAULTS);
   assert(Object.isFrozen(SYNTH_PSG_DEFAULTS));
+  const copy=f.voice.getSettings();copy.envelope.enabled=true;copy.envelope.attackMs=999;
+  assert.equal(f.voice.getSettings().envelope.enabled,false);
+  assert.equal(f.voice.getSettings().envelope.attackMs,10);
+  assert(Object.isFrozen(SYNTH_PSG_DEFAULTS.envelope));
+});
+
+test('software envelope uses the ordered endpoint, snapshots note settings and keeps release tails responsive to base attenuation',()=>{
+  const writes=[],commands=[],psg={...createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>writes.push(value)}),
+    envelopeNoteOn:(...args)=>commands.push(['on',...structuredClone(args)]),
+    envelopeNoteOff:ch=>commands.push(['off',ch]),stopEnvelopes:()=>commands.push(['stop']),
+    setEnvelopeAttenuation:value=>commands.push(['attenuation',value])};
+  const voice=createSynthPsgVoice({getPsg:()=>psg,settings:{envelope:{enabled:true,attackMs:80,releaseMs:300}}});
+  voice.noteOn(0,4,1083);
+  assert.equal(writes.length,2,'only the pitch is written directly; the envelope owns volume');
+  assert.deepEqual(commands[0],['on',0,voice.getSettings().envelope,6]);
+  const first=structuredClone(commands[0]);
+  voice.setSettings({envelope:{...voice.getSettings().envelope,attackMs:150}});
+  assert.deepEqual(commands,[first],'ADSR edits do not restart an already playing envelope');
+  voice.noteOn(1,4,1364);assert.equal(commands[1][2].attackMs,150);
+  voice.noteOff(0);voice.noteOff(1);
+  assert.deepEqual(commands.slice(-2),[['off',0],['off',1]]);
+  assert.deepEqual(voice.getState().heldChannels,[]);
+  const before=writes.length;voice.setSettings({attenuation:9});
+  assert.equal(writes.length,before,'release volume is not bypassed by a raw write');
+  assert.deepEqual(commands.at(-1),['attenuation',9]);
+  voice.stop();assert.deepEqual(commands.at(-1),['stop']);
+  assert.deepEqual(writes.slice(-4),[0x9f,0xbf,0xdf,0xff]);
+});
+
+test('envelope toggle and source changes cancel voices; unchanged ADSR and invalid settings cannot enqueue stale notes',()=>{
+  const commands=[],psg={...createSegaPsgApi({clock:SEGAPSG_CLOCK,write:()=>{}}),
+    envelopeNoteOn:(...args)=>commands.push(['on',...args]),envelopeNoteOff:ch=>commands.push(['off',ch]),
+    stopEnvelopes:()=>commands.push(['stop']),setEnvelopeAttenuation:value=>commands.push(['attenuation',value])};
+  const voice=createSynthPsgVoice({getPsg:()=>psg});
+  voice.noteOn(0,4,1083);voice.setSettings({envelope:{enabled:true}});
+  assert.deepEqual(voice.getState().heldChannels,[]);assert.deepEqual(commands,[['stop']]);
+  voice.noteOn(0,4,1083);const before=structuredClone(commands),settings=voice.getSettings();
+  voice.setSettings({envelope:{...settings.envelope}});assert.deepEqual(commands,before);
+  assert.throws(()=>voice.setSettings({envelope:{enabled:true,attackMs:-1}}));
+  assert.deepEqual(voice.getSettings(),settings);assert.deepEqual(commands,before);
+  voice.setSettings({source:'noise'});assert.deepEqual(commands.at(-1),['stop']);
+  voice.noteOn(3,4,1083);voice.noteOff(3);voice.setSettings({envelope:{enabled:false}});
+  assert.deepEqual(commands.at(-1),['stop']);assert.deepEqual(voice.getState().heldChannels,[]);
 });
 
 test('Tone uses caller-owned physical channels and converts the actual FM keyboard clock to PSG Hz',()=>{

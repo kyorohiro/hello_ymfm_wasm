@@ -1,7 +1,10 @@
 // Host keyboard adapter for the existing Sega PSG API. All sound remains in
 // that chip: three square-wave tones or its single noise generator.
+import {SYNTH_PSG_ENVELOPE_DEFAULTS,normalizeSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
+
 export const SYNTH_PSG_DEFAULTS=Object.freeze({
   source:'tone',attenuation:6,noiseType:'white',noiseRate:'medium',
+  envelope:SYNTH_PSG_ENVELOPE_DEFAULTS,
 });
 const fields=Object.keys(SYNTH_PSG_DEFAULTS);
 const integer=(value,max,name)=>{
@@ -24,6 +27,7 @@ export function normalizeSynthPsgSettings(value={}) {
   integer(next.attenuation,15,'PSG attenuation');
   if(!['white','periodic'].includes(next.noiseType))throw new RangeError('PSG noise type must be white or periodic');
   if(!['low','medium','high','tone3'].includes(next.noiseRate))throw new RangeError('Invalid PSG noise clock');
+  next.envelope=normalizeSynthPsgEnvelope(next.envelope);
   return next;
 }
 
@@ -38,7 +42,7 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
   if(typeof getPsg!=='function'||typeof getPitchClock!=='function'||typeof onState!=='function')throw new TypeError('PSG callbacks must be functions');
   let current=normalizeSynthPsgSettings(settings);
   const held=new Map();
-  const getSettings=()=>({...current});
+  const getSettings=()=>({...current,envelope:{...current.envelope}});
   const getState=()=>({settings:getSettings(),heldChannels:[...held.keys()].sort((a,b)=>a-b),
     voices:[...held.values()].sort((a,b)=>a.channel-b.channel).map(voice=>({...voice}))});
   const emit=()=>onState(getState());
@@ -60,6 +64,7 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
   }
   function silence() {
     const psg=getPsg();
+    psg?.stopEnvelopes?.();
     if(psg)for(let ch=0;ch<4;ch++)psg.setAttenuation(ch,15);
     held.clear();
   }
@@ -68,12 +73,14 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
     getChannels:()=>current.source==='tone'?[0,1,2]:[3],
     noteOn(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),psg=getPsg();if(!psg)return null;
+      if(current.envelope.enabled&&typeof psg.envelopeNoteOn!=='function')throw new Error('PSG Software Envelope requires its audio endpoint');
       // Tone3 is only the clock when noise tracks keyboard pitch. Its square
       // wave stays muted, including during a live switch to this clock.
       if(current.source==='noise'&&current.noiseRate==='tone3')psg.setAttenuation(2,15);
       const period=setPitch(psg,ch,note);
       if(current.source==='noise')psg.setNoise({type:current.noiseType,rate:current.noiseRate});
-      psg.setAttenuation(ch,current.attenuation);
+      if(current.envelope.enabled)psg.envelopeNoteOn(ch,current.envelope,current.attenuation);
+      else psg.setAttenuation(ch,current.attenuation);
       const voice={channel:ch,...note,period};held.set(ch,voice);emit();return {...voice};
     },
     noteOff(ch) {
@@ -81,7 +88,10 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
       // A stale physical Note Off is harmless after a source switch. The host
       // remains responsible for distinguishing stolen notes on one channel.
       if(!held.has(ch))return false;
-      getPsg()?.setAttenuation(ch,15);held.delete(ch);emit();return true;
+      const psg=getPsg();
+      if(current.envelope.enabled)psg?.envelopeNoteOff(ch);
+      else psg?.setAttenuation(ch,15);
+      held.delete(ch);emit();return true;
     },
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),psg=getPsg();if(!psg)return null;
@@ -92,10 +102,14 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
     stop() {silence();emit();},
     setSettings(patch) {
       settingsObject(patch);
-      const next=normalizeSynthPsgSettings({...current,...patch});
-      if(fields.every(key=>next[key]===current[key]))return getSettings();
+      if(Object.hasOwn(patch,'envelope'))normalizeSynthPsgEnvelope(patch.envelope);
+      const next=normalizeSynthPsgSettings({...current,...patch,envelope:Object.hasOwn(patch,'envelope')
+        ?{...current.envelope,...patch.envelope}:current.envelope});
+      if(fields.every(key=>key==='envelope'
+        ?Object.keys(next.envelope).every(field=>next.envelope[field]===current.envelope[field])
+        :next[key]===current[key]))return getSettings();
       const previous=current;
-      if(next.source!==previous.source)silence();
+      if(next.source!==previous.source||next.envelope.enabled!==previous.envelope.enabled)silence();
       current=next;
       const psg=getPsg();
       if(psg&&held.size) {
@@ -107,8 +121,11 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
           // The real noise control resets its LFSR; attenuation alone does not.
           psg.setNoise({type:current.noiseType,rate:current.noiseRate});
         }
-        if(current.attenuation!==previous.attenuation)for(const ch of held.keys())psg.setAttenuation(ch,current.attenuation);
+        if(!current.envelope.enabled&&current.attenuation!==previous.attenuation)for(const ch of held.keys())psg.setAttenuation(ch,current.attenuation);
       }
+      // Released envelopes are no longer held keys, but their hardware level
+      // must follow the same base attenuation until their release ends.
+      if(psg&&current.envelope.enabled&&current.attenuation!==previous.attenuation)psg.setEnvelopeAttenuation(current.attenuation);
       emit();return getSettings();
     },
   };
