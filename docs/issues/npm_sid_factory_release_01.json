@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "package": "tetorica-fm2612",
+  "version": "0.2.39",
+  "status": "published and public registry tarball verified",
+  "published": true,
+  "publishRequestAccepted": true,
+  "tarball": {
+    "url": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.39.tgz",
+    "bytes": 2803599,
+    "sha256": "fb82ffb75f40907e44a9e3672c83796a779a88e09a2a597f306b734da05db874",
+    "shasum": "815bb7c65d9df2a66c946dd76acc6e42d3a925f0",
+    "integrity": "sha512-U2dlxqSADHS4XNkCsLrBCjcsxF2Ixep/QQc5BhjmLgE6Ad5wmAbjUgcWcfvFyBVr83GYdIZ0NH6UMz5XPITdlQ=="
+  },
+  "bytes": 2803599,
+  "sha256": "fb82ffb75f40907e44a9e3672c83796a779a88e09a2a597f306b734da05db874",
+  "integrity": "sha512-U2dlxqSADHS4XNkCsLrBCjcsxF2Ixep/QQc5BhjmLgE6Ad5wmAbjUgcWcfvFyBVr83GYdIZ0NH6UMz5XPITdlQ==",
+  "shasum": "815bb7c65d9df2a66c946dd76acc6e42d3a925f0",
+  "files": 1251,
+  "candidateVerification": {
+    "independentInstall": true,
+    "sidPcmSourcesAndTypes": true,
+    "completePackageCheck": true,
+    "browserEngines": [
+      "chromium",
+      "webkit"
+    ],
+    "browserReport": "build/npm-sid-factory-release-20261111/candidate-browser.json",
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "examples": {
+    "packageVersion": "0.2.39",
+    "dependencyAndLockFromRegistry": true,
+    "newExample": "examples/c64/sid/03-factory-wav/node/main.mjs",
+    "exampleRecord": {
+      "bytes": 2099,
+      "sha256": "81b1992ff30659a3279c6f7bf3464a4d522ad921510d2e4516e89756f8705f33"
+    },
+    "candidateNodeExecutions": 50,
+    "registrySidModelCases": 6,
+    "defaultBothConcatenationExact": true,
+    "staticBuilds": [
+      "dist",
+      "docs"
+    ],
+    "staticFilesPerBuild": 1545,
+    "staticPayloadsIdentical": true,
+    "newExampleAndVendorBytesMatchSources": true,
+    "physicalAudioUsed": false,
+    "gitCommitPushPerformed": false
+  },
+  "sourceCommit": "a384d09c6885f310450d9b468c3e50921ca093e9",
+  "gitCommitPushTagPerformed": false,
+  "authenticationInformationStored": false,
+  "verifiedAt": "2026-11-10T19:01:42.666Z",
+  "publishedAt": "2026-11-10T19:00:36.322Z",
+  "registry": "https://registry.npmjs.org/",
+  "distTags": {
+    "latest": "0.2.39"
+  },
+  "verifiedCandidateBytesIdentical": true,
+  "packagePage": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.39",
+  "publishedTarballPath": "/Users/kyorohiro/development8/wfm/hello_ymfm/build/npm-sid-factory-release-20261111/registry/tetorica-fm2612-0.2.39.tgz",
+  "priorVerification": "docs/issues/sid_common_factory_verification_01.json"
+}

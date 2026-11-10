@@ -118,7 +118,7 @@ flags (including combinations), ADSR, oscillator Sync/Ring and one shared
 LP/BP/HP filter. Cutoff and resonance are chip codes; neither model promises
 physical-chip accuracy or analogue unit variation.
 
-The current source also connects both models to the common package-root
+Version **0.2.39** also connects both models to the common package-root
 `createSoundChip('sid', options)` factory. Direct creation returns the same
 `SidCore` / `Sid8580Core`, with an immutable `id`; it does not open audio or
 add keyboard allocation. Select `model:'6581'` (default) or `model:'8580'`.
@@ -1528,10 +1528,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.37.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.39.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.37.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.39.tgz
 ```
 
 The build pins an unpublished `tetorica-soundchip-native` SDK **0.1.7** source
@@ -1559,6 +1559,17 @@ MIT adaptation, BSD host code, readable rebuild sources and Rust toolchain
 notices. They are packaged alongside the unchanged fixed SDK snapshot.
 
 ## Release notes
+
+`0.2.39` adds SID to the package-root `createSoundChip()` factory. Select
+6581 or PAL 8580 Preview, generate raw mono PCM directly, or use the generic
+browser AudioWorklet endpoint with explicit start/stop/dispose. It retains the
+existing cores, gain policy and source kits, with typed factory options and
+independent IDs. No keyboard allocation or preset performance helpers are added.
+
+`0.2.38` adds RF5C164 note helpers: `setRootNote()`, `setNote()` and `noteOn()`,
+using each sample's declared source rate and root
+note. The helpers are software tuning controls; raw pitch/register access
+remains available and source pitch is not automatically detected.
 
 `0.2.37` publishes the CPU-free C64 SID 6581 and PAL 8580 Preview cores,
 `SidSynth`, waveform-flag helpers and Main/Worker Playground runtime modules.
