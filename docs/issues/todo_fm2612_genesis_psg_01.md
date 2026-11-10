@@ -1,5 +1,29 @@
 # FM2612 / Genesis Synth：PSG基本演奏（2026-11-10）
 
+## 完了：PSG Looper（無音での作業）
+
+ユーザー指示：打ち合わせ中のため音を出さずに、PSG Looper対応を進める。
+
+- [x] 通常browser／native appを操作して音を出さない。NodeでのPCM生成と、すべてのspeaker接続を事前に物理muteするheadless browserだけで検証する。
+- [x] PSG Event Recのsemantic captureを再利用し、Tone／Noise・Pitch・設定変更・Software Envelopeをループ素材へ変換する。最初のtakeで基準長を決め、重ね録り・Undo／Clear・停止／再開へ対応する。
+- [x] 各layerを独立したPCMとして保持し、Releaseが基準長を越えても尾音を切らずに重ねる。元の編集音色とEvent Rec takeを変更せず、Masterと共通PSG補正を1回だけ適用する。
+- [x] FM／PSGのloopを分け、VGM／Event Rec／tab・出力切替／pagehide、非同期PCM生成・auto-stopとの競合で音や処理が復活しないようにする。
+- [x] 実WASM／controller／headless Chromium・WebKitで重ね録り・尾音・Undo・gain・取消・FM回帰と無音出力を確認し、README／cache key／配布ZIP・再開記録を更新する。commit／push／公開は行わない。
+
+実装：専用PSG Looper controllerが、Event Recと別の内部captureでsemantic commandsを保持する。最初のtakeの録音区間（0.05〜120秒）を基準長にし、後続takeは現在の位相から次の境界まで録音する。実WASMのsilent rendererで音色・Pitch・Noise・Software Envelopeをraw stereo PCMへ変換し、Release終端と1msの無音を含める。基準長はRelease分で伸ばさず、独立layerの尾音を次cycleへ重ねる。最大16 layers／raw PCM128MiB。Undoは録音中／準備中なら取消、完了後なら最後のlayerだけを除く。停止時は有効なlayerを保持し、再開時に再生位相を作り直す。Clearは停止して全layerを破棄する。
+
+音声：専用WorkletのPCM mixerが、有限の再生履歴からlayerのReleaseを重ねる。最初のcycleへ存在しない過去の尾音を持ち込まず、短い基準長より長いtailも切らない。各layerをstrideごとの累積PCMにして、再生はO(layers×frames)。長いPCMのscan／累積準備はMainで32768frameずつ協調yieldし、Workletへは準備済み配列をtransferする。20秒＋1秒tailの無音benchmarkでは、従来51.4msだったWorklet追加処理が約0.126msになった。準備後に開始時刻を決め、遅い準備で最初のcycleを飛ばさない。raw PCMにはgainを焼き込まず、既存endpointの共通PSG補正×Masterを一度だけ適用する。共有SDK／DSP／WASM／校正値は変更しない。
+
+UI／排他：FMと同じLooper Start→Space録音→Space終了で使える。重ね録りは次の境界で自動終了し、準備中はPreparing loopと表示する。FM／PSGは各自のlayerを保持する。Event RecとLooperは互いに停止して切り替え、Event Recのtakeや編集音色／Filesはループ再生で変更しない。VGM／tab・出力切替／pagehide／Stop／Undo／Clearで非同期生成・準備のAbortとgenerationを進め、古いlayerの追加や再生復活を防ぐ。Loopは既存FMと同様メモリ内で保持する。Loop自体の保存／Exportは今回の対象外で、演奏を保存したい場合はEvent Recを別に使用する。
+
+検証：`node --test --test-concurrency=1 docs/synth/*.test.mjs`で290件成功（従来263＋silent render4＋controller13＋audio10）。実WASMのraw gain／Release全体／分割PCM一致、協調Abort・native解放、境界auto-stop・Undo・Clear・準備遅延と取消・resource上限・再開、finite-history overlap・stale session・停止・prepared transferを確認した。source／最終stageのheadless Chromium・WebKitでTone＋長いRelease、Noise重ね録り、取消／Undo／Clear、停止・再開、Event take／編集音色／Filesの不変、単一layerのliveとのgain一致・Master0／100／200、保持したWASM fetchをClearで取消しても復活しないこと、Event／VGM／pagehide排他、390／1240px表示を確認。最終stageで既存FMの部分OP／特殊CH3のLooper・Event Rec・JSON往復・実PCM・VGM排他も両browser成功。
+
+無音条件：音声デバイスを作らないNodeのPCM配列テスト、およびapp実行前に全speaker接続へgain0を挿入するheadless browserだけを使用した。PSG Looper検証用のChromiumは追加で`--mute-audio`も指定。全meterの物理muteをassertし、会議アプリ／OS全体の音量や通常browser／native appは操作していない。人の実聴は行っていない。
+
+記録：`/private/tmp/fm2612-psg-looper-node-20261110.log`、`/private/tmp/fm2612-psg-looper-source-20261110.json`（112 assets）、`/private/tmp/fm2612-psg-looper-package-browser-20261110.json`（110 assets）、`/private/tmp/fm2612-psg-looper-fm-recording-20261110.json`。served asset hashは最終source／stageに一致。entry／新Looper helper／private Workletのcache keyは`psg-looper-1`。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-looper-check-20261110_itch_synth.zip`（236 files、885,800 bytes、SHA-256 `23ba70c69c4173161dab9d5801ce1884e498d54d37b93e2e46d2ca51382179f1`）。全fileがstageとbyte一致し、322 local references検査成功。receipt：`/private/tmp/fm2612-psg-looper-package-20261110.json`。README英語／日本語とpackaging更新済み。未commit／未push／未公開。
+
 ## 完了：PSG Event Rec
 
 ユーザー指示：PSGのEvent Recを進める。今回はEvent Recを対象とし、PSG Looperは次の段階へ残す。

@@ -6,6 +6,7 @@ import {createSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
 import {createSegaPsgApi} from '../js/segapsg_api.js?v=audio-numeric-bindings-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
 import {createSynthPsgRecordingPlayer} from './synth_psg_recording_player.js?v=psg-event-rec-1';
+import {createSynthPsgLoopPlayer} from './synth_psg_loop_player.js?v=psg-looper-1';
 
 class SynthPsgProcessor extends AudioWorkletProcessor {
   constructor(options) {
@@ -14,6 +15,8 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
     this.stereoEnabled=options.processorOptions.stereoEnabled??false;
     this.clock=options.processorOptions.clock??SEGAPSG_CLOCK;
     this.sampleRate=sampleRate;
+    this.renderedFrames=0;
+    this.loopPlayer=createSynthPsgLoopPlayer({sampleRate});
     this.envelope=createSynthPsgEnvelope({sampleRate,setAttenuation:(ch,value)=>this.writeByte(0x90|(ch<<5)|value)});
     this.renderChip=this.renderChip.bind(this);
     this.renderEnvelopes=(left,right)=>this.envelope.render(left,right,this.renderChip);
@@ -21,7 +24,7 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
       onEnded:session=>this.port.postMessage({type:'psg-recording-ended',session})});
     this.port.onmessage=({data})=>{
       if(data?.port) {
-        this.remote?.close();this.player.stop();this.envelope.stop();
+        this.remote?.close();this.loopPlayer.stop();this.player.stop();this.envelope.stop();
         if(this.dead){data.port.close();return;}
         const remote=this.remote=data.port;
         remote.onmessage=event=>{if(this.remote===remote)this.receive(event.data,remote);};remote.start();
@@ -67,7 +70,7 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
   }
   dispose() {
     if(this.dead)return;
-    this.player.stop();this.envelope.stop();this.dead=true;this.chip?.dispose();this.chip=null;
+    this.loopPlayer.stop();this.player.stop();this.envelope.stop();this.dead=true;this.chip?.dispose();this.chip=null;
     this.remote?.close();this.remote=null;
   }
   fail(error) {this.dispose();this.port.postMessage({error:error.message,fatal:true});}
@@ -81,14 +84,23 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
       switch(data?.method) {
         case 'write':this.writeByte(args[0],data.psgRegister);break;
         case 'setStereo':if(this.stereoEnabled)this.chip.setStereo(args[0]);break;
-        case 'reset':this.player.stop();this.resetChip();break;
-        case 'allNotesOff':this.player.stop();this.envelope.stop();for(let ch=0;ch<4;ch++)this.writeByte(0x9f|(ch<<5));break;
+        case 'reset':this.loopPlayer.stop();this.player.stop();this.resetChip();break;
+        case 'allNotesOff':this.loopPlayer.stop();this.player.stop();this.envelope.stop();for(let ch=0;ch<4;ch++)this.writeByte(0x9f|(ch<<5));break;
         case 'envelopeNoteOn':this.envelope.noteOn(...args);break;
         case 'envelopeNoteOff':this.envelope.noteOff(...args);break;
         case 'stopEnvelopes':this.envelope.stop();break;
         case 'setEnvelopeAttenuation':this.envelope.setAttenuation(...args);break;
-        case 'playRecording':this.player.play(args[1],{...args[2],session:args[0]});break;
+        case 'playRecording':if(this.player.play(args[1],{...args[2],session:args[0]}))this.loopPlayer.stop();break;
         case 'stopRecording':this.player.stop(args[0]);break;
+        case 'startLooper':
+          if(this.loopPlayer.start(args[1],{session:args[0],currentFrame:this.absoluteFrame()})) {
+            this.player.stop();this.envelope.stop();for(let ch=0;ch<4;ch++)this.writeByte(0x9f|(ch<<5));
+          }
+          break;
+        case 'addLooperUnit':this.loopPlayer.add(args[0],args[1],{currentFrame:this.absoluteFrame(),copy:false});break;
+        case 'addPreparedLooperUnit':this.loopPlayer.addPrepared(args[0],args[1],{currentFrame:this.absoluteFrame()});break;
+        case 'removeLooperUnit':this.loopPlayer.remove(args[0],args[1]);break;
+        case 'stopLooper':this.loopPlayer.stop(args[0]);break;
         default:throw new Error('Unknown Synth PSG command');
       }
       if(data.id!==undefined)port.postMessage({id:data.id,value:true});
@@ -99,9 +111,14 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
     const pcm=this.chip.generateStereoView(left.length);
     left.set(pcm.left.subarray(0,left.length));right.set(pcm.right.subarray(0,right.length));
   }
+  absoluteFrame() {return typeof currentFrame==='number'?currentFrame:this.renderedFrames;}
   process(inputs,outputs) {
     if(this.dead)return false;
-    try {const [left,right]=outputs[0];this.player.render(left,right,this.renderEnvelopes);return true;}
+    try {
+      const [left,right]=outputs[0],frame=this.absoluteFrame();
+      this.player.render(left,right,this.renderEnvelopes);this.loopPlayer.render(left,right,frame);
+      this.renderedFrames=frame+left.length;return true;
+    }
     catch(error){this.fail(error);outputs[0].forEach(channel=>channel.fill(0));return false;}
   }
 }

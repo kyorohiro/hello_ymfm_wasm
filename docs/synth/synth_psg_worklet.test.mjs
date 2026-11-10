@@ -5,6 +5,7 @@ import {SegaPSG,SEGAPSG_CLOCK} from '../js/segapsg.js';
 import factory from '../generated/segapsg_wasm.js';
 import {createSegaPsgApi} from '../js/segapsg_api.js';
 import {normalizeSynthPsgSettings} from './synth_psg.js';
+import {prepareSynthPsgLoopUnit} from './synth_psg_loop_player.js';
 
 class Port {
   constructor(){this.messages=[];this.closed=false;this.ready=new Promise((resolve,reject)=>{this.resolve=resolve;this.reject=reject;});}
@@ -33,6 +34,37 @@ const generate=(processor,count)=>{
   for(let start=0;start<count;start+=128)assert(processor.process([],[[left.subarray(start,Math.min(count,start+128)),right.subarray(start,Math.min(count,start+128))]]));
   return {left,right};
 };
+
+test('private worklet loops finite PCM with overlapping release tails; remove/stop/reset/dispose cannot revive old layers',async()=>{
+  const processor=await worklet(),unit={id:'tail',left:new Float32Array(3600).fill(.125),right:new Float32Array(3600).fill(-.25),offsetSeconds:0};
+  try {
+    const prepared=await prepareSynthPsgLoopUnit(unit,{sampleRate:48000,loopLength:.05});
+    send(processor,'startLooper',[1,{loopLength:.05,startTime:0}]);send(processor,'addPreparedLooperUnit',[1,prepared]);
+    const pcm=generate(processor,4800);
+    assert(pcm.left.subarray(0,2400).every(x=>x===.125));assert(pcm.left.subarray(2400,3600).every(x=>x===.25));
+    assert(pcm.left.subarray(3600).every(x=>x===.125));assert(pcm.right.subarray(2400,3600).every(x=>x===-.5));
+    send(processor,'removeLooperUnit',[1,'tail']);assert(generate(processor,256).left.every(x=>x===0));
+    send(processor,'addLooperUnit',[1,structuredClone(unit)]);send(processor,'stopLooper',[2]);
+    send(processor,'startLooper',[1,{loopLength:.05,startTime:0}]);send(processor,'addLooperUnit',[1,structuredClone(unit)]);
+    assert(generate(processor,256).left.every(x=>x===0));
+    send(processor,'startLooper',[3,{loopLength:.05,startTime:processor.renderedFrames/48000}]);send(processor,'addLooperUnit',[3,structuredClone(unit)]);
+    assert(generate(processor,128).left.some(x=>x!==0));send(processor,'reset');assert(generate(processor,128).left.every(x=>x===0));
+    send(processor,'addLooperUnit',[3,structuredClone(unit)]);assert(generate(processor,128).left.every(x=>x===0));
+    send(processor,'startLooper',[4,{loopLength:.05,startTime:processor.renderedFrames/48000}]);send(processor,'addLooperUnit',[4,structuredClone(unit)]);
+    send(processor,'allNotesOff');assert(generate(processor,128).left.every(x=>x===0));
+    send(processor,'startLooper',[5,{loopLength:.05,startTime:processor.renderedFrames/48000}]);send(processor,'addLooperUnit',[5,structuredClone(unit)]);
+    send(processor,'dispose');assert(!processor.loopPlayer.snapshot().playing);assert(processor.dead);
+  } finally {processor.dispose();}
+});
+
+test('unexpected non-finite prepared PCM is silenced before it reaches any worklet output',async()=>{
+  const processor=await worklet(),left=new Float32Array(2400).fill(.1),right=new Float32Array(2400).fill(.1);left[1]=NaN;
+  send(processor,'startLooper',[1,{loopLength:.05,startTime:0}]);
+  send(processor,'addPreparedLooperUnit',[1,{id:'invalid',left,right,offsetSeconds:0,frameCount:2400,prefixCount:1}]);
+  const output=[new Float32Array(128),new Float32Array(128)];
+  assert.equal(processor.process([],[output]),false);assert(output.every(channel=>channel.every(value=>value===0)));
+  assert(processor.dead);assert(processor.port.messages.some(message=>message.fatal&&/prepared/.test(message.error)));
+});
 
 test('private worklet schedules a complete event stream, reports its end and rejects stale playback after stop/reset',async()=>{
   const processor=await worklet();

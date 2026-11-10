@@ -29,6 +29,57 @@ const eventTake=()=>({format:'tetorica-sega-psg-recording-v1',version:1,duration
   initialState:{settings:normalizeSynthPsgSettings({}),pitchClock:7670454},
   commands:[{type:'noteOn',time:0,channel:0,block:4,fnum:1083},{type:'noteOff',time:.05,channel:0}]});
 
+test('PCM looper transport retains main buffers, validates atomically, uses one calibrated gain and cancels stale units',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setVolume(2);
+  const preparing=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await preparing,unit={id:'layer',left:new Float32Array(4800).fill(.25),right:new Float32Array(4800).fill(-.125),offsetSeconds:0};
+  const prepared=await api.prepareLooperUnit(unit,{loopLength:.1});
+  assert(Object.isFrozen(prepared));assert.equal(prepared.frameCount,4800);assert.equal(prepared.prefixCount,1);assert(!Object.hasOwn(prepared,'left'));
+  const session=api.startLooper({loopLength:.1,startTime:.05});assert(api.isLooperPlaybackActive());
+  assert.deepEqual(request.writes.at(-1),{method:'startLooper',args:[session,{loopLength:.1,startTime:.05}]});
+  assert(api.addPreparedLooperUnit(session,prepared));const posted=request.writes.at(-1);
+  assert.equal(posted.method,'addPreparedLooperUnit');assert.notEqual(posted.args[1].left,unit.left);assert.notEqual(posted.args[1].right,unit.right);
+  assert(unit.left.every(x=>x===.25));assert(posted.args[1].left.every(x=>x===.25),'a one-cycle PCM unit is not pre-scaled');
+  assert.equal(h.gains[0].gain.value,2*SYNTH_SONG_MIX_DEFAULTS.psg,'one endpoint gain handles calibration and Master');
+  const count=request.writes.length;
+  assert.throws(()=>api.startLooper({loopLength:0,startTime:.05}));
+  await assert.rejects(api.prepareLooperUnit({...unit,id:'bad',left:Float32Array.of(NaN),right:Float32Array.of(0)},{loopLength:.1}));
+  assert.throws(()=>api.addPreparedLooperUnit(session,prepared),'prepared arrays are consumable, not reusable');
+  const duplicate=await api.prepareLooperUnit(unit,{loopLength:.1});assert.throws(()=>api.addPreparedLooperUnit(session,duplicate));
+  assert.equal(request.writes.length,count);assert(api.isLooperPlaybackActive());
+  assert(api.removeLooperUnit(session,'layer'));assert.equal(api.removeLooperUnit(session,'layer'),false);
+  assert(api.addPreparedLooperUnit(session,duplicate));f.audio.setEnabled(false);assert(!api.isLooperPlaybackActive());
+  const stop=request.writes.findLast(message=>message.method==='stopLooper');assert(stop.args[0]>session);
+  assert.deepEqual(request.writes.slice(-4),offWrites);const after=request.writes.length;
+  assert.equal(await api.addLooperUnit(session,unit),false);assert.equal(api.removeLooperUnit(session,'layer'),false);assert.equal(request.writes.length,after);
+  f.audio.setEnabled(true);const restarted=api.startLooper({loopLength:.1,startTime:1});assert(restarted>stop.args[0]);
+  assert(await api.addLooperUnit(restarted,unit));f.audio.dispose();assert(!api.isLooperPlaybackActive());assert.throws(()=>api.startLooper({loopLength:.1,startTime:2}),/retired/);
+});
+
+test('PCM preparation yields on Main, aborts without posting and ties opaque prepared units to their endpoint',async()=>{
+  const f=fixture(),h=host(),preparing=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await preparing,controller=new AbortController(),unit={id:'long',left:new Float32Array(100000).fill(.1),right:new Float32Array(100000).fill(-.1),offsetSeconds:0};
+  const pending=api.prepareLooperUnit(unit,{loopLength:2,signal:controller.signal});controller.abort(new DOMException('cancelled','AbortError'));
+  await assert.rejects(pending,{name:'AbortError'});assert.deepEqual(request.writes,offWrites);
+  const token=await api.prepareLooperUnit(unit,{loopLength:2});assert(token.prefixCount>1);assert.equal(token.byteLength,800000);
+  const wrong=api.startLooper({loopLength:1,startTime:0});assert.throws(()=>api.addPreparedLooperUnit(wrong,token));
+  const right=api.startLooper({loopLength:2,startTime:0});assert(api.addPreparedLooperUnit(right,token));
+  const posted=request.writes.at(-1).args[1];assert.equal(posted.frameCount,100000);assert.equal(posted.prefixCount,2);
+  assert(Math.abs(posted.left[99999]-.2)<1e-6);assert(Math.abs(unit.left[99999]-.1)<1e-6);
+  const retired=api.prepareLooperUnit(unit,{loopLength:2});f.audio.dispose();await assert.rejects(retired,{name:'AbortError'});
+});
+
+test('Event Rec and PCM loop transport replace one another only after valid inputs',async()=>{
+  const f=fixture(),h=host(),preparing=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await preparing,first=api.startLooper({loopLength:.1,startTime:0});
+  assert.throws(()=>api.playRecording({...eventTake(),format:'invalid'}));assert(api.isLooperPlaybackActive());
+  api.playRecording(eventTake());assert(!api.isLooperPlaybackActive());assert(api.isRecordingPlaybackActive());
+  assert(request.writes.some(message=>message.method==='stopLooper'&&message.args[0]>first));
+  assert.throws(()=>api.startLooper({loopLength:0,startTime:0}));assert(api.isRecordingPlaybackActive());
+  api.startLooper({loopLength:.1,startTime:1});assert(!api.isRecordingPlaybackActive());assert(api.isLooperPlaybackActive());
+  api.reset();assert(!api.isLooperPlaybackActive());assert.equal(request.writes.at(-1).method,'reset');f.audio.dispose();
+});
+
 test('recording transport detaches events, validates before replacing playback and matches completion to its current generation',async()=>{
   const f=fixture(),h=host();f.audio.setEnabled(true);
   const pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
@@ -60,7 +111,7 @@ test('PSG allocation is lazy, coalesces the same route, sends ordered real API w
   assert.equal(f.audio.isPreparing(),true);assert.equal(h.gains.length,1);assert.equal(h.gains[0].gain.value,0);
   await turn();const request=f.requests[0];
   assert.equal(request.options.clock,SEGAPSG_CLOCK);assert.equal(request.options.stereoEnabled,false);
-  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-event-rec-1$/,'software control uses a private Synth worklet');
+  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-looper-1$/,'software control uses a private Synth worklet');
   assert.equal(request.destination,h.gains[0]);assert.equal(h.gains[0].output,h.output);
   request.task.resolve(request.device);const psg=await pending;
   assert.equal(f.audio.getPsg(),psg);assert.equal(f.audio.isPreparing(),false);

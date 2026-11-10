@@ -9,8 +9,10 @@ import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1'
 import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
 import {SynthPsgRecordingManager} from './synth_psg_recording.js?v=psg-event-rec-1';
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
+import {SynthPsgLooper} from './synth_psg_looper.js?v=psg-looper-1';
+import {renderSynthPsgLoop} from './synth_psg_loop_render.js?v=psg-looper-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
-import {createSynthPsgAudio} from './synth_psg_audio.js?v=psg-event-rec-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=psg-looper-1';
 import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-envelope-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
@@ -461,6 +463,7 @@ function selectEditorChip(button) {
   for (const panel of editorChipPanels) panel.hidden = panel.id !== button.getAttribute('aria-controls');
   psgAudio.setEnabled(editorChip === 'psg');
   psgEventAudio.setEnabled(editorChip === 'psg');
+  psgLoopAudio.setEnabled(editorChip === 'psg');
   operatorEnvelopeView.setVisible(editorChip === 'ym2612' && visualMode === 'envelope');
   operatorEnvelopeView.invalidateOutput();
   if (changed) {buildKeyboard(); updateKeyboardVisuals();}
@@ -617,6 +620,8 @@ const OUTPUT_ENVELOPE_SLOW_SCALE =
   0.12;
 let audioInitStarted = false;
 let looper = null;
+let psgLooper = null, psgLoopSession = null;
+const psgPreparedLoopUnits=new WeakMap();
 let eventRecordSessionActive =
   false;
 
@@ -635,6 +640,9 @@ const psgEventAudio=createSynthPsgAudio({onError:error=>{
   psgEventRecorder?.stopRecordingPlayback();
   setStatus(`PSG event playback: ${error.message}`);updateEventRecordUi();
 }});
+const psgLoopAudio=createSynthPsgAudio({onError:error=>{
+  void psgLooper?.stop();setStatus(`PSG loop playback: ${error.message}`);updateLooperUi();
+}});
 const psgVoice = createSynthPsgVoice({
   getPsg:() => psgAudio.getPsg(),
   getPitchClock:() => synth?.clock ?? YM2612_CLOCK,
@@ -642,6 +650,8 @@ const psgVoice = createSynthPsgVoice({
   onCommand:command=>{
     try {psgEventRecorder?.recordCommand(command);}
     catch(error) {psgEventRecorder?.stopRecord();setStatus(`PSG event recording stopped: ${error.message}`);}
+    try {psgLooper?.captureCommand(command);}
+    catch(error) {void psgLooper?.undo();setStatus(`PSG loop recording stopped: ${error.message}`);}
   },
 });
 psgEventRecorder=new SynthPsgRecordingManager({
@@ -722,6 +732,7 @@ function applyMasterVolume() {
   songAuditionMegaSynth?.setMasterVolume(masterVolume);
   psgAudio.setVolume(masterVolume);
   psgEventAudio.setVolume(masterVolume);
+  psgLoopAudio.setVolume(masterVolume);
 }
 
 function isSongChannelTarget() {
@@ -739,7 +750,7 @@ function getCurrentPerformanceVoice() {
 }
 
 function recordingBlocked() {
-  return editorChip === 'psg'||eventRecordingBlocked();
+  return eventRecordingBlocked();
 }
 
 function eventRecordingBlocked() {
@@ -748,11 +759,11 @@ function eventRecordingBlocked() {
 }
 
 function recordingUnavailableReason() {
-  return editorChip === 'psg' ? 'PSG Looper is not available yet. Use Event Rec to record PSG notes and settings.'
-    : 'Pause or Stop the VGM and choose Synth to record your instrument.';
+  return 'Pause or Stop the VGM and choose Synth to record your instrument.';
 }
 
-function recordingOperationCurrent(epoch) {return epoch===recordingEpoch&&!recordingBlocked();}
+function recordingOperationCurrent(epoch,chip=editorChip) {return epoch===recordingEpoch&&chip===editorChip&&!recordingBlocked();}
+function activeLooper() {return editorChip==='psg'?psgLooper:looper;}
 function eventRecordingOperationCurrent(epoch,chip) {return epoch===recordingEpoch&&chip===editorChip&&!eventRecordingBlocked();}
 function eventRecordingSource() {return editorChip==='psg'?psgEventRecorder:megaSynth;}
 function canPlayEventRecording(recording) {
@@ -777,6 +788,7 @@ function stopRecordingForReference() {
   ++recordingEpoch;
   if(psgEventRecorder?.isRecording()) {psgVoice.stop();psgEventRecorder.stopRecord();}
   psgEventRecorder?.stopRecordingPlayback();
+  const stoppingPsg=psgLooper?.stop();
   eventRecordSessionActive=false;
   if(referenceRecordingStop)return referenceRecordingStop;
   stopAllNotes();
@@ -785,7 +797,7 @@ function stopRecordingForReference() {
   eventRecordSessionActive=false;
   stopLooperAudioPlayback();
   if(loopOutputBus)loopOutputBus.gain.value=0;
-  const pending=Promise.resolve().then(()=>looper?.stop()).then(()=>{
+  const pending=Promise.all([stoppingPsg,Promise.resolve().then(()=>looper?.stop())]).then(()=>{
     stopLooperAudioPlayback();
     loopSynth?.reset();
     stopAllNotes();
@@ -955,8 +967,8 @@ function formatLooperProgress(
   }
 
   const elapsed =
-    audioContext.currentTime -
-    (state.loopStartedAt ?? 0);
+    Math.max(0,audioContext.currentTime -
+    (state.loopStartedAt ?? 0));
   const wrapped =
     ((elapsed % state.loopLength) +
       state.loopLength) %
@@ -972,6 +984,7 @@ function formatLooperProgress(
 }
 
 function updateLooperUi() {
+  const looper=activeLooper();
   const blocked=recordingBlocked();
   if(looperStartButton) {
     looperStartButton.disabled=blocked;
@@ -1009,11 +1022,14 @@ function updateLooperUi() {
   }
 
   const state = looper.getState();
+  if(looperRecordButton)looperRecordButton.disabled=blocked||Boolean(state.busy);
   const progressText =
     formatLooperProgress(state);
 
   if (looperStateRoot) {
-    if (state.recording) {
+    if (state.busy) {
+      looperStateRoot.textContent='Preparing loop…';
+    } else if (state.recording) {
       looperStateRoot.textContent =
         progressText
           ? `${progressText} REC`
@@ -1060,7 +1076,7 @@ function updateLooperUi() {
   looperClearButton &&
     (looperClearButton.disabled =
       state.unitCount === 0 &&
-      !state.recording);
+      !state.recording && !state.rendering);
 
   looperRecordButton?.classList.toggle(
     "is-selected",
@@ -1168,17 +1184,38 @@ function buildEventPlaybackOptions() {
 }
 
 async function playEventSource(source,recording=null) {
-  try {return await source.playRecording(recording,buildEventPlaybackOptions());}
+  const epoch=recordingEpoch,chip=editorChip;
+  try {
+    const loop=activeLooper();
+    if(loop?.running) {
+      await loop.stop();
+      if(!eventRecordingOperationCurrent(epoch,chip))return null;
+      stopAllNotes();
+    }
+    return await source.playRecording(recording,buildEventPlaybackOptions());
+  }
   catch(error) {
     if(error.name!=='AbortError')setStatus(`Event playback failed: ${error.message}`);
     return null;
   } finally {updateEventRecordUi();}
 }
 
+async function runLooperAction(action) {
+  try {return await action();}
+  catch(error) {
+    if(error.name!=='AbortError')setStatus(`Looper operation failed: ${error.message}`);
+    updateLooperUi();return null;
+  }
+}
+
 function handleLooperStateChange(
   detail
 ) {
   updateLooperUi();
+  if(detail.reason==='record-error'||detail.reason==='error') {
+    setStatus(`Unable to prepare PSG loop: ${detail.error?.message??detail.error??'Unknown error'}`);
+    return;
+  }
 
   if (
     detail.reason ===
@@ -1234,14 +1271,14 @@ async function toggleEventRecordSession() {
 
   if (
     !eventRecordSessionActive &&
-    looper?.running
+    activeLooper()?.running
   ) {
     updateLooperUi();
     updateEventRecordUi();
     setStatus(
       "Stopping looper..."
     );
-    await looper.stop();
+    await activeLooper().stop();
     if(!eventRecordingOperationCurrent(epoch,chip))return;
     stopAllNotes();
   }
@@ -2381,7 +2418,7 @@ function toggleParamHelp(config) {
 function updateVisuals() {
   drawEnvelopeGuide();
   renderChannel3SpecialMonitor();
-  if (looper?.running) {
+  if (activeLooper()?.running) {
     updateLooperUi();
   }
   visualFrame =
@@ -2620,7 +2657,42 @@ function getEditorPlayableSynth() {
 }
 
 async function ensureLooper() {
+  const chip=editorChip;
   await ensureAudioReady();
+
+  if(chip==='psg') {
+    await psgLoopAudio.prepare(audioContext,finalOutputBus);
+    if(!psgLooper)psgLooper=new SynthPsgLooper({
+      now:()=>audioContext.currentTime,
+      getSettings:()=>psgVoice.getSettings(),
+      getPitchClock:()=>synth?.clock??YM2612_CLOCK,
+      releaseLiveNotes() {
+        for(const channel of psgVoice.getState().heldChannels)psgVoice.noteOff(channel);
+        if(editorChip==='psg')clearInputState();
+      },
+      renderRecording:(recording,{signal})=>renderSynthPsgLoop(recording,{sampleRate:audioContext.sampleRate,signal}),
+      async preparePlaybackUnit(unit,{loopLength,signal}) {
+        const {id,left,right,offsetSeconds}=unit;
+        const prepared=await psgLoopAudio.getPsg().prepareLooperUnit({id,left,right,offsetSeconds},{loopLength,signal});
+        signal.throwIfAborted();psgPreparedLoopUnits.set(unit,prepared);
+      },
+      startPlayback(configuration,units) {
+        configuration.signal?.throwIfAborted();
+        const api=psgLoopAudio.getPsg();
+        psgLoopAudio.setEnabled(editorChip==='psg');
+        psgLoopSession=api.startLooper({loopLength:configuration.loopLength,startTime:configuration.startTime});
+        for(const unit of units)api.addPreparedLooperUnit(psgLoopSession,psgPreparedLoopUnits.get(unit));
+      },
+      addPlaybackUnit:(unit,{signal}={})=>{
+        signal?.throwIfAborted();
+        return psgLoopAudio.getPsg()?.addPreparedLooperUnit(psgLoopSession,psgPreparedLoopUnits.get(unit));
+      },
+      removePlaybackUnit:unit=>psgLoopSession===null?undefined:psgLoopAudio.getPsg()?.removeLooperUnit(psgLoopSession,unit.id),
+      stopPlayback() {psgLoopAudio.getPsg()?.stopLooperPlayback();psgLoopSession=null;},
+      onStateChange:handleLooperStateChange,
+    });
+    updateLooperUi();return psgLooper;
+  }
 
   if (!megaSynth || !loopMegaSynth) {
     return null;
@@ -2663,27 +2735,21 @@ async function ensureLooper() {
 
 async function toggleLooperStart() {
   if(recordingBlocked())return;
-  const epoch=recordingEpoch;
-  if (
-    !looper?.running &&
-    eventRecordSessionActive
-  ) {
-    if (megaSynth?.isRecording()) {
+  const epoch=recordingEpoch,chip=editorChip;
+  if (!activeLooper()?.running) {
+    const source=eventRecordingSource();
+    if (source?.isRecording()) {
       stopAllNotes();
-      megaSynth.stopRecord();
+      source.stopRecord();
     }
-    if (
-      megaSynth?.isRecordingPlaybackActive()
-    ) {
-      megaSynth.stopRecordingPlayback();
-    }
+    source?.stopRecordingPlayback();
     eventRecordSessionActive = false;
     updateEventRecordUi();
   }
 
   const currentLooper =
     await ensureLooper();
-  if(!recordingOperationCurrent(epoch))return;
+  if(!recordingOperationCurrent(epoch,chip))return;
 
   if (!currentLooper) {
     return;
@@ -2701,8 +2767,10 @@ async function toggleLooperStart() {
     return;
   }
 
-  await currentLooper.start();
-  if(!recordingOperationCurrent(epoch)){await currentLooper.stop();return;}
+  const starting=currentLooper.start();
+  updateLooperUi();await starting;
+  if(!recordingOperationCurrent(epoch,chip)){await currentLooper.stop();return;}
+  if(!currentLooper.running)return;
   updateLooperUi();
   updateEventRecordUi();
   setStatus(
@@ -2712,10 +2780,10 @@ async function toggleLooperStart() {
 
 async function toggleLooperRecord() {
   if(recordingBlocked())return;
-  const epoch=recordingEpoch;
+  const epoch=recordingEpoch,chip=editorChip;
   const currentLooper =
     await ensureLooper();
-  if(!recordingOperationCurrent(epoch))return;
+  if(!recordingOperationCurrent(epoch,chip))return;
 
   if (!currentLooper) {
     return;
@@ -2727,29 +2795,29 @@ async function toggleLooperRecord() {
     );
     return;
   }
+  if(currentLooper.getState().busy)return;
 
   const wasRecording =
     currentLooper.recording;
-  if(wasRecording)stopAllNotes();
+  if(wasRecording)releaseEventTakeKeys();
   const pendingToggle =
     currentLooper.toggleRecord();
   updateLooperUi();
-  setStatus(
-    wasRecording
-      ? "Finalizing take..."
-      : "Recording started. Press Space again to stop."
+  if(chip!=='psg'||currentLooper.getState().busy||currentLooper.recording)setStatus(
+    wasRecording ? "Finalizing take..." : "Recording started. Press Space again to stop."
   );
   const completedUnit =
     await pendingToggle;
-  if(!recordingOperationCurrent(epoch))return;
+  if(!recordingOperationCurrent(epoch,chip))return;
   updateLooperUi();
+  if(chip==='psg'&&!completedUnit&&!currentLooper.recording)return;
 
   if (wasRecording) {
     if (completedUnit) {
       setStatus(
         `Recorded ${completedUnit.id}.`
       );
-    } else {
+    } else if(chip!=='psg') {
       setStatus(
         "Recording finished."
       );
@@ -2762,6 +2830,7 @@ async function toggleLooperRecord() {
 }
 
 async function undoLooper() {
+  const looper=activeLooper(),epoch=recordingEpoch,chip=editorChip;
   if (!looper) {
     return;
   }
@@ -2774,6 +2843,7 @@ async function undoLooper() {
   );
   const undoneUnit =
     await looper.undo();
+  if(!recordingOperationCurrent(epoch,chip))return;
   updateLooperUi();
 
   if (!undoneUnit) {
@@ -2792,15 +2862,17 @@ async function undoLooper() {
 }
 
 function clearLooper() {
+  const looper=activeLooper(),epoch=recordingEpoch,chip=editorChip;
   if (!looper) {
     return;
   }
 
   void looper.clear().then(() => {
+    if(!recordingOperationCurrent(epoch,chip))return;
     updateLooperUi();
     stopAllNotes();
     setStatus("Looper cleared.");
-  });
+  }).catch(error=>setStatus(`Unable to clear loop: ${error.message}`));
 }
 
 function togglePrimaryRecordAction() {
@@ -2813,7 +2885,7 @@ function togglePrimaryRecordAction() {
     setStatus(recordingUnavailableReason());
     return;
   }
-  void toggleLooperRecord();
+  void runLooperAction(toggleLooperRecord);
 }
 
 async function initializeDirectAudio() {
@@ -3268,7 +3340,7 @@ exportPsgButton.addEventListener('click', () => {
 looperStartButton?.addEventListener(
   "click",
   () => {
-    void toggleLooperStart();
+    void runLooperAction(toggleLooperStart);
   }
 );
 looperRecordButton?.addEventListener(
@@ -3280,7 +3352,7 @@ looperRecordButton?.addEventListener(
 looperStopButton?.addEventListener(
   "click",
   () => {
-    void undoLooper();
+    void runLooperAction(undoLooper);
   }
 );
 looperClearButton?.addEventListener(
@@ -3397,6 +3469,7 @@ window.addEventListener('pagehide',event=>{
     psgControls.dispose();
     psgAudio.dispose();
     psgEventAudio.dispose();
+    psgLoopAudio.dispose();
     ++songAuditionGeneration;
     if (songAuditionBus) songAuditionBus.gain.value = 0;
     void songAuditionMegaSynth?.close();
