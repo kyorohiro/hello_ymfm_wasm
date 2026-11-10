@@ -167,3 +167,70 @@ test('SID definitions navigate to hardware authoring or ordered asynchronous cli
   const line = lines.findIndex(text => text.startsWith('declare const sid:')); assert(line >= 0);
   assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf('sid:') + 1}),{file:'playground_sid.js',symbol:'createSidClient'});
 });
+
+test('read-only source navigation avoids pending occurrence highlights and does not reopen a closed async lookup',async()=>{
+  class Element {
+    constructor(tag){this.tag=tag;this.children=[];this.style={};this.dataset={};this.listeners=new Map();this.open=false;}
+    append(...children){for(const child of children){child.parent=this;this.children.push(child);}}
+    addEventListener(type,callback){if(!this.listeners.has(type))this.listeners.set(type,[]);this.listeners.get(type).push(callback);}
+    async fire(type){await Promise.all((this.listeners.get(type)??[]).map(callback=>callback({target:this})));}
+    setAttribute(){}
+    showModal(){this.open=true;}
+    close(){this.open=false;void this.fire('close');}
+    remove(){if(this.parent)this.parent.children=this.parent.children.filter(child=>child!==this);}
+  }
+  const originalDocument=globalThis.document,originalFetch=globalThis.fetch;
+  const doc={body:new Element('body'),createElement:tag=>new Element(tag)};
+  const uri=value=>{const url=new URL(value);return{scheme:url.protocol.slice(0,-1),path:url.pathname,toString:()=>value};};
+  const model=(text,resource)=>({uri:resource,getValue:()=>text,getLineContent:line=>text.split('\n')[line-1],dispose(){this.disposed=true;}});
+  const library=model('declare function useSoundChip(name:string):unknown;',uri('file:///globals.d.ts'));
+  const mainModel=model("const fm = await useSoundChip('ym2612');",uri('file:///project/index.js'));
+  const models=new Map([[library.uri.toString(),library]]),editors=[],registrations=[];
+  const mainEditor={getModel:()=>mainModel,getPosition:()=>({lineNumber:1,column:20}),focus(){this.focusCount=(this.focusCount??0)+1;}};
+  let opener,resolveFetch,fetches=0,disposedRegistrations=0;
+  const registration=()=>{registrations.push(true);return{dispose(){disposedRegistrations++;}};};
+  const monaco={Uri:{parse:uri},languages:{registerDefinitionProvider(){return registration();}},editor:{
+    registerEditorOpener(value){opener=value;return registration();},getModel:resource=>models.get(resource.toString()),
+    createModel(text,_language,resource){const value=model(text,resource);models.set(resource.toString(),value);return value;},
+    create(host,options){const editor={host,options,model:options.model,swaps:[],position:null,
+      onContextMenu(){},setModel(value){this.model=value;this.swaps.push(value.uri.path);},setPosition(value){this.position=value;},
+      revealLineInCenter(){},focus(){},dispose(){this.disposed=true;}};editors.push(editor);return editor;},
+  }};
+  let viewer;
+  try {
+    globalThis.document=doc;
+    globalThis.fetch=async()=>{fetches++;return new Promise(resolve=>{resolveFetch=resolve;});};
+    // Capture the injected trusted fetch in this isolated module instance.
+    const {createDefinitionViewer}=await import('./playground_monaco_definitions.js?viewer-lifecycle-test');
+    viewer=createDefinitionViewer(monaco,mainEditor,new Map([[library.uri.toString(),library]]),{
+      chip:'ym2612',runtimeFile:'playground_code_runtime.js',
+    });
+    const dialog=doc.body.children[0],header=dialog.children[0],implementation=header.children[1],close=header.children[2];
+    const position={startLineNumber:1,startColumn:18};
+    assert(await opener.openCodeEditor(mainEditor,library.uri,position));
+    assert(dialog.open);assert.equal(editors.length,1);assert.equal(fetches,0,'opening a declaration does not fetch source');
+    assert.equal(editors[0].options.readOnly,true);assert.equal(editors[0].options.domReadOnly,true);
+    assert.equal(editors[0].options.occurrencesHighlight,'off','read-only model swaps never start the cancellable Monaco word-highlight delay');
+    assert.equal(implementation.hidden,false,'implementation navigation remains available');
+
+    const loading=implementation.fire('click');
+    assert.equal(fetches,1);assert.equal(implementation.disabled,true);
+    await close.fire('click');assert.equal(dialog.open,false);
+    resolveFetch({ok:true,text:async()=> '// Runtime implementation\nexport function useSoundChip(name) { return name; }\n'});
+    await loading;
+    assert.equal(dialog.open,false,'a late source reply cannot reopen the dismissed dialog');
+    assert.equal(editors[0].model,library,'a closed lookup cannot replace the declaration model');
+
+    assert(await opener.openCodeEditor(mainEditor,library.uri,position));
+    await implementation.fire('click');
+    assert.equal(fetches,1,'the previously loaded source is reused');
+    assert.equal(editors[0].model.uri.path,'/tetorica-runtime/playground_code_runtime.js');
+    assert.deepEqual(editors[0].position,{lineNumber:2,column:17});
+    assert.equal(implementation.hidden,true,'the implementation opens as source, not another declaration');
+    assert.equal(header.children[0].textContent,'playground_code_runtime.js (read-only)');
+    assert.equal(editors[0].options.occurrencesHighlight,'off');
+    viewer.dispose();viewer=null;
+    assert(editors[0].disposed);assert.equal(disposedRegistrations,registrations.length);
+    assert.equal(doc.body.children.length,0);
+  }finally{viewer?.dispose();globalThis.document=originalDocument;globalThis.fetch=originalFetch;}
+});

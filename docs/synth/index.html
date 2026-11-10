@@ -466,7 +466,8 @@
         cursor: pointer;
       }
 
-      .toolbar-button.is-selected {
+      .toolbar-button.is-selected,
+      .synth-chip-tabs [aria-selected="true"] {
         background: linear-gradient(180deg, #284e4a, #1d3836);
         border-color: #69cec0;
         box-shadow: inset 0 0 0 1px rgba(105, 206, 192, 0.26);
@@ -979,6 +980,18 @@
       }
 
       .performance-keyboard { display: flex; gap: 10px; align-items: stretch; }
+      #synthKeyboardPanel[hidden], #synthCodePanel[hidden] { display:none; }
+      .synth-input-tabs { margin-bottom:10px; }
+      .synth-code-toolbar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+      .synth-code-toolbar .synth-code-state { margin-left:auto; color:#b3c9c3; font-size:.7rem; }
+      .synth-code-editor-wrap { position:relative; min-width:0; border:1px solid #41615b; border-radius:12px; overflow:hidden; background:#111b1c; }
+      #synthCodeEditor { display:block; width:100%; min-height:280px; height:320px; resize:vertical; padding:14px; border:0; border-radius:0; box-sizing:border-box; color:#dcebe5; background:#111b1c; font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
+      #synthCodeEditorHost { height:320px; min-width:0; }
+      #synthCodeEditorHost:not([data-ready="true"]) { display:none; }
+      .synth-code-note { color:#9ab6ad; font-size:.66rem; line-height:1.5; margin:6px 0; }
+      .synth-code-log { white-space:pre-wrap; overflow-wrap:anywhere; max-height:130px; overflow:auto; margin:8px 0 0; padding:8px 10px; border:1px solid #2e4943; border-radius:8px; color:#b9d3c8; background:#101818; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+      .synth-code-log:empty { display:none; }
+      #synthCodeError { color:#ffc0aa; }
       .modulation-control {
         display: flex; flex-direction: column; align-items: center; gap: 8px;
         width: 44px; flex-shrink: 0; padding: 8px 2px;
@@ -1373,7 +1386,7 @@
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
                       <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI / PSG / PCM JSON…</button>
-                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,.psg.json,.pcm.json,application/octet-stream,application/json" hidden>
+                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,.psg.json,.pcm.json,.js,.mjs,application/octet-stream,application/json,text/javascript" hidden>
                       <button id="importCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette…</button>
                       <input id="cassetteImportInput" type="file" accept=".zip,application/zip" hidden>
                       <button id="importEventRecordingButton" class="toolbar-button" type="button" data-close-synth-menu>Event recording…</button>
@@ -1413,7 +1426,7 @@
         </div>
         <div id="synthWorkspace" class="synth-workspace">
           <aside id="synthFilesPanel" class="synth-files-panel" aria-label="Cassette files" hidden>
-            <div class="synth-files-heading"><h2>FILES</h2><button id="synthFileNewButton" class="toolbar-button" type="button">＋ Instrument</button></div>
+            <div class="synth-files-heading"><h2>FILES</h2><button id="synthFileNewButton" class="toolbar-button" type="button">＋ Instrument</button><button id="synthFileNewCodeButton" class="toolbar-button" type="button">＋ JS</button></div>
             <p id="synthCassetteName">cassette.cassette.zip</p>
             <div id="synthFilesTree"></div>
             <div class="synth-files-actions">
@@ -1423,7 +1436,7 @@
               <button id="synthFileNewFolderButton" class="toolbar-button" type="button">New folder…</button>
               <button id="synthFileUndoButton" class="toolbar-button" type="button" title="Undo the last file operation" disabled>Undo files</button>
             </div>
-            <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument file to edit. Other files stay in the Cassette.</p>
+            <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument or JavaScript file to edit. Other files stay in the Cassette.</p>
           </aside>
           <div class="synth-editor">
             <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
@@ -1693,7 +1706,12 @@
             </div>
             <div class="status" id="status">Press any key or click a pad to start audio.</div>
 
-            <div class="control-section">
+            <div class="control-section" id="synthInputSection">
+              <div class="synth-chip-tabs synth-input-tabs" role="tablist" aria-label="Performance input">
+                <button id="synthInputKeyboardTab" class="toolbar-button" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+                <button id="synthInputCodeTab" class="toolbar-button" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+              </div>
+              <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
               <div class="fretboard-toolbar">
                 <div class="fretboard-row fretboard-summary">
                   <div class="octave-control" role="group" aria-label="Keyboard octave" title="Transpose new notes by octaves. Changing octave releases held notes.">
@@ -1733,6 +1751,22 @@
                 </div>
               </div>
               </div>
+              </div>
+              <div id="synthCodePanel" role="tabpanel" aria-labelledby="synthInputCodeTab" hidden>
+                <div class="synth-code-toolbar">
+                  <button id="synthCodeRunButton" class="toolbar-button" type="button" title="Run a new code session (Ctrl/Cmd+Enter)">Run</button>
+                  <button id="synthCodeApplyButton" class="toolbar-button" type="button" title="Apply edits while keeping context and named live resources" disabled>Apply</button>
+                  <button id="synthCodeStopButton" class="toolbar-button" type="button" title="Stop code loops, waits, effects and notes" disabled>Stop</button>
+                  <span id="synthCodeState" class="synth-code-state" role="status">Idle</span>
+                </div>
+                <div class="synth-code-editor-wrap">
+                  <textarea id="synthCodeEditor" aria-label="JavaScript performance code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+                  <div id="synthCodeEditorHost" aria-label="JavaScript performance code editor"></div>
+                </div>
+                <p id="synthCodeEditorNote" class="synth-code-note">Run starts a new session. Apply keeps context. Stop clears the live session. Code is saved with the Cassette.</p>
+                <pre id="synthCodeError" class="synth-code-log" role="alert"></pre>
+                <pre id="synthCodeLog" class="synth-code-log" aria-label="Code output"></pre>
+              </div>
             </div>
           </section>
 
@@ -1752,11 +1786,12 @@
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="rename">Rename…</button>
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="delete">Delete</button>
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="new">New instrument…</button>
+      <button class="toolbar-button" type="button" role="menuitem" data-file-action="code">New JavaScript file…</button>
       <button class="toolbar-button" type="button" role="menuitem" data-file-action="folder">New folder…</button>
     </div>
 
     <script type="module">
-      import "./synth.js?v=pcm-release-1";
+      import "./synth.js?v=synth-code-2";
     </script>
   </body>
 </html>

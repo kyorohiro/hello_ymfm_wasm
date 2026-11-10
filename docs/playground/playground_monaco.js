@@ -1,6 +1,9 @@
-import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-adpcm-encoder-1';
+import {createDefinitionViewer} from './playground_monaco_definitions.js?v=synth-code-types-1';
 import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=scsp-fm-1";
 import {selectPlaygroundDeclarations} from './playground_declarations.js?v=scsp-fm-1';
+// Asset loading must remain trusted while user liveLoop callbacks install the
+// execution guard over global fetch. Loading Monaco itself is still lazy.
+const nativeFetch=globalThis.fetch?.bind(globalThis);
 
 function registerMonacoHover(
   monaco
@@ -378,19 +381,22 @@ function registerMonacoSignatureHelp(
   );
 }
 
-async function registerMonacoPlaygroundGlobals(
+export async function registerMonacoPlaygroundGlobals(
   monaco,
-  chip = "ym2612"
+  chip = "ym2612",
+  options = {}
 ) {
   const libraryModels = new Map();
-  for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
-    const response = await fetch(new URL(`./${name}.d.ts?v=native-modes-1`, import.meta.url), { cache: "no-cache" });
+  for (const name of options.declarationFiles??["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {
+    const response = await nativeFetch(new URL(`./${name}.d.ts?v=native-modes-1`, import.meta.url), { cache: "no-cache" });
     if (!response.ok) throw new Error(`Failed to load playground type declarations: ${response.status}`);
     let declarations = await response.text();
-    if (name === 'tetorica-playground-globals') declarations = selectPlaygroundDeclarations(declarations, chip);
+    if(options.transformDeclarations)declarations=options.transformDeclarations(declarations,name,chip);
+    else if (name === 'tetorica-playground-globals') declarations = selectPlaygroundDeclarations(declarations, chip);
     const uri = monaco.Uri.parse(`file:///${name}.d.ts`);
     monaco.languages.typescript.javascriptDefaults.addExtraLib(declarations, uri.toString());
     const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(declarations, 'typescript', uri);
+    if(model.getValue()!==declarations)model.setValue(declarations);
     libraryModels.set(uri.toString(), model);
   }
   return libraryModels;
@@ -533,7 +539,7 @@ export async function initializePlaygroundMonaco(
     registerMonacoSignatureHelp(
       monaco
     );
-    const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip);
+    const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip, options);
 
     const modelUri =
       monaco.Uri.parse(
@@ -625,7 +631,7 @@ export async function initializePlaygroundMonaco(
       );
     monacoEditor.onDidDispose(() => overflowHost.remove());
     const definitionViewer = createDefinitionViewer(monaco, monacoEditor, libraryModels, {
-      chip: options.chip, openVirtualFile: options.openVirtualFile,
+      chip: options.chip, openVirtualFile: options.openVirtualFile, runtimeFile:options.definitionRuntimeFile,
     });
     monacoEditor.onDidDispose(() => {definitionViewer.dispose();for (const model of libraryModels.values()) model.dispose();});
     let currentModel = monacoModel;

@@ -1,6 +1,8 @@
-import {createVirtualFileSystem, normalizeVirtualPath, transferVirtualFiles as transfer} from '../js/tetorica_virtual_files/index.js';
+import {createVirtualFileSystem,transferVirtualFiles as transfer,CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/filesystem.js';
+import {normalizeVirtualPath} from '../js/tetorica_virtual_files/path.js';
 import {isCheckpointPath as isCheckpointVirtualPath} from '../js/tetorica_virtual_files/filesystem.js';
-export {createVirtualFileSystem, normalizeVirtualPath, createVirtualFileReader, CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/index.js';
+export {createVirtualFileSystem,normalizeVirtualPath,CHECKPOINT_ROOT};
+export {createVirtualFileReader} from '../js/tetorica_virtual_files/reader.js';
 export {isCheckpointVirtualPath};
 
 // Entry-point and built-in-file policies belong to Playground, not the generic filesystem.

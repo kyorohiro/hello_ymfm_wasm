@@ -1,7 +1,7 @@
 /** Read-only definition/source viewer. Library files never enter the project or cassette. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 
-export function definitionSource(text, position, chip = 'ym2612') {
+export function definitionSource(text, position, chip = 'ym2612', options = {}) {
   const lines = text.split('\n');
   const line = lines[position?.startLineNumber ? position.startLineNumber - 1 : (position?.lineNumber ?? 1) - 1] ?? '';
   const column = position?.startColumn ?? position?.column ?? 1;
@@ -9,6 +9,16 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
+  if(options.runtimeFile) {
+    const runtime=['useSoundChip','setBpm','beat','nextBeat','sleep','sleepSamples','tween','liveLoop','livePrepare','liveFx',
+      'stopLoop','stopAllLoops','liveCleanup','trackAsync','file','log','console'];
+    if(runtime.includes(symbol))return {file:options.runtimeFile,symbol};
+    if(['context','pg','fm'].includes(symbol)||/^(?:CH[1-6]|PSG[1-3]|OP[1-4])$/.test(symbol))return {file:options.runtimeFile,symbol:'createPlaygroundCodeRuntime'};
+    if(symbol==='FM_PRESETS')return {file:'megasynth-fm-presets.js',symbol};
+    if(symbol==='cycle')return {file:'playground_music.js',symbol:'createCycle'};
+    if(['parseNoteName','toPitch','midiToNoteName','lerp','choose','rand','rrange','randInt'].includes(symbol))return {file:'playground_music.js',symbol};
+    if(symbol==='hzToBlockFnum')return {file:'soundchip_pitch.js',symbol:'opnPitchFromHz'};
+  }
   if (symbol === 'sid') return {file:'playground_sid.js',symbol:'createSidClient'};
   if (/^Playground(?:Primary)?Sid$/.test(owner) && ['readRegister','getState','setClock'].includes(symbol)) return {file:'playground_sid.js',symbol:'createSidRegisterClient'};
   if (/^Playground(?:Primary)?Sid/.test(owner)) return {file:'sidsynth.js',symbol:/^Playground/.test(symbol)?'SidSynth':symbol};
@@ -34,7 +44,7 @@ export function definitionSource(text, position, chip = 'ym2612') {
   if (/^PlaygroundSpc$/.test(owner)) return {file:'playground_spc.js', symbol};
   if (/^PlaygroundYm2608$/.test(owner)) return {file:'ym2608synth.js', symbol};
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
-  if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};
+  if (/^(?:PlaygroundSegaPsg|PSGApi)$/.test(owner)) return {file:'segapsgsynth.js', symbol};
   if (/^Playground(?:Primary)?(?:Opll|Ym2413)/.test(owner)) return {file:'ym2413synth.js',symbol:/^Playground/.test(symbol) ? 'YM2413Synth' : symbol};
   if (/^Playground(?:Primary)?(?:Ay8910|AY8910)/.test(owner)) return {file:'ay8910synth.js',symbol:/^Playground/.test(symbol) ? 'AY8910Synth' : symbol};
   if (/^Playground(?:Primary)?Opl/.test(owner)) return {file:'opl_synth.js',symbol:/^Playground(?:Primary)?Opl/.test(symbol) ? 'OPLSynth' : symbol};
@@ -48,7 +58,9 @@ export function definitionSource(text, position, chip = 'ym2612') {
 export function sourcePosition(text, symbol) {
   const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`^\\s*(?:(?:export\\s+)?(?:default\\s+)?(?:(?:async\\s+)?function\\s+|(?:const|let|var|class)\\s+))?(?:async\\s+)?${escaped}\\s*(?:\\(|:|=|\\{)`, 'm');
-  const match = pattern.exec(text);
+  // Small runtime facades may put several object methods on one line. Match
+  // an actual method body after a separator, never a member call site.
+  const match = pattern.exec(text)??new RegExp(`[},;]\\s*(?:async\\s+)?${escaped}\\s*(?:\\([^)]*\\)\\s*\\{|:\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>)`,'m').exec(text);
   if (!match) return {lineNumber:1, column:1};
   const index = match.index + match[0].indexOf(symbol);
   const prefix = text.slice(0,index);
@@ -198,7 +210,12 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
     if(disposed)return;
     if(!dialog.open)dialog.showModal();
     if(!viewer){
-      viewer=monaco.editor.create(host,{model,readOnly:true,domReadOnly:true,theme:'vs-dark',automaticLayout:true,minimap:{enabled:false},fontSize:13,scrollBeyondLastLine:false,renderValidationDecorations:'off',contextmenu:false});
+      viewer=monaco.editor.create(host,{model,readOnly:true,domReadOnly:true,theme:'vs-dark',automaticLayout:true,minimap:{enabled:false},fontSize:13,scrollBeyondLastLine:false,renderValidationDecorations:'off',contextmenu:false,
+        // This viewer changes models as soon as a definition is followed.
+        // Monaco 0.52 leaves a rejected WordHighlighter Delayer promise when
+        // that happens during its pending symbol highlight. Keep the source
+        // viewer free of those background requests; navigation stays enabled.
+        occurrencesHighlight:'off'});
       viewer.onContextMenu(event=>{
         event.event.preventDefault();
         if(event.target.position)viewer.setPosition(event.target.position);
@@ -211,7 +228,7 @@ export function createDefinitionViewer(monaco, mainEditor, libraryModels, option
     else viewer.setModel(model);
     title.textContent=model.uri.path.split('/').at(-1)+' (read-only)';
     message.textContent='';contextMenu.hidden=true;
-    if(model.uri.path.endsWith('.d.ts'))target=definitionSource(model.getValue(),position,ownerChip);
+    if(model.uri.path.endsWith('.d.ts'))target=definitionSource(model.getValue(),position,ownerChip,{runtimeFile:options.runtimeFile});
     else target=null;
     implementation.hidden=!target;implementation.disabled=false;
     const point=position?.startLineNumber ? {lineNumber:position.startLineNumber,column:position.startColumn} : position??{lineNumber:1,column:1};

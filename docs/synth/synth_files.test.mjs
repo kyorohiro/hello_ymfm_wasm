@@ -67,6 +67,57 @@ function harness(store={saved:null,journal:new Map()}) {
     cleanup(){for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
 
+function attachCode(h) {
+  let path=null,mode='keyboard';const opened=[],changes=[],flushes=[];
+  const controls={
+    get activePath(){return path;},isCodeMode:()=>mode==='code',captureState:()=>({mode,path}),setBusy(){},
+    async openFile(value){path=value;mode='code';opened.push(value);},
+    async flush(){flushes.push(path);return true;},
+    pathChanged(source,destination){changes.push([source,destination]);if(path===source||path?.startsWith(source+'/'))path=destination?destination+path.slice(source.length):null;},
+    workspaceReplaced(){path=null;mode='keyboard';},
+    restoreState(state){path=state.path;mode=state.mode;},
+  };
+  h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
+}
+
+test('JavaScript selection and Save retain the active instrument and preserve existing entry-point source',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Keep FM');const tone=h.files.activeTonePath,bytes=h.project.fs.get(tone).data.slice();
+    const code=attachCode(h);h.project.fs.writeText('/index.js','// Existing author source\n');
+    await h.files.selectFile('/index.js');assert.equal(h.files.activeTonePath,tone);
+    assert.deepEqual(code.opened,['/index.js']);assert.equal(h.byId('synthFileSaveButton').textContent,'Save code');
+    await h.action('sync');assert.equal(code.flushes.at(-1),'/index.js');
+    assert.deepEqual(h.project.fs.get(tone).data,bytes);assert.equal(h.project.fs.get('/index.js').data,'// Existing author source\n');
+    await h.files.importInstruments([{name:'index.js',data:'// Imported second script\n'}]);
+    assert.equal(h.project.fs.get('/index.js').data,'// Existing author source\n');
+    assert.equal(h.project.fs.get('/index-2.js').data,'// Imported second script\n');
+    assert.equal(code.controls.activePath,'/index-2.js');assert.equal(h.files.activeTonePath,tone);
+    assert.deepEqual(h.store.saved.codeState,{mode:'code',path:'/index-2.js'});
+  }finally{h.cleanup();}
+});
+
+test('code rename, delete and Undo remap its editor independently and restore the saved code path after reload',async()=>{
+  const store={saved:null,journal:new Map()},h=harness(store);
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Keep FM');const tone=h.files.activeTonePath;
+    h.project.fs.writeText('/index.js','context.count = 1;\n');const code=attachCode(h);
+    await h.files.selectFile('/index.js');await h.rename('/index.js','melody.js');
+    assert.equal(code.controls.activePath,'/melody.js');assert.equal(h.files.activeTonePath,tone);
+    assert.deepEqual(code.changes,[['/index.js','/melody.js']]);
+    await h.action('delete','/melody.js');assert.equal(code.controls.activePath,null);assert(!h.project.fs.has('/melody.js'));
+    await h.action('undo');assert.equal(code.controls.activePath,'/melody.js');assert(h.project.fs.has('/melody.js'));
+    assert.equal(h.files.activeTonePath,tone);
+    await h.files.persistCode();
+  }finally{h.cleanup();}
+  const restored=harness(store);
+  try {
+    await restored.files.ready;assert.deepEqual(restored.files.getCodeState(),{mode:'code',path:'/melody.js'});
+    assert.equal(restored.project.fs.get('/melody.js').data,'context.count = 1;\n');
+    assert.match(restored.files.activeTonePath,/Keep FM\.vgi$/);
+  }finally{restored.cleanup();}
+});
+
 test('FM and PSG editor contexts keep independent files, patches and shared Sync/Revert checkpoints',async()=>{
   const h=harness();
   try {

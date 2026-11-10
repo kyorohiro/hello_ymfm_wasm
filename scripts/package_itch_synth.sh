@@ -15,7 +15,12 @@ SOURCE_JS_DIR="${ROOT_DIR}/docs/js"
 LICENSE_FILE="${ROOT_DIR}/LICENSE"
 SYNTH_SUPPORT_DIR="${ROOT_DIR}/docs/synth"
 SYNTH_FILES="
+CODE.md
 synth.js
+synth_code_controls.js
+synth_code_project.js
+synth_code_audio.js
+synth_code_declarations.js
 synth_controls.js
 synth_envelope.js
 synth_operator_envelope.js
@@ -78,6 +83,14 @@ synth_recording.js
 synth_looper.js
 "
 RUNTIME_FILES="
+playground_code_runtime.js
+playground_clock.js
+playground_live.js
+playground_music.js
+playground_async_tasks.js
+playground_execution.js
+playground_log.js
+playground_duration.js
 pwm32x.js
 pwm32x_wasm.js
 pwm32x_playback.js
@@ -218,6 +231,9 @@ cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playgrou
 cp "${ROOT_DIR}/docs/playground/wonderswan_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/pokey_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_cassette.js" "${STAGE_DIR}/playground/"
+for file in playground_virtual_files.js playground_monaco.js playground_monaco_completion.js playground_monaco_definitions.js playground_declarations.js tetorica-playground-globals.d.ts tetorica-playground-ym2612.d.ts tetorica-shell.d.ts; do
+  cp "${ROOT_DIR}/docs/playground/${file}" "${STAGE_DIR}/playground/"
+done
 cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playground/playground_example_order.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"
 # Synth uses the memory filesystem only; Git and its optional dependencies are
@@ -309,6 +325,8 @@ perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_a
   "${STAGE_DIR}/synth_song_mix_defaults.js" "${STAGE_DIR}/synth_psg_audio.js" "${STAGE_DIR}/synth_psg_worklet.js" "${STAGE_DIR}/synth_song_psg_voice.js" "${STAGE_DIR}/synth_psg_loop_render.js" "${STAGE_DIR}/synth_pcm_audio.js" "${STAGE_DIR}/synth_pcm.js" \
   "${STAGE_DIR}/synth_pcm_recording_audio.js" "${STAGE_DIR}/synth_pcm_recording_worklet.js" "${STAGE_DIR}/synth_pcm_worklet.js" "${STAGE_DIR}/synth_pcm_release.js" \
   "${STAGE_DIR}/synth_pcm_loop_audio.js" "${STAGE_DIR}/synth_pcm_loop_render.js"
+perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' \
+  "${STAGE_DIR}/synth_code_controls.js" "${STAGE_DIR}/synth_code_project.js" "${STAGE_DIR}/synth_code_audio.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"
