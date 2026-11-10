@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSynthCodeAudio} from './synth_code_audio.js';
-import {createPcmBuiltinPreset} from './synth_pcm.js';
+import {createPcmBuiltinPreset,PCM_NATIVE_RATE} from './synth_pcm.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
 import {YM2612Synth} from '../js/ym2612synth.js';
 
@@ -84,6 +84,155 @@ test('PCM Code shares the author sample, follows live level/pan/loop/root edits 
   pcm.keyOff(3);assert.deepEqual(f.events.at(-1),['pcm-release',3]);assert.deepEqual(f.audio.getState().pcmChannels,[]);
   await f.audio.stop();assert(!f.events.some(e=>e[0]==='restore-memory'),'ordinary code notes do not replace the shared sample bank');
   assert.equal(f.getPreset().sample.data,original.sample.data);await f.audio.dispose();
+});
+
+test('PCM musical notes use the author sample rate and declared Root, without assuming one cycle or touching the other settings',async()=>{
+  const f=fixture(),author=createPcmBuiltinPreset('triangle');
+  author.sample.data=btoa(String.fromCharCode(...new Uint8Array(97).fill(128)));
+  author.sample.sampleRate=PCM_NATIVE_RATE;
+  author.settings={...author.settings,rootNote:69,loopStart:17,loopEnd:97,volume:41,panLeft:3,panRight:12};
+  f.options.getPcmVoice().setPreset(author);
+  const pcm=await f.audio.useSoundChip('rf5c164'),from=f.events.length;
+  assert.equal(pcm.setNote(7,'A4'),2048,'Root plays at the original sample rate, regardless of sample length');
+  assert.equal(pcm.setNote(7,81),4096,'MIDI Root + 12 doubles playback speed');
+  assert.equal(pcm.setNote(7,'A3'),1024);
+  assert.deepEqual(f.events.slice(from),[
+    ['pcm-channel',7,{step:2048}],['pcm-channel',7,{step:4096}],['pcm-channel',7,{step:1024}],
+  ],'setNote writes only the selected channel pitch, without a trigger or RAM edit');
+  assert.equal(pcm.noteOn(7,'A4'),undefined,'a ready musical note starts synchronously');
+  assert.deepEqual(f.events.slice(-2),[['pcm-channel',7,{step:2048}],['pcm-on',7]]);
+  assert.deepEqual(f.audio.getState().pcmChannels,[7]);
+  const previous=f.getPreset().settings;f.setPcm({rootNote:81});f.audio.syncPcmSettings(previous);
+  assert.equal(pcm.setNote(7,69),1024,'new calls read the current editor Root');
+  pcm.noteOff(7);assert.deepEqual(f.events.at(-1),['pcm-release',7]);
+  assert.deepEqual(f.getPreset().sample,author.sample,'tuning neither rewrites nor analyzes the sample');
+  const next=createPcmBuiltinPreset('square');next.sample.sampleRate=PCM_NATIVE_RATE*2;next.settings.rootNote=72;
+  f.options.getPcmVoice().setPreset(next);f.audio.pcmSourceChanged();pcm.noteOn(0,'C5');
+  const seeded=f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===0).at(-1)[2];
+  assert.equal(seeded.step,4096,'source replacement uses the new rate and Root');
+  await f.audio.dispose();
+});
+
+test('PCM Code Root applies to future musical calls without editing the author or retuning a configured voice',async()=>{
+  const f=fixture(),author=createPcmBuiltinPreset('sine');author.sample.sampleRate=PCM_NATIVE_RATE;
+  f.options.getPcmVoice().setPreset(author);
+  const pcm=await f.audio.useSoundChip('rf5c164');pcm.noteOn(0,'C4');
+  const before=f.getPreset(),from=f.events.length;
+  assert.equal(pcm.setRootNote('A4'),69);
+  assert.deepEqual(f.events.slice(from),[],'declaring the sample Root does not write or restart any channel');
+  assert.deepEqual(f.getPreset(),before,'Code tuning never changes the editor or saved instrument');
+  assert.equal(pcm.setNote(0,'A5'),4096,'Root + 12 doubles the original sample rate');
+  pcm.setPitch(1,4096);
+  const previous=f.getPreset().settings;f.setPcm({rootNote:72,volume:48,panLeft:2,loopStart:16});
+  const start=f.events.length;f.audio.syncPcmSettings(previous);
+  const updates=f.events.slice(start).filter(e=>e[0]==='pcm-channel');
+  assert.equal(updates.find(e=>e[1]===0)[2].step,4096,'Code-tuned channel ignores the unrelated UI Root change');
+  assert.equal(updates.find(e=>e[1]===1)[2].step,2048,'raw step retains its existing UI Root behavior');
+  assert.equal(updates.find(e=>e[1]===2)[2].step,1024,'unconfigured channels continue following the editor Root');
+  assert.deepEqual(updates.find(e=>e[1]===0)[2],{volume:48,pan:{left:2,right:15},loopStart:16,step:4096});
+  assert(!f.events.slice(start).some(e=>e[0]==='pcm-on'),'UI controls do not retrigger Code notes');
+  const clear=f.events.length;assert.equal(pcm.setRootNote(null),72);assert.deepEqual(f.events.slice(clear),[]);
+  assert.equal(pcm.setNote(0,'C5'),2048,'null resumes the current editor Root on the next note helper call');
+  assert.equal(pcm.setRootNote(0),0,'MIDI zero is an explicit Root, never treated as inheritance');
+  assert.equal(pcm.setRootNote(127),127);
+  pcm.setRootNote(69);const invalid=f.events.length;
+  for(const note of [undefined,true,{},'', 'H4','C20',-1,128,69.5,NaN,Infinity])assert.throws(()=>pcm.setRootNote(note),RangeError);
+  assert.deepEqual(f.events.slice(invalid),[]);assert.equal(pcm.setNote(0,69),2048,'invalid Root leaves the previous override intact');
+  await pcm.loadMemory(Uint8Array.of(128,255));pcm.setRootNote('A4');
+  assert.throws(()=>pcm.noteOn(0,'A4'),/editor sample tuning/,'Root alone cannot supply the rate of an unknown Code sample');
+  await f.audio.dispose();
+});
+
+test('raw PCM step writes reclaim UI tuning while non-pitch channel edits preserve the Code Root basis',async()=>{
+  for(const mode of ['setPitch','setChannel','writeRegister','volume']) {
+    const f=fixture(),author=createPcmBuiltinPreset('sine');author.sample.sampleRate=PCM_NATIVE_RATE;
+    f.options.getPcmVoice().setPreset(author);
+    const pcm=await f.audio.useSoundChip('rf5c164');pcm.setRootNote('A4');pcm.noteOn(0,'A5');
+    if(mode==='setPitch')pcm.setPitch(0,4096);
+    else if(mode==='setChannel')pcm.setChannel(0,{step:4096});
+    else if(mode==='writeRegister'){pcm.writeRegister(7,0xc0);pcm.writeRegister(2,0);pcm.writeRegister(3,16);}
+    else pcm.setChannel(0,{volume:32});
+    const previous=f.getPreset().settings;f.setPcm({rootNote:72});f.audio.syncPcmSettings(previous);
+    const update=f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===0).at(-1)[2];
+    assert.equal(update.step,mode==='volume'?4096:2048,mode+' preserves the appropriate tuning basis');
+    await f.audio.dispose();
+  }
+});
+
+test('PCM Root metadata survives raw reset and pending starts, then clears on Stop or new author source',async()=>{
+  let gate=null,ready=true;const f=fixture({ensureChip:()=>gate?.promise}),author=createPcmBuiltinPreset('sine');
+  author.sample.sampleRate=PCM_NATIVE_RATE;f.options.getPcmVoice().setPreset(author);
+  const pcm=await f.audio.useSoundChip('rf5c164');pcm.setRootNote('A4');pcm.reset();
+  assert.equal(pcm.setNote(0,'A4'),2048,'a hardware register reset keeps the Code tuning declaration');
+  f.options.getPcmVoice().isReady=()=>ready;ready=false;gate=deferred();
+  const first=pcm.noteOn(4,'A4');await turn();await turn();
+  pcm.setRootNote('A5');const second=pcm.noteOn(5,'A4');await turn();await turn();
+  assert.equal(f.events.filter(e=>e[0]==='pcm-on').length,0);
+  ready=true;gate.resolve();await Promise.all([first,second]);
+  const pitch=ch=>f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===ch).at(-1)[2].step;
+  assert.equal(pitch(4),2048,'an earlier pending note keeps the basis used by its call');
+  assert.equal(pitch(5),1024,'only subsequent note calls use the new Root');
+  const previous=f.getPreset().settings;f.setPcm({rootNote:72});f.audio.syncPcmSettings(previous);
+  assert.equal(pitch(4),2048);assert.equal(pitch(5),1024);
+  await f.audio.stop();await f.audio.useSoundChip('rf5c164');pcm.noteOn(0,'C5');
+  assert.equal(pitch(0),2048,'Stop resumes the current UI Root');
+  pcm.setRootNote('A4');f.audio.pcmSourceChanged();pcm.noteOn(0,'C5');
+  assert.equal(pitch(0),2048,'a new author source also resumes its UI Root');
+  await f.audio.dispose();
+});
+
+test('PCM note helpers validate before mutation and clamp the native step at both hardware limits',async()=>{
+  const f=fixture(),pcm=await f.audio.useSoundChip('rf5c164'),from=f.events.length;
+  for(const method of ['setNote','noteOn']) {
+    for(const note of [undefined,null,true,{},'', 'H4','C20',-1,128,69.5,NaN,Infinity])assert.throws(()=>pcm[method](0,note),RangeError);
+    for(const channel of [-1,8,.5,NaN,'0'])assert.throws(()=>pcm[method](channel,'C4'),RangeError);
+  }
+  assert.deepEqual(f.events.slice(from),[],'invalid calls change neither pitch nor keys');
+  assert.deepEqual(f.audio.getState().pcmChannels,[]);
+  const low=createPcmBuiltinPreset('sine');low.sample.sampleRate=PCM_NATIVE_RATE/2048;low.settings.rootNote=127;
+  f.options.getPcmVoice().setPreset(low);f.audio.pcmSourceChanged();assert.equal(pcm.setNote(0,0),1);
+  const high=createPcmBuiltinPreset('sine');high.sample.sampleRate=384000;high.settings.rootNote=0;
+  f.options.getPcmVoice().setPreset(high);f.audio.pcmSourceChanged();assert.equal(pcm.setNote(0,127),65535);
+  await f.audio.dispose();
+});
+
+test('PCM note helpers reject unknown Code RAM tuning until the author sample returns, while raw controls keep working',async()=>{
+  const f=fixture(),pcm=await f.audio.useSoundChip('rf5c164');
+  for(const write of [()=>pcm.loadMemory(Uint8Array.of(128,255)),()=>pcm.loadSample({sampleRate:48000,channels:[Float32Array.of(0,.5,0)]})]) {
+    await write();pcm.reset();const from=f.events.length;
+    for(const method of ['setNote','noteOn'])assert.throws(()=>pcm[method](0,'C4'),/editor sample tuning.*setPitch\(\).*keyOn\(\)/);
+    assert.deepEqual(f.events.slice(from),[],'a register reset keeps RAM and cannot restore tuning metadata');
+    pcm.setPitch(0,2048);pcm.keyOn(0);assert.deepEqual(f.events.at(-1),['pcm-on',0]);
+    await f.audio.stop();assert.equal(await f.audio.useSoundChip('rf5c164'),pcm);pcm.noteOn(0,'C4');
+    assert.deepEqual(f.events.at(-1),['pcm-on',0]);
+  }
+  await pcm.loadMemory(Uint8Array.of(128,255));f.audio.pcmSourceChanged();
+  assert.doesNotThrow(()=>pcm.noteOn(0,'C4'),'an explicit author sample change restores the metadata basis');
+  await f.audio.dispose();
+});
+
+test('PCM musical pending notes cancel safely and keep explicit later raw pitch edits',async()=>{
+  for(const action of ['noteOff','source','stop','newer','pitch','memory']) {
+    let gate=null,ready=true;const f=fixture({ensureChip:()=>gate?.promise}),pcm=await f.audio.useSoundChip('rf5c164');
+    const voice=f.options.getPcmVoice();voice.isReady=()=>ready;ready=false;gate=deferred();
+    const from=f.events.length,first=pcm.noteOn(4,'C4');assert(first instanceof Promise);await turn();await turn();
+    assert(!f.events.slice(from).some(e=>e[0]==='pcm-on'));
+    let replacement,rejected;
+    if(action==='noteOff')pcm.noteOff(4);
+    else if(action==='source')f.audio.pcmSourceChanged();
+    else if(action==='stop')await f.audio.stop();
+    else if(action==='newer')replacement=pcm.noteOn(4,'C5');
+    else if(action==='pitch')pcm.setPitch(4,4321);
+    else {rejected=assert.rejects(first,/editor sample tuning/);await pcm.loadMemory(Uint8Array.of(128,255));}
+    ready=true;gate.resolve();
+    if(rejected)await rejected;else assert.equal(await first,undefined);
+    if(replacement)await replacement;
+    const starts=f.events.slice(from).filter(e=>e[0]==='pcm-on');
+    assert.equal(starts.length,['newer','pitch'].includes(action)?1:0,action+' cannot revive an obsolete note');
+    if(action==='pitch')assert.equal(f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===4).at(-1)[2].step,4321);
+    if(action==='newer')assert.equal(f.events.filter(e=>e[0]==='pcm-channel'&&e[1]===4).at(-1)[2].step,8428);
+    await f.audio.dispose();
+  }
 });
 
 test('Code sample-memory writes restore the untouched author sample at Stop',async()=>{

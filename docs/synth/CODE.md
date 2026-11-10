@@ -54,15 +54,31 @@ liveLoop("pulse", async () => {
 });
 ```
 
-PCM initially uses the sample, loop and channel settings from the PCM editor. Its raw step is available through `setPitch()` and `setChannel()`. A musical key release uses the Synth's 4 ms software release. Explicit raw register writes remain hardware controls. Code sample-memory writes are temporary; Stop restores the authoring sample bank.
+PCM uses the sample, loop and channel settings from the RF5C164 editor. Set **Root note** to the note heard when the sample plays at its original sample rate. `setNote(channel, note)` computes and returns the raw RF5C164 step without starting a voice; `noteOn(channel, note)` also starts it. Both accept note names or integer MIDI 0–127, on channels 0–7. This is software tuning from the editor's sample rate and Root note; it does not detect an arbitrary WAV's pitch. Changing the loop region can change the perceived pitch, so adjust Root note when needed. For a VGM-copied sample, the initial C4 represents the captured playback speed rather than a detected C4 fundamental.
+
+These helpers require the upper editor's sample metadata. After Code `loadSample()` / `loadMemory()` replaces RAM, use raw `setPitch()` / `keyOn()` until the editor sample is restored. A musical `noteOff()` uses the Synth's 4 ms software release. Raw register controls remain available; Stop restores the authoring sample bank.
+
+`setRootNote(note)` overrides Root note for later Code `setNote()` / `noteOn()` calls and returns the effective MIDI number. It accepts a note name or integer MIDI 0–127; `setRootNote(null)` returns to inheriting the upper editor's Root note. It does not retune or restart held notes, change the UI or saved instrument, or affect raw `setPitch()` / `keyOn()`. Apply keeps the override; Stop or selecting a new instrument clears it.
+
+For a sample whose original pitch is A4, A5 plays at twice its original speed:
 
 ```js
 const pcm = await useSoundChip("rf5c164");
-liveLoop("sample", async () => {
-  await pcm.keyOn(0);
-  await beat(0.5);
-  await pcm.keyOff(0);
-  await beat(0.5);
+pcm.setRootNote("A4");
+await pcm.noteOn(CH1, "A5");
+await sleep(0.2);
+pcm.noteOff(CH1);
+```
+
+```js
+const pcm = await useSoundChip("rf5c164");
+setBpm(120);
+liveLoop("melody", async () => {
+  const notes = scale("E1", "minorPentatonic", 3);
+  await pcm.noteOn(CH1, choose(notes));
+  await sleep(0.1);
+  pcm.noteOff(CH1);
+  await beat(0.025);
 });
 ```
 

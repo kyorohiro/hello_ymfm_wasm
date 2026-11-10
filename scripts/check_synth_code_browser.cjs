@@ -7,7 +7,7 @@ const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{t
 const {chromium,webkit}=require('playwright');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',checks:'all',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
 for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|checks|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
-assert(['all','stop','baseline-stop','mixer'].includes(config.checks));
+assert(['all','stop','baseline-stop','mixer','pcm-notes'].includes(config.checks));
 assert(config.entry.startsWith('/'));assert(config.engines.split(',').every(name=>['chromium','webkit'].includes(name)));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(task,label,ms=30000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timeout '+label)),ms);})]);}finally{clearTimeout(timer);}}
@@ -242,9 +242,101 @@ async function stopSignalChecks(page,{baseline=false}={}) {
   }
   return results;
 }
+function authoredPcmWav(frequency,{sampleRate=32000,seconds=.25}={}) {
+  const frames=Math.round(sampleRate*seconds),bytes=Buffer.alloc(44+frames*2);
+  bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVE',8);bytes.write('fmt ',12);
+  bytes.writeUInt32LE(16,16);bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(1,22);
+  bytes.writeUInt32LE(sampleRate,24);bytes.writeUInt32LE(sampleRate*2,28);bytes.writeUInt16LE(2,32);bytes.writeUInt16LE(16,34);
+  bytes.write('data',36);bytes.writeUInt32LE(frames*2,40);
+  for(let frame=0;frame<frames;frame++)bytes.writeInt16LE(Math.round(.65*32767*Math.sin(2*Math.PI*frequency*frame/sampleRate)),44+frame*2);
+  return bytes;
+}
+async function pcmNoteChecks(page,name) {
+  const result={browser:name,steps:[],builtin:{},rootOverride:{},wav:[]};
+  const hold=action=>`const pcm=await useSoundChip('rf5c164');\n${action}\nliveLoop('pcm-note-hold',async()=>{await sleep(1);});\n`;
+  const drain=()=>evaluate(page,()=>__synthCodeAudit.drain());
+  const apply=async source=>{await page.locator('#synthCodeEditor').fill(source);await execute(page,true);};
+  const frequency=async(expected,label)=>{
+    const measured=await sounding(page),actual=measured.left.frequency;
+    assert(Math.abs(actual-expected)<Math.max(3,expected*.035),label+': '+JSON.stringify({expected,measured}));return measured;
+  };
+  const exportedPcm=async()=>JSON.parse((await download(page,'#exportPcmButton')).bytes.toString());
+  const noPcmWrites=(commands,label)=>assert(!commands.some(command=>['writeRegister','keyOn','keyOff','releaseNote','loadMemory'].includes(command.method)),label+': '+JSON.stringify(commands));
+  await chip(page,'pcm');await page.locator('[data-pcm-builtin="sine"]').click();await ready(page);
+  await field(page,'synthPcmVolume',64);await field(page,'synthPcmPanLeft',15);await field(page,'synthPcmPanRight',15);
+  await field(page,'synthPcmRootNote',60);await range(page,'#masterVolumeRange',100);
+  await code(page,hold(`await pcm.noteOn(0,'C4');`));await drain();await execute(page);
+  result.builtin.c4=await frequency(261.625565,'Builtin Sine noteOn C4');
+  assert.equal((await drain()).filter(command=>command.method==='keyOn'&&command.args?.[0]===0).length,1);
+  await apply(hold(`const step=pcm.setNote(0,'A4');if(!Number.isInteger(step)||step<1||step>65535)throw Error('setNote must return a raw step');log('pcm-note-step',step);`));
+  result.builtin.heldA4=await frequency(440,'setNote changes the existing held note to A4');
+  const retune=await drain();assert(!retune.some(command=>command.method==='keyOn'),'setNote cannot retrigger a held PCM channel');
+  assert(retune.some(command=>command.method==='writeRegister'&&[2,3].includes(command.args?.[0])),'setNote updates physical step registers');
+  assert.match(await page.locator('#synthCodeLog').textContent(),/pcm-note-step \d+/);
+  await apply(hold('pcm.noteOff(0);'));await silence(page);
+  assert((await drain()).some(command=>command.method==='releaseNote'&&command.args?.[0]===0),'noteOff uses the private software release');
+  await apply(hold(`await pcm.noteOn(0,'A4');`));result.builtin.a4=await frequency(440,'A4 can be keyed again after semantic noteOff');
+  await drain();await field(page,'synthPcmRootNote',72);
+  assert.equal(await page.locator('#synthPcmRootName').textContent(),'C5');
+  await apply(hold(`pcm.setNote(0,'A4');`));result.builtin.rootPlus12=await frequency(220,'Root C5 makes the same requested A4 play at half sample speed');
+  assert(Math.abs(result.builtin.rootPlus12.left.frequency/result.builtin.a4.left.frequency-.5)<.025);
+  assert(!(await drain()).some(command=>command.method==='keyOn'),'Root and setNote changes keep the existing physical playback position');
+  await stop(page);result.steps.push('Builtin Sine C4/A4, numeric step result, setNote held retune without keyOn, noteOff release, and upper Root +12 at half speed');
+
+  await field(page,'synthPcmRootNote',60);const savedBefore=await exportedPcm();
+  await code(page,hold(`await pcm.noteOn(0,'C4');`));await execute(page);result.rootOverride.before=await frequency(261.625565,'Code root declaration starts from the author C4 tuning');await drain();
+  await apply(hold(`if(pcm.setRootNote('A4')!==69)throw Error('setRootNote must return its effective MIDI root');`));
+  result.rootOverride.declared=await frequency(261.625565,'setRootNote alone leaves the held waveform speed unchanged');
+  noPcmWrites(await drain(),'Declaring the Code root must not write or retrigger the physical chip');
+  assert.equal(Number(await page.locator('#synthPcmRootNote').textContent()),60);assert.equal(await page.locator('#synthPcmRootName').textContent(),'C4');
+  await apply(hold(`pcm.setNote(0,'A5');`));result.rootOverride.a5=await frequency(523.25113,'Code root A4 makes A5 twice the original sample speed, not an inferred 880 Hz');
+  assert(Math.abs(result.rootOverride.a5.left.frequency/result.rootOverride.before.left.frequency-2)<.05);
+  assert(!(await drain()).some(command=>command.method==='keyOn'),'Code root survives Apply and retunes through setNote without a new keyOn');
+  assert.deepEqual(await exportedPcm(),savedBefore,'Code root and note helpers cannot change the exported author PCM instrument');
+  await field(page,'synthPcmRootNote',72);result.rootOverride.uiChanged=await frequency(523.25113,'Changing the editor Root cannot apply a second root adjustment to a Code override');
+  assert(!(await drain()).some(command=>command.method==='keyOn'));
+  await apply(hold(`if(pcm.setRootNote(null)!==72)throw Error('Cleared Code root must return the current editor root');`));
+  result.rootOverride.clearedHeld=await frequency(523.25113,'Clearing the Code root also leaves the held speed unchanged');
+  noPcmWrites(await drain(),'Clearing Code root is metadata only');
+  await apply(hold(`pcm.setNote(0,'A5');`));result.rootOverride.editorRoot=await frequency(440,'The next setNote uses editor Root C5 after clearing the override');
+  assert(!(await drain()).some(command=>command.method==='keyOn'));
+  await apply(hold(`if(pcm.setRootNote(69)!==69)throw Error('Numeric Code root must be accepted');pcm.setNote(0,'A5');`));
+  result.rootOverride.numeric=await frequency(523.25113,'Numeric MIDI root has the same tuning as its note name');await stop(page);
+  await code(page,hold(`await pcm.noteOn(0,'A5');`));await execute(page);result.rootOverride.afterStop=await frequency(440,'Stop followed by Run clears the override and uses the unchanged editor Root');
+  await apply(hold(`pcm.setRootNote('A4');`));await page.locator('[data-pcm-builtin="sine"]').click();await ready(page);
+  assert.equal(Number(await page.locator('#synthPcmRootNote').textContent()),60);
+  await apply(hold(`await pcm.noteOn(0,'A5');`));result.rootOverride.afterSource=await frequency(880,'Installing an author sample clears the Code root declaration');await stop(page);
+  result.steps.push('Code root name/MIDI/null is metadata only, persists Apply, preserves exported instrument and held notes, bypasses duplicate UI-root tuning, and clears on author source or Stop');
+
+  // These WAVs have different authored fundamentals. With Root C4, note C4
+  // plays each at its original speed: the helper must not infer a new pitch.
+  for(const hz of [200,400]) {
+    const filename=`Authored ${hz} Hz PCM.wav`;
+    await page.locator('#synthPcmAudioFile').setInputFiles({name:filename,mimeType:'audio/wav',buffer:authoredPcmWav(hz)});
+    await until(()=>page.locator('#synthPcmSampleInfo').textContent().then(text=>text.includes(filename)),'PCM author WAV loads '+hz);await ready(page);
+    if(await page.locator('#synthPcmLoopEnabled').getAttribute('aria-pressed')!=='true')await page.locator('#synthPcmLoopEnabled').click();
+    await field(page,'synthPcmRootNote',60);await field(page,'synthPcmVolume',64);
+    await code(page,hold(`await pcm.noteOn(0,'C4');`));await execute(page);const original=await frequency(hz,'WAV C4 retains its authored sample speed '+hz);
+    await apply(hold(`pcm.setNote(0,'C5');`));const octave=await frequency(hz*2,'WAV C5 doubles its sample speed '+hz);
+    assert(Math.abs(octave.left.frequency/original.left.frequency-2)<.05);result.wav.push({authoredFrequency:hz,original,octave});await stop(page);
+  }
+  assert(Math.abs(result.wav[1].original.left.frequency/result.wav[0].original.left.frequency-2)<.05);
+  result.steps.push('Generated 200/400 Hz WAVs retain their different fundamentals at Root C4 and double at C5; no automatic fundamental estimation');
+
+  await page.locator('[data-pcm-builtin="sine"]').click();await ready(page);
+  const melody=`const pcm=await useSoundChip('rf5c164');setBpm(120);liveLoop('melody',async()=>{const notes=scale('E1','minorPentatonic',3);await pcm.noteOn(CH1,choose(notes));await sleep(.1);pcm.noteOff(CH1);await beat(.025);});`;
+  await code(page,melody);await drain();await execute(page);result.melody=await sounding(page);await pause(550);
+  const commands=await drain();result.melodyCommands={noteOns:commands.filter(command=>command.method==='keyOn').length,releases:commands.filter(command=>command.method==='releaseNote').length};
+  assert(result.melodyCommands.noteOns>=3&&result.melodyCommands.releases>=2,'The requested PCM minor-pentatonic melody repeats real notes');
+  assert(commands.filter(command=>command.method==='keyOn').every(command=>command.args?.[0]===0),'CH1 remains the requested physical PCM channel');
+  assert.match(await page.locator('#synthCodeState').textContent(),/1 loop/);await stop(page);
+  assert(await evaluate(page,()=>__synthCodeAudit.muted()));result.steps.push('The requested scale/choose melody runs on RF5C164 CH1 and Stop produces silence');
+  return result;
+}
 async function run(browser,name,origin){const {page,errors}=await open(browser,origin),steps=[],result={browser:name,steps};
   try{
     if(config.checks==='mixer'){const checked=await mixerChecks(page,name);assert.deepEqual(errors,[]);return checked;}
+    if(config.checks==='pcm-notes'){const checked=await pcmNoteChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks!=='all'){
       result.stopSignals=await stopSignalChecks(page,{baseline:config.checks==='baseline-stop'});assert.deepEqual(errors,[]);return result;
     }

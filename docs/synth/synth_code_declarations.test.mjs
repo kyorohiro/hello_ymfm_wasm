@@ -37,6 +37,12 @@ fm.noteOn(CH1, 'C4'); fm.noteOff(CH1);
 const psg = await useSoundChip('segapsg'); psg.tone(PSG1,{note:'C4'}); psg.keyOn(3); psg.noteOff(3);
 const pcm = await useSoundChip('rf5c164');
 pcm.setChannel(7,{volume:64,pan:{left:15,right:0}}); pcm.keyOn(7); pcm.noteOff(7);
+const rawStep:number = pcm.setNote(0,'E1'); pcm.setPitch(0,rawStep);
+const midi:number=60; pcm.setNote(7,midi); pcm.setNote(0,0); pcm.setNote(7,127);
+const effectiveRoot:number=pcm.setRootNote('A4');
+pcm.setRootNote(midi); pcm.setRootNote(0); pcm.setRootNote(127); pcm.setRootNote(null);
+const started:void|Promise<void> = pcm.noteOn(0,'C4'); await started;
+await pcm.noteOn(7,127); pcm.noteOff(0);
 await pcm.loadSample(new Uint8Array([1,2]),{loopStart:0});
 const pwm = await useSoundChip('pwm'); await pwm.writeRegister(1,1047); await pwm.setClock(23011361);
 setBpm(120); await beat(.5); await sleep(.01); await sleepSamples(4);
@@ -69,6 +75,30 @@ await useSoundChip('ym2612',{id:'second'});
 fm.noteOn(6,'C4');
 // @ts-expect-error only eight PCM channels
 pcm.keyOn(8);
+// @ts-expect-error software tuning also uses the eight physical PCM channels
+pcm.setNote(8,'C4');
+// @ts-expect-error PCM notes do not accept a negative channel
+pcm.noteOn(-1,'C4');
+// @ts-expect-error software release also uses the eight physical PCM channels
+pcm.noteOff(8);
+// @ts-expect-error a note must be a string or number
+pcm.noteOn(0,true);
+// @ts-expect-error MIDI numbers are passed directly rather than wrapped in an object
+pcm.setNote(0,{midi:60});
+// @ts-expect-error noteOn requires a note instead of an implicit default pitch
+pcm.noteOn(0);
+// @ts-expect-error setNote returns the raw numeric RF5C164 step
+const incorrectStep:string=pcm.setNote(0,'C4');
+// @ts-expect-error starting a note does not return a success boolean
+const incorrectStart:boolean=await pcm.noteOn(0,'C4');
+// @ts-expect-error a Root override must be a note name, MIDI number or null
+pcm.setRootNote(true);
+// @ts-expect-error Root overrides do not take note descriptor objects
+pcm.setRootNote({note:'A4'});
+// @ts-expect-error null is required to inherit the UI Root; omitted arguments are not accepted
+pcm.setRootNote();
+// @ts-expect-error setRootNote returns the effective MIDI number rather than a note name
+const incorrectRoot:string=pcm.setRootNote('A4');
 // @ts-expect-error no implicit global PSG
 psgTone(0,100);
 // @ts-expect-error CH7 is not a physical FM channel

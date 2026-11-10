@@ -51,8 +51,21 @@ type SynthCodePsg = Omit<PSGApi, 'keyOn'|'keyOff'|'resetAll'> & {
 };
 type SynthCodePcm = PlaygroundRf5c164 & {
   readonly id:string; readonly clock:number;
+  /** Code-only software Root note override: note name or integer MIDI 0..127.
+   * null inherits the upper PCM editor's Root note. Returns the effective MIDI
+   * Root without retuning held notes or changing the editor/saved instrument.
+   * Apply retains it; Stop or a new instrument clears it. Raw controls ignore it. */
+  setRootNote(note:string|number|null):number;
+  /** Software tuning from the upper PCM sample rate and effective Root note.
+   * Accepts a note name or integer MIDI 0..127 (validated at runtime).
+   * Returns the raw step (clamped to 1..65535) without starting the voice. After Code
+   * loadSample/loadMemory, use raw controls until the editor sample returns. */
+  setNote(channel:SynthCodePcmChannel,note:string|number):number;
+  /** Set the software-tuned note and start the current editor sample.
+   * Await when sample preparation may still be pending. */
+  noteOn(channel:SynthCodePcmChannel,note:string|number):void|Promise<void>;
   /** Short software release; hard Stop belongs to allNotesOff. */
-  noteOff(channel:number):void;
+  noteOff(channel:SynthCodePcmChannel):void;
   allNotesOff():void;
 };
 type SynthCodePcmChannel = 0|1|2|3|4|5|6|7;
