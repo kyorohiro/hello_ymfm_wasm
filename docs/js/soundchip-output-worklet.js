@@ -1,46 +1,48 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=pokey-prepare-1';
-import {Ym2612} from './ym2612.js?v=audio-numeric-bindings-1';
-import {Ym2608} from './ym2608.js?v=audio-stability-2';
-import {Ay8910} from './ay8910.js?v=audio-stability-2';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js';
+import {Ym2612} from './ym2612.js';
+import {Ym2608} from './ym2608.js';
+import {Ay8910} from './ay8910.js';
 import ay8910Factory from '../generated/ay8910_wasm.js';
-import {Ym2413} from './ym2413.js?v=audio-stability-2';
+import {Ym2413} from './ym2413.js';
 import ym2413Factory from '../generated/ym2413_wasm.js';
-import {Ym3526} from './ym3526.js?v=audio-stability-2';
-import {Ym3812} from './ym3812.js?v=audio-stability-2';
-import {Y8950} from './y8950.js?v=audio-stability-2';
-import {Ymf262} from './ymf262.js?v=audio-stability-2';
+import {Ym3526} from './ym3526.js';
+import {Ym3812} from './ym3812.js';
+import {Y8950} from './y8950.js';
+import {Ymf262} from './ymf262.js';
 import ym3526Factory from '../generated/ym3526_wasm.js';
 import ym3812Factory from '../generated/ym3812_wasm.js';
 import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
-import {Ym2151} from './ym2151.js?v=audio-stability-2';
-import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
-import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
-import {NesApuWasm} from './nesapu_wasm.js?v=nes-wasm-1';
-import {Pokey} from './pokey.js?v=pokey-mode-1';
-import {PokeyAudioEngine} from './pokeyaudioengine.js?v=pokey-mode-1';
+import {Ym2151} from './ym2151.js';
+import {GameboyApu} from './gameboyapu.js';
+import {SegaPSG} from './segapsg.js';
+import {NesApuWasm} from './nesapu_wasm.js';
+import {Pokey} from './pokey.js';
+import {PokeyAudioEngine} from './pokeyaudioengine.js';
 import pokeyFactory from '../generated/pokey_wasm.js';
-import {WonderSwan} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
-import {WonderSwanAudioEngine} from './wonderswanaudioengine.js?v=wonderswan-pcm-timeline-1';
-import wonderswanFactory from '../generated/wonderswan_wasm.js?v=wonderswan-pcm-timeline-1';
+import {WonderSwan} from './wonderswan.js';
+import {WonderSwanAudioEngine} from './wonderswanaudioengine.js';
+import wonderswanFactory from '../generated/wonderswan_wasm.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2608Factory from '../generated/ym2608_wasm.js';
 import ym2151Factory from '../generated/ym2151_wasm.js';
 import gameboyFactory from '../generated/gameboy_apu_wasm.js';
-import psgFactory from '../generated/segapsg_wasm.js?v=audio-numeric-bindings-1';
-import nesFactory from '../generated/nesapu_wasm.js?v=nes-wasm-1';
-import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
+import psgFactory from '../generated/segapsg_wasm.js';
+import nesFactory from '../generated/nesapu_wasm.js';
+import pwmFactory from '../generated/pwm32x_wasm.js';
 import {createSoundChipFactory} from './soundchip_factory.js';
-import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
-import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
+import {createSidSoundChip, createSidPCMRenderer} from './sid_soundchip.js';
+import {ChipPCMRenderer} from './chip_pcm_renderer.js';
+import {YM2612DirectTransport} from './ym2612synth.js';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=scsp-fm-1';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ay8910:[Ay8910,ay8910Factory],ym2413:[Ym2413,ym2413Factory],ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApuWasm, nesFactory], wonderswan:[WonderSwan,wonderswanFactory], pokey:[Pokey,pokeyFactory]};
 const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
-  [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => PWM32XPlayback.create({...options,moduleFactory:pwmFactory})]]));
+  [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => PWM32XPlayback.create({...options,moduleFactory:pwmFactory})],
+  ['sid', options => createSidSoundChip({...options, wasmBinary:options.moduleOptions.wasmBinary})]]));
 
 class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
@@ -60,7 +62,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
     }});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => this.receive(data);
-    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' || name==='ay8910' || name==='wonderswan' || name==='pokey' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
+    createSoundChip(name, {...chipOptions, ...(name === 'gameboy' || name === 'segapsg' || name === 'pwm' || name === 'nes' || name==='ay8910' || name==='wonderswan' || name==='pokey' || name==='sid' ? {sampleRate} : {}), moduleOptions: {wasmBinary}})
       .then(chip => {
         if (this.dead) {chip.dispose(); return;}
         this.chip = chip;
@@ -70,10 +72,10 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         if(this.ayRegisters)this.updateAyMute();
         this.direct = name === 'ym2612' ? new YM2612DirectTransport(chip) : null;
         if (this.direct) this.pcmDac = new YM2612DacPlayer(sampleRate, (port, register, value) => chip.writeRegister(register, value, port));
-        this.renderer = new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
+        this.renderer = name === 'sid' ? createSidPCMRenderer(chip) : new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
           generate: this.outputEngine?.generateStereoView.bind(this.outputEngine)??this.direct?.generateStereoView.bind(this.direct)});
         if (['ym3526','ym3812','y8950','ymf262','ym2413'].includes(name) && chipOptions.clock !== undefined) this.renderer.rate=chip.sampleRate(chipOptions.clock);
-        chip.reserveStereoFrames?.(Math.ceil(128 * chip.sampleRate() / sampleRate));
+        chip.reserveStereoFrames?.(Math.ceil(128 * (name === 'sid' ? chip.sampleRate : chip.sampleRate()) / sampleRate));
         chip.reserveFrames?.(128);
         this.port.postMessage({type: 'ready', sampleRate: this.renderer.rate,...(['nes','pwm'].includes(name)?{backend:chip.backend}:{})});
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
@@ -177,6 +179,8 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       else if (this.name === 'nes' && method === 'setChannelEnabled') value = this.chip.setChannelEnabled(...args);
       else if (this.name === 'nes' && method === 'setChannelMuted') value = this.chip.setChannelMuted(...args);
       else if (this.name === 'nes' && method === 'getState') value = this.chip.getState();
+      else if (this.name === 'sid' && method === 'getState') value = this.chip.getState();
+      else if (this.name === 'sid' && method === 'readRegister') value = this.chip.readRegister(...args);
       else if (method === 'loadRhythmRom') this.chip.loadAdpcmARom(data.bytes);
       else if (method === 'loadAdpcmMemory') this.chip.loadAdpcmBMemory(data.bytes, data.address);
       else if (method === 'pcm-dac') this.pcmDac.command(data.command, appliedFrame);

@@ -15,7 +15,7 @@ try {
 
 対応名: `ay8910`, `y8950`, `ym2151`, `ym2203`, `ym2413`, `ym2608`,
 `ym2610b`, `ym2612`, `ym3438`, `ym3526`, `ym3812`, `ymf262`, `ymf276`,
-`ymf278b`, `ymf288`。各ラッパーの機能・ROM要件はそのままです。
+`ymf278b`, `ymf288`, `sid`。各ラッパーの機能・ROM要件はそのままです。
 
 Node.jsではローカルWASMを読み込み、ブラウザーでは生成済みモジュールの
 ローダーがWASMを取得します。Web AudioやDOMは使いません。
@@ -30,6 +30,44 @@ const chip = await createSoundChip('ymf262', {
 
 `moduleFactory` を渡すと自動ロードを省略し、`moduleOptions` をそのまま渡します。
 `moduleOptions.wasmBinary` や `locateFile` でWASM読み込みを指定することもできます。
+
+### C64 SID
+
+`createSoundChip('sid', {model:'6581'})` は既存の`SidCore`、
+`model:'8580'` はPAL専用の`Sid8580Core` Previewを返します。既定は6581です。
+`clock`は生成時のclock Hz（既定985248）、`sampleRate`はPCM出力rateです。
+8580 Previewのclockは985248だけです。返された`id`は変更できません。
+
+```js
+import {createSoundChip} from './soundchip.js';
+import {SidSynth} from './sidsynth.js';
+
+const core = await createSoundChip('sid', {model:'6581',sampleRate:48000});
+const sid = new SidSynth({core});
+try {
+  sid.initialize();
+  sid.setVoice(0, {waveform:'triangle',attack:0,decay:2,sustain:12,release:4});
+  sid.noteOn(0, 'C4');
+  const pcm = core.render(24000); // mono Float32Array。スピーカーには接続しない。
+} finally {
+  sid.dispose(); // 借りているcore自体は破棄しない。
+  core.dispose();
+}
+```
+
+SIDのdirect APIは`writeRegister()`／`readRegister()`、`render()`／
+`renderInto()`、`reset()`／`getState()`です。`sampleRate`は数値propertyです。
+他chipの`generateStereo()`へ変換せず、既存coreのmono PCMを保持します。
+既定WASMはNodeではファイル、browserではfetchで取得します。配置変更には
+`assetBaseUrl`（generatedディレクトリ）か`wasmUrl`を指定し、明示バイトには
+`wasmBinary`か`moduleOptions.wasmBinary`を使えます。
+
+browserの`execution:'worklet'`も両modelに対応します。`model`／`clock`は
+endpointで確認でき、`request('writeRegister',[register,value])`／
+`request('readRegister',[register])`／`request('getState')`で操作します。
+`start()`で出力を接続し、`stop()`で切断、`dispose()`で解放します。
+生成だけではスピーカーへ接続せず、PCMはAudioContextのsample rateで生成します。
+Preset・3CH設定・Round robin・LegatoなどSynth固有の演奏helperは追加しません。
 
 ## ゲームに必要なチップだけ同梱する
 

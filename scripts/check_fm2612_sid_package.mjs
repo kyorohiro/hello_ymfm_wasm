@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 export const SID_REQUIRED_PACKAGE_FILES=Object.freeze([
-  ...['sid','sid8580','sidsynth','sid_waveforms','playground_sid','playground_sid_audio','playground_sid_worklet','playground_sid_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),
+  ...['sid','sid8580','sid_soundchip','sidsynth','sid_waveforms','playground_sid','playground_sid_audio','playground_sid_worklet','playground_sid_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),
   'generated/sid/sid.wasm','generated/sid/sid-build.json',
   'generated/sid8580-machine/sid8580-endpoint.wasm','generated/sid8580-machine/sid8580-machine.wasm','generated/sid8580-machine/sid8580-machine-build.json',
   'sources/SID.md','sources/SID8580.md','sources/sid/README.md','sources/sid/scripts/build_sid_wasm.sh',

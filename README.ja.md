@@ -120,6 +120,7 @@ Tauri版も同じ方針です。生成されたWASMとローダーには、対�
 npmルートの`createSoundChip()`、Playgroundの`createSoundChip()`／`useSoundChip()`、
 独立したクラス、高水準Synth APIは、入口と対応範囲が異なります。
 例えばPS1とSCSPはnpmの専用subpathからimportします。Playgroundの音源名を、そのままnpmルートのfactoryへ渡せるわけではありません。
+現在のソースではSIDもnpmルートの`createSoundChip('sid')`に対応し、6581／PALの8580 Previewを選び、mono PCMの直接生成かbrowserのWorklet出力を利用できます。
 [用途別API一覧](packages/fm2612/README.md#api-entry-points)で選んでください。
 YM2612の標準コアはymfmです。任意で使えるNuked-OPN2には別のライセンスが適用されます。
 

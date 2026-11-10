@@ -558,6 +558,17 @@ Those research results did not themselves change production playback. The next
 application stage below adds explicit Player Preview routing; Synth/SDK remain
 unchanged. Listening and stable-audio approval are separate.
 
+The current package-root `createSoundChip('sid')` source supports direct raw
+SidCore / Sid8580Core creation and a generic browser AudioWorklet endpoint.
+`model` selects 6581 (default) or PAL-only 8580 Preview; factory `clock` maps to
+the core's fixed `clockHz`. Direct results retain mono `render()` / `renderInto()`
+and numeric `sampleRate`; Worklet results use `request()` and explicit
+`start()` / `stop()` / `dispose()`. Both carry immutable IDs. Default assets
+resolve in Node/browser, with injected `wasmBinary` or `moduleOptions.wasmBinary`
+and relocated `assetBaseUrl` / `wasmUrl` supported. Existing explicit SID
+subpaths and Playground clients remain. Preset allocation, Round robin,
+Legato, recording and Looper are outside this common factory change.
+
 The ordinary SID Player now has Auto / 6581 / 8580 Preview selection in
 docs/sid-player/index.html. models.js selects validators and core factories;
 model_policy.js retains original declarations and resolves missing hints. The

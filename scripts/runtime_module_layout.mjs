@@ -9,6 +9,10 @@ const generatedFactories = new Map([
     source: "'./generated/'",
     published: "(import.meta.url.includes('/web/') ? '../docs/generated/' : '../generated/')",
   }],
+  ['sid_soundchip.js', {
+    source: "'./generated/'",
+    published: "'../generated/'",
+  }],
   ['nesapu_wasm.js', {
     source: "'./generated/'",
     published: "(import.meta.url.includes('/web/')?'../docs/generated/':'../generated/')",
@@ -22,6 +26,7 @@ const generatedFactories = new Map([
 /** Restore the existing public module bytes after moving development sources. */
 export function publicRuntimeModule(source, name) {
   if (name === 'nesapu.js') source = source.replace('../../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
+  if (name === 'soundchip-output-worklet.js') source = source.replaceAll('./generated/', '../generated/');
   const factory = generatedFactories.get(name);
   if (factory) {
     if (!source.includes(factory.source)) throw new Error(`Missing ${name} default generated asset base`);

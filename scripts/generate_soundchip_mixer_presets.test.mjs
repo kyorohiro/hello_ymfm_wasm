@@ -14,7 +14,7 @@ import {validatePokeyMixerCalibration} from './pokey_mixer_calibration.mjs';
 import {createPokeyMixerCalibrationFixture} from '../test/helpers/pokey_mixer_calibration_fixture.mjs';
 
 const baselineUrl = new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url);
-const psgUrl = new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url);
+const psgUrl = new URL('../docs/issues/soundchip_psg_levels_05.json',import.meta.url);
 const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_state_restore_chip_levels_01.json',import.meta.url));
 const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_state_restore_chip_levels_01.json',import.meta.url));
 const pokeyReportPath=fileURLToPath(new URL('../docs/issues/pokey_state_restore_chip_levels_01.json',import.meta.url));

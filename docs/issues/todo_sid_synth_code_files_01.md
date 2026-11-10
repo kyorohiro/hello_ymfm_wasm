@@ -10,7 +10,7 @@
 - [x] 原曲SIDの再生・Pause／Live・CH選択・既存keyboard・Desktop出力との回帰と、実WASM・型・headless Chromium／WebKitの無音検証を行う。全destinationをアプリ読込前にgain 0へ通し、通常browser・実聴・OS音量変更はしない。
 - [x] 依存module／cache・Synth ZIP・改造用sourceを更新し、TODOと検証記録を残す。commit／push／npm公開／itch.io uploadは行わない。
 
-録音／LooperのSID対応は、このCode／Filesの所有権が安定した後の段階に分ける。現在のSID曲再生・Liveは既に実装済みで、今回作り直さない。
+録音／LooperのSID対応は検討中のため保留（2026-11-11、ユーザー指定）。Event Recを含めるかも未決定で、次の実装へ自動的に含めない。現在のSID曲再生・Liveは既に実装済みで、今回作り直さない。
 
 ## 実装と境界（完了）
 

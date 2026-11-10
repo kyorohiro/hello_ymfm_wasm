@@ -120,6 +120,8 @@ Playback support, instrument editing and note transcription are separate capabil
 The package-root `createSoundChip()`, Playground's `createSoundChip()` / `useSoundChip()`,
 standalone classes and high-level Synth APIs have different entry points and coverage.
 For example, PS1 and SCSP have explicit npm subpath imports; their Playground names are not package-root factory names.
+The current source also exposes SID through package-root `createSoundChip('sid')`:
+choose 6581 or PAL 8580 Preview, render mono PCM directly, or use a browser Worklet endpoint.
 [Choose an API by task](packages/fm2612/README.md#api-entry-points).
 YM2612 defaults to ymfm; the optional Nuked-OPN2 backend has separate licensing.
 

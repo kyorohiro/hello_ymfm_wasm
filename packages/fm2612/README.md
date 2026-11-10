@@ -61,7 +61,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Select a primary runtime synth | `tetorica-fm2612/tetorica_synth.js` | `createTetoricaSynth`, `TETORICA_CHIPS` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
-| C64 SID 6581 / PAL 8580 Preview PCM cores | `tetorica-fm2612/sid.js`, `tetorica-fm2612/sid8580.js` | `SidCore`, `Sid8580Core`: explicit creation, register access and owned mono PCM |
+| C64 SID 6581 / PAL 8580 Preview PCM cores | `tetorica-fm2612`, `tetorica-fm2612/sid.js`, `tetorica-fm2612/sid8580.js` | `createSoundChip('sid')`, `SidCore`, `Sid8580Core`: register access and owned mono PCM; factory Worklet output |
 | C64 SID voice and shared filter controls | `tetorica-fm2612/sidsynth.js` | `SidSynth`, `SidDirectTransport`, combined waveform helpers; either core model |
 | Pure SID waveform flags | `tetorica-fm2612/sid_waveforms.js` | `SID_WAVEFORMS`, `sidWaveformBits`, `sidWaveformFromBits`; no WASM or audio imports |
 | Experimental Saturn SCSP, low level | `tetorica-fm2612/scsp.js` | `Scsp`: register/RAM access and 44.1 kHz stereo PCM |
@@ -118,6 +118,13 @@ flags (including combinations), ADSR, oscillator Sync/Ring and one shared
 LP/BP/HP filter. Cutoff and resonance are chip codes; neither model promises
 physical-chip accuracy or analogue unit variation.
 
+The current source also connects both models to the common package-root
+`createSoundChip('sid', options)` factory. Direct creation returns the same
+`SidCore` / `Sid8580Core`, with an immutable `id`; it does not open audio or
+add keyboard allocation. Select `model:'6581'` (default) or `model:'8580'`.
+The factory option `clock` maps to the core's creation-fixed `clockHz`.
+The 8580 Preview accepts PAL **985,248 Hz** only.
+
 | Core | Creation | Clock | Output |
 | --- | --- | --- | --- |
 | `SidCore` | `await SidCore.create(options)` | Creation-fixed 900,000–1,100,000 Hz; default PAL 985,248 | Owned mono `Float32Array` |
@@ -135,10 +142,8 @@ to `'6581'` to use the other core with the same voice settings:
 
 ```js
 import {readFile, writeFile} from 'node:fs/promises';
-import {encodeWav} from 'tetorica-fm2612';
+import {createSoundChip, encodeWav} from 'tetorica-fm2612';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
-import {SidCore} from 'tetorica-fm2612/sid.js';
-import {Sid8580Core} from 'tetorica-fm2612/sid8580.js';
 import {SidSynth} from 'tetorica-fm2612/sidsynth.js';
 
 const model = '8580', sampleRate = 48000;
@@ -146,9 +151,9 @@ const asset = model === '8580'
   ? 'generated/sid8580-machine/sid8580-endpoint.wasm'
   : 'generated/sid/sid.wasm';
 const wasmBinary = await readFile(runtimeAssetUrl(asset));
-const core = model === '8580'
-  ? await Sid8580Core.create({sampleRate, wasmBinary})
-  : await SidCore.create({sampleRate, wasmBinary});
+const core = await createSoundChip('sid', {
+  model, sampleRate, clock: 985248, moduleOptions: {wasmBinary},
+});
 const sid = new SidSynth({core}); // Borrows the core; the caller owns it.
 try {
   sid.initialize();
@@ -169,13 +174,27 @@ try {
 }
 ```
 
-In a directly served browser package, the core defaults fetch its packaged
-WASM relative to the module. A bundler must preserve/copy the assets or supply
-`wasmBinary` / `wasmUrl`; `runtimeAssetUrl(path, publicPackageBaseUrl)` resolves
-a deployed location. Node callers supply `wasmBinary` as above because these
-dedicated core loaders use `fetch` for their default URLs. Both extensionless
-and `.js` subpaths have TypeScript contracts. The plain waveform helper module
-can be imported independently without loading a core or WASM.
+The common factory resolves the packaged WASM in Node and browsers; omit
+`moduleOptions` to use its default assets. For a relocated deployment, provide
+`assetBaseUrl` for the generated-asset directory, or a specific `wasmUrl`.
+Explicit bytes can use `wasmBinary` or `moduleOptions.wasmBinary`.
+A bundler must preserve/copy the assets or supply those options;
+`runtimeAssetUrl(path, publicPackageBaseUrl)` resolves a deployed location.
+The explicit `SidCore.create()` / `Sid8580Core.create()` subpaths remain
+available; their own default loaders use `fetch`, so Node callers supply
+`wasmBinary` as shown above. Both extensionless and `.js` subpaths have
+TypeScript contracts. The plain waveform helper module can be imported
+independently without loading a core or WASM.
+
+For browser output, `createSoundChip('sid', {execution:'worklet', model:'8580'})`
+returns the same generic Worklet endpoint used by the other package-root chips.
+It exposes the selected `model` and `clock`, `request('writeRegister', [address,
+value])`, `request('readRegister', [address])` and `request('getState')`.
+The Worklet renders the existing mono SID core into both output channels at
+the AudioContext sample rate. After setting registers, use `await chip.start()`
+to connect output, `await chip.stop()` to disconnect, and `await chip.dispose()`
+to release it. Creation alone does not connect a speaker. This entry uses raw
+registers; it does not add preset, round-robin or Legato helpers.
 
 Inside a running **browser Playground script**, its Web Audio Main/Worker
 runtime additionally provides an asynchronous SID client:
@@ -190,10 +209,10 @@ const applied = await voice.getState();
 ```
 
 That `createSoundChip` is a **Playground script global** from
-`playground_runtime.js`. The generic package-root
-`import {createSoundChip} from 'tetorica-fm2612'` remains a separate factory
-and does **not** accept `'sid'`. Importing `playground_sid.js` directly supplies
-client/transport helpers, not a complete standalone audio session.
+`playground_runtime.js`: it returns the script's musical/register client.
+The package-root factory shown above returns a raw core or generic Worklet
+endpoint instead. Importing `playground_sid.js` directly supplies client/transport
+helpers, not a complete standalone audio session.
 Keep the runtime's primary SID at its default 6581 model. The 8580 script
 example creates an **independent** SID instance; selecting 8580 as the primary
 runtime is not supported across Main/Worker in this release.

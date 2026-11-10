@@ -44,6 +44,9 @@ export {encodeWav} from './wav.js';
  * @property {'direct'|'worklet'} [execution='direct'] チップの実行場所。worklet はブラウザーのみ。
  * @property {AudioContext} [audioContext] Worklet の接続先。省略時は factory が生成・解放する。
  * @property {number} [clock] Input clock in Hz.
+ * @property {'6581'|'8580'} [model] SID model; default 6581, 8580 Preview requires PAL.
+ * @property {BufferSource} [wasmBinary] Dedicated SID core bytes (moduleOptions.wasmBinary is also accepted).
+ * @property {URL|string} [wasmUrl] Dedicated SID WASM URL; defaults below assetBaseUrl.
  * @property {boolean} [fds=false] Enable the FDS expansion on NES.
  * @property {number} [sampleRate] Requested PCM/output sample rate.
  * @property {number} [type] AY chip variant type.
@@ -80,6 +83,11 @@ async function loadModule(name, options = {}) {
 }
 
 const loaders = {
+  /** @param {SoundChipOptions} [options] */
+  sid: async options => {
+    const {createSidSoundChip} = await import('./sid_soundchip.js');
+    return createSidSoundChip(options);
+  },
   /** @param {SoundChipOptions} [options] */
   pokey: async (options) => {
     const {Pokey} = await import('./pokey.js');
@@ -191,6 +199,7 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
+ *   sid: import('./sid.js').SidCore|import('./sid8580.js').Sid8580Core,
  *   pokey: import('./pokey.js').Pokey,
  *   wonderswan: import('./wonderswan.js').WonderSwan,
  *   gameboy: import('./gameboyapu.js').GameboyApu,
@@ -213,7 +222,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'|'sid'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload
@@ -238,6 +247,14 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {
   if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
+  if (name === 'sid' && options.execution === 'worklet') {
+    return import('./sid_soundchip.js').then(({validateSidSoundChipOptions, loadSidSoundChipBinary}) => {
+      // Invalid model/clock/rate must not create or resume an AudioContext.
+      validateSidSoundChipOptions(options);
+      if (options.audioContext) validateSidSoundChipOptions({...options, sampleRate:options.audioContext.sampleRate});
+      return createWorkletSoundChip(name, options, () => loadSidSoundChipBinary(options));
+    });
+  }
   if (options.execution === 'worklet') {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
     const moduleName = name === 'gameboy' ? 'gameboy_apu' : name==='nes'?'nesapu':name==='pwm'?'pwm32x':name;

@@ -47,7 +47,7 @@ export const result = answer + value;
 
 test('moved factory sources reproduce current public module bytes before website cache revisions', async () => {
   const withoutRevisions = text => text.replace(/(\.js)\?[^'"\s]+(?=['"])/g, '$1');
-  for (const name of ['soundchip.js', 'nesapu_wasm.js', 'pwm32x_wasm.js', 'nesapu.js']) {
+  for (const name of ['soundchip.js', 'sid_soundchip.js', 'nesapu_wasm.js', 'pwm32x_wasm.js', 'nesapu.js']) {
     const source = await readFile(join(root, 'tetorica_src/runtime', name), 'utf8');
     const published = withoutRevisions(await readFile(join(root, 'docs/js', name), 'utf8'));
     assert.equal(withoutRevisions(publicRuntimeModule(source, name)), published, name);
@@ -65,4 +65,13 @@ test('moved factory sources reproduce current public module bytes before website
       else assert(packaged.includes(JSON.stringify(nested ? '../generated/' : './generated/')), name);
     }
   }
+});
+
+test('the generic public Worklet resolves its generated factories beside docs/js', async () => {
+  const source=await readFile(join(root,'tetorica_src/runtime/soundchip-output-worklet.js'),'utf8');
+  const published=publicRuntimeModule(source,'soundchip-output-worklet.js');
+  assert.equal(published,await readFile(join(root,'docs/js/soundchip-output-worklet.js'),'utf8'));
+  assert(!published.includes("from './generated/"));
+  assert(published.includes("from '../generated/ym2612_wasm.js'"));
+  assert(published.includes("from './sid_soundchip.js'"));
 });

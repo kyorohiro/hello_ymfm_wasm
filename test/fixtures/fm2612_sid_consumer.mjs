@@ -46,13 +46,22 @@ for(const artifact of kit.artifacts)await checkedFile(artifact.path,artifact);
 for(const name of ['sid8580-endpoint.wasm','sid8580-machine.wasm'])await checkedFile('generated/sid8580-machine/'+name,receipt8580.outputs[name]);
 assert(kit.noticeRoots.includes('third_party/sidera/toolchain-notices'));
 assert(kit.noticeRoots.includes('third_party/sid8580-machine-toolchain-notices'));
-const report={models:[],sourceInputs6581:13,compiledInputs8580:99,sourceAndNoticeFiles8580:Object.keys(kit.sources).length};
+const report={models:[],sourceInputs6581:13,compiledInputs8580:99,sourceAndNoticeFiles8580:Object.keys(kit.sources).length,commonFactory:true};
 const originalFetch=globalThis.fetch;let fetches=0;globalThis.fetch=()=>{fetches++;throw Error('Explicit wasmBinary must not fetch');};
 try{
   for(const[model,Core,path]of [['6581',SidCore,'generated/sid/sid.wasm'],['8580',Sid8580Core,'generated/sid8580-machine/sid8580-endpoint.wasm']]){
-    const wasmBinary=await readFile(runtimeAssetUrl(path)),core=await Core.create({wasmBinary,sampleRate:48000,clockHz:SID_PAL_CLOCK}),peer=await Core.create({wasmBinary,sampleRate:48000,clockHz:SID_PAL_CLOCK});
+    const wasmBinary=await readFile(runtimeAssetUrl(path));
+    const core=await createSoundChip('sid',{model,sampleRate:48000,clock:SID_PAL_CLOCK,moduleOptions:{wasmBinary}});
+    const peer=await Core.create({wasmBinary,sampleRate:48000,clockHz:SID_PAL_CLOCK});
+    const automatic=await createSoundChip('sid',{model,sampleRate:48000});
     const synth=new SidSynth({core});
     try{
+      assert(core instanceof Core,'common factory returns the existing '+model+' core');
+      assert(automatic instanceof Core,'packaged default WASM resolves for '+model);
+      assert.equal(core.sampleRate,48000);assert.equal(automatic.sampleRate,48000);
+      assert.match(core.id,/^sid:\d+$/);assert.match(automatic.id,/^sid:\d+$/);assert.notEqual(core.id,automatic.id);
+      assert.throws(()=>{core.id='changed';},TypeError);
+      assert(automatic.render(1024).every(value=>value===0),'default factory '+model+' starts silent');
       assert.equal(core.model,model);assert.equal(synth.model,model);assert.equal(synth.clock,SID_PAL_CLOCK);assert.equal(synth.channels,3);
       synth.initialize();synth.setVoice(0,{waveform:'saw',attack:0,decay:0,sustain:12,release:3});synth.noteOn(0,'A4');
       const pcm=core.render(8192);assert(pcm.every(Number.isFinite));const steady=pcm.subarray(4096),peak=Math.max(...steady.map(Math.abs)),span=Math.max(...steady)-Math.min(...steady);let crossings=0;for(let i=1;i<steady.length;i++)if((steady[i-1]<0)!==(steady[i]<0))crossings++;assert(peak>.00001&&span>.0001&&crossings>2,model+' steady oscillating PCM');
@@ -63,12 +72,15 @@ try{
       synth.keyOff(0);assert.equal(synth.getRegisterSnapshot()[4]&1,0);assert(core.render(4096).every(Number.isFinite));
       synth.reset();assert(core.render(8192).every(value=>value===0),'reset clears queued PCM '+model);
       peer.dispose();synth.initialize();synth.noteOn(0,'C4');assert(core.render(4096).some(value=>Math.abs(value)>.00001),'peer disposal leaves '+model+' usable');
-      report.models.push({model,peak,span,crossings,finite:true,frames:8192,combinedWaveforms:true,independentHandles:true});
-    }finally{synth.dispose();core.dispose();peer.dispose();}
+      report.models.push({model,peak,span,crossings,finite:true,frames:8192,combinedWaveforms:true,independentHandles:true,explicitAndAutomaticFactoryAssets:true});
+    }finally{synth.dispose();core.dispose();peer.dispose();automatic.dispose();}
     assert.throws(()=>core.render(1),/disposed/);
   }
   assert.equal(fetches,0);
 }finally{globalThis.fetch=originalFetch;}
-await assert.rejects(()=>createSoundChip('sid'),/Unsupported|Unknown/i);
+await assert.rejects(()=>createSoundChip('sid',{model:'6580'}),/model/i);
+await assert.rejects(()=>createSoundChip('sid',{model:'8580',clock:1022727}),/PAL|clock/i);
+const cancelled=new AbortController();cancelled.abort();
+await assert.rejects(()=>createSoundChip('sid',{signal:cancelled.signal}),/abort/i);
 assert.equal(typeof globalThis.AudioContext,'undefined');
 console.log('Installed SID npm source/notice integrity and real 6581/8580 WASM PCM verified: '+JSON.stringify(report));

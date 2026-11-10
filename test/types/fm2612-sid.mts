@@ -1,4 +1,4 @@
-// Public installed SID subpaths. The generic package-root factory is separate.
+// Public installed SID factory and explicit subpaths.
 import {createSoundChip} from 'tetorica-fm2612';
 import {SidCore,SID_PAL_CLOCK,SID_NTSC_CLOCK,sidFrequency} from 'tetorica-fm2612/sid.js';
 import {SidCore as BareSidCore} from 'tetorica-fm2612/sid';
@@ -35,6 +35,25 @@ const options:SidCoreOptions = {clockHz:SID_NTSC_CLOCK,sampleRate:48000,wasmBina
 const previewOptions:Sid8580Options = {clockHz:SID_PAL_CLOCK,sampleRate:48000,model:'8580',signal:new AbortController().signal};
 const core = await SidCore.create(options);
 const preview = await Sid8580Core.create(previewOptions);
+const factoryCore = await createSoundChip('sid', {model:'6581',clock:SID_NTSC_CLOCK,sampleRate:48000});
+const factoryPreview = await createSoundChip('sid', {model:'8580',clock:SID_PAL_CLOCK,
+  moduleOptions:{wasmBinary:new Uint8Array(8)}});
+type FactoryCoreIsTyped = Assert<IsAny<typeof factoryCore> extends false ? true : false>;
+const factoryModel:'6581'|'8580' = factoryCore.model;
+const factoryId:string = factoryCore.id;
+const factoryRate:number = factoryCore.sampleRate;
+const factoryPCM:Float32Array = factoryCore.render(256);
+const factoryOutput:Float32Array = factoryPreview.renderInto(new Float32Array(128));
+const factorySynth = new SidSynth({core:factoryCore});
+factorySynth.initialize();factorySynth.setVoice(0,{waveform:'pulse',pulseWidth:1024});
+const factoryEndpoint = await createSoundChip('sid', {execution:'worklet',model:'8580',clock:SID_PAL_CLOCK});
+const endpointName:'sid' = factoryEndpoint.name;
+const endpointRate:number = factoryEndpoint.sampleRate();
+const endpointModel:'6581'|'8580'|undefined = factoryEndpoint.model;
+const endpointClock:number|undefined = factoryEndpoint.clock;
+const endpointRead:unknown = await factoryEndpoint.request('readRegister',[27]);
+await factoryEndpoint.start();await factoryEndpoint.stop();await factoryEndpoint.dispose();
+factorySynth.dispose();factoryCore.dispose();factoryPreview.dispose();
 const coreModel:'6581' = core.model, previewModel:'8580' = preview.model;
 const pal:985248 = preview.clockHz;
 const coreState:SidCoreState = core.getState();
@@ -87,9 +106,16 @@ client._setLifecycle({captureContext:() => 'run',isStopped:context => context !=
 client._forceKeyOff(1);await client._stopVoices();
 direct.dispose();other.dispose();client.dispose();registerClient.dispose();core.dispose();preview.dispose();
 void [coreConstructor,previewConstructor,synthConstructor,selectedModel,mainSession,workerSession,coreModel,previewModel,pal,envelope,unavailable,cpuFree,hostDc,owned,rendered,coreRead,previewRead,flags,combined,pureCombined,chip,channels,read,ack,ackClient,promiseRead,mode,waveform,readOnly];
+void [factoryModel,factoryId,factoryRate,factoryPCM,factoryOutput,endpointName,endpointRate,endpointModel,endpointClock,endpointRead];
 
-// @ts-expect-error SID has dedicated subpaths, not a generic factory ID.
-await createSoundChip('sid');
+// @ts-expect-error SID model selection uses the two supported hardware models.
+await createSoundChip('sid',{model:'6580'});
+// @ts-expect-error A direct chip renders PCM; it is not a Worklet endpoint.
+factoryCore.request('readRegister',[27]);
+// @ts-expect-error The Worklet endpoint receives commands instead of rendering on Main.
+factoryEndpoint.render(128);
+// @ts-expect-error Common chip generation does not add keyboard voice allocation.
+factoryCore.noteOn('C4');
 // @ts-expect-error The 6581 core has no model selector; use Sid8580Core.
 await SidCore.create({model:'8580'});
 // @ts-expect-error Preview requires the literal PAL clock.

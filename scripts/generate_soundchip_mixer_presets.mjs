@@ -9,7 +9,7 @@ import {validatePokeyMixerCalibration,validatePokeyMixerCalibrationSources} from
 import {validateScspMixerCalibration,validateScspMixerCalibrationSources} from './scsp_mixer_calibration.mjs';
 import {publicRuntimeModule} from './runtime_module_layout.mjs';
 
-const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url));
+const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_05.json',import.meta.url));
 const psgHistoricalSourcePaths=Object.freeze(Object.fromEntries([
   'soundchip.js','soundchip_factory.js','segapsg.js','ay8910.js','nesapu.js','nesapu_wasm.js','nesapusynth.js',
 ].map(name=>['web/'+name,'tetorica_src/runtime/'+name])));

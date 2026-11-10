@@ -1,0 +1,482 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11 Asia/Tokyo",
+  "passed": true,
+  "scope": "SID common package-root raw factory, direct and AudioWorklet, at YM2612-level scope",
+  "supportedModels": [
+    "6581",
+    "8580-preview-pal"
+  ],
+  "sourceRecords": {
+    "tetorica_src/runtime/soundchip.js": {
+      "bytes": 13635,
+      "sha256": "665e25f4f9394ffbbd58f54a76b1cb97492280454208ab8978f914b3570fe2a3"
+    },
+    "tetorica_src/runtime/sid_soundchip.js": {
+      "bytes": 4602,
+      "sha256": "2282fcb14a19f7cb3a0cb45d4d302c2e9a6e32e90ccbd51acc15356dea3302cb"
+    },
+    "tetorica_src/runtime/soundchip_worklet.js": {
+      "bytes": 6830,
+      "sha256": "c04d371bfa008ff7ace5725459d270246394e0a47e3d6ced3e4cda39a29f1c00"
+    },
+    "tetorica_src/runtime/soundchip-output-worklet.js": {
+      "bytes": 20060,
+      "sha256": "8c82d4155c33bd3bbb7a92116c8248436a4a3fa29e17245105dbad9b441cae44"
+    },
+    "scripts/runtime_module_layout.mjs": {
+      "bytes": 2743,
+      "sha256": "1e935e139f8d0c223c70861279b9d86face808c08c2f0cf30754240ded01d885"
+    },
+    "scripts/check_sid_factory_browser.cjs": {
+      "bytes": 11765,
+      "sha256": "80028930667ec6e23a084a2ff279d22f5d37124fd46163a08afe94071a65e083"
+    },
+    "test/runtime/soundchip_sid_factory.test.mjs": {
+      "bytes": 8578,
+      "sha256": "7e9e3d80b39f2ddb7a72f542507f83ba220af25eb79daf4175c6a59899c834c3"
+    },
+    "test/types/fm2612-sid.mts": {
+      "bytes": 11164,
+      "sha256": "b3bb3a4354e44a97c984ea9b4c591555a293155a282db6947c83db840ec1a1f6"
+    }
+  },
+  "unitTests": {
+    "passed": true,
+    "tests": 33,
+    "log": "/private/tmp/sid-factory-regression-20261111.log"
+  },
+  "installedPackage": {
+    "passed": true,
+    "log": "/private/tmp/sid-factory-installed-package-20261111.log",
+    "files": 1251,
+    "compressedBytes": 2811679,
+    "declarations": 410,
+    "nodeNextBundlerAndBrowserNoNodeAmbient": true
+  },
+  "browserChecks": [
+    {
+      "receipt": "/private/tmp/sid-factory-browser-20261111.json",
+      "bytes": 13852,
+      "sha256": "467171381b67237df4a0fe2c15afb5c3fde6ff2327c9e7561a73d3ebb25df66d",
+      "verifiedServedAssets": 65,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/dist/fm2612",
+      "prefix": "",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "direct": [
+            {
+              "model": "6581",
+              "id": "sid:1",
+              "frames": 4800,
+              "peak": 0.11188139021396637
+            },
+            {
+              "model": "8580",
+              "id": "sid:2",
+              "frames": 4800,
+              "peak": 0.09181798249483109
+            }
+          ],
+          "worklets": [
+            {
+              "model": "6581",
+              "id": "sid-6581",
+              "full": {
+                "id": 1,
+                "rms": 0.008903161183010391,
+                "peak": 0.015874354168772697,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 2,
+                "rms": 0.004457684879554984,
+                "peak": 0.007937298156321049,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 3,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 4,
+                "rms": 0.004457313968573232,
+                "peak": 0.007931675761938095,
+                "stereoError": 0,
+                "finite": true
+              }
+            },
+            {
+              "model": "8580",
+              "id": "sid-8580",
+              "full": {
+                "id": 5,
+                "rms": 0.012901688999076222,
+                "peak": 0.022924672812223434,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 6,
+                "rms": 0.006450521382034045,
+                "peak": 0.011462253518402576,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 7,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 8,
+                "rms": 0.006449742444039442,
+                "peak": 0.01146357599645853,
+                "stereoError": 0,
+                "finite": true
+              }
+            }
+          ],
+          "invalidBeforeAudio": true,
+          "ym2612Regression": true,
+          "audit": {
+            "contexts": 1,
+            "closed": 1,
+            "destinationConnections": 1,
+            "physicalOutputMuted": true
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "direct": [
+            {
+              "model": "6581",
+              "id": "sid:1",
+              "frames": 4800,
+              "peak": 0.11188139021396637
+            },
+            {
+              "model": "8580",
+              "id": "sid:2",
+              "frames": 4800,
+              "peak": 0.09181798249483109
+            }
+          ],
+          "worklets": [
+            {
+              "model": "6581",
+              "id": "sid-6581",
+              "full": {
+                "id": 1,
+                "rms": 0.008904194125908003,
+                "peak": 0.015874354168772697,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 2,
+                "rms": 0.004454647324530206,
+                "peak": 0.007937298156321049,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 3,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 4,
+                "rms": 0.004456278937028093,
+                "peak": 0.007932844571769238,
+                "stereoError": 0,
+                "finite": true
+              }
+            },
+            {
+              "model": "8580",
+              "id": "sid-8580",
+              "full": {
+                "id": 5,
+                "rms": 0.012901688999076222,
+                "peak": 0.022924672812223434,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 6,
+                "rms": 0.0064568382873322625,
+                "peak": 0.011462253518402576,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 7,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 8,
+                "rms": 0.0064550094685250844,
+                "peak": 0.01146357599645853,
+                "stereoError": 0,
+                "finite": true
+              }
+            }
+          ],
+          "invalidBeforeAudio": true,
+          "ym2612Regression": true,
+          "audit": {
+            "contexts": 1,
+            "closed": 1,
+            "destinationConnections": 1,
+            "physicalOutputMuted": true
+          }
+        }
+      ],
+      "missing": [],
+      "blocked": []
+    },
+    {
+      "receipt": "/private/tmp/sid-factory-docs-browser-20261111.json",
+      "bytes": 13989,
+      "sha256": "7d6694265bbb7ec54c5fc8f02a217cf99a97868850bb5f4afb39dc69fe1566cc",
+      "verifiedServedAssets": 65,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+      "prefix": "/js",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "direct": [
+            {
+              "model": "6581",
+              "id": "sid:1",
+              "frames": 4800,
+              "peak": 0.11188139021396637
+            },
+            {
+              "model": "8580",
+              "id": "sid:2",
+              "frames": 4800,
+              "peak": 0.09181798249483109
+            }
+          ],
+          "worklets": [
+            {
+              "model": "6581",
+              "id": "sid-6581",
+              "full": {
+                "id": 1,
+                "rms": 0.008908628344824636,
+                "peak": 0.015874354168772697,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 2,
+                "rms": 0.0044540728986763685,
+                "peak": 0.007937298156321049,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 3,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 4,
+                "rms": 0.004452583410618967,
+                "peak": 0.007931675761938095,
+                "stereoError": 0,
+                "finite": true
+              }
+            },
+            {
+              "model": "8580",
+              "id": "sid-8580",
+              "full": {
+                "id": 5,
+                "rms": 0.012901688999076222,
+                "peak": 0.022924672812223434,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 6,
+                "rms": 0.006450521382034045,
+                "peak": 0.011462253518402576,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 7,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 8,
+                "rms": 0.006449742444039442,
+                "peak": 0.01146357599645853,
+                "stereoError": 0,
+                "finite": true
+              }
+            }
+          ],
+          "invalidBeforeAudio": true,
+          "ym2612Regression": true,
+          "audit": {
+            "contexts": 1,
+            "closed": 1,
+            "destinationConnections": 1,
+            "physicalOutputMuted": true
+          }
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "direct": [
+            {
+              "model": "6581",
+              "id": "sid:1",
+              "frames": 4800,
+              "peak": 0.11188139021396637
+            },
+            {
+              "model": "8580",
+              "id": "sid:2",
+              "frames": 4800,
+              "peak": 0.09181798249483109
+            }
+          ],
+          "worklets": [
+            {
+              "model": "6581",
+              "id": "sid-6581",
+              "full": {
+                "id": 1,
+                "rms": 0.008908628344824636,
+                "peak": 0.015874354168772697,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 2,
+                "rms": 0.004453677911894962,
+                "peak": 0.007937298156321049,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 3,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 4,
+                "rms": 0.004450308956251731,
+                "peak": 0.007931675761938095,
+                "stereoError": 0,
+                "finite": true
+              }
+            },
+            {
+              "model": "8580",
+              "id": "sid-8580",
+              "full": {
+                "id": 5,
+                "rms": 0.012895030717889909,
+                "peak": 0.022924672812223434,
+                "stereoError": 0,
+                "finite": true
+              },
+              "half": {
+                "id": 6,
+                "rms": 0.006456420032680649,
+                "peak": 0.011462253518402576,
+                "stereoError": 0,
+                "finite": true
+              },
+              "stopped": {
+                "id": 7,
+                "rms": 0,
+                "peak": 0,
+                "stereoError": 0,
+                "finite": true
+              },
+              "resumed": {
+                "id": 8,
+                "rms": 0.0064550094685250844,
+                "peak": 0.01146357599645853,
+                "stereoError": 0,
+                "finite": true
+              }
+            }
+          ],
+          "invalidBeforeAudio": true,
+          "ym2612Regression": true,
+          "audit": {
+            "contexts": 1,
+            "closed": 1,
+            "destinationConnections": 1,
+            "physicalOutputMuted": true
+          }
+        }
+      ],
+      "missing": [],
+      "blocked": []
+    }
+  ],
+  "calibration": {
+    "newReport": "soundchip_psg_levels_05.json",
+    "priorReport": "soundchip_psg_levels_04.json",
+    "numericalCaptures": 18,
+    "allNumericalRowsReferenceAndGainsIdentical": true,
+    "existingGeneratedPresetsUnchanged": true,
+    "playgroundAndPackageFreshnessChecksPassed": true,
+    "playgroundRuntimeArtifactCheckPassed": true
+  },
+  "typesDecision": "YM2612 exposes getState but no getRegisterSnapshot or oscillator-phase observation. Preserve existing SID Playground/Code public scope; add the common factory contracts only. Code async acknowledgement and existing Playground sync write/read async contracts stay intact.",
+  "contracts": {
+    "direct": "Existing SidCore or Sid8580Core, numeric sampleRate, mono render/renderInto, no implicit initialization or audio device.",
+    "worklet": "Generic endpoint with request/writeRegister/readRegister/getState, immutable model/clock/id, explicit start/stop/dispose. Renders at host sample rate, duplicating mono to stereo without another DC blocker or trim."
+  },
+  "excluded": [
+    "Preset or three-channel setup performance helpers",
+    "Round robin and Legato helpers",
+    "Event Rec and Looper",
+    "SID song playback in the common factory"
+  ],
+  "physicalOutputMuted": true,
+  "listeningPerformed": false,
+  "coreAndWasmUnchanged": true,
+  "published": false,
+  "versionChanged": false,
+  "previousPublishedTarball": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/tetorica-fm2612-0.2.38.tgz",
+    "bytes": 2806975,
+    "sha256": "fea7788579576285070dc79319e008e12d1345efa3e5e7c568efedd4bb3c4abd",
+    "unchanged": true
+  }
+}
