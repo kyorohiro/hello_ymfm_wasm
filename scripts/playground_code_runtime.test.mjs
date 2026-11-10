@@ -185,6 +185,68 @@ test('Stop restores execution guards even when a file request remains pending',a
   assert.equal(realm.fetch,fetch);waiting.resolve('late');await turns();assert(!f.writes.some(([op])=>op==='on'));
 });
 
+test('Stop aborts user work immediately but waits for the host fade before notes, cleanups and effects retire',async()=>{
+  const fade=deferred();let fading=false;
+  const f=fixture({beforeStopSoundChips:()=>fading?fade.promise:undefined});
+  await f.runtime.run(`const lead=await useSoundChip('ym2612');context.lead=lead;context.retired=[];
+    liveFx('gain',{process(i,o){}});
+    await livePrepare('resource',()=>({input:{},output:{},dispose(){context.retired.push('dispose');}}));
+    liveLoop('held',async()=>{lead.noteOn(CH1,'C4');await new Promise(()=>{});});
+    liveCleanup(['held'],async()=>{context.retired.push('cleanup');lead.noteOff(CH1);await new Promise(()=>{});});`);
+  await turns();const context=f.runtime.getContext(),before=f.writes.length;fading=true;
+  const stopping=f.runtime.stop();
+  assert.equal(f.runtime.getState().running,false);assert.equal(f.runtime.getState().stopping,true);assert.equal(f.runtime.getState().busy,true);
+  assert.throws(()=>context.lead.noteOn(0,'D4'),{name:'AbortError'});
+  await turns();assert.deepEqual(f.writes.slice(before),[]);assert.deepEqual(context.retired,[]);assert(f.effects.has('gain'));
+  fade.resolve();await stopping;
+  assert.deepEqual(context.retired,['cleanup','dispose']);assert(f.writes.slice(before).some(([op])=>op==='off'));
+  assert.equal(f.writes.at(-1)[0],'stop');assert.equal(f.effects.size,0);assert.equal(f.runtime.getState().stopping,false);
+  assert.equal(f.runtime.getState().busy,false);assert.equal(f.states.at(-1).stopping,false);
+  const retiredWrites=f.writes.length;await f.advance(10);assert.equal(f.writes.length,retiredWrites);
+});
+
+test('a pending file promise releases execution guards during the fade and cannot revive a stopped client',async()=>{
+  const fade=deferred(),file=deferred(),fetch=()=>{},realm={fetch};let fading=false;
+  const f=fixture({realm,beforeStopSoundChips:()=>fading?fade.promise:undefined,readFile:()=>file.promise});
+  const running=f.runtime.run(`context.lead=await useSoundChip('ym2612');await file('wait');context.lead.noteOn(0,'C4');`);
+  const aborted=assert.rejects(running,{name:'AbortError'});await turns();assert.notEqual(realm.fetch,fetch);
+  const old=f.runtime.getContext().lead;fading=true;const stopping=f.runtime.stop();await turns();await aborted;
+  assert.equal(realm.fetch,fetch);assert.equal(f.runtime.getState().stopping,true);assert.throws(()=>old.noteOn(0,'C4'),{name:'AbortError'});
+  file.resolve('late');await turns();assert(!f.writes.some(([op])=>op==='on'));
+  fade.resolve();await stopping;assert.equal(f.runtime.getState().stopping,false);
+});
+
+test('rapid Stop then Run keeps the next provider and note behind both serialized fade fences',async()=>{
+  const gates=[deferred(),deferred()],trace=[];let fading=false,nextFade=0;
+  const f=fixture({ensureReady:async()=>{trace.push(['ready']);},
+    beforeStopSoundChips:()=>{if(!fading)return;trace.push(['fade',nextFade]);return gates[nextFade++].promise;},
+    stopSoundChips:async()=>{trace.push(['physical-stop']);}});
+  f.fm.noteOn=(...args)=>trace.push(['on',...args]);f.fm.noteOff=(...args)=>trace.push(['off',...args]);
+  await f.runtime.run(`context.lead=await useSoundChip('ym2612');context.lead.noteOn(0,'C4');`);
+  const old=f.runtime.getContext().lead;trace.length=0;fading=true;
+  const stop=f.runtime.stop(),run=f.runtime.run(`fm.noteOn(1,'D4');context.fresh=true;`);await turns();
+  assert.deepEqual(trace,[['fade',0]]);assert.equal(f.runtime.getState().stopping,true);assert.throws(()=>old.noteOn(0,'E4'),{name:'AbortError'});
+  gates[0].resolve();await turns();assert.deepEqual(trace,[['fade',0],['off',0],['physical-stop'],['fade',1]]);
+  assert.equal(f.runtime.getState().stopping,true);gates[1].resolve();await Promise.all([stop,run]);
+  assert.deepEqual(trace,[['fade',0],['off',0],['physical-stop'],['fade',1],['physical-stop'],['ready'],['on',1,'D4']]);
+  assert.equal(f.runtime.getState().stopping,false);assert.equal(f.runtime.getContext().fresh,true);
+  fading=false;await f.runtime.stop();
+});
+
+test('failed Run retirement also waits for the fade; a failed fade still reaches physical Stop',async()=>{
+  const fade=deferred();let phases=0;
+  const f=fixture({beforeStopSoundChips:()=>++phases===2?fade.promise:undefined});
+  const running=f.runtime.run(`fm.noteOn(0,'C4');throw Error('failed after note');`),failed=assert.rejects(running,/failed after note/);
+  await turns();assert(f.writes.some(([op])=>op==='on'));assert(!f.writes.some(([op])=>op==='off'));
+  assert.equal(f.runtime.getState().running,false);assert.equal(f.runtime.getState().stopping,true);
+  fade.resolve();await failed;assert(f.writes.some(([op])=>op==='off'));assert.equal(f.writes.at(-1)[0],'stop');
+  assert.equal(f.runtime.getState().stopping,false);
+  let rejectFade=false;const g=fixture({beforeStopSoundChips:()=>{if(rejectFade)throw Error('fade endpoint closed');}});
+  await g.runtime.run(`fm.noteOn(0,'C4');`);rejectFade=true;const before=g.writes.length;await g.runtime.stop();
+  assert(g.logs.some(line=>line.includes('fade endpoint closed')));assert.deepEqual(g.writes.slice(before),[['off',0],['stop']]);
+  assert.equal(g.runtime.getState().stopping,false);
+});
+
 test('throwing prepared disposals and FX removal never bypass physical Stop or poison the next Run',async()=>{
   const removed=[];let physicalStops=0;
   const f=fixture({fx:{liveFx(){},removeLiveFx(name){removed.push(name);throw Error('FX endpoint closed');}},

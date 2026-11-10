@@ -125,6 +125,9 @@
       .synth-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
       .synth-workspace.has-files { grid-template-columns: 250px minmax(0, 1fr); }
       .synth-editor { min-width: 0; }
+      .synth-workspace.is-code-expanded > .synth-editor { display:none; }
+      #synthExpandedCodeSlot { min-width:0; }
+      #synthExpandedCodeSlot[hidden] { display:none; }
       .synth-files-panel { min-width: 0; border: 1px solid #41615b; border-radius: 14px; padding: 12px; background: #172423; }
       .synth-files-panel[hidden], .synth-file-editor-heading[hidden] { display: none; }
       .synth-files-heading, .synth-file-editor-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
@@ -981,13 +984,18 @@
 
       .performance-keyboard { display: flex; gap: 10px; align-items: stretch; }
       #synthKeyboardPanel[hidden], #synthCodePanel[hidden] { display:none; }
-      .synth-input-tabs { margin-bottom:10px; }
+      .synth-input-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; min-width:0; }
+      .synth-input-tabs { flex:1; min-width:0; }
+      #synthCodeExpandButton { display:grid; place-items:center; width:28px; height:28px; flex:none; padding:3px; border-radius:7px; }
+      #synthCodeExpandButton[hidden] { display:none; }
+      #synthCodeExpandButton svg { width:18px; height:18px; }
       .synth-code-toolbar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
       .synth-code-toolbar .synth-code-state { margin-left:auto; color:#b3c9c3; font-size:.7rem; }
       .synth-code-editor-wrap { position:relative; min-width:0; border:1px solid #41615b; border-radius:12px; overflow:hidden; background:#111b1c; }
       #synthCodeEditor { display:block; width:100%; min-height:280px; height:320px; resize:vertical; padding:14px; border:0; border-radius:0; box-sizing:border-box; color:#dcebe5; background:#111b1c; font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
       #synthCodeEditorHost { height:320px; min-width:0; }
       #synthCodeEditorHost:not([data-ready="true"]) { display:none; }
+      #synthExpandedCodeSlot #synthCodeEditor, #synthExpandedCodeSlot #synthCodeEditorHost { height:clamp(360px, calc(100dvh - 330px), 1000px); }
       .synth-code-note { color:#9ab6ad; font-size:.66rem; line-height:1.5; margin:6px 0; }
       .synth-code-log { white-space:pre-wrap; overflow-wrap:anywhere; max-height:130px; overflow:auto; margin:8px 0 0; padding:8px 10px; border:1px solid #2e4943; border-radius:8px; color:#b9d3c8; background:#101818; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
       .synth-code-log:empty { display:none; }
@@ -1707,9 +1715,14 @@
             <div class="status" id="status">Press any key or click a pad to start audio.</div>
 
             <div class="control-section" id="synthInputSection">
-              <div class="synth-chip-tabs synth-input-tabs" role="tablist" aria-label="Performance input">
-                <button id="synthInputKeyboardTab" class="toolbar-button" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
-                <button id="synthInputCodeTab" class="toolbar-button" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+              <div class="synth-input-heading">
+                <div class="synth-chip-tabs synth-input-tabs" role="tablist" aria-label="Performance input">
+                  <button id="synthInputKeyboardTab" class="toolbar-button" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
+                  <button id="synthInputCodeTab" class="toolbar-button" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
+                </div>
+                <button id="synthCodeExpandButton" class="toolbar-button" type="button" aria-label="Maximize Code" title="Maximize Code beside Files" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
+                </button>
               </div>
               <div id="synthKeyboardPanel" role="tabpanel" aria-labelledby="synthInputKeyboardTab">
               <div class="fretboard-toolbar">
@@ -1772,6 +1785,7 @@
 
         </div>
           </div>
+          <div id="synthExpandedCodeSlot" hidden></div>
         </div>
       </section>
     </main>
@@ -1791,7 +1805,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-code-2";
+      import "./synth.js?v=synth-code-3";
     </script>
   </body>
 </html>

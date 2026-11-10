@@ -1,9 +1,10 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
-import {setupSynthFiles} from './synth_files.js?v=pcm-editor-1';
-import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-2';
+import {setupSynthFiles} from './synth_files.js?v=synth-code-expand-1';
+import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-3';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
 import {createSynthCodeAudio} from './synth_code_audio.js?v=synth-code-1';
-import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=synth-code-2';
+import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
+import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=synth-code-3';
 import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-release-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-end-1';
 import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-release-1';
@@ -647,8 +648,9 @@ let looper = null;
 let psgLooper = null, psgLoopSession = null;
 const psgPreparedLoopUnits=new WeakMap();
 let pcmLooper=null,pcmLoopSession=null;
-let performanceOutputBus=null,performanceMasterBus=null,codeAudio=null,codeRuntime=null,codeControls=null,codeActive=false;
+let performanceOutputBus=null,performanceMasterBus=null,performanceFadeBus=null,codeAudio=null,codeRuntime=null,codeControls=null,codeActive=false;
 let codeStopTask=null,codeGeneration=0;
+const codeOutput=createSynthCodeOutput({getContext:()=>audioContext,getGain:()=>performanceFadeBus});
 const pcmPreparedLoopUnits=new WeakMap();
 let eventRecordSessionActive =
   false;
@@ -870,6 +872,7 @@ async function stopCodeSoundChips() {
   try {await codeAudio?.stop();}
   finally {
     synth?.reset();applyPatchToVoices();clearInputState();updateCodeAudioRouting();
+    if(!codeControls?.isCodeMode())codeOutput.open();
   }
 }
 
@@ -877,7 +880,6 @@ function stopSynthCode() {
   ++codeGeneration;
   if(codeStopTask)return codeStopTask;
   if(!codeActive&&!codeRuntime?.getState().running&&!codeRuntime?.getState().busy)return Promise.resolve();
-  codeActive=false;
   const pending=Promise.resolve().then(()=>codeRuntime?codeRuntime.stop():stopCodeSoundChips()).finally(()=>{
     if(codeStopTask===pending)codeStopTask=null;
     updateCodeAudioRouting();
@@ -911,7 +913,7 @@ async function ensureCodeReady() {
   // Trusted assets finish loading before user-code execution installs the
   // shared Playground network/navigation guard. No other chip is imported.
   await Promise.all(['ym2612','segapsg','rf5c164','pwm'].map(name=>codeAudio.useSoundChip(name)));check();
-  codeActive=true;updateCodeAudioRouting();
+  codeActive=true;updateCodeAudioRouting();codeOutput.open();
 }
 
 function getCodeRuntime() {
@@ -925,10 +927,11 @@ function getCodeRuntime() {
         const value=codeAudio?.fx[key];
         return typeof value==='function'?(...args)=>codeAudio.fx[key](...args):value;
       }}),
-      prepareSource:files.prepareSource,readFile:files.readFile,stopSoundChips:stopCodeSoundChips,
+      prepareSource:files.prepareSource,readFile:files.readFile,
+      beforeStopSoundChips:()=>codeOutput.fadeOut(),stopSoundChips:stopCodeSoundChips,
       onLog:line=>codeControls?.appendLog(line),
       onState:state=>{
-        if(typeof state.running==='boolean')codeActive=state.running;
+        if(typeof state.running==='boolean')codeActive=state.running||state.stopping;
         codeControls?.updateRuntimeState(state);updateCodeAudioRouting();
       },
     });
@@ -940,7 +943,7 @@ async function beforeCodeRun({apply=false}={}) {
   if(switchingAudioOutput)throw Error('Wait for the audio output change before running Code.');
   songControls?.stop();songControls?.selectTarget('synth');
   await stopRecordingForReference({keepCode:true});
-  if(!apply||!codeActive)stopAllNotes();
+  if(!codeActive)stopAllNotes();
 }
 
 function isSongChannelTarget() {
@@ -998,11 +1001,15 @@ function restoreEditorAfterEventPlayback() {
 // Stop asynchronous recording/capture before reference audio may start. The
 // epoch also invalidates actions that were still waiting for audio readiness.
 function stopRecordingForReference({keepCode=false}={}) {
-  ++recordingEpoch;
+  const epoch=++recordingEpoch;
   // The initial Code Run has already awaited full recording cleanup, and
   // recording cannot start in Code mode. Idle recorder/looper stop methods
   // still release their shared editor chip, so never call them again on Apply.
   if(keepCode&&codeActive)return referenceRecordingStop??Promise.resolve();
+  // Idle recorder/looper cleanup also releases shared editor voices. A song
+  // or output switch must retire Code behind its fade before touching them.
+  if(!keepCode&&codeActive)return stopSynthCode().then(()=>
+    epoch===recordingEpoch?stopRecordingForReference():referenceRecordingStop);
   if(psgEventRecorder?.isRecording()) {psgVoice.stop();psgEventRecorder.stopRecord();}
   psgEventRecorder?.stopRecordingPlayback();
   if(pcmEventRecorder?.isRecording()) {pcmVoice.stop();pcmEventRecorder.stopRecord();}
@@ -3235,7 +3242,8 @@ async function initializeDirectAudio() {
     finalOutputBus = audioContext.createGain();
     finalOutputBus.connect(audioContext.destination);
   }
-  performanceMasterBus=audioContext.createGain();performanceMasterBus.connect(finalOutputBus);
+  performanceFadeBus=audioContext.createGain();performanceFadeBus.connect(finalOutputBus);
+  performanceMasterBus=audioContext.createGain();performanceMasterBus.connect(performanceFadeBus);
   performanceOutputBus=audioContext.createGain();performanceOutputBus.connect(performanceMasterBus);
 
   liveOutputBus =
@@ -3835,6 +3843,7 @@ codeControls=setupSynthCodeControls({
   project:synthProject,files:synthFiles,getRuntime:getCodeRuntime,onBeforeRun:beforeCodeRun,
   onModeChange:mode=>{
     if(mode==='code'&&!codeActive)void stopRecordingForReference({keepCode:true});
+    if(mode==='keyboard')codeOutput.open();
     if(!codeActive)stopAllNotes();updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();
   },
   setStatus,

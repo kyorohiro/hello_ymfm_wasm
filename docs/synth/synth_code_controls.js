@@ -6,15 +6,15 @@ const JOURNAL_KEY='tetorica-fm2612-synth-pending-code';
 const MAX_CODE_LENGTH=2*1024*1024;
 const codePath=path=>typeof path==='string'&&path.startsWith('/')&&/\.m?js$/i.test(path)&&!path.split('/').some(part=>['..','.git','.tet.ss'].includes(part));
 const within=(path,directory)=>path===directory||path?.startsWith(directory+'/');
-const DEFAULT_CODE=`// The knobs above edit this sound.
-const fm = await useSoundChip("ym2612");
+const DEFAULT_CODE=`const fm = await useSoundChip("ym2612");
 setBpm(120);
 
 liveLoop("melody", async () => {
-  fm.noteOn(CH1, "C4");
-  await sleep(0.2);
+  const notes = scale("E1", "minorPentatonic", 3);
+  fm.noteOn(CH1, choose(notes));
+  await sleep(0.1);
   fm.noteOff(CH1);
-  await beat(0.5);
+  await beat(0.025);
 });
 `;
 
@@ -33,8 +33,12 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   const textarea=byId('synthCodeEditor'),editorHost=byId('synthCodeEditorHost'),note=byId('synthCodeEditorNote');
   const runButton=byId('synthCodeRunButton'),applyButton=byId('synthCodeApplyButton'),stopButton=byId('synthCodeStopButton');
   const stateLabel=byId('synthCodeState'),errorLog=byId('synthCodeError'),log=byId('synthCodeLog');
+  const workspace=byId('synthWorkspace'),expandedSlot=byId('synthExpandedCodeSlot');
+  const expandButton=byId('synthCodeExpandButton'),expandIcon=byId('synthCodeExpandIcon');
+  const homeAnchor=document.createComment('Synth performance input');
+  section.parentNode.insertBefore(homeAnchor,section);
   const listeners=[];
-  let mode='keyboard',activePath=null,disposed=false,changing=false,fileBusy=false,pending=false,operation=0;
+  let mode='keyboard',activePath=null,disposed=false,changing=false,fileBusy=false,pending=false,operation=0,expanded=false,workspaceOperation=0;
   let runtime=null,runtimeLoading=null,monacoLoading=null,monacoEditor=null;
   let runtimeState={state:'idle',loopNames:[]};
   let adapter={kind:'textarea',getValue:()=>textarea.value,setValue:value=>{textarea.value=value;},focus:()=>textarea.focus(),setReadOnly:value=>{textarea.readOnly=value;}};
@@ -58,12 +62,33 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     adapter.setReadOnly?.(fileBusy||!activePath);textarea.readOnly=fileBusy||!activePath;
   }
   function rememberState() {files?.rememberCodeState?.(captureState());}
+  function showExpanded(value) {
+    expanded=Boolean(value)&&mode==='code';
+    if(expanded)expandedSlot.append(section);
+    else homeAnchor.parentNode.insertBefore(section,homeAnchor.nextSibling);
+    expandedSlot.hidden=!expanded;
+    workspace.classList.toggle('is-code-expanded',expanded);
+    expandButton.setAttribute('aria-pressed',String(expanded));
+    expandButton.setAttribute('aria-label',expanded?'Restore Code':'Maximize Code');
+    expandButton.title=expanded?'Restore Code below the Synth':'Maximize Code beside Files';
+    expandIcon.setAttribute('d',expanded?'M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5':'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5');
+    monacoEditor?.layout();
+  }
+  async function setExpanded(value) {
+    if(disposed)return false;
+    if(value&&mode!=='code')await setMode('code');
+    if(disposed)return false;
+    if(value)files?.setVisible?.(true);
+    showExpanded(value);adapter.focus();return expanded;
+  }
   function showMode(next) {
     if(!['keyboard','code'].includes(next))throw TypeError('Unknown input mode.');
     const changed=mode!==next;mode=next;
     keyboardTab.setAttribute('aria-selected',String(next==='keyboard'));keyboardTab.tabIndex=next==='keyboard'?0:-1;
     codeTab.setAttribute('aria-selected',String(next==='code'));codeTab.tabIndex=next==='code'?0:-1;
     keyboardPanel.hidden=next!=='keyboard';codePanel.hidden=next!=='code';
+    expandButton.hidden=next!=='code';
+    if(next!=='code'&&expanded)showExpanded(false);
     section.dataset.inputMode=next;
     if(changed)Promise.resolve(onModeChange(next)).catch(report);
     rememberState();update();
@@ -117,6 +142,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     return monacoLoading;
   }
   async function openFile(path) {
+    workspaceOperation++;
     await files?.ready;
     if(disposed)return false;
     await flush();const source=textFile(project,path);
@@ -156,21 +182,37 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   async function stop() {
     const epoch=++operation;pending=false;runtimeState={state:'stopped',loopNames:[]};update();
-    if(runtime){try{await runtime.stop();}catch(error){if(epoch===operation)report(error);}}
+    let stopped=true;
+    if(runtime){try{await runtime.stop();}catch(error){stopped=false;if(epoch===operation)report(error);}}
     else runtimeLoading?.then(host=>{if(epoch===operation&&!disposed)return host.stop();}).catch(error=>{if(epoch===operation&&!disposed)report(error);});
     if(epoch===operation&&!disposed){update();setStatus('Code stopped.');}
+    return stopped&&epoch===operation&&!disposed;
   }
   async function setMode(next) {
-    if(disposed)return;
+    if(disposed)return false;
+    const request=++workspaceOperation;
     if(next==='code'){await ensureFile();showMode('code');adapter.focus();void loadMonaco();}
-    else {await flush();await stop();showMode('keyboard');}
+    else {
+      await flush();if(disposed||request!==workspaceOperation)return false;
+      if(!await stop()||disposed||request!==workspaceOperation)return false;
+      showMode('keyboard');
+    }
+    return true;
   }
-  function workspaceReplaced() {
-    void stop();activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}
+  async function workspaceReplaced() {
+    if(disposed)return false;
+    const request=++workspaceOperation;
+    // Keep Code ownership until the output fade and chip cleanup have finished.
+    // A later file/mode request or disposal must not be reset by this old reply.
+    if(!await stop()||disposed||request!==workspaceOperation)return false;
+    activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}
     try{localStorage.removeItem(JOURNAL_KEY);}catch{}
     showMode('keyboard');
+    return true;
   }
   async function restoreState(state) {
+    if(disposed)return false;
+    workspaceOperation++;
     if(state?.path&&codePath(state.path)&&project.fs.has(state.path)) {
       const source=textFile(project,state.path);changing=true;activePath=state.path;
       try{if(adapter.openVirtualFile)adapter.openVirtualFile(activePath,source);else adapter.setValue(source);}
@@ -180,18 +222,22 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   }
   function pathChanged(source,destination) {
     if(!within(activePath,source))return;
+    workspaceOperation++;
     if(destination){activePath=destination+activePath.slice(source.length);changing=true;try{adapter.openVirtualFile?.(activePath,textFile(project,activePath));}finally{changing=false;}rememberState();}
     else {void stop();activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}rememberState();update();}
   }
-  const controls={openFile,flush,stop,setMode,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
+  const controls={openFile,flush,stop,setMode,setExpanded,restoreState,workspaceReplaced,pathChanged,captureState,appendLog,
     isCodeMode:()=>mode==='code',get activePath(){return activePath;},
+    isExpanded:()=>expanded,
     setBusy(value){fileBusy=Boolean(value);update();},
     setRuntimeState(value){if(disposed)return;runtimeState={...value};update();},
     updateRuntimeState(value){controls.setRuntimeState(value);},
-    dispose(){if(disposed)return;void flush().catch(()=>{});void stop();disposed=true;operation++;for(const unlisten of listeners)unlisten();unwatch();monacoEditor?.dispose();},
+    dispose(){if(disposed)return;void flush().catch(()=>{});void stop();showExpanded(false);homeAnchor.remove();disposed=true;operation++;workspaceOperation++;for(const unlisten of listeners)unlisten();unwatch();monacoEditor?.dispose();},
   };
   listen(keyboardTab,'click',()=>void setMode('keyboard').catch(report));
   listen(codeTab,'click',()=>void setMode('code').catch(report));
+  listen(expandButton,'pointerdown',event=>event.preventDefault());
+  listen(expandButton,'click',()=>void setExpanded(!expanded).catch(report));
   for(const tab of [keyboardTab,codeTab])listen(tab,'keydown',event=>{
     if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
     event.preventDefault();event.stopPropagation();

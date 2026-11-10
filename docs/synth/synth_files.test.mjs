@@ -7,7 +7,7 @@ import {createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,PCM_MAX_FRAMES} fr
 
 class Element {
   constructor(tag='div') {this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attributes={};this.style={};this.listeners=new Map();this.hidden=false;this.open=false;this.value='';
-    const names=new Set();this.classList={add:(...values)=>values.forEach(value=>names.add(value)),remove:value=>names.delete(value),toggle:(value,on)=>{on??=!names.has(value);on?names.add(value):names.delete(value);return on;}};}
+    const names=new Set();this.classList={add:(...values)=>values.forEach(value=>names.add(value)),remove:value=>names.delete(value),toggle:(value,on)=>{on??=!names.has(value);on?names.add(value):names.delete(value);return on;},contains:value=>names.has(value)};}
   append(...children){for(const child of children){child.parentElement=this;this.children.push(child);}}
   appendChild(child){this.append(child);return child;}
   replaceChildren(...children){this.children=[];this.append(...children);}
@@ -27,6 +27,8 @@ class Element {
 }
 const fm=()=>({algorithm:7,feedback:0,operators:Array.from({length:4},(_,i)=>({dt:0,multi:1,tl:i===3?16:127,rs:0,ar:31,am:false,d1r:0,d2r:0,sl:0,rr:15,ssg:0}))});
 const tick=()=>new Promise(resolve=>queueMicrotask(resolve));
+const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return{promise,resolve};};
+async function until(check){for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}assert.fail('operation did not reach expected state');}
 
 function harness(store={saved:null,journal:new Map()}) {
   const globals=['document','window','indexedDB','localStorage','setTimeout','clearTimeout'],previous=new Map(globals.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
@@ -44,9 +46,9 @@ function harness(store={saved:null,journal:new Map()}) {
     get(){const request={result:structuredClone(store.saved)};queueMicrotask(()=>request.onsuccess?.());return request;},
   });return transaction;}};
   globalThis.indexedDB={open(){const request={result:database};queueMicrotask(()=>{request.onupgradeneeded?.();request.onsuccess?.();});return request;}};
-  const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({}),pcm:createPcmBuiltinPreset('sine')},ids={fm:'one-op-basic',psg:'psg-default',pcm:'pcm-sine'},messages=[];
+  const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({}),pcm:createPcmBuiltinPreset('sine')},ids={fm:'one-op-basic',psg:'psg-default',pcm:'pcm-sine'},messages=[],applied=[];
   let kind='fm';
-  function applySnapshot(preset,id){kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
+  function applySnapshot(preset,id){applied.push(id);kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
   const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='pcm'?'pcm-sine':value==='psg'?'psg-default':'one-op-basic',
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
     applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='pcm-sine'?createPcmBuiltinPreset('sine'):id==='psg-default'?createPsgPreset({}):fm(),id),
@@ -63,7 +65,7 @@ function harness(store={saved:null,journal:new Map()}) {
     for(let i=0;i<50&&!dialog.open;i++)await tick();assert(dialog.open);
     byId('synthFileNameInput').value=name;dialog.querySelector('[data-file-name-confirm]').click();await idle();
   }
-  return {store,project,patches,ids,files,messages,byId,action,rename,get kind(){return kind;},forceKind:value=>{kind=value;},
+  return {store,project,patches,ids,files,messages,applied,byId,action,rename,get kind(){return kind;},forceKind:value=>{kind=value;},
     cleanup(){for(const [name,descriptor]of previous)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
 
@@ -79,6 +81,70 @@ function attachCode(h) {
   };
   h.files.setCodeControls(controls);return {controls,opened,changes,flushes};
 }
+
+test('Cassette import waits for Code fade before replacing files or applying a new authoring sound, and aborts stale retirement',async()=>{
+  for(const completed of [true,false]) {
+    const h=harness(),fade=deferred();
+    try {
+      await h.files.ready;await h.files.createFromPreset(fm(),'Current');
+      h.project.fs.writeText('/index.js','// playing source');const code=attachCode(h);await h.files.selectFile('/index.js');
+      const original=code.controls.workspaceReplaced;let retiring=0;
+      code.controls.workspaceReplaced=async()=>{retiring++;const current=await fade.promise;if(current)original();return current;};
+      const incoming=createSynthProject();incoming.writeTone('/presets/Incoming.vgi',{...fm(),feedback:5});
+      incoming.fs.writeText('/index.js','// incoming source');const archive=incoming.exportCassette();
+      const previous=h.project.snapshot(),before=h.applied.length;
+      h.byId('cassetteImportInput').files=[{name:'Incoming.cassette.zip',arrayBuffer:async()=>new Uint8Array(archive).buffer}];
+      h.byId('cassetteImportInput').fire('change');await until(()=>retiring===1);
+      assert.equal(h.applied.length,before,'the current sound is not reprogrammed during the fade');
+      assert.deepEqual(h.project.snapshot(),previous,'the current workspace stays available during the fade');
+      fade.resolve(completed);await until(()=>h.byId('importCassetteButton').disabled===false);
+      if(completed) {
+        assert.equal(new TextDecoder().decode(h.project.fs.get('/index.js').data),'// incoming source');
+        assert.equal(h.patches.fm.feedback,5);assert.equal(h.applied.length,before+1);
+      }else {
+        assert.deepEqual(h.project.snapshot(),previous,'a superseded Code view prevents the old import from committing');
+        assert.equal(h.applied.length,before);
+      }
+    }finally{fade.resolve(false);await until(()=>h.byId('importCassetteButton').disabled===false);h.cleanup();}
+  }
+});
+
+test('Undo waits for Code retirement before restoring a workspace and its authoring snapshot',async()=>{
+  const h=harness(),fade=deferred();
+  try {
+    await h.files.ready;await h.files.createFromPreset(fm(),'Current');
+    h.project.fs.writeText('/index.js','// playing source');h.project.fs.writeText('/removed.js','// restore me');
+    const code=attachCode(h);await h.files.selectFile('/index.js');await h.action('delete','/removed.js');
+    const original=code.controls.workspaceReplaced;let retiring=0;
+    code.controls.workspaceReplaced=async()=>{retiring++;await fade.promise;original();return true;};
+    const before=h.applied.length;h.byId('synthFileUndoButton').click();await until(()=>retiring===1);
+    assert.equal(h.applied.length,before);assert.equal(h.project.fs.has('/removed.js'),false);
+    fade.resolve();await until(()=>h.byId('importCassetteButton').disabled===false);
+    assert(h.project.fs.has('/removed.js'));assert.equal(h.applied.length,before+1);
+    assert.equal(code.controls.activePath,'/index.js');assert.equal(code.controls.isCodeMode(),true);
+  }finally{fade.resolve();await until(()=>h.byId('importCassetteButton').disabled===false);h.cleanup();}
+});
+
+test('programmatic Files visibility follows the same layout and accessibility state as its toggle',async()=>{
+  const h=harness();
+  try {
+    await h.files.ready;
+    await h.files.createFromPreset(fm(),'Keep FM');const tone=h.files.activeTonePath;
+    h.files.setVisible(false);
+    assert.equal(h.files.isVisible(),false);assert.equal(h.byId('synthFilesPanel').hidden,true);
+    assert.equal(h.byId('synthFilesToggle').attributes['aria-expanded'],'false');
+    assert(!h.byId('synthWorkspace').classList.contains('has-files'));
+    h.files.setVisible(true);
+    assert.equal(h.files.isVisible(),true);assert.equal(h.byId('synthFilesPanel').hidden,false);
+    assert.equal(h.byId('synthFilesToggle').attributes['aria-expanded'],'true');
+    assert(h.byId('synthWorkspace').classList.contains('has-files'));
+    assert(h.byId('synthFilesToggle').classList.contains('is-selected'));
+    assert.equal(h.files.activeTonePath,tone,'opening Files does not select or apply another instrument');
+    await h.files.persistCode();assert.equal(h.store.saved.filesVisible,true);
+    h.byId('synthFilesToggle').click();assert.equal(h.files.isVisible(),false);
+    assert.equal(h.byId('synthFilesToggle').attributes['aria-expanded'],'false');
+  }finally{h.cleanup();}
+});
 
 test('JavaScript selection and Save retain the active instrument and preserve existing entry-point source',async()=>{
   const h=harness();

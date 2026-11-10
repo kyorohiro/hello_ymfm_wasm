@@ -204,6 +204,17 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     byId('presetSelect').disabled=busy||readOnly;
     codeControls?.setBusy?.(busy);
   }
+  function updateVisibility() {
+    workspace.classList.toggle('has-files',!panel.hidden);
+    document.body.classList.toggle('synth-files-open',!panel.hidden);
+    toggle.setAttribute('aria-expanded',String(!panel.hidden));
+    toggle.classList.toggle('is-selected',!panel.hidden);
+  }
+  function setVisible(visible,{persist=true}={}) {
+    visibilityTouched=true;panel.hidden=!visible;updateVisibility();
+    if(persist)remember();
+    return !panel.hidden;
+  }
   function render() {
     document.body.classList.toggle('synth-files-open',!panel.hidden);
     if (selectedPath && !project.fs.has(selectedPath) && !project.fs.listDirectories().includes(selectedPath)) selectedPath = activeTonePath;
@@ -424,9 +435,12 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
         if (!await flushEdits()) return;
         clearSyncFeedback();
         if (history.length) {
-          const previous = history.pop();
+          const requestGeneration=++importGeneration;
+          const previous = history.at(-1);
+          if(await codeControls?.workspaceReplaced?.()===false||requestGeneration!==importGeneration)return;
+          history.pop();
           project.restore(previous.project);
-          codeControls?.workspaceReplaced?.();savedCodeState=previous.codeState??null;
+          savedCodeState=previous.codeState??null;
           onWorkspaceReplaced?.();
           workspaceId = newWorkspaceId(); generation = 0;
           const contexts=Object.entries(previous.editorContexts??{}).map(([kind,value])=>[kind,validateEditorContext(value,kind)]);
@@ -540,7 +554,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
         for(const path of sourcePaths)reveal(path);
         for(const entry of codeEntries)reveal(entry.path);
         byId('synthFileSelectionInfo').textContent=result.paths.length?activeTonePath:codeEntries.length&&!sourcePaths.length?selectedPath:`${selectedPath} · Original VGM saved in Cassette`;
-        panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');
+        setVisible(true);
       }
       if(result.failures.length){importError.textContent=`Could not load some files:\n${result.failures.join('\n')}${result.paths.length?'':' Previous presets were kept.'}`;importError.hidden=false;}
       notice.textContent=result.notices.join('\n');notice.hidden=!result.notices.length;
@@ -555,15 +569,20 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     try{
       if(!await flushEdits())return;
       previous=capture();
-      const result=await project.importCassette(new Uint8Array(await file.arrayBuffer()),{name:file.name,isCurrent:()=>requestGeneration===importGeneration});
+      // Validate away from the live workspace. The current code/files remain
+      // available until its output fade and cleanup have finished successfully.
+      const prepared=createSynthProject();
+      const result=await prepared.importCassette(new Uint8Array(await file.arrayBuffer()),{name:file.name,isCurrent:()=>requestGeneration===importGeneration});
       if(result.cancelled)return;
+      if(await codeControls?.workspaceReplaced?.()===false||requestGeneration!==importGeneration)return;
+      project.restore(prepared.snapshot());
       workspaceId=newWorkspaceId();generation=0;
-      savedCodeState=null;codeControls?.workspaceReplaced?.();
+      savedCodeState=null;
       onWorkspaceReplaced?.();
       pushUndo(previous);dirty=false;selectedPath=project.selectedPath;activeTonePath=isSynthTonePath(selectedPath)?selectedPath:null;
       editorContexts.clear();
       stopAllNotes();if(activeTonePath){editorKind=kindOfPath(activeTonePath);setEditorKind(editorKind);applyPreset('vfs:'+activeTonePath);reveal(activeTonePath);}else{setEditorKind(editorKind);applyPreset(getDefaultPresetId(editorKind));}setBaseline();
-      panel.hidden=false;workspace.classList.add('has-files');toggle.setAttribute('aria-expanded','true');toggle.classList.add('is-selected');
+      setVisible(true);
       render();await remember(true);setStatus(`Imported ${file.name}.`);
     }catch(error){setStatus(`Failed to import Cassette: ${error.message}`);}finally{busy=false;updateButtons();document.activeElement?.blur?.();}
   }
@@ -581,7 +600,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
   }
 
   toggle.addEventListener('pointerdown',event=>event.preventDefault());
-  toggle.addEventListener('click',()=>{visibilityTouched=true;panel.hidden=!panel.hidden;workspace.classList.toggle('has-files',!panel.hidden);document.body.classList.toggle('synth-files-open',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);remember();});
+  toggle.addEventListener('click',()=>setVisible(panel.hidden));
   panel.addEventListener('pointerdown',event=>{if(event.target.closest('button'))event.preventDefault();});
   panel.addEventListener('click',event=>{const item=event.target.closest('summary[data-file-path],.file-tree-root[data-file-path]');if(item){selectedPath=item.dataset.filePath;updateButtons();}});
   panel.addEventListener('keydown',event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter','Home','End','ContextMenu'].includes(event.key))event.stopPropagation();});
@@ -666,7 +685,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       }catch(error){setStatus(`Could not restore the last tone edit: ${error.message}. The local Cassette draft is still available.`);}
       selectedPath=activeTonePath||project.selectedPath;
       if(activeTonePath){project.readTone(activeTonePath);editorKind=kindOfPath(activeTonePath);setEditorKind(editorKind);applyPreset('vfs:'+activeTonePath);setBaseline();reveal(activeTonePath);}
-      workspace.classList.toggle('has-files',!panel.hidden);toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.classList.toggle('is-selected',!panel.hidden);
+      updateVisibility();
       restoring=false;render();
       // Persist an identity before enabling controls, so a subsequent journal
       // cannot be mistaken for an unrelated imported Cassette after a crash.
@@ -677,7 +696,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     }catch(error){restoring=false;setStatus(`Local draft unavailable: ${error.message}. Cassette import/export is still available.`);}
     finally{draftLoaded=true;busy=false;if(dirty)persistCurrentTone();render();remember();}
   })();
-  return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,
+  return {ready,selectFile,selectPreset,switchEditor,importInstruments,createFromPreset,setVisible,isVisible:()=>!panel.hidden,
     setCodeControls(controls){codeControls=controls;updateButtons();},
     getCodeState:()=>savedCodeState==null?null:structuredClone(savedCodeState),
     rememberCodeState(state){savedCodeState=structuredClone(state);updateButtons();remember();},

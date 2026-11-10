@@ -5,8 +5,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),http=require('node:http'),path=require('node:path');
 const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{tmpdir}=require('node:os');
 const {chromium,webkit}=require('playwright');
-const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
-for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
+const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',checks:'all',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
+for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|checks|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
+assert(['all','stop','baseline-stop'].includes(config.checks));
 assert(config.entry.startsWith('/'));assert(config.engines.split(',').every(name=>['chromium','webkit'].includes(name)));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(task,label,ms=30000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timeout '+label)),ms);})]);}finally{clearTimeout(timer);}}
@@ -14,12 +15,13 @@ const evaluate=(page,fn,arg)=>bounded(page.evaluate(fn,arg),'page evaluation');
 async function until(test,label,ms=20000){const end=Date.now()+ms;while(Date.now()<end){if(await test())return;await pause(40);}throw Error(label);}
 function installAudit(){
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,meters=[],commands=[];
+  let capture=null,captureSerial=0;
   AudioNode.prototype.connect=function(destination,...args){
     if(destination!==this.context.destination)return connect.call(this,destination,...args);
     const context=this.context,split=context.createChannelSplitter(2),left=context.createAnalyser(),right=context.createAnalyser(),mute=context.createGain();
     left.fftSize=right.fftSize=8192;mute.gain.value=0;
     connect.call(this,split);connect.call(split,left,0);connect.call(split,right,1);connect.call(left,mute);connect.call(right,mute);connect.call(mute,destination);
-    meters.push({left,right,mute});return destination;
+    meters.push({source:this,left,right,mute});return destination;
   };
   MessagePort.prototype.postMessage=function(message,...args){
     for(const item of Array.isArray(message)?message:[message])if(item&&typeof item==='object'){
@@ -33,7 +35,41 @@ function installAudit(){
     for(let i=0;i<values.length;i++){const value=values[i];sum+=value*value;peak=Math.max(peak,Math.abs(value));finite&&=Number.isFinite(value);if(i&&values[i-1]<=0&&value>0)crossings.push(i);}
     return {rms:Math.sqrt(sum/values.length),peak,finite,frequency:crossings.length>2?analyser.context.sampleRate*(crossings.length-1)/(crossings.at(-1)-crossings[0]):0};
   }
-  window.__synthCodeAudit={read(){const rows=meters.map(({left,right,mute})=>({left:channel(left),right:channel(right),muted:mute.gain.value===0}));
+  async function beginCapture() {
+    assertCapture(!capture,'Capture already running');
+    const source=meters.map(meter=>({source:meter.source,level:channel(meter.left).rms+channel(meter.right).rms}))
+      .sort((a,b)=>b.level-a.level)[0]?.source;assertCapture(source,'No output bus');
+    const name='tetorica-code-stop-audit-'+(++captureSerial),url=URL.createObjectURL(new Blob([
+      `class Capture extends AudioWorkletProcessor {process(inputs){const x=inputs[0];if(x?.[0])this.port.postMessage({frame:currentFrame,left:x[0].slice(),right:(x[1]??x[0]).slice()});return true;}}registerProcessor('${name}',Capture);`
+    ],{type:'text/javascript'}));
+    try{await source.context.audioWorklet.addModule(url);}finally{URL.revokeObjectURL(url);}
+    const collector=new AudioWorkletNode(source.context,name,{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]}),mute=source.context.createGain();mute.gain.value=0;
+    const current=capture={source,collector,mute,blocks:[],mark:null};
+    collector.port.onmessage=({data})=>{if(current.blocks.length<4096)current.blocks.push(data);};
+    connect.call(source,collector);connect.call(collector,mute);connect.call(mute,source.context.destination);
+  }
+  function assertCapture(value,message){if(!value)throw Error(message);}
+  function finishCapture() {
+    const current=capture;assertCapture(current,'Capture missing');capture=null;
+    current.source.disconnect(current.collector);current.collector.disconnect();current.mute.disconnect();current.collector.port.close();
+    const blocks=current.blocks.sort((a,b)=>a.frame-b.frame),rate=current.source.context.sampleRate;
+    assertCapture(blocks.length>20&&current.mark!==null,'Stop capture incomplete');
+    const origin=blocks[0].frame,end=blocks.at(-1).frame+blocks.at(-1).left.length,left=new Float32Array(end-origin),right=new Float32Array(left.length);
+    let expected=origin;for(const block of blocks){assertCapture(block.frame===expected,'Capture render gap');left.set(block.left,block.frame-origin);right.set(block.right,block.frame-origin);expected+=block.left.length;}
+    let beforePeak=0,beforeJump=0,maxJump=0,tailPeak=0,lastNonzero=null;
+    const at=current.mark-origin;
+    for(let i=Math.max(1,at-Math.round(.04*rate));i<Math.min(left.length,at+Math.round(.12*rate));i++){
+      const peak=Math.max(Math.abs(left[i]),Math.abs(right[i]));
+      if(i<at-128){beforePeak=Math.max(beforePeak,peak);beforeJump=Math.max(beforeJump,Math.abs(left[i]-left[i-1]),Math.abs(right[i]-right[i-1]));}
+      if(i>=at-256&&i<at+Math.round(.04*rate))maxJump=Math.max(maxJump,Math.abs(left[i]-left[i-1]),Math.abs(right[i]-right[i-1]));
+      if(i>at+Math.round(.05*rate))tailPeak=Math.max(tailPeak,peak);
+      if(peak>1e-8)lastNonzero=origin+i;
+    }
+    return{sampleRate:rate,frames:left.length,blocks:blocks.length,markFrame:current.mark,beforePeak,beforeJump,maxJump,normalizedJump:maxJump/beforePeak,tailPeak,
+      lastNonzeroAfterStopMs:lastNonzero===null?null:1000*(lastNonzero-current.mark)/rate,physicalBranchMuted:current.mute.gain.value===0};
+  }
+  window.__synthCodeAudit={beginCapture,markStop(){assertCapture(capture,'No capture');capture.mark=Math.round(capture.source.context.currentTime*capture.source.context.sampleRate);},finishCapture,
+    read(){const rows=meters.map(({left,right,mute})=>({left:channel(left),right:channel(right),muted:mute.gain.value===0}));
       return rows.sort((a,b)=>(b.left.rms+b.right.rms)-(a.left.rms+a.right.rms))[0]??null;},
     drain(){return commands.splice(0);},muted:()=>meters.every(m=>m.mute.gain.value===0),meterCount:()=>meters.length};
 }
@@ -90,12 +126,43 @@ entries.push({frame:Math.round(seconds*sampleRate),register:4,value:Math.round(c
 liveLoop('pwm',async()=>{await pwm.scheduleWrites(entries);await sleep(1.1);await pwm.reset();});
 `;
 let loadCassette;
+async function stopSignalChecks(page,{baseline=false}={}) {
+  await chip(page,'fm');await page.locator('#presetSelect').selectOption('sine');await ready(page);
+  const probes=[{name:'FM E1',master:100,source:`const fm=await useSoundChip('ym2612');fm.noteOn(CH1,'E1');liveLoop('hold',async()=>{await sleep(1);});`},
+    {name:'FX DC output',master:100,source:`liveFx('dc',{process(input,output){for(const ch of output)ch.fill(.2);}});liveLoop('hold',async()=>{await sleep(1);});`},
+    {name:'FX DC output at 380% Master',master:380,source:`liveFx('dc',{process(input,output){for(const ch of output)ch.fill(.2);}});liveLoop('hold',async()=>{await sleep(1);});`}];
+  const results=[];
+  for(const probe of probes){
+    await range(page,'#masterVolumeRange',probe.master);await code(page,probe.source);await execute(page);await sounding(page);
+    await evaluate(page,()=>__synthCodeAudit.beginCapture());await pause(100);
+    await evaluate(page,()=>{__synthCodeAudit.markStop();document.getElementById('synthCodeStopButton').click();});
+    await pause(180);const signal=await evaluate(page,()=>__synthCodeAudit.finishCapture());await silence(page);
+    assert(signal.physicalBranchMuted&&signal.beforePeak>.05&&signal.tailPeak<1e-7,JSON.stringify({probe,signal}));
+    results.push({name:probe.name,...signal});
+    // A chip's own sample steps remain. Stop may add only the smooth ramp's
+    // per-sample slope, never an instantaneous signal-sized reset or FX cut.
+    if(!baseline)assert(signal.maxJump<=signal.beforeJump+2*signal.beforePeak/(signal.sampleRate*.008)+1e-5,
+      'Stop is a short continuous fade before physical cleanup: '+JSON.stringify({probe:probe.name,signal}));
+  }
+  await range(page,'#masterVolumeRange',100);
+  if(!baseline){
+    await code(page,KEEP_FM);await execute(page);await sounding(page);
+    await evaluate(page,()=>{document.getElementById('synthCodeStopButton').click();document.getElementById('synthCodeRunButton').click();});
+    await until(()=>page.locator('#synthCodeState').textContent().then(value=>/Running|Playing/.test(value)),'Rapid Stop / Run retires the old program');
+    await sounding(page);await pause(150);await sounding(page);await stop(page);
+  }
+  return results;
+}
 async function run(browser,name,origin){const {page,errors}=await open(browser,origin),steps=[],result={browser:name,steps};
   try{
+    if(config.checks!=='all'){
+      result.stopSignals=await stopSignalChecks(page,{baseline:config.checks==='baseline-stop'});assert.deepEqual(errors,[]);return result;
+    }
     assert.equal(await page.locator('#synthInputKeyboardTab').getAttribute('aria-selected'),'true');assert(await page.locator('#synthCodePanel').isHidden());
     await page.locator('#synthInputCodeTab').click();await page.locator('#synthCodeEditor').waitFor({state:'visible'});
     const starter=await page.locator('#synthCodeEditor').inputValue();
-    assert.match(starter,/const fm = await useSoundChip\("ym2612"\)/);assert.match(starter,/fm\.noteOn\(CH1, "C4"\)/);assert.doesNotMatch(starter,/\bplay\(/);
+    assert.match(starter,/const fm = await useSoundChip\("ym2612"\)/);assert.match(starter,/scale\("E1", "minorPentatonic", 3\)/);
+    assert.match(starter,/fm\.noteOn\(CH1, choose\(notes\)\)/);assert.match(starter,/sleep\(0\.1\)/);assert.match(starter,/beat\(0\.025\)/);assert.doesNotMatch(starter,/\bplay\(/);
     await execute(page);await sounding(page);await stop(page);steps.push('The newly seeded index.js plays through its explicitly acquired FM client');
     await code(page,LOOP_SOURCE);await until(()=>page.locator('#synthCodeEditorNote').textContent().then(v=>/Fallback|Plain text|could not load/i.test(v)),'Monaco failure leaves textarea fallback');
     assert.equal(await page.locator('#synthActiveFilePath').textContent(),'/index.js');
@@ -114,6 +181,25 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await page.locator('#synthCodeEditor').fill(fxSource(null));await execute(page,true);const restored=await reading(page);assert(Math.abs(restored.left.rms/dry.left.rms-1)<.08,'Removing effect restores one dry route');
     await page.locator('#synthCodeEditor').fill(`context.heldApply=(context.heldApply??0)+1;log('held-apply',context.heldApply);liveLoop('hold',async()=>{await sleep(1);});`);
     await execute(page,true);const heldApply=await sounding(page);assert(Math.abs(heldApply.left.rms/restored.left.rms-1)<.08,'Apply without another Note On keeps an existing held FM voice: '+JSON.stringify({restored,heldApply,commands:await evaluate(page,()=>__synthCodeAudit.drain())}));
+    const originalCode=await page.locator('#synthCodeEditor').inputValue();
+    await evaluate(page,()=>{window.__sameCodeEditor=document.getElementById('synthCodeEditor');});
+    await page.locator('#synthCodeExpandButton').click();assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'true');
+    assert(await page.locator('.synth-editor').isHidden());assert(await page.locator('#synthFilesPanel').isVisible());
+    assert.equal(await page.locator('#synthExpandedCodeSlot #synthCodeEditor').inputValue(),originalCode);
+    assert(await evaluate(page,()=>window.__sameCodeEditor===document.getElementById('synthCodeEditor')),'Expansion keeps the same editor node');
+    const fileBox=await page.locator('#synthFilesPanel').boundingBox(),codeBox=await page.locator('#synthExpandedCodeSlot').boundingBox();
+    assert(fileBox.x+fileBox.width<codeBox.x,'Expanded Code is next to Files');
+    const expandedSound=await sounding(page);assert(Math.abs(expandedSound.left.rms/heldApply.left.rms-1)<.08,'Expansion keeps held audio');
+    await fs.mkdir(config.screenshots,{recursive:true});
+    for(const width of [1240,390]){
+      await page.setViewportSize({width,height:1100});await page.locator('#synthCodeExpandButton').scrollIntoViewIfNeeded();await pause(120);
+      assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1),'Expanded layout fits viewport '+width);
+      await page.screenshot({path:path.join(config.screenshots,`${name}-synth-code-expanded-${width}.png`)});
+    }
+    await page.setViewportSize({width:1240,height:1100});await page.locator('#synthCodeExpandButton').click();
+    assert(await page.locator('.synth-editor').isVisible());assert.equal(await page.locator('#synthCodeExpandButton').getAttribute('aria-pressed'),'false');
+    assert(await evaluate(page,()=>window.__sameCodeEditor===document.getElementById('synthCodeEditor')));await sounding(page);
+    steps.push('Maximize / Restore keeps the same source, editor and live audio beside Files with desktop and mobile layouts');
     const upperTabs=[];
     for(const name of ['psg','pcm','fm']) {
       await chip(page,name);assert.equal(await page.locator('#synthInputCodeTab').getAttribute('aria-selected'),'true','Upper chip selection preserves Code input mode');
@@ -143,7 +229,10 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     assert.equal(await evaluate(page,()=>{try{__oldCodeHandle();return 'accepted';}catch(error){return error.name;}}),'AbortError');await silence(page);
     await code(page,`const fm=await useSoundChip('ym2612');fm.noteOn(0,4,644);await new Promise(resolve=>{globalThis.__finishCode=resolve;});fm.noteOn(0,4,700);`);await page.locator('#synthCodeRunButton').click();await until(()=>evaluate(page,()=>typeof __finishCode==='function'),'Pending Code promise');await sounding(page);await stop(page);await evaluate(page,()=>__finishCode());await pause(200);await silence(page);assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);
     await code(page,KEEP_FM);await execute(page);await sounding(page);assert(await page.locator('#eventRecordStartButton').isDisabled(),'Event recording disabled while Code owns chips');assert(await page.locator('#looperStartButton').isDisabled(),'Looper disabled while Code owns chips');
-    await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(v=>v==='true'),'Keyboard tab');await silence(page);
+    await page.locator('#synthCodeExpandButton').click();await page.locator('#synthInputKeyboardTab').click();await until(()=>page.locator('#synthInputKeyboardTab').getAttribute('aria-selected').then(v=>v==='true'),'Keyboard tab');await silence(page);
+    assert(await page.locator('.synth-editor').isVisible());assert(await page.locator('#synthExpandedCodeSlot').isHidden(),'Keyboard restores the original layout');
+    const keyboardKey=page.locator('#keyboard .key[data-key="a"]');await keyboardKey.scrollIntoViewIfNeeded();const keyBox=await keyboardKey.boundingBox();
+    await page.mouse.move(keyBox.x+keyBox.width/2,keyBox.y+keyBox.height*.8);await page.mouse.down();await sounding(page);await page.mouse.up();await silence(page);
     await code(page,KEEP_FM);await execute(page);await sounding(page);
     await page.locator('#tfiFile').setInputFiles({name:'Authored Code reference.vgm',mimeType:'application/octet-stream',buffer:authoredVgm()});await ready(page);await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'VGM starts');assert.match(await page.locator('#synthCodeState').textContent(),/Stopped/);await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');await silence(page);
     steps.push('Stopped handles and delayed promises cannot restart audio; Keyboard / VGM take ownership and recording cannot collide with Code');
@@ -153,7 +242,10 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
     await page.locator('#synthCodeEditor').fill(moduleSource);await execute(page);await sounding(page);assert.match(await page.locator('#synthCodeLog').textContent(),/module-note D4 true/);await stop(page);
     await page.locator('#synthCodeEditor').fill(moduleSource+'\n// recovery-marker\n');await page.locator('#synthCodeEditor').press(process.platform==='darwin'?'Meta+s':'Control+s');await pause(650);await page.reload();await ready(page);await page.locator('#synthCodeEditor').waitFor({state:'visible'});assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'),'Code draft and path recover without automatic execution');assert.match(await page.locator('#synthCodeState').textContent(),/Idle|Stopped/);
     const archive=await download(page,'#exportCassetteButton'),contents=await loadCassette(archive.bytes),bytes=p=>contents.files.get(p.replace(/^\//,''));assert(Buffer.from(bytes('/index.js')).toString().includes('recovery-marker'));assert(Buffer.from(bytes('/notes.js')).toString().includes("'D4'"));
-    await page.locator('#cassetteImportInput').setInputFiles({name:'Code roundtrip.cassette.zip',mimeType:'application/zip',buffer:archive.bytes});await ready(page);await choose(page,'/index.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'),'Cassette import keeps its index.js instead of seeding the starter');
+    await code(page,KEEP_FM);await execute(page);await sounding(page);
+    await page.locator('#cassetteImportInput').setInputFiles({name:'Code roundtrip.cassette.zip',mimeType:'application/zip',buffer:archive.bytes});await ready(page);await silence(page);
+    assert.equal(await page.locator('#synthInputKeyboardTab').getAttribute('aria-selected'),'true','Import retires Code before returning Keyboard ownership');
+    await choose(page,'/index.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'),'Cassette import keeps its index.js instead of seeding the starter');
     await page.locator('#synthFileRenameButton').click();await page.locator('#synthFileNameInput').fill('main.js');await page.locator('[data-file-name-confirm]').click();await ready(page);assert.equal(await page.locator('#synthActiveFilePath').textContent(),'/main.js');assert((await page.locator('#synthCodeEditor').inputValue()).includes('recovery-marker'));
     steps.push('Files JS import / selection, dynamic modules / file(), Cmd/Ctrl+S, local draft recovery, Cassette round trip and code rename preserve independent text and tone state');
     await fs.mkdir(config.screenshots,{recursive:true});

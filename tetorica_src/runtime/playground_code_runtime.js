@@ -23,19 +23,20 @@ const stopped=()=>new DOMException('Run stopped','AbortError');
  */
 export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=()=>null,fx={},
   readFile=()=>{throw Error('Virtual files are unavailable');},prepareSource=source=>source,
-  onLog=()=>{},onState=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
+  onLog=()=>{},onState=()=>{},beforeStopSoundChips=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
   setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id),createTaskChannel,
 }={}) {
-  for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,stopSoundChips,setTimer,clearTimer]) {
+  for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {
     if(typeof fn!=='function')throw TypeError('Code runtime needs host callbacks');
   }
   const runtime={bpm:120,clockStartTime:null,sampleClockStartTime:null,
     liveLoops:new Map(),livePrepared:new Map(),liveCleanupHooks:new Map(),context:{}};
-  let epoch=0,evaluation=0,currentLoop=null,active=false,cleanupMode=false,cleanupTail=Promise.resolve();
+  let epoch=0,evaluation=0,currentLoop=null,active=false,cleanupMode=false,cleanupTail=Promise.resolve(),pendingStops=0;
   let sessionAbort=new AbortController(),latestEvaluation=null,state='idle',status='Ready.',path='/index.js',failure=null;
   const clients=new Map(),activeNotes=new Set(),preparedFx=new Set(),loopScopes=new Map(),evaluations=new Set(),ownedNotes=new Map();
   let fxLifecycle=createLiveFxLifecycle(),activeFx=new Map();
-  const getState=()=>({state,playback:state,running:active,busy:state==='preparing',status,path,bpm:runtime.bpm,
+  const retainedCleanupNames=new Set();
+  const getState=()=>({state,playback:state,running:active,stopping:pendingStops>0,busy:state==='preparing'||pendingStops>0,status,path,bpm:runtime.bpm,
     loopNames:live.getActiveLoopNames(),...(failure?{error:failure}:{} )});
   const notify=()=>onState(getState());
   function report(message){status=String(message);notify();}
@@ -65,8 +66,16 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=
     getCurrentLoopContext:()=>currentLoop,setCurrentLoopContext:loop=>{currentLoop=loop;},cancelWaits:cancelLoop,
     finishTasks:loop=>tasks.finish(loop),releaseTasks:loop=>{
       tasks.release(loop);const scope=loopScopes.get(loop);scope?.detach();loopScopes.delete(loop);
-    },logLine:onLog,setStatus:report,
-    executeCallback:fn=>runUser(loopScope(currentLoop),fn)});
+    },logLine:onLog,setStatus:report,getKeyboardNames:()=>[...retainedCleanupNames],
+    executeCallback:fn=>{
+      if(!cleanupMode)return runUser(loopScope(currentLoop),fn);
+      // A cleanup can release its resources synchronously after the host fade,
+      // but an arbitrary user promise must not hold the retirement fence open.
+      const controller=new AbortController();controller.abort(stopped());
+      return runUser({epoch,controller},fn).catch(error=>{
+        if(error?.name!=='AbortError'||error.message!=='Run stopped')throw error;
+      });
+    }});
 
   function scopeFor(base) {
     if(base.loop||base.controller?.signal.aborted)return base;
@@ -146,25 +155,37 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=
     cache.set(value,proxy);wrappedValues.set(proxy,{value,scope});return proxy;
   }
   function cleanup() {
+    // Invalidate user work immediately. Physical note releases and effects
+    // belong after the host's output fade, including loop-finally cleanups.
+    epoch++;evaluation++;active=false;currentLoop=null;pendingStops++;
+    for(const definition of runtime.liveCleanupHooks.values())for(const name of definition.names)retainedCleanupNames.add(name);
+    for(const loop of runtime.liveLoops.values()){loop.stopped=true;loop.runToken++;}
     sessionAbort.abort(stopped());latestEvaluation?.controller.abort(stopped());
-    epoch++;evaluation++;active=false;currentLoop=null;
+    clock.cancelWaits();tasks.clear();activeNotes.clear();clients.clear();
+    runtime.context={};runtime.clockStartTime=runtime.sampleClockStartTime=null;
+    const retiringFx=fxLifecycle,retiringEvaluations=[...evaluations];
     const cleanupError=error=>{try{onLog(`[cleanup] ${error?.message??String(error)}`);}catch{}};
     const attempt=fn=>{try{fn();}catch(error){cleanupError(error);}};
-    attempt(()=>live.stopAllLoops());clock.cancelWaits();tasks.clear();activeNotes.clear();clients.clear();ownedNotes.clear();
-    cleanupMode=true;
-    try {
-      attempt(()=>live.flushLiveCleanups(new Set()));attempt(()=>live.clearPrepared());attempt(()=>fxLifecycle.clear());
-      for(const item of evaluations)for(const definition of item.liveFxDefinitions.values())attempt(()=>definition.remove());
-    } finally {cleanupMode=false;}
-    // A user-created prepared resource or a failed effect endpoint may throw
-    // during disposal. Retire their bookkeeping anyway and always reach the
-    // host's physical stop; the next Run must not reuse those stale resources.
-    fxLifecycle=createLiveFxLifecycle();activeFx=new Map();preparedFx.clear();runtime.livePrepared.clear();
-    runtime.context={};runtime.clockStartTime=runtime.sampleClockStartTime=null;
     cleanupTail=cleanupTail.catch(()=>{}).then(async()=>{
-      try{await live.settled();}catch(error){cleanupError(error);}
-      await stopSoundChips();
+      try {
+        try{await beforeStopSoundChips();}catch(error){cleanupError(error);}
+        cleanupMode=true;
+        try {
+          attempt(()=>live.stopAllLoops());attempt(()=>releaseOwned(()=>true));ownedNotes.clear();
+          attempt(()=>live.flushLiveCleanups(new Set()));attempt(()=>live.clearPrepared());attempt(()=>retiringFx.clear());
+          for(const item of retiringEvaluations)for(const definition of item.liveFxDefinitions?.values()??[])attempt(()=>definition.remove());
+        } finally {cleanupMode=false;}
+        // A user-created resource or failed effect endpoint may throw during
+        // disposal. Retire bookkeeping anyway and always reach physical stop.
+        fxLifecycle=createLiveFxLifecycle();activeFx=new Map();preparedFx.clear();runtime.livePrepared.clear();
+        clock.cancelWaits();tasks.clear();
+        try{await live.settled();}catch(error){cleanupError(error);}
+        await stopSoundChips();
+      } finally {
+        pendingStops--;if(!pendingStops)retainedCleanupNames.clear();notify();
+      }
     });
+    notify();
     return cleanupTail;
   }
   function globalsFor(scope) {

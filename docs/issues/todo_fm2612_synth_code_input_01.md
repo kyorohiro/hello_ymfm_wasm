@@ -41,6 +41,29 @@
 
 ## 次回以降
 
+### 追加：初期フレーズ・Stopノイズ・Code拡大
+
+ユーザー指定：初期`index.js`はE1 minorPentatonicを3オクターブからchooseし、noteOn→sleep(0.1)→noteOff→beat(0.025)のloopにする。Stopを押す際のノイズを抑える。Code右端の拡大ボタンで、Filesの横へCode editorを広げられるようにする。
+
+- [x] 指定された初期フレーズをCodeの新規index.jsとガイドへ反映する。既存ユーザーコードを上書きしない。
+- [x] Stopの信号不連続を実WASMの無音配列で再現し、全Code出力の短いsoftware fade後に音源／FXを停止・復元する。Applyや次のRun、取消、通常鍵盤へ影響させない。
+- [x] Code右端の拡大／復元ボタンを追加し、同じeditorをFilesの隣へ移す。ソース・context・再生を維持し、Keyboard切替時は通常配置へ戻す。小画面でも横にはみ出さない。
+- [x] 関連テスト、無音Chromium／WebKit、配布ZIPと再開記録を更新する。実聴・commit／push／公開はしない。
+
+実装：初期コードをユーザー指定のE1 minorPentatonic／chooseフレーズへ変更。`#synthCodeExpandButton`で同じ`#synthInputSection`をFiles横の`#synthExpandedCodeSlot`へ移し、復元時は元の位置へ戻す。画面幅が狭い場合は縦配置。拡大で音・context・Monaco instance／model／cursorを作り直さず、Keyboardへ戻る際は停止して通常配置へ復元する。Filesの表示切替は共通`setVisible()`を使い、拡大状態はreloadへ永続化しない。
+
+停止対策：`synth_code_output.js`の専用gainをFX／Masterの後へ追加。軽量runtimeはepochと待機を即時無効化し、`beforeStopSoundChips()`による8 msのaudio-clock fadeを待ってからNote Off／FX破棄／chip resetを行う。`stopping`中もCodeの音量経路を維持する。再開は1 render quantumの待機と4 msの立ち上げで旧bufferを露出しにくくした。Applyは出力gateを動かさず、古いStopのcallbackが新しいRunをmuteしない。停止したaudio clockは無期限に待たずgateを閉じる。
+
+VGM／出力切替のRecorder整理もCodeのfade完了後に実行し、Cassette／UndoはStopをawaitしてからKeyboardへ戻し音色／projectを適用する。Cassetteは一時projectで先に検証し、失敗時は現在のコード・音色を保つ。遅い返信が新しいCode選択や破棄後のeditorを上書きしないよう世代を検証する。すでにKeyboardの場合のworkspace置換でも、停止後にgateを開いて無音が残らないようにした。
+
+検証：全Synth・軽量host・共有Monaco／宣言／仮想FilesのNodeテスト533成功。修正前の無音計測ではFM E1のStop時最大stepが約0.0404、FXの一定値0.2出力ではstepも0.2だった。修正後は音源本来の隣接sampleのstep＋fadeの傾き以内となり、一定値0.2のstepは約0.000469、380% Masterでは0.76→0.001784へ減少。Chromium／WebKitのどちらも約8 ms（render量子による差あり）で無音化し、連続Stop→Runでも再開した音を古いcallbackが消さない。
+
+最終stageは`release/itch_synth_code-expand-stop-final-20261110`。`scripts/check_synth_code_browser.cjs`は通常モードと`--checks=stop`、`scripts/check_synth_code_monaco_browser.cjs`は実Monacoで、いずれも`--entry=/index.html --engines=chromium,webkit`に成功。新しいindex.jsの演奏、拡大・復元、幅1240／390、Keyboardの実音声配列、演奏中Cassette置換、型／補完／定義参照も確認した。詳細は`/private/tmp/fm2612-code-expand-stop-{browser,monaco}-final-20261110.json`、`/private/tmp/fm2612-code-stop-fade-final-20261110.json`、Nodeログ`/private/tmp/fm2612-code-expand-stop-tests-final-20261110.log`。
+
+従来の`scripts/check_synth_pcm_browser.cjs`も同じ最終stageのChromium／WebKitで成功。PCM鍵盤・離鍵・WAV／RAM／Loop編集・Files／Cassette・FM／PSG切替・endpoint交換の回帰を確認した。receipt：`/private/tmp/fm2612-code-expand-stop-pcm-final-20261110.json`。
+
+通常ZIPを再生成し、検証用ZIPと全内容が一致。各browserが配信したassetのSHA-256も照合した。`release/hello_ymfm_wasm_dev_itch_synth.zip`は1,050,327 bytes／277 files、SHA-256：`c7529d7b9badc9aaa11269874d4f00378ccce9259daea9a0855dfad075774970`。共通runtime source／served mirror一致、差分チェック成功。全speaker接続はアプリ実行前にgain 0へ迂回し、実聴・commit／push／公開はしていない。
+
 ### 追加：音源オブジェクトを明示するCode API
 
 ユーザー方針：多音源を扱うため、初期コードは`const fm = await useSoundChip("ym2612")`で取得した音源の`noteOn`／`noteOff`を使う。暗黙にFMへ出力する`play()`はSynthのCode実行・補完から外す。通常PlaygroundのAPIは変更せず、既存Filesのユーザーコードも自動書き換えしない。

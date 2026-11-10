@@ -274,6 +274,25 @@ async function run(browser, name, origin) {
       throw error;
     }
     assert.deepEqual(result.good, {syntax: [], semantic: []}, 'Four-chip code, context, livePrepare and liveFx type-check');
+    await page.evaluate(() => {
+      const host=document.getElementById('synthCodeEditorHost');
+      const editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()));
+      editor.setPosition({lineNumber:5,column:3});window.__expandedMonaco={editor,model:editor.getModel()};
+    });
+    await page.locator('#synthCodeExpandButton').click();
+    assert(await page.locator('#synthExpandedCodeSlot #synthCodeEditorHost').isVisible());
+    assert(await page.locator('#synthFilesPanel').isVisible());
+    for(const width of [1240,390]){
+      await page.setViewportSize({width,height:1100});
+      assert(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth+1),'Expanded Monaco fits '+width);
+    }
+    await page.setViewportSize({width:1240,height:1100});await page.locator('#synthCodeExpandButton').click();
+    assert(await page.evaluate(() => {
+      const host=document.getElementById('synthCodeEditorHost'),editor=monaco.editor.getEditors().find(item=>host.contains(item.getDomNode()));
+      return editor===__expandedMonaco.editor&&editor.getModel()===__expandedMonaco.model&&editor.getPosition().lineNumber===5;
+    }),'Maximize / Restore keeps the real Monaco instance, model and cursor');
+    assert.equal(await page.evaluate(()=>__expandedMonaco.editor.getValue()),GOOD_SOURCE);
+    result.steps.push('Maximize / Restore preserves the actual Monaco instance, model, text and cursor beside Files on both viewport widths');
     await setSource(page, BAD_SOURCE);
     result.bad = await diagnostics(page);
     assert.deepEqual(result.bad.syntax, [], 'Negative probes are syntactically valid JavaScript');

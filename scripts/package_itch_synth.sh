@@ -20,6 +20,7 @@ synth.js
 synth_code_controls.js
 synth_code_project.js
 synth_code_audio.js
+synth_code_output.js
 synth_code_declarations.js
 synth_controls.js
 synth_envelope.js

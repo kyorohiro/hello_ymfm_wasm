@@ -4,9 +4,11 @@ Open **Code** below the instrument editor. The first visit creates `/index.js` o
 
 - **Run** starts a fresh session.
 - **Apply** updates the source while retaining `context`, prepared resources and named live loops/effects.
-- **Stop** cancels loops, pending waits, effects and notes, and clears the live session. Keyboard mode also stops Code.
+- **Stop** cancels loops and pending waits immediately, fades Code output over 8 ms, then releases notes and effects and clears the live session. This is a software output fade. Keyboard mode also stops Code.
 
 `context` is live memory, not Cassette data. Save source and local data files to keep a performance. Monaco loads when Code is opened; the plain-text editor and execution remain available if the editor service is unavailable.
+
+Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout and stops Code. Maximized layout is temporary and is not restored after a reload.
 
 ## Start with the current instrument
 
@@ -15,10 +17,11 @@ const fm = await useSoundChip("ym2612");
 setBpm(120);
 
 liveLoop("melody", async () => {
-  fm.noteOn(CH1, "C4");
-  await sleep(0.2);
+  const notes = scale("E1", "minorPentatonic", 3);
+  fm.noteOn(CH1, choose(notes));
+  await sleep(0.1);
   fm.noteOff(CH1);
-  await beat(0.5);
+  await beat(0.025);
 });
 ```
 
