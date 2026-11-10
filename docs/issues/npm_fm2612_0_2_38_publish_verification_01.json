@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "package": "tetorica-fm2612",
+  "version": "0.2.38",
+  "published": true,
+  "verifiedAt": "2026-11-10T16:27:36.784Z",
+  "sourceCommit": "de098e0168ea666616f61514f0991d682ee55055",
+  "registry": "https://registry.npmjs.org/",
+  "packagePage": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.38",
+  "distTags": {
+    "latest": "0.2.38"
+  },
+  "tarball": {
+    "url": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.38.tgz",
+    "bytes": 2806975,
+    "sha256": "fea7788579576285070dc79319e008e12d1345efa3e5e7c568efedd4bb3c4abd",
+    "integrity": "sha512-gqnkNfm6Fy2asVKlhLsbiCtRnnWK8OxwO0OZiqlU9/zeGf30+seaiH9YqIc+dYFlBL4w5ci3ak7O4VdzrJHS3g==",
+    "shasum": "28f4bb75350228bdf37f61537df9401d2d542cc9"
+  },
+  "verifiedCandidateBytesIdentical": true,
+  "consumer": {
+    "passed": true,
+    "installedFrom": "registry-downloaded exact-version tarball",
+    "checks": [
+      "Eight real RF5C164 WASM voices, root/octave, held retune, hard noteOff and entry identities",
+      "Installed declarations with NodeNext/Bundler and browser without Node ambient types"
+    ],
+    "physicalAudio": false
+  },
+  "priorVerification": "docs/issues/rf5c164_shared_note_helpers_verification_01.json",
+  "scratch": "/private/tmp/fm2612-published-0.2.38-bQXd1g"
+}
