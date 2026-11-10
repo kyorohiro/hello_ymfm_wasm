@@ -1,4 +1,4 @@
-import {normalizePcmPreset,normalizePcmSettings,PCM_MAX_FRAMES,PCM_SETTINGS_DEFAULTS} from './synth_pcm.js?v=pcm-event-rec-1';
+import {normalizePcmPreset,normalizePcmSettings,PCM_MAX_FRAMES,PCM_SETTINGS_DEFAULTS} from './synth_pcm.js?v=pcm-live-end-1';
 
 export const PCM_RECORDING_FORMAT='tetorica-rf5c164-recording-v1';
 export const PCM_RECORDING_MAX_SECONDS=86400;
@@ -140,7 +140,6 @@ function tracker(initialPreset) {
       if(command.type==='stop')held.clear();
       else if(command.type==='setPreset'){preset=command.preset;held.clear();}
       else if(command.type==='setSettings') {
-        if(command.settings.loopEnd!==preset.settings.loopEnd)held.clear();
         preset={...preset,settings:command.settings};
       } else if(command.type==='noteOn')held.add(command.channel);
       else if(command.type==='noteOff')held.delete(command.channel);

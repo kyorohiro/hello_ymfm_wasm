@@ -87,8 +87,10 @@ test('RAM install coalesces one revision, never starts a note, and rejects stale
   assert.equal(calls.length,before);assert.deepEqual(voice.getPreset(),preset);
   voice.setSettings({volume:96,panLeft:0,panRight:15,rootNote:72,loopStart:16});
   assert.equal(calls.filter(call=>call[0]==='on').length,8,'live register edits never retrigger');
-  voice.setSettings({loopEnd:128});assert.equal(voice.isReady(),false);assert.deepEqual(voice.getState().heldChannels,[]);
+  const beforeEnd=calls.length;
+  voice.setSettings({loopEnd:128});assert.equal(voice.isReady(),false);assert.deepEqual(voice.getState().heldChannels,[0,1,2,3,4,5,6,7]);
   const changed=voice.install();await Promise.resolve();pending.at(-1)();assert(await changed);
+  assert(!calls.slice(beforeEnd).some(call=>['on','off'].includes(call[0])),'End RAM updates retain active voices without retrigger');
   available=null;assert.equal(voice.isReady(),false);assert.equal(voice.noteOn(0,4,644),null);
 });
 
@@ -113,6 +115,72 @@ test('PCM semantic hooks report accepted operations only, with detached state an
   commands.at(-1).preset.sample.name='Changed';assert.equal(voice.getPreset().sample.name,'Triangle');
   voice.stop();assert.deepEqual(commands.at(-1),{type:'stop'});
   assert.throws(()=>createSynthPcmVoice({getPcm:()=>pcm,onCommand:1}));
+});
+
+test('live End RAM transfers retain held notes across delayed revisions, release, stop and sample replacement',async()=>{
+  const calls=[],requests=[];
+  const pcm={keyOff:ch=>calls.push(['off',ch]),keyOn:ch=>calls.push(['on',ch]),
+    loadMemory:(bytes,address)=>{calls.push(['load',bytes.slice(),address]);return new Promise(resolve=>requests.push(resolve));},
+    setChannel:(...args)=>calls.push(['channel',...args]),setPitch:(...args)=>calls.push(['pitch',...args])};
+  const voice=createSynthPcmVoice({getPcm:()=>pcm});
+  const initial=voice.install();await Promise.resolve();requests.shift()();await initial;
+  voice.noteOn(0,4,644);voice.noteOn(7,4,700);const begin=calls.length;
+  voice.setSettings({loopEnd:128});const first=voice.install();assert.equal(first,voice.install());await Promise.resolve();
+  assert.deepEqual(voice.getState().heldChannels,[0,7]);assert.equal(voice.isReady(),false);
+  assert(voice.setFrequency(7,4,800),'pitch still updates during an End transfer');
+  voice.noteOff(0);assert.deepEqual(voice.getState().heldChannels,[7]);
+  voice.setSettings({loopEnd:192,loopStart:32});const last=voice.install();await Promise.resolve();
+  requests[0]();assert.equal(await first,false);assert.equal(voice.isReady(),false);
+  requests[1]();assert.equal(await last,true);assert.deepEqual(voice.getState().heldChannels,[7]);
+  const changes=calls.slice(begin);
+  assert.deepEqual(changes.filter(call=>['off','on'].includes(call[0])),[['off',0]],'only the real key release changes the active mask');
+  const banks=changes.filter(call=>call[0]==='load').map(call=>call[1]);
+  assert(banks[0].subarray(128).every(value=>value===255));assert.equal(banks[1][192],255);
+  assert.notEqual(banks[1][128],255,'growing End restores the original source bytes');
+  voice.setSettings({loopEnd:224});const stopping=voice.install();await Promise.resolve();
+  voice.stop();const stoppedCalls=calls.length;requests[2]();assert(await stopping);
+  assert.deepEqual(voice.getState().heldChannels,[]);assert.equal(calls.length,stoppedCalls,'late ACK cannot restart a stopped voice');
+  voice.noteOn(1,4,644);voice.setSettings({loopEnd:200});const stale=voice.install();await Promise.resolve();
+  voice.setPreset(createPcmBuiltinPreset('triangle'));const changed=voice.install();await Promise.resolve();
+  requests[3]();assert.equal(await stale,false);assert.equal(voice.isReady(),false);assert.deepEqual(voice.getState().heldChannels,[]);
+  requests[4]();assert(await changed);assert.deepEqual(voice.getState().heldChannels,[]);
+});
+
+test('real WASM End shrink and grow match direct RAM edits without resetting eight playback cursors',async()=>{
+  const host=await native(),reference=await native();
+  try {
+    for(const instance of [host,reference]) {
+      instance.voice.setSettings({volume:32});
+      for(let channel=0;channel<8;channel++)instance.voice.noteOn(channel,4,400+channel*37);
+      instance.chip.generateStereo(417);
+    }
+    for(const patch of [{loopStart:32,loopEnd:160},{loopEnd:256},{loopStart:0,loopEnd:96},{loopStart:16}]) {
+      host.voice.setSettings(patch);await host.voice.install();
+      const preset=host.voice.getPreset();
+      if(patch.loopEnd!==undefined)reference.synth.loadMemory(buildPcmMemory(preset),0);
+      for(let channel=0;channel<8;channel++)reference.synth.setChannel(channel,{loopStart:preset.settings.loopStart});
+      const actual=host.chip.generateStereo(1024),expected=reference.chip.generateStereo(1024);
+      assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);
+      assert(rms(actual.left)>.01);assert.equal(host.synth.channelMask,0,'End never masks off or retriggers a channel');
+      assert.deepEqual(host.voice.getState().heldChannels,[0,1,2,3,4,5,6,7]);
+    }
+    host.voice.stop();host.chip.generateStereo(128);assert(silence(host.chip.generateStereo(1024).left));
+  } finally {host.dispose();reference.dispose();}
+});
+
+test('real WASM live End keeps one-shot marker silence and can expose later audio while a key stays held',async()=>{
+  const host=await native(documentFor(new Uint8Array(256).fill(254),{loopEnabled:false,loopEnd:128}));
+  try {
+    host.voice.noteOn(2,4,644);host.chip.generateStereo(2048);
+    assert(silence(host.chip.generateStereo(2048).left));
+    host.voice.setSettings({loopEnd:256});await host.voice.install();
+    assert.equal(host.synth.channelMask,255^(1<<2));assert.deepEqual(host.voice.getState().heldChannels,[2]);
+    assert(host.chip.generateStereo(512).left.some(value=>value>0),'RAM expansion exposes later bytes at the parked hardware cursor');
+    host.chip.generateStereo(1024);assert(silence(host.chip.generateStereo(1024).left));
+    host.voice.setSettings({loopEnd:64});await host.voice.install();host.chip.generateStereo(128);
+    assert(silence(host.chip.generateStereo(1024).left),'shrinking a completed one-shot cannot invent more source data');
+    assert(host.voice.noteOff(2));assert.equal(host.synth.channelMask,255);
+  } finally {host.dispose();}
 });
 
 test('real WASM default sample tunes around C4, live volume/pan/root changes and all eight physical channels stop',async()=>{

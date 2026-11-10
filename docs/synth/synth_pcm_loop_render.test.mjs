@@ -70,6 +70,17 @@ test('raw layer gain, eight independent channels and end flushing contain no Mas
   assert.notDeepEqual(first.right,second.right,'each source sample is rendered on an independent chip');
 });
 
+test('offline Looper layer keeps a held voice sounding across recorded End shrink and grow',async()=>{
+  const recording=doc([on(0,7),{time:.035,type:'setSettings',settings:{...sine.settings,loopEnd:64}},
+    {time:.08,type:'setSettings',settings:{...sine.settings,loopStart:16,loopEnd:224}},
+    {time:.13,type:'setSettings',settings:{...sine.settings,loopStart:32,loopEnd:128}},off(.18,7)],.2);
+  const actual=await renderSynthPcmLoop(recording,options),expected=await reference(recording,71);
+  assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);
+  for(const time of [.035,.08,.13]){const at=Math.round(time*RATE)+8;assert(rms(actual.left.subarray(at,at+480))>.01);}
+  assert(actual.left.subarray(Math.round(.185*RATE)).every(value=>value===0));
+  assert.equal(actual.left.length,9648,'End edits do not add extra render padding');
+});
+
 test('one-shot maximum step remains silent after each short source and can be retriggered inside a layer',async()=>{
   const preset=createPcmPreset({sample:{name:'One frame',sampleRate:48000,encoding:PCM_ENCODING,data:btoa(String.fromCharCode(254))},settings:{rootNote:0,loopEnabled:false}});
   const recording=doc([{...on(0,7),block:7,fnum:2047},{...on(.04,7),block:7,fnum:2047},off(.08,7)],.1,preset);

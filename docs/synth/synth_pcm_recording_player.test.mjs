@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import factory from '../generated/rf5c164_wasm.js';
 import {Rf5c164} from '../js/rf5c164.js';
 import {RF5C164Synth,RF5C164DirectTransport} from '../js/rf5c164synth.js';
-import {createPcmBuiltinPreset,createSynthPcmVoice,createPcmPreset,PCM_ENCODING} from './synth_pcm.js';
+import {createPcmBuiltinPreset,createSynthPcmVoice,createPcmPreset,buildPcmMemory,PCM_ENCODING,PCM_NATIVE_RATE} from './synth_pcm.js';
 import {createSynthPcmRecordingPlayer,PCM_RECORDING_MAX_COMPILED_BYTES} from './synth_pcm_recording_player.js';
 import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js';
 import {Worker} from 'node:worker_threads';
@@ -50,6 +50,33 @@ async function manual(value,frames) {
   } finally{h.dispose();}
 }
 
+// Independent native reference: update marker RAM and loop registers directly,
+// without using the editor voice or the recording player's settings logic.
+async function manualMemoryEdits(doc,frames) {
+  const h=await native(),left=new Float32Array(frames),right=new Float32Array(frames),held=new Map();
+  let current=structuredClone(doc.initialState.preset),cursor=0;
+  const step=note=>Math.max(1,Math.min(65535,Math.round(current.sample.sampleRate/PCM_NATIVE_RATE*2048*
+    (note.fnum*doc.initialState.pitchClock*2**(note.block-1)/(144*2**20))/(440*2**((current.settings.rootNote-69)/12)))));
+  const channelSettings=note=>({volume:current.settings.volume,pan:{left:current.settings.panLeft,right:current.settings.panRight},
+    loopStart:current.settings.loopEnabled?current.settings.loopStart:current.settings.loopEnd+1,step:step(note)});
+  try {
+    h.pcm.reset();h.pcm.loadMemory(buildPcmMemory(current),0);
+    for(const command of doc.commands) {
+      const at=Math.round(command.time*RATE),count=at-cursor;
+      if(count){const output=h.chip.generateStereo(count);left.set(output.left,cursor);right.set(output.right,cursor);cursor=at;}
+      if(command.type==='setSettings') {
+        current={...current,settings:command.settings};h.pcm.loadMemory(buildPcmMemory(current),0);
+        for(const [channel,note]of held)h.pcm.setChannel(channel,channelSettings(note));
+      } else if(command.type==='noteOn') {
+        h.pcm.setChannel(command.channel,{start:0,...channelSettings(command)});h.pcm.keyOn(command.channel);held.set(command.channel,command);
+      } else if(command.type==='noteOff') {h.pcm.keyOff(command.channel);held.delete(command.channel);}
+      else throw new Error('Unexpected direct marker-edit reference command');
+    }
+    if(cursor<frames){const output=h.chip.generateStereo(frames-cursor);left.set(output.left,cursor);right.set(output.right,cursor);}
+    return {left,right};
+  } finally {h.dispose();}
+}
+
 test('native sample-clock PCM matches manually applied editor operations across event and render boundaries',async()=>{
   const a=await native(),b=await native();
   try {
@@ -79,6 +106,39 @@ test('eight physical channels, retrigger and stops preserve actual native output
     const actual=h.generate(5000);assert.deepEqual(actual,expected);assert(rms(actual.left.subarray(0,1000))>.1);
     assert(actual.left.subarray(3900).every(value=>value===0));assert.deepEqual(h.ended,[1]);
   }finally{h.dispose();}
+});
+
+test('eight held voices preserve native playback positions through Loop End shrink and grow without retriggering',async()=>{
+  const h=await native(),other=await native();
+  try {
+    const edits=[[.01273,64,0],[.0337,224,16],[.05,128,32],[.07,256,0]];
+    const doc=recording([...Array.from({length:8},(_,channel)=>note(0,channel)),
+      ...edits.map(([time,loopEnd,loopStart])=>({time,type:'setSettings',settings:{...preset.settings,loopEnd,loopStart}})),
+      ...Array.from({length:8},(_,channel)=>off(.09,channel))],.11);
+    const prepared=prepareSynthPcmRecording(doc,{sampleRate:RATE});
+    h.player.play(prepared,{session:1});other.player.play(prepared,{session:1});
+    const ons=[],offs=[],keyOn=h.pcm.keyOn.bind(h.pcm),keyOff=h.pcm.keyOff.bind(h.pcm);
+    h.pcm.keyOn=channel=>{ons.push(channel);return keyOn(channel);};h.pcm.keyOff=channel=>{offs.push(channel);return keyOff(channel);};
+    const actual=h.generate(4800,128),expected=await manualMemoryEdits(doc,4800);
+    assert.deepEqual(actual,expected);assert.deepEqual(actual,other.generate(4800,71));
+    assert.deepEqual(ons,[0,1,2,3,4,5,6,7]);assert.deepEqual(offs,[0,1,2,3,4,5,6,7]);
+    for(const [time]of edits){const start=Math.round(time*RATE)+8;assert(rms(actual.left.subarray(start,start+240))>.02);}
+    assert.deepEqual(h.player.snapshot().heldChannels,[]);assert(actual.left.subarray(4400).every(value=>value===0));
+  } finally {h.dispose();other.dispose();}
+});
+
+test('held one-shot End edits match marker RAM behavior including expansion after the old silent end',async()=>{
+  const h=await native();
+  try {
+    const oneShot=createPcmBuiltinPreset('sine');oneShot.settings={...oneShot.settings,loopEnabled:false,loopEnd:64};
+    const doc=recording([note(0,7),{time:.02,type:'setSettings',settings:{...oneShot.settings,loopEnd:224}},
+      {time:.04,type:'setSettings',settings:{...oneShot.settings,loopEnd:32}},off(.06,7)],.08,oneShot);
+    h.player.play(prepareSynthPcmRecording(doc,{sampleRate:RATE}),{session:1});
+    const actual=h.generate(3840,71),expected=await manualMemoryEdits(doc,3840);
+    assert.deepEqual(actual,expected);assert(actual.left.subarray(500,950).every(value=>value===0));
+    assert(rms(actual.left.subarray(970,1020))>.01,'growing End restores sample bytes under the parked hardware cursor');
+    assert(actual.left.subarray(1500).every(value=>value===0));assert.deepEqual(h.player.snapshot().heldChannels,[]);
+  } finally {h.dispose();}
 });
 
 test('loop cycles reload their initial RAM and phase, and newer stops defeat stale plays',async()=>{
@@ -121,17 +181,19 @@ test('one-shot maximum-step samples finish silently while a key remains held, an
   }finally{h.dispose();}
 });
 
-test('Use current sound retains implicit note stops at sample and Loop End edits',async()=>{
+test('Use current sound retains sample-replacement stops and ignores Loop End edits without stopping notes',async()=>{
   const h=await native(),other=await native();
   try {
     const current=createPcmBuiltinPreset('square'),next=createPcmBuiltinPreset('saw');
     const doc=recording([note(0),{time:.02,type:'setPreset',preset:next},note(.04,7),
       {time:.06,type:'setSettings',settings:{...next.settings,loopEnd:128}},note(.075,3),off(.09,3)],.1);
-    const reference=recording([note(0),{time:.02,type:'stop'},note(.04,7),{time:.06,type:'stop'},note(.075,3),off(.09,3)],.1,current);
-    h.player.play(prepareSynthPcmRecording(doc,{sampleRate:RATE,ignorePatch:true,preset:current,pitchClock:CLOCK}),{session:1});
+    const reference=recording([note(0),{time:.02,type:'stop'},note(.04,7),note(.075,3),off(.09,3)],.1,current);
+    const prepared=prepareSynthPcmRecording(doc,{sampleRate:RATE,ignorePatch:true,preset:current,pitchClock:CLOCK});
+    assert.deepEqual(prepared.events.map(event=>event.type),['noteOn','stop','noteOn','noteOn','noteOff']);
+    h.player.play(prepared,{session:1});
     other.player.play(prepareSynthPcmRecording(reference,{sampleRate:RATE}),{session:1});
     const actual=h.generate(6000);assert.deepEqual(actual,other.generate(6000));
-    assert(actual.left.subarray(1100,1900).every(value=>value===0));assert(actual.left.subarray(3000,3500).every(value=>value===0));
+    assert(actual.left.subarray(1100,1900).every(value=>value===0));assert(rms(actual.left.subarray(3000,3500))>.01);
   }finally{h.dispose();other.dispose();}
 });
 

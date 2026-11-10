@@ -61,3 +61,7 @@ node scripts/check_synth_pcm_live_browser.cjs --root=release/itch_synth_pcm-even
 - [ ] 人による実聴：実際のWAVで録音→loop再生→Export／Import、再生中の音色編集とUse current soundの聴こえ方。
 - [x] PCM Looper：[重ね録り作業](todo_fm2612_genesis_pcm_looper_01.md)で実装・無音検証済み。
 - [ ] PWM基本演奏は別作業。
+
+## 後続修正
+
+Loop End変更による停止は、[発音を保持する修正](todo_fm2612_pcm_live_loop_end_01.md)で解消した。通常編集・Event Rec・Looperで、EndのRAM更新だけではNote Offせず現在位置を保持する。上記のEnd停止に関する記述は初回実装時の記録。

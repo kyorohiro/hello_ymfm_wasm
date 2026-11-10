@@ -50,3 +50,7 @@ node scripts/check_synth_pcm_browser.cjs --root=release/itch_synth_pcm-editor-ch
 - [x] PCM Event Rec：[演奏記録作業](todo_fm2612_genesis_pcm_event_rec_01.md)で実装・無音検証済み。
 - [x] PCM Looper：[重ね録り作業](todo_fm2612_genesis_pcm_looper_01.md)で実装・無音検証済み。基本演奏の追加時には両操作を無効化していた。
 - [ ] PWMタブの基本演奏。工事中表示を維持する。
+
+## 後続修正
+
+Loop End変更による停止は、[発音を保持する修正](todo_fm2612_pcm_live_loop_end_01.md)で解消した。通常編集・Event Rec・Looperで、EndのRAM更新だけではNote Offせず現在位置を保持する。上記のEnd停止に関する記述は初回実装時の記録。

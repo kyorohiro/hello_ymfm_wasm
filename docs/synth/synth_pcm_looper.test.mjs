@@ -23,7 +23,7 @@ function fixture({initial=createPcmBuiltinPreset('sine'),render=async recording=
   function command(value) {
     if(value.type==='noteOn')held.add(value.channel);else if(value.type==='noteOff')held.delete(value.channel);else if(value.type==='stop')held.clear();
     else if(value.type==='setPreset'){preset=structuredClone(value.preset);held.clear();}
-    else if(value.type==='setSettings'){if(value.settings.loopEnd!==preset.settings.loopEnd)held.clear();preset={...preset,settings:structuredClone(value.settings)};}
+    else if(value.type==='setSettings')preset={...preset,settings:structuredClone(value.settings)};
     return looper.captureCommand(value);
   }
   async function due(){for(let i=0;i<20;i++){const next=[...timers].find(([,timer])=>timer.at<=time);if(!next)return;timers.delete(next[0]);next[1].fn();await turn();}throw Error('unbounded callback loop');}

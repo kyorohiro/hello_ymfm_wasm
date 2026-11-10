@@ -2,7 +2,7 @@
 import {Rf5c164} from '../js/rf5c164.js?v=audio-stability-2';
 import factory from '../generated/rf5c164_wasm.js';
 import {RF5C164Synth,RF5C164DirectTransport} from '../js/rf5c164synth.js?v=audio-stability-2';
-import {createSynthPcmRecordingPlayer} from './synth_pcm_recording_player.js?v=pcm-event-rec-1';
+import {createSynthPcmRecordingPlayer} from './synth_pcm_recording_player.js?v=pcm-live-end-1';
 
 class SynthPcmRecordingProcessor extends AudioWorkletProcessor {
   constructor(options) {

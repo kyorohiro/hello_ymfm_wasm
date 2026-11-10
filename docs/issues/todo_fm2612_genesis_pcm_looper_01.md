@@ -60,3 +60,7 @@ node scripts/check_synth_pcm_recording_browser.cjs --root=release/itch_synth_pcm
 - [ ] PWMタブの基本演奏は別作業。
 
 commit／push／公開は未実施。
+
+## 後続修正
+
+Loop End変更による停止は、[発音を保持する修正](todo_fm2612_pcm_live_loop_end_01.md)で解消した。通常編集・Event Rec・Looperで、EndのRAM更新だけではNote Offせず現在位置を保持する。上記のEnd停止に関する記述は初回実装時の記録。

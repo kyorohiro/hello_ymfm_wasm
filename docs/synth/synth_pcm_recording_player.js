@@ -1,4 +1,4 @@
-import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-event-rec-1';
+import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-live-end-1';
 
 export const PCM_RECORDING_MAX_COMPILED_BYTES=32*1024*1024;
 export const PCM_RECORDING_COMPILED_KIND='tetorica-pcm-recording-compiled-v1';
@@ -64,9 +64,12 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
   const step=(block,fnum)=>Math.max(1,Math.min(65535,Math.round(fnum*configuration.pitchFactors[block])));
   const loopAddress=()=>configuration.settings.loopEnabled?configuration.settings.loopStart:configuration.settings.loopEnd+1;
   function settings(next,force=false) {
-    if(force||!configuration||configuration.bank!==next.bank) {
+    if(force||!configuration) {
       silence();configuration=next;pcm.loadMemory(prepared.banks[next.bank],0);return;
     }
+    // End is a sample-RAM marker. Replacing its guarded bank does not require
+    // keyOff/keyOn, so held voices retain their hardware playback positions.
+    if(configuration.bank!==next.bank)pcm.loadMemory(prepared.banks[next.bank],0);
     configuration=next;
     for(const [channel,note]of held)pcm.setChannel(channel,{volume:next.settings.volume,
       pan:{left:next.settings.panLeft,right:next.settings.panRight},loopStart:loopAddress(),step:step(note.block,note.fnum)});

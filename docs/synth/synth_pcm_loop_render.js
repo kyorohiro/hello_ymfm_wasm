@@ -3,9 +3,9 @@
 import {Rf5c164} from '../js/rf5c164.js?v=audio-stability-2';
 import factory from '../generated/rf5c164_wasm.js';
 import {RF5C164Synth,RF5C164DirectTransport} from '../js/rf5c164synth.js?v=audio-stability-2';
-import {normalizePcmRecording} from './synth_pcm_recording.js?v=pcm-event-rec-1';
-import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js?v=pcm-event-rec-1';
-import {createSynthPcmRecordingPlayer} from './synth_pcm_recording_player.js?v=pcm-event-rec-1';
+import {normalizePcmRecording} from './synth_pcm_recording.js?v=pcm-live-end-1';
+import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js?v=pcm-live-end-1';
+import {createSynthPcmRecordingPlayer} from './synth_pcm_recording_player.js?v=pcm-live-end-1';
 
 export const SYNTH_PCM_LOOP_MAX_DURATION_SECONDS=120;
 export const SYNTH_PCM_LOOP_MAX_PCM_BYTES=128*1024*1024;

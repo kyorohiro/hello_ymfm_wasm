@@ -1,7 +1,7 @@
 // Main-thread JSON / sample preparation stays outside AudioWorkletGlobalScope.
-import {normalizePcmRecording,PCM_RECORDING_MAX_BANKS} from './synth_pcm_recording.js?v=pcm-event-rec-1';
-import {normalizePcmPreset,pcmSampleBytes,PCM_NATIVE_RATE,PCM_RAM_BYTES} from './synth_pcm.js?v=pcm-event-rec-1';
-import {PCM_RECORDING_MAX_COMPILED_BYTES,PCM_RECORDING_COMPILED_KIND} from './synth_pcm_recording_player.js?v=pcm-event-rec-1';
+import {normalizePcmRecording,PCM_RECORDING_MAX_BANKS} from './synth_pcm_recording.js?v=pcm-live-end-1';
+import {normalizePcmPreset,pcmSampleBytes,PCM_NATIVE_RATE,PCM_RAM_BYTES} from './synth_pcm.js?v=pcm-live-end-1';
+import {PCM_RECORDING_MAX_COMPILED_BYTES,PCM_RECORDING_COMPILED_KIND} from './synth_pcm_recording_player.js?v=pcm-live-end-1';
 
 if(PCM_RECORDING_MAX_COMPILED_BYTES!==PCM_RECORDING_MAX_BANKS*PCM_RAM_BYTES)throw new Error('PCM recording RAM budgets differ');
 const positive=(value,max,label)=>{
@@ -19,7 +19,6 @@ export function prepareSynthPcmRecording(value,{sampleRate,ignorePatch=false,pre
   const recording=normalizePcmRecording(value);
   if(!recording.commands.some(command=>command.type==='noteOn'))throw new Error('PCM recording contains no notes');
   let current=ignorePatch?normalizePcmPreset(preset):recording.initialState.preset;
-  let recorded=recording.initialState.preset;
   const clock=positive(ignorePatch?pitchClock:recording.initialState.pitchClock,1000000000,'pitch clock');
   const banks=[],samples=new Map(),bankIndexes=new Map();
   function configuration(document) {
@@ -44,13 +43,10 @@ export function prepareSynthPcmRecording(value,{sampleRate,ignorePatch=false,pre
   for(const command of recording.commands) {
     const frame=Math.round(command.time*sampleRate),{time,...event}=command;
     if(command.type==='setPreset') {
-      recorded=command.preset;
       if(ignorePatch){events.push({frame,type:'stop'});continue;}
       current=command.preset;events.push({frame,type:'setPreset',configuration:configuration(current)});
     } else if(command.type==='setSettings') {
-      const stopped=command.settings.loopEnd!==recorded.settings.loopEnd;
-      recorded={...recorded,settings:command.settings};
-      if(ignorePatch){if(stopped)events.push({frame,type:'stop'});continue;}
+      if(ignorePatch)continue;
       current={...current,settings:command.settings};events.push({frame,type:'setSettings',configuration:configuration(current)});
     } else events.push({frame,...event});
   }

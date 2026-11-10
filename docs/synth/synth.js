@@ -1,13 +1,13 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
 import {setupSynthFiles} from './synth_files.js?v=pcm-editor-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-event-rec-1';
-import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-event-rec-1';
-import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-event-rec-1';
-import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-looper-1';
-import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-looper-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-live-end-1';
+import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-end-1';
+import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-end-1';
+import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-end-1';
+import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-end-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=pcm-looper-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=pcm-editor-1';
-import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-1';
+import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-end-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-live-1';
@@ -741,7 +741,6 @@ pcmControls=setupSynthPcmControls({voice:pcmVoice,onBuiltin:shape=>{
 },
   onLoad:loadPcmWav,onVisualModeChange:()=>drawEnvelopeGuide(),onSettingsChange:patch=>{
     if(activeInstrumentKind!=='pcm'||isSongChannelTarget()||document.querySelector('.synth-editor').getAttribute('aria-busy')==='true')return;
-    if(patch.loopEnd!==undefined&&patch.loopEnd!==pcmVoice.getSettings().loopEnd)clearInputState();
     pcmVoice.setSettings(patch);synthFiles?.markDirty();pcmControls.update();
     if(audioContext&&!pcmVoice.isReady())void ensureAudioReady({announce:false}).catch(error=>setStatus(`PCM audio: ${error.message}`));
   }});

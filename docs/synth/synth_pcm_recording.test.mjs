@@ -48,13 +48,25 @@ test('PCM take captures full initial sample, eight channels, settings, source ch
   assert.equal(result.format,PCM_RECORDING_FORMAT);assert.equal(result.durationSeconds,.3);
   assert.deepEqual(result.commands.slice(0,8).map(command=>command.channel),[0,1,2,3,4,5,6,7]);
   assert.deepEqual(result.commands.filter(command=>command.time===.2).map(command=>command.type),['setSettings','noteOn','setPreset','noteOn']);
-  assert.deepEqual(result.commands.at(-1),{type:'noteOff',time:.3,channel:6},'Loop End and sample changes clear previous held channels');
+  assert.deepEqual(result.commands.at(-1),{type:'noteOff',time:.3,channel:6},'sample changes clear previous held channels');
   assert.equal(result.commands.filter(command=>command.type==='noteOff').length,1);
   assert.equal(m.commandCount,result.commands.length);assert(m.hasNotes);assert(!m.isRecording());
   assert.deepEqual(normalizePcmRecording(JSON.parse(JSON.stringify(result,null,2))),result);
   result.initialState.preset.settings.volume=0;result.commands[0].fnum=1;triangle.sample.name='Mutated';
   assert.equal(m.exportRecording().initialState.preset.settings.volume,64);assert.equal(m.exportRecording().commands[0].fnum,644);
   assert.equal(m.exportRecording().commands.find(command=>command.type==='setPreset').preset.sample.name,'Triangle');
+});
+
+test('held notes survive Loop End shrink and grow and receive their final recorded releases',()=>{
+  const f=fixture(),m=f.manager;m.startRecord();
+  for(let channel=0;channel<8;channel++)m.recordCommand({type:'noteOn',channel,block:4,fnum:644+channel});
+  f.at(.1);m.recordCommand({type:'setSettings',settings:preset('sine',{loopEnd:64}).settings});
+  f.at(.2);m.recordCommand({type:'setSettings',settings:preset('sine',{loopEnd:192,loopStart:32}).settings});
+  f.at(.3);const result=m.stopRecord();
+  assert.deepEqual(result.commands.slice(-8),Array.from({length:8},(_,channel)=>({time:.3,type:'noteOff',channel})));
+  assert.equal(result.commands.filter(command=>command.type==='noteOn').length,8);
+  assert.equal(result.commands.filter(command=>command.type==='noteOff').length,8);
+  assert.deepEqual(normalizePcmRecording(result),result);
 });
 
 test('Stop releases all eight held channels once and source stop clears them without invented releases',()=>{

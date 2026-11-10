@@ -22,15 +22,18 @@ const evaluate=(page,fn,arg)=>bounded(page.evaluate(fn,arg),'page evaluation');
 
 function installAudit() {
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,Worklet=window.AudioWorkletNode,Channel=window.MessageChannel;
-  const owners=[],ports=new WeakMap(),peers=new WeakMap(),meters=[],events=[];let serial=0,holdNextMemory=false,heldMemory=null;
-  const describeUnit=unit=>{
+  const owners=[],ports=new WeakMap(),peers=new WeakMap(),meters=[],events=[];let serial=0,holdNextMemory=false,heldMemory=null,probeTimes=[];
+  const describeUnit=(unit,sampleRate)=>{
     const {left,right}=unit;let l=0,r=0,lp=0,rp=0,signature=0;
     if(left instanceof Float32Array&&right instanceof Float32Array) {
       for(let i=0;i<left.length;i++){l+=left[i]*left[i];r+=right[i]*right[i];lp=Math.max(lp,Math.abs(left[i]));rp=Math.max(rp,Math.abs(right[i]));}
       for(let i=0;i<left.length;i+=Math.max(1,Math.floor(left.length/97)))signature+=left[i]*(i+1)+right[i]*(i+3);
     }
+    const probes=probeTimes.map(time=>{const begin=Math.round(time*sampleRate),end=Math.min(left?.length??0,begin+Math.round(.025*sampleRate));let ls=0,rs=0;
+      for(let index=begin;index<end;index++){ls+=left[index]*left[index];rs+=right[index]*right[index];}
+      return{time,leftRms:Math.sqrt(ls/Math.max(1,end-begin)),rightRms:Math.sqrt(rs/Math.max(1,end-begin))};});
     return {id:unit.id,frames:left?.length,offsetSeconds:unit.offsetSeconds,frameCount:unit.frameCount,prefixCount:unit.prefixCount,
-      leftRms:Math.sqrt(l/(left?.length||1)),rightRms:Math.sqrt(r/(right?.length||1)),leftPeak:lp,rightPeak:rp,signature};
+      leftRms:Math.sqrt(l/(left?.length||1)),rightRms:Math.sqrt(r/(right?.length||1)),leftPeak:lp,rightPeak:rp,signature,probes};
   };
   function accepted(owner,operation) {
     const a=operation.args;
@@ -88,7 +91,7 @@ function installAudit() {
       if(!method)continue;
       const operation={method,args:a.slice(0,3)};
       if(method==='prepareLooperUnit') {
-        operation.unit=describeUnit(a[1]?.unit??{});
+        operation.unit=describeUnit(a[1]?.unit??{},owner.context.sampleRate);
         events.push({kind:'prepare',owner:owner.id,id:command.id,token:a[0],loopLength:a[1]?.loopLength,unit:operation.unit});
       } else if(method==='startLooper') {owner.starts++;events.push({kind:'start',owner:owner.id,id:command.id,session:a[0],configuration:a[1],tokens:a[2]??[]});}
       else if(method==='addPreparedLooperUnit'){owner.adds++;events.push({kind:'add',owner:owner.id,id:command.id,session:a[0],token:a[1]});}
@@ -98,6 +101,7 @@ function installAudit() {
         events.push({kind:'stop',owner:owner.id,session:a[0]});
       } else if(method==='discardLooperUnit')owner.tokens.delete(a[0]);
       else if(method==='playRecording'){owner.eventPlays++;events.push({kind:'event-play',owner:owner.id});}
+      else if(method==='writeRegister')events.push({kind:'register',owner:owner.id,r:a[0],v:a[1]});
       else if(method==='dispose'){owner.running=false;owner.units.clear();}
       if(command.id!==undefined)owner.pending.set(command.id,operation);
       else if(['startLooper','addPreparedLooperUnit','removeLooperUnit','prepareLooperUnit'].includes(method))accepted(owner,operation);
@@ -118,6 +122,7 @@ function installAudit() {
       frequency:edges.length>4?analyser.context.sampleRate*(edges.length-1)/(edges.at(-1)-edges[0]):0,finite:values.every(Number.isFinite)};
   }
   window.__pcmLooperAudit={
+    setSampleProbeTimes(times){probeTimes=times.slice();},
     holdMemory(){if(heldMemory)throw Error('Editor memory is already held');holdNextMemory=true;},
     hasHeldMemory:()=>Boolean(heldMemory),
     releaseMemory(){const release=heldMemory;heldMemory=null;holdNextMemory=false;release?.();},
@@ -337,14 +342,20 @@ async function run(browser,name,origin) {
     // Record a layer whose sound changes inside the take. The uploaded stereo
     // packet should retain both sides rather than using the final editor only.
     await builtin(page,'sine');await field(page,'PanLeft',15);await field(page,'PanRight',0);await startLoop(page);await beginLayer(page);
-    await down(page,lowKey.key);await keyState(page,lowKey.key,true);await pause(200);await up(page,lowKey.key);
+    const capturedFrom=(await owner(page)).time;
+    await down(page,lowKey.key);await keyState(page,lowKey.key,true);await pause(200);await drain(page);
+    await field(page,'LoopEnd',180);await pcmReady(page);await keyState(page,lowKey.key,true);
+    await field(page,'LoopEnd',240);await pcmReady(page);await keyState(page,lowKey.key,true);await field(page,'LoopStart',16);await keyState(page,lowKey.key,true);
+    const continuousWrites=await drain(page);assert(!continuousWrites.some(event=>event.kind==='register'&&(event.r===8||event.r===6)),'Looper End / Start edits preserve the held live voice without retrigger');
+    const probeTime=(await owner(page)).time-capturedFrom+.15;await evaluate(page,time=>__pcmLooperAudit.setSampleProbeTimes([time]),probeTime);
+    await pause(450);await up(page,lowKey.key);
     await builtin(page,'triangle');await field(page,'PanLeft',0);await field(page,'PanRight',15);await field(page,'LoopEnd',180);await pcmReady(page);
     await down(page,highKey.key);await keyState(page,highKey.key,true);await pause(200);await finishLayer(page);await up(page,highKey.key);await count(page,1);
-    const changing=(await owner(page)).units[0];assert(changing.leftRms>.001&&changing.rightRms>.001,'A layer preserves sample/Pan/End changes recorded inside it');
+    const changing=(await owner(page)).units[0];assert(changing.leftRms>.001&&changing.rightRms>.001,'A layer preserves sample/Pan/End changes recorded inside it');assert(changing.probes.length===1&&changing.probes[0].leftRms>.001,'Offline Looper PCM sustains the originally held note after End shrink / growth and Start edits');await evaluate(page,()=>__pcmLooperAudit.setSampleProbeTimes([]));
     const changingRows=await collect(page,(await owner(page)).configuration.loopLength*1.6+.25);
     assert(changingRows.some(row=>row.left.rms>.001));assert(changingRows.some(row=>row.right.rms>.001));
     await stopLoop(page);await silence(page);await clearLoop(page);
-    steps.push('A single rendered layer retains source / Pan / Loop End changes and the final held-key closure');
+    steps.push('A single rendered layer sustains held notes through End shrink / growth, retains source / Pan / Start changes and the final key closure');
 
     // Rebuild two simple independent layers for exclusion and cross-chip state.
     await builtin(page,'sine');await field(page,'PanLeft',15);await field(page,'PanRight',0);await startLoop(page);await beginLayer(page);

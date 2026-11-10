@@ -1,5 +1,5 @@
 import {createParamControl} from './synth_controls.js?v=op-gates-1';
-import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-editor-1';
+import {PCM_MAX_FRAMES,pcmSampleBytes,createPcmBuiltinPreset} from './synth_pcm.js?v=pcm-live-end-1';
 
 /** Compact RF5C164 authoring controls; writes and file decoding belong to the host. */
 export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=()=>{},onLoad=()=>{},onVisualModeChange=()=>{}}={}) {
@@ -38,7 +38,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     control.element.classList.add('synth-pcm-number');
     byId(`synthPcm${name}Control`).replaceWith(control.element);
     const value=control.element.querySelector('.param-value');value.id=`synthPcm${name}`;
-    value.title=field==='loopStart'?'Loop start frame · drag left/right.':field==='loopEnd'?'Exclusive end frame · changing this reloads shared sample RAM.':`${label} · drag left/right.`;
+    value.title=field==='loopStart'?'Loop start frame · drag left/right.':field==='loopEnd'?'Exclusive end frame · updates shared RAM while held notes keep playing.':`${label} · drag left/right.`;
     for(const [index,button]of [...control.element.querySelectorAll('.param-button')].entries()) {
       button.dataset.pcmField=field;button.dataset.pcmStep=String(index?1:-1);
       button.setAttribute('aria-label',`${index?'Increase':'Decrease'} ${label.toLowerCase()}`);

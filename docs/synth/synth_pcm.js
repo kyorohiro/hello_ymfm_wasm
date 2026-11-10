@@ -195,7 +195,11 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
     if(!pcm)return Promise.resolve(false);
     if(isReady()&&pcm===installed)return Promise.resolve(true);
     if(pending?.pcm===pcm&&pending.revision===revision)return pending.promise;
-    const selectedRevision=revision,memory=buildPcmMemory(current);silence(pcm);installed=null;installedRevision=-1;
+    const selectedRevision=revision,memory=buildPcmMemory(current);
+    // End edits replace only the guarded RAM image. Keep the active channel
+    // mask and cursor: the next marker redirects a voice to its loop address.
+    // A new sample / endpoint still needs the initial silent installation.
+    if(installed!==pcm) {silence(pcm);installed=null;installedRevision=-1;}
     const owner={pcm,revision:selectedRevision,promise:null};
     owner.promise=Promise.resolve().then(()=>{
       if(revision!==selectedRevision||getPcm()!==pcm)return false;
@@ -217,10 +221,10 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
       ownObject(patch,'PCM settings patch');
       const next=normalizePcmSettings({...current.settings,...patch},frames),previous=current.settings;
       if(settingFields.every(field=>next[field]===previous[field]))return getSettings();
-      if(next.loopEnd!==previous.loopEnd) {silence();revision++;installed=null;installedRevision=-1;}
+      if(next.loopEnd!==previous.loopEnd)revision++;
       current={...current,settings:next};
       const pcm=getPcm();
-      if(pcm&&isReady())for(const [ch,note] of held) {
+      if(pcm&&installed===pcm)for(const [ch,note] of held) {
         const changed=pitch(note.block,note.fnum);
         pcm.setChannel(ch,{volume:next.volume,pan:{left:next.panLeft,right:next.panRight},loopStart:loopAddress(),step:changed.step});
         held.set(ch,{channel:ch,...changed});
@@ -235,7 +239,7 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
     },
     noteOff(ch) {channel(ch);if(!held.has(ch))return false;getPcm()?.keyOff(ch);held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;},
     setFrequency(ch,block,fnum) {
-      channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||!isReady())return null;
+      channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||installed!==pcm)return null;
       pcm.setPitch(ch,note.step);if(held.has(ch))held.set(ch,{channel:ch,...note});
       onCommand({type:'setFrequency',channel:ch,block,fnum});emit();return {channel:ch,...note};
     },
