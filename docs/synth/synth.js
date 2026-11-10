@@ -1,6 +1,8 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
 import {setupSynthFiles} from './synth_files.js?v=pcm-editor-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-editor-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-event-rec-1';
+import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-event-rec-1';
+import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-event-rec-1';
 import {createSynthPcmAudio} from './synth_pcm_audio.js?v=pcm-editor-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-1';
@@ -408,6 +410,7 @@ let songTargetState = {target:'synth', playback:'stopped', view:null};
 let songAuditionVoice = null, songAuditionMegaSynth = null, songAuditionReady = null;
 let songAuditionBus = null, songAuditionSignature = '', songAuditionGeneration = 0,songAuditionPreparing=false;
 let recordingEpoch=0, referenceRecordingStop=null;
+let eventImportGeneration=0;
 const editorPerformanceTarget=createSynthPerformanceTarget({
   getSynth:()=>synth,
   getVoice:getCurrentPerformanceVoice,
@@ -476,6 +479,7 @@ function selectEditorChip(button) {
   psgEventAudio.setEnabled(editorChip === 'psg');
   psgLoopAudio.setEnabled(editorChip === 'psg');
   pcmAudio.setEnabled(editorChip === 'pcm'&&!isSongChannelTarget());
+  pcmEventAudio.setEnabled(editorChip === 'pcm'&&!isSongChannelTarget());
   operatorEnvelopeView.setVisible(editorChip === 'ym2612' && visualMode === 'envelope');
   operatorEnvelopeView.invalidateOutput();
   if (changed) {buildKeyboard(); updateKeyboardVisuals();}
@@ -584,10 +588,9 @@ const eventRecordIgnoreOperators =
   document.getElementById(
     "eventRecordIgnoreOperators"
   );
-const eventIgnorePatchByChip = {ym2612:true,psg:false};
+const eventIgnorePatchByChip = {ym2612:true,psg:false,pcm:false};
 eventRecordIgnoreOperators.addEventListener('change',()=>{
-  if(editorChip==='pcm'){eventRecordIgnoreOperators.blur();return;}
-  eventIgnorePatchByChip[editorChip==='psg'?'psg':'ym2612']=eventRecordIgnoreOperators.checked;
+  eventIgnorePatchByChip[editorChip==='pcm'?'pcm':editorChip==='psg'?'psg':'ym2612']=eventRecordIgnoreOperators.checked;
   eventRecordIgnoreOperators.blur();
 });
 const eventRecordStateRoot =
@@ -646,6 +649,7 @@ let inputController = null;
 let psgControls = null;
 let pcmControls=null;
 let psgEventRecorder = null;
+let pcmEventRecorder=null;
 const psgAudio = createSynthPsgAudio({onError:error => {
   stopAllNotes();psgEventRecorder?.stopRecord();eventRecordSessionActive=false;
   updateKeyboardAvailability();updateEventRecordUi();setStatus(`PSG audio: ${error.message}`);
@@ -658,14 +662,21 @@ const psgLoopAudio=createSynthPsgAudio({onError:error=>{
   void psgLooper?.stop();setStatus(`PSG loop playback: ${error.message}`);updateLooperUi();
 }});
 const pcmAudio=createSynthPcmAudio({onError:error=>{
-  stopAllNotes();updateKeyboardAvailability();setStatus(`PCM audio: ${error.message}`);
+  stopAllNotes();if(pcmEventRecorder?.isRecording())pcmEventRecorder.stopRecord();eventRecordSessionActive=false;
+  updateKeyboardAvailability();updateEventRecordUi();setStatus(`PCM audio: ${error.message}`);
+}});
+const pcmEventAudio=createSynthPcmRecordingAudio({onError:error=>{
+  pcmEventRecorder?.stopRecordingPlayback();setStatus(`PCM event playback: ${error.message}`);updateEventRecordUi();
 }});
 const pcmSongAudio=createSynthPcmAudio({onError:error=>{
   ++songAuditionGeneration;songAuditionPreparing=false;stopAllNotes();songAuditionVoice=null;
   updateKeyboardAvailability();setStatus(`PCM audition: ${error.message}`);
 }});
 const pcmVoice=createSynthPcmVoice({getPcm:()=>pcmAudio.getPcm(),getPitchClock:()=>synth?.clock??YM2612_CLOCK,
-  onState:()=>{pcmControls?.update();updateKeyboardAvailability();}});
+  onState:()=>{pcmControls?.update();updateKeyboardAvailability();},onCommand:command=>{
+    try {pcmEventRecorder?.recordCommand(command);}
+    catch(error) {pcmEventRecorder?.stopRecord();setStatus(`PCM event recording stopped: ${error.message}`);}
+  }});
 const psgVoice = createSynthPsgVoice({
   getPsg:() => psgAudio.getPsg(),
   getPitchClock:() => synth?.clock ?? YM2612_CLOCK,
@@ -691,6 +702,18 @@ psgEventRecorder=new SynthPsgRecordingManager({
     psg.playRecording(recording,options);
   },
   stopPlayback:()=>psgEventAudio.getPsg()?.stopRecordingPlayback(),
+});
+pcmEventRecorder=new SynthPcmRecordingManager({
+  now:()=>audioContext?.currentTime??0,
+  getPreset:()=>pcmVoice.getPreset(),getPitchClock:()=>synth?.clock??YM2612_CLOCK,
+  onChange:()=>updateEventRecordUi(),
+  async startPlayback(recording,options) {
+    pcmVoice.stop();clearInputState();
+    const api=await pcmEventAudio.prepare(audioContext,finalOutputBus);
+    options.signal.throwIfAborted();pcmEventAudio.setEnabled(editorChip==='pcm'&&!isSongChannelTarget());
+    await api.playRecording(recording,options);
+  },
+  stopPlayback:()=>pcmEventAudio.getPcm()?.stopRecordingPlayback(),
 });
 psgControls = setupSynthPsgControls({
   voice:psgVoice,
@@ -762,11 +785,12 @@ function refreshChipAvailability() {
   for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || editorChip==='pcm' || observing;
   document.getElementById('synthChipTabPcm').disabled=false;
   document.getElementById('synthChipTabPcm').title='Edit Mega CD PCM samples or view reference PCM channels';
-  eventRecordIgnoreOperators.disabled=editorChip==='pcm';
-  eventRecordIgnoreOperators.checked=eventIgnorePatchByChip[editorChip==='psg'?'psg':'ym2612'];
-  document.getElementById('eventRecordPatchLabel').textContent=editorChip==='psg'?'Use current sound':'Ignore Op';
-  eventRecordIgnoreOperators.parentElement.title=editorChip==='psg'
-    ?'Use the current PSG sound instead of recorded settings. The sound is captured when Play starts.'
+  const sampleEvent=editorChip==='psg'||editorChip==='pcm';
+  eventRecordIgnoreOperators.disabled=false;
+  eventRecordIgnoreOperators.checked=eventIgnorePatchByChip[editorChip==='pcm'?'pcm':editorChip==='psg'?'psg':'ym2612'];
+  document.getElementById('eventRecordPatchLabel').textContent=sampleEvent?'Use current sound':'Ignore Op';
+  eventRecordIgnoreOperators.parentElement.title=sampleEvent
+    ?`Use the current ${editorChip==='pcm'?'PCM sample and settings':'PSG sound'} instead of recorded settings. The sound is captured when Play starts.`
     :'Ignore recorded operator settings and use the current FM sound.';
   synthFiles?.refresh();
   updateLooperUi(); updateEventRecordUi(); updateKeyboardAvailability();
@@ -806,6 +830,7 @@ function applyMasterVolume() {
   psgLoopAudio.setVolume(masterVolume);
   pcmAudio.setVolume(masterVolume);
   pcmSongAudio.setVolume(masterVolume);
+  pcmEventAudio.setVolume(masterVolume);
 }
 
 function isSongChannelTarget() {
@@ -823,26 +848,30 @@ function getCurrentPerformanceVoice() {
 }
 
 function recordingBlocked() {
-  return eventRecordingBlocked();
+  return editorChip==='pcm'||eventRecordingBlocked();
 }
 
 function eventRecordingBlocked() {
-  return editorChip==='pcm'||switchingAudioOutput||Boolean(referenceRecordingStop)||
+  return switchingAudioOutput||Boolean(referenceRecordingStop)||
     ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget();
 }
 
 function recordingUnavailableReason() {
-  return editorChip==='pcm'?'PCM Event Rec and Looper are not available yet.':'Pause or Stop the VGM and choose Synth to record your instrument.';
+  return editorChip==='pcm'?'PCM Looper is not available yet.':'Pause or Stop the VGM and choose Synth to record your instrument.';
 }
 
 function recordingOperationCurrent(epoch,chip=editorChip) {return epoch===recordingEpoch&&chip===editorChip&&!recordingBlocked();}
 function activeLooper() {return editorChip==='pcm'?null:editorChip==='psg'?psgLooper:looper;}
 function eventRecordingOperationCurrent(epoch,chip) {return epoch===recordingEpoch&&chip===editorChip&&!eventRecordingBlocked();}
-function eventRecordingSource() {return editorChip==='pcm'?null:editorChip==='psg'?psgEventRecorder:megaSynth;}
+function eventRecordingSource() {return editorChip==='pcm'?pcmEventRecorder:editorChip==='psg'?psgEventRecorder:megaSynth;}
 function canPlayEventRecording(recording) {
-  return editorChip==='psg'?recording?.commands?.some(command=>command.type==='noteOn'):Boolean(recording?.commands?.length);
+  return editorChip==='psg'||editorChip==='pcm'?recording?.commands?.some(command=>command.type==='noteOn'):Boolean(recording?.commands?.length);
 }
 function releaseEventTakeKeys() {
+  if(editorChip==='pcm') {
+    for(const channel of pcmVoice.getState().heldChannels)pcmVoice.noteOff(channel);
+    clearInputState();return;
+  }
   if(editorChip!=='psg'){stopAllNotes();return;}
   for(const channel of psgVoice.getState().heldChannels)psgVoice.noteOff(channel);
   clearInputState();
@@ -861,6 +890,8 @@ function stopRecordingForReference() {
   ++recordingEpoch;
   if(psgEventRecorder?.isRecording()) {psgVoice.stop();psgEventRecorder.stopRecord();}
   psgEventRecorder?.stopRecordingPlayback();
+  if(pcmEventRecorder?.isRecording()) {pcmVoice.stop();pcmEventRecorder.stopRecord();}
+  pcmEventRecorder?.stopRecordingPlayback();
   const stoppingPsg=psgLooper?.stop();
   eventRecordSessionActive=false;
   if(referenceRecordingStop)return referenceRecordingStop;
@@ -933,6 +964,7 @@ function setSongTargetState(next) {
   songAuditionVoice = null;songAuditionPreparing=false;
   pcmSongAudio.setEnabled(false);
   pcmAudio.setEnabled(editorChip==='pcm'&&!channelTarget);
+  pcmEventAudio.setEnabled(editorChip==='pcm'&&!channelTarget);
   if (songAuditionBus) songAuditionBus.gain.value = 0;
   songAuditionMegaSynth?.fm?.reset();
   // The wheels are performance state, not part of a captured instrument.
@@ -1190,10 +1222,11 @@ function updateLooperUi() {
 }
 
 function updateEventRecordUi() {
+  const dedicated=editorChip==='psg'||editorChip==='pcm';
   const recordingSource =
     eventRecordingSource();
   const recording =
-    (editorChip==='psg'?null:recordingSource?.exportRecording?.()) ??
+    (dedicated?null:recordingSource?.exportRecording?.()) ??
     null;
   const isRecording =
     recordingSource?.isRecording?.() ??
@@ -1202,11 +1235,12 @@ function updateEventRecordUi() {
     recordingSource?.isRecordingPlaybackActive?.() ??
     false;
   const commandCount =
-    editorChip==='psg'?(recordingSource?.commandCount??0):(recording?.commands?.length??0);
+    dedicated?(recordingSource?.commandCount??0):(recording?.commands?.length??0);
 
   if (eventRecordStartButton) {
     eventRecordStartButton.disabled=eventRecordingBlocked();
-    eventRecordStartButton.title=eventRecordingBlocked()?recordingUnavailableReason():'';
+    eventRecordStartButton.title=eventRecordingBlocked()?'Pause or Stop the VGM and choose Synth to record your instrument.':
+      editorChip==='pcm'?'Software Event Rec · records notes, samples and sound-setting changes.':'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -1229,7 +1263,7 @@ function updateEventRecordUi() {
       !recordingSource ||
       eventRecordingBlocked() ||
       isRecording ||
-      !(editorChip==='psg'?recordingSource?.hasNotes:canPlayEventRecording(recording));
+      !(dedicated?recordingSource?.hasNotes:canPlayEventRecording(recording));
     eventRecordPlayButton.textContent =
       isPlaying
         ? "Stop Play"
@@ -1245,10 +1279,11 @@ function updateEventRecordUi() {
   if(eventRecordImportInput)eventRecordImportInput.disabled=eventRecordingBlocked()||isRecording;
 
   if (eventRecordStateRoot) {
+    eventRecordStateRoot.title=editorChip==='pcm'?'Software performance recording · includes PCM samples and settings.':'';
     if (isRecording) {
       eventRecordStateRoot.textContent =
         `Event: REC ${commandCount}`;
-    } else if (isPlaying && editorChip==='psg') {
+    } else if (isPlaying && dedicated) {
       eventRecordStateRoot.textContent=`Event: LOOP ${commandCount}`;
     } else if (
       eventRecordSessionActive
@@ -1270,7 +1305,7 @@ function updateEventRecordUi() {
 }
 
 function buildEventPlaybackOptions() {
-  if(editorChip==='psg')return {loop:true,ignorePatch:eventRecordIgnoreOperators.checked};
+  if(editorChip==='psg'||editorChip==='pcm')return {loop:true,ignorePatch:eventRecordIgnoreOperators.checked};
   return {
     loop: true,
     get ignoreOperators() {
@@ -1365,6 +1400,7 @@ function handleLooperStateChange(
 
 async function toggleEventRecordSession() {
   if(eventRecordingBlocked())return;
+  ++eventImportGeneration;
   const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
   if(!eventRecordingOperationCurrent(epoch,chip))return;
@@ -1396,8 +1432,9 @@ async function toggleEventRecordSession() {
       if (
         canPlayEventRecording(recording)
       ) {
-        await playEventSource(source,recording);
+        const played=await playEventSource(source,recording);
         if(!eventRecordingOperationCurrent(epoch,chip))return;
+        if(!played) {eventRecordSessionActive=false;updateLooperUi();updateEventRecordUi();return;}
       }
     }
 
@@ -1421,6 +1458,7 @@ async function toggleEventRecordSession() {
 
 async function toggleEventTakeRecording() {
   if(eventRecordingBlocked())return;
+  ++eventImportGeneration;
   const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
   if(!eventRecordingOperationCurrent(epoch,chip))return;
@@ -1443,8 +1481,9 @@ async function toggleEventTakeRecording() {
     if (
       canPlayEventRecording(recording)
     ) {
-      await playEventSource(source,recording);
+      const played=await playEventSource(source,recording);
       if(!eventRecordingOperationCurrent(epoch,chip))return;
+      if(!played)return;
     }
     updateEventRecordUi();
     setStatus(
@@ -1453,7 +1492,7 @@ async function toggleEventTakeRecording() {
     return;
   }
 
-  stopAllNotes();if(chip!=='psg')applyPatchToVoices();
+  stopAllNotes();if(chip!=='psg'&&chip!=='pcm')applyPatchToVoices();
   source.startRecord();
   updateEventRecordUi();
   setStatus(
@@ -1463,6 +1502,7 @@ async function toggleEventTakeRecording() {
 
 async function playEventRecording() {
   if(eventRecordingBlocked())return;
+  ++eventImportGeneration;
   const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
   if(!eventRecordingOperationCurrent(epoch,chip))return;
@@ -1528,7 +1568,7 @@ function exportEventRecording() {
     document.createElement("a");
   anchor.href = url;
   anchor.download =
-    editorChip==='psg'?'tetorica-psg-recording.json':'megasynth-recording.json';
+    editorChip==='pcm'?'tetorica-pcm-recording.json':editorChip==='psg'?'tetorica-psg-recording.json':'megasynth-recording.json';
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -1549,14 +1589,18 @@ async function importEventRecording(
   if (!file) {
     return;
   }
+  event.target.value='';
+  const generation=++eventImportGeneration;
+  const current=()=>generation===eventImportGeneration&&eventRecordingOperationCurrent(epoch,chip);
 
   try {
+    if(chip==='pcm'&&file.size>PCM_RECORDING_MAX_JSON_BYTES)throw Error(`PCM recording exceeds ${PCM_RECORDING_MAX_JSON_BYTES/1024/1024} MiB.`);
     await ensureAudioReady();
-    if(!eventRecordingOperationCurrent(epoch,chip))return;
+    if(!current())return;
     const source=eventRecordingSource();
     const text =
       await file.text();
-    if(!eventRecordingOperationCurrent(epoch,chip))return;
+    if(!current())return;
     const recording =
       JSON.parse(text);
     source?.importRecording(
@@ -1568,11 +1612,11 @@ async function importEventRecording(
       `Imported event recording: ${file.name}.`
     );
   } catch (error) {
-    setStatus(
+    if(current())setStatus(
       `Failed to import event recording: ${error.message}`
     );
   } finally {
-    if (eventRecordImportInput) {
+    if (eventRecordImportInput&&generation===eventImportGeneration) {
       eventRecordImportInput.value =
         "";
     }
@@ -3617,7 +3661,7 @@ window.addEventListener('pagehide',event=>{
     psgLiveHighlighter.dispose();
     pcmLiveHighlighter.dispose();
     psgControls.dispose();
-    pcmControls.dispose();pcmAudio.dispose();pcmSongAudio.dispose();
+    pcmControls.dispose();pcmAudio.dispose();pcmSongAudio.dispose();pcmEventAudio.dispose();
     psgAudio.dispose();
     psgEventAudio.dispose();
     psgLoopAudio.dispose();

@@ -168,8 +168,8 @@ export function pcmPresetFromAudio(pcm,{name='Audio',settings={},autoFit=true}={
 }
 
 /** Eight physical channels sharing one guarded sample-RAM image. */
-export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()=>{},preset=createPcmBuiltinPreset('sine')}={}) {
-  if([getPcm,getPitchClock,onState].some(callback=>typeof callback!=='function'))throw new TypeError('PCM callbacks must be functions');
+export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()=>{},onCommand=()=>{},preset=createPcmBuiltinPreset('sine')}={}) {
+  if([getPcm,getPitchClock,onState,onCommand].some(callback=>typeof callback!=='function'))throw new TypeError('PCM callbacks must be functions');
   let current=normalizePcmPreset(preset),frames=pcmSampleBytes(current.sample).length,revision=0;
   let installed=null,installedRevision=-1,pending=null;
   const held=new Map();
@@ -210,7 +210,8 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
     getPreset,getSettings,getState,isReady,install,getChannels:()=>[0,1,2,3,4,5,6,7],
     setPreset(value) {
       const next=normalizePcmPreset(value),nextFrames=pcmSampleBytes(next.sample).length;
-      silence();current=next;frames=nextFrames;revision++;installed=null;installedRevision=-1;emit();return getPreset();
+      silence();current=next;frames=nextFrames;revision++;installed=null;installedRevision=-1;
+      onCommand({type:'setPreset',preset:getPreset()});emit();return getPreset();
     },
     setSettings(patch) {
       ownObject(patch,'PCM settings patch');
@@ -224,19 +225,20 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
         pcm.setChannel(ch,{volume:next.volume,pan:{left:next.panLeft,right:next.panRight},loopStart:loopAddress(),step:changed.step});
         held.set(ch,{channel:ch,...changed});
       }
-      emit();return getSettings();
+      onCommand({type:'setSettings',settings:getSettings()});emit();return getSettings();
     },
     noteOn(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||!isReady())return null;
       pcm.setChannel(ch,{start:0,loopStart:loopAddress(),step:note.step,volume:current.settings.volume,
         pan:{left:current.settings.panLeft,right:current.settings.panRight}});
-      pcm.keyOn(ch);held.set(ch,{channel:ch,...note});emit();return {channel:ch,...note};
+      pcm.keyOn(ch);held.set(ch,{channel:ch,...note});onCommand({type:'noteOn',channel:ch,block,fnum});emit();return {channel:ch,...note};
     },
-    noteOff(ch) {channel(ch);if(!held.has(ch))return false;getPcm()?.keyOff(ch);held.delete(ch);emit();return true;},
+    noteOff(ch) {channel(ch);if(!held.has(ch))return false;getPcm()?.keyOff(ch);held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;},
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||!isReady())return null;
-      pcm.setPitch(ch,note.step);if(held.has(ch)){held.set(ch,{channel:ch,...note});emit();}return {channel:ch,...note};
+      pcm.setPitch(ch,note.step);if(held.has(ch))held.set(ch,{channel:ch,...note});
+      onCommand({type:'setFrequency',channel:ch,block,fnum});emit();return {channel:ch,...note};
     },
-    stop() {silence();emit();},
+    stop() {silence();onCommand({type:'stop'});emit();},
   };
 }

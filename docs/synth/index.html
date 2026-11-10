@@ -1647,7 +1647,8 @@
                     <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
                     <p>Root note plays at the original sample speed. Loop End writes an end marker into shared RAM; changing the sample or End stops held notes. Loop Off plays once and then loops silence.</p>
                     <p>VGM Live shows the selected PCM channel's written settings and sample RAM at the audible position. Pause to play that sample on the selected channel; Copy creates a new Synth instrument. C4 is the captured playback speed, not an inferred original note. A snapshot cannot preserve later RAM edits or a game's software envelope.</p>
-                    <p>Wrapped samples, unknown RAM or unsafe end markers cannot be copied or auditioned. Event Rec and Looper for PCM are not available yet.</p>
+                    <p>Wrapped samples, unknown RAM or unsafe end markers cannot be copied or auditioned.</p>
+                    <p>Software Event Rec records notes, Pitch, PCM settings and sample changes into self-contained JSON. Start Event Rec, then use Record / Stop or Space. Stopping a take starts loop playback on a separate PCM chip. Use current sound captures your current sample and settings when playback starts; later edits do not change that playback. Original note and stop timing is retained. Export / import takes from Menu. PCM Looper is not available yet.</p>
                   </div></details>
                 </div>
                 <div class="synth-psg-row" role="group" aria-label="PCM sample source">
@@ -1753,7 +1754,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=pcm-live-1";
+      import "./synth.js?v=pcm-event-rec-1";
     </script>
   </body>
 </html>

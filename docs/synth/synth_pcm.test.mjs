@@ -92,6 +92,29 @@ test('RAM install coalesces one revision, never starts a note, and rejects stale
   available=null;assert.equal(voice.isReady(),false);assert.equal(voice.noteOn(0,4,644),null);
 });
 
+test('PCM semantic hooks report accepted operations only, with detached state and no internal RAM-install events',async()=>{
+  const commands=[],calls=[],pending=[];
+  const pcm={keyOff:ch=>calls.push(['off',ch]),loadMemory:()=>new Promise(resolve=>pending.push(resolve)),
+    setChannel:(...args)=>calls.push(['channel',...args]),keyOn:ch=>calls.push(['on',ch]),setPitch:(...args)=>calls.push(['pitch',...args])};
+  const voice=createSynthPcmVoice({getPcm:()=>pcm,onCommand:command=>commands.push(command)});
+  assert.equal(voice.noteOn(0,4,644),null);assert.equal(voice.setFrequency(0,4,644),null);
+  assert.equal(voice.noteOff(0),false);assert.deepEqual(commands,[]);
+  const install=voice.install();await Promise.resolve();pending.shift()();await install;assert.deepEqual(commands,[]);
+  voice.noteOn(7,4,644);voice.setFrequency(7,4,700);voice.noteOff(7);assert.equal(voice.noteOff(7),false);
+  const before=commands.length;assert.throws(()=>voice.noteOn(8,4,644));assert.throws(()=>voice.setSettings({loopEnd:0}));assert.equal(commands.length,before);
+  voice.setSettings({volume:73});voice.setSettings({volume:73});
+  voice.noteOn(0,4,644);voice.setSettings({loopEnd:128});
+  assert.deepEqual(commands.map(c=>c.type),['noteOn','setFrequency','noteOff','setSettings','noteOn','setSettings']);
+  assert.equal(commands.at(-1).settings.loopEnd,128);assert.equal(voice.isReady(),false);
+  commands.at(-1).settings.volume=0;assert.equal(voice.getSettings().volume,73);
+  const reinstall=voice.install();await Promise.resolve();pending.shift()();await reinstall;
+  assert.equal(commands.length,6,'RAM ACK cannot fabricate an event');
+  voice.setPreset(createPcmBuiltinPreset('triangle'));assert.equal(commands.at(-1).type,'setPreset');
+  commands.at(-1).preset.sample.name='Changed';assert.equal(voice.getPreset().sample.name,'Triangle');
+  voice.stop();assert.deepEqual(commands.at(-1),{type:'stop'});
+  assert.throws(()=>createSynthPcmVoice({getPcm:()=>pcm,onCommand:1}));
+});
+
 test('real WASM default sample tunes around C4, live volume/pan/root changes and all eight physical channels stop',async()=>{
   const host=await native();
   try {

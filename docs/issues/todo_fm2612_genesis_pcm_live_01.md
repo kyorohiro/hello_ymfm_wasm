@@ -54,4 +54,5 @@ node scripts/check_synth_pcm_live_browser.cjs --root=release/itch_synth_pcm-live
 ## 残り
 
 - [ ] 人による実ゲームVGMでの実聴・Loop境界と試奏の使い勝手。今回の無音検証は自作fixtureと実WASMを使用している。
-- [ ] PCM Event Rec／Looper、PWM基本演奏は別作業。
+- [x] PCM Event Rec：[演奏記録作業](todo_fm2612_genesis_pcm_event_rec_01.md)で実装・無音検証済み。
+- [ ] PCM Looper、PWM基本演奏は別作業。
