@@ -37,6 +37,8 @@ synth_psg_controls.js
 synth_psg_preset.js
 synth_psg_envelope.js
 synth_psg_worklet.js
+synth_psg_recording.js
+synth_psg_recording_player.js
 synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_state.js

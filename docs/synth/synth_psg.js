@@ -38,8 +38,8 @@ export function normalizeSynthPsgSettings(value={}) {
  * No register is written until an explicit note, setting edit on a held voice,
  * or stop; preparing the editor alone cannot start a loud default tone.
  */
-export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()=>{},settings={}}={}) {
-  if(typeof getPsg!=='function'||typeof getPitchClock!=='function'||typeof onState!=='function')throw new TypeError('PSG callbacks must be functions');
+export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()=>{},onCommand=()=>{},settings={}}={}) {
+  if([getPsg,getPitchClock,onState,onCommand].some(callback=>typeof callback!=='function'))throw new TypeError('PSG callbacks must be functions');
   let current=normalizeSynthPsgSettings(settings);
   const held=new Map();
   const getSettings=()=>({...current,envelope:{...current.envelope}});
@@ -81,7 +81,8 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
       if(current.source==='noise')psg.setNoise({type:current.noiseType,rate:current.noiseRate});
       if(current.envelope.enabled)psg.envelopeNoteOn(ch,current.envelope,current.attenuation);
       else psg.setAttenuation(ch,current.attenuation);
-      const voice={channel:ch,...note,period};held.set(ch,voice);emit();return {...voice};
+      const voice={channel:ch,...note,period};held.set(ch,voice);
+      onCommand({type:'noteOn',channel:ch,block,fnum});emit();return {...voice};
     },
     noteOff(ch) {
       integer(ch,3,'PSG channel');
@@ -91,15 +92,16 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
       const psg=getPsg();
       if(current.envelope.enabled)psg?.envelopeNoteOff(ch);
       else psg?.setAttenuation(ch,15);
-      held.delete(ch);emit();return true;
+      held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;
     },
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),psg=getPsg();if(!psg)return null;
       const period=setPitch(psg,ch,note),voice={channel:ch,...note,period};
+      onCommand({type:'setFrequency',channel:ch,block,fnum});
       if(held.has(ch)){held.set(ch,voice);emit();}
       return {...voice};
     },
-    stop() {silence();emit();},
+    stop() {silence();onCommand({type:'stop'});emit();},
     setSettings(patch) {
       settingsObject(patch);
       if(Object.hasOwn(patch,'envelope'))normalizeSynthPsgEnvelope(patch.envelope);
@@ -126,7 +128,7 @@ export function createSynthPsgVoice({getPsg,getPitchClock=()=>7670454,onState=()
       // Released envelopes are no longer held keys, but their hardware level
       // must follow the same base attenuation until their release ends.
       if(psg&&current.envelope.enabled&&current.attenuation!==previous.attenuation)psg.setEnvelopeAttenuation(current.attenuation);
-      emit();return getSettings();
+      onCommand({type:'setSettings',settings:getSettings()});emit();return getSettings();
     },
   };
 }

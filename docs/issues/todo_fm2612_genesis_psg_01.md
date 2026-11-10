@@ -1,5 +1,29 @@
 # FM2612 / Genesis Synth：PSG基本演奏（2026-11-10）
 
+## 完了：PSG Event Rec
+
+ユーザー指示：PSGのEvent Recを進める。今回はEvent Recを対象とし、PSG Looperは次の段階へ残す。
+
+- [x] 発音／離鍵／Pitch／Source・Attenuation・Noise・Software Envelope設定変更を記録するPSG専用JSON形式を定義し、FMの既存録音との互換性・不正入力の原子的拒否を維持する。
+- [x] AudioWorkletのsample clockでPSGイベントを再生・ループし、各NoteのADSRとRelease、source変更・voice steal・停止・遅延した旧再生の取消を扱う。
+- [x] 既存Event Rec UIをPSGでも使用可能にし、FM／PSGのtakeを個別に保持する。録音再生は編集音色・Files／Cassetteを変更しない。VGM Play／Seek／タブ切替／出力切替／pagehideで録音・再生を確実に停止する。
+- [x] 初期音色を無視する再生optionの意味をPSGでも明確にし、JSON Export／Import・ループの尾音・空takeと既存FM録音の回帰を確認する。
+- [x] 実WASM／private Worklet／manager／Chromium・WebKitで時刻・再生音・停止・UI・保存非破壊を検証し、README／cache key／配布ZIP・再開記録を更新する。commit／push／公開は行わない。
+
+実装：PSG専用`tetorica-sega-psg-recording-v1`を追加。初期settings／pitch clockと、時刻付きnoteOn／noteOff／setFrequency／setSettings／stopを保存する。voiceのsemantic hookで実際に適用した操作だけを記録し、hardware register writeやUI更新を二重に記録しない。設定は完全なversion 2 PSG設定、形式・未知field・値・sourceに対する物理CH・順序・durationを検証する。最大24時間／100,000 commandsに制限し、captureは閉じるnoteOffと最大Release分を予約する。発音のないtakeは空として再生しない。
+
+再生：専用PSG endpointをfinalOutputBusへ接続し、sample clockでイベントを実行する。UI timerを使わず、各NoteのADSR snapshot・独立Release・source変更・再発音を再現する。録音停止時はheld keyをNote OffしてRelease終端までdurationを延ばし、cycle間は10msの余白を置く。再生cycleごとに専用chip／Envelopeをresetし、Stop／旧session／reset／disposeで遅延した再生が復活しない。編集PSGの設定・Files／Cassetteは変更しない。共有SDK／DSP／WASM／校正値は変更しない。
+
+UI：PSGタブでも既存Event Rec Start→Record［Space］→Stop［Space］で録音・自動ループ再生できる。FMとPSGのtake・ignore optionを別に保持する。PSGのoptionは`Use current sound`（初期Off）として、Play時の編集音色snapshotで録音設定を無視して再生する。再生中の変更を編集音色へ書き戻さず、sourceが違う場合のCH変換と古い離鍵の誤適用も処理する。再生はPlay／Stop Play、JSONは既存MenuのExport／Importを利用する。PSGでは`tetorica-psg-recording.json`として書き出す。PSG Looperは引き続き未対応。takeは既存FMと同様、JSON Export／Importで保存・再利用する。
+
+ライフサイクル：VGM開始／seek・tab変更・出力切替・pagehideでcaptureを閉じ、再生を取消する。非同期prepare中もgeneration／AbortSignalで古い開始・完了・失敗を無効化する。不正JSONや異なる音源の録音は、現在のtakeと再生を保持して拒否する。UIのPSG commandCount／hasNotesはO(1)で参照し、ドラッグ中に録音全体を毎回cloneしない。
+
+検証：`node --test --test-concurrency=1 docs/synth/*.test.mjs`で263件成功（従来246＋voice hook 1＋manager 10＋audio／scheduler／Worklet 6）。実WASMのrender分割PCM一致、Tone→Noise／設定／ADSR／Release、loop phase・尾音・0 duration、source変換・voice steal・cancelを確認した。source／最終stageのChromium・WebKitでSpace録音、音色／Noise／Envelope／Pitch変更、実PCMループ、JSON往復・新しいbrowserへのImport再生、再生中の編集音色／Files不変、不正／異音源Importの原子性、FM／PSG take独立、tab／VGM Play／pagehideの取消、390／1240pxを確認。最終stageでは既存FMの部分OP／特殊CH3のLooper・Event Rec・JSON往復・実音・VGM排他も両browser成功。speaker edgeは物理muteした自動計測で、人の実聴とは区別する。
+
+記録：`/private/tmp/fm2612-psg-event-node-20261110.log`、`/private/tmp/fm2612-psg-event-source-20261110.json`（109 assets）、`/private/tmp/fm2612-psg-event-package-browser-20261110.json`（107 assets）、`/private/tmp/fm2612-psg-event-fm-recording-20261110.json`。served asset hashは最終source／stageに一致。entry／新しい録音helper／private Workletのcache keyは`psg-event-rec-1`。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-event-check-20261110_itch_synth.zip`（233 files、874,735 bytes、SHA-256 `3f17c857883474c17f527b56e7fbfe4a898da2c9d036990f75ac94e04bea24e4`）。全fileがstageとbyte一致し、309 local references検査成功。receipt：`/private/tmp/fm2612-psg-event-package-20261110.json`。README英語／日本語とpackaging更新済み。未commit／未push／未公開。
+
 ## 完了：VGM再生中のPSGタブ選択
 
 ユーザー報告：VGM Play中にPSGを選ぶとSynthへ戻ってしまう。

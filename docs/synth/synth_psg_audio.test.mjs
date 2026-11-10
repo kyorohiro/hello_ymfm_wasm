@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createSynthPsgAudio} from './synth_psg_audio.js';
 import {SEGAPSG_CLOCK} from '../js/segapsg.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
+import {normalizeSynthPsgSettings} from './synth_psg.js';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 const turn=()=>Promise.resolve();
@@ -16,12 +17,39 @@ function host() {
 function fixture() {
   const requests=[],errors=[];
   const audio=createSynthPsgAudio({onError:error=>errors.push(error),createDevice:(context,destination,options)=>{
-    const task=deferred(),writes=[],device={port:{postMessage:command=>writes.push(command)},disposeCalls:0,dispose(){this.disposeCalls++;}};
+    const listeners=new Set(),nodePort={addEventListener:(type,fn)=>{if(type==='message')listeners.add(fn);},removeEventListener:(type,fn)=>listeners.delete(fn),
+      emit:data=>{for(const fn of listeners)fn({data});}};
+    const task=deferred(),writes=[],device={port:{postMessage:command=>writes.push(command)},node:{port:nodePort},disposeCalls:0,dispose(){this.disposeCalls++;}};
     requests.push({context,destination,options,task,writes,device});return task.promise;
   }});
   return {audio,requests,errors};
 }
 const offWrites=[0x9f,0xbf,0xdf,0xff].map(value=>({method:'write',args:[value]}));
+const eventTake=()=>({format:'tetorica-sega-psg-recording-v1',version:1,durationSeconds:.1,
+  initialState:{settings:normalizeSynthPsgSettings({}),pitchClock:7670454},
+  commands:[{type:'noteOn',time:0,channel:0,block:4,fnum:1083},{type:'noteOff',time:.05,channel:0}]});
+
+test('recording transport detaches events, validates before replacing playback and matches completion to its current generation',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);
+  const pending=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);
+  const api=await pending,take=eventTake(),ended=[];
+  const first=api.playRecording(take,{loop:false,onEnded:()=>ended.push('first')});
+  const posted=structuredClone(request.writes.at(-1));take.initialState.settings.attenuation=15;take.commands[0].fnum=1;
+  assert.equal(posted.method,'playRecording');assert.equal(posted.args[1].initialState.settings.attenuation,6);assert.equal(posted.args[1].commands[0].fnum,1083);
+  const before=request.writes.length;
+  assert.throws(()=>api.playRecording({...eventTake(),format:'megasynth-recording-v1'}));
+  assert.throws(()=>api.playRecording(eventTake(),{ignorePatch:true,settings:{source:'invalid'},pitchClock:7670454}));
+  assert.equal(request.writes.length,before);assert(api.isRecordingPlaybackActive());
+  const current=normalizeSynthPsgSettings({source:'noise'}),second=api.playRecording(eventTake(),{loop:true,ignorePatch:true,settings:current,pitchClock:7670454,onEnded:()=>ended.push('second')});
+  assert(second>first);request.device.node.port.emit({type:'psg-recording-ended',session:first});assert.deepEqual(ended,[]);assert(api.isRecordingPlaybackActive());
+  request.device.node.port.emit({type:'psg-recording-ended',session:second});request.device.node.port.emit({type:'psg-recording-ended',session:second});
+  assert.deepEqual(ended,['second']);assert(!api.isRecordingPlaybackActive());
+  const third=api.playRecording(eventTake());f.audio.setEnabled(false);
+  const stop=request.writes.findLast(value=>value.method==='stopRecording');assert(stop.args[0]>third);
+  request.device.node.port.emit({type:'psg-recording-ended',session:third});assert.deepEqual(ended,['second']);assert(!api.isRecordingPlaybackActive());
+  assert.deepEqual(request.writes.slice(-4),offWrites);
+  f.audio.dispose();assert.throws(()=>api.playRecording(eventTake()),/retired/);
+});
 
 test('PSG allocation is lazy, coalesces the same route, sends ordered real API writes and uses calibrated Master once',async()=>{
   const f=fixture(),h=host();
@@ -32,7 +60,7 @@ test('PSG allocation is lazy, coalesces the same route, sends ordered real API w
   assert.equal(f.audio.isPreparing(),true);assert.equal(h.gains.length,1);assert.equal(h.gains[0].gain.value,0);
   await turn();const request=f.requests[0];
   assert.equal(request.options.clock,SEGAPSG_CLOCK);assert.equal(request.options.stereoEnabled,false);
-  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-envelope-1$/,'software control uses a private Synth worklet');
+  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-event-rec-1$/,'software control uses a private Synth worklet');
   assert.equal(request.destination,h.gains[0]);assert.equal(h.gains[0].output,h.output);
   request.task.resolve(request.device);const psg=await pending;
   assert.equal(f.audio.getPsg(),psg);assert.equal(f.audio.isPreparing(),false);

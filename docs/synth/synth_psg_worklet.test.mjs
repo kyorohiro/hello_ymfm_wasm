@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {SegaPSG,SEGAPSG_CLOCK} from '../js/segapsg.js';
 import factory from '../generated/segapsg_wasm.js';
 import {createSegaPsgApi} from '../js/segapsg_api.js';
+import {normalizeSynthPsgSettings} from './synth_psg.js';
 
 class Port {
   constructor(){this.messages=[];this.closed=false;this.ready=new Promise((resolve,reject)=>{this.resolve=resolve;this.reject=reject;});}
@@ -32,6 +33,26 @@ const generate=(processor,count)=>{
   for(let start=0;start<count;start+=128)assert(processor.process([],[[left.subarray(start,Math.min(count,start+128)),right.subarray(start,Math.min(count,start+128))]]));
   return {left,right};
 };
+
+test('private worklet schedules a complete event stream, reports its end and rejects stale playback after stop/reset',async()=>{
+  const processor=await worklet();
+  const doc={format:'tetorica-sega-psg-recording-v1',version:1,durationSeconds:.15,
+    initialState:{settings:normalizeSynthPsgSettings({attenuation:3,envelope:{enabled:true,attackMs:0,decayMs:0,sustain:100,releaseMs:70}}),pitchClock:7670454},
+    commands:[{time:0,type:'noteOn',channel:0,block:4,fnum:1083},{time:.02,type:'noteOff',channel:0}]};
+  try {
+    send(processor,'playRecording',[1,doc,{loop:true}]);assert(generate(processor,1000).left.some(x=>x!==0));
+    send(processor,'stopRecording',[2]);assert(generate(processor,2000).left.every(x=>x===0));
+    send(processor,'playRecording',[1,doc,{loop:true}]);assert(generate(processor,1000).left.every(x=>x===0));
+    send(processor,'playRecording',[3,doc,{loop:false}]);const pcm=generate(processor,11000).left;
+    assert(pcm.subarray(0,800).some(x=>x!==0));assert(pcm.subarray(8000).every(x=>x===0));
+    assert.deepEqual(processor.port.messages.filter(value=>value.type==='psg-recording-ended'),[{type:'psg-recording-ended',session:3}]);
+    send(processor,'playRecording',[4,doc,{loop:true}]);generate(processor,128);send(processor,'reset');
+    assert(!processor.player.snapshot().playing);assert(generate(processor,1000).left.every(x=>x===0));
+    send(processor,'playRecording',[4,doc,{loop:true}]);assert(generate(processor,1000).left.every(x=>x===0));
+    send(processor,'playRecording',[5,doc,{loop:true}]);generate(processor,128);send(processor,'allNotesOff');assert(generate(processor,1000).left.every(x=>x===0));
+    send(processor,'playRecording',[6,doc,{loop:true}]);generate(processor,128);send(processor,'dispose');assert(!processor.player.snapshot().playing);assert(processor.dead);
+  } finally {processor.dispose();}
+});
 
 test('private worklet Envelope Off generates the exact shared PSG PCM for ordinary tone/noise commands',async()=>{
   const processor=await worklet(),chip=await SegaPSG.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:48000,clock:SEGAPSG_CLOCK});

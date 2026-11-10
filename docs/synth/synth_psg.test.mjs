@@ -28,6 +28,20 @@ test('default PSG settings are detached JSON data and preparing controls emits n
   assert(Object.isFrozen(SYNTH_PSG_DEFAULTS.envelope));
 });
 
+test('recording hooks capture semantic commands once, independently of hardware writes and UI state updates',()=>{
+  const commands=[],writes=[],psg=createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>writes.push(value)});
+  const voice=createSynthPsgVoice({getPsg:()=>psg,onCommand:command=>commands.push(structuredClone(command))});
+  assert.deepEqual(commands,[]);
+  voice.noteOn(1,4,1083);voice.setFrequency(1,5,1083);voice.noteOff(1);voice.noteOff(1);
+  voice.setSettings({attenuation:8});voice.setSettings({attenuation:8});voice.stop();
+  assert.deepEqual(commands.map(command=>command.type),['noteOn','setFrequency','noteOff','setSettings','stop']);
+  assert.deepEqual(commands[0],{type:'noteOn',channel:1,block:4,fnum:1083});
+  assert.equal(commands[3].settings.attenuation,8);assert.equal(commands[3].settings.envelope.enabled,false);
+  assert(writes.length>commands.length,'a frequency latch and its data remain one semantic event');
+  const before=structuredClone(commands);assert.throws(()=>voice.noteOn(3,4,1083));
+  assert.throws(()=>voice.setSettings({attenuation:16}));assert.deepEqual(commands,before);
+});
+
 test('software envelope uses the ordered endpoint, snapshots note settings and keeps release tails responsive to base attenuation',()=>{
   const writes=[],commands=[],psg={...createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>writes.push(value)}),
     envelopeNoteOn:(...args)=>commands.push(['on',...structuredClone(args)]),

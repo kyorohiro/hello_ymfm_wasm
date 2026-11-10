@@ -3,6 +3,8 @@ import {createSegaPsgApi} from '../js/segapsg_api.js';
 import {SEGAPSG_CLOCK} from '../js/segapsg.js';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 import {normalizeSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
+import {normalizePsgRecording} from './synth_psg_recording.js?v=psg-event-rec-1';
+import {normalizeSynthPsgSettings} from './synth_psg.js?v=psg-event-rec-1';
 
 /** Lazy PSG endpoint on the host's existing AudioContext/output bus. */
 export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAudio}={}) {
@@ -17,6 +19,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     owner.gain.gain.value=0;
     try {owner.api?.allNotesOff();} catch {}
     owner.abort.abort(reason);
+    owner.cleanupPlayback?.();
     try {owner.device?.dispose();} finally {owner.gain.disconnect();}
   }
   function fail(owner,error) {
@@ -37,7 +40,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     const creating=Promise.resolve().then(()=>{
       owner.abort.signal.throwIfAborted();
       return createDevice(context,gain,{clock:SEGAPSG_CLOCK,stereoEnabled:false,signal:owner.abort.signal,
-        workletUrl:new URL('./synth_psg_worklet.js?v=psg-envelope-1',import.meta.url),
+        workletUrl:new URL('./synth_psg_worklet.js?v=psg-event-rec-1',import.meta.url),
         onError:error=>fail(owner,error)});
     });
     owner.promise=new Promise((resolve,reject)=>{
@@ -50,7 +53,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         const port=device.port??device.node?.port;
         if(typeof port?.postMessage!=='function')throw new TypeError('PSG endpoint needs an ordered MessagePort');
         const post=(method,args=[],extra={})=>{if(!owner.closed)port.postMessage({method,args,...extra});};
-        let envelopesUsed=false,latched=0;
+        let envelopesUsed=false,latched=0,playbackSession=0,playbackUsed=false,activePlayback=null;
         const channel=value=>{if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('PSG envelope channel must be 0..3');};
         const attenuation=value=>{if(!Number.isInteger(value)||value<0||value>15)throw new RangeError('PSG attenuation must be 0..15');};
         const write=value=>{
@@ -58,7 +61,35 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
           post('write',[value],envelopesUsed&&!(value&128)?{psgRegister:latched}:{});
         };
         const api=createSegaPsgApi({clock:SEGAPSG_CLOCK,write,
-          reset:()=>post('reset'),resetAll:()=>post('reset')});
+          reset:()=>{api.stopRecordingPlayback();post('reset');},resetAll:()=>{api.stopRecordingPlayback();post('reset');}});
+        api.stopRecordingPlayback=()=>{
+          activePlayback=null;
+          if(playbackUsed){post('stopRecording',[++playbackSession]);playbackUsed=false;}
+        };
+        api.playRecording=(value,options={})=>{
+          const recording=normalizePsgRecording(value);
+          if(!recording.commands.length)throw new Error('PSG recording contains no events');
+          for(const field of ['loop','ignorePatch'])if(options[field]!==undefined&&typeof options[field]!=='boolean')throw new TypeError(`PSG playback ${field} must be a boolean`);
+          if(options.onEnded!==undefined&&typeof options.onEnded!=='function')throw new TypeError('PSG playback completion must be a callback');
+          const ignorePatch=options.ignorePatch===true;
+          const settings=ignorePatch?normalizeSynthPsgSettings(options.settings):null;
+          const pitchClock=ignorePatch?options.pitchClock:recording.initialState.pitchClock;
+          if(!Number.isFinite(pitchClock)||pitchClock<=0)throw new RangeError('PSG playback pitch clock must be positive');
+          if(owner.closed)throw new Error('PSG audio endpoint is retired');
+          const session=++playbackSession;
+          playbackUsed=true;activePlayback={session,onEnded:options.onEnded};
+          post('playRecording',[session,recording,{loop:options.loop===true,ignorePatch,settings,pitchClock}]);
+          return session;
+        };
+        api.isRecordingPlaybackActive=()=>Boolean(activePlayback);
+        const notify=({data})=>{
+          if(owner.closed||data?.type!=='psg-recording-ended'||data.session!==activePlayback?.session)return;
+          const callback=activePlayback.onEnded;activePlayback=null;
+          callback?.();
+        };
+        const notifications=device.node?.port;
+        notifications?.addEventListener?.('message',notify);
+        owner.cleanupPlayback=()=>{activePlayback=null;notifications?.removeEventListener?.('message',notify);};
         api.stopEnvelopes=()=>{if(envelopesUsed){post('stopEnvelopes');envelopesUsed=false;}};
         api.envelopeNoteOn=(ch,value,baseAttenuation)=>{
           channel(ch);attenuation(baseAttenuation);const envelope=normalizeSynthPsgEnvelope(value);
@@ -68,7 +99,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         api.envelopeNoteOff=ch=>{channel(ch);if(envelopesUsed)post('envelopeNoteOff',[ch]);};
         api.setEnvelopeAttenuation=value=>{attenuation(value);if(envelopesUsed)post('setEnvelopeAttenuation',[value]);};
         const allNotesOff=api.allNotesOff;
-        api.allNotesOff=()=>{api.stopEnvelopes();allNotesOff();};
+        api.allNotesOff=()=>{api.stopRecordingPlayback();api.stopEnvelopes();allNotesOff();};
         api.allNotesOff();
         owner.api=api;owner.pending=false;updateGain(owner);resolve(api);
       }).catch(error=>{

@@ -7,9 +7,10 @@ import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';
 import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
+import {SynthPsgRecordingManager} from './synth_psg_recording.js?v=psg-event-rec-1';
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
-import {createSynthPsgVoice} from './synth_psg.js?v=psg-envelope-1';
-import {createSynthPsgAudio} from './synth_psg_audio.js?v=psg-envelope-1';
+import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=psg-event-rec-1';
 import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-envelope-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
@@ -459,6 +460,7 @@ function selectEditorChip(button) {
   }
   for (const panel of editorChipPanels) panel.hidden = panel.id !== button.getAttribute('aria-controls');
   psgAudio.setEnabled(editorChip === 'psg');
+  psgEventAudio.setEnabled(editorChip === 'psg');
   operatorEnvelopeView.setVisible(editorChip === 'ym2612' && visualMode === 'envelope');
   operatorEnvelopeView.invalidateOutput();
   if (changed) {buildKeyboard(); updateKeyboardVisuals();}
@@ -567,6 +569,11 @@ const eventRecordIgnoreOperators =
   document.getElementById(
     "eventRecordIgnoreOperators"
   );
+const eventIgnorePatchByChip = {ym2612:true,psg:false};
+eventRecordIgnoreOperators.addEventListener('change',()=>{
+  eventIgnorePatchByChip[editorChip==='psg'?'psg':'ym2612']=eventRecordIgnoreOperators.checked;
+  eventRecordIgnoreOperators.blur();
+});
 const eventRecordStateRoot =
   document.getElementById(
     "eventRecordState"
@@ -619,13 +626,38 @@ const voices =
 const activeKeys = new Map();
 let inputController = null;
 let psgControls = null;
+let psgEventRecorder = null;
 const psgAudio = createSynthPsgAudio({onError:error => {
-  stopAllNotes(); updateKeyboardAvailability(); setStatus(`PSG audio: ${error.message}`);
+  stopAllNotes();psgEventRecorder?.stopRecord();eventRecordSessionActive=false;
+  updateKeyboardAvailability();updateEventRecordUi();setStatus(`PSG audio: ${error.message}`);
+}});
+const psgEventAudio=createSynthPsgAudio({onError:error=>{
+  psgEventRecorder?.stopRecordingPlayback();
+  setStatus(`PSG event playback: ${error.message}`);updateEventRecordUi();
 }});
 const psgVoice = createSynthPsgVoice({
   getPsg:() => psgAudio.getPsg(),
   getPitchClock:() => synth?.clock ?? YM2612_CLOCK,
   onState:() => psgControls?.update(songPsgLiveView?.snapshot.channels[songPsgLiveView.channel].preset),
+  onCommand:command=>{
+    try {psgEventRecorder?.recordCommand(command);}
+    catch(error) {psgEventRecorder?.stopRecord();setStatus(`PSG event recording stopped: ${error.message}`);}
+  },
+});
+psgEventRecorder=new SynthPsgRecordingManager({
+  now:()=>audioContext?.currentTime??0,
+  getSettings:()=>psgVoice.getSettings(),
+  getPitchClock:()=>synth?.clock??YM2612_CLOCK,
+  onChange:()=>updateEventRecordUi(),
+  onPlaybackStopped:()=>updateEventRecordUi(),
+  async startPlayback(recording,options) {
+    psgVoice.stop();clearInputState();
+    const psg=await psgEventAudio.prepare(audioContext,finalOutputBus);
+    options.signal.throwIfAborted();
+    psgEventAudio.setEnabled(editorChip==='psg');
+    psg.playRecording(recording,options);
+  },
+  stopPlayback:()=>psgEventAudio.getPsg()?.stopRecordingPlayback(),
 });
 psgControls = setupSynthPsgControls({
   voice:psgVoice,
@@ -650,6 +682,11 @@ function refreshChipAvailability() {
   exportPsgButton.disabled = fm || observing || editorSwitchPending;
   exportTfiButton.disabled = exportVgiButton.disabled = !fm || observing;
   for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || observing;
+  eventRecordIgnoreOperators.checked=eventIgnorePatchByChip[editorChip==='psg'?'psg':'ym2612'];
+  document.getElementById('eventRecordPatchLabel').textContent=editorChip==='psg'?'Use current sound':'Ignore Op';
+  eventRecordIgnoreOperators.parentElement.title=editorChip==='psg'
+    ?'Use the current PSG sound instead of recorded settings. The sound is captured when Play starts.'
+    :'Ignore recorded operator settings and use the current FM sound.';
   synthFiles?.refresh();
   updateLooperUi(); updateEventRecordUi(); updateKeyboardAvailability();
 }
@@ -684,6 +721,7 @@ function applyMasterVolume() {
   songControls?.setVolume(masterVolume);
   songAuditionMegaSynth?.setMasterVolume(masterVolume);
   psgAudio.setVolume(masterVolume);
+  psgEventAudio.setVolume(masterVolume);
 }
 
 function isSongChannelTarget() {
@@ -701,16 +739,30 @@ function getCurrentPerformanceVoice() {
 }
 
 function recordingBlocked() {
-  return editorChip === 'psg'||switchingAudioOutput||Boolean(referenceRecordingStop)||
+  return editorChip === 'psg'||eventRecordingBlocked();
+}
+
+function eventRecordingBlocked() {
+  return switchingAudioOutput||Boolean(referenceRecordingStop)||
     ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget();
 }
 
 function recordingUnavailableReason() {
-  return editorChip === 'psg' ? 'PSG recording is not available yet. Choose YM2612 to use Looper or Event Rec.'
+  return editorChip === 'psg' ? 'PSG Looper is not available yet. Use Event Rec to record PSG notes and settings.'
     : 'Pause or Stop the VGM and choose Synth to record your instrument.';
 }
 
 function recordingOperationCurrent(epoch) {return epoch===recordingEpoch&&!recordingBlocked();}
+function eventRecordingOperationCurrent(epoch,chip) {return epoch===recordingEpoch&&chip===editorChip&&!eventRecordingBlocked();}
+function eventRecordingSource() {return editorChip==='psg'?psgEventRecorder:megaSynth;}
+function canPlayEventRecording(recording) {
+  return editorChip==='psg'?recording?.commands?.some(command=>command.type==='noteOn'):Boolean(recording?.commands?.length);
+}
+function releaseEventTakeKeys() {
+  if(editorChip!=='psg'){stopAllNotes();return;}
+  for(const channel of psgVoice.getState().heldChannels)psgVoice.noteOff(channel);
+  clearInputState();
+}
 
 function restoreEditorAfterEventPlayback() {
   stopAllNotes();
@@ -723,6 +775,9 @@ function restoreEditorAfterEventPlayback() {
 // epoch also invalidates actions that were still waiting for audio readiness.
 function stopRecordingForReference() {
   ++recordingEpoch;
+  if(psgEventRecorder?.isRecording()) {psgVoice.stop();psgEventRecorder.stopRecord();}
+  psgEventRecorder?.stopRecordingPlayback();
+  eventRecordSessionActive=false;
   if(referenceRecordingStop)return referenceRecordingStop;
   stopAllNotes();
   if(megaSynth?.isRecording())megaSynth.stopRecord();
@@ -1015,9 +1070,9 @@ function updateLooperUi() {
 
 function updateEventRecordUi() {
   const recordingSource =
-    megaSynth;
+    eventRecordingSource();
   const recording =
-    recordingSource?.exportRecording?.() ??
+    (editorChip==='psg'?null:recordingSource?.exportRecording?.()) ??
     null;
   const isRecording =
     recordingSource?.isRecording?.() ??
@@ -1026,11 +1081,11 @@ function updateEventRecordUi() {
     recordingSource?.isRecordingPlaybackActive?.() ??
     false;
   const commandCount =
-    recording?.commands?.length ?? 0;
+    editorChip==='psg'?(recordingSource?.commandCount??0):(recording?.commands?.length??0);
 
   if (eventRecordStartButton) {
-    eventRecordStartButton.disabled=recordingBlocked();
-    eventRecordStartButton.title=recordingBlocked()?recordingUnavailableReason():'';
+    eventRecordStartButton.disabled=eventRecordingBlocked();
+    eventRecordStartButton.title=eventRecordingBlocked()?'Pause or Stop the VGM and choose Synth to record your instrument.':'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -1041,7 +1096,7 @@ function updateEventRecordUi() {
     eventRecordStopButton.hidden =
       !eventRecordSessionActive;
     eventRecordStopButton.disabled =
-      !eventRecordSessionActive||recordingBlocked();
+      !eventRecordSessionActive||eventRecordingBlocked();
     eventRecordStopButton.textContent =
       isRecording
         ? "Stop [Space]"
@@ -1050,10 +1105,10 @@ function updateEventRecordUi() {
 
   if (eventRecordPlayButton) {
     eventRecordPlayButton.disabled =
-      !megaSynth ||
-      recordingBlocked() ||
+      !recordingSource ||
+      eventRecordingBlocked() ||
       isRecording ||
-      commandCount === 0;
+      !(editorChip==='psg'?recordingSource?.hasNotes:canPlayEventRecording(recording));
     eventRecordPlayButton.textContent =
       isPlaying
         ? "Stop Play"
@@ -1062,16 +1117,18 @@ function updateEventRecordUi() {
 
   if (eventRecordExportButton) {
     eventRecordExportButton.disabled =
-      !megaSynth ||
+      !recordingSource ||
       isRecording ||
       commandCount === 0;
   }
-  if(eventRecordImportInput)eventRecordImportInput.disabled=recordingBlocked()||isRecording;
+  if(eventRecordImportInput)eventRecordImportInput.disabled=eventRecordingBlocked()||isRecording;
 
   if (eventRecordStateRoot) {
     if (isRecording) {
       eventRecordStateRoot.textContent =
         `Event: REC ${commandCount}`;
+    } else if (isPlaying && editorChip==='psg') {
+      eventRecordStateRoot.textContent=`Event: LOOP ${commandCount}`;
     } else if (
       eventRecordSessionActive
     ) {
@@ -1092,6 +1149,7 @@ function updateEventRecordUi() {
 }
 
 function buildEventPlaybackOptions() {
+  if(editorChip==='psg')return {loop:true,ignorePatch:eventRecordIgnoreOperators.checked};
   return {
     loop: true,
     get ignoreOperators() {
@@ -1107,6 +1165,14 @@ function buildEventPlaybackOptions() {
       return !this.ignoreOperators;
     },
   };
+}
+
+async function playEventSource(source,recording=null) {
+  try {return await source.playRecording(recording,buildEventPlaybackOptions());}
+  catch(error) {
+    if(error.name!=='AbortError')setStatus(`Event playback failed: ${error.message}`);
+    return null;
+  } finally {updateEventRecordUi();}
 }
 
 function handleLooperStateChange(
@@ -1156,12 +1222,13 @@ function handleLooperStateChange(
 }
 
 async function toggleEventRecordSession() {
-  if(recordingBlocked())return;
-  const epoch=recordingEpoch;
+  if(eventRecordingBlocked())return;
+  const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
-  if(!recordingOperationCurrent(epoch))return;
+  if(!eventRecordingOperationCurrent(epoch,chip))return;
+  const source=eventRecordingSource();
 
-  if (!megaSynth) {
+  if (!source) {
     return;
   }
 
@@ -1175,22 +1242,20 @@ async function toggleEventRecordSession() {
       "Stopping looper..."
     );
     await looper.stop();
-    if(!recordingOperationCurrent(epoch))return;
+    if(!eventRecordingOperationCurrent(epoch,chip))return;
     stopAllNotes();
   }
 
   if (eventRecordSessionActive) {
-    if (megaSynth.isRecording()) {
-      stopAllNotes();
+    if (source.isRecording()) {
+      releaseEventTakeKeys();
       const recording =
-        megaSynth.stopRecord();
+        source.stopRecord();
       if (
-        recording?.commands?.length
+        canPlayEventRecording(recording)
       ) {
-        megaSynth.playRecording(
-          recording,
-          buildEventPlaybackOptions()
-        );
+        await playEventSource(source,recording);
+        if(!eventRecordingOperationCurrent(epoch,chip))return;
       }
     }
 
@@ -1213,13 +1278,14 @@ async function toggleEventRecordSession() {
 }
 
 async function toggleEventTakeRecording() {
-  if(recordingBlocked())return;
-  const epoch=recordingEpoch;
+  if(eventRecordingBlocked())return;
+  const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
-  if(!recordingOperationCurrent(epoch))return;
+  if(!eventRecordingOperationCurrent(epoch,chip))return;
+  const source=eventRecordingSource();
 
   if (
-    !megaSynth ||
+    !source ||
     !eventRecordSessionActive
   ) {
     setStatus(
@@ -1228,27 +1294,25 @@ async function toggleEventTakeRecording() {
     return;
   }
 
-  if (megaSynth.isRecording()) {
-    stopAllNotes();
+  if (source.isRecording()) {
+    releaseEventTakeKeys();
     const recording =
-      megaSynth.stopRecord();
+      source.stopRecord();
     if (
-      recording?.commands?.length
+      canPlayEventRecording(recording)
     ) {
-      megaSynth.playRecording(
-        recording,
-        buildEventPlaybackOptions()
-      );
+      await playEventSource(source,recording);
+      if(!eventRecordingOperationCurrent(epoch,chip))return;
     }
     updateEventRecordUi();
     setStatus(
-      `Event recording stopped. ${recording?.commands?.length ?? 0} commands looping.`
+      canPlayEventRecording(recording)?`Event recording stopped. ${recording.commands.length} commands looping.`:"No notes were played. Empty event take kept silent."
     );
     return;
   }
 
-  stopAllNotes();applyPatchToVoices();
-  megaSynth.startRecord();
+  stopAllNotes();if(chip!=='psg')applyPatchToVoices();
+  source.startRecord();
   updateEventRecordUi();
   setStatus(
     "Event recording started."
@@ -1256,19 +1320,20 @@ async function toggleEventTakeRecording() {
 }
 
 async function playEventRecording() {
-  if(recordingBlocked())return;
-  const epoch=recordingEpoch;
+  if(eventRecordingBlocked())return;
+  const epoch=recordingEpoch,chip=editorChip;
   await ensureAudioReady();
-  if(!recordingOperationCurrent(epoch))return;
+  if(!eventRecordingOperationCurrent(epoch,chip))return;
+  const source=eventRecordingSource();
 
-  if (!megaSynth) {
+  if (!source) {
     return;
   }
 
   if (
-    megaSynth.isRecordingPlaybackActive()
+    source.isRecordingPlaybackActive()
   ) {
-    megaSynth.stopRecordingPlayback();
+    source.stopRecordingPlayback();
     updateEventRecordUi();
     setStatus(
       "Event playback stopped."
@@ -1277,10 +1342,9 @@ async function playEventRecording() {
   }
 
   const recording =
-    megaSynth.playRecording(
-      null,
-      buildEventPlaybackOptions()
-    );
+    await playEventSource(source);
+  if(!eventRecordingOperationCurrent(epoch,chip))return;
+  if(!recording)return;
   updateEventRecordUi();
   setStatus(
     `Playing recorded event stream (${recording?.commands?.length ?? 0} commands) in a loop.`
@@ -1288,12 +1352,13 @@ async function playEventRecording() {
 }
 
 function exportEventRecording() {
-  if (!megaSynth) {
+  const source=eventRecordingSource();
+  if (!source) {
     return;
   }
 
   const recording =
-    megaSynth.exportRecording();
+    source.exportRecording();
 
   if (!recording) {
     setStatus(
@@ -1321,7 +1386,7 @@ function exportEventRecording() {
     document.createElement("a");
   anchor.href = url;
   anchor.download =
-    "megasynth-recording.json";
+    editorChip==='psg'?'tetorica-psg-recording.json':'megasynth-recording.json';
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -1334,8 +1399,8 @@ function exportEventRecording() {
 async function importEventRecording(
   event
 ) {
-  if(recordingBlocked()||megaSynth?.isRecording())return;
-  const epoch=recordingEpoch;
+  if(eventRecordingBlocked()||eventRecordingSource()?.isRecording())return;
+  const epoch=recordingEpoch,chip=editorChip;
   const [file] =
     event.target.files || [];
 
@@ -1345,16 +1410,17 @@ async function importEventRecording(
 
   try {
     await ensureAudioReady();
-    if(!recordingOperationCurrent(epoch))return;
+    if(!eventRecordingOperationCurrent(epoch,chip))return;
+    const source=eventRecordingSource();
     const text =
       await file.text();
-    if(!recordingOperationCurrent(epoch))return;
+    if(!eventRecordingOperationCurrent(epoch,chip))return;
     const recording =
       JSON.parse(text);
-    megaSynth?.importRecording(
+    source?.importRecording(
       recording
     );
-    megaSynth?.stopRecordingPlayback();
+    source?.stopRecordingPlayback();
     updateEventRecordUi();
     setStatus(
       `Imported event recording: ${file.name}.`
@@ -2738,15 +2804,15 @@ function clearLooper() {
 }
 
 function togglePrimaryRecordAction() {
+  if (eventRecordSessionActive) {
+    if(eventRecordingBlocked()) {setStatus('Pause or Stop the VGM and choose Synth to record your instrument.');return;}
+    void toggleEventTakeRecording();
+    return;
+  }
   if(recordingBlocked()) {
     setStatus(recordingUnavailableReason());
     return;
   }
-  if (eventRecordSessionActive) {
-    void toggleEventTakeRecording();
-    return;
-  }
-
   void toggleLooperRecord();
 }
 
@@ -3330,6 +3396,7 @@ window.addEventListener('pagehide',event=>{
     psgLiveHighlighter.dispose();
     psgControls.dispose();
     psgAudio.dispose();
+    psgEventAudio.dispose();
     ++songAuditionGeneration;
     if (songAuditionBus) songAuditionBus.gain.value = 0;
     void songAuditionMegaSynth?.close();
@@ -3346,7 +3413,7 @@ if (window.__TAURI_INTERNALS__) {
     value: Object.freeze({
       setSwitching(value) {
         switchingAudioOutput = value === true;
-        if(switchingAudioOutput)++recordingEpoch;
+        if(switchingAudioOutput)void stopRecordingForReference();
         updateKeyboardAvailability();updateLooperUi();updateEventRecordUi();
       },
       async ensureReady() {
