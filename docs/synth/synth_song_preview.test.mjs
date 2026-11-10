@@ -59,6 +59,59 @@ function fixture({getAudio, createEngine, beforeResume}={}) {
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,35));
 
+test('native PSG-only playback observes the audible prefix and exact paused/seek positions without a fabricated FM snapshot',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
+  const wait=frames=>[0x61,frames&255,frames>>8];
+  const bytes=vgm({clock:0,durationSamples:17640,commands:[
+    0x50,0x8e,0x50,0x0f,0x50,0x96,...wait(2205),
+    0x50,0x99,0x50,0xe7,0x50,0xf4,...wait(15435),0x66,
+  ]});
+  try {
+    await preview.load(bytes,'PSG-only.vgm');assert.equal(preview.getState().psgLiveState,null);
+    assert.equal(await preview.play(),true);
+    const deadline=Date.now()+1000;
+    while(host.starts.reduce((sum,node)=>sum+node.buffer.length,0)<12000&&Date.now()<deadline)await tick();
+    let view=preview.getState();assert.equal(view.liveState,null);assert.equal(view.psgLiveState.channels[0].attenuation,6);
+    assert.equal(view.psgLiveState.channels[3].attenuation,15,'render-ahead noise writes are not yet audible');
+    host.context.currentTime=.085;preview.pause();view=preview.getState();
+    assert.equal(view.psgLiveState.channels[0].attenuation,9);assert.equal(view.psgLiveState.channels[3].attenuation,4);
+    const frozen=structuredClone(view.psgLiveState);host.context.currentTime=10;await tick();
+    assert.deepEqual(preview.getState().psgLiveState,frozen);
+    await preview.seek(.025);view=preview.getState();assert.equal(view.playback,'paused');
+    assert.equal(view.psgLiveState.channels[0].attenuation,6);assert.equal(view.psgLiveState.channels[3].lastAttenuation,15);
+    await preview.seek(.075);view=preview.getState();assert.equal(view.psgLiveState.channels[0].attenuation,9);
+    assert.equal(view.psgLiveState.channels[3].noiseRate,'tone3');assert.equal(view.psgLiveState.channels[3].attenuation,4);
+    const samples=host.starts.flatMap(node=>Array.from(node.buffer.getChannelData(0)));
+    assert(samples.some(value=>Math.abs(value)>.001),'the actual PSG core rendered audio');
+    preview.stop();assert.equal(preview.getState().psgLiveState,null);
+  } finally {preview.dispose();}
+});
+
+test('mixed native PSG/YM seek cache restores both audible decoders with independent source clocks',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
+  const commands=[];let frames=0;
+  const wait=count=>{while(count){const chunk=Math.min(count,65535);commands.push(0x61,chunk&255,chunk>>8);count-=chunk;frames+=chunk;}};
+  for(let second=0;second<12;second++) {
+    commands.push(0x52,0xb0,second%8,0x50,0x80|(second&15),0x50,0x10+(second&7),0x50,0x90|(second%14));
+    wait(44100);
+  }
+  commands.push(0x66);
+  try {
+    await preview.load(vgm({commands,durationSamples:frames}),'mixed-observers.vgm');
+    await preview.seek(10.25);let view=preview.getState();
+    assert.equal(view.liveState.channels[0].preset.algorithm,2);assert.equal(view.psgLiveState.channels[0].attenuation,10);
+    assert.equal(view.psgLiveState.channels[0].period,(0x12<<4)|10);
+    assert.equal(view.liveState.frame,view.psgLiveState.frame);assert(view.cache.count>0);
+    await preview.seek(6.25);view=preview.getState();assert(view.cache.lastRestoreFrame>0);
+    assert.equal(view.liveState.channels[0].preset.algorithm,6);assert.equal(view.psgLiveState.channels[0].attenuation,6);
+    assert.equal(view.psgLiveState.channels[0].period,(0x16<<4)|6);
+    assert.equal(view.liveState.frame,view.psgLiveState.frame);
+    preview.setSeekCacheEnabled(false);await preview.seek(6.25);
+    const cold=preview.getState();assert.deepEqual(cold.psgLiveState.channels,view.psgLiveState.channels);
+    assert.deepEqual(cold.liveState.channels,view.liveState.channels);
+  } finally {preview.dispose();}
+});
+
 test('selection stays silent; Play borrows the existing output and requests its gesture before awaiting',async()=>{
   let requested=0;const host=audioHost(), f=fixture({getAudio:()=>{requested++;return host;}});
   try{

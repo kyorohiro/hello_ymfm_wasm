@@ -1,5 +1,29 @@
 # FM2612 / Genesis Synth：PSG基本演奏（2026-11-10）
 
+## 完了：VGM再生中のPSGタブ選択
+
+ユーザー報告：VGM Play中にPSGを選ぶとSynthへ戻ってしまう。
+
+確認済みの希望：FMと同様、VGM曲中のPSG各CHをLive表示する。
+
+- [x] PSGタブとVGMの再生／CH選択が連動する条件を確認し、期待するPSGのLive表示／編集の区別を整理する。
+- [x] PSGの書込み状態を聴こえる位置で追跡するdecoder／timelineを追加し、Tone周期・減衰・Noise設定とPause／Seek／cacheを接続する。
+- [x] PSGタブではTone 1〜3／Noiseを選択して既存UIでLive／Frozen表示し、Pause中にそのCHを試奏・Copyする。Software EnvelopeはOffとし、元の編集音色は変更しない。
+- [x] タブ選択だけで曲のCHをSynthへ戻したり、直後の再生更新で別タブへ戻したりしない。編集中の音色と保存先を保つ。
+- [x] Play／Pause／Stop／Live切替、PSGとYM2612の往復、保存状態と鍵盤入力の回帰を確認し、cache keyと再開記録を更新する。
+
+原因：PSGタブを編集専用として実装しており、view切替とdocument切替で`selectTarget('synth')`を呼び、再生状態通知ではPSGをYM2612へ戻していた。referenceの観測chipと編集documentの所有権を分離した。再生中のタブはreference chipを切り替え、明示的なSynth選択は編集に戻るための選択として保持する。
+
+実装：app専用PSG decoder／audible timelineでraw latch／3 tone periods／4 attenuation／最後の非消音値／noise modeを追跡する。未使用CHを勝手に鳴らさず、period 0／1の定常出力やwhite noiseに架空の音程を付けない。Previewは従来`liveState`（YM）を維持し、`psgLiveState`を別に追加。可聴frameに合わせ、先読み・Pause／Seek／checkpoint cache／EOF／Stop／disposeへ接続した。FMとPSGでCH選択を記憶し、Live Off時は両音源を同じ位置で凍結する。
+
+UI／試奏：PSGではTone 1〜3／Noiseを選び、既存Source／Attenuation／Noise type／clockをreadonly表示する。変更のhighlightは既存のOn／Off設定を共有。Software EnvelopeはOffで表示し、VGMが行う音量writeをこのSynthのADSRと混同しない。Pause時は独立adapterで選択した物理CHをmono試奏し、減衰15なら最後の非消音値を使う。Copyは新しいversion 2 PSG presetを作成し、元のFM／PSG音色・元VGM・編集中のSoftware Envelope設定は保持する。非標準clockの固定Noise、未使用CH、定常toneなど試奏できない設定は理由を表示し、Copyも無効にする。共有SDK／DSP／WASM／校正値は変更していない。
+
+検証：`node --test --test-concurrency=1 docs/synth/*.test.mjs`で246件成功。新規17件はPSG decoder／timeline 5、native Preview 2、Pause voice／Copy 6、実controls 4。source／最終配布版のChromium・WebKitで、再生中のPSG選択→`psg:0`、Tone／Noise readonly表示、CH記憶、Live Off／Seek位置の更新、Pause Tone／Noiseの実PCM、元のEnvelope On音色の復元、Copyと元ファイルのbyte不変、Stop後の編集、390／1240pxを確認した。最終stageでは既存FMのLive／Pause試奏／Seek／cache／取消も両browserで成功。speaker edgeは物理muteした自動計測で、人の実聴とは区別する。
+
+記録：`/private/tmp/fm2612-psg-live-node-20261110.log`、`/private/tmp/fm2612-psg-live-source-20261110.json`（107 assets）、`/private/tmp/fm2612-psg-live-package-browser-20261110.json`、`/private/tmp/fm2612-psg-live-fm-seek-20261110.json`（104 assets）。source／stageのserved asset hashは最終ファイルと一致。entry／新しいLive helperのcache keyは`psg-live-1`。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-live-check-20261110_itch_synth.zip`（231 files、867,246 bytes、SHA-256 `1a406500817b3da42f6f94959ffcc98fbf5d33c8d0e1903c8fd1148cd494930f`）。全fileがstageとbyte一致し、300 local references検査成功。receipt：`/private/tmp/fm2612-psg-live-package-20261110.json`。README英語／日本語とpackaging更新済み。未commit／未push／未公開。
+
 ## 完了：PSG Software Envelope
 
 ユーザー指示：PSGへSoftware Envelopeを追加し、ソフトウェア機能だと画面から分かるようにする。
