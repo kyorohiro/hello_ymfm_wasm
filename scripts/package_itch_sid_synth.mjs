@@ -70,7 +70,7 @@ async function copySongPreviewNativeKit(stage, component, buildInputs) {
 }
 export async function packageSidSynth({version = 'dev', releaseDir = join(root, 'release')} = {}) {
   validateSidSynthVersion(version);
-  await checkRuntimeArtifacts({root, ids:['sid'], mirrors:true});
+  await checkRuntimeArtifacts({root, ids:['sid','native_audio_effect'], mirrors:true});
   await syncSidModelModules({check:true});
   await syncSidPlayerArtifacts({check:true});
   await syncSidRsidArtifacts({check:true});
@@ -81,8 +81,26 @@ export async function packageSidSynth({version = 'dev', releaseDir = join(root, 
   const stage = await mkdtemp(join(releaseDir, `itch_sid_synth_${version}-`));
   const browser = await copyReadableModules({root, stage,
     entries:['docs/synth-sid/synth.js', 'docs/synth-sid/processor.js', 'docs/synth-sid/synth.css',
-      'docs/sid-player/processor.js'], factories:[]});
+      'docs/sid-player/processor.js','docs/js/native-fx-worklet.js'], factories:[]});
   const inputs = new Set(browser.inputs), bundles = browser.entries;
+  // Monaco declarations are fetched by name, and the FX rack loads its WASM
+  // through new URL(). Neither is a static JavaScript import edge.
+  for(const name of ['tetorica-playground-globals.d.ts','tetorica-playground-c64.d.ts','tetorica-shell.d.ts']){
+    const source='docs/playground/'+name;await mkdir(join(stage,'playground'),{recursive:true});await copyFile(join(root,source),join(stage,'playground',name));inputs.add(source);
+  }
+  for(const [source,destination]of [['docs/playground/vendor/fflate-LICENSE','playground/vendor/fflate-LICENSE'],['packages/virtual-files/LICENSE','licenses/tetorica-virtual-files/LICENSE']]){
+    await mkdir(join(stage,destination.slice(0,destination.lastIndexOf('/'))),{recursive:true});await copyFile(join(root,source),join(stage,destination));inputs.add(source);
+  }
+  const effectSource='tetorica_src/runtime/generated/effects/gain.wasm',effectPath='js/native_audio_effect.wasm';
+  await copyFile(join(root,effectSource),join(stage,effectPath));inputs.add(effectSource);
+  const effectKit='sources/code-effects';
+  await mkdir(join(stage,effectKit,'scripts'),{recursive:true});await mkdir(join(stage,effectKit,'tetorica_src/native'),{recursive:true});
+  await cp(join(root,'tetorica_src/native/audio_effect'),join(stage,effectKit,'tetorica_src/native/audio_effect'),{recursive:true});
+  await copyFile(join(root,'scripts/build_native_audio_effect.sh'),join(stage,effectKit,'scripts/build_native_audio_effect.sh'));
+  await copyFile(join(root,'LICENSE'),join(stage,effectKit,'LICENSE'));
+  for(const file of await filesIn(join(root,'tetorica_src/native/audio_effect')))inputs.add('tetorica_src/native/audio_effect/'+file);
+  inputs.add('scripts/build_native_audio_effect.sh');
+  await writeFile(join(stage,effectKit,'README.md'),`# Code software effects\n\nThis original Tetorica C effect rack is BSD-3-Clause; see LICENSE. It is host software after the SID, not a SID hardware effect. The readable browser host is js/native_fx_rack.js and the served WASM is js/native_audio_effect.wasm at the package root.\n\nWith Emscripten installed, run from this directory:\n\n\`\`\`sh\nsh scripts/build_native_audio_effect.sh /tmp/tetorica-sid-code-effects\ncp /tmp/tetorica-sid-code-effects/gain.wasm ../../js/native_audio_effect.wasm\n\`\`\`\n\nAn explicit output directory keeps this standalone rebuild independent of repository artifact-sync tools.\n`);
   const home = 'https://kyorohiro.github.io/hello_ymfm_wasm/';
   let html = await readFile(join(root, 'docs/synth-sid/index.html'), 'utf8');
   html = html.replace(/\b(href|src)="(\.\.\/[^"#]+)"/g, (_match, attribute, path) => {
@@ -162,6 +180,7 @@ PCM is included. See [all song-preview kits](SID-SONG-PREVIEW.md).
     bundles, modules:browser.modules,
     previewArtifacts:models.artifacts,previewSourceKit:models.sourceKit,
     songPreviewNativeKits,
+    codeEffects:{artifact:{path:effectPath,...record(await readFile(join(stage,effectPath)))},sourceRoot:effectKit,recipe:effectKit+'/scripts/build_native_audio_effect.sh'},
     originalInputs:await Promise.all(names.map(async path => ({path, ...record(await readFile(join(root, path)))}))),
     sourceArchive:{path:sourceArchive, ...record(await readFile(join(stage, sourceArchive)))}};
   await writeFile(join(stage, 'sources/sid-synth-browser.json'), JSON.stringify(receipt, null, 2) + '\n');

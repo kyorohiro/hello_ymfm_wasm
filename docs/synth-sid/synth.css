@@ -125,3 +125,46 @@ footer { line-height:1.6; margin-top:18px; }footer p { flex:1 1 600px; }footer d
   .keyboard-section>.section-heading { align-items:start; }.keyboard-section>.section-heading p { font-size:.64rem; }
 }
 @media(max-width:360px) { .product-identity { gap:10px; }.product-icon { width:60px; height:60px; border-radius:12px; } }
+
+/* Code and Files retain the SID editor's existing palette and controls. */
+.sid-code-workspace { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+.sid-code-workspace.has-files { grid-template-columns:230px minmax(0,1fr); }
+.sid-main,.sid-expanded-code,.sid-input-section,.sid-code-panel { min-width:0; }
+.sid-files-panel { border:1px solid var(--line); border-radius:10px; padding:12px; background:#f7f1e3b8; min-width:0; }
+.sid-files-panel[hidden],.sid-expanded-code[hidden],#synthKeyboardPanel[hidden],#synthCodePanel[hidden] { display:none; }
+.sid-files-toolbar { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.sid-files-toolbar button { min-height:30px; padding:5px 9px; font-size:.7rem; }
+.sid-files-path,.sid-files-status { font-size:.7rem; overflow-wrap:anywhere; color:var(--muted); }
+#sidFilesTree { min-height:80px; max-height:55vh; overflow:auto; margin:8px 0; }
+#sidFilesTree .file-tree { list-style:none; margin:0; padding-left:12px; }
+#sidFilesTree > .file-tree { padding-left:0; }
+#sidFilesTree li { margin:0; padding:0; }
+#sidFilesTree summary { cursor:pointer; font-size:.72rem; padding:4px 0; }
+#sidFilesTree .file-tree-root { font-size:.7rem; color:var(--muted); margin:6px 0; }
+#sidFilesTree button { display:block; width:100%; text-align:left; min-height:30px; padding:5px 8px; font-size:.72rem; overflow-wrap:anywhere; border-color:transparent; background:transparent; }
+#sidFilesTree button[aria-selected="true"],#sidFilesTree button[aria-current="true"] { background:#d9e9df; border-color:#6b9c8d; }
+.sid-input-tabs { display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--line); padding-bottom:0; margin-bottom:12px; }
+.sid-input-tabs > button { border-radius:8px 8px 0 0; margin-bottom:-1px; min-height:34px; }
+.sid-input-tabs > button[aria-selected="true"] { background:#d9e9df; border-bottom-color:#d9e9df; color:#185e54; }
+.sid-input-tabs .sid-code-expand { margin-left:auto; padding:5px 9px; }
+.sid-input-tabs .sid-code-expand[hidden] { display:none; }
+.sid-code-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.sid-code-toolbar button { min-height:32px; padding:6px 14px; }
+#synthCodeState { font-size:.72rem; color:var(--muted); margin-left:auto; }
+.sid-code-caption { margin:8px 0; }
+.sid-code-editor,.sid-code-editor-host { box-sizing:border-box; width:100%; height:320px; min-height:240px; border:1px solid var(--line); border-radius:7px; background:#172320; color:#edf1e5; }
+.sid-code-editor-host:not([data-ready="true"]) { display:none; }
+.sid-code-editor { resize:vertical; padding:12px; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
+.sid-code-editor:focus { outline:2px solid #679c8a; outline-offset:1px; }
+.sid-code-console { margin-top:8px; font-size:.73rem; }
+.sid-code-console pre,.sid-code-error { margin:8px 0 0; overflow:auto; max-height:160px; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+.sid-code-error { color:#a1392c; }.sid-code-error:empty { display:none; }
+.sid-code-workspace.is-code-expanded .sid-main { display:none; }
+.sid-code-workspace.is-code-expanded .sid-expanded-code { grid-column:1/-1; }
+.sid-code-workspace.has-files.is-code-expanded .sid-expanded-code { grid-column:2; }
+.is-code-expanded .sid-code-editor,.is-code-expanded .sid-code-editor-host { height:65vh; }
+.sid-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+#sidFileNameDialog { width:min(420px,90vw); border:1px solid var(--line); border-radius:10px; background:var(--paper,#f5eedf); color:inherit; padding:18px; }
+#sidFileNameDialog input { box-sizing:border-box; width:100%; margin:8px 0 14px; padding:8px; }
+#sidFileTextEditor { box-sizing:border-box; width:100%; min-height:170px; padding:8px; resize:vertical; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+@media(max-width:760px) { .sid-code-workspace.has-files { grid-template-columns:minmax(0,1fr); }.sid-code-workspace.has-files.is-code-expanded .sid-expanded-code { grid-column:1; }#sidFilesTree { max-height:240px; }.sid-code-editor { font-size:12px; } }

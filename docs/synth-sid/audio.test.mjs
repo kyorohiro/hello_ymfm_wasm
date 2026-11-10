@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {noteToHz} from '../js/soundchip_pitch.js';
+import {sidFrequency} from '../js/sid.js';
 
 const source = await readFile(new URL('./audio.js', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture({resumeError = false, fetchFailure = false, failedModel, stalledFetch = false, ready = true, rate = 48000, fallbackRamp = false} = {}) {
-  let createAudio, context, node, nextTimer = 0, mode = 'reply';
+  let createAudio, context, node, nextTimer = 0, mode = 'reply',codeSession=0;
   const timers = new Map(), errors = [], events = [], messages = [], fetchSignals = [],fetchUrls=[],moduleUrls=[],releases=[];
   class Context {
     constructor() {
@@ -38,7 +40,9 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
         if (mode === 'drop') return;
         queueMicrotask(() => {
           if (mode === 'error') this.port.onmessage?.({data: {id: message.id, error: 'Invalid preset', name: 'RangeError'}});
-          else this.port.onmessage?.({data: {id: message.id, value: {method: message.method, args: message.args}}});
+          else this.port.onmessage?.({data: {id: message.id, value: message.method==='beginCode'
+            ?{session:++codeSession,clock:985248,model:options.processorOptions.model,channels:3}
+            :{method: message.method, args: message.args}}});
         });
       }, close() { this.closed = true; }};
       if (ready) queueMicrotask(() => this.port.onmessage?.({data: {ready: true}}));
@@ -46,9 +50,9 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
     connect(value) { this.connections.push(value); }
     disconnect() { this.disconnected = true; }
   }
-  const transformed = source.replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
-  vm.runInNewContext(`${transformed}\nprovide(createAudio);`, {
-    AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,
+  const transformed = source.replace(/^import .*;\n/gm,'').replaceAll('export ', '').replaceAll('import.meta.url', JSON.stringify(new URL('./audio.js', import.meta.url).href));
+  const realm={
+    AudioContext: Context, AudioWorkletNode: Node, URL, AbortController, DOMException,noteToHz,sidFrequency,
     fetch: async (url, options) => {
       events.push('fetch'); fetchSignals.push(options.signal);fetchUrls.push(String(url));
       if (stalledFetch) return new Promise(resolve => { releases.push(() => resolve({ok: true, arrayBuffer: async () => new ArrayBuffer(0)})); });
@@ -56,19 +60,21 @@ function fixture({resumeError = false, fetchFailure = false, failedModel, stalle
     },
     setTimeout(fn, ms) { const id = ++nextTimer; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { timers.delete(id); }, provide: value => { createAudio = value; },
-  });
+  };
+  vm.runInNewContext(`${transformed}\nprovide(createAudio);`,realm);
   return {create: options => createAudio({onError: error => errors.push(error), ...options}),
     get context() { return context; }, get node() { return node; }, errors, timers, events, messages, fetchSignals,fetchUrls,moduleUrls,
-    mode(value) { mode = value; }, releaseFetch() { for(const release of releases.splice(0))release(); },
+    mode(value) { mode = value; },blockTimers(){realm.setTimeout=realm.clearTimeout=()=>{throw Error('user timer blocked');};},releaseFetch() { for(const release of releases.splice(0))release(); },
     expire() { const [id, timer] = timers.entries().next().value; assert.equal(timer.ms, 15000); timers.delete(id); timer.fn(); }};
 }
 
 test('SID audio stays lazy, resumes in the gesture and routes unity balance before the 0..380% user Master', async () => {
   const f = fixture(); assert.equal(f.context, undefined);
-  const audio = await f.create({volume: .7}), [balance, master] = f.context.gains;
+  const audio = await f.create({volume: .7}), [balance, fade, master] = f.context.gains;
   assert.equal(f.events[0], 'resume'); assert.equal(f.node.name, 'tetorica-sid-synth'); assert.equal(audio.sampleRate, 48000);
   assert.equal(balance.gain.value, 1); assert.equal(master.gain.value, .7); assert.equal(audio.outputNode, master);
-  assert.deepEqual(f.node.connections, [balance]); assert.deepEqual(balance.connections, [master]); assert.deepEqual(master.connections, [f.context.destination]);
+  assert.equal(fade.gain.value,1);assert.equal(audio.codeInputNode,balance);assert.equal(audio.codeOutputNode,fade);assert.equal(audio.codeFadeNode,fade);
+  assert.deepEqual(f.node.connections, [balance]); assert.deepEqual(balance.connections, [fade]);assert.deepEqual(fade.connections,[master]); assert.deepEqual(master.connections, [f.context.destination]);
   const monitor = {}; audio.outputNode.connect(monitor); assert.deepEqual(master.connections, [f.context.destination, monitor]);
   audio.setVolume(3.8); assert.equal(master.gain.value, 3.8); assert.equal(balance.gain.value, 1);
   audio.setVolume(0); assert.equal(master.gain.value, 0); assert.throws(() => audio.setVolume(3.81), /Master/);
@@ -92,7 +98,7 @@ test('both model binaries are preloaded for same-context swaps and initial model
 
 test('SID Master smoothing has a fallback for AudioParams without cancelAndHoldAtTime', async () => {
   const f = fixture({fallbackRamp: true}), audio = await f.create(); audio.setVolume(2);
-  assert.deepEqual(f.context.gains[1].automation, [['cancel', 1], ['set', .7, 1], ['ramp', 2, 1.01]]); await audio.dispose();
+  assert.deepEqual(f.context.gains[2].automation, [['cancel', 1], ['set', .7, 1], ['ramp', 2, 1.01]]); await audio.dispose();
 });
 
 test('SID command posts preserve FIFO preset contents and rejected edits keep the endpoint alive', async () => {
@@ -154,5 +160,39 @@ test('SID command deadlines and processor/reply/context failures reject pending 
     assert((await outcomes).every(result => result.status === 'rejected'));
     assert.equal(f.errors.length, 1); assert.equal(f.timers.size, 0); assert(f.node.disconnected && f.node.port.closed);
     await assert.rejects(audio.read()); await audio.dispose();
+  }
+});
+
+test('Code clients address physical channels through one explicit session and validate notes before posting a gate',async()=>{
+  const f=fixture(),audio=await f.create({model:'8580'}),a=audio.getSidClient(),b=audio.getSidClient();
+  assert.equal(a,b);const sid=await a;assert.equal(sid,await audio.getSidClient());
+  assert.equal(sid.clock,985248);assert.equal(sid.model,'8580');assert.equal(sid.channels,3);
+  assert.equal(typeof sid.dispose,'function');assert.equal(sid.loadPreset,undefined);assert.equal(typeof sid.constructor,'function');
+  f.blockTimers();
+  await sid.noteOn(2,'A4');await sid.setFilter({mode:'notch',cutoff:900,routing:4});
+  assert.deepEqual(JSON.parse(JSON.stringify(f.messages.filter(m=>m.method==='code').map(m=>m.args))),[
+    [1,'noteOn',[2,'A4']],[1,'setFilter',[{mode:'notch',cutoff:900,routing:4}]],
+  ]);
+  const before=f.messages.length;
+  for(const args of [[3,'C4'],[0,'invalid'],[0,128],[0,127],[-1,60]])assert.throws(()=>sid.noteOn(...args),{name:'RangeError'});
+  assert.equal(f.messages.length,before,'invalid notes never enter RPC or take loop ownership');
+  await audio.command('stop');assert.throws(()=>sid.noteOn(0,'C4'),{name:'AbortError'});
+  const fresh=await audio.getSidClient();assert.notEqual(fresh,sid);await fresh.noteOn(0,60);
+  await audio.command('loadChannelSettings',[{}]);assert.throws(()=>fresh.keyOn(0),{name:'AbortError'});
+  await audio.dispose();assert.equal(f.context.closeCount,1);
+});
+
+test('Stop and disposal reject late Code session or mutation ACKs without reviving old handles',async()=>{
+  for(const operation of ['begin','note']){
+    const f=fixture(),audio=await f.create();let sid;
+    if(operation==='note')sid=await audio.getSidClient();
+    f.mode('drop');
+    const pending=operation==='begin'?audio.getSidClient():sid.noteOn(1,'E4');
+    const rejected=assert.rejects(pending,{name:'AbortError'}),message=f.messages.at(-1);
+    f.mode('reply');await audio.command('stop');
+    f.node.port.onmessage({data:{id:message.id,value:operation==='begin'?{session:9,clock:985248,model:'6581'}:undefined}});
+    await rejected;
+    const fresh=await audio.getSidClient();await fresh.noteOff(1);
+    await audio.dispose();assert.throws(()=>fresh.keyOn(1),/closed/);assert.equal(f.timers.size,0);
   }
 });

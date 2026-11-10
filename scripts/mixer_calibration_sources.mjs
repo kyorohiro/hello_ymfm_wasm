@@ -46,6 +46,21 @@ const ps1AdsrReports=['docs/issues/ps1_chip_levels_01.json','docs/issues/wonders
 const samePaths=(records,paths)=>records&&typeof records==='object'&&!Array.isArray(records)&&Object.keys(records).length===paths.length&&paths.every(path=>Object.hasOwn(records,path));
 const sourceRecord=record=>record&&Number.isSafeInteger(record.bytes)&&record.bytes>0&&digest(record.sha256);
 
+// The completion catalog reads only FM_PRESETS. The former public re-export
+// pulled every chip into a SID-only Code editor's static dependency graph.
+// Permit this one import-only revision by exact ENTIRE before/after bodies;
+// the predecessor is independently pinned by the existing RF note receipt.
+export function restoreMixerCalibrationCompletionPresetImportRevision(path,bytes) {
+  if(path!=='playground/playground_monaco_completion.js'||Buffer.byteLength(bytes)!==45033||
+    sha(bytes)!=='ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49')return bytes;
+  const source=Buffer.from(bytes),after=Buffer.from('} from "../js/megasynth-fm-presets.js";');
+  const before=Buffer.from('} from "../js/megasynth.js?v=rf5c164-notes-1";'),offset=23;
+  if(!source.subarray(offset,offset+after.length).equals(after))fail('completion preset import does not match its exact revision');
+  const original=Buffer.concat([source.subarray(0,offset),before,source.subarray(offset+after.length)]);
+  if(original.length!==45040||sha(original)!=='4af2caa8e4420caa111c3a22d73011875c213d4a7258ae7f0ae952abc556fa2d')fail('completion preset import reconstruction failed');
+  return original;
+}
+
 // These shared worklets gained only a named ESM class export so a separate
 // Synth entry can decorate them. The ordinary Playground renderer is unchanged.
 // Reconstruct the ENTIRE pinned measured source; no arbitrary JS normalization
@@ -345,6 +360,8 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const completion=restoreMixerCalibrationCompletionPresetImportRevision(path,bytes),completionRevision=completion!==bytes;bytes=completion;
+  if(completionRevision&&bytes.length===record?.bytes&&sha(bytes)===record.sha256)return 'ui-completion-preset-import';
   const notes=restoreMixerCalibrationRf5c164NoteRevision(path,bytes),noteRevision=notes!==bytes;bytes=notes;
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return noteRevision?'rf5c164-note-api':'raw';
   const exported=restoreMixerCalibrationYm2612ExportRevision(path,bytes);

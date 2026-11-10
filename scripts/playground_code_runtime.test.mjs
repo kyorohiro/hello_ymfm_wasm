@@ -59,6 +59,58 @@ test('four public chip IDs share one provider request per Run; invalid IDs never
   assert.equal(f.requests.length,4);assert.equal(f.runtime.getState().state,'error');await f.runtime.stop();
 });
 
+test('a SID-only host snapshots its configured chip IDs and never acquires an unsupported provider',async()=>{
+  const supported=['sid'],requests=[],sid={noteOn(){},noteOff(){},setNote:()=>123};
+  const f=fixture({supportedSoundChips:supported,getFm:()=>null,useSoundChip:async name=>{requests.push(name);return sid;}});
+  supported.push('ym2612');
+  try {
+    await f.runtime.run(`context.one=await useSoundChip('sid');context.two=await pg.useSoundChip('sid');
+      context.same=context.one===context.two;context.step=context.one.setNote(CH1,'C4');`);
+    assert.equal(f.runtime.getContext().same,true);assert.equal(f.runtime.getContext().step,123);assert.deepEqual(requests,['sid']);
+    await assert.rejects(f.runtime.apply(`await useSoundChip('ym2612');`),/Unsupported Code sound chip: ym2612/);
+    assert.deepEqual(requests,['sid']);assert.deepEqual(CODE_SOUND_CHIPS,['ym2612','segapsg','rf5c164','pwm']);
+  } finally {await f.runtime.stop();}
+  for(const supportedSoundChips of [null,'sid',[],new Array(1),[undefined],['sid','sid'],['SID'],[' sid'],['sid',''],[{},'sid'],[42]]) {
+    assert.throws(()=>fixture({supportedSoundChips}),/unique supported sound chip IDs/);
+  }
+});
+
+test('SID RPC notes retain loop ownership across Apply and a retired finally cannot mute its replacement',async()=>{
+  const writes=[],sid={async noteOn(channel,note){writes.push(['on',channel,note]);},async noteOff(channel){writes.push(['off',channel]);}};
+  const f=fixture({supportedSoundChips:['sid'],getFm:()=>null,useSoundChip:async()=>sid});
+  try {
+    await f.runtime.run(`const sid=await useSoundChip('sid');context.sid=sid;
+      liveLoop('held',async()=>{await sid.noteOn(CH1,'C4');try{await sleep(60);}finally{await sid.noteOff(CH1);}});`);
+    await turns();assert.deepEqual(writes,[['on',0,'C4']]);
+    await f.runtime.apply(`const sid=await useSoundChip('sid');await sid.noteOn(CH1,'D4');stopLoop('held');`);
+    await f.advance(0);assert.deepEqual(writes,[['on',0,'C4'],['on',0,'D4']]);
+    assert.deepEqual(f.runtime.getState().loopNames,[]);
+    const saved=f.runtime.getContext().sid;await f.runtime.stop();
+    assert.deepEqual(writes,[['on',0,'C4'],['on',0,'D4'],['off',0]]);
+    assert.throws(()=>saved.noteOn(0,'E4'),{name:'AbortError'});
+  } finally {await f.runtime.stop();}
+});
+
+test('asynchronous SID note releases cannot reject unobserved or delay physical Stop',async()=>{
+  const pending=deferred(),releases=[];
+  const sid={noteOn(){},noteOff(channel){releases.push(channel);return pending.promise;}};
+  const f=fixture({supportedSoundChips:['sid'],getFm:()=>null,useSoundChip:async()=>sid});
+  await f.runtime.run(`const sid=await useSoundChip('sid');await sid.noteOn(CH1,'A4');`);
+  await f.runtime.stop();assert.deepEqual(releases,[0]);assert.equal(f.writes.at(-1)[0],'stop','a pending release never holds physical Stop');
+  pending.reject(new DOMException('SID Code session cancelled','AbortError'));
+  await turns();await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.logs,[]);
+});
+
+test('stopLoop observes a rejected SID release and retains later physical cleanup',async()=>{
+  const writes=[],sid={noteOn:ch=>writes.push(ch),noteOff:()=>Promise.reject(Error('SID endpoint unavailable'))};
+  const f=fixture({supportedSoundChips:['sid'],getFm:()=>null,useSoundChip:async()=>sid});
+  try {
+    await f.runtime.run(`const sid=await useSoundChip('sid');liveLoop('held',async()=>{await sid.noteOn(CH2,'C4');await sleep(60);});`);
+    await turns();assert.deepEqual(writes,[1]);await f.runtime.apply(`stopLoop('held');`);await turns();
+    assert(f.logs.some(line=>line.includes('SID endpoint unavailable')));await f.runtime.stop();assert.equal(f.writes.at(-1)[0],'stop');
+  } finally {await f.runtime.stop();}
+});
+
 test('existing music helpers, Files bridge and entry paths are exposed without a second implementation',async()=>{
   const prepared=[],reads=[];
   const f=fixture({prepareSource:(source,options)=>{prepared.push(options);return `{${source}}`;},
@@ -296,6 +348,15 @@ const options:PlaygroundCodeRuntimeOptions={
 };
 createPlaygroundCodeRuntime(options);
 createPlaygroundCodeRuntime({...options,createTaskChannel:()=>new MessageChannel()});
+const sidOptions:PlaygroundCodeRuntimeOptions<'sid'>={
+  ensureReady:async()=>{},now:()=>0,supportedSoundChips:['sid'],useSoundChip:async(name:'sid')=>({name}),
+};
+createPlaygroundCodeRuntime(sidOptions);
+createPlaygroundCodeRuntime({ensureReady:async()=>{},now:()=>0,supportedSoundChips:['sid'],useSoundChip:async(name:'sid')=>({name})});
+// @ts-expect-error the declared SID host cannot expose a different named chip
+const wrongSidOptions:PlaygroundCodeRuntimeOptions<'sid'>={...sidOptions,supportedSoundChips:['ym2612']};
+// @ts-expect-error the provider callback must handle each selected host chip
+const wrongProvider:PlaygroundCodeRuntimeOptions<'sid'>={...sidOptions,useSoundChip:async(name:'ym2612')=>({name})};
 // @ts-expect-error the audio preparation callback is required
 createPlaygroundCodeRuntime({now:()=>0,useSoundChip:async()=>({})});
 // @ts-expect-error the injected clock must return seconds as a number

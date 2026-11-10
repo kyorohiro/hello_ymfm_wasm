@@ -5,12 +5,12 @@ import {SidInstrument} from './instrument.js?sid-channels=3&sid-waves=1&sid-keys
 import {readPreset} from './preset.js?sid-waves=1';
 import {readChannelSettings,applyChannelPreset,editChannelPreset} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
 
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
 const cancelled=message=>{const error=new Error(message);error.name='AbortError';return error;};
 
 class SidSynthProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}} = {}) {
-    super(); this.dead = false; this.instrument = null; this.modelEpoch = 0;
+    super(); this.dead = false; this.instrument = null; this.modelEpoch = 0;this.codeSerial=0;this.codeOwner=null;
     this.binaries = {'6581':processorOptions.wasmBinary,'8580':processorOptions.wasm8580Binary};
     this.port.onmessage = ({data}) => this.receive(data);
     this.ready = this.createInstrument(processorOptions.model ?? '6581').then(instrument => {
@@ -55,7 +55,7 @@ class SidSynthProcessor extends AudioWorkletProcessor {
   }
   dispose() {
     if (this.dead) return;
-    this.dead = true; this.modelEpoch++;this.instrument?.dispose(); this.instrument = null;
+    this.dead = true; this.modelEpoch++;this.codeOwner=null;this.instrument?.dispose(); this.instrument = null;
   }
   fail(error) {
     if (this.dead) return;
@@ -65,7 +65,7 @@ class SidSynthProcessor extends AudioWorkletProcessor {
     if (data?.method === 'dispose') { this.dispose(); return; }
     if (this.dead) return;
     const validStop=data?.method==='stop'&&(data.args===undefined||Array.isArray(data.args)&&data.args.length===0);
-    if(validStop){this.modelEpoch++;this.instrument?.stop();}
+    if(validStop){this.modelEpoch++;this.codeOwner=null;this.instrument?.stop();}
     const epoch=this.modelEpoch;
     // A later mutation never overtakes an earlier load/edit or its ACK. The
     // same ordering also applies to commands received while WASM is loading.
@@ -77,7 +77,17 @@ class SidSynthProcessor extends AudioWorkletProcessor {
         if(data.method==='stop'&&!validStop)throw new TypeError('SID Stop takes no arguments');
         if(!['read','stop'].includes(data.method)&&epoch!==this.modelEpoch)throw cancelled('SID command cancelled by Stop');
         const args=data.args??[];
-        const value = await (['setPreset','loadPreset','setChannelSettings','loadChannelSettings'].includes(data.method)
+        let value;
+        if(data.method==='beginCode'){
+          if(args.length)throw new TypeError('SID Code begin takes no arguments');
+          const metadata=this.instrument.beginCode();
+          const owner=this.codeOwner={session:++this.codeSerial,instrument:this.instrument,token:metadata.session};
+          value={...metadata,session:owner.session};
+        }else if(data.method==='code'){
+          const [session,method,parameters]=args,owner=this.codeOwner;
+          if(!owner||owner.session!==session||owner.instrument!==this.instrument)throw cancelled('SID Code session cancelled');
+          value=await this.instrument.code(owner.token,method,parameters);
+        }else value=await (['setPreset','loadPreset','setChannelSettings','loadChannelSettings'].includes(data.method)
           ?this.applyPreset(data.method,args[0],epoch):this.instrument[data.method](...args));
         if (!this.dead && data.id !== undefined) this.port.postMessage({id: data.id, value});
       } catch (error) {

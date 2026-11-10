@@ -11,6 +11,8 @@ import {midiToOpnPitch,opnPitchFromHz} from './soundchip_pitch.js';
 import {FM_PRESETS} from './megasynth-fm-presets.js';
 import {formatLogArgs} from './playground_log.js';
 
+/** @typedef {'ym2612'|'segapsg'|'rf5c164'|'pwm'} DefaultCodeSoundChip */
+/** @type {readonly DefaultCodeSoundChip[]} */
 export const CODE_SOUND_CHIPS=Object.freeze(['ym2612','segapsg','rf5c164','pwm']);
 const NOTES={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 const SCALES={majorPentatonic:[0,2,4,7,9],minorPentatonic:[0,3,5,7,10],major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10]};
@@ -30,10 +32,12 @@ const stopped=()=>new DOMException('Run stopped','AbortError');
  * @property {unknown} [error]
  */
 /**
+ * @template {string} [ChipName=DefaultCodeSoundChip]
  * @typedef {Object} PlaygroundCodeRuntimeOptions
  * @property {()=>unknown} ensureReady Prepare the injected audio owner before evaluating user code; may return a promise.
  * @property {()=>number} now Audio clock in seconds.
- * @property {(name:'ym2612'|'segapsg'|'rf5c164'|'pwm')=>object|Promise<object>} useSoundChip Borrow a supported chip client.
+ * @property {(name:ChipName)=>object|Promise<object>} useSoundChip Borrow a supported chip client.
+ * @property {readonly ChipName[]} [supportedSoundChips] Host-owned chip IDs; defaults to the four Genesis instruments.
  * @property {()=>object|null} [getFm] Current FM compatibility client.
  * @property {object} [fx] Effect factories and live-effect controls owned by the host.
  * @property {(path:string,options:object,entry:{path:string})=>unknown} [readFile] Read a virtual file; may return a promise.
@@ -52,9 +56,10 @@ const stopped=()=>new DOMException('Run stopped','AbortError');
  * Main-thread live code execution, with an injected audio owner. ensureReady
  * prepares providers before user guards run; readFile / prepareSource bridge
  * the host's virtual files using the existing Playground file helpers.
- * @param {PlaygroundCodeRuntimeOptions} options
+ * @template {string} [ChipName=DefaultCodeSoundChip]
+ * @param {PlaygroundCodeRuntimeOptions<ChipName>} options
  */
-export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=()=>null,fx={},
+export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,supportedSoundChips=CODE_SOUND_CHIPS,getFm=()=>null,fx={},
   readFile=()=>{throw Error('Virtual files are unavailable');},prepareSource=source=>source,
   onLog=()=>{},onState=()=>{},beforeStopSoundChips=()=>{},stopSoundChips=()=>{},guardExecution=true,realm=globalThis,
   setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id),createTaskChannel,
@@ -62,6 +67,10 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=
   for(const fn of [ensureReady,now,useSoundChip,getFm,readFile,prepareSource,onLog,onState,beforeStopSoundChips,stopSoundChips,setTimer,clearTimer]) {
     if(typeof fn!=='function')throw TypeError('Code runtime needs host callbacks');
   }
+  const configuredChips=Array.isArray(supportedSoundChips)?Array.from(supportedSoundChips):[];
+  if(!configuredChips.length||configuredChips.some(name=>typeof name!=='string'||!/^[a-z][a-z0-9-]*$/.test(name))||
+    new Set(configuredChips).size!==configuredChips.length)throw TypeError('Code runtime needs unique supported sound chip IDs');
+  const chipNames=new Set(configuredChips);
   const runtime={bpm:120,clockStartTime:null,sampleClockStartTime:null,
     liveLoops:new Map(),livePrepared:new Map(),liveCleanupHooks:new Map(),context:{}};
   let epoch=0,evaluation=0,currentLoop=null,active=false,cleanupMode=false,cleanupTail=Promise.resolve(),pendingStops=0;
@@ -85,9 +94,19 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=
     return loopScopes.get(loop);
   }
   function releaseOwned(matches) {
+    const failed=error=>{
+      if(error?.name==='AbortError'||error?.message==='Run stopped')return;
+      try{onLog(formatLogArgs([error]));}catch{}
+    };
     for(const [target,notes]of ownedNotes)for(const [channel,owner]of notes)if(matches(owner)) {
       notes.delete(channel);
-      try {(target.noteOff??target.keyOff)?.call(target,channel);}catch(error){onLog(formatLogArgs([error]));}
+      try {
+        const pending=(target.noteOff??target.keyOff)?.call(target,channel);
+        // A Worklet RPC can reject after physical Stop invalidates its audio
+        // session. Observe that result without letting a hung release prevent
+        // the host's unconditional physical-stop fence.
+        if(pending&&typeof pending.then==='function')Promise.resolve(pending).catch(failed);
+      }catch(error){failed(error);}
     }
   }
   function cancelLoop(loop) {
@@ -239,7 +258,7 @@ export function createPlaygroundCodeRuntime({ensureReady,now,useSoundChip,getFm=
       console:{log,warn:(...args)=>log('[warn]',...args),error:(...args)=>log('[error]',...args)},log,
       async useSoundChip(name) {
         const owner=ensure();
-        if(!CODE_SOUND_CHIPS.includes(name))throw RangeError(`Unsupported Code sound chip: ${String(name)}`);
+        if(!chipNames.has(name))throw RangeError(`Unsupported Code sound chip: ${String(name)}`);
         if(!clients.has(name))clients.set(name,Promise.resolve().then(()=>{check(owner);return useSoundChip(name);}));
         const pending=clients.get(name);
         try {

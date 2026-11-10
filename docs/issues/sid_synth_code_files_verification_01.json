@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "verificationDate": "2026-11-11 Asia/Tokyo",
+  "passed": true,
+  "scope": "SID Synth Code and Files, shared editor/scheduler, existing SID and song preview",
+  "tests": {
+    "node": {
+      "passed": true,
+      "tests": 255,
+      "log": "/private/tmp/sid-code-files-regression-final-20261111.log"
+    },
+    "calibration": {
+      "passed": true,
+      "tests": 375,
+      "log": "/private/tmp/sid-code-completion-calibration-guards.log",
+      "existingReportsAndGainsUnchanged": true
+    }
+  },
+  "sidBrowser": {
+    "passed": true,
+    "receipt": "/private/tmp/sid-code-files-final-browser-20261111.json",
+    "receiptSha256": "a5219deab138016fbc9042eb68fba4d9bae592d6eb8093cf77f08dcfdeab0aa6",
+    "verifiedServedAssets": 84,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "missing": [],
+    "httpErrors": [],
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Code and Files mount without audio or autorun; local editor fallback and modules/data share the project",
+          "liveFx processes actual shared SID PCM, and Apply removal restores the direct signal",
+          "temporary Code registers keep authored presets; upper Filter and Master control the same SID output once",
+          "Apply preserves context and named loops; Stop fades actual PCM and restores authoring data",
+          "a stopped awaited Run cannot revive; model switches and Keyboard return retain a reusable single graph",
+          "project ZIP retains source, modules, data and saved sounds; import/reload never runs Code",
+          "SID song and Code exchange playback ownership; pagehide stops Code; 1240/390 layouts remain bounded"
+        ],
+        "measurements": {
+          "liveFx": {
+            "full": {
+              "rms": 0.01679162455408045,
+              "peak": 0.02880454622209072,
+              "finite": true,
+              "muted": true
+            },
+            "half": {
+              "rms": 0.008390438991337614,
+              "peak": 0.014402558095753193,
+              "finite": true,
+              "muted": true
+            },
+            "restored": {
+              "rms": 0.016773295655233462,
+              "peak": 0.028804892674088478,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "master": {
+            "full": {
+              "rms": 0.023963618310511588,
+              "peak": 0.04114918410778046,
+              "finite": true,
+              "muted": true
+            },
+            "half": {
+              "rms": 0.0119834014422788,
+              "peak": 0.020574362948536873,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "fade": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "beforePeak": 0.04114660993218422,
+            "beforeJump": 0.001629270613193512,
+            "maxJump": 0.0016153976321220398,
+            "normalizedJump": 0.03925955588527116,
+            "tailPeak": 0,
+            "lastNonzeroAfterStopMs": 13.3125,
+            "muted": true
+          },
+          "keyboardAfterHeaderStop": true,
+          "graph": {
+            "contexts": 2,
+            "runningContexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 2,
+            "captureBranches": 0,
+            "muted": true
+          }
+        },
+        "errors": [],
+        "consoleErrors": [],
+        "expectedFallbackConsole": [
+          "Failed to load resource: net::ERR_FAILED",
+          "Failed to load resource: net::ERR_FAILED"
+        ],
+        "requestFailures": [
+          {
+            "url": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+            "error": "net::ERR_FAILED"
+          },
+          {
+            "url": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+            "error": "net::ERR_FAILED"
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Code and Files mount without audio or autorun; local editor fallback and modules/data share the project",
+          "liveFx processes actual shared SID PCM, and Apply removal restores the direct signal",
+          "temporary Code registers keep authored presets; upper Filter and Master control the same SID output once",
+          "Apply preserves context and named loops; Stop fades actual PCM and restores authoring data",
+          "a stopped awaited Run cannot revive; model switches and Keyboard return retain a reusable single graph",
+          "project ZIP retains source, modules, data and saved sounds; import/reload never runs Code",
+          "SID song and Code exchange playback ownership; pagehide stops Code; 1240/390 layouts remain bounded"
+        ],
+        "measurements": {
+          "liveFx": {
+            "full": {
+              "rms": 0.0167830951802022,
+              "peak": 0.028804108500480652,
+              "finite": true,
+              "muted": true
+            },
+            "half": {
+              "rms": 0.008398322321809757,
+              "peak": 0.014402192085981369,
+              "finite": true,
+              "muted": true
+            },
+            "restored": {
+              "rms": 0.016775472322781516,
+              "peak": 0.028804892674088478,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "master": {
+            "full": {
+              "rms": 0.023967386175249218,
+              "peak": 0.04114918410778046,
+              "finite": true,
+              "muted": true
+            },
+            "half": {
+              "rms": 0.011976739633583734,
+              "peak": 0.020574362948536873,
+              "finite": true,
+              "muted": true
+            }
+          },
+          "fade": {
+            "frames": 18816,
+            "sampleRate": 48000,
+            "beforePeak": 0.041147973388433456,
+            "beforeJump": 0.001629270613193512,
+            "maxJump": 0.0016684532165527344,
+            "normalizedJump": 0.04054764011832793,
+            "tailPeak": 0,
+            "lastNonzeroAfterStopMs": 10.645833333333334,
+            "muted": true
+          },
+          "keyboardAfterHeaderStop": true,
+          "graph": {
+            "contexts": 2,
+            "runningContexts": 1,
+            "editorWorklets": 1,
+            "destinationConnections": 2,
+            "captureBranches": 0,
+            "muted": true
+          }
+        },
+        "errors": [],
+        "consoleErrors": [],
+        "expectedFallbackConsole": [],
+        "requestFailures": [
+          {
+            "url": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+            "error": "Blocked by Web Inspector"
+          },
+          {
+            "url": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js",
+            "error": "Blocked by Web Inspector"
+          }
+        ]
+      }
+    ]
+  },
+  "fmBrowserRegression": {
+    "passed": true,
+    "receipt": "/private/tmp/sid-code-shared-fm-browser-20261111.json",
+    "receiptSha256": "bc98ea2426e4a90f2c4a5e946973f71163dde5c40d59bd66fa40f0150cbf112d",
+    "verifiedServedAssets": 165,
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "artifact": {
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_sid_synth_sid-code-20261111-final-mbeTpi",
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid_synth_sid-code-20261111-final_itch.zip",
+    "bytes": 3421776,
+    "sha256": "9222da45b36a1d471c3144817fc753ae800bfc2854e0bcb3dd06d3826a574e6b",
+    "files": 329,
+    "entries": 329,
+    "zipStagePayloadsIdentical": true,
+    "allArchivedSourceBytesMatchRepository": true,
+    "minify": false,
+    "bundle": false
+  },
+  "sources": {
+    "docs/synth-sid/synth.js": {
+      "bytes": 33577,
+      "sha256": "5d3e2bd7d971eb762861b9b8f9001a83a04af608b92b3d9cae3162864300f199"
+    },
+    "docs/synth-sid/audio.js": {
+      "bytes": 11369,
+      "sha256": "2406e08d5431076d6d25517663da08136e02d125ed379d5462cff10bf6b3609b"
+    },
+    "docs/synth-sid/processor.js": {
+      "bytes": 6298,
+      "sha256": "c9e4b11453aa7f84298da2948c36a00243f0044ae796b954cbef94e3fbb0f37d"
+    },
+    "docs/synth-sid/instrument.js": {
+      "bytes": 13576,
+      "sha256": "7f2353648be62473205c1e06f51db6c326ff0db1440dc57d7b707b0dd2423195"
+    },
+    "docs/synth-sid/code_host.js": {
+      "bytes": 4325,
+      "sha256": "75272bc9c7f13f3234e7108b1de2e0ec50276cd3d5dc2334722b2dfb58f8068f"
+    },
+    "docs/synth-sid/code_audio.js": {
+      "bytes": 4987,
+      "sha256": "59ef7d85256d20c09773ab55b2b6df46c817217411f5338738d64a0c27e61dec"
+    },
+    "docs/synth-sid/code_project.js": {
+      "bytes": 9007,
+      "sha256": "0ebe3df2ea0cf6e0f0e3e1d9cd34097ebbf721271dbecc62d6a4d85682d9f049"
+    },
+    "docs/synth-sid/code_files.js": {
+      "bytes": 16422,
+      "sha256": "cb0e4d71d25498319be5d367b6b656f6055029c76d0ddfe022c4fcedbe38dbd4"
+    },
+    "docs/synth-sid/code_declarations.js": {
+      "bytes": 2280,
+      "sha256": "38b8050a513b102942bc9e4d69793f32eada56bfb65ddb9d636cfa91ab6d9aaf"
+    },
+    "docs/synth-sid/index.html": {
+      "bytes": 16981,
+      "sha256": "2e09b0dbab0d78ce58b6654fb99d94b39dccb588fee21ba0052c29851fa2f734"
+    },
+    "docs/synth-sid/synth.css": {
+      "bytes": 15155,
+      "sha256": "1757048c822b281902421959dea3022686389b38c3a46bf72356866b30799dc1"
+    },
+    "docs/js/playground_code_runtime.js": {
+      "bytes": 21158,
+      "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1"
+    },
+    "docs/synth/synth_code_controls.js": {
+      "bytes": 15875,
+      "sha256": "4e91f8950e55db2bdeb9080c101e3ce38717f23fa8cea97e2e58e7998bed6e8d"
+    },
+    "docs/synth/synth_code_declarations.js": {
+      "bytes": 7401,
+      "sha256": "c105451789e8a0e8891aa8d78a75c890a80d7c9956e0ca9deb4842321fdf0749"
+    },
+    "docs/playground/playground_monaco_completion.js": {
+      "bytes": 45033,
+      "sha256": "ca6c6bf3acb8d1a5fc4246fc0e598b5603d221610353f8c063e0ed43249f5f49"
+    }
+  },
+  "published": false,
+  "next": [
+    "SID Event Rec and Looper are follow-up work."
+  ],
+  "notes": [
+    "No commit, push, npm publish or itch.io upload performed.",
+    "No new SID chip core or AudioContext is created for Code; three physical channels and the hardware filter share the authoring instrument.",
+    "Code is a Main-thread software performance; its FX and Stop fade are software.",
+    "Source/module/data, portable SID presets, channel setup and selection are stored in a SID-only project. Restore/import never executes code.",
+    "Monaco CDN was intentionally blocked in headless tests to exercise the plain-text fallback; declaration/source-navigation tests use the local TypeScript compiler."
+  ]
+}

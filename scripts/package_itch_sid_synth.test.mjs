@@ -20,7 +20,7 @@ test('SID ZIP preserves editable modules, independent entry points and matching 
   const a = await packageSidSynth({version:'test', releaseDir:join(directory, 'a')});
   const b = await packageSidSynth({version:'test', releaseDir:join(directory, 'b')});
   assert.deepEqual(await readFile(a.archive), await readFile(b.archive));
-  assert(a.files < 1000); assert.equal(a.bundles, 4);
+  assert(a.files < 1000); assert.equal(a.bundles, 5);
   const info = JSON.parse(execFileSync('python3', ['-c', String.raw`
 import json,sys,zipfile,io,hashlib
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -39,6 +39,9 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   assert.equal(info.receipt.product, 'Tetorica SID Synth');
   assert.equal(info.receipt.productId, 'tetorica-sid-synth');
   for(const path of ['synth-sid/handoff.js','synth-sid/preset.js','synth-sid/sid_import.js',
+    'synth-sid/code_host.js','synth-sid/code_audio.js','synth-sid/code_declarations.js','synth-sid/code_project.js','synth-sid/code_files.js',
+    'synth/synth_code_controls.js','synth/synth_code_project.js','js/playground_code_runtime.js','js/native_fx_rack.js','js/native-fx-worklet.js',
+    'playground/playground_monaco.js','playground/playground_monaco_definitions.js','playground/playground_cassette.js','js/tetorica_virtual_files/filesystem.js',
     'sid-player/audio.js','sid-player/processor.js','sid-player/models.js','sid-player/voice_snapshot.js']){
     assert(info.names.includes(path),`Missing readable preset handoff module: ${path}`);
     const module=info.receipt.modules.find(item=>item.path===path);assert(module,`Missing module receipt: ${path}`);
@@ -55,6 +58,14 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     assert.equal(input.bytes, bytes.length); assert.equal(input.sha256, sha(bytes));
   }
   assert(!info.names.includes('playground-favicon.ico'));
+  for(const name of ['tetorica-playground-globals.d.ts','tetorica-playground-c64.d.ts','tetorica-shell.d.ts']){
+    const file='playground/'+name;assert(info.names.includes(file),'Missing fetched Monaco declaration: '+file);assert.deepEqual(await readFile(join(a.stage,file)),await readFile(new URL('../docs/'+file,import.meta.url)));
+    assert(info.receipt.originalInputs.some(input=>input.path==='docs/'+file),'Missing declaration source provenance');
+  }
+  assert(info.names.includes('playground/vendor/fflate-LICENSE'));assert(info.names.includes('licenses/tetorica-virtual-files/LICENSE'));
+  const effect=await readFile(join(a.stage,'js/native_audio_effect.wasm'));assert.deepEqual(effect,await readFile(new URL('../tetorica_src/runtime/generated/effects/gain.wasm',import.meta.url)));
+  assert.deepEqual(info.receipt.codeEffects.artifact,{path:'js/native_audio_effect.wasm',bytes:effect.length,sha256:sha(effect)});await WebAssembly.compile(effect);
+  for(const file of ['scripts/build_native_audio_effect.sh','tetorica_src/native/audio_effect/graph.c','tetorica_src/native/audio_effect/extra_fx.c','LICENSE'])assert.deepEqual(await readFile(join(a.stage,'sources/code-effects',file)),await readFile(new URL('../'+file,import.meta.url)));
   assert.deepEqual(await readFile(join(a.stage, 'generated/sid/sid.wasm')), await readFile(new URL('../tetorica_src/runtime/generated/sid/sid.wasm', import.meta.url)));
   const native = JSON.parse(await readFile(join(a.stage, 'generated/sid/sid-build.json')));
   for (const [path, input] of Object.entries(native.inputs)) {

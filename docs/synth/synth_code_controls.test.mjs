@@ -20,7 +20,7 @@ class Element {
   focus(){this.focused=true;}
   fire(type,extra={}){const event={key:'',code:'',prevented:false,preventDefault(){this.prevented=true;},stopPropagation(){},stopImmediatePropagation(){},...extra};for(const fn of this.listeners.get(type)??[])fn(event);return event;}
 }
-function fixture({source,storedState=null,journal=new Map(),factory,before,save=true,project=createSynthProject(),monaco=false,stopRuntime=async()=>{}}={}) {
+function fixture({source,storedState=null,journal=new Map(),factory,before,save=true,project=createSynthProject(),monaco=false,stopRuntime=async()=>{},hostOptions={}}={}) {
   const names=['document','localStorage'],old=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
   const elements=new Map(),byId=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
   const home=new Element(),upperEditor=new Element();
@@ -33,7 +33,7 @@ function fixture({source,storedState=null,journal=new Map(),factory,before,save=
   globalThis.document={getElementById:byId,createComment:()=>new Element()};
   globalThis.localStorage={getItem:key=>journal.get(key)??null,setItem:(key,value)=>journal.set(key,String(value)),removeItem:key=>journal.delete(key)};
   if(source!==undefined)project.fs.writeText('/index.js',source);
-  const calls={editors:0,factories:0,runs:[],applies:[],stops:0,modes:[],messages:[],saves:0,visibility:[],layouts:0,disposals:0};
+  const calls={editors:0,factories:0,runs:[],applies:[],stops:0,modes:[],messages:[],saves:0,visibility:[],layouts:0,disposals:0,editorOptions:[]};
   let state=storedState,runtimeState={state:'idle',loopNames:[]};
   const context={marker:'same context'},editor={layout:()=>calls.layouts++,dispose:()=>calls.disposals++,onDidChangeModelContent(){},addCommand(){}};
   const runtime={
@@ -48,9 +48,10 @@ function fixture({source,storedState=null,journal=new Map(),factory,before,save=
     getRuntime:()=>{calls.factories++;return factory?factory(runtime):runtime;},
     onBeforeRun:before??(async()=>{}),onModeChange:value=>calls.modes.push(value),setStatus:value=>calls.messages.push(value),
     loadEditor:async()=>{calls.editors++;return{initializePlaygroundMonaco:async options=>{
+      calls.editorOptions.push(options);
       options.setEditorNote(monaco?'Monaco test':'Plain editor test');
       if(monaco)options.onMonacoEditorReady({monaco:{KeyMod:{CtrlCmd:1,Shift:2},KeyCode:{Enter:4}},monacoEditor:editor});
-    }};}});
+    }};},...hostOptions});
   return {project,files,controls,calls,byId,journal,runtime,editor,home,upperEditor,get storedState(){return state;},
     cleanup(){controls.dispose();for(const[name,descriptor]of old)descriptor?Object.defineProperty(globalThis,name,descriptor):delete globalThis[name];}};
 }
@@ -67,6 +68,41 @@ test('Code opens lazily, preserves an existing index, and edits the Cassette ind
     await f.controls.setMode('keyboard');await f.controls.setMode('code');assert.equal(f.calls.editors,1);
     assert.equal(f.byId('synthCodeEditor').value,'context.count = 2;\n');
   }finally{f.cleanup();}
+});
+
+test('host editor/declaration options and recovery journals stay independent from the default FM Synth',async()=>{
+  const fmKey='tetorica-fm2612-synth-pending-code',sidKey='tetorica-sid-synth-pending-code';
+  const entry=source=>JSON.stringify({workspaceId:'workspace-a',path:'/index.js',source});
+  const journal=new Map([[fmKey,entry('// FM recovery')],[sidKey,entry('// SID recovery')]]);
+  const transform=source=>'// SID\n'+source;
+  const f=fixture({journal,source:'// old SID',storedState:{mode:'code',path:'/index.js'},hostOptions:{
+    editorChip:'c64',transformDeclarations:transform,journalKey:sidKey,definitionRuntimeFile:'sid-runtime.js',
+  }});
+  try {
+    await f.controls.ready;await until(()=>f.calls.editorOptions.length);
+    assert.equal(f.byId('synthCodeEditor').value,'// SID recovery');
+    const options=f.calls.editorOptions[0];assert.equal(options.chip,'c64');assert.equal(options.transformDeclarations,transform);
+    assert.equal(options.definitionRuntimeFile,'sid-runtime.js');
+    f.byId('synthCodeEditor').value='// changed SID';f.byId('synthCodeEditor').fire('input');
+    assert.equal(JSON.parse(journal.get(sidKey)).source,'// changed SID');assert.equal(JSON.parse(journal.get(fmKey)).source,'// FM recovery');
+    await f.controls.flush();assert.equal(journal.has(sidKey),false);assert(journal.has(fmKey));
+  }finally{f.cleanup();}
+  const next=fixture({journal,storedState:{mode:'code',path:'/index.js'}});
+  try {
+    await next.controls.ready;await until(()=>next.calls.editorOptions.length);
+    assert.equal(next.byId('synthCodeEditor').value,'// FM recovery');assert.equal(next.calls.editorOptions[0].chip,'ym2612');
+    assert.equal(next.calls.editorOptions[0].definitionRuntimeFile,'playground_code_runtime.js');
+  }finally{next.cleanup();}
+});
+
+test('a host-supplied starter is seeded verbatim without replacing an existing authored entry',async()=>{
+  const source="const sid = await useSoundChip('sid');\n",f=fixture({hostOptions:{getStarterCode:()=>source}});
+  try {
+    await f.controls.ready;await f.controls.setMode('code');assert.equal(f.project.fs.get('/index.js').data,source);
+  }finally{f.cleanup();}
+  const next=fixture({source:'// existing',hostOptions:{getStarterCode:()=>source}});
+  try {await next.controls.ready;await next.controls.setMode('code');assert.equal(next.byId('synthCodeEditor').value,'// existing');}
+  finally{next.cleanup();}
 });
 
 test('Stop during runtime preparation prevents late Run, and a later Run and Apply use the editor source',async()=>{

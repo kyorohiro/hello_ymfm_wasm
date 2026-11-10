@@ -82,25 +82,19 @@ declare function midiToNoteName(midi:number):string;
 declare const pg:SynthCodeAPI;
 `;
 
-/** Narrow globals, clients and livePrepare/pg to the actual four-chip host.
- * Type bodies (FM parameters, effect controls, note lengths) remain shared. */
-export function selectSynthCodeDeclarations(source) {
-  const shared=declarations(source),custom=declarations(CODE_TYPES);
-  const globals=shared.filter(value=>value.kind==='global'&&SYNTH_CODE_GLOBALS.includes(value.name));
+/** Select one Code host from the shared declarations, retaining reachable
+ * interfaces and the existing implementation/source names used by Monaco. */
+export function selectCodeHostDeclarations(source,{globals:globalNames,customTypes='',apiName,banner,transformTypes=()=>{}}) {
+  const shared=declarations(source),custom=declarations(customTypes);
+  const globals=shared.filter(value=>value.kind==='global'&&globalNames.includes(value.name));
   const overrides=new Map(custom.filter(value=>value.kind==='global').map(value=>[value.name,value]));
   const roots=globals.filter(value=>!overrides.has(value.name)).concat([...overrides.values()]);
   const types=new Map(shared.filter(value=>value.kind!=='global').map(value=>[value.name,value]));
   for(const value of custom.filter(value=>value.kind!=='global'))types.set(value.name,value);
-  const pcm=types.get('PlaygroundRf5c164');
-  if(!pcm)throw Error('Shared PCM declarations are missing.');
-  types.set(pcm.name,{...pcm,text:pcm.text
-    .replace('WAV/FLAC URL or encoded file bytes.','Local encoded audio bytes or decoded PCM channels.')
-    .replace(/ch: number/g,'ch: SynthCodePcmChannel')
-    .replace(/ \| string(?= \| Uint8Array)/g,'').replace(/ \| Blob/g,'')
-    .replace(/^(  (?:setChannel|setPitch|keyOn|keyOff|writeRegister|reset)\([^\n]+\)): Promise<void>;/gm,'$1: void;')});
+  transformTypes(types);
   // pg is the same globals object, not the full Playground rack/sample/MIDI API.
-  const members=SYNTH_CODE_GLOBALS.map(name=>`${name}:typeof ${name};`).join('\n  ');
-  types.set('SynthCodeAPI',{name:'SynthCodeAPI',kind:'interface',text:`interface SynthCodeAPI {\n  ${members}\n}`});
+  const members=globalNames.map(name=>`${name}:typeof ${name};`).join('\n  ');
+  types.set(apiName,{name:apiName,kind:'interface',text:`interface ${apiName} {\n  ${members}\n}`});
   const selected=new Map(),pending=roots.map(value=>value.text);
   while(pending.length) {
     const text=pending.pop().replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,'');
@@ -109,6 +103,21 @@ export function selectSynthCodeDeclarations(source) {
       const value=types.get(name);selected.set(name,value);pending.push(value.text);
     }
   }
-  return '// Synth Code: four shared instruments, no independent chip factory.\n'+
+  return `// ${banner}\n`+
     [...selected.values(),...roots].map(value=>value.text).join('\n\n')+'\n';
+}
+
+/** Narrow globals, clients and livePrepare/pg to the actual four-chip host.
+ * Type bodies (FM parameters, effect controls, note lengths) remain shared. */
+export function selectSynthCodeDeclarations(source) {
+  return selectCodeHostDeclarations(source,{globals:SYNTH_CODE_GLOBALS,customTypes:CODE_TYPES,apiName:'SynthCodeAPI',
+    banner:'Synth Code: four shared instruments, no independent chip factory.',transformTypes(types) {
+      const pcm=types.get('PlaygroundRf5c164');
+      if(!pcm)throw Error('Shared PCM declarations are missing.');
+      types.set(pcm.name,{...pcm,text:pcm.text
+        .replace('WAV/FLAC URL or encoded file bytes.','Local encoded audio bytes or decoded PCM channels.')
+        .replace(/ch: number/g,'ch: SynthCodePcmChannel')
+        .replace(/ \| string(?= \| Uint8Array)/g,'').replace(/ \| Blob/g,'')
+        .replace(/^(  (?:setChannel|setPitch|keyOn|keyOff|writeRegister|reset)\([^\n]+\)): Promise<void>;/gm,'$1: void;')});
+    }});
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1';
+import {createAudio} from './audio.js?sid-channels=3&sid-waves=1&sid-keys=1&sid-code=1';
 import {createEditor} from './editor.js?sid-waves=1&sid-keys=1';
 import {createDefaultPreset,readPreset,presetToCode} from './preset.js?sid-waves=1';
 import {createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode} from './channel_settings.js?sid-channels=3&sid-waves=1&sid-keys=1';
@@ -8,6 +8,7 @@ import {consumeSidPresetHandoff,stripSidPresetHandoffFragment} from './handoff.j
 import {createSidImport} from './sid_import.js?sid-transport=2&sid-waves=1';
 import {createSidImportPanel} from './sid_import_panel.js?sid-channels=2';
 import {createSidLiveView} from './sid_live_view.js?sid-waves=1';
+import {setupSidCodeHost} from './code_host.js?sid-code=1';
 import {createSpuOutputVisualizer} from '../synth-spu/spu_synth_visualizer.js';
 import {createFretboardState,createFretboardLayout,renderFretboardControls,buildKeyboard,
   setInstrument,setFretPosition,setStringWindowIndex,midiToNoteName} from '../synth/synth_keyboard.js';
@@ -21,6 +22,7 @@ let resetIntent=0,appliedResetIntent=0,resetPitchIntent=0;
 let sidImporter=null,previewEngine=null;
 let switchingAudioOutput=false,desktopOutputHandler=null;
 let adoptedObservation=null;
+let codeHost=null;
 let queue=Promise.resolve(), layout;
 const pitchWheels=[[$('pitchBend'),$('pitchValue')],[$('keyboardPitchBend'),$('keyboardPitchValue')]];
 const visualizer=createSpuOutputVisualizer({canvas:$('outputCanvas')});visualizer.setMode('waveform');
@@ -43,6 +45,7 @@ function updateNoteStatus(midi){
   }else status(`${midiToNoteName(midi)} · ${notes.size}/${capacity()} voices`);
 }
 function updateCapacity(){
+  if(codeHost?.isCodeMode()){$('voiceCapacity').textContent='Code · explicit CH 1 / 2 / 3 · one shared hardware filter';return;}
   const {carrier,source}=channelPlaybackPlan(channelSettings);
   const mode=channelSettings.target==='round-robin'?'':` · ${legato()?'Legato':'Retrigger'}`;
   $('voiceCapacity').textContent=paired()
@@ -54,7 +57,9 @@ function updateCapacity(){
 function updateKeys(){
   const active=new Set([...notes.values()].map(note=>note.key));
   for(const button of $('keyboard').querySelectorAll('.key')){const on=active.has(button.dataset.key);button.classList.toggle('is-active',on);button.setAttribute('aria-pressed',String(on));}
-  visualizer.setRunning(notes.size>0||Boolean(sidImporter?.read().playing));updateCapacity();refreshPlayableKeys();
+  const coding=Boolean(codeHost?.isCodeMode());
+  for(const[wheel]of pitchWheels)wheel.disabled=coding;
+  visualizer.setRunning(notes.size>0||Boolean(sidImporter?.read().playing)||Boolean(codeHost?.isRunning()));updateCapacity();refreshPlayableKeys();
 }
 function setPitchUi(value){pitch=value;for(const[wheel,output]of pitchWheels){wheel.value=String(value);output.textContent=`${value>=0?'+':''}${value.toFixed(2)}`;}}
 function acceptPitch(state,order,intent=null){
@@ -91,6 +96,7 @@ function audioFailed(error,owner){
   generation++;noteEpoch++;pitchIntent++;appliedPitch=0;notes.clear();setPitchUi(0);updateKeys();
   const failed=audio;audio=null;if(opening){const old=opening;opening=null;old.controller.abort();}
   visualizer.disconnect();if(failed)void failed.dispose().catch(()=>{});
+  void codeHost?.stop().catch(report);
   $('startAudio').disabled=false;$('startAudio').textContent='Enable audio';patchStatus('Audio unavailable · preset kept.');report(error);
 }
 async function ensureAudio(){
@@ -130,12 +136,15 @@ function applySettings(value,{load=false,message,fromSong=false}={}){
   const nextSettings=readChannelSettings(value),next=selectedChannelPreset(nextSettings),previous=preset;
   if(!load&&JSON.stringify(nextSettings)===JSON.stringify(channelSettings))return Promise.resolve();
   const changedTopology=load||channelSettings.target!==nextSettings.target||channelSettings.keyboardMode!==nextSettings.keyboardMode||topology(previous)!==topology(next);
+  const codeStopped=changedTopology&&codeHost?.isRunning()?codeHost.stop():Promise.resolve();
   if(changedTopology){clearNotes();setPitchUi(0);resetPitchIntent=++pitchIntent;resetIntent++;}
   if(!fromSong)manualRevision++;
   channelSettings=nextSettings;preset=next;const editRevision=++revision;updatePresetUi();
-  if(!audio){if(!fromSong){patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return Promise.resolve();}
+  if(!fromSong)codeHost?.markSoundDirty();
+  if(!audio){if(!fromSong){patchStatus(opening?'Preparing latest edit…':'Ready · edits apply automatically.');status(message??'Instrument updated · enable audio, then play.');}return codeStopped;}
   const target=audio;if(!fromSong)patchStatus('Applying latest edit…',true);
   return enqueue(async()=>{
+    await codeStopped;
     if(disposed||audio!==target||editRevision!==revision)return;
     try{
       // Coalescing a draft must preserve any earlier load/topology reset.
@@ -186,6 +195,8 @@ sidImporter=createSidImport({
   },
   async onPreviewStart(engine,{isCurrent=()=>true}={}){
     if(disposed||!isCurrent())return;
+    await codeHost?.stop();
+    if(disposed||!isCurrent())return;
     await stopNotes();
     if(disposed||!isCurrent()||engine.context.state==='closed')return;
     previewEngine=engine;visualizer.disconnect();visualizer.connect(engine.context,engine.outputNode);visualizer.setRunning(false);
@@ -196,7 +207,7 @@ sidImporter=createSidImport({
     previewEngine=null;if(disposed)return;
     visualizer.setRunning(false);visualizer.disconnect();
     if(audio)visualizer.connect(audio.context,audio.outputNode);
-    visualizer.setRunning(notes.size>0);
+    visualizer.setRunning(notes.size>0||Boolean(codeHost?.isRunning()));
   },
   onUsePreset(value){importSequence++;return applyPreset(value,{load:true,message:'SID voice imported · play this keyboard, edit it or save a preset.'});},
 });
@@ -245,7 +256,7 @@ function renderKeyboard(){
   refreshPlayableKeys();updateKeys();
 }
 function press(source,entry){
-  if(disposed||switchingAudioOutput||notes.has(source)||!canPlay(entry.midi))return;
+  if(disposed||switchingAudioOutput||codeHost?.isCodeMode()||notes.has(source)||!canPlay(entry.midi))return;
   // Fence a pending song start synchronously, preserving this key's gesture.
   const songClosing=stopSongForKeyboard();
   const note={id:`sid-synth:${++sequence}`,key:entry.key,midi:entry.midi,epoch:noteEpoch,started:false};notes.set(source,note);updateKeys();
@@ -290,17 +301,18 @@ async function stopNotes(message){
   catch(error){report(error);}
 }
 $('startAudio').addEventListener('click',()=>{$('startAudio').blur();const closing=stopSongForKeyboard(),ready=ensureAudio();void Promise.all([closing,ready]).catch(report);});
-$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void sidImporter.stop().catch(report);void stopNotes('Stopped · preset kept. Play to resume.');});
+$('stopAudio').addEventListener('click',()=>{$('stopAudio').blur();void stopPerformances('Stopped · preset kept. Play to resume.').catch(report);});
+async function stopPerformances(message){await codeHost?.stop();await sidImporter.stop();await stopNotes(message);}
 for(const[id,delta]of [['octaveDown',-1],['octaveUp',1]])$(id).addEventListener('click',()=>{$(id).blur();void stopNotes();octave=Math.max(-2,Math.min(2,octave+delta));renderKeyboard();});
 function editing(target){const control=target?.closest?.('input,select,textarea,[contenteditable="true"],dialog[open]');return control&&!control.matches?.('input[type="range"]');}
 window.addEventListener('keydown',event=>{
-  if(event.ctrlKey||event.metaKey||event.altKey||editing(event.target))return;
+  if(codeHost?.isCodeMode()||event.ctrlKey||event.metaKey||event.altKey||editing(event.target))return;
   const key=event.key.toLowerCase(),entry=layout.entries.find(item=>item.key===key);if(!entry)return;
   event.preventDefault();if(!event.repeat)press(`key:${event.code||key}`,{...entry,midi:entry.midi+octave*12});
 });
 window.addEventListener('keyup',event=>release(`key:${event.code||event.key.toLowerCase()}`));
-window.addEventListener('blur',()=>{void stopNotes();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)void stopNotes();});
+window.addEventListener('blur',()=>{if(!codeHost?.isRunning())void stopNotes();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!codeHost?.isRunning())void stopNotes();});
 function setPitch(value){
   if(disposed)return;const request=++pitchIntent,epoch=noteEpoch;setPitchUi(value);refreshPlayableKeys();const target=audio;
   if(target)void enqueue(async()=>{
@@ -342,7 +354,7 @@ $('copyCode').addEventListener('click',async()=>{
   $('copyCode').blur();try{const code=channelSettingsToCode(channelSettings);$('codeOutput').value=code;$('codeOutput').hidden=false;try{await navigator.clipboard.writeText(code);status('JavaScript copied · paste into Playground C64 mode.');}catch{status('JavaScript ready below · select and copy into Playground C64 mode.');}}catch(error){report(error);}
 });
 window.addEventListener('pagehide',event=>{
-  if(event.persisted){void sidImporter.stop().catch(report);void stopNotes();return;}disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
+  if(event.persisted){void stopPerformances().catch(report);return;}void codeHost?.dispose().catch(()=>{});disposed=true;generation++;clearNotes();if(opening){opening.controller.abort();opening=null;}sidImportPanel.dispose();sidLiveView.dispose();void sidImporter.dispose();monitorResize.disconnect();visualizer.dispose();editor.dispose();const previous=audio;audio=null;if(previous)void previous.dispose().catch(()=>{});
 });
 function receivePlayerSnapshot(){
   const fragment=window.location?.hash;
@@ -359,7 +371,19 @@ function receivePlayerSnapshot(){
     window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search+hash);
   }catch{status('SID Player snapshot loaded. The URL token could not be cleared; it cannot import a second time.');}
 }
-renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);receivePlayerSnapshot();
+renderKeyboard();updatePresetUi();setVolume();setPitchUi(0);
+codeHost=setupSidCodeHost({ensureAudio,getAudio:()=>audio,getSettings:()=>readChannelSettings(channelSettings),
+  async applySettings(value,{isCurrent=()=>true}={}){
+    if(disposed||!isCurrent())throw new DOMException('SID project selection cancelled','AbortError');
+    await applySettings(value,{load:true,message:'SID project sound loaded · play or run Code.'});
+    if(disposed||!isCurrent()||JSON.stringify(readChannelSettings(channelSettings))!==JSON.stringify(readChannelSettings(value)))
+      throw new DOMException('SID project selection changed','AbortError');
+  },
+  stopKeyboard:()=>stopNotes(),stopSong:()=>stopSongForKeyboard(),beforeRun:()=>queue,
+  prepareOutput:(engine,isCurrent)=>prepareDesktopOutput(engine,isCurrent),
+  onActivity(){if(!disposed){updateKeys();visualizer.wake();}},setStatus:message=>status(message),
+});
+void codeHost.ready.then(()=>{if(!disposed)receivePlayerSnapshot();}).catch(report);
 
 // Desktop adapters select the final Master output before a keyboard attack or
 // SID preview starts. Normal websites expose no bridge. The desktop host keeps
@@ -377,7 +401,7 @@ if(window.top===window&&localDesktop&&window.__TAURI_INTERNALS__){
       if(handler!==null&&typeof handler!=='function')throw new TypeError('Desktop output handler must be a function or null');
       desktopOutputHandler=handler;
     },
-    async stopPlayback(){await sidImporter.stop({cancelLoad:false});await stopNotes();},
+    async stopPlayback(){await codeHost?.stop();await sidImporter.stop({cancelLoad:false});await stopNotes();},
   })});
   window.dispatchEvent(new Event('tetorica-synth-ready'));
 }

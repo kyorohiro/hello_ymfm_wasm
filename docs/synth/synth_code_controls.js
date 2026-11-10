@@ -25,8 +25,11 @@ function textFile(project,path) {
 }
 
 export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=async()=>{},onModeChange=()=>{},setStatus=()=>{},getStarterCode=()=>DEFAULT_CODE,
+  editorChip='ym2612',transformDeclarations=selectSynthCodeDeclarations,journalKey=JOURNAL_KEY,definitionRuntimeFile='playground_code_runtime.js',
   loadEditor=async()=>({initializePlaygroundMonaco})}={}) {
   if(!project?.fs||typeof getRuntime!=='function')throw TypeError('Code input needs a project and runtime factory.');
+  if(typeof editorChip!=='string'||!editorChip||typeof journalKey!=='string'||!journalKey||
+    typeof definitionRuntimeFile!=='string'||!definitionRuntimeFile||typeof transformDeclarations!=='function')throw TypeError('Code input needs editor and recovery settings.');
   const byId=id=>document.getElementById(id),section=byId('synthInputSection');
   const keyboardTab=byId('synthInputKeyboardTab'),codeTab=byId('synthInputCodeTab');
   const keyboardPanel=byId('synthKeyboardPanel'),codePanel=byId('synthCodePanel');
@@ -99,7 +102,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     const source=adapter.getValue();
     if(source.length>MAX_CODE_LENGTH)throw Error('JavaScript file exceeds 2 MiB.');
     if(textFile(project,activePath)!==source)project.fs.writeText(activePath,source);
-    try {localStorage.setItem(JOURNAL_KEY,JSON.stringify({workspaceId:files?.workspaceId,path:activePath,source}));}
+    try {localStorage.setItem(journalKey,JSON.stringify({workspaceId:files?.workspaceId,path:activePath,source}));}
     catch(error){setStatus(`Code recovery unavailable: ${error.message}. Export Cassette to keep your work.`);}
   }
   async function flush() {
@@ -108,8 +111,8 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     const saved=await files?.persistCode?.();
     if(saved) {
       try {
-        const entry=JSON.parse(localStorage.getItem(JOURNAL_KEY)||'null');
-        if(entry?.workspaceId===files?.workspaceId&&entry.path===activePath&&entry.source===adapter.getValue())localStorage.removeItem(JOURNAL_KEY);
+        const entry=JSON.parse(localStorage.getItem(journalKey)||'null');
+        if(entry?.workspaceId===files?.workspaceId&&entry.path===activePath&&entry.source===adapter.getValue())localStorage.removeItem(journalKey);
       }catch{}
     }
     return true;
@@ -119,9 +122,9 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     if(monacoLoading||disposed)return monacoLoading;
     monacoLoading=Promise.resolve().then(()=>loadEditor()).then(({initializePlaygroundMonaco})=>{
       if(disposed)return;
-      return initializePlaygroundMonaco({chip:'ym2612',editor:textarea,editorHost,
-        declarationFiles:['tetorica-playground-globals'],transformDeclarations:selectSynthCodeDeclarations,
-        definitionRuntimeFile:'playground_code_runtime.js',
+      return initializePlaygroundMonaco({chip:editorChip,editor:textarea,editorHost,
+        declarationFiles:['tetorica-playground-globals'],transformDeclarations,
+        definitionRuntimeFile,
         getEditorValue:()=>adapter.getValue(),getActiveVirtualPath:()=>activePath??'/index.js',
         listVirtualFiles:()=>project.fs.list().filter(file=>!file.path.startsWith('/.tet.ss/')),
         openVirtualFile:path=>files?.selectFile?.(path),
@@ -206,7 +209,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
     // A later file/mode request or disposal must not be reset by this old reply.
     if(!await stop()||disposed||request!==workspaceOperation)return false;
     activePath=null;changing=true;try{adapter.setValue('');}finally{changing=false;}
-    try{localStorage.removeItem(JOURNAL_KEY);}catch{}
+    try{localStorage.removeItem(journalKey);}catch{}
     showMode('keyboard');
     return true;
   }
@@ -257,7 +260,7 @@ export function setupSynthCodeControls({project,files,getRuntime,onBeforeRun=asy
   controls.ready=Promise.resolve(files?.ready).then(async()=>{
     if(disposed)return;
     try {
-      const entry=JSON.parse(localStorage.getItem(JOURNAL_KEY)||'null');
+      const entry=JSON.parse(localStorage.getItem(journalKey)||'null');
       if(entry?.workspaceId===files?.workspaceId&&codePath(entry.path)&&typeof entry.source==='string'&&entry.source.length<=MAX_CODE_LENGTH)project.fs.writeText(entry.path,entry.source);
     }catch(error){setStatus(`Could not recover the last code edit: ${error.message}`);}
     await restoreState(files?.getCodeState?.());

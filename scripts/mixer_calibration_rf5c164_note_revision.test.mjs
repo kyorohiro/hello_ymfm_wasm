@@ -10,7 +10,7 @@ import vm from 'node:vm';
 import {restoreMixerCalibrationRf5c164NoteRevision as restore,RF5C164_NOTE_REVISION_BASE_COMMIT as commit,
   RF5C164_NOTE_REVISION_RECEIPT_PATH as receiptPath,RF5C164_NOTE_REVISION_RECEIPT_OBJECT_SHA256 as pin,
   RF5C164_NOTE_REVISION_SOURCE_PATHS as paths,RF5C164_NOTE_REVISION_REPORT_PATHS as reports} from './mixer_calibration_rf5c164_note_revision.mjs';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationCompletionPresetImportRevision} from './mixer_calibration_sources.mjs';
 import {RF5C164Synth} from '../tetorica_src/runtime/rf5c164synth.js';
 import {sampleBytes} from '../tetorica_src/runtime/rf5c164_pcm.js';
 import {Rf5c164} from '../tetorica_src/runtime/rf5c164.js';
@@ -24,9 +24,9 @@ test('all 44 exact known after sources reconstruct complete pre-feature bodies a
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.equal(paths.length,44);assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths) {
-    const current=await read('docs/'+path),entry=receipt.sources[path];
-    assert.equal(current.length,entry.after.bytes,path);assert.equal(sha(current),entry.after.sha256,path);
-    const before=restore(path,current);assert.notEqual(before,current,path);
+    const current=await read('docs/'+path),known=restoreMixerCalibrationCompletionPresetImportRevision(path,current),entry=receipt.sources[path];
+    assert.equal(known.length,entry.after.bytes,path);assert.equal(sha(known),entry.after.sha256,path);
+    const before=restore(path,known);assert.notEqual(before,known,path);
     assert.equal(before.length,entry.before.bytes,path);assert.equal(sha(before),entry.before.sha256,path);
     assert.equal(assertMixerCalibrationSourceFreshness({path,bytes:current,record:entry.before}),'rf5c164-note-api',path);
     assert.equal(restore(path,before),before,'already pre-feature bytes remain unchanged');

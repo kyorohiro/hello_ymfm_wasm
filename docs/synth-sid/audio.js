@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
+import {noteToHz} from '../js/soundchip_pitch.js';
+import {sidFrequency} from '../js/sid.js';
+// Capture host deadlines before user Code installs its timer guards.
+const nativeSetTimer=globalThis.setTimeout.bind(globalThis);
+const nativeClearTimer=globalThis.clearTimeout.bind(globalThis);
 export const SID_SYNTH_BALANCE = 1;
 const DEADLINE_MS = 15000;
-const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop']);
+const COMMANDS = new Set(['read', 'setPreset', 'loadPreset', 'setChannelSettings', 'loadChannelSettings', 'noteOn', 'noteOff', 'setPitch', 'stop', 'beginCode', 'code']);
+const CODE_METHODS=['setNote','setFrequency','noteOn','noteOff','keyOn','keyOff','allNotesOff',
+  'setVoice','setFilter','writeRegister','readRegister','getRegisterSnapshot','getState','initialize','reset','setClock'];
+const codeCancelled=()=>new DOMException('SID Code session was stopped or its instrument changed','AbortError');
 
 function validateVolume(value) {
   if (!Number.isFinite(value) || value < 0 || value > 3.8) throw new RangeError('SID Master must be from 0 to 3.8');
@@ -19,13 +27,15 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
   const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
   if (!Context) throw new Error('This browser does not support Web Audio');
   const context = new Context({latencyHint: 'interactive'}), controller = new AbortController(), pending = new Map();
-  let node = null, balance = null, master = null, disposed = false, closing = null, fatalError = null;
+  let node = null, balance = null, master = null, codeFade = null, disposed = false, closing = null, fatalError = null;
+  let codeGeneration=0,codeOwner=null;
+  const invalidateCode=()=>{codeGeneration++;codeOwner=null;};
   let nextId = 0, startupTimer, rejectStartup, resolveReady;
   const startupFailure = new Promise((_, reject) => { rejectStartup = reject; });
   void startupFailure.catch(() => {});
   const report = error => { try { onError(error); } catch {} };
   const rejectPending = error => {
-    for (const request of pending.values()) { clearTimeout(request.timer); request.reject(error); }
+    for (const request of pending.values()) { nativeClearTimer(request.timer); request.reject(error); }
     pending.clear();
   };
   function assertOpen() {
@@ -34,7 +44,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
   }
   function dispose() {
     if (closing) return closing;
-    disposed = true; clearTimeout(startupTimer); controller.abort();
+    disposed = true; invalidateCode(); nativeClearTimer(startupTimer); controller.abort();
     context.removeEventListener('statechange', stateChanged);
     rejectPending(fatalError ?? new Error('SID audio was disposed'));
     if (node) {
@@ -43,7 +53,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
       try { node.disconnect(); } catch {}
       node.port.close();
     }
-    balance?.disconnect(); master?.disconnect();
+    balance?.disconnect(); codeFade?.disconnect(); master?.disconnect();
     closing = (async () => { if (context.state !== 'closed') await context.close(); })();
     return closing;
   }
@@ -66,7 +76,7 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
     if (signal?.aborted) throw new DOMException('SID audio startup cancelled', 'AbortError');
     if (!context.audioWorklet) throw new Error('SID Synth needs AudioWorklet. Open it over HTTPS or localhost.');
     if (!Number.isInteger(context.sampleRate) || context.sampleRate < 8000 || context.sampleRate > 96000) throw new RangeError('SID output sample rate must be 8000..96000 Hz');
-    startupTimer = setTimeout(() => fail(new Error('SID audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
+    startupTimer = nativeSetTimer(() => fail(new Error('SID audio initialization timed out. Enable audio to retry.')), DEADLINE_MS);
     // Resume inside the user gesture, before awaiting either asset load.
     const resumed = context.resume();
     // Cache both model binaries for atomic model swaps in this same Worklet.
@@ -93,29 +103,66 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
       if (data?.fatal) { fail(new Error(data.error ?? 'SID audio processor failed')); return; }
       if (data?.ready) { resolveReady(); return; }
       const request = pending.get(data?.id); if (!request) return;
-      pending.delete(data.id); clearTimeout(request.timer);
+      pending.delete(data.id); nativeClearTimer(request.timer);
       if (data.error) { const error = new Error(data.error); error.name = data.name ?? 'Error'; request.reject(error); }
       else request.resolve(data.value);
     };
-    await boundedStartup(ready); assertOpen(); clearTimeout(startupTimer);
+    await boundedStartup(ready); assertOpen(); nativeClearTimer(startupTimer);
     balance = context.createGain(); balance.gain.value = SID_SYNTH_BALANCE;
+    codeFade = context.createGain(); codeFade.gain.value = 1;
     master = context.createGain(); master.gain.value = volume;
-    node.connect(balance); balance.connect(master); master.connect(context.destination);
+    node.connect(balance); balance.connect(codeFade); codeFade.connect(master); master.connect(context.destination);
 
     async function command(method, args = []) {
       assertOpen();
       if (!COMMANDS.has(method)) throw new Error(`Unknown SID command: ${method}`);
       if (!Array.isArray(args)) throw new TypeError('SID command arguments must be an array');
+      if(method==='stop'&&args.length)throw new TypeError('SID Stop takes no arguments');
+      if(['stop','loadPreset','loadChannelSettings'].includes(method))invalidateCode();
       const id = ++nextId;
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => fail(new Error(`SID command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
+        const timer = nativeSetTimer(() => fail(new Error(`SID command timed out (${method}). Enable audio to restart.`)), DEADLINE_MS);
         pending.set(id, {resolve, reject, timer});
         try { node.port.postMessage({id, method, args}); }
-        catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
+        catch (error) { pending.delete(id); nativeClearTimer(timer); reject(error); }
       });
     }
+    function getSidClient() {
+      assertOpen();
+      if(codeOwner)return codeOwner.promise;
+      const owner={generation:codeGeneration,promise:null};codeOwner=owner;
+      const check=()=>{
+        assertOpen();if(codeOwner!==owner||owner.generation!==codeGeneration)throw codeCancelled();
+      };
+      owner.promise=command('beginCode').then(metadata=>{
+        check();
+        if(!Number.isSafeInteger(metadata?.session)||!['6581','8580'].includes(metadata.model)||!Number.isFinite(metadata.clock))throw new Error('Invalid SID Code session');
+        const client={id:'sid:synth',chip:'sid',channels:3};
+        Object.defineProperties(client,{clock:{enumerable:true,get:()=>metadata.clock},model:{enumerable:true,get:()=>metadata.model}});
+        for(const method of CODE_METHODS)client[method]=(...args)=>{
+          check();
+          // Gate ownership is observed synchronously by the common Code host.
+          // Reject a malformed note before it can take another loop's channel.
+          if(['noteOn','noteOff','keyOn','keyOff','setNote','setFrequency','setVoice'].includes(method)&&
+            (!Number.isInteger(args[0])||args[0]<0||args[0]>2))throw new RangeError('SID channel must be an integer 0..2');
+          if(method==='noteOn'||method==='setNote'){
+            if(!sidFrequency(noteToHz(args[1]),metadata.clock))throw new RangeError('SID frequency is below the representable range');
+          }
+          if(method==='setFrequency'){
+            if(!Number.isFinite(args[1])||args[1]<=0||!sidFrequency(args[1],metadata.clock))throw new RangeError('SID frequency must be positive representable Hz');
+          }
+          return command('code',[metadata.session,method,args]).then(value=>{check();return value;});
+        };
+        // The shared core/context belong to the editor. A Code client can
+        // release its sound, but cannot destroy that borrowed resource.
+        client.dispose=(...args)=>client.initialize(...args);
+        return client;
+      }).catch(error=>{if(codeOwner===owner)codeOwner=null;throw error;});
+      return owner.promise;
+    }
     return {
-      context, outputNode: master, sampleRate: context.sampleRate, command, read: () => command('read'),
+      context, outputNode: master, codeInputNode:balance, codeOutputNode:codeFade, codeFadeNode:codeFade,
+      sampleRate: context.sampleRate, command, read: () => command('read'),getSidClient,
       async resume() {
         assertOpen();
         try { await context.resume(); assertOpen(); } catch (error) { fail(error); throw error; }
@@ -134,5 +181,5 @@ export async function createAudio({volume = .7, model = '6581', onError = () => 
     if (signal?.aborted && !fatalError) error = new DOMException('SID audio startup cancelled', 'AbortError');
     if (error?.name !== 'AbortError') fail(error);
     await dispose().catch(() => {}); throw error;
-  } finally { clearTimeout(startupTimer); signal?.removeEventListener('abort', cancelled); }
+  } finally { nativeClearTimer(startupTimer); signal?.removeEventListener('abort', cancelled); }
 }

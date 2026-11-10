@@ -26,6 +26,56 @@ async function setup8580(t,rate=48000){
 }
 const render=(instrument,frames=4096)=>instrument.renderInto(new Float32Array(frames));
 
+test('physical Code voices share the authored SID and match direct raw writes in both real models',async t=>{
+  for(const model of ['6581','8580']){
+    const setupModel=model==='6581'?setup:setup8580;
+    const {instrument,core}=await setupModel(t),{instrument:reference}=await setupModel(t);
+    const authored=instrument.read().channelSettings;
+    instrument.noteOn('keyboard',60);
+    const token=instrument.beginCode();reference.beginCode();
+    assert.equal(token.clock,SID_PAL_CLOCK);assert.equal(token.model,model);assert.deepEqual(instrument.read().voices,[]);
+    assert.throws(()=>instrument.noteOn('blocked',60),/Code owns/);
+    const calls=[['setVoice',[2,{waveform:'triangle',attack:0,sustain:12}]],['setNote',[2,'A3']],
+      ['noteOn',[0,'C4']],['noteOn',[2,69]],['setFrequency',[0,523.25]],
+      ['setFilter',[{mode:'lowpass+bandpass',cutoff:900,resonance:9,routing:5}]]];
+    for(const[method,args]of calls)assert.deepEqual(instrument.code(token.session,method,args),reference.synth[method](...args));
+    exact(render(instrument,8192),render(reference,8192),'Code delegates to the same real chip methods');
+    assert.equal(instrument.code(token.session,'getState').channels[0].gate,true);
+    assert.equal(instrument.code(token.session,'getState').channels[1].gate,false,'physical CH calls do not allocate a hidden modulator');
+    assert.deepEqual(instrument.read().channelSettings,authored,'Code raw edits never rewrite the authoring bank');
+    const before=instrument.read().registers;
+    for(const args of [[3,'C4'],[0,'invalid'],[-1,60]])assert.throws(()=>instrument.code(token.session,'noteOn',args));
+    assert.deepEqual(instrument.read().registers,before,'invalid notes cannot change Gate or frequency');
+    assert.throws(()=>instrument.code(token.session,'dispose'),/Unknown SID Code/);
+    assert.throws(()=>instrument.code(token.session,'constructor'),/Unknown SID Code/);
+    const edited=instrument.read().preset;Object.assign(edited.filter,{enabled:true,mode:'notch',cutoff:1234});
+    instrument.setPreset(edited);reference.setPreset(edited);
+    assert.equal(instrument.code(token.session,'getState').filter.cutoff,1234,'UI filter edits affect the held Code chip');
+    instrument.code(token.session,'noteOff',[0]);reference.synth.noteOff(0);
+    exact(render(instrument,2048),render(reference,2048),'physical release stays in the real core');
+    instrument.stop();reference.stop();
+    assert.deepEqual(instrument.read().registers,reference.read().registers);
+    assert.equal(core.registers[4]&1,0);assert.equal(core.registers[18]&1,0);
+    assert.throws(()=>instrument.code(token.session,'noteOn',[0,60]),{name:'AbortError'});
+    assert.equal(instrument.noteOn('after-code',60).channel,0);
+  }
+});
+
+test('Code resets restore the latest authored bank without losing its session; topology and loads retire it',async t=>{
+  const {instrument}=await setup(t),token=instrument.beginCode();
+  const latest=instrument.read().preset;latest.voice.pulseWidth=733;latest.filter.cutoff=1200;
+  instrument.setPreset(latest);instrument.code(token.session,'setVoice',[0,{pulseWidth:99}]);
+  instrument.code(token.session,'noteOn',[0,60]);instrument.code(token.session,'reset');
+  const reset=instrument.code(token.session,'getState');
+  assert.equal(reset.channels[0].pulseWidth,733);assert.equal(reset.channels[0].gate,false);assert.equal(reset.filter.cutoff,1200);
+  instrument.code(token.session,'initialize');instrument.code(token.session,'noteOn',[2,'E4']);
+  instrument.setChannelSettings(selectChannelTarget(instrument.read().channelSettings,2));
+  assert.throws(()=>instrument.code(token.session,'keyOn',[0]),{name:'AbortError'});
+  const next=instrument.beginCode();assert.notEqual(next.session,token.session);
+  instrument.loadChannelSettings(instrument.read().channelSettings);
+  assert.throws(()=>instrument.code(next.session,'setVoice',[0,{waveform:'noise'}]),{name:'AbortError'});
+});
+
 // Independent raw-register reference. It follows the documented initialization
 // and fixture write order because each physical access advances one SID cycle.
 // No SidSynth or Synth allocator is used on this side of the PCM comparison.

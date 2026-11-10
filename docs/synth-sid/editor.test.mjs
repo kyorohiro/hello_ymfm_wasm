@@ -282,7 +282,7 @@ test('question-mark help starts closed, toggles independently, preserves focus/f
 });
 
 const appSource=(await readFile(new URL('./synth.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?from\s*['"][^'"]+['"];\n/gm,'');
-function appFixture({stall=false,desktop=false}={}){
+function appFixture({stall=false,desktop=false,codeStop=async()=>{}}={}){
   const ids=new Map(),doc=new Element(null,'document');doc.ownerDocument=doc;doc.activeElement=null;doc.hidden=false;doc.createElement=tag=>new Element(doc,tag);doc.getElementById=id=>{if(!ids.has(id)){const node=new Element(doc);node.id=id;ids.set(id,node);}return ids.get(id);};
   for(const id of ['masterVolume','pitchBend','keyboardPitchBend'])doc.getElementById(id).value=id==='masterVolume'?'.7':'0';
   doc.getElementById('codeOutput').hidden=true;
@@ -292,7 +292,7 @@ function appFixture({stall=false,desktop=false}={}){
   doc.querySelectorAll=selector=>selector==='[data-visual-mode]'?modes:selector==='[data-sid-live-voice]'?channels:selector==='[data-sid-keyboard-mode]'?keyboardModes:[];doc.querySelector=()=>modes.find(node=>node.getAttribute('aria-pressed')==='true');
   const visualEvents=[];
   const win=new Element(doc,'window'),calls=[],engines=[],pending=[],audioOptions=[],editorUpdates=[],visual={setMode(){},setRunning(value){visualEvents.push(['running',value]);},connect(){},disconnect(){},stop(){visualEvents.push(['stop']);},wake(){},dispose(){}};
-  const desktopEvents=[];
+  const desktopEvents=[],code={mode:false,running:false,stops:0,dirty:0};
   if(desktop){win.top=win;win.location={protocol:'tauri:',hostname:'localhost'};win.__TAURI_INTERNALS__={};win.dispatchEvent=event=>{desktopEvents.push(event.type);return true;};}
   let isStalled=stall,engineCount=0;
   const makeEngine=model=>{
@@ -324,14 +324,44 @@ function appFixture({stall=false,desktop=false}={}){
     setLiveVoice(voice){importState.liveVoice=voice;importer.hooks.onUpdate(importer.read());},
     setLiveEnabled(value){importState.liveEnabled=value;importer.hooks.onUpdate(importer.read());},
     async stop(options){importCalls.push(options);importState.playing=false;importState.starting=false;importState.paused=false;importState.pausing=false;importState.resuming=false;if(importer.holdStop)await importer.holdStop;}};
-  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
+  const context=vm.createContext({document:doc,window:win,createAudio,createDefaultPreset,readPreset,presetToCode,createChannelSettings,readChannelSettings,selectedChannelPreset,selectChannelTarget,selectKeyboardMode,applyChannelPreset,editChannelPreset,channelPlaybackPlan,channelSettingsToCode,captureSidVoices,
+    setupSidCodeHost:()=>({ready:Promise.resolve(),isCodeMode:()=>code.mode,isRunning:()=>code.running,
+      async stop(){code.running=false;code.stops++;await codeStop();},markSoundDirty(){code.dirty++;},async dispose(){code.running=false;}}),
+    createEditor:()=>({update(value){editorUpdates.push(readPreset(value));},observe(){},dispose(){}}),
     createSidImport:hooks=>{importer.hooks=hooks;return importer;},createSidImportPanel:()=>({update(){},dispose(){}}),createSidLiveView:()=>({update(state){return state.liveState?readSidLiveVoice(state.liveState,state.liveVoice??0):null;},dispose(){}}),
     createSpuOutputVisualizer:()=>visual,createFretboardState:()=>({}),createFretboardLayout:()=>({entries,rowDefs:[]}),renderFretboardControls(){},
     buildKeyboard({root,layoutEntries}){root.children=[];for(const entry of layoutEntries){const node=new Element(doc,'button');node.className='key';node.dataset.key=entry.key;root.append(node);}},
     setInstrument(){},setFretPosition(){},setStringWindowIndex(){},midiToNoteName:midi=>`note${midi}`,AbortController,DOMException,Event,ResizeObserver:class{observe(){}disconnect(){}},navigator:{clipboard:{writeText:async()=>{}}},setTimeout,clearTimeout,URL,Blob,JSON,console});
-  vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
-  return{ui:context.testUi,doc,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
+  vm.runInContext(appSource+'\nglobalThis.testUi={ensureAudio,stopNotes,applyPreset,applySettings,chooseChannel,chooseKeyboardMode,press,release,setPitch,updateKeys,getPreset:()=>preset,getSettings:()=>channelSettings,getNotes:()=>[...notes.values()],getAudio:()=>audio};',context);
+  return{ui:context.testUi,doc,window:win,calls,engines,pending,audioOptions,editorUpdates,entries,importer,visualEvents,desktopEvents,code,bridge:win.tetoricaSynthAudio,unstall(){isStalled=false;}};
 }
+
+test('Code mode keeps typing out of the keyboard allocator and background blur leaves its program running',async()=>{
+  const f=appFixture();await f.ui.ensureAudio();f.code.mode=true;f.code.running=true;f.ui.updateKeys();
+  const before=f.calls.length;f.ui.press('code-typing',f.entries[0]);await flush();
+  assert.equal(f.ui.getNotes().length,0);assert.equal(f.calls.length,before);
+  assert.equal(f.doc.getElementById('pitchBend').disabled,true);assert.equal(f.doc.getElementById('keyboardPitchBend').disabled,true);
+  await f.window.fire('blur');f.doc.hidden=true;await f.doc.fire('visibilitychange');await flush();
+  assert.equal(f.code.running,true);assert.equal(f.calls.length,before,'Code is not reset as a keyboard focus cleanup');
+  f.code.mode=false;f.code.running=false;f.ui.updateKeys();assert.equal(f.doc.getElementById('pitchBend').disabled,false);
+});
+
+test('ordinary authoring edits stay live in Code while model changes await its retirement before replacing the core',async()=>{
+  let retire;const f=appFixture({codeStop:()=>new Promise(resolve=>{retire=resolve;})});await f.ui.ensureAudio();f.code.running=true;
+  const live=readPreset(f.ui.getPreset());live.filter.cutoff++;
+  await f.ui.applyPreset(live);assert.equal(f.code.stops,0);assert.equal(f.ui.getPreset().filter.cutoff,live.filter.cutoff);
+  const before=f.calls.length,next=readPreset(live);next.model='8580';const changing=f.ui.applyPreset(next);
+  await flush();assert.equal(f.code.stops,1);assert.equal(f.calls.length,before,'A model swap must wait until the Code output has faded');
+  retire();await changing;assert.equal(f.ui.getPreset().model,'8580');assert.equal(f.code.running,false);
+});
+
+test('song preview waits for Code retirement before taking the monitor and desktop output',async()=>{
+  let retire;const f=appFixture({desktop:true,codeStop:()=>new Promise(resolve=>{retire=resolve;})});await f.ui.ensureAudio();f.code.running=true;
+  const previous=f.bridge.getOutput(),preview={context:{state:'running'},outputNode:{name:'song-output'}};
+  const starting=f.importer.hooks.onPreviewStart(preview);await flush();
+  assert.equal(f.code.stops,1);assert.equal(f.bridge.getOutput().context,previous.context);
+  retire();await starting;assert.equal(f.bridge.getOutput().context,preview.context);assert.equal(f.code.running,false);
+});
 
 test('desktop bridge is absent on normal sites, lazy on desktop and awaits output routing before Note On',async()=>{
   assert.equal(appFixture().bridge,undefined);

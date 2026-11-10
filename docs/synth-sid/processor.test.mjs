@@ -35,6 +35,8 @@ function fixture({model='6581'}={}) {
     setChannelSettings(value) { this.calls.push(['setChannelSettings',value.target]);this.channelSettings=value;this.preset=value.channels[value.target==='round-robin'?0:value.target];return this.read(); }
     loadChannelSettings(value) { this.calls.push(['loadChannelSettings',value.target]);return this.setChannelSettings(value); }
     stop() { this.calls.push(['stop']);this.voices=[];return this.read(); }
+    beginCode(){this.stop();return {session:1,clock:985248,model:this.core.model,channels:3};}
+    code(session,method,args){this.calls.push(['code',session,method,...args]);return 'code-result';}
     renderInto(output) { output.fill(.125); }
     dispose() { this.core.dispose(); }
   }
@@ -188,6 +190,67 @@ test('initial8580 and Stop during startup select the right binary without replay
   f.resolve();await f.processor.ready;await f.processor.commands;
   assert.equal(f.messages.find(m=>m.id===1).name,'AbortError');assert.equal(f.processor.instrument.voices.length,0);
   assert.equal(f.processor.instrument.preset.model,'8580');f.processor.dispose();
+});
+
+test('queued Code begin and physical writes cannot overtake Stop during startup',async()=>{
+  const f=fixture();
+  f.processor.receive({id:1,method:'beginCode'});f.processor.receive({id:2,method:'stop'});
+  f.resolve();await f.processor.ready;await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===1).name,'AbortError');assert.equal(f.processor.codeOwner,null);
+  f.processor.receive({id:3,method:'beginCode'});await f.processor.commands;
+  const session=f.messages.find(message=>message.id===3).value.session;
+  f.processor.receive({id:4,method:'code',args:[session,'noteOn',[2,'C4']]});
+  f.processor.receive({id:5,method:'stop'});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===4).name,'AbortError');
+  assert(!f.processor.instrument.calls.some(call=>call[0]==='code'),'no physical gate is replayed after Stop');
+  f.processor.receive({id:6,method:'beginCode'});await f.processor.commands;
+  const fresh=f.messages.find(message=>message.id===6).value.session;assert.notEqual(fresh,session);
+  f.processor.receive({id:7,method:'code',args:[session,'noteOn',[0,60]]});
+  f.processor.receive({id:8,method:'code',args:[fresh,'noteOn',[1,64]]});await f.processor.commands;
+  assert.equal(f.messages.find(message=>message.id===7).name,'AbortError');assert.equal(f.messages.find(message=>message.id===8).value,'code-result');
+  f.processor.dispose();
+});
+
+test('real Code RPC shares physical SID voices, preserves authoring edits and rejects sessions across both model swaps',()=>{
+  const script=`
+    import assert from 'node:assert/strict';
+    import {readFile} from 'node:fs/promises';
+    const wasmBinary=await readFile(new URL(${JSON.stringify(new URL('../generated/sid/sid.wasm',import.meta.url).href)}));
+    const wasm8580Binary=await readFile(new URL(${JSON.stringify(new URL('../generated/sid8580-machine/sid8580-endpoint.wasm',import.meta.url).href)}));
+    let Constructor;globalThis.AudioWorkletProcessor=class{constructor(){this.messages=[];this.port={postMessage:value=>this.messages.push(value)};}};
+    globalThis.registerProcessor=(_name,value)=>{Constructor=value;};globalThis.sampleRate=48000;
+    await import(${JSON.stringify(new URL('./processor.js',import.meta.url).href)});
+    for(const model of ['6581','8580']){
+      const processor=new Constructor({processorOptions:{model,wasmBinary,wasm8580Binary}});await processor.ready;
+      let serial=0;const command=async(method,args=[])=>{const id=++serial;processor.receive({id,method,args});await processor.commands;return processor.messages.find(message=>message.id===id);};
+      const session=(await command('beginCode')).value.session;
+      assert.equal((await command('code',[session,'noteOn',[2,'C4']])).error,undefined);
+      const state=(await command('code',[session,'getState',[]])).value;
+      assert.equal(state.channels[0].gate,false);assert.equal(state.channels[1].gate,false);assert.equal(state.channels[2].gate,true);
+      assert(Math.abs(state.channels[2].frequency-261.625565)<.1);
+      const left=new Float32Array(8192),right=new Float32Array(8192);processor.process([],[[left,right]]);
+      assert(left.some(value=>Math.abs(value)>.005));assert.deepEqual(left,right);
+      const invalid=await command('code',[session,'noteOn',[3,'C4']]);assert.equal(invalid.name,'RangeError');
+      assert.equal((await command('code',[session,'constructor',[]])).error,'Unknown SID Code method');
+      const authored=(await command('read')).value.channelSettings;
+      for(const preset of authored.channels){preset.filter.enabled=true;preset.filter.mode='notch';preset.filter.cutoff=1234;}
+      await command('setChannelSettings',[authored]);
+      const live=(await command('code',[session,'getState',[]])).value;assert.equal(live.filter.cutoff,1234);assert.equal(live.channels[2].gate,true);
+      await command('stop');assert.equal((await command('code',[session,'keyOn',[0]])).name,'AbortError');
+      const fresh=(await command('beginCode')).value.session;assert.notEqual(fresh,session);
+      assert.equal((await command('code',[fresh,'noteOn',[0,69]])).error,undefined);
+      const next=(await command('read')).value.channelSettings;
+      for(const preset of next.channels)preset.model=model==='6581'?'8580':'6581';
+      await command('loadChannelSettings',[next]);
+      assert.equal((await command('code',[fresh,'keyOn',[1]])).name,'AbortError');
+      const replacement=(await command('beginCode')).value;assert.notEqual(replacement.session,fresh);assert.notEqual(replacement.model,model);
+      assert.equal((await command('code',[replacement.session,'noteOn',[1,'E4']])).error,undefined);
+      assert.equal((await command('code',[fresh,'noteOff',[1]])).name,'AbortError','old model handles cannot cut off a new model voice');
+      processor.dispose();
+    }
+  `;
+  const result=spawnSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr||result.stdout);
 });
 
 test('real dual-model SID Synth processor renders and replaces models without Node, URL or base64 globals', () => {

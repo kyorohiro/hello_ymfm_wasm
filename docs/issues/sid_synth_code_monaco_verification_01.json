@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "verificationDate": "2026-11-11 Asia/Tokyo",
+  "passed": true,
+  "scope": "SID Synth real Monaco visibility correction and fallback regression",
+  "cause": "The SID editor host retained the HTML hidden attribute after the shared initializer set data-ready=true and hid the textarea.",
+  "fix": "Follow the existing FM host contract: no hidden attribute, CSS hides the host until data-ready=true; CSS cache URL advanced.",
+  "sourceFiles": {
+    "docs/synth-sid/index.html": {
+      "bytes": 16974,
+      "sha256": "b5ca5731bcd8718471d4a62917086a82c167fa9c2c64d657466fad6b027380cf"
+    },
+    "docs/synth-sid/synth.css": {
+      "bytes": 15190,
+      "sha256": "c4f3129e761abed210f10151a831a40290e9b186b16a388ecfd009f731c21ca6"
+    },
+    "scripts/check_sid_synth_code_monaco_browser.cjs": {
+      "bytes": 26052,
+      "sha256": "c6279e6682462a82986918d203bcccc74a9e73365fc5f8aa749f483aaca3465a"
+    }
+  },
+  "actualMonaco": {
+    "receipt": "/private/tmp/sid-monaco-fix-20261111-package.json",
+    "record": {
+      "bytes": 41093,
+      "sha256": "99f1ea0529878469ac793d1c937e171f892c181fc1d33cc9d534d7145beac1ba"
+    },
+    "verifiedServedAssets": 71,
+    "missing": [],
+    "blocked": [],
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "steps": [
+          "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+          "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+          "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH4, channel 3, independent factories and implicit play",
+          "useSoundChip literal completion offers only the shared SID",
+          "Public Go to Definition and View implementation open readable Code runtime and SID sources"
+        ],
+        "good": {
+          "syntax": [],
+          "semantic": []
+        },
+        "chipCompletions": [
+          "sid"
+        ],
+        "implementations": [
+          {
+            "file": "playground_code_runtime.js",
+            "symbol": "useSoundChip",
+            "bytes": 21158,
+            "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1",
+            "line": 259,
+            "readOnly": true,
+            "navigation": {
+              "dispatch": "editor.trigger",
+              "relatedActions": [
+                "editor.action.showDefinitionPreviewHover"
+              ]
+            }
+          },
+          {
+            "file": "sidsynth.js",
+            "symbol": "setVoice",
+            "bytes": 14845,
+            "sha256": "c1172f4d7b8681a49cb7ca3a1d834e6b5b17d89817eb2cfae80b7513bfde771d",
+            "line": 124,
+            "readOnly": true,
+            "navigation": {
+              "dispatch": "editor.trigger",
+              "relatedActions": [
+                "editor.action.showDefinitionPreviewHover"
+              ]
+            }
+          }
+        ],
+        "audio": {
+          "destinationConnections": 0,
+          "physicallyMuted": true
+        },
+        "fallback": {
+          "browser": "chromium",
+          "passed": true,
+          "cdnIntentionallyBlocked": true,
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          }
+        },
+        "screenshot": "/private/tmp/sid-monaco-fix-20261111-package-chromium.png",
+        "layouts": [
+          {
+            "width": 1240,
+            "expanded": true,
+            "host": {
+              "width": 816,
+              "height": 715
+            },
+            "editor": {
+              "width": 814,
+              "height": 713
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 1240,
+            "expanded": false,
+            "host": {
+              "width": 816,
+              "height": 320
+            },
+            "editor": {
+              "width": 814,
+              "height": 318
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 390,
+            "expanded": true,
+            "host": {
+              "width": 340,
+              "height": 715
+            },
+            "editor": {
+              "width": 338,
+              "height": 713
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 390,
+            "expanded": false,
+            "host": {
+              "width": 340,
+              "height": 320
+            },
+            "editor": {
+              "width": 338,
+              "height": 318
+            },
+            "hidden": false,
+            "display": "block"
+          }
+        ],
+        "initialLayout": {
+          "host": {
+            "width": 1062,
+            "height": 320
+          },
+          "editor": {
+            "width": 1060,
+            "height": 318
+          },
+          "hidden": false,
+          "display": "block"
+        }
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "steps": [
+          "Code lazily loads real Monaco and displays its rendered starter source in a nonzero host",
+          "Keyboard/Code tabs and 1240px/390px Maximize/Restore preserve a visible real Monaco instance, model, text and cursor",
+          "The actual JavaScript worker accepts explicit instruments and rejects other chips, CH4, channel 3, independent factories and implicit play",
+          "useSoundChip literal completion offers only the shared SID",
+          "Public Go to Definition and View implementation open readable Code runtime and SID sources"
+        ],
+        "good": {
+          "syntax": [],
+          "semantic": []
+        },
+        "chipCompletions": [
+          "sid"
+        ],
+        "implementations": [
+          {
+            "file": "playground_code_runtime.js",
+            "symbol": "useSoundChip",
+            "bytes": 21158,
+            "sha256": "79c8c745a2bd718fc9c2c1cc5f8efb2f1e6b1191a9a19c680149948ffe0694d1",
+            "line": 259,
+            "readOnly": true,
+            "navigation": {
+              "dispatch": "editor.trigger",
+              "relatedActions": [
+                "editor.action.showDefinitionPreviewHover"
+              ]
+            }
+          },
+          {
+            "file": "sidsynth.js",
+            "symbol": "setVoice",
+            "bytes": 14845,
+            "sha256": "c1172f4d7b8681a49cb7ca3a1d834e6b5b17d89817eb2cfae80b7513bfde771d",
+            "line": 124,
+            "readOnly": true,
+            "navigation": {
+              "dispatch": "editor.trigger",
+              "relatedActions": [
+                "editor.action.showDefinitionPreviewHover"
+              ]
+            }
+          }
+        ],
+        "audio": {
+          "destinationConnections": 0,
+          "physicallyMuted": true
+        },
+        "fallback": {
+          "browser": "webkit",
+          "passed": true,
+          "cdnIntentionallyBlocked": true,
+          "audio": {
+            "destinationConnections": 0,
+            "physicallyMuted": true
+          }
+        },
+        "screenshot": "/private/tmp/sid-monaco-fix-20261111-package-webkit.png",
+        "layouts": [
+          {
+            "width": 1240,
+            "expanded": true,
+            "host": {
+              "width": 816,
+              "height": 715
+            },
+            "editor": {
+              "width": 814,
+              "height": 713
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 1240,
+            "expanded": false,
+            "host": {
+              "width": 816,
+              "height": 320
+            },
+            "editor": {
+              "width": 814,
+              "height": 318
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 390,
+            "expanded": true,
+            "host": {
+              "width": 340,
+              "height": 715
+            },
+            "editor": {
+              "width": 338,
+              "height": 713
+            },
+            "hidden": false,
+            "display": "block"
+          },
+          {
+            "width": 390,
+            "expanded": false,
+            "host": {
+              "width": 340,
+              "height": 320
+            },
+            "editor": {
+              "width": 338,
+              "height": 318
+            },
+            "hidden": false,
+            "display": "block"
+          }
+        ],
+        "initialLayout": {
+          "host": {
+            "width": 1062,
+            "height": 320
+          },
+          "editor": {
+            "width": 1060,
+            "height": 318
+          },
+          "hidden": false,
+          "display": "block"
+        }
+      }
+    ],
+    "userCodeExecuted": false,
+    "listeningPerformed": false
+  },
+  "fallbackRegression": {
+    "receipt": "/private/tmp/sid-monaco-fallback-20261111.json",
+    "record": {
+      "bytes": 18820,
+      "sha256": "f611c26c0f0d21de9719c9755febeaf9f4ed90bb846f8678656a3be2b6b67da2"
+    },
+    "verifiedServedAssets": 84,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "checks": [
+          "Code and Files mount without audio or autorun; local editor fallback and modules/data share the project",
+          "liveFx processes actual shared SID PCM, and Apply removal restores the direct signal",
+          "temporary Code registers keep authored presets; upper Filter and Master control the same SID output once",
+          "Apply preserves context and named loops; Stop fades actual PCM and restores authoring data",
+          "a stopped awaited Run cannot revive; model switches and Keyboard return retain a reusable single graph",
+          "project ZIP retains source, modules, data and saved sounds; import/reload never runs Code",
+          "SID song and Code exchange playback ownership; pagehide stops Code; 1240/390 layouts remain bounded"
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "checks": [
+          "Code and Files mount without audio or autorun; local editor fallback and modules/data share the project",
+          "liveFx processes actual shared SID PCM, and Apply removal restores the direct signal",
+          "temporary Code registers keep authored presets; upper Filter and Master control the same SID output once",
+          "Apply preserves context and named loops; Stop fades actual PCM and restores authoring data",
+          "a stopped awaited Run cannot revive; model switches and Keyboard return retain a reusable single graph",
+          "project ZIP retains source, modules, data and saved sounds; import/reload never runs Code",
+          "SID song and Code exchange playback ownership; pagehide stops Code; 1240/390 layouts remain bounded"
+        ]
+      }
+    ],
+    "physicalOutputMuted": true,
+    "listeningPerformed": false
+  },
+  "packagingTests": {
+    "passed": true,
+    "tests": 2,
+    "log": "/private/tmp/sid-monaco-packaging-test-20261111.log"
+  },
+  "artifact": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/tetorica_sid_synth_sid-code-monaco-20261111_itch.zip",
+    "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_sid_synth_sid-code-monaco-20261111-MBULzY",
+    "bytes": 3421807,
+    "sha256": "2f34165ad70ad247bf3f3cdff8fc4dd13c2145783943879fedbb7eaccd1f19fd",
+    "files": 329,
+    "zipStagePayloadsIdentical": true,
+    "allArchivedSourceBytesMatchRepository": true,
+    "minify": false,
+    "bundle": false
+  },
+  "published": false,
+  "precedingVerification": "sid_synth_code_files_verification_01.json"
+}

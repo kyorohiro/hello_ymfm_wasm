@@ -46,6 +46,59 @@ software output gain; values above 100% use the orange boost color. The
 oscilloscope and spectrum observe the final Master-scaled output without
 adding another speaker connection.
 
+## Play from Code and keep project files
+
+The lower **Keyboard / Code** tabs share this Synth's one SID and its selected
+6581 / 8580 model, three channel patches, filter and Master. Code names physical
+channels explicitly; keyboard round robin and Legato remain keyboard features.
+These scheduling and project tools are software features, beyond SID registers.
+
+```js
+const sid = await useSoundChip("sid");
+setBpm(120);
+liveLoop("melody", async () => {
+  const notes = scale("E3", "minorPentatonic", 2);
+  await sid.noteOn(CH1, choose(notes));
+  await sleep(0.12);
+  await sid.noteOff(CH1);
+  await beat(0.5);
+});
+```
+
+**Run** starts a fresh context; **Apply** keeps `context` and named preparations.
+**Stop** cancels pending work, fades the output and restores the current authored
+channel setup. Returning to Keyboard also stops Code. The Code tab supports
+`livePrepare()`, `tween()`, `liveFx()` and the common music helpers. Effects run
+after the chip in host software. There is no implicit `play()` or independent
+chip factory here; acquire the SID through `useSoundChip("sid")` and await its
+acknowledged controls. Existing **Copy JavaScript** still targets the full C64
+Playground separately. Maximize Code places the same editor beside Files.
+
+**Files** keeps `/index.js`, local modules, text/JSON and opaque binary files.
+Create or select a `.js` / `.mjs` file to edit it in Code. Use dynamic local
+imports such as `await import("./lib/notes.js")`, and `await file("./data/notes.json",
+{type:"json"})` for data relative to the active file. Other text files have a
+small Files editor. Text edits save locally; saving, restoring or importing
+files never runs them. JavaScript files are limited to 2 MiB.
+
+**Save sound** writes all three current patches to
+`/presets/current.sid-channels.json`. Selecting a supported voice/setup JSON
+applies its settings after stopping the preceding performance. Editing its text
+does not apply it automatically: select it again when ready. Legacy JSON files
+and unfinished text remain unchanged in Files; invalid sound selections keep
+the current instrument. Existing voice/setup save buttons and formats still work.
+
+**Export project** creates a self-contained Cassette ZIP with the authored
+channel setup, code selection and every project file. **Import project** checks
+the complete candidate before replacing Files or the instrument. The common
+Cassette loader's 16 MiB compressed/expanded limits apply. Imported `.sid` or
+other binary data remains a file; it does not start song preview. Use the
+separate **Load SID…** controls for song playback. Local recovery uses a SID-only
+IndexedDB store, with a localStorage fallback; export a project for a portable
+backup. The optional Monaco editor loads from its CDN; basic text editing and
+Run remain available if that editor cannot load. Runtime sources and type
+declarations used by definition navigation are included locally in the ZIP.
+
 ## Open a SID and use its sound
 
 Open a local `.sid` directly in **Sounds from SID**, without visiting a separate

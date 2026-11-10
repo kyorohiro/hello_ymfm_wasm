@@ -15,6 +15,9 @@ const topology=settings=>{
 };
 const noteHz=midi=>440*2**((midi-69)/12);
 const changes=(next,previous)=>Object.fromEntries(Object.entries(next).filter(([key,value])=>!previous||previous[key]!==value));
+const codeMethods=new Set(['setNote','setFrequency','noteOn','noteOff','keyOn','keyOff','allNotesOff',
+  'setVoice','setFilter','writeRegister','readRegister','getRegisterSnapshot','getState','initialize','reset','setClock']);
+const codeCancelled=()=>{const error=new Error('SID Code session was stopped or its instrument changed');error.name='AbortError';return error;};
 
 /** Software key allocation over three physical PAL SID voices. A fixed target
  * edits and plays that channel; Round robin preserves each channel's patch.
@@ -28,6 +31,7 @@ export class SidInstrument{
     if(!['6581','8580'].includes(core.model)||core.clockHz!==SID_PAL_CLOCK)throw new RangeError('SID Synth requires model 6581 or 8580 at PAL 985248 Hz');
     this.core=core;this.synth=new SidSynth({core});this.preset=createDefaultPreset({model:core.model});
     this.disposed=false;this.pitch=0;this.cursor=0;this.sequence=0;this.voices=new Map();this.slots=Array(3).fill(null);
+    this.codeEpoch=0;this.codeActive=false;
     this._replace(createChannelSettings(this.preset));
   }
   _open(){if(this.disposed)throw new Error('SID instrument is disposed');}
@@ -49,11 +53,12 @@ export class SidInstrument{
     const filter=changes(this._filter(this.channelSettings,plan),previous?this._filter(previous,previousPlan):null);
     if(Object.keys(filter).length)this.synth.setFilter(filter);
   }
-  _replace(settings){
+  _replace(settings,keepCode=false){
     const preset=selected(settings);
     if(preset.model!==this.core.model)throw new RangeError('SID preset model must match its core; replace the instrument to change model');
     // initialize resets the owned core, including its access queue and software
     // DC history. Reapplying the silent patch preserves authored parameters.
+    if(!keepCode){this.codeEpoch++;this.codeActive=false;}
     this.synth.initialize();this.channelSettings=settings;this.preset=preset;this.pitch=0;this.cursor=0;this.sequence=0;this.voices.clear();this.slots.fill(null);this._apply(null);
   }
   _tuning(midi,preset,pitch=this.pitch){
@@ -108,6 +113,7 @@ export class SidInstrument{
   loadChannelSettings(value){this._open();const next=readChannelSettings(value);this._replace(next);return this.read();}
   noteOn(id,midi){
     this._open();
+    if(this.codeActive)throw new Error('SID Code owns the physical channels; stop Code before playing the keyboard');
     if(typeof id!=='string'||!id.length||id.length>128)throw new TypeError('Expected a note identity of 1–128 characters');
     if(this.voices.has(id))throw new Error('Note identity is already active');
     if(!Number.isInteger(midi)||midi<0||midi>127)throw new RangeError('Expected a MIDI note 0–127');
@@ -155,6 +161,28 @@ export class SidInstrument{
     const tuning=this._prepareTuning(this.channelSettings,semitones),plan=channelPlaybackPlan(this.channelSettings);
     for(const item of tuning){this.synth.setFrequency(item.voice.channel,item.tuning.carrier);if(item.tuning.source!==null)this.synth.setFrequency(plan.source,item.tuning.source);}
     this.pitch=semitones;return this.read();
+  }
+  /** Code borrows this same chip, but owns physical voices rather than key IDs.
+   * Starting the session clears the keyboard allocator and restores its patch.
+   * Loads, topology changes and Stop invalidate every earlier session token.
+   */
+  beginCode(){
+    this._open();this.stop();this.codeActive=true;
+    return {session:this.codeEpoch,clock:this.synth.clock,model:this.core.model,channels:3};
+  }
+  code(session,method,args=[]){
+    this._open();
+    if(!this.codeActive||session!==this.codeEpoch)throw codeCancelled();
+    if(!codeMethods.has(method))throw new Error('Unknown SID Code method');
+    if(!Array.isArray(args))throw new TypeError('SID Code arguments must be an array');
+    if(method==='getState')return this.synth._getState();
+    // These are shared-instrument resets, not ownership/disposal operations.
+    // Preserve the Code token while restoring the latest authored patch.
+    if(method==='initialize'||method==='reset'){
+      if(args.length)throw new TypeError('SID Code reset takes no arguments');
+      this._replace(this.channelSettings,true);return;
+    }
+    return this.synth[method](...args);
   }
   stop(){this._open();this._replace(this.channelSettings);return this.read();}
   renderInto(output){this._open();if(!(output instanceof Float32Array))throw new TypeError('SID output must be Float32Array');return this.core.renderInto(output);}
