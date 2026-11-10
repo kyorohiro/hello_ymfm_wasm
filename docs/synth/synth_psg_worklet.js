@@ -6,7 +6,7 @@ import {createSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
 import {createSegaPsgApi} from '../js/segapsg_api.js?v=audio-numeric-bindings-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
 import {createSynthPsgRecordingPlayer} from './synth_psg_recording_player.js?v=psg-event-rec-1';
-import {createSynthPsgLoopPlayer} from './synth_psg_loop_player.js?v=psg-looper-1';
+import {createSynthPsgLoopPlayer} from './synth_psg_loop_player.js?v=pcm-looper-1';
 
 class SynthPsgProcessor extends AudioWorkletProcessor {
   constructor(options) {

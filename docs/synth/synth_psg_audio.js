@@ -5,7 +5,7 @@ import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source
 import {normalizeSynthPsgEnvelope} from './synth_psg_envelope.js?v=psg-envelope-1';
 import {normalizePsgRecording} from './synth_psg_recording.js?v=psg-event-rec-1';
 import {normalizeSynthPsgSettings} from './synth_psg.js?v=psg-event-rec-1';
-import {normalizeSynthPsgLoopConfig,prepareSynthPsgLoopUnit,PSG_LOOP_MAX_UNITS,PSG_LOOP_MAX_PCM_BYTES} from './synth_psg_loop_player.js?v=psg-looper-1';
+import {normalizeSynthPsgLoopConfig,prepareSynthPsgLoopUnit,PSG_LOOP_MAX_UNITS,PSG_LOOP_MAX_PCM_BYTES} from './synth_psg_loop_player.js?v=pcm-looper-1';
 
 /** Lazy PSG endpoint on the host's existing AudioContext/output bus. */
 export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAudio}={}) {
@@ -41,7 +41,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     const creating=Promise.resolve().then(()=>{
       owner.abort.signal.throwIfAborted();
       return createDevice(context,gain,{clock:SEGAPSG_CLOCK,stereoEnabled:false,signal:owner.abort.signal,
-        workletUrl:new URL('./synth_psg_worklet.js?v=psg-looper-1',import.meta.url),
+        workletUrl:new URL('./synth_psg_worklet.js?v=pcm-looper-1',import.meta.url),
         onError:error=>fail(owner,error)});
     });
     owner.promise=new Promise((resolve,reject)=>{

@@ -1,0 +1,12 @@
+// Compatibility names for the shared raw-PCM software layer mixer.
+import {createSynthAudioLoopProtocol,AUDIO_LOOP_MIN_SECONDS,AUDIO_LOOP_MAX_SECONDS,AUDIO_LOOP_MAX_UNITS,AUDIO_LOOP_MAX_PCM_BYTES} from './synth_audio_loop_player.js?v=pcm-looper-1';
+export const PCM_LOOP_MIN_SECONDS=AUDIO_LOOP_MIN_SECONDS;
+export const PCM_LOOP_MAX_SECONDS=AUDIO_LOOP_MAX_SECONDS;
+export const PCM_LOOP_MAX_UNITS=AUDIO_LOOP_MAX_UNITS;
+export const PCM_LOOP_MAX_PCM_BYTES=AUDIO_LOOP_MAX_PCM_BYTES;
+const protocol=createSynthAudioLoopProtocol('PCM');
+export const normalizeSynthPcmLoopConfig=protocol.normalizeSynthAudioLoopConfig;
+export const normalizeSynthPcmLoopUnit=protocol.normalizeSynthAudioLoopUnit;
+export const prepareSynthPcmLoopUnit=protocol.prepareSynthAudioLoopUnit;
+export const normalizeSynthPcmPreparedLoopUnit=protocol.normalizeSynthAudioPreparedLoopUnit;
+export const createSynthPcmLoopPlayer=protocol.createSynthAudioLoopPlayer;

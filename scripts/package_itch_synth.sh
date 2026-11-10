@@ -42,6 +42,8 @@ synth_psg_recording_player.js
 synth_psg_loop_render.js
 synth_psg_loop_player.js
 synth_psg_looper.js
+synth_layer_looper.js
+synth_audio_loop_player.js
 synth_pcm.js
 synth_pcm_audio.js
 synth_pcm_controls.js
@@ -50,6 +52,11 @@ synth_pcm_recording_prepare.js
 synth_pcm_recording_player.js
 synth_pcm_recording_audio.js
 synth_pcm_recording_worklet.js
+synth_pcm_looper.js
+synth_pcm_loop_render.js
+synth_pcm_loop_player.js
+synth_pcm_loop_audio.js
+synth_pcm_loop_worklet.js
 synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_state.js
@@ -298,7 +305,8 @@ perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_a
   "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_state.js" \
   "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \
   "${STAGE_DIR}/synth_song_mix_defaults.js" "${STAGE_DIR}/synth_psg_audio.js" "${STAGE_DIR}/synth_psg_worklet.js" "${STAGE_DIR}/synth_song_psg_voice.js" "${STAGE_DIR}/synth_psg_loop_render.js" "${STAGE_DIR}/synth_pcm_audio.js" "${STAGE_DIR}/synth_pcm.js" \
-  "${STAGE_DIR}/synth_pcm_recording_audio.js" "${STAGE_DIR}/synth_pcm_recording_worklet.js"
+  "${STAGE_DIR}/synth_pcm_recording_audio.js" "${STAGE_DIR}/synth_pcm_recording_worklet.js" \
+  "${STAGE_DIR}/synth_pcm_loop_audio.js" "${STAGE_DIR}/synth_pcm_loop_render.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"

@@ -59,5 +59,5 @@ node scripts/check_synth_pcm_live_browser.cjs --root=release/itch_synth_pcm-even
 ## 残り
 
 - [ ] 人による実聴：実際のWAVで録音→loop再生→Export／Import、再生中の音色編集とUse current soundの聴こえ方。
-- [ ] PCM Looper。FM／PSGと同じ重ね録りへ進む場合は別TODOを用意する。
+- [x] PCM Looper：[重ね録り作業](todo_fm2612_genesis_pcm_looper_01.md)で実装・無音検証済み。
 - [ ] PWM基本演奏は別作業。

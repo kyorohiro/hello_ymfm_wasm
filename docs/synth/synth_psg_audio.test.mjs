@@ -111,7 +111,7 @@ test('PSG allocation is lazy, coalesces the same route, sends ordered real API w
   assert.equal(f.audio.isPreparing(),true);assert.equal(h.gains.length,1);assert.equal(h.gains[0].gain.value,0);
   await turn();const request=f.requests[0];
   assert.equal(request.options.clock,SEGAPSG_CLOCK);assert.equal(request.options.stereoEnabled,false);
-  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=psg-looper-1$/,'software control uses a private Synth worklet');
+  assert.match(String(request.options.workletUrl),/synth_psg_worklet\.js\?v=[a-z0-9-]+$/,'software control uses a versioned private Synth worklet');
   assert.equal(request.destination,h.gains[0]);assert.equal(h.gains[0].output,h.output);
   request.task.resolve(request.device);const psg=await pending;
   assert.equal(f.audio.getPsg(),psg);assert.equal(f.audio.isPreparing(),false);
