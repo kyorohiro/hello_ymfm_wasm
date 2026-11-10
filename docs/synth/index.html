@@ -380,6 +380,13 @@
       .synth-psg-envelope-number .param-button { width: 26px; height: 26px; }
       .synth-psg-envelope-number .param-value { min-width: 32px; min-height: 26px; font-size: .78rem; font-variant-numeric: tabular-nums; touch-action: none; }
       .synth-psg-hint { margin: 10px 0 0; color: #a8bfba; font-size: .68rem; line-height: 1.5; }
+      .synth-pcm-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(135px,1fr)); gap: 8px; margin-top: 10px; }
+      .synth-pcm-field { display: grid; gap: 4px; min-width: 0; font-size: .65rem; color: #b8cac6; }
+      .synth-pcm-number.param-control.no-label { grid-template-columns: 26px minmax(45px,1fr) 26px; min-width: 0; gap: 0; padding: 0 2px; }
+      .synth-pcm-number .param-button { width: 26px; height: 26px; }
+      .synth-pcm-number .param-value { min-width: 45px; min-height: 26px; font-size: .78rem; touch-action: none; font-variant-numeric: tabular-nums; }
+      #synthPcmCanvas { touch-action: none; }
+      #synthPcmLoadStatus { color: #dfbd90; overflow-wrap: anywhere; font-size: .68rem; }
       .synth-psg-help { position: relative; font-size: .7rem; }
       .synth-psg-help summary { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--pill-border); border-radius: 50%; cursor: pointer; list-style: none; }
       .synth-psg-help summary::-webkit-details-marker { display: none; }
@@ -1363,8 +1370,8 @@
                   <section class="synth-menu-section">
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
-                      <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI / PSG JSON…</button>
-                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,.psg.json,application/octet-stream,application/json" hidden>
+                      <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI / PSG / PCM JSON…</button>
+                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,.psg.json,.pcm.json,application/octet-stream,application/json" hidden>
                       <button id="importCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette…</button>
                       <input id="cassetteImportInput" type="file" accept=".zip,application/zip" hidden>
                       <button id="importEventRecordingButton" class="toolbar-button" type="button" data-close-synth-menu>Event recording…</button>
@@ -1377,6 +1384,7 @@
                       <button id="exportTfiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · TFI</button>
                       <button id="exportVgiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · VGI</button>
                       <button id="exportPsgButton" class="toolbar-button" type="button" data-close-synth-menu hidden>Instrument · PSG JSON</button>
+                      <button id="exportPcmButton" class="toolbar-button" type="button" data-close-synth-menu hidden>Instrument · PCM JSON</button>
                       <button id="exportCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette · ZIP</button>
                       <button id="eventRecordExportButton" class="toolbar-button" type="button" data-close-synth-menu disabled>Event recording · JSON</button>
                     </div>
@@ -1618,9 +1626,42 @@
                 <p id="synthPsgHint" class="synth-psg-hint">Tone · 3 hardware channels · round robin.</p>
               </div>
             </div>
-            <div id="synthChipPcm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPcm" tabindex="0" hidden>
-              <h2>Mega CD PCM</h2><p>Under construction</p>
-              <p class="subtext">Editor preview · Keyboard plays YM2612.</p>
+            <div id="synthChipPcm" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabPcm" hidden>
+              <div class="card visual-card">
+                <div class="visual-mode-controls" role="group" aria-label="PCM visualization">
+                  <button type="button" class="toolbar-button is-selected" data-pcm-visual-mode="sample" aria-pressed="true">Sample</button>
+                  <button type="button" class="toolbar-button" data-pcm-visual-mode="waveform" aria-pressed="false">Waveform</button>
+                  <button type="button" class="toolbar-button" data-pcm-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+                </div>
+                <p class="synth-psg-description">Sample view · drag L / E to set loop start / end.</p>
+                <canvas id="synthPcmCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="PCM sample and loop range"></canvas>
+              </div>
+              <div id="synthPcmSettings" class="control-section">
+                <div class="preset-row"><label for="synthPcmPresetSelect">Preset</label><select id="synthPcmPresetSelect"><option value="pcm-sine">PCM default</option></select></div>
+                <div class="synth-psg-heading">
+                  <div><h2>Mega CD PCM</h2><p class="synth-psg-session">RF5C164 · 8 voices · shared 64 KiB RAM</p></div>
+                  <details id="synthPcmHelp" class="synth-psg-help"><summary aria-label="About Mega CD PCM" title="About Mega CD PCM">?</summary><div class="synth-psg-help-body">
+                    <p>Eight PCM voices share one sample in 64 KiB RAM. Volume is 8-bit; left and right Pan each have 16 levels. New keys use round robin.</p>
+                    <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
+                    <p>Root note plays at the original sample speed. Loop End writes an end marker into shared RAM; changing the sample or End stops held notes. Loop Off plays once and then loops silence.</p>
+                    <p>PCM VGM Live, Event Rec and Looper are not available yet. Choose Synth in the VGM controls to edit PCM while a reference song is selected.</p>
+                  </div></details>
+                </div>
+                <div class="synth-psg-row" role="group" aria-label="PCM sample source">
+                  <button type="button" class="toolbar-button" data-pcm-builtin="sine">Sine</button><button type="button" class="toolbar-button" data-pcm-builtin="triangle">Triangle</button><button type="button" class="toolbar-button" data-pcm-builtin="saw">Saw</button><button type="button" class="toolbar-button" data-pcm-builtin="square">Square</button>
+                  <button id="synthPcmLoadButton" type="button" class="toolbar-button">Load WAV…</button><input id="synthPcmAudioFile" type="file" accept=".wav,audio/wav,audio/x-wav" hidden>
+                </div>
+                <p id="synthPcmSampleInfo" class="synth-psg-hint"></p>
+                <p id="synthPcmLoadStatus" role="status" hidden></p>
+                <div class="synth-pcm-fields">
+                  <div class="synth-pcm-field"><span>Volume · 0–255</span><div id="synthPcmVolumeControl"></div></div>
+                  <div class="synth-pcm-field"><span>Pan left · 0–15</span><div id="synthPcmPanLeftControl"></div></div>
+                  <div class="synth-pcm-field"><span>Pan right · 0–15</span><div id="synthPcmPanRightControl"></div></div>
+                  <div class="synth-pcm-field"><span>Root note · <span id="synthPcmRootName">C4</span></span><div id="synthPcmRootNoteControl"></div></div>
+                </div>
+                <div class="synth-psg-row"><span class="synth-psg-label">Loop</span><button id="synthPcmLoopEnabled" type="button" class="toolbar-button" aria-pressed="true">On</button></div>
+                <div class="synth-pcm-fields"><div class="synth-pcm-field"><span>Loop Start · frame</span><div id="synthPcmLoopStartControl"></div></div><div class="synth-pcm-field"><span>Loop End · exclusive frame</span><div id="synthPcmLoopEndControl"></div></div></div>
+              </div>
             </div>
             <div id="synthChipPwm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPwm" tabindex="0" hidden>
               <h2>32X PWM</h2><p>Under construction</p>
@@ -1708,7 +1749,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=psg-looper-1";
+      import "./synth.js?v=pcm-editor-1";
     </script>
   </body>
 </html>

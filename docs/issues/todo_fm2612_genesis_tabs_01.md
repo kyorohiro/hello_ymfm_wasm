@@ -1,7 +1,7 @@
 # FM2612 Synth：Genesis音源タブの表示試作（2026-11-10）
 
 
-現在のPSGタブは[PSG基本演奏](todo_fm2612_genesis_psg_01.md)へ進んでおり、下記は工事中表示の試作段階の記録です。PCM／PWMは工事中表示を維持します。
+現在のPSGタブは[PSG基本演奏](todo_fm2612_genesis_psg_01.md)へ進んでおり、下記は工事中表示の試作段階の記録です。PCMは[Mega CD PCM基本演奏](todo_fm2612_genesis_pcm_01.md)へ進めています。PWMは工事中表示を維持します。
 
 ユーザー指示：Envelope／Waveform／Spectrumの上にYM2612／PSG／PCM／PWMタブを置き、YM2612以外は工事中の表示へ切り替える。
 

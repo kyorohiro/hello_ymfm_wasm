@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setupSynthFiles} from './synth_files.js';
-import {createSynthProject,isPsgPresetPath} from './synth_project.js';
+import {createSynthProject,isPsgPresetPath,isPcmPresetPath} from './synth_project.js';
 import {createPsgPreset,isPsgPreset,normalizePsgPreset} from './synth_psg_preset.js';
+import {createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,PCM_MAX_FRAMES} from './synth_pcm.js';
 
 class Element {
   constructor(tag='div') {this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.attributes={};this.style={};this.listeners=new Map();this.hidden=false;this.open=false;this.value='';
@@ -43,13 +44,13 @@ function harness(store={saved:null,journal:new Map()}) {
     get(){const request={result:structuredClone(store.saved)};queueMicrotask(()=>request.onsuccess?.());return request;},
   });return transaction;}};
   globalThis.indexedDB={open(){const request={result:database};queueMicrotask(()=>{request.onupgradeneeded?.();request.onsuccess?.();});return request;}};
-  const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({})},ids={fm:'one-op-basic',psg:'psg-default'},messages=[];
+  const project=createSynthProject(),patches={fm:fm(),psg:createPsgPreset({}),pcm:createPcmBuiltinPreset('sine')},ids={fm:'one-op-basic',psg:'psg-default',pcm:'pcm-sine'},messages=[];
   let kind='fm';
-  function applySnapshot(preset,id){kind=isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
-  const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='psg'?'psg-default':'one-op-basic',
+  function applySnapshot(preset,id){kind=isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';patches[kind]=kind==='pcm'?normalizePcmPreset(preset):kind==='psg'?normalizePsgPreset(preset):structuredClone(preset);ids[kind]=id;}
+  const files=setupSynthFiles({project,getEditorKind:()=>kind,setEditorKind:value=>{kind=value;},getDefaultPresetId:value=>value==='pcm'?'pcm-sine':value==='psg'?'psg-default':'one-op-basic',
     getPreset:()=>structuredClone(patches[kind]),getPresetId:()=>ids[kind],applySnapshot,
-    applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='psg-default'?createPsgPreset({}):fm(),id),
-    onSaved:path=>{ids[isPsgPresetPath(path)?'psg':'fm']='vfs:'+path;},onListChanged(){},onWorkspaceReplaced(){},stopAllNotes(){},setStatus:message=>messages.push(message)});
+    applyPreset:id=>id.startsWith('vfs:')?applySnapshot(project.readTone(id.slice(4)).preset,id):applySnapshot(id==='pcm-sine'?createPcmBuiltinPreset('sine'):id==='psg-default'?createPsgPreset({}):fm(),id),
+    onSaved:path=>{ids[isPcmPresetPath(path)?'pcm':isPsgPresetPath(path)?'psg':'fm']='vfs:'+path;},onListChanged(){},onWorkspaceReplaced(){},stopAllNotes(){},setStatus:message=>messages.push(message)});
   async function idle(){for(let i=0;i<50;i++){await tick();if(editor.attributes['aria-busy']==='false')return;}assert.fail('file operation stayed busy');}
   async function action(name,path){
     if(path){const target=new Element('button');target.setAttribute('data-file-path',path);byId('synthFilesTree').fire('contextmenu',target);}
@@ -212,5 +213,54 @@ test('a legacy saved PSG editor context migrates to Envelope Off without rewriti
     assert.equal(await h.files.switchEditor('psg'),true);assert.equal(h.files.activeTonePath,psgPath);
     assert.equal(h.patches.psg.version,2);assert.equal(h.patches.psg.settings.envelope.enabled,false);
     assert.equal(JSON.parse(h.project.fs.get(psgPath).data).version,1,'restoring an old context does not auto-save a migration');
+  } finally {h.cleanup();}
+});
+
+test('FM, PSG and PCM file contexts retain independent sounds, paths and inactive compound renames',async()=>{
+  const store={saved:null,journal:new Map()};let h=harness(store),fmPath,psgPath,pcmPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:5},'Three FM');fmPath=h.files.activeTonePath;
+    await h.files.createFromPreset(createPsgPreset({source:'noise',attenuation:9}),'Three PSG');psgPath=h.files.activeTonePath;
+    await h.files.switchEditor('pcm');assert.equal(h.kind,'pcm');assert.equal(h.ids.pcm,'pcm-sine');
+    h.patches.pcm.settings.volume=91;h.files.markDirty();pcmPath=h.files.activeTonePath;
+    assert.match(pcmPath,/\.pcm\.json$/);await h.action('sync');
+    h.patches.pcm.settings.panRight=3;h.files.markDirty();
+    await h.files.switchEditor('fm');assert.equal(h.files.activeTonePath,fmPath);assert.equal(h.patches.fm.feedback,5);
+    await h.rename(pcmPath,'Sample Bank.pcm.json');pcmPath='/presets/Sample Bank.pcm.json';
+    await h.files.switchEditor('pcm');assert.equal(h.files.activeTonePath,pcmPath);assert.equal(h.ids.pcm,'vfs:'+pcmPath);
+    assert.equal(h.patches.pcm.settings.panRight,3);await h.action('revert');assert.equal(h.patches.pcm.settings.panRight,15);
+    await h.files.switchEditor('psg');assert.equal(h.files.activeTonePath,psgPath);assert.equal(h.patches.psg.settings.attenuation,9);
+  } finally {h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;assert.equal(h.kind,'psg');assert.equal(h.files.activeTonePath,psgPath);
+    await h.files.switchEditor('pcm');assert.equal(h.files.activeTonePath,pcmPath);assert.equal(h.patches.pcm.settings.volume,91);
+    assert.equal(h.patches.pcm.settings.panRight,15);await h.files.switchEditor('fm');assert.equal(h.files.activeTonePath,fmPath);
+    assert.equal(h.patches.fm.feedback,5);
+  } finally {h.cleanup();}
+});
+
+test('a full PCM sample and checkpoint recover the last edit without overwriting FM/PSG contexts',async()=>{
+  const originalVolume=createPcmBuiltinPreset('sine').settings.volume;
+  const store={saved:null,journal:new Map()};let h=harness(store),pcmPath,fmPath,psgPath;
+  try {
+    await h.files.ready;await h.files.createFromPreset({...fm(),feedback:6},'Recovery FM');fmPath=h.files.activeTonePath;
+    await h.files.createFromPreset(createPsgPreset({attenuation:8}),'Recovery PSG');psgPath=h.files.activeTonePath;
+    const full=createPcmBuiltinPreset('sine');full.sample.data=Buffer.alloc(PCM_MAX_FRAMES,128).toString('base64');full.settings.loopEnd=PCM_MAX_FRAMES;
+    await h.files.createFromPreset(normalizePcmPreset(full),'Recovery PCM');pcmPath=h.files.activeTonePath;await h.action('sync');
+    h.patches.pcm.settings.volume=115;h.files.markDirty();
+    const journal=store.journal.get('tetorica-fm2612-synth-pending-tone');assert(Buffer.byteLength(journal)>128*1024);
+    assert(Buffer.byteLength(journal)<384*1024);assert.equal(h.project.readTone(pcmPath).preset.settings.volume,115);
+    assert.equal(store.saved.editorContexts.pcm.preset.settings.volume,originalVolume,'the saved context still predates the immediate journal');
+  } finally {h.cleanup();}
+  h=harness(store);
+  try {
+    await h.files.ready;assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,pcmPath);
+    assert.equal(h.patches.pcm.settings.volume,115);assert.equal(h.patches.pcm.settings.loopEnd,PCM_MAX_FRAMES);
+    await h.action('revert');assert.equal(h.patches.pcm.settings.volume,originalVolume);
+    await h.files.switchEditor('fm');assert.equal(h.files.activeTonePath,fmPath);assert.equal(h.patches.fm.feedback,6);
+    await h.files.switchEditor('psg');assert.equal(h.files.activeTonePath,psgPath);assert.equal(h.patches.psg.settings.attenuation,8);
+    await h.files.selectPreset('pcm-sine');assert.equal(h.kind,'pcm');assert.equal(h.files.activeTonePath,null);
+    assert.equal(store.saved.editorContexts.pcm.presetId,'pcm-sine');
   } finally {h.cleanup();}
 });

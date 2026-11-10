@@ -1,9 +1,10 @@
-import {createSynthProject,isSynthTonePath,isPsgPresetPath,synthStatePath} from './synth_project.js?v=psg-envelope-1';
+import {createSynthProject,isSynthTonePath,isPsgPresetPath,isPcmPresetPath,synthStatePath} from './synth_project.js?v=pcm-editor-1';
 import {CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/filesystem.js';
 import {resolvePath} from '../js/tetorica_virtual_files/path.js';
 
 const KIND='tetorica-fm2612-synth-recovery';
 const MAX_BYTES=128*1024;
+const PCM_MAX_BYTES=384*1024;
 const encoder=new TextEncoder();
 const validWorkspace=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
 
@@ -15,9 +16,14 @@ function validatePath(path) {
   if(typeof path!=='string'||!path.startsWith('/')||resolvePath(path)!==path||!isSynthTonePath(path)||path==='/sys'||path.startsWith('/sys/'))throw Error('Invalid Synth recovery instrument path');
   return path;
 }
-function record(file) {
+const sizeError=limit=>Error(`Synth recovery exceeds the ${limit/1024} KiB limit`);
+function record(file,limit,compactPcm=false) {
   if(!file)throw Error('Synth recovery requires the current instrument and its state');
-  if((file.type==='binary'?file.data.byteLength:encoder.encode(file.data).byteLength)>MAX_BYTES)throw Error('Synth recovery exceeds the 128 KiB limit');
+  if((file.type==='binary'?file.data.byteLength:encoder.encode(file.data).byteLength)>limit)throw sizeError(limit);
+  // Cassette files are binary UTF-8. A PCM sample's base64 JSON would grow
+  // several times if journaled as numeric bytes; text retains the exact UTF-8
+  // contents while fitting both the current sound and its checkpoint.
+  if(compactPcm&&file.type==='binary')return {path:file.path,type:'text',data:new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(file.data)};
   return {path:file.path,type:file.type,data:file.type==='binary'?Array.from(file.data):file.data};
 }
 
@@ -30,12 +36,13 @@ function record(file) {
  * @returns {string} */
 export function createToneRecovery(project,path,workspaceId,generation) {
   validateIdentity(workspaceId,generation);path=validatePath(path);
+  const pcm=isPcmPresetPath(path),limit=pcm?PCM_MAX_BYTES:MAX_BYTES;
   const read=target=>{
     if(!project.fs.has(target))return null;
-    if(project.fs.stat(target).size>MAX_BYTES)throw Error('Synth recovery exceeds the 128 KiB limit');
-    return record(project.fs.get(target));
+    if(project.fs.stat(target).size>limit)throw sizeError(limit);
+    return record(project.fs.get(target),limit,pcm&&target!=='/.gitignore');
   };
-  const state=isPsgPresetPath(path)?null:synthStatePath(path),entries=[read(path),...(state?[read(state)]:[])];
+  const state=isPsgPresetPath(path)||pcm?null:synthStatePath(path),entries=[read(path),...(state?[read(state)]:[])];
   if(entries.some(entry=>!entry))throw Error('Synth recovery requires the current instrument and its state');
   for(const extra of [CHECKPOINT_ROOT+path,...(state?[CHECKPOINT_ROOT+state]:[]),'/.gitignore']){
     const entry=read(extra);if(entry)entries.push(entry);
@@ -50,19 +57,21 @@ export function createToneRecovery(project,path,workspaceId,generation) {
  * @param {string} raw
  * @returns {{workspaceId:string,generation:number,activeTonePath:string,entries:Array<{path:string,type:'text'|'binary',data:string|Uint8Array}>}} */
 export function parseToneRecovery(raw) {
-  if(typeof raw!=='string'||raw.length>MAX_BYTES||encoder.encode(raw).byteLength>MAX_BYTES)throw Error('Synth recovery exceeds the 128 KiB limit');
+  if(typeof raw!=='string'||raw.length>PCM_MAX_BYTES||encoder.encode(raw).byteLength>PCM_MAX_BYTES)throw sizeError(PCM_MAX_BYTES);
   let value;
   try{value=JSON.parse(raw);}catch{throw Error('Invalid Synth recovery JSON');}
   if(!value||value.version!==1||value.kind!==KIND||!Array.isArray(value.entries)||value.entries.length<1||value.entries.length>5)throw Error('Unsupported Synth recovery format');
   validateIdentity(value.workspaceId,value.generation);
-  const path=validatePath(value.activeTonePath),state=isPsgPresetPath(path)?null:synthStatePath(path);
+  const path=validatePath(value.activeTonePath),limit=isPcmPresetPath(path)?PCM_MAX_BYTES:MAX_BYTES;
+  if(raw.length>limit||encoder.encode(raw).byteLength>limit)throw sizeError(limit);
+  const state=isPsgPresetPath(path)||isPcmPresetPath(path)?null:synthStatePath(path);
   const allowed=new Set([path,...(state?[state]:[]),CHECKPOINT_ROOT+path,...(state?[CHECKPOINT_ROOT+state]:[]),'/.gitignore']),seen=new Set(),entries=[];
   for(const entry of value.entries){
     if(!entry||typeof entry!=='object'||Object.keys(entry).some(key=>!['path','type','data'].includes(key))||!allowed.has(entry.path)||seen.has(entry.path))throw Error('Invalid or duplicate Synth recovery path');
     seen.add(entry.path);
     let data;
     if(entry.type==='text'&&typeof entry.data==='string')data=entry.data;
-    else if(entry.type==='binary'&&Array.isArray(entry.data)&&entry.data.length<=MAX_BYTES&&entry.data.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))data=Uint8Array.from(entry.data);
+    else if(entry.type==='binary'&&Array.isArray(entry.data)&&entry.data.length<=limit&&entry.data.every(byte=>Number.isInteger(byte)&&byte>=0&&byte<=255))data=Uint8Array.from(entry.data);
     else throw Error(`Invalid Synth recovery file data: ${entry.path}`);
     entries.push({path:entry.path,type:entry.type,data});
   }

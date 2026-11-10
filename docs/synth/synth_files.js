@@ -1,17 +1,19 @@
 import {renderFileTree} from '../playground/playground_file_tree.js';
-import {createSynthProject,isSynthTonePath,isSynthStatePath,isPsgPresetPath} from './synth_project.js?v=psg-envelope-1';
+import {createSynthProject,isSynthTonePath,isSynthStatePath,isPsgPresetPath,isPcmPresetPath} from './synth_project.js?v=pcm-editor-1';
 import {isPsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
+import {isPcmPreset} from './synth_pcm.js?v=pcm-editor-1';
 import {isCheckpointPath} from '../js/tetorica_virtual_files/filesystem.js';
-import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=psg-envelope-1';
+import {createToneRecovery, parseToneRecovery} from './synth_recovery.js?v=pcm-editor-1';
 
 const basename = path => path.split('/').pop();
 const dirname = path => path.slice(0, path.lastIndexOf('/')) || '/';
 const inside = (path, directory) => path === directory || path?.startsWith(directory + '/');
 const RECOVERY_KEY = 'tetorica-fm2612-synth-pending-tone';
-const kindOfPath=path=>isPsgPresetPath(path)?'psg':'fm';
-const kindOfPreset=preset=>isPsgPreset(preset)?'psg':'fm';
-const validKind=kind=>{if(!['fm','psg'].includes(kind))throw Error('Invalid instrument editor kind');return kind;};
-const toneExtension=path=>String(path).match(/\.psg\.json$|\.(?:tfi|vgi)$/i)?.[0].toLowerCase();
+const kindOfPath=path=>isPcmPresetPath(path)?'pcm':isPsgPresetPath(path)?'psg':'fm';
+const kindOfPreset=preset=>isPcmPreset(preset)?'pcm':isPsgPreset(preset)?'psg':'fm';
+const validKind=kind=>{if(!['fm','psg','pcm'].includes(kind))throw Error('Invalid instrument editor kind');return kind;};
+const extensionForKind=kind=>kind==='pcm'?'.pcm.json':kind==='psg'?'.psg.json':'.vgi';
+const toneExtension=path=>String(path).match(/\.(?:psg|pcm)\.json$|\.(?:tfi|vgi)$/i)?.[0].toLowerCase();
 const newWorkspaceId = () => globalThis.crypto?.randomUUID?.() || `synth-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 // Structured snapshots keep binary files binary; no base64/JSON round trip.
@@ -182,6 +184,9 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     for (const id of ['commonControls','operatorControls','channel3SpecialControls']) byId(id).inert = busy || readOnly;
     if(byId('synthPsgSettings'))byId('synthPsgSettings').inert=busy||readOnly;
     if(byId('synthPsgPresetSelect'))byId('synthPsgPresetSelect').disabled=busy||readOnly;
+    if(byId('synthPcmSettings'))byId('synthPcmSettings').inert=busy||readOnly;
+    if(byId('synthPcmCanvas'))byId('synthPcmCanvas').inert=busy||readOnly;
+    if(byId('synthPcmPresetSelect'))byId('synthPcmPresetSelect').disabled=busy||readOnly;
     for (const id of ['synthFileDuplicateButton','synthFileRenameButton','synthFileDeleteButton']) {
       byId(id).disabled = busy || !selectedPath || selectedPath === '/';
     }
@@ -269,8 +274,8 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       activeTonePath&&kindOfPath(activeTonePath)!==editorKind)throw Error('Instrument editor and active file differ; open the instrument again before saving.');
     if (activeTonePath) return activeTonePath;
     const name = String(basePresetId || 'Instrument').replace(/^vfs:/, '').split('/').pop()
-      .replace(/\.psg\.json$|\.(?:tfi|vgi)$/i, '').replace(/[^\p{L}\p{N}._ -]/gu, '_') || 'Instrument';
-    const path = project.uniquePath('/presets/' + name + (editorKind==='psg'?'.psg.json':'.vgi'));
+      .replace(/\.(?:psg|pcm)\.json$|\.(?:tfi|vgi)$/i, '').replace(/[^\p{L}\p{N}._ -]/gu, '_') || 'Instrument';
+    const path = project.uniquePath('/presets/' + name + extensionForKind(editorKind));
     project.writeTone(path, basePreset, {overwrite:false, baselinePreset:basePreset});
     activeTonePath = selectedPath = path;
     onSaved(path); reveal(path);
@@ -338,7 +343,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       project.select(path);
       if (tone && path !== activeTonePath) {
         stopAllNotes();
-        activateEditor(tone.format==='psg'?'psg':'fm',false);
+        activateEditor(kindOfPreset(tone.preset),false);
         activeTonePath = path;
         dirty = false;
         applyPreset('vfs:' + path);
@@ -358,7 +363,8 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
     busy=true;updateButtons();
     try {
       if (!await flushEdits()) return false;
-      activateEditor(id!==getDefaultPresetId('fm')&&id===getDefaultPresetId('psg')?'psg':'fm',false);
+      const kind=['pcm','psg'].find(candidate=>id===getDefaultPresetId(candidate)&&id!==getDefaultPresetId('fm'))??'fm';
+      activateEditor(kind,false);
       activeTonePath = null; dirty = false;
       stopAllNotes();applyPreset(id);setBaseline();render();await remember(true);return true;
     } catch (error) {report(error);return false;}
@@ -383,7 +389,7 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       pushUndo();
       const tone=project.createTone(preset,name);
       stopAllNotes();
-      activateEditor(tone.format==='psg'||isPsgPreset(tone.preset)?'psg':'fm',false);
+      activateEditor(kindOfPreset(tone.preset),false);
       activeTonePath=selectedPath=tone.path;dirty=false;
       applySnapshot(tone.preset,'vfs:'+tone.path);onSaved(tone.path);
       setBaseline();protectCurrentTone();reveal(tone.path);render();
@@ -421,8 +427,8 @@ export function setupSynthFiles({project,getPreset,getPresetId,applyPreset,apply
       if (!await flushEdits()) return;
       if (action === 'new') {
         const directory = path?.startsWith('/presets') ? (project.fs.listDirectories().includes(path)?path:dirname(path)) : '/presets';
-        const filename = await askName('New instrument',editorKind==='psg'?'Untitled.psg.json':'Untitled.vgi',value => {
-          validateDestination(directory,value);if(!isSynthTonePath(value)||kindOfPath(value)!==editorKind)throw Error(editorKind==='psg'?'Use a .psg.json file name.':'Use a .tfi or .vgi file name.');
+        const filename = await askName('New instrument','Untitled'+extensionForKind(editorKind),value => {
+          validateDestination(directory,value);if(!isSynthTonePath(value)||kindOfPath(value)!==editorKind)throw Error(editorKind==='fm'?'Use a .tfi or .vgi file name.':`Use a .${editorKind}.json file name.`);
         });
         if (!filename) return;
         pushUndo();
