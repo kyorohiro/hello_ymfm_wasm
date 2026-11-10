@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createSynthPcmAudio} from './synth_pcm_audio.js';
 import {RF5C164Synth} from '../js/rf5c164synth.js?v=audio-stability-2';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js';
+import {Worker} from 'node:worker_threads';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 const turn=()=>Promise.resolve();
@@ -44,11 +45,42 @@ test('PCM endpoint is lazy, coalesces a route and applies System PCM gain and Ma
   assert.deepEqual(request.writes,[off]);assert.equal(h.gains[0].gain.value,2*SYNTH_SONG_MIX_DEFAULTS.pcm);
   api.setChannel(7,{start:256,loopStart:1234,step:2048,volume:192,pan:{left:15,right:3}});
   assert.deepEqual(request.writes.slice(1),[[7,199],[6,1],[4,210],[5,4],[2,0],[3,8],[0,192],[1,63]].map(args=>({method:'writeRegister',args})));
-  api.keyOn(7);assert.deepEqual(request.writes.slice(-3),[[7,199],[8,255],[8,127]].map(args=>({method:'writeRegister',args})));
+  api.keyOn(7);assert.deepEqual(request.writes.at(-1),{method:'keyOn',args:[7]});assert.equal(api.channelMask,127);
   f.audio.setVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*SYNTH_SONG_MIX_DEFAULTS.pcm);
   assert.equal(await f.audio.prepare(h.context,h.output),api);
   f.audio.dispose();assert.equal(h.gains[0].gain.value,0);assert.equal(request.device.disposeCalls,1);
   assert.equal(h.context.closeCalls,0,'the shared host context remains owned by the app');
+});
+
+test('semantic release keeps its logical mask separate and cannot reactivate an old channel on the next note',async()=>{
+  const f=fixture(),h=host(),{api,request}=await ready(f,h);
+  api.keyOn(0);api.releaseNote(0);api.keyOn(1);
+  assert.equal(api.channelMask,253);
+  assert.deepEqual(request.writes.slice(1),[
+    {method:'keyOn',args:[0]},{method:'releaseNote',args:[0]},{method:'keyOn',args:[1]},
+  ],'the private renderer owns physical masks during the release tail');
+  const before=request.writes.length;
+  for(const value of [-1,8,NaN,'0'])for(const method of ['keyOn','keyOff','releaseNote'])assert.throws(()=>api[method](value));
+  assert.equal(request.writes.length,before);assert.equal(api.channelMask,253);
+  api.keyOff(1);assert.equal(api.channelMask,255);assert.deepEqual(request.writes.at(-1),{method:'keyOff',args:[1]});
+  api.keyOn(2);api.allNotesOff();assert.equal(api.channelMask,255);assert.deepEqual(request.writes.at(-1),off);
+  f.audio.dispose();const stopped=request.writes.length;api.releaseNote(2);assert.equal(request.writes.length,stopped);
+});
+
+test('private live PCM Worklet imports in AudioWorklet scope without DOM, text, abort or base64 globals',async()=>{
+  const result=await new Promise((resolve,reject)=>{
+    const worker=new Worker(`
+      const {parentPort,workerData}=require('node:worker_threads');
+      for(const name of ['TextEncoder','TextDecoder','AbortController','btoa','atob'])delete globalThis[name];
+      globalThis.AudioWorkletProcessor=class {};
+      globalThis.registerProcessor=(name,processor)=>parentPort.postMessage({name,valid:typeof processor==='function'});
+      import(workerData).catch(error=>parentPort.postMessage({error:error.stack}));
+    `,{eval:true,workerData:new URL('./synth_pcm_worklet.js',import.meta.url).href});
+    const timer=setTimeout(()=>{worker.terminate();reject(Error('PCM Worklet import timed out'));},10000);
+    worker.once('message',message=>{clearTimeout(timer);worker.terminate();message.error?reject(Error(message.error)):resolve(message);});
+    worker.once('error',error=>{clearTimeout(timer);reject(error);});
+  });
+  assert.deepEqual(result,{name:'tetorica-synth-pcm',valid:true});
 });
 
 test('memory upload waits for its own acknowledgement, copies bytes and preserves ordered register commands',async()=>{

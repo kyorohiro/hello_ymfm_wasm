@@ -1,9 +1,44 @@
-import {createRf5c164Audio} from '../js/playground_rf5c164_audio.js';
+import {watchAudioEndpoint} from '../js/playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
 import {RF5C164Synth} from '../js/rf5c164synth.js?v=audio-stability-2';
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 
+async function createSynthPcmDevice(context,output,{signal,onError}={}) {
+  signal?.throwIfAborted();
+  const [response]=await Promise.all([
+    fetch(new URL('../generated/rf5c164_wasm.wasm',import.meta.url),{signal}),
+    context.audioWorklet.addModule(new URL('./synth_pcm_worklet.js?v=pcm-release-1',import.meta.url)),
+  ]);
+  if(!response.ok)throw Error(`PCM Synth WASM HTTP ${response.status}`);
+  const wasmBinary=await response.arrayBuffer();signal?.throwIfAborted();
+  const node=new AudioWorkletNode(context,'tetorica-synth-pcm',{
+    numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary},
+  });
+  let disposed=false;
+  const dispose=()=>{
+    if(disposed)return;disposed=true;
+    node.port.onmessage=null;node.onprocessorerror=null;
+    try{node.port.postMessage({method:'dispose'});}catch{}
+    node.disconnect();node.port.close();
+  };
+  try {
+    await new Promise((resolve,reject)=>{
+      const abort=()=>reject(signal.reason);
+      const finish=callback=>value=>{signal?.removeEventListener('abort',abort);callback(value);};
+      const ready=finish(resolve),failed=finish(reject);
+      signal?.addEventListener('abort',abort,{once:true});
+      node.port.onmessage=({data})=>{
+        if(data.ready)ready();else if(data.error)failed(Error(data.error));
+      };
+      node.onprocessorerror=()=>failed(Error('PCM Synth Worklet failed'));
+      if(signal?.aborted)abort();
+    });
+    signal?.throwIfAborted();node.connect(output);
+    return watchAudioEndpoint({node,port:node.port,dispose},{context,label:'PCM Synth',onError});
+  } catch(error) {dispose();throw error;}
+}
+
 /** A lazy RF5C164 on the host's AudioContext. This owns no context or sample bank. */
-export function createSynthPcmAudio({onError=()=>{},createDevice=createRf5c164Audio,timeoutMs=15000}={}) {
+export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmDevice,timeoutMs=15000}={}) {
   if(typeof onError!=='function'||typeof createDevice!=='function')throw new TypeError('PCM audio callbacks must be functions');
   if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>60000)throw new RangeError('PCM audio timeout must be in range 1..60000 ms');
   let current=null,enabled=false,master=1,disposed=false;
@@ -84,6 +119,15 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createRf5c164Au
           });
         };
         const api=new RF5C164Synth({transport:{write:(register,value)=>post('writeRegister',[register,value]),loadMemory,reset:()=>post('reset')}});
+        const channel=value=>{
+          if(!Number.isInteger(value)||value<0||value>7)throw RangeError('PCM channel must be 0..7');
+          return value;
+        };
+        // Keep the author's logical mask separate from the Worklet's physical
+        // mask during a release tail. A new note cannot revive an old channel.
+        api.keyOn=value=>{const ch=channel(value);post('keyOn',[ch]);api.channelMask&=~(1<<ch);};
+        api.keyOff=value=>{const ch=channel(value);post('keyOff',[ch]);api.channelMask|=1<<ch;};
+        api.releaseNote=value=>{const ch=channel(value);post('releaseNote',[ch]);api.channelMask|=1<<ch;};
         api.allNotesOff=()=>api.writeRegister(8,255);
         api.allNotesOff();
         owner.api=api;owner.pending=false;updateGain(owner);resolve(api);

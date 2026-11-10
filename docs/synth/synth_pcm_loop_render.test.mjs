@@ -7,6 +7,7 @@ import {createPcmBuiltinPreset,createPcmPreset,createSynthPcmVoice,PCM_ENCODING}
 import {Rf5c164} from '../js/rf5c164.js?v=audio-stability-2';
 import {RF5C164Synth,RF5C164DirectTransport} from '../js/rf5c164synth.js';
 import factory from '../generated/rf5c164_wasm.js';
+import {createSynthPcmRelease,PCM_RELEASE_SECONDS} from './synth_pcm_release.js';
 
 const RATE=48000;
 const wasmBinary=await readFile(new URL('../generated/rf5c164_wasm.wasm',import.meta.url));
@@ -20,11 +21,12 @@ const rms=values=>Math.sqrt(values.reduce((sum,x)=>sum+x*x,0)/values.length);
 
 async function reference(recording,block=71) {
   const chip=await Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:RATE});
-  const pcm=new RF5C164Synth({transport:new RF5C164DirectTransport(chip)});
-  const voice=createSynthPcmVoice({getPcm:()=>pcm,preset:recording.initialState.preset,getPitchClock:()=>recording.initialState.pitchClock});
-  const body=Math.max(1,Math.ceil(recording.durationSeconds*RATE)),tail=Math.ceil(RATE/1000);
+  const raw=new RF5C164Synth({transport:new RF5C164DirectTransport(chip)});
+  const release=createSynthPcmRelease({pcm:raw,sampleRate:RATE,renderAudio:(left,right)=>{const output=chip.generateStereo(left.length);left.set(output.left);right.set(output.right);}});
+  const voice=createSynthPcmVoice({getPcm:()=>release.pcm,preset:recording.initialState.preset,getPitchClock:()=>recording.initialState.pitchClock});
+  const body=Math.max(1,Math.ceil(recording.durationSeconds*RATE)),releaseFrames=Math.ceil(PCM_RELEASE_SECONDS*RATE),tail=releaseFrames+Math.ceil(RATE/1000);
   const left=new Float32Array(body+tail),right=new Float32Array(body+tail);
-  const render=(begin,end)=>{for(let at=begin;at<end;at+=block){const count=Math.min(end-at,block),output=chip.generateStereo(count);left.set(output.left,at);right.set(output.right,at);}};
+  const render=(begin,end)=>{for(let at=begin;at<end;at+=block){const count=Math.min(end-at,block);release.render(left.subarray(at,at+count),right.subarray(at,at+count));}};
   try {
     await voice.install();let cursor=0;
     for(const command of recording.commands) {
@@ -36,7 +38,9 @@ async function reference(recording,block=71) {
       else if(command.type==='setPreset'){voice.setPreset(command.preset);await voice.install();}
       else voice.stop();
     }
-    render(cursor,body);voice.stop();render(body,body+tail);return {left,right};
+    render(cursor,body);
+    for(const channel of voice.getState().heldChannels)voice.noteOff(channel);
+    render(body,body+releaseFrames);voice.stop();render(body+releaseFrames,body+tail);return {left,right};
   }finally{voice.stop();chip.dispose();}
 }
 
@@ -48,7 +52,7 @@ test('offline RF layers match complete manual sample/settings operations across 
     {time:.06,type:'setSettings',settings:shorter},on(.065,2),{time:.09,type:'setPreset',preset:triangle},
     on(.097,7),off(.14,7),{time:.15,type:'stop'}]);
   const before=structuredClone(recording),actual=await renderSynthPcmLoop(recording,options),expected=await reference(recording,127);
-  assert.equal(actual.sampleRate,RATE);assert.equal(actual.left.length,9648);assert.equal(actual.durationSeconds,.201);
+  assert.equal(actual.sampleRate,RATE);assert.equal(actual.left.length,9840);assert.equal(actual.durationSeconds,.205);
   assert.equal(actual.byteLength,actual.left.byteLength+actual.right.byteLength);
   assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);
   assert.deepEqual(recording,before);assert(actual.left.every(Number.isFinite));
@@ -60,9 +64,13 @@ test('raw layer gain, eight independent channels and end flushing contain no Mas
   const recording=doc(Array.from({length:8},(_,channel)=>on(0,channel)),.1);
   const actual=await renderSynthPcmLoop(recording,options),expected=await reference(recording);
   assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);
-  assert.equal(actual.left.length,4800+48,'only the performed interval and one stopped millisecond');
+  assert.equal(actual.left.length,4800+192+48,'only the performed interval, software release and one stopped millisecond');
   const peak=Math.max(...actual.left.subarray(0,4800).map(Math.abs));assert(peak>.8&&peak<.95,'eight raw register-volume64 voices retain native headroom');
-  assert(actual.left.subarray(4810).every(x=>x===0),'interpolation flush finishes silently');
+  assert(rms(actual.left.subarray(4800,4880))>.01,'an unclosed held take retains its release across the loop boundary');
+  assert(actual.left.subarray(5000).every(x=>x===0),'software release and native interpolation flush finish silently');
+  const closed=doc([...Array.from({length:8},(_,channel)=>on(0,channel)),...Array.from({length:8},(_,channel)=>off(.1,channel))],.1);
+  const explicit=await renderSynthPcmLoop(closed,options);
+  assert.deepEqual(actual.left,explicit.left);assert.deepEqual(actual.right,explicit.right,'noteOff at the exact final timestamp is applied before tail rendering');
   const first=await renderSynthPcmLoop(doc([on(0),off(.08)],.1),options);
   const square=createPcmBuiltinPreset('square');square.settings.panLeft=0;square.settings.panRight=15;
   const second=await renderSynthPcmLoop(doc([on(0,7),off(.08,7)],.1,square),options);
@@ -78,7 +86,7 @@ test('offline Looper layer keeps a held voice sounding across recorded End shrin
   assert.deepEqual(actual.left,expected.left);assert.deepEqual(actual.right,expected.right);
   for(const time of [.035,.08,.13]){const at=Math.round(time*RATE)+8;assert(rms(actual.left.subarray(at,at+480))>.01);}
   assert(actual.left.subarray(Math.round(.185*RATE)).every(value=>value===0));
-  assert.equal(actual.left.length,9648,'End edits do not add extra render padding');
+  assert.equal(actual.left.length,9840,'End edits do not add padding beyond the software release and flush');
 });
 
 test('one-shot maximum step remains silent after each short source and can be retriggered inside a layer',async()=>{

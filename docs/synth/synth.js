@@ -1,14 +1,14 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
 import {setupSynthFiles} from './synth_files.js?v=pcm-editor-1';
-import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-live-end-1';
+import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-release-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-end-1';
-import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-live-end-1';
-import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-live-end-1';
-import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-live-end-1';
+import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-release-1';
+import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-release-1';
+import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-release-1';
 import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=pcm-looper-1';
-import {createSynthPcmAudio} from './synth_pcm_audio.js?v=pcm-editor-1';
+import {createSynthPcmAudio} from './synth_pcm_audio.js?v=pcm-release-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-end-1';
-import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-live-1';
+import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-release-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-live-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
@@ -2821,7 +2821,9 @@ function stopAllNotes() {
 
 function getPlayableSynth() {
   if (isSongChannelTarget()) return songAuditionVoice;
-  if(editorChip==='pcm')return pcmVoice.isReady()?pcmVoice:null;
+  // Key-up must still reach a held PCM voice while an End RAM update is
+  // awaiting acknowledgement. Key-down waits for ensureAudioReady itself.
+  if(editorChip==='pcm')return pcmAudio.getPcm()?pcmVoice:null;
   if (editorChip === 'psg') return psgAudio.getPsg() ? psgVoice : null;
   if (looper?.running) {
     return looper;

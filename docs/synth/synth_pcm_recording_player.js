@@ -1,4 +1,4 @@
-import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-live-end-1';
+import {normalizePcmSettings,PCM_RAM_BYTES,PCM_MAX_FRAMES} from './synth_pcm.js?v=pcm-release-1';
 
 export const PCM_RECORDING_MAX_COMPILED_BYTES=32*1024*1024;
 export const PCM_RECORDING_COMPILED_KIND='tetorica-pcm-recording-compiled-v1';
@@ -58,8 +58,10 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
   if(typeof onEnded!=='function'||['reset','loadMemory','setChannel','setPitch','keyOn','keyOff'].some(name=>typeof pcm?.[name]!=='function')) {
     throw new TypeError('PCM playback needs a synchronous chip API and completion callback');
   }
-  let latestSession=0,playing=false,prepared=null,configuration=null,head=0,frame=0,cycle=0,cycleFrames=0,loop=false;
+  let latestSession=0,playing=false,prepared=null,configuration=null,head=0,frame=0,cycle=0,cycleFrames=0,loop=false,notesEnded=false;
   const held=new Map();
+  const softwareRelease=typeof pcm.releaseNote==='function';
+  const release=channel=>softwareRelease?pcm.releaseNote(channel):pcm.keyOff(channel);
   function silence() {for(let channel=0;channel<8;channel++)pcm.keyOff(channel);held.clear();}
   const step=(block,fnum)=>Math.max(1,Math.min(65535,Math.round(fnum*configuration.pitchFactors[block])));
   const loopAddress=()=>configuration.settings.loopEnabled?configuration.settings.loopStart:configuration.settings.loopEnd+1;
@@ -75,7 +77,7 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
       pan:{left:next.settings.panLeft,right:next.settings.panRight},loopStart:loopAddress(),step:step(note.block,note.fnum)});
   }
   function startCycle() {
-    silence();pcm.reset();configuration=null;head=frame=0;cycle++;
+    silence();pcm.reset();configuration=null;head=frame=0;notesEnded=false;cycle++;
     settings(prepared.initial,true);
   }
   function apply(event) {
@@ -87,7 +89,7 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
         pan:{left:configuration.settings.panLeft,right:configuration.settings.panRight}});
       pcm.keyOn(channel);held.set(channel,{block:event.block,fnum:event.fnum});
     } else if(event.type==='noteOff') {
-      if(held.has(channel)){pcm.keyOff(channel);held.delete(channel);}
+      if(held.has(channel)){release(channel);held.delete(channel);}
     } else {
       pcm.setPitch(channel,step(event.block,event.fnum));
       if(held.has(channel))held.set(channel,{block:event.block,fnum:event.fnum});
@@ -115,11 +117,19 @@ export function createSynthPcmRecordingPlayer({sampleRate,pcm,onEnded=()=>{}}={}
       while(offset<left.length) {
         if(!playing){left.fill(0,offset);right.fill(0,offset);return;}
         while(head<prepared.events.length&&prepared.events[head].frame<=frame)apply(prepared.events[head++]);
+        // Imported takes may omit the final key releases. Close those voices
+        // at the performed end and let the private software tail finish inside
+        // the existing cycle padding. Raw chip APIs retain their exact path.
+        if(softwareRelease&&!notesEnded&&frame>=prepared.durationFrames) {
+          for(const channel of held.keys())release(channel);
+          held.clear();notesEnded=true;
+        }
         if(frame>=cycleFrames) {
           if(loop){startCycle();continue;}
           const ended=latestSession;stop(ended);onEnded(ended);continue;
         }
-        const next=head<prepared.events.length?Math.min(cycleFrames,prepared.events[head].frame):cycleFrames;
+        const next=Math.min(cycleFrames,head<prepared.events.length?prepared.events[head].frame:Infinity,
+          softwareRelease&&!notesEnded?prepared.durationFrames:Infinity);
         const count=Math.min(left.length-offset,next-frame);
         renderAudio(left.subarray(offset,offset+count),right.subarray(offset,offset+count));frame+=count;offset+=count;
       }

@@ -20,17 +20,17 @@ const evaluate=(page,fn,arg)=>bounded(page.evaluate(fn,arg),'evaluate');
 async function until(page,test,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await test())return;await pause(40);}throw Error(label);}
 function installAudit(){
   const connect=AudioNode.prototype.connect,post=MessagePort.prototype.postMessage,NativeWorklet=window.AudioWorkletNode,meters=[],writes=[];
-  let mask=255,selected=0;const steps=Array(8).fill(0),nodes=new WeakMap();
+  let mask=255,selected=0,capture=null,captureSerial=0;const steps=Array(8).fill(0),nodes=new WeakMap(),liveNodes=[];
   function meter(source,kind,destination){
     const ctx=source.context,split=ctx.createChannelSplitter(2),left=ctx.createAnalyser(),right=ctx.createAnalyser(),mute=ctx.createGain();
     left.fftSize=right.fftSize=8192;mute.gain.value=0;connect.call(source,split);connect.call(split,left,0);connect.call(split,right,1);
     connect.call(left,mute);connect.call(right,mute);connect.call(mute,destination??ctx.destination);meters.push({left,right,mute,kind});
   }
-  window.AudioWorkletNode=new Proxy(NativeWorklet,{construct(target,args,newTarget){const node=Reflect.construct(target,args,newTarget);nodes.set(node,args[1]);return node;}});
+  window.AudioWorkletNode=new Proxy(NativeWorklet,{construct(target,args,newTarget){const node=Reflect.construct(target,args,newTarget);nodes.set(node,args[1]);if(args[1]==='tetorica-synth-pcm')liveNodes.push(node);return node;}});
   AudioNode.prototype.connect=function(destination,...args){
     if(destination===this.context.destination){meter(this,'output',destination);return destination;}
     const result=connect.call(this,destination,...args);
-    if(nodes.get(this)==='tetorica-rf5c164'&&!this.__pcmRawAudited){this.__pcmRawAudited=true;meter(this,'raw-pcm');}
+    if(nodes.get(this)==='tetorica-synth-pcm'&&!this.__pcmRawAudited){this.__pcmRawAudited=true;meter(this,'raw-pcm');}
     return result;
   };
   MessagePort.prototype.postMessage=function(message,...args){
@@ -41,6 +41,12 @@ function installAudit(){
         if(register===2)steps[selected]=(steps[selected]&65280)|value;
         if(register===3)steps[selected]=(steps[selected]&255)|(value<<8);
         if(register===8){for(let channel=0;channel<8;channel++)if((mask&(1<<channel))&&!(value&(1<<channel)))writes.push({kind:'rf-keyOn',channel,step:steps[channel]});mask=value;}
+      }else if(['keyOn','keyOff','releaseNote'].includes(c?.method)){
+        const channel=c.args[0];writes.push({kind:'rf-command',method:c.method,channel});
+        if(capture)capture.commands.push({method:c.method,channel,frame:Math.round(capture.source.context.currentTime*capture.source.context.sampleRate)});
+        if(c.method==='keyOn'){mask&=~(1<<channel);writes.push({kind:'rf-keyOn',channel,step:steps[channel]});}
+        else mask|=1<<channel;
+      }else if(c?.method==='reset'){mask=255;writes.push({kind:'rf-command',method:'reset'});
       }else if(c?.method==='loadMemory'){
         const bytes=c.args?.[0];writes.push({kind:'rf-memory',length:bytes?.length,address:c.args?.[1],end:bytes?.indexOf(255),tail:bytes?.at(-1)});
       }else if(c?.type==='write'||c?.method==='write')writes.push({...c});
@@ -55,7 +61,47 @@ function installAudit(){
     const gaps=edges.slice(1).map((v,i)=>v-edges[i]).sort((a,b)=>a-b);
     return{rms:Math.sqrt(square/pcm.length),peak:Math.max(Math.abs(min),Math.abs(max)),edgeHz:gaps.length?analyser.context.sampleRate/gaps[gaps.length>>1]:null,finite:pcm.every(Number.isFinite)};
   }
-  window.__pcmAudit={drain:()=>writes.splice(0),state:()=>({mask,steps:[...steps]}),read:()=>meters.map(({left,right,mute,kind})=>({kind,left:sample(left),right:sample(right),muted:mute.gain.value===0}))};
+  async function beginCapture() {
+    if(capture)throw Error('A raw PCM capture is already active');
+    const source=liveNodes.at(-1);if(!source)throw Error('Private live PCM node is missing');
+    const name='tetorica-pcm-release-audit-'+(++captureSerial),url=URL.createObjectURL(new Blob([
+      `class Capture extends AudioWorkletProcessor {process(inputs){const x=inputs[0];if(x?.[0])this.port.postMessage({frame:currentFrame,left:x[0].slice(),right:(x[1]??x[0]).slice()});return true;}}registerProcessor('${name}',Capture);`
+    ],{type:'text/javascript'}));
+    try {await source.context.audioWorklet.addModule(url);}finally{URL.revokeObjectURL(url);}
+    const collector=new NativeWorklet(source.context,name,{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]}),mute=source.context.createGain();mute.gain.value=0;
+    const current=capture={source,collector,mute,blocks:[],commands:[]};
+    collector.port.onmessage=({data})=>{if(current.blocks.length<8192)current.blocks.push(data);};
+    // This branch is numeric-only. Its only physical destination edge crosses
+    // an explicit gain-zero node, independent of the app's output routing.
+    connect.call(source,collector);connect.call(collector,mute);connect.call(mute,source.context.destination);
+  }
+  function finishCapture({continuousLeftChannel=null,leftFrequency=null}={}) {
+    const current=capture;if(!current)throw Error('No raw PCM capture');capture=null;
+    current.source.disconnect(current.collector);current.collector.disconnect();current.mute.disconnect();current.collector.port.close();
+    const blocks=current.blocks.sort((a,b)=>a.frame-b.frame),rate=current.source.context.sampleRate;
+    if(!blocks.length)throw Error('Raw capture worklet received no render blocks');
+    const origin=blocks[0].frame,end=blocks.at(-1).frame+blocks.at(-1).left.length,left=new Float32Array(end-origin),right=new Float32Array(end-origin);
+    let previous=origin;for(const block of blocks){if(block.frame!==previous)throw Error('Raw capture has a render-block gap');left.set(block.left,block.frame-origin);right.set(block.right,block.frame-origin);previous=block.frame+block.left.length;}
+    function amplitude(from,to,frequency) {
+      let ss=0,cc=0,sc=0,xs=0,xc=0;from=Math.max(0,from);to=Math.min(left.length,to);
+      for(let i=from;i<to;i++){const angle=2*Math.PI*frequency*i/rate,s=Math.sin(angle),c=Math.cos(angle);ss+=s*s;cc+=c*c;sc+=s*c;xs+=left[i]*s;xc+=left[i]*c;}
+      const determinant=ss*cc-sc*sc;return determinant>0?Math.hypot((xs*cc-xc*sc)/determinant,(xc*ss-xs*sc)/determinant):0;
+    }
+    const releases=current.commands.filter(command=>command.method==='releaseNote').map(command=>{
+      const from=Math.max(1,command.frame-origin-256-Math.round(.002*rate)),to=Math.min(left.length,command.frame-origin+Math.round(.014*rate));let peak=0,maxJump=0,lastNonzero=null;
+      for(let i=from;i<to;i++){peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));maxJump=Math.max(maxJump,Math.abs(left[i]-left[i-1]),Math.abs(right[i]-right[i-1]));if(Math.abs(left[i])+Math.abs(right[i])>1e-8)lastNonzero=origin+i;}
+      const continuity=leftFrequency&&command.channel!==continuousLeftChannel?{
+        before:amplitude(command.frame-origin-Math.round(.08*rate),command.frame-origin-Math.round(.02*rate),leftFrequency),
+        during:amplitude(command.frame-origin-Math.round(.001*rate),command.frame-origin+Math.round(.009*rate),leftFrequency),
+      }:null;
+      return{...command,peak,maxJump,lastNonzero,windowFrames:to-from,continuity};
+    });
+    return{sampleRate:rate,frames:left.length,blocks:blocks.length,releases,commands:current.commands,physicalBranchMuted:current.mute.gain.value===0};
+  }
+  window.__pcmAudit={beginCapture,finishCapture,captureBlocks:()=>capture?.blocks.length??0,
+    setTestPan(channel,left,right){const port=liveNodes.at(-1).port;port.postMessage({method:'writeRegister',args:[7,0xc0|channel]});port.postMessage({method:'writeRegister',args:[1,left|(right<<4)]});},
+    retriggerDuringRelease(channel){const port=liveNodes.at(-1).port;port.postMessage({method:'releaseNote',args:[channel]});port.postMessage({method:'keyOn',args:[channel]});},
+    drain:()=>writes.splice(0),state:()=>({mask,steps:[...steps]}),read:()=>meters.map(({left,right,mute,kind})=>({kind,left:sample(left),right:sample(right),muted:mute.gain.value===0}))};
 }
 const audit=page=>evaluate(page,()=>__pcmAudit.read()),drain=page=>evaluate(page,()=>__pcmAudit.drain());
 async function level(page,kind='output'){return Math.max(0,...(await audit(page)).filter(m=>m.kind===kind).flatMap(m=>[m.left.rms,m.right.rms]));}
@@ -114,7 +160,28 @@ async function run(browser,name,origin){const{page,errors}=await open(browser,or
   await range(page,'#masterVolumeRange',200);const boosted=await reading(page);assert(Math.abs(boosted.left.rms/base.left.rms-2)<.15,'200% Master doubles PCM');await range(page,'#masterVolumeRange',0);await silence(page);await range(page,'#masterVolumeRange',100);await sounding(page);await up(page);await silence(page);
   await field(page,'volume',128);await note(page);const volume128=await reading(page);assert(Math.abs(volume128.left.rms/base.left.rms-2)<.15,'Hardware volume live control');await field(page,'panLeft',0);const pan=await reading(page);assert(pan.left.rms<1e-7&&pan.right.rms>.001,'Independent native left/right pan');await up(page);await field(page,'panLeft',15);await field(page,'volume',64);
   await note(page);const normal=(await reading(page)).left.edgeHz;await field(page,'rootNote',72);const lower=(await reading(page)).left.edgeHz;assert(Math.abs(lower/normal-.5)<.03,'Root note changes sample speed');await field(page,'rootNote',60);await range(page,'[data-pitch-bend-wheel]',1000);const bent=(await reading(page)).left.edgeHz;assert(Math.abs(bent/normal-2**(2/12))<.03,'PCM uses common Pitch wheels');await range(page,'[data-pitch-bend-wheel]',0);await up(page);await silence(page);
+  await evaluate(page,()=>__pcmAudit.beginCapture());await until(page,()=>evaluate(page,()=>__pcmAudit.captureBlocks()>2),'Test-only raw render-block collector runs');
+  for(const milliseconds of[61,67,73,79,83,89]){await down(page,'a');await pause(milliseconds);await up(page,'a');await pause(35);}
+  await silence(page);const release=await evaluate(page,()=>__pcmAudit.finishCapture());
+  assert(release.physicalBranchMuted&&release.blocks>20,'Render-block capture has its own physical gain-zero destination');assert.equal(release.releases.length,6,'Each physical key-up uses semantic releaseNote');
+  assert(release.releases.every(row=>row.windowFrames>400&&row.lastNonzero!==null),'Every release window contains actual native PCM');
+  assert(Math.max(...release.releases.map(row=>row.peak))>.04,'The release regression includes substantial nonzero waveform levels');
+  assert(release.releases.every(row=>row.maxJump<.02),'Actual release samples avoid the previous approximately 0.08148 hard-stop jump');
+  result.release=release;steps.push('Actual private-worklet render blocks prove six software releases remain continuous, with every physical capture edge gain-zero');
   const keys=await evaluate(page,()=>[...document.querySelectorAll('#keyboard .key[data-key]')].map(n=>n.dataset.key).filter((k,i,a)=>/^[a-z0-9]$/i.test(k)&&a.indexOf(k)===i).slice(0,9));assert(keys.length>=9,'Keyboard exposes nine distinct physical test keys');await drain(page);for(const k of keys.slice(0,8))await down(page,k);await sounding(page);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,0,'All eight hardware voices active');const allocation=(await drain(page)).filter(w=>w.kind==='rf-keyOn');assert.deepEqual([...new Set(allocation.map(w=>w.channel))].sort(),[0,1,2,3,4,5,6,7]);await down(page,keys[8]);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,0,'Ninth note steals within eight voices');for(const k of keys)await up(page,k);await silence(page);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,255);result.allocation=allocation;
+  await field(page,'panRight',0);await drain(page);await down(page,keys[7]);await sounding(page);const onlyHeld=await reading(page,'raw-pcm'),heldOn=(await drain(page)).filter(row=>row.kind==='rf-keyOn').at(-1);assert(heldOn);
+  await evaluate(page,()=>__pcmAudit.beginCapture());await pause(100);await down(page,keys[8]);await sounding(page);const releasedOn=(await drain(page)).filter(row=>row.kind==='rf-keyOn').at(-1);assert(releasedOn&&releasedOn.channel!==heldOn.channel);
+  // Isolate the second physical voice on the right for numeric validation;
+  // the preset, editor and main-thread voice allocation stay intact.
+  await evaluate(page,ch=>__pcmAudit.setTestPan(ch,0,15),releasedOn.channel);await pause(150);await up(page,keys[8]);await pause(100);
+  const afterOther=await reading(page,'raw-pcm');assert(Math.abs(afterOther.left.rms/onlyHeld.left.rms-1)<.04&&afterOther.right.rms<1e-7,'Releasing one physical CH preserves the other CH and stops only the selected side');
+  await evaluate(page,ch=>__pcmAudit.retriggerDuringRelease(ch),heldOn.channel);await pause(60);const reused=await reading(page,'raw-pcm');assert(Math.abs(reused.left.rms/onlyHeld.left.rms-1)<.04,'Immediate same-CH reuse cancels its old release instead of being silenced later');
+  const separation=await evaluate(page,options=>__pcmAudit.finishCapture(options),{continuousLeftChannel:heldOn.channel,leftFrequency:onlyHeld.left.edgeHz});
+  const isolatedRelease=separation.releases.find(row=>row.channel===releasedOn.channel);assert(isolatedRelease?.continuity?.before>.02);assert(Math.abs(isolatedRelease.continuity.during/isolatedRelease.continuity.before-1)<.04,'The continuously held CH does not duck during the other CH 4ms release');
+  await up(page,keys[7]);await silence(page);await down(page,keys[7]);await sounding(page);await drain(page);
+  await evaluate(page,key=>{window.dispatchEvent(new KeyboardEvent('keyup',{key,bubbles:true}));window.dispatchEvent(new Event('blur'));},keys[7]);await up(page,keys[7]);await silence(page);await pause(80);assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,255);assert((await level(page,'raw-pcm'))<1e-7,'Hard Stop cancels a pending release and cannot revive its old tail');
+  const hardStop=await drain(page);assert(hardStop.some(row=>row.kind==='rf-command'&&row.method==='releaseNote')&&hardStop.some(row=>row.kind==='rf-command'&&row.method==='keyOff'||row.kind==='rf'&&row.register===8&&row.value===255),'Public blur Stop follows a queued release with a hard hardware stop');
+  result.releaseSeparation={heldChannel:heldOn.channel,releasedChannel:releasedOn.channel,onlyHeld,afterOther,reused,isolation:isolatedRelease};await field(page,'panRight',15);steps.push('Separate physical channels stay independent through release, immediate same-CH reuse cancels its tail, ninth-note allocation stays bounded, and hard Stop cannot resurrect a voice');
   for(const mode of['waveform','spectrum','sample']){await page.locator(`[data-pcm-visual-mode="${mode}"]`).click();assert.equal(await page.locator(`[data-pcm-visual-mode="${mode}"]`).getAttribute('aria-pressed'),'true');}
   await marker(page,0,16,256);assert(Math.abs((await settings(page)).loopStart-16)<=1);await marker(page,256,128,256);assert(Math.abs((await settings(page)).loopEnd-128)<=1);
   const heldKeys=keys.slice(0,2);for(const key of heldKeys)await down(page,key);await sounding(page);await drain(page);
@@ -124,7 +191,7 @@ async function run(browser,name,origin){const{page,errors}=await open(browser,or
     await field(page,fieldName,value);await pcmReady(page);await sounding(page);
     assert.equal(await page.locator('#keyboard .key.is-active').count(),2,'Loop '+fieldName+' edit keeps both input owners');
     assert.equal((await evaluate(page,()=>__pcmAudit.state())).mask,heldMask,'Loop edits keep the same physical key mask');
-    const writes=await drain(page);assert(!writes.some(write=>write.kind==='rf'&&(write.register===8||write.register===6)),'Loop edits do not key Off / On or reset start address');
+    const writes=await drain(page);assert(!writes.some(write=>write.kind==='rf-command'||write.kind==='rf'&&(write.register===8||write.register===6)),'Loop edits do not release, key Off / On or reset start address');
     heldEdits.push({field:fieldName,value,writes:writes.filter(write=>write.kind==='rf-memory')});
   }
   const memory=heldEdits[1].writes.at(-1);assert(memory&&memory.length===65536&&memory.end===160&&memory.tail===255,'Growing End rewrites complete guarded RAM without retriggering');

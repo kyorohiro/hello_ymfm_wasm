@@ -1644,6 +1644,7 @@
                   <div><h2>Mega CD PCM</h2><p class="synth-psg-session">RF5C164 · 8 voices · shared 64 KiB RAM</p></div>
                   <details id="synthPcmHelp" class="synth-psg-help"><summary aria-label="About Mega CD PCM" title="About Mega CD PCM">?</summary><div class="synth-psg-help-body">
                     <p>In Synth mode, eight PCM voices share one sample in 64 KiB RAM. Volume is 8-bit; left and right Pan each have 16 levels. New keys use round robin.</p>
+                    <p>Software release smoothing lowers only the released voice's Volume over 4 ms before stopping it. This is a Synth software feature, shared by keyboard audition, Event Rec and Looper; the RF5C164 has no hardware ADSR envelope. Held voices keep their original sound. Stop and sample changes stop voices immediately.</p>
                     <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
                     <p>Root note plays at the original sample speed. Loop Start and End can change while notes are held. End moves a marker in shared RAM without restarting the voices. Changing the sample stops held notes. Loop Off plays once and then loops silence; extending End can expose more audio to a held voice.</p>
                     <p>VGM Live shows the selected PCM channel's written settings and sample RAM at the audible position. Pause to play that sample on the selected channel; Copy creates a new Synth instrument. C4 is the captured playback speed, not an inferred original note. A snapshot cannot preserve later RAM edits or a game's software envelope.</p>
@@ -1755,7 +1756,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=pcm-live-end-1";
+      import "./synth.js?v=pcm-release-1";
     </script>
   </body>
 </html>

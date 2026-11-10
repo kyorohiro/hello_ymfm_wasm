@@ -102,7 +102,7 @@ function installAudit() {
   }
   window.AudioWorkletNode=new Proxy(Worklet,{construct(Target,args,newTarget){
     const node=Reflect.construct(Target,args,newTarget);
-    if(args[1]==='tetorica-rf5c164') {
+    if(args[1]==='tetorica-synth-pcm') {
       const owner={id:nextOwner++,mask:255,selected:0,steps:Array(8).fill(0),context:node.context};owners.push(owner);bindPort(node.port,owner);node.__pcmLiveOwner=owner.id;
     }
     return node;
@@ -123,7 +123,11 @@ function installAudit() {
         if(r===2)owner.steps[owner.selected]=(owner.steps[owner.selected]&0xff00)|v;
         if(r===3)owner.steps[owner.selected]=(owner.steps[owner.selected]&255)|(v<<8);
         if(r===8){for(let ch=0;ch<8;ch++)if((owner.mask&(1<<ch))&&!(v&(1<<ch)))events.push({kind:'keyOn',owner:owner.id,ch,step:owner.steps[ch]});owner.mask=v;}
-      } else if(command?.method==='loadMemory')events.push({kind:'memory',owner:owner.id,id:command.id,address:command.args?.[1],length:command.args?.[0]?.length});
+      } else if(['keyOn','keyOff','releaseNote'].includes(command?.method)) {
+        const ch=command.args[0];events.push({kind:command.method,owner:owner.id,ch,step:owner.steps[ch]});
+        if(command.method==='keyOn')owner.mask&=~(1<<ch);else owner.mask|=1<<ch;
+      } else if(command?.method==='reset'){owner.mask=255;events.push({kind:'reset',owner:owner.id});}
+      else if(command?.method==='loadMemory')events.push({kind:'memory',owner:owner.id,id:command.id,address:command.args?.[1],length:command.args?.[0]?.length});
     }
     if(events.length>20000)events.splice(0,events.length-20000);
     return post.call(this,message,...args);
@@ -292,6 +296,7 @@ async function run(browser,name,origin) {
     const ch8=await ui(page);assert.equal(ch8.volume,80);assert.equal(ch8.step,2048);assert.match(ch8.sample,/512 frames.*Start \$0400.*Loop \$0400/);
     await drain(page);await down(page,key.key);await keyState(page,key.key,true);await sounding(page,'rf');const ch8On=(await drain(page)).filter(e=>e.kind==='keyOn');assert(ch8On.length&&ch8On.every(e=>e.ch===7),'CH8 is auditioned on physical channel 7 only');
     await page.keyboard.up(key.key);await keyState(page,key.key,false);await silence(page);
+    const ch8Release=await drain(page);assert(ch8Release.some(event=>event.kind==='releaseNote'&&event.ch===7),'Paused CH8 uses the same sample-clock software release as the editor');assert(!ch8Release.some(event=>event.kind==='keyOff'),'An ordinary audition release does not hard-cut the hardware voice');
     assert(!await page.locator('#synthSongCopyButton').isDisabled());await page.locator('#synthSongCopyButton').click();await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&/-PCM-CH8\.pcm\.json$/.test((await transport(page)).path),'PCM Copy saves a new editable instrument');
     const copied=await exportPcm(page),copyPath=(await transport(page)).path;

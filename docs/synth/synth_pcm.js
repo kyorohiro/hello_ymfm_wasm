@@ -237,7 +237,12 @@ export function createSynthPcmVoice({getPcm,getPitchClock=()=>7670454,onState=()
         pan:{left:current.settings.panLeft,right:current.settings.panRight}});
       pcm.keyOn(ch);held.set(ch,{channel:ch,...note});onCommand({type:'noteOn',channel:ch,block,fnum});emit();return {channel:ch,...note};
     },
-    noteOff(ch) {channel(ch);if(!held.has(ch))return false;getPcm()?.keyOff(ch);held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;},
+    noteOff(ch) {
+      channel(ch);if(!held.has(ch))return false;
+      const pcm=getPcm();
+      if(typeof pcm?.releaseNote==='function')pcm.releaseNote(ch);else pcm?.keyOff(ch);
+      held.delete(ch);onCommand({type:'noteOff',channel:ch});emit();return true;
+    },
     setFrequency(ch,block,fnum) {
       channel(ch);const note=pitch(block,fnum),pcm=getPcm();if(!pcm||installed!==pcm)return null;
       pcm.setPitch(ch,note.step);if(held.has(ch))held.set(ch,{channel:ch,...note});

@@ -61,7 +61,7 @@ function installAudit() {
   }});
   window.AudioWorkletNode=new Proxy(Worklet,{construct(Target,args,newTarget){
     const node=Reflect.construct(Target,args,newTarget);
-    if(['tetorica-synth-pcm-looper','tetorica-synth-pcm-recording','tetorica-rf5c164'].includes(args[1])) {
+    if(['tetorica-synth-pcm-looper','tetorica-synth-pcm-recording','tetorica-synth-pcm'].includes(args[1])) {
       const owner={id:++serial,name:args[1],context:node.context,tokens:new Map(),units:new Map(),pending:new Map(),
         ready:false,running:false,session:0,configuration:null,starts:0,adds:0,removes:0,stops:0,eventPlays:0};
       owners.push(owner);bind(node.port,owner);node.__pcmLooperOwner=owner;
@@ -102,12 +102,13 @@ function installAudit() {
       } else if(method==='discardLooperUnit')owner.tokens.delete(a[0]);
       else if(method==='playRecording'){owner.eventPlays++;events.push({kind:'event-play',owner:owner.id});}
       else if(method==='writeRegister')events.push({kind:'register',owner:owner.id,r:a[0],v:a[1]});
+      else if(['keyOn','keyOff','releaseNote','reset'].includes(method))events.push({kind:method,owner:owner.id,ch:a[0]});
       else if(method==='dispose'){owner.running=false;owner.units.clear();}
       if(command.id!==undefined)owner.pending.set(command.id,operation);
       else if(['startLooper','addPreparedLooperUnit','removeLooperUnit','prepareLooperUnit'].includes(method))accepted(owner,operation);
     }
     if(events.length>20000)events.splice(0,events.length-20000);
-    if(owner?.name==='tetorica-rf5c164'&&holdNextMemory&&message?.method==='loadMemory') {
+    if(owner?.name==='tetorica-synth-pcm'&&holdNextMemory&&message?.method==='loadMemory') {
       holdNextMemory=false;heldMemory=()=>post.call(this,message,...args);
       events.push({kind:'held-editor-memory',owner:owner.id,id:message.id});return;
     }
@@ -346,7 +347,7 @@ async function run(browser,name,origin) {
     await down(page,lowKey.key);await keyState(page,lowKey.key,true);await pause(200);await drain(page);
     await field(page,'LoopEnd',180);await pcmReady(page);await keyState(page,lowKey.key,true);
     await field(page,'LoopEnd',240);await pcmReady(page);await keyState(page,lowKey.key,true);await field(page,'LoopStart',16);await keyState(page,lowKey.key,true);
-    const continuousWrites=await drain(page);assert(!continuousWrites.some(event=>event.kind==='register'&&(event.r===8||event.r===6)),'Looper End / Start edits preserve the held live voice without retrigger');
+    const continuousWrites=await drain(page);assert(!continuousWrites.some(event=>['keyOn','keyOff','releaseNote','reset'].includes(event.kind)||event.kind==='register'&&(event.r===8||event.r===6)),'Looper End / Start edits preserve the held live voice without release or retrigger');
     const probeTime=(await owner(page)).time-capturedFrom+.15;await evaluate(page,time=>__pcmLooperAudit.setSampleProbeTimes([time]),probeTime);
     await pause(450);await up(page,lowKey.key);
     await builtin(page,'triangle');await field(page,'PanLeft',0);await field(page,'PanRight',15);await field(page,'LoopEnd',180);await pcmReady(page);
@@ -356,6 +357,28 @@ async function run(browser,name,origin) {
     assert(changingRows.some(row=>row.left.rms>.001));assert(changingRows.some(row=>row.right.rms>.001));
     await stopLoop(page);await silence(page);await clearLoop(page);
     steps.push('A single rendered layer sustains held notes through End shrink / growth, retains source / Pan / Start changes and the final key closure');
+
+    // A live marker edit may wait for its RAM acknowledgement, but an already
+    // held input still owns a playable voice and must be able to release it.
+    await builtin(page,'sine');await down(page,lowKey.key);await keyState(page,lowKey.key,true);
+    await until(page,async()=>(await audit(page)).meters.some(m=>m.kind==='editor'&&(m.left.rms>.001||m.right.rms>.001)),'Held editor PCM sounds before the gated End edit');await drain(page);
+    const endBefore=Number(await page.locator('#synthPcmLoopEnd').textContent());
+    await evaluate(page,()=>__pcmLooperAudit.holdMemory());
+    let pendingEndRelease;
+    try {
+      await page.locator('[data-pcm-field="loopEnd"][data-pcm-step="-1"]').click();
+      assert.equal(Number(await page.locator('#synthPcmLoopEnd').textContent()),endBefore-1,'One End decrement queues exactly one RAM edit');
+      await until(page,()=>evaluate(page,()=>__pcmLooperAudit.hasHeldMemory()),'Loop End RAM acknowledgement is pending');
+      assert(await page.locator('#keyboard').evaluate(node=>node.classList.contains('is-loading')),'The edited bank is awaiting its RAM ACK');
+      await up(page,lowKey.key);await keyState(page,lowKey.key,false);
+      pendingEndRelease=await drain(page);assert(pendingEndRelease.some(event=>event.kind==='releaseNote'),'Key-up reaches the existing PCM voice while End RAM is pending');
+      await silence(page,'editor');await silence(page);
+      assert(await evaluate(page,()=>__pcmLooperAudit.hasHeldMemory()),'The native voice becomes silent before the delayed RAM command is released');
+    } finally {await evaluate(page,()=>__pcmLooperAudit.releaseMemory());await up(page,lowKey.key);}
+    await pcmReady(page);await pause(100);await keyState(page,lowKey.key,false);await silence(page,'editor');await silence(page);
+    assert(!running(await ui(page))&&!((await owner(page))?.running),'A late End RAM ACK cannot restart stopped playback');
+    result.pendingEndRelease={endBefore,endAfter:endBefore-1,releasedBeforeMemoryAck:true,commands:pendingEndRelease};
+    steps.push('Key-up releases a held native voice while a single End RAM edit is awaiting ACK; the late ACK cannot revive the input or its sound');
 
     // Rebuild two simple independent layers for exclusion and cross-chip state.
     await builtin(page,'sine');await field(page,'PanLeft',15);await field(page,'PanRight',0);await startLoop(page);await beginLayer(page);

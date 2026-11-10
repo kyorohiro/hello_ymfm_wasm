@@ -54,3 +54,5 @@ node scripts/check_synth_pcm_browser.cjs --root=release/itch_synth_pcm-editor-ch
 ## 後続修正
 
 Loop End変更による停止は、[発音を保持する修正](todo_fm2612_pcm_live_loop_end_01.md)で解消した。通常編集・Event Rec・Looperで、EndのRAM更新だけではNote Offせず現在位置を保持する。上記のEnd停止に関する記述は初回実装時の記録。
+
+離鍵のクリック低減は[4ms Software Release](todo_fm2612_pcm_release_click_01.md)で対応した。共有RF5C164コアは変更せず、通常PCM・Pause試奏・Event Rec・Looperへ適用する。

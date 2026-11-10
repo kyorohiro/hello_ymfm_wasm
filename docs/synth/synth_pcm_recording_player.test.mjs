@@ -9,6 +9,7 @@ import {createPcmBuiltinPreset,createSynthPcmVoice,createPcmPreset,buildPcmMemor
 import {createSynthPcmRecordingPlayer,PCM_RECORDING_MAX_COMPILED_BYTES} from './synth_pcm_recording_player.js';
 import {prepareSynthPcmRecording} from './synth_pcm_recording_prepare.js';
 import {Worker} from 'node:worker_threads';
+import {createSynthPcmRelease,PCM_RELEASE_SECONDS} from './synth_pcm_release.js';
 
 const RATE=48000,CLOCK=7670454;
 const wasmBinary=await readFile(new URL('../generated/rf5c164_wasm.wasm',import.meta.url));
@@ -18,17 +19,20 @@ const recording=(commands,durationSeconds=.16,initial=preset)=>({format:'tetoric
 const note=(time,channel=0)=>({time,type:'noteOn',channel,block:4,fnum:644});
 const off=(time,channel=0)=>({time,type:'noteOff',channel});
 const rms=values=>Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length);
-async function native() {
+async function native({smooth=false}={}) {
   const chip=await Rf5c164.create({moduleFactory:factory,moduleOptions:{wasmBinary},sampleRate:RATE});
-  const pcm=new RF5C164Synth({transport:new RF5C164DirectTransport(chip)}),ended=[];
+  const raw=new RF5C164Synth({transport:new RF5C164DirectTransport(chip)}),ended=[];
+  const renderChip=(left,right)=>{const output=chip.generateStereo(left.length);left.set(output.left);right.set(output.right);};
+  const release=smooth?createSynthPcmRelease({pcm:raw,sampleRate:RATE,renderAudio:renderChip}):null;
+  const pcm=release?.pcm??raw;
   const player=createSynthPcmRecordingPlayer({sampleRate:RATE,pcm,onEnded:session=>ended.push(session)});
-  const render=(left,right)=>{const output=chip.generateStereo(left.length);left.set(output.left);right.set(output.right);};
+  const render=release?.render??renderChip;
   function generate(frames,chunk=128) {
     const left=new Float32Array(frames),right=new Float32Array(frames);
     for(let start=0;start<frames;start+=chunk)player.render(left.subarray(start,Math.min(frames,start+chunk)),right.subarray(start,Math.min(frames,start+chunk)),render);
     return {left,right};
   }
-  return {chip,pcm,player,ended,generate,dispose(){player.stop();chip.dispose();}};
+  return {chip,pcm,raw,release,player,ended,generate,dispose(){player.stop();chip.dispose();}};
 }
 async function manual(value,frames) {
   const h=await native(),doc=structuredClone(value),left=new Float32Array(frames),right=new Float32Array(frames);
@@ -96,6 +100,48 @@ test('native sample-clock PCM matches manually applied editor operations across 
     assert(rms(actual.right.subarray(160,800))>.001);assert(actual.left.subarray(2000,2800).every(value=>value===0),'right-only Pan applies to held notes');
     assert(actual.left.subarray(6800).every(value=>value===0));assert(actual.left.every(Number.isFinite));
   } finally{a.dispose();b.dispose();}
+});
+
+test('software release playback reduces the native key-off step while settled samples and chunk timing stay exact',async()=>{
+  const raw=await native(),a=await native({smooth:true}),b=await native({smooth:true});
+  try {
+    const at=256,doc=recording([note(0),off(at/RATE)],.02),prepared=prepareSynthPcmRecording(doc,{sampleRate:RATE});
+    for(const h of [raw,a,b])h.player.play(structuredClone(prepared),{session:1});
+    const abrupt=raw.generate(1300,128),smooth=a.generate(1300,128),other=b.generate(1300,71);
+    assert.deepEqual(smooth,other);assert.deepEqual(smooth.left.subarray(0,at),abrupt.left.subarray(0,at));
+    const jump=Math.abs(abrupt.left[at]-abrupt.left[at-1]);assert(jump>.07,'fixture releases a clearly nonzero native sine');
+    let largest=0;for(let i=at;i<at+Math.ceil(PCM_RELEASE_SECONDS*RATE)+8;i++)largest=Math.max(largest,Math.abs(smooth.left[i]-smooth.left[i-1]));
+    assert(largest<jump*.25,`software release limits the largest edge ${largest} versus hard key-off ${jump}`);
+    assert(rms(smooth.left.subarray(at,at+80))>.01,'the release tail is rendered rather than muting the output bus');
+    assert(smooth.left.subarray(at+Math.ceil(PCM_RELEASE_SECONDS*RATE)+8).every(value=>value===0));
+    assert.equal(a.raw.channelMask,255);assert.deepEqual(a.player.snapshot().heldChannels,[]);
+  } finally {raw.dispose();a.dispose();b.dispose();}
+});
+
+test('software playback closes unpaired notes at the performed end and keeps the same ten-millisecond cycle padding',async()=>{
+  const h=await native({smooth:true});
+  try {
+    const prepared=prepareSynthPcmRecording(recording([note(0)],.02),{sampleRate:RATE});
+    h.player.play(prepared,{session:1,loop:true});
+    const cycle=h.player.snapshot().cycleFrames;assert.equal(cycle,1440);
+    const output=h.generate(cycle*2,71);
+    assert.deepEqual(output.left.subarray(0,cycle),output.left.subarray(cycle));
+    assert(rms(output.left.subarray(960,1040))>.005,'the note releases after the performed period');
+    assert(output.left.subarray(1160,cycle).every(value=>value===0),'tail ends before the next cycle');
+    assert.deepEqual(h.player.snapshot().heldChannels,[]);
+  } finally {h.dispose();}
+});
+
+test('same-channel retrigger cancels a software release and explicit player Stop cancels its tail',async()=>{
+  const h=await native({smooth:true});
+  try {
+    const doc=recording([note(0),off(256/RATE),note(300/RATE),off(1000/RATE)],.04);
+    h.player.play(prepareSynthPcmRecording(doc,{sampleRate:RATE}),{session:1});
+    const first=h.generate(900,71);assert(rms(first.left.subarray(500,850))>.05,'old release completion cannot stop the replacement note');
+    assert.deepEqual(h.player.snapshot().heldChannels,[0]);
+    h.generate(120);h.player.stop(2);assert.equal(h.raw.channelMask,255);
+    assert(h.generate(512).left.every(value=>value===0),'explicit Stop is immediate and cannot be revived by a pending release');
+  } finally {h.dispose();}
 });
 
 test('eight physical channels, retrigger and stops preserve actual native output without remapping',async()=>{
