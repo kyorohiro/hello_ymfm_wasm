@@ -1,11 +1,14 @@
 import {createSynthProject} from './synth_project.js?v=op-gates-1';
 import {setupSynthFiles} from './synth_files.js?v=op-gates-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=song-seek-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=genesis-psg-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {createSynthPerformanceTarget} from './synth_performance.js?v=op-gates-1';
 import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
+import {createSynthPsgVoice} from './synth_psg.js?v=genesis-psg-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=genesis-psg-1';
+import {setupSynthPsgControls} from './synth_psg_controls.js?v=genesis-psg-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -167,6 +170,9 @@ const envelopeContext =
   envelopeCanvas.getContext("2d");
 const outputVisualizer = createSynthOutputVisualizer();
 let visualMode = 'envelope';
+let editorChip = 'ym2612';
+const editorChipTabs = [...document.querySelectorAll('[data-synth-chip]')];
+const editorChipPanels = document.querySelectorAll('.synth-chip-panel');
 const visualModeButtons = document.querySelectorAll('[data-visual-mode]');
 const visualizerDescription = document.getElementById('visualizerDescription');
 const visualDescriptions = {
@@ -190,7 +196,7 @@ for (const button of visualModeButtons) {
     operatorEnvelopeRoot.hidden = !editing;
     operatorEnvelopeRoot.parentElement.classList.toggle('is-editing-envelope', editing);
     envelopeCanvas.hidden = editing;
-    operatorEnvelopeView.setVisible(editing);
+    operatorEnvelopeView.setVisible(editorChip === 'ym2612' && editing);
     if (editing) operatorEnvelopeView.invalidateOutput();
     megaSynth?.setOutputEnvelopeOptions({enabled: visualMode === 'envelope'});
     drawEnvelopeGuide();
@@ -223,7 +229,7 @@ for (const modulationWheel of modulationWheels) {
     modulationWheelValue = Number(modulationWheel.value);
     for (const wheel of modulationWheels) wheel.value = String(modulationWheelValue);
     for (const readout of modulationValues) readout.textContent = `${Math.round(modulationWheelValue / 127 * 100)}%`;
-    if (synth && !songLiveView) applyModulation(synth, commonState, modulationWheelValue, VOICE_COUNT);
+    if (synth && editorChip === 'ym2612' && !songLiveView) applyModulation(synth, commonState, modulationWheelValue, VOICE_COUNT);
   });
   // Keep range-keyboard controls separate from the fretboard's arrow shortcuts.
   modulationWheel.addEventListener('keydown', event => {
@@ -252,7 +258,7 @@ function updatePitchBend(value) {
   for (const wheel of pitchBendWheels) wheel.value = String(value);
   for (const readout of pitchBendValues) readout.textContent = `${pitchBendSemitones > 0 ? '+' : ''}${pitchBendSemitones.toFixed(2)}`;
   if (synth) {
-    applyPitchBend(songAuditionVoice ?? getEditorPlayableSynth(), voices, pitchBendSemitones);
+    applyPitchBend(editorChip === 'psg' ? psgVoice : songAuditionVoice ?? getEditorPlayableSynth(), voices, pitchBendSemitones);
   }
 }
 for (const wheel of pitchBendWheels) {
@@ -423,6 +429,57 @@ operatorEnvelopeRoot.addEventListener('keydown', event => {
   if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
 });
 window.addEventListener('pagehide', event => {if (!event.persisted) operatorEnvelopeView.dispose();});
+
+// Chip selection changes the keyboard target without replacing the FM patch.
+// The remaining PCM/PWM tabs still preview their future editor layout.
+function selectEditorChip(button) {
+  const changed = editorChip !== button.dataset.synthChip;
+  if (changed) {
+    stopAllNotes();
+    void stopRecordingForReference();
+  }
+  editorChip = button.dataset.synthChip;
+  for (const tab of editorChipTabs) {
+    const selected = tab === button;
+    tab.classList.toggle('is-selected', selected);
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  }
+  for (const panel of editorChipPanels) panel.hidden = panel.id !== button.getAttribute('aria-controls');
+  psgAudio.setEnabled(editorChip === 'psg');
+  if (editorChip === 'psg') songControls?.selectTarget('synth');
+  operatorEnvelopeView.setVisible(editorChip === 'ym2612' && visualMode === 'envelope');
+  operatorEnvelopeView.invalidateOutput();
+  if (changed) {buildKeyboard(); updateKeyboardVisuals();}
+  refreshChipAvailability();
+  drawEnvelopeGuide();
+  if (editorChip === 'psg' && synth && !psgAudio.getPsg()) {
+    void ensureAudioReady().catch(error => setStatus(`PSG audio: ${error.message}`));
+  }
+}
+for (const button of editorChipTabs) {
+  button.addEventListener('pointerdown', event => event.preventDefault());
+  button.addEventListener('click', () => {
+    const focusWasInTabs = editorChipTabs.includes(document.activeElement);
+    selectEditorChip(button);
+    if (focusWasInTabs) button.focus();
+  });
+  button.addEventListener('keydown', event => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const offsets = {ArrowLeft:-1, ArrowUp:-1, ArrowRight:1, ArrowDown:1};
+    if (Object.hasOwn(offsets, event.key) || event.key === 'Home' || event.key === 'End') {
+      event.preventDefault(); event.stopPropagation();
+      const index = editorChipTabs.indexOf(button);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? editorChipTabs.length - 1
+        : (index + offsets[event.key] + editorChipTabs.length) % editorChipTabs.length;
+      selectEditorChip(editorChipTabs[next]);
+      editorChipTabs[next].focus();
+    } else if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+  });
+  button.addEventListener('keyup', event => {
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End',' ','Enter'].includes(event.key)) event.stopPropagation();
+  });
+}
 const channel3SpecialControls =
   new Map();
 const envelopeDescription =
@@ -524,6 +581,34 @@ const voices =
 
 const activeKeys = new Map();
 let inputController = null;
+let psgControls = null;
+const psgAudio = createSynthPsgAudio({onError:error => {
+  stopAllNotes(); updateKeyboardAvailability(); setStatus(`PSG audio: ${error.message}`);
+}});
+const psgVoice = createSynthPsgVoice({
+  getPsg:() => psgAudio.getPsg(),
+  getPitchClock:() => synth?.clock ?? YM2612_CLOCK,
+  onState:() => psgControls?.update(),
+});
+psgControls = setupSynthPsgControls({
+  voice:psgVoice,
+  onBeforeSourceChange:() => stopAllNotes(),
+  onVisualModeChange:() => drawEnvelopeGuide(),
+  onSettingsChange:() => {updateKeyboardAvailability(); drawEnvelopeGuide();},
+});
+
+function refreshChipAvailability() {
+  const fm = editorChip !== 'psg';
+  document.querySelector('.synth-file-editor-heading').hidden = !fm;
+  const note = document.querySelector('.synth-file-format-note');
+  note.textContent = fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : 'PSG settings · session only';
+  note.title = fm ? fmFormatTitle : 'PSG settings are kept while this page is open. FM files are separate.';
+  exportTfiButton.disabled = exportVgiButton.disabled = !fm || Boolean(songLiveView);
+  for (const wheel of modulationWheels) wheel.disabled = !fm || Boolean(songLiveView);
+  synthFiles?.refresh();
+  updateLooperUi(); updateEventRecordUi(); updateKeyboardAvailability();
+}
+const fmFormatTitle = document.querySelector('.synth-file-format-note').title;
 
 function setStatus(message) {
   status.textContent = message;
@@ -553,6 +638,7 @@ function applyMasterVolume() {
   );
   songControls?.setVolume(masterVolume);
   songAuditionMegaSynth?.setMasterVolume(masterVolume);
+  psgAudio.setVolume(masterVolume);
 }
 
 function isSongChannelTarget() {
@@ -560,7 +646,7 @@ function isSongChannelTarget() {
 }
 
 function isPerformanceInputEnabled() {
-  return !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (!isSongChannelTarget() || Boolean(songAuditionVoice));
+  return !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (editorChip === 'psg' || !isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
 function getCurrentPerformanceVoice() {
@@ -570,8 +656,13 @@ function getCurrentPerformanceVoice() {
 }
 
 function recordingBlocked() {
-  return switchingAudioOutput||Boolean(referenceRecordingStop)||
+  return editorChip === 'psg'||switchingAudioOutput||Boolean(referenceRecordingStop)||
     ['loading','playing','seeking'].includes(songTargetState.playback)||isSongChannelTarget();
+}
+
+function recordingUnavailableReason() {
+  return editorChip === 'psg' ? 'PSG recording is not available yet. Choose YM2612 to use Looper or Event Rec.'
+    : 'Pause or Stop the VGM and choose Synth to record your instrument.';
 }
 
 function recordingOperationCurrent(epoch) {return epoch===recordingEpoch&&!recordingBlocked();}
@@ -697,8 +788,8 @@ function setSongLiveView(next) {
     envelopeSelectionRevision++;
     document.querySelector('.synth-editor').dataset.liveView = String(active);
     operatorEnvelopeRoot.querySelector('.operator-envelope-plot').inert = active;
-    exportTfiButton.disabled = exportVgiButton.disabled = active;
-    for (const wheel of modulationWheels) wheel.disabled = active;
+    exportTfiButton.disabled = exportVgiButton.disabled = active || editorChip === 'psg';
+    for (const wheel of modulationWheels) wheel.disabled = active || editorChip === 'psg';
     synthFiles?.refresh();
   }
   if (signature !== songLiveSignature) {
@@ -749,7 +840,7 @@ function updateLooperUi() {
   const blocked=recordingBlocked();
   if(looperStartButton) {
     looperStartButton.disabled=blocked;
-    looperStartButton.title=blocked?'Pause or Stop the VGM and choose Synth to use the looper.':'';
+    looperStartButton.title=blocked?recordingUnavailableReason():'';
   }
   if(looperRecordButton)looperRecordButton.disabled=blocked;
   if (!looper) {
@@ -859,7 +950,7 @@ function updateEventRecordUi() {
 
   if (eventRecordStartButton) {
     eventRecordStartButton.disabled=recordingBlocked();
-    eventRecordStartButton.title=recordingBlocked()?'Pause or Stop the VGM and choose Synth to record.':'';
+    eventRecordStartButton.title=recordingBlocked()?recordingUnavailableReason():'';
     eventRecordStartButton.textContent =
       eventRecordSessionActive
         ? "Event Rec Stop"
@@ -1454,9 +1545,7 @@ function setupLooperCaptureTap() {
 }
 
 function updateKeyboardAvailability() {
-  const isInitializing =
-    audioInitStarted &&
-    !synth;
+  const isInitializing = audioInitStarted && !synth || editorChip === 'psg' && psgAudio.isPreparing();
 
   keyboard.classList.toggle(
     "is-loading",
@@ -1477,7 +1566,7 @@ function updateKeyboardAvailability() {
   keyboard.setAttribute('aria-disabled', String(!enabled));
   keyboard.setAttribute('aria-label', channel
     ? `CH${songTargetState.target + 1} keyboard${songAuditionVoice ? ' audition' : ' unavailable; pause the song to audition an FM channel'}`
-    : 'Synth keyboard');
+    : editorChip === 'psg' ? `Sega PSG ${psgVoice.getSettings().source} keyboard` : 'Synth keyboard');
   keyboard.classList.toggle('is-song-unavailable', !enabled);
 }
 
@@ -1843,7 +1932,11 @@ function renderAlgorithmDiagram() {
 
 function drawEnvelopeGuide() {
   // Envelope redraws only for edits or incoming RMS batches, on one canvas.
-  if (visualMode === 'envelope') return;
+  if (editorChip === 'psg') {
+    outputVisualizer.draw(psgControls.canvas, psgControls.canvas.getContext('2d'), psgControls.getVisualMode());
+    return;
+  }
+  if (editorChip !== 'ym2612' || visualMode === 'envelope') return;
   outputVisualizer.draw(envelopeCanvas, envelopeContext, visualMode);
 }
 
@@ -2327,6 +2420,7 @@ function renderFretboardUi() {
 }
 
 function stopAllNotes() {
+  psgVoice.stop();
   if(looper?.recording)for(const voice of voices)if(voice.held)looper.noteOff(voice.channel);
   songAuditionVoice?.noteOff(songAuditionVoice.channel);
   if (songAuditionBus) songAuditionBus.gain.value = 0;
@@ -2341,9 +2435,11 @@ function stopAllNotes() {
       outputEnvelopeHeldVoicePeak = 1;
     },
   });
+  if (!synth) clearInputState();
 }
 
 function getPlayableSynth() {
+  if (editorChip === 'psg') return psgAudio.getPsg() ? psgVoice : null;
   if (isSongChannelTarget()) return songAuditionVoice;
   if (looper?.running) {
     return looper;
@@ -2544,7 +2640,7 @@ function clearLooper() {
 
 function togglePrimaryRecordAction() {
   if(recordingBlocked()) {
-    setStatus('Pause or Stop the VGM and choose Synth to record your instrument.');
+    setStatus(recordingUnavailableReason());
     return;
   }
   if (eventRecordSessionActive) {
@@ -2686,6 +2782,14 @@ async function ensureAudioReady() {
     updateKeyboardAvailability();
     throw error;
   }
+  if (editorChip === 'psg') {
+    const pending = psgAudio.prepare(audioContext, finalOutputBus);
+    updateKeyboardAvailability();
+    try {
+      await pending;
+      if (editorChip === 'psg') setStatus('Audio ready. Sega PSG · Tone / Noise.');
+    } finally {updateKeyboardAvailability();}
+  }
 
 }
 
@@ -2696,6 +2800,7 @@ function buildKeyboard() {
       fretboardLayout.rowDefs,
     layoutEntries:
       fretboardLayout.entries,
+    showPitch:editorChip !== 'psg',
     onPointerDown: (
       event,
       entry,
@@ -2898,13 +3003,14 @@ inputController =
     activeKeys,
     voices,
     getAudioReadyPromise:
-      () => audioReadyPromise,
+      () => editorChip === 'psg' ? psgAudio.isPreparing() : audioReadyPromise,
     getPitchBend: () => pitchBendSemitones,
     isInputEnabled: isPerformanceInputEnabled,
     getSynth: () =>
       getPlayableSynth(),
     ensureAudioReady,
-    chooseVoice: available => songAuditionVoice ? available[songAuditionVoice.channel]
+    chooseVoice: available => editorChip === 'psg' ? chooseVoice(available.filter(voice => psgVoice.getChannels().includes(voice.channel)))
+      : songAuditionVoice ? available[songAuditionVoice.channel]
       : channel3SpecialState.enabled?available[2]:chooseVoice(available),
     updateKeyboardVisuals,
     setStatus,
@@ -3043,9 +3149,10 @@ synthFiles = setupSynthFiles({
   },
   onListChanged:syncFilePresetOptions,
   onWorkspaceReplaced:()=>songControls?.reset(),
-  isObserving:()=>Boolean(songLiveView),
+  isObserving:()=>editorChip === 'psg'||Boolean(songLiveView),
   stopAllNotes,
-  setStatus,
+  setStatus:message => setStatus(editorChip === 'psg' && message === 'Choose Synth to edit an instrument.'
+    ? 'Choose YM2612 to edit or sync an FM instrument. PSG settings are session-only.' : message),
 });
 songControls = setupSynthSongControls({
   project:synthProject,
@@ -3058,7 +3165,10 @@ songControls = setupSynthSongControls({
   getVolume:()=>masterVolume,
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
-  onTargetState:setSongTargetState,
+  onTargetState:state => {
+    if (editorChip === 'psg' && state.target !== 'synth') selectEditorChip(document.getElementById('synthChipTabYm2612'));
+    setSongTargetState(state);
+  },
   async onCopyToSynth(preset,name) {
     const copied = await synthFiles.createFromPreset(preset,name);
     // Copy auditions an FM instrument. OP metadata on an ordinary saved tone
@@ -3079,6 +3189,8 @@ window.addEventListener('pagehide',event=>{
   else {
     songControls.dispose();
     liveHighlighter.dispose();
+    psgControls.dispose();
+    psgAudio.dispose();
     ++songAuditionGeneration;
     if (songAuditionBus) songAuditionBus.gain.value = 0;
     void songAuditionMegaSynth?.close();

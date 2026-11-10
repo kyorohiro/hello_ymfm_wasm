@@ -126,7 +126,7 @@
       .synth-workspace.has-files { grid-template-columns: 250px minmax(0, 1fr); }
       .synth-editor { min-width: 0; }
       .synth-files-panel { min-width: 0; border: 1px solid #41615b; border-radius: 14px; padding: 12px; background: #172423; }
-      .synth-files-panel[hidden] { display: none; }
+      .synth-files-panel[hidden], .synth-file-editor-heading[hidden] { display: none; }
       .synth-files-heading, .synth-file-editor-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
       .synth-files-heading h2 { margin: 0; letter-spacing: .15em; font-size: .8rem; }
       .synth-files-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 10px; }
@@ -341,6 +341,39 @@
         display: grid;
         gap: 10px;
       }
+
+      .synth-chip-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); padding: 0 2px 6px; }
+      .synth-chip-tabs .toolbar-button { min-width: 68px; min-height: 28px; border-radius: 8px 8px 0 0; margin-bottom: -7px; }
+      .synth-chip-tabs [aria-selected="true"] { color: #7be0d6; }
+      .synth-chip-panel { display: grid; gap: 10px; min-width: 0; }
+      .synth-chip-panel[hidden] { display: none; }
+      .synth-chip-panel.synth-chip-placeholder { min-height: 230px; align-content: center; justify-items: center; text-align: center; border-style: dashed; }
+      .synth-chip-placeholder::before { content: ""; width: 120px; height: 6px; margin-bottom: 10px; background: repeating-linear-gradient(-45deg, #dfaf60 0 8px, #263331 8px 16px); }
+      .synth-chip-placeholder h2 { margin: 0; font-size: 1rem; color: #dfaf60; }
+      .synth-chip-placeholder p { margin: 0; font-size: .8rem; }
+      .synth-chip-placeholder .subtext { color: #a8bfba; font-size: .7rem; }
+      .synth-psg-canvas { display: block; width: 100%; height: 160px; border-radius: 6px; background: #10191a; }
+      .synth-psg-description { margin: 4px 0 6px; color: #a8bfba; font-size: .68rem; }
+      .synth-psg-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+      .synth-psg-heading h2 { margin: 0; font-size: .85rem; }
+      .synth-psg-session { margin: 3px 0 0; color: #a8bfba; font-size: .65rem; }
+      .synth-psg-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+      .synth-psg-label { flex: 0 0 78px; color: #b8cac6; font-size: .68rem; }
+      .synth-psg-options { display: flex; flex: 1; flex-wrap: wrap; gap: 4px; }
+      .synth-psg-options [aria-pressed="true"] { color: #7be0d6; border-color: #6c9b8e; background: #29413d; }
+      .synth-psg-number { display: inline-grid; grid-template-columns: 26px 32px 26px; align-items: center; border: 1px solid var(--pill-border); border-radius: 999px; background: var(--pill-bg); }
+      .synth-psg-number button { padding: 0; min-height: 26px; border: 0; background: transparent; color: var(--pill-ink); cursor: pointer; font-size: 1rem; }
+      .synth-psg-number button:disabled { opacity: .3; cursor: default; }
+      .synth-psg-number output { text-align: center; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .synth-psg-scale { color: #a8bfba; font-size: .65rem; }
+      .synth-psg-noise[hidden] { display: none; }
+      .synth-psg-hint { margin: 10px 0 0; color: #a8bfba; font-size: .68rem; line-height: 1.5; }
+      .synth-psg-help { position: relative; font-size: .7rem; }
+      .synth-psg-help summary { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--pill-border); border-radius: 50%; cursor: pointer; list-style: none; }
+      .synth-psg-help summary::-webkit-details-marker { display: none; }
+      .synth-psg-help-body { position: absolute; z-index: 20; top: 29px; right: 0; width: min(280px, calc(100vw - 70px)); padding: 10px; border: 1px solid #6c9b8e; border-radius: 8px; background: #172423; box-shadow: 0 6px 20px #0006; }
+      .synth-psg-help-body p { margin: 0 0 7px; line-height: 1.5; }
+      .synth-psg-help-body p:last-child { margin-bottom: 0; }
 
       .control-section,
       .card {
@@ -1414,6 +1447,13 @@
             </div>
         <div class="layout">
           <section class="controls-stack">
+            <div class="synth-chip-tabs" role="tablist" aria-label="Sound chip editor">
+              <button id="synthChipTabYm2612" class="toolbar-button is-selected" type="button" role="tab" data-synth-chip="ym2612" aria-selected="true" aria-controls="synthChipYm2612" tabindex="0">YM2612</button>
+              <button id="synthChipTabPsg" class="toolbar-button" type="button" role="tab" data-synth-chip="psg" aria-selected="false" aria-controls="synthChipPsg" tabindex="-1">PSG</button>
+              <button id="synthChipTabPcm" class="toolbar-button" type="button" role="tab" data-synth-chip="pcm" aria-selected="false" aria-controls="synthChipPcm" tabindex="-1">PCM</button>
+              <button id="synthChipTabPwm" class="toolbar-button" type="button" role="tab" data-synth-chip="pwm" aria-selected="false" aria-controls="synthChipPwm" tabindex="-1">PWM</button>
+            </div>
+            <div id="synthChipYm2612" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabYm2612">
             <div class="card visual-card">
               <div class="visual-mode-controls" role="group" aria-label="Audio visualization">
                 <button type="button" class="toolbar-button is-selected" data-visual-mode="envelope" aria-pressed="true">Envelope</button>
@@ -1491,6 +1531,73 @@
                 <div id="paramHelpTitle" class="param-help-title"></div>
                 <p id="paramHelpText" class="param-help-text"></p>
               </div>
+            </div>
+            </div>
+            <div id="synthChipPsg" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabPsg" hidden>
+              <div class="card visual-card">
+                <div class="visual-mode-controls" role="group" aria-label="PSG audio visualization">
+                  <button type="button" class="toolbar-button is-selected" data-psg-visual-mode="waveform" aria-pressed="true">Waveform</button>
+                  <button type="button" class="toolbar-button" data-psg-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
+                </div>
+                <p id="synthPsgVisualizerDescription" class="synth-psg-description">Final output waveform · after volume.</p>
+                <canvas id="synthPsgCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="Final output waveform"></canvas>
+              </div>
+              <div class="control-section">
+                <div class="synth-psg-heading">
+                  <div><h2>Sega PSG</h2><p class="synth-psg-session">Session sound · separate from FM presets</p></div>
+                  <details id="synthPsgHelp" class="synth-psg-help">
+                    <summary aria-label="About Sega PSG controls" title="About Sega PSG controls">?</summary>
+                    <div class="synth-psg-help-body">
+                      <p>Three hardware tone channels play fixed 50% duty square waves. New notes rotate through them. PSG has no hardware ADSR. Low notes clamp at the 10-bit tone-period limit.</p>
+                      <p>Attenuation changes in 2 dB steps: 0 is loudest, 15 is silent. Master volume is shared with the other editors.</p>
+                      <p>Noise has one channel. Clock / 512, / 1024 and / 2048 use fixed clocks; keys retrigger the noise without changing its pitch. Tone 3 links its clock to the keyboard and Pitch. The Tone 3 square-wave output stays silent.</p>
+                    </div>
+                  </details>
+                </div>
+                <div class="synth-psg-row">
+                  <span class="synth-psg-label">Source</span>
+                  <div class="synth-psg-options" role="group" aria-label="PSG sound source">
+                    <button type="button" class="toolbar-button" data-psg-source="tone" aria-pressed="true">Tone</button>
+                    <button type="button" class="toolbar-button" data-psg-source="noise" aria-pressed="false">Noise</button>
+                  </div>
+                </div>
+                <div class="synth-psg-row">
+                  <span class="synth-psg-label">Attenuation</span>
+                  <div class="synth-psg-number" role="group" aria-label="Hardware attenuation, 0 to 15">
+                    <button type="button" data-psg-attenuation-step="-1" aria-label="Decrease attenuation: louder" title="Decrease attenuation: louder">−</button>
+                    <output id="synthPsgAttenuation" aria-label="PSG attenuation" aria-live="polite">6</output>
+                    <button type="button" data-psg-attenuation-step="1" aria-label="Increase attenuation: quieter" title="Increase attenuation: quieter">+</button>
+                  </div>
+                  <span class="synth-psg-scale">0 loudest · 15 silent</span>
+                </div>
+                <div id="synthPsgNoiseControls" class="synth-psg-noise" hidden>
+                  <div class="synth-psg-row">
+                    <span class="synth-psg-label">Noise type</span>
+                    <div class="synth-psg-options" role="group" aria-label="PSG noise type">
+                      <button type="button" class="toolbar-button" data-psg-noise-type="white" aria-pressed="true">White</button>
+                      <button type="button" class="toolbar-button" data-psg-noise-type="periodic" aria-pressed="false">Periodic</button>
+                    </div>
+                  </div>
+                  <div class="synth-psg-row">
+                    <span class="synth-psg-label">Noise clock</span>
+                    <div class="synth-psg-options" role="group" aria-label="PSG noise clock">
+                      <button type="button" class="toolbar-button" data-psg-noise-rate="low" aria-pressed="false">Clock / 512</button>
+                      <button type="button" class="toolbar-button" data-psg-noise-rate="medium" aria-pressed="true">Clock / 1024</button>
+                      <button type="button" class="toolbar-button" data-psg-noise-rate="high" aria-pressed="false">Clock / 2048</button>
+                      <button type="button" class="toolbar-button" data-psg-noise-rate="tone3" aria-pressed="false">Tone 3</button>
+                    </div>
+                  </div>
+                </div>
+                <p id="synthPsgHint" class="synth-psg-hint">Tone · 3 hardware channels · round robin.</p>
+              </div>
+            </div>
+            <div id="synthChipPcm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPcm" tabindex="0" hidden>
+              <h2>Mega CD PCM</h2><p>Under construction</p>
+              <p class="subtext">Editor preview · Keyboard plays YM2612.</p>
+            </div>
+            <div id="synthChipPwm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPwm" tabindex="0" hidden>
+              <h2>32X PWM</h2><p>Under construction</p>
+              <p class="subtext">Editor preview · Keyboard plays YM2612.</p>
             </div>
             <div class="looper-row">
               <button id="looperStartButton" class="toolbar-button" type="button">Looper Start</button>
@@ -1574,7 +1681,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-song-seek-1";
+      import "./synth.js?v=genesis-psg-1";
     </script>
   </body>
 </html>

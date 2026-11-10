@@ -31,6 +31,9 @@ synth_project.js
 synth_files.js
 synth_recovery.js
 synth_song_controls.js
+synth_psg.js
+synth_psg_audio.js
+synth_psg_controls.js
 synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_state.js
@@ -111,6 +114,8 @@ opn_runtime_synth.js
 pitch.js
 segapsg.js
 segapsg_api.js
+playground_segapsg_audio.js
+playground_segapsg_worklet.js
 segapsgsynth.js
 stereo-width-worklet.js
 tfi.js
@@ -272,7 +277,7 @@ perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g; s#\.\./generated/#./gen
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./generated/#./generated/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' \
   "${STAGE_DIR}/synth_song_controls.js" "${STAGE_DIR}/synth_song_preview.js" "${STAGE_DIR}/synth_song_state.js" \
   "${STAGE_DIR}/synth_recording.js" "${STAGE_DIR}/synth_looper.js" "${STAGE_DIR}/synth_performance.js" \
-  "${STAGE_DIR}/synth_song_mix_defaults.js"
+  "${STAGE_DIR}/synth_song_mix_defaults.js" "${STAGE_DIR}/synth_psg_audio.js"
 perl -0pi -e 's#\.\./js/([A-Za-z0-9._-]+\.js)#./js/$1#g' "${STAGE_DIR}/synth_keyboard.js" "${STAGE_DIR}/synth_runtime.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g' "${STAGE_DIR}/synth_project.js" "${STAGE_DIR}/synth_files.js" "${STAGE_DIR}/synth_recovery.js"
 perl -0pi -e 's#\.\./js/#./js/#g; s#\.\./playground/#./playground/#g; s#\.\./vgm_analyzer/#./vgm_analyzer/#g' "${STAGE_DIR}/synth_preset_import.js"

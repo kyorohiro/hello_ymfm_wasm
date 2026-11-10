@@ -169,6 +169,12 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
   showState(preview.getState());
   return {
     stop: () => preview.stop(),
+    selectTarget(value) {
+      if (![...channel.options].some(option => option.value === value)) return false;
+      channel.value = value;
+      showState(preview.getState());
+      return true;
+    },
     setVolume: value => preview.setVolume(value),
     reset() {preview.stop();selectedRevision=-1;mixControls.close();refresh();},
     dispose() {disposed = true; unsubscribe(); seekControls.dispose();preview.dispose();mixControls.dispose();},
