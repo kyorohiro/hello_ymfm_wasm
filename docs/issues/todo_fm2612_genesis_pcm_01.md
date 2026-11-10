@@ -46,6 +46,6 @@ node scripts/check_synth_pcm_browser.cjs --root=release/itch_synth_pcm-editor-ch
 ## 次の段階
 
 - [ ] 人による実聴：内蔵波形／WAV、Loop境界、Pitch範囲と8音演奏の使い勝手。
-- [ ] VGMのRF5C164音色・サンプル取込とPCM各CHのLive表示／Pause試奏／Copy。現段階では曲CHを見ている間のPCMタブを明示的に無効化し、Synth選択時に編集できる。
+- [x] VGMのRF5C164音色・サンプル取込とPCM各CHのLive表示／Pause試奏／Copy：[Live作業記録](todo_fm2612_genesis_pcm_live_01.md)で実装・無音検証済み。上記のPCMタブ無効化は基本演奏を追加した時点の記録。
 - [ ] PCM Event Rec／Looper。現段階では操作を無効化し、FM／PSGの録音データを変更しない。
 - [ ] PWMタブの基本演奏。工事中表示を維持する。

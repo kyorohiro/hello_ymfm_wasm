@@ -10,6 +10,7 @@ import ym2612ModuleFactory from '../generated/ym2612_wasm.js';
 import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=song-seek-1';
 import {createPsgSongTimeline} from './synth_song_psg_state.js?v=psg-live-1';
+import {createPcmSongTimeline} from './synth_song_pcm_state.js?v=pcm-live-1';
 import {createSynthSongMix} from './synth_song_mix.js?v=mix-source-1';
 import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=song-seek-1';
 import {seekPlayback} from '../vgm_analyzer/seek_playback.js';
@@ -120,7 +121,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   let source = null, name = '', active = null, generation = 0, disposed = false;
   let volume = 1, playback = 'stopped', errorMessage = null;
   let positionFrames = 0, sampleRate = 0, totalSamples = 0;
-  let lastLiveState = null, lastPsgLiveState = null, metadata = null, metadataReady = null;
+  let lastLiveState = null, lastPsgLiveState = null, lastPcmLiveState = null, metadata = null, metadataReady = null;
   let seekProgress = 0, seekTargetSeconds = null, seekResumePlaying = false, lastSeekCacheFrame = 0;
   let abortSeek = null, work = Promise.resolve();
   const mix = createSynthSongMix();
@@ -138,12 +139,14 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       active?.timeline && ['playing','paused'].includes(playback) ? active.timeline.read(consumedFrames) : lastLiveState;
     const psgLiveState = playback === 'seeking' ? null :
       active?.psgTimeline && ['playing','paused'].includes(playback) ? active.psgTimeline.read(consumedFrames) : lastPsgLiveState;
+    const pcmLiveState = playback === 'seeking' ? null :
+      active?.pcmTimeline && ['playing','paused'].includes(playback) ? active.pcmTimeline.read(consumedFrames) : lastPcmLiveState;
     const stats = active?.player.checkpointStats() ?? {count:0,bytes:0};
     const durationKnown = totalSamples > 0;
     return {playback, hasSource:Boolean(source), name, errorMessage,
       sampleRate, positionFrames:consumedFrames, consumedFrames,
       positionSeconds:sampleRate ? consumedFrames / sampleRate : 0,
-      totalSamples, durationSeconds:totalSamples / 44100, liveState,psgLiveState,
+      totalSamples, durationSeconds:totalSamples / 44100, liveState,psgLiveState,pcmLiveState,
       durationKnown,seekable:durationKnown,seeking:playback==='seeking',seekProgress,seekTargetSeconds,
       lastSeekCacheFrame,cache:{enabled:seekCacheEnabled,supported:Boolean(active?.player.supportsState()),
         ...stats,maxBytes:CACHE_MAX_BYTES,maxCount:CACHE_MAX_COUNT,lastRestoreFrame:lastSeekCacheFrame},
@@ -169,7 +172,8 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     cancelNodes(run);
     run.segments.length = 0;
     run.gain.disconnect();
-    // Both observers wrap process/reset; unwind the last installed first.
+    // Observers wrap process/reset; unwind the last installed first.
+    run.pcmTimeline?.dispose();
     run.psgTimeline?.dispose();
     run.timeline?.dispose();
     run.outputMix?.dispose();
@@ -191,6 +195,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     positionFrames = 0;
     lastLiveState = null;
     lastPsgLiveState = null;
+    lastPcmLiveState = null;
     playback = 'stopped';
     errorMessage = null;
     seekProgress=0;seekTargetSeconds=null;
@@ -301,6 +306,8 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     catch {lastLiveState=null;}
     try {lastPsgLiveState = run?.psgTimeline?.read(positionFrames) ?? null;}
     catch {lastPsgLiveState=null;}
+    try {lastPcmLiveState = run?.pcmTimeline?.read(positionFrames) ?? null;}
+    catch {lastPcmLiveState=null;}
     if (run) { active = null; release(run); }
     playback = 'error';
     seekTargetSeconds=null;
@@ -360,6 +367,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
         positionFrames = run.renderedFrames;
         lastLiveState = run.timeline?.read(positionFrames) ?? null;
         lastPsgLiveState = run.psgTimeline?.read(positionFrames) ?? null;
+        lastPcmLiveState = run.pcmTimeline?.read(positionFrames) ?? null;
         clearInterval(run.timer);run.timer=null;
         totalSamples=Math.round(positionFrames*44100/run.sampleRate);
         playback = 'ended';
@@ -387,7 +395,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     return task;
   }
   async function prepare(ticket,audioReady,hostReady=Promise.resolve()) {
-    let engine=null,timeline=null,psgTimeline=null,outputMix=null;
+    let engine=null,timeline=null,psgTimeline=null,pcmTimeline=null,outputMix=null;
     try {
       await metadataReady;
       if(!isCurrent(ticket))return null;
@@ -425,6 +433,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       // resets / prefetches. The UI later reads only the audible prefix.
       timeline = header.ym2612Clock ? createYm2612SongTimeline(engine, header.ym2612Clock) : null;
       psgTimeline = header.psgClock ? createPsgSongTimeline(engine, header.psgClock) : null;
+      pcmTimeline = header.rf5c164Clock ? createPcmSongTimeline(engine, header.rf5c164Clock) : null;
       const player = new VgmPlayer(engine);
       // The host already buffers ~200 ms. A second speculative queue would
       // delay listening changes further; retain only one requested chunk.
@@ -432,10 +441,11 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       player.setLoopEnabled(false);
       player.checkpointMaxBytes=CACHE_MAX_BYTES;player.checkpointMaxCount=CACHE_MAX_COUNT;
       player.seekSettingsKey=()=>JSON.stringify([mix.getMutedChannels(),mix.getGroupVolumes()]);
-      player.captureSeekState=()=>({timeline:timeline?.saveState(),psgTimeline:psgTimeline?.saveState(),outputMix:outputMix.saveState()});
+      player.captureSeekState=()=>({timeline:timeline?.saveState(),psgTimeline:psgTimeline?.saveState(),pcmTimeline:pcmTimeline?.saveState(),outputMix:outputMix.saveState()});
       player.restoreSeekState=state=>{
         if(state.timeline)timeline?.loadState(state.timeline);
         if(state.psgTimeline)psgTimeline?.loadState(state.psgTimeline);
+        if(state.pcmTimeline)pcmTimeline?.loadState(state.pcmTimeline);
         outputMix.loadState(state.outputMix);
       };
       const restoreCheckpoint=player.restoreCheckpoint.bind(player);
@@ -448,13 +458,14 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       const gain = context.createGain();
       gain.gain.value = volume;
       gain.connect(output);
-      const run = {engine, timeline, psgTimeline, outputMix, player, context, output, gain, sampleRate,basePosition:0,renderedFrames:0,cacheResumeFrame:0,
+      const run = {engine, timeline, psgTimeline, pcmTimeline, outputMix, player, context, output, gain, sampleRate,basePosition:0,renderedFrames:0,cacheResumeFrame:0,
         clockStart:context.currentTime + START_DELAY_SECONDS, segments:[], eof:false, timer:null, released:false};
       active = run;
       engine = null; // Ownership has moved to run/release.
       // The snapshot hooks retain these adapters for the life of this run.
       return run;
     } catch (error) {
+      pcmTimeline?.dispose();
       psgTimeline?.dispose();
       timeline?.dispose();
       outputMix?.dispose();
@@ -480,7 +491,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
       if(!run||!isCurrent(ticket))return false;
       return await enqueue(ticket,()=>{
         run.player.reset();run.basePosition=run.renderedFrames=positionFrames=0;run.eof=false;run.cacheResumeFrame=0;
-        updateCachePolicy(run);lastLiveState=lastPsgLiveState=null;lastSeekCacheFrame=0;
+        updateCachePolicy(run);lastLiveState=lastPsgLiveState=lastPcmLiveState=null;lastSeekCacheFrame=0;
         startRun(run);return true;
       });
     } catch(error) {if(!isCurrent(ticket))return false;fail(error,active);throw error;}
@@ -507,6 +518,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
           const frames=process.apply(this,args);
           run.timeline?.read(this.renderedPositionFrames());
           run.psgTimeline?.read(this.renderedPositionFrames());
+          run.pcmTimeline?.read(this.renderedPositionFrames());
           return frames;
         };
         run.cacheResumeFrame=0;updateCachePolicy(run);lastSeekCacheFrame=0;
@@ -539,6 +551,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
         if(run.eof)totalSamples=Math.round((frame+frames)*44100/run.sampleRate);
         lastLiveState=run.timeline?.read(frame)??null;
         lastPsgLiveState=run.psgTimeline?.read(frame)??null;
+        lastPcmLiveState=run.pcmTimeline?.read(frame)??null;
         seekProgress=1;seekTargetSeconds=null;abortSeek=null;
         if(resumeAfter&&!run.eof)startRun(run);
         else {playback=resumeAfter&&run.eof?'ended':'paused';emit();}

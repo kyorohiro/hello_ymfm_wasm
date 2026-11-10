@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {setupSynthSongControls} from './synth_song_controls.js';
 import {createYm2612RegisterState} from './synth_song_state.js';
 import {createPsgRegisterState} from './synth_song_psg_state.js';
+import {createPcmRegisterState} from './synth_song_pcm_state.js';
+import {createPcmBuiltinPreset,pcmSampleBytes} from './synth_pcm.js';
 
 class Element {
   constructor(){this.dataset={};this.children=[];this.listeners=new Map();this.value='';this.textContent='';this.disabled=false;this.hidden=false;this.checked=false;}
@@ -12,12 +14,20 @@ class Element {
   async fire(name){for(const callback of this.listeners.get(name)??[])await callback({preventDefault(){},stopPropagation(){}});}
   blur(){this.blurred=true;}
 }
-function snapshots(frame,attenuation=6) {
+function snapshots(frame,attenuation=6,volume=64) {
   const fm=createYm2612RegisterState();fm.write(0,0xa4,0x22);fm.write(0,0xa0,0x40);fm.write(0,0x28,0xf0);
   const psg=createPsgRegisterState();
   for(let channel=0;channel<3;channel++){psg.write(0x80|(channel<<5)|4);psg.write(12+channel);psg.write(0x90|(channel<<5)|attenuation);}
   psg.write(0xe4);psg.write(0xf0|attenuation);
-  return {liveState:fm.snapshot(frame),psgLiveState:psg.snapshot(frame)};
+  const pcm=createPcmRegisterState(),sample=pcmSampleBytes(createPcmBuiltinPreset('sine').sample);
+  const bytes=new Uint8Array(sample.length+33).fill(255);bytes.set(sample);
+  pcm.write(7,0x80);pcm.loadBankedMemory(bytes,0);
+  for(let channel=0;channel<8;channel++) {
+    pcm.write(7,0xc0|channel);pcm.write(0,volume+channel);pcm.write(1,0xef);
+    pcm.write(2,channel);pcm.write(3,8);pcm.write(4,0);pcm.write(5,0);pcm.write(6,0);
+  }
+  pcm.write(8,0);
+  return {liveState:fm.snapshot(frame),psgLiveState:psg.snapshot(frame),pcmLiveState:pcm.snapshot(frame)};
 }
 function fixture(copyResult=true) {
   const old=Object.getOwnPropertyDescriptor(globalThis,'document'),elements=new Map();
@@ -51,15 +61,22 @@ test('playing chip selection keeps reference targets and remembers each chip cha
     h.controls.selectTarget('psg:3');assert.match(h.byId('synthSongLiveStatus').textContent,/PSG Noise.*Attenuation 6/);
     assert(!h.byId('synthSongLiveStatus').textContent.includes('Gate'));
     h.controls.selectChip('ym2612');assert.equal(h.targets.at(-1).target,4);
+    h.controls.selectChip('pcm');assert.equal(h.targets.at(-1).target,'pcm:0');assert.equal(h.views.at(-1).chip,'pcm');
+    assert.deepEqual(h.channel.options.map(item=>item.textContent),['Synth','CH1','CH2','CH3','CH4','CH5','CH6','CH7','CH8']);
+    h.controls.selectTarget('pcm:7');assert.match(h.byId('synthSongLiveStatus').textContent,/PCM CH8.*Step 2055.*Volume 71.*Pan L15 \/ R14.*Start \$0000.*Loop \$0000/);
+    assert(!h.byId('synthSongLiveStatus').textContent.includes('Gate'),'PCM speed is not invented as a musical note');
     h.controls.selectChip('psg');assert.equal(h.targets.at(-1).target,'psg:3');
+    h.controls.selectChip('pcm');assert.equal(h.targets.at(-1).target,'pcm:7');
+    h.controls.selectChip('psg');
     const count=h.targets.length;assert(h.controls.selectChip('psg'));assert.equal(h.targets.length,count,'same-chip selection cannot recurse through callbacks');
     h.controls.selectTarget('synth');h.controls.selectChip('ym2612');assert.equal(h.targets.at(-1).target,'synth');
     h.controls.selectChip('psg');assert.equal(h.targets.at(-1).target,'synth','an explicitly selected editor remains the editor');
-    assert.equal(h.controls.selectTarget('psg:4'),false);assert.equal(h.controls.selectTarget('6'),false);
+    h.controls.selectChip('pcm');assert.equal(h.targets.at(-1).target,'synth');
+    assert.equal(h.controls.selectTarget('psg:4'),false);assert.equal(h.controls.selectTarget('6'),false);assert.equal(h.controls.selectTarget('pcm:8'),false);assert.equal(h.controls.selectTarget('pcm:-1'),false);
   } finally {h.cleanup();}
 });
 
-test('Live Off freezes both chips together; Pause and Seek refresh the exact destination without crossing chip snapshots',()=>{
+test('Live Off freezes all three chips together; Pause and Seek refresh the exact destination without crossing chip snapshots',()=>{
   const h=fixture();
   try {
     h.emit({playback:'playing',...snapshots(100,4)});h.controls.selectChip('psg');
@@ -67,12 +84,50 @@ test('Live Off freezes both chips together; Pause and Seek refresh the exact des
     h.emit({playback:'playing',...snapshots(200,10)});
     assert.equal(h.views.at(-1).snapshot.frame,100);assert.equal(h.views.at(-1).snapshot.channels[0].attenuation,4);
     h.controls.selectChip('ym2612');assert.equal(h.views.at(-1).snapshot.frame,100);
+    h.controls.selectChip('pcm');assert.equal(h.views.at(-1).snapshot.frame,100);assert.equal(h.views.at(-1).snapshot.channels[0].volume,64);
+    h.emit({playback:'playing',...snapshots(225,11,96)});assert.equal(h.views.at(-1).snapshot.frame,100);assert.match(h.byId('synthSongLiveStatus').textContent,/Frozen PCM CH1/);
     h.controls.selectChip('psg');h.emit({playback:'paused',...snapshots(250,9)});
     assert.equal(h.views.at(-1).snapshot.frame,250);assert.equal(h.views.at(-1).snapshot.channels[0].attenuation,9);
     assert(h.views.at(-1).paused);assert.match(h.byId('synthSongLiveStatus').textContent,/Keyboard: this CH/);
-    h.emit({playback:'seeking',psgLiveState:null,liveState:null});assert.equal(h.views.at(-1),null);assert(h.channel.disabled);
-    h.emit({playback:'paused',...snapshots(600,7)});assert.equal(h.views.at(-1).snapshot.frame,600);assert(!h.channel.disabled);
+    h.controls.selectChip('pcm');assert.equal(h.views.at(-1).snapshot.frame,250);
+    h.emit({playback:'seeking',psgLiveState:null,pcmLiveState:null,liveState:null});assert.equal(h.views.at(-1),null);assert(h.channel.disabled);
+    h.emit({playback:'paused',...snapshots(600,7,80)});assert.equal(h.views.at(-1).snapshot.frame,600);assert.equal(h.views.at(-1).snapshot.channels[0].volume,80);assert(!h.channel.disabled);
+    h.controls.selectChip('psg');assert.equal(h.views.at(-1).snapshot.frame,600);
     h.emit({playback:'stopped'});assert.equal(h.views.at(-1),null);assert.equal(h.targets.at(-1).target,'psg:0');
+  } finally {h.cleanup();}
+});
+
+test('PCM Copy creates a detached sample instrument and chooses Synth only after a successful save',async()=>{
+  for(const success of [false,true]) {
+    const h=fixture(success);
+    try {
+      const source=snapshots(500,8,72);
+      const sampleBefore=[...source.pcmLiveState.ram];
+      h.emit({playback:'playing',...source});h.controls.selectTarget('pcm:7');assert(h.byId('synthSongCopyButton').disabled);
+      h.emit({playback:'paused'});assert(!h.byId('synthSongCopyButton').disabled);assert.match(h.byId('synthSongLiveStatus').textContent,/Paused PCM CH8.*Keyboard: this CH/);
+      await h.byId('synthSongCopyButton').fire('click');assert.equal(h.copies.length,1);
+      const {preset,name}=h.copies[0];assert.equal(preset.kind,'tetorica-rf5c164');assert.equal(preset.settings.volume,79);
+      assert.equal(preset.settings.panLeft,15);assert.equal(preset.settings.panRight,14);assert.equal(preset.settings.rootNote,60);
+      assert.equal(preset.settings.loopEnabled,true);assert.equal(preset.settings.loopStart,0);assert.equal(preset.settings.loopEnd,256);
+      assert.equal(preset.sample.sampleRate,12500000/384*2055/2048);assert.match(name,/-PCM-CH8$/);
+      assert.deepEqual([...source.pcmLiveState.ram],sampleBefore,'Copy never changes source RAM');
+      assert.equal(h.targets.at(-1).target,success?'synth':'pcm:7');assert.equal(h.views.at(-1)?.chip,success?undefined:'pcm');
+    } finally {h.cleanup();}
+  }
+});
+
+test('PCM missing/unsupported snapshots retain the selected target and explain why Copy is unavailable',()=>{
+  const h=fixture();
+  try {
+    h.emit({playback:'playing',pcmLiveState:null});h.controls.selectTarget('pcm:6');
+    assert.equal(h.targets.at(-1).target,'pcm:6');assert.equal(h.views.at(-1),null);
+    assert.match(h.byId('synthSongLiveStatus').textContent,/No Mega CD PCM in this VGM/);assert(h.byId('synthSongCopyButton').disabled);
+    const source=snapshots(350),voice=source.pcmLiveState.channels[6];
+    const channels=source.pcmLiveState.channels.map(item=>item.channel===6?{...voice,step:0}:item);
+    h.emit({playback:'paused',pcmLiveState:{...source.pcmLiveState,channels}});
+    assert.equal(h.views.at(-1).channel,6);assert(h.byId('synthSongCopyButton').disabled);
+    assert.match(h.byId('synthSongLiveStatus').textContent,/Step 0/);assert.match(h.byId('synthSongCopyButton').title,/step|speed|rate/i);
+    assert.equal(h.targets.at(-1).target,'pcm:6');
   } finally {h.cleanup();}
 });
 

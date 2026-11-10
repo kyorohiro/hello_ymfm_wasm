@@ -87,6 +87,55 @@ test('native PSG-only playback observes the audible prefix and exact paused/seek
   } finally {preview.dispose();}
 });
 
+test('native PCM-only playback shows audible RAM and registers, exact Pause and seek without FM/PSG snapshots',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
+  const wait=frames=>[0x61,frames&255,frames>>8];
+  const block=[0x67,0x66,0xc1,7,0,0,0,0,1,0xa0,0xa1,0x20,0x21,255];
+  const commands=[...block,0xb1,7,0xc0,0xb1,0,64,0xb1,1,0xa5,0xb1,2,0,0xb1,3,8,
+    0xb1,4,0,0xb1,5,1,0xb1,6,1,0xb1,8,0xfe,...wait(2205),
+    0xc2,0,1,0xb4,0xb1,0,32,...wait(15435),0x66];
+  try {
+    await preview.load(vgm({clock:0,psg:0,rf:12500000,durationSamples:17640,commands}),'PCM-only.vgm');
+    assert.equal(preview.getState().pcmLiveState,null);await preview.play();
+    const deadline=Date.now()+1000;
+    while(host.starts.reduce((sum,node)=>sum+node.buffer.length,0)<12000&&Date.now()<deadline)await tick();
+    let view=preview.getState();assert.equal(view.liveState,null);assert.equal(view.psgLiveState,null);
+    assert.equal(view.pcmLiveState.channels[0].volume,64);assert.equal(view.pcmLiveState.channels[0].panLeft,5);
+    assert.equal(view.pcmLiveState.channels[0].panRight,10);assert.equal(view.pcmLiveState.ram[0x100],0xa0);
+    assert.equal(view.pcmLiveState.known[0x104],1);assert.equal(view.pcmLiveState.known[0x105],0);
+    const early=view.pcmLiveState;host.context.currentTime=.085;preview.pause();view=preview.getState();
+    assert.equal(view.pcmLiveState.channels[0].volume,32);assert.equal(view.pcmLiveState.ram[0x100],0xb4);
+    assert.equal(early.ram[0x100],0xa0,'render-ahead memory cannot mutate an earlier view');
+    const paused=structuredClone(view.pcmLiveState);host.context.currentTime=10;await tick();
+    assert.deepEqual(preview.getState().pcmLiveState,paused);
+    await preview.seek(.025);view=preview.getState();assert.equal(view.playback,'paused');
+    assert.equal(view.pcmLiveState.channels[0].volume,64);assert.equal(view.pcmLiveState.ram[0x100],0xa0);
+    await preview.seek(.075);view=preview.getState();assert.equal(view.pcmLiveState.channels[0].volume,32);
+    assert.equal(view.pcmLiveState.ram[0x100],0xb4);assert.equal(view.pcmLiveState.frame,view.consumedFrames);
+    assert(host.starts.some(node=>node.buffer.getChannelData(0).some(value=>Math.abs(value)>.001)),'native RF5C164 generated numeric PCM');
+    preview.stop();assert.equal(preview.getState().pcmLiveState,null);
+  } finally {preview.dispose();}
+});
+
+test('native PCM seek cache restores audible RAM, pending writes and original pan under Mix muting',async()=>{
+  const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host}),commands=[];
+  const block=[0x67,0x66,0xc1,7,0,0,0,0,1,0xa0,0xa1,0x20,0x21,255];commands.push(...block);
+  commands.push(0xb1,7,0xc0,0xb1,1,0xa5,0xb1,2,0,0xb1,3,8,0xb1,4,0,0xb1,5,1,0xb1,6,1,0xb1,8,0xfe);
+  for(let second=0;second<12;second++)commands.push(0xb1,0,32+second,0xc2,0,1,0x80+second,0x61,0x44,0xac);
+  commands.push(0x66);
+  try {
+    await preview.load(vgm({clock:0,psg:0,rf:12500000,durationSamples:12*44100,commands}),'PCM-cache.vgm');
+    await preview.seek(0);preview.setChannelMuted('pcm:0',true);await preview.seek(10.25);let view=preview.getState();
+    assert.equal(view.pcmLiveState.channels[0].volume,42);assert.equal(view.pcmLiveState.ram[0x100],0x8a);
+    assert.equal(view.pcmLiveState.channels[0].panLeft,5);assert.equal(view.pcmLiveState.channels[0].panRight,10,'source routing survives Mix mask');
+    assert(view.cache.count>0);await preview.seek(6.25);view=preview.getState();assert(view.cache.lastRestoreFrame>0);
+    assert.equal(view.pcmLiveState.channels[0].volume,38);assert.equal(view.pcmLiveState.ram[0x100],0x86);
+    const cached=view.pcmLiveState;preview.setSeekCacheEnabled(false);await preview.seek(6.25);
+    view=preview.getState();assert.deepEqual(view.pcmLiveState.channels,cached.channels);
+    assert.deepEqual(view.pcmLiveState.ram,cached.ram);assert.deepEqual(view.pcmLiveState.known,cached.known);
+  } finally {preview.dispose();}
+});
+
 test('mixed native PSG/YM seek cache restores both audible decoders with independent source clocks',async()=>{
   const host=audioHost(),preview=createSynthSongPreview({getAudio:()=>host});
   const commands=[];let frames=0;

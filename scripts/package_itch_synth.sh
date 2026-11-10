@@ -50,6 +50,8 @@ synth_song_preview.js
 synth_song_state.js
 synth_song_psg_state.js
 synth_song_psg_voice.js
+synth_song_pcm_state.js
+synth_song_pcm_voice.js
 synth_song_voice.js
 synth_song_copy.js
 synth_song_mix.js

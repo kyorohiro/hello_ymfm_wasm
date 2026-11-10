@@ -387,6 +387,8 @@
       .synth-pcm-number .param-value { min-width: 45px; min-height: 26px; font-size: .78rem; touch-action: none; font-variant-numeric: tabular-nums; }
       #synthPcmCanvas { touch-action: none; }
       #synthPcmLoadStatus { color: #dfbd90; overflow-wrap: anywhere; font-size: .68rem; }
+      .synth-pcm-field[hidden] { display: none; }
+      .synth-pcm-step { text-align: center; padding: 6px; border: 1.5px solid var(--pill-border); border-radius: 999px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
       .synth-psg-help { position: relative; font-size: .7rem; }
       .synth-psg-help summary { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--pill-border); border-radius: 50%; cursor: pointer; list-style: none; }
       .synth-psg-help summary::-webkit-details-marker { display: none; }
@@ -1633,7 +1635,7 @@
                   <button type="button" class="toolbar-button" data-pcm-visual-mode="waveform" aria-pressed="false">Waveform</button>
                   <button type="button" class="toolbar-button" data-pcm-visual-mode="spectrum" aria-pressed="false">Spectrum</button>
                 </div>
-                <p class="synth-psg-description">Sample view · drag L / E to set loop start / end.</p>
+                <p id="synthPcmVisualizerDescription" class="synth-psg-description">Sample view · drag L / E to set loop start / end.</p>
                 <canvas id="synthPcmCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="PCM sample and loop range"></canvas>
               </div>
               <div id="synthPcmSettings" class="control-section">
@@ -1641,10 +1643,11 @@
                 <div class="synth-psg-heading">
                   <div><h2>Mega CD PCM</h2><p class="synth-psg-session">RF5C164 · 8 voices · shared 64 KiB RAM</p></div>
                   <details id="synthPcmHelp" class="synth-psg-help"><summary aria-label="About Mega CD PCM" title="About Mega CD PCM">?</summary><div class="synth-psg-help-body">
-                    <p>Eight PCM voices share one sample in 64 KiB RAM. Volume is 8-bit; left and right Pan each have 16 levels. New keys use round robin.</p>
+                    <p>In Synth mode, eight PCM voices share one sample in 64 KiB RAM. Volume is 8-bit; left and right Pan each have 16 levels. New keys use round robin.</p>
                     <p>WAV decoding, mono mixing and 8-bit conversion are software operations. Long samples are resampled to fit RAM, preserving duration with reduced bandwidth. Guard bytes reserve safe loop / stop markers.</p>
                     <p>Root note plays at the original sample speed. Loop End writes an end marker into shared RAM; changing the sample or End stops held notes. Loop Off plays once and then loops silence.</p>
-                    <p>PCM VGM Live, Event Rec and Looper are not available yet. Choose Synth in the VGM controls to edit PCM while a reference song is selected.</p>
+                    <p>VGM Live shows the selected PCM channel's written settings and sample RAM at the audible position. Pause to play that sample on the selected channel; Copy creates a new Synth instrument. C4 is the captured playback speed, not an inferred original note. A snapshot cannot preserve later RAM edits or a game's software envelope.</p>
+                    <p>Wrapped samples, unknown RAM or unsafe end markers cannot be copied or auditioned. Event Rec and Looper for PCM are not available yet.</p>
                   </div></details>
                 </div>
                 <div class="synth-psg-row" role="group" aria-label="PCM sample source">
@@ -1657,10 +1660,11 @@
                   <div class="synth-pcm-field"><span>Volume · 0–255</span><div id="synthPcmVolumeControl"></div></div>
                   <div class="synth-pcm-field"><span>Pan left · 0–15</span><div id="synthPcmPanLeftControl"></div></div>
                   <div class="synth-pcm-field"><span>Pan right · 0–15</span><div id="synthPcmPanRightControl"></div></div>
-                  <div class="synth-pcm-field"><span>Root note · <span id="synthPcmRootName">C4</span></span><div id="synthPcmRootNoteControl"></div></div>
+                  <div id="synthPcmRootField" class="synth-pcm-field"><span>Root note · <span id="synthPcmRootName">C4</span></span><div id="synthPcmRootNoteControl"></div></div>
+                  <div id="synthPcmStepField" class="synth-pcm-field" hidden><span>Playback step · hardware</span><output id="synthPcmStep" class="synth-pcm-step">0</output></div>
                 </div>
                 <div class="synth-psg-row"><span class="synth-psg-label">Loop</span><button id="synthPcmLoopEnabled" type="button" class="toolbar-button" aria-pressed="true">On</button></div>
-                <div class="synth-pcm-fields"><div class="synth-pcm-field"><span>Loop Start · frame</span><div id="synthPcmLoopStartControl"></div></div><div class="synth-pcm-field"><span>Loop End · exclusive frame</span><div id="synthPcmLoopEndControl"></div></div></div>
+                <div class="synth-pcm-fields"><div class="synth-pcm-field"><span id="synthPcmLoopStartLabel">Loop Start · frame</span><div id="synthPcmLoopStartControl"></div></div><div class="synth-pcm-field"><span id="synthPcmLoopEndLabel">Loop End · exclusive frame</span><div id="synthPcmLoopEndControl"></div></div></div>
               </div>
             </div>
             <div id="synthChipPwm" class="card synth-chip-panel synth-chip-placeholder" role="tabpanel" aria-labelledby="synthChipTabPwm" tabindex="0" hidden>
@@ -1749,7 +1753,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=pcm-editor-1";
+      import "./synth.js?v=pcm-live-1";
     </script>
   </body>
 </html>

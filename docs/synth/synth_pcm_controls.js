@@ -12,7 +12,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
   const builtinButtons=[...root.querySelectorAll('[data-pcm-builtin]')],visualButtons=[...root.querySelectorAll('[data-pcm-visual-mode]')];
   const listeners=[],controls=new Map(),controlButtons=[];
   const builtins=new Map(['sine','triangle','saw','square'].map(shape=>[shape,createPcmBuiltinPreset(shape).sample]));
-  let state=voice.getState(),visualMode='sample',disposed=false,drag=null,decodedData=null,sampleBytes=null,lastDraw=null;
+  let state=voice.getState(),liveDisplay=null,visualMode='sample',disposed=false,drag=null,decodedData=null,sampleBytes=null,lastDraw=null;
   const listen=(node,type,callback)=>{
     if(!node)return;
     node.addEventListener(type,callback);listeners.push(()=>node.removeEventListener(type,callback));
@@ -24,7 +24,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     return settings[field]===value?null:{[field]:value};
   }
   function change(field,value) {
-    if(disposed)return;
+    if(disposed||liveDisplay)return;
     const patch=clampedPatch(field,value);
     if(patch)onSettingsChange(patch);
     update();
@@ -54,6 +54,15 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
   function dimensions() {return {width:canvas.width,height:canvas.height,left:28,right:12,top:21,bottom:22};}
   function drawSample() {
     if(disposed||visualMode!=='sample'||!context)return;
+    if(!state.preset) {
+      const message=liveDisplay?.reason||'No bounded PCM sample at this position.';
+      if(lastDraw?.message===message&&lastDraw.width===canvas.width&&lastDraw.height===canvas.height)return;
+      context.fillStyle='#10191a';context.fillRect(0,0,canvas.width,canvas.height);
+      context.fillStyle='#b8cac6';context.font='12px sans-serif';context.textAlign='left';context.textBaseline='top';
+      const words=message.split(' ');let line='',y=24;
+      for(const word of words) {const next=line?line+' '+word:word;if(context.measureText(next).width>canvas.width-40&&line){context.fillText(line,20,y);y+=18;line=word;}else line=next;}
+      context.fillText(line,20,y);lastDraw={message,width:canvas.width,height:canvas.height};return;
+    }
     const {width,height,left,right,top,bottom}=dimensions(),{sample,settings}=state.preset;
     if(lastDraw&&lastDraw.data===sample.data&&lastDraw.start===settings.loopStart&&lastDraw.end===settings.loopEnd&&
       lastDraw.enabled===settings.loopEnabled&&lastDraw.width===width&&lastDraw.height===height)return;
@@ -90,22 +99,32 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     context.textAlign='right';context.fillStyle='#e7af6e';context.fillText(`End ${settings.loopEnd}`,width-right,4);
     lastDraw={data:sample.data,start:settings.loopStart,end:settings.loopEnd,enabled:settings.loopEnabled,width,height};
   }
-  function update() {
+  function update(display=liveDisplay) {
     if(disposed)return state;
-    const next=voice.getState();
-    if(next.preset.sample.data!==state.preset.sample.data)releaseDrag();
+    const wasLive=Boolean(liveDisplay);liveDisplay=display;
+    const next=display?{preset:display.preset,frames:display.frames,settings:display.preset?.settings??{
+      volume:display.volume,panLeft:display.panLeft,panRight:display.panRight,rootNote:60,loopEnabled:false,loopStart:0,loopEnd:0}}:voice.getState();
+    if(next.preset?.sample.data!==state.preset?.sample.data||wasLive!==Boolean(display))releaseDrag();
     state=next;
-    for(const [field,control]of controls)control.updateVisual(state.settings[field]);
+    for(const [field,control]of controls)control.updateVisual(display&&field==='loopStart'?display.sourceLoopStart:
+      display&&field==='loopEnd'?(display.sourceEnd??'—'):state.settings[field]);
     loopButton.setAttribute('aria-pressed',String(state.settings.loopEnabled));
     loopButton.classList.toggle('is-selected',state.settings.loopEnabled);
-    loopButton.textContent=state.settings.loopEnabled?'Loop: On':'Loop: Off';
-    const {sample}=state.preset;
+    loopButton.textContent=display&&!state.preset?'Loop: —':state.settings.loopEnabled?'Loop: On':'Loop: Off';
+    const sample=state.preset?.sample;
     for(const button of builtinButtons) {
-      const builtin=builtins.get(button.dataset.pcmBuiltin),selected=builtin?.data===sample.data&&builtin.sampleRate===sample.sampleRate;
+      const builtin=builtins.get(button.dataset.pcmBuiltin),selected=Boolean(sample&&builtin?.data===sample.data&&builtin.sampleRate===sample.sampleRate);
       button.setAttribute('aria-pressed',String(selected));button.classList.toggle('is-selected',selected);
     }
-    const text=`${sample.name} · ${state.frames} frames · ${sample.sampleRate.toFixed(1)} Hz · 8-bit mono · shared 64 KiB RAM`;
+    const hex=value=>Number.isInteger(value)?'$'+value.toString(16).toUpperCase().padStart(4,'0'):'—';
+    const text=display?`PCM CH${display.channel+1} · ${state.frames?state.frames+' frames':'Sample unavailable'} · ${Number.isFinite(display.sampleRateHz)?display.sampleRateHz.toFixed(1)+' samples/s':'—'} · Start ${hex(display.sourceStart)} · Loop ${hex(display.sourceLoopStart)}`:
+      `${sample.name} · ${state.frames} frames · ${sample.sampleRate.toFixed(1)} Hz · 8-bit mono · shared 64 KiB RAM`;
     if(info.textContent!==text)info.textContent=text;
+    byId('synthPcmRootField').hidden=Boolean(display);byId('synthPcmStepField').hidden=!display;
+    byId('synthPcmStep').textContent=display?String(display.step):'0';
+    byId('synthPcmLoopStartLabel').textContent=display?'Loop address · RAM':'Loop Start · frame';
+    byId('synthPcmLoopEndLabel').textContent=display?'End marker · RAM':'Loop End · exclusive frame';
+    byId('synthPcmLoadStatus').hidden=Boolean(display)||!byId('synthPcmLoadStatus').textContent;
     const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],note=state.settings.rootNote;
     const rootText=names[note%12]+(Math.floor(note/12)-1);
     if(rootName&&rootName.textContent!==rootText)rootName.textContent=rootText;
@@ -115,7 +134,11 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
       const max=field==='volume'?255:field==='rootNote'?127:field==='loopStart'?state.settings.loopEnd-1:field==='loopEnd'?state.frames:15;
       button.disabled=step<0?value<=min:value>=max;
     }
-    drawSample();return state;
+    refreshDescription();drawSample();return state;
+  }
+  function refreshDescription() {
+    if(description)description.textContent=visualMode==='sample'?(liveDisplay?'Recorded sample RAM · read-only.':'Sample view · drag L / E to set loop start / end.'):
+      visualMode==='waveform'?'Final output waveform · after volume.':'Final output spectrum · after volume · dB.';
   }
   function chooseVisualMode(mode) {
     if(!['sample','waveform','spectrum'].includes(mode)||visualMode===mode)return;
@@ -124,7 +147,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
       const selected=button.dataset.pcmVisualMode===mode;
       button.setAttribute('aria-pressed',String(selected));button.classList.toggle('is-selected',selected);
     }
-    if(description)description.textContent=mode==='sample'?'8-bit source PCM · drag Start / End markers.':mode==='waveform'?'Final output waveform · after volume.':'Final output spectrum · after volume · dB.';
+    refreshDescription();
     canvas.setAttribute('aria-label',mode==='sample'?'Source PCM with loop start and end markers':mode==='waveform'?'Final output waveform':'Final output frequency spectrum');
     releaseDrag();lastDraw=null;drawSample();onVisualModeChange(mode);
   }
@@ -144,7 +167,7 @@ export function setupSynthPcmControls({voice,onSettingsChange=()=>{},onBuiltin=(
     change(drag.field,frame);
   }
   listen(canvas,'pointerdown',event=>{
-    if(visualMode!=='sample'||drag||event.button!==0)return;
+    if(liveDisplay||visualMode!=='sample'||drag||event.button!==0)return;
     event.preventDefault();
     const rect=canvas.getBoundingClientRect(),{left,right}=dimensions(),scale=canvas.width/Math.max(1,rect.width);
     const frame=((event.clientX-rect.left)*scale-left)/Math.max(1,canvas.width-left-right)*state.frames;
