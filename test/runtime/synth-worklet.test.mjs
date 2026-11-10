@@ -19,7 +19,7 @@ function processor(tree, file, rate, imports = {}) {
     AudioWorkletProcessor: class { constructor() { this.port = { postMessage: x => messages.push(x) }; } },
     registerProcessor: (_, value) => { Type = value; },
   };
-  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, file), 'utf8').replace(/^import .*;\n/gm, ''), context);
+  vm.runInNewContext(fs.readFileSync(runtimeTreeFile(tree, file), 'utf8').replace(/^import .*;\n/gm, '').replace(/^export /gm,''), context);
   return { p: new Type(), messages, context };
 }
 function chip(rate) {

@@ -180,6 +180,8 @@ export async function initializeDirectAudio({
     new MegaDriveSynth({
       audioContext,
       workletUrl,
+      stereoWidthWorkletUrl:new URL('../js/stereo-width-worklet.js',import.meta.url),
+      bitcrusherWorkletUrl:new URL('../js/bitcrusher-worklet.js',import.meta.url),
       ym2612WasmUrl,
       outputNode,
     });

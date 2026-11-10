@@ -29,6 +29,46 @@ const eventTake=()=>({format:'tetorica-sega-psg-recording-v1',version:1,duration
   initialState:{settings:normalizeSynthPsgSettings({}),pitchClock:7670454},
   commands:[{type:'noteOn',time:0,channel:0,block:4,fnum:1083},{type:'noteOff',time:.05,channel:0}]});
 
+test('shared PSG source volume is absolute, independent of Master, and follows pending/replaced endpoints',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setSourceVolume(1.6);f.audio.setVolume(2);
+  const pending=f.audio.prepare(h.context,h.output);await turn();
+  f.audio.setSourceVolume(.25);f.audio.setVolume(3.8);assert.equal(h.gains[0].gain.value,0,'pending endpoint remains silent');
+  const first=f.requests[0];first.task.resolve(first.device);await pending;
+  assert.equal(h.gains[0].gain.value,.25*3.8,'latest source replaces the factory trim instead of multiplying it');
+  const writes=first.writes.length;
+  f.audio.setSourceVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*3.8);
+  f.audio.setSourceVolume(0);assert.equal(h.gains[0].gain.value,0);
+  f.audio.setSourceVolume(.5);f.audio.setVolume(.4);assert.equal(h.gains[0].gain.value,.5*.4);
+  assert.equal(first.writes.length,writes,'mixing never releases or retriggers held notes');
+  for(const value of [-1,3.81,NaN,Infinity,'1',null])assert.throws(()=>f.audio.setSourceVolume(value),/0\.\.3\.8/);
+  assert.equal(h.gains[0].gain.value,.5*.4,'invalid updates preserve the last valid source gain');
+  const replacement=f.audio.prepare(h.context,{context:h.context});await turn();
+  f.audio.setSourceVolume(.75);f.audio.setVolume(2);assert.equal(h.gains[0].gain.value,0);
+  const next=f.requests[1];next.task.resolve(next.device);await replacement;assert.equal(h.gains[1].gain.value,1.5);
+  f.audio.setEnabled(false);f.audio.setSourceVolume(1.25);assert.equal(h.gains[1].gain.value,0);
+  f.audio.setEnabled(true);assert.equal(h.gains[1].gain.value,2.5);f.audio.dispose();
+});
+
+test('live PSG channel mutes queue before readiness, retain masks across routes, and leave authored writes untouched',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setChannelMuted(2,true);
+  const pending=f.audio.prepare(h.context,h.output);await turn();
+  f.audio.setChannelMuted(3,true);f.audio.setChannelMuted(2,false);
+  const first=f.requests[0];first.task.resolve(first.device);const api=await pending;
+  assert.deepEqual(first.writes,[...offWrites,{method:'setChannelMuted',args:[3,true]}]);
+  assert.equal(api.setChannelMuted,undefined,'mute policy belongs to the app endpoint, not its acquired register API');
+  api.tone(0,{frequency:440,attenuation:6});const before=first.writes.length;
+  f.audio.setChannelMuted(0,true);f.audio.setChannelMuted(0,true);
+  assert.deepEqual(first.writes.slice(before),[{method:'setChannelMuted',args:[0,true]}]);
+  api.setAttenuation(0,2);assert.deepEqual(first.writes.at(-1),{method:'write',args:[0x92]},'authoring remains independent of output mute');
+  f.audio.setChannelMuted(0,false);assert.deepEqual(first.writes.at(-1),{method:'setChannelMuted',args:[0,false]});
+  const count=first.writes.length;
+  for(const ch of [-1,4,1.5,'0'])assert.throws(()=>f.audio.setChannelMuted(ch,true));
+  for(const value of [1,null,'false'])assert.throws(()=>f.audio.setChannelMuted(0,value));assert.equal(first.writes.length,count);
+  const replacement=f.audio.prepare(h.context,{context:h.context});await turn();const next=f.requests[1];next.task.resolve(next.device);await replacement;
+  assert.deepEqual(next.writes,[...offWrites,{method:'setChannelMuted',args:[3,true]}]);
+  f.audio.dispose();const retired=next.writes.length;f.audio.setChannelMuted(1,true);assert.equal(next.writes.length,retired);
+});
+
 test('PCM looper transport retains main buffers, validates atomically, uses one calibrated gain and cancels stale units',async()=>{
   const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setVolume(2);
   const preparing=f.audio.prepare(h.context,h.output);await turn();const request=f.requests[0];request.task.resolve(request.device);

@@ -30,6 +30,23 @@ test('PCM loop endpoint lazily prepares, applies System × Master once and never
   f.audio.dispose();assert.equal(h.gains[0].gain.value,0);assert.equal(d.device.disposeCalls,1);assert.equal(h.context.closeCalls,0);
 });
 
+test('Looper PCM source gain is absolute, follows pending/replaced owners, and never rebuilds an active loop',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setSourceVolume(1.6);f.audio.setVolume(2);
+  const pending=f.audio.prepare(h.context,h.output);await Promise.resolve();
+  f.audio.setSourceVolume(.25);f.audio.setVolume(3.8);assert.equal(h.gains[0].gain.value,0);
+  const first=f.devices[0];first.task.resolve(first.device);const api=await pending;assert.equal(h.gains[0].gain.value,.25*3.8);
+  const token=await api.prepareLooperUnit(raw(),{loopLength:.05});await api.startLooper(configuration,{units:[token]});
+  const messages=first.writes.length;
+  f.audio.setSourceVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*3.8);
+  f.audio.setSourceVolume(0);assert.equal(h.gains[0].gain.value,0);
+  f.audio.setSourceVolume(.5);f.audio.setVolume(.4);assert.equal(h.gains[0].gain.value,.5*.4);
+  assert.equal(first.writes.length,messages);assert(api.isLooperPlaybackActive(),'source mute keeps its stored layers and sample position');
+  for(const value of [-1,3.81,NaN,Infinity,'1',null])assert.throws(()=>f.audio.setSourceVolume(value),/0\.\.3\.8/);
+  const replacing=f.audio.prepare(h.context,{context:h.context});await Promise.resolve();f.audio.setSourceVolume(.75);f.audio.setVolume(2);
+  assert.equal(h.gains[0].gain.value,0);const next=f.devices[1];next.task.resolve(next.device);await replacing;
+  assert.equal(h.gains[1].gain.value,1.5);f.audio.setEnabled(false);f.audio.setSourceVolume(3.8);assert.equal(h.gains[1].gain.value,0);f.audio.dispose();
+});
+
 test('inert upload clones source, waits for its ACK, and scheduled atomic start sends small token refs only',async()=>{
   const f=fixture({autoAck:false}),h=host(),{api,d}=await ready(f,h),source=raw();
   const task=api.prepareLooperUnit(source,{loopLength:.05});const upload=await posted(d,'prepareLooperUnit');let settled=false;task.then(()=>{settled=true;});

@@ -45,6 +45,84 @@ const ps1AdsrReports=['docs/issues/ps1_chip_levels_01.json','docs/issues/wonders
 const samePaths=(records,paths)=>records&&typeof records==='object'&&!Array.isArray(records)&&Object.keys(records).length===paths.length&&paths.every(path=>Object.hasOwn(records,path));
 const sourceRecord=record=>record&&Number.isSafeInteger(record.bytes)&&record.bytes>0&&digest(record.sha256);
 
+// These shared worklets gained only a named ESM class export so a separate
+// Synth entry can decorate them. The ordinary Playground renderer is unchanged.
+// Reconstruct the ENTIRE pinned measured source; no arbitrary JS normalization
+// or future DSP, import, whitespace, or other export edit is permitted.
+const ym2612ExportBefore=Object.freeze({
+  'js/ym2612-worklet.js':{bytes:25394,sha256:'697fc19d6885b746cbfc122a60d841befc8999bfaf10b858c724355a8617126c'},
+  'js/ym2612-worklet-nuked.js':{bytes:24595,sha256:'7b9a91544c84fea385f9830371f7d49541be9e70649b656932ad99258e8793c7'},
+});
+export function restoreMixerCalibrationYm2612ExportRevision(path,bytes) {
+  const record=Object.hasOwn(ym2612ExportBefore,path)?ym2612ExportBefore[path]:null;
+  if(!record||Buffer.byteLength(bytes)!==record.bytes+7)return bytes;
+  const current=Buffer.from(bytes),text=current.toString('utf8');
+  if(!Buffer.from(text).equals(current))return bytes;
+  const matches=[...text.matchAll(/^export class YM2612Processor extends AudioWorkletProcessor \{$/gm)];
+  if(matches.length!==1)return bytes;
+  const offset=matches[0].index,original=Buffer.from(text.slice(0,offset)+text.slice(offset+7));
+  return original.length===record.bytes&&sha(original)===record.sha256?original:bytes;
+}
+
+// One complete, reviewed read-only definition-viewer revision from Code-tab
+// commit 86904ede. Its predecessor is the exact SID receipt's after source.
+// Restore that body first, then let the independently pinned SID layer restore
+// the historical measurement. This grants no permission for future UI edits.
+export function restoreMixerCalibrationSynthDefinitionViewerRevision(path,bytes) {
+  if(path!=='playground/playground_monaco_definitions.js'||Buffer.byteLength(bytes)!==18681||
+    sha(bytes)!=='6ac975e07d8b5bbaebdf300444bfd56b68144d381f04d33733f7c9deffad30eb')return bytes;
+  const hunks=[
+    {afterOffset:151,afterBytes:82,beforeText:"export function definitionSource(text, position, chip = 'ym2612') {\n"},
+    {afterOffset:748,afterBytes:888,beforeText:''},
+    {afterOffset:4058,afterBytes:93,beforeText:"  if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};\n"},
+    {afterOffset:5214,afterBytes:312,beforeText:'  const match = pattern.exec(text);\n'},
+    {afterOffset:15164,afterBytes:577,beforeText:"      viewer=monaco.editor.create(host,{model,readOnly:true,domReadOnly:true,theme:'vs-dark',automaticLayout:true,minimap:{enabled:false},fontSize:13,scrollBeyondLastLine:false,renderValidationDecorations:'off',contextmenu:false});\n"},
+    {afterOffset:16373,afterBytes:136,beforeText:"    if(model.uri.path.endsWith('.d.ts'))target=definitionSource(model.getValue(),position,ownerChip);\n"},
+  ];
+  const source=Buffer.from(bytes),parts=[];let cursor=0;
+  for(const hunk of hunks){parts.push(source.subarray(cursor,hunk.afterOffset),Buffer.from(hunk.beforeText));cursor=hunk.afterOffset+hunk.afterBytes;}
+  parts.push(source.subarray(cursor));const original=Buffer.concat(parts);
+  if(original.length!==17113||sha(original)!=='c5337196c8820544aab589cd565022e2eb67d1deb6adb57a220b08c5772ac3c7')fail('Synth definition viewer reconstruction failed');
+  return original;
+}
+
+// The two other exact UI/import-only changes from the same Code-tab commit.
+// Both predecessors match the historical reports directly, without SID edits.
+const synthCodeUiRevisions=Object.freeze({
+  'playground/playground_monaco.js':{
+    before:{bytes:22671,sha256:'28fac8ec84d312fcb97fe72315d6ee8c78ab577f43c6cfbdc19f0b1e5b4e525d'},
+    after:{bytes:23164,sha256:'337a282d1f2b56bba770ad53d5d60ad937f9802af38419876ae4be387bafd4af'},
+    hunks:[
+      {afterOffset:0,afterBytes:96,beforeText:"import {createDefinitionViewer} from './playground_monaco_definitions.js?v=ps1-adpcm-encoder-1';\n"},
+      {afterOffset:274,afterBytes:208,beforeText:''},
+      {afterOffset:10225,afterBytes:55,beforeText:'async function registerMonacoPlaygroundGlobals(\n'},
+      {afterOffset:10290,afterBytes:34,beforeText:'  chip = "ym2612"\n'},
+      {afterOffset:10363,afterBytes:255,beforeText:'  for (const name of ["tetorica-playground-globals", `tetorica-playground-${chip}`, "tetorica-shell"]) {\n    const response = await fetch(new URL(`./${name}.d.ts?v=native-modes-1`, import.meta.url), { cache: "no-cache" });\n'},
+      {afterOffset:10770,afterBytes:223,beforeText:"    if (name === 'tetorica-playground-globals') declarations = selectPlaygroundDeclarations(declarations, chip);\n"},
+      {afterOffset:11254,afterBytes:69,beforeText:''},
+      {afterOffset:14659,afterBytes:96,beforeText:'    const libraryModels = await registerMonacoPlaygroundGlobals(monaco, options.chip);\n'},
+      {afterOffset:17476,afterBytes:111,beforeText:'      chip: options.chip, openVirtualFile: options.openVirtualFile,\n'},
+    ],
+  },
+  'playground/playground_virtual_files.js':{
+    before:{bytes:5124,sha256:'d0dc2a9c4a419a4bb215214e6e1b0ad034e586e7ae923405eee7f122e4199911'},
+    after:{bytes:5205,sha256:'d8d0a6f9c1046181936ef38bbd555d96d6e814eca567f51306f05e998554ae41'},
+    hunks:[
+      {afterOffset:0,afterBytes:208,beforeText:"import {createVirtualFileSystem, normalizeVirtualPath, transferVirtualFiles as transfer} from '../js/tetorica_virtual_files/index.js';\n"},
+      {afterOffset:312,afterBytes:151,beforeText:"export {createVirtualFileSystem, normalizeVirtualPath, createVirtualFileReader, CHECKPOINT_ROOT} from '../js/tetorica_virtual_files/index.js';\n"},
+    ],
+  },
+});
+export function restoreMixerCalibrationSynthCodeUiRevision(path,bytes) {
+  const entry=Object.hasOwn(synthCodeUiRevisions,path)?synthCodeUiRevisions[path]:null;
+  if(!entry||Buffer.byteLength(bytes)!==entry.after.bytes||sha(bytes)!==entry.after.sha256)return bytes;
+  const source=Buffer.from(bytes),parts=[];let cursor=0;
+  for(const hunk of entry.hunks){parts.push(source.subarray(cursor,hunk.afterOffset),Buffer.from(hunk.beforeText));cursor=hunk.afterOffset+hunk.afterBytes;}
+  parts.push(source.subarray(cursor));const original=Buffer.concat(parts);
+  if(original.length!==entry.before.bytes||sha(original)!==entry.before.sha256)fail('Synth Code UI reconstruction failed: '+path);
+  return original;
+}
+
 /** Stable object identity of a receipt; consumers must pin this outside it. */
 export const mixerCalibrationReceiptObjectSha256=receipt=>sha(JSON.stringify(receipt));
 
@@ -266,8 +344,14 @@ export function isMixerCalibrationVirtualFilesRevision(path,bytes,record){
 
 export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
   if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const exported=restoreMixerCalibrationYm2612ExportRevision(path,bytes);
+  if(exported!==bytes&&exported.length===record?.bytes&&sha(exported)===record.sha256)return 'ym2612-class-export';
+  const codeUi=restoreMixerCalibrationSynthCodeUiRevision(path,bytes);
+  if(codeUi!==bytes&&codeUi.length===record?.bytes&&sha(codeUi)===record.sha256)return 'ui-synth-code';
+  const viewer=restoreMixerCalibrationSynthDefinitionViewerRevision(path,bytes),viewerRevision=viewer!==bytes;bytes=viewer;
+  if(viewerRevision&&bytes.length===record?.bytes&&sha(bytes)===record.sha256)return 'ui-synth-definition-viewer';
   const preSid=restoreMixerCalibrationSidRevision(path,bytes),sidRevision=preSid!==bytes;bytes=preSid;
-  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return sidRevision?'sid-playground-routing':'raw';
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return viewerRevision?'ui-synth-definition-viewer':sidRevision?'sid-playground-routing':'raw';
   const controls=restoreMixerCalibrationSynthControlsRevision(path,bytes);
   if(controls!==bytes&&controls.length===record?.bytes&&sha(controls)===record.sha256)return 'ui-synth-controls';
   if(isMixerCalibrationVirtualFilesRevision(path,bytes,record))return 'ui-virtual-files';

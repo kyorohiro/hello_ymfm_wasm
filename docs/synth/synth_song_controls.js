@@ -1,6 +1,6 @@
-import {createSynthSongPreview} from './synth_song_preview.js?v=pcm-live-1';
+import {createSynthSongPreview} from './synth_song_preview.js?v=channel-mixer-1';
 import {setupSynthSongSeekControls} from './synth_song_seek_controls.js?v=song-seek-1';
-import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=mix-source-1';
+import {setupSynthSongMixControls} from './synth_song_mix_controls.js?v=channel-mixer-1';
 import {createSynthSongCopyPreset} from './synth_song_copy.js';
 import {describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
 import {describeSynthPsgSongVoice,createSynthPsgSongCopyPreset} from './synth_song_psg_voice.js?v=psg-live-1';
@@ -16,7 +16,7 @@ const channelNumber=value=>value==='synth'?null:Number(value.includes(':')?value
 const hexAddress=value=>Number.isInteger(value)?`$${value.toString(16).padStart(4,'0').toUpperCase()}`:'—';
 
 /** Keep reference-song selection separate from the instrument editor. */
-export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume,
+export function setupSynthSongControls({project, getAudio, getVolume, onFileSelected, onLiveView=()=>{}, onTargetState=()=>{}, onCopyToSynth=async()=>false, onStatus=()=>{}, beforeResume,mix,
   createPreview=createSynthSongPreview,setupSeek=setupSynthSongSeekControls,setupMix=setupSynthSongMixControls}) {
   const root = document.getElementById('synthSongPlayer');
   const select = document.getElementById('synthSongSelect');
@@ -95,8 +95,6 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     copy.title=copying?'Copying…':description&&!description.playable?description.reason:
       state.playback==='paused'&&voice?'Copy this CH into a new editable Synth instrument. Your previous instrument is kept.':`Pause and select a ${chips[selectedChip].label} channel to copy its sound to Synth.`;
     mixControls?.update(state.mix);
-    document.getElementById('synthSongMixButton').disabled = seeking;
-    if (seeking) mixControls?.close();
     if(voice&&selectedChip==='pcm') {
       const mode=state.playback==='paused'?'Paused':live.checked?'Live':'Frozen';
       const rate=snapshot.clockHz/384*voice.step/2048;
@@ -136,7 +134,7 @@ export function setupSynthSongControls({project, getAudio, getVolume, onFileSele
     onTargetState({target,chip:selectedChip, playback:state.playback, view});
     onLiveView(view);
   }
-  const preview = createPreview({getAudio, onState:showState, onStatus, beforeResume});
+  const preview = createPreview({getAudio, onState:showState, onStatus, beforeResume,...(mix===undefined?{}:{mix})});
   mixControls=setupMix({preview});
   seekControls=setupSeek({preview,onStatus});
   preview.setVolume(getVolume());

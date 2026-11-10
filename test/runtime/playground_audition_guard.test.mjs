@@ -131,7 +131,7 @@ function processor(file, imports = {}) {
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage: message => messages.push(message)};}},
     registerProcessor(_name, value) {Type = value;},
   };
-  vm.runInNewContext(fs.readFileSync(new URL(`./${file}`, runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, ''), scope);
+  vm.runInNewContext(fs.readFileSync(new URL(`./${file}`, runtimeDirectoryUrl), 'utf8').replace(/^import .*;\n/gm, '').replace(/^export /gm,''), scope);
   return {p: new Type(), messages, scope};
 }
 

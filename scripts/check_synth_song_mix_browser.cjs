@@ -1,4 +1,4 @@
-// Published Synth UI: source-only Mute/group volume and explicit VGM -> new instrument.
+// Published Synth UI: common channel On/Off, group volume and VGM -> new instrument.
 // All source music is generated here. Real chip PCM is metered and muted at
 // every speaker edge; no human listening or copyrighted fixture is implied.
 const assert = require('node:assert/strict');
@@ -21,8 +21,8 @@ assert(config.entry.startsWith('/'));
 const engines = config.engines.split(',');
 assert(engines.every(name => ['chromium','webkit'].includes(name)));
 const CLOCK=7670454, RATE=53267, PSG_CLOCK=3579545, RF_CLOCK=12500000;
-const MIX_GROUPS=['ym2612','psg','pcm'];
-const GROUP_LABELS={ym2612:'YM2612',psg:'Sega PSG',pcm:'Mega CD PCM'};
+const MIX_GROUPS=['ym2612','psg','pcm','pwm'];
+const GROUP_LABELS={ym2612:'YM2612',psg:'Sega PSG',pcm:'Mega CD PCM',pwm:'32X PWM'};
 let calibratedGains,defaultPercentages;
 const percentOfGain=gain=>Number((gain*100).toFixed(4));
 const visiblePercent=percent=>Number(percent.toFixed(1))+'%';
@@ -191,14 +191,17 @@ const groupVolume=(page,id)=>page.locator(`[data-song-group-volume="${id}"]`);
 const groupVolumeReadout=(page,id)=>page.locator(`[data-song-group-volume-value="${id}"]`);
 const documentKeyActive=(page,key)=>evaluate(page,key=>document.querySelector(`#keyboard .key[data-key="${key}"]`)?.classList.contains('is-active')===true,key);
 async function openMix(page) {
+  if(await page.locator('#synthSongMixPanel').isVisible())return;
   const button=page.locator('#synthSongMixButton');
-  // The popup closes on window scroll. Settle the scroll needed to reach its
-  // trigger before opening it, especially after the narrow screenshot pass.
   await button.scrollIntoViewIfNeeded();
-  await evaluate(page,()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  await pause(60);
-  if(!await page.locator('#synthSongMixPanel').isVisible())await button.click();
+  await button.click();
   await page.locator('#synthSongMixPanel').waitFor({state:'visible'});
+  assert.equal(await button.getAttribute('aria-selected'),'true','Mixer is a selected inline chip tab');
+}
+async function showFm(page) {
+  const button=page.locator('#synthChipTabYm2612');
+  if(await button.getAttribute('aria-selected')!=='true')await button.click();
+  await page.locator('#synthChipYm2612').waitFor({state:'visible'});
 }
 const allMuted=readings=>readings.every(meter=>meter.sides.every(side=>side.rms<1e-8&&side.peak<1e-7));
 async function silence(page) {await pause(350);await until(page,async()=>allMuted(await audit(page)),'Actual all-output silence');}
@@ -221,8 +224,8 @@ async function muteExcept(page,audible=[]) {
   await openMix(page);
   await evaluate(page,audible=>{
     for(const button of document.querySelectorAll('[data-song-mute]')){
-      const muted=!audible.includes(button.dataset.songMute);
-      if((button.getAttribute('aria-pressed')==='true')!==muted)button.click();
+      const enabled=audible.includes(button.dataset.songMute);
+      if((button.getAttribute('aria-pressed')==='true')!==enabled)button.click();
     }
   },audible);
 }
@@ -264,12 +267,13 @@ async function scaledLevel(page,tone,baseline,scale,label) {
 async function volumeSettings(page) {
   return evaluate(page,()=>Object.fromEntries([...document.querySelectorAll('[data-song-group-volume]')].map(node=>[node.dataset.songGroupVolume,Number(node.value)])));
 }
+const channelSettings=page=>evaluate(page,()=>Object.fromEntries([...document.querySelectorAll('[data-song-mute]')].map(node=>[node.dataset.songMute,node.getAttribute('aria-pressed')==='true'])));
 async function checkDefaultCalibration(page,mixed) {
   assert.deepEqual(await volumeSettings(page),defaultPercentages,'Untouched defaults match the independently imported shared calibration');
   const defaults=await evaluate(page,()=>[...document.querySelectorAll('[data-song-group-volume]')].map(node=>({id:node.dataset.songGroupVolume,
     value:node.value,step:node.step,title:node.title,aria:node.getAttribute('aria-valuetext'),readout:node.nextElementSibling.textContent})));
   assert.equal(await page.locator('#synthSongMixReset').isDisabled(),true,'Calibrated defaults are not marked changed');
-  assert.equal(await page.locator('#synthSongMixButton').evaluate(node=>node.classList.contains('is-selected')),false,'Default calibration does not highlight Mix as edited');
+  assert.equal(await page.locator('#synthSongMixButton').getAttribute('data-mix-changed'),'false','Default calibration does not mark the common mix as edited');
   for(const id of MIX_GROUPS){
     assert.equal(await groupVolume(page,id).getAttribute('step'),'0.0001','Slider precision preserves six-decimal source gains');
     await assertGroupVolumeUi(page,id,defaultPercentages[id]);
@@ -285,7 +289,8 @@ async function checkDefaultCalibration(page,mixed) {
   assert.equal(await page.locator('#synthSongMixReset').isDisabled(),true,'Returning from range endpoints also restores the default state');
   const measured=[];
   for(const id of MIX_GROUPS){
-    const tone={...mixed.tones.find(tone=>tone.id===id+':0'),side:1};await muteExcept(page,[tone.id]);await pause(450);await hasSound(page,tone);
+    const sourceTone=mixed.tones.find(tone=>tone.id===id+':0'),tone={...sourceTone,side:sourceTone.side??1};
+    await muteExcept(page,[tone.id]);await pause(450);await hasSound(page,tone);
     const atDefault=await level(page,tone);await setGroupVolume(page,id,100);
     const atUnity=await scaledLevel(page,tone,atDefault,1/calibratedGains[id],'Default '+id+' corresponds to shared absolute source gain');
     await setGroupVolume(page,id,defaultPercentages[id]);
@@ -294,22 +299,27 @@ async function checkDefaultCalibration(page,mixed) {
     await setGroupVolume(page,id,100);
   }
   const pwm=[];
+  await setGroupVolume(page,'pwm',defaultPercentages.pwm);
   for(const tone of mixed.tones.filter(tone=>tone.id.startsWith('pwm:'))){
     await muteExcept(page,[tone.id]);await pause(450);await hasSound(page,tone);
-    const amplitude=await scaledLevel(page,tone,tone.rawAmplitude,calibratedGains.pwm,'Fixed '+tone.id+' uses the shared PWM calibration');
+    const amplitude=await scaledLevel(page,tone,tone.rawAmplitude,calibratedGains.pwm,tone.id+' uses the shared PWM calibration exactly once');
     pwm.push({id:tone.id,rawAmplitude:tone.rawAmplitude,amplitude,sharedGain:calibratedGains.pwm,measuredGain:amplitude/tone.rawAmplitude});
   }
+  await setGroupVolume(page,'pwm',100);
   return {defaults,measured,pwm};
 }
 async function checkGroupVolumes(page,mixed) {
   // The test PWM is deliberately left-only and much louder than the chip
   // tones. Meter the centered YM/PSG/PCM on the right so its FFT sidelobes
-  // cannot be mistaken for a supposedly silent group at0%.
-  const groups=['ym2612','psg','pcm'],tones=groups.map(id=>({...mixed.tones.find(tone=>tone.id===id+':0'),side:1})),measurements=[];
+  // cannot be mistaken for a supposedly silent group at0%; PWM keeps its own
+  // actual output side so its shared group fader is measured too.
+  const groups=MIX_GROUPS,tones=groups.map(id=>{
+    const tone=mixed.tones.find(tone=>tone.id===id+':0');return {...tone,side:tone.side??1};
+  }),measurements=[];
   assert.equal(await page.locator('[data-song-solo]').count(),0,'Solo controls have been removed');
-  assert.deepEqual(await volumeSettings(page),{ym2612:100,psg:100,pcm:100},'Explicit100% establishes raw-source unity baselines');
+  assert.deepEqual(await volumeSettings(page),{ym2612:100,psg:100,pcm:100,pwm:100},'Explicit100% establishes raw-source unity baselines for every chip');
   for(const id of groups){assert.equal(await groupVolume(page,id).getAttribute('max'),'380');assert.equal(await groupVolume(page,id).getAttribute('step'),'0.0001');}
-  assert.equal(await groupVolume(page,'pwm').count(),0,'PWM keeps its separate left/right Mute controls without a group fader');
+  assert.equal(await groupVolume(page,'pwm').count(),1,'PWM has one common fader alongside separate shared left/right switches');
   for(const [index,id]of groups.entries()) {
     const tone=tones[index];await muteExcept(page,[tone.id]);await pause(450);await hasSound(page,tone);const baseline=await level(page,tone),levels=[];
     for(const percent of [0,50,100,200,380]){
@@ -319,24 +329,24 @@ async function checkGroupVolumes(page,mixed) {
     }
     measurements.push({group:id,baseline,isolated:levels});await setGroupVolume(page,id,100);
   }
-  // Several chips, including unscaled PWM, remain audible while one group is
-  // adjusted. This catches gains accidentally applied to the whole mix.
-  const pwm=mixed.tones.find(tone=>tone.id==='pwm:0');await muteExcept(page,[...tones.map(tone=>tone.id),pwm.id]);await pause(500);
-  const baselines=await Promise.all([...tones,pwm].map(tone=>level(page,tone)));
+  // Every chip remains audible while one group is adjusted. This catches
+  // common source gain accidentally applied to the whole mix or twice to PWM.
+  await muteExcept(page,tones.map(tone=>tone.id));await pause(500);
+  const baselines=await Promise.all(tones.map(tone=>level(page,tone)));
   for(const [index,id]of groups.entries()){
     const levels=[];
     for(const percent of [0,50,100,200,380]){
       await setGroupVolume(page,id,percent);
       const amplitude=await scaledLevel(page,tones[index],baselines[index],percent/100,'Mixed '+id+' '+percent+'% has the expected PCM gain');
-      const unchanged=[];for(const [other,tone]of [...tones,pwm].entries())if(other!==index)unchanged.push(await scaledLevel(page,tone,baselines[other],1,'Changing '+id+' preserves '+tone.id));
+      const unchanged=[];for(const [other,tone]of tones.entries())if(other!==index)unchanged.push(await scaledLevel(page,tone,baselines[other],1,'Changing '+id+' preserves '+tone.id));
       levels.push({percent,amplitude,unchanged});
     }
     measurements[index].mixed=levels;await setGroupVolume(page,id,100);
   }
-  await setGroupVolume(page,'ym2612',50);await setGroupVolume(page,'psg',200);await setGroupVolume(page,'pcm',380);await pause(500);
-  const independent=await volumeSettings(page),masterBaselines=await Promise.all([...tones,pwm].map(tone=>level(page,tone)));
+  await setGroupVolume(page,'ym2612',50);await setGroupVolume(page,'psg',200);await setGroupVolume(page,'pcm',380);await setGroupVolume(page,'pwm',150);await pause(500);
+  const independent=await volumeSettings(page),masterBaselines=await Promise.all(tones.map(tone=>level(page,tone)));
   await setMaster(page,50);
-  for(const [index,tone]of [...tones,pwm].entries())await scaledLevel(page,tone,masterBaselines[index],.5,'Master50% scales '+tone.id+' after chip volumes');
+  for(const [index,tone]of tones.entries())await scaledLevel(page,tone,masterBaselines[index],.5,'Master50% scales '+tone.id+' after chip volumes');
   assert.deepEqual(await volumeSettings(page),independent,'Master does not rewrite chip group settings');await setMaster(page,100);
   return measurements;
 }
@@ -371,6 +381,14 @@ async function checkBrowser(browser,name,origin) {
   await page.addInitScript(installAudit,{targets:[...new Set([...mixed.tones.filter(tone=>tone.hz).map(tone=>tone.hz),220.5])]});
   try {
     await page.goto(origin+config.entry);await ready(page);
+    await openMix(page);
+    assert.equal(await page.locator('[data-song-group-volume]').count(),4,'The common Mixer exposes all four source faders before a VGM is loaded');
+    assert.deepEqual(await volumeSettings(page),defaultPercentages,'Keyboard/Code Mixer starts with the exact shared System source gains');
+    assert.equal(await page.locator('[data-song-mute]').count(),20,'All twenty shared channel switches exist before a VGM is loaded');
+    assert.equal(await page.locator('[data-song-mute][aria-pressed="true"]').count(),20,'All channels initially show On');
+    assert.equal(await page.locator('#synthSongMixReferenceOptions').isHidden(),true,'VGM-only display options are hidden before a reference is loaded');
+    assert.deepEqual(await page.locator('[data-synth-chip]').allTextContents(),['YM2612','PSG','RF5C164','32X PWM','Mixer']);
+    await showFm(page);
     await page.locator('#tfiFile').setInputFiles([
       {name:'Mix.vgm',mimeType:'application/octet-stream',buffer:mixed.bytes},
       {name:'Copy.vgm',mimeType:'application/octet-stream',buffer:copySong()},
@@ -385,25 +403,25 @@ async function checkBrowser(browser,name,origin) {
     await pause(650);const original=await ui(page),originalFiles=await files(page);
     await page.locator('#synthSongSelect').selectOption('/vgm/Mix.vgm');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
-    await page.locator('#synthSongMixButton').click();await page.locator('#synthSongMixPanel').waitFor({state:'visible'});
+    await openMix(page);
     const ids=await page.locator('[data-song-mute]').evaluateAll(nodes=>nodes.map(node=>node.dataset.songMute));
     assert.deepEqual(ids.slice().sort(),mixed.tones.map(tone=>tone.id).sort(),'Exactly six FM, four PSG, eight PCM and two stereo PWM outputs');
     const baselineView=await ui(page);
     const calibration=await checkDefaultCalibration(page,mixed);
-    steps.push('untouched calibrated controls retain exact shared defaults,1% arrow roundtrips restore unchanged state, and default/unity realPCM plus fixedPWM match absolute source gains');
+    steps.push('four common faders are available before VGM load; exact shared defaults and1% arrow roundtrips preserve precision; default/unity realPCM and stereoPWM match absolute source gains');
     assert.equal(await page.locator('[data-song-solo]').count(),0,'Solo has no remaining UI controls');
-    const muteLabels=await page.locator('[data-song-mute]').allTextContents();
-    assert(muteLabels.every(text=>text.trim()==='Mute'),'Every channel uses the explicit Mute label');
+    const channelLabels=await page.locator('[data-song-mute]').allTextContents();
+    assert(channelLabels.every(text=>['On','Off'].includes(text.trim())),'Every channel explicitly shows its current On/Off state');
     const measured=[];await muteExcept(page);await silence(page);
     for(const tone of mixed.tones) {
-      await muteButton(page,tone.id).click();assert.equal(await muteButton(page,tone.id).getAttribute('aria-pressed'),'false');
+      await muteButton(page,tone.id).click();assert.equal(await muteButton(page,tone.id).getAttribute('aria-pressed'),'true');
       await pause(450);await hasSound(page,tone);const amplitude=await level(page,tone);
       if(tone.side!==undefined) {
         assert((await audit(page)).every(meter=>meter.sides[1-tone.side].rms<1e-8&&meter.sides[1-tone.side].peak<1e-7),
-          'Isolating '+tone.id+' by Mute silences the opposite stereo output');
+          'Isolating '+tone.id+' by channel switches silences the opposite stereo output');
       }
       await muteButton(page,tone.id).click();await silence(page);
-      assert.equal(await muteButton(page,tone.id).getAttribute('aria-pressed'),'true','Mute suppresses the selected source output');
+      assert.equal(await muteButton(page,tone.id).getAttribute('aria-pressed'),'false','Off suppresses the selected output');
       await muteButton(page,tone.id).click();await pause(450);await hasSound(page,tone);
       const resumed=await level(page,tone);assert(resumed>amplitude*.7&&resumed<amplitude*1.3,
         `Unmute retains ${tone.id} ongoing voice: baseline=${amplitude}, resumed=${resumed}, ratio=${resumed/amplitude}`);
@@ -412,11 +430,11 @@ async function checkBrowser(browser,name,origin) {
     }
     assert.deepEqual(await ui(page),baselineView,'Muting never changes observed chip settings');
     await pause(650);assert.deepEqual(await files(page),originalFiles,'Muting does not write VFS or edited presets');
-    steps.push('all20 hardware channels/outputs remain individually audible using explicit Mute controls; muted ongoing voices return after unmute');
+    steps.push('all20 shared hardware channels/outputs are independently audible with On/Off controls; ongoing voices return after re-enabling');
     const groupVolumes=await checkGroupVolumes(page,mixed);
     assert.deepEqual(await ui(page),baselineView,'Chip volumes never change source Live settings');
     await pause(650);assert.deepEqual(await files(page),originalFiles,'Chip volumes and Master preserve all VFS bytes');
-    steps.push('YM2612/PSG/PCM group volumes scale isolated and mixed realPCM at0/50/100/200/380%, preserve other chips/PWM, and remain independent of Master');
+    steps.push('YM2612/PSG/PCM/PWM group volumes scale isolated and mixed realPCM at0/50/100/200/380%, preserve other chips, and remain independent of Master');
 
     await muteExcept(page,['ym2612:0','psg:0','pcm:0','pwm:0']);
     const before=await transport(page);await muteButton(page,'ym2612:0').click();await pause(450);const after=await transport(page);
@@ -435,13 +453,13 @@ async function checkBrowser(browser,name,origin) {
     const adjustedVolumes={...retainedVolumes,psg:150};assert.deepEqual(await volumeSettings(page),adjustedVolumes);
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');await pause(450);
     assert.deepEqual(await volumeSettings(page),adjustedVolumes,'Pause/Resume retains group volume');
-    assert.equal(await muteButton(page,'ym2612:0').getAttribute('aria-pressed'),'true','Pause/Resume retains channel Mute');
+    assert.equal(await muteButton(page,'ym2612:0').getAttribute('aria-pressed'),'false','Pause/Resume retains channel Off');
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');await silence(page);
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     assert.deepEqual(await volumeSettings(page),adjustedVolumes,'Same-source Stop/Play retains group volume');
-    assert.equal(await muteButton(page,'ym2612:0').getAttribute('aria-pressed'),'true','Same-source Stop/Play retains Mute');
+    assert.equal(await muteButton(page,'ym2612:0').getAttribute('aria-pressed'),'false','Same-source Stop/Play retains channel Off');
     await openMix(page);await page.locator('#synthSongMixReset').click();
-    assert.equal(await page.locator('[data-song-mute][aria-pressed="true"]').count(),0,'Reset clears every channel Mute');
+    assert.equal(await page.locator('[data-song-mute][aria-pressed="true"]').count(),20,'Reset turns all twenty channels on');
     assert.deepEqual(await volumeSettings(page),defaultPercentages,'Reset restores exact shared calibrated chip volumes');
     for(const id of MIX_GROUPS)await assertGroupVolumeUi(page,id,defaultPercentages[id]);
     assert.equal(await page.locator('#synthSongMixReset').isDisabled(),true,'Reset leaves the canonical defaults unchanged');
@@ -454,35 +472,41 @@ async function checkBrowser(browser,name,origin) {
       await openMix(page);await setGroupVolume(page,'ym2612',150);await setGroupVolume(page,'psg',80);
       for(const width of [1240,390]) {
         await page.setViewportSize({width,height:1000});
-        if(await page.locator('#synthSongMixPanel').isVisible())await page.locator('#synthSongMixButton').click();
-        const closed=await page.locator('.synth-editor').boundingBox();
-        await page.screenshot({path:path.join(config.screenshots,`${name}-mix-closed-${width}.png`)});
-        await openMix(page);const opened=await page.locator('.synth-editor').boundingBox();
-        assert(Math.abs(opened.y-closed.y)<1&&Math.abs(opened.height-closed.height)<1,'Opening Mix does not expand the editor layout');
+        await showFm(page);
+        await page.screenshot({path:path.join(config.screenshots,`${name}-fm-tab-${width}.png`)});
+        await openMix(page);
         const panel=await page.locator('#synthSongMixPanel').boundingBox();
-        assert(panel.x>=0&&panel.x+panel.width<=width+1,'All-20-channel Mix panel fits '+width+'px');
-        await page.screenshot({path:path.join(config.screenshots,`${name}-mix-open-${width}.png`)});
+        assert(panel.x>=0&&panel.x+panel.width<=width+1,'All-20-channel Mixer tab fits '+width+'px');
+        assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1),'Chip tabs and inline Mixer do not overflow '+width+'px');
+        await page.screenshot({path:path.join(config.screenshots,`${name}-mixer-tab-${width}.png`)});
       }
       await page.setViewportSize({width:1240,height:1000});
     }
 
-    await openMix(page);await setGroupVolume(page,'ym2612',75);await setGroupVolume(page,'psg',80);await setGroupVolume(page,'pcm',90);await muteButton(page,'ym2612:0').click();
+    await openMix(page);await setGroupVolume(page,'ym2612',75);await setGroupVolume(page,'psg',80);await setGroupVolume(page,'pcm',90);await setGroupVolume(page,'pwm',125);
+    await muteExcept(page,['ym2612:5']);
+    const beforeNewSourceVolumes=await volumeSettings(page);
+    const beforeNewSourceChannels=await channelSettings(page);
     await page.locator('#synthSongSelect').selectOption('/vgm/DAC.vgm');await page.locator('#synthSongChannelSelect').selectOption('5');
     await page.locator('#synthSongPlayButton').click();await state(page,'playing');
     await hasSound(page,{id:'DAC',hz:220.5});
-    if(!await page.locator('#synthSongMixPanel').isVisible())await page.locator('#synthSongMixButton').click();
-    assert.equal(await page.locator('[data-song-mute]').count(),6,'New file only shows present hardware');
-    assert.deepEqual(await volumeSettings(page),{ym2612:defaultPercentages.ym2612},'A new source restores exact shared calibration and removes absent group faders');
-    await assertGroupVolumeUi(page,'ym2612',defaultPercentages.ym2612);
-    assert.equal(await page.locator('#synthSongMixReset').isDisabled(),true,'A newly loaded source is not marked changed by its calibration');
-    assert.equal(await page.locator('[data-song-mute][aria-pressed="true"]').count(),0,'A new source resets channel Mute');
+    await openMix(page);
+    assert.equal(await page.locator('[data-song-mute]').count(),20,'A new file retains all shared hardware channel switches');
+    assert.deepEqual(await volumeSettings(page),beforeNewSourceVolumes,'A new source retains every common volume, including chips absent from that VGM');
+    for(const id of MIX_GROUPS)await assertGroupVolumeUi(page,id,beforeNewSourceVolumes[id]);
+    assert.equal(await page.locator('#synthSongMixReset').isDisabled(),false,'Edited common volumes remain resettable after changing the source');
+    assert.deepEqual(await channelSettings(page),beforeNewSourceChannels,'A new source preserves every explicit shared channel mask');
+    assert.equal(await muteButton(page,'ym2612:5').getAttribute('aria-pressed'),'true','The DAC channel was explicitly enabled before loading its source');
     const dacBaseline=await level(page,{id:'DAC',hz:220.5});await setGroupVolume(page,'ym2612',200);
-    await scaledLevel(page,{id:'DAC',hz:220.5},dacBaseline,2/calibratedGains.ym2612,'YM2612 group volume scales streamed DAC PCM in absolute source units');await setGroupVolume(page,'ym2612',100);
+    await scaledLevel(page,{id:'DAC',hz:220.5},dacBaseline,200/beforeNewSourceVolumes.ym2612,'YM2612 group volume scales streamed DAC PCM from its retained source gain');await setGroupVolume(page,'ym2612',100);
     await muteButton(page,'ym2612:5').click();await acSilence(page);
     await muteButton(page,'ym2612:5').click();await pause(400);await hasSound(page,{id:'DAC',hz:220.5});
     await page.locator('#synthSongPlayButton').click();await state(page,'paused');assert.equal(await page.locator('#synthSongCopyButton').isDisabled(),true,'DAC is not copied as an FM instrument');
     await page.locator('#synthSongStopButton').click();await state(page,'stopped');
-    steps.push('YM2612 CH6 Mute and group volume include live DAC; a new source resets Mute/volume and removes absent groups');
+    steps.push('YM2612 CH6 On/Off and group volume include live DAC; all20 channel masks and all four common volumes persist across a new source');
+
+    await openMix(page);await page.locator('#synthSongMixReset').click();
+    assert.equal(await page.locator('[data-song-mute][aria-pressed="true"]').count(),20,'Copy audition starts with all shared channels enabled');
 
     // Explicit copy is tested last: it is the only operation allowed to add a
     // new instrument. Every original edited file must remain byte-identical.
@@ -492,6 +516,7 @@ async function checkBrowser(browser,name,origin) {
     await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Paused FM copy becomes available');
     await page.locator('#synthSongCopyButton').click();await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&(await ui(page)).path!==original.path,'Copy switches to a new editable Synth tone');
+    await showFm(page);
     const copied=await ui(page);assert.notEqual(copied.path,original.path);assert.notEqual(copied.preset,original.preset);
     assert.equal(await page.locator('#looperStartButton').isDisabled(),false,'A captured partial OP mask supports Looper with its recorded mask');
     assert.equal(await page.locator('#eventRecordStartButton').isDisabled(),false,'Event Rec retains the captured OP mask');
@@ -517,6 +542,7 @@ async function checkBrowser(browser,name,origin) {
     await until(page,async()=>!await page.locator('#synthSongCopyButton').isDisabled(),'Manual CH3 special copy is available');
     await page.locator('#synthSongCopyButton').click();await ready(page);
     await until(page,async()=>(await transport(page)).target==='synth'&&(await ui(page)).path!==copied.path,'Special copy becomes a second new Synth instrument');
+    await showFm(page);
     const special=await ui(page);await pause(650);const specialFiles=await files(page),specialByPath=new Map(specialFiles.map(item=>[item.path,item]));
     for(const item of beforeSpecialFiles)assert.deepEqual(specialByPath.get(item.path),item,'CH3 copy keeps earlier file '+item.path);
     const captured=specialByPath.get(special.path+'.synth.json')?.extra.capturedVoice;
@@ -576,7 +602,7 @@ async function checkBrowser(browser,name,origin) {
   const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try {
     for(const name of engines) {
-      const browser=await bounded(({chromium,webkit})[name].launch({headless:true}),'launch '+name);
+      const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);
       try {results.push(await checkBrowser(browser,name,origin));console.log('PASS '+name+': source mixer, real individual PCM and copy to new Synth');}
       finally {await bounded(browser.close(),'close '+name);}
     }

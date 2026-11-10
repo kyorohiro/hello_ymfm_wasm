@@ -6,7 +6,7 @@
 import {SYNTH_SONG_MIX_DEFAULTS} from './synth_song_mix_defaults.js?v=mix-source-1';
 
 const GROUPS = {ym2612:6, psg:4, pcm:8, pwm:2};
-const VOLUME_GROUPS = new Set(['ym2612','psg','pcm']);
+const VOLUME_GROUPS = new Set(['ym2612','psg','pcm','pwm']);
 const validId = id => {
   const match = /^(ym2612|psg|pcm|pwm):(\d+)$/.exec(id);
   return match && Number(match[2]) < GROUPS[match[1]];

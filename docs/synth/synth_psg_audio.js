@@ -10,9 +10,10 @@ import {normalizeSynthPsgLoopConfig,prepareSynthPsgLoopUnit,PSG_LOOP_MAX_UNITS,P
 /** Lazy PSG endpoint on the host's existing AudioContext/output bus. */
 export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAudio}={}) {
   if(typeof onError!=='function'||typeof createDevice!=='function')throw new TypeError('PSG audio callbacks must be functions');
-  let current=null,enabled=false,master=1,disposed=false;
+  let current=null,enabled=false,master=1,sourceVolume=SYNTH_SONG_MIX_DEFAULTS.psg,disposed=false;
+  const channelMutes=new Array(4).fill(false);
   const cancelled=()=>new DOMException('PSG audio preparation cancelled','AbortError');
-  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*SYNTH_SONG_MIX_DEFAULTS.psg:0;};
+  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*sourceVolume:0;};
   function retire(owner,reason=cancelled()) {
     if(!owner||owner.closed)return;
     owner.closed=true;
@@ -41,7 +42,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
     const creating=Promise.resolve().then(()=>{
       owner.abort.signal.throwIfAborted();
       return createDevice(context,gain,{clock:SEGAPSG_CLOCK,stereoEnabled:false,signal:owner.abort.signal,
-        workletUrl:new URL('./synth_psg_worklet.js?v=pcm-looper-1',import.meta.url),
+        workletUrl:new URL('./synth_psg_worklet.js?v=channel-mixer-1',import.meta.url),
         onError:error=>fail(owner,error)});
     });
     owner.promise=new Promise((resolve,reject)=>{
@@ -51,7 +52,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         owner.abort.signal.removeEventListener('abort',aborted);
         if(owner.closed||current!==owner||disposed) {device.dispose();reject(owner.abort.signal.reason??cancelled());return;}
         owner.device=device;
-        const port=device.port??device.node?.port;
+        const port=owner.port=device.port??device.node?.port;
         if(typeof port?.postMessage!=='function')throw new TypeError('PSG endpoint needs an ordered MessagePort');
         const post=(method,args=[],extra={},transfers=[])=>{
           if(!owner.closed) {
@@ -160,6 +161,7 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
         const allNotesOff=api.allNotesOff;
         api.allNotesOff=()=>{api.stopLooperPlayback();api.stopRecordingPlayback();api.stopEnvelopes();allNotesOff();};
         api.allNotesOff();
+        channelMutes.forEach((muted,ch)=>{if(muted)post('setChannelMuted',[ch,true]);});
         owner.api=api;owner.pending=false;updateGain(owner);resolve(api);
       }).catch(error=>{
         owner.abort.signal.removeEventListener('abort',aborted);
@@ -176,6 +178,17 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('PSG Master must be 0..3.8');
       master=value;updateGain(current);
     },
+    setSourceVolume(value) {
+      if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('PSG source volume must be 0..3.8');
+      sourceVolume=value;updateGain(current);
+    },
+    setChannelMuted(ch,value) {
+      if(!Number.isInteger(ch)||ch<0||ch>3)throw RangeError('PSG mute channel must be 0..3');
+      if(typeof value!=='boolean')throw TypeError('PSG muted must be a boolean');
+      if(channelMutes[ch]===value)return;
+      channelMutes[ch]=value;
+      if(current?.api&&!current.closed)current.port.postMessage({method:'setChannelMuted',args:[ch,value]});
+    },
     setEnabled(value) {
       if(typeof value!=='boolean')throw new TypeError('PSG enabled must be a boolean');
       if(value!==enabled||!value) {
@@ -184,6 +197,6 @@ export function createSynthPsgAudio({onError=()=>{},createDevice=createSegaPsgAu
       }
       enabled=value;updateGain(current);
     },
-    dispose() {if(disposed)return;disposed=true;enabled=false;retire(current);},
+    dispose() {if(disposed)return;disposed=true;enabled=false;channelMutes.fill(false);retire(current);},
   };
 }

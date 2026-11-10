@@ -45,6 +45,22 @@ test('PCM Event Rec endpoint stays lazy, shares the host context and applies Sys
   f.endpoint.dispose();assert.equal(h.gains[0].gain.value,0);assert.equal(request.device.disposed,1);assert.equal(h.context.closeCalls,0);
 });
 
+test('Event Rec shares absolute PCM source gain through pending allocation and active playback without stopping the take',async()=>{
+  const f=fixture(),h=host();f.endpoint.setEnabled(true);f.endpoint.setSourceVolume(1.6);f.endpoint.setVolume(2);
+  const pending=f.endpoint.prepare(h.context,h.output);await tick();
+  f.endpoint.setSourceVolume(.25);f.endpoint.setVolume(3.8);assert.equal(h.gains[0].gain.value,0);
+  const first=f.requests[0];first.task.resolve(first.device);const api=await pending;assert.equal(h.gains[0].gain.value,.25*3.8);
+  await accepted(api,first);assert(api.isRecordingPlaybackActive());const messages=first.messages.length;
+  f.endpoint.setSourceVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*3.8);
+  f.endpoint.setSourceVolume(0);assert.equal(h.gains[0].gain.value,0);
+  f.endpoint.setSourceVolume(.5);f.endpoint.setVolume(.4);assert.equal(h.gains[0].gain.value,.5*.4);
+  assert.equal(first.messages.length,messages);assert(api.isRecordingPlaybackActive(),'mix changes preserve the same sample-clock take');
+  for(const value of [-1,3.81,NaN,Infinity,'1',null])assert.throws(()=>f.endpoint.setSourceVolume(value),/0\.\.3\.8/);
+  const replacing=f.endpoint.prepare(h.context,{context:h.context});await tick();f.endpoint.setSourceVolume(.75);f.endpoint.setVolume(2);
+  assert.equal(h.gains[0].gain.value,0);const next=f.requests[1];next.task.resolve(next.device);await replacing;
+  assert.equal(h.gains[1].gain.value,1.5);f.endpoint.setEnabled(false);f.endpoint.setSourceVolume(3.8);assert.equal(h.gains[1].gain.value,0);f.endpoint.dispose();
+});
+
 test('play transfers prepared guarded banks and waits for its own ACK without mutating source JSON',async()=>{
   const f=fixture(),h=host(),{api,request}=await ready(f,h),doc=recording(),original=structuredClone(doc);
   const promise=api.playRecording(doc,{loop:true});let finished=false;promise.then(()=>{finished=true;});

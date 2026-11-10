@@ -7,7 +7,7 @@ const {createHash}=require('node:crypto'),{pathToFileURL}=require('node:url'),{t
 const {chromium,webkit}=require('playwright');
 const repo=path.resolve(__dirname,'..'),config={root:path.join(repo,'docs'),entry:'/synth/index.html',engines:'chromium,webkit',checks:'all',out:path.join(tmpdir(),'fm2612-synth-code-browser.json'),screenshots:path.join(tmpdir(),'fm2612-synth-code-browser')};
 for(const arg of process.argv.slice(2)){const m=/^--(root|entry|engines|checks|out|screenshots)=(.+)$/.exec(arg);assert(m,'Unknown argument '+arg);config[m[1]]=m[2];}config.root=path.resolve(config.root);
-assert(['all','stop','baseline-stop'].includes(config.checks));
+assert(['all','stop','baseline-stop','mixer'].includes(config.checks));
 assert(config.entry.startsWith('/'));assert(config.engines.split(',').every(name=>['chromium','webkit'].includes(name)));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms)),hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(task,label,ms=30000){let timer;try{return await Promise.race([task,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Timeout '+label)),ms);})]);}finally{clearTimeout(timer);}}
@@ -125,7 +125,96 @@ for(let i=0;i<Math.ceil(seconds*rate);i++){const t=i/rate,fade=Math.min(1,t/.02,
 entries.push({frame:Math.round(seconds*sampleRate),register:4,value:Math.round(cycle/2)});
 liveLoop('pwm',async()=>{await pwm.scheduleWrites(entries);await sleep(1.1);await pwm.reset();});
 `;
-let loadCassette;
+let loadCassette,mixerDefaults;
+async function mixerVolume(page,id,value) {
+  await range(page,`#synthSongGroupVolume-${id}`,value);
+  assert.equal(Number(await page.locator(`#synthSongGroupVolume-${id}`).inputValue()),value);
+}
+function mixerPsgVgm(){
+  const commands=[0x50,0x85,0x50,0x12,0x50,0x94];for(let i=0;i<12;i++)commands.push(0x61,0x44,0xac);commands.push(0x66);
+  const bytes=Buffer.alloc(256+commands.length),view=new DataView(bytes.buffer,bytes.byteOffset,bytes.length);
+  bytes.write('Vgm ');view.setUint32(4,bytes.length-4,true);view.setUint32(8,0x171,true);view.setUint32(12,3579545,true);view.setUint32(0x34,204,true);view.setUint32(0x18,12*44100,true);bytes.set(commands,256);return bytes;
+}
+function mixerFmVgm(){
+  const c=[],write=(r,v)=>c.push(0x52,r,v);
+  write(0x22,0);write(0x27,0);write(0x2b,0);write(0xb0,7);write(0xb4,0xc0);
+  for(const [op,slot]of [0,8,4,12].entries()){
+    write(0x30+slot,1);write(0x40+slot,op===3?42:127);write(0x50+slot,31);
+    write(0x60+slot,0);write(0x70+slot,0);write(0x80+slot,15);write(0x90+slot,0);
+  }
+  write(0xa4,0x22);write(0xa0,0x44);write(0x28,0x80);
+  for(let i=0;i<12;i++)c.push(0x61,0x44,0xac);c.push(0x66);
+  const b=Buffer.alloc(256+c.length),v=new DataView(b.buffer,b.byteOffset,b.length);
+  b.write('Vgm ');v.setUint32(4,b.length-4,true);v.setUint32(8,0x171,true);v.setUint32(0x34,204,true);
+  v.setUint32(0x18,12*44100,true);v.setUint32(0x2c,7670454,true);b.set(c,256);return b;
+}
+async function mixerChecks(page,name){
+  const result={browser:name,steps:[],sources:[]};
+  const toggle=id=>page.locator(`[data-song-mute="${id}"]`);
+  const openMixer=async()=>{await page.locator('#synthSongMixButton').click();await page.locator('#synthChipMixer').waitFor({state:'visible'});};
+  assert(await page.locator('#synthSongPlayer').isHidden());await openMixer();
+  assert.equal(await page.locator('#synthSongMixButton').getAttribute('role'),'tab');
+  assert.deepEqual(await page.locator('[data-synth-chip]').evaluateAll(nodes=>nodes.map(n=>n.textContent.trim())),['YM2612','PSG','RF5C164','32X PWM','Mixer']);
+  assert.equal(await page.locator('[data-song-group-volume]').count(),4);assert.equal(await page.locator('[data-song-mute]').count(),20);
+  assert(await page.locator('#synthSongMixReferenceOptions').isHidden());
+  for(const [id,gain]of Object.entries(mixerDefaults))assert(Math.abs(Number(await page.locator('#synthSongGroupVolume-'+id).inputValue())/100-gain)<1e-6,'Initial System source gain '+id);
+  for(const button of await page.locator('[data-song-mute]').all())assert.equal(await button.getAttribute('aria-pressed'),'true','Every CH starts On');
+  await fs.mkdir(config.screenshots,{recursive:true});
+  for(const width of [1240,390]){await page.setViewportSize({width,height:1100});await pause(100);assert(await evaluate(page,()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('#synthSongMixButton').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(config.screenshots,`${name}-mixer-tab-${width}.png`)});}
+  await page.setViewportSize({width:1240,height:1100});result.steps.push('Mixer is the fifth tab after 32X PWM; all 20 On/Off switches and four calibrated source volumes are available before a VGM');
+  const probes=[
+    {id:'ym2612',chip:'fm',channel:2,source:KEEP_FM},
+    {id:'psg',chip:'psg',channel:0,source:`const psg=await useSoundChip('segapsg');psg.tone(0,{note:'C4'});liveLoop('hold',async()=>{await sleep(1);});`},
+    {id:'pcm',chip:'pcm',channel:0,source:`const pcm=await useSoundChip('rf5c164');pcm.keyOn(0);liveLoop('hold',async()=>{await sleep(1);});`},
+    {id:'pwm',chip:'pwm',channel:0,source:PWM_SOURCE.replace('seconds=1,','seconds=8,').replace('sleep(1.1)','sleep(8.1)')},
+  ];
+  for(const probe of probes){
+    await chip(page,probe.chip);if(probe.id==='ym2612'){await page.locator('#presetSelect').selectOption('sine');await ready(page);}
+    if(probe.id==='psg')await field(page,'synthPsgAttenuation',6);
+    if(probe.id==='pcm'){await page.locator('[data-pcm-builtin="sine"]').click();await field(page,'synthPcmVolume',64);}
+    await code(page,probe.source);await execute(page);await sounding(page);
+    await page.locator('#synthCodeExpandButton').click();await page.locator('#synthCodeMixerButton').click();
+    assert.equal(await page.locator('#synthSongMixButton').getAttribute('aria-selected'),'true');assert(await page.locator('#synthChipMixer').isVisible());
+    assert.match(await page.locator('#synthCodeState').textContent(),/Running|Playing/,'Entering Mixer never stops Code');
+    await mixerVolume(page,probe.id,100);const full=await reading(page);
+    const control=toggle(probe.id+':'+probe.channel);await control.click();assert.equal(await control.getAttribute('aria-pressed'),'false');
+    if(probe.id==='pwm'){const right=await reading(page);assert(right.left.rms<1e-7&&right.right.rms>.001,'PWM left Off keeps right output');}else await silence(page);
+    await control.click();assert.equal(await control.getAttribute('aria-pressed'),'true');await sounding(page);
+    await mixerVolume(page,probe.id,50);const half=await reading(page);assert(Math.abs(half.left.rms/full.left.rms-.5)<.06,'Absolute source volume applies once '+JSON.stringify({probe:probe.id,full,half}));
+    await mixerVolume(page,probe.id,0);await silence(page);await mixerVolume(page,probe.id,100);await sounding(page);
+    if(probe.id==='ym2612'){await range(page,'#masterVolumeRange',200);const twice=await reading(page);assert(Math.abs(twice.left.rms/full.left.rms-2)<.1);await range(page,'#masterVolumeRange',100);}
+    await mixerVolume(page,probe.id,380);assert.equal(await page.locator('#synthSongGroupVolume-'+probe.id).getAttribute('data-boosted'),'true');await mixerVolume(page,probe.id,100);await stop(page);
+    result.sources.push({id:probe.id,full,half});
+  }
+  result.steps.push('FM / PSG / PCM live CH On/Off and PWM L/R operate without stopping held voices; all source gains and Master stay independent');
+  await page.locator('#synthInputKeyboardTab').click();await chip(page,'fm');await openMixer();
+  await toggle('ym2612:0').click();
+  await page.locator('#tfiFile').setInputFiles({name:'First paused FM.vgm',mimeType:'application/octet-stream',buffer:mixerFmVgm()});await ready(page);
+  await page.locator('#synthSongChannelSelect').selectOption('0');await page.locator('#synthSongPlayButton').click();
+  await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'FM reference starts');
+  await page.locator('#synthSongPlayButton').click();
+  await until(()=>page.locator('#keyboard').getAttribute('data-song-audition').then(v=>v==='ready'),'First paused FM audition is ready');
+  await openMixer();await toggle('ym2612:0').focus();await evaluate(page,()=>__synthCodeAudit.drain());
+  await page.keyboard.down('a');await silence(page);
+  assert((await evaluate(page,()=>__synthCodeAudit.drain())).some(item=>item.type==='write'&&item.register===0x28&&(item.value&0xf0)),'Muted lazy audition still advances a real keyed voice');
+  await toggle('ym2612:0').click();await sounding(page);await toggle('ym2612:0').click();await silence(page);
+  await page.keyboard.up('a');await toggle('ym2612:0').click();await page.locator('#synthSongStopButton').click();
+  result.steps.push('A newly created paused FM audition inherits CH Off and restores the same held voice when switched On');
+  await chip(page,'psg');await openMixer();await mixerVolume(page,'psg',35);
+  const fixture=mixerPsgVgm();await page.locator('#tfiFile').setInputFiles({name:'Shared mixer PSG.vgm',mimeType:'application/octet-stream',buffer:fixture});await ready(page);await openMixer();
+  assert.equal(Number(await page.locator('#synthSongGroupVolume-psg').inputValue()),35);
+  await page.locator('#synthSongPlayButton').click();await until(()=>page.locator('#synthSongStatus').getAttribute('data-state').then(v=>v==='playing'),'Reference starts');const song=await sounding(page);
+  await openMixer();await mixerVolume(page,'psg',17.5);await pause(550);const softer=await reading(page);assert(Math.abs(softer.left.rms/song.left.rms-.5)<.07);
+  await toggle('psg:0').click();await pause(550);await silence(page);assert.equal(await toggle('psg:0').getAttribute('aria-pressed'),'false');
+  await page.locator('#synthSongStopButton').click();await page.locator('#synthSongChannelSelect').selectOption('synth');
+  await toggle('psg:0').focus();await page.keyboard.down('a');await silence(page);await toggle('psg:0').click();await sounding(page);await page.keyboard.up('a');await silence(page);
+  await toggle('psg:0').click();await page.locator('#tfiFile').setInputFiles({name:'Shared mixer second.vgm',mimeType:'application/octet-stream',buffer:fixture});await ready(page);await openMixer();
+  assert.equal(Number(await page.locator('#synthSongGroupVolume-psg').inputValue()),17.5);assert.equal(await toggle('psg:0').getAttribute('aria-pressed'),'false','New song retains shared CH Off');
+  await page.locator('#synthSongMixReset').click();for(const[id,gain]of Object.entries(mixerDefaults))assert(Math.abs(Number(await page.locator('#synthSongGroupVolume-'+id).inputValue())/100-gain)<1e-6);
+  assert.equal(await toggle('psg:0').getAttribute('aria-pressed'),'true');
+  result.steps.push('VGM / Keyboard share the same CH switches, new songs keep switches and volumes, and Reset restores System gains plus all On');
+  return result;
+}
 async function stopSignalChecks(page,{baseline=false}={}) {
   await chip(page,'fm');await page.locator('#presetSelect').selectOption('sine');await ready(page);
   const probes=[{name:'FM E1',master:100,source:`const fm=await useSoundChip('ym2612');fm.noteOn(CH1,'E1');liveLoop('hold',async()=>{await sleep(1);});`},
@@ -155,6 +244,7 @@ async function stopSignalChecks(page,{baseline=false}={}) {
 }
 async function run(browser,name,origin){const {page,errors}=await open(browser,origin),steps=[],result={browser:name,steps};
   try{
+    if(config.checks==='mixer'){const checked=await mixerChecks(page,name);assert.deepEqual(errors,[]);return checked;}
     if(config.checks!=='all'){
       result.stopSignals=await stopSignalChecks(page,{baseline:config.checks==='baseline-stop'});assert.deepEqual(errors,[]);return result;
     }
@@ -254,6 +344,7 @@ async function run(browser,name,origin){const {page,errors}=await open(browser,o
   }finally{await page.close();}
 }
 (async()=>{({loadPlaygroundCassette:loadCassette}=await import(pathToFileURL(path.join(repo,'docs/playground/playground_cassette.js')).href));
+  ({SYNTH_SONG_MIX_DEFAULTS:mixerDefaults}=await import(pathToFileURL(path.join(repo,'docs/synth/synth_song_mix_defaults.js')).href));
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const origin=`http://127.0.0.1:${server.address().port}`,results=[];
   try{for(const name of config.engines.split(',')){const browser=await bounded(({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--mute-audio']}:{})}),'launch '+name);try{results.push(await run(browser,name,origin));console.log('PASS '+name+': Synth Code, actual muted PCM, shared UI chips, FX, files and lifecycle');}finally{await browser.close();}}}
   finally{server.closeIdleConnections?.();server.closeAllConnections?.();if(server.listening)await new Promise(resolve=>server.close(resolve));}

@@ -1,21 +1,22 @@
 import {createSynthProject, isPsgTonePath, isPcmTonePath} from './synth_project.js?v=pcm-editor-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
 import {setupSynthFiles} from './synth_files.js?v=synth-code-expand-1';
 import {setupSynthCodeControls} from './synth_code_controls.js?v=synth-code-3';
 import {createSynthCodeProject} from './synth_code_project.js?v=synth-code-1';
-import {createSynthCodeAudio} from './synth_code_audio.js?v=synth-code-1';
+import {createSynthCodeAudio} from './synth_code_audio.js?v=channel-mixer-1';
 import {createSynthCodeOutput} from './synth_code_output.js?v=synth-code-stop-1';
 import {createPlaygroundCodeRuntime} from '../js/playground_code_runtime.js?v=synth-code-3';
 import {createSynthPcmVoice,createPcmBuiltinPreset,isPcmPreset,normalizePcmPreset,serializePcmPreset,pcmPresetFromAudio} from './synth_pcm.js?v=pcm-release-1';
 import {SynthPcmRecordingManager,PCM_RECORDING_MAX_JSON_BYTES} from './synth_pcm_recording.js?v=pcm-live-end-1';
-import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=pcm-release-1';
+import {createSynthPcmRecordingAudio} from './synth_pcm_recording_audio.js?v=channel-mixer-1';
 import {SynthPcmLooper} from './synth_pcm_looper.js?v=pcm-release-1';
 import {renderSynthPcmLoop} from './synth_pcm_loop_render.js?v=pcm-release-1';
-import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=pcm-looper-1';
-import {createSynthPcmAudio} from './synth_pcm_audio.js?v=pcm-release-1';
+import {createSynthPcmLoopAudio} from './synth_pcm_loop_audio.js?v=channel-mixer-1';
+import {createSynthPcmAudio} from './synth_pcm_audio.js?v=channel-mixer-1';
 import {setupSynthPcmControls} from './synth_pcm_controls.js?v=pcm-live-end-1';
 import {createSynthPcmSongVoice,describeSynthPcmSongVoice,createSynthPcmSongDisplay} from './synth_song_pcm_voice.js?v=pcm-release-1';
 import {createPsgPreset, isPsgPreset, normalizePsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-envelope-1';
-import {setupSynthSongControls} from './synth_song_controls.js?v=pcm-live-1';
+import {setupSynthSongControls} from './synth_song_controls.js?v=channel-mixer-1';
 import {createSynthPsgSongVoice,describeSynthPsgSongVoice} from './synth_song_psg_voice.js?v=psg-live-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -26,7 +27,7 @@ import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1'
 import {SynthPsgLooper} from './synth_psg_looper.js?v=pcm-looper-1';
 import {renderSynthPsgLoop} from './synth_psg_loop_render.js?v=psg-looper-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=psg-event-rec-1';
-import {createSynthPsgAudio} from './synth_psg_audio.js?v=pcm-looper-1';
+import {createSynthPsgAudio} from './synth_psg_audio.js?v=channel-mixer-1';
 import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-envelope-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
@@ -70,7 +71,7 @@ import {
   createVoices,
   initializeDirectAudio as initializeDirectAudioRuntime,
   stopAllNotes as stopAllRuntimeNotes,
-} from "./synth_runtime.js";
+} from "./synth_runtime.js?v=channel-mixer-1";
 import {
   createSynthInputController,
 } from "./synth_input.js?v=vgm-audition-1";
@@ -85,8 +86,8 @@ const useNukedEngine =
     window.location.search
   ).get("engine") === "nuked";
 const activeWorkletUrl = useNukedEngine
-  ? "../js/ym2612-worklet-nuked.js"
-  : "../js/ym2612-worklet.js";
+  ? "./synth_fm_worklet_nuked.js?v=channel-switch-1"
+  : "./synth_fm_worklet.js?v=channel-switch-1";
 const activeYm2612WasmUrl = useNukedEngine
   ? "../generated/nuked_opn2_wasm.wasm"
   : "../generated/ym2612_wasm.wasm";
@@ -394,6 +395,7 @@ let currentPresetB4 = 0xc0;
 let currentPerformanceVoice = null;
 let activeHelpId = "";
 let masterVolume = 1;
+const commonMix=createSynthSongMix();
 let songLiveView = null;
 let songPsgLiveView = null;
 let songPcmLiveView=null,songPcmLiveSignature='';
@@ -468,7 +470,14 @@ operatorEnvelopeRoot.addEventListener('keydown', event => {
 window.addEventListener('pagehide', event => {if (!event.persisted) operatorEnvelopeView.dispose();});
 
 // This updates the view only. Files owns durable FM/PSG document transitions.
+function showEditorTab(button) {
+  for(const tab of editorChipTabs){const selected=tab===button;tab.classList.toggle('is-selected',selected);tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
+  for(const panel of editorChipPanels)panel.hidden=panel.id!==button.getAttribute('aria-controls');
+}
 function selectEditorChip(button) {
+  if(button.dataset.synthChip==='mixer'){
+    showEditorTab(button);operatorEnvelopeView.setVisible(false);return;
+  }
   const changed = editorChip !== button.dataset.synthChip;
   if (changed) {
     ++pcmLoadGeneration;
@@ -476,13 +485,7 @@ function selectEditorChip(button) {
     void stopRecordingForReference({keepCode:codeActive});
   }
   editorChip = button.dataset.synthChip;
-  for (const tab of editorChipTabs) {
-    const selected = tab === button;
-    tab.classList.toggle('is-selected', selected);
-    tab.setAttribute('aria-selected', String(selected));
-    tab.tabIndex = selected ? 0 : -1;
-  }
-  for (const panel of editorChipPanels) panel.hidden = panel.id !== button.getAttribute('aria-controls');
+  showEditorTab(button);
   psgAudio.setEnabled(codeActive||editorChip === 'psg');
   psgEventAudio.setEnabled(editorChip === 'psg');
   psgLoopAudio.setEnabled(editorChip === 'psg');
@@ -501,6 +504,7 @@ function selectEditorChip(button) {
 async function switchEditorChip(button) {
   if (editorSwitchPending||button.disabled) return false;
   const chip = button.dataset.synthChip;
+  if(chip==='mixer'){selectEditorChip(button);return true;}
   const kind = chip === 'ym2612' ? 'fm' : chip === 'psg' ? 'psg' : chip === 'pcm' ? 'pcm' : null;
   if (kind && isSongChannelTarget()) {
     selectEditorChip(button);
@@ -649,6 +653,7 @@ let psgLooper = null, psgLoopSession = null;
 const psgPreparedLoopUnits=new WeakMap();
 let pcmLooper=null,pcmLoopSession=null;
 let performanceOutputBus=null,performanceMasterBus=null,performanceFadeBus=null,codeAudio=null,codeRuntime=null,codeControls=null,codeActive=false;
+let fmSourceBus=null,fmLoopSourceBus=null,fmAuditionSourceBus=null;
 let codeStopTask=null,codeGeneration=0;
 const codeOutput=createSynthCodeOutput({getContext:()=>audioContext,getGain:()=>performanceFadeBus});
 const pcmPreparedLoopUnits=new WeakMap();
@@ -735,6 +740,9 @@ pcmEventRecorder=new SynthPcmRecordingManager({
     await api.playRecording(recording,options);
   },
   stopPlayback:()=>pcmEventAudio.getPcm()?.stopRecordingPlayback(),
+});
+commonMix.onDidChange((_state,change)=>{
+  if(change.type==='volume'||change.type==='reset'||change.type==='mute')applySourceMix();
 });
 psgControls = setupSynthPsgControls({
   voice:psgVoice,
@@ -839,6 +847,31 @@ function updateMasterVolumeUi() {
   }
 }
 
+const fmMuteStates=new WeakMap();
+function applyChannelMix() {
+  const muted=new Set(commonMix.getLiveMutedChannels());
+  for(const owner of [megaSynth,loopMegaSynth,songAuditionMegaSynth])if(owner?.node){
+    const previous=fmMuteStates.get(owner.node)??[];
+    const next=Array.from({length:6},(_,ch)=>muted.has('ym2612:'+ch));
+    next.forEach((value,ch)=>{if(previous[ch]!==value)owner.node.port.postMessage({type:'synth-channel-mute',channel:ch,muted:value});});
+    fmMuteStates.set(owner.node,next);
+  }
+  for(const endpoint of [psgAudio,psgEventAudio,psgLoopAudio])for(let ch=0;ch<4;ch++)endpoint.setChannelMuted(ch,muted.has('psg:'+ch));
+  for(const endpoint of [pcmAudio,pcmSongAudio])for(let ch=0;ch<8;ch++)endpoint.setChannelMuted(ch,muted.has('pcm:'+ch));
+  for(let ch=0;ch<2;ch++)codeAudio?.setPwmChannelMuted(ch,muted.has('pwm:'+ch));
+  return muted;
+}
+function applySourceMix() {
+  const levels=commonMix.getGroupVolumes();
+  const muted=applyChannelMix(),allFmOff=Array.from({length:6},(_,ch)=>muted.has('ym2612:'+ch)).every(Boolean);
+  // FM-only MegaSynth strips are unity. Keep source gain outside the raw
+  // looper capture so recorded buffers never bake in the current Mixer level.
+  for(const bus of [fmSourceBus,fmLoopSourceBus,fmAuditionSourceBus])if(bus)bus.gain.value=allFmOff?0:levels.ym2612;
+  for(const endpoint of [psgAudio,psgEventAudio,psgLoopAudio])endpoint.setSourceVolume(levels.psg);
+  for(const endpoint of [pcmAudio,pcmSongAudio,pcmEventAudio,pcmLoopAudio])endpoint.setSourceVolume(levels.pcm);
+  codeAudio?.setPwmSourceVolume(levels.pwm);
+}
+
 function applyMasterVolume() {
   megaSynth?.setMasterVolume(
     codeActive?1:masterVolume
@@ -857,6 +890,7 @@ function applyMasterVolume() {
   pcmLoopAudio.setVolume(masterVolume);
   codeAudio?.setMaster(codeActive?1:masterVolume);
   if(performanceMasterBus)performanceMasterBus.gain.value=codeActive?masterVolume:1;
+  applySourceMix();
 }
 
 function updateCodeAudioRouting() {
@@ -1052,12 +1086,18 @@ function ensureSongAuditionReady() {
   if (!songAuditionBus) {
     songAuditionBus = audioContext.createGain();
     songAuditionBus.gain.value = 0;
-    songAuditionBus.connect(finalOutputBus);
+    fmAuditionSourceBus=audioContext.createGain();fmAuditionSourceBus.connect(finalOutputBus);
+    songAuditionBus.connect(fmAuditionSourceBus);applySourceMix();
   }
   const candidate = new MegaDriveSynth({audioContext, workletUrl:activeWorkletUrl,
+    stereoWidthWorkletUrl:new URL('../js/stereo-width-worklet.js',import.meta.url),
+    bitcrusherWorkletUrl:new URL('../js/bitcrusher-worklet.js',import.meta.url),
     ym2612WasmUrl:activeYm2612WasmUrl, outputNode:songAuditionBus, masterVolume});
   songAuditionMegaSynth = candidate;
-  songAuditionReady = candidate.start().then(() => candidate.fm).catch(error => {
+  songAuditionReady = candidate.start().then(() => {
+    if (songAuditionMegaSynth === candidate) applySourceMix();
+    return candidate.fm;
+  }).catch(error => {
     void candidate.close();
     if (songAuditionMegaSynth === candidate) {
       songAuditionReady = null;
@@ -3248,8 +3288,9 @@ async function initializeDirectAudio() {
 
   liveOutputBus =
     audioContext.createGain();
+  fmSourceBus=audioContext.createGain();fmSourceBus.connect(performanceOutputBus);
   liveOutputBus.connect(
-    performanceOutputBus
+    fmSourceBus
   );
 
   const runtime =
@@ -3271,8 +3312,9 @@ async function initializeDirectAudio() {
   setupLooperCaptureTap();
   loopOutputBus =
     audioContext.createGain();
+  fmLoopSourceBus=audioContext.createGain();fmLoopSourceBus.connect(finalOutputBus);
   loopOutputBus.connect(
-    finalOutputBus
+    fmLoopSourceBus
   );
   const loopRuntime =
     await initializeDirectAudioRuntime({
@@ -3808,6 +3850,7 @@ synthFiles = setupSynthFiles({
   setStatus,
 });
 songControls = setupSynthSongControls({
+  mix:commonMix,
   project:synthProject,
   getAudio:async()=>{
     await ensureAudioReady();

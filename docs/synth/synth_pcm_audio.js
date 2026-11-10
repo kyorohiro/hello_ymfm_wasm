@@ -6,7 +6,7 @@ async function createSynthPcmDevice(context,output,{signal,onError}={}) {
   signal?.throwIfAborted();
   const [response]=await Promise.all([
     fetch(new URL('../generated/rf5c164_wasm.wasm',import.meta.url),{signal}),
-    context.audioWorklet.addModule(new URL('./synth_pcm_worklet.js?v=pcm-release-1',import.meta.url)),
+    context.audioWorklet.addModule(new URL('./synth_pcm_worklet.js?v=channel-mixer-1',import.meta.url)),
   ]);
   if(!response.ok)throw Error(`PCM Synth WASM HTTP ${response.status}`);
   const wasmBinary=await response.arrayBuffer();signal?.throwIfAborted();
@@ -41,9 +41,10 @@ async function createSynthPcmDevice(context,output,{signal,onError}={}) {
 export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmDevice,timeoutMs=15000}={}) {
   if(typeof onError!=='function'||typeof createDevice!=='function')throw new TypeError('PCM audio callbacks must be functions');
   if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>60000)throw new RangeError('PCM audio timeout must be in range 1..60000 ms');
-  let current=null,enabled=false,master=1,disposed=false;
+  let current=null,enabled=false,master=1,sourceVolume=SYNTH_SONG_MIX_DEFAULTS.pcm,disposed=false;
+  const channelMutes=new Array(8).fill(false);
   const cancelled=()=>new DOMException('PCM audio preparation cancelled','AbortError');
-  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*SYNTH_SONG_MIX_DEFAULTS.pcm:0;};
+  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*sourceVolume:0;};
   function retire(owner,reason=cancelled()) {
     if(!owner||owner.closed)return;
     owner.closed=true;
@@ -130,6 +131,7 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmD
         api.releaseNote=value=>{const ch=channel(value);post('releaseNote',[ch]);api.channelMask|=1<<ch;};
         api.allNotesOff=()=>api.writeRegister(8,255);
         api.allNotesOff();
+        channelMutes.forEach((muted,ch)=>{if(muted)post('setChannelMuted',[ch,true]);});
         owner.api=api;owner.pending=false;updateGain(owner);resolve(api);
       }).catch(error=>{
         clearTimeout(owner.readyTimer);
@@ -147,6 +149,17 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmD
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('PCM Master must be 0..3.8');
       master=value;updateGain(current);
     },
+    setSourceVolume(value) {
+      if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw new RangeError('PCM source volume must be 0..3.8');
+      sourceVolume=value;updateGain(current);
+    },
+    setChannelMuted(ch,value) {
+      if(!Number.isInteger(ch)||ch<0||ch>7)throw RangeError('PCM mute channel must be 0..7');
+      if(typeof value!=='boolean')throw TypeError('PCM muted must be a boolean');
+      if(channelMutes[ch]===value)return;
+      channelMutes[ch]=value;
+      if(current?.api&&!current.closed)current.port.postMessage({method:'setChannelMuted',args:[ch,value]});
+    },
     setEnabled(value) {
       if(typeof value!=='boolean')throw new TypeError('PCM enabled must be a boolean');
       if(value!==enabled||!value) {
@@ -155,6 +168,6 @@ export function createSynthPcmAudio({onError=()=>{},createDevice=createSynthPcmD
       }
       enabled=value;updateGain(current);
     },
-    dispose() {if(disposed)return;disposed=true;enabled=false;retire(current);},
+    dispose() {if(disposed)return;disposed=true;enabled=false;channelMutes.fill(false);retire(current);},
   };
 }

@@ -40,9 +40,9 @@ async function createDevice(context,output,{signal,onError}={}) {
 export function createSynthPcmRecordingAudio({onError=()=>{},createDevice:create=createDevice,timeoutMs=15000}={}) {
   if(typeof onError!=='function'||typeof create!=='function')throw new TypeError('PCM recording audio callbacks must be functions');
   if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>60000)throw new RangeError('PCM recording audio timeout must be 1..60000 ms');
-  let current=null,enabled=false,master=1,disposed=false;
+  let current=null,enabled=false,master=1,sourceVolume=SYNTH_SONG_MIX_DEFAULTS.pcm,disposed=false;
   const cancelled=()=>new DOMException('PCM event playback cancelled','AbortError');
-  const gain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*SYNTH_SONG_MIX_DEFAULTS.pcm:0;};
+  const gain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*sourceVolume:0;};
   function clearRequest(owner,id,reason) {
     const request=owner.requests.get(id);if(!request)return;
     owner.requests.delete(id);clearTimeout(request.timer);request.reject(reason);
@@ -153,6 +153,10 @@ export function createSynthPcmRecordingAudio({onError=()=>{},createDevice:create
     setVolume(value){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('PCM recording Master must be 0..3.8');
       master=value;gain(current);
+    },
+    setSourceVolume(value){
+      if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('PCM recording source volume must be 0..3.8');
+      sourceVolume=value;gain(current);
     },
     dispose(){if(disposed)return;disposed=true;enabled=false;retire(current);},
   };

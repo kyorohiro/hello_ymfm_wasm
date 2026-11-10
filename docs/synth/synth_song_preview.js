@@ -11,8 +11,8 @@ import segaPsgModuleFactory from '../generated/segapsg_wasm.js';
 import {createYm2612SongTimeline} from './synth_song_state.js?v=song-seek-1';
 import {createPsgSongTimeline} from './synth_song_psg_state.js?v=psg-live-1';
 import {createPcmSongTimeline} from './synth_song_pcm_state.js?v=pcm-live-1';
-import {createSynthSongMix} from './synth_song_mix.js?v=mix-source-1';
-import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=song-seek-1';
+import {createSynthSongMix} from './synth_song_mix.js?v=channel-mixer-1';
+import {installSynthSongOutputMix} from './synth_song_output_mix.js?v=channel-mixer-1';
 import {seekPlayback} from '../vgm_analyzer/seek_playback.js';
 
 const LOOKAHEAD_SECONDS = 0.2;
@@ -115,7 +115,7 @@ async function createPreviewEngine(header) {
  * PCM, including the exact offset into the current buffer; the parser is never
  * advanced again to reconstruct Pause. Master gain is outside those buffers.
  */
-export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine, beforeResume=()=>{},seekCacheEnabled=true}={}) {
+export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{}, createEngine=createPreviewEngine, beforeResume=()=>{},seekCacheEnabled=true,mix=createSynthSongMix()}={}) {
   if (typeof getAudio !== 'function') throw new TypeError('getAudio is required');
   if (typeof seekCacheEnabled !== 'boolean') throw new TypeError('Seek cache enabled must be a boolean');
   let source = null, name = '', active = null, generation = 0, disposed = false;
@@ -124,7 +124,13 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   let lastLiveState = null, lastPsgLiveState = null, lastPcmLiveState = null, metadata = null, metadataReady = null;
   let seekProgress = 0, seekTargetSeconds = null, seekResumePlaying = false, lastSeekCacheFrame = 0;
   let abortSeek = null, work = Promise.resolve();
-  const mix = createSynthSongMix();
+  const releaseMix = mix.onDidChange((_state,change)=>{
+    if (disposed) return;
+    if (['volume','mute','reset'].includes(change.type)) {
+      applyMix();invalidateCache();restartChangedSeek();
+    }
+    emit();
+  });
 
   function currentPosition(run=active) {
     if (!run) return positionFrames;
@@ -270,24 +276,15 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
   }
   function setChannelMuted(id, value) {
     checkOpen();
-    if (!mix.setChannelMuted(id,value)) return;
-    if (active) active.outputMix.setMutedChannels(mix.getMutedChannels());
-    invalidateCache();restartChangedSeek();
-    emit();
+    mix.setChannelMuted(id,value);
   }
   function setGroupVolume(id, value) {
     checkOpen();
-    if (!mix.setGroupVolume(id,value)) return;
-    if (active) active.outputMix.setGroupVolume(id,value);
-    invalidateCache();restartChangedSeek();
-    emit();
+    mix.setGroupVolume(id,value);
   }
   function resetMix() {
     checkOpen();
-    if (!mix.reset()) return;
-    applyMix();
-    invalidateCache();restartChangedSeek();
-    emit();
+    mix.reset();
   }
   function setSeekCacheEnabled(value) {
     checkOpen();
@@ -599,6 +596,7 @@ export function createSynthSongPreview({getAudio, onState=()=>{}, onStatus=()=>{
     source = null;
     metadata=metadataReady=null;
     disposed = true;
+    releaseMix();
   }
   return {load, clear, play, pause, resume, stop, setVolume,
     setChannelMuted, setGroupVolume, resetMix,seek,setSeekCacheEnabled,dispose,getState};

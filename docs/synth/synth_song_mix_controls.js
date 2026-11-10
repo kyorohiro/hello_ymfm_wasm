@@ -1,24 +1,16 @@
-/** A small, non-modal mixer: opening it never moves the instrument controls. */
+/** Shared inline Mixer tab; selecting it is owned by the chip-view controls. */
 export function setupSynthSongMixControls({preview}) {
   const button = document.getElementById('synthSongMixButton');
+  const buttons = [button,document.getElementById('synthCodeMixerButton')].filter(Boolean);
   const panel = document.getElementById('synthSongMixPanel');
   const list = document.getElementById('synthSongMixChannels');
+  const referenceOptions = document.getElementById('synthSongMixReferenceOptions');
+  const channelStatus = document.getElementById('synthSongMixChannelStatus');
   const reset = document.getElementById('synthSongMixReset');
   const rows = new Map(), volumes = new Map();
-  let structure = '', signature = '', lastMix;
-
-  function close() {
-    panel.hidden = true;
-    button.setAttribute('aria-expanded', 'false');
-  }
-  function position() {
-    const bounds = button.getBoundingClientRect(), margin = 8;
-    const width = Math.min(340, innerWidth - margin * 2);
-    panel.style.width = width + 'px';
-    panel.style.left = Math.max(margin, Math.min(bounds.left, innerWidth - width - margin)) + 'px';
-    panel.style.top = Math.min(bounds.bottom + 6, Math.max(margin, innerHeight - 200)) + 'px';
-    panel.style.maxHeight = Math.max(100, innerHeight - parseFloat(panel.style.top) - margin) + 'px';
-  }
+  const listeners=[];
+  const listen=(node,type,callback)=>{node.addEventListener(type,callback);listeners.push(()=>node.removeEventListener(type,callback));};
+  let structure = '', signature = '', lastMix, disposed=false;
   function createVolume(group, section) {
     const label = document.createElement('label');
     label.className = 'synth-song-mix-volume';
@@ -37,7 +29,7 @@ export function setupSynthSongMixControls({preview}) {
     const value = document.createElement('output');
     value.htmlFor = input.id;
     value.dataset.songGroupVolumeValue = group.id;
-    input.addEventListener('input', () => preview.setGroupVolume(group.id, Number((Number(input.value) / 100).toFixed(6))));
+    input.addEventListener('input', () => {if(!disposed)preview.setGroupVolume(group.id, Number((Number(input.value) / 100).toFixed(6)));});
     input.addEventListener('keydown', event => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const step = event.shiftKey ? 10 : 1;
@@ -64,11 +56,9 @@ export function setupSynthSongMixControls({preview}) {
     control.type = 'button';
     control.className = 'toolbar-button';
     control.dataset.songMute = channel.id;
-    control.textContent = 'Mute';
-    control.title = 'Mute ' + channel.group + ' ' + channel.label;
-    control.setAttribute('aria-label', control.title);
     control.addEventListener('pointerdown', event => event.preventDefault());
     control.addEventListener('click', () => {
+      if(disposed)return;
       const current = preview.getState().mix.channels.find(value => value.id === channel.id);
       if (current) preview.setChannelMuted(channel.id, !current.muted);
       control.blur();
@@ -78,9 +68,10 @@ export function setupSynthSongMixControls({preview}) {
     rows.set(channel.id, {row, control});
   }
   function update(mix) {
-    if (mix === lastMix) return;
+    if (disposed || mix === lastMix) return;
     lastMix = mix;
     const channels = mix?.channels ?? [], groups = mix?.groups ?? [];
+    if(referenceOptions)referenceOptions.hidden=!mix?.referenceActive;
     const next = JSON.stringify([
       groups.map(group => [group.id, group.label, group.volume !== undefined]),
       channels.map(channel => [channel.id, channel.groupId, channel.group, channel.label]),
@@ -92,7 +83,6 @@ export function setupSynthSongMixControls({preview}) {
       rows.clear();
       volumes.clear();
       list.replaceChildren();
-      if (!channels.length) list.textContent = 'Play a VGM to show its channels.';
       for (const group of groups) {
         const section = document.createElement('fieldset');
         const title = document.createElement('legend');
@@ -107,16 +97,20 @@ export function setupSynthSongMixControls({preview}) {
     if (state === signature) return;
     signature = state;
     const muted = channels.filter(channel => channel.muted).length;
-    const caption = muted ? 'Mix · ' + muted + ' muted' : 'Mix';
-    const captionChanged = button.textContent !== caption;
-    if (captionChanged) button.textContent = caption;
-    button.classList.toggle('is-selected', Boolean(mix?.changed));
+    for(const trigger of buttons) {
+      // Chip-view selection owns aria-selected / is-selected on the Mixer tab.
+      trigger.dataset.mixChanged=String(Boolean(mix?.changed));
+    }
+    if(channelStatus)channelStatus.textContent=muted?`${muted} of ${channels.length} channels off`:`${channels.length} channels on`;
     reset.disabled = !mix?.changed;
     for (const channel of channels) {
       const entry = rows.get(channel.id);
       entry.row.classList.toggle('is-muted', channel.effectiveMuted);
-      entry.control.setAttribute('aria-pressed', String(channel.muted));
-      entry.control.classList.toggle('is-selected', channel.muted);
+      entry.control.textContent=channel.muted?'Off':'On';
+      entry.control.title=`Turn ${channel.muted?'on':'off'} ${channel.group} ${channel.label}`;
+      entry.control.setAttribute('aria-label',entry.control.title);
+      entry.control.setAttribute('aria-pressed',String(!channel.muted));
+      entry.control.classList.toggle('is-selected',!channel.muted);
     }
     for (const group of groups) {
       const control = volumes.get(group.id);
@@ -130,47 +124,32 @@ export function setupSynthSongMixControls({preview}) {
       control.input.setAttribute('aria-valuetext', percent + ' percent, source gain ' + group.volume);
       if (control.value.textContent !== text) control.value.textContent = text;
     }
-    if (!panel.hidden && (structureChanged || captionChanged)) position();
   }
-  button.addEventListener('pointerdown', event => event.preventDefault());
-  button.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    button.setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) position();
-    button.blur();
+  for(const trigger of buttons) {
+    listen(trigger,'pointerdown',event=>event.preventDefault());
+  }
+  const codeButton=document.getElementById('synthCodeMixerButton');
+  if(codeButton)listen(codeButton,'click',()=>{
+    const expand=document.getElementById('synthCodeExpandButton');
+    if(expand?.getAttribute('aria-pressed')==='true')expand.click();
+    button.click();
+    document.getElementById('synthChipMixer')?.scrollIntoView?.({block:'nearest'});
   });
-  reset.addEventListener('pointerdown', event => event.preventDefault());
-  reset.addEventListener('click', () => {preview.resetMix(); reset.blur();});
-  const outside = event => {if (!panel.contains(event.target) && !button.contains(event.target)) close();};
-  const escape = event => {
-    if (event.key === 'Escape' && !panel.hidden) {
-      event.preventDefault();
-      close();
-      button.focus();
-    }
-  };
-  const scroll = () => {if (!panel.hidden) close();};
+  listen(reset,'pointerdown',event=>event.preventDefault());
+  listen(reset,'click',()=>{preview.resetMix();reset.blur();});
   const navigationKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
   const keys = event => {
-    if (event.key === 'Escape') {escape(event); event.stopPropagation();}
     // Keep performance letters available with a focused volume slider. Native
     // slider navigation and button activation must not reach page shortcuts.
-    else if (event.key === ' ' || event.key === 'Enter' ||
+    if (event.key === ' ' || event.key === 'Enter' ||
       event.target.matches?.('input[type="range"]') && navigationKeys.has(event.key)) event.stopPropagation();
   };
-  panel.addEventListener('keydown', keys);
-  button.addEventListener('keydown', keys);
-  document.addEventListener('pointerdown', outside);
-  document.addEventListener('keydown', escape);
-  window.addEventListener('resize', scroll);
-  window.addEventListener('scroll', scroll);
-  return {update, close, dispose() {
-    close();
-    panel.removeEventListener('keydown', keys);
-    button.removeEventListener('keydown', keys);
-    document.removeEventListener('pointerdown', outside);
-    document.removeEventListener('keydown', escape);
-    window.removeEventListener('resize', scroll);
-    window.removeEventListener('scroll', scroll);
+  listen(panel,'keydown',keys);
+  for(const trigger of buttons)listen(trigger,'keydown',keys);
+  // Legacy transport reset callers can close a popover; the inline tab stays
+  // selected until the user chooses another chip tab.
+  return {update, close(){}, dispose() {
+    if(disposed)return;disposed=true;
+    for(const remove of listeners)remove();
   }};
 }

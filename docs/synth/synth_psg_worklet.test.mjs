@@ -35,6 +35,27 @@ const generate=(processor,count)=>{
   return {left,right};
 };
 
+test('PSG output mutes preserve tone/noise phase, survive reset, and ignore later author attenuation writes',async()=>{
+  for(const channel of [0,3]) {
+    const processor=await worklet(),reference=await worklet();
+    try {
+      for(const target of [processor,reference]) {
+        const api=createSegaPsgApi({clock:SEGAPSG_CLOCK,write:value=>send(target,'write',[value])});
+        api.allNotesOff();if(channel===3)api.noise({type:'white',rate:'tone3',attenuation:2});else api.tone(0,{frequency:440,attenuation:2});
+      }
+      assert.deepEqual(generate(processor,301),generate(reference,301));
+      send(processor,'setChannelMuted',[channel,true]);
+      send(processor,'write',[0x90|(channel<<5)|5]);send(reference,'write',[0x90|(channel<<5)|5]);
+      assert(generate(processor,1703).left.every(value=>value===0));generate(reference,1703);
+      send(processor,'setChannelMuted',[channel,false]);assert.deepEqual(generate(processor,2000),generate(reference,2000),'unmute resumes the same phase, with the newest author attenuation');
+      send(processor,'setChannelMuted',[channel,true]);send(processor,'reset');
+      send(processor,'write',[0x90|(channel<<5)]);assert(generate(processor,1000).left.every(value=>value===0));
+      assert.equal(processor.channelMutes[channel],true);
+      processor.dispose();assert(processor.channelMutes.every(value=>value===false));
+    } finally {processor.dispose();reference.dispose();}
+  }
+});
+
 test('private worklet loops finite PCM with overlapping release tails; remove/stop/reset/dispose cannot revive old layers',async()=>{
   const processor=await worklet(),unit={id:'tail',left:new Float32Array(3600).fill(.125),right:new Float32Array(3600).fill(-.25),offsetSeconds:0};
   try {

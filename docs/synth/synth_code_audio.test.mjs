@@ -9,11 +9,15 @@ import {YM2612Synth} from '../js/ym2612synth.js';
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 const turn=()=>Promise.resolve();
 function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip=null,getFmVoice=()=>null}={}) {
-  const events=[],gains=[],fxRequests=[],pwmRequests=[];
-  const context={state:'running',currentTime:0,sampleRate:48000,closeCalls:0,close(){this.closeCalls++;},createGain(){const gain=node('gain');gain.gain={value:1};gains.push(gain);return gain;}};
-  function node(name) {return {name,context,edges:new Set(),connect(target){this.edges.add(target);events.push(['connect',name,target.name]);return target;},disconnect(target){
-    if(target){if(!this.edges.delete(target))throw Error('Missing edge');}else this.edges.clear();events.push(['disconnect',name,target?.name??'*']);
-  }};}
+  const events=[],gains=[],fxRequests=[],pwmRequests=[],nodes=[];
+  const context={state:'running',currentTime:0,sampleRate:48000,closeCalls:0,close(){this.closeCalls++;},
+    createChannelSplitter(count){const value=node('splitter');value.outputs=count;return value;},
+    createChannelMerger(count){const value=node('merger');value.inputs=count;return value;},
+    createGain(){const gain=node('gain');gain.gain={value:1};gains.push(gain);return gain;}};
+  function node(name) {const value={name,context,edges:new Set(),connections:[],disconnects:0,connect(target,output=0,input=0){this.edges.add(target);this.connections.push({target,output,input});events.push(['connect',name,target.name]);return target;},disconnect(target){
+    if(target){if(!this.edges.delete(target))throw Error('Missing edge');this.connections=this.connections.filter(edge=>edge.target!==target);}else {this.edges.clear();this.connections=[];}this.disconnects++;events.push(['disconnect',name,target?.name??'*']);
+  }};nodes.push(value);return value;
+  }
   const input=node('performance'),output=node('final');input.connect(output);
   const fm=fmChip??{clock:7670454,noteOn:(...args)=>events.push(['fm-on',...args]),keyOff:ch=>events.push(['fm-off',ch]),noteOff:ch=>events.push(['fm-off',ch]),dispose(){throw Error('Cannot dispose borrowed FM');}};
   let psgSettings={source:'tone',attenuation:6,noiseType:'white',noiseRate:'medium',envelope:{enabled:false,attack:0,decay:0,sustain:100,release:0}};
@@ -45,7 +49,7 @@ function fixture({pendingFx=false,pendingPwm=false,ensureChip=async()=>{},fmChip
     createPwmClient:()=>({writes:[],disposeCalls:0,write(register,value){this.writes.push([register,value]);},dispose(){this.disposeCalls++;}}),
   };
   const audio=createSynthCodeAudio(options);
-  return {audio,options,events,context,input,output,fm,psg,pcm,gains,fxRequests,pwmRequests,
+  return {audio,options,events,context,input,output,fm,psg,pcm,gains,fxRequests,pwmRequests,nodes,
     setPsg:value=>{psgSettings={...psgSettings,...value};},getPsg:()=>structuredClone(psgSettings),
     setPcm:value=>{preset={...preset,settings:{...preset.settings,...value}};},getPreset:()=>structuredClone(preset)};
 }
@@ -98,6 +102,70 @@ test('PWM has one calibrated Master gain and a pending creation cannot revive a 
   const delayed=fixture({pendingPwm:true}),creating=delayed.audio.useSoundChip('pwm'),rejected=assert.rejects(creating,{name:'AbortError'});
   await turn();await turn();await delayed.audio.stop();const pending=delayed.pwmRequests[0];pending.task.resolve(pending.device);await rejected;
   assert.equal(pending.device.disposals,1);assert.equal(pending.gain.gain.value,0);await delayed.audio.dispose();await f.audio.dispose();
+});
+
+test('PWM source volume is absolute and independent from Master across pending creation and Stop/restart',async()=>{
+  const f=fixture({pendingPwm:true});f.audio.setPwmSourceVolume(1.6);f.audio.setMaster(2);
+  const preparing=f.audio.useSoundChip('pwm');await new Promise(resolve=>setImmediate(resolve));
+  const first=f.pwmRequests[0];assert.equal(first.gain.gain.value,3.2,'updates made before allocation survive lazy creation');
+  f.audio.setPwmSourceVolume(.25);f.audio.setMaster(3.8);assert.equal(first.gain.gain.value,.25*3.8);
+  first.task.resolve(first.device);const pwm=await preparing;
+  assert.equal(first.gain.gain.value,.25*3.8);assert.equal(first.config.gain,1,'endpoint has no second source or Master gain');
+  pwm.write(0,5);const writes=pwm.writes.length;
+  f.audio.setPwmSourceVolume(3.8);assert.equal(first.gain.gain.value,3.8*3.8);
+  f.audio.setPwmSourceVolume(0);assert.equal(first.gain.gain.value,0);
+  assert.equal(pwm.writes.length,writes,'source gain never writes PWM audio state');
+  for(const value of [-1,3.81,NaN,Infinity,'1',null])assert.throws(()=>f.audio.setPwmSourceVolume(value),/0\.\.3\.8/);
+  assert.equal(first.gain.gain.value,0);
+  await f.audio.stop();f.audio.setPwmSourceVolume(.75);f.audio.setMaster(2);assert.equal(first.gain.gain.value,0,'retired endpoints stay muted');
+  const next=f.audio.useSoundChip('pwm');await new Promise(resolve=>setImmediate(resolve));const second=f.pwmRequests[1];
+  assert.equal(second.gain.gain.value,1.5);second.task.resolve(second.device);await next;
+  assert.equal(second.gain.gain.value,1.5);await f.audio.dispose();
+});
+
+test('PWM side output gates preserve stereo wiring and source/Master gains through pending readiness and recreation',async()=>{
+  const f=fixture({pendingPwm:true});f.audio.setPwmChannelMuted(0,true);f.audio.setPwmSourceVolume(.75);f.audio.setMaster(2);
+  const preparing=f.audio.useSoundChip('pwm');await new Promise(resolve=>setImmediate(resolve));
+  const first=f.pwmRequests[0],split=[...first.gain.edges][0],sides=split.connections.map(edge=>edge.target),merger=[...sides[0].edges][0];
+  assert.equal(first.gain.gain.value,1.5);assert.equal(first.config.gain,1);
+  assert.equal(first.gain.edges.size,1);assert.equal(first.gain.edges.has(f.input),false,'there is no parallel unmuted route');
+  assert.equal(split.name,'splitter');assert.equal(split.outputs,2);
+  assert.deepEqual(split.connections.map(({output,input})=>[output,input]),[[0,0],[1,0]]);
+  assert.equal(merger.name,'merger');assert.equal(merger.inputs,2);assert.deepEqual([...merger.edges],[f.input]);
+  assert.deepEqual(sides.map(side=>side.connections.map(({target,output,input})=>[target===merger,output,input])),[[[true,0,0]],[[true,0,1]]]);
+  assert.deepEqual(sides.map(side=>side.gain.value),[0,1]);
+  f.audio.setPwmChannelMuted(1,true);f.audio.setPwmChannelMuted(0,false);
+  assert.deepEqual(sides.map(side=>side.gain.value),[1,0]);assert.equal(first.gain.gain.value,1.5,'pending side updates never overwrite the common source gain');
+  first.task.resolve(first.device);const pwm=await preparing;pwm.write(0,5);const writes=pwm.writes.length;
+  f.audio.setPwmSourceVolume(.25);f.audio.setMaster(3.8);assert.equal(first.gain.gain.value,.25*3.8);
+  f.audio.setPwmChannelMuted(0,true);f.audio.setPwmChannelMuted(0,true);assert.deepEqual(sides.map(side=>side.gain.value),[0,0]);
+  f.audio.setPwmChannelMuted(1,false);assert.deepEqual(sides.map(side=>side.gain.value),[0,1]);assert.equal(pwm.writes.length,writes,'mute never writes or refills the PWM FIFO');
+  for(const side of [-1,2,.5,'0'])assert.throws(()=>f.audio.setPwmChannelMuted(side,true));
+  for(const value of [0,1,'false',null])assert.throws(()=>f.audio.setPwmChannelMuted(0,value));
+  assert.deepEqual(f.audio.getState().pwmChannelMutes,[true,false]);
+  await f.audio.stop();assert.equal(first.gain.gain.value,0);
+  for(const node of [first.gain,split,...sides,merger])assert.equal(node.edges.size,0,'all owned routing nodes are retired');
+  const next=f.audio.useSoundChip('pwm');await new Promise(resolve=>setImmediate(resolve));const second=f.pwmRequests[1];
+  const nextSplit=[...second.gain.edges][0],nextSides=nextSplit.connections.map(edge=>edge.target);
+  assert.deepEqual(nextSides.map(side=>side.gain.value),[0,1],'side preferences survive the retired physical endpoint');
+  assert.equal(second.gain.gain.value,.25*3.8);second.task.resolve(second.device);await next;await f.audio.dispose();
+});
+
+test('a late retired PWM endpoint cannot reconnect its stereo gate or alter the newer owner masks',async()=>{
+  const f=fixture({pendingPwm:true}),obsolete=f.audio.useSoundChip('pwm'),rejected=assert.rejects(obsolete,{name:'AbortError'});
+  await new Promise(resolve=>setImmediate(resolve));const old=f.pwmRequests[0],oldNodes=f.nodes.slice(2);
+  await f.audio.stop();f.audio.setPwmChannelMuted(1,true);
+  const fresh=f.audio.useSoundChip('pwm');await new Promise(resolve=>setImmediate(resolve));const next=f.pwmRequests[1];
+  const split=[...next.gain.edges][0],sides=split.connections.map(edge=>edge.target);assert.deepEqual(sides.map(side=>side.gain.value),[1,0]);
+  old.task.resolve(old.device);await rejected;assert.equal(old.device.disposals,1);
+  assert(oldNodes.every(node=>node.edges.size===0));assert.deepEqual(sides.map(side=>side.gain.value),[1,0]);
+  next.task.resolve(next.device);await fresh;assert.equal(next.gain.edges.size,1);assert.equal(next.device.disposals,0);await f.audio.dispose();
+});
+
+test('an incomplete PWM stereo graph is disconnected before its construction error escapes',async()=>{
+  const f=fixture();f.context.createChannelMerger=()=>{throw Error('no merger');};
+  await assert.rejects(f.audio.useSoundChip('pwm'),/no merger/);assert.equal(f.pwmRequests.length,0);
+  assert(f.nodes.slice(2).every(node=>node.edges.size===0));await f.audio.dispose();
 });
 
 test('liveFx replaces only the performance direct edge once and Stop restores dry routing and retires state',async()=>{

@@ -35,8 +35,8 @@ function linkedSignals(signals) {
 export function createSynthPcmLoopAudio({onError=()=>{},createDevice:create=createDevice,timeoutMs=15000}={}) {
   if(typeof onError!=='function'||typeof create!=='function')throw TypeError('PCM loop audio needs callbacks');
   if(!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>60000)throw RangeError('PCM loop timeout must be 1..60000 ms');
-  let current=null,enabled=false,master=1,disposed=false;
-  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*SYNTH_SONG_MIX_DEFAULTS.pcm:0;};
+  let current=null,enabled=false,master=1,sourceVolume=SYNTH_SONG_MIX_DEFAULTS.pcm,disposed=false;
+  const updateGain=owner=>{if(owner)owner.gain.gain.value=enabled&&owner.api?master*sourceVolume:0;};
   function clearRequest(owner,id,reason) {
     const request=owner.requests.get(id);if(!request)return;
     owner.requests.delete(id);clearTimeout(request.timer);request.cleanup();request.reject(reason);
@@ -174,6 +174,7 @@ export function createSynthPcmLoopAudio({onError=()=>{},createDevice:create=crea
   return {getPcm:()=>current?.api??null,isPreparing:()=>Boolean(current?.pending),prepare,
     setEnabled(value){if(typeof value!=='boolean')throw TypeError('PCM loop enabled must be a boolean');if(!value){if(current)current.gain.gain.value=0;stop(current);}enabled=value;updateGain(current);},
     setVolume(value){if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('PCM loop Master must be 0..3.8');master=value;updateGain(current);},
+    setSourceVolume(value){if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>3.8)throw RangeError('PCM loop source volume must be 0..3.8');sourceVolume=value;updateGain(current);},
     dispose(){if(disposed)return;disposed=true;enabled=false;retire(current);},
   };
 }

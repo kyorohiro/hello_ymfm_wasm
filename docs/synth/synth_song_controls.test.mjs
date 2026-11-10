@@ -29,27 +29,47 @@ function snapshots(frame,attenuation=6,volume=64) {
   pcm.write(8,0);
   return {liveState:fm.snapshot(frame),psgLiveState:psg.snapshot(frame),pcmLiveState:pcm.snapshot(frame)};
 }
-function fixture(copyResult=true) {
+function fixture(copyResult=true,{empty=false,mix}={}) {
   const old=Object.getOwnPropertyDescriptor(globalThis,'document'),elements=new Map();
   const byId=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
   const format=new Element();globalThis.document={getElementById:byId,querySelector:()=>format,createElement:()=>new Element()};
   const channel=byId('synthSongChannelSelect');channel.children=['synth','0','1','2','3','4','5'].map(value=>Object.assign(new Element(),{value}));channel.value='0';
   byId('synthSongLiveToggle').checked=true;
-  let state={playback:'stopped',name:'tune.vgm',consumedFrames:0,...snapshots(0)},emit;
-  const views=[],targets=[],copies=[],messages=[];
-  const project={selectedPath:'/vgm/tune.vgm',listEntries:()=>[{path:'/vgm/tune.vgm',type:'file',revision:1}],
+  let state={playback:'stopped',name:'tune.vgm',consumedFrames:0,...snapshots(0)},emit,previewOptions;
+  const views=[],targets=[],copies=[],messages=[],mixUpdates=[],mixCloses=[];
+  const project={selectedPath:empty?null:'/vgm/tune.vgm',listEntries:()=>empty?[]:[{path:'/vgm/tune.vgm',type:'file',revision:1}],
     fs:{getRevision:()=>1,get:()=>({type:'binary',data:new Uint8Array()})},onDidChange:()=>()=>{}};
-  const controls=setupSynthSongControls({project,getAudio:()=>{},getVolume:()=>1,onLiveView:view=>views.push(view),onTargetState:target=>targets.push(target),
+  const controls=setupSynthSongControls({project,getAudio:()=>{},getVolume:()=>1,mix,onLiveView:view=>views.push(view),onTargetState:target=>targets.push(target),
     onCopyToSynth:async(preset,name)=>{copies.push({preset,name});return copyResult;},onStatus:message=>messages.push(message),
-    createPreview:({onState})=>{
+    createPreview:options=>{
+      previewOptions=options;const {onState}=options;
       emit=patch=>{state={...state,...patch};onState(state);};
       return {getState:()=>state,load(){},clear(){},setVolume(){},stop:()=>emit({playback:'stopped'}),pause:()=>emit({playback:'paused'}),
         play:async()=>emit({playback:'playing'}),resume:async()=>emit({playback:'playing'}),dispose(){}};
-    },setupSeek:()=>({update(){},cancelDraft(){},dispose(){}}),setupMix:()=>({update(){},close(){},dispose(){}}),
+    },setupSeek:()=>({update(){},cancelDraft(){},dispose(){}}),setupMix:()=>({update:value=>mixUpdates.push(value),close:()=>mixCloses.push(true),dispose(){}}),
   });
-  return {controls,emit,views,targets,copies,messages,byId,channel,
+  return {controls,emit,views,targets,copies,messages,mixUpdates,mixCloses,byId,channel,get previewOptions(){return previewOptions;},
     cleanup(){controls.dispose();old?Object.defineProperty(globalThis,'document',old):delete globalThis.document;}};
 }
+
+test('the optional common mix reaches preview and remains available with no VGM or during a seek',()=>{
+  const commonMix={marker:'shared instance'},h=fixture(true,{empty:true,mix:commonMix});
+  try {
+    assert.equal(h.previewOptions.mix,commonMix);
+    assert.equal(h.byId('synthSongPlayer').hidden,true,'only the reference transport needs a file');
+    assert.equal(h.byId('synthSongMixButton').disabled,false);
+    const state={groups:[{id:'ym2612',volume:0.9},{id:'psg',volume:0.5},{id:'pcm',volume:1},{id:'pwm',volume:1}],channels:[]};
+    h.emit({mix:state});assert.equal(h.mixUpdates.at(-1),state);
+    const closed=h.mixCloses.length;
+    h.emit({playback:'seeking',seekProgress:0.5,mix:state});
+    assert.equal(h.byId('synthSongMixButton').disabled,false,'shared volumes remain available while reference playback seeks');
+    assert.equal(h.mixCloses.length,closed,'seeking does not close a shared Mixer');
+    h.controls.selectTarget('synth');assert.equal(h.mixUpdates.at(-1),state);
+  }finally{h.cleanup();}
+  const standalone=fixture();
+  try{assert.equal(Object.hasOwn(standalone.previewOptions,'mix'),false,'the default preview keeps its normal options');}
+  finally{standalone.cleanup();}
+});
 
 test('playing chip selection keeps reference targets and remembers each chip channel without choosing Synth',async()=>{
   const h=fixture();

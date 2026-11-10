@@ -32,6 +32,44 @@ async function ready(f,h) {
   return {api:await pending,request};
 }
 
+test('shared PCM source volume replaces its System default and survives pending/new routes independently of Master',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setSourceVolume(1.6);f.audio.setVolume(2);
+  const pending=f.audio.prepare(h.context,h.output);await turn();
+  f.audio.setSourceVolume(.25);f.audio.setVolume(3.8);assert.equal(h.gains[0].gain.value,0);
+  const first=f.requests[0];first.task.resolve(first.device);await pending;
+  assert.equal(h.gains[0].gain.value,.25*3.8,'source volume is absolute, with no second calibrated multiplier');
+  const writes=first.writes.length;
+  f.audio.setSourceVolume(3.8);assert.equal(h.gains[0].gain.value,3.8*3.8);
+  f.audio.setSourceVolume(0);assert.equal(h.gains[0].gain.value,0);
+  f.audio.setSourceVolume(.5);f.audio.setVolume(.4);assert.equal(h.gains[0].gain.value,.5*.4);
+  assert.equal(first.writes.length,writes,'gain changes do not reset or mask a held PCM channel');
+  for(const value of [-1,3.81,NaN,Infinity,'1',null])assert.throws(()=>f.audio.setSourceVolume(value),/0\.\.3\.8/);
+  assert.equal(h.gains[0].gain.value,.5*.4);
+  const replacement=f.audio.prepare(h.context,{context:h.context});await turn();
+  f.audio.setSourceVolume(.75);f.audio.setVolume(2);assert.equal(h.gains[0].gain.value,0);
+  const next=f.requests[1];next.task.resolve(next.device);await replacement;assert.equal(h.gains[1].gain.value,1.5);
+  f.audio.setEnabled(false);f.audio.setSourceVolume(1.25);assert.equal(h.gains[1].gain.value,0);
+  f.audio.setEnabled(true);assert.equal(h.gains[1].gain.value,2.5);f.audio.dispose();
+});
+
+test('live PCM channel mutes are endpoint policy and follow pending/replaced owners without changing key masks or author pan',async()=>{
+  const f=fixture(),h=host();f.audio.setEnabled(true);f.audio.setChannelMuted(2,true);
+  const pending=f.audio.prepare(h.context,h.output);await turn();f.audio.setChannelMuted(7,true);f.audio.setChannelMuted(2,false);
+  const first=f.requests[0];first.task.resolve(first.device);const api=await pending;
+  assert.deepEqual(first.writes,[off,{method:'setChannelMuted',args:[7,true]}]);assert.equal(api.setChannelMuted,undefined);
+  api.setChannel(0,{pan:{left:15,right:3},volume:80});api.keyOn(0);const mask=api.channelMask,before=first.writes.length;
+  f.audio.setChannelMuted(0,true);f.audio.setChannelMuted(0,true);
+  assert.deepEqual(first.writes.slice(before),[{method:'setChannelMuted',args:[0,true]}]);assert.equal(api.channelMask,mask);
+  api.setChannel(0,{pan:{left:2,right:9}});assert.deepEqual(first.writes.at(-1),{method:'writeRegister',args:[1,0x92]});
+  f.audio.setChannelMuted(0,false);assert.deepEqual(first.writes.at(-1),{method:'setChannelMuted',args:[0,false]});assert.equal(api.channelMask,mask);
+  const count=first.writes.length;
+  for(const ch of [-1,8,1.5,'0'])assert.throws(()=>f.audio.setChannelMuted(ch,true));
+  for(const value of [1,null,'false'])assert.throws(()=>f.audio.setChannelMuted(0,value));assert.equal(first.writes.length,count);
+  const replacement=f.audio.prepare(h.context,{context:h.context});await turn();const next=f.requests[1];next.task.resolve(next.device);await replacement;
+  assert.deepEqual(next.writes,[off,{method:'setChannelMuted',args:[7,true]}]);
+  f.audio.dispose();const retired=next.writes.length;f.audio.setChannelMuted(1,true);assert.equal(next.writes.length,retired);
+});
+
 test('PCM endpoint is lazy, coalesces a route and applies System PCM gain and Master exactly once',async()=>{
   const f=fixture(),h=host();
   assert.equal(f.audio.getPcm(),null);assert.equal(f.audio.isPreparing(),false);assert.equal(h.gains.length,0);

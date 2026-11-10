@@ -184,10 +184,12 @@
       .synth-song-live-controls input { margin: 0; }
       #synthSongChannelSelect { font: inherit; border: 1px solid #41615b; border-radius: 999px; color: #e4eee8; background: #1b2929; padding: 4px 6px; }
       #synthSongLiveStatus { color: #8bd9ca; font-size: .65rem; overflow-wrap: anywhere; }
-      #synthSongMixPanel { position: fixed; z-index: 100; box-sizing: border-box; overflow: auto; padding: 12px; background: #172423; color: #e4eee8; border: 1px solid #7c9d91; border-radius: 12px; box-shadow: 0 8px 30px #0008; font-size: .75rem; }
-      #synthSongMixPanel[hidden] { display: none; }
+      #synthSongMixPanel { box-sizing: border-box; min-width:0; padding:12px; background:#172423; color:#e4eee8; border:1px solid #41615b; border-radius:12px; font-size:.75rem; }
       .synth-song-mix-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-      #synthSongMixChannels fieldset { min-width: 0; margin: 8px 0 0; padding: 6px; border: 1px solid #35504b; border-radius: 8px; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 8px; }
+      #synthSongMixChannelStatus { color:#a8bfba; margin-left:auto; font-size:.68rem; }
+      #synthSongMixChannels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+      #synthSongMixChannels fieldset { min-width: 0; margin:0; padding:6px; border:1px solid #35504b; border-radius:8px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 8px; }
+      @media(max-width:600px) { #synthSongMixChannels { grid-template-columns:minmax(0,1fr); } }
       #synthSongMixChannels legend { color: #a8bfba; padding: 0 4px; }
       .synth-song-mix-channel { display: flex; align-items: center; gap: 4px; }
       .synth-song-mix-channel > span { flex: 1; min-width: 0; }
@@ -986,6 +988,8 @@
       #synthKeyboardPanel[hidden], #synthCodePanel[hidden] { display:none; }
       .synth-input-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; min-width:0; }
       .synth-input-tabs { flex:1; min-width:0; }
+      #synthCodeMixerButton { display:none; flex:none; }
+      .is-code-expanded #synthCodeMixerButton { display:inline-flex; align-items:center; }
       #synthCodeExpandButton { display:grid; place-items:center; width:28px; height:28px; flex:none; padding:3px; border-radius:7px; }
       #synthCodeExpandButton[hidden] { display:none; }
       #synthCodeExpandButton svg { width:18px; height:18px; }
@@ -1475,15 +1479,8 @@
                     <option value="3">CH4</option><option value="4">CH5</option><option value="5">CH6</option>
                   </select>
                   <button id="synthSongCopyButton" class="toolbar-button" type="button" aria-label="Copy selected channel to Synth" title="Pause to copy the selected FM channel into a new editable Synth instrument." disabled>Copy</button>
-                  <button id="synthSongMixButton" class="toolbar-button" type="button" aria-expanded="false" aria-controls="synthSongMixPanel" title="Adjust reference-song chip volumes and mute individual channels. Changes take about 0.2 seconds.">Mix</button>
                 </span>
                 <output id="synthSongLiveStatus">Play, then Pause to play this CH · Synth to edit</output>
-                <div id="synthSongMixPanel" role="group" aria-label="Reference playback mixer" hidden>
-                  <div class="synth-song-mix-heading"><strong>Playback mixer</strong><button id="synthSongMixReset" class="toolbar-button" type="button" title="Restore shared System levels and unmute channels.">Reset</button></div>
-                  <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
-                  <label class="synth-song-display-option"><input id="synthSongSeekCacheToggle" type="checkbox" checked>Seek cache</label>
-                  <div id="synthSongMixChannels">Play a VGM to show its channels.</div>
-                </div>
               </div>
               <label class="volume-control" for="masterVolumeRange">
                 <span>Vol</span>
@@ -1494,10 +1491,11 @@
         <div class="layout">
           <section class="controls-stack">
             <div class="synth-chip-tabs" role="tablist" aria-label="Sound chip editor">
-              <button id="synthChipTabYm2612" class="toolbar-button is-selected" type="button" role="tab" data-synth-chip="ym2612" aria-selected="true" aria-controls="synthChipYm2612" tabindex="0">YM2612</button>
-              <button id="synthChipTabPsg" class="toolbar-button" type="button" role="tab" data-synth-chip="psg" aria-selected="false" aria-controls="synthChipPsg" tabindex="-1">PSG</button>
-              <button id="synthChipTabPcm" class="toolbar-button" type="button" role="tab" data-synth-chip="pcm" aria-selected="false" aria-controls="synthChipPcm" tabindex="-1">PCM</button>
-              <button id="synthChipTabPwm" class="toolbar-button" type="button" role="tab" data-synth-chip="pwm" aria-selected="false" aria-controls="synthChipPwm" tabindex="-1">PWM</button>
+                <button id="synthChipTabYm2612" class="toolbar-button is-selected" type="button" role="tab" data-synth-chip="ym2612" aria-selected="true" aria-controls="synthChipYm2612" tabindex="0">YM2612</button>
+                <button id="synthChipTabPsg" class="toolbar-button" type="button" role="tab" data-synth-chip="psg" aria-selected="false" aria-controls="synthChipPsg" tabindex="-1">PSG</button>
+                <button id="synthChipTabPcm" class="toolbar-button" type="button" role="tab" data-synth-chip="pcm" aria-selected="false" aria-controls="synthChipPcm" tabindex="-1">RF5C164</button>
+                <button id="synthChipTabPwm" class="toolbar-button" type="button" role="tab" data-synth-chip="pwm" aria-selected="false" aria-controls="synthChipPwm" tabindex="-1">32X PWM</button>
+                <button id="synthSongMixButton" class="toolbar-button" type="button" role="tab" data-synth-chip="mixer" aria-selected="false" aria-controls="synthChipMixer" tabindex="-1" title="Shared chip volumes and channel On / Off for Keyboard, Code and VGM.">Mixer</button>
             </div>
             <div id="synthChipYm2612" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthChipTabYm2612">
             <div class="card visual-card">
@@ -1695,6 +1693,16 @@
               <h2>32X PWM</h2><p>Under construction</p>
               <p class="subtext">Editor preview · Keyboard plays YM2612.</p>
             </div>
+            <div id="synthChipMixer" class="synth-chip-panel" role="tabpanel" aria-labelledby="synthSongMixButton" hidden>
+              <div id="synthSongMixPanel" role="group" aria-label="Sound chip mixer">
+                <div class="synth-song-mix-heading"><strong>Mixer</strong><output id="synthSongMixChannelStatus" aria-live="polite"></output><button id="synthSongMixReset" class="toolbar-button" type="button" title="Restore shared System levels and turn all channels on.">Reset</button></div>
+                <div id="synthSongMixReferenceOptions" hidden>
+                  <label class="synth-song-display-option" title="Briefly highlight changed Live values. Turn off to reduce visual updates."><input id="synthSongHighlightToggle" type="checkbox" checked>Live highlight</label>
+                  <label class="synth-song-display-option"><input id="synthSongSeekCacheToggle" type="checkbox" checked>Seek cache</label>
+                </div>
+                <div id="synthSongMixChannels"></div>
+              </div>
+            </div>
             <div class="looper-row">
               <button id="looperStartButton" class="toolbar-button" type="button">Looper Start</button>
               <button id="looperRecordButton" class="toolbar-button" type="button" hidden>Record</button>
@@ -1720,6 +1728,7 @@
                   <button id="synthInputKeyboardTab" class="toolbar-button" type="button" role="tab" aria-selected="true" aria-controls="synthKeyboardPanel">Keyboard</button>
                   <button id="synthInputCodeTab" class="toolbar-button" type="button" role="tab" aria-selected="false" aria-controls="synthCodePanel" tabindex="-1">Code</button>
                 </div>
+                <button id="synthCodeMixerButton" class="toolbar-button" type="button" aria-controls="synthChipMixer" title="Restore this view and open the Mixer tab without stopping Code.">Mixer</button>
                 <button id="synthCodeExpandButton" class="toolbar-button" type="button" aria-label="Maximize Code" title="Maximize Code beside Files" aria-pressed="false" aria-controls="synthExpandedCodeSlot" hidden>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="synthCodeExpandIcon" d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg>
                 </button>
@@ -1805,7 +1814,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=synth-code-3";
+      import "./synth.js?v=channel-mixer-1";
     </script>
   </body>
 </html>

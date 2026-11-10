@@ -7,7 +7,7 @@ import {join,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import vm from 'node:vm';
 import {restoreMixerCalibrationSidRevision,SID_PLAYGROUND_REVISION_BASE_COMMIT as commit,SID_PLAYGROUND_REVISION_RECEIPT_PATH as receiptPath,SID_PLAYGROUND_REVISION_RECEIPT_OBJECT_SHA256 as pin,SID_PLAYGROUND_REVISION_SOURCE_PATHS as paths,SID_PLAYGROUND_REVISION_REPORT_PATHS as reports} from './mixer_calibration_sid_revision.mjs';
-import {assertMixerCalibrationSourceFreshness} from './mixer_calibration_sources.mjs';
+import {assertMixerCalibrationSourceFreshness,restoreMixerCalibrationSynthDefinitionViewerRevision} from './mixer_calibration_sources.mjs';
 import {validatePs1MixerCalibrationSources} from './ps1_mixer_calibration.mjs';
 import {validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
 import {validatePokeyMixerCalibrationSources} from './pokey_mixer_calibration.mjs';
@@ -38,7 +38,7 @@ test('SID receipt authenticates all 20 complete source pairs and reconstructs th
   assert.equal(sha(JSON.stringify(receipt)),pin);assert.equal(receipt.baseCommit,commit);
   assert.deepEqual(Object.keys(receipt.sources).sort(),[...paths].sort());
   for(const path of paths){
-    const entry=receipt.sources[path],bytes=await read('docs/'+path);
+    const entry=receipt.sources[path],bytes=restoreMixerCalibrationSynthDefinitionViewerRevision(path,await read('docs/'+path));
     assert.equal(bytes.length,entry.after.bytes,path);assert.equal(sha(bytes),entry.after.sha256,path);
     const restored=restoreMixerCalibrationSidRevision(path,bytes);
     assert.equal(restored.length,entry.before.bytes,path);assert.equal(sha(restored),entry.before.sha256,path);

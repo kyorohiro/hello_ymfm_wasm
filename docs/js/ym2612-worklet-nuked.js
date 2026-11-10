@@ -32,7 +32,7 @@ function clampSample(value) {
   return value;
 }
 
-class YM2612Processor extends AudioWorkletProcessor {
+export class YM2612Processor extends AudioWorkletProcessor {
   constructor() {
     super();
 

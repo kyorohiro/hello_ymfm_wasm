@@ -11,7 +11,7 @@ import {createSynthPsgLoopPlayer} from './synth_psg_loop_player.js?v=pcm-looper-
 class SynthPsgProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();this.chip=null;this.dead=false;this.remote=null;this.latched=0;
-    this.periods=[0,0,0];this.noiseMode=0;
+    this.periods=[0,0,0];this.noiseMode=0;this.channelMutes=new Array(4).fill(false);
     this.stereoEnabled=options.processorOptions.stereoEnabled??false;
     this.clock=options.processorOptions.clock??SEGAPSG_CLOCK;
     this.sampleRate=sampleRate;
@@ -56,6 +56,7 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
   }
   resetChip() {
     this.envelope.stop();this.chip.reset();this.latched=0;this.periods.fill(0);this.noiseMode=0;
+    this.channelMutes.forEach((muted,ch)=>this.chip.setChannelMuted(ch,muted));
     this.envelope=createSynthPsgEnvelope({sampleRate:this.sampleRate,setAttenuation:(ch,value)=>this.writeByte(0x90|(ch<<5)|value)});
   }
   beginRecordingCycle(settings,pitchClock) {
@@ -70,7 +71,7 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
   }
   dispose() {
     if(this.dead)return;
-    this.loopPlayer.stop();this.player.stop();this.envelope.stop();this.dead=true;this.chip?.dispose();this.chip=null;
+    this.loopPlayer.stop();this.player.stop();this.envelope.stop();this.dead=true;this.channelMutes.fill(false);this.chip?.dispose();this.chip=null;
     this.remote?.close();this.remote=null;
   }
   fail(error) {this.dispose();this.port.postMessage({error:error.message,fatal:true});}
@@ -82,6 +83,10 @@ class SynthPsgProcessor extends AudioWorkletProcessor {
       if(!this.chip)return;
       const args=data?.args??[];
       switch(data?.method) {
+        case 'setChannelMuted':
+          if(!Number.isInteger(args[0])||args[0]<0||args[0]>3)throw RangeError('PSG mute channel must be 0..3');
+          if(typeof args[1]!=='boolean')throw TypeError('PSG muted must be a boolean');
+          this.channelMutes[args[0]]=args[1];this.chip.setChannelMuted(...args);break;
         case 'write':this.writeByte(args[0],data.psgRegister);break;
         case 'setStereo':if(this.stereoEnabled)this.chip.setStereo(args[0]);break;
         case 'reset':this.loopPlayer.stop();this.player.stop();this.resetChip();break;

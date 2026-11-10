@@ -205,7 +205,7 @@ test('volume validation is atomic, emits no source writes and dispose restores o
   const mix=installSynthSongOutputMix(engine);
   assert.equal(mix.setGroupVolume('ym2612',2),2);
   assert.equal(writes.length,0,'software gain never rewrites source registers');
-  for(const [id,gain] of [['pwm',1],['unknown',1],['psg',-.1],['pcm',3.81],['ym2612',NaN],['ym2612',Infinity],['psg','2']]) {
+  for(const [id,gain] of [['unknown',1],['psg',-.1],['pcm',3.81],['ym2612',NaN],['ym2612',Infinity],['psg','2']]) {
     assert.throws(()=>mix.setGroupVolume(id,gain),/Invalid|range/);
   }
   assert.deepEqual(engine.ym2612.generateStereo(2).left,new Float32Array([.25*2/.9,-.5*2/.9]),'invalid updates leave the accepted absolute gain and trim cancellation in place');
@@ -403,7 +403,7 @@ test('fake/optional chip engines and reset retain host masks without source-obse
   mix.dispose();assert.equal(engine.writeYm2612,original);
 });
 
-test('real WASM PWM stereo output masks preserve FIFO, timer phase and continuation', async () => {
+test('real WASM PWM source volumes and stereo masks preserve FIFO, timer phase and continuation', async () => {
   const pwm=await PWM32X.create({sampleRate:53267,outputMode:'duty',gain:1}),
     reference=await PWM32X.create({sampleRate:53267,outputMode:'duty',gain:1});
   const engine={pwm,reset:()=>pwm.reset()},mix=installSynthSongOutputMix(engine);
@@ -411,6 +411,8 @@ test('real WASM PWM stereo output masks preserve FIFO, timer phase and continuat
     assert.equal(pwm.backend,'wasm');
     for (const chip of [pwm,reference]) {chip.writeRegister(0,5);chip.writeRegister(1,100);}
     for (let frame=0;frame<600;frame++) {
+      const gain=[0,.5,1,2,3.8,SYNTH_SONG_MIX_DEFAULTS.pwm][Math.floor(frame/100)];
+      mix.setGroupVolume('pwm',gain);
       if (frame===100) mix.setMutedChannels(['pwm:0']);
       if (frame===300) mix.setMutedChannels(['pwm:1']);
       if (frame===400) mix.setMutedChannels([]);
@@ -418,8 +420,8 @@ test('real WASM PWM stereo output masks preserve FIFO, timer phase and continuat
         chip.writeRegister(2,frame&8 ? 75 : 25);chip.writeRegister(3,frame&16 ? 80 : 20);
       }
       const actual=pwm.generateStereo(3),raw=reference.generateStereo(3),expected={
-        left:Float32Array.from(raw.left,value=>value*SYNTH_SONG_MIX_DEFAULTS.pwm),
-        right:Float32Array.from(raw.right,value=>value*SYNTH_SONG_MIX_DEFAULTS.pwm),
+        left:Float32Array.from(raw.left,value=>gain===0?0:value*gain),
+        right:Float32Array.from(raw.right,value=>gain===0?0:value*gain),
       };
       if (frame>=100&&frame<300) {
         assert(actual.left.every(value=>value===0));assert.deepEqual(actual.right,expected.right);

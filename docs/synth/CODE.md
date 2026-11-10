@@ -10,6 +10,10 @@ Open **Code** below the instrument editor. The first visit creates `/index.js` o
 
 Use the maximize button at the right of the Keyboard / Code tabs to put the same editor beside Files and hide the upper Synth controls. Restore brings it back without stopping Code or losing the cursor, source or live context. Keyboard restores the ordinary layout and stops Code. Maximized layout is temporary and is not restored after a reload.
 
+Open the **Mixer** tab after 32X PWM for shared YM2612, Sega PSG, Mega CD PCM and 32X PWM volumes and channel **On / Off**. All 20 channel switches are available before loading a VGM and apply to live Keyboard, Code and VGM output. These are software output controls, applied once before Master; they stay in this session rather than the Cassette. Live highlight and Seek cache remain VGM options. The Mixer button in maximized Code restores the view and opens this tab without stopping Code.
+
+Already rendered loop layers contain mixed audio; use their chip's Volume to adjust those layers. Channel switches control the live chips and reference playback.
+
 ## Start with the current instrument
 
 ```js
