@@ -1,5 +1,6 @@
-import {createSynthProject} from './synth_project.js?v=op-gates-1';
-import {setupSynthFiles} from './synth_files.js?v=op-gates-1';
+import {createSynthProject, isPsgTonePath} from './synth_project.js?v=psg-presets-1';
+import {setupSynthFiles} from './synth_files.js?v=psg-presets-1';
+import {createPsgPreset, isPsgPreset, serializePsgPreset} from './synth_psg_preset.js?v=psg-presets-1';
 import {setupSynthSongControls} from './synth_song_controls.js?v=genesis-psg-1';
 import {createSynthLiveHighlighter} from './synth_live_highlight.js';
 import {createSynthSongVoice, describeSynthSongVoice} from './synth_song_voice.js?v=vgm-mix-copy-1';
@@ -8,7 +9,7 @@ import {SynthRecordingManager} from './synth_recording.js?v=op-gates-1';
 import {SynthLooper,applySynthLooperPatch} from './synth_looper.js?v=op-gates-1';
 import {createSynthPsgVoice} from './synth_psg.js?v=genesis-psg-1';
 import {createSynthPsgAudio} from './synth_psg_audio.js?v=genesis-psg-1';
-import {setupSynthPsgControls} from './synth_psg_controls.js?v=genesis-psg-1';
+import {setupSynthPsgControls} from './synth_psg_controls.js?v=psg-attenuation-drag-1';
 import { setupSynthMenu } from './synth_menu.js';
 import { createSynthOutputVisualizer } from "./synth_output_visualizer.js";
 import { applyModulation, modulationSettings } from "./synth_modulation.js";
@@ -126,6 +127,8 @@ let songControls = null;
 
 const presetSelect =
   document.getElementById("presetSelect");
+const psgPresetSelect = document.getElementById('synthPsgPresetSelect');
+const exportPsgButton = document.getElementById('exportPsgButton');
 const tfiFileInput =
   document.getElementById("tfiFile");
 const exportTfiButton =
@@ -171,6 +174,9 @@ const envelopeContext =
 const outputVisualizer = createSynthOutputVisualizer();
 let visualMode = 'envelope';
 let editorChip = 'ym2612';
+// The displayed reference/placeholder tab need not own the editable document.
+let activeInstrumentKind = 'fm';
+let editorSwitchPending = false;
 const editorChipTabs = [...document.querySelectorAll('[data-synth-chip]')];
 const editorChipPanels = document.querySelectorAll('.synth-chip-panel');
 const visualModeButtons = document.querySelectorAll('[data-visual-mode]');
@@ -359,6 +365,7 @@ const channel3SpecialState = {
 
 let currentPresetName =
   "one-op-basic";
+let currentPsgPresetName = 'psg-default';
 let importedTfiName = "";
 let currentPresetPan = {left:true, right:true};
 let currentPresetB4 = 0xc0;
@@ -430,8 +437,7 @@ operatorEnvelopeRoot.addEventListener('keydown', event => {
 });
 window.addEventListener('pagehide', event => {if (!event.persisted) operatorEnvelopeView.dispose();});
 
-// Chip selection changes the keyboard target without replacing the FM patch.
-// The remaining PCM/PWM tabs still preview their future editor layout.
+// This updates the view only. Files owns durable FM/PSG document transitions.
 function selectEditorChip(button) {
   const changed = editorChip !== button.dataset.synthChip;
   if (changed) {
@@ -457,12 +463,30 @@ function selectEditorChip(button) {
     void ensureAudioReady().catch(error => setStatus(`PSG audio: ${error.message}`));
   }
 }
+async function switchEditorChip(button) {
+  if (editorSwitchPending) return false;
+  const chip = button.dataset.synthChip;
+  const kind = chip === 'ym2612' ? 'fm' : chip === 'psg' ? 'psg' : null;
+  if (!kind || kind === activeInstrumentKind) {selectEditorChip(button); return true;}
+  editorSwitchPending = true;
+  stopAllNotes();
+  updateKeyboardAvailability();
+  try {
+    songControls?.selectTarget('synth');
+    return await synthFiles.switchEditor(kind);
+  } catch (error) {
+    setStatus(`Could not switch instrument: ${error.message}`);
+    return false;
+  } finally {
+    editorSwitchPending = false;
+    refreshChipAvailability();
+  }
+}
 for (const button of editorChipTabs) {
   button.addEventListener('pointerdown', event => event.preventDefault());
-  button.addEventListener('click', () => {
+  button.addEventListener('click', async () => {
     const focusWasInTabs = editorChipTabs.includes(document.activeElement);
-    selectEditorChip(button);
-    if (focusWasInTabs) button.focus();
+    if (await switchEditorChip(button) && focusWasInTabs) button.focus();
   });
   button.addEventListener('keydown', event => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -472,8 +496,7 @@ for (const button of editorChipTabs) {
       const index = editorChipTabs.indexOf(button);
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? editorChipTabs.length - 1
         : (index + offsets[event.key] + editorChipTabs.length) % editorChipTabs.length;
-      selectEditorChip(editorChipTabs[next]);
-      editorChipTabs[next].focus();
+      void switchEditorChip(editorChipTabs[next]).then(changed => {if (changed) editorChipTabs[next].focus();});
     } else if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
   });
   button.addEventListener('keyup', event => {
@@ -594,17 +617,23 @@ psgControls = setupSynthPsgControls({
   voice:psgVoice,
   onBeforeSourceChange:() => stopAllNotes(),
   onVisualModeChange:() => drawEnvelopeGuide(),
-  onSettingsChange:() => {updateKeyboardAvailability(); drawEnvelopeGuide();},
+  onSettingsChange:() => {
+    if (activeInstrumentKind === 'psg') synthFiles?.markDirty();
+    updateKeyboardAvailability(); drawEnvelopeGuide();
+  },
 });
 
 function refreshChipAvailability() {
-  const fm = editorChip !== 'psg';
-  document.querySelector('.synth-file-editor-heading').hidden = !fm;
+  const fm = activeInstrumentKind === 'fm';
+  document.querySelector('.synth-file-editor-heading').hidden = false;
   const note = document.querySelector('.synth-file-format-note');
-  note.textContent = fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : 'PSG settings · session only';
-  note.title = fm ? fmFormatTitle : 'PSG settings are kept while this page is open. FM files are separate.';
+  note.textContent = fm ? 'TFI / VGI + Synth settings · Format info ⓘ' : 'PSG instrument · JSON / Files / Cassette';
+  note.title = fm ? fmFormatTitle : 'Tone / Noise, attenuation and noise clock. Save with Sync or export PSG JSON.';
+  exportTfiButton.hidden = exportVgiButton.hidden = !fm;
+  exportPsgButton.hidden = fm;
+  exportPsgButton.disabled = fm || Boolean(songLiveView) || editorSwitchPending;
   exportTfiButton.disabled = exportVgiButton.disabled = !fm || Boolean(songLiveView);
-  for (const wheel of modulationWheels) wheel.disabled = !fm || Boolean(songLiveView);
+  for (const wheel of modulationWheels) wheel.disabled = editorChip === 'psg' || Boolean(songLiveView);
   synthFiles?.refresh();
   updateLooperUi(); updateEventRecordUi(); updateKeyboardAvailability();
 }
@@ -646,7 +675,7 @@ function isSongChannelTarget() {
 }
 
 function isPerformanceInputEnabled() {
-  return !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (editorChip === 'psg' || !isSongChannelTarget() || Boolean(songAuditionVoice));
+  return !editorSwitchPending && !switchingAudioOutput && !referenceRecordingStop && songTargetState.playback !== 'seeking' && (editorChip === 'psg' || !isSongChannelTarget() || Boolean(songAuditionVoice));
 }
 
 function getCurrentPerformanceVoice() {
@@ -806,6 +835,9 @@ function setSongLiveView(next) {
   // identical, so Pause / Live Off / CH changes cannot leave a stale pulse.
   liveHighlighter?.update(next);
   refreshVisualizerDescription();
+  if (changedMode && !active && activeInstrumentKind === 'psg') {
+    selectEditorChip(document.getElementById('synthChipTabPsg'));
+  }
 }
 
 function formatLooperProgress(
@@ -1756,7 +1788,7 @@ function applyPresetState(
 ) {
   const preset = presetName.startsWith('vfs:')
     ? synthProject.readTone(presetName.slice(4)).preset
-    : FM_PRESETS[presetName];
+    : presetName === 'psg-default' ? createPsgPreset({}) : FM_PRESETS[presetName];
 
   if (!preset) {
     return;
@@ -1766,6 +1798,17 @@ function applyPresetState(
 }
 
 function applyPresetData(preset, presetName) {
+  const kind = isPsgPreset(preset) ? 'psg' : 'fm';
+  if (kind !== activeInstrumentKind) stopAllNotes();
+  activeInstrumentKind = kind;
+  selectEditorChip(document.getElementById(kind === 'psg' ? 'synthChipTabPsg' : 'synthChipTabYm2612'));
+  if (kind === 'psg') {
+    psgVoice.setSettings(preset.settings);
+    currentPsgPresetName = presetName;
+    psgPresetSelect.value = presetName;
+    psgControls.update();
+    return;
+  }
   envelopeSelectionRevision++;
   currentPresetName = presetName;
   importedTfiName = presetName.startsWith('vfs:') ? presetName.split('/').pop() : '';
@@ -1847,6 +1890,10 @@ function buildCurrentPresetState() {
   }
 
   return preset;
+}
+
+function buildCurrentInstrumentState() {
+  return activeInstrumentKind === 'psg' ? createPsgPreset(psgVoice.getSettings()) : buildCurrentPresetState();
 }
 
 function buildLooperPatchSnapshot() {
@@ -2888,25 +2935,27 @@ function markPresetEdited() {
 }
 
 function syncFilePresetOptions() {
-  if (!presetSelect) return;
-  for (const group of presetSelect.querySelectorAll('[data-file-presets]')) group.remove();
-  const groups = new Map();
-  for (const file of synthProject.listTones()) {
-    const directory = file.path.slice(0, file.path.lastIndexOf('/'));
-    if (!groups.has(directory)) {
-      const group = document.createElement('optgroup');
-      group.label = directory.slice(1);
-      group.dataset.filePresets = '';
-      groups.set(directory, group);
+  for (const [select, psg] of [[presetSelect, false], [psgPresetSelect, true]]) {
+    for (const group of select.querySelectorAll('[data-file-presets]')) group.remove();
+    const groups = new Map();
+    for (const file of synthProject.listTones()) {
+      if (isPsgTonePath(file.path) !== psg) continue;
+      const directory = file.path.slice(0, file.path.lastIndexOf('/'));
+      if (!groups.has(directory)) {
+        const group = document.createElement('optgroup');
+        group.label = directory.slice(1);
+        group.dataset.filePresets = '';
+        groups.set(directory, group);
+      }
+      const option = document.createElement('option');
+      option.value = 'vfs:' + file.path;
+      option.textContent = file.path.split('/').pop();
+      groups.get(directory).append(option);
     }
-    const option = document.createElement('option');
-    option.value = 'vfs:' + file.path;
-    option.textContent = file.path.split('/').pop();
-    groups.get(directory).append(option);
+    const first = select.firstChild;
+    for (const group of groups.values()) select.insertBefore(group, first);
+    select.value = psg ? currentPsgPresetName : currentPresetName;
   }
-  const first = presetSelect.firstChild;
-  for (const group of groups.values()) presetSelect.insertBefore(group, first);
-  presetSelect.value = currentPresetName;
   updateTfiSummary();
 }
 
@@ -3076,6 +3125,22 @@ liveHighlighter=createSynthLiveHighlighter({controls:highlightBindings,enabled:s
 buildPresetSelect();
 buildTfiExporter();
 buildVgiExporter();
+psgPresetSelect.addEventListener('change', () => {
+  void synthFiles.selectPreset(psgPresetSelect.value).finally(() => {
+    psgPresetSelect.value = currentPsgPresetName;
+    psgPresetSelect.blur();
+  });
+});
+exportPsgButton.addEventListener('click', () => {
+  if (activeInstrumentKind !== 'psg' || songLiveView) return;
+  const text = serializePsgPreset(createPsgPreset(psgVoice.getSettings()));
+  const url = URL.createObjectURL(new Blob([text], {type:'application/json'}));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = currentPsgPresetName.startsWith('vfs:') ? currentPsgPresetName.split('/').pop() : 'instrument.psg.json';
+  document.body.append(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+  setStatus('Exported PSG instrument.');
+});
 looperStartButton?.addEventListener(
   "click",
   () => {
@@ -3137,22 +3202,32 @@ buildKeyboard();
 applyPresetState(currentPresetName);
 synthFiles = setupSynthFiles({
   project:synthProject,
-  getPreset:buildCurrentPresetState,
-  getPresetId:()=>currentPresetName,
+  getPreset:buildCurrentInstrumentState,
+  getPresetId:()=>activeInstrumentKind === 'psg' ? currentPsgPresetName : currentPresetName,
+  getEditorKind:()=>activeInstrumentKind,
+  setEditorKind(kind) {
+    activeInstrumentKind = kind;
+    selectEditorChip(document.getElementById(kind === 'psg' ? 'synthChipTabPsg' : 'synthChipTabYm2612'));
+  },
+  getDefaultPresetId:kind=>kind === 'psg' ? 'psg-default' : 'one-op-basic',
   applyPreset:applyPresetState,
   applySnapshot:applyPresetData,
   onSaved(path) {
-    currentPresetName='vfs:'+path;
-    importedTfiName=path.split('/').pop();
-    presetSelect.value=currentPresetName;
+    if (isPsgTonePath(path)) {
+      currentPsgPresetName = 'vfs:' + path;
+      psgPresetSelect.value = currentPsgPresetName;
+    } else {
+      currentPresetName='vfs:'+path;
+      importedTfiName=path.split('/').pop();
+      presetSelect.value=currentPresetName;
+    }
     updateTfiSummary();
   },
   onListChanged:syncFilePresetOptions,
   onWorkspaceReplaced:()=>songControls?.reset(),
-  isObserving:()=>editorChip === 'psg'||Boolean(songLiveView),
+  isObserving:()=>Boolean(songLiveView),
   stopAllNotes,
-  setStatus:message => setStatus(editorChip === 'psg' && message === 'Choose Synth to edit an instrument.'
-    ? 'Choose YM2612 to edit or sync an FM instrument. PSG settings are session-only.' : message),
+  setStatus,
 });
 songControls = setupSynthSongControls({
   project:synthProject,
@@ -3166,7 +3241,7 @@ songControls = setupSynthSongControls({
   onFileSelected:path=>synthFiles.selectFile(path),
   onLiveView:setSongLiveView,
   onTargetState:state => {
-    if (editorChip === 'psg' && state.target !== 'synth') selectEditorChip(document.getElementById('synthChipTabYm2612'));
+    if (editorChip === 'psg' && state.target !== 'synth' && ['loading','playing','paused','seeking'].includes(state.playback)) selectEditorChip(document.getElementById('synthChipTabYm2612'));
     setSongTargetState(state);
   },
   async onCopyToSynth(preset,name) {

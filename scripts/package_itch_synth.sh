@@ -34,6 +34,7 @@ synth_song_controls.js
 synth_psg.js
 synth_psg_audio.js
 synth_psg_controls.js
+synth_psg_preset.js
 synth_song_seek_controls.js
 synth_song_preview.js
 synth_song_state.js

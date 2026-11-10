@@ -361,10 +361,10 @@
       .synth-psg-label { flex: 0 0 78px; color: #b8cac6; font-size: .68rem; }
       .synth-psg-options { display: flex; flex: 1; flex-wrap: wrap; gap: 4px; }
       .synth-psg-options [aria-pressed="true"] { color: #7be0d6; border-color: #6c9b8e; background: #29413d; }
-      .synth-psg-number { display: inline-grid; grid-template-columns: 26px 32px 26px; align-items: center; border: 1px solid var(--pill-border); border-radius: 999px; background: var(--pill-bg); }
-      .synth-psg-number button { padding: 0; min-height: 26px; border: 0; background: transparent; color: var(--pill-ink); cursor: pointer; font-size: 1rem; }
+      .synth-psg-number.param-control.no-label { grid-template-columns: 26px 32px 26px; gap: 0; min-width: 0; padding: 0 2px; }
+      .synth-psg-number .param-button { width: 26px; height: 26px; }
       .synth-psg-number button:disabled { opacity: .3; cursor: default; }
-      .synth-psg-number output { text-align: center; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .synth-psg-number .param-value { min-width: 32px; min-height: 26px; font-size: .78rem; font-variant-numeric: tabular-nums; touch-action: none; }
       .synth-psg-scale { color: #a8bfba; font-size: .65rem; }
       .synth-psg-noise[hidden] { display: none; }
       .synth-psg-hint { margin: 10px 0 0; color: #a8bfba; font-size: .68rem; line-height: 1.5; }
@@ -1351,8 +1351,8 @@
                   <section class="synth-menu-section">
                     <h2>Import</h2>
                     <div class="synth-menu-actions">
-                      <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI…</button>
-                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,application/octet-stream" hidden>
+                      <button id="importPresetButton" class="toolbar-button" type="button" data-close-synth-menu>VGM / VGZ / S98 / TFI / VGI / PSG JSON…</button>
+                      <input id="tfiFile" type="file" multiple accept=".vgm,.vgz,.s98,.tfi,.vgi,.psg.json,application/octet-stream,application/json" hidden>
                       <button id="importCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette…</button>
                       <input id="cassetteImportInput" type="file" accept=".zip,application/zip" hidden>
                       <button id="importEventRecordingButton" class="toolbar-button" type="button" data-close-synth-menu>Event recording…</button>
@@ -1364,6 +1364,7 @@
                     <div class="synth-menu-actions">
                       <button id="exportTfiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · TFI</button>
                       <button id="exportVgiButton" class="toolbar-button" type="button" data-close-synth-menu>Instrument · VGI</button>
+                      <button id="exportPsgButton" class="toolbar-button" type="button" data-close-synth-menu hidden>Instrument · PSG JSON</button>
                       <button id="exportCassetteButton" class="toolbar-button" type="button" data-close-synth-menu>Cassette · ZIP</button>
                       <button id="eventRecordExportButton" class="toolbar-button" type="button" data-close-synth-menu disabled>Event recording · JSON</button>
                     </div>
@@ -1403,6 +1404,8 @@
             <p id="synthFileSelectionInfo" class="synth-files-caption">Choose an instrument file to edit. Other files stay in the Cassette.</p>
           </aside>
           <div class="synth-editor">
+            <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
+            <p id="presetImportNotice" class="tfi-summary" role="status" hidden></p>
             <div class="synth-file-editor-heading">
               <span id="synthActiveFilePath">Built-in instrument</span><span id="synthFileDirty"></span>
               <div class="synth-file-sync-actions" role="toolbar" aria-label="Instrument file controls">
@@ -1503,8 +1506,6 @@
                 <select id="presetSelect"></select>
                 <div id="tfiSummary" class="tfi-summary">Drop VGM / VGZ / S98 / TFI / VGI anywhere to load.</div>
               </div>
-              <p id="presetImportError" class="preset-import-error" role="alert" hidden></p>
-              <p id="presetImportNotice" class="tfi-summary" role="status" hidden></p>
               <div class="operator-stack">
                 <div class="operator-header-row">
                 <div class="operator-header-spacer"></div>
@@ -1542,9 +1543,13 @@
                 <p id="synthPsgVisualizerDescription" class="synth-psg-description">Final output waveform · after volume.</p>
                 <canvas id="synthPsgCanvas" class="synth-psg-canvas" width="720" height="160" role="img" aria-label="Final output waveform"></canvas>
               </div>
-              <div class="control-section">
+              <div id="synthPsgSettings" class="control-section">
+                <div class="preset-row">
+                  <label for="synthPsgPresetSelect">Preset</label>
+                  <select id="synthPsgPresetSelect"><option value="psg-default">PSG default</option></select>
+                </div>
                 <div class="synth-psg-heading">
-                  <div><h2>Sega PSG</h2><p class="synth-psg-session">Session sound · separate from FM presets</p></div>
+                  <div><h2>Sega PSG</h2><p class="synth-psg-session">PSG instrument · JSON / Files / Cassette</p></div>
                   <details id="synthPsgHelp" class="synth-psg-help">
                     <summary aria-label="About Sega PSG controls" title="About Sega PSG controls">?</summary>
                     <div class="synth-psg-help-body">
@@ -1563,11 +1568,7 @@
                 </div>
                 <div class="synth-psg-row">
                   <span class="synth-psg-label">Attenuation</span>
-                  <div class="synth-psg-number" role="group" aria-label="Hardware attenuation, 0 to 15">
-                    <button type="button" data-psg-attenuation-step="-1" aria-label="Decrease attenuation: louder" title="Decrease attenuation: louder">−</button>
-                    <output id="synthPsgAttenuation" aria-label="PSG attenuation" aria-live="polite">6</output>
-                    <button type="button" data-psg-attenuation-step="1" aria-label="Increase attenuation: quieter" title="Increase attenuation: quieter">+</button>
-                  </div>
+                  <div id="synthPsgAttenuationControl"></div>
                   <span class="synth-psg-scale">0 loudest · 15 silent</span>
                 </div>
                 <div id="synthPsgNoiseControls" class="synth-psg-noise" hidden>
@@ -1681,7 +1682,7 @@
     </div>
 
     <script type="module">
-      import "./synth.js?v=genesis-psg-1";
+      import "./synth.js?v=psg-presets-1";
     </script>
   </body>
 </html>

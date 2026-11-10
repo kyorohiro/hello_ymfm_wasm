@@ -1,5 +1,44 @@
 # FM2612 / Genesis Synth：PSG基本演奏（2026-11-10）
 
+## 完了：PSG音色のFiles／Cassette保存
+
+ユーザー指示：PSG音色の保存・読み込みを進め、Files／Cassetteへ保存して開くとPSGタブへ切り替える。
+
+- [x] 読みやすいversion付き`.psg.json`形式でSource／Attenuation／Noise type／Noise clockを保存・検証する。未知の形式や不正値で現在の音・ファイルを壊さない。
+- [x] Filesの選択・新規作成・Sync／Revert・Duplicate／Rename／Delete／UndoとPSGを接続し、開くと対応する音源タブへ切り替える。FMとPSGの編集中の音・保存先を混同しない。
+- [x] 元のTFI／VGIとsidecarの互換性を維持し、PSG単体のimport／exportと混在Cassetteの往復へ対応する。
+- [x] IndexedDBの再開と即時recoveryへPSGを含める。タブ切替・保存待ち・読込失敗・古い非同期処理で他音色を上書きしない。
+- [x] Nodeでschema／project／recoveryを検証し、Chromium／WebKitで保存・再読込・混在Files／Cassette・実音・FM回帰・狭幅表示を確認する。
+- [x] README・cache key・配布ZIP・検証記録を更新する。既存のユーザーstaged変更を保持し、commit／push／公開・Tauri更新はしない。
+
+作業開始時、直前のAttenuation変更4ファイルはユーザーによりstaged済み。indexを変更せず、作業を重ねる。
+
+実装：version 1／kind `tetorica-sega-psg`／settings（source・attenuation・noiseType・noiseRate）の完全なJSONを単一text fileへ保存する。PSGにはFM用sidecarを作らない。追加・読み込み・snapshot／Cassette復元・checkpointも厳密に検証し、未知のversion／不足field／不正値を原子的に拒否する。Files controllerはFM／PSG別に音色・保存先・baselineを持ち、旧音色のjournalをIndexedDBへ確定してから切り替える。新規・Sync／Revert・複製／名前変更／削除／Undo、単体import／export、混在Cassette、即時journal復旧へ接続した。読み込みエラーは両chipで見える共通位置へ移した。
+
+UI：共通のファイル名・Sync／RevertをPSGでも表示。PSGにはFMと同じcompact preset行だけを追加し、独立したSaveボタンは増やしていない。ファイルを選ぶと対応chipへ切替、FM／PSGタブ往復はそれぞれの編集音色と保存先を保持する。VGMのLive表示はdocument所有権を変更せず、終了後にPSG編集へ戻る。演奏イベントは保存操作にせず、GUIで音色設定を変えた時だけ編集する。最初のブラウザ検証で「ファイル選択直後のReloadで旧選択へ戻る」ケースを検出し、selectFile／selectPresetが保存完了を待ってからbusyを解除するよう修正、即Reloadの回帰テストを追加した。
+
+検証：`node --test --test-concurrency=1 docs/synth/*.test.mjs`で210件成功（従来193件＋PSG codec／project／recovery 11件＋Files controller 6件）。ブラウザ並列実行中の別runでは既存32X PWMの初期buffer数assertionが一度失敗したため、上記の直列runで全件を確認した。source／最終stageのChromium・WebKitでPSG新規・Sync／Revert、独立FM／PSG context、JSON入出力と不正入力の不変性、compound suffixのCRUD／Undo、即Reload recovery、混在Cassetteと元FM／opaque bytes保持、実PCM出力と演奏だけではdirtyにしないこと、preset select後のfocus解除、390／1240px表示を確認した。減衰の実pointer drag・保持音−4dB・capture解除も両browserで成功。最終stageでVGM seek／cache／Live／paused audition／キャンセルの回帰確認も両browser成功。すべてspeaker edgeを物理muteした自動計測で、人の実聴とは区別する。
+
+記録：`/private/tmp/fm2612-psg-storage-node-20261110.log`、`/private/tmp/fm2612-psg-storage-source-20261110.json`（105 assets）、`/private/tmp/fm2612-psg-storage-package-browser-20261110.json`（103 assets）、`/private/tmp/fm2612-psg-storage-seek-20261110.json`。source／配布版の保存検証receiptにある全asset hashは最終ファイルに一致。cache keyは`psg-presets-1`。共有controls factory／DSP／WASM／校正値は変更していない。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-storage-check-20261110_itch_synth.zip`（227 files、855,115 bytes、SHA-256 `6dd0dcdfaf3c004c641173d24832614e6fc5aa57c5c318f3ad9a06d0541100d5`）。全fileがstageとbyte一致。receipt：`/private/tmp/fm2612-psg-storage-package-20261110.json`。README英語／日本語とpackagingにPSG保存を反映済み。元のstaged差分を保持し、新規差分は未stage／未commit／未push／未公開。
+
+## 完了：AttenuationのFM共通ドラッグ操作
+
+ユーザー指示：FMの数値コントロールと同様に、Attenuationを押したまま左右へ動かして変更したい。
+
+- [x] 既存`createParamControl`をPSG減衰にも使い、中央の数値ドラッグと±操作を共通化する。共有factory自体は変更しない。
+- [x] 0〜15の範囲、保持中の即時反映、音名キーの入力、既存のコンパクトな表示を維持する。
+- [x] Chromium／WebKitで実pointer操作と保持音の変化を確認し、配布ZIPの参照と表示も確認する。cache keyと検証記録を更新する。commit／push／公開はしない。
+
+実装：PSG独自のoutput表示を、変更していないFM共通`createParamControl`へ置き換えた。数値中央は160pxで全範囲の水平ドラッグ、±とwheelは共通factoryに任せ、PSG側で重複加算しない。valueを作り直さず`updateVisual()`で同期し、保持音更新中のpointer captureを保つ。touch-action・lost captureの見た目・Space／Enterと音名キーをPSG側で扱う。配布ZIPは284 referencesの検査を含め生成成功。source／配布版のChromium／WebKit確認も成功。
+
+検証：実mouseで80px→8／160px→15、逆方向→0、上下限clamp・±各1回・pointerup／cancel／capture loss後の解除を確認した。保持音を6→8へdragして実PCMが約−4dBとなり、pitch registerやkey所有権が変わらないこと、数値へfocusした状態での音名キーも確認。390／1240pxの表示と音源往復時の値保持も確認した。原factory・DSP・WASM・校正値は変更していない。
+
+記録：`/private/tmp/fm2612-psg-drag-source-20261110.json`と`/private/tmp/fm2612-psg-drag-package-browser-20261110.json`。全served asset hashが最終source／stageに一致。出力端を物理muteした自動計測で、人の実聴とは区別する。
+
+確認用ZIP：`release/hello_ymfm_wasm_psg-drag-check-20261110_itch_synth.zip`（226 files、851,028 bytes、SHA-256 `af9eee119128e5d1089cba6e2fc37d47d61e654ef62e101280ff17ca8ca95b31`）。全fileがstageとbyte一致。receipt：`/private/tmp/fm2612-psg-drag-package-20261110.json`。entryとPSG controls importのcache keyは`psg-attenuation-drag-1`。未commit／未push／未公開。
+
 ユーザー指示：試作したPSGタブにTone／Noise・音量・Noise clockを入れ、演奏できるよう進める。
 
 ## 今回：完了

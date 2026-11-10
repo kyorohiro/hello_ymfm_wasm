@@ -1,3 +1,5 @@
+import {createParamControl} from './synth_controls.js?v=op-gates-1';
+
 /** Compact session controls for the shared keyboard's Sega PSG voice. */
 export function setupSynthPsgControls({
   voice,
@@ -9,12 +11,26 @@ export function setupSynthPsgControls({
   const root = document.getElementById('synthChipPsg');
   const canvas = document.getElementById('synthPsgCanvas');
   const description = document.getElementById('synthPsgVisualizerDescription');
-  const attenuation = document.getElementById('synthPsgAttenuation');
+  const attenuationHost = document.getElementById('synthPsgAttenuationControl');
   const noiseControls = document.getElementById('synthPsgNoiseControls');
   const hint = document.getElementById('synthPsgHint');
   const help = document.getElementById('synthPsgHelp');
   const listeners = [];
   let settings = voice.getSettings(), visualMode = 'waveform', disposed = false;
+  const attenuationControl = createParamControl({
+    label:'PSG attenuation', min:0, max:15, step:1, value:settings.attenuation,
+    showLabel:false, category:'level', onChange:value => change('attenuation', value),
+  });
+  attenuationControl.element.classList.add('synth-psg-number');
+  attenuationControl.element.setAttribute('role', 'group');
+  attenuationControl.element.setAttribute('aria-label', 'Hardware attenuation, 0 to 15');
+  attenuationHost.replaceWith(attenuationControl.element);
+  const attenuation = attenuationControl.element.querySelector('.param-value');
+  attenuation.id = 'synthPsgAttenuation';
+  for (const [index, button] of [...attenuationControl.element.querySelectorAll('.param-button')].entries()) {
+    button.dataset.psgAttenuationStep = String(index ? 1 : -1);
+    button.setAttribute('aria-label', index ? 'Increase attenuation: quieter' : 'Decrease attenuation: louder');
+  }
   const sourceButtons = [...root.querySelectorAll('[data-psg-source]')];
   const typeButtons = [...root.querySelectorAll('[data-psg-noise-type]')];
   const rateButtons = [...root.querySelectorAll('[data-psg-noise-rate]')];
@@ -50,9 +66,8 @@ export function setupSynthPsgControls({
     selected(sourceButtons, 'psgSource', settings.source);
     selected(typeButtons, 'psgNoiseType', settings.noiseType);
     selected(rateButtons, 'psgNoiseRate', settings.noiseRate);
-    const value = String(settings.attenuation);
-    if (attenuation.textContent !== value) attenuation.textContent = value;
-    attenuation.title = settings.attenuation === 15 ? 'Muted' : `−${settings.attenuation * 2} dB from loudest`;
+    attenuationControl.updateVisual(settings.attenuation);
+    attenuation.title = (settings.attenuation === 15 ? 'Muted' : `−${settings.attenuation * 2} dB from loudest`) + ' · Drag left/right to adjust.';
     for (const button of attenuationButtons) {
       const delta = Number(button.dataset.psgAttenuationStep);
       button.disabled = delta < 0 ? settings.attenuation === 0 : settings.attenuation === 15;
@@ -67,6 +82,7 @@ export function setupSynthPsgControls({
     return readState();
   }
   function change(field, value) {
+    if (disposed) return;
     const previous = voice.getSettings();
     if (previous[field] === value) return;
     if (field === 'source') onBeforeSourceChange(value, previous);
@@ -87,7 +103,7 @@ export function setupSynthPsgControls({
   }
   // These are performance controls, not text fields. Pointer clicks leave
   // letter keys available; keyboard activation stays local instead of Record.
-  for (const button of [...sourceButtons, ...typeButtons, ...rateButtons, ...attenuationButtons, ...visualButtons]) {
+  for (const button of [...sourceButtons, ...typeButtons, ...rateButtons, ...attenuationButtons, attenuation, ...visualButtons]) {
     listen(button, 'pointerdown', event => event.preventDefault());
     listen(button, 'keydown', event => {
       if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
@@ -99,12 +115,10 @@ export function setupSynthPsgControls({
       if (button.dataset.psgSource) change('source', button.dataset.psgSource);
       else if (button.dataset.psgNoiseType) change('noiseType', button.dataset.psgNoiseType);
       else if (button.dataset.psgNoiseRate) change('noiseRate', button.dataset.psgNoiseRate);
-      else if (button.dataset.psgAttenuationStep) {
-        const current = voice.getSettings().attenuation;
-        change('attenuation', Math.max(0, Math.min(15, current + Number(button.dataset.psgAttenuationStep))));
-      } else chooseVisualMode(button.dataset.psgVisualMode);
+      else if (button.dataset.psgVisualMode) chooseVisualMode(button.dataset.psgVisualMode);
     });
   }
+  listen(attenuation, 'lostpointercapture', () => attenuation.classList.remove('is-dragging'));
   const summary = help.querySelector('summary');
   listen(summary, 'keydown', event => {
     if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) event.stopPropagation();
